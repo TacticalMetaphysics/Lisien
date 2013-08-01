@@ -1,0 +1,96 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+<emphasis role="strong">#include</emphasis> &lt;stdlib.h&gt;
+
+int <emphasis role="strong">print_vector</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link> *v) {
+  long int i, l=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;l; i++) {
+    <emphasis role="strong">printf</emphasis>(" %li", (long int) <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v)[i]);
+  }
+  <emphasis role="strong">printf</emphasis>("\n");
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t left, right, uni;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v;
+  igraph_vector_ptr_t glist;
+  long int i;
+
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;v, -1, 0,1, 1,2, 2,2, 2,3, -1);
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;left, &amp;v, 0, IGRAPH_DIRECTED);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;v, -1, 0,1, 1,2, 2,2, 2,4, -1); 
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;right, &amp;v, 0, IGRAPH_DIRECTED);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  
+  <emphasis role="strong"><link linkend='igraph_disjoint_union'>igraph_disjoint_union</link></emphasis>(&amp;uni, &amp;left, &amp;right);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, 0);
+  <emphasis role="strong"><link linkend='igraph_get_edgelist'>igraph_get_edgelist</link></emphasis>(&amp;uni, &amp;v, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_sort'>igraph_vector_sort</link></emphasis>(&amp;v);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;left);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;right);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;uni);
+
+  <emphasis>/* Empty graph list */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;glist, 0);
+  <emphasis role="strong"><link linkend='igraph_disjoint_union_many'>igraph_disjoint_union_many</link></emphasis>(&amp;uni, &amp;glist);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_is_directed'>igraph_is_directed</link></emphasis>(&amp;uni) || <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;uni) != 0) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;glist);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;uni);
+
+  <emphasis>/* Non-empty graph list */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;glist, 10); 
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;glist); i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(glist)[i]=<emphasis role="strong">calloc</emphasis>(1, <emphasis role="strong">sizeof</emphasis>(igraph_t));
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;v, -1, 0,1, 1,0, -1);
+    <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(glist)[i], &amp;v, 0, IGRAPH_DIRECTED);    
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_disjoint_union_many'>igraph_disjoint_union_many</link></emphasis>(&amp;uni, &amp;glist);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, 0);
+  <emphasis role="strong"><link linkend='igraph_get_edgelist'>igraph_get_edgelist</link></emphasis>(&amp;uni, &amp;v, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_sort'>igraph_vector_sort</link></emphasis>(&amp;v);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;glist); i++) {
+    <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(glist)[i]);
+    <emphasis role="strong">free</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(glist)[i]);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;glist);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;uni);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

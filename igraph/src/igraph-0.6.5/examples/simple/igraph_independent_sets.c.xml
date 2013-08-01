@@ -1,0 +1,88 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdlib.h&gt;
+
+int <emphasis role="strong">print_vector</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link> *v) {
+  long int i, n=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <emphasis role="strong">printf</emphasis>(" %li", (long int) <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v)[i]);
+  }
+  <emphasis role="strong">printf</emphasis>("\n");
+}
+
+void <emphasis role="strong">warning_handler_ignore</emphasis>(<emphasis role="strong">const</emphasis> char* reason,<emphasis role="strong">const</emphasis> char* file,int line,int e) {
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t g;
+  igraph_vector_ptr_t result;
+  long int i, j, n;
+  igraph_integer_t alpha;
+  <emphasis role="strong">const</emphasis> int params[] = {4, -1, 2, 2, 0, 0, -1, -1};
+  
+  <emphasis role="strong"><link linkend='igraph_set_warning_handler'>igraph_set_warning_handler</link></emphasis>(warning_handler_ignore);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;result, 0);
+
+  <emphasis role="strong"><link linkend='igraph_tree'>igraph_tree</link></emphasis>(&amp;g, 5, 2, IGRAPH_TREE_OUT);
+  <emphasis role="strong">for</emphasis> (j=0; j&lt;<emphasis role="strong">sizeof</emphasis>(params)/(2*<emphasis role="strong">sizeof</emphasis>(params[0])); j++) {
+    <emphasis role="strong">if</emphasis> (params[2*j+1] != 0) {
+      <emphasis role="strong"><link linkend='igraph_independent_vertex_sets'>igraph_independent_vertex_sets</link></emphasis>(&amp;g, &amp;result, params[2*j], params[2*j+1]);
+    } <emphasis role="strong">else</emphasis> {
+      <emphasis role="strong"><link linkend='igraph_largest_independent_vertex_sets'>igraph_largest_independent_vertex_sets</link></emphasis>(&amp;g, &amp;result);
+    }
+    n = <emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;result);
+    <emphasis role="strong">printf</emphasis>("%ld independent sets found\n", (long)n);
+    <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+      <link linkend='igraph_vector_t'>igraph_vector_t</link>* v;
+      v=<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;result,i);
+      <emphasis role="strong">print_vector</emphasis>((<link linkend='igraph_vector_t'>igraph_vector_t</link>*)v);
+      <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v);
+      <emphasis role="strong">free</emphasis>(v);
+    }
+  }
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong"><link linkend='igraph_tree'>igraph_tree</link></emphasis>(&amp;g, 10, 2, IGRAPH_TREE_OUT);
+  <emphasis role="strong"><link linkend='igraph_maximal_independent_vertex_sets'>igraph_maximal_independent_vertex_sets</link></emphasis>(&amp;g, &amp;result);
+  n = <emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;result);
+  <emphasis role="strong">printf</emphasis>("%ld maximal independent sets found\n", (long)n);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <link linkend='igraph_vector_t'>igraph_vector_t</link>* v;
+    v=<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;result,i);
+    <emphasis role="strong">print_vector</emphasis>((<link linkend='igraph_vector_t'>igraph_vector_t</link>*)v);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v);
+    <emphasis role="strong">free</emphasis>(v);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;result);
+
+  <emphasis role="strong"><link linkend='igraph_independence_number'>igraph_independence_number</link></emphasis>(&amp;g, &amp;alpha);
+  <emphasis role="strong">printf</emphasis>("alpha=%ld\n", (long)alpha);
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

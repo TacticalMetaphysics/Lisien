@@ -1,0 +1,132 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph_types_internal.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_hashtable_t ht;
+  char *str;
+  <emphasis role="strong">const</emphasis> igraph_strvector_t *keys;
+  long int i;
+
+  <emphasis>/* init and destroy */</emphasis>
+  <emphasis role="strong">igraph_hashtable_init</emphasis>(&amp;ht);
+  <emphasis role="strong">igraph_hashtable_destroy</emphasis>(&amp;ht);
+
+  <emphasis>/* init, add some elements and destroy */</emphasis>
+  <emphasis role="strong">igraph_hashtable_init</emphasis>(&amp;ht);
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "color", "green", "red");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "size", "", "4");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "color", "", "grey");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "shape", "", "circle");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "shape", "", "diamond");
+  <emphasis role="strong">igraph_hashtable_destroy</emphasis>(&amp;ht);
+
+  <emphasis>/* reset */</emphasis>
+  <emphasis role="strong">igraph_hashtable_init</emphasis>(&amp;ht);
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "color", "green", "red");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "size", "", "4");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "color", "", "grey");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "shape", "", "circle");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "shape", "", "diamond");
+  <emphasis role="strong">igraph_hashtable_reset</emphasis>(&amp;ht);
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "color", "green", "red");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "size", "", "4");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "color", "", "grey");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "shape", "", "circle");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "shape", "", "diamond");
+  <emphasis role="strong">igraph_hashtable_destroy</emphasis>(&amp;ht);
+
+  <emphasis>/* Check semantics */</emphasis>
+  <emphasis role="strong">igraph_hashtable_init</emphasis>(&amp;ht);
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "color", "green", "red");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "size", "", "4");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "color", "", "grey");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "shape", "", "circle");
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "shape", "", "diamond");
+  
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "color", &amp;str);
+  <emphasis role="strong">printf</emphasis>("color: %s\n", str);
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "size", &amp;str);
+  <emphasis role="strong">printf</emphasis>("size: %s\n", str);
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "shape", &amp;str);
+  <emphasis role="strong">printf</emphasis>("shape: %s\n", str);
+  
+  <emphasis role="strong">igraph_hashtable_reset</emphasis>(&amp;ht);
+
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "color", &amp;str);
+  <emphasis role="strong">printf</emphasis>("color: %s\n", str);
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "size", &amp;str);
+  <emphasis role="strong">printf</emphasis>("size: %s\n", str);
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "shape", &amp;str);
+  <emphasis role="strong">printf</emphasis>("shape: %s\n", str);
+  
+  <emphasis role="strong">igraph_hashtable_getkeys</emphasis>(&amp;ht, &amp;keys);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_strvector_size'>igraph_strvector_size</link></emphasis>(keys); i++) {
+    <emphasis role="strong"><link linkend='igraph_strvector_get'>igraph_strvector_get</link></emphasis>(keys, i, &amp;str);
+    <emphasis role="strong">printf</emphasis>("%s ", str);
+  }
+  <emphasis role="strong">printf</emphasis>("\n");
+  
+  <emphasis role="strong">igraph_hashtable_destroy</emphasis>(&amp;ht);
+
+  <emphasis>/* addset2 */</emphasis>
+  <emphasis role="strong">igraph_hashtable_init</emphasis>(&amp;ht);
+  <emphasis role="strong">igraph_hashtable_addset2</emphasis>(&amp;ht, "color", "green", "redddd", 3);
+  <emphasis role="strong">igraph_hashtable_addset2</emphasis>(&amp;ht, "size", "", "4111", 1);
+  <emphasis role="strong">igraph_hashtable_addset2</emphasis>(&amp;ht, "color", "", "greysdsdf", 4);
+  <emphasis role="strong">igraph_hashtable_addset2</emphasis>(&amp;ht, "shape", "", "circle", 6);
+  <emphasis role="strong">igraph_hashtable_addset</emphasis>(&amp;ht, "shape", "", "diamond");
+  
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "color", &amp;str);
+  <emphasis role="strong">printf</emphasis>("color: %s\n", str);
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "size", &amp;str);
+  <emphasis role="strong">printf</emphasis>("size: %s\n", str);
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "shape", &amp;str);
+  <emphasis role="strong">printf</emphasis>("shape: %s\n", str);
+  
+  <emphasis role="strong">igraph_hashtable_reset</emphasis>(&amp;ht);
+
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "color", &amp;str);
+  <emphasis role="strong">printf</emphasis>("color: %s\n", str);
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "size", &amp;str);
+  <emphasis role="strong">printf</emphasis>("size: %s\n", str);
+  <emphasis role="strong">igraph_hashtable_get</emphasis>(&amp;ht, "shape", &amp;str);
+  <emphasis role="strong">printf</emphasis>("shape: %s\n", str);
+  
+  <emphasis role="strong">igraph_hashtable_getkeys</emphasis>(&amp;ht, &amp;keys);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_strvector_size'>igraph_strvector_size</link></emphasis>(keys); i++) {
+    <emphasis role="strong"><link linkend='igraph_strvector_get'>igraph_strvector_get</link></emphasis>(keys, i, &amp;str);
+    <emphasis role="strong">printf</emphasis>("%s ", str);
+  }
+  <emphasis role="strong">printf</emphasis>("\n");
+  
+  <emphasis role="strong">igraph_hashtable_destroy</emphasis>(&amp;ht);
+  
+  <emphasis role="strong">if</emphasis> (!IGRAPH_FINALLY_STACK_EMPTY) <emphasis role="strong">return</emphasis> 1;
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

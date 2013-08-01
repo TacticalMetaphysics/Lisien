@@ -1,0 +1,317 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2007-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdio.h&gt;
+
+void <emphasis role="strong">print_matrix</emphasis>(igraph_matrix_t *m) {
+  long int i, j;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(m); i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(m); j++) {
+      <emphasis role="strong">printf</emphasis>(" %g", <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j));
+    }
+    <emphasis role="strong">printf</emphasis>("\n");
+  }  
+}
+
+void <emphasis role="strong">print_vector</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link> *v) {
+  long int i, n=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <emphasis role="strong">printf</emphasis>(" %g", <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v)[i]);
+  }
+  <emphasis role="strong">printf</emphasis>("\n");
+}
+
+void <emphasis role="strong">byrow</emphasis>(igraph_matrix_t *m) {
+  long int r=<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(m), c=<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(m);
+  long int n=0, i, j;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;r; i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;c; j++) {
+      <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j) = n++;
+    }
+  }
+}
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">apply</emphasis>(m,a,b) \
+   <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;(m)); i++) { \
+     <emphasis role="strong">for</emphasis> (j=0; j&lt;<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(&amp;(m)); j++) { \
+        (a); \
+     } \
+     (b); \
+   }
+
+
+int <emphasis role="strong">main</emphasis>() {
+  igraph_matrix_t m, m2;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v;
+  long int i, j, i2, j2;
+  igraph_real_t r1, r2;
+
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m, 4, 3);
+  <emphasis role="strong">byrow</emphasis>(&amp;m);
+  
+  <emphasis>/* igraph_matrix_e */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_e\n");
+  <emphasis role="strong">apply</emphasis>(m, <emphasis role="strong">printf</emphasis>("%i ", (int)<emphasis role="strong"><link linkend='igraph_matrix_e'>igraph_matrix_e</link></emphasis>(&amp;m, i, j)), <emphasis role="strong">printf</emphasis>("\n"));
+
+  <emphasis>/* igraph_matrix_e_ptr */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_e_ptr\n");
+  <emphasis role="strong">apply</emphasis>(m, <emphasis role="strong">printf</emphasis>("%i ", (int)<emphasis role="strong"><link linkend='igraph_matrix_e_ptr'>igraph_matrix_e_ptr</link></emphasis>(&amp;m, i, j)[0]), <emphasis role="strong">printf</emphasis>("\n"));
+
+  <emphasis>/* igraph_matrix_set */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_set\n");
+  <emphasis role="strong">apply</emphasis>(m, <emphasis role="strong"><link linkend='igraph_matrix_set'>igraph_matrix_set</link></emphasis>(&amp;m, i, j, i),0 );
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m);
+  <emphasis role="strong">apply</emphasis>(m, <emphasis role="strong"><link linkend='igraph_matrix_set'>igraph_matrix_set</link></emphasis>(&amp;m, i, j, j),0 );
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m);
+
+  <emphasis>/* igraph_matrix_fill */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_fill\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_fill'>igraph_matrix_fill</link></emphasis>(&amp;m, 42);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m);
+  <emphasis role="strong"><link linkend='igraph_matrix_fill'>igraph_matrix_fill</link></emphasis>(&amp;m, -42.1);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m);
+  
+  <emphasis>/* igraph_matrix_update */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_update\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m2, 0, 0);
+  <emphasis role="strong">byrow</emphasis>(&amp;m);
+  <emphasis role="strong"><link linkend='igraph_matrix_update'>igraph_matrix_update</link></emphasis>(&amp;m2, &amp;m);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+
+  <emphasis>/* igraph_matrix_rbind */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_rbind\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_rbind'>igraph_matrix_rbind</link></emphasis>(&amp;m2, &amp;m);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+  <emphasis role="strong">printf</emphasis>("\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(&amp;m, 0, <emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(&amp;m2));
+  <emphasis role="strong"><link linkend='igraph_matrix_rbind'>igraph_matrix_rbind</link></emphasis>(&amp;m2, &amp;m);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+  <emphasis role="strong">printf</emphasis>("\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_rbind'>igraph_matrix_rbind</link></emphasis>(&amp;m, &amp;m2);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m);
+
+  <emphasis>/* igraph_matrix_cbind */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_cbind\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(&amp;m, 4, 3);
+  <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(&amp;m2, 4, 2);
+  <emphasis role="strong">byrow</emphasis>(&amp;m);
+  <emphasis role="strong">byrow</emphasis>(&amp;m2);
+  <emphasis role="strong"><link linkend='igraph_matrix_cbind'>igraph_matrix_cbind</link></emphasis>(&amp;m, &amp;m2);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m);
+
+  <emphasis>/* igraph_matrix_swap */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_swap\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_update'>igraph_matrix_update</link></emphasis>(&amp;m, &amp;m2);
+  <emphasis role="strong"><link linkend='igraph_matrix_null'>igraph_matrix_null</link></emphasis>(&amp;m);
+  <emphasis role="strong"><link linkend='igraph_matrix_swap'>igraph_matrix_swap</link></emphasis>(&amp;m, &amp;m2);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+  
+  <emphasis>/* igraph_matrix_get_row */</emphasis>
+  <emphasis>/* igraph_matrix_set_row */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_get_row\n");
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_set_row\n");
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, 0);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;m); i++) {
+    <emphasis role="strong"><link linkend='igraph_matrix_get_row'>igraph_matrix_get_row</link></emphasis>(&amp;m, &amp;v, i);
+    <emphasis role="strong"><link linkend='igraph_matrix_set_row'>igraph_matrix_set_row</link></emphasis>(&amp;m2, &amp;v, i);
+  }
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+
+  <emphasis>/* igraph_matrix_set_col */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_set_col\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_null'>igraph_matrix_null</link></emphasis>(&amp;m2);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(&amp;m); i++) {
+    <emphasis role="strong"><link linkend='igraph_matrix_get_col'>igraph_matrix_get_col</link></emphasis>(&amp;m, &amp;v, i);
+    <emphasis role="strong"><link linkend='igraph_matrix_set_col'>igraph_matrix_set_col</link></emphasis>(&amp;m2, &amp;v, i);
+  }
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+  
+  <emphasis>/* igraph_matrix_swap_rows */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_swap_rows\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_swap_rows'>igraph_matrix_swap_rows</link></emphasis>(&amp;m2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_matrix_swap_rows'>igraph_matrix_swap_rows</link></emphasis>(&amp;m2, 0, 2);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+  
+  <emphasis>/* igraph_matrix_swap_cols */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_swap_cols\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_swap_cols'>igraph_matrix_swap_cols</link></emphasis>(&amp;m2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_matrix_swap_cols'>igraph_matrix_swap_cols</link></emphasis>(&amp;m2, 0, 1);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+
+  <emphasis>/* igraph_matrix_add_constant */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_add_constant\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_add_constant'>igraph_matrix_add_constant</link></emphasis>(&amp;m2, 0);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);  
+  <emphasis role="strong"><link linkend='igraph_matrix_add_constant'>igraph_matrix_add_constant</link></emphasis>(&amp;m2, -1);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+  
+  <emphasis>/* igraph_matrix_add */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_add\n");
+  <emphasis role="strong">byrow</emphasis>(&amp;m2);
+  <emphasis role="strong">byrow</emphasis>(&amp;m);
+  <emphasis role="strong"><link linkend='igraph_matrix_add'>igraph_matrix_add</link></emphasis>(&amp;m2, &amp;m);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+
+  <emphasis>/* igraph_matrix_sub */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_sub\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_sub'>igraph_matrix_sub</link></emphasis>(&amp;m2, &amp;m);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+
+  <emphasis>/* igraph_matrix_mul_elements */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_mul_elements\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_mul_elements'>igraph_matrix_mul_elements</link></emphasis>(&amp;m2, &amp;m);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+
+  <emphasis>/* igraph_matrix_div_elements */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_div_elements\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_fill'>igraph_matrix_fill</link></emphasis>(&amp;m, 2);
+  <emphasis role="strong"><link linkend='igraph_matrix_div_elements'>igraph_matrix_div_elements</link></emphasis>(&amp;m2, &amp;m);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+
+  <emphasis>/* igraph_matrix_min */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_min\n");
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_min'>igraph_matrix_min</link></emphasis>(&amp;m2) != 0) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_min'>igraph_matrix_min</link></emphasis>(&amp;m) != 2) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+
+  <emphasis>/* igraph_matrix_which_min */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_which_min\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_which_min'>igraph_matrix_which_min</link></emphasis>(&amp;m2, &amp;i, &amp;j);
+  <emphasis role="strong">if</emphasis> (i != 0 || j != 0) { <emphasis role="strong">return</emphasis> 2; }
+  <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m2,0,1) = -1;
+  <emphasis role="strong"><link linkend='igraph_matrix_which_min'>igraph_matrix_which_min</link></emphasis>(&amp;m2, &amp;i, &amp;j);
+  <emphasis role="strong">if</emphasis> (i != 0 || j != 1) { <emphasis role="strong">return</emphasis> 2; }
+  <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m2,3,1) = -2;
+  <emphasis role="strong"><link linkend='igraph_matrix_which_min'>igraph_matrix_which_min</link></emphasis>(&amp;m2, &amp;i, &amp;j);
+  <emphasis role="strong">if</emphasis> (i != 3 || j != 1) { <emphasis role="strong">return</emphasis> 2; }
+
+  <emphasis>/* igraph_matrix_which_max */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_which_max\n");
+  <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m2,3,0) = 100;
+  <emphasis role="strong"><link linkend='igraph_matrix_which_max'>igraph_matrix_which_max</link></emphasis>(&amp;m2, &amp;i, &amp;j);
+  <emphasis role="strong">if</emphasis> (i != 3 || j != 0) { <emphasis role="strong">return</emphasis> 3; }
+  
+  <emphasis>/* igraph_matrix_minmax */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_minmax\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_minmax'>igraph_matrix_minmax</link></emphasis>(&amp;m2, &amp;r1, &amp;r2);
+  <emphasis role="strong">printf</emphasis>("%g %g\n", r1, r2);
+  
+  <emphasis>/* igraph_matrix_which_minmax */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_which_minmax\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_which_minmax'>igraph_matrix_which_minmax</link></emphasis>(&amp;m2, &amp;i, &amp;j, &amp;i2, &amp;j2);
+  <emphasis role="strong">if</emphasis> (i != 3 || j != 1 || i2 != 3 || j2 != 0) { <emphasis role="strong">return</emphasis> 4; }
+
+  <emphasis>/* igraph_matrix_isnull */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_isnull\n");
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_isnull'>igraph_matrix_isnull</link></emphasis>(&amp;m2)) { <emphasis role="strong">return</emphasis> 5; }
+  <emphasis role="strong"><link linkend='igraph_matrix_null'>igraph_matrix_null</link></emphasis>(&amp;m);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_isnull'>igraph_matrix_isnull</link></emphasis>(&amp;m)) { <emphasis role="strong">return</emphasis> 5; }
+  <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(&amp;m2, 5, 0);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_isnull'>igraph_matrix_isnull</link></emphasis>(&amp;m2)) { <emphasis role="strong">return</emphasis> 5; }  
+  
+  <emphasis>/* igraph_matrix_empty */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_empty\n");
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_empty'>igraph_matrix_empty</link></emphasis>(&amp;m2)) { <emphasis role="strong">return</emphasis> 6; }
+  <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(&amp;m2, 5, 5);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_empty'>igraph_matrix_empty</link></emphasis>(&amp;m2)) { <emphasis role="strong">return</emphasis> 6; }
+
+  <emphasis>/* igraph_matrix_is_symmetric */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_is_symmetric\n");
+  <emphasis role="strong">byrow</emphasis>(&amp;m2);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_is_symmetric'>igraph_matrix_is_symmetric</link></emphasis>(&amp;m2)) { <emphasis role="strong">return</emphasis> 7; }
+  <emphasis role="strong"><link linkend='igraph_matrix_update'>igraph_matrix_update</link></emphasis>(&amp;m, &amp;m2);
+  <emphasis role="strong"><link linkend='igraph_matrix_transpose'>igraph_matrix_transpose</link></emphasis>(&amp;m);
+  <emphasis role="strong"><link linkend='igraph_matrix_add'>igraph_matrix_add</link></emphasis>(&amp;m, &amp;m2);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_is_symmetric'>igraph_matrix_is_symmetric</link></emphasis>(&amp;m)) { <emphasis role="strong">return</emphasis> 7; }
+
+  <emphasis>/* igraph_matrix_prod */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_prod\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(&amp;m, 3,2);
+  <emphasis role="strong">byrow</emphasis>(&amp;m);
+  <emphasis role="strong"><link linkend='igraph_matrix_add_constant'>igraph_matrix_add_constant</link></emphasis>(&amp;m, 1);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m);
+  <emphasis role="strong">printf</emphasis>("product: %g\n", <emphasis role="strong"><link linkend='igraph_matrix_prod'>igraph_matrix_prod</link></emphasis>(&amp;m));
+
+  <emphasis>/* igraph_matrix_rowsum */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_rowsum\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_rowsum'>igraph_matrix_rowsum</link></emphasis>(&amp;m, &amp;v);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v);
+
+  <emphasis>/* igraph_matrix_colsum */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_colsum\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_colsum'>igraph_matrix_colsum</link></emphasis>(&amp;m, &amp;v);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v);
+
+  <emphasis>/* igraph_matrix_contains */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_contains\n");
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_contains'>igraph_matrix_contains</link></emphasis>(&amp;m, 0)) { <emphasis role="strong">return</emphasis> 8; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_contains'>igraph_matrix_contains</link></emphasis>(&amp;m, 6.0001)) { <emphasis role="strong">return</emphasis> 8; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_contains'>igraph_matrix_contains</link></emphasis>(&amp;m, 7)) { <emphasis role="strong">return</emphasis> 8; }
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_contains'>igraph_matrix_contains</link></emphasis>(&amp;m, 1)) { <emphasis role="strong">return</emphasis> 8; }
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_contains'>igraph_matrix_contains</link></emphasis>(&amp;m, 6)) { <emphasis role="strong">return</emphasis> 8; }
+  
+  <emphasis>/* igraph_matrix_search */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_search\n");
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_search'>igraph_matrix_search</link></emphasis>(&amp;m, 0, 6.0, &amp;i2, &amp;i, &amp;j)) { <emphasis role="strong">return</emphasis> 9; }
+  <emphasis role="strong">if</emphasis> (i2 != 5 || i != 2 || j != 1) { <emphasis role="strong">return</emphasis> 9; }
+  
+  <emphasis>/* igraph_matrix_remove_row */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_remove_row\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_remove_row'>igraph_matrix_remove_row</link></emphasis>(&amp;m, 1);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m);
+  <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(&amp;m,5,4);
+  <emphasis role="strong">byrow</emphasis>(&amp;m);
+  <emphasis role="strong"><link linkend='igraph_matrix_remove_row'>igraph_matrix_remove_row</link></emphasis>(&amp;m, 4);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m);
+  <emphasis role="strong"><link linkend='igraph_matrix_remove_row'>igraph_matrix_remove_row</link></emphasis>(&amp;m, 0);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m);
+
+  <emphasis>/* igraph_matrix_select_cols */</emphasis>
+  <emphasis role="strong">printf</emphasis>("igraph_matrix_select_cols\n");
+  <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(&amp;m, 6, 5);
+  <emphasis role="strong">apply</emphasis>(m, <emphasis role="strong"><link linkend='igraph_matrix_set'>igraph_matrix_set</link></emphasis>(&amp;m, i, j, j),0 );
+  <emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(&amp;v, 3);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[0]=0; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[1]=4; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[2]=2;
+  <emphasis role="strong"><link linkend='igraph_matrix_select_cols'>igraph_matrix_select_cols</link></emphasis>(&amp;m, &amp;m2, &amp;v);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+  <emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(&amp;v, 1);
+  <emphasis role="strong"><link linkend='igraph_matrix_select_cols'>igraph_matrix_select_cols</link></emphasis>(&amp;m, &amp;m2, &amp;v);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m2);
+  <emphasis role="strong"><link linkend='igraph_vector_clear'>igraph_vector_clear</link></emphasis>(&amp;v);
+  <emphasis role="strong"><link linkend='igraph_matrix_select_cols'>igraph_matrix_select_cols</link></emphasis>(&amp;m, &amp;m2, &amp;v);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_empty'>igraph_matrix_empty</link></emphasis>(&amp;m2)) { <emphasis role="strong">return</emphasis> 9; }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m2);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m);
+
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong">IGRAPH_FINALLY_STACK_SIZE</emphasis>() != 0) <emphasis role="strong">return</emphasis> 10;
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

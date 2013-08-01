@@ -1,0 +1,4 @@
+libigraph_la-fortran_intrinsics.lo: fortran_intrinsics.c \
+ /usr/lib/gcc/x86_64-linux-gnu/4.7/include/float.h
+
+/usr/lib/gcc/x86_64-linux-gnu/4.7/include/float.h:

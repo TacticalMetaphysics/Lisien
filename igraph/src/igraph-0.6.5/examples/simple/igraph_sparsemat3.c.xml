@@ -1,0 +1,310 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2009-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;cs/cs.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph_sparsemat.h&gt;
+
+int <emphasis role="strong">permute</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *M, 
+	    <emphasis role="strong">const</emphasis> igraph_vector_int_t *p,
+	    <emphasis role="strong">const</emphasis> igraph_vector_int_t *q,
+	    igraph_matrix_t *res) {
+  
+  long int nrow=<emphasis role="strong">igraph_vector_int_size</emphasis>(p);
+  long int ncol=<emphasis role="strong">igraph_vector_int_size</emphasis>(q);
+  long int i, j;
+
+  <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(res, nrow, ncol);
+
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;nrow; i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;ncol; j++) {
+      int ii=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*p)[i];
+      int jj=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*q)[j];
+      <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*res, i, j) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*M, ii, jj);
+    }
+  }
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">permute_rows</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *M,
+		 <emphasis role="strong">const</emphasis> igraph_vector_int_t *p,
+		 igraph_matrix_t *res) {
+
+  long int nrow=<emphasis role="strong">igraph_vector_int_size</emphasis>(p);
+  long int ncol=<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(M);
+  long int i, j;
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(res, nrow, ncol);
+  
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;nrow; i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;ncol; j++) {
+      int ii=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*p)[i];
+      <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*res, i, j) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*M, ii, j);
+    }
+  }
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">permute_cols</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *M,
+		 <emphasis role="strong">const</emphasis> igraph_vector_int_t *q,
+		 igraph_matrix_t *res) {
+
+  long int nrow=<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(M);
+  long int ncol=<emphasis role="strong">igraph_vector_int_size</emphasis>(q);
+  long int i, j;
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(res, nrow, ncol);
+  
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;nrow; i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;ncol; j++) {
+      int jj=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*q)[j];
+      <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*res, i, j) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*M, i, jj);
+    }
+  }
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">random_permutation</emphasis>(igraph_vector_int_t *vec) {
+  <emphasis>/* We just do size(vec) * 2 swaps */</emphasis>
+  long int one, two, i, n=<emphasis role="strong">igraph_vector_int_size</emphasis>(vec);
+  int tmp;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;2*n; i++) {
+    one= <emphasis role="strong">RNG_INTEGER</emphasis>(0, n-1);
+    two= <emphasis role="strong">RNG_INTEGER</emphasis>(0, n-1);
+    tmp=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*vec)[one];
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*vec)[one] = <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*vec)[two];
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*vec)[two] = tmp;
+  }
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+igraph_bool_t <emphasis role="strong">check_same</emphasis>(<emphasis role="strong">const</emphasis> igraph_sparsemat_t *A, 
+			 <emphasis role="strong">const</emphasis> igraph_matrix_t *M) {
+  
+  long int nrow=<emphasis role="strong"><link linkend='igraph_sparsemat_nrow'>igraph_sparsemat_nrow</link></emphasis>(A);
+  long int ncol=<emphasis role="strong"><link linkend='igraph_sparsemat_ncol'>igraph_sparsemat_ncol</link></emphasis>(A);
+  long int j, p, nzero=0;
+  
+  <emphasis role="strong">if</emphasis> (nrow != <emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(M) ||
+      ncol != <emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(M)) { 
+    <emphasis role="strong">return</emphasis> 0; 
+  }
+  
+  <emphasis role="strong">for</emphasis> (j=0; j&lt;A-&gt;cs-&gt;n; j++) {
+    <emphasis role="strong">for</emphasis> (p=A-&gt;cs-&gt;p[j]; p &lt; A-&gt;cs-&gt;p[j+1]; p++) {
+      long int to=A-&gt;cs-&gt;i[p];
+      igraph_real_t value=A-&gt;cs-&gt;x[p];
+      <emphasis role="strong">if</emphasis> (value != <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*M, to, j)) { <emphasis role="strong">return</emphasis> 0; }
+      nzero += 1;
+    }
+  }
+
+  <emphasis role="strong">for</emphasis> (j=0; j&lt;nrow; j++) {
+    <emphasis role="strong">for</emphasis> (p=0; p&lt;ncol; p++) {
+      <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*M, j, p) != 0) { nzero -= 1; }
+    }
+  }
+
+  <emphasis role="strong">return</emphasis> nzero == 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_sparsemat_t A, B;
+  igraph_matrix_t M, N;
+  igraph_vector_int_t p, q;
+  long int i;
+
+  <emphasis>/* Permutation of a matrix */</emphasis>
+
+<emphasis role="strong">#define</emphasis> NROW 10
+<emphasis role="strong">#define</emphasis> NCOL 5
+<emphasis role="strong">#define</emphasis> EDGES NROW*NCOL/3
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;M, NROW, NCOL);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, NROW, NCOL, EDGES);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES; i++) {
+    long int r=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NROW-1);
+    long int c=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NCOL-1);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1,5);
+    <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, r, c) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, r, c) + value;
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, r, c, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+
+  <emphasis role="strong">igraph_vector_int_init_seq</emphasis>(&amp;p, 0, NROW-1);
+  <emphasis role="strong">igraph_vector_int_init_seq</emphasis>(&amp;q, 0, NCOL-1);
+
+  <emphasis>/* Identity */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;N, 0, 0);
+  <emphasis role="strong">permute</emphasis>(&amp;M, &amp;p, &amp;q, &amp;N);
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_permute'>igraph_sparsemat_permute</link></emphasis>(&amp;B, &amp;p, &amp;q, &amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_dupl'>igraph_sparsemat_dupl</link></emphasis>(&amp;A);
+  
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_same</emphasis>(&amp;A, &amp;N)) { <emphasis role="strong">return</emphasis> 1; }
+
+  <emphasis>/* Random permutation */</emphasis>
+  <emphasis role="strong">random_permutation</emphasis>(&amp;p);
+  <emphasis role="strong">random_permutation</emphasis>(&amp;q);
+
+  <emphasis role="strong">permute</emphasis>(&amp;M, &amp;p, &amp;q, &amp;N);
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_permute'>igraph_sparsemat_permute</link></emphasis>(&amp;B, &amp;p, &amp;q, &amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_dupl'>igraph_sparsemat_dupl</link></emphasis>(&amp;A);
+  
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_same</emphasis>(&amp;A, &amp;N)) { <emphasis role="strong">return</emphasis> 2; }
+  
+  <emphasis role="strong">igraph_vector_int_destroy</emphasis>(&amp;p);
+  <emphasis role="strong">igraph_vector_int_destroy</emphasis>(&amp;q);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;M);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;N);
+
+<emphasis role="strong">#undef</emphasis> NROW
+<emphasis role="strong">#undef</emphasis> NCOL
+<emphasis role="strong">#undef</emphasis> EDGES
+
+  <emphasis>/* Indexing */</emphasis>
+
+<emphasis role="strong">#define</emphasis> NROW 10
+<emphasis role="strong">#define</emphasis> NCOL 5
+<emphasis role="strong">#define</emphasis> EDGES NROW*NCOL/3
+<emphasis role="strong">#define</emphasis> I_NROW 6
+<emphasis role="strong">#define</emphasis> I_NCOL 3
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;M, NROW, NCOL);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, NROW, NCOL, EDGES);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES; i++) {
+    long int r=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NROW-1);
+    long int c=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NCOL-1);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1,5);
+    <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, r, c) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, r, c) + value;
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, r, c, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+
+  <emphasis role="strong">igraph_vector_int_init</emphasis>(&amp;p, I_NROW);
+  <emphasis role="strong">igraph_vector_int_init</emphasis>(&amp;q, I_NCOL);
+  
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;I_NROW; i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(p)[i] = <emphasis role="strong">RNG_INTEGER</emphasis>(0, I_NROW-1);
+  }
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;I_NCOL; i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(p)[i] = <emphasis role="strong">RNG_INTEGER</emphasis>(0, I_NCOL-1);
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;N, 0, 0);
+  <emphasis role="strong">permute</emphasis>(&amp;M, &amp;p, &amp;q, &amp;N);
+  
+  <emphasis role="strong"><link linkend='igraph_sparsemat_index'>igraph_sparsemat_index</link></emphasis>(&amp;B, &amp;p, &amp;q, &amp;A, 0);
+  
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_same</emphasis>(&amp;A, &amp;N)) { <emphasis role="strong">return</emphasis> 3; }
+  
+  <emphasis>/* A single element */</emphasis>
+  
+  <emphasis role="strong">igraph_vector_int_resize</emphasis>(&amp;p, 1);
+  <emphasis role="strong">igraph_vector_int_resize</emphasis>(&amp;q, 1);
+  
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;100; i++) {
+    igraph_real_t value;
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(p)[0] = <emphasis role="strong">RNG_INTEGER</emphasis>(0, NROW-1);
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(q)[0] = <emphasis role="strong">RNG_INTEGER</emphasis>(0, NCOL-1);
+    <emphasis role="strong"><link linkend='igraph_sparsemat_index'>igraph_sparsemat_index</link></emphasis>(&amp;B, &amp;p, &amp;q, <emphasis>/*res=*/</emphasis> 0, &amp;value);
+    <emphasis role="strong">if</emphasis> (value != <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(p)[0], <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(q)[0])) { 
+      <emphasis role="strong">return</emphasis> 4; 
+    }
+  }
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;100; i++) {
+    igraph_real_t value;
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(p)[0] = <emphasis role="strong">RNG_INTEGER</emphasis>(0, NROW-1);
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(q)[0] = <emphasis role="strong">RNG_INTEGER</emphasis>(0, NCOL-1);
+    <emphasis role="strong"><link linkend='igraph_sparsemat_index'>igraph_sparsemat_index</link></emphasis>(&amp;B, &amp;p, &amp;q, <emphasis>/*res=*/</emphasis> &amp;A, &amp;value);
+    <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+    <emphasis role="strong">if</emphasis> (value != <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(p)[0], <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(q)[0])) { 
+      <emphasis role="strong">return</emphasis> 4; 
+    }
+  }
+
+  <emphasis role="strong">igraph_vector_int_destroy</emphasis>(&amp;p);
+  <emphasis role="strong">igraph_vector_int_destroy</emphasis>(&amp;q);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;M);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;N);
+
+  <emphasis>/* Indexing only the rows or the columns */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;M, NROW, NCOL);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, NROW, NCOL, EDGES);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES; i++) {
+    long int r=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NROW-1);
+    long int c=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NCOL-1);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1,5);
+    <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, r, c) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, r, c) + value;
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, r, c, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  
+  <emphasis role="strong">igraph_vector_int_init</emphasis>(&amp;p, I_NROW);
+  <emphasis role="strong">igraph_vector_int_init</emphasis>(&amp;q, I_NCOL);
+  
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;I_NROW; i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(p)[i] = <emphasis role="strong">RNG_INTEGER</emphasis>(0, I_NROW-1);
+  }
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;I_NCOL; i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(p)[i] = <emphasis role="strong">RNG_INTEGER</emphasis>(0, I_NCOL-1);
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;N, 0, 0);
+  <emphasis role="strong">permute_rows</emphasis>(&amp;M, &amp;p, &amp;N);
+  
+  <emphasis role="strong"><link linkend='igraph_sparsemat_index'>igraph_sparsemat_index</link></emphasis>(&amp;B, &amp;p, 0, &amp;A, 0);
+
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_same</emphasis>(&amp;A, &amp;N)) { <emphasis role="strong">return</emphasis> 5; }
+  
+  <emphasis role="strong">permute_cols</emphasis>(&amp;M, &amp;q, &amp;N);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_index'>igraph_sparsemat_index</link></emphasis>(&amp;B, 0, &amp;q, &amp;A, 0);
+  
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_same</emphasis>(&amp;A, &amp;N)) { <emphasis role="strong">return</emphasis> 6; }
+  
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+  <emphasis role="strong">igraph_vector_int_destroy</emphasis>(&amp;p);
+  <emphasis role="strong">igraph_vector_int_destroy</emphasis>(&amp;q);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;M);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;N);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

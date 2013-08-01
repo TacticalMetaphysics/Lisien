@@ -1,0 +1,47 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, USA 02139</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v;
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init_seq'>igraph_vector_init_seq</link></emphasis>(&amp;v, 1, 1000);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_capacity'>igraph_vector_capacity</link></emphasis>(&amp;v) != 1000) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(&amp;v, 1001);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_capacity'>igraph_vector_capacity</link></emphasis>(&amp;v) != 2000) { 
+    <emphasis role="strong">return</emphasis> 2;
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_vector_resize_min'>igraph_vector_resize_min</link></emphasis>(&amp;v);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_capacity'>igraph_vector_capacity</link></emphasis>(&amp;v) != <emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;v)) {
+    <emphasis role="strong">return</emphasis> 3;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

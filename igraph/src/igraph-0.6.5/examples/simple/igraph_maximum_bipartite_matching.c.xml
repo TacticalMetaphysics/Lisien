@@ -1,0 +1,249 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* vim:set ts=2 sw=2 sts=2 et: */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2012  Tamas Nepusz </emphasis>&lt;ntamas@gmail.com&gt;
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdio.h&gt;
+
+int <emphasis role="strong">test_graph_from_leda_tutorial</emphasis>() {
+  <emphasis>/* Test graph from the LEDA tutorial:</emphasis>
+<emphasis>   * </emphasis>http://www.leda-tutorial.org/en/unofficial/ch05s03s05.html
+<emphasis>   */</emphasis>
+  igraph_t graph;
+  igraph_vector_bool_t types;
+  igraph_vector_long_t matching;
+  igraph_integer_t matching_size;
+  igraph_real_t matching_weight;
+  igraph_bool_t is_matching;
+  int i;
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;graph, 0, 0,
+      0, 8, 0, 12, 0, 14,
+      1, 9, 1, 10, 1, 13,
+      2, 8, 2, 9,
+      3, 10, 3, 11, 3, 13,
+      4, 9, 4, 14,
+      5, 14,
+      6, 9, 6, 14,
+      7, 8, 7, 12, 7, 14
+      , -1);
+  <emphasis role="strong">igraph_vector_bool_init</emphasis>(&amp;types, 15);
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; 15; i++)
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(types)[i] = (i &gt;= 8);
+  <emphasis role="strong">igraph_vector_long_init</emphasis>(&amp;matching, 0);
+
+  <emphasis role="strong"><link linkend='igraph_maximum_bipartite_matching'>igraph_maximum_bipartite_matching</link></emphasis>(&amp;graph, &amp;types, &amp;matching_size,
+      &amp;matching_weight, &amp;matching, 0, 0);
+  <emphasis role="strong">if</emphasis> (matching_size != 6) {
+    <emphasis role="strong">printf</emphasis>("matching_size is %ld, expected: 6\n", (long)matching_size);
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  <emphasis role="strong">if</emphasis> (matching_weight != 6) {
+    <emphasis role="strong">printf</emphasis>("matching_weight is %ld, expected: 6\n", (long)matching_weight);
+    <emphasis role="strong">return</emphasis> 2;
+  }
+  <emphasis role="strong"><link linkend='igraph_is_maximal_matching'>igraph_is_maximal_matching</link></emphasis>(&amp;graph, &amp;types, &amp;matching, &amp;is_matching);
+  <emphasis role="strong">if</emphasis> (!is_matching) {
+    <emphasis role="strong">printf</emphasis>("not a matching: ");
+    <emphasis role="strong">igraph_vector_long_print</emphasis>(&amp;matching);
+    <emphasis role="strong">return</emphasis> 3;
+  }
+
+  <emphasis role="strong">igraph_vector_long_destroy</emphasis>(&amp;matching);
+  <emphasis role="strong">igraph_vector_bool_destroy</emphasis>(&amp;types);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;graph);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">test_weighted_graph_from_mit_notes</emphasis>() {
+  <emphasis>/* Test graph from the following lecture notes:</emphasis>
+<emphasis>   * </emphasis>http://math.mit.edu/~goemans/18433S07/matching-notes.pdf
+<emphasis>   */</emphasis>
+  igraph_t graph;
+  igraph_vector_bool_t types;
+  igraph_vector_long_t matching;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> weights;
+  igraph_integer_t matching_size;
+  igraph_real_t matching_weight;
+  igraph_bool_t is_matching;
+  igraph_real_t weight_array[] = { 2, 7, 2, 3,
+      1, 3, 9, 3, 3,
+      1, 3, 3, 1, 2,
+      4, 1, 2,
+      3 };
+  int i;
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;graph, 0, 0,
+      0, 6, 0, 7, 0, 8, 0, 9,
+      1, 5, 1, 6, 1, 7, 1, 8, 1, 9,
+      2, 5, 2, 6, 2, 7, 2, 8, 2, 9,
+      3, 5, 3, 7, 3, 9,
+      4, 7, -1);
+  <emphasis role="strong">igraph_vector_bool_init</emphasis>(&amp;types, 10);
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; 10; i++)
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(types)[i] = (i &gt;= 5);
+  <emphasis role="strong">igraph_vector_long_init</emphasis>(&amp;matching, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init_copy'>igraph_vector_init_copy</link></emphasis>(&amp;weights, weight_array,
+      <emphasis role="strong">sizeof</emphasis>(weight_array) / <emphasis role="strong">sizeof</emphasis>(weight_array[0]));
+
+  <emphasis role="strong"><link linkend='igraph_maximum_bipartite_matching'>igraph_maximum_bipartite_matching</link></emphasis>(&amp;graph, &amp;types, &amp;matching_size,
+      &amp;matching_weight, &amp;matching, &amp;weights, 0);
+  <emphasis role="strong">if</emphasis> (matching_size != 4) {
+    <emphasis role="strong">printf</emphasis>("matching_size is %ld, expected: 4\n", (long)matching_size);
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  <emphasis role="strong">if</emphasis> (matching_weight != 19) {
+    <emphasis role="strong">printf</emphasis>("matching_weight is %ld, expected: 19\n", (long)matching_weight);
+    <emphasis role="strong">return</emphasis> 2;
+  }
+  <emphasis role="strong"><link linkend='igraph_is_maximal_matching'>igraph_is_maximal_matching</link></emphasis>(&amp;graph, &amp;types, &amp;matching, &amp;is_matching);
+  <emphasis role="strong">if</emphasis> (!is_matching) {
+    <emphasis role="strong">printf</emphasis>("not a matching: ");
+    <emphasis role="strong">igraph_vector_long_print</emphasis>(&amp;matching);
+    <emphasis role="strong">return</emphasis> 3;
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;weights);
+  <emphasis role="strong">igraph_vector_long_destroy</emphasis>(&amp;matching);
+  <emphasis role="strong">igraph_vector_bool_destroy</emphasis>(&amp;types);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;graph);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">test_weighted_graph_generated</emphasis>() {
+  <emphasis>/* Several randomly generated small test graphs */</emphasis>
+  igraph_t graph;
+  igraph_vector_bool_t types;
+  igraph_vector_long_t matching;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> weights;
+  igraph_integer_t matching_size;
+  igraph_real_t matching_weight;
+  igraph_bool_t is_matching;
+  igraph_real_t weight_array_1[] = { 8, 5, 9, 18, 20, 13 };
+  igraph_real_t weight_array_2[] = { 20, 4, 20, 3, 13, 1 };
+  int i;
+
+  <emphasis role="strong">igraph_vector_bool_init</emphasis>(&amp;types, 10);
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; 10; i++)
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(types)[i] = (i &gt;= 5);
+  <emphasis role="strong">igraph_vector_long_init</emphasis>(&amp;matching, 0);
+
+  <emphasis>/* Case 1 */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;graph, 0, 0, 0, 8, 2, 7, 3, 7, 3, 8, 4, 5, 4, 9, -1);
+  <emphasis role="strong"><link linkend='igraph_vector_init_copy'>igraph_vector_init_copy</link></emphasis>(&amp;weights, weight_array_1,
+      <emphasis role="strong">sizeof</emphasis>(weight_array_1) / <emphasis role="strong">sizeof</emphasis>(weight_array_1[0]));
+  <emphasis role="strong"><link linkend='igraph_maximum_bipartite_matching'>igraph_maximum_bipartite_matching</link></emphasis>(&amp;graph, &amp;types, &amp;matching_size,
+      &amp;matching_weight, &amp;matching, &amp;weights, 0);
+  <emphasis role="strong">if</emphasis> (matching_weight != 43) {
+    <emphasis role="strong">printf</emphasis>("matching_weight is %ld, expected: 43\n", (long)matching_weight);
+    <emphasis role="strong">return</emphasis> 2;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;weights);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;graph);
+
+  <emphasis>/* Case 2 */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;graph, 0, 0, 0, 5, 0, 6, 1, 7, 2, 5, 3, 5, 3, 9, -1);
+  <emphasis role="strong"><link linkend='igraph_vector_init_copy'>igraph_vector_init_copy</link></emphasis>(&amp;weights, weight_array_2,
+      <emphasis role="strong">sizeof</emphasis>(weight_array_2) / <emphasis role="strong">sizeof</emphasis>(weight_array_2[0]));
+  <emphasis role="strong"><link linkend='igraph_maximum_bipartite_matching'>igraph_maximum_bipartite_matching</link></emphasis>(&amp;graph, &amp;types, &amp;matching_size,
+      &amp;matching_weight, &amp;matching, &amp;weights, 0);
+  <emphasis role="strong">if</emphasis> (matching_weight != 41) {
+    <emphasis role="strong">printf</emphasis>("matching_weight is %ld, expected: 41\n", (long)matching_weight);
+    <emphasis role="strong">return</emphasis> 2;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;weights);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;graph);
+
+  <emphasis role="strong">igraph_vector_long_destroy</emphasis>(&amp;matching);
+  <emphasis role="strong">igraph_vector_bool_destroy</emphasis>(&amp;types);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">test_weighted_graph_from_file</emphasis>(<emphasis role="strong">const</emphasis> char* fname, int type1_count, long exp_weight) {
+  igraph_t graph;
+  igraph_vector_bool_t types;
+  igraph_vector_long_t matching;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> weights;
+  igraph_real_t matching_weight;
+  FILE* f;
+  int i, n;
+
+  f = <emphasis role="strong">fopen</emphasis>(fname, "r");
+  <emphasis role="strong">if</emphasis> (!f) {
+    <emphasis role="strong">fprintf</emphasis>(stderr, "No such file: %s\n", fname);
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  <emphasis role="strong"><link linkend='igraph_read_graph_ncol'>igraph_read_graph_ncol</link></emphasis>(&amp;graph, f, 0, 1, 1, 0);
+  <emphasis role="strong">fclose</emphasis>(f);
+
+  n = <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;graph);
+  <emphasis role="strong">igraph_vector_bool_init</emphasis>(&amp;types, n);
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; n; i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(types)[i] = (i &gt;= type1_count);
+  }
+
+  <emphasis role="strong">igraph_vector_long_init</emphasis>(&amp;matching, 0);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;weights, 0);
+  <emphasis role="strong"><link linkend='EANV'>EANV</link></emphasis>(&amp;graph, "weight", &amp;weights);
+  <emphasis role="strong"><link linkend='igraph_maximum_bipartite_matching'>igraph_maximum_bipartite_matching</link></emphasis>(&amp;graph, &amp;types, 0, &amp;matching_weight,
+      &amp;matching, &amp;weights, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;weights);
+
+  <emphasis role="strong">igraph_vector_long_print</emphasis>(&amp;matching);
+  <emphasis role="strong">if</emphasis> (matching_weight != exp_weight) {
+    <emphasis role="strong">printf</emphasis>("matching_weight is %ld, expected: %ld\n", (long)matching_weight,
+        (long)exp_weight);
+    <emphasis role="strong">return</emphasis> 2;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;weights);
+  <emphasis role="strong">igraph_vector_long_destroy</emphasis>(&amp;matching);
+  <emphasis role="strong">igraph_vector_bool_destroy</emphasis>(&amp;types);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;graph);
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  <emphasis role="strong"><link linkend='igraph_i_set_attribute_table'>igraph_i_set_attribute_table</link></emphasis>(&amp;igraph_cattribute_table);
+
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong">test_graph_from_leda_tutorial</emphasis>())
+    <emphasis role="strong">return</emphasis> 1;
+
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong">test_weighted_graph_from_mit_notes</emphasis>())
+    <emphasis role="strong">return</emphasis> 2;
+
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong">test_weighted_graph_generated</emphasis>())
+    <emphasis role="strong">return</emphasis> 3;
+
+  <emphasis role="strong">if</emphasis> (!IGRAPH_FINALLY_STACK_EMPTY) {
+    <emphasis role="strong">printf</emphasis>("Finally stack still has %d elements.\n", <emphasis role="strong">IGRAPH_FINALLY_STACK_SIZE</emphasis>());
+    <emphasis role="strong">return</emphasis> 4;
+  }
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

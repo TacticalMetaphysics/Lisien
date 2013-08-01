@@ -1,0 +1,124 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;time.h&gt;
+
+<emphasis role="strong">#define</emphasis> DIM 10
+
+int <emphasis role="strong">check_ev</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *A, <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *values,
+	     <emphasis role="strong">const</emphasis> igraph_matrix_t *vectors, int err_off) {
+
+  int i, n=<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(A);
+  int ne=<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(vectors);
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v, lhs, rhs;
+
+  <emphasis role="strong">if</emphasis> (ne != <emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(values)) {
+    <emphasis role="strong">printf</emphasis>("'values' and 'vectors' sizes do not match\n");
+    <emphasis role="strong">exit</emphasis>(err_off + 1);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;lhs, n);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;rhs, n);
+
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;ne; i++) {
+    <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;v, &amp;<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*vectors, 0, i), n);
+    <emphasis role="strong"><link linkend='igraph_blas_dgemv'>igraph_blas_dgemv</link></emphasis>(<emphasis>/*transpose=*/</emphasis> 0, <emphasis>/*alpha=*/</emphasis> 1, A, &amp;v, 
+		      <emphasis>/*beta=*/</emphasis> 0, &amp;lhs);
+    <emphasis role="strong"><link linkend='igraph_vector_update'>igraph_vector_update</link></emphasis>(&amp;rhs, &amp;v);
+    <emphasis role="strong"><link linkend='igraph_vector_scale'>igraph_vector_scale</link></emphasis>(&amp;rhs, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*values)[i]);
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_maxdifference'>igraph_vector_maxdifference</link></emphasis>(&amp;lhs, &amp;rhs) &gt; 1e-10) { 
+      <emphasis role="strong">printf</emphasis>("LHS %i: ", i); <emphasis role="strong">igraph_vector_print</emphasis>(&amp;lhs);
+      <emphasis role="strong">printf</emphasis>("RHS %i: ", i); <emphasis role="strong">igraph_vector_print</emphasis>(&amp;rhs);
+      <emphasis role="strong">exit</emphasis>(err_off + 2);
+    }
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;rhs);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;lhs);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_matrix_t A;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> values;
+  igraph_matrix_t vectors;
+  int i, j;
+  igraph_eigen_which_t which;
+  <link linkend='igraph_arpack_options_t'>igraph_arpack_options_t</link> options;
+
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 42 * 42);
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;A, DIM, DIM);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;vectors, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;values, 0);
+
+  <emphasis role="strong"><link linkend='igraph_arpack_options_init'>igraph_arpack_options_init</link></emphasis>(&amp;options);
+
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {
+    <emphasis role="strong">for</emphasis> (j=i; j&lt;DIM; j++) {
+      <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(A, i, j) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(A, j, i) = 
+	<emphasis role="strong"><link linkend='igraph_rng_get_integer'>igraph_rng_get_integer</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 1, 10);
+    }
+  }
+  
+  which.pos=IGRAPH_EIGEN_LM;
+  which.howmany=2;
+  <emphasis role="strong">igraph_eigen_matrix_symmetric</emphasis>(&amp;A, <emphasis>/*sA=*/</emphasis> 0, <emphasis>/*fun=*/</emphasis> 0, DIM, <emphasis>/*extra=*/</emphasis> 0,
+  				IGRAPH_EIGEN_ARPACK, &amp;which, &amp;options,
+  				<emphasis>/*storage=*/</emphasis> 0, &amp;values, &amp;vectors);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;values);
+  <emphasis role="strong">check_ev</emphasis>(&amp;A, &amp;values, &amp;vectors, 0);
+
+  which.howmany=8;
+  <emphasis role="strong">igraph_eigen_matrix_symmetric</emphasis>(&amp;A, <emphasis>/*sA=*/</emphasis> 0, <emphasis>/*fun=*/</emphasis> 0, DIM, <emphasis>/*extra=*/</emphasis> 0,
+  				IGRAPH_EIGEN_ARPACK, &amp;which, &amp;options,
+  				<emphasis>/*storage=*/</emphasis> 0, &amp;values, &amp;vectors);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;values);
+  <emphasis role="strong">check_ev</emphasis>(&amp;A, &amp;values, &amp;vectors, 10);
+
+  which.pos=IGRAPH_EIGEN_BE;
+  which.howmany=5;
+  <emphasis role="strong">igraph_eigen_matrix_symmetric</emphasis>(&amp;A, <emphasis>/*sA=*/</emphasis> 0, <emphasis>/*fun=*/</emphasis> 0, DIM, <emphasis>/*extra=*/</emphasis> 0,
+				IGRAPH_EIGEN_ARPACK, &amp;which, &amp;options,
+				<emphasis>/*storage=*/</emphasis> 0, &amp;values, &amp;vectors);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;values);
+  <emphasis role="strong">check_ev</emphasis>(&amp;A, &amp;values, &amp;vectors, 20);
+
+  which.pos=IGRAPH_EIGEN_SM;
+  which.howmany=5;
+  <emphasis role="strong">igraph_eigen_matrix_symmetric</emphasis>(&amp;A, <emphasis>/*sA=*/</emphasis> 0, <emphasis>/*fun=*/</emphasis> 0, DIM, <emphasis>/*extra=*/</emphasis> 0,
+				IGRAPH_EIGEN_ARPACK, &amp;which, &amp;options,
+				<emphasis>/*storage=*/</emphasis> 0, &amp;values, &amp;vectors);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;values);
+  <emphasis role="strong">check_ev</emphasis>(&amp;A, &amp;values, &amp;vectors, 30);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;values);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;vectors);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;A);  
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

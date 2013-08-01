@@ -1,0 +1,232 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2011-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;pthread.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;unistd.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;string.h&gt;
+
+<emphasis role="strong">#include</emphasis> "igraph_arpack_internal.h"
+
+<emphasis>/* Test whether ARPACK is thread-safe. We will create two threads, </emphasis>
+<emphasis>   each calling a different ARPACK eigensolver. We will make sure that</emphasis>
+<emphasis>   the ARPACK calls from the two threads overlap */</emphasis>
+
+<emphasis role="strong">typedef</emphasis> <emphasis role="strong">struct</emphasis> thread_data_t {
+  igraph_matrix_t *m;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> *result;
+  pthread_cond_t *cond;
+  pthread_mutex_t *mutex;
+  int *steps, *othersteps;
+} thread_data_t;
+
+int <emphasis role="strong">arpack_mult</emphasis>(igraph_real_t *to, igraph_real_t *from, int n, 
+		igraph_matrix_t *matrix) {
+  <emphasis>/* </emphasis><emphasis role="strong">TODO</emphasis><emphasis> */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_blas_dgemv_array'>igraph_blas_dgemv_array</link></emphasis>(<emphasis>/*transpose=*/</emphasis> 0, <emphasis>/*alpha=*/</emphasis> 1.0, matrix,
+			  from, <emphasis>/*beta=*/</emphasis> 0.0, to);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+<emphasis>/* This is the function performed by each thread. It calles the</emphasis>
+<emphasis>   low-level ARPACK symmetric eigensolver, step by step. After each</emphasis>
+<emphasis>   step, it synchronizes with the other thread.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   The synchronization ensures that the two threads are using the</emphasis>
+<emphasis>   thread-local variables at the same time. If they are really</emphasis>
+<emphasis>   thread-local, then ARPACK still delivers the correct solution for</emphasis>
+<emphasis>   the two matrices. Otherwise the result is undefined: maybe results</emphasis>
+<emphasis>   will be incorrect, or the program will crash.</emphasis>
+
+<emphasis>   This function is basically a simplified copy of igraph_arpack_rssolve.</emphasis>
+<emphasis>*/</emphasis>
+
+void *<emphasis role="strong">thread_function</emphasis>(void *arg) {
+  thread_data_t *data=(thread_data_t*) arg;
+  igraph_matrix_t *M=data-&gt;m;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> *result=data-&gt;result;
+  pthread_cond_t *cond=data-&gt;cond;
+  pthread_mutex_t *mutex=data-&gt;mutex;
+  <link linkend='igraph_arpack_options_t'>igraph_arpack_options_t</link> options;
+  igraph_real_t *v, *workl, *workd, *d, *resid, *ax;
+  int *select;
+  int ido=0;
+  int rvec=1;
+  char *all="All";
+  int i;
+
+  <emphasis role="strong"><link linkend='igraph_arpack_options_init'>igraph_arpack_options_init</link></emphasis>(&amp;options);
+  options.n = <emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(M);
+  options.ldv = options.n;
+  options.nev = 1;
+  options.ncv = 3;
+  options.lworkl = options.ncv * (options.ncv+8);
+  options.which[0] = 'L'; options.which[1] = 'M';
+
+  options.iparam[0]=options.ishift;
+  options.iparam[2]=options.mxiter;
+  options.iparam[3]=options.nb;
+  options.iparam[4]=0;
+  options.iparam[6]=options.mode;
+  options.info=options.start;
+
+  v=<emphasis role="strong">igraph_Calloc</emphasis>(options.ldv * options.ncv, igraph_real_t);
+  workl=<emphasis role="strong">igraph_Calloc</emphasis>(options.lworkl, igraph_real_t);
+  workd=<emphasis role="strong">igraph_Calloc</emphasis>(3*options.n, igraph_real_t);
+  d=<emphasis role="strong">igraph_Calloc</emphasis>(2*options.ncv, igraph_real_t);
+  resid=<emphasis role="strong">igraph_Calloc</emphasis>(options.n, igraph_real_t);
+  ax=<emphasis role="strong">igraph_Calloc</emphasis>(options.n, igraph_real_t);
+  select=<emphasis role="strong">igraph_Calloc</emphasis>(options.ncv, int);
+  
+  <emphasis role="strong">if</emphasis> (!v || !workl || !workd || !d || !resid || !ax || !select) { 
+    <emphasis role="strong">printf</emphasis>("Out of memory\n");
+    <emphasis role="strong">return</emphasis> 0;
+  }
+  
+  <emphasis role="strong">while</emphasis> (1) {
+    <emphasis role="strong">igraphdsaupd_</emphasis>(&amp;ido, options.bmat, &amp;options.n, options.which,
+		  &amp;options.nev, &amp;options.tol, resid, &amp;options.ncv, v, 
+		  &amp;options.ldv, options.iparam, options.ipntr, workd,
+		  workl, &amp;options.lworkl, &amp;options.info);
+    
+    <emphasis role="strong">if</emphasis> (ido == -1 || ido == 1) {
+      
+      igraph_real_t *from=workd+options.ipntr[0]-1;
+      igraph_real_t *to=workd+options.ipntr[1]-1;
+      <emphasis role="strong">arpack_mult</emphasis>(to, from, options.n, M);
+      
+    } <emphasis role="strong">else</emphasis> { 
+      <emphasis role="strong">break</emphasis>;
+    }
+
+    <emphasis role="strong">pthread_mutex_lock</emphasis>(mutex);
+    *(data-&gt;steps) += 1;
+    <emphasis role="strong">if</emphasis> ( *(data-&gt;othersteps) == *(data-&gt;steps) ) { 
+      <emphasis role="strong">pthread_cond_signal</emphasis>(cond);
+    }
+    <emphasis role="strong">pthread_mutex_unlock</emphasis>(mutex);
+
+    <emphasis role="strong">while</emphasis> ( *(data-&gt;othersteps) &lt; *(data-&gt;steps) &amp;&amp; *(data-&gt;othersteps) != -1 ) {
+      <emphasis role="strong">pthread_cond_wait</emphasis>(cond, mutex);
+    }
+    <emphasis role="strong">pthread_mutex_unlock</emphasis>(mutex);
+  }
+
+  <emphasis role="strong">pthread_mutex_lock</emphasis>(mutex);
+  *data-&gt;steps = -1;
+  <emphasis role="strong">pthread_cond_signal</emphasis>(cond);
+  <emphasis role="strong">pthread_mutex_unlock</emphasis>(mutex);
+
+  <emphasis role="strong">if</emphasis> (options.info != 0) {
+    <emphasis role="strong">printf</emphasis>("ARPACK error\n");
+    <emphasis role="strong">return</emphasis> 0;
+  }
+
+  <emphasis role="strong">igraphdseupd_</emphasis>(&amp;rvec, all, select, d, v, &amp;options.ldv,
+		&amp;options.sigma, options.bmat, &amp;options.n,
+		options.which, &amp;options.nev, &amp;options.tol,
+		resid, &amp;options.ncv, v, &amp;options.ldv, options.iparam,
+		options.ipntr, workd, workl, &amp;options.lworkl,
+		&amp;options.ierr);
+  
+  <emphasis role="strong">if</emphasis> (options.ierr != 0) {
+    <emphasis role="strong">printf</emphasis>("ARPACK error\n");
+    <emphasis role="strong">return</emphasis> 0;
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(result, options.n);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;options.n; i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*result)[i] = v[i];
+  }
+
+  <emphasis role="strong">free</emphasis>(v);
+  <emphasis role="strong">free</emphasis>(workl);
+  <emphasis role="strong">free</emphasis>(workd);
+  <emphasis role="strong">free</emphasis>(d);
+  <emphasis role="strong">free</emphasis>(resid);
+  <emphasis role="strong">free</emphasis>(ax);
+  <emphasis role="strong">free</emphasis>(select);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  pthread_t thread_id1, thread_id2;
+  void *exit_status1, *exit_status2;
+  igraph_matrix_t m1, m2;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> result1, result2;
+  pthread_cond_t steps_cond = PTHREAD_COND_INITIALIZER;
+  pthread_mutex_t steps_mutex = PTHREAD_MUTEX_INITIALIZER;
+  int steps1=0, steps2=0;
+  thread_data_t 
+    data1 = { &amp;m1, &amp;result1, &amp;steps_cond, &amp;steps_mutex, &amp;steps1, &amp;steps2 },
+    data2 = { &amp;m2, &amp;result2, &amp;steps_cond, &amp;steps_mutex, &amp;steps2, &amp;steps1 };
+  int i, j;
+
+  <emphasis>/* Skip if igraph is not thread safe */</emphasis>
+  <emphasis role="strong">if</emphasis> (!<link linkend='IGRAPH_THREAD_SAFE'>IGRAPH_THREAD_SAFE</link>) {
+    <emphasis role="strong">return</emphasis> 77;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m1, 10, 10);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m2, 10, 10);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;result1, <emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;m1));
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;result2, <emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;m2));  
+
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 42);
+  
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;m1); i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;=i; j++) {
+      <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m1, i, j) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m1, j, i) = 
+	<emphasis role="strong"><link linkend='igraph_rng_get_integer'>igraph_rng_get_integer</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 0, 10);
+    }
+  }
+
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;m2); i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;=i; j++) {
+      <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m2, i, j) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m2, j, i) = 
+	<emphasis role="strong"><link linkend='igraph_rng_get_integer'>igraph_rng_get_integer</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 0, 10);
+    }
+  }
+
+  <emphasis role="strong">pthread_create</emphasis>(&amp;thread_id1, NULL, thread_function, (void *) &amp;data1);
+  <emphasis role="strong">pthread_create</emphasis>(&amp;thread_id2, NULL, thread_function, (void *) &amp;data2);
+
+  <emphasis role="strong">pthread_join</emphasis>(thread_id1, &amp;exit_status1);
+  <emphasis role="strong">pthread_join</emphasis>(thread_id2, &amp;exit_status2);
+
+  <emphasis role="strong">igraph_matrix_print</emphasis>(&amp;m1);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;result1);
+  <emphasis role="strong">printf</emphasis>("---\n");
+  <emphasis role="strong">igraph_matrix_print</emphasis>(&amp;m2);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;result2);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;result1);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;result2);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m1);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m2);  
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

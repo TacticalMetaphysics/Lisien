@@ -1,0 +1,61 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2007-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> y;  
+
+  <emphasis>/* turn on attribute handling */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_i_set_attribute_table'>igraph_i_set_attribute_table</link></emphasis>(&amp;igraph_cattribute_table);
+
+  <emphasis>/* Create a graph, add some attributes and save it as a GraphML file */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_famous'>igraph_famous</link></emphasis>(&amp;g, "Petersen");
+  <emphasis role="strong"><link linkend='SETGAS'>SETGAS</link></emphasis>(&amp;g, "name", "Petersen's graph");
+  <emphasis role="strong"><link linkend='SETGAN'>SETGAN</link></emphasis>(&amp;g, "vertices", <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+  <emphasis role="strong"><link linkend='SETGAN'>SETGAN</link></emphasis>(&amp;g, "edges", <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;g));
+
+  <emphasis role="strong"><link linkend='igraph_vector_init_seq'>igraph_vector_init_seq</link></emphasis>(&amp;y, 1, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+  <emphasis role="strong"><link linkend='SETVANV'>SETVANV</link></emphasis>(&amp;g, "id", &amp;y);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;y);
+
+  <emphasis role="strong"><link linkend='SETVAS'>SETVAS</link></emphasis>(&amp;g, "name", 0, "foo");
+  <emphasis role="strong"><link linkend='SETVAS'>SETVAS</link></emphasis>(&amp;g, "name", 1, "foobar");
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init_seq'>igraph_vector_init_seq</link></emphasis>(&amp;y, 1, <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;g));
+  <emphasis role="strong"><link linkend='SETEANV'>SETEANV</link></emphasis>(&amp;g, "id", &amp;y);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;y);
+
+  <emphasis role="strong"><link linkend='SETEAS'>SETEAS</link></emphasis>(&amp;g, "name", 0, "FOO");
+  <emphasis role="strong"><link linkend='SETEAS'>SETEAS</link></emphasis>(&amp;g, "name", 1, "FOOBAR");
+
+  <emphasis role="strong"><link linkend='igraph_write_graph_gml'>igraph_write_graph_gml</link></emphasis>(&amp;g, stdout, 0, "");
+  <emphasis role="strong"><link linkend='igraph_write_graph_graphml'>igraph_write_graph_graphml</link></emphasis>(&amp;g, stdout);
+   
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

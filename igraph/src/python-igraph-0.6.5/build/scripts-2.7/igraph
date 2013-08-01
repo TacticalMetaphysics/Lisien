@@ -1,0 +1,4 @@
+#!/usr/bin/python
+"""Small script to execute the igraph command line interface"""
+from igraph.app.shell import main
+main()

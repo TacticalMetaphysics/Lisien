@@ -1,0 +1,11 @@
+# tests/atlocal.  Generated from atlocal.in by configure.
+# Configurable variable values for igraph test suite. Taken from bison source.
+# Copyright 2000, 2001, 2002 Free Software Foundation, Inc.
+
+# We need a C compiler.
+CC='gcc'
+CFLAGS='-g -O2 -I/usr/include/libxml2  -Wall '
+
+# We need `config.h'.
+CPPFLAGS="-I$abs_top_builddir -g -O2 -I/usr/include/libxml2"
+

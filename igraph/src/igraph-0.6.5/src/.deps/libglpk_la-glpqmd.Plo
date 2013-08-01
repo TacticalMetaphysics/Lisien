@@ -1,0 +1,3 @@
+libglpk_la-glpqmd.lo: ../optional/glpk/glpqmd.c ../optional/glpk/glpqmd.h
+
+../optional/glpk/glpqmd.h:

@@ -1,0 +1,278 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdlib.h&gt;
+
+igraph_vector_ptr_t custom_destructor_stack;
+
+void <emphasis role="strong">custom_destructor</emphasis>(void* ptr) {
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_push_back'>igraph_vector_ptr_push_back</link></emphasis>(&amp;custom_destructor_stack, ptr);
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_vector_ptr_t v1, v2;
+  <emphasis role="strong">const</emphasis> igraph_vector_ptr_t v3=IGRAPH_VECTOR_PTR_NULL;
+  int i;
+  void ** ptr;
+  int d1=1, d2=2, d3=3, d4=4, d5=5;
+  char *block1=0, *block2=0;
+
+  <emphasis>/* igraph_vector_ptr_init, igraph_vector_ptr_destroy */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 10);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;v1);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;v1);
+
+  <emphasis>/* igraph_vector_ptr_free_all, igraph_vector_ptr_destroy_all */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 5);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;v1); i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v1)[i]=(void*)<emphasis role="strong">malloc</emphasis>(i*10);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_free_all'>igraph_vector_ptr_free_all</link></emphasis>(&amp;v1);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;v1); i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v1)[i]=(void*)<emphasis role="strong">malloc</emphasis>(i*10);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy_all'>igraph_vector_ptr_destroy_all</link></emphasis>(&amp;v1);     
+  
+  <emphasis>/* igraph_vector_ptr_reserve */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 0);
+  <emphasis role="strong">igraph_vector_ptr_reserve</emphasis>(&amp;v1, 5);
+  <emphasis role="strong">igraph_vector_ptr_reserve</emphasis>(&amp;v1, 15);
+  <emphasis role="strong">igraph_vector_ptr_reserve</emphasis>(&amp;v1, 1);
+  <emphasis role="strong">igraph_vector_ptr_reserve</emphasis>(&amp;v1, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;v1);
+
+  <emphasis>/* igraph_vector_ptr_empty, igraph_vector_ptr_clear */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 10);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong">igraph_vector_ptr_empty</emphasis>(&amp;v1)) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_clear'>igraph_vector_ptr_clear</link></emphasis>(&amp;v1);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">igraph_vector_ptr_empty</emphasis>(&amp;v1)) {
+    <emphasis role="strong">return</emphasis> 2;
+  }
+
+  <emphasis>/* igraph_vector_ptr_size */</emphasis>
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;v1) != 0) {
+    <emphasis role="strong">return</emphasis> 3;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_resize'>igraph_vector_ptr_resize</link></emphasis>(&amp;v1, 10);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;v1) != 10) {
+    <emphasis role="strong">return</emphasis> 4;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;v1);
+
+  <emphasis>/* igraph_vector_ptr_push_back */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 0);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_vector_ptr_push_back'>igraph_vector_ptr_push_back</link></emphasis>(&amp;v1, (void*)<emphasis role="strong">malloc</emphasis>(i*10));
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy_all'>igraph_vector_ptr_destroy_all</link></emphasis>(&amp;v1);
+  
+  <emphasis>/* igraph_vector_ptr_e */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 5);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v1)[0]=&amp;d1;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v1)[1]=&amp;d2;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v1)[2]=&amp;d3;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v1)[3]=&amp;d4;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v1)[4]=&amp;d5;
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 0) != &amp;d1) {
+    <emphasis role="strong">return</emphasis> 5;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 1) != &amp;d2) {
+    <emphasis role="strong">return</emphasis> 6;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 2) != &amp;d3) {
+    <emphasis role="strong">return</emphasis> 7;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 3) != &amp;d4) {
+    <emphasis role="strong">return</emphasis> 8;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 4) != &amp;d5) {
+    <emphasis role="strong">return</emphasis> 9;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;v1);
+
+  <emphasis>/* igraph_vector_ptr_set */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 5);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 0, &amp;d1);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 1, &amp;d2);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 2, &amp;d3);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 3, &amp;d4);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 4, &amp;d5);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 0) != &amp;d1) {
+    <emphasis role="strong">return</emphasis> 5;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 1) != &amp;d2) {
+    <emphasis role="strong">return</emphasis> 6;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 2) != &amp;d3) {
+    <emphasis role="strong">return</emphasis> 7;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 3) != &amp;d4) {
+    <emphasis role="strong">return</emphasis> 8;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 4) != &amp;d5) {
+    <emphasis role="strong">return</emphasis> 9;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;v1);
+
+  <emphasis>/* igraph_vector_ptr_null */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 5);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 0, &amp;d1);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 1, &amp;d2);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 2, &amp;d3);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 3, &amp;d4);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 4, &amp;d5);
+  <emphasis role="strong">igraph_vector_ptr_null</emphasis>(&amp;v1);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;v1); i++) {
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v1)[i] != 0) {
+      <emphasis role="strong">return</emphasis> 10;
+    }
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;v1);
+
+  <emphasis>/* igraph_vector_ptr_resize */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 10);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 0, &amp;d1);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 1, &amp;d2);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 2, &amp;d3);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 3, &amp;d4);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 4, &amp;d5);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_resize'>igraph_vector_ptr_resize</link></emphasis>(&amp;v1, 10);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_resize'>igraph_vector_ptr_resize</link></emphasis>(&amp;v1, 15);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_resize'>igraph_vector_ptr_resize</link></emphasis>(&amp;v1, 5);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;v1) != 5) {
+    <emphasis role="strong">return</emphasis> 11;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 0) != &amp;d1) {
+    <emphasis role="strong">return</emphasis> 12;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 1) != &amp;d2) {
+    <emphasis role="strong">return</emphasis> 13;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 2) != &amp;d3) {
+    <emphasis role="strong">return</emphasis> 14;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 3) != &amp;d4) {
+    <emphasis role="strong">return</emphasis> 15;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_e'>igraph_vector_ptr_e</link></emphasis>(&amp;v1, 4) != &amp;d5) {
+    <emphasis role="strong">return</emphasis> 16;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;v1);
+
+  <emphasis>/* igraph_vector_ptr_view */</emphasis>
+  ptr=(void**) <emphasis role="strong">malloc</emphasis>(5 * <emphasis role="strong">sizeof</emphasis>(void*));
+  <emphasis role="strong">igraph_vector_ptr_view</emphasis>(&amp;v3, ptr, 5);
+  ptr[0]=&amp;d1; ptr[1]=&amp;d2; ptr[2]=&amp;d3; ptr[3]=&amp;d4; ptr[4]=&amp;d5;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;v3); i++) {
+    <emphasis role="strong">if</emphasis> ( *((int*)<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v3)[i]) != i+1) {
+      <emphasis role="strong">return</emphasis> 17;
+    }
+  }
+  
+  <emphasis>/* igraph_vector_ptr_init_copy */</emphasis>
+  <emphasis role="strong">igraph_vector_ptr_init_copy</emphasis>(&amp;v1, ptr, 5);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;v1); i++) {
+    <emphasis role="strong">if</emphasis> ( *((int*)<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v1)[i]) != i+1) {
+      <emphasis role="strong">return</emphasis> 18;
+    }
+  }
+
+  <emphasis>/* igraph_vector_ptr_copy_to */</emphasis>
+  <emphasis role="strong">igraph_vector_ptr_copy_to</emphasis>(&amp;v1, ptr);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;v1); i++) {
+    <emphasis role="strong">if</emphasis> ( *((int*)ptr[i]) != i+1) {
+      <emphasis role="strong">return</emphasis> 19;
+    }
+  }
+  <emphasis role="strong">free</emphasis>(ptr);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;v1);
+
+  <emphasis>/* igraph_vector_ptr_copy */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 5);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 0, &amp;d1);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 1, &amp;d2);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 2, &amp;d3);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 3, &amp;d4);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_set'>igraph_vector_ptr_set</link></emphasis>(&amp;v1, 4, &amp;d5);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_copy'>igraph_vector_ptr_copy</link></emphasis>(&amp;v2, &amp;v1);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;v1);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;v2); i++) {
+    <emphasis role="strong">if</emphasis> ( *((int*)<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v2)[i]) != i+1) {
+      <emphasis role="strong">return</emphasis> 20;
+    }
+  }
+
+  <emphasis>/* igraph_vector_ptr_remove */</emphasis>
+  <emphasis role="strong">igraph_vector_ptr_remove</emphasis>(&amp;v2, 0);
+  <emphasis role="strong">igraph_vector_ptr_remove</emphasis>(&amp;v2, 3);
+  <emphasis role="strong">if</emphasis> ( *((int*)<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v2)[0]) != 2) {
+      <emphasis role="strong">return</emphasis> 21;
+  }
+  <emphasis role="strong">if</emphasis> ( *((int*)<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v2)[1]) != 3) {
+      <emphasis role="strong">return</emphasis> 22;
+  }
+  <emphasis role="strong">if</emphasis> ( *((int*)<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v2)[2]) != 4) {
+      <emphasis role="strong">return</emphasis> 23;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;v2);
+
+  <emphasis>/* Testing destructor */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;custom_destructor_stack, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;v1, 2);
+  block1 = <emphasis role="strong">igraph_Calloc</emphasis>(32, char);
+  block2 = <emphasis role="strong">igraph_Calloc</emphasis>(64, char);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v1)[0] = block1; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v1)[1] = block2;
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_get_item_destructor'>igraph_vector_ptr_get_item_destructor</link></emphasis>(&amp;v1) != 0) {
+    <emphasis role="strong">return</emphasis> 24;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_set_item_destructor'>igraph_vector_ptr_set_item_destructor</link></emphasis>(&amp;v1, &amp;custom_destructor) != 0) {
+    <emphasis role="strong">return</emphasis> 25;
+  }
+  <emphasis>/* Okay, let's clear the vector. This should push the blocks in the</emphasis>
+<emphasis>   * custom destructor stack */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_clear'>igraph_vector_ptr_clear</link></emphasis>(&amp;v1);
+  <emphasis>/* Put the blocks back and destroy the vector */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_push_back'>igraph_vector_ptr_push_back</link></emphasis>(&amp;v1, block1);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_push_back'>igraph_vector_ptr_push_back</link></emphasis>(&amp;v1, block2);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy_all'>igraph_vector_ptr_destroy_all</link></emphasis>(&amp;v1);
+
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(custom_destructor_stack)[0] != block1 ||
+      <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(custom_destructor_stack)[1] != block2 ||
+      <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(custom_destructor_stack)[2] != block1 ||
+      <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(custom_destructor_stack)[3] != block2
+     )
+    <emphasis role="strong">return</emphasis> 26;
+
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;custom_destructor_stack);
+
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong">IGRAPH_FINALLY_STACK_SIZE</emphasis>() != 0) <emphasis role="strong">return</emphasis> 27;
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

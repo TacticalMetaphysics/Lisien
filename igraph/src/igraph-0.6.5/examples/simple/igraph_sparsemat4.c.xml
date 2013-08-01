@@ -1,0 +1,288 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2009-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;cs/cs.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph_sparsemat.h&gt;
+
+igraph_bool_t <emphasis role="strong">check_solution</emphasis>(<emphasis role="strong">const</emphasis> igraph_sparsemat_t *A,
+			     <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *x,
+			     <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *b) {
+
+  long int dim=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(x);
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> res;
+  int j, p;
+  igraph_real_t min, max;
+
+  <emphasis role="strong"><link linkend='igraph_vector_copy'>igraph_vector_copy</link></emphasis>(&amp;res, b);
+  
+  <emphasis role="strong">for</emphasis> (j=0; j&lt;dim; j++) {
+    <emphasis role="strong">for</emphasis> (p=A-&gt;cs-&gt;p[j]; p &lt; A-&gt;cs-&gt;p[j+1]; p++) {
+      long int from=A-&gt;cs-&gt;i[p];
+      igraph_real_t value=A-&gt;cs-&gt;x[p];
+      <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(res)[from] -= <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*x)[j] * value;
+    }
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_vector_minmax'>igraph_vector_minmax</link></emphasis>(&amp;res, &amp;min, &amp;max);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;res);
+
+  <emphasis role="strong">return</emphasis> <emphasis role="strong">abs</emphasis>(min) &lt; 1e-15 &amp;&amp; <emphasis role="strong">abs</emphasis>(max) &lt; 1e-15;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_sparsemat_t A, B, C;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> b, x;
+  long int i;
+
+  <emphasis>/* lsolve */</emphasis>
+
+<emphasis role="strong">#define</emphasis> DIM 10
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">EDGES</emphasis> (DIM*DIM/6)
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, DIM, DIM, EDGES+DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, i, i, <emphasis role="strong">RNG_INTEGER</emphasis>(1,3));
+  }
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES; i++) {
+    long int r=<emphasis role="strong">RNG_INTEGER</emphasis>(0, DIM-1);
+    long int c=<emphasis role="strong">RNG_INTEGER</emphasis>(0, r);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1,5);
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, r, c, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_dupl'>igraph_sparsemat_dupl</link></emphasis>(&amp;B);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;b, DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {    
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(b)[i] = <emphasis role="strong">RNG_INTEGER</emphasis>(1,10);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;x, DIM);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_lsolve'>igraph_sparsemat_lsolve</link></emphasis>(&amp;B, &amp;b, &amp;x);
+
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_solution</emphasis>(&amp;B, &amp;x, &amp;b)) { <emphasis role="strong">return</emphasis> 1; }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;b);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;x);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+
+<emphasis role="strong">#undef</emphasis> DIM
+<emphasis role="strong">#undef</emphasis> EDGES
+
+  <emphasis>/* ltsolve */</emphasis>
+
+<emphasis role="strong">#define</emphasis> DIM 10
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">EDGES</emphasis> (DIM*DIM/6)
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, DIM, DIM, EDGES+DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, i, i, <emphasis role="strong">RNG_INTEGER</emphasis>(1,3));
+  }
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES; i++) {
+    long int r=<emphasis role="strong">RNG_INTEGER</emphasis>(0, DIM-1);
+    long int c=<emphasis role="strong">RNG_INTEGER</emphasis>(0, r);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1,5);
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, r, c, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_dupl'>igraph_sparsemat_dupl</link></emphasis>(&amp;B);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;b, DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {    
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(b)[i] = <emphasis role="strong">RNG_INTEGER</emphasis>(1,10);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;x, DIM);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_ltsolve'>igraph_sparsemat_ltsolve</link></emphasis>(&amp;B, &amp;b, &amp;x);
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_transpose'>igraph_sparsemat_transpose</link></emphasis>(&amp;B, &amp;A, <emphasis>/*values=*/</emphasis> 1);
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_solution</emphasis>(&amp;A, &amp;x, &amp;b)) { <emphasis role="strong">return</emphasis> 2; }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;b);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;x);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+
+<emphasis role="strong">#undef</emphasis> DIM
+<emphasis role="strong">#undef</emphasis> EDGES
+
+  <emphasis>/* usolve */</emphasis>
+
+<emphasis role="strong">#define</emphasis> DIM 10
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">EDGES</emphasis> (DIM*DIM/6)
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, DIM, DIM, EDGES+DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, i, i, <emphasis role="strong">RNG_INTEGER</emphasis>(1,3));
+  }
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES; i++) {
+    long int r=<emphasis role="strong">RNG_INTEGER</emphasis>(0, DIM-1);
+    long int c=<emphasis role="strong">RNG_INTEGER</emphasis>(0, r);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1,5);
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, r, c, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_dupl'>igraph_sparsemat_dupl</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_transpose'>igraph_sparsemat_transpose</link></emphasis>(&amp;B, &amp;A, <emphasis>/*values=*/</emphasis> 1);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;b, DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {    
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(b)[i] = <emphasis role="strong">RNG_INTEGER</emphasis>(1,10);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;x, DIM);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_usolve'>igraph_sparsemat_usolve</link></emphasis>(&amp;A, &amp;b, &amp;x);
+
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_solution</emphasis>(&amp;A, &amp;x, &amp;b)) { <emphasis role="strong">return</emphasis> 3; }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;b);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;x);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+
+<emphasis role="strong">#undef</emphasis> DIM
+<emphasis role="strong">#undef</emphasis> EDGES  
+
+  <emphasis>/* utsolve */</emphasis>
+
+<emphasis role="strong">#define</emphasis> DIM 10
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">EDGES</emphasis> (DIM*DIM/6)
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, DIM, DIM, EDGES+DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, i, i, <emphasis role="strong">RNG_INTEGER</emphasis>(1,3));
+  }
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES; i++) {
+    long int r=<emphasis role="strong">RNG_INTEGER</emphasis>(0, DIM-1);
+    long int c=<emphasis role="strong">RNG_INTEGER</emphasis>(0, r);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1,5);
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, r, c, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_dupl'>igraph_sparsemat_dupl</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_transpose'>igraph_sparsemat_transpose</link></emphasis>(&amp;B, &amp;A, <emphasis>/*values=*/</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;b, DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {    
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(b)[i] = <emphasis role="strong">RNG_INTEGER</emphasis>(1,10);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;x, DIM);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_utsolve'>igraph_sparsemat_utsolve</link></emphasis>(&amp;A, &amp;b, &amp;x);
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_transpose'>igraph_sparsemat_transpose</link></emphasis>(&amp;A, &amp;B, <emphasis>/*values=*/</emphasis> 1);
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_solution</emphasis>(&amp;B, &amp;x, &amp;b)) { <emphasis role="strong">return</emphasis> 4; }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;b);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;x);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+
+<emphasis role="strong">#undef</emphasis> DIM
+<emphasis role="strong">#undef</emphasis> EDGES  
+
+  <emphasis>/* cholsol */</emphasis>
+  <emphasis>/* We need a positive definite matrix, so we create a full-rank</emphasis>
+<emphasis>     matrix first and then calculate A'A, which will be positive</emphasis>
+<emphasis>     definite. */</emphasis>
+
+<emphasis role="strong">#define</emphasis> DIM 10
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">EDGES</emphasis> (DIM*DIM/6)
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, DIM, DIM, EDGES+DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, i, i, <emphasis role="strong">RNG_INTEGER</emphasis>(1,3));
+  }
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES; i++) {
+    long int from=<emphasis role="strong">RNG_INTEGER</emphasis>(0, DIM-1);
+    long int to=<emphasis role="strong">RNG_INTEGER</emphasis>(0, DIM-1);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1, 5);
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, from, to, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_dupl'>igraph_sparsemat_dupl</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_transpose'>igraph_sparsemat_transpose</link></emphasis>(&amp;B, &amp;A, <emphasis>/*values=*/</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_multiply'>igraph_sparsemat_multiply</link></emphasis>(&amp;A, &amp;B, &amp;C);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;b, DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(b)[i] = <emphasis role="strong">RNG_INTEGER</emphasis>(1,10);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;x, DIM);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_cholsol'>igraph_sparsemat_cholsol</link></emphasis>(&amp;C, &amp;b, &amp;x, <emphasis>/*order=*/</emphasis> 0);
+  
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_solution</emphasis>(&amp;C, &amp;x, &amp;b)) { <emphasis role="strong">return</emphasis> 5; }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;b);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;x);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;C);
+
+<emphasis role="strong">#undef</emphasis> DIM
+<emphasis role="strong">#undef</emphasis> EDGES
+
+  <emphasis>/* lusol */</emphasis>
+
+<emphasis role="strong">#define</emphasis> DIM 10
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">EDGES</emphasis> (DIM*DIM/4)
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, DIM, DIM, EDGES+DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, i, i, <emphasis role="strong">RNG_INTEGER</emphasis>(1,3));
+  }
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES; i++) {
+    long int from=<emphasis role="strong">RNG_INTEGER</emphasis>(0, DIM-1);
+    long int to=<emphasis role="strong">RNG_INTEGER</emphasis>(0, DIM-1);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1, 5);
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, from, to, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_dupl'>igraph_sparsemat_dupl</link></emphasis>(&amp;B);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;b, DIM);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(b)[i] = <emphasis role="strong">RNG_INTEGER</emphasis>(1,10);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;x, DIM);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_lusol'>igraph_sparsemat_lusol</link></emphasis>(&amp;B, &amp;b, &amp;x, <emphasis>/*order=*/</emphasis> 0, <emphasis>/*tol=*/</emphasis> 1e-10);
+  
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_solution</emphasis>(&amp;B, &amp;x, &amp;b)) { <emphasis role="strong">return</emphasis> 6; }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;b);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;x);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+
+<emphasis role="strong">#undef</emphasis> DIM
+<emphasis role="strong">#undef</emphasis> EDGES
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+
+</programlisting>

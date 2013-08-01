@@ -1,0 +1,59 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2011-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge, MA 02139, USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">comp</emphasis>(<emphasis role="strong">const</emphasis> void *a, <emphasis role="strong">const</emphasis> void *b) {
+  igraph_real_t *aa=(igraph_real_t *) a;
+  igraph_real_t *bb=(igraph_real_t *) b;
+  
+  <emphasis role="strong">if</emphasis> (*aa &lt; *bb) { 
+    <emphasis role="strong">return</emphasis> -1;
+  } <emphasis role="strong">else</emphasis> <emphasis role="strong">if</emphasis> (*aa &gt; *bb) { 
+    <emphasis role="strong">return</emphasis> 1;
+  }
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {  
+  <emphasis role="strong">const</emphasis> int len=100;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v;
+  int i;
+  
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 42);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, len);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;len; i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[i] = i;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_shuffle'>igraph_vector_shuffle</link></emphasis>(&amp;v);
+  
+  <emphasis role="strong">igraph_qsort</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v), <emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;v), <emphasis role="strong">sizeof</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[0]), comp);
+  
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;v);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

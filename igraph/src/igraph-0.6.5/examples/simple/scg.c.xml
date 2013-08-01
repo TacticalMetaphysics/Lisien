@@ -1,0 +1,161 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2011-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> ev;
+  igraph_t scg_graph;
+  igraph_matrix_t scg_matrix;
+  igraph_sparsemat_t scg_sparsemat;
+  igraph_matrix_t L, R;
+  igraph_sparsemat_t Lsparse, Rsparse;
+  igraph_matrix_t input_matrix;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> groups;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> eval;
+  igraph_matrix_t evec;
+  
+  <emphasis role="strong"><link linkend='igraph_tree'>igraph_tree</link></emphasis>(&amp;g, 10, <emphasis>/* children= */</emphasis> 3, IGRAPH_TREE_UNDIRECTED);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;ev, 1);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;L, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;R, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;scg_matrix, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;groups, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;eval, 0);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;evec, 0, 0);
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">CALLSYM</emphasis>(algo) <emphasis role="strong">do</emphasis> {						\
+    <emphasis role="strong"><link linkend='igraph_vector_clear'>igraph_vector_clear</link></emphasis>(&amp;eval);						\
+    <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(&amp;evec, 0, 0);					\
+    <emphasis role="strong"><link linkend='igraph_scg_adjacency'>igraph_scg_adjacency</link></emphasis>(&amp;g, <emphasis>/*matrix=*/</emphasis> 0, <emphasis>/*sparsemat=*/</emphasis> 0, &amp;ev,	\
+			 <emphasis>/* intervals= */</emphasis> 3, <emphasis>/* intervals_vector= */</emphasis> 0,	\
+			 <emphasis>/* algorithm= */</emphasis> algo, &amp;eval, &amp;evec,		\
+			 <emphasis>/* groups= */</emphasis> &amp;groups, <emphasis>/* use_arpack= */</emphasis> 0,	\
+			 <emphasis>/* maxiter= */</emphasis> 0, &amp;scg_graph, &amp;scg_matrix,	\
+			 &amp;scg_sparsemat, &amp;L, &amp;R,			\
+			 &amp;Lsparse, &amp;Rsparse); } <emphasis role="strong">while</emphasis>(0)
+
+  
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">PRINTRES</emphasis>()						\
+  <emphasis role="strong">do</emphasis> {								\
+    <emphasis role="strong">printf</emphasis>("------------------------------------\n");		\
+    <emphasis role="strong"><link linkend='igraph_write_graph_edgelist'>igraph_write_graph_edgelist</link></emphasis>(&amp;scg_graph, stdout);		\
+    <emphasis role="strong">printf</emphasis>("---\n");						\
+    <emphasis role="strong">igraph_vector_print</emphasis>(&amp;groups);				\
+    <emphasis role="strong">printf</emphasis>("---\n");						\
+    <emphasis role="strong">igraph_vector_print</emphasis>(&amp;eval);					\
+    <emphasis role="strong">igraph_matrix_print</emphasis>(&amp;evec);					\
+    <emphasis role="strong">printf</emphasis>("---\n");						\
+    <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;scg_sparsemat, stdout);		\
+    <emphasis role="strong">printf</emphasis>("---\n");						\
+    <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;Lsparse, stdout);			\
+    <emphasis role="strong">printf</emphasis>("---\n");						\
+    <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;Rsparse, stdout);			\
+    <emphasis role="strong">printf</emphasis>("---\n");						\
+  } <emphasis role="strong">while</emphasis> (0)
+
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(ev)[0] = 1;
+  <emphasis role="strong">CALLSYM</emphasis>(IGRAPH_SCG_EXACT);
+  <emphasis role="strong">PRINTRES</emphasis>();
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;scg_graph);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;scg_sparsemat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Lsparse);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Rsparse);
+
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(ev)[0] = 3;
+  <emphasis role="strong">CALLSYM</emphasis>(IGRAPH_SCG_EXACT);
+  <emphasis role="strong">PRINTRES</emphasis>();
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;scg_graph);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;scg_sparsemat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Lsparse);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Rsparse);
+
+  <emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(&amp;ev, 2);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(ev)[0] = 1; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(ev)[1] = 3;
+  <emphasis role="strong">CALLSYM</emphasis>(IGRAPH_SCG_EXACT);
+  <emphasis role="strong">PRINTRES</emphasis>();
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;scg_graph);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;scg_sparsemat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Lsparse);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Rsparse);
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">CALLSYM2</emphasis>(algo) <emphasis role="strong">do</emphasis> {						\
+    <emphasis role="strong"><link linkend='igraph_vector_clear'>igraph_vector_clear</link></emphasis>(&amp;eval);						\
+    <emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(&amp;evec, 0, 0);					\
+    <emphasis role="strong"><link linkend='igraph_scg_adjacency'>igraph_scg_adjacency</link></emphasis>(<emphasis>/* graph=*/</emphasis> 0, &amp;input_matrix, <emphasis>/*sparsemat=*/</emphasis> 0, \
+			 &amp;ev, <emphasis>/* intervals= */</emphasis> 3,			\
+			 <emphasis>/* intervals_vector= */</emphasis> 0,			\
+			 <emphasis>/* algorithm= */</emphasis> algo, &amp;eval, &amp;evec,		\
+			 <emphasis>/* groups= */</emphasis> &amp;groups, <emphasis>/* use_arpack= */</emphasis> 0,	\
+			 <emphasis>/* maxiter= */</emphasis> 0, &amp;scg_graph, &amp;scg_matrix,	\
+			 &amp;scg_sparsemat, &amp;L, &amp;R,			\
+			 &amp;Lsparse, &amp;Rsparse); } <emphasis role="strong">while</emphasis> (0)
+
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;input_matrix, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_get_adjacency'>igraph_get_adjacency</link></emphasis>(&amp;g, &amp;input_matrix, IGRAPH_GET_ADJACENCY_BOTH, 
+		       <emphasis>/* eids= */</emphasis> 0);
+
+  <emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(&amp;ev, 1);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(ev)[0] = 1;
+  <emphasis role="strong">CALLSYM2</emphasis>(IGRAPH_SCG_EXACT);
+  <emphasis role="strong">PRINTRES</emphasis>();
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;scg_graph);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;scg_sparsemat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Lsparse);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Rsparse);
+
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(ev)[0] = 3;
+  <emphasis role="strong">CALLSYM2</emphasis>(IGRAPH_SCG_EXACT);
+  <emphasis role="strong">PRINTRES</emphasis>();
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;scg_graph);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;scg_sparsemat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Lsparse);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Rsparse);
+
+  <emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(&amp;ev, 2);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(ev)[0] = 1; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(ev)[1] = 3;
+  <emphasis role="strong">CALLSYM2</emphasis>(IGRAPH_SCG_EXACT);
+  <emphasis role="strong">PRINTRES</emphasis>();
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;scg_graph);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;scg_sparsemat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Lsparse);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;Rsparse);
+
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;evec);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;eval);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;groups);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;input_matrix);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;scg_matrix);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;L);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;R);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;ev);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* -------------------------------------------------------------------- */</emphasis>
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

@@ -1,0 +1,261 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2009-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;cs/cs.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph_sparsemat.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph_blas_internal.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph_arpack_internal.h&gt;
+
+int <emphasis role="strong">igraph_matrix_dgemv</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *m,
+                        <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *v,
+                        <link linkend='igraph_vector_t'>igraph_vector_t</link> *res,
+                        igraph_real_t alpha,
+                        igraph_real_t beta,
+                        igraph_bool_t transpose_m) {
+  
+  int nrow=<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(m);
+  int ncol=<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(m);
+  long int vlen=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v);
+  int one=1;
+  char t = transpose_m ? 't' : 'n';
+  long int input_len  = transpose_m ? nrow : ncol;
+  long int output_len = transpose_m ? ncol : nrow;
+  
+  <emphasis role="strong">if</emphasis> (vlen != input_len) {
+    <emphasis role="strong"><link linkend='IGRAPH_ERROR'>IGRAPH_ERROR</link></emphasis>("Matrix and vector sizes are incompatible", IGRAPH_EINVAL);
+  }
+  
+  <emphasis role="strong">if</emphasis> (beta != 0 &amp;&amp; <emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(res) != output_len) {
+    <emphasis role="strong"><link linkend='IGRAPH_ERROR'>IGRAPH_ERROR</link></emphasis>("Non-zero beta and bad `res' vector size, possible mistake",
+                 IGRAPH_EINVAL);
+  }
+  
+  <emphasis role="strong"><link linkend='IGRAPH_CHECK'>IGRAPH_CHECK</link></emphasis>(<emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(res, output_len));
+  
+  <emphasis role="strong">igraphdgemv_</emphasis>(&amp;t, &amp;nrow, &amp;ncol, &amp;alpha, &amp;<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m,0,0), 
+               &amp;nrow, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v), &amp;one, &amp;beta, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*res), &amp;one);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">igraph_matrix_vector_prod</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *m,
+                              <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *v,
+                              <link linkend='igraph_vector_t'>igraph_vector_t</link> *res) {
+  <emphasis role="strong">return</emphasis> <emphasis role="strong">igraph_matrix_dgemv</emphasis>(m, v, res, 1.0, 0.0, <emphasis>/*transpose=*/</emphasis> 0);
+}
+
+int <emphasis role="strong">my_dgemv</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *m,
+                       <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *v,
+                       <link linkend='igraph_vector_t'>igraph_vector_t</link> *res,
+                       igraph_real_t alpha,
+                       igraph_real_t beta,
+                       igraph_bool_t transpose_m) {
+  
+  int nrow=<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(m);
+  int ncol=<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(m);
+  long int vlen=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v);
+  int one=1;
+  char t = transpose_m ? 't' : 'n';
+  long int input_len  = transpose_m ? nrow : ncol;
+  long int output_len = transpose_m ? ncol : nrow;
+  
+  <emphasis role="strong">if</emphasis> (vlen != input_len) {
+    <emphasis role="strong"><link linkend='IGRAPH_ERROR'>IGRAPH_ERROR</link></emphasis>("Matrix and vector sizes are incompatible", IGRAPH_EINVAL);
+  }
+  
+  <emphasis role="strong">if</emphasis> (beta != 0 &amp;&amp; <emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(res) != output_len) {
+    <emphasis role="strong"><link linkend='IGRAPH_ERROR'>IGRAPH_ERROR</link></emphasis>("Non-zero beta and bad `res' vector size, possible mistake",
+                IGRAPH_EINVAL);
+  }
+  
+  <emphasis role="strong"><link linkend='IGRAPH_CHECK'>IGRAPH_CHECK</link></emphasis>(<emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(res, output_len));
+  
+  <emphasis role="strong">igraphdgemv_</emphasis>(&amp;t, &amp;nrow, &amp;ncol, &amp;alpha, &amp;<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m,0,0), 
+              &amp;nrow, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v), &amp;one, &amp;beta, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*res), &amp;one);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">my_gaxpy</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *m,
+	     <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *v,
+	     <link linkend='igraph_vector_t'>igraph_vector_t</link> *res) {
+  <emphasis role="strong">return</emphasis> <emphasis role="strong">my_dgemv</emphasis>(m, v, res, 1.0, 0.0, <emphasis>/*transpose=*/</emphasis> 0);
+}
+
+int <emphasis role="strong">my_dgemm</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *m1,
+	     <emphasis role="strong">const</emphasis> igraph_matrix_t *m2,
+	     igraph_matrix_t *res) {
+
+  long int m1_r=<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(m1);
+  long int m1_c=<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(m1);
+  long int m2_r=<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(m2);
+  long int m2_c=<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(m2);
+  long int i, j, k;
+  
+  <emphasis role="strong">if</emphasis> (m1_c != m2_r) { 
+    <emphasis role="strong"><link linkend='IGRAPH_ERROR'>IGRAPH_ERROR</link></emphasis>("Cannot multiply matrices, invalid dimensions", IGRAPH_EINVAL);
+  }
+  
+  <emphasis role="strong"><link linkend='IGRAPH_CHECK'>IGRAPH_CHECK</link></emphasis>(<emphasis role="strong"><link linkend='igraph_matrix_resize'>igraph_matrix_resize</link></emphasis>(res, m1_r, m2_c));
+  <emphasis role="strong"><link linkend='igraph_matrix_null'>igraph_matrix_null</link></emphasis>(res);
+
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;m1_r; i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;m2_c; j++) {
+      <emphasis role="strong">for</emphasis> (k=0; k&lt;m1_c <emphasis>/* which is also m2_r*/</emphasis>; k++) {
+	<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*res, i, j) += <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m1, i, k) * <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m2, k, j);
+      }
+    }
+  }
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+igraph_bool_t <emphasis role="strong">check_same</emphasis>(<emphasis role="strong">const</emphasis> igraph_sparsemat_t *A, 
+			 <emphasis role="strong">const</emphasis> igraph_matrix_t *M) {
+  
+  long int nrow=<emphasis role="strong"><link linkend='igraph_sparsemat_nrow'>igraph_sparsemat_nrow</link></emphasis>(A);
+  long int ncol=<emphasis role="strong"><link linkend='igraph_sparsemat_ncol'>igraph_sparsemat_ncol</link></emphasis>(A);
+  long int j, p, nzero=0;
+  
+  <emphasis role="strong">if</emphasis> (nrow != <emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(M) ||
+      ncol != <emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(M)) { 
+    <emphasis role="strong">return</emphasis> 0; 
+  }
+  
+  <emphasis role="strong">for</emphasis> (j=0; j&lt;A-&gt;cs-&gt;n; j++) {
+    <emphasis role="strong">for</emphasis> (p=A-&gt;cs-&gt;p[j]; p &lt; A-&gt;cs-&gt;p[j+1]; p++) {
+      long int to=A-&gt;cs-&gt;i[p];
+      igraph_real_t value=A-&gt;cs-&gt;x[p];
+      <emphasis role="strong">if</emphasis> (value != <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*M, to, j)) { <emphasis role="strong">return</emphasis> 0; }
+      nzero += 1;
+    }
+  }
+
+  <emphasis role="strong">for</emphasis> (j=0; j&lt;nrow; j++) {
+    <emphasis role="strong">for</emphasis> (p=0; p&lt;ncol; p++) {
+      <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*M, j, p) != 0) { nzero -= 1; }
+    }
+  }
+
+  <emphasis role="strong">return</emphasis> nzero == 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_sparsemat_t A, B, C, D;
+  igraph_t G, H;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v, w, x, y;
+  igraph_matrix_t M, N, O;
+  long int i;
+
+  <emphasis role="strong">srand</emphasis>(1);
+
+  <emphasis>/* Matrix-vector product */</emphasis>
+<emphasis role="strong">#define</emphasis> NROW 10
+<emphasis role="strong">#define</emphasis> NCOL 5
+<emphasis role="strong">#define</emphasis> EDGES NROW*NCOL/3
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;M, NROW, NCOL);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, NROW, NCOL, EDGES);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES; i++) {
+    long int r=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NROW-1);
+    long int c=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NCOL-1);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1,5);
+    <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, r, c) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, r, c) + value;
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, r, c, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, NCOL);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;w, NCOL);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;NCOL; i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[i] = <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(w)[i] = <emphasis role="strong">RNG_INTEGER</emphasis>(1,5);
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;x, NROW);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;y, NROW);
+  <emphasis role="strong">my_gaxpy</emphasis>(&amp;M, &amp;v, &amp;x);
+  <emphasis role="strong"><link linkend='igraph_vector_null'>igraph_vector_null</link></emphasis>(&amp;y);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_gaxpy'>igraph_sparsemat_gaxpy</link></emphasis>(&amp;B, &amp;w, &amp;y);
+  
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_vector_all_e'>igraph_vector_all_e</link></emphasis>(&amp;x, &amp;y)) { <emphasis role="strong">return</emphasis> 1; }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;x);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;y);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;w);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;M);
+
+<emphasis role="strong">#undef</emphasis> NROW
+<emphasis role="strong">#undef</emphasis> NCOL
+<emphasis role="strong">#undef</emphasis> EDGES
+
+  <emphasis>/* Matrix-matrix product */</emphasis>
+<emphasis role="strong">#define</emphasis> NROW_A 10
+<emphasis role="strong">#define</emphasis> NCOL_A 7
+<emphasis role="strong">#define</emphasis> EDGES_A NROW_A*NCOL_A/3
+<emphasis role="strong">#define</emphasis> NROW_B 7
+<emphasis role="strong">#define</emphasis> NCOL_B 9
+<emphasis role="strong">#define</emphasis> EDGES_B NROW_B*NCOL_B/3
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;M, NROW_A, NCOL_A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, NROW_A, NCOL_A, EDGES_A);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES_A; i++) {
+    long int r=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NROW_A-1);
+    long int c=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NCOL_A-1);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1,5);
+    <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, r, c) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, r, c) + value;
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, r, c, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;C);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;N, NROW_B, NCOL_B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;B, NROW_B, NCOL_B, EDGES_B);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;EDGES_B; i++) {
+    long int r=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NROW_B-1);
+    long int c=<emphasis role="strong">RNG_INTEGER</emphasis>(0, NCOL_B-1);
+    igraph_real_t value=<emphasis role="strong">RNG_INTEGER</emphasis>(1,5);
+    <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(N, r, c) = <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(N, r, c) + value;
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;B, r, c, value);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;B, &amp;D);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;O, 0, 0);
+  <emphasis role="strong">my_dgemm</emphasis>(&amp;M, &amp;N, &amp;O);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_multiply'>igraph_sparsemat_multiply</link></emphasis>(&amp;C, &amp;D, &amp;A);
+
+  <emphasis role="strong">if</emphasis> (! <emphasis role="strong">check_same</emphasis>(&amp;A, &amp;O)) { <emphasis role="strong">return</emphasis> 2; }
+  
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;C);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;D);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;M);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;N);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;O);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

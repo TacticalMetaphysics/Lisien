@@ -1,0 +1,79 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+void <emphasis role="strong">igraph_warnings_ignore</emphasis>(<emphasis role="strong">const</emphasis> char *reason, <emphasis role="strong">const</emphasis> char *file,
+			    int line, int igraph_errno) {
+  <emphasis>/* Do nothing */</emphasis>
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> vpath, epath;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> w;
+  
+  <emphasis>/* Unweighted */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 5, IGRAPH_DIRECTED,
+	       0,1, 1,2, 2,3, 3,4, 0,3, 
+	       -1);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;vpath, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;epath, 0);
+  <emphasis role="strong"><link linkend='igraph_get_shortest_path'>igraph_get_shortest_path</link></emphasis>(&amp;g, &amp;vpath, &amp;epath, 0, 4, IGRAPH_OUT);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;vpath);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;epath);
+
+  <emphasis role="strong"><link linkend='igraph_get_shortest_path'>igraph_get_shortest_path</link></emphasis>(&amp;g, &amp;vpath, &amp;epath, 0, 0, IGRAPH_OUT);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;vpath);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;epath);
+
+  <emphasis role="strong"><link linkend='igraph_set_warning_handler'>igraph_set_warning_handler</link></emphasis>(igraph_warnings_ignore);
+  <emphasis role="strong"><link linkend='igraph_get_shortest_path'>igraph_get_shortest_path</link></emphasis>(&amp;g, &amp;vpath, &amp;epath, 4, 0, IGRAPH_OUT);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;vpath);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;epath);
+  <emphasis role="strong"><link linkend='igraph_set_warning_handler'>igraph_set_warning_handler</link></emphasis>(<link linkend='igraph_warning_handler_print'>igraph_warning_handler_print</link>);
+
+  <emphasis role="strong"><link linkend='igraph_get_shortest_path'>igraph_get_shortest_path</link></emphasis>(&amp;g, &amp;vpath, &amp;epath, 4, 0, IGRAPH_ALL);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;vpath);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;epath);
+
+  <emphasis>/* Weighted */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;w, 5);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(w)[0]=1; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(w)[1]=1; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(w)[2]=1; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(w)[3]=1;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(w)[4]=3.1;
+
+  <emphasis role="strong"><link linkend='igraph_get_shortest_path_dijkstra'>igraph_get_shortest_path_dijkstra</link></emphasis>(&amp;g, &amp;vpath, &amp;epath, 0, 4, &amp;w, IGRAPH_OUT);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;vpath);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;epath);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;w);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;epath);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;vpath);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+</programlisting>
