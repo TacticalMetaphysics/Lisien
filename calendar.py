@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass, stringlike
 from pyglet.image import SolidColorImagePattern as color_pattern
 

@@ -1,5 +1,5 @@
-# This file is for the controllers for the things that show up on the
-# screen when you play.
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from pyglet.resource import image
 from util import SaveableMetaclass, dictify_row
 

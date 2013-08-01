@@ -1,1 +1,3 @@
+-- This file is part of LiSE, a framework for life simulation games.
+-- Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 --INSERT INTO card (effect, display_name, text) VALUES ('one', 'Card One', 'text for Card One'), ('two', 'Card Two', 'text for Card Two');

@@ -1,3 +1,5 @@
+-- This file is part of LiSE, a framework for life simulation games.
+-- Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 INSERT INTO style
 (name, fontface, fontsize, spacing, textcolor,
 bg_inactive, bg_active, fg_inactive, fg_active) VALUES

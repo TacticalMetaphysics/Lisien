@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 """Containers for EffectDecks that have beginnings, middles, and ends.
 
 Events, in LiSE, resemble events in programming generally insofar as

@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 """The database backend, with dictionaries of loaded objects.
 
 This is a caching database connector. There are dictionaries for all

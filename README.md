@@ -13,6 +13,47 @@ Existing games that LiSE seeks to imitate include:
 * Animal Crossing
 * Dwarf Fortress
 
+# Why should I use LiSE for this purpose?
+
+Most game engines--the ones that are called "game engines"
+anyhow--provide graphics, networking, file system access, scripting,
+and perhaps physics, since most games need these things. They usually
+do not include anything you'd call a "game mechanic", so if you want
+your game to include a common mechanic like a day/night cycle or a
+crafting system, you need to script those things yourself.
+
+There are exceptions. RPG Maker provides a battle framework, inventory
+management, and other things that designers of Japanese-style computer
+roleplaying games are likely to use. Adventure Game Studio helps
+designers turn two-dimensional background art into something the
+player character can walk around in, just by painting in the parts
+that are walkable. RenPy assumes that the player will be reading a lot
+and picking options from menus a lot, and so automates the
+construction of menus and dialogs--but with an enormous variety of
+options for stylizing them.
+
+LiSE is a game engine in the latter sense. It assumes that there are
+certain problems any designer of life simulators will have, and
+provides powerful tools specialized to those problems.
+
+Many designers of this sort of game will not care very much how it
+looks. For them, there is a default interface style that will let
+people play their game, and requires no further customization.
+
+Life simulators, being life-like, tend to have a lot of data in their
+world model, and should therefore be expected to have more problems
+structuring that data. So instead of the traditional flat save-files,
+LiSE stores its world-state in a relational database. Developers can
+use SQL to get reports on all kinds of things in the game world, and
+can edit the game world using any compatible database application, if
+the LiSE interface doesn't suit.
+
+Time control is handled by the core engine. This includes the ability
+to control the speed of the simulation, as is traditional in this
+genre, but also the ability to *rewind* time. Normally this would be
+accomplished by keeping a lot of save files, but the database features
+render multiple saves unnecessary.
+
 # How does LiSE simulate life?
 
 The stand-alone form of the engine provides a simple user interface
@@ -112,5 +153,15 @@ OpenSimulator.
 # Requirements
 
 * python 2.7
-* python-igraph
-* python-pyglet
+* igraph 0.6.5
+* python-igraph 0.6.5
+* pyglet 1.1
+
+# License
+wallpape.jpg is copyright Fantastic Maps (http://www.fantasticmaps.com/free-stuff/), freely available under Creative Commons BY-NC-SA (https://creativecommons.org/licenses/by-nc-sa/3.0/).
+
+igraph and python-igraph are freely available under the MIT license (http://opensource.org/licenses/MIT).
+
+The LiSE source files themselves are licensed under the terms of the GNU General Public License version 3. See the text of the license in the file gpl-3.0.txt
+
+Copyright (C) 2013 Zachary Spector. Email: zacharyspector@gmail.com

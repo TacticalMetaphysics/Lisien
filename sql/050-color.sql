@@ -1,3 +1,5 @@
+-- This file is part of LiSE, a framework for life simulation games.
+-- Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 INSERT INTO color (name, red, green, blue) VALUES
 ('solarized-blue', 210, 139, 38),
 ('solarized-base01', 117, 110, 88),

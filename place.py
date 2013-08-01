@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 class Place:
     """Where you go when you have to be someplace.
 

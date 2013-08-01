@@ -1,3 +1,5 @@
+-- This file is part of LiSE, a framework for life simulation games.
+-- Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 INSERT INTO spot_coords (place, x, y) VALUES
 ('myroom', 400, 100),
 ('mybathroom', 450, 150),
