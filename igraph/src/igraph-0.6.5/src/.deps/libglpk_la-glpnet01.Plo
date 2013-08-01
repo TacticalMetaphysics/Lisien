@@ -1,4 +1,0 @@
-libglpk_la-glpnet01.lo: ../optional/glpk/glpnet01.c \
- ../optional/glpk/glpnet.h
-
-../optional/glpk/glpnet.h:
