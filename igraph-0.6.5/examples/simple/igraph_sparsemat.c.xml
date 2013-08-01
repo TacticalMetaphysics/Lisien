@@ -1,0 +1,163 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2009-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph_sparsemat.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_sparsemat_t A, B, C, D;
+  igraph_t G, H;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> vect;
+  long int i;
+  
+  <emphasis>/* Create, compress, destroy */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, 100, 20, 50);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  
+  <emphasis>/* Convert a ring graph to a matrix, print it, compress, print again */</emphasis>
+<emphasis role="strong">#define</emphasis> VC 10
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;G, VC, <emphasis>/*directed=*/</emphasis> 0, <emphasis>/*mutual=*/</emphasis> 0, <emphasis>/*circular=*/</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_get_sparsemat'>igraph_get_sparsemat</link></emphasis>(&amp;G, &amp;A);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;G);
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;A, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;B, stdout);
+
+  <emphasis>/* Basic query, nrow, ncol, type, is_triplet, is_cc */</emphasis>
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_sparsemat_nrow'>igraph_sparsemat_nrow</link></emphasis>(&amp;A) != VC ||
+      <emphasis role="strong"><link linkend='igraph_sparsemat_ncol'>igraph_sparsemat_ncol</link></emphasis>(&amp;A) != VC ||
+      <emphasis role="strong"><link linkend='igraph_sparsemat_nrow'>igraph_sparsemat_nrow</link></emphasis>(&amp;B) != VC || 
+      <emphasis role="strong"><link linkend='igraph_sparsemat_ncol'>igraph_sparsemat_ncol</link></emphasis>(&amp;B) != VC) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_sparsemat_is_triplet'>igraph_sparsemat_is_triplet</link></emphasis>(&amp;A)) { <emphasis role="strong">return</emphasis> 2; }
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_sparsemat_is_cc'>igraph_sparsemat_is_cc</link></emphasis>(&amp;B))      { <emphasis role="strong">return</emphasis> 3; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_sparsemat_type'>igraph_sparsemat_type</link></emphasis>(&amp;A) != IGRAPH_SPARSEMAT_TRIPLET) { <emphasis role="strong">return</emphasis> 4; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_sparsemat_type'>igraph_sparsemat_type</link></emphasis>(&amp;B) != IGRAPH_SPARSEMAT_CC)      { <emphasis role="strong">return</emphasis> 5; }
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+<emphasis role="strong">#undef</emphasis> VC
+
+  <emphasis role="strong">printf</emphasis>("------------------------\n");
+
+  <emphasis>/* Create unit matrices */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_sparsemat_eye'>igraph_sparsemat_eye</link></emphasis>(&amp;A, <emphasis>/*n=*/</emphasis> 5, <emphasis>/*nzmax=*/</emphasis> 5, <emphasis>/*value=*/</emphasis> 1.0, 
+		       <emphasis>/*compress=*/</emphasis> 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_eye'>igraph_sparsemat_eye</link></emphasis>(&amp;B, <emphasis>/*n=*/</emphasis> 5, <emphasis>/*nzmax=*/</emphasis> 5, <emphasis>/*value=*/</emphasis> 1.0, 
+		       <emphasis>/*compress=*/</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;A, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;B, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);  
+
+  <emphasis role="strong">printf</emphasis>("------------------------\n");
+
+  <emphasis>/* Create diagonal matrices */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;vect, 5);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;5; i++) { <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(vect)[i] = i; }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_diag'>igraph_sparsemat_diag</link></emphasis>(&amp;A, <emphasis>/*nzmax=*/</emphasis> 5, <emphasis>/*values=*/</emphasis> &amp;vect, <emphasis>/*compress=*/</emphasis> 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_diag'>igraph_sparsemat_diag</link></emphasis>(&amp;B, <emphasis>/*nzmax=*/</emphasis> 5, <emphasis>/*values=*/</emphasis> &amp;vect, <emphasis>/*compress=*/</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;vect);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;A, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;B, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+
+  <emphasis role="strong">printf</emphasis>("------------------------\n");
+  
+  <emphasis>/* Transpose matrices */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_tree'>igraph_tree</link></emphasis>(&amp;G, 10, <emphasis>/*children=*/</emphasis> 2, IGRAPH_TREE_OUT);
+  <emphasis role="strong"><link linkend='igraph_get_sparsemat'>igraph_get_sparsemat</link></emphasis>(&amp;G, &amp;A);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;G);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;B, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_transpose'>igraph_sparsemat_transpose</link></emphasis>(&amp;B, &amp;C, <emphasis>/*values=*/</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;C, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);	
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;C);	
+
+  <emphasis role="strong">printf</emphasis>("------------------------\n");
+
+  <emphasis>/* Add duplicate elements */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, 10, 10, <emphasis>/*nzmax=*/</emphasis> 20);
+  <emphasis role="strong">for</emphasis> (i=1; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, 0, i, 1.0);
+  }
+  <emphasis role="strong">for</emphasis> (i=1; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, 0, i, 1.0);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;A, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;B, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_dupl'>igraph_sparsemat_dupl</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;B, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);	
+
+  <emphasis role="strong">printf</emphasis>("------------------------\n");
+  
+  <emphasis>/* Drop zero elements */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, 10, 10, <emphasis>/*nzmax=*/</emphasis> 20);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, 7, 3, 0.0);
+  <emphasis role="strong">for</emphasis> (i=1; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, 0, i, 1.0);
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, 0, i, 0.0);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, 0, 0, 0.0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;A, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;B, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_dropzeros'>igraph_sparsemat_dropzeros</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;B, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);	  
+
+  <emphasis role="strong">printf</emphasis>("------------------------\n");
+
+  <emphasis>/* Add two matrices */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_star'>igraph_star</link></emphasis>(&amp;G, 10, IGRAPH_STAR_OUT, <emphasis>/*center=*/</emphasis> 0);
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;H, 10, <emphasis>/*directed=*/</emphasis> 0, <emphasis>/*mutual=*/</emphasis> 0, <emphasis>/*circular=*/</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_get_sparsemat'>igraph_get_sparsemat</link></emphasis>(&amp;G, &amp;A);
+  <emphasis role="strong"><link linkend='igraph_get_sparsemat'>igraph_get_sparsemat</link></emphasis>(&amp;H, &amp;B);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;G);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;H);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;A, &amp;C);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;B, &amp;D);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;B);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_add'>igraph_sparsemat_add</link></emphasis>(&amp;C, &amp;D, <emphasis>/*alpha=*/</emphasis> 1.0, <emphasis>/*beta=*/</emphasis> 2.0, &amp;A);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;C);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;D);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_print'>igraph_sparsemat_print</link></emphasis>(&amp;A, stdout);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

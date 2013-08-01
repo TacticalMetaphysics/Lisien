@@ -1,0 +1,161 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+void <emphasis role="strong">print_vector</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link> *v, FILE *f) {
+  long int i;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v); i++) {
+    <emphasis role="strong">fprintf</emphasis>(f, " %li", (long int) <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v)[i]);
+  }
+  <emphasis role="strong">fprintf</emphasis>(f, "\n");
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  igraph_t g;
+  igraph_integer_t eid;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> hist;
+  long int i;
+  int ret;
+
+  <emphasis>/* DIRECTED */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_star'>igraph_star</link></emphasis>(&amp;g, 10, IGRAPH_STAR_OUT, 0);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;hist, 9);
+
+  <emphasis role="strong">for</emphasis> (i=1; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_get_eid'>igraph_get_eid</link></emphasis>(&amp;g, &amp;eid, 0, i, IGRAPH_DIRECTED, <emphasis>/*error=*/</emphasis> 1);
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(hist)[ (long int) eid ] = 1;
+  }
+  <emphasis role="strong">print_vector</emphasis>(&amp;hist, stdout);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;hist);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* UNDIRECTED */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_star'>igraph_star</link></emphasis>(&amp;g, 10, IGRAPH_STAR_UNDIRECTED, 0);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;hist, 9);
+
+  <emphasis role="strong">for</emphasis> (i=1; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_get_eid'>igraph_get_eid</link></emphasis>(&amp;g, &amp;eid, 0, i, IGRAPH_UNDIRECTED, <emphasis>/*error=*/</emphasis> 1);
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(hist)[ (long int) eid ] += 1;
+    <emphasis role="strong"><link linkend='igraph_get_eid'>igraph_get_eid</link></emphasis>(&amp;g, &amp;eid, i, 0, IGRAPH_DIRECTED, <emphasis>/*error=*/</emphasis> 1);
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(hist)[ (long int) eid ] += 1;
+  }
+  <emphasis role="strong">print_vector</emphasis>(&amp;hist, stdout);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;hist);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* NON-EXISTANT EDGE */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_star'>igraph_star</link></emphasis>(&amp;g, 10, IGRAPH_STAR_UNDIRECTED, 0);
+
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_ignore'>igraph_error_handler_ignore</link>);
+  
+  ret=<emphasis role="strong"><link linkend='igraph_get_eid'>igraph_get_eid</link></emphasis>(&amp;g, &amp;eid, 5, 6, IGRAPH_UNDIRECTED, <emphasis>/*error=*/</emphasis> 1);
+  <emphasis role="strong">if</emphasis> (ret != IGRAPH_EINVAL) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+<emphasis>/* Stress test */</emphasis>
+
+<emphasis>/* int main() { */</emphasis>
+
+<emphasis>/*   igraph_t g; */</emphasis>
+<emphasis>/*   long int i, n; */</emphasis>
+<emphasis>/*   igraph_integer_t from, to, eid; */</emphasis>
+
+<emphasis>/*   igraph_barabasi_game(&amp;g, 10000, 100, 0, 0, 1); */</emphasis>
+<emphasis>/*   n=igraph_ecount(&amp;g); */</emphasis>
+<emphasis>/*   for (i=0; i&lt;n; i++) { */</emphasis>
+<emphasis>/*     igraph_edge(&amp;g, i, &amp;from, &amp;to); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, from, to, 1, 1); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, to, from, 0, 1); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, from, to, 0, 1); */</emphasis>
+<emphasis>/*   } */</emphasis>
+<emphasis>/*   igraph_destroy(&amp;g); */</emphasis>
+
+<emphasis>/*   igraph_barabasi_game(&amp;g, 10000, 100, 0, 0, 0); */</emphasis>
+<emphasis>/*   n=igraph_ecount(&amp;g); */</emphasis>
+<emphasis>/*   for (i=0; i&lt;n; i++) { */</emphasis>
+<emphasis>/*     igraph_edge(&amp;g, i, &amp;from, &amp;to); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, from, to, 0, 1); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, to, from, 0, 1); */</emphasis>
+<emphasis>/*   } */</emphasis>
+<emphasis>/*   igraph_destroy(&amp;g); */</emphasis>
+
+<emphasis>/*   igraph_erdos_renyi_game(&amp;g, IGRAPH_ERDOS_RENYI_GNP, */</emphasis>
+<emphasis>/* 			  2000, 100.0/2000, 0, 0); */</emphasis>
+<emphasis>/*   n=igraph_ecount(&amp;g); */</emphasis>
+<emphasis>/*   for (i=0; i&lt;n; i++) { */</emphasis>
+<emphasis>/*     igraph_edge(&amp;g, i, &amp;from, &amp;to); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, from, to, 0, 1); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, to, from, 0, 1); */</emphasis>
+<emphasis>/*   } */</emphasis>
+<emphasis>/*   igraph_destroy(&amp;g); */</emphasis>
+
+<emphasis>/*   igraph_full(&amp;g, 500, 0, 0); */</emphasis>
+<emphasis>/*   n=igraph_ecount(&amp;g); */</emphasis>
+<emphasis>/*   for (i=0; i&lt;n; i++) { */</emphasis>
+<emphasis>/*     igraph_edge(&amp;g, i, &amp;from, &amp;to); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, from, to, 0, 1); */</emphasis>
+<emphasis>/*   } */</emphasis>
+<emphasis>/*   igraph_destroy(&amp;g); */</emphasis>
+  
+<emphasis>/*   igraph_star(&amp;g, 20000, IGRAPH_STAR_OUT, 0); */</emphasis>
+<emphasis>/*   n=igraph_ecount(&amp;g); */</emphasis>
+<emphasis>/*   for (i=0; i&lt;n; i++) { */</emphasis>
+<emphasis>/*     igraph_edge(&amp;g, i, &amp;from, &amp;to); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, from, to, 0, 1); */</emphasis>
+<emphasis>/*   } */</emphasis>
+<emphasis>/*   igraph_destroy(&amp;g); */</emphasis>
+
+<emphasis>/*   igraph_star(&amp;g, 20000, IGRAPH_STAR_IN, 0); */</emphasis>
+<emphasis>/*   n=igraph_ecount(&amp;g); */</emphasis>
+<emphasis>/*   for (i=0; i&lt;n; i++) { */</emphasis>
+<emphasis>/*     igraph_edge(&amp;g, i, &amp;from, &amp;to); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, from, to, 0, 1); */</emphasis>
+<emphasis>/*   } */</emphasis>
+<emphasis>/*   igraph_destroy(&amp;g); */</emphasis>
+
+<emphasis>/*   igraph_star(&amp;g, 2000000, IGRAPH_STAR_UNDIRECTED, 1999999); */</emphasis>
+<emphasis>/*   n=igraph_ecount(&amp;g); */</emphasis>
+<emphasis>/*   for (i=0; i&lt;n; i++) { */</emphasis>
+<emphasis>/*     igraph_edge(&amp;g, i, &amp;from, &amp;to); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, from, to, 0, 1); */</emphasis>
+<emphasis>/*     igraph_get_eid(&amp;g, &amp;eid, to, from, 0, 1); */</emphasis>
+<emphasis>/*   } */</emphasis>
+<emphasis>/*   igraph_destroy(&amp;g); */</emphasis>
+    
+<emphasis>/*   return 0; */</emphasis>
+<emphasis>/* } */</emphasis>
+</programlisting>

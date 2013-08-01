@@ -1,0 +1,78 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2010-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+<emphasis role="strong">#define</emphasis> DIM1 10
+<emphasis role="strong">#define</emphasis> DIM2 5
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">INT</emphasis>(a) (<emphasis role="strong"><link linkend='igraph_rng_get_integer'>igraph_rng_get_integer</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 0, (a)))
+
+int <emphasis role="strong">main</emphasis>() {
+  igraph_matrix_t mat;
+  igraph_sparsemat_t spmat, spmat2;
+  int i;
+  igraph_real_t m1, m2;
+  
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 42);
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;spmat, DIM1, DIM2, 20);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, 1, 2, -1.0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, 3, 2, 10.0);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, <emphasis role="strong">INT</emphasis>(DIM1-1), <emphasis role="strong">INT</emphasis>(DIM2-1), 1.0);
+  } 
+  <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, 1, 2, -1.0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, 3, 2, 10.0);
+  
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;spmat, &amp;spmat2);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;mat, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;mat, &amp;spmat2);
+  m1=<emphasis role="strong">igraph_sparsemat_min</emphasis>(&amp;spmat2);
+  m2=<emphasis role="strong"><link linkend='igraph_matrix_min'>igraph_matrix_min</link></emphasis>(&amp;mat);
+  <emphasis role="strong">if</emphasis> (m1 != m2) {
+    <emphasis role="strong">printf</emphasis>("%f %f\n", m1, m2);
+    <emphasis role="strong">return</emphasis> 1; 
+  }
+  m1=<emphasis role="strong">igraph_sparsemat_max</emphasis>(&amp;spmat2);
+  m2=<emphasis role="strong"><link linkend='igraph_matrix_max'>igraph_matrix_max</link></emphasis>(&amp;mat);
+  <emphasis role="strong">if</emphasis> (m1 != m2) {
+    <emphasis role="strong">printf</emphasis>("%f %f\n", m1, m2);
+    <emphasis role="strong">return</emphasis> 2;
+  }
+
+  <emphasis role="strong">igraph_sparsemat_minmax</emphasis>(&amp;spmat2, &amp;m1, &amp;m2);
+  <emphasis role="strong">if</emphasis> (m1 != <emphasis role="strong"><link linkend='igraph_matrix_min'>igraph_matrix_min</link></emphasis>(&amp;mat)) { <emphasis role="strong">return</emphasis> 3; }
+  <emphasis role="strong">if</emphasis> (m2 != <emphasis role="strong"><link linkend='igraph_matrix_max'>igraph_matrix_max</link></emphasis>(&amp;mat)) { <emphasis role="strong">return</emphasis> 4; }
+
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;mat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat2);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+  
+  
+  
+
+</programlisting>

@@ -1,0 +1,122 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t orig, sub, diff;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v;
+
+  <emphasis>/* Subtract from itself */</emphasis>
+  <emphasis role="strong">printf</emphasis>("subtract itself\n");
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;v, -1, 0,1,1,2,2,1,4,5, -1);
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;orig, &amp;v, 0, IGRAPH_DIRECTED);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  
+  <emphasis role="strong"><link linkend='igraph_difference'>igraph_difference</link></emphasis>(&amp;diff, &amp;orig, &amp;orig);
+  <emphasis role="strong"><link linkend='igraph_write_graph_edgelist'>igraph_write_graph_edgelist</link></emphasis>(&amp;diff, stdout);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;diff) != 0 ||
+      <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;diff) != <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;orig)) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;orig);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;diff);
+
+  <emphasis>/* Same for undirected graph */</emphasis>
+  <emphasis role="strong">printf</emphasis>("subtract itself, undirected\n");
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;v, -1, 0,1,1,2,2,1,4,5, -1);
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;orig, &amp;v, 0, IGRAPH_UNDIRECTED);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;v, -1, 1,0,1,2,2,1,4,5, -1);
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;sub, &amp;v, 0, IGRAPH_UNDIRECTED);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  
+  <emphasis role="strong"><link linkend='igraph_difference'>igraph_difference</link></emphasis>(&amp;diff, &amp;orig, &amp;sub);
+  <emphasis role="strong"><link linkend='igraph_write_graph_edgelist'>igraph_write_graph_edgelist</link></emphasis>(&amp;diff, stdout);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;diff) != 0 ||
+      <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;diff) != <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;orig)) {
+    <emphasis role="strong">return</emphasis> 2;
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;orig);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;sub);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;diff);
+  
+  <emphasis>/* Subtract the empty graph */</emphasis>
+  <emphasis role="strong">printf</emphasis>("subtract empty\n");
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;v, -1, 0,1,1,2,2,1,4,5, -1);
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;orig, &amp;v, 0, IGRAPH_DIRECTED);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+
+  <emphasis role="strong"><link linkend='igraph_empty'>igraph_empty</link></emphasis>(&amp;sub, 3, IGRAPH_DIRECTED);
+  <emphasis role="strong"><link linkend='igraph_difference'>igraph_difference</link></emphasis>(&amp;diff, &amp;orig, &amp;sub);
+  <emphasis role="strong"><link linkend='igraph_write_graph_edgelist'>igraph_write_graph_edgelist</link></emphasis>(&amp;diff, stdout);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;diff) != <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;orig) ||
+      <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;diff) != <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;orig)) {
+    <emphasis role="strong">return</emphasis> 3;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;orig);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;sub);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;diff);
+
+  <emphasis>/* A `real' example */</emphasis>
+  <emphasis role="strong">printf</emphasis>("real example\n");
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;v, -1, 0,1,1,2,2,1,4,5,8,9, -1);
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;orig, &amp;v, 0, IGRAPH_DIRECTED);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;v, -1, 0,1,5,4,2,1,6,7, -1);
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;sub, &amp;v, 0, IGRAPH_DIRECTED);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  
+  <emphasis role="strong"><link linkend='igraph_difference'>igraph_difference</link></emphasis>(&amp;diff, &amp;orig, &amp;sub);
+  <emphasis role="strong"><link linkend='igraph_write_graph_edgelist'>igraph_write_graph_edgelist</link></emphasis>(&amp;diff, stdout);
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;diff);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;orig);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;sub);  
+
+  <emphasis>/* undirected version */</emphasis>
+  <emphasis role="strong">printf</emphasis>("real example, undirected\n");
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;v, -1, 0,1,1,2,2,1,4,5,8,9,8,10,8,13,8,11,8,12, -1);
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;orig, &amp;v, 0, IGRAPH_UNDIRECTED);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;v, -1, 0,1,5,4,2,1,6,7,8,10,8,13, -1);
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;sub, &amp;v, 0, IGRAPH_UNDIRECTED);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+
+  <emphasis role="strong"><link linkend='igraph_difference'>igraph_difference</link></emphasis>(&amp;diff, &amp;orig, &amp;sub);
+  <emphasis role="strong"><link linkend='igraph_write_graph_edgelist'>igraph_write_graph_edgelist</link></emphasis>(&amp;diff, stdout);
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;diff);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;orig);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;sub);  
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

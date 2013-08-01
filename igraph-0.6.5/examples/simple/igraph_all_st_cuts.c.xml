@@ -1,0 +1,376 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2010-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph_marked_queue.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph_estack.h&gt;
+
+int <emphasis role="strong">igraph_i_all_st_cuts_pivot</emphasis>(<emphasis role="strong">const</emphasis> igraph_t *graph,
+			       <emphasis role="strong">const</emphasis> igraph_marked_queue_t *S,
+			       <emphasis role="strong">const</emphasis> igraph_estack_t *T,
+			       long int source,
+			       long int target,
+			       long int *v,
+			       <link linkend='igraph_vector_t'>igraph_vector_t</link> *Isv);
+
+int <emphasis role="strong">main</emphasis>() {
+  igraph_t g;
+  igraph_vector_ptr_t cuts, partition1s;
+  long int i, n;
+
+  igraph_marked_queue_t S;
+  igraph_estack_t T;
+  long int v;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> Isv;
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+  <emphasis>/* This is the example from the Provan-Shier paper, </emphasis>
+<emphasis>     for calculating the dominator tree and finding the right pivot </emphasis>
+<emphasis>     element */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 12, IGRAPH_DIRECTED,
+  	       <emphasis>/* a-&gt;b */</emphasis> 0,1,
+  	       <emphasis>/* b-&gt;t */</emphasis> 1,11,
+  	       <emphasis>/* c-&gt;b */</emphasis> 2,1,  <emphasis>/* c-&gt;d */</emphasis> 2,3,
+  	       <emphasis>/* d-&gt;e */</emphasis> 3,4,  <emphasis>/* d-&gt;i */</emphasis> 3,8,
+  	       <emphasis>/* e-&gt;c */</emphasis> 4,2,
+  	       <emphasis>/* f-&gt;c */</emphasis> 5,2,  <emphasis>/* f-&gt;e */</emphasis> 5,4,
+  	       <emphasis>/* g-&gt;d */</emphasis> 6,3,  <emphasis>/* g-&gt;e */</emphasis> 6,4,  <emphasis>/* g-&gt;f */</emphasis> 6,5,
+  	                        <emphasis>/* g-&gt;j */</emphasis> 6,9,
+  	       <emphasis>/* h-&gt;g */</emphasis> 7,6,  <emphasis>/* h-&gt;t */</emphasis> 7,11,
+  	       <emphasis>/* i-&gt;a */</emphasis> 8,0,
+  	       <emphasis>/* j-&gt;i */</emphasis> 9,8,
+  	       <emphasis>/* s-&gt;a */</emphasis> 10,0, <emphasis>/* s-&gt;c */</emphasis> 10,2, <emphasis>/* s-&gt;h */</emphasis> 10,7,
+  	       -1);
+  
+  <emphasis>/* S={s,a} */</emphasis>
+  <emphasis role="strong">igraph_marked_queue_init</emphasis>(&amp;S, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+  <emphasis role="strong">igraph_marked_queue_start_batch</emphasis>(&amp;S);
+  <emphasis role="strong">igraph_marked_queue_push</emphasis>(&amp;S, 10);
+  <emphasis role="strong">igraph_marked_queue_push</emphasis>(&amp;S, 0);
+  
+  <emphasis>/* T={t} */</emphasis>
+  <emphasis role="strong">igraph_estack_init</emphasis>(&amp;T, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g), 1);
+  <emphasis role="strong">igraph_estack_push</emphasis>(&amp;T, 11);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;Isv, 0);
+  <emphasis role="strong">igraph_i_all_st_cuts_pivot</emphasis>(&amp;g, &amp;S, &amp;T,
+  				<emphasis>/*source=*/</emphasis> 10, <emphasis>/*target=*/</emphasis> 11,
+  				&amp;v, &amp;Isv);
+
+  <emphasis>/* Expected result: v=c, Isv={c,d,e,i} */</emphasis>
+  <emphasis role="strong">printf</emphasis>("%li; ", v);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;Isv);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;Isv);
+  <emphasis role="strong">igraph_estack_destroy</emphasis>(&amp;T);
+  <emphasis role="strong">igraph_marked_queue_destroy</emphasis>(&amp;S);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 3, IGRAPH_DIRECTED,
+  	       0,1, 1,2,
+  	       -1);
+  
+  <emphasis>/* S={}, T={} */</emphasis>
+  <emphasis role="strong">igraph_marked_queue_init</emphasis>(&amp;S, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+  <emphasis role="strong">igraph_estack_init</emphasis>(&amp;T, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g), 3);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;Isv, 0);
+  <emphasis role="strong">igraph_i_all_st_cuts_pivot</emphasis>(&amp;g, &amp;S, &amp;T,
+  				<emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 2,
+  				&amp;v, &amp;Isv);
+  <emphasis role="strong">printf</emphasis>("%li; ", v);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;Isv);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;Isv);
+  <emphasis role="strong">igraph_estack_destroy</emphasis>(&amp;T);
+  <emphasis role="strong">igraph_marked_queue_destroy</emphasis>(&amp;S);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 3, IGRAPH_DIRECTED,
+  	       0,1, 1,2,
+  	       -1);
+  
+  <emphasis>/* S={}, T={0} */</emphasis>
+  <emphasis role="strong">igraph_marked_queue_init</emphasis>(&amp;S, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+
+  <emphasis role="strong">igraph_estack_init</emphasis>(&amp;T, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g), 3);
+  <emphasis role="strong">igraph_estack_push</emphasis>(&amp;T, 0);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;Isv, 0);
+  <emphasis role="strong">igraph_i_all_st_cuts_pivot</emphasis>(&amp;g, &amp;S, &amp;T,
+  				<emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 2,
+  				&amp;v, &amp;Isv);
+  <emphasis role="strong">printf</emphasis>("%li; ", v);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;Isv);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;Isv);
+  <emphasis role="strong">igraph_estack_destroy</emphasis>(&amp;T);
+  <emphasis role="strong">igraph_marked_queue_destroy</emphasis>(&amp;S);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 3, IGRAPH_DIRECTED,
+  	       0,1, 1,2,
+  	       -1);
+  
+  <emphasis>/* S={0}, T={} */</emphasis>
+  <emphasis role="strong">igraph_marked_queue_init</emphasis>(&amp;S, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+  <emphasis role="strong">igraph_marked_queue_push</emphasis>(&amp;S, 0);
+
+  <emphasis role="strong">igraph_estack_init</emphasis>(&amp;T, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g), 3);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;Isv, 0);
+  <emphasis role="strong">igraph_i_all_st_cuts_pivot</emphasis>(&amp;g, &amp;S, &amp;T,
+  				<emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 2,
+  				&amp;v, &amp;Isv);
+  <emphasis role="strong">printf</emphasis>("%li; ", v);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;Isv);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;Isv);
+  <emphasis role="strong">igraph_estack_destroy</emphasis>(&amp;T);
+  <emphasis role="strong">igraph_marked_queue_destroy</emphasis>(&amp;S);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 3, IGRAPH_DIRECTED,
+  	       0,1, 1,2,
+  	       -1);
+  
+  <emphasis>/* S={0}, T={1} */</emphasis>
+  <emphasis role="strong">igraph_marked_queue_init</emphasis>(&amp;S, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+  <emphasis role="strong">igraph_marked_queue_push</emphasis>(&amp;S, 0);
+
+  <emphasis role="strong">igraph_estack_init</emphasis>(&amp;T, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g), 3);
+  <emphasis role="strong">igraph_estack_push</emphasis>(&amp;T, 1);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;Isv, 0);
+  <emphasis role="strong">igraph_i_all_st_cuts_pivot</emphasis>(&amp;g, &amp;S, &amp;T,
+  				<emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 2,
+  				&amp;v, &amp;Isv);
+  <emphasis role="strong">printf</emphasis>("%li; ", v);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;Isv);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;Isv);
+  <emphasis role="strong">igraph_estack_destroy</emphasis>(&amp;T);
+  <emphasis role="strong">igraph_marked_queue_destroy</emphasis>(&amp;S);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 3, IGRAPH_DIRECTED,
+  	       0,1, 1,2,
+  	       -1);
+  
+  <emphasis>/* S={0,1}, T={} */</emphasis>
+  <emphasis role="strong">igraph_marked_queue_init</emphasis>(&amp;S, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+  <emphasis role="strong">igraph_marked_queue_push</emphasis>(&amp;S, 0);
+  <emphasis role="strong">igraph_marked_queue_push</emphasis>(&amp;S, 1);
+
+  <emphasis role="strong">igraph_estack_init</emphasis>(&amp;T, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g), 3);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;Isv, 0);
+  <emphasis role="strong">igraph_i_all_st_cuts_pivot</emphasis>(&amp;g, &amp;S, &amp;T,
+  				<emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 2,
+  				&amp;v, &amp;Isv);
+  <emphasis role="strong">printf</emphasis>("%li; ", v);
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;Isv);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;Isv);
+  <emphasis role="strong">igraph_estack_destroy</emphasis>(&amp;T);
+  <emphasis role="strong">igraph_marked_queue_destroy</emphasis>(&amp;S);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 3, IGRAPH_DIRECTED,
+  	       0,1, 1,2,
+  	       -1);
+
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;partition1s, 0);
+  <emphasis role="strong"><link linkend='igraph_all_st_cuts'>igraph_all_st_cuts</link></emphasis>(&amp;g, <emphasis>/*cuts=*/</emphasis> 0, &amp;partition1s,
+		     <emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 2);
+
+  n=<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;partition1s);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *v=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(partition1s)[i];
+    <emphasis role="strong">igraph_vector_print</emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_free'>igraph_free</link></emphasis>(v);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;partition1s);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 5, IGRAPH_DIRECTED,
+  	       0,1, 1,2, 1,3, 2,4, 3,4,
+  	       -1);
+
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;partition1s, 0);
+  <emphasis role="strong"><link linkend='igraph_all_st_cuts'>igraph_all_st_cuts</link></emphasis>(&amp;g, <emphasis>/*cuts=*/</emphasis> 0, &amp;partition1s,
+		     <emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 4);
+
+  n=<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;partition1s);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *v=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(partition1s)[i];
+    <emphasis role="strong">igraph_vector_print</emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_free'>igraph_free</link></emphasis>(v);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;partition1s);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);  
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 6, IGRAPH_DIRECTED,
+  	       0,1, 1,2, 1,3, 2,4, 3,4, 1,5, 5,4,
+  	       -1);
+
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;cuts, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;partition1s, 0);
+  <emphasis role="strong"><link linkend='igraph_all_st_cuts'>igraph_all_st_cuts</link></emphasis>(&amp;g, &amp;cuts, &amp;partition1s,
+		     <emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 4);
+
+  n=<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;partition1s);
+  <emphasis role="strong">printf</emphasis>("Partitions and cuts:\n");
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *v=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(partition1s)[i];
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *v2=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(cuts)[i];
+    <emphasis role="strong">printf</emphasis>("P: ");
+    <emphasis role="strong">igraph_vector_print</emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_free'>igraph_free</link></emphasis>(v);
+    <emphasis role="strong">printf</emphasis>("C: ");
+    <emphasis role="strong">igraph_vector_print</emphasis>(v2);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v2);
+    <emphasis role="strong"><link linkend='igraph_free'>igraph_free</link></emphasis>(v2);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;partition1s);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;cuts);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);  
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 3, IGRAPH_DIRECTED,
+  	       0,2, 1,2,
+  	       -1);
+
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;cuts, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;partition1s, 0);
+  <emphasis role="strong"><link linkend='igraph_all_st_cuts'>igraph_all_st_cuts</link></emphasis>(&amp;g, &amp;cuts, &amp;partition1s,
+		     <emphasis>/*source=*/</emphasis> 1, <emphasis>/*target=*/</emphasis> 2);
+
+  n=<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;partition1s);
+  <emphasis role="strong">printf</emphasis>("Partitions and cuts:\n");
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *v=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(partition1s)[i];
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *v2=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(cuts)[i];
+    <emphasis role="strong">printf</emphasis>("P: ");
+    <emphasis role="strong">igraph_vector_print</emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_free'>igraph_free</link></emphasis>(v);
+    <emphasis role="strong">printf</emphasis>("C: ");
+    <emphasis role="strong">igraph_vector_print</emphasis>(v2);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v2);
+    <emphasis role="strong"><link linkend='igraph_free'>igraph_free</link></emphasis>(v2);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;partition1s);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;cuts);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);  
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 5, IGRAPH_DIRECTED,
+	       0,1, 1,2, 2,3, 3,4, 3,1,
+	       -1);
+
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;cuts, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;partition1s, 0);
+  <emphasis role="strong"><link linkend='igraph_all_st_cuts'>igraph_all_st_cuts</link></emphasis>(&amp;g, &amp;cuts, &amp;partition1s,
+		     <emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 4);
+
+  n=<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;partition1s);
+  <emphasis role="strong">printf</emphasis>("Partitions and cuts:\n");
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *v=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(partition1s)[i];
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *v2=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(cuts)[i];
+    <emphasis role="strong">printf</emphasis>("P: ");
+    <emphasis role="strong">igraph_vector_print</emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_free'>igraph_free</link></emphasis>(v);
+    <emphasis role="strong">printf</emphasis>("C: ");
+    <emphasis role="strong">igraph_vector_print</emphasis>(v2);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v2);
+    <emphasis role="strong"><link linkend='igraph_free'>igraph_free</link></emphasis>(v2);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;partition1s);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;cuts);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);  
+
+  <emphasis>/* ----------------------------------------------------------- */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 7, IGRAPH_DIRECTED,
+	       0,1,0,2, 1,3,2,3,
+	       1,4,1,5,1,6, 
+	       4,2,5,2,6,2,
+	       -1);
+
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;cuts, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;partition1s, 0);
+  <emphasis role="strong"><link linkend='igraph_all_st_cuts'>igraph_all_st_cuts</link></emphasis>(&amp;g, &amp;cuts, &amp;partition1s,
+		     <emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 3);
+
+  n=<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;partition1s);
+  <emphasis role="strong">printf</emphasis>("Partitions and cuts:\n");
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *v=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(partition1s)[i];
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *v2=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(cuts)[i];
+    <emphasis role="strong">printf</emphasis>("P: ");
+    <emphasis role="strong">igraph_vector_print</emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v);
+    <emphasis role="strong"><link linkend='igraph_free'>igraph_free</link></emphasis>(v);
+    <emphasis role="strong">printf</emphasis>("C: ");
+    <emphasis role="strong">igraph_vector_print</emphasis>(v2);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v2);
+    <emphasis role="strong"><link linkend='igraph_free'>igraph_free</link></emphasis>(v2);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;partition1s);
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;cuts);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);  
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

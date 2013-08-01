@@ -1,0 +1,126 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2007-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdlib.h&gt;
+
+void <emphasis role="strong">print_vector</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link> *v, FILE *f) {
+  long int i;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v); i++) {
+    <emphasis role="strong">fprintf</emphasis>(f, " %li", (long int) <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v)[i]);
+  }
+  <emphasis role="strong">fprintf</emphasis>(f, "\n");
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v1, v2, v3;
+  igraph_real_t min, max;
+  long int imin, imax;
+  int i;
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init_seq'>igraph_vector_init_seq</link></emphasis>(&amp;v1, 1, 10);
+  <emphasis role="strong"><link linkend='igraph_vector_init_seq'>igraph_vector_init_seq</link></emphasis>(&amp;v2, 0, 9);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_swap'>igraph_vector_swap</link></emphasis>(&amp;v1, &amp;v2);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v1, stdout);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v2, stdout);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_swap_elements'>igraph_vector_swap_elements</link></emphasis>(&amp;v1, 0, 9);
+  <emphasis role="strong"><link linkend='igraph_vector_swap_elements'>igraph_vector_swap_elements</link></emphasis>(&amp;v1, 3, 6);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v1, stdout);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_reverse'>igraph_vector_reverse</link></emphasis>(&amp;v2);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v2, stdout);
+  <emphasis role="strong"><link linkend='igraph_vector_reverse'>igraph_vector_reverse</link></emphasis>(&amp;v2);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v2, stdout);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v1);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v2);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v1, 10);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v2, 10);
+  <emphasis role="strong"><link linkend='igraph_vector_fill'>igraph_vector_fill</link></emphasis>(&amp;v1, 4);
+  <emphasis role="strong"><link linkend='igraph_vector_fill'>igraph_vector_fill</link></emphasis>(&amp;v2, 2);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_add'>igraph_vector_add</link></emphasis>(&amp;v1, &amp;v2);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v1, stdout);
+  <emphasis role="strong"><link linkend='igraph_vector_sub'>igraph_vector_sub</link></emphasis>(&amp;v1, &amp;v2);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v1, stdout);
+  <emphasis role="strong"><link linkend='igraph_vector_div'>igraph_vector_div</link></emphasis>(&amp;v1, &amp;v2);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v1, stdout);
+  <emphasis role="strong"><link linkend='igraph_vector_mul'>igraph_vector_mul</link></emphasis>(&amp;v1, &amp;v2);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v1, stdout);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_minmax'>igraph_vector_minmax</link></emphasis>(&amp;v1, &amp;min, &amp;max);
+  <emphasis role="strong"><link linkend='igraph_vector_which_minmax'>igraph_vector_which_minmax</link></emphasis>(&amp;v1, &amp;imin, &amp;imax);
+  <emphasis role="strong">printf</emphasis>("%g %g %li %li\n", min, max, imin, imax);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v1);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v2);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init_seq'>igraph_vector_init_seq</link></emphasis>(&amp;v1, 1, 10);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v2, 10);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;10; i++) { <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v2)[i] = 10-i; }
+
+  <emphasis role="strong"><link linkend='igraph_vector_minmax'>igraph_vector_minmax</link></emphasis>(&amp;v1, &amp;min, &amp;max);
+  <emphasis role="strong"><link linkend='igraph_vector_which_minmax'>igraph_vector_which_minmax</link></emphasis>(&amp;v1, &amp;imin, &amp;imax);
+  <emphasis role="strong">printf</emphasis>("%g %g %li %li\n", min, max, imin, imax);
+  <emphasis role="strong"><link linkend='igraph_vector_minmax'>igraph_vector_minmax</link></emphasis>(&amp;v2, &amp;min, &amp;max);
+  <emphasis role="strong"><link linkend='igraph_vector_which_minmax'>igraph_vector_which_minmax</link></emphasis>(&amp;v2, &amp;imin, &amp;imax);
+  <emphasis role="strong">printf</emphasis>("%g %g %li %li\n", min, max, imin, imax);
+  
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong">igraph_vector_isnull</emphasis>(&amp;v1)) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_null'>igraph_vector_null</link></emphasis>(&amp;v1);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">igraph_vector_isnull</emphasis>(&amp;v1)) {
+    <emphasis role="strong">return</emphasis> 2;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v1);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v2);
+
+  <emphasis role="strong">igraph_vector_init_int</emphasis>(&amp;v1, 10, 3, 5, 6, 6, 6, 7, 8, 8, 9, 10);
+  <emphasis role="strong">igraph_vector_init_int</emphasis>(&amp;v2, 10, 1, 3, 3, 6, 6, 9, 12, 15, 17, 20);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v3, 0);
+
+  <emphasis role="strong"><link linkend='igraph_vector_intersect_sorted'>igraph_vector_intersect_sorted</link></emphasis>(&amp;v1, &amp;v2, &amp;v3);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v3, stdout);
+
+  <emphasis role="strong"><link linkend='igraph_vector_difference_sorted'>igraph_vector_difference_sorted</link></emphasis>(&amp;v1, &amp;v2, &amp;v3);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v3, stdout);
+  <emphasis role="strong"><link linkend='igraph_vector_difference_sorted'>igraph_vector_difference_sorted</link></emphasis>(&amp;v2, &amp;v1, &amp;v3);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v3, stdout);
+  <emphasis role="strong"><link linkend='igraph_vector_difference_sorted'>igraph_vector_difference_sorted</link></emphasis>(&amp;v2, &amp;v2, &amp;v3);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v3, stdout);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v1);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v2);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v3);
+
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong">IGRAPH_FINALLY_STACK_SIZE</emphasis>() != 0) <emphasis role="strong">return</emphasis> 3; 
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

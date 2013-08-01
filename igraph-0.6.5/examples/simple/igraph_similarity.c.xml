@@ -1,0 +1,211 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* vim:set ts=2 sw=2 sts=2 et: */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+void <emphasis role="strong">print_matrix</emphasis>(igraph_matrix_t *m, FILE *f) {
+  long int i, j;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(m); i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(m); j++) {
+      <emphasis role="strong">fprintf</emphasis>(f, " %.2f", <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j));
+    }
+    <emphasis role="strong">fprintf</emphasis>(f, "\n");
+  }
+  <emphasis role="strong">fprintf</emphasis>(f, "==========\n");
+}
+
+int <emphasis role="strong">check_jaccard_all</emphasis>(<emphasis role="strong">const</emphasis> igraph_t* g, igraph_matrix_t* m,
+		igraph_neimode_t mode, igraph_bool_t loops) {
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> pairs, res;
+  long int i, j, k, n;
+  igraph_eit_t eit;
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;res, 0);
+
+  <emphasis>/* First, query the similarities for all the vertices to a matrix */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_similarity_jaccard'>igraph_similarity_jaccard</link></emphasis>(g, m, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), mode, loops);
+
+  <emphasis>/* Second, query the similarities for all pairs using a pair vector */</emphasis>
+  n = <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(g);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;pairs, 0);
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; n; i++) {
+    <emphasis role="strong">for</emphasis> (j = n-1; j &gt;= 0; j--) {
+      <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(&amp;pairs, i);
+      <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(&amp;pairs, j);
+    }
+  }
+  <emphasis role="strong"><link linkend='igraph_similarity_jaccard_pairs'>igraph_similarity_jaccard_pairs</link></emphasis>(g, &amp;res, &amp;pairs, mode, loops);
+  <emphasis role="strong">for</emphasis> (i = 0, k = 0; i &lt; n; i++) {
+    <emphasis role="strong">for</emphasis> (j = n-1; j &gt;= 0; j--, k++) {
+      <emphasis role="strong">if</emphasis> (<emphasis role="strong">fabs</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(res)[k] - <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j)) &gt; 1e-6) {
+        <emphasis role="strong">fprintf</emphasis>(stderr, "Jaccard similarity calculation for vertex pair %ld-%ld "
+            "does not match the value in the full matrix (%.6f vs %.6f)\n",
+            i, j, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(res)[k], <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j));
+        <emphasis role="strong">return</emphasis> 1;
+      }
+    }
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;pairs);
+
+  <emphasis>/* Third, query the similarities for all edges */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_similarity_jaccard_es'>igraph_similarity_jaccard_es</link></emphasis>(g, &amp;res, <emphasis role="strong"><link linkend='igraph_ess_all'>igraph_ess_all</link></emphasis>(IGRAPH_EDGEORDER_FROM), mode, loops);
+  <emphasis role="strong"><link linkend='igraph_eit_create'>igraph_eit_create</link></emphasis>(g, <emphasis role="strong"><link linkend='igraph_ess_all'>igraph_ess_all</link></emphasis>(IGRAPH_EDGEORDER_FROM), &amp;eit);
+  k = 0;
+  <emphasis role="strong">while</emphasis> (!<emphasis role="strong"><link linkend='IGRAPH_EIT_END'>IGRAPH_EIT_END</link></emphasis>(eit)) {
+    long int eid = <emphasis role="strong"><link linkend='IGRAPH_EIT_GET'>IGRAPH_EIT_GET</link></emphasis>(eit);
+    i = <emphasis role="strong">IGRAPH_FROM</emphasis>(g, eid); j = <emphasis role="strong">IGRAPH_TO</emphasis>(g, eid);
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong">fabs</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(res)[k] - <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j)) &gt; 1e-6) {
+      <emphasis role="strong">fprintf</emphasis>(stderr, "Jaccard similarity calculation for edge %ld-%ld (ID=%ld) "
+          "does not match the value in the full matrix (%.6f vs %.6f)\n",
+          i, j, eid, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(res)[k], <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j));
+      <emphasis role="strong">return</emphasis> 1;
+    }
+    <emphasis role="strong"><link linkend='IGRAPH_EIT_NEXT'>IGRAPH_EIT_NEXT</link></emphasis>(eit);
+    k++;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_eit_destroy'>igraph_eit_destroy</link></emphasis>(&amp;eit);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;res);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">check_dice_all</emphasis>(<emphasis role="strong">const</emphasis> igraph_t* g, igraph_matrix_t* m,
+		igraph_neimode_t mode, igraph_bool_t loops) {
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> pairs, res;
+  long int i, j, k, n;
+  igraph_eit_t eit;
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;res, 0);
+
+  <emphasis>/* First, query the similarities for all the vertices to a matrix */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_similarity_dice'>igraph_similarity_dice</link></emphasis>(g, m, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), mode, loops);
+
+  <emphasis>/* Second, query the similarities for all pairs using a pair vector */</emphasis>
+  n = <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(g);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;pairs, 0);
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; n; i++) {
+    <emphasis role="strong">for</emphasis> (j = n-1; j &gt;= 0; j--) {
+      <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(&amp;pairs, i);
+      <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(&amp;pairs, j);
+    }
+  }
+  <emphasis role="strong"><link linkend='igraph_similarity_dice_pairs'>igraph_similarity_dice_pairs</link></emphasis>(g, &amp;res, &amp;pairs, mode, loops);
+  <emphasis role="strong">for</emphasis> (i = 0, k = 0; i &lt; n; i++) {
+    <emphasis role="strong">for</emphasis> (j = n-1; j &gt;= 0; j--, k++) {
+      <emphasis role="strong">if</emphasis> (<emphasis role="strong">fabs</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(res)[k] - <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j)) &gt; 1e-6) {
+        <emphasis role="strong">fprintf</emphasis>(stderr, "Dice similarity calculation for vertex pair %ld-%ld "
+            "does not match the value in the full matrix (%.6f vs %.6f)\n",
+            i, j, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(res)[k], <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j));
+        <emphasis role="strong">return</emphasis> 1;
+      }
+    }
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;pairs);
+
+  <emphasis>/* Third, query the similarities for all edges */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_similarity_dice_es'>igraph_similarity_dice_es</link></emphasis>(g, &amp;res, <emphasis role="strong"><link linkend='igraph_ess_all'>igraph_ess_all</link></emphasis>(IGRAPH_EDGEORDER_FROM), mode, loops);
+  <emphasis role="strong"><link linkend='igraph_eit_create'>igraph_eit_create</link></emphasis>(g, <emphasis role="strong"><link linkend='igraph_ess_all'>igraph_ess_all</link></emphasis>(IGRAPH_EDGEORDER_FROM), &amp;eit);
+  k = 0;
+  <emphasis role="strong">while</emphasis> (!<emphasis role="strong"><link linkend='IGRAPH_EIT_END'>IGRAPH_EIT_END</link></emphasis>(eit)) {
+    long int eid = <emphasis role="strong"><link linkend='IGRAPH_EIT_GET'>IGRAPH_EIT_GET</link></emphasis>(eit);
+    i = <emphasis role="strong">IGRAPH_FROM</emphasis>(g, eid); j = <emphasis role="strong">IGRAPH_TO</emphasis>(g, eid);
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong">fabs</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(res)[k] - <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j)) &gt; 1e-6) {
+      <emphasis role="strong">fprintf</emphasis>(stderr, "Dice similarity calculation for edge %ld-%ld (ID=%ld) "
+          "does not match the value in the full matrix (%.6f vs %.6f)\n",
+          i, j, eid, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(res)[k], <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j));
+      <emphasis role="strong">return</emphasis> 1;
+    }
+    <emphasis role="strong"><link linkend='IGRAPH_EIT_NEXT'>IGRAPH_EIT_NEXT</link></emphasis>(eit);
+    k++;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_eit_destroy'>igraph_eit_destroy</link></emphasis>(&amp;eit);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;res);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t g;
+  igraph_matrix_t m;
+  int ret;
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 0, IGRAPH_DIRECTED, 
+	       0,1, 2,1, 2,0, 3,0, 
+	       -1);
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m, 0, 0);
+
+  ret = <emphasis role="strong">check_jaccard_all</emphasis>(&amp;g, &amp;m, IGRAPH_ALL, 1);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m, stdout);
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> 1;
+  
+  <emphasis role="strong"><link linkend='igraph_similarity_jaccard'>igraph_similarity_jaccard</link></emphasis>(&amp;g, &amp;m, <emphasis role="strong"><link linkend='igraph_vss_seq'>igraph_vss_seq</link></emphasis>(1, 2), IGRAPH_ALL, 0);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m, stdout);
+  
+  ret = <emphasis role="strong">check_jaccard_all</emphasis>(&amp;g, &amp;m, IGRAPH_OUT, 1);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m, stdout);
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> 3;
+  
+  ret = <emphasis role="strong">check_jaccard_all</emphasis>(&amp;g, &amp;m, IGRAPH_IN, 0);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m, stdout);
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> 4;
+  
+  ret = <emphasis role="strong">check_dice_all</emphasis>(&amp;g, &amp;m, IGRAPH_ALL, 1);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m, stdout);
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> 5;
+  
+  ret = <emphasis role="strong">check_dice_all</emphasis>(&amp;g, &amp;m, IGRAPH_OUT, 1);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m, stdout);
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> 6;
+
+  ret = <emphasis role="strong">check_dice_all</emphasis>(&amp;g, &amp;m, IGRAPH_IN, 0);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m, stdout);
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> 7;
+
+  <emphasis role="strong"><link linkend='igraph_similarity_inverse_log_weighted'>igraph_similarity_inverse_log_weighted</link></emphasis>(&amp;g, &amp;m, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), IGRAPH_ALL);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m, stdout);
+  
+  <emphasis role="strong"><link linkend='igraph_similarity_inverse_log_weighted'>igraph_similarity_inverse_log_weighted</link></emphasis>(&amp;g, &amp;m, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), IGRAPH_OUT);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m, stdout);
+  
+  <emphasis role="strong"><link linkend='igraph_similarity_inverse_log_weighted'>igraph_similarity_inverse_log_weighted</link></emphasis>(&amp;g, &amp;m, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), IGRAPH_IN);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;m, stdout);
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

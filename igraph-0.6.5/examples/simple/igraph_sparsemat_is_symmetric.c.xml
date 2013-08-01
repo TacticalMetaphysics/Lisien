@@ -1,0 +1,63 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2011-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+<emphasis role="strong">#define</emphasis> DIM 10
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">INT</emphasis>(a) (<emphasis role="strong"><link linkend='igraph_rng_get_integer'>igraph_rng_get_integer</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 0, (a)))
+
+int <emphasis role="strong">main</emphasis>() {
+  int runs=100;
+  <emphasis role="strong">const</emphasis> int noelements=20;
+  igraph_sparsemat_t A;
+  int i;
+
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 42);
+
+  <emphasis role="strong">for</emphasis> (; runs &gt; 0; runs--) {
+
+    <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, DIM, DIM, noelements * 2);    
+    <emphasis role="strong">for</emphasis> (i=0; i&lt;noelements; i++) {
+      int row=<emphasis role="strong">INT</emphasis>(DIM-1);
+      int col=<emphasis role="strong">INT</emphasis>(DIM-1);
+      int val=<emphasis role="strong">INT</emphasis>(100);
+      <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, row, col, val);
+      <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, col, row, val);
+    }
+    <emphasis role="strong">if</emphasis> (!<emphasis role="strong">igraph_sparsemat_is_symmetric</emphasis>(&amp;A)) { <emphasis role="strong">return</emphasis> 1; }
+    <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+
+    <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;A, DIM, DIM, noelements);
+    <emphasis role="strong">for</emphasis> (i=0; i&lt;noelements; i++) {
+      <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;A, <emphasis role="strong">INT</emphasis>(DIM-1), <emphasis role="strong">INT</emphasis>(DIM-1), <emphasis role="strong">INT</emphasis>(100));
+    }
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong">igraph_sparsemat_is_symmetric</emphasis>(&amp;A)) { <emphasis role="strong">return</emphasis> 2; }
+    <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;A);
+
+  }
+    
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+</programlisting>

@@ -1,0 +1,174 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2008-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdlib.h&gt;
+
+int <emphasis role="strong">check_projection</emphasis>(<emphasis role="strong">const</emphasis> igraph_t *graph,
+		     <emphasis role="strong">const</emphasis> igraph_vector_bool_t *types,
+		     <emphasis role="strong">const</emphasis> igraph_t *proj1,
+		     <emphasis role="strong">const</emphasis> igraph_t *proj2) {
+  igraph_integer_t vcount1, ecount1, vcount2, ecount2;
+  <emphasis role="strong"><link linkend='igraph_bipartite_projection_size'>igraph_bipartite_projection_size</link></emphasis>(graph, types, &amp;vcount1, &amp;ecount1,
+				   &amp;vcount2, &amp;ecount2);
+  <emphasis role="strong">if</emphasis> (proj1 &amp;&amp; <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(proj1) != vcount1) {
+    <emphasis role="strong">exit</emphasis>(10);
+  }
+  <emphasis role="strong">if</emphasis> (proj1 &amp;&amp; <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(proj1) != ecount1) {
+    <emphasis role="strong">exit</emphasis>(11);
+  }
+  <emphasis role="strong">if</emphasis> (proj2 &amp;&amp; <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(proj2) != vcount2) {
+    <emphasis role="strong">exit</emphasis>(12);
+  }
+  <emphasis role="strong">if</emphasis> (proj2 &amp;&amp; <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(proj2) != ecount2) {
+    <emphasis role="strong">exit</emphasis>(13);
+  }
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t g, p1, p2, full, ring;
+  igraph_vector_bool_t types;
+  igraph_bool_t iso;
+  long int i, m2=0, w, f, t;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> mult1, mult2;
+  
+  <emphasis>/*******************************************************/</emphasis>
+  <emphasis>/* Full bipartite graph -&gt; full graphs                 */</emphasis>
+  <emphasis>/*******************************************************/</emphasis>
+
+  <emphasis role="strong">igraph_vector_bool_init</emphasis>(&amp;types, 0);
+  <emphasis role="strong"><link linkend='igraph_full_bipartite'>igraph_full_bipartite</link></emphasis>(&amp;g, &amp;types, 5, 3, <emphasis>/*directed=*/</emphasis> 0, 
+			<emphasis>/*mode=*/</emphasis> IGRAPH_ALL);
+
+  <emphasis>/* Get both projections */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_bipartite_projection'>igraph_bipartite_projection</link></emphasis>(&amp;g, &amp;types, &amp;p1, &amp;p2, 0, 0, <emphasis>/*probe1=*/</emphasis> -1);
+  <emphasis role="strong">check_projection</emphasis>(&amp;g, &amp;types, &amp;p1, &amp;p2);
+
+  <emphasis>/* Check first projection */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_full'>igraph_full</link></emphasis>(&amp;full, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;p1), <emphasis>/*directed=*/</emphasis>0, <emphasis>/*loops=*/</emphasis>0);
+  <emphasis role="strong"><link linkend='igraph_isomorphic_bliss'>igraph_isomorphic_bliss</link></emphasis>(&amp;p1, &amp;full, &amp;iso, 0, 0, 
+			  IGRAPH_BLISS_FM, IGRAPH_BLISS_FM, 0, 0);
+  <emphasis role="strong">if</emphasis> (!iso) { <emphasis role="strong">return</emphasis> 1; }
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;full);
+  
+  <emphasis>/* Check second projection */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_full'>igraph_full</link></emphasis>(&amp;full, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;p2), <emphasis>/*directed=*/</emphasis>0, <emphasis>/*loops=*/</emphasis>0);
+  <emphasis role="strong"><link linkend='igraph_isomorphic_bliss'>igraph_isomorphic_bliss</link></emphasis>(&amp;p2, &amp;full, &amp;iso, 0, 0, 
+			  IGRAPH_BLISS_FM, IGRAPH_BLISS_FM, 0, 0);
+  <emphasis role="strong">if</emphasis> (!iso) { <emphasis role="strong">return</emphasis> 2; }
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;full);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;p1);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;p2);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong">igraph_vector_bool_destroy</emphasis>(&amp;types);
+
+  <emphasis>/*******************************************************/</emphasis>
+  <emphasis>/* More sophisticated test</emphasis>
+<emphasis>  /*******************************************************/</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;g, 100, <emphasis>/*directed=*/</emphasis> 1, <emphasis>/*mutual=*/</emphasis> 1, 
+	      <emphasis>/*circular=*/</emphasis> 1);
+  <emphasis role="strong">igraph_vector_bool_init</emphasis>(&amp;types, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong">igraph_vector_bool_size</emphasis>(&amp;types); i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(types)[i] = i%2 ? 0 : 1;
+  }
+  
+  <emphasis>/* Get both projections */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_bipartite_projection'>igraph_bipartite_projection</link></emphasis>(&amp;g, &amp;types, &amp;p1, &amp;p2, 0, 0, <emphasis>/*probe1=*/</emphasis> -1);
+  <emphasis role="strong">check_projection</emphasis>(&amp;g, &amp;types, &amp;p1, &amp;p2);
+  
+  <emphasis>/* Check first projection */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;ring, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g)/2, <emphasis>/*directed=*/</emphasis> 0, 
+	      <emphasis>/*mutual=*/</emphasis> 0, <emphasis>/*circular=*/</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_isomorphic_bliss'>igraph_isomorphic_bliss</link></emphasis>(&amp;p1, &amp;ring, &amp;iso, 0, 0, 
+			  IGRAPH_BLISS_FM, IGRAPH_BLISS_FM, 0, 0);
+  <emphasis role="strong">if</emphasis> (!iso) { <emphasis role="strong">return</emphasis> 1; }
+  
+  <emphasis>/* Check second projection */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_isomorphic_bliss'>igraph_isomorphic_bliss</link></emphasis>(&amp;p2, &amp;ring, &amp;iso, 0, 0, 
+			  IGRAPH_BLISS_FM, IGRAPH_BLISS_FM, 0, 0);
+  <emphasis role="strong">if</emphasis> (!iso) { <emphasis role="strong">return</emphasis> 2; }
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;ring);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;p1);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;p2);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong">igraph_vector_bool_destroy</emphasis>(&amp;types);
+
+  <emphasis>/*******************************************************/</emphasis>
+  <emphasis>/* Multiplicity test                                   */</emphasis>
+  <emphasis>/*******************************************************/</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 10, IGRAPH_UNDIRECTED, 
+	       0,8, 1,8, 2,8, 3,8, 4,8, 4,9, 5,9, 6,9, 7,9, 0,9, 
+	       -1);
+  <emphasis role="strong">igraph_vector_bool_init</emphasis>(&amp;types, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+  <emphasis role="strong">igraph_vector_bool_fill</emphasis>(&amp;types, 1);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(types)[8] = <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(types)[9] = 0;
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;mult1, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;mult2, 0);
+  <emphasis role="strong"><link linkend='igraph_bipartite_projection'>igraph_bipartite_projection</link></emphasis>(&amp;g, &amp;types, &amp;p1, &amp;p2, &amp;mult1, &amp;mult2, 
+			      <emphasis>/*probe=*/</emphasis> -1);
+  <emphasis role="strong">check_projection</emphasis>(&amp;g, &amp;types, &amp;p1, &amp;p2);
+  
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;mult1) != <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;p1)) {
+    <emphasis role="strong">return</emphasis> 21;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;mult2) != <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;p2)) {
+    <emphasis role="strong">return</emphasis> 22;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(mult1)[0] != 2) { 
+    <emphasis role="strong">return</emphasis> 23;
+  }
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;mult2); i++) {
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(mult2)[i] != 1 &amp;&amp; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(mult2)[i] != 2) {
+      <emphasis role="strong">return</emphasis> 24;
+    }
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(mult2)[i] == 2) {
+      m2++;
+      w=i;
+    }
+  }
+  <emphasis role="strong">if</emphasis> (m2 != 1) { 
+    <emphasis role="strong">return</emphasis> 25;
+  }
+  f=<emphasis role="strong">IGRAPH_FROM</emphasis>(&amp;p2, w);
+  t=<emphasis role="strong">IGRAPH_TO</emphasis>(&amp;p2, w);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong">fmin</emphasis>(f, t) != 0 || <emphasis role="strong">fmax</emphasis>(f, t) != 4) { 
+    <emphasis role="strong">return</emphasis> 26;
+  }
+   
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;mult1);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;mult2);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;p1);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;p2);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong">igraph_vector_bool_destroy</emphasis>(&amp;types);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

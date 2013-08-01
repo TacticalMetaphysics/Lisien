@@ -1,0 +1,49 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* vim:set ts=2 sts=2 sw=2 et: */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2011-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_t g;
+  igraph_real_t radius;
+
+  <emphasis role="strong"><link linkend='igraph_star'>igraph_star</link></emphasis>(&amp;g, 10, IGRAPH_STAR_UNDIRECTED, 0);
+  <emphasis role="strong"><link linkend='igraph_radius'>igraph_radius</link></emphasis>(&amp;g, &amp;radius, IGRAPH_OUT);
+  <emphasis role="strong">if</emphasis> (radius != 1) { <emphasis role="strong">return</emphasis> 1; }
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  
+  <emphasis role="strong"><link linkend='igraph_star'>igraph_star</link></emphasis>(&amp;g, 10, IGRAPH_STAR_OUT, 0);
+  <emphasis role="strong"><link linkend='igraph_radius'>igraph_radius</link></emphasis>(&amp;g, &amp;radius, IGRAPH_ALL);
+  <emphasis role="strong">if</emphasis> (radius != 1) { <emphasis role="strong">return</emphasis> 2; }
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong"><link linkend='igraph_star'>igraph_star</link></emphasis>(&amp;g, 10, IGRAPH_STAR_OUT, 0);
+  <emphasis role="strong"><link linkend='igraph_radius'>igraph_radius</link></emphasis>(&amp;g, &amp;radius, IGRAPH_OUT);
+  <emphasis role="strong">if</emphasis> (radius != 0) { <emphasis role="strong">return</emphasis> 3; }
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);  
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

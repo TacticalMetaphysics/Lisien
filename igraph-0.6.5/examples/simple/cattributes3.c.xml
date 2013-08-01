@@ -1,0 +1,159 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2010-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">mf</emphasis>(<emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *input, igraph_real_t *output) {
+  *output = 0.0;
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t g, g2;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> weight;
+  igraph_attribute_combination_t comb;
+  
+  <emphasis role="strong"><link linkend='igraph_i_set_attribute_table'>igraph_i_set_attribute_table</link></emphasis>(&amp;igraph_cattribute_table);
+  
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 4, IGRAPH_DIRECTED, 
+	       0, 1, 0, 1, 0, 1,
+	       1, 2, 2, 3, 
+	       -1);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init_seq'>igraph_vector_init_seq</link></emphasis>(&amp;weight, 1, <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;g));
+  <emphasis role="strong"><link linkend='SETEANV'>SETEANV</link></emphasis>(&amp;g, "weight", &amp;weight);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;weight);
+
+  <emphasis>/* ****************************************************** */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_copy'>igraph_copy</link></emphasis>(&amp;g2, &amp;g);
+  <emphasis role="strong">igraph_attribute_combination</emphasis>(&amp;comb, 
+			       "weight", IGRAPH_ATTRIBUTE_COMBINE_SUM,
+			       "",       IGRAPH_ATTRIBUTE_COMBINE_IGNORE, 
+			       IGRAPH_NO_MORE_ATTRIBUTES);
+  <emphasis role="strong"><link linkend='igraph_simplify'>igraph_simplify</link></emphasis>(&amp;g2, <emphasis>/*multiple=*/</emphasis> 1, <emphasis>/*loops=*/</emphasis> 1, &amp;comb);
+  <emphasis role="strong">igraph_attribute_combination_destroy</emphasis>(&amp;comb);
+  <emphasis role="strong"><link linkend='igraph_write_graph_graphml'>igraph_write_graph_graphml</link></emphasis>(&amp;g2, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g2);
+  <emphasis>/* ****************************************************** */</emphasis>
+
+  <emphasis>/* ****************************************************** */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_copy'>igraph_copy</link></emphasis>(&amp;g2, &amp;g);
+  <emphasis role="strong">igraph_attribute_combination</emphasis>(&amp;comb, 
+			       "weight", IGRAPH_ATTRIBUTE_COMBINE_PROD,
+			       "",       IGRAPH_ATTRIBUTE_COMBINE_IGNORE, 
+			       IGRAPH_NO_MORE_ATTRIBUTES);
+  <emphasis role="strong"><link linkend='igraph_simplify'>igraph_simplify</link></emphasis>(&amp;g2, <emphasis>/*multiple=*/</emphasis> 1, <emphasis>/*loops=*/</emphasis> 1, &amp;comb);
+  <emphasis role="strong">igraph_attribute_combination_destroy</emphasis>(&amp;comb);
+  <emphasis role="strong"><link linkend='igraph_write_graph_graphml'>igraph_write_graph_graphml</link></emphasis>(&amp;g2, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g2);
+  <emphasis>/* ****************************************************** */</emphasis>
+
+  <emphasis>/* ****************************************************** */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_copy'>igraph_copy</link></emphasis>(&amp;g2, &amp;g);
+  <emphasis role="strong">igraph_attribute_combination</emphasis>(&amp;comb, 
+			       "weight", IGRAPH_ATTRIBUTE_COMBINE_MIN,
+			       "",       IGRAPH_ATTRIBUTE_COMBINE_IGNORE, 
+			       IGRAPH_NO_MORE_ATTRIBUTES);
+  <emphasis role="strong"><link linkend='igraph_simplify'>igraph_simplify</link></emphasis>(&amp;g2, <emphasis>/*multiple=*/</emphasis> 1, <emphasis>/*loops=*/</emphasis> 1, &amp;comb);
+  <emphasis role="strong">igraph_attribute_combination_destroy</emphasis>(&amp;comb);
+  <emphasis role="strong"><link linkend='igraph_write_graph_graphml'>igraph_write_graph_graphml</link></emphasis>(&amp;g2, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g2);
+  <emphasis>/* ****************************************************** */</emphasis>
+
+  <emphasis>/* ****************************************************** */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_copy'>igraph_copy</link></emphasis>(&amp;g2, &amp;g);
+  <emphasis role="strong">igraph_attribute_combination</emphasis>(&amp;comb, 
+			       "weight", IGRAPH_ATTRIBUTE_COMBINE_MAX,
+			       "",       IGRAPH_ATTRIBUTE_COMBINE_IGNORE, 
+			       IGRAPH_NO_MORE_ATTRIBUTES);
+  <emphasis role="strong"><link linkend='igraph_simplify'>igraph_simplify</link></emphasis>(&amp;g2, <emphasis>/*multiple=*/</emphasis> 1, <emphasis>/*loops=*/</emphasis> 1, &amp;comb);
+  <emphasis role="strong">igraph_attribute_combination_destroy</emphasis>(&amp;comb);
+  <emphasis role="strong"><link linkend='igraph_write_graph_graphml'>igraph_write_graph_graphml</link></emphasis>(&amp;g2, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g2);
+  <emphasis>/* ****************************************************** */</emphasis>
+
+  <emphasis>/* ****************************************************** */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_copy'>igraph_copy</link></emphasis>(&amp;g2, &amp;g);
+  <emphasis role="strong">igraph_attribute_combination</emphasis>(&amp;comb, 
+			       "weight", IGRAPH_ATTRIBUTE_COMBINE_FIRST,
+			       "",       IGRAPH_ATTRIBUTE_COMBINE_IGNORE, 
+			       IGRAPH_NO_MORE_ATTRIBUTES);
+  <emphasis role="strong"><link linkend='igraph_simplify'>igraph_simplify</link></emphasis>(&amp;g2, <emphasis>/*multiple=*/</emphasis> 1, <emphasis>/*loops=*/</emphasis> 1, &amp;comb);
+  <emphasis role="strong">igraph_attribute_combination_destroy</emphasis>(&amp;comb);
+  <emphasis role="strong"><link linkend='igraph_write_graph_graphml'>igraph_write_graph_graphml</link></emphasis>(&amp;g2, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g2);
+  <emphasis>/* ****************************************************** */</emphasis>
+
+  <emphasis>/* ****************************************************** */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_copy'>igraph_copy</link></emphasis>(&amp;g2, &amp;g);
+  <emphasis role="strong">igraph_attribute_combination</emphasis>(&amp;comb, 
+			       "weight", IGRAPH_ATTRIBUTE_COMBINE_LAST,
+			       "",       IGRAPH_ATTRIBUTE_COMBINE_IGNORE, 
+			       IGRAPH_NO_MORE_ATTRIBUTES);
+  <emphasis role="strong"><link linkend='igraph_simplify'>igraph_simplify</link></emphasis>(&amp;g2, <emphasis>/*multiple=*/</emphasis> 1, <emphasis>/*loops=*/</emphasis> 1, &amp;comb);
+  <emphasis role="strong">igraph_attribute_combination_destroy</emphasis>(&amp;comb);
+  <emphasis role="strong"><link linkend='igraph_write_graph_graphml'>igraph_write_graph_graphml</link></emphasis>(&amp;g2, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g2);
+  <emphasis>/* ****************************************************** */</emphasis>
+
+  <emphasis>/* ****************************************************** */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_copy'>igraph_copy</link></emphasis>(&amp;g2, &amp;g);
+  <emphasis role="strong">igraph_attribute_combination</emphasis>(&amp;comb, 
+			       "weight", IGRAPH_ATTRIBUTE_COMBINE_MEAN,
+			       "",       IGRAPH_ATTRIBUTE_COMBINE_IGNORE, 
+			       IGRAPH_NO_MORE_ATTRIBUTES);
+  <emphasis role="strong"><link linkend='igraph_simplify'>igraph_simplify</link></emphasis>(&amp;g2, <emphasis>/*multiple=*/</emphasis> 1, <emphasis>/*loops=*/</emphasis> 1, &amp;comb);
+  <emphasis role="strong">igraph_attribute_combination_destroy</emphasis>(&amp;comb);
+  <emphasis role="strong"><link linkend='igraph_write_graph_graphml'>igraph_write_graph_graphml</link></emphasis>(&amp;g2, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g2);
+  <emphasis>/* ****************************************************** */</emphasis>  
+
+  <emphasis>/* ****************************************************** */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_copy'>igraph_copy</link></emphasis>(&amp;g2, &amp;g);
+  <emphasis role="strong">igraph_attribute_combination</emphasis>(&amp;comb, 
+			       "weight", IGRAPH_ATTRIBUTE_COMBINE_FUNCTION, mf,
+			       "",       IGRAPH_ATTRIBUTE_COMBINE_IGNORE, 
+			       IGRAPH_NO_MORE_ATTRIBUTES);
+  <emphasis role="strong"><link linkend='igraph_simplify'>igraph_simplify</link></emphasis>(&amp;g2, <emphasis>/*multiple=*/</emphasis> 1, <emphasis>/*loops=*/</emphasis> 1, &amp;comb);
+  <emphasis role="strong">igraph_attribute_combination_destroy</emphasis>(&amp;comb);
+  <emphasis role="strong"><link linkend='igraph_write_graph_graphml'>igraph_write_graph_graphml</link></emphasis>(&amp;g2, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g2);
+  <emphasis>/* ****************************************************** */</emphasis>  
+
+  <emphasis>/* ****************************************************** */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_copy'>igraph_copy</link></emphasis>(&amp;g2, &amp;g);
+  <emphasis role="strong">igraph_attribute_combination</emphasis>(&amp;comb, 
+			       "",       IGRAPH_ATTRIBUTE_COMBINE_MEAN,
+			       IGRAPH_NO_MORE_ATTRIBUTES);
+  <emphasis role="strong"><link linkend='igraph_simplify'>igraph_simplify</link></emphasis>(&amp;g2, <emphasis>/*multiple=*/</emphasis> 1, <emphasis>/*loops=*/</emphasis> 1, &amp;comb);
+  <emphasis role="strong">igraph_attribute_combination_destroy</emphasis>(&amp;comb);
+  <emphasis role="strong"><link linkend='igraph_write_graph_graphml'>igraph_write_graph_graphml</link></emphasis>(&amp;g2, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g2);
+  <emphasis>/* ****************************************************** */</emphasis>  
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

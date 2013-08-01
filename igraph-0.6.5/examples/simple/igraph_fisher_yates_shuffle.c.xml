@@ -1,0 +1,107 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/*</emphasis>
+<emphasis>  Test suite for the Fisher-Yates shuffle.</emphasis>
+<emphasis>  Copyright (C) 2011 Minh Van Nguyen </emphasis>&lt;nguyenminh2@gmail.com&gt;
+
+<emphasis>  This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>  it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>  the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>  (at your option) any later version.</emphasis>
+
+<emphasis>  This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>  but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>  GNU General Public License for more details.</emphasis>
+
+<emphasis>  You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>  along with this program; if not, write to the Free Software</emphasis>
+<emphasis>  Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA</emphasis>
+<emphasis>  02110-1301 USA</emphasis>
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;time.h&gt;
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">R_INTEGER</emphasis>(a,b) (<emphasis role="strong"><link linkend='igraph_rng_get_integer'>igraph_rng_get_integer</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), (a), (b)))
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">R_UNIF</emphasis>(a,b) (<emphasis role="strong"><link linkend='igraph_rng_get_unif'>igraph_rng_get_unif</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), (a), (b)))
+
+int <emphasis role="strong">main</emphasis>() {
+  igraph_real_t d;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> u, v;
+  int ret;
+  long int i, k, n;
+
+  <emphasis>/********************************</emphasis>
+<emphasis>   * Example usage</emphasis>
+<emphasis>   ********************************/</emphasis>
+
+  <emphasis>/* Sequences with one element. Such sequences are trivially permuted.</emphasis>
+<emphasis>   * The result of any Fisher-Yates shuffle on a sequence with one element</emphasis>
+<emphasis>   * must be the original sequence itself.</emphasis>
+<emphasis>   */</emphasis>
+  n = 1;
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, n);
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), <emphasis role="strong">time</emphasis>(0));
+  k = <emphasis role="strong">R_INTEGER</emphasis>(-1000, 1000);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[0] = k;
+  <emphasis role="strong"><link linkend='igraph_vector_shuffle'>igraph_vector_shuffle</link></emphasis>(&amp;v);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[0] != k) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  d = <emphasis role="strong">R_UNIF</emphasis>(-1000.0, 1000.0);
+
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[0] = d;
+  <emphasis role="strong"><link linkend='igraph_vector_shuffle'>igraph_vector_shuffle</link></emphasis>(&amp;v);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[0] != d) {
+    <emphasis role="strong">return</emphasis> 2;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+
+  <emphasis>/* Sequences with multiple elements. A Fisher-Yates shuffle of a sequence S</emphasis>
+<emphasis>   * is a random permutation \pi(S) of S. Thus \pi(S) must have the same</emphasis>
+<emphasis>   * length and elements as the original sequence S. A major difference between</emphasis>
+<emphasis>   * S and its random permutation \pi(S) is that the order in which elements</emphasis>
+<emphasis>   * appear in \pi(S) is probably different from how elements are ordered in S.</emphasis>
+<emphasis>   * If S has length n = 1, then both \pi(S) and S are equivalent sequences in</emphasis>
+<emphasis>   * that \pi(S) is merely S and no permutation has taken place. If S has</emphasis>
+<emphasis>   * length n &gt; 1, then there are n! possible permutations of S. Assume that</emphasis>
+<emphasis>   * each such permutation is equally likely to appear as a result of the</emphasis>
+<emphasis>   * Fisher-Yates shuffle. As n increases, the probability that S is different</emphasis>
+<emphasis>   * from \pi(S) also increases. We have a probability of 1 / n! that S and</emphasis>
+<emphasis>   * \pi(S) are equivalent sequences.</emphasis>
+<emphasis>   */</emphasis>
+  n = 100;
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;u, n);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, n);
+
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; n; i++) {
+    k = <emphasis role="strong">R_INTEGER</emphasis>(-1000, 1000);
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(u)[i] = k;
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[i] = k;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_shuffle'>igraph_vector_shuffle</link></emphasis>(&amp;v);
+  <emphasis>/* must have same length */</emphasis>
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;v) != n) {
+    <emphasis role="strong">return</emphasis> 3;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;u) != <emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;v)) {
+    <emphasis role="strong">return</emphasis> 4;
+  }
+  <emphasis>/* must have same elements */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_sort'>igraph_vector_sort</link></emphasis>(&amp;u);
+  <emphasis role="strong"><link linkend='igraph_vector_sort'>igraph_vector_sort</link></emphasis>(&amp;v);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_vector_all_e'>igraph_vector_all_e</link></emphasis>(&amp;u, &amp;v)) {
+    <emphasis role="strong">return</emphasis> 5;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;u);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+
+  <emphasis>/* empty sequence */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, 0);
+  ret = <emphasis role="strong"><link linkend='igraph_vector_shuffle'>igraph_vector_shuffle</link></emphasis>(&amp;v);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

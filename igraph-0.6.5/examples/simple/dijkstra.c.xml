@@ -1,0 +1,69 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2008-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">print_matrix</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *m) {
+  long int nrow=<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(m);
+  long int ncol=<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(m);
+  long int i, j;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;nrow; i++) {
+    <emphasis role="strong">printf</emphasis>("%li:", i);
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;ncol; j++) {
+      <emphasis role="strong">printf</emphasis>(" %3.0F", <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*m, i, j));
+    }
+    <emphasis role="strong">printf</emphasis>("\n");
+  }
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> weights;
+  igraph_real_t weights_data[] = { 0,2,1, 0,5,2, 1,1,0, 2,2,8, 1,1,3, 1,1,4, 2,1 };
+  igraph_matrix_t res;
+  
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 10, IGRAPH_DIRECTED, 
+	       0,1, 0,2, 0,3,    1,2, 1,4, 1,5,
+	       2,3, 2,6,         3,2, 3,6,
+	       4,5, 4,7,         5,6, 5,8, 5,9,
+	       7,5, 7,8,         8,9,
+	       5,2,
+	       2,1,
+	       -1);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;weights, weights_data, 
+		     <emphasis role="strong">sizeof</emphasis>(weights_data)/<emphasis role="strong">sizeof</emphasis>(igraph_real_t));
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;res, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_shortest_paths_dijkstra'>igraph_shortest_paths_dijkstra</link></emphasis>(&amp;g, &amp;res, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(),
+				 &amp;weights, IGRAPH_OUT);
+  <emphasis role="strong">print_matrix</emphasis>(&amp;res);
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;res);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

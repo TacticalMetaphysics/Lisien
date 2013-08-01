@@ -1,0 +1,240 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">check_flow</emphasis>(int errorinc,
+	       <emphasis role="strong">const</emphasis> igraph_t *graph, igraph_real_t flow_value, 
+	       <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *flow, <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *cut, 
+	       <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *partition,
+	       <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *partition2, 
+	       long int source, long int target, 
+	       <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *capacity, 
+	       igraph_bool_t print) {
+
+  long int i, n=<emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(graph), m=<emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(graph);
+  long int nc=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(cut);
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> inedges, outedges;
+  igraph_bool_t directed=<emphasis role="strong"><link linkend='igraph_is_directed'>igraph_is_directed</link></emphasis>(graph);
+  igraph_real_t cutsize;
+  igraph_t graph_copy;
+  igraph_matrix_t sp;
+
+  <emphasis role="strong">if</emphasis> (print) {
+    <emphasis role="strong">printf</emphasis>("flow value: %g\n", (double) flow_value);
+    <emphasis role="strong">printf</emphasis>("flow: "); <emphasis role="strong">igraph_vector_print</emphasis>(flow);
+    <emphasis role="strong">printf</emphasis>("first partition:  "); <emphasis role="strong">igraph_vector_print</emphasis>(partition);
+    <emphasis role="strong">printf</emphasis>("second partition: "); <emphasis role="strong">igraph_vector_print</emphasis>(partition2);
+    <emphasis role="strong">printf</emphasis>("edges in the cut: ");
+    <emphasis role="strong">for</emphasis> (i=0; i&lt;nc; i++) {
+      long int edge=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*cut)[i];
+      long int from=<emphasis role="strong">IGRAPH_FROM</emphasis>(graph, edge);
+      long int to  =<emphasis role="strong">IGRAPH_TO</emphasis>  (graph, edge);
+      <emphasis role="strong">if</emphasis> (!directed &amp;&amp; from &gt; to) {
+	igraph_integer_t tmp=from;
+	from=to;
+	to=tmp;
+      }
+      <emphasis role="strong">printf</emphasis>("%li-%li (%g), ", from, to, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*capacity)[edge]);
+    }
+    <emphasis role="strong">printf</emphasis>("\n");
+  }
+  <emphasis role="strong">fflush</emphasis>(stdout);
+        
+  <emphasis>/* Always less than the capacity */</emphasis>
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;m; i++) {
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*flow)[i] &gt; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*capacity)[i]) {
+      <emphasis role="strong">return</emphasis> errorinc+3;
+    }
+  }
+  
+  <emphasis>/* What comes in goes out, but only in directed graphs, </emphasis>
+<emphasis>     there is no in and out in undirected ones...</emphasis>
+<emphasis>   */</emphasis>
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_is_directed'>igraph_is_directed</link></emphasis>(graph)) {
+    <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;inedges, 0);
+    <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;outedges, 0);
+
+    <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+      long int n1, n2, j;
+      igraph_real_t in_flow=0.0, out_flow=0.0;
+      <emphasis role="strong"><link linkend='igraph_incident'>igraph_incident</link></emphasis>(graph, &amp;inedges,  i, IGRAPH_IN);
+      <emphasis role="strong"><link linkend='igraph_incident'>igraph_incident</link></emphasis>(graph, &amp;outedges, i, IGRAPH_OUT);
+      n1=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;inedges);
+      n2=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;outedges);
+      <emphasis role="strong">for</emphasis> (j=0; j&lt;n1; j++) {
+	long int e=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(inedges)[j];
+	in_flow += <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*flow)[e];
+      }
+      <emphasis role="strong">for</emphasis> (j=0; j&lt;n2; j++) {
+	long int e=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(outedges)[j];
+	out_flow += <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*flow)[e];
+      }
+      <emphasis role="strong">if</emphasis> (i == source) {
+	<emphasis role="strong">if</emphasis> (in_flow &gt; 0) { <emphasis role="strong">return</emphasis> errorinc+4; }
+	<emphasis role="strong">if</emphasis> (out_flow != flow_value) { <emphasis role="strong">return</emphasis> errorinc+5; }
+      } <emphasis role="strong">else</emphasis> <emphasis role="strong">if</emphasis> (i == target) {
+	<emphasis role="strong">if</emphasis> (out_flow &gt; 0) { <emphasis role="strong">return</emphasis> errorinc+6; }
+	<emphasis role="strong">if</emphasis> (in_flow != flow_value) { <emphasis role="strong">return</emphasis> errorinc+7; }
+	
+      } <emphasis role="strong">else</emphasis> {
+	<emphasis role="strong">if</emphasis> (in_flow != out_flow) { <emphasis role="strong">return</emphasis> errorinc+8; }
+      }
+    }
+    
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;inedges);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outedges);
+  }
+
+  <emphasis>/* Check the minimum cut size*/</emphasis>
+  <emphasis role="strong">for</emphasis> (i=0, cutsize=0.0; i&lt;nc; i++) {
+    long int edge=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*cut)[i];
+    cutsize += <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*capacity)[edge];
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong">fabs</emphasis>(cutsize-flow_value) &gt; 1e-14) { <emphasis role="strong">return</emphasis> errorinc+9; }
+
+  <emphasis>/* Check that the cut indeed cuts */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_copy'>igraph_copy</link></emphasis>(&amp;graph_copy, graph);
+  <emphasis role="strong"><link linkend='igraph_delete_edges'>igraph_delete_edges</link></emphasis>(&amp;graph_copy, <emphasis role="strong"><link linkend='igraph_ess_vector'>igraph_ess_vector</link></emphasis>(cut));
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;sp, 1, 1);
+  <emphasis role="strong"><link linkend='igraph_shortest_paths'>igraph_shortest_paths</link></emphasis>(&amp;graph_copy, &amp;sp, <emphasis>/*from=*/</emphasis> <emphasis role="strong"><link linkend='igraph_vss_1'>igraph_vss_1</link></emphasis>(source),
+			<emphasis>/*to=*/</emphasis> <emphasis role="strong"><link linkend='igraph_vss_1'>igraph_vss_1</link></emphasis>(target), IGRAPH_OUT);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(sp, 0, 0) != IGRAPH_INFINITY) { <emphasis role="strong">return</emphasis> errorinc+10; }
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;sp);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;graph_copy);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t g;
+  igraph_real_t flow_value;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> cut;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> capacity;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> partition, partition2;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> flow;
+  long int i, n;
+  igraph_integer_t source, target;
+  FILE *infile;
+  igraph_real_t flow_value2=0.0;
+  int check;
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;capacity, 0);
+
+  <emphasis>/***************/</emphasis>
+  infile=<emphasis role="strong">fopen</emphasis>("ak-4102.max", "r");
+  <emphasis role="strong"><link linkend='igraph_read_graph_dimacs'>igraph_read_graph_dimacs</link></emphasis>(&amp;g, infile, 0, 0, &amp;source, &amp;target, &amp;capacity,
+  			   IGRAPH_DIRECTED);
+  <emphasis role="strong">fclose</emphasis>(infile);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;cut, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;partition, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;partition2, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;flow, 0);
+
+  <emphasis role="strong"><link linkend='igraph_maxflow'>igraph_maxflow</link></emphasis>(&amp;g, &amp;flow_value, &amp;flow, &amp;cut, &amp;partition,
+  		 &amp;partition2, source, target, &amp;capacity);
+
+  <emphasis role="strong">if</emphasis> (flow_value != 8207) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+
+  n=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;cut);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    long int e=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(cut)[i];
+    flow_value2 += <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(capacity)[e];
+  }
+  <emphasis role="strong">if</emphasis> (flow_value != flow_value2) {
+    <emphasis role="strong">return</emphasis> 2;
+  }
+
+  <emphasis>/* Check the flow */</emphasis>
+  <emphasis role="strong">if</emphasis> ( (check=<emphasis role="strong">check_flow</emphasis>(0, &amp;g, flow_value, &amp;flow, &amp;cut, &amp;partition,
+			 &amp;partition2, source, target, &amp;capacity, 
+			 <emphasis>/*print=*/</emphasis> 0))) {
+    <emphasis role="strong">return</emphasis> check;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;capacity);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;cut);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;partition);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;partition2);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;flow);
+
+  <emphasis>/* ------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 4, IGRAPH_UNDIRECTED,
+	       0,1,0,2,1,2,1,3,2,3, -1);
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;capacity, -1, 4,2,10,2,2, -1);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;cut, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;partition, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;partition2, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;flow, 0);
+
+  <emphasis role="strong"><link linkend='igraph_maxflow'>igraph_maxflow</link></emphasis>(&amp;g, &amp;flow_value, &amp;flow, &amp;cut, &amp;partition, &amp;partition2, 
+		 <emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 3, &amp;capacity);
+
+  <emphasis role="strong">if</emphasis> ( (check=<emphasis role="strong">check_flow</emphasis>(20, &amp;g, flow_value, &amp;flow, &amp;cut, &amp;partition,
+			 &amp;partition2, 0, 3, &amp;capacity, 
+			 <emphasis>/*print=*/</emphasis> 1))) {
+    <emphasis role="strong">return</emphasis> check;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;cut);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;partition2);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;partition);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;capacity);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;flow);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* ------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 6, IGRAPH_DIRECTED,
+	       0,1,1,2,2,3, 0,5,5,4,4,3, 3,0, -1);
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;capacity, -1, 3,1,2, 10,1,3, 2, -1);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;cut, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;partition, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;partition2, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;flow, 0);
+
+  <emphasis role="strong"><link linkend='igraph_maxflow'>igraph_maxflow</link></emphasis>(&amp;g, &amp;flow_value, &amp;flow, &amp;cut, &amp;partition, &amp;partition2, 
+		 <emphasis>/*source=*/</emphasis> 0, <emphasis>/*target=*/</emphasis> 2, &amp;capacity);
+
+  <emphasis role="strong">if</emphasis> ( (check=<emphasis role="strong">check_flow</emphasis>(40, &amp;g, flow_value, &amp;flow, &amp;cut, &amp;partition,
+			 &amp;partition2, 0, 2, &amp;capacity, 
+			 <emphasis>/*print=*/</emphasis> 1))) {
+    <emphasis role="strong">return</emphasis> check;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;cut);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;partition2);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;partition);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;capacity);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;flow);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

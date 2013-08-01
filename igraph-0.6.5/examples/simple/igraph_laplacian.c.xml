@@ -1,0 +1,238 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+igraph_bool_t <emphasis role="strong">check_laplacian</emphasis>(igraph_t* graph, igraph_matrix_t* matrix, <link linkend='igraph_vector_t'>igraph_vector_t</link>* w) {
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> vec, res;
+  long int i, j;
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;vec, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;res, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(graph));
+
+  <emphasis role="strong">if</emphasis> (w)
+    <emphasis role="strong"><link linkend='igraph_strength'>igraph_strength</link></emphasis>(graph, &amp;vec, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), IGRAPH_OUT, IGRAPH_NO_LOOPS, w);
+  <emphasis role="strong">else</emphasis>
+    <emphasis role="strong"><link linkend='igraph_degree'>igraph_degree</link></emphasis>(graph, &amp;vec, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), IGRAPH_OUT, IGRAPH_NO_LOOPS);
+
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(graph); i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(vec)[i] = <emphasis role="strong">sqrt</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(vec)[i]);
+  }
+
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(graph); i++) {
+    <emphasis role="strong">for</emphasis> (j = 0; j &lt; <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(graph); j++) {
+      <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(res)[i] += <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*matrix, i, j) * <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(vec)[j];
+    }
+  }
+
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_min'>igraph_vector_min</link></emphasis>(&amp;res) &gt; 1e-7) {
+    <emphasis role="strong">printf</emphasis>("Invalid Laplacian matrix:\n");
+    <emphasis role="strong">igraph_matrix_print</emphasis>(matrix);
+    <emphasis role="strong">return</emphasis> 0;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;vec);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;res);
+
+  <emphasis role="strong">return</emphasis> 1;
+}
+
+int <emphasis role="strong">test_unnormalized_laplacian</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link>* w, igraph_bool_t dir) {
+  igraph_t g;
+  igraph_matrix_t m, m2;
+  igraph_sparsemat_t sm;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> vec, *weights = 0;
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m, 1, 1);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;sm, 0, 0, 0);
+
+  <emphasis role="strong">if</emphasis> (w) {
+    weights = (<link linkend='igraph_vector_t'>igraph_vector_t</link>*)<emphasis role="strong">calloc</emphasis>(1, <emphasis role="strong">sizeof</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link>));
+    <emphasis role="strong"><link linkend='igraph_vector_copy'>igraph_vector_copy</link></emphasis>(weights, w);
+  }
+
+  <emphasis>/* No loop or multiple edges */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;g, 5, dir, 0, 1);
+  <emphasis role="strong"><link linkend='igraph_laplacian'>igraph_laplacian</link></emphasis>(&amp;g, &amp;m, &amp;sm, 0, weights);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;m2, &amp;sm);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">igraph_matrix_all_e_tol</emphasis>(&amp;m, &amp;m2, 0)) { 
+    <emphasis role="strong">return</emphasis> 41;
+  }
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m2);
+  <emphasis role="strong">igraph_matrix_print</emphasis>(&amp;m);
+  <emphasis role="strong">printf</emphasis>("===\n");
+
+  <emphasis>/* Add some loop edges */</emphasis>
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;vec, 4, 1.0, 1.0, 2.0, 2.0);
+  <emphasis role="strong"><link linkend='igraph_add_edges'>igraph_add_edges</link></emphasis>(&amp;g, &amp;vec, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;vec);
+  <emphasis role="strong">if</emphasis> (weights) {
+    <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(weights, 2);
+    <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(weights, 2);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_laplacian'>igraph_laplacian</link></emphasis>(&amp;g, &amp;m, &amp;sm, 0, weights);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;m2, &amp;sm);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">igraph_matrix_all_e_tol</emphasis>(&amp;m, &amp;m2, 0)) { 
+    <emphasis role="strong">return</emphasis> 42;
+  }
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m2);
+  <emphasis role="strong">igraph_matrix_print</emphasis>(&amp;m);
+  <emphasis role="strong">printf</emphasis>("===\n");
+
+  <emphasis>/* Duplicate some edges */</emphasis>
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;vec, 4, 1.0, 2.0, 3.0, 4.0);
+  <emphasis role="strong"><link linkend='igraph_add_edges'>igraph_add_edges</link></emphasis>(&amp;g, &amp;vec, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;vec);
+  <emphasis role="strong">if</emphasis> (weights) {
+    <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(weights, 3);
+    <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(weights, 3);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_laplacian'>igraph_laplacian</link></emphasis>(&amp;g, &amp;m, &amp;sm, 0, weights);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;m2, &amp;sm);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">igraph_matrix_all_e_tol</emphasis>(&amp;m, &amp;m2, 0)) { 
+    <emphasis role="strong">return</emphasis> 43;
+  }
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m2);
+  <emphasis role="strong">igraph_matrix_print</emphasis>(&amp;m);
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m);
+  <emphasis role="strong">if</emphasis> (weights) {
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(weights); <emphasis role="strong">free</emphasis>(weights);
+  }
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">test_normalized_laplacian</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link> *w, igraph_bool_t dir) {
+  igraph_t g;
+  igraph_matrix_t m, m2;
+  igraph_sparsemat_t sm;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> vec, *weights = 0;
+  igraph_bool_t ok = 1;
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m, 1, 1);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;sm, 0, 0, 0);
+
+  <emphasis role="strong">if</emphasis> (w) {
+    weights = (<link linkend='igraph_vector_t'>igraph_vector_t</link>*)<emphasis role="strong">calloc</emphasis>(1, <emphasis role="strong">sizeof</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link>));
+    <emphasis role="strong"><link linkend='igraph_vector_copy'>igraph_vector_copy</link></emphasis>(weights, w);
+  }
+
+  <emphasis>/* Undirected graph, no loop or multiple edges */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;g, 5, dir, 0, 1);
+  <emphasis role="strong"><link linkend='igraph_laplacian'>igraph_laplacian</link></emphasis>(&amp;g, &amp;m, &amp;sm, 1, weights);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;m2, &amp;sm);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">igraph_matrix_all_e_tol</emphasis>(&amp;m, &amp;m2, 0)) { 
+    <emphasis role="strong">return</emphasis> 44;
+  }
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m2);
+  ok = ok &amp;&amp; <emphasis role="strong">check_laplacian</emphasis>(&amp;g, &amp;m, weights);
+
+  <emphasis>/* Add some loop edges */</emphasis>
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;vec, 4, 1.0, 1.0, 2.0, 2.0);
+  <emphasis role="strong"><link linkend='igraph_add_edges'>igraph_add_edges</link></emphasis>(&amp;g, &amp;vec, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;vec);
+  <emphasis role="strong">if</emphasis> (weights) {
+    <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(weights, 2);
+    <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(weights, 2);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_laplacian'>igraph_laplacian</link></emphasis>(&amp;g, &amp;m, &amp;sm, 1, weights);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;m2, &amp;sm);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">igraph_matrix_all_e_tol</emphasis>(&amp;m, &amp;m2, 0)) { 
+    <emphasis role="strong">return</emphasis> 45;
+  }
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m2);
+  ok = ok &amp;&amp; <emphasis role="strong">check_laplacian</emphasis>(&amp;g, &amp;m, weights);
+
+  <emphasis>/* Duplicate some edges */</emphasis>
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;vec, 4, 1.0, 2.0, 3.0, 4.0);
+  <emphasis role="strong"><link linkend='igraph_add_edges'>igraph_add_edges</link></emphasis>(&amp;g, &amp;vec, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;vec);
+  <emphasis role="strong">if</emphasis> (weights) {
+    <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(weights, 3);
+    <emphasis role="strong"><link linkend='igraph_vector_push_back'>igraph_vector_push_back</link></emphasis>(weights, 3);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_laplacian'>igraph_laplacian</link></emphasis>(&amp;g, &amp;m, &amp;sm, 1, weights);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;m2, &amp;sm);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">igraph_matrix_all_e_tol</emphasis>(&amp;m, &amp;m2, 0)) { 
+    <emphasis role="strong">return</emphasis> 46;
+  }
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m2);
+  ok = ok &amp;&amp; <emphasis role="strong">check_laplacian</emphasis>(&amp;g, &amp;m, weights);
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m);
+  <emphasis role="strong">if</emphasis> (weights) {
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(weights); <emphasis role="strong">free</emphasis>(weights);
+  }
+
+  <emphasis role="strong">if</emphasis> (ok)
+    <emphasis role="strong">printf</emphasis>("OK\n");
+
+  <emphasis role="strong">return</emphasis> !ok;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  int res;
+  int i;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> weights;
+  igraph_integer_t is_weighted;
+
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;weights, 5, 1.0, 2.0, 3.0, 4.0, 5.0);
+
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; 8; i++) {
+    igraph_bool_t is_normalized = i / 4;
+    <link linkend='igraph_vector_t'>igraph_vector_t</link>* v = ((i &amp; 2) / 2 ? &amp;weights : 0);
+    igraph_bool_t dir = (i % 2 ? IGRAPH_DIRECTED : IGRAPH_UNDIRECTED);
+
+    <emphasis role="strong">printf</emphasis>("=== %sormalized, %sweighted, %sdirected\n",
+      (is_normalized ? "N" : "Unn"),
+      (v != 0 ? "" : "un"),
+      (dir == IGRAPH_DIRECTED ? "" : "un")
+    );
+
+    <emphasis role="strong">if</emphasis> (is_normalized)
+      res = <emphasis role="strong">test_normalized_laplacian</emphasis>(v, dir);
+    <emphasis role="strong">else</emphasis>
+      res = <emphasis role="strong">test_unnormalized_laplacian</emphasis>(v, dir);
+
+    <emphasis role="strong">if</emphasis> (res)
+      <emphasis role="strong">return</emphasis> i+1;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;weights);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

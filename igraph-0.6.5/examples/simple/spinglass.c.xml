@@ -1,0 +1,100 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+  igraph_t g;
+  igraph_real_t  modularity, temperature;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> membership, csize;
+  long int i;
+  igraph_real_t cohesion, adhesion;
+  igraph_integer_t inner_links;
+  igraph_integer_t outer_links;
+  
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 5, IGRAPH_UNDIRECTED, 
+	       0,1,0,2,0,3,0,4, 1,2,1,3,1,4, 2,3,2,4, 3,4,
+	       5,6,5,7,5,8,5,9, 6,7,6,8,6,9, 7,8,7,9, 8,9, 0,5, -1);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;membership, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;csize, 0);
+  <emphasis role="strong"><link linkend='igraph_community_spinglass'>igraph_community_spinglass</link></emphasis>(&amp;g, 
+			     0, <emphasis>/* no weights */</emphasis>
+			     &amp;modularity,
+			     &amp;temperature,
+			     &amp;membership,
+			     &amp;csize,
+			     2,	   <emphasis>/* no of spins */</emphasis>
+			     0,    <emphasis>/* parallel update */</emphasis>
+			     1.0,  <emphasis>/* start temperature */</emphasis>
+			     0.01, <emphasis>/* stop temperature */</emphasis>
+			     0.99, <emphasis>/* cooling factor */</emphasis>
+			     IGRAPH_SPINCOMM_UPDATE_CONFIG,
+			     1.0, <emphasis>/* gamma */</emphasis>
+			     IGRAPH_SPINCOMM_IMP_ORIG,
+			     <emphasis>/*gamma-=*/</emphasis> 0);
+
+<emphasis>/*   printf("Modularity:  %f\n", modularity); */</emphasis>
+<emphasis>/*   printf("Temperature: %f\n", temperature); */</emphasis>
+<emphasis>/*   printf("Cluster sizes: "); */</emphasis>
+<emphasis>/*   for (i=0; i&lt;igraph_vector_size(&amp;csize); i++) { */</emphasis>
+<emphasis>/*     printf("%li ", (long int)VECTOR(csize)[i]); */</emphasis>
+<emphasis>/*   } */</emphasis>
+<emphasis>/*   printf("\n"); */</emphasis>
+<emphasis>/*   printf("Membership: "); */</emphasis>
+<emphasis>/*   for (i=0; i&lt;igraph_vector_size(&amp;membership); i++) { */</emphasis>
+<emphasis>/*     printf("%li ", (long int)VECTOR(membership)[i]); */</emphasis>
+<emphasis>/*   } */</emphasis>
+<emphasis>/*   printf("\n"); */</emphasis>
+
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;csize) != 2) {
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;membership);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;csize);  
+    <emphasis role="strong">return</emphasis> 77;
+  }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(csize)[0] != 5) {
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;membership);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;csize);  
+    <emphasis role="strong">return</emphasis> 77;
+  }
+
+  <emphasis>/* Try to call this as well, we don't check the results currently.... */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_community_spinglass_single'>igraph_community_spinglass_single</link></emphasis>(&amp;g, 
+				    <emphasis>/*weights=  */</emphasis> 0,
+				    <emphasis>/*vertex=   */</emphasis> 0,
+				    <emphasis>/*community=*/</emphasis> &amp;membership,
+				    <emphasis>/*cohesion= */</emphasis> &amp;cohesion,
+				    <emphasis>/*adhesion= */</emphasis> &amp;adhesion,
+				    <emphasis>/*inner_links= */</emphasis> &amp;inner_links,
+				    <emphasis>/*outer_links= */</emphasis> &amp;outer_links,
+				    <emphasis>/*spins=       */</emphasis> 2,
+				    <emphasis>/*update_rule= */</emphasis> IGRAPH_SPINCOMM_UPDATE_CONFIG,
+				    <emphasis>/*gamma=       */</emphasis> 1.0);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;membership);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;csize);  
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

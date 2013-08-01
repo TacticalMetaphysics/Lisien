@@ -1,0 +1,217 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2008-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdlib.h&gt;
+
+void <emphasis role="strong">print_vector</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link> *v, FILE *f) {
+  long int i;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v); i++) {
+    <emphasis role="strong">fprintf</emphasis>(f, " %li", (long int) <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v)[i]);
+  }
+  <emphasis role="strong">fprintf</emphasis>(f, "\n");
+}
+
+int <emphasis role="strong">check_simple</emphasis>() {
+
+  igraph_t g;
+  long int nodes=100;
+  long int edges=1000;
+  igraph_real_t p=3.0/nodes;
+  long int runs=10;
+  long int r, e, ecount;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> eids, pairs, path;
+
+  <emphasis role="strong">srand</emphasis>(<emphasis role="strong">time</emphasis>(0));
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;pairs, edges*2);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;path, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;eids, 0);
+
+  <emphasis role="strong">for</emphasis> (r=0; r&lt;runs; r++) {
+    <emphasis role="strong"><link linkend='igraph_erdos_renyi_game'>igraph_erdos_renyi_game</link></emphasis>(&amp;g, IGRAPH_ERDOS_RENYI_GNP, nodes, p, 
+			    <emphasis>/*directed=*/</emphasis> 0, <emphasis>/*loops=*/</emphasis> 0);
+    ecount=<emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;g);
+    <emphasis role="strong">for</emphasis> (e=0; e&lt;edges; e++) {
+      long int edge=<emphasis role="strong">RNG_INTEGER</emphasis>(0, ecount-1);
+      <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(pairs)[2*e] = <emphasis role="strong">IGRAPH_FROM</emphasis>(&amp;g, edge);
+      <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(pairs)[2*e+1] = <emphasis role="strong">IGRAPH_TO</emphasis>(&amp;g, edge);
+    }
+    <emphasis role="strong"><link linkend='igraph_get_eids'>igraph_get_eids</link></emphasis>(&amp;g, &amp;eids, &amp;pairs, <emphasis>/*path=*/</emphasis> 0, 0, <emphasis>/*error=*/</emphasis> 1);
+    <emphasis role="strong">for</emphasis> (e=0; e&lt;edges; e++) {
+      long int edge=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(eids)[e];
+      long int from1=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(pairs)[2*e];
+      long int to1=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(pairs)[2*e+1];
+      long int from2=<emphasis role="strong">IGRAPH_FROM</emphasis>(&amp;g, edge);
+      long int to2=<emphasis role="strong">IGRAPH_TO</emphasis>(&amp;g, edge);
+      long int min1= from1 &lt; to1 ? from1 : to1;
+      long int max1= from1 &lt; to1 ? to1 : from1;
+      long int min2= from2 &lt; to2 ? from2 : to2;
+      long int max2= from2 &lt; to2 ? to2 : from2;
+      <emphasis role="strong">if</emphasis> (min1 != min2 || max1 != max2) {
+	<emphasis role="strong">return</emphasis> 11;
+      }
+    }
+    
+    <emphasis role="strong"><link linkend='igraph_diameter'>igraph_diameter</link></emphasis>(&amp;g, <emphasis>/*res=*/</emphasis> 0, <emphasis>/*from=*/</emphasis> 0, <emphasis>/*to=*/</emphasis> 0, &amp;path,
+		    IGRAPH_UNDIRECTED, <emphasis>/*unconn=*/</emphasis> 1);
+    <emphasis role="strong"><link linkend='igraph_get_eids'>igraph_get_eids</link></emphasis>(&amp;g, &amp;eids, <emphasis>/*pairs=*/</emphasis> 0, &amp;path, 0, <emphasis>/*error=*/</emphasis> 1);
+    <emphasis role="strong">for</emphasis> (e=0; e&lt;<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;path)-1; e++) {
+      long int edge=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(eids)[e];
+      long int from1=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(path)[e];
+      long int to1=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(path)[e+1];
+      long int from2=<emphasis role="strong">IGRAPH_FROM</emphasis>(&amp;g, edge);
+      long int to2=<emphasis role="strong">IGRAPH_TO</emphasis>(&amp;g, edge);
+      long int min1= from1 &lt; to1 ? from1 : to1;
+      long int max1= from1 &lt; to1 ? to1 : from1;
+      long int min2= from2 &lt; to2 ? from2 : to2;
+      long int max2= from2 &lt; to2 ? to2 : from2;
+      <emphasis role="strong">if</emphasis> (min1 != min2 || max1 != max2) {
+	<emphasis role="strong">return</emphasis> 12;
+      }
+    }
+
+    <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;path);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;pairs);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;eids);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">check_multi</emphasis>() {
+
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> vec;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> eids, eids2;
+  int ret;
+  long int i;
+
+  igraph_real_t q1[] = { 0,1, 0,1 };
+  igraph_real_t q2[] = { 0,1, 0,1, 0,1 };
+  igraph_real_t q3[] = { 1,0, 3,4, 1,0, 0,1, 3,4, 0,1 };
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;eids, 0);
+
+  <emphasis>/*********************************/</emphasis>
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, <emphasis>/*n=*/</emphasis> 10, <emphasis>/*directed=*/</emphasis> 1, 
+	       0,1, 0,1, 1,0, 1,2, 3,4, 3,4, 3,4, 3,5, 3,7, 
+	       9,8,
+	       -1);
+
+  <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;vec, q1, <emphasis role="strong">sizeof</emphasis>(q1) / <emphasis role="strong">sizeof</emphasis>(igraph_real_t));
+  <emphasis role="strong"><link linkend='igraph_get_eids_multi'>igraph_get_eids_multi</link></emphasis>(&amp;g, &amp;eids, &amp;vec, 0, <emphasis>/*directed=*/</emphasis> 1, <emphasis>/*error=*/</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_vector_sort'>igraph_vector_sort</link></emphasis>(&amp;eids);
+  <emphasis role="strong">print_vector</emphasis>(&amp;eids, stdout);
+
+  <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;vec, q2, <emphasis role="strong">sizeof</emphasis>(q2) / <emphasis role="strong">sizeof</emphasis>(igraph_real_t));
+  <emphasis role="strong"><link linkend='igraph_get_eids_multi'>igraph_get_eids_multi</link></emphasis>(&amp;g, &amp;eids, &amp;vec, 0, <emphasis>/*directed=*/</emphasis> 0, <emphasis>/*error=*/</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_vector_sort'>igraph_vector_sort</link></emphasis>(&amp;eids);
+  <emphasis role="strong">print_vector</emphasis>(&amp;eids, stdout);
+
+  <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;vec, q2, <emphasis role="strong">sizeof</emphasis>(q2) / <emphasis role="strong">sizeof</emphasis>(igraph_real_t));
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_ignore'>igraph_error_handler_ignore</link>);
+  ret=<emphasis role="strong"><link linkend='igraph_get_eids_multi'>igraph_get_eids_multi</link></emphasis>(&amp;g, &amp;eids, &amp;vec, 0, <emphasis>/*directed=*/</emphasis> 1, <emphasis>/*error=*/</emphasis>1);
+  <emphasis role="strong">if</emphasis> (ret != IGRAPH_EINVAL) { <emphasis role="strong">return</emphasis> 1; } 
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_abort'>igraph_error_handler_abort</link>);
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis>/*********************************/</emphasis>
+
+  <emphasis>/*********************************/</emphasis>
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, <emphasis>/*n=*/</emphasis>10, <emphasis>/*directed=*/</emphasis>0, 
+	       0,1, 1,0, 0,1, 3,4, 3,4, 5,4, 9,8, 
+	       -1);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;vec, q1, <emphasis role="strong">sizeof</emphasis>(q1) / <emphasis role="strong">sizeof</emphasis>(igraph_real_t));
+  <emphasis role="strong"><link linkend='igraph_get_eids_multi'>igraph_get_eids_multi</link></emphasis>(&amp;g, &amp;eids, &amp;vec, 0, <emphasis>/*directed=*/</emphasis>1, <emphasis>/*error=*/</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_vector_sort'>igraph_vector_sort</link></emphasis>(&amp;eids);
+  <emphasis role="strong">print_vector</emphasis>(&amp;eids, stdout);
+
+  <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;vec, q3, <emphasis role="strong">sizeof</emphasis>(q3) / <emphasis role="strong">sizeof</emphasis>(igraph_real_t));
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_ignore'>igraph_error_handler_ignore</link>);
+  ret=<emphasis role="strong"><link linkend='igraph_get_eids_multi'>igraph_get_eids_multi</link></emphasis>(&amp;g, &amp;eids, &amp;vec, 0, <emphasis>/*directed=*/</emphasis>0, <emphasis>/*error=*/</emphasis> 1);
+  <emphasis role="strong">if</emphasis> (ret != IGRAPH_EINVAL) { <emphasis role="strong">return</emphasis> 2; }
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_abort'>igraph_error_handler_abort</link>);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/*********************************/</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;eids);
+
+  <emphasis>/*********************************/</emphasis>
+  <emphasis>/* Speed tests */</emphasis>
+
+<emphasis role="strong">#define</emphasis> NODES 10000
+  <emphasis role="strong"><link linkend='igraph_barabasi_game'>igraph_barabasi_game</link></emphasis>(&amp;g, <emphasis>/*n=*/</emphasis> NODES, <emphasis>/*power=*/</emphasis> 1.0, <emphasis>/*m=*/</emphasis> 3, 
+		       <emphasis>/*outseq=*/</emphasis> 0, <emphasis>/*outpref=*/</emphasis> 0, <emphasis>/*A=*/</emphasis> 1,
+		       <emphasis>/*directed=*/</emphasis> 1, IGRAPH_BARABASI_BAG,
+		       <emphasis>/*start_from=*/</emphasis> 0);
+  <emphasis role="strong"><link linkend='igraph_simplify'>igraph_simplify</link></emphasis>(&amp;g, <emphasis>/*multiple=*/</emphasis> 1, <emphasis>/*loops=*/</emphasis> 0, <emphasis>/*edge_comb=*/</emphasis> 0);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;eids, NODES/2);
+  <emphasis role="strong"><link linkend='igraph_random_sample'>igraph_random_sample</link></emphasis>(&amp;eids, 0, <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;g)-1, NODES/2);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;vec, NODES);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;NODES/2; i++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(vec)[2*i]   = <emphasis role="strong">IGRAPH_FROM</emphasis>(&amp;g, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(eids)[i]);
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(vec)[2*i+1] = <emphasis role="strong">IGRAPH_TO</emphasis>(&amp;g, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(eids)[i]);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;eids2, 0);
+  <emphasis role="strong"><link linkend='igraph_get_eids_multi'>igraph_get_eids_multi</link></emphasis>(&amp;g, &amp;eids2, &amp;vec, 0, <emphasis>/*directed=*/</emphasis> 1, <emphasis>/*error=*/</emphasis> 1);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_vector_all_e'>igraph_vector_all_e</link></emphasis>(&amp;eids, &amp;eids2)) {
+    <emphasis role="strong">return</emphasis> 3;
+  }
+
+  <emphasis>/**/</emphasis>
+
+<emphasis>  for (i=0; i</emphasis><emphasis role="strong">&lt;NODES</emphasis>/2; i++) {
+    VECTOR(vec)[2*i]   = IGRAPH_TO(&amp;g, VECTOR(eids)[i]);
+    VECTOR(vec)[2*i+1] = IGRAPH_FROM(&amp;g, VECTOR(eids)[i]);
+  }
+  igraph_get_eids_multi(&amp;g, &amp;eids2, &amp;vec, 0, /*directed=*/ 0, /*error=*/ 1);
+  if (!igraph_vector_all_e(&amp;eids, &amp;eids2)) {
+    return 4;
+  }
+
+  igraph_vector_destroy(&amp;eids);
+  igraph_vector_destroy(&amp;eids2);
+  igraph_vector_destroy(&amp;vec);
+  igraph_destroy(&amp;g);
+		  
+  /*********************************/
+
+  return 0;
+}
+
+int main() {
+  int ret;
+
+  if ( (ret=check_simple()) != 0) { return ret; }
+  if ( (ret=check_multi()) != 0)  { return ret; }
+
+  return 0;
+}
+</programlisting>

@@ -1,0 +1,225 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/*</emphasis>
+<emphasis>  Test suite for random sampling.</emphasis>
+<emphasis>  Copyright (C) 2011 Minh Van Nguyen </emphasis>&lt;nguyenminh2@gmail.com&gt;
+
+<emphasis>  This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>  it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>  the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>  (at your option) any later version.</emphasis>
+
+<emphasis>  This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>  but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>  GNU General Public License for more details.</emphasis>
+
+<emphasis>  You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>  along with this program; if not, write to the Free Software</emphasis>
+<emphasis>  Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA</emphasis>
+<emphasis>  02110-1301 USA</emphasis>
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;assert.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;math.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdio.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;time.h&gt;
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">R_INTEGER</emphasis>(a,b) (<emphasis role="strong"><link linkend='igraph_rng_get_integer'>igraph_rng_get_integer</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), (a), (b)))
+
+<emphasis>/* test parameters */</emphasis>
+<emphasis role="strong">typedef</emphasis> <emphasis role="strong">struct</emphasis> {
+  igraph_integer_t low;
+  igraph_integer_t high;
+  igraph_integer_t length;
+  int retval;
+} sampling_test_t;
+
+<emphasis>/* Error tests. Don't be afraid to crash the library function.</emphasis>
+<emphasis> */</emphasis>
+int <emphasis role="strong">error_test</emphasis>() {
+  <emphasis role="strong">const</emphasis> igraph_integer_t min = -1000;
+  <emphasis role="strong">const</emphasis> igraph_integer_t max = 1000;
+  igraph_integer_t low;       <emphasis>/* lower limit */</emphasis>
+  igraph_integer_t high;      <emphasis>/* upper limit */</emphasis>
+  igraph_integer_t length;    <emphasis>/* sample size */</emphasis>
+  igraph_integer_t poolsize;  <emphasis>/* size of candidate pool */</emphasis>
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> V;
+  int i, n, ret;
+  sampling_test_t *test;
+
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), <emphasis role="strong">time</emphasis>(0));
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;V, <emphasis>/*size*/</emphasis> 0);
+
+  <emphasis>/* test parameters */</emphasis>
+  <emphasis>/*----------low----high----length----retval----------*/</emphasis>
+  <emphasis>/* lower limit is greater than upper limit */</emphasis>
+  <emphasis role="strong">do</emphasis> {
+    high = (igraph_integer_t)<emphasis role="strong">R_INTEGER</emphasis>(min, max);
+  } <emphasis role="strong">while</emphasis> (high == max);
+  <emphasis role="strong">do</emphasis> {
+    low = (igraph_integer_t)<emphasis role="strong">R_INTEGER</emphasis>(min, max);
+  } <emphasis role="strong">while</emphasis> (low &lt;= high);
+  <emphasis role="strong">assert</emphasis>(low &gt; high);
+  length = (igraph_integer_t)<emphasis role="strong">R_INTEGER</emphasis>(min, max);
+  sampling_test_t lower_bigger = {low, high, length, IGRAPH_EINVAL};
+  <emphasis>/* sample size is greater than size of candidate pool */</emphasis>
+  <emphasis role="strong">do</emphasis> {
+    high = (igraph_integer_t)<emphasis role="strong">R_INTEGER</emphasis>(min, max);
+  } <emphasis role="strong">while</emphasis> (high == min);
+  <emphasis role="strong">do</emphasis> {
+    low = (igraph_integer_t)<emphasis role="strong">R_INTEGER</emphasis>(min, max);
+  } <emphasis role="strong">while</emphasis> (low &gt;= high);
+  <emphasis role="strong">assert</emphasis>(low &lt; high);
+  poolsize = (igraph_integer_t)<emphasis role="strong">fabs</emphasis>((double)high - (double)low);
+  length = poolsize * poolsize;
+  sampling_test_t sample_size_bigger = {low, high, length, IGRAPH_EINVAL};
+
+  sampling_test_t *all_checks[] = {<emphasis>/* 1 */</emphasis> &amp;lower_bigger,
+                                   <emphasis>/* 2 */</emphasis> &amp;sample_size_bigger};
+
+  <emphasis>/* failure is the mother of success */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_ignore'>igraph_error_handler_ignore</link>);
+  n = 2;
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; n; i++) {
+    test = all_checks[i];
+    ret = <emphasis role="strong"><link linkend='igraph_random_sample'>igraph_random_sample</link></emphasis>(&amp;V, test-&gt;low, test-&gt;high, test-&gt;length);
+    <emphasis role="strong">if</emphasis> (ret != test-&gt;retval) {
+      <emphasis role="strong">printf</emphasis>("Error test no. %d failed.\n", (int)(i + 1));
+      <emphasis role="strong">return</emphasis> IGRAPH_FAILURE;
+    }
+  }
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_abort'>igraph_error_handler_abort</link>);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;V);
+
+  <emphasis role="strong">return</emphasis> IGRAPH_SUCCESS;
+}
+
+<emphasis>/* Get a few random samples and test their properties.</emphasis>
+<emphasis> */</emphasis>
+int <emphasis role="strong">random_sample_test</emphasis>() {
+  <emphasis role="strong">const</emphasis> igraph_integer_t min = -1000;
+  <emphasis role="strong">const</emphasis> igraph_integer_t max = 1000;
+  igraph_integer_t low;       <emphasis>/* lower limit */</emphasis>
+  igraph_integer_t high;      <emphasis>/* upper limit */</emphasis>
+  igraph_integer_t length;    <emphasis>/* sample size */</emphasis>
+  igraph_integer_t poolsize;  <emphasis>/* size of candidate pool */</emphasis>
+  igraph_real_t sP;           <emphasis>/* population total sum */</emphasis>
+  igraph_real_t ss;           <emphasis>/* sample total sum */</emphasis>
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> V;
+  int i;
+
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), <emphasis role="strong">time</emphasis>(0));
+
+  <emphasis>/* The generated sequence of numbers must be in increasing order. */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;V, <emphasis>/*size*/</emphasis> 0);
+  <emphasis role="strong">do</emphasis> {
+    high = (igraph_integer_t)<emphasis role="strong">R_INTEGER</emphasis>(min, max);
+  } <emphasis role="strong">while</emphasis> (high == min);
+  <emphasis role="strong">do</emphasis> {
+    low = (igraph_integer_t)<emphasis role="strong">R_INTEGER</emphasis>(min, max);
+  } <emphasis role="strong">while</emphasis> (low &gt;= high);
+  poolsize = (igraph_integer_t)<emphasis role="strong">fabs</emphasis>((double)high - (double)low);
+  <emphasis role="strong">do</emphasis> {
+    length = (igraph_integer_t)<emphasis role="strong">R_INTEGER</emphasis>(1, max);
+  } <emphasis role="strong">while</emphasis> (length &gt; poolsize);
+  <emphasis role="strong"><link linkend='igraph_random_sample'>igraph_random_sample</link></emphasis>(&amp;V, low, high, length);
+  <emphasis role="strong">if</emphasis> (length != <emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;V)) {
+    <emphasis role="strong">printf</emphasis>("Requested vector length and resulting length mismatch.\n");
+    <emphasis role="strong">return</emphasis> IGRAPH_FAILURE;
+  }
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; length - 1; i++) {
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(V)[i] &gt;= <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(V)[i+1]) {
+      <emphasis role="strong">printf</emphasis>("Sample not in increasing order.\n");
+      <emphasis role="strong">return</emphasis> IGRAPH_FAILURE;
+    }
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;V);
+
+  <emphasis>/* Let P be a candidate pool of positive integers with total sum s_P. */</emphasis>
+  <emphasis>/* Let S be a random sample from P and having total sum s_S. Then we */</emphasis>
+  <emphasis>/* have the bound s_s &lt;= s_P. */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;V, <emphasis>/*size*/</emphasis> 0);
+  low = 1;
+  <emphasis role="strong">do</emphasis> {
+    high = (igraph_integer_t)<emphasis role="strong">R_INTEGER</emphasis>(low, max);
+  } <emphasis role="strong">while</emphasis> (high == low);
+  poolsize = (igraph_integer_t)<emphasis role="strong">fabs</emphasis>((double)high - (double)low);
+  <emphasis role="strong">do</emphasis> {
+    length = (igraph_integer_t)<emphasis role="strong">R_INTEGER</emphasis>(low, max);
+  } <emphasis role="strong">while</emphasis> (length &gt; poolsize);
+  <emphasis role="strong"><link linkend='igraph_random_sample'>igraph_random_sample</link></emphasis>(&amp;V, low, high, length);
+  <emphasis>/* Use Gauss' formula to sum all consecutive positive integers from 1 */</emphasis>
+  <emphasis>/* up to and including an upper limit. In LaTeX, Gauss' formula is */</emphasis>
+  <emphasis>/* \sum_{i=1}^n i = \frac{n(n+1)}{2} where n is the upper limit. */</emphasis>
+  sP = (high * (high + 1)) / 2;
+  ss = <emphasis role="strong"><link linkend='igraph_vector_sum'>igraph_vector_sum</link></emphasis>(&amp;V);
+  <emphasis role="strong">if</emphasis> (ss &gt; sP) {
+    <emphasis role="strong">printf</emphasis>("Sum of sampled sequence exceeds sum of whole population.\n");
+    <emphasis role="strong">return</emphasis> IGRAPH_FAILURE;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;V);
+
+  <emphasis role="strong">return</emphasis> IGRAPH_SUCCESS;
+}
+
+int <emphasis role="strong">equal_test</emphasis>() {
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> V;
+  int i;
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;V, 0);
+
+  <emphasis role="strong"><link linkend='igraph_random_sample'>igraph_random_sample</link></emphasis>(&amp;V, 0, 0, 1);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;V) != 1) { <emphasis role="strong">return</emphasis> 1; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(V)[0] != 0) { <emphasis role="strong">return</emphasis> 2; }
+
+  <emphasis role="strong"><link linkend='igraph_random_sample'>igraph_random_sample</link></emphasis>(&amp;V, 10, 10, 1);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;V) != 1) { <emphasis role="strong">return</emphasis> 3; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(V)[0] != 10) { <emphasis role="strong">return</emphasis> 4; }
+  
+  <emphasis role="strong"><link linkend='igraph_random_sample'>igraph_random_sample</link></emphasis>(&amp;V, 2, 12, 11);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;V) != 11) { <emphasis role="strong">return</emphasis> 5; }
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; 11; i++)
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(V)[i] != i+2) { <emphasis role="strong">return</emphasis> 6; }
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;V);
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">rare_test</emphasis>() {
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> V;
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;V, 0);
+
+  <emphasis role="strong"><link linkend='igraph_random_sample'>igraph_random_sample</link></emphasis>(&amp;V, 0, 0, 1);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;V) != 1) { <emphasis role="strong">return</emphasis> 1; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(V)[0] != 0) { <emphasis role="strong">return</emphasis> 2; }
+
+  <emphasis role="strong"><link linkend='igraph_random_sample'>igraph_random_sample</link></emphasis>(&amp;V, 10, 10, 1);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;V) != 1) { <emphasis role="strong">return</emphasis> 3; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(V)[0] != 10) { <emphasis role="strong">return</emphasis> 4; }
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;V);
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  int ret;
+
+  ret = <emphasis role="strong">error_test</emphasis>();
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> 1;
+  ret = <emphasis role="strong">random_sample_test</emphasis>();
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> 2;
+  ret = <emphasis role="strong">equal_test</emphasis>();
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> 3;
+  ret = <emphasis role="strong">rare_test</emphasis>();
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> 4;
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

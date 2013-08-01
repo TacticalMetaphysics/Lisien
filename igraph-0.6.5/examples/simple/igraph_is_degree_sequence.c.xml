@@ -1,0 +1,141 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge, MA 02139, USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> outseq, inseq;
+    igraph_bool_t result;
+
+    <emphasis>/***** Testing igraph_is_degree_sequence *****/</emphasis>
+    
+    <emphasis>/* Valid undirected degree sequence */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 3, 3, 3, 3, 3, 3, 3, 3, -1);
+    <emphasis role="strong"><link linkend='igraph_is_degree_sequence'>igraph_is_degree_sequence</link></emphasis>(&amp;outseq, 0, &amp;result);
+    <emphasis role="strong">if</emphasis> (!result)
+        <emphasis role="strong">return</emphasis> 1;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+
+    <emphasis>/* Undirected degree sequence with negative degree */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 3, -2, 3, 3, 3, 3, 3, 3, -1);
+    <emphasis role="strong"><link linkend='igraph_is_degree_sequence'>igraph_is_degree_sequence</link></emphasis>(&amp;outseq, 0, &amp;result);
+    <emphasis role="strong">if</emphasis> (result)
+        <emphasis role="strong">return</emphasis> 2;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+
+    <emphasis>/* Undirected degree sequence with uneven sum */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 3, 3, 3, 3, 3, 3, 3, -1);
+    <emphasis role="strong"><link linkend='igraph_is_degree_sequence'>igraph_is_degree_sequence</link></emphasis>(&amp;outseq, 0, &amp;result);
+    <emphasis role="strong">if</emphasis> (result)
+        <emphasis role="strong">return</emphasis> 3;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+
+    <emphasis>/* Valid directed degree sequences */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 0, 2, 3, 0, 4, 3, 1, 3, 4, 2, -1);
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;inseq, -1, 0, 3, 1, 3, 2, 4, 4, 1, 3, 1, -1);
+    <emphasis role="strong"><link linkend='igraph_is_degree_sequence'>igraph_is_degree_sequence</link></emphasis>(&amp;outseq, &amp;inseq, &amp;result);
+    <emphasis role="strong">if</emphasis> (!result)
+        <emphasis role="strong">return</emphasis> 4;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;inseq);
+
+    <emphasis>/* Directed degree sequence with negative degree */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 0, 2, 3, 0, 4, 3, 1, 3, 4, 2, -1);
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;inseq, -1, 0, 3, 1, -7, 2, 4, 4, 1, 3, 1, -1);
+    <emphasis role="strong"><link linkend='igraph_is_degree_sequence'>igraph_is_degree_sequence</link></emphasis>(&amp;outseq, &amp;inseq, &amp;result);
+    <emphasis role="strong">if</emphasis> (result)
+        <emphasis role="strong">return</emphasis> 5;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;inseq);
+
+    <emphasis>/* Directed degree sequence with different lengths */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 0, 2, 3, 0, 4, 3, 1, 3, 4, 2, -1);
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;inseq, -1, 0, 3, 1, 2, 4, 4, 1, 3, 1, -1);
+    <emphasis role="strong"><link linkend='igraph_is_degree_sequence'>igraph_is_degree_sequence</link></emphasis>(&amp;outseq, &amp;inseq, &amp;result);
+    <emphasis role="strong">if</emphasis> (result)
+        <emphasis role="strong">return</emphasis> 5;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;inseq);
+
+    <emphasis>/* Directed degree sequence with different sums */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 0, 2, 3, 0, 4, 3, 1, 3, 4, 2, -1);
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;inseq, -1, 0, 3, 1, 2, 2, 4, 4, 1, 3, 1, -1);
+    <emphasis role="strong"><link linkend='igraph_is_degree_sequence'>igraph_is_degree_sequence</link></emphasis>(&amp;outseq, &amp;inseq, &amp;result);
+    <emphasis role="strong">if</emphasis> (result)
+        <emphasis role="strong">return</emphasis> 6;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;inseq);
+
+    <emphasis>/***** Testing igraph_is_graphical_degree_sequence *****/</emphasis>
+
+    <emphasis>/* Valid undirected graphical degree sequence */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 3, 3, 3, 3, 3, 3, 3, 3, -1);
+    <emphasis role="strong"><link linkend='igraph_is_graphical_degree_sequence'>igraph_is_graphical_degree_sequence</link></emphasis>(&amp;outseq, 0, &amp;result);
+    <emphasis role="strong">if</emphasis> (!result)
+        <emphasis role="strong">return</emphasis> 7;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+
+    <emphasis>/* Another valid undirected graphical degree sequence */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 4, 7, 4, 7, 7, 8, 9, 9, 4, 6, 5, -1);
+    <emphasis role="strong"><link linkend='igraph_is_graphical_degree_sequence'>igraph_is_graphical_degree_sequence</link></emphasis>(&amp;outseq, 0, &amp;result);
+    <emphasis role="strong">if</emphasis> (!result)
+        <emphasis role="strong">return</emphasis> 8;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+
+    <emphasis>/* Valid undirected degree sequence but not graphical */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 3, 3, -1);
+    <emphasis role="strong"><link linkend='igraph_is_graphical_degree_sequence'>igraph_is_graphical_degree_sequence</link></emphasis>(&amp;outseq, 0, &amp;result);
+    <emphasis role="strong">if</emphasis> (result)
+        <emphasis role="strong">return</emphasis> 9;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+
+    <emphasis>/* Valid directed graphical degree sequence */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;inseq, -1, 3, 3, 3, 3, 3, 3, 3, 3, 3, -1);
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 3, 3, 3, 3, 3, 3, 3, 3, 3, -1);
+    <emphasis role="strong"><link linkend='igraph_is_graphical_degree_sequence'>igraph_is_graphical_degree_sequence</link></emphasis>(&amp;outseq, &amp;inseq, &amp;result);
+    <emphasis role="strong">if</emphasis> (!result)
+        <emphasis role="strong">return</emphasis> 10;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;inseq);
+
+    <emphasis>/* Another valid directed graphical degree sequence */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;inseq, -1, 1, 3, 2, 1, 3, 4, 3, 3, 1, 3, -1);
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 4, 1, 2, 3, 2, 3, 2, 3, 2, 2, -1);
+    <emphasis role="strong"><link linkend='igraph_is_graphical_degree_sequence'>igraph_is_graphical_degree_sequence</link></emphasis>(&amp;outseq, &amp;inseq, &amp;result);
+    <emphasis role="strong">if</emphasis> (!result)
+        <emphasis role="strong">return</emphasis> 11;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;inseq);
+
+    <emphasis>/* Yet another valid directed graphical degree sequence */</emphasis>
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;inseq, -1, 7, 4, 6, 4, 7, 8, 8, 8, 7, 4, -1);
+    <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;outseq, -1, 8, 5, 6, 8, 6, 6, 5, 7, 5, 7, -1);
+    <emphasis role="strong"><link linkend='igraph_is_graphical_degree_sequence'>igraph_is_graphical_degree_sequence</link></emphasis>(&amp;outseq, &amp;inseq, &amp;result);
+    <emphasis role="strong">if</emphasis> (!result)
+        <emphasis role="strong">return</emphasis> 12;
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;outseq);
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;inseq);
+
+    <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

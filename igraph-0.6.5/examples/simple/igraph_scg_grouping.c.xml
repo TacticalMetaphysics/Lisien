@@ -1,0 +1,84 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2011-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge, MA, 02138 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">SIZE</emphasis> (1000)
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_matrix_t M, M2;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> lambda;
+  igraph_matrix_t V;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> groups;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> ivec;
+  int i, j;
+  int n;
+
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 42);
+
+  <emphasis>/* Symmetric matrix, exponentially distributed elements */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;M, SIZE, SIZE);
+  n=<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;M);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;n; j++) {
+      <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(M, i, j) = <emphasis role="strong">igraph_rng_get_exp</emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 1);
+    }
+  }
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;M2, n, n);
+  <emphasis role="strong"><link linkend='igraph_matrix_update'>igraph_matrix_update</link></emphasis>(&amp;M2, &amp;M);
+  <emphasis role="strong"><link linkend='igraph_matrix_transpose'>igraph_matrix_transpose</link></emphasis>(&amp;M2);
+  <emphasis role="strong"><link linkend='igraph_matrix_add'>igraph_matrix_add</link></emphasis>(&amp;M, &amp;M2);
+  <emphasis role="strong"><link linkend='igraph_matrix_scale'>igraph_matrix_scale</link></emphasis>(&amp;M, 0.5);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;M2);
+
+  <emphasis>/* Get first (most positive) two eigenvectors */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;lambda, 0);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;V, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_lapack_dsyevr'>igraph_lapack_dsyevr</link></emphasis>(&amp;M, IGRAPH_LAPACK_DSYEV_SELECT, <emphasis>/*vl=*/</emphasis> 0, <emphasis>/*vu=*/</emphasis> 0, 
+		       <emphasis>/*vestimate=*/</emphasis> 0, <emphasis>/*il=*/</emphasis> n-1, <emphasis>/*iu=*/</emphasis> n, 
+		       <emphasis>/*abstol=*/</emphasis> 0.0, <emphasis>/*values=*/</emphasis> &amp;lambda, <emphasis>/*vectors=*/</emphasis> &amp;V, 
+		       <emphasis>/*support=*/</emphasis> 0);
+  
+  <emphasis>/* Grouping */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;groups, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;ivec, 2);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(ivec)[0] = 2; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(ivec)[1] = 3;  
+  <emphasis role="strong"><link linkend='igraph_scg_grouping'>igraph_scg_grouping</link></emphasis>(&amp;V, &amp;groups, <emphasis>/*invervals=*/</emphasis> 0, 
+		      <emphasis>/*intervals_vector=*/</emphasis> &amp;ivec, IGRAPH_SCG_SYMMETRIC, 
+		      IGRAPH_SCG_OPTIMUM, <emphasis>/*p=*/</emphasis> 0, <emphasis>/*maxiter=*/</emphasis> 100);
+  
+  <emphasis role="strong">igraph_vector_print</emphasis>(&amp;groups);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;ivec);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;groups);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;lambda);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;V);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;M);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

@@ -1,0 +1,59 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2010-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdio.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t graph;
+  igraph_vector_ptr_t separators;
+  long int i, n;
+  
+  <emphasis role="strong"><link linkend='igraph_famous'>igraph_famous</link></emphasis>(&amp;graph, "zachary");
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;separators, 0);
+  <emphasis role="strong"><link linkend='igraph_all_minimal_st_separators'>igraph_all_minimal_st_separators</link></emphasis>(&amp;graph, &amp;separators);
+
+  n=<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;separators);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    igraph_bool_t res;
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *sep=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(separators)[i];
+    <emphasis role="strong"><link linkend='igraph_is_separator'>igraph_is_separator</link></emphasis>(&amp;graph, <emphasis role="strong"><link linkend='igraph_vss_vector'>igraph_vss_vector</link></emphasis>(sep), &amp;res);
+    <emphasis role="strong">if</emphasis> (!res) { 
+      <emphasis role="strong">printf</emphasis>("Vertex set %li is not a separator!\n", i);
+      <emphasis role="strong">igraph_vector_print</emphasis>(sep);
+      <emphasis role="strong">return</emphasis> 1;
+    }
+  }
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;graph);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <link linkend='igraph_vector_t'>igraph_vector_t</link> *v=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(separators)[i];
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(v);
+    <emphasis role="strong">igraph_Free</emphasis>(v);
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;separators);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

@@ -1,0 +1,241 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/*</emphasis>
+<emphasis>  Test suite for stochastic imitation via uniform selection.</emphasis>
+<emphasis>  Copyright (C) 2011 Minh Van Nguyen </emphasis>&lt;nguyenminh2@gmail.com&gt;
+
+<emphasis>  This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>  it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>  the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>  (at your option) any later version.</emphasis>
+
+<emphasis>  This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>  but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>  GNU General Public License for more details.</emphasis>
+
+<emphasis>  You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>  along with this program; if not, write to the Free Software</emphasis>
+<emphasis>  Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA</emphasis>
+<emphasis>  02110-1301 USA</emphasis>
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdio.h&gt;
+
+<emphasis>/* test parameters structure */</emphasis>
+<emphasis role="strong">typedef</emphasis> <emphasis role="strong">struct</emphasis> {
+  igraph_t *graph;
+  igraph_integer_t vertex;
+  igraph_imitate_algorithm_t algo;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> *quantities;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> *strategies;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> *known_strats;
+  igraph_neimode_t mode;
+  int retval;
+} strategy_test_t;
+
+<emphasis>/* Error tests. That is, we expect error codes to be returned from such tests.</emphasis>
+<emphasis> */</emphasis>
+int <emphasis role="strong">error_tests</emphasis>() {
+  igraph_t g, h;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> quant, strat;
+  int i, n, ret;
+  strategy_test_t *test;
+
+  <emphasis>/* nonempty graph */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, <emphasis>/*n vertices*/</emphasis> 0, IGRAPH_UNDIRECTED, 0,1, 1,2, 2,0, -1);
+  <emphasis role="strong"><link linkend='igraph_empty'>igraph_empty</link></emphasis>(&amp;h, 0, 0);         <emphasis>/* empty graph */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;quant, 1);  <emphasis>/* quantities vector */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;strat, 2);  <emphasis>/* strategies vector */</emphasis>
+
+  <emphasis>/* test parameters */</emphasis>
+  <emphasis>/*graph--vertex--algo--quantities--strategies--known_strats--mode--retval*/</emphasis>
+  <emphasis>/* null pointer for graph */</emphasis>
+  strategy_test_t null_graph = {NULL, 0, IGRAPH_IMITATE_BLIND, NULL, NULL, NULL, IGRAPH_ALL, IGRAPH_EINVAL};
+  <emphasis>/* null pointer for quantities vector */</emphasis>
+  strategy_test_t null_quant = {&amp;g, 0, IGRAPH_IMITATE_BLIND, NULL, NULL, NULL, IGRAPH_ALL, IGRAPH_EINVAL};
+  <emphasis>/* null pointer for strategies vector */</emphasis>
+  strategy_test_t null_strat = {&amp;g, 0, IGRAPH_IMITATE_BLIND, &amp;quant, NULL, NULL, IGRAPH_ALL, IGRAPH_EINVAL};
+  <emphasis>/* empty graph */</emphasis>
+  strategy_test_t empty_graph = {&amp;h, 0, IGRAPH_IMITATE_BLIND, &amp;quant, &amp;strat, NULL, IGRAPH_ALL, IGRAPH_EINVAL};
+  <emphasis>/* length of quantities vector different from number of vertices */</emphasis>
+  strategy_test_t qdiff_length = {&amp;g, 0, IGRAPH_IMITATE_BLIND, &amp;quant, &amp;strat, NULL, IGRAPH_ALL, IGRAPH_EINVAL};
+  <emphasis>/* length of strategies vector different from number of vertices */</emphasis>
+  strategy_test_t sdiff_length = {&amp;g, 0, IGRAPH_IMITATE_BLIND, &amp;quant, &amp;strat, NULL, IGRAPH_ALL, IGRAPH_EINVAL};
+  strategy_test_t unknown_algo = {&amp;g, 0, -1, &amp;quant, &amp;strat, NULL, IGRAPH_ALL, IGRAPH_EINVAL};
+  strategy_test_t *all_checks[] = {<emphasis>/* 1 */</emphasis> &amp;null_graph,
+                                   <emphasis>/* 2 */</emphasis> &amp;null_quant,
+                                   <emphasis>/* 3 */</emphasis> &amp;null_strat,
+                                   <emphasis>/* 4 */</emphasis> &amp;empty_graph,
+                                   <emphasis>/* 5 */</emphasis> &amp;qdiff_length,
+                                   <emphasis>/* 6 */</emphasis> &amp;sdiff_length,
+                                   <emphasis>/* 7 */</emphasis> &amp;unknown_algo};
+  <emphasis>/* Run the error tests. We expect error to be raised for each test. */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_ignore'>igraph_error_handler_ignore</link>);
+  n = 7;
+  i = 0;
+  <emphasis role="strong">while</emphasis> (i &lt; n) {
+    test = all_checks[i];
+    ret = <emphasis role="strong"><link linkend='igraph_stochastic_imitation'>igraph_stochastic_imitation</link></emphasis>(test-&gt;graph, test-&gt;vertex, test-&gt;algo,
+                                      test-&gt;quantities, test-&gt;strategies,
+                                      test-&gt;mode);
+    <emphasis role="strong">if</emphasis> (ret != test-&gt;retval) {
+      <emphasis role="strong">printf</emphasis>("Error test no. %d failed.\n", (int)(i + 1));
+      <emphasis role="strong">return</emphasis> IGRAPH_FAILURE;
+    }
+    i++;
+  }
+  <emphasis>/* clean up */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;h);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;quant);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;strat);
+
+  <emphasis role="strong">return</emphasis> IGRAPH_SUCCESS;
+}
+
+<emphasis>/* Updating the strategy of an isolated vertex. In this case, the strategies</emphasis>
+<emphasis> * vector should not change at all.</emphasis>
+<emphasis> */</emphasis>
+int <emphasis role="strong">isolated_vertex_test</emphasis>() {
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> quant, strat, v;
+  int i, ret;
+
+  <emphasis>/* graph with one isolated vertex */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, <emphasis>/*n vertices*/</emphasis> 0, IGRAPH_UNDIRECTED, 0,1, 1,2, 2,0, -1);
+  <emphasis role="strong"><link linkend='igraph_add_vertices'>igraph_add_vertices</link></emphasis>(&amp;g, 1, 0);  <emphasis>/* new vertex 3 is isolated */</emphasis>
+  <emphasis>/* quantities vector: all vertices have the same fitness */</emphasis>
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;quant, 4, 0.25, 0.25, 0.25, 0.25);
+  <emphasis>/* strategies vector: 0 means aggressive strategy; 1 means passive */</emphasis>
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;strat, 4, 1.0, 0.0, 1.0, 0.0);
+  <emphasis>/* make a copy of the original strategies vector for comparison later on */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_copy'>igraph_vector_copy</link></emphasis>(&amp;v, &amp;strat);
+  <emphasis>/* Now update strategy of vertex 3. Since this vertex is isolated, no */</emphasis>
+  <emphasis>/* strategy update would take place. The resulting strategies vector */</emphasis>
+  <emphasis>/* would be the same as it was originally. */</emphasis>
+  ret = <emphasis role="strong"><link linkend='igraph_stochastic_imitation'>igraph_stochastic_imitation</link></emphasis>(<emphasis>/*graph*/</emphasis> &amp;g,
+                                    <emphasis>/*vertex*/</emphasis> 3,
+                                    <emphasis>/*algorithm*/</emphasis> IGRAPH_IMITATE_BLIND,
+                                    <emphasis>/*quantities*/</emphasis> &amp;quant,
+                                    <emphasis>/*strategies*/</emphasis> &amp;strat,
+                                    <emphasis>/*mode*/</emphasis> IGRAPH_ALL);
+  <emphasis role="strong">if</emphasis> (ret) {
+    <emphasis role="strong">printf</emphasis>("Isolated vertex test failed.\n");
+    <emphasis role="strong">return</emphasis> IGRAPH_FAILURE;
+  }
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; <emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(&amp;strat); i++) {
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(strat)[i] != <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[i]) {
+      <emphasis role="strong">printf</emphasis>("Isolated vertex test failed.\n");
+      <emphasis role="strong">return</emphasis> IGRAPH_FAILURE;
+    }
+  }
+  <emphasis>/* clean up */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;quant);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;strat);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+
+  <emphasis role="strong">return</emphasis> IGRAPH_SUCCESS;
+}
+
+<emphasis>/* A game on the Petersen graph. This graph has 10 vertices and 15 edges. The</emphasis>
+<emphasis> * Petersen graph is initialized with a default quantities vector and a</emphasis>
+<emphasis> * default strategies vector. Some vertices are chosen for strategy revision,</emphasis>
+<emphasis> * each one via a different stochastic imitation rule.</emphasis>
+<emphasis> */</emphasis>
+int <emphasis role="strong">petersen_game_test</emphasis>() {
+  igraph_t g;
+  igraph_bool_t success;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> quant, strat, stratcopy, *knownstrats;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> known0, known2, known4;
+  int i, k, n, nedge, nvert, ret;
+  strategy_test_t *test;
+
+  <emphasis>/* the Petersen graph */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, <emphasis>/*n vertices*/</emphasis> 0, IGRAPH_UNDIRECTED,
+               0,1,0,4,0,5, 1,2,1,6, 2,3,2,7, 3,4,3,8, 4,9,
+               5,7,5,8, 6,8,6,9, 7,9, -1);
+  nedge = <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;g);
+  nvert = <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g);
+  <emphasis>/* Strategies vector, one strategy for each vertex. Thus vec[i] is the */</emphasis>
+  <emphasis>/* strategy of vertex i. The strategy space is: {0, 1, 2, 3}. */</emphasis>
+  <emphasis>/* Each strategy should be an integer. */</emphasis>
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;strat, nvert,
+                          1.0, 1.0, 2.0, 2.0, 0.0,
+                          0.0, 0.0, 1.0, 2.0, 3.0);
+  <emphasis>/* Quantities vector, one quantity per vertex. Thus vec[i] is the */</emphasis>
+  <emphasis>/* quantity for vertex i. */</emphasis>
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;quant, nvert,
+                          0.3, 1.1, 0.5, 1.0, 0.9,
+                          0.8, 0.4, 0.1, 0.7, 0.7);
+  <emphasis>/* parameter settings and known results */</emphasis>
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;known0, 2, 0.0, 1.0);
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;known2, 2, 1.0, 2.0);
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;known4, 2, 0.0, 2.0);
+  <emphasis>/*graph--vertex--algo--quantities--strategies--known_strats--mode--retval*/</emphasis>
+  strategy_test_t blind0 = {&amp;g, 0, IGRAPH_IMITATE_BLIND, &amp;quant, NULL, &amp;known0, IGRAPH_ALL, IGRAPH_SUCCESS};
+  strategy_test_t augmented4 = {&amp;g, 4, IGRAPH_IMITATE_AUGMENTED, &amp;quant, NULL, &amp;known4, IGRAPH_ALL, IGRAPH_SUCCESS};
+  strategy_test_t contracted2 = {&amp;g, 2, IGRAPH_IMITATE_CONTRACTED, &amp;quant, NULL, &amp;known2, IGRAPH_ALL, IGRAPH_SUCCESS};
+  strategy_test_t *all_checks[] = {<emphasis>/* 1 */</emphasis> &amp;blind0,
+                                   <emphasis>/* 2 */</emphasis> &amp;augmented4,
+                                   <emphasis>/* 3 */</emphasis> &amp;contracted2};
+  <emphasis>/* run the tests */</emphasis>
+  n = 3;
+  i = 0;
+  <emphasis role="strong">while</emphasis> (i &lt; n) {
+    test = all_checks[i];
+    <emphasis role="strong"><link linkend='igraph_vector_copy'>igraph_vector_copy</link></emphasis>(&amp;stratcopy, &amp;strat);
+    ret = <emphasis role="strong"><link linkend='igraph_stochastic_imitation'>igraph_stochastic_imitation</link></emphasis>(test-&gt;graph, test-&gt;vertex, test-&gt;algo,
+                                      test-&gt;quantities, &amp;stratcopy,
+                                      test-&gt;mode);
+    <emphasis role="strong">if</emphasis> (ret) {
+      <emphasis role="strong">printf</emphasis>("Stochastic imitation failed for vertex %d.\n",
+             (int)test-&gt;vertex);
+      <emphasis role="strong">return</emphasis> IGRAPH_FAILURE;
+    }
+    <emphasis>/* If the updated strategy for the vertex matches one of the known */</emphasis>
+    <emphasis>/* strategies, then success. Default to failure. */</emphasis>
+    success = 0;
+    knownstrats = test-&gt;known_strats;
+    <emphasis role="strong">for</emphasis> (k = 0; k &lt; <emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(knownstrats); k++) {
+      <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*knownstrats)[k] == <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(stratcopy)[test-&gt;vertex]) {
+        success = 1;
+        <emphasis role="strong">break</emphasis>;
+      }
+    }
+    <emphasis role="strong">if</emphasis> (!success) {
+      <emphasis role="strong">printf</emphasis>("Stochastic imitation failed for vertex %d.\n",
+             (int)test-&gt;vertex);
+      <emphasis role="strong">return</emphasis> IGRAPH_FAILURE;
+    }
+    <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;stratcopy);
+    i++;
+  }
+  <emphasis>/* clean up */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;known0);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;known2);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;known4);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;quant);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;strat);
+
+  <emphasis role="strong">return</emphasis> IGRAPH_SUCCESS;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  int ret;
+
+  ret = <emphasis role="strong">error_tests</emphasis>();
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> ret;
+  ret = <emphasis role="strong">isolated_vertex_test</emphasis>();
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> ret;
+  ret = <emphasis role="strong">petersen_game_test</emphasis>();
+  <emphasis role="strong">if</emphasis> (ret)
+    <emphasis role="strong">return</emphasis> ret;
+
+  <emphasis role="strong">return</emphasis> IGRAPH_SUCCESS;
+}
+</programlisting>
