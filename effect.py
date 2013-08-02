@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, dictify_row, stringlike
+from util import SaveableMetaclass, dictify_row
 from random import randrange
 
 

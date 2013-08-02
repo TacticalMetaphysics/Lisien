@@ -152,13 +152,12 @@ arguments.
         self.boarddict = {}
         self.boardhanddict = {}
         self.calendardict = {}
-        self.calcoldict = OrderedDict()
         self.carddict = {}
         self.colordict = {}
         self.dimensiondict = {}
         self.effectdict = {}
         self.effectdeckdict = {}
-        self.imgdict = {}
+        self.imgdict = OrderedDict()
         self.menudict = {}
         self.menuitemdict = {}
         self.stringdict = {}
@@ -172,20 +171,7 @@ arguments.
         self.pawndict = {}
         self.arrowdict = {}
         self.eventdict = {}
-        self.itemdict = {}
         self.lang = lang
-        # "scheduled" dictionaries have a key that includes a branch
-        # and a tick. Their values may be either another tick, or else
-        # a pair containing some time-sensitive data as the 0th item
-        # and a tick as the 1th item. The tick in the value is when a
-        # fact stops being true. The tick in the key is when the fact
-        # begins being true. The tick in the value may be None, in which
-        # case the fact will stay true forever.
-        self.effect_deck_scheduled = {}
-        self.char_att_scheduled = {}
-        self.char_skill_scheduled = {}
-        self.char_item_scheduled = {}
-        self.hand_card_scheduled = {}
 
         placeholder = (noop, ITEM_ARG_RE)
         self.func = {
