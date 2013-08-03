@@ -10,7 +10,7 @@ class Arrow:
     def __init__(self, board, portal):
         self.board = board
         self.window = board.window
-        self.db = self.board.db
+        self.rumor = self.board.rumor
         self.portal = portal
         self.orig = self.portal.orig.spots[int(self.board)]
         self.dest = self.portal.dest.spots[int(self.board)]
@@ -158,4 +158,4 @@ clicked.
                 except AttributeError:
                     pass
         self.portal.delete()
-        del self.db.edgedict[self._dimension][self._portal]
+        del self.rumor.edgedict[self._dimension][self._portal]

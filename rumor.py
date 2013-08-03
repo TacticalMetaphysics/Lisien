@@ -13,7 +13,6 @@ SQL. That's in util.py, the class SaveableMetaclass.
 import sqlite3
 import re
 import igraph
-from effect import Effect, EffectDeck
 from dimension import Dimension
 from place import Place
 from portal import Portal
@@ -23,6 +22,7 @@ from pawn import Pawn
 from arrow import Arrow
 from board import Board
 from img import Img
+from branch import Branch
 from style import Style, Color
 from menu import Menu, MenuItem
 from card import Card, Hand
@@ -88,23 +88,6 @@ PAWN_INTER_QRY_START = (
 IMG_QRYFMT = (
     "SELECT name, path, rltile FROM img WHERE "
     "name IN ({0})")
-effect_join_colns = [
-    "effect_deck." + coln for coln in
-    EffectDeck.colnames["effect_deck"]]
-effect_join_colns += [
-    "effect." + coln for coln in
-    Effect.valnames["effect"]]
-effect_join_cols = (
-    EffectDeck.colnames["effect_deck"] +
-    Effect.valnames["effect"])
-EFFECT_QRYFMT = (
-    "SELECT {0} FROM effect WHERE name IN ({1})".format(
-        ", ".join(Effect.colnames["effect"]), "{0}"))
-efjoincolstr = ", ".join(effect_join_colns)
-EFFD_QRYFMT = (
-    "SELECT {0} FROM effect, effect_deck WHERE "
-    "effect.name=effect_deck.effect AND "
-    "effect_deck.deck IN ({1})".format(efjoincolstr, "{0}"))
 COLOR_QRYFMT = (
     "SELECT {0} FROM color WHERE name IN ({1})".format(Color.colnstr, "{0}"))
 STYLE_QRYFMT = (
@@ -129,7 +112,7 @@ method xfunc(). You may also pass such a dictionary to the
 constructor, just after the name of the database file.
 
 You need to create a SQLite database file with the appropriate schema
-before RumorMill will work. For that, run mkdb.py.
+before RumorMill will work. For that, run mkdb.sh.
 
     """
 
@@ -138,11 +121,6 @@ before RumorMill will work. For that, run mkdb.py.
                  hi_branch=0, hi_place=0, hi_portal=0, lang="eng"):
         """Return a database wrapper around the SQLite database file by the
 given name.
-
-Optional argument xfuncs is a dictionary of functions, with strings
-for keys. They should take only one argument, also a string. Effects
-will be able to call those functions with arbitrary string
-arguments.
 
         """
         self.conn = sqlite3.connect(dbfilen)
@@ -163,10 +141,8 @@ arguments.
         self.stringdict = {}
         self.styledict = {}
         self.tickdict = {}
-        self.branch_start = {}
-        self.branch_end = {}
-        self.branch_parent = {}
-        self.branch_children = {}
+        self.branches = []
+        self.branchgraph = igraph.Graph()
         self.spotdict = {}
         self.pawndict = {}
         self.arrowdict = {}
@@ -174,6 +150,7 @@ arguments.
         self.lang = lang
 
         placeholder = (noop, ITEM_ARG_RE)
+        self.effect_cbs = {}
         self.func = {
             'one': placeholder,
             'two': placeholder,
@@ -883,70 +860,6 @@ necessary."""
         r.update(self.load_imgs(unloaded))
         return r
 
-    def load_effect_decks(self, names):
-        self.c.execute(EFFD_QRYFMT.format(
-            efjoincolstr, ", ".join(["?"] * len(names))))
-        effects2load = set()
-        deckrows = self.c.fetchall()
-        for row in deckrows:
-            rowdict = dictify_row(row, effect_join_cols)
-            effects2load.add(rowdict["effect"])
-        loaded_effects = self.load_effects(effects2load)
-        deckdict = {}
-        for row in deckrows:
-            rowdict = dictify_row(row, EffectDeck.colns)
-            if rowdict["deck"] not in deckdict:
-                deckdict[rowdict["deck"]] = []
-            while len(deckdict[rowdict["deck"]]) <= rowdict["idx"]:
-                deckdict[rowdict["deck"]].append(None)
-            deckdict[rowdict["deck"]][rowdict["idx"]] = loaded_effects[rowdict["effect"]]
-        r = {}
-        for (name, contents) in deckdict.iteritems():
-            r[name] = EffectDeck(self, name)
-            r[name].set_effects(contents)
-        self.effectdeckdict.update(r)
-        return r
-
-    def get_effect_decks(self, decknames):
-        r = {}
-        unloaded = set()
-        for deck in decknames:
-            if deck in self.effectdeckdict:
-                r[deck] = self.effectdeckdict[deck]
-            else:
-                unloaded.add(deck)
-        r.update(self.load_effect_decks(unloaded))
-        return r
-
-    def load_effects(self, names):
-        """Read the effects of the given names from disk and construct their
-Effect objects.
-        
-Return a dictionary keyed by name.
-
-        """
-        qrystr = EFFECT_QRYFMT.format(", ".join(["?"] * len(names)))
-        self.c.execute(qrystr, tuple(names))
-        r = {}
-        for row in self.c:
-            rowdict = dictify_row(row, Effect.colnames["effect"])
-            rowdict["db"] = self
-            eff = Effect(**rowdict)
-            r[rowdict["name"]] = eff
-        self.effectdeckdict.update(r)
-        return r
-
-    def get_effects(self, effectnames):
-        r = {}
-        unloaded = set()
-        for effect in effectnames:
-            if effect in self.effectdict:
-                r[effect] = self.effectdict[effect]
-            else:
-                unloaded.add(effect)
-        r.update(self.load_effects(unloaded))
-        return r
-
     def read_colors(self, colornames):
         qrystr = COLOR_QRYFMT.format(", ".join(["?"] * len(colornames)))
         self.c.execute(qrystr, tuple(colornames))
@@ -1062,6 +975,62 @@ Return a dictionary keyed by name.
             self, name, min_width, min_height, dim, boardi, arrowhead_size,
             arrow_width, view_left, view_bot, main_menu, hand_rows, cal_rows,
             menu_rows, menu_item_rows)
+
+    # def load_branch(self, i):
+    #     self.c.execute(
+    #         "SELECT {0} FROM branch WHERE idx=?".format(
+    #             ", ".join(Branch.colns)))
+    #     rowdict = dictify_row(self.c.fetchone(), Branch.colns)
+    #     rowdict["rumor"] = self
+    #     b = Branch(**rowdict)
+    #     p = None
+    #     if i == 0:
+    #         self.branches.append(b)
+    #         return
+    #     if rowdict["parent"] < len(self.branches):
+    #         p = self.branches[rowdict["parent"]]
+    #     if p is None:
+    #         self.load_branch(rowdict["parent"])
+    #         p = self.branches[rowdict["parent"]]
+    #     p.children.append(b)
+    #     while len(self.branches) <= i:
+    #         self.branches.append(None)
+    #     self.branches[i] = b
+    #     return b
+    def load_branch(self, i):
+        self.c.execute(
+            "SELECT {0} FROM branch WHERE idx=?".format(
+                ", ".join(Branch.colns)), (i,))
+        rowdict = dictify_row(self.c.fetchone(), Branch.colns)
+        vattdict = {}
+        for key in ("parent", "start", "parm"):
+            vattdict[key] = rowdict[key]
+        addmany = i - len(self.branchgraph.vs)
+        if addmany > 0:
+            self.branchgraph.add_vertices(addmany)
+        for key in ("parent", "start", "parm"):
+            if key not in self.branchgraph.vs[rowdict["parent"]].attribute_names():
+                self.load_branch(rowdict["parent"])
+                break
+        self.branchgraph.vs[i].update_attributes(vattdict)
+
+
+    # def get_branch(self, i):
+    #     if (
+    #             i >= len(self.branches) or
+    #             self.branches[i] is None):
+    #         return self.load_branch[i]
+    #     else:
+    #         return self.branches[i]
+
+    # def make_branch(self, i, parent, start, parm):
+    #     b = Branch(self, i, parent, start, parm)
+    #     if (
+    #             parent >= len(self.branches) or
+    #             self.branches[parent] is None):
+    #         self.load_branch(parent)
+    #     self.branches[parent].children.append(b)
+    #     return b
 
 
 def load_game(dbfn, lang="eng"):

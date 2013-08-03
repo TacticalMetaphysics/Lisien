@@ -54,7 +54,7 @@ With db, register in db's pawndict.
         """
         self.board = board
         self.window = self.board.window
-        self.db = board.db
+        self.rumor = self.window.rumor
         self.thing = thing
         self.imagery = {}
         self.indefinite_imagery = {}

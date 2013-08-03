@@ -29,8 +29,8 @@ for arg in argv:
             print "Couldn't connect to the database named {0}.".format(arg)
     i += 1
 tocky = 0.0
-db = load_game(dbfn, lang)
-gw = db.load_window('Main')
+rumor = load_game(dbfn, lang)
+gw = rumor.load_window('Main')
 gamespeed = 0.1
 
 def incdb(ticky):

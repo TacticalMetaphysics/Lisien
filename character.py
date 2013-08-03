@@ -65,68 +65,70 @@ item's name, and the name of the attribute.
          ("character", "skill", "branch", "tick_from"),
          {"effect_deck": ("effect_deck", "name")},
          []),
-        ("character_attributions",
+        ("character_stats",
          {"character": "text not null",
-          "attribute": "text not null",
+          "stat": "text not null",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
           "tick_to": "integer default null",
           "value": "text not null"},
-         ("character", "attribute", "branch", "tick_from"),
+         ("character", "stat", "branch", "tick_from"),
          {},
          [])]
 
-    def __init__(self, db, name):
+    def __init__(self, rumor, name):
         self.name = name
-        self.db = db
+        self.rumor = rumor
         self.thingdict = {}
         self.indefinite_thing = {}
         self.skilldict = {}
         self.indefinite_skill = {}
-        self.attribdict = {}
-        self.indefinite_attrib = {}
+        self.statdict = {}
+        self.indefinite_stat = {}
 
-    def set_attrib(self, trib, val, branch=None, tick_from=None, tick_to=None):
+    def set_stat(self, stat, val, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick_from is None:
-            tick_from = self.db.tick
+            tick_from = self.rumor.tick
         if branch not in self.attribdict:
             self.attribdict[branch] = {}
-        if trib not in self.attribdict[branch]:
-            self.attribdict[branch][trib] = {}
-        if branch in self.indefinite_attrib and trib in self.indefinite_attrib[branch]:
-            ifrom = self.indefinite_attrib[branch][trib]
-            (ival, ito) = self.attribdict[branch][ifrom][trib]
+        if stat not in self.statdict[branch]:
+            self.statdict[branch][trib] = {}
+        if (
+                branch in self.indefinite_stat and
+                stat in self.indefinite_stats[branch]):
+            ifrom = self.indefinite_stat[branch][stat]
+            (ival, ito) = self.statdict[branch][ifrom][stat]
             if tick_from > ifrom:
-                self.attribdict[branch][trib][ifrom] = (ival, tick_from - 1)
-                del self.indefinite_attrib[branch][trib]
+                self.attribdict[branch][stat][ifrom] = (ival, tick_from - 1)
+                del self.indefinite_attrib[branch][stat]
             elif tick_from == ifrom or tick_to > ifrom:
-                del self.attribdict[branch][trib][ifrom]
-                del self.indefinite_attrib[branch][trib]
-        self.attribdict[branch][trib][tick_from] = (val, tick_to)
+                del self.attribdict[branch][stat][ifrom]
+                del self.indefinite_stat[branch][stat]
+        self.attribdict[branch][stat][tick_from] = (val, tick_to)
         if tick_to is None:
             if branch not in self.indefinite_attrib:
                 self.indefinite_attrib[branch] = {}
-            self.indefinite_attrib[branch][trib] = tick_from
+            self.indefinite_attrib[branch][stat] = tick_from
 
-    def get_attrib(self, trib, branch=None, tick=None):
+    def get_stat(self, stat, branch=None, tick=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick is None:
-            tick = self.db.tick
-        if branch not in self.attribdict:
+            tick = self.rumor.tick
+        if branch not in self.statdict:
             return None
-        for (tick_from, (val, tick_to)) in self.attribdict[branch].iterthings():
+        for (tick_from, (val, tick_to)) in self.statdict[branch].iteritems():
             if tick_from <= tick and (tick_to is None or tick <= tick_to):
                 return val
         return None
 
     def set_skill(self, skill, val, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick_from is None:
-            tick_from = self.db.tick
+            tick_from = self.rumor.tick
         if branch not in self.skilldict:
             self.skilldict[branch] = {}
         if skill not in self.skilldict[branch]:
@@ -148,21 +150,21 @@ item's name, and the name of the attribute.
 
     def get_skill(self, skill, branch=None, tick=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick is None:
-            tick = self.db.tick
+            tick = self.rumor.tick
         if branch not in self.skilldict:
             return None
-        for (tick_from, (val, tick_to)) in self.skilldict[branch].iterthings():
+        for (tick_from, (val, tick_to)) in self.skilldict[branch].iteritems():
             if tick_from <= tick and (tick_to is None or tick <= tick_to):
                 return val
         return None
 
     def add_thing_with_strs(self, dimn, thingn, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick_from is None:
-            tick_from = self.db.tick
+            tick_from = self.rumor.tick
         if branch not in self.thingdict:
             self.thingdict[branch] = {}
         if dimn not in self.thingdict[branch]:
@@ -195,9 +197,9 @@ item's name, and the name of the attribute.
 
     def is_thing_with_strs(self, dimn, thingn, branch=None, tick=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick is None:
-            tick = self.db.tick
+            tick = self.rumor.tick
         if not (
                 branch in self.thingdict and
                 dimn in self.thingdict[branch] and
@@ -215,9 +217,9 @@ item's name, and the name of the attribute.
 
     def get_things(self, branch=None, tick=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick is None:
-            tick = self.db.tick
+            tick = self.rumor.tick
         r = set()
         if branch not in self.thingdict:
             return r
@@ -226,54 +228,7 @@ item's name, and the name of the attribute.
                 for (tick_from, tick_to) in ticksd.iteritems():
                     if tick_from <= tick and (
                             tick_to is None or tick <= tick_to):
-                        dim = self.db.dimensiondict[dimn]
+                        dim = self.rumor.dimensiondict[dimn]
                         thing = dim.things_by_name[thingn]
                         r.add(thing)
         return r
-
-    def get_tabdict(self):
-        things = [
-            {"character": self.name,
-             "dimension": it.dimension.name,
-             "thing": it.name}
-            for it in iter(self.things)]
-        skills = [
-            {"character": self.name,
-             "skill": sk.name,
-             "effect_deck": sk.effect_deck.name}
-            for sk in iter(self.skills)]
-        attributions = [
-            {"character": self.name,
-             "attribute": thing[0],
-             "value": thing[1]}
-            for thing in self.attributions]
-        return {
-            "character_thing_link": things,
-            "character_skill_link": skills,
-            "attribution": attributions}
-
-    def get_keydict(self):
-        things = [
-            {"character": str(self),
-             "dimension": str(it.dimension),
-             "thing": it.name}
-            for it in iter(self.things)]
-        skills = [
-            {"character": str(self),
-             "skill": str(self)}
-            for sk in iter(self.skills)]
-        attributions = [
-            {"character": self.name,
-             "attribute": att}
-            for (att, val) in iter(self.attributions)]
-        return {
-            "character_thing_link": things,
-            "character_skill_link": skills,
-            "attribution": attributions}
-
-    def delete(self):
-        del self.db.characterdict[self.name]
-        self.erase()
-
-    def unravel(self):
-        pass

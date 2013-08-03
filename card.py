@@ -25,30 +25,30 @@ class Card:
                 "effect": ("effect", "name")},
             [])]
 
-    def __init__(self, db, effect, display_name, image, text, style):
-        self.db = db
+    def __init__(self, rumor, effect, display_name, image, text, style):
+        self.rumor = rumor
         self._display_name = display_name
         self._effect = str(effect)
         self.img = image
         self._text = text
         self.style = style
-        self.db.carddict[str(self)] = self
+        self.rumor.carddict[str(self)] = self
 
     def __getattr__(self, attrn):
         if attrn == 'text':
             if self._text is None:
                 return ''
             elif self._text[0] == '@':
-                return self.db.get_text(self._text[1:])
+                return self.rumor.get_text(self._text[1:])
             else:
                 return self._text
         elif attrn == 'display_name':
             if self._display_name[0] == '@':
-                return self.db.get_text(self._display_name[1:])
+                return self.rumor.get_text(self._display_name[1:])
             else:
                 return self._display_name
         elif attrn == 'effect':
-            return self.db.effectdict[self._effect]
+            return self.rumor.effectdict[self._effect]
         elif attrn in ('width', 'height', 'x', 'y'):
             if not hasattr(self, 'widget'):
                 return 0
@@ -122,7 +122,7 @@ class CardWidget:
     def __init__(self, base, hand):
         self.base = base
         self.hand = hand
-        self.db = self.base.db
+        self.rumor = self.base.db
         self.window = self.hand.window
         self.grabpoint = None
         self.visible = True
@@ -273,7 +273,7 @@ class CardWidget:
 
 class HandIterator:
     def __init__(self, hand):
-        self.db = hand.db
+        self.rumor = hand.db
         self.hand = hand
         self.deckiter = iter(hand.deck.effects)
 
@@ -282,7 +282,7 @@ class HandIterator:
 
     def next(self):
         effect = self.deckiter.next()
-        card = self.db.carddict[str(effect)]
+        card = self.rumor.carddict[str(effect)]
         if not hasattr(card, 'widget'):
             card.widget = CardWidget(card, self.hand)
         return card.widget
@@ -310,7 +310,7 @@ class Hand:
     def __init__(self, window, deck, left, right, top, bot, style,
                  visible, interactive):
         self.window = window
-        self.db = window.db
+        self.rumor = window.rumor
         self.deck = deck
         self.left_prop = left
         self.right_prop = right

@@ -5,7 +5,7 @@ import re
 from sqlite3 import OperationalError
 from rltileins import ins_rltiles
 from util import schemata
-import board, card, calendar, character, dimension, effect, event, gui, img, menu, pawn, portal, spot, style, thing, rumor
+import board, card, calendar, character, dimension, effect, gui, img, menu, pawn, portal, spot, style, thing, rumor
 
 """Make an empty database of LiSE's schema. By default it will be
 called default.sqlite and include the RLTiles (in folder
@@ -53,15 +53,19 @@ db.c.execute(
 done = set()
 
 while schemata != []:
-    (tabn, reqs, schema) = schemata.pop()
+    s = schemata.pop()
+    print s
+    (tabn, reqs, schema, prelude) = s
     if tabn in done:
         continue
     for req in reqs:
         if req not in done:
-            schemata.insert(0, (tabn, reqs, schema))
+            schemata.insert(0, (tabn, reqs, schema, prelude))
             continue
     print "creating " + tabn
     try:
+        if prelude is not None:
+            db.c.execute(prelude)
         db.c.execute(schema)
         done.add(tabn)
     except OperationalError as oe:
@@ -81,11 +85,11 @@ os.chdir(oldhome)
 print "indexing the RLTiles"
 ins_rltiles(db.c, 'rltiles')
 
-print "indexing the dumb effects"
-efns = db.c.execute("SELECT on_click FROM menu_item").fetchall()
-for row in efns:
-    print row[0]
-    dumb_effect(db, row[0])
+# print "indexing the dumb effects"
+# efns = db.c.execute("SELECT on_click FROM menu_item").fetchall()
+# for row in efns:
+#     print row[0]
+#     dumb_effect(db, row[0])
 
 db.c.close()
 db.conn.commit()

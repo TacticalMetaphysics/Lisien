@@ -295,3 +295,45 @@ Depending on how many characters you control, and how far each will obey your in
 Sometimes you're actually trying to instantiate some new entity into the world, for which you need to sacrifice some other entity, or one of its stats. This makes a compelling kind of objective because creation has similar effects on the world model to exploration, yet is under player control. I'll pay special attention to enabling strange and unusual crafting systems. Like maybe you can craft entire cities. Abstraction is wonderful for that kind of thing.
 
 
+* Time model
+** Branch
+   A branch is a sequence of predetermined ticks. Branches are indexed
+   like lists, with the index assigned as the branch is
+   created--there's no need for branches created later on to be
+   "later" in the time model than any other branch.
+
+   Each branch has a start tick and a parent branch, the lone
+   exception being branch 0, which starts at tick 0 and has no parent
+   branch.
+
+   Branches can contain no random outcomes--so when there is a random
+   outcome, a new branch is created, which *assumes* that particular
+   outcome. This remains true when there are multiple random outcomes
+   in a single tick: as each random effect is resolved, a new branch
+   is created to account for it, and so long as it isn't the *last*
+   random effect of the tick, the new branch will only contain one
+   tick.
+
+   For the time model's purposes, there is no distinction between a
+   random outcome and a player's choice. Either will cause a new
+   branch to be created. The random number or player input that
+   resulted in the branch's creation will be recorded in the branch's
+   header.
+** Tick
+   A tick is an atomic unit of time. Everything that happens in a tick
+   is "simultaneous," although effects will nonetheless be resolved in a
+   deterministic order.
+
+   You might say that ticks "contain" effects from many branches, but
+   not really. Ticks and branches are more like axes on a Cartesian
+   plane: you use the two of them together to identify when you want
+   something. But ticks are spaced regularly, where branches may be
+   more or less densely packed depending on how much randomness is
+   going on.
+** Effect
+   Effects are instantaneous changes to the state of the world. Each
+   effect does one thing and only one thing.
+** Event
+   A collection of effects (perhaps as few as zero) which are together
+   regarded as taking some length of time, which has a beginning,
+   middle, and end.

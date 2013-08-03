@@ -68,7 +68,7 @@ representing the given place with the given image. It will be at the
 given coordinates, and visible or interactive as indicated.
         """
         self.board = board
-        self.db = self.board.db
+        self.rumor = self.board.rumor
         self.window = self.board.window
         self.place = place
         self.interactivity = {}

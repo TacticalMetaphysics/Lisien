@@ -23,7 +23,7 @@ class Dimension:
     """Container for a given view on the game world, sharing no things,
 places, or portals with any other dimension, but possibly sharing
 characters."""
-    def __init__(self, db, name):
+    def __init__(self, rumor, name):
         """Return a dimension with the given name.
 
 Probably useless unless, once you're sure you've put all your places,
@@ -33,8 +33,8 @@ keyed with their names.
 
         """
         self.name = name
-        self.db = db
-        self.db.dimensiondict[str(self)] = self
+        self.rumor = rumor
+        self.rumor.dimensiondict[str(self)] = self
         self.places_by_name = OrderedDict()
         self.portals_by_orign_destn = OrderedDict()
         self.things_by_name = {}
@@ -72,9 +72,9 @@ this dimension, and laid out nicely."""
 
     def get_shortest_path(self, orig, dest, branch=None, tick=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick is None:
-            tick = self.db.tick
+            tick = self.rumor.tick
         for path in self.graph.get_shortest_paths(int(dest)):
             if self.graph.vs[path[-1]]["place"] == orig:
                 return [self.graph.vs[i]["place"] for i in path]

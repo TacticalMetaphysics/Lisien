@@ -11,7 +11,7 @@ thing located there.
     def __init__(self, dimension, name):
         self.name = name
         self.dimension = dimension
-        self.db = self.dimension.db
+        self.rumor = self.dimension.rumor
         self.contents = set()
 
     def __contains__(self, that):

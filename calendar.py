@@ -102,7 +102,7 @@ class CalendarCol:
         self.window = calendar.window
         self.scheduledict = scheduledict
         self.board = self.calendar.board
-        self.db = self.calendar.db
+        self.rumor = self.calendar.rumor
         self.visible = False
         self.interactive = interactive
         self.style = style
@@ -123,7 +123,7 @@ class CalendarCol:
 
     def __getattr__(self, attrn):
         if attrn == 'dimension':
-            return self.db.get_dimension(self._dimension)
+            return self.rumor.get_dimension(self._dimension)
         elif attrn == 'idx':
             return self.calendar.cols.index(self)
         elif attrn == 'window_top':
@@ -167,7 +167,7 @@ between any two states that should appear different on-screen."""
             cell.delete()
         self.cells = []
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         for (tick_from, val) in self.scheduledict[branch].iteritems():
             if isinstance(val, tuple):
                 tick_to = val[-1]
@@ -238,7 +238,7 @@ schedule, possibly several.
         self.window = window
         self.i = i
         self.board = self.window.board
-        self.db = self.board.db
+        self.rumor = self.board.rumor
         self.left_prop = left
         self.right_prop = right
         self.top_prop = top
@@ -247,7 +247,7 @@ schedule, possibly several.
         self.rows_shown = rows_shown
         self.style = style
         if scrolled_to is None:
-            scrolled_to = self.db.tick
+            scrolled_to = self.rumor.tick
         self.scrolled_to = scrolled_to
         self.scroll_factor = scroll_factor
         self.oldstate = None
@@ -264,7 +264,7 @@ schedule, possibly several.
 
     def __getattr__(self, attrn):
         if attrn == 'board':
-            return self.db.boarddict[self._dimension]
+            return self.rumor.boarddict[self._dimension]
         elif attrn == 'window_top':
             return int(self.top_prop * self.window.height)
         elif attrn == 'window_bot':

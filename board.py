@@ -85,7 +85,7 @@ each board will be open in at most one window at a time.
         """
         self.window = window
         self.dimension = window.dimension
-        self.db = self.dimension.db
+        self.rumor = self.dimension.rumor
         self.i = i
         self.width = width
         self.height = height

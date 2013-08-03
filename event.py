@@ -13,10 +13,6 @@ for anything in particular.
 
 """
 from util import SaveableMetaclass, stringlike
-from effect import (
-    PortalEntryEffectDeck,
-    PortalProgressEffectDeck,
-    PortalExitEffectDeck)
 import logging
 
 
@@ -53,37 +49,26 @@ __metaclass__ = SaveableMetaclass
 
 
 class Event:
-    """A class for things that can happen. Normally represented as
-cards.
+    """A class for things that happen over time, having a beginning, a
+middle, and an end.
 
-Events are kept in EventDecks, which are in turn contained by
-Characters. When something happens involving one or more characters,
-the relevant EventDecks from the participating Characters will be put
-together into an AttemptDeck. One card will be drawn from this, called
-the attempt card. It will identify what kind of EventDeck should be
-taken from the participants and compiled in the same manner into an
-OutcomeDeck. From this, the outcome card will be drawn.
-
-The effects of an event are determined by both the attempt card and
-the outcome card. An attempt card might specify that only favorable
-outcomes should be put into the OutcomeDeck; the attempt card might
-therefore count itself for a success card. But further, success cards
-may have their own effects irrespective of what particular successful
-outcome occurs. This may be used, for instance, to model that kind of
-success that strains a person terribly and causes them injury.
+Events are composed of three EffectDecks, called 'commence,'
+'proceed,' and 'conclude.' Events are scheduled with a tick-from
+and a tick-to. commence will be fired on tick-from; conclude on
+tick-to; and proceed on every tick between them, non-inclusive.
 
     """
     tables = [
         ("event",
          {"name": "text not null",
           "text": "text not null",
-          "commence_effect_deck": "text",
-          "proceed_effect_deck": "text",
-          "conclude_effect_deck": "text"},
+          "commence": "text",
+          "proceed": "text",
+          "conclude": "text"},
          ("name",),
-         {"commence_effect_deck": ("effect_deck", "name"),
-          "proceed_effect_deck": ("effect_deck", "name"),
-          "conclude_effect_deck": ("effect_deck", "name")},
+         {"commence": ("effect_deck", "name"),
+          "proceed": ("effect_deck", "name"),
+          "conclude": ("effect_deck", "name")},
          []),
         ("scheduled_event",
          {"event": "text not null",
@@ -151,18 +136,6 @@ the three given effect decks. Register with db.eventdict.
             "scheduled_event": [dictify_row(row, occorder)
                                 for row in iter(occur_rows)]}
 
-    def unravel(self):
-        """Dereference the effect decks.
-
-If the event text begins with @, it's a pointer; look up the real
-value in the db.
-
-        """
-        for deck in (self.commence_effects, self.proceed_effects,
-                     self.conclude_effects):
-            if deck is not None:
-                deck.unravel()
-
     def schedule(self, branch, tick_from, tick_to):
         if branch not in self.occurrences:
             self.occurrences[branch] = {}
@@ -210,74 +183,20 @@ value in the db.
             return False
         return tick in self.occurrences[branch].values()
 
-    def commence(self):
-        """Perform all commence effects, and set self.ongoing to True."""
+    def commence(self, reset=True, branch=None, tick=None):
+        """Perform all commence effects."""
         if self.commence_effects is not None:
-            self.commence_effects.do(self)
+            self.commence_effects.do(
+                self, reset, branch, tick)
 
-    def proceed(self):
+    def proceed(self, reset=True, branch=None, tick=None):
         """Perform all proceed effects."""
         if self.proceed_effects is not None:
-            self.proceed_effects.do(self)
+            self.proceed_effects.do(
+                self, reset, branch, tick)
 
-    def conclude(self):
-        """Perform all conclude effects, and set self.ongoing to False."""
+    def conclude(self, reset=True, branch=None, tick=None):
+        """Perform all conclude effects."""
         if self.conclude_effects is not None:
-            self.conclude_effects.do(self)
-
-
-class PortalTravelEvent(Event):
-    """Event representing a thing's travel through a single portal, from
-one place to another."""
-    name_format = "PortalTravelEvent {0}: {1}: {2}-{3}->{4}"
-    text_format = "Travel from {0} to {1}"
-
-    def __init__(self, db, thing, portal, ongoing):
-        dimname = thing.dimension.name
-        origname = str(portal.orig)
-        destname = str(portal.dest)
-        name = self.name_format.format(
-            dimname, thing.name, origname, str(portal), destname)
-        text = self.text_format.format(origname, destname)
-        commence_effects = PortalEntryEffectDeck(db, thing, portal)
-        proceed_effects = PortalProgressEffectDeck(db, thing)
-        conclude_effects = PortalExitEffectDeck(db, thing)
-        Event.__init__(
-            self, db, name, text, ongoing,
-            commence_effects, proceed_effects, conclude_effects)
-
-
-class EventDeck:
-    """A deck representing events that might get scheduled at some point."""
-    tables = [
-        ("event_deck_link",
-         {"deck": "text not null",
-          "idx": "integer not null",
-          "event": "text not null"},
-         ("deck", "idx"),
-         {"event": ("event", "name")},
-         [])]
-
-    def __init__(self, db, name, event_list):
-        """Return an EventDeck with the given name, containing the given
-events. Register with db.eventdeckdict.
-
-        """
-        self.name = name
-        self.events = event_list
-        db.eventdeckdict[self.name] = self
-        self.db = db
-
-    def get_tabdict(self):
-        rowdicts = []
-        for i in xrange(0, len(self.events)):
-            rowdicts.append({
-                "deck": self.name,
-                "idx": i,
-                "event": self.events[i].name})
-        return {"event_deck_link": rowdicts}
-
-    def unravel(self):
-        for i in xrange(0, len(self.events)):
-            if stringlike(self.events[i]):
-                self.events[i] = self.db.eventdict[self.events[i]]
+            self.conclude_effects.do(
+                self, reset, branch, tick)

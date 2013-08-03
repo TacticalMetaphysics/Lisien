@@ -27,7 +27,7 @@ saving the path.
          {},
          [])]
 
-    def __init__(self, db, name, path, rltile):
+    def __init__(self, rumor, path, rltile):
         """Return an Img, and register it with the imgdict of the database
 provided."""
         self.name = name
@@ -37,24 +37,26 @@ provided."""
             self.tex = load_rltile(path)
         else:
             self.tex = load_regular_img(path)
-        db.imgdict[name] = self
-        self.db = db
+        self.rumor = rumor
+        self.rumor.imgdict[str(self)] = self
 
     def __str__(self):
         return self.name
 
     def __getattr__(self, attrn):
-        if attrn == 'width':
-            return self.tex.width
-        elif attrn == 'height':
-            return self.tex.height
-        elif attrn == 'center':
+        if attrn == 'center':
             return (self.tex.width/2, self.tex.height/2)
         elif attrn == 'texture':
             return self.tex
         else:
-            raise AttributeError(
-                "Img instance has no attribute {0}.".format(attrn))
+            try:
+                return getattr(self.tex, attrn)
+            except AttributeError:
+                raise AttributeError(
+                    "Img instance has no attribute {0}.".format(attrn))
+
+    def __hash__(self):
+        return hash((self.name, self.path, self.rltile))
 
     def get_tabdict(self):
         return {
@@ -62,28 +64,6 @@ provided."""
                 "name": self.name,
                 "path": self.path,
                 "rltile": self.rltile}}
-
-    def delete(self):
-        del self.db.imgdict[self.name]
-        self.erase()
-
-    def unravel(self):
-        """Load the underlying texture using pyglet.
-
-Different loaders are used depending on if the image is a Windows
-bitmap or a PNG. In the former case, a certain color value is made
-transparent.
-
-        """
-        db = self.db
-        if self.tex is None:
-            if self.rltile:
-                self.tex = load_rltile(db, self.name, self.path)
-            else:
-                self.tex = load_regular_img(db, self.name, self.path)
-
-    def get_texture(self):
-        return self.tex
 
 
 def load_rltile(path):

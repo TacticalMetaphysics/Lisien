@@ -25,7 +25,7 @@ class Portal:
         self.dimension = dimension
         self.orig = orig
         self.dest = dest
-        self.db = self.dimension.db
+        self.rumor = self.dimension.rumor
         self.existence = {}
 
     def __repr__(self):
@@ -40,9 +40,9 @@ class Portal:
 
     def extant(self, branch=None, tick=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick is None:
-            tick = self.db.tick
+            tick = self.rumor.tick
         if branch not in self.existence:
             return False
         for (tick_from, tick_to) in self.existence[branch].iteritems():
@@ -52,9 +52,9 @@ class Portal:
 
     def exist(self, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick_from is None:
-            tick_from = self.db.tick
+            tick_from = self.rumor.tick
         if branch not in self.existence:
             self.existence[branch] = {}
         self.existence[branch][tick_from] = tick_to

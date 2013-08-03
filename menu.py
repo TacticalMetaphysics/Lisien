@@ -39,7 +39,7 @@ visible or doesn't; and starts interactive or doesn't.
 With db, register in db's menuitemdict.
 
         """
-        self.db = menu.db
+        self.rumor = menu.rumor
         self.menu = menu
         self.window = self.menu.window
         self.idx = idx
@@ -49,7 +49,7 @@ With db, register in db's menuitemdict.
         self.menu.items[self.idx] = self
         self._on_click = on_click
         (funname, argstr) = re.match("(.+)\((.*)\)", on_click).groups()
-        (fun, argre) = self.db.func[funname]
+        (fun, argre) = self.rumor.func[funname]
         try:
             on_click_arg_tup = re.match(argre, argstr).groups()
         except:
@@ -72,7 +72,7 @@ With db, register in db's menuitemdict.
     def __getattr__(self, attrn):
         if attrn == 'text':
             if self._text[0] == '@':
-                return self.db.get_text(self._text[1:])
+                return self.rumor.get_text(self._text[1:])
             else:
                 return self._text
         elif attrn == 'hovered':
@@ -180,7 +180,7 @@ just how to display this widget"""
         }
 
     def delete(self):
-        del self.db.menuitemdict[self._board][self._menu][self.idx]
+        del self.rumor.menuitemdict[self._board][self._menu][self.idx]
         self.erase()
 
 
@@ -217,7 +217,7 @@ With db, register with db's menudict.
         """
         self.window = window
         self.board = self.window.board
-        self.db = self.board.db
+        self.rumor = self.window.rumor
         self.name = name
         self.left_prop = left
         self.bot_prop = bottom

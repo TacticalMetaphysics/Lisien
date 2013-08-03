@@ -452,6 +452,10 @@ and your table will be ready.
                     tablist = par.tables
                     break
             assert(tablist is not None)
+        if 'prelude' in attrs:
+            prelude = attrs["prelude"]
+        else:
+            prelude = None
         for tabtup in tablist:
             (name, decls, pkey, fkeys, cks) = tabtup
             tablenames.append(name)
@@ -536,8 +540,8 @@ and your table will be ready.
             missing_stmt_start = "SELECT %s FROM %s WHERE (%s) NOT IN " % (
                 colnamestr[tablename], tablename, pkeynamestr)
             missings[tablename] = missing_stmt_start
-            schemata.append((tablename, [fkey[0] for fkey in
-                                         fkeys.itervalues()], create_stmt))
+            schemata.append((tablename, set([fkey[0] for fkey in
+                                         fkeys.itervalues()]), create_stmt, prelude))
 
         def insert_rowdicts_table(db, rowdicts, tabname):
             if rowdicts == []:
