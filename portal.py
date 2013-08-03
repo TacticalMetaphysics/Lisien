@@ -21,59 +21,62 @@ class Portal:
          {},
          [])]
 
-    def __init__(self, dimension, orig, dest):
+    def __init__(self, dimension, e):
         self.dimension = dimension
-        self.orig = orig
-        self.dest = dest
         self.rumor = self.dimension.rumor
-        self.existence = {}
+        self.e = e
+
+    def __getattr__(self, attrn):
+        if attrn == "orig":
+            return Place(self.dimension, self.source)
+        elif attrn == "dest":
+            return Place(self.dimension, self.target)
+        else:
+            try:
+                return self.e[attrn]
+            except KeyError:
+                raise AttributeError(
+                    "Portal instance has no attribute named " + attrn)
+
+    def __setattr__(self, attrn, val):
+        if attrn in self.e.get_attributes():
+            self.e[attrn] = val
+        else:
+            super(Portal, self).__setattr__(attrn, val)
 
     def __repr__(self):
         return "Portal({0}->{1})".format(str(self.orig), str(self.dest))
 
     def __int__(self):
-        return self.dimension.portals_by_orign_destn.values().index(self)
+        return self.e.index
 
     def __len__(self):
         # eventually this will represent something like actual physical length
         return 1
 
-    def extant(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.rumor.branch
-        if tick is None:
-            tick = self.rumor.tick
-        if branch not in self.existence:
-            return False
-        for (tick_from, tick_to) in self.existence[branch].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
-                return True
-        return False
+    def __getattr__(self, attrn):
+        try:
+            return self.e[attrn]
+        except KeyError:
+            raise AttributeError(
+                "Portal instance has no attribute named " + attrn)
 
-    def exist(self, branch=None, tick_from=None, tick_to=None):
-        if branch is None:
-            branch = self.rumor.branch
-        if tick_from is None:
-            tick_from = self.rumor.tick
-        if branch not in self.existence:
-            self.existence[branch] = {}
-        self.existence[branch][tick_from] = tick_to
+    def __contains__(self, that):
+        try:
+            return that.location.e is self.e
+        except:
+            return False
 
     def admits(self, traveler):
         """Return True if I want to let the given thing enter me, False
 otherwise."""
         return True
 
-    def touches(self, place):
-        return self.orig == place or self.dest == place
+    def extant(self, branch=None, tick=None):
+        return self.dimension.portal_extant(self.e, branch, tick)
 
-    def find_neighboring_portals(self):
-        return self.orig.portals + self.dest.portals
-
-    def notify_moving(self, thing, amount):
-        """Handler for when a thing moves through me by some amount of my
-length. Does nothing by default."""
-        pass
+    def persist(self, branch=None, tick_from=None, tick_to=None):
+        self.dimension.persist_portal(self.e, branch, tick_from, tick_to)
 
     def get_tabdict(self):
         return {

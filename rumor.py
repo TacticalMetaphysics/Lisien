@@ -141,8 +141,7 @@ given name.
         self.stringdict = {}
         self.styledict = {}
         self.tickdict = {}
-        self.branches = []
-        self.branchgraph = igraph.Graph()
+        self.branchgraph = igraph.Graph(directed=True)
         self.spotdict = {}
         self.pawndict = {}
         self.arrowdict = {}
@@ -1005,14 +1004,16 @@ necessary."""
         vattdict = {}
         for key in ("parent", "start", "parm"):
             vattdict[key] = rowdict[key]
-        addmany = i - len(self.branchgraph.vs)
-        if addmany > 0:
-            self.branchgraph.add_vertices(addmany)
         for key in ("parent", "start", "parm"):
-            if key not in self.branchgraph.vs[rowdict["parent"]].attribute_names():
+            if key not in (
+                    self.branchgraph.vs[
+                        rowdict["parent"]].attribute_names()):
+                # I think this recursion will result in the addition
+                # of my parent vertex
                 self.load_branch(rowdict["parent"])
                 break
-        self.branchgraph.vs[i].update_attributes(vattdict)
+        self.branchgraph.add_vertex(**vattdict)
+        self.branchgraph.add_edge(rowdict["parent"], i)
 
 
     # def get_branch(self, i):

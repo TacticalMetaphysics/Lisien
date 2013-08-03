@@ -78,6 +78,9 @@ too.
     def __int__(self):
         return self.dimension.things.index(self)
 
+    def __contains__(self, that):
+        return that.location is self
+
     def assert_can_enter(self, it):
         """If I can't enter the given location, raise a LocationException.
 
@@ -97,13 +100,17 @@ LocationException."""
         """Return my current location by default, or where I was at the given
 tick in the given branch."""
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.db.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.db.tick
         if branch not in self.locations:
             return None
+        if branch in self.indefinite_locations:
+            istart = self.indefinite_locations[branch]
+            if tick >= istart:
+                return self.locations[branch][istart][0]
         for (tick_from, (loc, tick_to)) in self.locations[branch].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
+            if tick_from <= tick and tick <= tick_to:
                 return loc
         return None
 
@@ -117,9 +124,9 @@ else to do.
 
         """
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.db.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.db.tick
         if branch not in self.locations:
             self.locations[branch] = {}
         if branch in self.indefinite_locations:
@@ -146,6 +153,11 @@ else to do.
         # is really a placeholder
         return len(po) / self.basic_speed
 
+    def determined_ticks_thru(self, po):
+        """Can I assume that it will always take *the same* number of ticks to
+get through that portal?"""
+        return True
+
     def get_distance(self, branch=None, tick=None):
         """Return a float representing the number of spans across the portal
 I've gone.
@@ -163,9 +175,9 @@ Presupposes that I'm in a portal.
 
         """
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.db.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.db.tick
         if branch not in self.locations:
             raise LocationException("I am nowhere in that branch")
         for (tick_from, (loc, tick_to)) in self.locations[branch].iteritems():
@@ -180,9 +192,9 @@ Presupposes that I'm in a portal.
         """Return the first tick after the one given, and after which there
 are n ticks of free time."""
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.db.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.db.tick
         if branch not in self.locations:
             # Well, not existing is certainly ONE way not to have commitments
             return tick
@@ -212,9 +224,9 @@ are n ticks of free time."""
     def end_location(self, branch=None, tick=None):
         """Find where I am at the given time. Arrange to stop being there then."""
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.db.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.db.tick
         if branch not in self.locations:
             raise BranchError("Branch not known")
         for (tick_from, (loc, tick_to)) in self.locations[branch].iteritems():
@@ -228,9 +240,9 @@ are n ticks of free time."""
         """Schedule myself to travel to the given place, interrupting whatever
 other journey I may be on at the time."""
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.db.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.db.tick
         loc = self.get_location(branch, tick)
         print "{0} journeys from {1} to {2}".format(str(self), str(loc), str(destplace))
         ipath = self.dimension.graph.get_shortest_paths(

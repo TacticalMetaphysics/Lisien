@@ -1,7 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from thing import Thing
 from place import Place
+from thing import Thing
 from portal import Portal
 from spot import Spot
 from board import Board
@@ -13,7 +13,32 @@ from igraph import Graph
 from collections import OrderedDict
 from util import DictValues2DIterator
 
+
 logger = getLogger(__name__)
+
+
+class PlaceIter:
+    def __init__(self, dim):
+        self.dim = dim
+        self.realit = iter(dim.graph.vs)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return Place(self.dim, self.realit.next())
+
+
+class PortIter:
+    def __init__(self, dim):
+        self.dim = dim
+        self.realit = iter(dim.graph.es)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return Portal(self.dim, self.realit.next())
 
 
 """Class and loaders for dimensions--the top of the world hierarchy."""
@@ -35,10 +60,8 @@ keyed with their names.
         self.name = name
         self.rumor = rumor
         self.rumor.dimensiondict[str(self)] = self
-        self.places_by_name = OrderedDict()
-        self.portals_by_orign_destn = OrderedDict()
-        self.things_by_name = {}
         self.boards = []
+        self.thingdict = {}
         self.graph = Graph(directed=True)
 
     def __hash__(self):
@@ -50,42 +73,79 @@ constrains it to be unique."""
         return self.name
 
     def __getattr__(self, attrn):
-        if attrn == 'things':
-            return self.things_by_name.itervalues()
-        elif attrn == 'places':
-            return self.places_by_name.itervalues()
-        elif attrn == 'portals':
-            return DictValues2DIterator(self.portals_by_orign_destn)
+        if attrn == "places":
+            return PlaceIter(self)
+        elif attrn == "portals":
+            return PortIter(self)
+        elif attrn == "things":
+            return self.thingdict.itervalues()
         else:
-            raise AttributeError("dimension has no attribute named " + attrn)
+            return super(Dimension, self).__getattr__(attrn)
 
     def get_igraph_layout(self, layout_type):
         """Return a Graph layout, of the kind that igraph uses, representing
 this dimension, and laid out nicely."""
         return self.graph.layout(layout=layout_type)
 
-    def save(self):
-        for port in self.portals:
-            port.save()
-        for thing in self.things:
-            thing.save()
+    def add_place(self, name, existence={}, indef_exist={}, spots=[]):
+        self.graph.add_vertex({
+            "name": name,
+            "contents": set(),
+            "existence": existence,
+            "indef_exist": indef_exist,
+            "spots": spots})
 
-    def get_shortest_path(self, orig, dest, branch=None, tick=None):
+    def get_place(self, iname):
+        return Place(self, self.graph.vs[iname])
+
+    def add_portal(self, orig, dest, existence={}, indef_exist={}, arrows=[]):
+        self.graph.add_edge(orig, dest, {
+            "existence": existence,
+            "indef_exist": indef_exist,
+            "arrows": arrows})
+
+    def get_portal(self, orig, dest):
+        if isinstance(orig, Place):
+            orig = int(orig)
+        if isinstance(dest, Place):
+            dest = int(dest)
+        return Portal(self, self.graph.es[orig, dest])
+
+    def add_thing(self, name):
+        self.thingdict[name] = Thing(self, name)
+
+    def get_thing(self, name):
+        return self.thingdict[name]
+
+    def portal_extant(self, e, branch=None, tick=None):
         if branch is None:
             branch = self.rumor.branch
         if tick is None:
             tick = self.rumor.tick
-        for path in self.graph.get_shortest_paths(int(dest)):
-            if self.graph.vs[path[-1]]["place"] == orig:
-                return [self.graph.vs[i]["place"] for i in path]
+        if branch in e["indefinite_existence"]:
+            if tick > e["indefinite_existence"][branch]:
+                return True
+        if branch not in e["existence"]:
+            return False
+        for (tick_from, tick_to) in e["existence"][branch].iteritems():
+            if tick_from <= tick and tick <= tick_to:
+                return True
+        return False
 
-    def add_place(self, pl):
-        self.places_by_name[str(pl)] = pl
-
-    def add_portal(self, po):
-        if str(po.orig) not in self.portals_by_orign_destn:
-            self.portals_by_orign_destn[str(po.orig)] = OrderedDict()
-        self.portals_by_orign_destn[str(po.orig)][str(po.dest)] = po
-
-    def add_thing(self, th):
-        self.things_by_name[str(th)] = th
+    def persist_portal(self, e, branch=None, tick_from=None, tick_to=None):
+        if branch is None:
+            branch = self.rumor.branch
+        if tick_from is None:
+            tick_from = self.rumor.tick
+        if branch in e["indef_exist"]:
+            ifrom = e["indef_exist"][branch]
+            if tick_from > ifrom:
+                e["existence"][branch][ifrom] = tick_from - 1
+                del e["indef_exist"][branch]
+            elif tick_from == ifrom:
+                del e["indef_exist"][branch]
+        if tick_to is None:
+            e["indef_exist"][branch] = tick_from
+        if branch not in e["existence"]:
+            e["existence"][branch] = {}
+        e["existence"][branch][tick_from] = tick_to
