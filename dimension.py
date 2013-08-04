@@ -9,7 +9,7 @@ from pawn import Pawn
 from img import Img
 from arrow import Arrow
 from logging import getLogger
-from igraph import Graph
+from igraph import Graph, InternalError
 from collections import OrderedDict
 from util import DictValues2DIterator
 
@@ -75,44 +75,103 @@ constrains it to be unique."""
     def __getattr__(self, attrn):
         if attrn == "places":
             return PlaceIter(self)
+        elif attrn == "placenames":
+            try:
+                return self.graph.vs["name"]
+            except KeyError:
+                return []
         elif attrn == "portals":
             return PortIter(self)
         elif attrn == "things":
             return self.thingdict.itervalues()
         else:
-            return super(Dimension, self).__getattr__(attrn)
+            raise AttributeError(
+                "Dimension instance has no attribute named " +
+                attrn)
 
     def get_igraph_layout(self, layout_type):
         """Return a Graph layout, of the kind that igraph uses, representing
 this dimension, and laid out nicely."""
         return self.graph.layout(layout=layout_type)
 
-    def add_place(self, name, existence={}, indef_exist={}, spots=[]):
-        self.graph.add_vertex({
-            "name": name,
-            "contents": set(),
-            "existence": existence,
-            "indef_exist": indef_exist,
-            "spots": spots})
+    def have_place(self, name):
+        if len(self.graph.vs) == 0:
+            return False
+        return name in self.graph.vs["name"]
+
+    def add_place(self, name, existence, indef_exist, spots):
+        self.graph.add_vertex(
+            name=name,
+            existence=existence,
+            indef_exist=indef_exist,
+            spots=spots)
 
     def get_place(self, iname):
-        return Place(self, self.graph.vs[iname])
+        vnames = self.graph.vs["name"]
+        if not isinstance(iname, int):
+            iname = vnames.index(iname)
+        v = self.graph.vs[iname]
+        return Place(self, v)
 
-    def add_portal(self, orig, dest, existence={}, indef_exist={}, arrows=[]):
-        self.graph.add_edge(orig, dest, {
-            "existence": existence,
-            "indef_exist": indef_exist,
-            "arrows": arrows})
+    def make_place(self, name):
+        self.add_place(name, {}, {}, [])
+        return self.get_place(name)
 
-    def get_portal(self, orig, dest):
+    def have_portal(self, orig, dest):
+        vnames = self.graph.vs["name"]
         if isinstance(orig, Place):
             orig = int(orig)
+        elif not isinstance(orig, int):
+            orig = vnames.index(orig)
         if isinstance(dest, Place):
             dest = int(dest)
-        return Portal(self, self.graph.es[orig, dest])
+        elif not isinstance(dest, int):
+            dest = vnames.index(dest)
+        lgv = len(self.graph.vs)
+        if orig >= lgv or dest >= lgv:
+            return False
+        return self.graph[orig, dest] > 0
 
-    def add_thing(self, name):
-        self.thingdict[name] = Thing(self, name)
+    def add_portal(self, orig, dest, existence, indef_exist, arrows):
+        vertns = self.graph.vs["name"]
+        if hasattr(orig, 'v'):
+            orig = int(orig)
+        elif not isinstance(orig, int):
+            orig = vertns.index(orig)
+        if hasattr(dest, 'v'):
+            dest = int(dest)
+        elif not isinstance(dest, int):
+            dest = vertns.index(dest)
+        self.graph.add_edge(
+            orig, dest,
+            existence=existence,
+            indef_exist=indef_exist,
+            arrows=arrows)
+
+    def make_portal(self, orig, dest):
+        self.add_portal(orig, dest, {}, {}, [])
+
+    def get_portal(self, orig, dest):
+        vertns = self.graph.vs["name"]
+        if isinstance(orig, Place):
+            orig = int(orig)
+        elif not isinstance(orig, int):
+            orig = vertns.index(orig)
+        if isinstance(dest, Place):
+            dest = int(dest)
+        elif not isinstance(dest, int):
+            dest = vertns.index(dest)
+        try:
+            eid = self.graph.get_eid(orig, dest)
+            return Portal(self, self.graph.es[eid])
+        except InternalError:
+            return None
+
+    def add_thing(self, name, locations, indef_locs):
+        self.thingdict[name] = Thing(self, name, locations, indef_locs)
+
+    def make_thing(self, name):
+        self.add_thing(name, {}, {})
 
     def get_thing(self, name):
         return self.thingdict[name]
@@ -122,13 +181,31 @@ this dimension, and laid out nicely."""
             branch = self.rumor.branch
         if tick is None:
             tick = self.rumor.tick
-        if branch in e["indefinite_existence"]:
-            if tick > e["indefinite_existence"][branch]:
+        if branch in e["indef_exist"]:
+            if tick > e["indef_exist"][branch]:
                 return True
         if branch not in e["existence"]:
             return False
         for (tick_from, tick_to) in e["existence"][branch].iteritems():
             if tick_from <= tick and tick <= tick_to:
+                return True
+        return False
+
+    def portal_extant_between(self, e, branch=None, tick_from=None, tick_to=None):
+        if branch is None:
+            branch = self.rumor.branch
+        if tick_from is None:
+            tick = self.rumor.tick
+        if tick_to is None:
+            if branch not in e["indef_exist"]:
+                return False
+            ifrom = e["indef_exist"][branch]
+            return ifrom < tick_from
+        if branch not in e["existence"]:
+            return False
+        # search for an existence window that either matches or contains the one given
+        for (tick_before, tick_after) in e["existence"][branch].iteritems():
+            if tick_before <= tick_from and tick_after >= tick_to:
                 return True
         return False
 
@@ -144,6 +221,11 @@ this dimension, and laid out nicely."""
                 del e["indef_exist"][branch]
             elif tick_from == ifrom:
                 del e["indef_exist"][branch]
+            elif tick_to >= ifrom:
+                del e["existence"][branch][ifrom]
+                e["existence"][branch][tick_from] = None
+                e["indef_exist"][branch] = tick_from
+                return
         if tick_to is None:
             e["indef_exist"][branch] = tick_from
         if branch not in e["existence"]:

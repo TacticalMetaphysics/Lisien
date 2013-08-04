@@ -132,9 +132,9 @@ def place2idx(db, dimname, pl):
 class TerminableImg:
     def get_img(self, branch=None, tick=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick is None:
-            tick = self.db.tick
+            tick = self.rumor.tick
         if branch not in self.imagery:
             return None
         for (tick_from, (img, tick_to)) in self.imagery[branch].iteritems():
@@ -146,9 +146,9 @@ class TerminableImg:
     def set_img(self, img, branch=None, tick_from=None, tick_to=None):
         assert(hasattr(img, 'tex'))
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick_from is None:
-            tick_from = self.db.tick
+            tick_from = self.rumor.tick
         if branch not in self.imagery:
             self.imagery[branch] = {}
         if branch in self.indefinite_imagery:
@@ -209,9 +209,9 @@ class BranchTicksIter:
 class TerminableInteractivity:
     def is_interactive(self, branch=None, tick=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick is None:
-            tick = self.db.tick
+            tick = self.rumor.tick
         if branch not in self.interactivity:
             return False
         for (tick_from, tick_to) in self.interactivity[branch].iteritems():
@@ -221,9 +221,9 @@ class TerminableInteractivity:
 
     def set_interactive(self, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick_from is None:
-            tick_from = self.db.tick
+            tick_from = self.rumor.tick
         if branch not in self.interactivity:
             self.interactivity[branch] = {}
         if branch in self.indefinite_interactivity:
@@ -278,9 +278,9 @@ class TerminableInteractivity:
 class TerminableCoords:
     def get_coords(self, branch=None, tick=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick is None:
-            tick = self.db.tick
+            tick = self.rumor.tick
         if branch not in self.coord_dict:
             return None
         if str(self) == 'myroom':
@@ -292,9 +292,9 @@ class TerminableCoords:
 
     def set_coords(self, x, y, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.db.branch
+            branch = self.rumor.branch
         if tick_from is None:
-            tick_from = self.db.tick
+            tick_from = self.rumor.tick
         if branch not in self.coord_dict:
             self.coord_dict[branch] = {}
         if str(self) == 'myroom':
@@ -653,8 +653,8 @@ and your table will be ready.
                     i += 1
                     for (key, val) in record.iteritems():
                         logger.debug("------%s = %s", key, val)
-            delete_tabdict(self.db, td)
-            insert_tabdict(self.db, td)
+            delete_tabdict(self.rumor, td)
+            insert_tabdict(self.rumor, td)
 
         def save(self):
             coresave(self)
@@ -669,7 +669,7 @@ and your table will be ready.
             return r
 
         def erase(self):
-            delete_tabdict(self.db, self.get_keydict())
+            delete_tabdict(self.rumor, self.get_keydict())
 
         dbop = {'insert': insert_tabdict,
                 'delete': delete_tabdict,

@@ -13,6 +13,7 @@ SQL. That's in util.py, the class SaveableMetaclass.
 import sqlite3
 import re
 import igraph
+import effect
 from dimension import Dimension
 from place import Place
 from portal import Portal
@@ -22,7 +23,6 @@ from pawn import Pawn
 from arrow import Arrow
 from board import Board
 from img import Img
-from branch import Branch
 from style import Style, Color
 from menu import Menu, MenuItem
 from card import Card, Hand
@@ -127,7 +127,6 @@ given name.
         self.cursor = self.conn.cursor()
         self.c = self.cursor
         self.windowdict = {}
-        self.boarddict = {}
         self.boardhanddict = {}
         self.calendardict = {}
         self.carddict = {}
@@ -142,9 +141,6 @@ given name.
         self.styledict = {}
         self.tickdict = {}
         self.branchgraph = igraph.Graph(directed=True)
-        self.spotdict = {}
-        self.pawndict = {}
-        self.arrowdict = {}
         self.eventdict = {}
         self.lang = lang
 
@@ -522,6 +518,13 @@ necessary."""
                 return cards
         return None
 
+    def get_effect_decks(self, names):
+        r = {}
+        for name in names:
+            r[name] = self.effectdeckdict[name]
+        r.update(self.load_effect_decks(names))
+        return r
+
     def schedule_char_att(self, char_s, att_s, val,
                           branch=None, tick_from=None, tick_to=None):
         self.schedule_something(
@@ -617,16 +620,22 @@ necessary."""
 
     def get_dimension(self, dimn):
         if dimn not in self.dimensiondict:
-            self.dimensiondict[dimn] = Dimension(self, dimn)
-            self.dimensiondict[dimn].load()
+            self.load_dimension(dimn)
         return self.dimensiondict[dimn]
 
     def make_generic_place(self, dimension):
         placen = "generic_place_{0}".format(self.hi_place)
         self.hi_place += 1
-        pl = Place(dimension, placen)
-        dimension.places_by_name[placen] = pl
-        return pl
+        dimension.make_place(placen)
+        return dimension.get_place(placen)
+
+    def make_generic_thing(self, dimension, location):
+        thingn = "generic_thing_{0}".format(self.hi_thing)
+        self.hi_thing += 1
+        dimension.make_thing(thingn)
+        th = dimension.get_thing(thingn)
+        th.set_location(location)
+        return th
 
     def make_spot(self, board, place, x, y):
         spot = Spot(board, place)
@@ -696,60 +705,28 @@ necessary."""
         self.c.execute(PORT_QRY_START + extrastr, valtup)
         for row in self.c:
             (orign, destn, branch, tick_from, tick_to) = row
-            if orign not in dim.places_by_name:
-                opl = Place(dim, orign)
-                dim.add_place(opl)
-            else:
-                opl = dim.places_by_name[orign]
-            if destn not in dim.places_by_name:
-                dpl = Place(dim, destn)
-                dim.add_place(dpl)
-            else:
-                dpl = dim.places_by_name[destn]
-            dim.add_portal(Portal(dim, opl, dpl))
+            if not dim.have_place(orign):
+                dim.make_place(orign)
+            if not dim.have_place(destn):
+                dim.make_place(destn)
+            if not dim.have_portal(orign, destn):
+                dim.make_portal(orign, destn)
+            po = dim.get_portal(orign, destn)
+            if not po.extant_between(branch, tick_from, tick_to):
+                po.persist(branch, tick_from, tick_to)
         self.c.execute(THING_LOC_QRY_START + extrastr, valtup)
         for row in self.c:
             (thingn, branch, tick_from, tick_to, locn) = row
-            if thingn not in dim.things_by_name:
-                dim.add_thing(Thing(dim, thingn))
-            pomatch = re.match(PORTAL_NAME_RE, locn)
-            if pomatch is not None:
-                (orign, destn) = pomatch.groups()
-                loc = dim.portals_by_orign_destn[orign][destn]
-            elif locn in dim.places_by_name:
-                loc = dim.places_by_name[locn]
-            else:
-                pl = Place(dim, locn)
-                dim.add_place(pl)
-                loc = pl
-            dim.things_by_name[thingn].set_location(
-                loc, branch, tick_from, tick_to)
-        placelist = dim.places_by_name.values()
-        dim.graph.add_vertices(len(placelist) )
-        edges = [(int(portal.orig), int(portal.dest)) for portal in dim.portals]
-        dim.graph.add_edges(edges)
-        for portal in dim.portals:
-            dim.graph.vs[int(portal.orig)]["place"] = portal.orig
-            dim.graph.vs[int(portal.orig)]["name"] = str(portal.orig)
-            dim.graph.vs[int(portal.dest)]["place"] = portal.dest
-            dim.graph.vs[int(portal.dest)]["name"] = str(portal.dest)
-            dim.graph.es[dim.graph.get_eid(int(portal.orig), int(portal.dest))]["portal"] = portal
+            if thingn not in dim.thingdict:
+                dim.make_thing(thingn)
+            loc = dim.get_place(locn)
+            logger.debug("putting thing %s in place %s", thingn, str(loc))
+            thing = dim.get_thing(thingn)
+            thing.set_location(loc, branch, tick_from, tick_to)
         return dim
 
-    def get_dimension(self, dimn):
-        if dimn in self.dimensiondict:
-            return self.dimensiondict[dimn]
-        else:
-            return self.load_dimension(dimn)
-
-    def get_board(self, dimn, i):
-        dim = self.get_dimension(dimn)
-        if i not in dim.boards:
-            self.load_board(i)
-        return dim.boards[i]
-
     def get_board(self, i, window):
-        if i not in window.dimension.boards:
+        if len(window.dimension.boards) <= i or window.dimension.boards[i] is None:
             return self.load_board(i, window)
         else:
             return window.dimension.boards[i]
@@ -782,9 +759,7 @@ necessary."""
         # actually assign images instead of just collecting the names
         for row in pawn_rows:
             (thingn, branch, tick_from, tick_to, imgn) = row
-            thing = dim.things_by_name[thingn]
-            if not hasattr(thing, 'pawns'):
-                thing.pawns = []
+            thing = dim.thingdict[thingn]
             while len(thing.pawns) <= i:
                 thing.pawns.append(None)
             thing.pawns[i] = Pawn(dim.boards[i], thing)
@@ -793,48 +768,43 @@ necessary."""
         self.c.execute(PAWN_INTER_QRY_START, (str(dim), i))
         for row in self.c:
             (thingn, branch, tick_from, tick_to) = row
-            thing = dim.things_by_name[thingn]
+            thing = dim.thingdict[thingn]
             thing.pawns[i].set_interactive(branch, tick_from, tick_to)
         # spots in this board
-        spotted_places = set()
         self.c.execute(SPOT_BOARD_QRY_START, (str(dim), i))
         for row in self.c:
             (placen, branch, tick_from, tick_to, x, y) = row
-            if placen == 'myroom':
-                pass
-            place = dim.places_by_name[placen]  # i hope you loaded *me* first
-            if not hasattr(place, 'spots'):
-                place.spots = []
+            place = dim.get_place(placen)
             while len(place.spots) <= i:
                 place.spots.append(None)
             if place.spots[i] is None:
                 place.spots[i] = Spot(dim.boards[i], place)
-            logger.debug("Loaded the spot for %s. Setting its coords to (%d, %d) in branch %d from tick %d.", str(place), x, y, branch, tick_from)
+            logger.debug(
+                "Loaded the spot for %s. Setting its coords to "
+                "(%d, %d) in branch %d from tick %d.",
+                str(place), x, y, branch, tick_from)
             place.spots[i].set_coords(x, y, branch, tick_from, tick_to)
-            spotted_places.add(place)
-        unspotted_places = spotted_places - set(dim.places_by_name.values())
         #their images
         for row in spot_rows:
             (placen, branch, tick_from, tick_to, imgn) = row
-            place = dim.places_by_name[placen]
+            place = dim.get_place(placen)
             place.spots[i].set_img(imgs[imgn], branch, tick_from, tick_to)
+        # their locations
+        
         # interactivity for the spots
         self.c.execute(SPOT_INTER_QRY_START, (str(dim), i))
         for row in self.c:
             (placen, branch, tick_from, tick_to) = row
-            place = dim.places_by_name[placen]
+            place = dim.get_place(placen)
             place.spots[i].set_interactive(branch, tick_from, tick_to)
         # arrows in this board
-        arrowed_portals = set()
-        for place in iter(spotted_places):
-            for portal in place.portals:
-                if portal not in arrowed_portals:
-                    if not hasattr(portal, 'arrows'):
-                        portal.arrows = []
-                    while len(portal.arrows) <= i:
-                        portal.arrows.append(None)
-                    portal.arrows[i] = Arrow(dim.boards[i], portal)
-                    arrowed_portals.add(portal)
+        for port in dim.portals:
+            if (
+                    len(port.arrows) <= i or
+                    port.arrows[i] is None):
+                while len(port.arrows) <= i:
+                    port.arrows.append(None)
+                port.arrows[i] = Arrow(dim.boards[i], port)
         return dim.boards[i]
 
     def load_imgs(self, imgs):
@@ -913,6 +883,28 @@ necessary."""
         r.update(self.read_styles(unloaded))
         return r
 
+    def get_effects(self, names):
+        r = {}
+        unloaded = set()
+        for eff in names:
+            if eff in self.effectdict:
+                r[eff] = self.effectdict[eff]
+            else:
+                unloaded.add(eff)
+        r.update(effect.load_effects(self, unloaded))
+        return r
+
+    def get_effect_decks(self, names):
+        r = {}
+        unloaded = set()
+        for effd in names:
+            if effd in self.effectdeckdict:
+                r[effd] = self.effectdeckdict[effd]
+            else:
+                unloaded.add(effd)
+        r.update(effect.load_effect_decks(self, unloaded))
+        return r
+
     def load_window(self, name):
         self.c.execute(
             "SELECT min_width, min_height, dimension, board, arrowhead_size, "
@@ -970,7 +962,7 @@ necessary."""
         self.c.execute(
             "SELECT menu, idx, text, on_click, closer FROM menu_item WHERE window=? AND menu IN ({0})".format(", ".join(["?"] * len(menunames))), (name,) + tuple(menunames))
         menu_item_rows = self.c.fetchall()
-        gw = GameWindow(
+        return GameWindow(
             self, name, min_width, min_height, dim, boardi, arrowhead_size,
             arrow_width, view_left, view_bot, main_menu, hand_rows, cal_rows,
             menu_rows, menu_item_rows)
@@ -996,24 +988,24 @@ necessary."""
     #         self.branches.append(None)
     #     self.branches[i] = b
     #     return b
-    def load_branch(self, i):
-        self.c.execute(
-            "SELECT {0} FROM branch WHERE idx=?".format(
-                ", ".join(Branch.colns)), (i,))
-        rowdict = dictify_row(self.c.fetchone(), Branch.colns)
-        vattdict = {}
-        for key in ("parent", "start", "parm"):
-            vattdict[key] = rowdict[key]
-        for key in ("parent", "start", "parm"):
-            if key not in (
-                    self.branchgraph.vs[
-                        rowdict["parent"]].attribute_names()):
-                # I think this recursion will result in the addition
-                # of my parent vertex
-                self.load_branch(rowdict["parent"])
-                break
-        self.branchgraph.add_vertex(**vattdict)
-        self.branchgraph.add_edge(rowdict["parent"], i)
+    # def load_branch(self, i):
+    #     self.c.execute(
+    #         "SELECT {0} FROM branch WHERE idx=?".format(
+    #             ", ".join(Branch.colns)), (i,))
+    #     rowdict = dictify_row(self.c.fetchone(), Branch.colns)
+    #     vattdict = {}
+    #     for key in ("parent", "start", "parm"):
+    #         vattdict[key] = rowdict[key]
+    #     for key in ("parent", "start", "parm"):
+    #         if key not in (
+    #                 self.branchgraph.vs[
+    #                     rowdict["parent"]].attribute_names()):
+    #             # I think this recursion will result in the addition
+    #             # of my parent vertex
+    #             self.load_branch(rowdict["parent"])
+    #             break
+    #     self.branchgraph.add_vertex(**vattdict)
+    #     self.branchgraph.add_edge(rowdict["parent"], i)
 
 
     # def get_branch(self, i):

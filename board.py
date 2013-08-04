@@ -2,6 +2,8 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass
 from collections import OrderedDict
+from pawn import Pawn
+from spot import Spot
 
 
 """Class for user's view on gameworld, and support functions."""
@@ -17,7 +19,7 @@ class BoardPawnIter:
 
     def next(self):
         r = self.thingit.next()
-        while not hasattr(r, 'pawns'):
+        while not hasattr(r, 'pawns') or len(r.pawns) <= self.i:
             r = self.thingit.next()
         return r.pawns[self.i]
 
@@ -129,6 +131,22 @@ each board will be open in at most one window at a time.
                  "wallpaper": str(self.wallpaper),
                  "width": self.width,
                  "height": self.height}]}
+
+    def make_pawn(self, thing):
+        thing.pawns[int(self)] = Pawn(self, thing)
+
+    def get_pawn(self, thing):
+        if int(self) not in thing.pawns:
+            self.make_pawn(thing)
+        return thing.pawns[int(self)]
+
+    def make_spot(self, place):
+        place.spots[int(self)] = Spot(self, place)
+
+    def get_spot(self, place):
+        if int(self) not in place.spots:
+            self.make_spot(place)
+        return place.spots[int(self)]
 
     def save(self):
         for pawn in self.pawns:

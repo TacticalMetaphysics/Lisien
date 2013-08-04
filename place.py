@@ -1,5 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from igraph import Vertex
+
 class Place:
     """Where you go when you have to be someplace.
 
@@ -9,22 +11,17 @@ thing located there.
 
     """
     def __init__(self, dimension, v):
+        assert(isinstance(v, Vertex))
         self.dimension = dimension
         self.rumor = self.dimension.rumor
         self.v = v
 
     def __getattr__(self, attrn):
-        try:
+        if attrn in self.v.attribute_names():
             return self.v[attrn]
-        except KeyError:
+        else:
             raise AttributeError(
                 "Place instance has no attribute named " + attrn)
-
-    def __setattr__(self, attrn, val):
-        if attrn in self.v.get_attributes():
-            self.v[attrn] = val
-        else:
-            super(Place, self).__setattr__(attrn, val)
 
     def __contains__(self, that):
         try:
@@ -36,7 +33,7 @@ thing located there.
         return self.v.index
 
     def __str__(self):
-        return self.name
+        return self.v["name"]
 
     def __repr__(self):
         return str(self.dimension) + "." + str(self)

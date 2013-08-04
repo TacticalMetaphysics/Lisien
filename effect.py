@@ -51,7 +51,7 @@ contain only a single Effect.
         self.name = name
         self.character = chara
         self.rumor = self.character.rumor
-        self.cb = self.db.effect_cbs[cbname]
+        self.cb = self.rumor.effect_cbs[cbname]
         self.key = key
         self.occurrences = {}
 
@@ -118,7 +118,7 @@ were right after firing them.
 
     """
     tables = [
-        ("effect_deck":
+        ("effect_deck",
          {"name": "text not null",
           "draw": "integer not null default 0"},
          ("name",),
@@ -191,6 +191,7 @@ were right after firing them.
         for (tick_from, (val, tick_to)) in self.effects[branch].iteritems():
             if tick_from <= tick and tick <= tick_to:
                 return val
+        return []
 
     def get_tabdict(self):
         r = {"effect_deck": []}
@@ -253,3 +254,60 @@ were right after firing them.
             eff.do()
         if not reset:
             self.set_effects([], branch, tick)
+
+
+EFFECT_DECK_QRYFMT = "SELECT {0} FROM effect_deck WHERE name IN ({1})".format(
+    ", ".join(EffectDeck.colnames["effect_deck"]), "{0}")
+
+EFFECT_DECK_LINK_QRYFMT = "SELECT {0} FROM effect_deck_link WHERE deck IN ({1})".format(
+    ", ".join(EffectDeck.colnames["effect_deck_link"]), "{0}")
+
+
+def load_effect_decks(rumor, names):
+    qrystr = EFFECT_DECK_QRYFMT.format(", ".join(["?"] * len(names)))
+    rumor.c.execute(qrystr, tuple(names))
+    r = {}
+    for row in rumor.c:
+        rowdict = dictify_row(row, EffectDeck.colnames["effect_deck"])
+        r[rowdict["name"]] = EffectDeck(rumor, rowdict["name"], rowdict["draw"])
+    qrystr = EFFECT_DECK_LINK_QRYFMT.format(", ".join(["?"] * len(names)))
+    rumor.c.execute(qrystr, tuple(names))
+    effect_deck_rows = rumor.c.fetchall()
+    effect_deck_rowdicts = []
+    effects2load = set()
+    for row in effect_deck_rows:
+        rowdict = dictify_row(row, EffectDeck.colnames["effect_deck_link"])
+        effect_deck_rowdicts.append(rowdict)
+        effects2load.add(rowdict["effect"])
+    effects_loaded = load_effects(rumor, effects2load)
+    for rowdict in effect_deck_rowdicts:
+        deck = r[rowdict["deck"]]
+        if (
+                rowdict["branch"] in deck.effects and
+                rowdict["tick_from"] in deck.effects[rowdict["branch"]]):
+            effects = deck.effects[rowdict["branch"]][rowdict["tick_from"]][0]
+        else:
+            effects = []
+        while len(effects) <= rowdict["idx"]:
+            effects.append(None)
+        effects[rowdict["idx"]] = effects_loaded[rowdict["effect"]]
+        r[rowdict["deck"]].set_effects(
+            effects, rowdict["branch"],
+            rowdict["tick_from"], rowdict["tick_to"])
+    rumor.effectdeckdict.update(r)
+    return r
+
+
+EFFECT_QRYFMT = "SELECT {0} FROM effect WHERE name IN ({1})".format(
+    ", ".join(Effect.colns), "{0}")
+
+
+def load_effects(rumor, names):
+    qrystr = EFFECT_QRYFMT.format(", ".join(["?"] * len(names)))
+    rumor.c.execute(qrystr, tuple(names))
+    r = {}
+    for row in rumor.c:
+        rowdict = dictify_row(row, Effect.colns)
+        r[rowdict["name"]] = Effect(**rowdict)
+    rumor.effectdict.update(r)
+    return r

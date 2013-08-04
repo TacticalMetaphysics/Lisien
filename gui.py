@@ -4,8 +4,7 @@ import pyglet
 import ctypes
 import math
 import logging
-import re
-from util import SaveableMetaclass, dictify_row
+from util import SaveableMetaclass
 from math import atan, pi, sin, cos, hypot
 from arrow import Arrow
 from menu import Menu, MenuItem
@@ -151,7 +150,6 @@ class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
 
     def unset_state(self):
         pyglet.gl.glDisable(pyglet.gl.GL_SCISSOR_TEST)
-            
 
 
 class BoldLineOrderedGroup(pyglet.graphics.OrderedGroup):
@@ -206,17 +204,10 @@ class WindowSaver:
          {"dimension, board": ("board", "dimension, i"),
           "main_menu": ("menu", "name")},
          ["view_left>=0", "view_bot>=0"])]
+
     def __init__(self, win):
         self.win = win
 
-    def __getattr__(self, attrn):
-        if attrn in (
-                'min_width', 'min_height', 'dimension',
-                'board', 'arrowhead_size', 'arrow_width',
-                'view_left', 'view_bot', 'main_menu_name'):
-            return getattr(self.win, attrn)
-        else:
-            raise AttributeError("Access that attribute on the game window proper if you please")
     def get_tabdict(self):
         return {
             "window": [{
@@ -273,7 +264,8 @@ class GameWindow(pyglet.window.Window):
         self.hands_by_name = OrderedDict()
         for row in hand_rows:
             self.hands_by_name[row[0]] = Hand(
-                self, self.rumor.effectdeckdict[row[0]], row[1], row[2], row[3], row[4],
+                self, self.rumor.effectdeckdict[row[0]],
+                row[1], row[2], row[3], row[4],
                 self.rumor.styledict[row[5]], row[6], row[7])
         self.calendars = []
         for row in cal_rows:
@@ -282,7 +274,9 @@ class GameWindow(pyglet.window.Window):
                     self, row[0], row[1], row[2], row[3], row[4],
                     self.rumor.styledict[row[5]], row[6], row[7], row[8],
                     row[9]))
-        self.picker = PicPicker(self, 0.3, 0.3, 0.3, 0.3, self.calendars[0].style)
+        self.picker = None
+        self.thing_pic = None
+        self.place_pic = None
 
         self.biggroup = pyglet.graphics.Group()
         self.boardgroup = pyglet.graphics.OrderedGroup(0, self.biggroup)
@@ -293,10 +287,8 @@ class GameWindow(pyglet.window.Window):
         self.calgroup = TransparencyOrderedGroup(5, self.biggroup)
         self.celgroup = TransparencyOrderedGroup(6, self.biggroup)
         self.labelgroup = pyglet.graphics.OrderedGroup(7, self.biggroup)
-        self.pickergroup = ClampedOrderedGroup(
-            8, self.biggroup, self,
-            self.picker.left_prop, self.picker.top_prop,
-            self.picker.bot_prop, self.picker.right_prop)
+        self.pickergroup = ScissorOrderedGroup(
+            8, self.biggroup, self, 0.3, 0.3, 0.3, 0.3)
         self.pickerbggroup = pyglet.graphics.OrderedGroup(0, self.pickergroup)
         self.pickerfggroup = pyglet.graphics.OrderedGroup(1, self.pickergroup)
         self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
@@ -324,7 +316,7 @@ class GameWindow(pyglet.window.Window):
         self.drawn_edges = None
         self.timeline = None
 
-        self.onscreen = set()
+        self.onscreen = set([None])
         self.last_age = -1
         self.last_timeline_y = -1
 
@@ -335,8 +327,6 @@ class GameWindow(pyglet.window.Window):
             pyglet.window.ImageMouseCursor(orbimg, rx, ry))
         self.create_place_cursor.rx = rx
         self.create_place_cursor.ry = ry
-        self.placing = False
-        self.thinging = False
         self.portaling = False
         self.portal_from = None
         self.portal_triple = ((None, None), (None, None), (None, None))
@@ -376,42 +366,44 @@ class GameWindow(pyglet.window.Window):
         """Draw the background image; all spots, pawns, and edges on the
 d; all visible menus; and the calendar, if it's visible."""
         # draw the image picker
-        newstate = self.picker.get_state_tup()
-        if newstate in self.onscreen:
-            continue
-        self.onscreen.discard(self.picker.oldstate)
-        self.onscreen.add(newstate)
-        self.picker.oldstate = newstate
-        self.picker.delete()
-        if self.picker.visible:
-            if self.picker.hovered:
-                image = self.picker.bgpat_active.create_image(
-                    self.picker.width, self.picker.height)
-            else:
-                image = self.picker.bgpat_inactive.create_image(
-                    self.picker.width, self.picker.height)
-            self.picker.sprite = pyglet.sprite.Sprite(
-                image,
-                self.picker.window_left,
-                self.picker.window_bot,
-                batch=self.batch,
-                group=self.pickerbggroup)
-            self.picker.layout()
-            for pixrow in self.picker.pixrows:
-                for pic in pixrow:
-                    if pic.in_picker():
-                        try:
-                            pic.sprite.x = pic.window_left
-                            pic.sprite.y = pic.window_bot
-                        except AttributeError:
-                            pic.sprite = pyglet.sprite.Sprite(
-                                pic.tex,
-                                pic.window_left,
-                                pic.window_bot,
-                                batch=self.batch,
-                                group=self.pickerfggroup)
-                    else:
-                        pic.delete()
+        if self.picker is not None:
+            newstate = self.picker.get_state_tup()
+        else:
+            newstate = None
+        if newstate is not None and newstate not in self.onscreen:
+            self.onscreen.discard(self.picker.oldstate)
+            self.onscreen.add(newstate)
+            self.picker.oldstate = newstate
+            self.picker.delete()
+            if self.picker.visible:
+                if self.picker.hovered:
+                    image = self.picker.bgpat_active.create_image(
+                        self.picker.width, self.picker.height)
+                else:
+                    image = self.picker.bgpat_inactive.create_image(
+                        self.picker.width, self.picker.height)
+                    self.picker.sprite = pyglet.sprite.Sprite(
+                        image,
+                        self.picker.window_left,
+                        self.picker.window_bot,
+                        batch=self.batch,
+                        group=self.pickerbggroup)
+                    self.picker.layout()
+                    for pixrow in self.picker.pixrows:
+                        for pic in pixrow:
+                            if pic.in_picker:
+                                try:
+                                    pic.sprite.x = pic.window_left
+                                    pic.sprite.y = pic.window_bot
+                                except AttributeError:
+                                    pic.sprite = pyglet.sprite.Sprite(
+                                        pic.tex,
+                                        pic.window_left,
+                                        pic.window_bot,
+                                        batch=self.batch,
+                                        group=self.pickerfggroup)
+                                else:
+                                    pic.delete()
         # draw the spots, representing places
         for spot in self.board.spots:
             if str(spot.place) == 'myroom':
@@ -622,7 +614,7 @@ d; all visible menus; and the calendar, if it's visible."""
                         item.label.delete()
                     except:
                         pass
-                    
+
       # draw the calendar
         for calendar in self.calendars:
             newstate = calendar.get_state_tup()
@@ -650,7 +642,7 @@ d; all visible menus; and the calendar, if it's visible."""
                                     cel.width, cel.height).texture
                             else:
                                 image = cel.inactive_pattern.create_image(
-                                            cel.width, cel.height).texture
+                                    cel.width, cel.height).texture
                             cel.sprite = pyglet.sprite.Sprite(
                                 image,
                                 cel.window_left,
@@ -704,8 +696,8 @@ d; all visible menus; and the calendar, if it's visible."""
                 y = top - age_offset
                 color = (255, 0, 0)
                 if (
-                    calendar.visible and
-                    y > calendar.window_bot):
+                        calendar.visible and
+                        y > calendar.window_bot):
                     calendar.timeline = self.batch.add(
                         2, pyglet.graphics.GL_LINES, self.topgroup,
                         ('v2i', (left, y, right, y)),
@@ -853,27 +845,30 @@ d; all visible menus; and the calendar, if it's visible."""
         """If there's something already highlit, and the mouse is
 still over it when pressed, it's been half-way clicked; remember this."""
         logger.debug("mouse pressed at %d, %d", x, y)
-        if not (self.placing or self.thinging):
-            self.pressed = self.hovered
+        self.pressed = self.hovered
 
     def on_mouse_release(self, x, y, button, modifiers):
         """If something was being dragged, drop it. If something was being
 pressed but not dragged, it's been clicked. Otherwise do nothing."""
         logger.debug("mouse released at %d, %d", x, y)
-        if self.placing:
-            placed = self.rumor.make_generic_place(self.board.dimension)
-            self.rumor.make_spot(
-                self.board, placed,
-                x + self.offset_x,
-                y + self.offset_y)
+        if self.place_pic is not None:
+            pl = self.rumor.make_generic_place(self.dimension)
+            sp = self.board.get_spot(pl)
+            sp.set_coords(x + self.view_left, y + self.view_bot)
+            sp.set_img(self.place_pic)
             self.set_mouse_cursor()
-            self.placing = False
-            logger.debug("made generic place: %s", str(placed))
-        elif self.thinging:
-            thung = self.rumor.make_generic_thing(str(self.board))
-            self.rumor.make_pawn(str(self.board), str(thung))
-            self.thinging = False
-            logger.debug("made generic thing: %s", str(thung))
+            self.place_pic = None
+            logger.debug("made generic place: %s", str(pl))
+        elif self.thing_pic is not None:
+            sp = self.board.get_spot_at(x + self.view_left, y + self.view_bot)
+            if sp is not None:
+                pl = sp.place
+                th = self.rumor.make_generic_thing(self.dimension, pl)
+                th.set_img(self.thing_pic)
+                self.board.make_pawn(th)
+            self.set_mouse_cursor()
+            self.thing_pic = None
+            logger.debug("made generic thing: %s", str(th))
         elif self.portaling:
             if self.portal_from is None:
                 if hasattr(self.pressed, 'place'):
@@ -937,6 +932,8 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                         if reciprocal is not None:
                             self.selected.add(reciprocal)
                             reciprocal.tweaks += 1
+                if hasattr(self.pressed, 'onclick'):
+                    self.pressed.onclick()
         else:
             for sel in iter(self.selected):
                 sel.tweaks += 1
@@ -993,6 +990,15 @@ move_with_mouse method, use it.
             if calendar.overlaps(x, y):
                 sf = calendar.scroll_factor
                 calendar.scrolled_to += scroll_y * sf
+                return
+        if self.picker is not None:
+            if self.picker.overlaps(x, y):
+                while scroll_y > 0:
+                    self.picker.scroll_up_once()
+                    scroll_y -= 1
+                while scroll_y < 0:
+                    self.picker.scroll_down_once()
+                    scroll_y += 1
 
     def on_mouse_motion(self, x, y, dx, dy):
         """Find the widget, if any, that the mouse is over,
@@ -1005,6 +1011,16 @@ and highlight it.
         self.dx_hist.append(dx)
         self.dy_hist.append(dy)
         if self.hovered is None:
+            if (
+                    self.picker is not None and
+                    self.picker.overlaps(x, y)):
+                for pixrow in self.picker.pixrows:
+                    for pic in pixrow:
+                        if pic.overlaps(x, y):
+                            self.hovered = pic
+                            return
+                self.hovered = self.picker
+                return
             for hand in self.hands:
                 if hand.overlaps(x, y):
                     for card in hand:
@@ -1049,11 +1065,12 @@ and highlight it.
             self.delete_selection()
 
     def create_place(self):
-        self.set_mouse_cursor(self.create_place_cursor)
-        self.placing = True
+        self.picker = PicPicker(self, 0.3, 0.3, 0.3, 0.3,
+                                self.calendars[0].style, 'place_pic')
 
     def create_thing(self):
-        pass
+        self.picker = PicPicker(self, 0.3, 0.3, 0.3, 0.3,
+                                self.calendars[0].style, 'thing_pic')
 
     def create_portal(self):
         if not hasattr(self, 'portaled'):
@@ -1206,7 +1223,10 @@ and highlight it.
             self.view_bot,
             self.main_menu_name)
         self.rumor.c.execute(
-            "INSERT INTO window (name, min_width, min_height, dimension, board, arrowhead_size, arrow_width, view_left, view_bot, main_menu) VALUES ({0})".format(
+            "INSERT INTO window (name, min_width, "
+            "min_height, dimension, board, arrowhead_size, "
+            "arrow_width, view_left, view_bot, main_menu) "
+            "VALUES ({0})".format(
                 ", ".join(["?"] * len(save_these))),
             save_these)
         self.rumor.conn.commit()

@@ -49,8 +49,6 @@ class Pawn(object, TerminableImg, TerminableInteractivity):
 the given thing with the given image. It may be visible or not,
 interactive or not.
 
-With db, register in db's pawndict.
-
         """
         self.board = board
         self.window = self.board.window
