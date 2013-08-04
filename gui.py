@@ -684,7 +684,7 @@ d; all visible menus; and the calendar, if it's visible."""
                     calendar.timeline.delete()
                 except (AttributeError, AssertionError):
                     pass
-                if not calendar.visible:
+                if not (calendar.visible and len(calendar.cols) > 0):
                     continue
                 top = calendar.window_top
                 left = calendar.window_left

@@ -719,7 +719,10 @@ necessary."""
             (thingn, branch, tick_from, tick_to, locn) = row
             if thingn not in dim.thingdict:
                 dim.make_thing(thingn)
-            loc = dim.get_place(locn)
+            try:
+                loc = dim.get_place(locn)
+            except ValueError:
+                loc = dim.get_portal(*re.match(PORTAL_NAME_RE, locn).groups())
             logger.debug("putting thing %s in place %s", thingn, str(loc))
             thing = dim.get_thing(thingn)
             thing.set_location(loc, branch, tick_from, tick_to)

@@ -231,3 +231,9 @@ this dimension, and laid out nicely."""
         if branch not in e["existence"]:
             e["existence"][branch] = {}
         e["existence"][branch][tick_from] = tick_to
+
+    def save(self):
+        for portal in self.portals:
+            portal.save()
+        for thing in self.things:
+            thing.save()
