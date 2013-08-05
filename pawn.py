@@ -108,6 +108,7 @@ interactive or not.
             return self.window_bot + self.height
         elif attrn == 'onscreen':
             return (
+                self.coords is not None and
                 self.window_right > 0 and
                 self.window_left < self.window.width and
                 self.window_top > 0 and
@@ -149,8 +150,8 @@ interactive or not.
             self.grabpoint,
             self.hovered,
             self.get_coords(branch, tick),
-            self.window_left,
-            self.window_bot,
+            self.window.view_left,
+            self.window.view_bot,
             self.tweaks)
 
     def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
@@ -197,6 +198,8 @@ interactive or not.
 
     def get_coords(self, branch=None, tick=None):
         loc = self.thing.get_location(branch, tick)
+        if loc is None:
+            return None
         if hasattr(loc, 'dest'):
             (ox, oy) = loc.orig.spots[int(self.board)].get_coords(branch, tick)
             (dx, dy) = loc.dest.spots[int(self.board)].get_coords(branch, tick)
@@ -207,7 +210,8 @@ interactive or not.
             prog = self.thing.get_progress(branch, tick)
             odx = dx - ox
             ody = dy - oy
-            return (int(ox + odx * prog), int(oy + ody * prog))
+            return (int(ox + odx * prog) + self.window.offset_x,
+                    int(oy + ody * prog) + self.window.offset_y)
         elif hasattr(loc, 'spots'):
             spot = loc.spots[int(self.board)]
             return (spot.window_x, spot.window_y)

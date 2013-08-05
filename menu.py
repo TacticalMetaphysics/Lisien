@@ -140,6 +140,14 @@ the same."""
     def onclick(self):
         return self.on_click(self)
 
+    def overlaps(self, x, y):
+        return (
+            self.visible and
+            x > self.window_left and
+            x < self.window_right and
+            y > self.window_bot and
+            y < self.window_top)
+
     def toggle_visibility(self):
         """Become visible if invisible or vice versa"""
         self.visible = not self.visible

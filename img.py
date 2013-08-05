@@ -48,6 +48,10 @@ provided."""
             return (self.tex.width/2, self.tex.height/2)
         elif attrn == 'texture':
             return self.tex
+        elif attrn == 'width':
+            return self.tex.width
+        elif attrn == 'height':
+            return self.tex.height
         else:
             try:
                 return getattr(self.tex, attrn)

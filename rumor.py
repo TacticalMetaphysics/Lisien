@@ -118,7 +118,7 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def __init__(self, dbfilen, xfuncs={},
                  front_board="default_board", front_branch=0, seed=0, tick=0,
-                 hi_branch=0, hi_place=0, hi_portal=0, lang="eng"):
+                 hi_branch=0, hi_place=0, hi_portal=0, hi_thing=0, lang="eng"):
         """Return a database wrapper around the SQLite database file by the
 given name.
 
@@ -179,7 +179,8 @@ given name.
             "tick": tick,
             "hi_branch": hi_branch,
             "hi_place": hi_place,
-            "hi_portal": hi_portal}
+            "hi_portal": hi_portal,
+            "hi_thing": hi_thing}
 
     def __getattr__(self, attrn):
         if attrn in ("board", "front_board"):
@@ -196,12 +197,16 @@ given name.
             return self.game["hi_place"]
         elif attrn == "hi_portal":
             return self.game["hi_portal"]
+        elif attrn == "hi_thing":
+            print self.game
+            return self.game["hi_thing"]
         else:
             raise AttributeError(
                 "RumorMill doesn't have the attribute " + attrn)
 
     def __setattr__(self, attrn, val):
-        if attrn in ("front_board", "seed", "age", "hi_place", "hi_portal"):
+        if attrn in ("front_board", "seed", "age",
+                     "hi_place", "hi_portal", "hi_thing"):
             getattr(self, "game")[attrn] = val
         else:
             super(RumorMill, self).__setattr__(attrn, val)
@@ -599,7 +604,7 @@ necessary."""
     def load_game(self):
         self.c.execute(
             "SELECT front_board, front_branch, tick, seed, "
-            "hi_branch, hi_place, hi_portal FROM game")
+            "hi_branch, hi_place, hi_portal, hi_thing FROM game")
         for row in self.c:
             self.game = {
                 "front_board": row[0],
@@ -608,7 +613,8 @@ necessary."""
                 "seed": row[3],
                 "hi_branch": row[4],
                 "hi_place": row[5],
-                "hi_portal": row[6]}
+                "hi_portal": row[6],
+                "hi_thing": row[7]}
 
     def load_strings(self):
         self.c.execute("SELECT stringname, language, string FROM strings")

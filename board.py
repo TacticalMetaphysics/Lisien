@@ -133,6 +133,8 @@ each board will be open in at most one window at a time.
                  "height": self.height}]}
 
     def make_pawn(self, thing):
+        while len(thing.pawns) <= int(self):
+            thing.pawns.append(None)
         thing.pawns[int(self)] = Pawn(self, thing)
 
     def get_pawn(self, thing):

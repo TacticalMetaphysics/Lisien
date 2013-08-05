@@ -43,7 +43,7 @@ db.c.execute(
     " (front_board TEXT DEFAULT 'Physical', front_branch INTEGER DEFAULT 0, "
     "tick INTEGER DEFAULT 0,"
     " seed INTEGER DEFAULT 0, hi_place INTEGER DEFAULT 0, hi_portal INTEGER"
-    " DEFAULT 0, hi_branch INTEGER DEFAULT 0);")
+    " DEFAULT 0, hi_thing INTEGER DEFAULT 0, hi_branch INTEGER DEFAULT 0);")
 db.c.execute(
     "CREATE TABLE strings (stringname TEXT NOT NULL, language TEXT NOT"
     " NULL DEFAULT 'English', string TEXT NOT NULL, PRIMARY KEY(stringname,"
