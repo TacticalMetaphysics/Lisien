@@ -2,6 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass, dictify_row
 from random import randrange
+from collections import defaultdict
 
 
 """Ways to change the game world."""
@@ -53,35 +54,26 @@ contain only a single Effect.
         self.rumor = self.character.rumor
         self.cb = self.rumor.effect_cbs[cbname]
         self.key = key
-        self.occurrences = {}
 
     def __str__(self):
         return self.name
 
-    def schedule_occurrence(self, branch, tick):
-        if branch not in self.occurrences:
-            self.occurrences[branch] = set()
-        self.occurrences[branch].add(tick)
-
     def do(self, branch=None, tick=None):
+        """Call the callback, and add its results to this character."""
         if branch is None:
             branch = self.rumor.branch
         if tick is None:
             tick = self.rumor.tick
         nuval = self.cb(self, branch, tick)
         if hasattr(nuval, 'locations'):
+            if self.character.is_thing(nuval, branch, tick):
+                # redundant
+                return
             self.character.add_thing(nuval, branch, tick)
         elif hasattr(nuval, 'effects'):
             self.character.set_skill(self.key, nuval, branch, tick)
         else:
             self.character.set_stat(self.key, nuval, branch, tick)
-
-    def occurs(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.rumor.branch
-        if tick is None:
-            tick = self.rumor.tick
-        return tick in self.occurrences[branch]
 
 
 DRAW_FILO = 0
@@ -168,7 +160,8 @@ were right after firing them.
             tick_from = self.rumor.tick
         if branch in self.indefinite_effects:
             ifrom = self.indefinite_effects[branch]
-            (ieffects, ito) = self.effects[branch][ifrom]  # ito should be None
+            (ieffects, ito) = self.effects[branch][ifrom]
+            assert(ito is None)
             if tick_from > ito:
                 self.effects[branch][ifrom] = (ieffects, tick_from - 1)
                 del self.indefinite_effects[branch]
@@ -190,7 +183,9 @@ were right after firing them.
             return self.effects[self.indefinite_effects[branch]][0]
         for (tick_from, (val, tick_to)) in self.effects[branch].iteritems():
             if tick_from <= tick and tick <= tick_to:
-                return val
+                # return a *copy* of the effects--
+                # it would be embarassing to accidentally change history
+                return list(val)
         return []
 
     def get_tabdict(self):
@@ -220,7 +215,6 @@ were right after firing them.
         return r
 
     def draw(self, i=None, branch=None, tick=None):
-
         effs = self.get_effects(branch, tick)
         if i is None:
             if self.draw_order == DRAW_FILO:

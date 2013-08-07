@@ -34,7 +34,10 @@ class BoardSpotIter:
 
     def next(self):
         r = self.placeit.next()
-        while not hasattr(r, 'spots'):
+        while (
+                not hasattr(r, 'spots') or
+                len(r.spots) <= self.i or
+                r.spots[self.i] is None):
             r = self.placeit.next()
         return r.spots[self.i]
 
@@ -49,9 +52,51 @@ class BoardArrowIter:
 
     def next(self):
         r = self.portit.next()
-        while not hasattr(r, 'arrows'):
+        while (
+                not hasattr(r, 'arrows') or
+                len(r.arrows) <= self.i or
+                r.arrows[self.i] is None):
+            r = self.portit.next()
+        while not r.extant():
+            r.arrows[self.i].delete()
             r = self.portit.next()
         return r.arrows[self.i]
+
+
+class BoardSaver:
+    __metaclass__ = SaveableMetaclass
+    tables = [
+        ("board",
+         {"dimension": "text not null default 'Physical'",
+          "i": "integer not null default 0",
+          "wallpaper": "text not null default 'default_wallpaper'",
+          "width": "integer not null default 4000",
+          "height": "integer not null default 3000"},
+         ("dimension", "i"),
+         {"wallpaper": ("image", "name")},
+         []),
+    ]
+    def __init__(self, board):
+        self.board = board
+
+    def get_tabdict(self):
+        return {
+            "board": [
+                {"dimension": str(self.board.dimension),
+                 "i": int(self.board),
+                 "wallpaper": str(self.board.wallpaper),
+                 "width": self.board.width,
+                 "height": self.board.height}]}
+
+    def save(self):
+        for pawn in self.board.pawns:
+            pawn.save()
+        for spot in self.board.spots:
+            spot.save()
+        self.coresave()
+
+
+
 
 
 class Board:
@@ -68,18 +113,6 @@ board, but they are linked to the board anyhow, on the assumption that
 each board will be open in at most one window at a time.
 
     """
-    __metaclass__ = SaveableMetaclass
-    tables = [
-        ("board",
-         {"dimension": "text not null default 'Physical'",
-          "i": "integer not null default 0",
-          "wallpaper": "text not null default 'default_wallpaper'",
-          "width": "integer not null default 4000",
-          "height": "integer not null default 3000"},
-         ("dimension", "i"),
-         {"wallpaper": ("image", "name")},
-         []),
-    ]
 
     def __init__(self, window, i, width, height, wallpaper):
         """Return a board representing the given dimension.
@@ -93,6 +126,7 @@ each board will be open in at most one window at a time.
         self.height = height
         self.wallpaper = wallpaper
         self.menu_by_name = OrderedDict()
+        self.saver = BoardSaver(self)
 
     def __getattr__(self, attrn):
         if attrn == "places":
@@ -123,15 +157,6 @@ each board will be open in at most one window at a time.
                 return spot
         return None
 
-    def get_tabdict(self):
-        return {
-            "board": [
-                {"dimension": str(self.dimension),
-                 "i": int(self),
-                 "wallpaper": str(self.wallpaper),
-                 "width": self.width,
-                 "height": self.height}]}
-
     def make_pawn(self, thing):
         while len(thing.pawns) <= int(self):
             thing.pawns.append(None)
@@ -143,6 +168,8 @@ each board will be open in at most one window at a time.
         return thing.pawns[int(self)]
 
     def make_spot(self, place):
+        while len(place.spots) <= int(self):
+            place.spots.append(None)
         place.spots[int(self)] = Spot(self, place)
 
     def get_spot(self, place):
@@ -151,8 +178,4 @@ each board will be open in at most one window at a time.
         return place.spots[int(self)]
 
     def save(self):
-        for pawn in self.pawns:
-            pawn.save()
-        for spot in self.spots:
-            spot.save()
-        self.coresave()
+        self.saver.save()

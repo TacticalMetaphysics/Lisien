@@ -124,6 +124,7 @@ indefinitely--that is, until I have anything else to do. With tick_to,
 I'll stay in this location until then, even if I DO have something
 else to do.
 
+Return an Effect representing the change.
         """
         if branch is None:
             branch = self.rumor.branch

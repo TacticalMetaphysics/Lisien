@@ -8,22 +8,13 @@ from util import (
     BranchTicksIter,
     dictify_row)
 from logging import getLogger
+from igraph import ALL
 
 
 logger = getLogger(__name__)
 
 
-"""Widgets to represent places. Pawns move around on top of these."""
-
-
-class Spot(object, TerminableImg, TerminableInteractivity, TerminableCoords):
-    """The icon that represents a Place.
-
-    The Spot is located on the Board that represents the same
-    Dimension that the underlying Place is in. Its coordinates are
-    relative to its Board, not necessarily the window the Board is in.
-
-    """
+class SpotSaver:
     __metaclass__ = SaveableMetaclass
     tables = [
         ("spot_img",
@@ -60,17 +51,58 @@ class Spot(object, TerminableImg, TerminableInteractivity, TerminableCoords):
          ("dimension", "place", "board", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i")},
          [])]
+
+    def __init__(self, spot):
+        self.spot = spot
+
+    def get_tabdict(self):
+        return {
+            "spot_img": [
+                {
+                    "dimension": str(self.spot.dimension),
+                    "place": str(self.spot.place),
+                    "board": int(self.spot.board),
+                    "branch": branch,
+                    "tick_from": tick_from,
+                    "tick_to": tick_to,
+                    "img": str(img)}
+                for (branch, tick_from, tick_to, img) in
+                BranchTicksIter(self.spot.imagery)],
+            "spot_interactive": [
+                {
+                    "dimension": str(self.spot.dimension),
+                    "place": str(self.spot.place),
+                    "board": int(self.spot.board),
+                    "branch": branch,
+                    "tick_from": tick_from,
+                    "tick_to": tick_to}
+                for (branch, tick_from, tick_to) in
+                BranchTicksIter(self.spot.interactivity)],
+            "spot_coords": [
+                {
+                    "dimension": str(self.spot.dimension),
+                    "place": str(self.spot.place),
+                    "board": int(self.spot.board),
+                    "branch": branch,
+                    "tick_from": tick_from,
+                    "tick_to": tick_to,
+                    "x": x,
+                    "y": y}
+                for (branch, tick_from, tick_to, x, y) in
+                BranchTicksIter(self.spot.coord_dict)]}
+
+
+"""Widgets to represent places. Pawns move around on top of these."""
+
+
+class AbstractSpot(object, TerminableImg, TerminableInteractivity, TerminableCoords):
     selectable = True
 
-    def __init__(self, board, place):
-        """Return a new spot on the board for the given dimension,
-representing the given place with the given image. It will be at the
-given coordinates, and visible or interactive as indicated.
-        """
+    def __init__(self, board, vert, saveable=True):
         self.board = board
         self.rumor = self.board.rumor
         self.window = self.board.window
-        self.place = place
+        self.vert = vert
         self.interactivity = {}
         self.imagery = {}
         self.coord_dict = {}
@@ -85,6 +117,8 @@ given coordinates, and visible or interactive as indicated.
         self.tweaks = 0
         self.drag_offset_x = 0
         self.drag_offset_y = 0
+        if saveable:
+            self.saver = SpotSaver(self)
 
     def __getattr__(self, attrn):
         if attrn == 'dimension':
@@ -104,11 +138,20 @@ given coordinates, and visible or interactive as indicated.
         elif attrn == 'coords':
             return self.get_coords()
         elif attrn == 'x':
-            return self.coords[0]
+            coords = self.coords
+            if coords is None:
+                return None
+            return coords[0]
         elif attrn == 'y':
-            return self.coords[1]
+            coords = self.coords
+            if coords is None:
+                return None
+            return coords[1]
         elif attrn == 'window_coords':
-            (x, y) = self.coords
+            coords = self.coords
+            if coords is None:
+                return None
+            (x, y) = coords
             return (
                 x + self.drag_offset_x + self.window.offset_x,
                 y + self.drag_offset_y + self.window.offset_y)
@@ -147,12 +190,17 @@ given coordinates, and visible or interactive as indicated.
         elif attrn == 'window_right':
             return self.window_x + self.rx
         elif attrn == 'in_window':
-            return (self.window_top > 0 and
-                    self.window_right > 0) or (
-                        self.window_bot < self.window.height and
-                        self.window_right < self.window.width)
+            wico = self.window_coords
+            return (
+                wico is not None and
+                wico[0] + self.rx > 0 and
+                wico[1] + self.ry > 0 and
+                wico[0] - self.rx < self.window.width and
+                wico[1] - self.ry < self.window.height)
         elif attrn == 'visible':
             return self.img is not None
+        elif hasattr(self, 'saver') and hasattr(self.saver, attrn):
+            return getattr(self.saver, attrn)
         else:
             raise AttributeError(
                 "Spot instance has no such attribute: " +
@@ -179,20 +227,6 @@ given coordinates, and visible or interactive as indicated.
                 self.unset_pressed()
         else:
             super(Spot, self).__setattr__(attrn, val)
-
-    def __str__(self):
-        return str(self.place)
-
-    def __eq__(self, other):
-        """Compare the dimension and the name"""
-        return (
-            isinstance(other, Spot) and
-            self.dimension == other.dimension and
-            self.name == other.name)
-
-    def onclick(self):
-        """Does nothing yet"""
-        pass
 
     def dropped(self, x, y, button, modifiers):
         c = self.get_coords()
@@ -230,48 +264,38 @@ mouse."""
         self.drag_offset_y += dy
 
     def overlaps(self, x, y):
+        if self.coords is None:
+            return False
         (myx, myy) = self.window_coords
         return (
             self.visible and
             self.interactive and
             abs(myx - x) < self.rx and
             abs(myy - y) < self.ry)
-        
-    def get_tabdict(self):
-        return {
-            "spot_img": [
-                {
-                    "dimension": str(self.dimension),
-                    "place": str(self.place),
-                    "board": int(self.board),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to,
-                    "img": str(img)}
-                for (branch, tick_from, tick_to, img) in
-                BranchTicksIter(self.imagery)],
-            "spot_interactive": [
-                {
-                    "dimension": str(self.dimension),
-                    "place": str(self.place),
-                    "board": int(self.board),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to}
-                for (branch, tick_from, tick_to) in
-                BranchTicksIter(self.interactivity)],
-            "spot_coords": [
-                {
-                    "dimension": str(self.dimension),
-                    "place": str(self.place),
-                    "board": int(self.board),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to,
-                    "x": x,
-                    "y": y}
-                for (branch, tick_from, tick_to, x, y) in
-                BranchTicksIter(self.coord_dict)]}
+
+    def delete(self):
+        for e in self.place.incident(mode=ALL):
+            for arrow in e.arrows:
+                arrow.delete()
+        try:
+            self.sprite.delete()
+        except:
+            pass
+
+class Spot(AbstractSpot):
+    """The icon that represents a Place.
+
+    The Spot is located on the Board that represents the same
+    Dimension that the underlying Place is in. Its coordinates are
+    relative to its Board, not necessarily the window the Board is in.
+
+    """
+    def __init__(self, board, place):
+        super(PlaceSpot, self).__init__(board, place.v)
+        self.place = place
+
+    def __str__(self):
+        return str(self.place)
 
     def get_state_tup(self):
         return (
@@ -283,5 +307,8 @@ mouse."""
             self.pressed,
             self.grabbed,
             self.selected,
-            self.window_x,
-            self.window_y)
+            self.coords,
+            self.drag_offset_x,
+            self.drag_offset_y,
+            self.window.view_left,
+            self.window.view_bot)

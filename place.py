@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from igraph import Vertex
+from igraph import Vertex, OUT
 
 class Place:
     """Where you go when you have to be someplace.
@@ -37,3 +37,6 @@ thing located there.
 
     def __repr__(self):
         return str(self.dimension) + "." + str(self)
+
+    def incident(self, mode=OUT):
+        return self.dimension.graph.incident(int(self), mode)

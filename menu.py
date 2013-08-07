@@ -138,11 +138,11 @@ the same."""
         return self.text
 
     def onclick(self):
+        print "menu item {0} clicked".format(self.text)
         return self.on_click(self)
 
     def overlaps(self, x, y):
         return (
-            self.visible and
             x > self.window_left and
             x < self.window_right and
             y > self.window_bot and

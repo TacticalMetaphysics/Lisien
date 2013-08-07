@@ -39,5 +39,6 @@ def incdb(ticky):
     while tocky >= gamespeed:
         tocky -= gamespeed
         rumor.tick += 1
-pyglet.clock.schedule_interval(incdb, gamespeed)
+pyglet.clock.schedule_interval_soft(incdb, gamespeed)
+pyglet.clock.schedule(gw.update)
 pyglet.app.run()

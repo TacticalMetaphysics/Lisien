@@ -15,6 +15,7 @@ import re
 import igraph
 import effect
 from dimension import Dimension
+from timestream import Timestream
 from place import Place
 from portal import Portal
 from thing import Thing
@@ -144,6 +145,9 @@ given name.
         self.eventdict = {}
         self.lang = lang
 
+        self.timestream = Timestream(self)
+        self.lastbranch = 0
+
         placeholder = (noop, ITEM_ARG_RE)
         self.effect_cbs = {}
         self.func = {
@@ -177,7 +181,6 @@ given name.
             "front_branch": front_branch,
             "seed": seed,
             "tick": tick,
-            "hi_branch": hi_branch,
             "hi_place": hi_place,
             "hi_portal": hi_portal,
             "hi_thing": hi_thing}
@@ -191,8 +194,6 @@ given name.
             return self.game["seed"]
         elif attrn == "tick":
             return self.game["tick"]
-        elif attrn == "hi_branch":
-            return self.game["hi_branch"]
         elif attrn == "hi_place":
             return self.game["hi_place"]
         elif attrn == "hi_portal":
@@ -262,18 +263,6 @@ For more information, consult SaveableMetaclass in util.py.
             return clas.dbop['missing'](self, keydict, tablename)
         else:
             return []
-
-    def xfunc(self, func, name=None):
-        """Add the given function to those accessible to effects.
-
-Optional argument name is the one the effect needs to use to access
-the function.
-
-        """
-        if name is None:
-            self.func[func.__name__] = func
-        else:
-            self.func[name] = func
 
     def toggle_menu(self, menuitem, menuname,
                     effect=None, deck=None, event=None):
@@ -655,11 +644,9 @@ necessary."""
 
     def make_portal(self, orig, dest):
         dimension = orig.dimension
-        port = Portal(dimension, orig, dest)
-        port.exist()
-        if str(orig) not in dimension.portals_by_orign_destn:
-            dimension.portals_by_orign_destn[str(orig)] = {}
-        dimension.portals_by_orign_destn[str(orig)][str(dest)] = port
+        dimension.make_portal(orig, dest)
+        port = dimension.get_portal(orig, dest)
+        port.persist()
         return port
 
     def load_cards(self, names):
@@ -732,6 +719,7 @@ necessary."""
             logger.debug("putting thing %s in place %s", thingn, str(loc))
             thing = dim.get_thing(thingn)
             thing.set_location(loc, branch, tick_from, tick_to)
+        self.dimensiondict[dimn] = dim
         return dim
 
     def get_board(self, i, window):
@@ -783,6 +771,8 @@ necessary."""
         self.c.execute(SPOT_BOARD_QRY_START, (str(dim), i))
         for row in self.c:
             (placen, branch, tick_from, tick_to, x, y) = row
+            if placen not in dim.placenames:
+                dim.make_place(placen)
             place = dim.get_place(placen)
             while len(place.spots) <= i:
                 place.spots.append(None)

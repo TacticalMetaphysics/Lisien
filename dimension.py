@@ -9,7 +9,7 @@ from pawn import Pawn
 from img import Img
 from arrow import Arrow
 from logging import getLogger
-from igraph import Graph, InternalError
+from igraph import Graph, InternalError, IN
 from collections import OrderedDict
 from util import DictValues2DIterator
 
@@ -59,7 +59,6 @@ keyed with their names.
         """
         self.name = name
         self.rumor = rumor
-        self.rumor.dimensiondict[str(self)] = self
         self.boards = []
         self.thingdict = {}
         self.graph = Graph(directed=True)
@@ -99,13 +98,6 @@ this dimension, and laid out nicely."""
             return False
         return name in self.graph.vs["name"]
 
-    def add_place(self, name, existence, indef_exist, spots):
-        self.graph.add_vertex(
-            name=name,
-            existence=existence,
-            indef_exist=indef_exist,
-            spots=spots)
-
     def get_place(self, iname):
         vnames = self.graph.vs["name"]
         if not isinstance(iname, int):
@@ -113,8 +105,18 @@ this dimension, and laid out nicely."""
         v = self.graph.vs[iname]
         return Place(self, v)
 
-    def make_place(self, name):
-        self.add_place(name, {}, {}, [])
+    def make_place(self, name, existence=None, indef_exist=None, spots=None):
+        if existence is None:
+            existence = {}
+        if indef_exist is None:
+            indef_exist = {}
+        if spots is None:
+            spots = []
+        self.graph.add_vertex(
+            name=name,
+            existence=existence,
+            indef_exist=indef_exist,
+            spots=spots)
         return self.get_place(name)
 
     def have_portal(self, orig, dest):
@@ -132,7 +134,7 @@ this dimension, and laid out nicely."""
             return False
         return self.graph[orig, dest] > 0
 
-    def add_portal(self, orig, dest, existence, indef_exist, arrows):
+    def make_portal(self, orig, dest, existence=None, indef_exist=None, arrows=None):
         vertns = self.graph.vs["name"]
         if hasattr(orig, 'v'):
             orig = int(orig)
@@ -142,14 +144,19 @@ this dimension, and laid out nicely."""
             dest = int(dest)
         elif not isinstance(dest, int):
             dest = vertns.index(dest)
+        if existence is None:
+            exiscence = {}
+        if indef_exist is None:
+            indef_exist = {}
+        if arrows is None:
+            arrows = []
+        i = len(self.graph.es)
         self.graph.add_edge(
             orig, dest,
             existence=existence,
             indef_exist=indef_exist,
             arrows=arrows)
-
-    def make_portal(self, orig, dest):
-        self.add_portal(orig, dest, {}, {}, [])
+        return self.get_portal(orig, dest)
 
     def get_portal(self, orig, dest):
         vertns = self.graph.vs["name"]
@@ -167,11 +174,13 @@ this dimension, and laid out nicely."""
         except InternalError:
             return None
 
-    def add_thing(self, name, locations, indef_locs):
+    def make_thing(self, name, locations=None, indef_locs=None):
+        if locations is None:
+            locations = {}
+        if indef_locs is None:
+            indef_locs = {}
         self.thingdict[name] = Thing(self, name, locations, indef_locs)
-
-    def make_thing(self, name):
-        self.add_thing(name, {}, {})
+        return self.thingdict[name]
 
     def get_thing(self, name):
         return self.thingdict[name]

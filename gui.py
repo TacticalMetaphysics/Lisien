@@ -4,130 +4,23 @@ import pyglet
 import ctypes
 import math
 import logging
-from util import SaveableMetaclass
+from util import (
+    SaveableMetaclass,
+    slope_theta_rise_run,
+    opp_theta_rise_run,
+    truncated_line,
+    wedge_offsets_rise_run,
+    fortyfive)
 from math import atan, pi, sin, cos, hypot
 from arrow import Arrow
 from menu import Menu, MenuItem
 from card import Hand
 from calendar import Calendar
 from picpicker import PicPicker
-
 from collections import OrderedDict
 
+
 logger = logging.getLogger(__name__)
-
-ninety = math.pi / 2
-
-fortyfive = math.pi / 4
-
-threesixty = math.pi * 2
-
-
-def average(*args):
-    n = len(args)
-    return sum(args)/n
-
-
-line_len_rise_run = hypot
-
-
-def line_len(ox, oy, dx, dy):
-    rise = dy - oy
-    run = dx - ox
-    return hypot(rise, run)
-
-
-def slope_theta_rise_run(rise, run):
-    try:
-        return atan(rise/run)
-    except ZeroDivisionError:
-        if rise >= 0:
-            return ninety
-        else:
-            return -1 * ninety
-
-
-def slope_theta(ox, oy, dx, dy):
-    rise = dy - oy
-    run = dx - ox
-    return slope_theta_rise_run(rise, run)
-
-
-def opp_theta_rise_run(rise, run):
-    try:
-        return atan(run/rise)
-    except ZeroDivisionError:
-        if run >= 0:
-            return ninety
-        else:
-            return -1 * ninety
-
-
-def opp_theta(ox, oy, dx, dy):
-    rise = dy - oy
-    run = dx - ox
-    return opp_theta_rise_run(rise, run)
-
-
-def truncated_line(leftx, boty, rightx, topy, r, from_start=False):
-    # presumes pointed up and right
-    if r == 0:
-        return (leftx, boty, rightx, topy)
-    rise = topy - boty
-    run = rightx - leftx
-    length = line_len_rise_run(rise, run) - r
-    theta = slope_theta_rise_run(rise, run)
-    if from_start:
-        leftx = rightx - math.cos(theta) * length
-        boty = topy - math.sin(theta) * length
-    else:
-        rightx = leftx + math.cos(theta) * length
-        topy = boty + math.sin(theta) * length
-    return (leftx, boty, rightx, topy)
-
-
-def extended_line(leftx, boty, rightx, topy, r):
-    return truncated_line(leftx, boty, rightx, topy, -1 * r)
-
-
-def trimmed_line(leftx, boty, rightx, topy, trim_start, trim_end):
-    et = truncated_line(leftx, boty, rightx, topy, trim_end)
-    return truncated_line(et[0], et[1], et[2], et[3], trim_start, True)
-
-
-def wedge_offsets_core(theta, opp_theta, taillen):
-    top_theta = theta - fortyfive
-    bot_theta = pi - fortyfive - opp_theta
-    xoff1 = cos(top_theta) * taillen
-    yoff1 = sin(top_theta) * taillen
-    xoff2 = cos(bot_theta) * taillen
-    yoff2 = sin(bot_theta) * taillen
-    return (
-        xoff1, yoff1, xoff2, yoff2)
-
-
-def wedge_offsets_rise_run(rise, run, taillen):
-    # theta is the slope of a line bisecting the ninety degree wedge.
-    theta = slope_theta_rise_run(rise, run)
-    opp_theta = opp_theta_rise_run(rise, run)
-    return wedge_offsets_core(theta, opp_theta, taillen)
-
-
-def wedge_offsets_slope(slope, taillen):
-    theta = atan(slope)
-    opp_theta = atan(1/slope)
-    return wedge_offsets_core(theta, opp_theta, taillen)
-
-
-def get_line_width():
-    see = ctypes.c_float()
-    pyglet.gl.glGetFloatv(pyglet.gl.GL_LINE_WIDTH, see)
-    return float(see.value)
-
-
-def set_line_width(w):
-    wcf = ctypes.c_float(w)
-    pyglet.gl.glLineWidth(wcf)
 
 
 class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
@@ -151,26 +44,6 @@ class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
 
     def unset_state(self):
         pyglet.gl.glDisable(pyglet.gl.GL_SCISSOR_TEST)
-
-
-class BoldLineOrderedGroup(pyglet.graphics.OrderedGroup):
-    def __init__(self, order, parent=None, width=1.0):
-        self.width = float(width)
-        pyglet.graphics.OrderedGroup.__init__(self, order, parent)
-
-    def set_state(self):
-        pyglet.gl.glDisable(pyglet.gl.GL_LINE_SMOOTH)
-        set_line_width(self.width)
-
-
-class SmoothBoldLineOrderedGroup(pyglet.graphics.OrderedGroup):
-    def __init__(self, order, parent=None, width=1.0):
-        self.width = float(width)
-        pyglet.graphics.OrderedGroup.__init__(self, order, parent)
-
-    def set_state(self):
-        set_line_width(self.width)
-        pyglet.gl.glEnable(pyglet.gl.GL_LINE_SMOOTH)
 
 
 class TransparencyGroup(pyglet.graphics.Group):
@@ -225,7 +98,6 @@ class WindowSaver:
 
 
 class GameWindow(pyglet.window.Window):
-    """Instantiates a Pyglet window and displays the given board in it."""
     edge_order = 1
 
     def __init__(self, rumor, name, min_width, min_height, dimension,
@@ -233,6 +105,21 @@ class GameWindow(pyglet.window.Window):
                  main_menu, hand_rows, cal_rows, menu_rows, menu_item_rows):
         """Initialize the game window, its groups, and some state tracking."""
         super(GameWindow, self).__init__()
+        class MousySpot:
+            """A spot-like object that's always at the last known position of the mouse."""
+            x = 0
+            y = 0
+
+            def __getattr__(self, attrn):
+                if attrn == "window_x":
+                    return self.x
+                elif attrn == "window_y":
+                    return self.y
+                elif attrn in ("coords", "window_coords"):
+                    return (self.x, self.y)
+                else:
+                    raise AttributeError
+        self.mouspot = MousySpot()
         self.rumor = rumor
         self.name = name
         self.min_width = min_width
@@ -304,12 +191,10 @@ class GameWindow(pyglet.window.Window):
         self.edge_order = 1
         self.keep_selected = False
         self.prev_view_bot = 0
-        self.last_mouse_x = 0
-        self.last_mouse_y = 0
-        self.dxdy_hist_ct = 0
-        dxdy_hist_max = 10
-        self.dx_hist = [0] * dxdy_hist_max
-        self.dy_hist = [0] * dxdy_hist_max
+
+        self.dxdy_hist_max = 10
+        self.dx_hist = [0] * self.dxdy_hist_max
+        self.dy_hist = [0] * self.dxdy_hist_max
 
         self.batch = pyglet.graphics.Batch()
 
@@ -330,7 +215,8 @@ class GameWindow(pyglet.window.Window):
         self.create_place_cursor.ry = ry
         self.portaling = False
         self.portal_from = None
-        self.portal_triple = ((None, None), (None, None), (None, None))
+        self.floaty_portal = None
+        self.some_arbitrary_counter = 0
         for menu in self.menus:
             menu.adjust()
 
@@ -362,6 +248,66 @@ class GameWindow(pyglet.window.Window):
 
     def __str__(self):
         return self.name
+
+    def update(self, dt):
+        (x, y) = (self.mouspot.x, self.mouspot.y)
+        if self.portaling:
+            if self.floaty_portal is None:
+                self.floaty_portal = Arrow(self.board, self.floaty_coords(), self.mouspot)
+            elif self.portal_from is None:
+                (self.floaty_portal.orig.x,
+                 self.floaty_portal.orig.y) = self.floaty_coords()
+            self.floaty_portal.update()
+        if (self.picker is not None and 
+            self.hovered is self.picker):
+            self.hovered = self.picker.hovered(x, y)
+        elif self.hovered is None:
+            if (
+                    self.picker is not None and
+                    self.picker.overlaps(x, y)):
+                self.hovered = self.picker.hovered(x, y)
+            for hand in self.hands:
+                if hand.overlaps(x, y):
+                    for card in hand:
+                        if (
+                                x > card.window_left and
+                                x < card.window_right):
+                            self.hovered = card
+                            card.tweaks += 1
+                            return
+            for menu in self.menus:
+                if menu.overlaps(x, y):
+                    for item in menu.items:
+                        if (
+                                y > item.window_bot and
+                                y < item.window_top):
+                            self.hovered = item
+                            item.tweaks += 1
+                            return
+            for pawn in self.board.pawns:
+                if pawn.overlaps(x, y):
+                    self.hovered = pawn
+                    pawn.tweaks += 1
+                    return
+            for spot in self.board.spots:
+                if spot.overlaps(x, y):
+                    self.hovered = spot
+                    spot.tweaks += 1
+                    return
+            for edge in self.board.arrows:
+                if edge.overlaps(x, y):
+                    if (
+                            self.pressed is None or
+                            (hasattr(self.pressed, 'order') and
+                             edge.order > self.pressed.order)):
+                        self.pressed = edge
+        else:
+            if not self.hovered.overlaps(x, y):
+                if hasattr(self.hovered, 'pass_focus'):
+                    self.hovered = self.hovered.pass_focus()
+                else:
+                    self.hovered.tweaks += 1
+                    self.hovered = None
 
     def on_draw(self):
         """Draw the background image; all spots, pawns, and edges on the
@@ -406,15 +352,13 @@ d; all visible menus; and the calendar, if it's visible."""
                             pic.delete()
         # draw the spots, representing places
         for spot in self.board.spots:
-            if str(spot.place) == 'myroom':
-                pass
             newstate = spot.get_state_tup()
             if newstate in self.onscreen:
                 continue
             self.onscreen.discard(spot.oldstate)
             self.onscreen.add(newstate)
             spot.oldstate = newstate
-            if spot.visible:
+            if spot.visible and spot.in_window:
                 l = spot.window_left
                 r = spot.window_right
                 b = spot.window_bot
@@ -446,89 +390,8 @@ d; all visible menus; and the calendar, if it's visible."""
                 except (AttributeError, AssertionError):
                     pass
         # draw the edges, representing portals
-        if self.portaling:
-            if self.portal_from is not None:
-                for pair in self.portal_triple:
-                    for vex in pair:
-                        try:
-                            vex.delete()
-                        except:
-                            pass
-                self.portal_triple = self.connect_arrow(
-                    self.portal_from.window_x,
-                    self.portal_from.window_y,
-                    self.last_mouse_x,
-                    self.last_mouse_y,
-                    self.portal_triple)
-            else:
-                dx = self.dx
-                dy = self.dy
-                length = self.arrowhead_size * 2
-                x = self.last_mouse_x
-                y = self.last_mouse_y
-                if dx == 0:
-                    if dy > 0:
-                        coords = (x, y - length, x, y)
-                    else:
-                        coords = (x, y + length, x, y)
-                elif dy == 0:
-                    if dx > 0:
-                        coords = (x - length, y, x, y)
-                    else:
-                        coords = (x + length, y, x, y)
-                else:
-                    xco = 1
-                    yco = 1
-                    if dx < 0:
-                        xco = -1
-                    if dy < 0:
-                        yco = -1
-                    x *= xco
-                    dx *= xco
-                    y *= yco
-                    dy *= yco
-                    theta = atan(float(dy)/float(dx))
-                    xleft = int(x - cos(theta) * length)
-                    ybot = int(y - sin(theta) * length)
-                    coords = (xleft * xco, ybot * yco, x * xco, y * yco)
-                    (x1, y1, x2, y2) = coords
-                    self.portal_triple = self.connect_arrow(
-                        x1, y1, x2, y2, 0, self.portal_triple)
         for edge in self.board.arrows:
-            newstate = edge.get_state_tup()
-            if newstate in self.onscreen:
-                continue
-            self.onscreen.discard(edge.oldstate)
-            self.onscreen.add(newstate)
-            edge.oldstate = newstate
-            if edge.orig.visible or edge.dest.visible:
-                order = edge.order
-                if edge in self.selected:
-                    order += 9000
-                    for pair in edge.vertices:
-                        for unit in pair:
-                            try:
-                                unit.delete()
-                            except:
-                                pass
-                    edge.vertices = (
-                        (None, None), (None, None), (None, None))
-                edge.vertices = self.connect_arrow(
-                    edge.orig.window_x,
-                    edge.orig.window_y,
-                    edge.dest.window_x,
-                    edge.dest.window_y,
-                    order,
-                    edge.vertices,
-                    edge.dest.r,
-                    edge.highlit)
-            else:
-                for pair in edge.vertices:
-                    for twopair in pair:
-                        try:
-                            twopair.delete()
-                        except:
-                            pass
+            edge.update()
         # draw the pawns, representing things
         for pawn in self.board.pawns:
             newstate = pawn.get_state_tup()
@@ -537,7 +400,7 @@ d; all visible menus; and the calendar, if it's visible."""
             self.onscreen.discard(pawn.oldstate)
             self.onscreen.add(newstate)
             pawn.oldstate = newstate
-            if pawn.visible:
+            if pawn.visible and pawn.in_window:
                 l = pawn.window_left
                 r = pawn.window_right
                 b = pawn.window_bot
@@ -875,45 +738,26 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
             if self.portal_from is None:
                 if hasattr(self.pressed, 'place'):
                     self.portal_from = self.pressed
-                    logger.debug(
-                        "Making a portal from %s...",
-                        str(self.portal_from.place))
+                    self.floaty_portal.orig = self.portal_from
                 else:
                     self.portaling = False
                     self.portal_from = None
-                    for line in self.portal_triple:
-                        if line is not None:
-                            for edge in line:
-                                try:
-                                    edge.delete()
-                                except:
-                                    pass
-                    self.portal_triple = (
-                        (None, None), (None, None), (None, None))
+                    self.floaty_portal.delete()
             else:
                 if (
                         hasattr(self.pressed, 'place') and
                         hasattr(self.portal_from, 'place') and
                         self.pressed.place != self.portal_from.place):
-                    logger.debug("...to %s", str(self.pressed.place))
                     port = self.rumor.make_portal(
                         self.portal_from.place,
                         self.pressed.place)
-                    a = Arrow(self.board, port)
-                    port.arrows = []
                     while len(port.arrows) <= int(self.board):
                         port.arrows.append(None)
-                    port.arrows[int(self.board)] = a
+                    port.arrows[int(self.board)] = Arrow(
+                        self.board, port.orig, port.dest)
                 self.portaling = False
                 self.portal_from = None
-                for line in self.portal_triple:
-                    for edge in line:
-                        try:
-                            edge.delete()
-                        except:
-                            pass
-                self.portal_triple = (
-                    (None, None), (None, None), (None, None))
+                self.floaty_portal.delete()
         elif self.grabbed is not None:
             if hasattr(self.grabbed, 'dropped'):
                 self.grabbed.dropped(x, y, button, modifiers)
@@ -923,9 +767,10 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                     sel.tweaks += 1
                 self.selected = set()
             if self.pressed.overlaps(x, y):
-                logger.debug("%s clicked", str(self.pressed))
+                print "{0} clicked".format(repr(self.pressed))
                 if hasattr(self.pressed, 'selectable'):
-                    self.pressed.selected()
+                    if hasattr(self.pressed, 'select'):
+                        self.pressed.select()
                     logger.debug("Selecting it.")
                     self.selected.add(self.pressed)
                     self.pressed.tweaks += 1
@@ -939,8 +784,8 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
         else:
             for sel in iter(self.selected):
                 sel.tweaks += 1
-                if hasattr(sel, 'unselected'):
-                    sel.unselected()
+                if hasattr(sel, 'unselect'):
+                    sel.unselect()
             self.selected = set()
         self.pressed = None
         self.grabbed = None
@@ -1006,61 +851,11 @@ move_with_mouse method, use it.
         """Find the widget, if any, that the mouse is over,
 and highlight it.
         """
-        self.last_mouse_x = x
-        self.last_mouse_y = y
-        del self.dx_hist[0]
-        del self.dy_hist[0]
-        self.dx_hist.append(dx)
-        self.dy_hist.append(dy)
-        if (self.picker is not None and 
-            self.hovered is self.picker):
-            self.hovered = self.picker.hovered(x, y)
-        elif self.hovered is None:
-            if (
-                    self.picker is not None and
-                    self.picker.overlaps(x, y)):
-                self.hovered = self.picker.hovered(x, y)
-            for hand in self.hands:
-                if hand.overlaps(x, y):
-                    for card in hand:
-                        if (
-                                x > card.window_left and
-                                x < card.window_right):
-                            self.hovered = card
-                            card.tweaks += 1
-                            return
-            for menu in self.menus:
-                if menu.overlaps(x, y):
-                    for item in menu.items:
-                        if (
-                                y > item.window_bot and
-                                y < item.window_top):
-                            self.hovered = item
-                            item.tweaks += 1
-                            return
-            for pawn in self.board.pawns:
-                if pawn.overlaps(x, y):
-                    self.hovered = pawn
-                    pawn.tweaks += 1
-                    return
-            for spot in self.board.spots:
-                if spot.overlaps(x, y):
-                    self.hovered = spot
-                    spot.tweaks += 1
-                    return
-            for edge in self.board.arrows:
-                if edge.touching(x, y):
-                    if (
-                            self.pressed is None or
-                            edge.order > self.pressed.order):
-                        self.pressed = edge
-        else:
-            if not self.hovered.overlaps(x, y):
-                if hasattr(self.hovered, 'pass_focus'):
-                    self.hovered = self.hovered.pass_focus()
-                else:
-                    self.hovered.tweaks += 1
-                    self.hovered = None
+        self.mouspot.x = x
+        self.mouspot.y = y
+        self.dx_hist[self.some_arbitrary_counter % self.dxdy_hist_max] = dx
+        self.dy_hist[self.some_arbitrary_counter % self.dxdy_hist_max] = dy
+        self.some_arbitrary_counter += 1
 
     def on_key_press(self, symbol, modifiers):
         if symbol == pyglet.window.key.DELETE:
@@ -1075,9 +870,7 @@ and highlight it.
                                 self.calendars[0].style, 'thing_pic')
 
     def create_portal(self):
-        if not hasattr(self, 'portaled'):
-            self.portaled = 0
-        self.portaled += 1
+        print "creating portal"
         self.portaling = True
 
     def delete_selection(self):
@@ -1085,75 +878,6 @@ and highlight it.
             dead.delete()
         self.selected = set()
 
-    def connect_arrow(
-            self, ox, oy, dx, dy,
-            order,
-            old_triple=((None, None), (None, None), (None, None)),
-            center_shrink=0,
-            highlight=False):
-        supergroup = pyglet.graphics.OrderedGroup(order, self.edgegroup)
-        bggroup = SmoothBoldLineOrderedGroup(
-            0, supergroup, self.arrow_girth)
-        fggroup = BoldLineOrderedGroup(
-            1, supergroup, self.arrow_width)
-        # xs and ys should be integers.
-        #
-        # results will be called l, c, r for left tail, center, right tail
-        if dy < oy:
-            yco = -1
-        else:
-            yco = 1
-        if dx < ox:
-            xco = -1
-        else:
-            xco = 1
-        (leftx, boty, rightx, topy) = truncated_line(
-            float(ox * xco), float(oy * yco),
-            float(dx * xco), float(dy * yco), center_shrink+1)
-        taillen = float(self.arrowhead_size)
-        rise = topy - boty
-        run = rightx - leftx
-        if rise == 0:
-            xoff1 = cos(fortyfive) * taillen
-            yoff1 = xoff1
-            xoff2 = xoff1
-            yoff2 = -1 * yoff1
-        elif run == 0:
-            xoff1 = sin(fortyfive) * taillen
-            yoff1 = xoff1
-            xoff2 = -1 * xoff1
-            yoff2 = yoff1
-        else:
-            (xoff1, yoff1, xoff2, yoff2) = wedge_offsets_rise_run(
-                rise, run, taillen)
-        x1 = int(rightx - xoff1) * xco
-        x2 = int(rightx - xoff2) * xco
-        y1 = int(topy - yoff1) * yco
-        y2 = int(topy - yoff2) * yco
-        endx = int(rightx) * xco
-        endy = int(topy) * yco
-        if highlight:
-            bgcolor = (255, 255, 0, 0)
-            fgcolor = (0, 0, 0, 0)
-        else:
-            bgcolor = (64, 64, 64, 64)
-            fgcolor = (255, 255, 255, 0)
-        lpoints = (x1, y1, endx, endy)
-        cpoints = (ox, oy, endx, endy)
-        rpoints = (x2, y2, endx, endy)
-        lbg = self.draw_line(
-            lpoints, bgcolor, bggroup, old_triple[0][0])
-        cbg = self.draw_line(
-            cpoints, bgcolor, bggroup, old_triple[1][0])
-        rbg = self.draw_line(
-            rpoints, bgcolor, bggroup, old_triple[2][0])
-        lfg = self.draw_line(
-            lpoints, fgcolor, fggroup, old_triple[0][1])
-        rfg = self.draw_line(
-            rpoints, fgcolor, fggroup, old_triple[2][1])
-        cfg = self.draw_line(
-            cpoints, fgcolor, fggroup, old_triple[1][1])
-        return ((lbg, lfg), (cbg, cfg), (rbg, rfg))
 
     def draw_line(self, points, color, group, verts=None):
         colors = color * 2
@@ -1242,3 +966,35 @@ associated with the argument."""
 
     def set_mouse_cursor_texture(self, tex):
         self.set_mouse_cursor(pyglet.window.ImageMouseCursor(tex, tex.width/2, tex.height/2))
+
+    def floaty_coords(self):
+        dx = self.dx
+        dy = self.dy
+        length = self.arrowhead_size * 2
+        x = self.mouspot.x
+        y = self.mouspot.y
+        if dx == 0:
+            if dy > 0:
+                return (x, y - length)
+            else:
+                return (x, y + length)
+        elif dy == 0:
+            if dx > 0:
+                return (x - length, y)
+            else:
+                return (x + length, y)
+        else:
+            xco = 1
+            yco = 1
+            if dx < 0:
+                xco = -1
+            if dy < 0:
+                yco = -1
+            x *= xco
+            dx *= xco
+            y *= yco
+            dy *= yco
+            theta = atan(float(dy)/float(dx))
+            xleft = int(x - cos(theta) * length)
+            ybot = int(y - sin(theta) * length)
+            return (xleft * xco, ybot * yco)

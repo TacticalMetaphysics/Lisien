@@ -215,6 +215,15 @@ item's name, and the name of the attribute.
         thingn = str(thing)
         return self.is_thing_with_strs(dimn, thingn, branch, tick)
 
+    def were_thing_with_strs(self, dimn, thingn):
+        """Was I ever, will I ever, be this thing?"""
+        for branch in self.thingdict:
+            if dimn not in thingdict[branch]:
+                continue
+            if thingn in self.thingdict[branch][dimn]:
+                return True
+        return False
+
     def get_things(self, branch=None, tick=None):
         if branch is None:
             branch = self.rumor.branch

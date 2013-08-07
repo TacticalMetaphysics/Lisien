@@ -91,13 +91,25 @@ interactive or not.
         elif attrn == 'coords':
             return self.get_coords()
         elif attrn == 'x':
-            return self.coords[0]
+            coords = self.coords
+            if coords is None:
+                return None
+            return coords[0]
         elif attrn == 'y':
-            return self.coords[1]
+            coords = self.coords
+            if coords is None:
+                return None
+            return coords[1]
         elif attrn == 'window_left':
-            return self.x + self.drag_offset_x
+            coords = self.coords
+            if coords is None:
+                return None
+            return coords[0] + self.drag_offset_x
         elif attrn == 'window_bot':
-            return self.y + self.drag_offset_y
+            coords = self.coords
+            if coords is None:
+                return None
+            return coords[1] + self.drag_offset_y
         elif attrn == 'width':
             return self.img.width
         elif attrn == 'height':
@@ -106,7 +118,7 @@ interactive or not.
             return self.window_left + self.width
         elif attrn == 'window_top':
             return self.window_bot + self.height
-        elif attrn == 'onscreen':
+        elif attrn == 'in_window':
             return (
                 self.coords is not None and
                 self.window_right > 0 and
@@ -146,7 +158,6 @@ interactive or not.
         return (
             self.get_img(branch, tick),
             self.interactive,
-            self.onscreen,
             self.grabpoint,
             self.hovered,
             self.get_coords(branch, tick),
@@ -174,7 +185,7 @@ interactive or not.
             pass
 
     def overlaps(self, x, y):
-        if self.visible and self.interactive:
+        if self.visible and self.interactive and self.in_window:
             (myx, myy) = self.get_coords()
             return (
                 x > myx and
@@ -184,13 +195,13 @@ interactive or not.
         else:
             return False
 
-    def selected(self):
+    def select(self):
         if self.calcol is None:
             sensical = self.window.sensible_calendar_for(self.thing)
             self.calcol = sensical.mkcol(self.thing.locations)
             self.calcol.visible = True
 
-    def unselected(self):
+    def unselect(self):
         if self.calcol is not None:
             self.calcol.delete()
             self.calcol = None
@@ -214,7 +225,14 @@ interactive or not.
                     int(oy + ody * prog) + self.window.offset_y)
         elif hasattr(loc, 'spots'):
             spot = loc.spots[int(self.board)]
-            return (spot.window_x, spot.window_y)
+            swico = spot.get_coords(branch, tick)
+            if swico is None:
+                return None
+            else:
+                (x, y) = swico
+                return (
+                    x + spot.drag_offset_x + self.window.offset_x,
+                    y + spot.drag_offset_y + self.window.offset_y)
         else:
             raise Exception("When trying to get the coordinates of the pawn for {0}, I found that its location {1} had no spots.".format(str(self), str(loc)))
 

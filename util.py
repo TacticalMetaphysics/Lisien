@@ -1,7 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
-from math import sqrt
+import ctypes
+from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -128,6 +129,110 @@ def place2idx(db, dimname, pl):
     else:
         raise ValueError("Can't convert that into a place-index")
 
+def line_len(ox, oy, dx, dy):
+    rise = dy - oy
+    run = dx - ox
+    return hypot(rise, run)
+
+def slope_theta_rise_run(rise, run):
+    try:
+        return atan(rise/run)
+    except ZeroDivisionError:
+        if rise >= 0:
+            return ninety
+        else:
+            return -1 * ninety
+
+def slope_theta(ox, oy, dx, dy):
+    rise = dy - oy
+    run = dx - ox
+    return slope_theta_rise_run(rise, run)
+
+
+def opp_theta_rise_run(rise, run):
+    try:
+        return atan(run/rise)
+    except ZeroDivisionError:
+        if run >= 0:
+            return ninety
+        else:
+            return -1 * ninety
+
+
+def opp_theta(ox, oy, dx, dy):
+    rise = dy - oy
+    run = dx - ox
+    return opp_theta_rise_run(rise, run)
+
+
+def truncated_line(leftx, boty, rightx, topy, r, from_start=False):
+    # presumes pointed up and right
+    if r == 0:
+        return (leftx, boty, rightx, topy)
+    rise = topy - boty
+    run = rightx - leftx
+    length = hypot(rise, run) - r
+    theta = slope_theta_rise_run(rise, run)
+    if from_start:
+        leftx = rightx - cos(theta) * length
+        boty = topy - sin(theta) * length
+    else:
+        rightx = leftx + cos(theta) * length
+        topy = boty + sin(theta) * length
+    return (leftx, boty, rightx, topy)
+
+def extended_line(leftx, boty, rightx, topy, r):
+    return truncated_line(leftx, boty, rightx, topy, -1 * r)
+
+
+def trimmed_line(leftx, boty, rightx, topy, trim_start, trim_end):
+    et = truncated_line(leftx, boty, rightx, topy, trim_end)
+    return truncated_line(et[0], et[1], et[2], et[3], trim_start, True)
+
+
+def wedge_offsets_core(theta, opp_theta, taillen):
+    top_theta = theta - fortyfive
+    bot_theta = pi - fortyfive - opp_theta
+    xoff1 = cos(top_theta) * taillen
+    yoff1 = sin(top_theta) * taillen
+    xoff2 = cos(bot_theta) * taillen
+    yoff2 = sin(bot_theta) * taillen
+    return (
+        xoff1, yoff1, xoff2, yoff2)
+
+
+def wedge_offsets_rise_run(rise, run, taillen):
+    # theta is the slope of a line bisecting the ninety degree wedge.
+    theta = slope_theta_rise_run(rise, run)
+    opp_theta = opp_theta_rise_run(rise, run)
+    return wedge_offsets_core(theta, opp_theta, taillen)
+
+
+def wedge_offsets_slope(slope, taillen):
+    theta = atan(slope)
+    opp_theta = atan(1/slope)
+    return wedge_offsets_core(theta, opp_theta, taillen)
+
+
+def get_line_width():
+    see = ctypes.c_float()
+    pyglet.gl.glGetFloatv(pyglet.gl.GL_LINE_WIDTH, see)
+    return float(see.value)
+
+
+def set_line_width(w):
+    wcf = ctypes.c_float(w)
+    pyglet.gl.glLineWidth(wcf)
+
+def average(*args):
+    n = len(args)
+    return sum(args)/n
+
+ninety = pi / 2
+
+fortyfive = pi / 4
+
+threesixty = pi * 2
 
 class TerminableImg:
     def get_img(self, branch=None, tick=None):
