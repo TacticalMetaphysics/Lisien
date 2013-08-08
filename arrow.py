@@ -146,6 +146,11 @@ class Arrow:
             return ((y_numerator - x_numerator), denominator)
         elif attrn == 'highlit':
             return self in self.window.selected
+        elif "length" in self.e.get_attributes() and attrn == 'tick_along':
+            # This is for the timestream.  After clicking an arrow you
+            # can get the tick represented by the point at which the
+            # arrow was clicked.
+            return int(self.e["length"] * self.clicked_along)
         else:
             raise AttributeError(
                 "Edge instance has no attribute {0}".format(attrn))
@@ -174,15 +179,20 @@ class Arrow:
     def overlaps(self, x, y):
         """Do I overlap the point (x, y)?
 
-'Width' is actually more like 'height'--it's a vertical margin of
-error. This is good enough approximation for determining if I've been
-clicked.
+'Width' is actually a vertical margin of error. This is good enough
+approximation for determining if I've been clicked.
+
+If I *do* overlap the point, I'll remember *how far along me* the
+point was. I'll keep that information in the instance variable,
+clicked_along.
 
         """
         if self.m > 300:
             perfect_x = self.x_at(y)
             frac_x = (x * perfect_x[1] - perfect_x[0], perfect_x[1])
             r = abs(frac_x[0]) < abs(self.w * frac_x[1])
+        else:
+            perfect_x = None
         perfect_y = self.y_at(x)
         if perfect_y is None:
             return True
@@ -194,10 +204,28 @@ clicked.
                 self.portal.extant() and
                 self.orig is not None and
                 self.dest is not None):
+            self.clicked_along = None
             return False
-        else:
-            return r
+        elif r:
+            if perfect_x is None:
+                # test wrt. the x coord
+                # the point(x, perfect_y) is where along me?
+                self.clicked_along = hypot(x, perfect_y) / len(self)
+            else:
+                # test wrt. the y coord
+                self.clicked_along = hypot(perfect_x, y) / len(self)
+        return r
 
+    def onclick(self):
+        """In most circumstances, this does nothing; the window will handle my being selected.
+
+In the case where I'm in a timeline, clicking me initiates time travel."""
+        if "branch" in self.e.get_attributes():
+            branch = self.e["branch"]
+            length = self.e["length"]
+            start = self.orig.v["tick"]
+            self.rumor.time_travel(branch, start + (length * self.clicked_along))
+            self.window.onscreen = set()
 
     def get_state_tup(self):
         return ((self.tweaks, self.highlit) +

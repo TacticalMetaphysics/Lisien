@@ -187,9 +187,26 @@ just how to display this widget"""
                 "closer": self.closer}]
         }
 
-    def delete(self):
-        del self.rumor.menuitemdict[self._board][self._menu][self.idx]
-        self.erase()
+    def draw(self):
+        state = self.get_state_tup()
+        if state in self.window.onscreen:
+            return
+        self.window.onscreen.add(state)
+        self.window.onscreen.discard(self.oldstate)
+        self.oldstate = state
+        try:
+            self.label.delete()
+        except:
+            pass
+        self.label = pyglet.text.Label(
+            self.text,
+            self.menu.style.fontface,
+            self.menu.style.fontsize,
+            color=self.menu.style.textcolor.tup,
+            x=self.window_left,
+            y=self.window_bot,
+            batch=self.window.batch,
+            group=self.window.labelgroup)
 
 
 class Menu:
@@ -376,3 +393,23 @@ me"""
         for it in self.items:
             it.save()
         self.coresave()
+
+    def draw(self):
+        state = self.get_state_tup()
+        if state in self.window.onscreen:
+            return
+        self.window.onscreen.add(state)
+        self.window.onscreen.discard(self.oldstate)
+        self.oldstate = state
+        try:
+            self.sprite.delete()
+        except:
+            pass
+        if self.visible or str(self) == self.window.main_menu_name:
+            image = self.inactive_pattern.create_image(
+                self.width, self.height)
+            self.sprite = pyglet.sprite.Sprite(
+                image, self.window_left, self.window_bot,
+                self.window.batch, self.window.calgroup)
+        for item in self.items:
+            item.draw()

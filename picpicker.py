@@ -1,4 +1,5 @@
 from pyglet.image import SolidColorImagePattern
+from pyglet.sprite import Sprite
 from time import time
 
 class PicPanel:
@@ -82,6 +83,21 @@ class PicPanel:
             self.bot,
             self.tweaks)
 
+    def draw(self):
+        if self.in_picker:
+            try:
+                self.sprite.x = self.window_left
+                self.sprite.y = self.window_bot
+            except:
+                self.sprite = Sprite(
+                    self.tex,
+                    self.window_left,
+                    self.window_bot,
+                    batch=self.window.batch,
+                    group=self.window.pickerfggroup)
+        else:
+            self.delete()
+
 
 class PicPicker:
     """For picking pictures.
@@ -106,6 +122,7 @@ will be assigned to that attribute of the window the picker is in.
         self.oldstate = None
         self.sprite = None
         self.bgpat_inactive = SolidColorImagePattern(style.bg_inactive.tup)
+        self.bgimg = self.bgpat_inactive.create_image(self.width, self.height)
         self.bgpat_active = SolidColorImagePattern(style.bg_active.tup)
         self.panels = [PicPanel(self, img) for img in self.imgs]
         print "{0}: Instantiated a PicPicker targeting {1}".format(time(), targetn)
@@ -239,3 +256,21 @@ will be assigned to that attribute of the window the picker is in.
             self.pixrows[self.scrolled_to_row]])
         self.scrolled_px -= rowheight
         self.scrolled_to_row -= 1
+
+    def draw(self):
+        newstate = self.get_state_tup()
+        if newstate in self.window.onscreen:
+            return
+        self.window.onscreen.discard(self.oldstate)
+        self.window.onscreen.add(newstate)
+        self.oldstate = newstate
+        self.sprite = Sprite(
+            self.bgimg,
+            self.window_left,
+            self.window_bot,
+            batch=self.window.batch,
+            group=self.window.pickerbggroup)
+        self.layout()
+        for pixrow in self.pixrows:
+            for pic in pixrows:
+                pic.draw()

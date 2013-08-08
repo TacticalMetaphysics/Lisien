@@ -2,6 +2,9 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass, stringlike
 from pyglet.image import SolidColorImagePattern as color_pattern
+from pyglet.sprite import Sprite
+from pyglet.text import Label
+from pyglet.graphics import GL_LINES
 
 """User's view on a given item's schedule.
 
@@ -68,6 +71,8 @@ represents to calculate its dimensions and coordinates.
             return self.window_top - self.window_bot
         elif attrn == 'label_height':
             return self.style.fontsize + self.style.spacing
+        elif attrn == 'hovered':
+            return self is self.window.hovered
         else:
             raise AttributeError(
                 "CalendarCell instance has no such attribute: " +
@@ -93,8 +98,52 @@ between any two states that should appear different on-screen."""
         except:
             pass
 
-
-
+    def draw(self):
+        if self.visible:
+            if self.hovered:
+                image = self.active_pattern.create_image(
+                    self.width, self.height).texture
+            else:
+                image = self.inactive_pattern.create_image(
+                    self.width, self.height).texture
+            if self.hovered != self.was_hovered:
+                self.sprite = Sprite(
+                    image,
+                    self.window_left,
+                    self.window_bot,
+                    batch=self.window.batch,
+                    group=self.window.calgroup)
+                self.was_hovered = self.hovered
+            else:
+                try:
+                    self.sprite.x = self.window_left
+                    self.sprite.y = self.window_bot
+                except:
+                    self.sprite = Sprite(
+                        image,
+                        self.window_left,
+                        self.window_bot,
+                        batch=self.window.batch,
+                        group=self.window.calgroup)
+            y = self.window_top - self.label_height
+            try:
+                self.label.x = self.window_left
+                self.label.y = y
+            except:
+                self.label = Label(
+                    self.text,
+                    self.style.fontface,
+                    self.style.fontsize,
+                    color=self.style.textcolor.tup,
+                    width=self.width,
+                    height=self.height,
+                    x=self.window_left,
+                    y=y,
+                    multiline=True,
+                    batch=self.window.batch,
+                    group=self.window.labelgroup)
+        else:
+            self.delete()
 
 class CalendarCol:
     def __init__(self, calendar, scheduledict, interactive, style):
@@ -184,8 +233,6 @@ between any two states that should appear different on-screen."""
             self.sprite.delete()
         except:
             pass
-        if self in self.calendar.cols:
-            self.calendar.cols.remove(self)
         self.sprite = None
 
     def pretty_caster(self, *args):
@@ -203,6 +250,18 @@ between any two states that should appear different on-screen."""
         for unarg in unargs:
             strings.append(str(unarg))
         return ";\n".join(strings)
+
+    def draw(self):
+        image = self.inactive_pattern.create_image(
+            self.width, self.height))
+        self.sprite = Sprite(
+            image,
+            self.window_left,
+            self.window_bot,
+            batch=self.window.batch,
+            group=self.window.calgroup)
+        for cel in self.cells:
+            cel.draw()
 
 
 class Calendar:
@@ -369,3 +428,30 @@ between any two states that should appear different on-screen."""
             self.window_bot < y and
             self.window_top > y)
         
+    def draw(self):
+        newstate = self.get_state_tup()
+        if newstate in self.window.onscreen:
+            return
+        self.window.onscreen.add(newstate)
+        self.window.onscreen.discard(self.oldstate)
+        self.oldstate = newstate
+        age_from_starting = self.rumor.tick - self.scrolled_to
+        age_offset = age_from_starting * self.row_height
+        y = self.window_top - age_offset
+        color = (255, 0, 0)
+        try:
+            self.timeline.delete()
+        except:
+            pass
+        if self.visible:
+            if y > self.window_bot:
+                self.timeline = self.window.batch.add(
+                    2, GL_LINES, self.window.topgroup,
+                    ('v2i', (self.window_left, y,
+                             self.window_right, y)),
+                    ('c3B', color * 2))
+            for calcol in self.cols:
+                calcol.draw()
+        else:
+            for calcol in self.cols:
+                calcol.delete()

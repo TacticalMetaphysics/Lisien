@@ -145,6 +145,7 @@ given name.
 
         self.branchdict = {0: (0, 0)}
         self.parentdict = {}
+        self.time_travel_history = []
 
         placeholder = (noop, ITEM_ARG_RE)
         self.effect_cbs = {}
@@ -969,6 +970,11 @@ necessary."""
             arrow_width, view_left, view_bot):
         return TimestreamWindow(
             self, min_width, min_height, arrowhead_size, arrow_width, view_left, view_bot)
+
+    def time_travel(self, branch, tick):
+        self.time_travel_history.append((self.branch, self.tick))
+        self.branch = branch
+        self.tick = tick
 
 
 def load_game(dbfn, lang="eng"):

@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-import pyglet
+from pyglet.sprite import Sprite
+from pyglet.text import Label
 from util import SaveableMetaclass, PatternHolder, phi, dictify_row, BranchTicksIter
 
 """Views on Effects and EffectDecks that look like cards--you know,
@@ -117,6 +118,35 @@ class TextHolder:
         else:
             return getattr(self.cardwidget, attrn)
 
+    def draw(self):
+        if (
+                self.cardwidget.old_width != self.cardwidget.width or
+                self.cardwidget.old_height != self.cardwidget.height):
+            image = self.card.pats.bg_active.create_image(self.width, self.height)
+            self.sprite = Sprite(
+                image,
+                self.window_left,
+                self.window_bot,
+                batch=self.window.batch,
+                group=self.window.celgroup)
+            self.label = Label(
+                self.card.text,
+                self.style.fontface,
+                self.style.fontsize,
+                anchor_y='bottom',
+                x=self.text_left,
+                y=self.text_bot,
+                width=self.text_width,
+                height=self.text_height,
+                multiline=True,
+                batch=self.window.batch,
+                group=self.window.labelgroup)
+        else:
+            self.sprite.x = self.window_left
+            self.sprite.y = self.window_bot
+            self.label.x = self.text_left
+            self.label.y = self.text_bot
+
 
 class CardWidget:
     def __init__(self, base, hand):
@@ -135,6 +165,8 @@ class CardWidget:
         self.bgsprite = None
         self.textholder = TextHolder(self)
         self.imgsprite = None
+        self.old_width = -1
+        self.old_height = -1
 
     def __int__(self):
         return self.hand.deck.index(self.base.effect)
@@ -268,8 +300,45 @@ class CardWidget:
             self.visible,
             self.interactive,
             self.hovered,
+            self.window_left,
+            self.window_bot,
             self.tweaks)
 
+    def delete(self):
+        try:
+            self.bgsprite.delete()
+        except:
+            pass
+        self.textholder.delete()
+
+    def draw(self):
+        newstate = self.get_state_tup()
+        if newstate in self.window.onscreen:
+            return
+        self.window.onscreen.add(newstate)
+        self.window.onscreen.discard(self.oldstate)
+        self.oldstate = newstate
+        if (
+                self.width != self.old_width or
+                self.height != self.old_height):
+            self.delete()
+        if self.visible:
+            try:
+                self.bgsprite.x = self.window_left
+                self.bgsprite.y = self.window_bot
+            except:
+                image = self.card.pats.bg_inactive.create_image(self.width, self.height)
+                self.sprite = Sprite(
+                    image,
+                    self.window_left,
+                    self.window_bot,
+                    batch=self.window.batch,
+                    group=self.window.calgroup)
+            self.textholder.draw()
+        else:
+            self.delete()
+        self.old_width = self.width
+        self.old_height = self.height
 
 class HandIterator:
     def __init__(self, hand):
