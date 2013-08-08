@@ -15,7 +15,6 @@ import re
 import igraph
 import effect
 from dimension import Dimension
-from timestream import Timestream
 from place import Place
 from portal import Portal
 from thing import Thing
@@ -28,7 +27,7 @@ from style import Style, Color
 from menu import Menu, MenuItem
 from card import Card, Hand
 from calendar import Calendar
-from gui import GameWindow
+from gui import BoardWindow, TimestreamWindow
 from collections import OrderedDict
 from logging import getLogger
 from util import dictify_row
@@ -141,12 +140,11 @@ given name.
         self.stringdict = {}
         self.styledict = {}
         self.tickdict = {}
-        self.branchgraph = igraph.Graph(directed=True)
         self.eventdict = {}
         self.lang = lang
 
-        self.timestream = Timestream(self)
-        self.lastbranch = 0
+        self.branchdict = {0: (0, 0)}
+        self.parentdict = {}
 
         placeholder = (noop, ITEM_ARG_RE)
         self.effect_cbs = {}
@@ -961,68 +959,16 @@ necessary."""
         self.c.execute(
             "SELECT menu, idx, text, on_click, closer FROM menu_item WHERE window=? AND menu IN ({0})".format(", ".join(["?"] * len(menunames))), (name,) + tuple(menunames))
         menu_item_rows = self.c.fetchall()
-        return GameWindow(
+        return BoardWindow(
             self, name, min_width, min_height, dim, boardi, arrowhead_size,
             arrow_width, view_left, view_bot, main_menu, hand_rows, cal_rows,
             menu_rows, menu_item_rows)
 
-    # def load_branch(self, i):
-    #     self.c.execute(
-    #         "SELECT {0} FROM branch WHERE idx=?".format(
-    #             ", ".join(Branch.colns)))
-    #     rowdict = dictify_row(self.c.fetchone(), Branch.colns)
-    #     rowdict["rumor"] = self
-    #     b = Branch(**rowdict)
-    #     p = None
-    #     if i == 0:
-    #         self.branches.append(b)
-    #         return
-    #     if rowdict["parent"] < len(self.branches):
-    #         p = self.branches[rowdict["parent"]]
-    #     if p is None:
-    #         self.load_branch(rowdict["parent"])
-    #         p = self.branches[rowdict["parent"]]
-    #     p.children.append(b)
-    #     while len(self.branches) <= i:
-    #         self.branches.append(None)
-    #     self.branches[i] = b
-    #     return b
-    # def load_branch(self, i):
-    #     self.c.execute(
-    #         "SELECT {0} FROM branch WHERE idx=?".format(
-    #             ", ".join(Branch.colns)), (i,))
-    #     rowdict = dictify_row(self.c.fetchone(), Branch.colns)
-    #     vattdict = {}
-    #     for key in ("parent", "start", "parm"):
-    #         vattdict[key] = rowdict[key]
-    #     for key in ("parent", "start", "parm"):
-    #         if key not in (
-    #                 self.branchgraph.vs[
-    #                     rowdict["parent"]].attribute_names()):
-    #             # I think this recursion will result in the addition
-    #             # of my parent vertex
-    #             self.load_branch(rowdict["parent"])
-    #             break
-    #     self.branchgraph.add_vertex(**vattdict)
-    #     self.branchgraph.add_edge(rowdict["parent"], i)
-
-
-    # def get_branch(self, i):
-    #     if (
-    #             i >= len(self.branches) or
-    #             self.branches[i] is None):
-    #         return self.load_branch[i]
-    #     else:
-    #         return self.branches[i]
-
-    # def make_branch(self, i, parent, start, parm):
-    #     b = Branch(self, i, parent, start, parm)
-    #     if (
-    #             parent >= len(self.branches) or
-    #             self.branches[parent] is None):
-    #         self.load_branch(parent)
-    #     self.branches[parent].children.append(b)
-    #     return b
+    def get_timestream(
+            self, min_width, min_height, arrowhead_size,
+            arrow_width, view_left, view_bot):
+        return TimestreamWindow(
+            self, min_width, min_height, arrowhead_size, arrow_width, view_left, view_bot)
 
 
 def load_game(dbfn, lang="eng"):

@@ -221,7 +221,7 @@ clicked.
                 except:
                     pass
 
-    def update(self):
+    def draw(self):
         supergroup = pyglet.graphics.OrderedGroup(self.order, self.window.edgegroup)
         bggroup = SmoothBoldLineOrderedGroup(
             0, supergroup, self.window.arrow_girth)

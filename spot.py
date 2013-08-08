@@ -7,6 +7,7 @@ from util import (
     TerminableCoords,
     BranchTicksIter,
     dictify_row)
+from pyglet.sprite import Sprite
 from logging import getLogger
 from igraph import ALL
 
@@ -272,6 +273,47 @@ mouse."""
             self.interactive and
             abs(myx - x) < self.rx and
             abs(myy - y) < self.ry)
+
+    def draw(self):
+        newstate = self.get_state_tup()
+        if newstate in self.window.onscreen:
+            return
+        self.window.onscreen.discard(self.oldstate)
+        self.window.onscreen.add(newstate)
+        self.oldstate = newstate
+        if self.visible and self.in_window:
+            if self.selected:
+                yelo = (255, 255, 0, 0)
+                self.box_edges = self.window.draw_box(
+                    self.window_left,
+                    self.window_top,
+                    self.window_right,
+                    self.window_bot,
+                    yelo,
+                    self.window.higroup,
+                    self.box_edges)
+            else:
+                for vertls in self.box_edges:
+                    try:
+                        vertls.delete()
+                    except:
+                        pass
+                self.box_edges = (None, None, None, None)
+            try:
+                self.sprite.x = self.window_left
+                self.sprite.y = self.window_bot
+            except AttributeError:
+                self.sprite = Sprite(
+                    self.img.tex,
+                    self.window_left,
+                    self.window_bot,
+                    self.window.batch,
+                    self.window.spotgroup)
+        else:
+            try:
+                self.sprite.delete()
+            except:
+                pass
 
     def delete(self):
         for e in self.place.incident(mode=ALL):

@@ -28,17 +28,10 @@ for arg in argv:
         except DatabaseError:
             print "Couldn't connect to the database named {0}.".format(arg)
     i += 1
-tocky = 0.0
 rumor = load_game(dbfn, lang)
 gw = rumor.load_window('Main')
-gamespeed = 0.1
+tw = rumor.get_timestream(300, 900, 10, 1.4, 0, 0)
 
-def incdb(ticky):
-    global tocky
-    tocky += ticky
-    while tocky >= gamespeed:
-        tocky -= gamespeed
-        rumor.tick += 1
-pyglet.clock.schedule_interval_soft(incdb, gamespeed)
 pyglet.clock.schedule(gw.update)
+pyglet.clock.schedule(tw.update)
 pyglet.app.run()

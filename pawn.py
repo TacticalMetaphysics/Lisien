@@ -5,6 +5,7 @@ from util import (
     TerminableImg,
     TerminableInteractivity,
     BranchTicksIter)
+from pyglet.sprite import Sprite
 from logging import getLogger
 from igraph import IN
 
@@ -171,18 +172,63 @@ interactive or not.
         self.tweaks += 1
 
     def dropped(self, x, y, button, modifiers):
+        """When dropped on a spot, if my thing doesn't have anything else to
+do, make it journey there.
+
+If it DOES have anything else to do, make the journey in another branch.
+
+        """
         logger.debug("Dropped the pawn %s at (%d,%d)",
                      str(self), x, y)
         self.drag_offset_x = 0
         self.drag_offset_y = 0
         spot = self.board.get_spot_at(x, y)
         if spot is not None:
+            # if the thing is in a *portal*, it is traveling
+            if hasattr(self.thing.loc, 'e'):
+                self.rumor.split_branch()
             self.thing.journey_to(spot.place)
         try:
             self.calcol.regen_cells()
             self.calcol.tweaks += 1
         except:
             pass
+
+    def draw(self):
+        newstate = self.get_state_tup()
+        if newstate in self.window.onscreen:
+            return
+        self.window.onscreen.discard(self.oldstate)
+        self.window.onscreen.add(newstate)
+        self.oldstate = newstate
+        if self.visible and self.in_window:
+            try:
+                self.sprite.x = self.window_left
+                self.sprite.y = self.window_bot
+            except AttributeError:
+                self.sprite = Sprite(
+                    self.img.tex,
+                    self.window_left,
+                    self.window_bot,
+                    batch=self.window.batch,
+                    group=self.window.pawngroup)
+        if self.selected:
+            yelo = (255, 255, 0, 0)
+            self.box_edges = self.window.draw_box(
+                self.window_left,
+                self.window_top,
+                self.window_right,
+                self.window_bot,
+                yelo,
+                self.window.higroup,
+                self.box_edges)
+        else:
+            for edge in self.box_edges:
+                try:
+                    edge.delete()
+                except (AttributeError, AssertionError):
+                    pass
+            self.box_edges = (None, None, None, None)
 
     def overlaps(self, x, y):
         if self.visible and self.interactive and self.in_window:
