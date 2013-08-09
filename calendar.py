@@ -4,7 +4,7 @@ from util import SaveableMetaclass
 from pyglet.image import SolidColorImagePattern as color_pattern
 from pyglet.sprite import Sprite
 from pyglet.text import Label
-from pyglet.graphics import GL_LINES
+from pyglet.graphics import GL_LINES, OrderedGroup
 
 """User's view on a given item's schedule.
 
@@ -99,7 +99,7 @@ between any two states that should appear different on-screen."""
         except:
             pass
 
-    def draw(self):
+    def draw(self, batch, group):
         if self.visible:
             if self.hovered:
                 image = self.active_pattern.create_image(
@@ -107,13 +107,15 @@ between any two states that should appear different on-screen."""
             else:
                 image = self.inactive_pattern.create_image(
                     self.width, self.height).texture
+            self.bggroup = OrderedGroup(0, group)
+            self.fggroup = OrderedGroup(1, group)
             if self.hovered != self.was_hovered:
                 self.sprite = Sprite(
                     image,
                     self.window_left,
                     self.window_bot,
-                    batch=self.window.batch,
-                    group=self.window.calgroup)
+                    batch=batch,
+                    group=self.bggroup)
                 self.was_hovered = self.hovered
             else:
                 try:
@@ -124,8 +126,8 @@ between any two states that should appear different on-screen."""
                         image,
                         self.window_left,
                         self.window_bot,
-                        batch=self.window.batch,
-                        group=self.window.calgroup)
+                        batch=batch,
+                        group=self.bggroup)
             y = self.window_top - self.label_height
             try:
                 self.label.x = self.window_left
@@ -141,8 +143,8 @@ between any two states that should appear different on-screen."""
                     x=self.window_left,
                     y=y,
                     multiline=True,
-                    batch=self.window.batch,
-                    group=self.window.labelgroup)
+                    batch=batch,
+                    group=self.fggroup)
         else:
             self.delete()
 
@@ -237,6 +239,7 @@ between any two states that should appear different on-screen."""
         except:
             pass
         self.sprite = None
+        self.calendar.remove(self)
 
     def pretty_caster(self, *args):
         unargs = []
@@ -254,17 +257,19 @@ between any two states that should appear different on-screen."""
             strings.append(str(unarg))
         return ";\n".join(strings)
 
-    def draw(self):
+    def draw(self, batch, group):
         image = self.inactive_pattern.create_image(
             self.width, self.height)
+        bggroup = OrderedGroup(0, group)
+        fggroup = OrderedGroup(1, group)
         self.sprite = Sprite(
             image,
             self.window_left,
             self.window_bot,
-            batch=self.window.batch,
-            group=self.window.calgroup)
+            batch=batch,
+            group=bggroup)
         for cel in self.cells:
-            cel.draw()
+            cel.draw(batch, fggroup)
 
 
 class Calendar:
@@ -381,22 +386,8 @@ between any two states that should appear different on-screen."""
             self.interactive,
             self.rows_shown,
             self.scrolled_to,
+            self.rumor.tick,
             self.tweaks)
-
-    def toggle_visibility(self):
-        """Hide or show myself, as applicable."""
-        self.visible = not self.visible
-        self.tweaks += 1
-
-    def hide(self):
-        """Become invisible."""
-        if self.visible:
-            self.toggle_visibility()
-
-    def show(self):
-        """Become visible."""
-        if not self.visible:
-            self.toggle_visibility()
 
     def get_tabdict(self):
         return {
@@ -431,7 +422,7 @@ between any two states that should appear different on-screen."""
             self.window_bot < y and
             self.window_top > y)
 
-    def draw(self):
+    def draw(self, batch, group):
         newstate = self.get_state_tup()
         if newstate in self.window.onscreen:
             return
@@ -446,15 +437,20 @@ between any two states that should appear different on-screen."""
             self.timeline.delete()
         except:
             pass
-        if self.visible:
+        self.colgroup = OrderedGroup(0, group)
+        self.tlgroup = OrderedGroup(1, group)
+        if self.visible and len(self.cols) > 0:
             if y > self.window_bot:
-                self.timeline = self.window.batch.add(
-                    2, GL_LINES, self.window.topgroup,
+                self.timeline = batch.add(
+                    2, GL_LINES, self.tlgroup,
                     ('v2i', (self.window_left, y,
                              self.window_right, y)),
                     ('c3B', color * 2))
             for calcol in self.cols:
-                calcol.draw()
+                calcol.draw(batch, self.colgroup)
         else:
             for calcol in self.cols:
                 calcol.delete()
+
+    def remove(self, it):
+        self.cols.remove(it)

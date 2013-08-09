@@ -91,26 +91,19 @@ interactive or not.
         elif attrn == 'selected':
             return self in self.window.selected
         elif attrn == 'coords':
-            return self.get_coords()
+            coords = self.get_coords()
+            return coords
         elif attrn == 'x':
             coords = self.coords
-            if coords is None:
-                return None
             return coords[0]
         elif attrn == 'y':
             coords = self.coords
-            if coords is None:
-                return None
             return coords[1]
         elif attrn == 'window_left':
             coords = self.coords
-            if coords is None:
-                return None
             return coords[0] + self.drag_offset_x
         elif attrn == 'window_bot':
             coords = self.coords
-            if coords is None:
-                return None
             return coords[1] + self.drag_offset_y
         elif attrn == 'width':
             return self.img.width
@@ -151,21 +144,23 @@ interactive or not.
         else:
             super(Pawn, self).__setattr__(attrn, val)
 
-    def __eq__(self, other):
-        """Essentially, compare the state tuples of the two pawns."""
-        return self.state == other.state
-
     def get_state_tup(self, branch=None, tick=None):
         """Return a tuple containing everything you might need to draw me."""
+        img = self.get_img(branch, tick)
+        if img is None:
+            coords = None
+        else:
+            img = img.tex
+            coords = self.get_coords(branch, tick)
         return (
-            self.get_img(branch, tick),
+            img,
+            coords,
             self.interactive,
             self.grabpoint,
             self.hovered,
-            self.get_coords(branch, tick),
+            self.selected,
             self.window.view_left,
             self.window.view_bot,
-            self.in_window,
             self.tweaks)
 
     def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
@@ -187,7 +182,7 @@ If it DOES have anything else to do, make the journey in another branch.
         spot = self.board.get_spot_at(x, y)
         if spot is not None:
             # if the thing is in a *portal*, it is traveling
-            if hasattr(self.thing.loc, 'e'):
+            if hasattr(self.thing.location, 'e'):
                 self.rumor.split_branch()
             self.thing.journey_to(spot.place)
         try:
@@ -202,14 +197,14 @@ If it DOES have anything else to do, make the journey in another branch.
         except:
             pass
 
-    def draw(self):
+    def draw(self, batch, group):
         newstate = self.get_state_tup()
         if newstate in self.window.onscreen:
             return
         self.window.onscreen.discard(self.oldstate)
         self.window.onscreen.add(newstate)
         self.oldstate = newstate
-        if self.visible and self.in_window:
+        if self.coords is not None:
             try:
                 self.sprite.x = self.window_left
                 self.sprite.y = self.window_bot
@@ -218,10 +213,8 @@ If it DOES have anything else to do, make the journey in another branch.
                     self.img.tex,
                     self.window_left,
                     self.window_bot,
-                    batch=self.window.batch,
-                    group=self.window.pawngroup)
-        else:
-            self.delete()
+                    batch=batch,
+                    group=group)
         if self.selected:
             yelo = (255, 255, 0, 0)
             self.box_edges = self.window.draw_box(
@@ -230,7 +223,7 @@ If it DOES have anything else to do, make the journey in another branch.
                 self.window_right,
                 self.window_bot,
                 yelo,
-                self.window.higroup,
+                group,
                 self.box_edges)
         else:
             for edge in self.box_edges:
@@ -267,32 +260,27 @@ If it DOES have anything else to do, make the journey in another branch.
         if loc is None:
             return None
         if hasattr(loc, 'dest'):
-            (ox, oy) = loc.orig.spots[int(self.board)].get_coords(branch, tick)
-            (dx, dy) = loc.dest.spots[int(self.board)].get_coords(branch, tick)
-            ox += loc.orig.spots[int(self.board)].drag_offset_x
-            dx += loc.dest.spots[int(self.board)].drag_offset_x
-            oy += loc.orig.spots[int(self.board)].drag_offset_y
-            dy += loc.dest.spots[int(self.board)].drag_offset_y
+            origspot = self.board.get_spot(loc.orig)
+            destspot = self.board.get_spot(loc.dest)
+            (ox, oy) = origspot.get_coords(branch, tick)
+            (dx, dy) = destspot.get_coords(branch, tick)
+            ox += origspot.drag_offset_x
+            dx += destspot.drag_offset_x
+            oy += origspot.drag_offset_y
+            dy += destspot.drag_offset_y
             prog = self.thing.get_progress(branch, tick)
             odx = dx - ox
             ody = dy - oy
             return (int(ox + odx * prog) + self.window.offset_x,
                     int(oy + ody * prog) + self.window.offset_y)
-        elif hasattr(loc, 'spots'):
-            spot = loc.spots[int(self.board)]
-            swico = spot.get_coords(branch, tick)
-            if swico is None:
-                return None
-            else:
-                (x, y) = swico
-                return (
-                    x + spot.drag_offset_x + self.window.offset_x,
-                    y + spot.drag_offset_y + self.window.offset_y)
+        elif str(loc) in self.board.spotdict:
+            spot = self.board.get_spot(loc)
+            (x, y) = spot.get_coords(branch, tick)
+            return (
+                x + spot.drag_offset_x + self.window.offset_x,
+                y + spot.drag_offset_y + self.window.offset_y)
         else:
-            raise Exception(
-                "When trying to get the coordinates of the pawn for {0}, "
-                "I found that its location {1} had no spots.".format(
-                    str(self), str(loc)))
+            return None
 
     def get_tabdict(self):
         return {

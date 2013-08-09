@@ -3,6 +3,7 @@
 from util import SaveableMetaclass
 import re
 import pyglet
+from pyglet.graphics import OrderedGroup
 
 
 """Simple menu widgets"""
@@ -139,7 +140,7 @@ the same."""
         """Show my text"""
         return self.text
 
-    def onclick(self):
+    def onclick(self, x, y, button, modifiers):
         print "menu item {0} clicked".format(self.text)
         return self.on_click(self)
 
@@ -189,7 +190,7 @@ just how to display this widget"""
                 "closer": self.closer}]
         }
 
-    def draw(self):
+    def draw(self, batch, group):
         state = self.get_state_tup()
         if state in self.window.onscreen:
             return
@@ -200,15 +201,27 @@ just how to display this widget"""
             self.label.delete()
         except:
             pass
-        self.label = pyglet.text.Label(
-            self.text,
-            self.menu.style.fontface,
-            self.menu.style.fontsize,
-            color=self.menu.style.textcolor.tup,
-            x=self.window_left,
-            y=self.window_bot,
-            batch=self.window.batch,
-            group=self.window.labelgroup)
+        if self.menu.visible or self.window.main_menu_name == str(self.menu):
+            try:
+                self.label.text = self.text
+                self.label.color = self.menu.style.textcolor.tup
+                self.label.x = self.window_left
+                self.label.y = self.window_bot
+            except:
+                self.label = pyglet.text.Label(
+                    self.text,
+                    self.menu.style.fontface,
+                    self.menu.style.fontsize,
+                    color=self.menu.style.textcolor.tup,
+                    x=self.window_left,
+                    y=self.window_bot,
+                    batch=batch,
+                    group=group)
+        else:
+            try:
+                self.label.delete()
+            except:
+                pass
 
 
 class Menu:
@@ -396,7 +409,7 @@ me"""
             it.save()
         self.coresave()
 
-    def draw(self):
+    def draw(self, batch, group):
         state = self.get_state_tup()
         if state in self.window.onscreen:
             return
@@ -407,11 +420,13 @@ me"""
             self.sprite.delete()
         except:
             pass
+        self.bggroup = OrderedGroup(0, group)
+        self.labelgroup = OrderedGroup(1, group)
         if self.visible or str(self) == self.window.main_menu_name:
             image = self.inactive_pattern.create_image(
                 self.width, self.height)
             self.sprite = pyglet.sprite.Sprite(
                 image, self.window_left, self.window_bot,
-                self.window.batch, self.window.calgroup)
+                batch=batch, group=self.bggroup)
         for item in self.items:
-            item.draw()
+            item.draw(batch, self.labelgroup)

@@ -1,3 +1,4 @@
+from pyglet.graphics import OrderedGroup
 from pyglet.image import SolidColorImagePattern
 from pyglet.sprite import Sprite
 from time import time
@@ -83,7 +84,8 @@ class PicPanel:
             self.bot,
             self.tweaks)
 
-    def draw(self):
+    def draw(self, batch, group):
+        pickerfggroup = OrderedGroup(1, group)
         if self.in_picker:
             try:
                 self.sprite.x = self.window_left
@@ -93,8 +95,8 @@ class PicPanel:
                     self.tex,
                     self.window_left,
                     self.window_bot,
-                    batch=self.window.batch,
-                    group=self.window.pickerfggroup)
+                    batch=batch,
+                    group=group)
         else:
             self.delete()
 
@@ -255,7 +257,7 @@ will be assigned to that attribute of the window the picker is in.
         self.scrolled_px -= rowheight
         self.scrolled_to_row -= 1
 
-    def draw(self):
+    def draw(self, batch, group):
         print "drawing picpicker"
         newstate = self.get_state_tup()
         if newstate in self.window.onscreen:
@@ -263,13 +265,14 @@ will be assigned to that attribute of the window the picker is in.
         self.window.onscreen.discard(self.oldstate)
         self.window.onscreen.add(newstate)
         self.oldstate = newstate
+        pickerbggroup = OrderedGroup(0, group)
         self.sprite = Sprite(
             self.bgimg,
             self.window_left,
             self.window_bot,
-            batch=self.window.batch,
-            group=self.window.pickerbggroup)
+            batch=batch,
+            group=pickerbggroup)
         self.layout()
         for pixrow in self.pixrows:
             for pic in pixrow:
-                pic.draw()
+                pic.draw(batch, group)

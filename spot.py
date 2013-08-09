@@ -7,6 +7,7 @@ from util import (
     TerminableCoords,
     BranchTicksIter)
 from pyglet.sprite import Sprite
+from pyglet.graphics import OrderedGroup
 from logging import getLogger
 from igraph import ALL
 
@@ -63,36 +64,18 @@ class AbstractSpot(
         elif attrn == 'coords':
             return self.get_coords()
         elif attrn == 'x':
-            coords = self.coords
-            if coords is None:
-                return None
-            return coords[0]
+            return self.coords[0]
         elif attrn == 'y':
-            coords = self.coords
-            if coords is None:
-                return None
-            return coords[1]
+            return self.coords[1]
         elif attrn == 'window_coords':
-            coords = self.coords
-            if coords is None:
-                return None
-            (x, y) = coords
+            (x, y) = self.coords
             return (
                 x + self.drag_offset_x + self.window.offset_x,
                 y + self.drag_offset_y + self.window.offset_y)
         elif attrn == 'width':
-            myimg = self.img
-            if myimg is None:
-                return 0
-            else:
-                return myimg.width
+            return self.img.width
         elif attrn == 'height':
-            myimg = self.img
-            assert(hasattr(myimg, 'tex'))
-            if myimg is None:
-                return 0
-            else:
-                return myimg.height
+            return self.img.height
         elif attrn == 'rx':
             return self.width / 2
         elif attrn == 'ry':
@@ -116,7 +99,6 @@ class AbstractSpot(
             return self.window_x + self.rx
         elif attrn == 'in_window':
             wico = self.window_coords
-            print wico
             return (
                 wico is not None and
                 wico[0] + self.rx > 0 and
@@ -177,53 +159,46 @@ mouse."""
             abs(myx - x) < self.rx and
             abs(myy - y) < self.ry)
 
-    def draw(self):
-        print "Drawing spot for {0}...".format(str(self.place))
+    def draw(self, batch, group):
         newstate = self.get_state_tup()
         if newstate in self.window.onscreen:
-            print "Nope, already drawn, forget this"
             return
         self.window.onscreen.discard(self.oldstate)
         self.window.onscreen.add(newstate)
         self.oldstate = newstate
         if self.visible and self.in_window:
-            if self.selected:
-                print "With a yelo box"
-                yelo = (255, 255, 0, 0)
-                self.box_edges = self.window.draw_box(
-                    self.window_left,
-                    self.window_top,
-                    self.window_right,
-                    self.window_bot,
-                    yelo,
-                    self.window.higroup,
-                    self.box_edges)
-            else:
-                print "With no box"
-                for vertls in self.box_edges:
-                    try:
-                        vertls.delete()
-                    except:
-                        pass
-                self.box_edges = (None, None, None, None)
             try:
                 self.sprite.x = self.window_left
                 self.sprite.y = self.window_bot
-                print "Moved the sprite a bit"
             except AttributeError:
                 self.sprite = Sprite(
                     self.img.tex,
                     self.window_left,
                     self.window_bot,
-                    self.window.batch,
-                    self.window.spotgroup)
-                print "Made new sprite"
+                    batch=batch,
+                    group=group)
         else:
-            print "And it's blank"
             try:
                 self.sprite.delete()
             except:
                 pass
+        if self.selected:
+            yelo = (255, 255, 0, 0)
+            self.box_edges = self.window.draw_box(
+                self.window_left,
+                self.window_top,
+                self.window_right,
+                self.window_bot,
+                yelo,
+                self.window.higroup,
+                self.box_edges)
+        else:
+            for vertls in self.box_edges:
+                try:
+                    vertls.delete()
+                except:
+                    pass
+            self.box_edges = (None, None, None, None)
 
     def delete(self):
         for e in self.place.incident(mode=ALL):

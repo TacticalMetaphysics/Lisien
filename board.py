@@ -79,18 +79,19 @@ each board will be open in at most one window at a time.
     """
     __metaclass__ = SaveableMetaclass
 
-    def __init__(self, window, i, width, height, wallpaper):
+    def __init__(self, window, width, height, wallpaper):
         """Return a board representing the given dimension.
 
         """
         self.window = window
         self.dimension = window.dimension
         self.rumor = self.dimension.rumor
-        self.i = i
         self.width = width
         self.height = height
         self.wallpaper = wallpaper
         self.menu_by_name = OrderedDict()
+        self.pawndict = {}
+        self.spotdict = {}
 
     def __getattr__(self, attrn):
         if attrn == "places":
@@ -100,13 +101,11 @@ each board will be open in at most one window at a time.
         elif attrn == "portals":
             return iter(self.dimension.portals)
         elif attrn == "pawns":
-            return BoardPawnIter(self)
+            return self.pawndict.itervalues()
         elif attrn == "spots":
-            return BoardSpotIter(self)
+            return self.spotdict.itervalues()
         elif attrn == "arrows":
             return BoardArrowIter(self)
-        elif attrn == "menus":
-            return self.menu_by_name.itervalues()
         else:
             raise AttributeError("Board has no attribute named " + attrn)
 
@@ -122,24 +121,20 @@ each board will be open in at most one window at a time.
         return None
 
     def make_pawn(self, thing):
-        while len(thing.pawns) <= int(self):
-            thing.pawns.append(None)
-        thing.pawns[int(self)] = Pawn(self, thing)
+        self.pawndict[str(thing)] = Pawn(self, thing)
 
     def get_pawn(self, thing):
-        if int(self) not in thing.pawns:
+        if str(thing) not in self.pawndict:
             self.make_pawn(thing)
-        return thing.pawns[int(self)]
+        return self.pawndict[str(thing)]
 
     def make_spot(self, place):
-        while len(place.spots) <= int(self):
-            place.spots.append(None)
-        place.spots[int(self)] = Spot(self, place)
+        self.spotdict[str(place)] = Spot(self, place)
 
     def get_spot(self, place):
-        if int(self) not in place.spots:
+        if str(place) not in self.spotdict:
             self.make_spot(place)
-        return place.spots[int(self)]
+        return self.spotdict[str(place)]
 
 
 class Board(AbstractBoard):
@@ -155,11 +150,15 @@ class Board(AbstractBoard):
          []),
     ]
 
+    def __init__(self, window, i, width, height, wallpaper):
+        self.i = i
+        super(Board, self).__init__(window, width, height, wallpaper)
+
     def get_tabdict(self):
         return {
             "board": [
-                {"dimension": str(self.board.dimension),
-                 "i": int(self.board),
-                 "wallpaper": str(self.board.wallpaper),
-                 "width": self.board.width,
-                 "height": self.board.height}]}
+                {"dimension": str(self.dimension),
+                 "i": int(self),
+                 "wallpaper": str(self.wallpaper),
+                 "width": self.width,
+                 "height": self.height}]}

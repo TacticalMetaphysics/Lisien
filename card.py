@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from pyglet.graphics import OrderedGroup
 from pyglet.sprite import Sprite
 from pyglet.text import Label
 from pyglet.image import AbstractImage
@@ -120,18 +121,20 @@ class TextHolder:
         else:
             return getattr(self.cardwidget, attrn)
 
-    def draw(self):
+    def draw(self, batch, group):
         if (
                 self.cardwidget.old_width != self.cardwidget.width or
                 self.cardwidget.old_height != self.cardwidget.height):
             image = self.card.pats.bg_active.create_image(
                 self.width, self.height)
+            bggroup = OrderedGroup(1, group)
             self.sprite = Sprite(
                 image,
                 self.window_left,
                 self.window_bot,
-                batch=self.window.batch,
-                group=self.window.celgroup)
+                batch=batch,
+                group=bggroup)
+            fggroup = OrderedGroup(2, group)
             self.label = Label(
                 self.card.text,
                 self.style.fontface,
@@ -142,8 +145,8 @@ class TextHolder:
                 width=self.text_width,
                 height=self.text_height,
                 multiline=True,
-                batch=self.window.batch,
-                group=self.window.labelgroup)
+                batch=batch,
+                group=fggroup)
         else:
             self.sprite.x = self.window_left
             self.sprite.y = self.window_bot
@@ -314,7 +317,7 @@ class CardWidget:
             pass
         self.textholder.delete()
 
-    def draw(self):
+    def draw(self, batch, group):
         newstate = self.get_state_tup()
         if newstate in self.window.onscreen:
             return
@@ -332,13 +335,14 @@ class CardWidget:
             except:
                 image = self.card.pats.bg_inactive.create_image(
                     self.width, self.height)
+                bggroup = OrderedGroup(0, group)
                 self.sprite = Sprite(
                     image,
                     self.window_left,
                     self.window_bot,
-                    batch=self.window.batch,
-                    group=self.window.calgroup)
-            self.textholder.draw()
+                    batch=batch,
+                    group=bggroup)
+            self.textholder.draw(batch, group)
         else:
             self.delete()
         self.old_width = self.width
@@ -524,7 +528,6 @@ order."""
             y > self.window_bot and
             y < self.window_top)
 
-    def draw(self):
-        print "drawing hand"
+    def draw(self, batch, group):
         for card in iter(self):
-            card.draw()
+            card.draw(batch, group)

@@ -92,7 +92,7 @@ class AbstractGameWindow(SaveablePygletWindow):
             arrowhead_size, arrow_width, view_left, view_bot):
         """Initialize the game window, its groups, and some state tracking."""
         config = screen.get_best_config()
-        super(AbstractGameWindow, self).__init__(config=config)
+        pyglet.window.Window.__init__(self, config=config)
 
         self.mouspot = MousySpot()
         self.rumor = rumor
@@ -108,6 +108,7 @@ class AbstractGameWindow(SaveablePygletWindow):
         self.hands_by_name = OrderedDict()
         self.calendars = []
         self.menus_by_name = OrderedDict()
+        self.hover_iters = [self.hands, self.menus, self.calendars]
         self.edge_order = 1
 
         self.biggroup = pyglet.graphics.Group()
@@ -115,14 +116,11 @@ class AbstractGameWindow(SaveablePygletWindow):
         self.edgegroup = pyglet.graphics.OrderedGroup(1, self.biggroup)
         self.spotgroup = pyglet.graphics.OrderedGroup(2, self.biggroup)
         self.pawngroup = pyglet.graphics.OrderedGroup(3, self.biggroup)
-        self.higroup = pyglet.graphics.OrderedGroup(4, self.biggroup)
-        self.calgroup = TransparencyOrderedGroup(5, self.biggroup)
-        self.celgroup = TransparencyOrderedGroup(6, self.biggroup)
-        self.labelgroup = pyglet.graphics.OrderedGroup(7, self.biggroup)
+        self.calgroup = TransparencyOrderedGroup(4, self.biggroup)
+        self.handgroup = pyglet.graphics.OrderedGroup(5, self.biggroup)
+        self.menugroup = pyglet.graphics.OrderedGroup(6, self.biggroup)
         self.pickergroup = ScissorOrderedGroup(
             8, self.biggroup, self, 0.3, 0.6, 0.3, 0.6)
-        self.pickerbggroup = pyglet.graphics.OrderedGroup(0, self.pickergroup)
-        self.pickerfggroup = pyglet.graphics.OrderedGroup(1, self.pickergroup)
         self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
         self.linegroups = {}
         self.bggd = {}
@@ -191,13 +189,13 @@ class AbstractGameWindow(SaveablePygletWindow):
 
     def on_draw(self):
         if self.picker is not None:
-            self.picker.draw()
+            self.picker.draw(self.batch, self.pickergroup)
         for menu in self.menus:
-            menu.draw()
+            menu.draw(self.batch, self.menugroup)
         for calendar in self.calendars:
-            calendar.draw()
+            calendar.draw(self.batch, self.calgroup)
         for hand in self.hands:
-            hand.draw()
+            hand.draw(self.batch, self.handgroup)
         # well, I lied. I was really only adding those things to the batch.
         # NOW I'll draw them.
         self.batch.draw()
@@ -272,7 +270,7 @@ move_with_mouse method, use it.
                         self.height >
                         self.board.wallpaper.height):
                     self.view_bot = (
-                        self.img.height -
+                        self.board.wallpaper.height -
                         self.height)
                 elif self.view_bot < 0:
                     self.view_bot = 0
@@ -308,6 +306,16 @@ and highlight it.
         self.dx_hist[self.dxdy_hist_counter % self.dxdy_hist_max] = dx
         self.dy_hist[self.dxdy_hist_counter % self.dxdy_hist_max] = dy
         self.dxdy_hist_counter += 1
+        if self.hovered is None:
+            for it in self.hover_iters:
+                for hoverable in iter(it):
+                    if hoverable.overlaps(x, y):
+                        self.hovered = hoverable
+        else:
+            print "{0} hovered".format(str(self.hovered))
+            if not self.hovered.overlaps(x, y):
+                print "but not anymore"
+                self.hovered = None
 
     def on_key_press(self, symbol, modifiers):
         if symbol == pyglet.window.key.DELETE:
@@ -461,6 +469,8 @@ class BoardWindow(AbstractGameWindow):
         self.dimension = dimension
         self.main_menu_name = main_menu
         self.board = self.rumor.get_board(boardnum, self)
+        self.hover_iters.extend(
+            [self.board.pawns, self.board.spots, self.board.arrows])
         self.portaling = False
         self.portal_from = None
         self.thing_pic = None
@@ -527,11 +537,11 @@ class BoardWindow(AbstractGameWindow):
 
     def on_draw(self):
         for spot in self.board.spots:
-            spot.draw()
+            spot.draw(self.batch, self.spotgroup)
         for pawn in self.board.pawns:
-            pawn.draw()
+            pawn.draw(self.batch, self.pawngroup)
         for edge in self.board.arrows:
-            edge.draw()
+            edge.draw(self.batch, self.edgegroup)
         # background image for the board
         if self.drawn_board is None:
             self.drawn_board = pyglet.sprite.Sprite(
@@ -544,7 +554,7 @@ class BoardWindow(AbstractGameWindow):
                 self.drawn_board.x = self.offset_x
             if self.drawn_board.y != self.offset_y:
                 self.drawn_board.y = self.offset_y
-        super(BoardWindow, self).on_draw()
+        AbstractGameWindow.on_draw(self)
 
     def detect_hover(self, x, y):
         super(BoardWindow, self).detect_hover(x, y)
@@ -576,6 +586,27 @@ class BoardWindow(AbstractGameWindow):
             self.floaty_portal.update()
 
     def on_mouse_release(self, x, y, button, modifiers):
+        if (
+                self.pressed is not None and
+                self.pressed in self.selected):
+            self.selected.remove(self.pressed)
+            if hasattr(self.selected, 'unselect'):
+                self.selected.unselect()
+        if not self.keep_selected:
+            for it in iter(self.selected):
+                if hasattr(it, 'unselect'):
+                    it.unselect()
+            self.selected = set()
+        if hasattr(self.grabbed, 'dropped'):
+            self.grabbed.dropped(x, y, button, modifiers)
+        if hasattr(self.pressed, 'onclick'):
+            self.pressed.onclick(x, y, button, modifiers)
+        if hasattr(self.pressed, 'selectable'):
+            self.selected.add(self.pressed)
+            if hasattr(self.pressed, 'select'):
+                self.pressed.select()
+        self.grabbed = None
+        self.pressed = None
         if self.place_pic is not None:
             pl = self.rumor.make_generic_place(self.dimension)
             sp = self.board.get_spot(pl)

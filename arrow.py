@@ -56,20 +56,20 @@ class Arrow:
         self.center_shrink = 0
         if dest is None or hasattr(orig_or_port, 'e'):
             port = orig_or_port
-            self.orig = port.orig.spots[int(self.board)]
-            self.dest = port.dest.spots[int(self.board)]
+            self.orig = self.board.get_spot(port.orig)
+            self.dest = self.board.get_spot(port.dest)
             self.center_shrink = self.dest.r
             self.portal = port
         else:
             orig = orig_or_port
             if hasattr(orig, 'v'):
-                self.orig = orig.spots[int(self.board)]
+                self.orig = self.board.get_spot(orig)
             elif isinstance(orig, tuple):
                 self.orig = DummySpot(*orig)
             else:
                 self.orig = orig
             if hasattr(dest, 'v'):
-                self.dest = dest.spots[int(self.board)]
+                self.dest = self.board.get_spot(dest)
                 self.center_shrink = self.dest.r
             elif isinstance(dest, tuple):
                 self.dest = DummySpot(*dest)
@@ -84,9 +84,6 @@ class Arrow:
         self.y_at_hints = {}
         self.tweaks = 0
 
-    def __len__(self):
-        return hypot(self.run, self.rise)
-
     def __getattr__(self, attrn):
         if attrn == 'ox':
             return self.orig.x
@@ -100,6 +97,8 @@ class Arrow:
             return self.dest.y - self.orig.y
         elif attrn == 'run':
             return self.dest.x - self.orig.x
+        elif attrn == 'width':
+            return self.window.arrow_width
         elif attrn in ('m', 'slope'):
             ox = self.orig.x
             oy = self.orig.y
@@ -162,7 +161,7 @@ class Arrow:
             b = self.b
             mx = (self.rise * x, self.run)
             y = (mx[0] + b[0], self.run)
-            return y
+            return float(y[0]) / float(self.run)
 
     def x_at(self, y):
         # y = mx + b
@@ -174,47 +173,38 @@ class Arrow:
             b = self.b
             numerator = y - b[1]
             denominator = b[0]
-            return (numerator, denominator)
+            return float(numerator) / float(denominator)
 
     def overlaps(self, x, y):
         """Do I overlap the point (x, y)?
 
-'Width' is actually a vertical margin of error. This is good enough
-approximation for determining if I've been clicked.
-
-If I *do* overlap the point, I'll remember *how far along me* the
-point was. I'll keep that information in the instance variable,
-clicked_along.
+Take my width into account
 
         """
-        if self.m > 300:
-            perfect_x = self.x_at(y)
-            frac_x = (x * perfect_x[1] - perfect_x[0], perfect_x[1])
-            r = abs(frac_x[0]) < abs(self.w * frac_x[1])
-        else:
-            perfect_x = None
-        perfect_y = self.y_at(x)
-        if perfect_y is None:
-            return True
-        else:
-            frac_y = (y * perfect_y[1] - perfect_y[0], perfect_y[1])
-            r = abs(frac_y[0]) < abs(self.w * frac_y[1])
+        # trivial rejections
         if not (
-                hasattr(self, 'portal') and
-                self.portal.extant() and
-                self.orig is not None and
-                self.dest is not None):
-            self.clicked_along = None
+                x > self.window_left and
+                x < self.window_right and
+                y > self.window_bot and
+                y < self.window_top):
             return False
-        elif r:
-            if perfect_x is None:
-                # test wrt. the x coord
-                # the point(x, perfect_y) is where along me?
-                self.clicked_along = hypot(x, perfect_y) / len(self)
-            else:
-                # test wrt. the y coord
-                self.clicked_along = hypot(perfect_x, y) / len(self)
-        return r
+        try:
+            perfect_x = self.x_at(y)
+        except:
+            perfect_x = None
+        try:
+            perfect_y = self.y_at(x)
+        except:
+            perfect_y = None
+        if perfect_x is None:
+            return abs(perfect_y - y) < self.width
+        elif perfect_y is None:
+            return abs(perfect_x - x) < self.width
+        else:
+            a = perfect_y - y
+            b = perfect_x - x
+            dist = hypot(a, b)
+            return dist < self.width
 
     def onclick(self):
         """In most circumstances, this does nothing; the window will handle my
@@ -253,9 +243,9 @@ In the case where I'm in a timeline, clicking me initiates time travel.
                 except:
                     pass
 
-    def draw(self):
+    def draw(self, batch, group):
         supergroup = pyglet.graphics.OrderedGroup(
-            self.order, self.window.edgegroup)
+            self.order, group)
         bggroup = SmoothBoldLineOrderedGroup(
             0, supergroup, self.window.arrow_girth)
         fggroup = BoldLineOrderedGroup(

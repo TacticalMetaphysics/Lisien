@@ -748,16 +748,14 @@ necessary."""
         for row in pawn_rows:
             (thingn, branch, tick_from, tick_to, imgn) = row
             thing = dim.thingdict[thingn]
-            while len(thing.pawns) <= i:
-                thing.pawns.append(None)
-            thing.pawns[i] = Pawn(dim.boards[i], thing)
-            thing.pawns[i].set_img(imgs[imgn], branch, tick_from, tick_to)
+            pawn = dim.boards[i].get_pawn(thing)
+            pawn.set_img(imgs[imgn], branch, tick_from, tick_to)
         # interactivity for the pawns
         self.c.execute(PAWN_INTER_QRY_START, (str(dim), i))
         for row in self.c:
             (thingn, branch, tick_from, tick_to) = row
-            thing = dim.thingdict[thingn]
-            thing.pawns[i].set_interactive(branch, tick_from, tick_to)
+            pawn = dim.boards[i].get_pawn(dim.thingdict[thingn])
+            pawn.set_interactive(branch, tick_from, tick_to)
         # spots in this board
         self.c.execute(SPOT_BOARD_QRY_START, (str(dim), i))
         for row in self.c:
@@ -765,26 +763,23 @@ necessary."""
             if placen not in dim.placenames:
                 dim.make_place(placen)
             place = dim.get_place(placen)
-            while len(place.spots) <= i:
-                place.spots.append(None)
-            if place.spots[i] is None:
-                place.spots[i] = Spot(dim.boards[i], place)
+            spot = dim.boards[i].get_spot(place)
             logger.debug(
                 "Loaded the spot for %s. Setting its coords to "
                 "(%d, %d) in branch %d from tick %d.",
                 str(place), x, y, branch, tick_from)
-            place.spots[i].set_coords(x, y, branch, tick_from, tick_to)
+            spot.set_coords(x, y, branch, tick_from, tick_to)
         #their images
         for row in spot_rows:
             (placen, branch, tick_from, tick_to, imgn) = row
-            place = dim.get_place(placen)
-            place.spots[i].set_img(imgs[imgn], branch, tick_from, tick_to)
+            spot = dim.boards[i].get_spot(placen)
+            spot.set_img(imgs[imgn], branch, tick_from, tick_to)
         # interactivity for the spots
         self.c.execute(SPOT_INTER_QRY_START, (str(dim), i))
         for row in self.c:
             (placen, branch, tick_from, tick_to) = row
-            place = dim.get_place(placen)
-            place.spots[i].set_interactive(branch, tick_from, tick_to)
+            spot = dim.boards[i].get_spot(placen)
+            spot.set_interactive(branch, tick_from, tick_to)
         # arrows in this board
         for port in dim.portals:
             if (

@@ -59,9 +59,6 @@ provided."""
                 raise AttributeError(
                     "Img instance has no attribute {0}.".format(attrn))
 
-    def __hash__(self):
-        return hash((self.name, self.path, self.rltile))
-
     def get_tabdict(self):
         return {
             "img": {
