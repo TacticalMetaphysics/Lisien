@@ -58,10 +58,10 @@ class PicPanel:
         except:
             pass
 
-    def onclick(self):
+    def onclick(self, x, y, button, modifiers):
         self.picker.delete()
         setattr(self.window, self.picker.targetn, self.pic)
-        self.window.set_mouse_cursor_texture(self.tex)
+        setattr(self.window, self.picker.flagn, True)
 
     def overlaps(self, x, y):
         x -= self.picker.window_left
@@ -108,7 +108,7 @@ Parameter targetn is the name of a window attribute. The pic picked
 will be assigned to that attribute of the window the picker is in.
 
     """
-    def __init__(self, window, left, top, bot, right, style, targetn):
+    def __init__(self, window, left, top, bot, right, style, targetn, flagn):
         self.window = window
         self.rumor = self.window.rumor
         self.left_prop = left
@@ -117,6 +117,7 @@ will be assigned to that attribute of the window the picker is in.
         self.bot_prop = bot
         self.style = style
         self.targetn = targetn
+        self.flagn = flagn
         self.pixrows = []
         self.scrolled_to_row = 0
         self.scrolled_px = 0
@@ -211,7 +212,7 @@ will be assigned to that attribute of the window the picker is in.
             y > self.window_bot and
             y < self.window_top)
 
-    def hovered(self, x, y):
+    def hover(self, x, y):
         # Relativize the coordinates to my top left corner. That means
         # y gets lower on the screen as it ascends.
         x -= self.window_left
@@ -224,6 +225,7 @@ will be assigned to that attribute of the window the picker is in.
                         panel.right > x and
                         panel.top < y and
                         panel.bot > y):
+                    print "turning over to {0}".format(panel)
                     return panel
         # If not, return myself
         return self
@@ -258,7 +260,6 @@ will be assigned to that attribute of the window the picker is in.
         self.scrolled_to_row -= 1
 
     def draw(self, batch, group):
-        print "drawing picpicker"
         newstate = self.get_state_tup()
         if newstate in self.window.onscreen:
             return

@@ -4,6 +4,7 @@ from util import SaveableMetaclass
 from collections import OrderedDict
 from pawn import Pawn
 from spot import Spot
+from arrow import Arrow
 
 
 """Class for user's view on gameworld, and support functions."""
@@ -92,6 +93,7 @@ each board will be open in at most one window at a time.
         self.menu_by_name = OrderedDict()
         self.pawndict = {}
         self.spotdict = {}
+        self.arrowdict = {}
 
     def __getattr__(self, attrn):
         if attrn == "places":
@@ -105,7 +107,7 @@ each board will be open in at most one window at a time.
         elif attrn == "spots":
             return self.spotdict.itervalues()
         elif attrn == "arrows":
-            return BoardArrowIter(self)
+            return self.arrowdict.itervalues()
         else:
             raise AttributeError("Board has no attribute named " + attrn)
 
@@ -135,6 +137,22 @@ each board will be open in at most one window at a time.
         if str(place) not in self.spotdict:
             self.make_spot(place)
         return self.spotdict[str(place)]
+
+    def make_arrow(self, orig_or_port, dest=None):
+        if dest is None:
+            self.arrowdict[str(orig_or_port)] = Arrow(self, orig_or_port)
+        else:
+            name = "Portal({0}->{1})".format(orig_or_port, dest)
+            self.arrowdict[name] = Arrow(self, orig_or_port, dest)
+
+    def get_arrow(self, orig_or_port, dest=None):
+        if dest is None:
+            name = str(orig_or_port)
+        else:
+            name = "Portal({0}->{1})".format(orig_or_port, dest)
+        if name not in self.arrowdict:
+            self.make_arrow(orig_or_port, dest)
+        return self.arrowdict[name]
 
 
 class Board(AbstractBoard):

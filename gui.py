@@ -108,7 +108,7 @@ class AbstractGameWindow(SaveablePygletWindow):
         self.hands_by_name = OrderedDict()
         self.calendars = []
         self.menus_by_name = OrderedDict()
-        self.hover_iters = [self.hands, self.menus, self.calendars]
+        self.hover_iter_getters = [self.hands_by_name.itervalues, self.calendars.__iter__, self.menus_by_name.itervalues, lambda: (self.picker,)]
         self.edge_order = 1
 
         self.biggroup = pyglet.graphics.Group()
@@ -172,20 +172,26 @@ class AbstractGameWindow(SaveablePygletWindow):
         return self.name
 
     def update(self, dt):
-        (x, y) = (self.mouspot.x, self.mouspot.y)
-        if (
-                self.picker is not None and
-                self.hovered is self.picker):
-            self.hovered = self.picker.hovered(x, y)
-        elif self.hovered is None:
-            self.detect_hover(x, y)
+        (x, y) = self.mouspot.coords
+        if self.hovered is None:
+            for get in self.hover_iter_getters:
+                it = get()
+                for hoverable in it:
+                    if hoverable is None:
+                        continue
+                    if hoverable.overlaps(x, y):
+                        if hasattr(hoverable, 'hover'):
+                            self.hovered = hoverable.hover(x, y)
+                        else:
+                            self.hovered = hoverable
         else:
             if not self.hovered.overlaps(x, y):
                 if hasattr(self.hovered, 'pass_focus'):
                     self.hovered = self.hovered.pass_focus()
                 else:
-                    self.hovered.tweaks += 1
                     self.hovered = None
+            elif hasattr(self.hovered, 'hover'):
+                self.hovered = self.hovered.hover(x, y)
 
     def on_draw(self):
         if self.picker is not None:
@@ -306,16 +312,6 @@ and highlight it.
         self.dx_hist[self.dxdy_hist_counter % self.dxdy_hist_max] = dx
         self.dy_hist[self.dxdy_hist_counter % self.dxdy_hist_max] = dy
         self.dxdy_hist_counter += 1
-        if self.hovered is None:
-            for it in self.hover_iters:
-                for hoverable in iter(it):
-                    if hoverable.overlaps(x, y):
-                        self.hovered = hoverable
-        else:
-            print "{0} hovered".format(str(self.hovered))
-            if not self.hovered.overlaps(x, y):
-                print "but not anymore"
-                self.hovered = None
 
     def on_key_press(self, symbol, modifiers):
         if symbol == pyglet.window.key.DELETE:
@@ -409,36 +405,6 @@ and highlight it.
 associated with the argument."""
         return self.calendars[0]
 
-    def set_mouse_cursor_texture(self, tex):
-        self.set_mouse_cursor(
-            pyglet.window.ImageMouseCursor(
-                tex, tex.width/2, tex.height/2))
-
-    def detect_hover(self, x, y):
-            if (
-                    self.picker is not None and
-                    self.picker.overlaps(x, y)):
-                self.hovered = self.picker.hovered(x, y)
-            for hand in self.hands:
-                if hand.overlaps(x, y):
-                    for card in hand:
-                        if (
-                                x > card.window_left and
-                                x < card.window_right):
-                            self.hovered = card
-                            card.tweaks += 1
-                            return
-            for menu in self.menus:
-                if menu.overlaps(x, y):
-                    for item in menu.items:
-                        if (
-                                y > item.window_bot and
-                                y < item.window_top):
-                            self.hovered = item
-                            item.tweaks += 1
-                            return
-
-
 class BoardWindow(AbstractGameWindow):
     tables = [
         ("window",
@@ -469,12 +435,16 @@ class BoardWindow(AbstractGameWindow):
         self.dimension = dimension
         self.main_menu_name = main_menu
         self.board = self.rumor.get_board(boardnum, self)
-        self.hover_iters.extend(
-            [self.board.pawns, self.board.spots, self.board.arrows])
+        self.hover_iter_getters.extend(
+            [self.board.pawndict.itervalues, self.board.spotdict.itervalues, self.board.arrowdict.itervalues])
+        self.placing = False
+        self.thinging = False
         self.portaling = False
         self.portal_from = None
         self.thing_pic = None
+        self.thing_pic_sprite = None
         self.place_pic = None
+        self.place_pic_sprite = None
 
         orbimg = self.rumor.imgdict['default_spot']
         rx = orbimg.width / 2
@@ -554,43 +524,108 @@ class BoardWindow(AbstractGameWindow):
                 self.drawn_board.x = self.offset_x
             if self.drawn_board.y != self.offset_y:
                 self.drawn_board.y = self.offset_y
+        try:
+            self.floaty_portal.draw(self.batch, self.edgegroup)
+        except:
+            pass
         AbstractGameWindow.on_draw(self)
 
-    def detect_hover(self, x, y):
-        super(BoardWindow, self).detect_hover(x, y)
-        for pawn in self.board.pawns:
-            if pawn.overlaps(x, y):
-                self.hovered = pawn
-                pawn.tweaks += 1
-                return
-        for spot in self.board.spots:
-            if spot.overlaps(x, y):
-                self.hovered = spot
-                spot.tweaks += 1
-                return
-        for edge in self.board.arrows:
-            if edge.overlaps(x, y):
-                self.hovered = edge
-                edge.tweaks += 1
-                return
-
     def update(self, dt):
-        super(BoardWindow, self).update(dt)
-        if self.portaling:
-            if self.floaty_portal is None:
-                self.floaty_portal = Arrow(
-                    self.board, self.floaty_coords(), self.mouspot)
-            elif self.portal_from is None:
+        (x, y) = self.mouspot.coords
+        if self.portal_from is None:
+            try:
                 (self.floaty_portal.orig.x,
                  self.floaty_portal.orig.y) = self.floaty_coords()
-            self.floaty_portal.update()
+            except:
+                pass
+        try:
+            self.place_pic_sprite.set_position(x - self.place_pic.rx, y - self.place_pic.ry)
+        except:
+            pass
+        try:
+            self.thing_pic_sprite.set_position(x - self.thing_pic.rx, y - self.thing_pic.ry)
+        except:
+            pass
+        super(BoardWindow, self).update(dt)
 
     def on_mouse_release(self, x, y, button, modifiers):
+        if self.place_pic is not None:
+            if self.placing:
+                self.place_pic_sprite = pyglet.sprite.Sprite(
+                    self.place_pic.tex,
+                    x,
+                    y - self.place_pic.height,
+                    batch=self.batch,
+                    group=self.spotgroup)
+                self.placing = False
+            else:
+                try:
+                    self.place_pic_sprite.delete()
+                except:
+                    pass
+                pl = self.rumor.make_generic_place(self.dimension)
+                sp = self.board.get_spot(pl)
+                sp.set_coords(x + self.view_left, y + self.view_bot)
+                sp.set_img(self.place_pic)
+                self.place_pic = None
+                logger.debug("made generic place: %s", str(pl))
+            return
+        if self.thing_pic is not None:
+            if self.thinging:
+                self.thing_pic_sprite = pyglet.sprite.Sprite(
+                    self.thing_pic.tex,
+                    x,
+                    y - self.thing_pic.height,
+                    batch=self.batch,
+                    group=self.pawngroup)
+                self.thinging = False
+            else:
+                try:
+                    self.thing_pic_sprite.delete()
+                except:
+                    pass
+                sp = self.board.get_spot_at(x + self.view_left, y + self.view_bot)
+                if sp is not None:
+                    pl = sp.place
+                    th = self.rumor.make_generic_thing(self.dimension, pl)
+                    self.board.make_pawn(th)
+                    th.pawns[int(self.board)].set_img(self.thing_pic)
+                    logger.debug("made generic thing: %s", str(th))
+                self.thing_pic = None
+            return
+        if self.portaling:
+            if self.portal_from is None:
+                if hasattr(self.pressed, 'place'):
+                    print "portaling from {0}".format(self.pressed)
+                    self.portal_from = self.pressed
+                    self.floaty_portal.orig = self.portal_from
+                    return
+                else:
+                    self.portaling = False
+                    self.portal_from = None
+                    try:
+                        self.floaty_portal.delete()
+                    except:
+                        pass
+                    return
+            else:
+                if (
+                        hasattr(self.pressed, 'place') and
+                        hasattr(self.portal_from, 'place') and
+                        self.pressed.place != self.portal_from.place):
+                    port = self.rumor.make_portal(
+                        self.portal_from.place,
+                        self.pressed.place)
+                    self.board.make_arrow(self.portal_from.place, self.pressed.place)
+                self.portaling = False
+                self.portal_from = None
+                self.floaty_portal.delete()
+                return
         if (
                 self.pressed is not None and
                 self.pressed in self.selected):
             self.selected.remove(self.pressed)
-            if hasattr(self.selected, 'unselect'):
+        if hasattr(self.selected, 'unselect'):
                 self.selected.unselect()
         if not self.keep_selected:
             for it in iter(self.selected):
@@ -607,63 +642,19 @@ class BoardWindow(AbstractGameWindow):
                 self.pressed.select()
         self.grabbed = None
         self.pressed = None
-        if self.place_pic is not None:
-            pl = self.rumor.make_generic_place(self.dimension)
-            sp = self.board.get_spot(pl)
-            sp.set_coords(x + self.view_left, y + self.view_bot)
-            sp.set_img(self.place_pic)
-            self.set_mouse_cursor()
-            self.place_pic = None
-            logger.debug("made generic place: %s", str(pl))
-            return
-        if self.thing_pic is not None:
-            sp = self.board.get_spot_at(x + self.view_left, y + self.view_bot)
-            if sp is not None:
-                pl = sp.place
-                th = self.rumor.make_generic_thing(self.dimension, pl)
-                self.board.make_pawn(th)
-                th.pawns[int(self.board)].set_img(self.thing_pic)
-                logger.debug("made generic thing: %s", str(th))
-            self.set_mouse_cursor()
-            self.thing_pic = None
-            return
-        if self.portaling:
-            if self.portal_from is None:
-                if hasattr(self.pressed, 'place'):
-                    self.portal_from = self.pressed
-                    self.floaty_portal.orig = self.portal_from
-                    return
-                else:
-                    self.portaling = False
-                    self.portal_from = None
-                    self.floaty_portal.delete()
-                    return
-            else:
-                if (
-                        hasattr(self.pressed, 'place') and
-                        hasattr(self.portal_from, 'place') and
-                        self.pressed.place != self.portal_from.place):
-                    port = self.rumor.make_portal(
-                        self.portal_from.place,
-                        self.pressed.place)
-                    while len(port.arrows) <= int(self.board):
-                        port.arrows.append(None)
-                    port.arrows[int(self.board)] = Arrow(
-                        self.board, port.orig, port.dest)
-                self.portaling = False
-                self.portal_from = None
-                self.floaty_portal.delete()
-                return
 
     def create_place(self):
         self.picker = PicPicker(self, 0.3, 0.6, 0.3, 0.6,
-                                self.calendars[0].style, 'place_pic')
+                                self.calendars[0].style, 'place_pic', 'placing')
 
     def create_thing(self):
         self.picker = PicPicker(self, 0.3, 0.6, 0.3, 0.6,
-                                self.calendars[0].style, 'thing_pic')
+                                self.calendars[0].style, 'thing_pic', 'thinging')
 
     def create_portal(self):
+        boguspot = MousySpot()
+        (boguspot.x, boguspot.y) = self.floaty_coords()
+        self.floaty_portal = Arrow(self.board, boguspot, self.mouspot)
         self.portaling = True
 
     def on_close(self):

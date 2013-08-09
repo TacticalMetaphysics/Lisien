@@ -190,7 +190,7 @@ mouse."""
                 self.window_right,
                 self.window_bot,
                 yelo,
-                self.window.higroup,
+                self.window.topgroup,
                 self.box_edges)
         else:
             for vertls in self.box_edges:

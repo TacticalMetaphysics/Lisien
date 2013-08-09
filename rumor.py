@@ -782,12 +782,7 @@ necessary."""
             spot.set_interactive(branch, tick_from, tick_to)
         # arrows in this board
         for port in dim.portals:
-            if (
-                    len(port.arrows) <= i or
-                    port.arrows[i] is None):
-                while len(port.arrows) <= i:
-                    port.arrows.append(None)
-                port.arrows[i] = Arrow(dim.boards[i], port)
+            dim.boards[i].get_arrow(port)
         return dim.boards[i]
 
     def load_imgs(self, imgs):

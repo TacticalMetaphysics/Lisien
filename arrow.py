@@ -206,16 +206,16 @@ Take my width into account
             dist = hypot(a, b)
             return dist < self.width
 
-    def onclick(self):
+    def onclick(self, x, y, buttons, modifiers):
         """In most circumstances, this does nothing; the window will handle my
 being selected.
 
 In the case where I'm in a timeline, clicking me initiates time travel.
 
         """
-        if "branch" in self.e.get_attributes():
-            branch = self.e["branch"]
-            length = self.e["length"]
+        if "branch" in self.portal.e.attribute_names():
+            branch = self.portal.e["branch"]
+            length = self.portal.e["length"]
             start = self.orig.v["tick"]
             self.rumor.time_travel(
                 branch, start + (length * self.clicked_along))

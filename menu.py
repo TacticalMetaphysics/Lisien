@@ -377,6 +377,11 @@ With db, register with db's menudict.
             y > self.window_bot and
             y < self.window_top)
 
+    def hover(self, x, y):
+        for item in self.items:
+            if item.overlaps(x, y):
+                return item
+
     def get_state_tup(self):
         """Return a tuple containing everything you need to decide how to draw
 me"""
