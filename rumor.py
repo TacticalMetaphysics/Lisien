@@ -15,18 +15,13 @@ import re
 import igraph
 import effect
 from dimension import Dimension
-from place import Place
-from portal import Portal
-from thing import Thing
 from spot import Spot
 from pawn import Pawn
 from arrow import Arrow
 from board import Board
+from card import Card
 from img import Img
 from style import Style, Color
-from menu import Menu, MenuItem
-from card import Card, Hand
-from calendar import Calendar
 from gui import BoardWindow, TimestreamWindow
 from collections import OrderedDict
 from logging import getLogger
@@ -143,6 +138,9 @@ given name.
         self.eventdict = {}
         self.lang = lang
 
+        self.delay = 0.0
+        self.game_speed = 0.1
+
         self.branchdict = {0: (0, 0)}
         self.parentdict = {}
         self.time_travel_history = []
@@ -198,7 +196,6 @@ given name.
         elif attrn == "hi_portal":
             return self.game["hi_portal"]
         elif attrn == "hi_thing":
-            print self.game
             return self.game["hi_thing"]
         else:
             raise AttributeError(
@@ -511,13 +508,6 @@ necessary."""
                 return cards
         return None
 
-    def get_effect_decks(self, names):
-        r = {}
-        for name in names:
-            r[name] = self.effectdeckdict[name]
-        r.update(self.load_effect_decks(names))
-        return r
-
     def schedule_char_att(self, char_s, att_s, val,
                           branch=None, tick_from=None, tick_to=None):
         self.schedule_something(
@@ -610,7 +600,8 @@ necessary."""
             rowd = dictify_row(row, ("stringname", "language", "string"))
             if rowd["stringname"] not in self.stringdict:
                 self.stringdict[rowd["stringname"]] = {}
-            self.stringdict[rowd["stringname"]][rowd["language"]] = rowd["string"]
+            self.stringdict[rowd[
+                "stringname"]][rowd["language"]] = rowd["string"]
 
     def get_dimension(self, dimn):
         if dimn not in self.dimensiondict:
@@ -650,8 +641,7 @@ necessary."""
 
     def load_cards(self, names):
         r = {}
-        qryfmt = load_cards_qryfmt
-        qrystr = qryfmt.format(", ".join(["?"] * len(names)))
+        qrystr = LOAD_CARDS_QRYFMT.format(", ".join(["?"] * len(names)))
         self.c.execute(qrystr, tuple(names))
         for row in self.c:
             rowdict = dictify_row(row, Card.colns)
@@ -671,7 +661,8 @@ necessary."""
         r.update(self.load_cards(unloaded))
         return r
 
-    def load_dimension(self, dimn, branches=None, tick_from=None, tick_to=None):
+    def load_dimension(
+            self, dimn, branches=None, tick_from=None, tick_to=None):
         # I think it might eventually *make sense* to load the same
         # dimension more than once without unloading it first. Perhaps
         # you want to selectively load the parts of it that the player
@@ -722,7 +713,9 @@ necessary."""
         return dim
 
     def get_board(self, i, window):
-        if len(window.dimension.boards) <= i or window.dimension.boards[i] is None:
+        if (
+                len(window.dimension.boards) <= i or
+                window.dimension.boards[i] is None):
             return self.load_board(i, window)
         else:
             return window.dimension.boards[i]
@@ -749,7 +742,6 @@ necessary."""
         pawn_rows = self.c.fetchall()
         for row in pawn_rows:
             imgs2load.add(row[4])
-        imgnames = tuple(imgs2load)
         imgs = self.load_imgs(imgs2load)
         dim.boards[i] = Board(window, i, width, height, imgs[walln])
         # actually assign images instead of just collecting the names
@@ -787,8 +779,6 @@ necessary."""
             (placen, branch, tick_from, tick_to, imgn) = row
             place = dim.get_place(placen)
             place.spots[i].set_img(imgs[imgn], branch, tick_from, tick_to)
-        # their locations
-        
         # interactivity for the spots
         self.c.execute(SPOT_INTER_QRY_START, (str(dim), i))
         for row in self.c:
@@ -854,7 +844,9 @@ necessary."""
         self.c.execute(qrystr, tuple(stylenames))
         style_rows = self.c.fetchall()
         colornames = set()
-        colorcols = ("textcolor", "fg_inactive", "fg_active", "bg_inactive", "bg_active")
+        colorcols = (
+            "textcolor", "fg_inactive",
+            "fg_active", "bg_inactive", "bg_active")
         for row in style_rows:
             rowdict = dictify_row(row, Style.colns)
             for colorcol in colorcols:
@@ -892,17 +884,6 @@ necessary."""
         r.update(effect.load_effects(self, unloaded))
         return r
 
-    def get_effect_decks(self, names):
-        r = {}
-        unloaded = set()
-        for effd in names:
-            if effd in self.effectdeckdict:
-                r[effd] = self.effectdeckdict[effd]
-            else:
-                unloaded.add(effd)
-        r.update(effect.load_effect_decks(self, unloaded))
-        return r
-
     def load_window(self, name):
         self.c.execute(
             "SELECT min_width, min_height, dimension, board, arrowhead_size, "
@@ -912,7 +893,6 @@ necessary."""
          arrow_width, view_left, view_bot, main_menu) = self.c.fetchone()
         stylenames = set()
         menunames = set()
-        cards_needed = set()
         imgs_needed = set()
         dim = self.get_dimension(dimn)
         self.c.execute(
@@ -929,52 +909,37 @@ necessary."""
         cal_rows = self.c.fetchall()
         for row in cal_rows:
             stylenames.add(row[5])
+        self.get_styles(stylenames)
+        self.get_imgs(imgs_needed)
         self.c.execute(
-            "SELECT effect_deck, left, right, top, bot, style, visible, interactive FROM hand "
-            "WHERE window=?", (name,))
-        hand_rows = self.c.fetchall()
-        effect_decks_needed = [row[0] for row in hand_rows]
-        effect_decks_loaded = self.get_effect_decks(effect_decks_needed)
-        for effect_deck in effect_decks_loaded.itervalues():
-            for effect in effect_deck.get_effects():
-                cards_needed.add(str(effect))
-        self.c.execute("SELECT effect, display_name, image, text, style FROM card WHERE effect IN ({0})".format(", ".join(["?"] * len(cards_needed))), tuple(cards_needed))
-        card_rows = self.c.fetchall()
-        for row in card_rows:
-            stylenames.add(row[4])
-            if row[2] is not None:
-                imgs_needed.add(row[2])
-        styles_loaded = self.get_styles(stylenames)
-        imgs_loaded = self.get_imgs(imgs_needed)
-        cards_loaded = {}
-        for row in card_rows:
-            (effn, dispn, imgn, text, style) = row
-            if imgn is None:
-                img = None
-            else:
-                img = imgs_loaded[imgn]
-            cards_loaded[effn] = Card(self,
-                self.effectdict[effn], dispn, 
-                img, text, styles_loaded[style])
-        hands_by_name = OrderedDict()
-        self.c.execute(
-            "SELECT menu, idx, text, on_click, closer FROM menu_item WHERE window=? AND menu IN ({0})".format(", ".join(["?"] * len(menunames))), (name,) + tuple(menunames))
+            "SELECT menu, idx, text, on_click, closer FROM menu_item "
+            "WHERE window=? AND menu IN ({0})".format(
+                ", ".join(["?"] * len(menunames))),
+            (name,) + tuple(menunames))
         menu_item_rows = self.c.fetchall()
         return BoardWindow(
-            self, name, min_width, min_height, dim, boardi, arrowhead_size,
-            arrow_width, view_left, view_bot, main_menu, hand_rows, cal_rows,
+            self, name, min_width, min_height, arrowhead_size,
+            arrow_width, view_left, view_bot, dim, boardi,
+            main_menu, [], cal_rows,
             menu_rows, menu_item_rows)
 
     def get_timestream(
             self, min_width, min_height, arrowhead_size,
             arrow_width, view_left, view_bot):
         return TimestreamWindow(
-            self, min_width, min_height, arrowhead_size, arrow_width, view_left, view_bot)
+            self, min_width, min_height, arrowhead_size,
+            arrow_width, view_left, view_bot)
 
     def time_travel(self, branch, tick):
         self.time_travel_history.append((self.branch, self.tick))
         self.branch = branch
         self.tick = tick
+
+    def increment_time(self, ts):
+        self.delay += ts
+        while self.delay > self.game_speed:
+            self.delay -= self.game_speed
+            self.tick += 1
 
 
 def load_game(dbfn, lang="eng"):

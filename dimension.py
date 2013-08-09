@@ -3,15 +3,8 @@
 from place import Place
 from thing import Thing
 from portal import Portal
-from spot import Spot
-from board import Board
-from pawn import Pawn
-from img import Img
-from arrow import Arrow
 from logging import getLogger
-from igraph import Graph, InternalError, IN
-from collections import OrderedDict
-from util import DictValues2DIterator
+from igraph import Graph, InternalError
 
 
 logger = getLogger(__name__)
@@ -134,7 +127,9 @@ this dimension, and laid out nicely."""
             return False
         return self.graph[orig, dest] > 0
 
-    def make_portal(self, orig, dest, existence=None, indef_exist=None, arrows=None):
+    def make_portal(
+            self, orig, dest,
+            existence=None, indef_exist=None, arrows=None):
         vertns = self.graph.vs["name"]
         if hasattr(orig, 'v'):
             orig = int(orig)
@@ -145,12 +140,11 @@ this dimension, and laid out nicely."""
         elif not isinstance(dest, int):
             dest = vertns.index(dest)
         if existence is None:
-            exiscence = {}
+            existence = {}
         if indef_exist is None:
             indef_exist = {}
         if arrows is None:
             arrows = []
-        i = len(self.graph.es)
         self.graph.add_edge(
             orig, dest,
             existence=existence,
@@ -200,11 +194,12 @@ this dimension, and laid out nicely."""
                 return True
         return False
 
-    def portal_extant_between(self, e, branch=None, tick_from=None, tick_to=None):
+    def portal_extant_between(
+            self, e, branch=None, tick_from=None, tick_to=None):
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
-            tick = self.rumor.tick
+            tick_from = self.rumor.tick
         if tick_to is None:
             if branch not in e["indef_exist"]:
                 return False
@@ -212,7 +207,8 @@ this dimension, and laid out nicely."""
             return ifrom < tick_from
         if branch not in e["existence"]:
             return False
-        # search for an existence window that either matches or contains the one given
+        # search for an existence window that either matches or
+        # contains the one given
         for (tick_before, tick_after) in e["existence"][branch].iteritems():
             if tick_before <= tick_from and tick_after >= tick_to:
                 return True

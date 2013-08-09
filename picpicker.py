@@ -2,6 +2,7 @@ from pyglet.image import SolidColorImagePattern
 from pyglet.sprite import Sprite
 from time import time
 
+
 class PicPanel:
     """Icon for a particular picture in a PicPicker."""
     def __init__(self, picker, pic):
@@ -57,7 +58,6 @@ class PicPanel:
             pass
 
     def onclick(self):
-        print "{0}: PicPanel showing {1} received click".format(time(), str(self.pic))
         self.picker.delete()
         setattr(self.window, self.picker.targetn, self.pic)
         self.window.set_mouse_cursor_texture(self.tex)
@@ -125,7 +125,6 @@ will be assigned to that attribute of the window the picker is in.
         self.bgimg = self.bgpat_inactive.create_image(self.width, self.height)
         self.bgpat_active = SolidColorImagePattern(style.bg_active.tup)
         self.panels = [PicPanel(self, img) for img in self.imgs]
-        print "{0}: Instantiated a PicPicker targeting {1}".format(time(), targetn)
 
     def __getattr__(self, attrn):
         if attrn == 'window_left':
@@ -163,7 +162,6 @@ will be assigned to that attribute of the window the picker is in.
                 "PicPicker instance has no attribute named " + attrn)
 
     def layout(self):
-        print "{0}: Laying out PicPicker targeting {1}".format(time(), self.targetn)
         new_pixrows = []
         panels = list(self.panels)
         nexttop = self.style.spacing
@@ -189,7 +187,7 @@ will be assigned to that attribute of the window the picker is in.
             nextleft = self.style.spacing
             new_pixrows.append(row)
         self.pixrows = new_pixrows
-                
+
     def rowhash(self):
         rowshashes = [hash(tuple(row)) for row in self.pixrows]
         return hash(tuple(rowshashes))
@@ -258,6 +256,7 @@ will be assigned to that attribute of the window the picker is in.
         self.scrolled_to_row -= 1
 
     def draw(self):
+        print "drawing picpicker"
         newstate = self.get_state_tup()
         if newstate in self.window.onscreen:
             return
@@ -272,5 +271,5 @@ will be assigned to that attribute of the window the picker is in.
             group=self.window.pickerbggroup)
         self.layout()
         for pixrow in self.pixrows:
-            for pic in pixrows:
+            for pic in pixrow:
                 pic.draw()

@@ -5,8 +5,7 @@ from util import (
     TerminableImg,
     TerminableInteractivity,
     TerminableCoords,
-    BranchTicksIter,
-    dictify_row)
+    BranchTicksIter)
 from pyglet.sprite import Sprite
 from logging import getLogger
 from igraph import ALL
@@ -15,91 +14,18 @@ from igraph import ALL
 logger = getLogger(__name__)
 
 
-class SpotSaver:
-    __metaclass__ = SaveableMetaclass
-    tables = [
-        ("spot_img",
-         {"dimension": "text not null default 'Physical'",
-          "place": "text not null",
-          "board": "integer not null default 0",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
-          "tick_to": "integer default null",
-          "img": "text not null default 'default_spot'"},
-         ("dimension", "place", "board", "branch", "tick_from"),
-         {"dimension, board": ("board", "dimension, i"),
-          "img": ("img", "name")},
-         []),
-        ("spot_interactive",
-         {"dimension": "text not null default 'Physical'",
-          "place": "text not null",
-          "board": "integer not null default 0",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
-          "tick_to": "integer default null"},
-         ("dimension", "place", "board", "branch", "tick_from"),
-         {"dimension, board": ("board", "dimension, i")},
-         []),
-        ("spot_coords",
-         {"dimension": "text not null default 'Physical'",
-          "place": "text not null",
-          "board": "integer not null default 0",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
-          "tick_to": "integer default null",
-          "x": "integer not null default 50",
-          "y": "integer not null default 50"},
-         ("dimension", "place", "board", "branch", "tick_from"),
-         {"dimension, board": ("board", "dimension, i")},
-         [])]
-
-    def __init__(self, spot):
-        self.spot = spot
-
-    def get_tabdict(self):
-        return {
-            "spot_img": [
-                {
-                    "dimension": str(self.spot.dimension),
-                    "place": str(self.spot.place),
-                    "board": int(self.spot.board),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to,
-                    "img": str(img)}
-                for (branch, tick_from, tick_to, img) in
-                BranchTicksIter(self.spot.imagery)],
-            "spot_interactive": [
-                {
-                    "dimension": str(self.spot.dimension),
-                    "place": str(self.spot.place),
-                    "board": int(self.spot.board),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to}
-                for (branch, tick_from, tick_to) in
-                BranchTicksIter(self.spot.interactivity)],
-            "spot_coords": [
-                {
-                    "dimension": str(self.spot.dimension),
-                    "place": str(self.spot.place),
-                    "board": int(self.spot.board),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to,
-                    "x": x,
-                    "y": y}
-                for (branch, tick_from, tick_to, x, y) in
-                BranchTicksIter(self.spot.coord_dict)]}
+__metaclass__ = SaveableMetaclass
 
 
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class AbstractSpot(object, TerminableImg, TerminableInteractivity, TerminableCoords):
+class AbstractSpot(
+        TerminableImg, TerminableInteractivity,
+        TerminableCoords):
     selectable = True
 
-    def __init__(self, board, vert, saveable=True):
+    def __init__(self, board, vert):
         self.board = board
         self.rumor = self.board.rumor
         self.window = self.board.window
@@ -118,8 +44,6 @@ class AbstractSpot(object, TerminableImg, TerminableInteractivity, TerminableCoo
         self.tweaks = 0
         self.drag_offset_x = 0
         self.drag_offset_y = 0
-        if saveable:
-            self.saver = SpotSaver(self)
 
     def __getattr__(self, attrn):
         if attrn == 'dimension':
@@ -192,6 +116,7 @@ class AbstractSpot(object, TerminableImg, TerminableInteractivity, TerminableCoo
             return self.window_x + self.rx
         elif attrn == 'in_window':
             wico = self.window_coords
+            print wico
             return (
                 wico is not None and
                 wico[0] + self.rx > 0 and
@@ -207,33 +132,11 @@ class AbstractSpot(object, TerminableImg, TerminableInteractivity, TerminableCoo
                 "Spot instance has no such attribute: " +
                 attrn)
 
-    def __setattr__(self, attrn, val):
-        if attrn == "img":
-            self.set_img(val)
-        elif attrn == "interactive":
-            self.set_interactive(val)
-        elif attrn == "x":
-            raise Exception("Don't set x that way")
-        elif attrn == "y":
-            raise Exception("Don't set y that way")
-        elif attrn == "hovered":
-            if val is True:
-                self.hovered()
-            else:
-                self.unhovered()
-        elif attrn == "pressed":
-            if val is True:
-                self.set_pressed()
-            else:
-                self.unset_pressed()
-        else:
-            super(Spot, self).__setattr__(attrn, val)
-
     def dropped(self, x, y, button, modifiers):
         c = self.get_coords()
         newx = c[0] + self.drag_offset_x
         newy = c[1] + self.drag_offset_y
-        self.set_coords(c[0] + self.drag_offset_x, c[1] + self.drag_offset_y)
+        self.set_coords(newx, newy)
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
@@ -275,14 +178,17 @@ mouse."""
             abs(myy - y) < self.ry)
 
     def draw(self):
+        print "Drawing spot for {0}...".format(str(self.place))
         newstate = self.get_state_tup()
         if newstate in self.window.onscreen:
+            print "Nope, already drawn, forget this"
             return
         self.window.onscreen.discard(self.oldstate)
         self.window.onscreen.add(newstate)
         self.oldstate = newstate
         if self.visible and self.in_window:
             if self.selected:
+                print "With a yelo box"
                 yelo = (255, 255, 0, 0)
                 self.box_edges = self.window.draw_box(
                     self.window_left,
@@ -293,6 +199,7 @@ mouse."""
                     self.window.higroup,
                     self.box_edges)
             else:
+                print "With no box"
                 for vertls in self.box_edges:
                     try:
                         vertls.delete()
@@ -302,6 +209,7 @@ mouse."""
             try:
                 self.sprite.x = self.window_left
                 self.sprite.y = self.window_bot
+                print "Moved the sprite a bit"
             except AttributeError:
                 self.sprite = Sprite(
                     self.img.tex,
@@ -309,7 +217,9 @@ mouse."""
                     self.window_bot,
                     self.window.batch,
                     self.window.spotgroup)
+                print "Made new sprite"
         else:
+            print "And it's blank"
             try:
                 self.sprite.delete()
             except:
@@ -324,6 +234,7 @@ mouse."""
         except:
             pass
 
+
 class Spot(AbstractSpot):
     """The icon that represents a Place.
 
@@ -333,11 +244,83 @@ class Spot(AbstractSpot):
 
     """
     def __init__(self, board, place):
-        super(PlaceSpot, self).__init__(board, place.v)
+        super(Spot, self).__init__(board, place.v)
         self.place = place
 
     def __str__(self):
         return str(self.place)
+
+    tables = [
+        ("spot_img",
+         {"dimension": "text not null default 'Physical'",
+          "place": "text not null",
+          "board": "integer not null default 0",
+          "branch": "integer not null default 0",
+          "tick_from": "integer not null default 0",
+          "tick_to": "integer default null",
+          "img": "text not null default 'default_spot'"},
+         ("dimension", "place", "board", "branch", "tick_from"),
+         {"dimension, board": ("board", "dimension, i"),
+          "img": ("img", "name")},
+         []),
+        ("spot_interactive",
+         {"dimension": "text not null default 'Physical'",
+          "place": "text not null",
+          "board": "integer not null default 0",
+          "branch": "integer not null default 0",
+          "tick_from": "integer not null default 0",
+          "tick_to": "integer default null"},
+         ("dimension", "place", "board", "branch", "tick_from"),
+         {"dimension, board": ("board", "dimension, i")},
+         []),
+        ("spot_coords",
+         {"dimension": "text not null default 'Physical'",
+          "place": "text not null",
+          "board": "integer not null default 0",
+          "branch": "integer not null default 0",
+          "tick_from": "integer not null default 0",
+          "tick_to": "integer default null",
+          "x": "integer not null default 50",
+          "y": "integer not null default 50"},
+         ("dimension", "place", "board", "branch", "tick_from"),
+         {"dimension, board": ("board", "dimension, i")},
+         [])]
+
+    def get_tabdict(self):
+        return {
+            "spot_img": [
+                {
+                    "dimension": str(self.spot.dimension),
+                    "place": str(self.spot.place),
+                    "board": int(self.spot.board),
+                    "branch": branch,
+                    "tick_from": tick_from,
+                    "tick_to": tick_to,
+                    "img": str(img)}
+                for (branch, tick_from, tick_to, img) in
+                BranchTicksIter(self.spot.imagery)],
+            "spot_interactive": [
+                {
+                    "dimension": str(self.spot.dimension),
+                    "place": str(self.spot.place),
+                    "board": int(self.spot.board),
+                    "branch": branch,
+                    "tick_from": tick_from,
+                    "tick_to": tick_to}
+                for (branch, tick_from, tick_to) in
+                BranchTicksIter(self.spot.interactivity)],
+            "spot_coords": [
+                {
+                    "dimension": str(self.spot.dimension),
+                    "place": str(self.spot.place),
+                    "board": int(self.spot.board),
+                    "branch": branch,
+                    "tick_from": tick_from,
+                    "tick_to": tick_to,
+                    "x": x,
+                    "y": y}
+                for (branch, tick_from, tick_to, x, y) in
+                BranchTicksIter(self.spot.coord_dict)]}
 
     def get_state_tup(self):
         return (
@@ -353,4 +336,5 @@ class Spot(AbstractSpot):
             self.drag_offset_x,
             self.drag_offset_y,
             self.window.view_left,
-            self.window.view_bot)
+            self.window.view_bot,
+            self.tweaks)

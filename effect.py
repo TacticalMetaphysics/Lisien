@@ -1,8 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass, dictify_row
-from random import randrange
-from collections import defaultdict
 
 
 """Ways to change the game world."""
@@ -12,7 +10,8 @@ __metaclass__ = SaveableMetaclass
 
 
 class Effect:
-    """One change to one attribute of one character. It may occur at any given time.
+    """One change to one attribute of one character. It may occur at any
+given time.
 
 When fired, an effect will call a callback function named in its
 constructor. The function should be registered by that name in the
@@ -25,9 +24,11 @@ callback's return value may be:
 
 * a Thing object, which will be added to the character if it isn't part already
 
-* an EffectDeck object, which will be the new value of the skill named in the Effect's constructor
+* an EffectDeck object, which will be the new value of the skill named
+  in the Effect's constructor
 
-* anything else, which will be the new value of the stat named in the Effect's constructor
+* anything else, which will be the new value of the stat named in the
+  Effect's constructor
 
 The callback should always return the same type.
 
@@ -43,11 +44,13 @@ contain only a single Effect.
         ("effect",
          {"name": "text not null",
           "character": "text not null",
-          "key": "text",  # May be null, but only when adding a thing to the character
+          "key": "text",  # May be null, but only when adding a thing
+                          # to the character
           "callback": "text not null"},
          ("name",),
          {},
          [])]
+
     def __init__(self, name, chara, key, cbname):
         self.name = name
         self.character = chara
@@ -145,7 +148,8 @@ were right after firing them.
         if attrn == "effects":
             return self.get_effects()
         else:
-            raise AttributeError("EffectDeck instance has no attribute named " + attrn)
+            raise AttributeError(
+                "EffectDeck instance has no attribute named " + attrn)
 
     def __setattr__(self, attrn, val):
         if attrn == "effects":
@@ -179,7 +183,9 @@ were right after firing them.
             branch = self.rumor.branch
         if tick is None:
             tick = self.rumor.tick
-        if branch in self.indefinite_effects and self.indefinite_effects[branch] <= tick:
+        if (
+                branch in self.indefinite_effects and
+                self.indefinite_effects[branch] <= tick):
             return self.effects[self.indefinite_effects[branch]][0]
         for (tick_from, (val, tick_to)) in self.effects[branch].iteritems():
             if tick_from <= tick and tick <= tick_to:
@@ -191,7 +197,8 @@ were right after firing them.
     def get_tabdict(self):
         r = {"effect_deck": []}
         for branch in self.effects:
-            for (tick_from, (effects, tick_to)) in self.effects[branch].iteritems():
+            it = self.effects[branch].iteritems()
+            for (tick_from, (effects, tick_to)) in it:
                 i = 0
                 for effect in effects:
                     r["effect_deck"].append(
@@ -206,7 +213,8 @@ were right after firing them.
     def get_keydict(self):
         r = {"effect_deck": []}
         for branch in self.effects:
-            for (tick_from, (effects, tick_to)) in self.effects[branch].iteritems():
+            it = self.effects[branch].iteritems()
+            for (tick_from, (effects, tick_to)) in it:
                 for i in xrange(tick_from, tick_to):
                     r["effect_deck"].append(
                         {"deck": str(self),
@@ -253,7 +261,8 @@ were right after firing them.
 EFFECT_DECK_QRYFMT = "SELECT {0} FROM effect_deck WHERE name IN ({1})".format(
     ", ".join(EffectDeck.colnames["effect_deck"]), "{0}")
 
-EFFECT_DECK_LINK_QRYFMT = "SELECT {0} FROM effect_deck_link WHERE deck IN ({1})".format(
+EFFECT_DECK_LINK_QRYFMT = "SELECT {0} FROM effect_deck_link WHERE "
+"deck IN ({1})".format(
     ", ".join(EffectDeck.colnames["effect_deck_link"]), "{0}")
 
 
@@ -263,7 +272,8 @@ def load_effect_decks(rumor, names):
     r = {}
     for row in rumor.c:
         rowdict = dictify_row(row, EffectDeck.colnames["effect_deck"])
-        r[rowdict["name"]] = EffectDeck(rumor, rowdict["name"], rowdict["draw"])
+        r[rowdict["name"]] = EffectDeck(
+            rumor, rowdict["name"], rowdict["draw"])
     qrystr = EFFECT_DECK_LINK_QRYFMT.format(", ".join(["?"] * len(names)))
     rumor.c.execute(qrystr, tuple(names))
     effect_deck_rows = rumor.c.fetchall()

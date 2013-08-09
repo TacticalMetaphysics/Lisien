@@ -63,43 +63,7 @@ class BoardArrowIter:
         return r.arrows[self.i]
 
 
-class BoardSaver:
-    __metaclass__ = SaveableMetaclass
-    tables = [
-        ("board",
-         {"dimension": "text not null default 'Physical'",
-          "i": "integer not null default 0",
-          "wallpaper": "text not null default 'default_wallpaper'",
-          "width": "integer not null default 4000",
-          "height": "integer not null default 3000"},
-         ("dimension", "i"),
-         {"wallpaper": ("image", "name")},
-         []),
-    ]
-    def __init__(self, board):
-        self.board = board
-
-    def get_tabdict(self):
-        return {
-            "board": [
-                {"dimension": str(self.board.dimension),
-                 "i": int(self.board),
-                 "wallpaper": str(self.board.wallpaper),
-                 "width": self.board.width,
-                 "height": self.board.height}]}
-
-    def save(self):
-        for pawn in self.board.pawns:
-            pawn.save()
-        for spot in self.board.spots:
-            spot.save()
-        self.coresave()
-
-
-
-
-
-class Board:
+class AbstractBoard:
     """A widget notionally representing the game board on which the rest
 of the game pieces lie.
 
@@ -113,6 +77,7 @@ board, but they are linked to the board anyhow, on the assumption that
 each board will be open in at most one window at a time.
 
     """
+    __metaclass__ = SaveableMetaclass
 
     def __init__(self, window, i, width, height, wallpaper):
         """Return a board representing the given dimension.
@@ -126,7 +91,6 @@ each board will be open in at most one window at a time.
         self.height = height
         self.wallpaper = wallpaper
         self.menu_by_name = OrderedDict()
-        self.saver = BoardSaver(self)
 
     def __getattr__(self, attrn):
         if attrn == "places":
@@ -177,5 +141,25 @@ each board will be open in at most one window at a time.
             self.make_spot(place)
         return place.spots[int(self)]
 
-    def save(self):
-        self.saver.save()
+
+class Board(AbstractBoard):
+    tables = [
+        ("board",
+         {"dimension": "text not null default 'Physical'",
+          "i": "integer not null default 0",
+          "wallpaper": "text not null default 'default_wallpaper'",
+          "width": "integer not null default 4000",
+          "height": "integer not null default 3000"},
+         ("dimension", "i"),
+         {"wallpaper": ("image", "name")},
+         []),
+    ]
+
+    def get_tabdict(self):
+        return {
+            "board": [
+                {"dimension": str(self.board.dimension),
+                 "i": int(self.board),
+                 "wallpaper": str(self.board.wallpaper),
+                 "width": self.board.width,
+                 "height": self.board.height}]}

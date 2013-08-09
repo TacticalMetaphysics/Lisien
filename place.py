@@ -2,6 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from igraph import Vertex, OUT
 
+
 class Place:
     """Where you go when you have to be someplace.
 

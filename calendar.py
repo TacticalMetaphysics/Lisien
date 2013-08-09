@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, stringlike
+from util import SaveableMetaclass
 from pyglet.image import SolidColorImagePattern as color_pattern
 from pyglet.sprite import Sprite
 from pyglet.text import Label
@@ -60,7 +60,8 @@ represents to calculate its dimensions and coordinates.
             if self.tick_to is None:
                 return self.col.calendar.window_bot
             else:
-                return self.window_top - (self.col.calendar.row_height * len(self))
+                return self.window_top - (
+                    self.col.calendar.row_height * len(self))
         elif attrn == 'window_left':
             return self.col.window_left + self.style.spacing
         elif attrn == 'window_right':
@@ -145,6 +146,7 @@ between any two states that should appear different on-screen."""
         else:
             self.delete()
 
+
 class CalendarCol:
     def __init__(self, calendar, scheduledict, interactive, style):
         self.calendar = calendar
@@ -166,7 +168,6 @@ class CalendarCol:
         self.cells = []
         self.regen_cells()
 
-
     def __iter__(self):
         return iter(self.cells)
 
@@ -180,7 +181,9 @@ class CalendarCol:
         elif attrn == 'window_bot':
             return self.calendar.window_bot
         elif attrn == 'window_left':
-            return self.calendar.window_left + self.idx * self.calendar.col_width
+            return (
+                self.calendar.window_left +
+                self.idx * self.calendar.col_width)
         elif attrn == 'window_right':
             return self.window_left + self.calendar.col_width
         elif attrn == 'width':
@@ -253,7 +256,7 @@ between any two states that should appear different on-screen."""
 
     def draw(self):
         image = self.inactive_pattern.create_image(
-            self.width, self.height))
+            self.width, self.height)
         self.sprite = Sprite(
             image,
             self.window_left,
@@ -427,7 +430,7 @@ between any two states that should appear different on-screen."""
             self.window_right > x and
             self.window_bot < y and
             self.window_top > y)
-        
+
     def draw(self):
         newstate = self.get_state_tup()
         if newstate in self.window.onscreen:

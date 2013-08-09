@@ -17,6 +17,7 @@ logger = getLogger(__name__)
 class JourneyException(Exception):
     pass
 
+
 class BranchError(Exception):
     pass
 
@@ -140,7 +141,7 @@ Return an Effect representing the change.
                 del self.indefinite_locations[branch]
             elif tick_to > ifrom:
                 del self.locations[branch][ifrom]
-                del self.indefinite_locations[brarnch]
+                del self.indefinite_locations[branch]
         self.locations[branch][tick_from] = (loc, tick_to)
         if tick_to is None:
             self.indefinite_locations[branch] = tick_from
@@ -210,7 +211,6 @@ are n ticks of free time."""
                 laterthan = tick_to
         return laterthan + 1
 
-
     def get_tabdict(self):
         return {
             "thing_location": [
@@ -225,7 +225,8 @@ are n ticks of free time."""
                 BranchTicksIter(self.locations)]}
 
     def end_location(self, branch=None, tick=None):
-        """Find where I am at the given time. Arrange to stop being there then."""
+        """Find where I am at the given time. Arrange to stop being there
+then."""
         if branch is None:
             branch = self.rumor.branch
         if tick is None:
@@ -247,7 +248,8 @@ other journey I may be on at the time."""
         if tick is None:
             tick = self.rumor.tick
         loc = self.get_location(branch, tick)
-        print "{0} journeys from {1} to {2}".format(str(self), str(loc), str(destplace))
+        print "{0} journeys from {1} to {2}".format(
+            str(self), str(loc), str(destplace))
         ipath = self.dimension.graph.get_shortest_paths(
             str(loc), to=str(destplace), output="epath")
         path = None
@@ -255,7 +257,8 @@ other journey I may be on at the time."""
             desti = self.dimension.graph.es[p[-1]].target
             if desti == int(destplace):
                 path = [
-                    Portal(self.dimension, self.dimension.graph.es[step]) for step in p]
+                    Portal(self.dimension,
+                           self.dimension.graph.es[step]) for step in p]
                 break
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
@@ -263,8 +266,6 @@ other journey I may be on at the time."""
         self.end_location(branch, tick)
         for port in path:
             tick_out = self.get_ticks_thru(port) + prevtick
-            print "At tick {0}, {1} will enter {2}. At tick {3}, it will leave.".format(
-                int(prevtick), str(self), str(port), int(tick_out))
             self.set_location(port, int(branch), int(prevtick), int(tick_out))
             prevtick = tick_out + 1
         print "{0} will arrive at {1} at tick {2}.".format(

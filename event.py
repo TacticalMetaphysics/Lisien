@@ -12,7 +12,7 @@ Events get passed to the effect decks, which may or may not use them
 for anything in particular.
 
 """
-from util import SaveableMetaclass, stringlike
+from util import SaveableMetaclass, dictify_row
 import logging
 
 
@@ -128,11 +128,12 @@ the three given effect decks. Register with db.eventdict.
                     tick_from,
                     tick_to))
         return {
-            "event": [{"name": str(self),
-                       "text": self._text,
-                       "commence_effect_deck": str(self.commence_effect_deck),
-                       "proceed_effect_deck": str(self.proceed_effect_deck),
-                       "conclude_effect_deck": str(self.conclude_effect_deck)}],
+            "event": [
+                {"name": str(self),
+                 "text": self._text,
+                 "commence_effect_deck": str(self.commence_effect_deck),
+                 "proceed_effect_deck": str(self.proceed_effect_deck),
+                 "conclude_effect_deck": str(self.conclude_effect_deck)}],
             "scheduled_event": [dictify_row(row, occorder)
                                 for row in iter(occur_rows)]}
 

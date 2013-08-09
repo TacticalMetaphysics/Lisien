@@ -94,7 +94,7 @@ item's name, and the name of the attribute.
         if branch not in self.attribdict:
             self.attribdict[branch] = {}
         if stat not in self.statdict[branch]:
-            self.statdict[branch][trib] = {}
+            self.statdict[branch][stat] = {}
         if (
                 branch in self.indefinite_stat and
                 stat in self.indefinite_stats[branch]):
@@ -133,7 +133,9 @@ item's name, and the name of the attribute.
             self.skilldict[branch] = {}
         if skill not in self.skilldict[branch]:
             self.skilldict[branch][skill] = {}
-        if branch in self.indefinite_skill and skill in self.indefinite_skill[branch]:
+        if (
+                branch in self.indefinite_skill and
+                skill in self.indefinite_skill[branch]):
             ifrom = self.indefinite_skill[branch][skill]
             (ival, ito) = self.skilldict[branch][skill][ifrom]
             if tick_from > ifrom:
@@ -160,7 +162,9 @@ item's name, and the name of the attribute.
                 return val
         return None
 
-    def add_thing_with_strs(self, dimn, thingn, branch=None, tick_from=None, tick_to=None):
+    def add_thing_with_strs(
+            self, dimn, thingn,
+            branch=None, tick_from=None, tick_to=None):
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
@@ -205,7 +209,8 @@ item's name, and the name of the attribute.
                 dimn in self.thingdict[branch] and
                 thingn in self.thingdict[branch][dimn]):
             return False
-        for (tick_from, tick_to) in self.thingdict[branch][dimn][thingn].iteritems():
+        for (tick_from, tick_to) in self.thingdict[
+                branch][dimn][thingn].iteritems():
             if tick_from <= tick and (tick_to is None or tick <= tick_to):
                 return True
         return False
@@ -218,7 +223,7 @@ item's name, and the name of the attribute.
     def were_thing_with_strs(self, dimn, thingn):
         """Was I ever, will I ever, be this thing?"""
         for branch in self.thingdict:
-            if dimn not in thingdict[branch]:
+            if dimn not in self.thingdict[branch]:
                 continue
             if thingn in self.thingdict[branch][dimn]:
                 return True

@@ -147,8 +147,10 @@ spacing"""
 
     def get_tabdict(self):
         styleset = set()
-        stylecols = ("name", "fontface", "fontsize", "spacing", "bg_inactive", "bg_active",
-                     "fg_inactive", "fg_active")
+        stylecols = (
+            "name", "fontface", "fontsize", "spacing",
+            "bg_inactive", "bg_active",
+            "fg_inactive", "fg_active")
         styleset.add((
             self.name,
             self.fontface,

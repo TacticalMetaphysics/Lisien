@@ -146,7 +146,7 @@ class Arrow:
             return ((y_numerator - x_numerator), denominator)
         elif attrn == 'highlit':
             return self in self.window.selected
-        elif "length" in self.e.get_attributes() and attrn == 'tick_along':
+        elif attrn == "tick_along":
             # This is for the timestream.  After clicking an arrow you
             # can get the tick represented by the point at which the
             # arrow was clicked.
@@ -217,20 +217,24 @@ clicked_along.
         return r
 
     def onclick(self):
-        """In most circumstances, this does nothing; the window will handle my being selected.
+        """In most circumstances, this does nothing; the window will handle my
+being selected.
 
-In the case where I'm in a timeline, clicking me initiates time travel."""
+In the case where I'm in a timeline, clicking me initiates time travel.
+
+        """
         if "branch" in self.e.get_attributes():
             branch = self.e["branch"]
             length = self.e["length"]
             start = self.orig.v["tick"]
-            self.rumor.time_travel(branch, start + (length * self.clicked_along))
+            self.rumor.time_travel(
+                branch, start + (length * self.clicked_along))
             self.window.onscreen = set()
 
     def get_state_tup(self):
         return ((self.tweaks, self.highlit) +
-             self.orig.get_state_tup() +
-             self.dest.get_state_tup())
+                self.orig.get_state_tup() +
+                self.dest.get_state_tup())
 
     def reciprocate(self):
         # Return the edge of the portal that connects the same two
@@ -250,7 +254,8 @@ In the case where I'm in a timeline, clicking me initiates time travel."""
                     pass
 
     def draw(self):
-        supergroup = pyglet.graphics.OrderedGroup(self.order, self.window.edgegroup)
+        supergroup = pyglet.graphics.OrderedGroup(
+            self.order, self.window.edgegroup)
         bggroup = SmoothBoldLineOrderedGroup(
             0, supergroup, self.window.arrow_girth)
         fggroup = BoldLineOrderedGroup(
@@ -261,9 +266,6 @@ In the case where I'm in a timeline, clicking me initiates time travel."""
             return
         (ox, oy) = owc
         (dx, dy) = dwc
-        if isinstance(self.dest, DummySpot):
-            print "The floating portal will go from ({0},{1}) to ({2},{3}).".format(
-                ox, oy, dx, dy)
         if dy < oy:
             yco = -1
         else:

@@ -7,18 +7,19 @@ from util import (
     BranchTicksIter)
 from pyglet.sprite import Sprite
 from logging import getLogger
-from igraph import IN
 
 
 logger = getLogger(__name__)
 
 
+__metaclass__ = SaveableMetaclass
+
+
 """Widget representing things that move about from place to place."""
 
 
-class Pawn(object, TerminableImg, TerminableInteractivity):
+class Pawn(TerminableImg, TerminableInteractivity):
     """A token to represent something that moves about between places."""
-    __metaclass__ = SaveableMetaclass
     tables = [
         ("pawn_img",
          {"dimension": "text not null default 'Physical'",
@@ -164,6 +165,7 @@ interactive or not.
             self.get_coords(branch, tick),
             self.window.view_left,
             self.window.view_bot,
+            self.in_window,
             self.tweaks)
 
     def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
@@ -194,6 +196,12 @@ If it DOES have anything else to do, make the journey in another branch.
         except:
             pass
 
+    def delete(self):
+        try:
+            self.sprite.delete()
+        except:
+            pass
+
     def draw(self):
         newstate = self.get_state_tup()
         if newstate in self.window.onscreen:
@@ -212,6 +220,8 @@ If it DOES have anything else to do, make the journey in another branch.
                     self.window_bot,
                     batch=self.window.batch,
                     group=self.window.pawngroup)
+        else:
+            self.delete()
         if self.selected:
             yelo = (255, 255, 0, 0)
             self.box_edges = self.window.draw_box(
@@ -251,7 +261,6 @@ If it DOES have anything else to do, make the journey in another branch.
         if self.calcol is not None:
             self.calcol.delete()
             self.calcol = None
-            
 
     def get_coords(self, branch=None, tick=None):
         loc = self.thing.get_location(branch, tick)
@@ -280,7 +289,10 @@ If it DOES have anything else to do, make the journey in another branch.
                     x + spot.drag_offset_x + self.window.offset_x,
                     y + spot.drag_offset_y + self.window.offset_y)
         else:
-            raise Exception("When trying to get the coordinates of the pawn for {0}, I found that its location {1} had no spots.".format(str(self), str(loc)))
+            raise Exception(
+                "When trying to get the coordinates of the pawn for {0}, "
+                "I found that its location {1} had no spots.".format(
+                    str(self), str(loc)))
 
     def get_tabdict(self):
         return {

@@ -1,11 +1,11 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import os
-import re
 from sqlite3 import OperationalError
 from rltileins import ins_rltiles
 from util import schemata
-import board, card, calendar, character, dimension, effect, gui, img, menu, pawn, portal, spot, style, thing, rumor
+import board, card, calendar, character, dimension, effect, gui
+import img, menu, pawn, portal, spot, style, thing, rumor
 
 """Make an empty database of LiSE's schema. By default it will be
 called default.sqlite and include the RLTiles (in folder
@@ -23,14 +23,6 @@ def read_sql(db, filen):
     sql = sqlfile.read()
     sqlfile.close()
     db.c.executescript(sql)
-
-def dumb_effect(db, effn):
-    mat = re.match("(.+)\((.*)\)", effn)
-    (name, arg) = mat.groups()
-    qrystr = "INSERT INTO effect (name, func, arg) VALUES (?, ?, ?)"
-    qrytup = (effn, name, arg)
-    db.c.execute(qrystr, qrytup)
-    
 
 try:
     os.remove(DB_NAME)

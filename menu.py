@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, dictify_row
+from util import SaveableMetaclass
 import re
 import pyglet
 
@@ -54,9 +54,11 @@ With db, register in db's menuitemdict.
             on_click_arg_tup = re.match(argre, argstr).groups()
         except:
             on_click_arg_tup = tuple()
+
         def on_click_fun(self):
             t = (self,) + on_click_arg_tup
             return fun(*t)
+
         self.on_click = on_click_fun
         self.closer = closer
         self.grabpoint = None
@@ -387,7 +389,7 @@ me"""
                 "top": self.top_prop,
                 "right": self.right_prop,
                 "style": str(self.style)
-        }]}
+            }]}
 
     def save(self):
         for it in self.items:

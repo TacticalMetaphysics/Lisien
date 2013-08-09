@@ -29,9 +29,11 @@ for arg in argv:
             print "Couldn't connect to the database named {0}.".format(arg)
     i += 1
 rumor = load_game(dbfn, lang)
+#tw = rumor.get_timestream(300, 900, 10, 1.4, 0, 0)
 gw = rumor.load_window('Main')
-tw = rumor.get_timestream(300, 900, 10, 1.4, 0, 0)
+
 
 pyglet.clock.schedule(gw.update)
-pyglet.clock.schedule(tw.update)
+#pyglet.clock.schedule(tw.update)
+pyglet.clock.schedule_interval(gw.rumor.increment_time, gw.rumor.game_speed)
 pyglet.app.run()

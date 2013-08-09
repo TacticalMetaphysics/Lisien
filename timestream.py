@@ -2,7 +2,7 @@ from igraph import Graph, Vertex, Edge, IN
 from spot import AbstractSpot
 from arrow import Arrow
 from collections import defaultdict
-import pyglet
+from board import Board
 
 
 class Spot(AbstractSpot):
@@ -74,7 +74,6 @@ class Timestream(Board):
         # altogether. That original branch now has another edge
         # representing it.
         self.branch_edges = defaultdict(set)
-        self.branch_edges[0] = self.graph.es[0]
         self.update()
 
     def update(self):
@@ -92,6 +91,7 @@ be on the same tick, in which case they are connected by an edge of
 length zero.
 
         """
+        print "updating timestream"
         for branch in self.branchdict:
             done_to = self.branch_done_to[branch]
             (tick_from, tick_to) = self.branchdict[branch]
@@ -105,11 +105,10 @@ length zero.
                 if branch in self.branch_edges:
                     # I may have to extend an edge to make it fit the
                     # whole tick-window.
-                    e_from = self.get_edge(branch, tick_from)
                     e_to = self.get_edge(branch, tick_to)
                     if e_to is None:
                         e_to = self.latest_edge(branch)
-                        v = self.graph.vs[e.target]
+                        v = self.graph.vs[e_to.target]
                         growth = v["tick"] - tick_to
                         v["tick"] += growth
                         e_to["length"] += growth
@@ -182,6 +181,8 @@ length zero.
         former = self.graph.vs[e.source]
         latter = self.graph.vs[e.target]
         old_branch = e["branch"]
+        v = self.add_vert(tick)
+        i = v.index
         e1 = self.add_edge(former, i, old_branch)
         e2 = self.add_edge(i, latter, old_branch)
         return (e1, v, e2)
@@ -203,9 +204,9 @@ length zero.
             raise Exception("Invalid mode")
 
     def get_edge_from_verts(self, vert_from, vert_to):
-        if isinstance(vert_from, Vertex)
+        if isinstance(vert_from, Vertex):
             vert_from = vert_from.index
-        if isinstance(vert_to, Vertex)
+        if isinstance(vert_to, Vertex):
             vert_to = vert_to.index
         eid = self.graph.get_eid(vert_from, vert_to)
         return self.graph.es[eid]
@@ -226,7 +227,9 @@ return None."""
             # I'll consider ticks coinciding exactly with a vertex to
             # be in the descendant edge in that branch.
             if self.vertex_in_branch(v):
-                return e
+                for e in v.incident(mode=IN):
+                    if e in self.branch_members[branch]:
+                        return e
             return None
         for e in v.incident(mode=IN):
             v_to = self.graph.vs[e.target]
@@ -240,7 +243,7 @@ return None."""
             elif v_to["tick"] >= tick:
                 return e
         return None
-        
+
     def split_branch(self, old_branch, new_branch, tick, length=0):
         """Find the edge in old_branch in the given tick, split it, and start
 a new edge off the split. The new edge will be a member of

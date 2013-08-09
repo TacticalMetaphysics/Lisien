@@ -2,7 +2,8 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from pyglet.sprite import Sprite
 from pyglet.text import Label
-from util import SaveableMetaclass, PatternHolder, phi, dictify_row, BranchTicksIter
+from pyglet.image import AbstractImage
+from util import SaveableMetaclass, PatternHolder, phi
 
 """Views on Effects and EffectDecks that look like cards--you know,
 rectangles with letters and pictures on them."""
@@ -76,6 +77,7 @@ class Card:
             "card": {
                 "name": self.name}}
 
+
 class TextHolder:
     def __init__(self, cardwidget):
         self.cardwidget = cardwidget
@@ -89,7 +91,7 @@ class TextHolder:
         elif attrn == "height":
             if isinstance(
                     self.cardwidget.base.img,
-                    pyglet.image.AbstractImage):
+                    AbstractImage):
                 return (
                     self.cardwidget.height / 2 - 4
                     * self.cardwidget.style.spacing)
@@ -122,7 +124,8 @@ class TextHolder:
         if (
                 self.cardwidget.old_width != self.cardwidget.width or
                 self.cardwidget.old_height != self.cardwidget.height):
-            image = self.card.pats.bg_active.create_image(self.width, self.height)
+            image = self.card.pats.bg_active.create_image(
+                self.width, self.height)
             self.sprite = Sprite(
                 image,
                 self.window_left,
@@ -327,7 +330,8 @@ class CardWidget:
                 self.bgsprite.x = self.window_left
                 self.bgsprite.y = self.window_bot
             except:
-                image = self.card.pats.bg_inactive.create_image(self.width, self.height)
+                image = self.card.pats.bg_inactive.create_image(
+                    self.width, self.height)
                 self.sprite = Sprite(
                     image,
                     self.window_left,
@@ -339,6 +343,7 @@ class CardWidget:
             self.delete()
         self.old_width = self.width
         self.old_height = self.height
+
 
 class HandIterator:
     def __init__(self, hand):
@@ -356,8 +361,10 @@ class HandIterator:
             card.widget = CardWidget(card, self.hand)
         return card.widget
 
+
 class Hand:
-    """A view onto an EffectDeck that shows every card in it, in the same order."""
+    """A view onto an EffectDeck that shows every card in it, in the same
+order."""
     __metaclass__ = SaveableMetaclass
     tables = [
         ("hand",
@@ -516,3 +523,8 @@ class Hand:
             x < self.window_right and
             y > self.window_bot and
             y < self.window_top)
+
+    def draw(self):
+        print "drawing hand"
+        for card in iter(self):
+            card.draw()
