@@ -5,6 +5,8 @@ from collections import OrderedDict
 from pawn import Pawn
 from spot import Spot
 from arrow import Arrow
+from pyglet.graphics import OrderedGroup
+from pyglet.sprite import Sprite
 
 
 """Class for user's view on gameworld, and support functions."""
@@ -153,6 +155,32 @@ each board will be open in at most one window at a time.
         if name not in self.arrowdict:
             self.make_arrow(orig_or_port, dest)
         return self.arrowdict[name]
+
+    def draw(self, batch, group):
+        if not hasattr(self, 'bggroup'):
+            self.bggroup = OrderedGroup(0, group)
+        if not hasattr(self, 'arrowgroup'):
+            self.arrowgroup = OrderedGroup(1, group)
+        if not hasattr(self, 'spotgroup'):
+            self.spotgroup = OrderedGroup(2, group)
+        if not hasattr(self, 'pawngroup'):
+            self.pawngroup = OrderedGroup(3, group)
+        if not hasattr(self, 'bgsprite'):
+            self.bgsprite = Sprite(
+                self.wallpaper.tex,
+                self.window.offset_x,
+                self.window.offset_y,
+                batch=batch,
+                group=self.bggroup)
+        else:
+            self.bgsprite.x = self.window.offset_x
+            self.bgsprite.y = self.window.offset_y
+        for arrow in self.arrows:
+            arrow.draw(batch, self.arrowgroup)
+        for spot in self.spots:
+            spot.draw(batch, self.spotgroup)
+        for pawn in self.pawns:
+            pawn.draw(batch, self.pawngroup)
 
 
 class Board(AbstractBoard):

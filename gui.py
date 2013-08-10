@@ -113,9 +113,6 @@ class AbstractGameWindow(SaveablePygletWindow):
 
         self.biggroup = pyglet.graphics.Group()
         self.boardgroup = pyglet.graphics.OrderedGroup(0, self.biggroup)
-        self.edgegroup = pyglet.graphics.OrderedGroup(1, self.biggroup)
-        self.spotgroup = pyglet.graphics.OrderedGroup(2, self.biggroup)
-        self.pawngroup = pyglet.graphics.OrderedGroup(3, self.biggroup)
         self.calgroup = TransparencyOrderedGroup(4, self.biggroup)
         self.handgroup = pyglet.graphics.OrderedGroup(5, self.biggroup)
         self.menugroup = pyglet.graphics.OrderedGroup(6, self.biggroup)
@@ -506,28 +503,7 @@ class BoardWindow(AbstractGameWindow):
                     "BoardWindow has no such attribute " + attrn)
 
     def on_draw(self):
-        for spot in self.board.spots:
-            spot.draw(self.batch, self.spotgroup)
-        for pawn in self.board.pawns:
-            pawn.draw(self.batch, self.pawngroup)
-        for edge in self.board.arrows:
-            edge.draw(self.batch, self.edgegroup)
-        # background image for the board
-        if self.drawn_board is None:
-            self.drawn_board = pyglet.sprite.Sprite(
-                self.board.wallpaper.tex,
-                self.offset_x,
-                self.offset_y,
-                batch=self.batch, group=self.boardgroup)
-        else:
-            if self.drawn_board.x != self.offset_x:
-                self.drawn_board.x = self.offset_x
-            if self.drawn_board.y != self.offset_y:
-                self.drawn_board.y = self.offset_y
-        try:
-            self.floaty_portal.draw(self.batch, self.edgegroup)
-        except:
-            pass
+        self.board.draw(self.batch, self.boardgroup)
         AbstractGameWindow.on_draw(self)
 
     def update(self, dt):
