@@ -54,12 +54,17 @@ class Arrow:
         self.window = board.window
         self.rumor = self.board.rumor
         self.center_shrink = 0
-        if dest is None or hasattr(orig_or_port, 'e'):
-            port = orig_or_port
-            self.orig = self.board.get_spot(port.orig)
-            self.dest = self.board.get_spot(port.dest)
+        if dest is None:
+            if hasattr(orig_or_port, 'orig'):
+                port = orig_or_port
+                self.orig = self.board.get_spot(port.orig)
+                self.dest = self.board.get_spot(port.dest)
+                self.portal = port
+            else:
+                e = orig_or_port
+                self.orig = self.board.get_spot(e.source)
+                self.dest = self.board.get_spot(e.target)
             self.center_shrink = self.dest.r
-            self.portal = port
         else:
             orig = orig_or_port
             if hasattr(orig, 'v'):
@@ -99,6 +104,11 @@ class Arrow:
             return self.dest.x - self.orig.x
         elif attrn == 'width':
             return self.window.arrow_width
+        elif attrn == 'length':
+            if "branch" in self.portal.e.attribute_names():
+                return self.board.get_edge_len(self.portal.e)
+            else:
+                return hypot(self.rise, self.run)
         elif attrn in ('m', 'slope'):
             ox = self.orig.x
             oy = self.orig.y

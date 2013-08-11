@@ -4,6 +4,7 @@ from util import (
     SaveableMetaclass,
     LocationException,
     BranchTicksIter)
+from collections import defaultdict
 from portal import Portal
 from logging import getLogger
 
@@ -47,13 +48,18 @@ too.
          [])]
     basic_speed = 0.1
 
-    def __init__(self, dimension, name, locations={}, indef_locs={}):
+    def __init__(self, dimension, name, locations=None, indef_locs=None):
         self.name = name
         self.dimension = dimension
         self.rumor = self.dimension.rumor
-        self.locations = locations
-        self.indefinite_locations = indef_locs
-        self.pawns = []
+        if locations is None:
+            self.locations = defaultdict(dict)
+        else:
+            self.locations = locations
+        if indef_locs is None:
+            self.indefinite_locations = defaultdict(dict)
+        else:
+            self.indefinite_locations = indef_locs
 
     def __getattr__(self, attrn):
         if attrn == 'location':
@@ -271,3 +277,15 @@ other journey I may be on at the time."""
         print "{0} will arrive at {1} at tick {2}.".format(
             str(self), str(destplace), int(prevtick))
         self.set_location(destplace, int(branch), int(prevtick))
+
+    def new_branch(self, parent, branch, tick):
+        for (tick_from, (loc, tick_to)) in self.locations[parent].iteritems():
+            if tick_to >= tick or tick_to is None:
+                if tick_from < tick:
+                    self.locations[branch][tick] = (loc, tick_to)
+                    if tick_to is None:
+                        self.indefinite_locations[branch] = tick
+                else:
+                    self.locations[branch][tick_from] = (loc, tick_to)
+                    if tick_to is None:
+                        self.indefinite_locations[branch] = tick_from

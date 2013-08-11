@@ -13,18 +13,16 @@ from pyglet.sprite import Sprite
 
 
 class BoardPawnIter:
-    def __init__(self, board):
-        self.thingit = board.things
-        self.i = int(board)
+    def __init__(self, realit):
+        self.realit = realit
 
     def __iter__(self):
         return self
 
     def next(self):
-        r = self.thingit.next()
-        while not hasattr(r, 'pawns') or len(r.pawns) <= self.i:
-            r = self.thingit.next()
-        return r.pawns[self.i]
+        r = self.realit.next()
+        print "iterating over {0} located {1}".format(r, r.thing.locations)
+        return r
 
 
 class BoardSpotIter:
@@ -165,22 +163,34 @@ each board will be open in at most one window at a time.
             self.spotgroup = OrderedGroup(2, group)
         if not hasattr(self, 'pawngroup'):
             self.pawngroup = OrderedGroup(3, group)
-        if not hasattr(self, 'bgsprite'):
-            self.bgsprite = Sprite(
-                self.wallpaper.tex,
-                self.window.offset_x,
-                self.window.offset_y,
-                batch=batch,
-                group=self.bggroup)
-        else:
-            self.bgsprite.x = self.window.offset_x
-            self.bgsprite.y = self.window.offset_y
+        self.draw_bg(batch, self.bggroup)
         for arrow in self.arrows:
             arrow.draw(batch, self.arrowgroup)
         for spot in self.spots:
             spot.draw(batch, self.spotgroup)
         for pawn in self.pawns:
             pawn.draw(batch, self.pawngroup)
+
+    def draw_bg(self, batch, group):
+        if not hasattr(self, 'bgsprite'):
+            self.bgsprite = Sprite(
+                self.wallpaper.tex,
+                self.window.offset_x,
+                self.window.offset_y,
+                batch=batch,
+                group=group)
+        else:
+            self.bgsprite.x = self.window.offset_x
+            self.bgsprite.y = self.window.offset_y
+
+    def new_branch(self, parent, branch, tick):
+        for spot in self.spots:
+            spot.new_branch(parent, branch, tick)
+        for pawn in self.pawns:
+            pawn.new_branch(parent, branch, tick)
+        # Arrows don't have branchdicts. Just make them smart enough
+        # to handle their portal changing its.
+
 
 
 class Board(AbstractBoard):

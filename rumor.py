@@ -20,8 +20,11 @@ from pawn import Pawn
 from arrow import Arrow
 from board import Board
 from card import Card
+from calendar import Calendar
 from img import Img
+from menu import Menu, MenuItem
 from style import Style, Color
+from timestream import Timestream
 from gui import BoardWindow, TimestreamWindow
 from collections import OrderedDict
 from logging import getLogger
@@ -36,6 +39,7 @@ def noop(*args, **kwargs):
     pass
 
 ONE_ARG_RE = re.compile("(.+)")
+TWO_ARG_RE = re.compile("(.+), ?(.+)")
 ITEM_ARG_RE = re.compile("(.+)\.(.+)")
 MAKE_SPOT_ARG_RE = re.compile(
     "(.+)\."
@@ -87,6 +91,16 @@ COLOR_QRYFMT = (
     "SELECT {0} FROM color WHERE name IN ({1})".format(Color.colnstr, "{0}"))
 STYLE_QRYFMT = (
     "SELECT {0} FROM style WHERE name IN ({1})".format(Style.colnstr, "{0}"))
+MENU_NAME_QRYFMT = (
+    "SELECT {0} FROM menu WHERE name IN ({1})".format(Menu.colnstr, "{0}"))
+MENU_WINDOW_QRYFMT = (
+    "SELECT {0} FROM menu WHERE window=?".format(Menu.colnstr))
+MENU_ITEM_MENU_QRYFMT = (
+    "SELECT {0} FROM menu_item WHERE menu IN ({1})".format(MenuItem.colnstr, "{0}"))
+MENU_ITEM_WINDOW_QRYFMT = (
+    "SELECT {0} FROM menu_item WHERE window=?".format(MenuItem.colnstr))
+CALENDAR_WINDOW_QRYFMT = (
+    "SELECT {0} FROM calendar WHERE window=? ORDER BY i".format(Calendar.colnstr))
 
 
 class RumorMill(object):
@@ -141,8 +155,7 @@ given name.
         self.delay = 0.0
         self.game_speed = 0.1
 
-        self.branchdict = {0: (0, 0)}
-        self.parentdict = {}
+        self.timestream = Timestream({0: (0, 0)}, {})
         self.time_travel_history = []
 
         placeholder = (noop, ITEM_ARG_RE)
@@ -158,6 +171,12 @@ given name.
             (self.show_menu, ONE_ARG_RE),
             'make_generic_place':
             (self.make_generic_place, ONE_ARG_RE),
+            'increment_branch':
+            (self.increment_branch, ONE_ARG_RE),
+            'increment_time':
+            (self.increment_time, ONE_ARG_RE),
+            'time_travel':
+            (self.time_travel, TWO_ARG_RE),
             'start_new_map': placeholder,
             'open_map': placeholder,
             'save_map': placeholder,
@@ -197,6 +216,8 @@ given name.
             return self.game["hi_portal"]
         elif attrn == "hi_thing":
             return self.game["hi_thing"]
+        elif attrn == "dimensions":
+            return self.dimensiondict.itervalues()
         else:
             raise AttributeError(
                 "RumorMill doesn't have the attribute " + attrn)
@@ -323,12 +344,6 @@ necessary."""
         if name not in self.graphdict:
             self.make_igraph_graph(name)
         return self.graphdict[name]
-
-    def handle_effect(self, effect, deck, event):
-        (fun, ex) = self.func[effect._func]
-        argmatch = re.match(ex, effect.arg)
-        args = argmatch.groups() + (effect, deck, event)
-        return fun(*args)
 
     def save_game(self):
         self.c.execute("DELETE FROM game")
@@ -885,28 +900,25 @@ necessary."""
         menunames = set()
         imgs_needed = set()
         dim = self.get_dimension(dimn)
-        self.c.execute(
-            "SELECT name, left, bottom, top, right, style FROM menu "
-            "WHERE window=?", (name,))
+        self.c.execute(MENU_WINDOW_QRYFMT, (name,))
         menu_rows = self.c.fetchall()
         for row in menu_rows:
-            menunames.add(row[0])
-            stylenames.add(row[5])
-        self.c.execute(
-            "SELECT i, left, right, top, bot, style, interactive, "
-            "rows_shown, scrolled_to, scroll_factor FROM calendar "
-            "WHERE window=? ORDER BY i", (name,))
+            row = dictify_row(row, Menu.colns)
+            stylenames.add(row["style"])
+        self.c.execute(CALENDAR_WINDOW_QRYFMT, (name,))
         cal_rows = self.c.fetchall()
         for row in cal_rows:
-            stylenames.add(row[5])
+            row = dictify_row(row, Calendar.colns)
+            stylenames.add(row["style"])
         self.get_styles(stylenames)
-        self.get_imgs(imgs_needed)
+
         self.c.execute(
-            "SELECT menu, idx, text, on_click, closer FROM menu_item "
-            "WHERE window=? AND menu IN ({0})".format(
-                ", ".join(["?"] * len(menunames))),
-            (name,) + tuple(menunames))
+            MENU_ITEM_WINDOW_QRYFMT, (name,))
         menu_item_rows = self.c.fetchall()
+        for row in menu_item_rows:
+            row = dictify_row(row, MenuItem.colns)
+            imgs_needed.add(row["icon"])
+        self.get_imgs(imgs_needed)
         return BoardWindow(
             self, name, min_width, min_height, arrowhead_size,
             arrow_width, view_left, view_bot, dim, boardi,
@@ -920,16 +932,30 @@ necessary."""
             self, min_width, min_height, arrowhead_size,
             arrow_width, view_left, view_bot)
 
-    def time_travel(self, branch, tick):
+    def time_travel(self, branch, tick, window=None):
+        if branch in self.timestream.branchdict:
+            if tick > self.timestream.branchdict[branch][1]:
+                self.timestream.branchdict[branch] = (
+                    self.timestream.branchdict[branch][0], tick)
+        else:
+            self.timestream.split_branch(self.branch, branch, tick)
+            for dimension in self.dimensions:
+                dimension.new_branch(self.branch, branch, tick)
+                for board in dimension.boards:
+                    board.new_branch(self.branch, branch, tick)
+            if window is not None:
+                for calendar in window.calendars:
+                    for col in calendar.cols:
+                        col.regen_cells()
         self.time_travel_history.append((self.branch, self.tick))
         self.branch = branch
         self.tick = tick
 
-    def increment_time(self, ts):
-        self.delay += ts
-        while self.delay > self.game_speed:
-            self.delay -= self.game_speed
-            self.tick += 1
+    def increment_branch(self, mi, branches=1):
+        self.time_travel(self.branch+int(branches), self.tick, mi.window)
+
+    def increment_time(self, mi, ticks=1):
+        self.time_travel(self.branch, self.tick+int(ticks), mi.window)
 
 
 def load_game(dbfn, lang="eng"):

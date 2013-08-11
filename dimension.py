@@ -5,6 +5,7 @@ from thing import Thing
 from portal import Portal
 from logging import getLogger
 from igraph import Graph, InternalError
+from collections import defaultdict
 
 
 logger = getLogger(__name__)
@@ -129,7 +130,7 @@ this dimension, and laid out nicely."""
 
     def make_portal(
             self, orig, dest,
-            existence=None, indef_exist=None, arrows=None):
+            existence=None, indef_exist=None):
         vertns = self.graph.vs["name"]
         if hasattr(orig, 'v'):
             orig = int(orig)
@@ -140,16 +141,13 @@ this dimension, and laid out nicely."""
         elif not isinstance(dest, int):
             dest = vertns.index(dest)
         if existence is None:
-            existence = {}
+            existence = defaultdict(dict)
         if indef_exist is None:
-            indef_exist = {}
-        if arrows is None:
-            arrows = []
+            indef_exist = defaultdict(dict)
         self.graph.add_edge(
             orig, dest,
             existence=existence,
-            indef_exist=indef_exist,
-            arrows=arrows)
+            indef_exist=indef_exist)
         return self.get_portal(orig, dest)
 
     def get_portal(self, orig, dest):
@@ -169,10 +167,6 @@ this dimension, and laid out nicely."""
             return None
 
     def make_thing(self, name, locations=None, indef_locs=None):
-        if locations is None:
-            locations = {}
-        if indef_locs is None:
-            indef_locs = {}
         self.thingdict[name] = Thing(self, name, locations, indef_locs)
         return self.thingdict[name]
 
@@ -236,6 +230,24 @@ this dimension, and laid out nicely."""
         if branch not in e["existence"]:
             e["existence"][branch] = {}
         e["existence"][branch][tick_from] = tick_to
+
+    def new_branch(self, parent, branch, tick):
+        for thing in self.things:
+            print "new branch for {0} in progress...".format(thing)
+            thing.new_branch(parent, branch, tick)
+        for e in self.graph.es:
+            print "new branch for portal between {0} and {1} in progress...".format(
+                self.graph.vs[e.source]["name"], self.graph.vs[e.target]["name"])
+            for (tick_from, tick_to) in e["existence"][parent].iteritems():
+                if tick_to >= tick or tick_to is None:
+                    if tick_from < tick:
+                        e["existence"][branch][tick] = tick_to
+                        if tick_to is None:
+                            e["indef_exist"][branch] = tick
+                    else:
+                        e["existence"][branch][tick_from] = tick_to
+                        if tick_to is None:
+                            e["indef_exist"][branch] = tick_from
 
     def save(self):
         for portal in self.portals:

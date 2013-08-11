@@ -100,13 +100,13 @@ between any two states that should appear different on-screen."""
             pass
 
     def draw(self, batch, group):
-        if self.visible:
+        if self.visible and self.height > 0:
             if self.hovered:
                 image = self.active_pattern.create_image(
-                    self.width, self.height).texture
+                    self.width, self.height)
             else:
                 image = self.inactive_pattern.create_image(
-                    self.width, self.height).texture
+                    self.width, self.height)
             self.bggroup = OrderedGroup(0, group)
             self.fggroup = OrderedGroup(1, group)
             if self.hovered != self.was_hovered:

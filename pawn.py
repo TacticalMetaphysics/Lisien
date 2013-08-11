@@ -5,6 +5,7 @@ from util import (
     TerminableImg,
     TerminableInteractivity,
     BranchTicksIter)
+from collections import defaultdict
 from pyglet.sprite import Sprite
 from logging import getLogger
 
@@ -56,9 +57,9 @@ interactive or not.
         self.window = self.board.window
         self.rumor = self.window.rumor
         self.thing = thing
-        self.imagery = {}
+        self.imagery = defaultdict(dict)
         self.indefinite_imagery = {}
-        self.interactivity = {}
+        self.interactivity = defaultdict(dict)
         self.indefinite_interactivity = {}
         self.grabpoint = None
         self.sprite = None
@@ -163,6 +164,9 @@ interactive or not.
             self.window.view_bot,
             self.tweaks)
 
+    def hover(self, x, y):
+        return self
+
     def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
         self.drag_offset_x += dx
         self.drag_offset_y += dy
@@ -182,8 +186,6 @@ If it DOES have anything else to do, make the journey in another branch.
         spot = self.board.get_spot_at(x, y)
         if spot is not None:
             # if the thing is in a *portal*, it is traveling
-            if hasattr(self.thing.location, 'e'):
-                self.rumor.split_branch()
             self.thing.journey_to(spot.place)
         try:
             self.calcol.regen_cells()
@@ -305,3 +307,7 @@ If it DOES have anything else to do, make the journey in another branch.
                     "tick_to": tick_to}
                 for (branch, tick_from, tick_to) in
                 BranchTicksIter(self.interactivity)]}
+
+    def new_branch(self, parent, branch, tick):
+        self.new_branch_imagery(parent, branch, tick)
+        self.new_branch_interactivity(parent, branch, tick)

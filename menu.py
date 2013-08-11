@@ -22,7 +22,8 @@ class MenuItem:
          {"window": "text not null default 'Main'",
           'menu': 'text not null',
           'idx': 'integer not null',
-          'text': 'text not null',
+          'text': 'text',
+          'icon': 'text',
           'on_click': 'text not null',
           'closer': "boolean not null default 1"},
          ("window", "menu", "idx"),
@@ -31,7 +32,7 @@ class MenuItem:
     visible = True
     interactive = True
 
-    def __init__(self, menu, idx, text, closer, on_click):
+    def __init__(self, menu, idx, closer, on_click, text=None, icon=None):
         """Return a menu item in the given board, the given menu; at the given
 index in that menu; with the given text; which executes the given
 effect deck when clicked; closes or doesn't when clicked; starts
@@ -44,7 +45,6 @@ With db, register in db's menuitemdict.
         self.menu = menu
         self.window = self.menu.window
         self.idx = idx
-        self._text = text
         while len(self.menu.items) <= self.idx:
             self.menu.items.append(None)
         self.menu.items[self.idx] = self
@@ -62,6 +62,16 @@ With db, register in db's menuitemdict.
 
         self.on_click = on_click_fun
         self.closer = closer
+        if icon in self.rumor.imgdict:
+            self.icon = self.rumor.imgdict[icon]
+        else:
+            self.icon = icon
+        self._text = text
+        if text is not None:
+            if text[0] == "@":
+                self.text = self.rumor.get_text(text[1:])
+            else:
+                self.text = text
         self.grabpoint = None
         self.label = None
         self.oldstate = None
@@ -74,7 +84,9 @@ With db, register in db's menuitemdict.
 
     def __getattr__(self, attrn):
         if attrn == 'text':
-            if self._text[0] == '@':
+            if self._text is None:
+                return None
+            elif self._text[0] == '@':
                 return self.rumor.get_text(self._text[1:])
             else:
                 return self._text
@@ -84,6 +96,14 @@ With db, register in db's menuitemdict.
             return self.window.pressed is self
         elif attrn == 'window_left':
             return self.menu.window_left + self.menu.style.spacing
+        elif attrn == 'label_window_left':
+            if self.icon is None:
+                return self.window_left
+            else:
+                return (
+                    self.window_left +
+                    self.icon.width +
+                    self.menu.style.spacing)
         elif attrn == 'window_right':
             return self.menu.window_right - self.menu.style.spacing
         elif attrn == 'width':
@@ -104,44 +124,7 @@ With db, register in db's menuitemdict.
                 "MenuItem instance has no such attribute: " +
                 attrn)
 
-    def __eq__(self, other):
-        """Compare the menu and the idx to see if these menu items ought to be
-the same."""
-        return (
-            isinstance(other, MenuItem) and
-            self.menu == other.menu and
-            self.idx == other.idx)
-
-    def __gt__(self, other):
-        """Compare the text"""
-        if isinstance(other, str):
-            return self.text > other
-        return self.text > other.text
-
-    def __ge__(self, other):
-        """Compare the text"""
-        if isinstance(other, str):
-            return self.text >= other
-        return self.text >= other.text
-
-    def __lt__(self, other):
-        """Compare the text"""
-        if isinstance(other, str):
-            return self.text < other
-        return self.text < other.text
-
-    def __le__(self, other):
-        """Compare the text"""
-        if isinstance(other, str):
-            return self.text <= other
-        return self.text <= other.text
-
-    def __repr__(self):
-        """Show my text"""
-        return self.text
-
     def onclick(self, x, y, button, modifiers):
-        print "menu item {0} clicked".format(self.text)
         return self.on_click(self)
 
     def overlaps(self, x, y):
@@ -151,44 +134,17 @@ the same."""
             y > self.window_bot and
             y < self.window_top)
 
-    def toggle_visibility(self):
-        """Become visible if invisible or vice versa"""
-        self.visible = not self.visible
-        self.tweaks += 1
-
-    def hide(self):
-        """Become invisible"""
-        if self.visible:
-            self.toggle_visibility()
-
-    def show(self):
-        """Become visible"""
-        if not self.visible:
-            self.toggle_visibility()
-
     def get_state_tup(self):
         """Return a tuple containing everything that's relevant to deciding
 just how to display this widget"""
         return (
             hash(self.menu.get_state_tup()),
             self.idx,
-            self.text,
             self.visible,
             self.interactive,
             self.grabpoint,
             self.pressed,
             self.tweaks)
-
-    def get_tabdict(self):
-        return {
-            "menu_item": [{
-                "window": str(self.window),
-                "menu": str(self.menu),
-                "idx": self.idx,
-                "text": self._text,
-                "on_click": self._on_click,
-                "closer": self.closer}]
-        }
 
     def draw(self, batch, group):
         state = self.get_state_tup()
@@ -202,26 +158,49 @@ just how to display this widget"""
         except:
             pass
         if self.menu.visible or self.window.main_menu_name == str(self.menu):
-            try:
-                self.label.text = self.text
-                self.label.color = self.menu.style.textcolor.tup
-                self.label.x = self.window_left
-                self.label.y = self.window_bot
-            except:
-                self.label = pyglet.text.Label(
-                    self.text,
-                    self.menu.style.fontface,
-                    self.menu.style.fontsize,
-                    color=self.menu.style.textcolor.tup,
-                    x=self.window_left,
-                    y=self.window_bot,
-                    batch=batch,
-                    group=group)
-        else:
-            try:
-                self.label.delete()
-            except:
-                pass
+            if self.icon is not None:
+                try:
+                    self.sprite.x = self.window_left
+                    self.sprite.y = self.window_bot
+                except:
+                    self.sprite = pyglet.sprite.Sprite(
+                        self.icon.tex,
+                        self.window_left,
+                        self.window_bot,
+                        batch=batch,
+                        group=group)
+            if self.text not in ('', None):
+                try:
+                    self.label.text = self.text
+                    self.label.color = self.menu.style.textcolor.tup
+                    self.label.x = self.label_window_left
+                    self.label.y = self.window_bot
+                except:
+                    self.label = pyglet.text.Label(
+                        self.text,
+                        self.menu.style.fontface,
+                        self.menu.style.fontsize,
+                        color=self.menu.style.textcolor.tup,
+                        x=self.window_left,
+                        y=self.window_bot,
+                        batch=batch,
+                        group=group)
+            else:
+                try:
+                    self.label.delete()
+                except:
+                    pass
+
+    def get_tabdict(self):
+        return {
+            "menu_item": [{
+                "window": str(self.window),
+                "menu": str(self.menu),
+                "idx": self.idx,
+                "text": self._text,
+                "on_click": self._on_click,
+                "closer": self.closer}]
+        }
 
 
 class Menu:

@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
 import logging
-from util import SaveableMetaclass, fortyfive
+from util import SaveableMetaclass, fortyfive, dictify_row
 from math import atan, cos, sin
 from arrow import Arrow
 from menu import Menu, MenuItem
@@ -23,7 +23,6 @@ class SaveablePygletWindow(pyglet.window.Window):
 
 
 logger = logging.getLogger(__name__)
-
 
 platform = pyglet.window.get_platform()
 
@@ -98,7 +97,6 @@ class AbstractGameWindow(SaveablePygletWindow):
         self.rumor = rumor
         self.min_width = min_width
         self.min_height = min_height
-        self.set_minimum_size(self.min_width, self.min_height)
         self.arrowhead_size = arrowhead_size
         self.arrow_width = arrow_width
         self.squareoff = self.arrowhead_size * sin(fortyfive)
@@ -130,6 +128,8 @@ class AbstractGameWindow(SaveablePygletWindow):
         self.keep_selected = False
         self.prev_view_bot = 0
 
+        self.time_travel_target = None
+
         self.dxdy_hist_max = 10
         self.dx_hist = [0] * self.dxdy_hist_max
         self.dy_hist = [0] * self.dxdy_hist_max
@@ -143,6 +143,8 @@ class AbstractGameWindow(SaveablePygletWindow):
         self.last_timeline_y = -1
 
         self.dxdy_hist_counter = 0
+
+        self.set_vsync(True)
 
     def __getattr__(self, attrn):
         if attrn == 'hands':
@@ -191,6 +193,11 @@ class AbstractGameWindow(SaveablePygletWindow):
                 self.hovered = self.hovered.hover(x, y)
 
     def on_draw(self):
+        (width, height) = self.get_size()
+        if (
+                width < self.min_width or
+                height < self.min_height):
+            self.set_minimum_size(self.min_width, self.min_height)
         if self.picker is not None:
             self.picker.draw(self.batch, self.pickergroup)
         for menu in self.menus:
@@ -263,7 +270,7 @@ move_with_mouse method, use it.
                         self.width >
                         self.board.wallpaper.width):
                     self.view_left = (
-                        self.img.width -
+                        self.board.wallpaper.width -
                         self.width)
                 elif self.view_left < 0:
                     self.view_left = 0
@@ -366,41 +373,11 @@ and highlight it.
                 except (AttributeError, AssertionError):
                     pass
 
-    def on_close(self):
-        for hand in self.hands_by_name.itervalues():
-            hand.save()
-        for cal in self.calendars:
-            cal.save()
-        for menu in self.menus_by_name.itervalues():
-            menu.save()
-        self.rumor.c.execute(
-            "DELETE FROM window WHERE name=?", (str(self),))
-        save_these = (
-            str(self),
-            self.min_width,
-            self.min_height,
-            str(self.dimension),
-            int(self.board),
-            self.arrowhead_size,
-            self.arrow_width,
-            self.view_left,
-            self.view_bot,
-            self.main_menu_name)
-        self.rumor.c.execute(
-            "INSERT INTO window (name, min_width, "
-            "min_height, dimension, board, arrowhead_size, "
-            "arrow_width, view_left, view_bot, main_menu) "
-            "VALUES ({0})".format(
-                ", ".join(["?"] * len(save_these))),
-            save_these)
-        self.rumor.conn.commit()
-        self.rumor.conn.close()
-        super(AbstractGameWindow, self).on_close()
-
     def sensible_calendar_for(self, something):
         """Return a calendar appropriate for representing some schedule-dict
 associated with the argument."""
         return self.calendars[0]
+
 
 class BoardWindow(AbstractGameWindow):
     tables = [
@@ -456,16 +433,21 @@ class BoardWindow(AbstractGameWindow):
         self.floaty_portal = None
 
         for row in menu_rows:
-            self.menus_by_name[row[0]] = Menu(
-                self, row[0], row[1], row[2], row[3], row[4],
-                self.rumor.styledict[row[5]])
+            rowdict = dictify_row(row, Menu.colns)
+            self.menus_by_name[rowdict["name"]] = Menu(
+                self, rowdict["name"], rowdict["left"],
+                rowdict["bottom"], rowdict["top"], rowdict["right"],
+                self.rumor.styledict[rowdict["style"]])
         for row in menu_item_rows:
-            self.menus_by_name[row[0]].items[row[1]] = MenuItem(
-                self.menus_by_name[row[0]],
-                row[1],
-                row[2],
-                row[4],
-                row[3])
+            rowdict = dictify_row(row, MenuItem.colns)
+            self.menus_by_name[rowdict["menu"]].items[
+                rowdict["idx"]] = MenuItem(
+                    self.menus_by_name[rowdict["menu"]],
+                    rowdict["idx"],
+                    rowdict["closer"],
+                    rowdict["on_click"],
+                    rowdict["text"],
+                    rowdict["icon"])
         self.hands_by_name = OrderedDict()
         for row in hand_rows:
             self.hands_by_name[row[0]] = Hand(
@@ -474,13 +456,17 @@ class BoardWindow(AbstractGameWindow):
                 self.rumor.styledict[row[5]], row[6], row[7])
         self.calendars = []
         for row in cal_rows:
+            row = dictify_row(row, Calendar.colns)
             self.calendars.append(
                 Calendar(
-                    self, row[0], row[1], row[2], row[3], row[4],
-                    self.rumor.styledict[row[5]], row[6], row[7], row[8],
-                    row[9]))
+                    self, row["i"], row["left"], row["right"], row["top"],
+                    row["bot"], self.rumor.styledict[row["style"]],
+                    row["interactive"], row["rows_shown"], row["scrolled_to"],
+                    row["scroll_factor"]))
         for menu in self.menus:
             menu.adjust()
+
+        self.firstdraw = False
 
     def __getattr__(self, attrn):
         if attrn == 'main_menu':
@@ -504,7 +490,45 @@ class BoardWindow(AbstractGameWindow):
 
     def on_draw(self):
         self.board.draw(self.batch, self.boardgroup)
+        if not self.firstdraw:
+            self.set_location(0, 0)
+            self.firstdraw = True
         AbstractGameWindow.on_draw(self)
+
+
+    def on_close(self):
+        for hand in self.hands_by_name.itervalues():
+            hand.save()
+        for cal in self.calendars:
+            cal.save()
+        for menu in self.menus_by_name.itervalues():
+            menu.save()
+        self.rumor.c.execute(
+            "DELETE FROM window WHERE name=?", (str(self),))
+        save_these = (
+            str(self),
+            self.min_width,
+            self.min_height,
+            str(self.dimension),
+            int(self.board),
+            self.arrowhead_size,
+            self.arrow_width,
+            self.view_left,
+            self.view_bot,
+            self.main_menu_name)
+        self.rumor.c.execute(
+            "INSERT INTO window (name, min_width, "
+            "min_height, dimension, board, arrowhead_size, "
+            "arrow_width, view_left, view_bot, main_menu) "
+            "VALUES ({0})".format(
+                ", ".join(["?"] * len(save_these))),
+            save_these)
+        self.rumor.conn.commit()
+        self.rumor.conn.close()
+        for window in self.rumor.windowdict.itervalues():
+            if window is not self:
+                window.close()
+        super(BoardWindow, self).on_close()
 
     def update(self, dt):
         (x, y) = self.mouspot.coords
@@ -688,11 +712,35 @@ class BoardWindow(AbstractGameWindow):
 class TimestreamWindow(AbstractGameWindow):
     def __init__(self, rumor, min_width, min_height, arrowhead_size,
                  arrow_width, view_left, view_bot):
+        print "initializing timestream window"
         super(TimestreamWindow, self).__init__(
             rumor, min_width, min_height, arrowhead_size, arrow_width,
             view_left, view_bot)
-        self.board = Timestream(self.rumor.branchdict,
-                                self.rumor.parentdict)
+        self.board = Timestream(self)
+        self.board.bggroup = pyglet.graphics.OrderedGroup(0, self.boardgroup)
+        self.bgpat = pyglet.image.SolidColorImagePattern((255,) * 4)
+        self.bgimg = None
+        self.bgsprite = None
+        self.set_maximum_size(*self.get_size())
 
     def on_draw(self):
+        (width, height) = self.get_size()
+        if (
+                self.bgsprite is None or
+                width != self.bgsprite.width or
+                height != self.bgsprite.height):
+            self.bgimg = self.bgpat.create_image(width, height)
+            self.bgsprite = pyglet.sprite.Sprite(
+                self.bgimg,
+                0, 0,
+                batch=self.batch,
+                group=self.board.bggroup)
+        self.board.draw(self.batch, self.boardgroup)
         super(TimestreamWindow, self).on_draw()
+
+    def update(self, ts):
+        self.board.update(ts)
+        super(TimestreamWindow, self).update(ts)
+
+    def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
+        pass

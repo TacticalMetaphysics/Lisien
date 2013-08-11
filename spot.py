@@ -6,6 +6,7 @@ from util import (
     TerminableInteractivity,
     TerminableCoords,
     BranchTicksIter)
+from collections import defaultdict
 from pyglet.sprite import Sprite
 from pyglet.graphics import OrderedGroup
 from logging import getLogger
@@ -31,9 +32,9 @@ class AbstractSpot(
         self.rumor = self.board.rumor
         self.window = self.board.window
         self.vert = vert
-        self.interactivity = {}
-        self.imagery = {}
-        self.coord_dict = {}
+        self.interactivity = defaultdict(dict)
+        self.imagery = defaultdict(dict)
+        self.coord_dict = defaultdict(dict)
         self.indefinite_imagery = {}
         self.indefinite_coords = {}
         self.indefinite_interactivity = {}
@@ -68,14 +69,23 @@ class AbstractSpot(
         elif attrn == 'y':
             return self.coords[1]
         elif attrn == 'window_coords':
-            (x, y) = self.coords
+            coords = self.coords
+            if coords is None:
+                return None
+            (x, y) = coords
             return (
                 x + self.drag_offset_x + self.window.offset_x,
                 y + self.drag_offset_y + self.window.offset_y)
         elif attrn == 'width':
-            return self.img.width
+            if self.img is None:
+                return 0
+            else:
+                return self.img.width
         elif attrn == 'height':
-            return self.img.height
+            if self.img is None:
+                return 0
+            else:
+                return self.img.height
         elif attrn == 'rx':
             return self.width / 2
         elif attrn == 'ry':
@@ -313,3 +323,8 @@ class Spot(AbstractSpot):
             self.window.view_left,
             self.window.view_bot,
             self.tweaks)
+
+    def new_branch(self, parent, branch, tick):
+        self.new_branch_imagery(parent, branch, tick)
+        self.new_branch_interactivity(parent, branch, tick)
+        self.new_branch_coords(parent, branch, tick)
