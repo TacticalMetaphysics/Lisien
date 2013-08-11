@@ -301,15 +301,16 @@ return None."""
                     if e in self.branch_edges[branch]:
                         return e
             return None
-        for e in self.graph.incident(v):
+        for eid in self.graph.incident(v):
+            e = self.graph.es[eid]
             v_to = self.graph.vs[e.target]
-            if e in self.branch_members[branch]:
+            if eid in self.branch_edges[branch]:
                 if v_to["tick"] > tick:
                     return e
                 else:
                     # None of these edges are right! You want the ones
                     # after this vertex here.
-                    return self.successor_on(v_to, branch, tick)
+                    return self.successor_on_branch_tick(v_to, branch, tick)
             elif v_to["tick"] >= tick:
                 return e
         return None
@@ -321,15 +322,20 @@ new_branch.
 
         """
         e = self.get_edge_from_branch_tick(old_branch, tick)
-        (e1, v1, e2) = self.add_vert_on(e, tick)
-        v2 = self.add_vert(tick=tick+length)
+        if e is None:
+            vseq = self.graph.vs(tick_eq=tick)
+            v1 = vseq[0]
+            v2 = self.add_vert(tick=tick)
+        else:
+            (e1, v1, e2) = self.add_vert_on(e, tick)
+            v2 = self.add_vert(tick=tick+length)
         return self.add_edge(v1, v2, new_branch, length)
 
     def latest_edge(self, branch):
         """Return the edge in the given branch that ends on the highest
 tick."""
         edges = set(self.branch_edges[branch])
-        late = edges.pop()
+        late = self.graph.es[edges.pop()]
         v_late = self.graph.vs[late.target]
         while len(edges) > 0:
             e = self.graph.es[edges.pop()]
@@ -338,3 +344,22 @@ tick."""
                 late = e
                 v_late = v_e
         return late
+
+    def extend_branch(self, branch, n):
+        """Make the branch so many ticks longer."""
+        edge = self.latest_edge(branch)
+        vert = self.graph.vs[edge.target]
+        vert["tick"] += n
+        self.branchdict[branch] = (
+            self.branchdict[branch][0], self.branchdict.branch[1] + n)
+
+    def extend_branch_to(self, branch, tick_to):
+        """Make the branch end on the given tick, but only if it is later than
+the branch's current end."""
+        edge = self.latest_edge(branch)
+        vert = self.graph.vs[edge.target]
+        if tick_to > vert["tick"]:
+            vert["tick"] = tick_to
+        if tick_to > self.branchdict[branch][1]:
+            self.branchdict[branch] = (
+                self.branchdict[branch][0], tick_to)

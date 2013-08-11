@@ -933,23 +933,19 @@ necessary."""
             arrow_width, view_left, view_bot)
 
     def time_travel(self, branch, tick, window=None):
-        if branch in self.timestream.branchdict:
-            if tick > self.timestream.branchdict[branch][1]:
-                self.timestream.branchdict[branch] = (
-                    self.timestream.branchdict[branch][0], tick)
-        else:
+        if branch not in self.timestream.branchdict:
             self.timestream.split_branch(self.branch, branch, tick)
             for dimension in self.dimensions:
                 dimension.new_branch(self.branch, branch, tick)
                 for board in dimension.boards:
                     board.new_branch(self.branch, branch, tick)
-            if window is not None:
-                for calendar in window.calendars:
-                    for col in calendar.cols:
-                        col.regen_cells()
+        self.timestream.extend_branch_to(branch, tick)
         self.time_travel_history.append((self.branch, self.tick))
         self.branch = branch
         self.tick = tick
+        if window is not None:
+            for calendar in window.calendars:
+                calendar.refresh()
 
     def increment_branch(self, mi, branches=1):
         self.time_travel(self.branch+int(branches), self.tick, mi.window)

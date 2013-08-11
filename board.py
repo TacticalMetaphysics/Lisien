@@ -21,7 +21,6 @@ class BoardPawnIter:
 
     def next(self):
         r = self.realit.next()
-        print "iterating over {0} located {1}".format(r, r.thing.locations)
         return r
 
 

@@ -222,6 +222,8 @@ between any two states that should appear different on-screen."""
         self.cells = []
         if branch is None:
             branch = self.rumor.branch
+        print "generating calendar cells from scheduledict:"
+        print self.scheduledict[branch]
         for (tick_from, val) in self.scheduledict[branch].iteritems():
             if isinstance(val, tuple):
                 tick_to = val[-1]
@@ -454,3 +456,7 @@ between any two states that should appear different on-screen."""
 
     def remove(self, it):
         self.cols.remove(it)
+
+    def refresh(self):
+        for col in self.cols:
+            col.regen_cells()

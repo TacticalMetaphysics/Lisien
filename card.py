@@ -247,11 +247,9 @@ class CardWidget:
             self.toggle_visibility()
 
     def hovered(self):
-        print "card hovered"
         self.hovered = True
 
     def unhovered(self):
-        print "card unhovered"
         self.hovered = False
 
     def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
@@ -281,7 +279,6 @@ class CardWidget:
                 if (
                         x > card.window_left and
                         x < card.window_bot):
-                    print "Dropped {0} on {1}".format(str(self), str(card))
                     self.hand.remove(self)
                     self.hand.insert(self.hand.index(card), self)
                     break
@@ -496,7 +493,6 @@ order."""
         windobot = self.window_bot + self.style.spacing
         prev_right = self.window_left
         for card in iter(self):
-            print "Adjusting card {0}".format(str(card))
             if card.widget is not None and card.widget.floating:
                 continue
             card.hand = self
