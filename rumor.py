@@ -154,6 +154,7 @@ given name.
 
         self.delay = 0.0
         self.game_speed = 0.1
+        self.updating = False
 
         self.timestream = Timestream({0: (0, 0)}, {})
         self.time_travel_history = []
@@ -177,6 +178,10 @@ given name.
             (self.increment_time, ONE_ARG_RE),
             'time_travel':
             (self.time_travel, TWO_ARG_RE),
+            'go':
+            (self.go, ".*"),
+            'stop':
+            (self.stop, ".*"),
             'start_new_map': placeholder,
             'open_map': placeholder,
             'save_map': placeholder,
@@ -952,6 +957,16 @@ necessary."""
 
     def increment_time(self, mi, ticks=1):
         self.time_travel(self.branch, self.tick+int(ticks), mi.window)
+
+    def go(self, nope):
+        self.updating = True
+
+    def stop(self, nope):
+        self.updating = False
+
+    def update(self, ts):
+        if self.updating:
+            self.time_travel(self.branch, self.tick+1)
 
 
 def load_game(dbfn, lang="eng"):

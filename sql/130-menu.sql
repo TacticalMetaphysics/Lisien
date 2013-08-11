@@ -16,9 +16,11 @@ INSERT INTO menu_item (idx, menu, closer, on_click, text) VALUES
 (1, 'Main', 0, 'mi_create_place()', '@place_menu'),
 (2, 'Main', 0, 'mi_create_portal()', '@portal_menu'),
 (3, 'Main', 0, 'toggle_menu(Game)', '@game_menu'),
-(4, 'Main', 0, 'toggle_menu(Editor)', '@editor_menu'),
-(5, 'Main', 0, 'increment_time(1)', '+'),
-(6, 'Main', 0, 'increment_time(-1)', '—');
+(4, 'Main', 0, 'toggle_menu(Editor)', '@editor_menu');
 INSERT INTO menu_item (idx, menu, on_click, icon) VALUES
+(5, 'Main', 'increment_time(1)', 'stepforward'),
+(6, 'Main', 'increment_time(-1)', 'stepbackward'),
 (7, 'Main', 'increment_branch(1)', 'up'),
-(8, 'Main', 'increment_branch(-1)', 'down');
+(8, 'Main', 'increment_branch(-1)', 'down'),
+(9, 'Main', 'go()', 'play'),
+(10, 'Main', 'stop()', 'pause');

@@ -37,4 +37,5 @@ def update(ts):
     gw.update(ts)
 
 pyglet.clock.schedule(update)
+pyglet.clock.schedule_interval(rumor.update, rumor.game_speed)
 pyglet.app.run()

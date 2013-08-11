@@ -249,6 +249,10 @@ then."""
     def journey_to(self, destplace, branch=None, tick=None):
         """Schedule myself to travel to the given place, interrupting whatever
 other journey I may be on at the time."""
+        # TODO if I overwrite my extant travel schedule, overwrite
+        # *everything* after the start of this new stuff. Right now,
+        # anywhere I'm scheduled to be in a tick after the end of the
+        # new journey, I'll still be there. It makes no sense.
         if branch is None:
             branch = self.rumor.branch
         if tick is None:
