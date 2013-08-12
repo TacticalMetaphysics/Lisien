@@ -363,3 +363,7 @@ the branch's current end."""
         if tick_to > self.branchdict[branch][1]:
             self.branchdict[branch] = (
                 self.branchdict[branch][0], tick_to)
+
+
+class TimestreamException:
+    pass

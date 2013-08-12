@@ -277,7 +277,10 @@ If it DOES have anything else to do, make the journey in another branch.
                     int(oy + ody * prog) + self.window.offset_y)
         elif str(loc) in self.board.spotdict:
             spot = self.board.get_spot(loc)
-            (x, y) = spot.get_coords(branch, tick)
+            coords = spot.get_coords(branch, tick)
+            if coords is None:
+                return None
+            (x, y) = coords
             return (
                 x + spot.drag_offset_x + self.window.offset_x,
                 y + spot.drag_offset_y + self.window.offset_y)

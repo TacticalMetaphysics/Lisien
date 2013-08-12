@@ -24,7 +24,7 @@ from calendar import Calendar
 from img import Img
 from menu import Menu, MenuItem
 from style import Style, Color
-from timestream import Timestream
+from timestream import Timestream, TimestreamException
 from gui import BoardWindow, TimestreamWindow
 from collections import OrderedDict
 from logging import getLogger
@@ -962,27 +962,35 @@ necessary."""
     def more_time(self, branch_from, branch_to, tick_from, tick_to):
         if branch_to in self.timestream.branchdict:
             (old_tick_from, old_tick_to) = self.timestream.branchdict[branch_from]
+            if not (tick_to > old_tick_from):
+                raise TimestreamException(
+                    "Can't make a new branch that starts earlier than its parent.")
             if tick_to > old_tick_to:
                 # TODO: This really demands special handling--
                 # STUFF may happen between old_tick_to and tick_to
                 self.timestream.branchdict[branch_to] = (old_tick_from, tick_to)
         else:
-            new_branch = self.game["hi_branch"] + 1
             self.timestream.split_branch(
                 branch_from,
-                new_branch,
+                branch_to,
                 tick_from,
                 tick_to)
             for dimension in self.dimensions:
-                dimension.new_branch(branch_from, new_branch, tick_from)
+                dimension.new_branch(branch_from, branch_to, tick_from)
                 for board in dimension.boards:
-                    board.new_branch(branch_from, new_branch, tick_from)
+                    board.new_branch(branch_from, branch_to, tick_from)
             self.timestream.branchdict[branch_to] = (tick_from, tick_to)
-            self.game["hi_branch"] += 1
+            self.timestream.branch_head[branch_to] = self.timestream.add_vert(
+                tick_from)
+            if self.game["hi_branch"] < branch_to:
+                self.game["hi_branch"] = branch_to
         
 
     def increment_branch(self, mi=None, branches=1):
-        self.more_time(self.branch, self.branch+int(branches), self.tick, self.tick)
+        try:
+            self.more_time(self.branch, self.branch+int(branches), self.tick, self.tick)
+        except TimestreamException:
+            return self.increment_branch(mi, int(branches)+1)
         self.time_travel(mi, self.branch+int(branches), self.tick)
 
     def increment_tick(self, mi=None, ticks=1):
