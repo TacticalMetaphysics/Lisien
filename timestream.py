@@ -211,7 +211,7 @@ length zero.
                 return True
         return False
 
-    def add_edge(self, vert_from, vert_to, branch, length=0):
+    def add_edge(self, vert_from, vert_to, branch):
         (vert_from, vi1) = self.sanitize_vert(vert_from)
         (vert_to, vi2) = self.sanitize_vert(vert_to)
         self.graph.add_edge(vi1, vi2, branch=branch)
@@ -315,21 +315,21 @@ return None."""
                 return e
         return None
 
-    def split_branch(self, old_branch, new_branch, tick, length):
+    def split_branch(self, old_branch, new_branch, tick_from, tick_to):
         """Find the edge in old_branch in the given tick, split it, and start
 a new edge off the split. The new edge will be a member of
 new_branch.
 
         """
-        e = self.get_edge_from_branch_tick(old_branch, tick)
+        e = self.get_edge_from_branch_tick(old_branch, tick_from)
         if e is None:
-            vseq = self.graph.vs(tick_eq=tick)
+            vseq = self.graph.vs(tick_eq=tick_from)
             v1 = vseq[0]
-            v2 = self.add_vert(tick=tick)
+            v2 = self.add_vert(tick=tick_to)
         else:
-            (e1, v1, e2) = self.add_vert_on(e, tick)
-            v2 = self.add_vert(tick=tick+length)
-        return self.add_edge(v1, v2, new_branch, length)
+            (e1, v1, e2) = self.add_vert_on(e, tick_from)
+            v2 = self.add_vert(tick=tick_to)
+        return self.add_edge(v1, v2, new_branch)
 
     def latest_edge(self, branch):
         """Return the edge in the given branch that ends on the highest
@@ -365,5 +365,5 @@ the branch's current end."""
                 self.branchdict[branch][0], tick_to)
 
 
-class TimestreamException:
+class TimestreamException(Exception):
     pass

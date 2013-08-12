@@ -961,27 +961,29 @@ necessary."""
 
     def more_time(self, branch_from, branch_to, tick_from, tick_to):
         if branch_to in self.timestream.branchdict:
-            (old_tick_from, old_tick_to) = self.timestream.branchdict[branch_from]
-            if not (tick_to > old_tick_from):
+            (old_tick_from, old_tick_to) = self.timestream.branchdict[branch_to]
+            if tick_to < old_tick_from:
                 raise TimestreamException(
                     "Can't make a new branch that starts earlier than its parent.")
             if tick_to > old_tick_to:
                 # TODO: This really demands special handling--
                 # STUFF may happen between old_tick_to and tick_to
                 self.timestream.branchdict[branch_to] = (old_tick_from, tick_to)
+                e = self.timestream.latest_edge(branch_to)
+                self.timestream.graph.vs[e.target]["tick"] = tick_to
         else:
-            self.timestream.split_branch(
+            e = self.timestream.split_branch(
                 branch_from,
                 branch_to,
                 tick_from,
                 tick_to)
+            v = self.timestream.graph.vs[e.source]
+            self.timestream.branch_head[branch_to] = v
+            self.timestream.branchdict[branch_to] = (tick_from, tick_to)
             for dimension in self.dimensions:
                 dimension.new_branch(branch_from, branch_to, tick_from)
                 for board in dimension.boards:
                     board.new_branch(branch_from, branch_to, tick_from)
-            self.timestream.branchdict[branch_to] = (tick_from, tick_to)
-            self.timestream.branch_head[branch_to] = self.timestream.add_vert(
-                tick_from)
             if self.game["hi_branch"] < branch_to:
                 self.game["hi_branch"] = branch_to
         
