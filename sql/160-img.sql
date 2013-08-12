@@ -9,4 +9,7 @@ INSERT INTO img (name, path, rltile) VALUES
 ('play', 'play.png', 0),
 ('pause', 'pause.png', 0),
 ('stepforward', 'stepforward.png', 0),
-('stepbackward', 'stepbackward.png', 0);
+('stepbackward', 'stepbackward.png', 0),
+('reverse', 'reverse.png', 0),
+('revert', 'revert.png', 0),
+('rewind', 'rewind.png', 0);

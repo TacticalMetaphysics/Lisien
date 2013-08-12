@@ -67,11 +67,6 @@ With db, register in db's menuitemdict.
         else:
             self.icon = icon
         self._text = text
-        if text is not None:
-            if text[0] == "@":
-                self.text = self.rumor.get_text(text[1:])
-            else:
-                self.text = text
         self.grabpoint = None
         self.label = None
         self.oldstate = None
@@ -140,6 +135,7 @@ just how to display this widget"""
         return (
             hash(self.menu.get_state_tup()),
             self.idx,
+            self.text,
             self.visible,
             self.interactive,
             self.grabpoint,
@@ -252,7 +248,7 @@ With db, register with db's menudict.
         self.visible = False
         self.grabpoint = None
         self.sprite = None
-        self.oldstate = None
+        self.old_state = None
         self.newstate = None
         self.pressed = False
         self.freshly_adjusted = False
@@ -394,23 +390,25 @@ me"""
         self.coresave()
 
     def draw(self, batch, group):
+        if not hasattr(self, 'bggroup'):
+            self.bggroup = OrderedGroup(0, group)
+        if not hasattr(self, 'labelgroup'):
+            self.labelgroup = OrderedGroup(1, group)
+        for item in self.items:
+            item.draw(batch, self.labelgroup)
         state = self.get_state_tup()
         if state in self.window.onscreen:
             return
         self.window.onscreen.add(state)
-        self.window.onscreen.discard(self.oldstate)
-        self.oldstate = state
+        self.window.onscreen.discard(self.old_state)
+        self.old_state = state
         try:
             self.sprite.delete()
         except:
             pass
-        self.bggroup = OrderedGroup(0, group)
-        self.labelgroup = OrderedGroup(1, group)
         if self.visible or str(self) == self.window.main_menu_name:
             image = self.inactive_pattern.create_image(
                 self.width, self.height)
             self.sprite = pyglet.sprite.Sprite(
                 image, self.window_left, self.window_bot,
                 batch=batch, group=self.bggroup)
-        for item in self.items:
-            item.draw(batch, self.labelgroup)

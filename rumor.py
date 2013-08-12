@@ -152,8 +152,7 @@ given name.
         self.eventdict = {}
         self.lang = lang
 
-        self.delay = 0.0
-        self.game_speed = 0.1
+        self.game_speed = 1
         self.updating = False
 
         self.timestream = Timestream({0: (0, 0)}, {})
@@ -162,8 +161,13 @@ given name.
         placeholder = (noop, ITEM_ARG_RE)
         self.effect_cbs = {}
         self.func = {
+            'play_speed':
+            (self.play_speed, ONE_ARG_RE),
+            'back_to_start':
+            (self.back_to_start, ""),
             'one': placeholder,
             'two': placeholder,
+            'noop': placeholder,
             'toggle_menu':
             (self.toggle_menu, ONE_ARG_RE),
             'hide_menu':
@@ -174,14 +178,14 @@ given name.
             (self.make_generic_place, ONE_ARG_RE),
             'increment_branch':
             (self.increment_branch, ONE_ARG_RE),
-            'increment_time':
-            (self.increment_time, ONE_ARG_RE),
+            'increment_tick':
+            (self.increment_tick, ONE_ARG_RE),
             'time_travel':
             (self.time_travel, TWO_ARG_RE),
             'go':
-            (self.go, ".*"),
+            (self.go, ""),
             'stop':
-            (self.stop, ".*"),
+            (self.stop, ""),
             'start_new_map': placeholder,
             'open_map': placeholder,
             'save_map': placeholder,
@@ -318,7 +322,12 @@ This is game-world time. It doesn't always go forwards.
 
     def get_text(self, strname):
         """Get the string of the given name in the language set at startup."""
-        return self.stringdict[strname][self.lang]
+        if strname == "tick":
+            return str(self.tick)
+        elif strname == "branch":
+            return str(self.branch)
+        else:
+            return self.stringdict[strname][self.lang]
 
     def mi_create_place(self, menuitem):
         return menuitem.window.create_place()
@@ -937,36 +946,84 @@ necessary."""
             self, min_width, min_height, arrowhead_size,
             arrow_width, view_left, view_bot)
 
-    def time_travel(self, branch, tick, window=None):
+    def time_travel(self, mi, branch, tick):
         if branch not in self.timestream.branchdict:
-            self.timestream.split_branch(self.branch, branch, tick)
-            for dimension in self.dimensions:
-                dimension.new_branch(self.branch, branch, tick)
-                for board in dimension.boards:
-                    board.new_branch(self.branch, branch, tick)
-        self.timestream.extend_branch_to(branch, tick)
+            raise Exception("Tried to time-travel to a branch that didn't exist yet")
+        (tick_from, tick_to) = self.timestream.branchdict[branch]
+        if tick < tick_from or tick > tick_to:
+            raise Exception("Tried to time-travel to a tick that hadn't passed yet")
         self.time_travel_history.append((self.branch, self.tick))
         self.branch = branch
         self.tick = tick
-        if window is not None:
-            for calendar in window.calendars:
+        if mi is not None:
+            for calendar in mi.window.calendars:
                 calendar.refresh()
 
-    def increment_branch(self, mi, branches=1):
-        self.time_travel(self.branch+int(branches), self.tick, mi.window)
+    def more_time(self, branch_from, branch_to, tick_from, tick_to):
+        if branch_to in self.timestream.branchdict:
+            (old_tick_from, old_tick_to) = self.timestream.branchdict[branch_from]
+            if tick_to > old_tick_to:
+                # TODO: This really demands special handling--
+                # STUFF may happen between old_tick_to and tick_to
+                self.timestream.branchdict[branch_to] = (old_tick_from, tick_to)
+        else:
+            new_branch = self.game["hi_branch"] + 1
+            self.timestream.split_branch(
+                branch_from,
+                new_branch,
+                tick_from,
+                tick_to)
+            for dimension in self.dimensions:
+                dimension.new_branch(branch_from, new_branch, tick_from)
+                for board in dimension.boards:
+                    board.new_branch(branch_from, new_branch, tick_from)
+            self.timestream.branchdict[branch_to] = (tick_from, tick_to)
+            self.game["hi_branch"] += 1
+        
 
-    def increment_time(self, mi, ticks=1):
-        self.time_travel(self.branch, self.tick+int(ticks), mi.window)
+    def increment_branch(self, mi=None, branches=1):
+        self.more_time(self.branch, self.branch+int(branches), self.tick, self.tick)
+        self.time_travel(mi, self.branch+int(branches), self.tick)
 
-    def go(self, nope):
+    def increment_tick(self, mi=None, ticks=1):
+        self.more_time(self.branch, self.branch, self.tick, self.tick+int(ticks))
+        self.time_travel(mi, self.branch, self.tick+int(ticks))
+
+    def go(self, nope=None):
         self.updating = True
 
-    def stop(self, nope):
+    def stop(self, nope=None):
         self.updating = False
+
+    def set_speed(self, newspeed):
+        self.game_speed = newspeed
+
+    def play_speed(self, mi, gamespeed):
+        self.set_speed(float(gamespeed))
+        self.go()
+
+    def back_to_start(self, nope):
+        self.stop()
+        self.time_travel(None, self.branch, 0)
 
     def update(self, ts):
         if self.updating:
-            self.time_travel(self.branch, self.tick+1)
+            self.increment_tick(ticks=self.game_speed)
+
+    def save_game(self):
+        self.c.execute("DELETE FROM game")
+        keynames = self.game.keys()
+        values = tuple([self.game[key] for key in keynames])
+        qrystr = (
+            "INSERT INTO game ({0}) VALUES ({1})".format(
+                ", ".join(keynames),
+                ", ".join(["?"] * len(keynames))))
+        self.c.execute(qrystr, values)
+
+    def end_game(self):
+        self.c.close()
+        self.conn.commit()
+        self.conn.close()
 
 
 def load_game(dbfn, lang="eng"):

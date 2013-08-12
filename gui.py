@@ -366,12 +366,20 @@ and highlight it.
                 verts[3]))
 
     def draw_menu(self, menu):
+        menu.draw(self.batch, self.menugroup)
         for menu_item in menu:
+            state = menu_item.get_state_tup()
+            if state in self.onscreen:
+                return
+            self.onscreen.add(state)
+            self.onscreen.discard(menu_item.oldstate)
+            menu_item.oldstate = state
             if menu_item.label is not None:
                 try:
                     menu_item.label.delete()
                 except (AttributeError, AssertionError):
                     pass
+            menu_item.draw(self.batch, menu.labelgroup)
 
     def sensible_calendar_for(self, something):
         """Return a calendar appropriate for representing some schedule-dict
@@ -523,11 +531,6 @@ class BoardWindow(AbstractGameWindow):
             "VALUES ({0})".format(
                 ", ".join(["?"] * len(save_these))),
             save_these)
-        self.rumor.conn.commit()
-        self.rumor.conn.close()
-        for window in self.rumor.windowdict.itervalues():
-            if window is not self:
-                window.close()
         super(BoardWindow, self).on_close()
 
     def update(self, dt):

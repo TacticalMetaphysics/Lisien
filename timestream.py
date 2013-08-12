@@ -315,7 +315,7 @@ return None."""
                 return e
         return None
 
-    def split_branch(self, old_branch, new_branch, tick, length=0):
+    def split_branch(self, old_branch, new_branch, tick, length):
         """Find the edge in old_branch in the given tick, split it, and start
 a new edge off the split. The new edge will be a member of
 new_branch.
