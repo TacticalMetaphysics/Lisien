@@ -200,12 +200,6 @@ If it DOES have anything else to do, make the journey in another branch.
             pass
 
     def draw(self, batch, group):
-        newstate = self.get_state_tup()
-        if newstate in self.window.onscreen:
-            return
-        self.window.onscreen.discard(self.oldstate)
-        self.window.onscreen.add(newstate)
-        self.oldstate = newstate
         if self.coords is not None:
             try:
                 self.sprite.x = self.window_left

@@ -170,12 +170,6 @@ mouse."""
             abs(myy - y) < self.ry)
 
     def draw(self, batch, group):
-        newstate = self.get_state_tup()
-        if newstate in self.window.onscreen:
-            return
-        self.window.onscreen.discard(self.oldstate)
-        self.window.onscreen.add(newstate)
-        self.oldstate = newstate
         if self.visible and self.in_window:
             try:
                 self.sprite.x = self.window_left

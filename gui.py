@@ -368,12 +368,6 @@ and highlight it.
     def draw_menu(self, menu):
         menu.draw(self.batch, self.menugroup)
         for menu_item in menu:
-            state = menu_item.get_state_tup()
-            if state in self.onscreen:
-                return
-            self.onscreen.add(state)
-            self.onscreen.discard(menu_item.oldstate)
-            menu_item.oldstate = state
             if menu_item.label is not None:
                 try:
                     menu_item.label.delete()

@@ -143,12 +143,6 @@ just how to display this widget"""
             self.tweaks)
 
     def draw(self, batch, group):
-        state = self.get_state_tup()
-        if state in self.window.onscreen:
-            return
-        self.window.onscreen.add(state)
-        self.window.onscreen.discard(self.oldstate)
-        self.oldstate = state
         try:
             self.label.delete()
         except:
@@ -396,12 +390,6 @@ me"""
             self.labelgroup = OrderedGroup(1, group)
         for item in self.items:
             item.draw(batch, self.labelgroup)
-        state = self.get_state_tup()
-        if state in self.window.onscreen:
-            return
-        self.window.onscreen.add(state)
-        self.window.onscreen.discard(self.old_state)
-        self.old_state = state
         try:
             self.sprite.delete()
         except:

@@ -425,12 +425,6 @@ between any two states that should appear different on-screen."""
             self.window_top > y)
 
     def draw(self, batch, group):
-        newstate = self.get_state_tup()
-        if newstate in self.window.onscreen:
-            return
-        self.window.onscreen.add(newstate)
-        self.window.onscreen.discard(self.oldstate)
-        self.oldstate = newstate
         age_from_starting = self.rumor.tick - self.scrolled_to
         age_offset = age_from_starting * self.row_height
         y = self.window_top - age_offset

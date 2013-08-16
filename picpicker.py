@@ -260,13 +260,10 @@ will be assigned to that attribute of the window the picker is in.
         self.scrolled_to_row -= 1
 
     def draw(self, batch, group):
-        newstate = self.get_state_tup()
-        if newstate in self.window.onscreen:
-            return
-        self.window.onscreen.discard(self.oldstate)
-        self.window.onscreen.add(newstate)
-        self.oldstate = newstate
-        pickerbggroup = OrderedGroup(0, group)
+        if (
+                not hasattr(self, 'pickerbggroup') or
+                self.pickerbggroup is None):
+            self.pickerbggroup = OrderedGroup(0, group)
         self.sprite = Sprite(
             self.bgimg,
             self.window_left,

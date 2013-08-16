@@ -315,12 +315,6 @@ class CardWidget:
         self.textholder.delete()
 
     def draw(self, batch, group):
-        newstate = self.get_state_tup()
-        if newstate in self.window.onscreen:
-            return
-        self.window.onscreen.add(newstate)
-        self.window.onscreen.discard(self.oldstate)
-        self.oldstate = newstate
         if (
                 self.width != self.old_width or
                 self.height != self.old_height):
