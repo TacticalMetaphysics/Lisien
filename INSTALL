@@ -1,0 +1,9 @@
+Temporary instructions for interested hackers
+
+git submodule init
+git submodule update
+cd igraph
+./configure
+make
+sudo make install
+sudo pip install igraph
