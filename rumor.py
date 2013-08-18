@@ -741,16 +741,11 @@ necessary."""
         self.dimensiondict[dimn] = dim
         return dim
 
-    def get_board(self, i, window):
-        if (
-                len(window.dimension.boards) <= i or
-                window.dimension.boards[i] is None):
-            return self.load_board(i, window)
-        else:
-            return window.dimension.boards[i]
+    def get_board(self, dim, i):
+        if len(dim.boards) <= i:
+            return self.load_board(dim, i)
 
-    def load_board(self, i, window):
-        dim = window.dimension
+    def load_board(self, dim, i):
         while len(dim.boards) <= i:
             dim.boards.append(None)
         # basic information for this board
@@ -772,7 +767,7 @@ necessary."""
         for row in pawn_rows:
             imgs2load.add(row[4])
         imgs = self.load_imgs(imgs2load)
-        dim.boards[i] = Board(window, i, width, height, imgs[walln])
+        dim.boards[i] = Board(i, width, height, imgs[walln])
         # actually assign images instead of just collecting the names
         for row in pawn_rows:
             (thingn, branch, tick_from, tick_to, imgn) = row

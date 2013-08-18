@@ -225,7 +225,6 @@ With db, register with db's menudict.
 
         """
         self.window = window
-        self.board = self.window.board
         self.rumor = self.window.rumor
         self.name = name
         self.left_prop = left

@@ -7,19 +7,15 @@ from math import atan, cos, sin
 from arrow import Arrow
 from menu import Menu, MenuItem
 from card import Hand
+from board import BoardViewport
 from calendar import Calendar
 from picpicker import PicPicker
-from timestream import Timestream
 from collections import OrderedDict
 
 
 class SaveableWindowMetaclass(
         pyglet.window._WindowMetaclass, SaveableMetaclass):
     pass
-
-
-class SaveablePygletWindow(pyglet.window.Window):
-    __metaclass__ = SaveableWindowMetaclass
 
 
 logger = logging.getLogger(__name__)
@@ -85,28 +81,76 @@ of the mouse."""
             raise AttributeError
 
 
-class AbstractGameWindow(SaveablePygletWindow):
+class GameWindow(pyglet.window.Window):
+    __metaclass__ = SaveableWindowMetaclass
+    tables = [
+        ("window",
+         {"name": "text not null default 'Main'",
+          "min_width": "integer not null default 1280",
+          "min_height": "integer not null default 800",
+          "arrowhead_size": "integer not null default 10",
+          "arrow_width": "float not null default 1.4",
+          "main_menu": "text not null default 'Main'"},
+         ("name",),
+         {"main_menu": ("menu", "name")},
+         [])]
+
     def __init__(
-            self, rumor, min_width, min_height,
-            arrowhead_size, arrow_width, view_left, view_bot):
+            self, name, rumor, min_width, min_height,
+            arrowhead_size, arrow_width, main_menu,
+            menu_rows,
+            menu_item_rows,
+            hand_rows=[],
+            board_view_rows=[],
+            calendar_rows=[]):
         """Initialize the game window, its groups, and some state tracking."""
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
-
-        self.mouspot = MousySpot()
+        self.name = name
         self.rumor = rumor
         self.min_width = min_width
         self.min_height = min_height
         self.arrowhead_size = arrowhead_size
         self.arrow_width = arrow_width
+        self.main_menu_name = str(main_menu)
+        self.menus = OrderedDict()
+        for menu_row in menu_rows:
+            row = dictify_row(menu_row, Menu.colns)
+            assert(str(row["window"]) == str(self.name))
+            row["window"] = self
+            self.menus[row["name"]] = Menu(**row)
+        for menu_item_row in menu_item_rows:
+            row = dictify_row(menu_item_row, MenuItem.colns)
+            assert(str(row["window"]) == str(self.name))
+            del row["window"]
+            row["menu"] = self.menus[row["menu"]]
+            row["menu"].append(MenuItem(**row))
+        self.hands = []
+        for hand_row in hand_rows:
+            row = dictify_row(hand_row, Hand.colns)
+            assert(str(row["window"]) == str(self.name))
+            row["window"] = self
+            row["deck"] = self.rumor.effectdeckdict[row["deck"]]
+            row["style"] = self.rumor.styledict[row["style"]]
+            self.hands.append(Hand(**row))
+        self.board_viewports = []
+        for board_view_row in board_view_rows:
+            row = dictify_row(board_view_row, BoardViewport.colns)
+            assert(str(row["window"]) == str(self.name))
+            row["window"] = self
+            row["dimension"] = self.rumor.get_dimension(row["dimension"])
+            row["board"] = self.rumor.get_board(row["dimension"], row["board"])
+            while len(self.board_viewports) <= row["idx"]:
+                self.board_viewports.append(None)
+            self.board_viewports[row["idx"]] = BoardViewport(**row)
+        self.mouspot = MousySpot()
         self.squareoff = self.arrowhead_size * sin(fortyfive)
-        self.view_left = view_left
-        self.view_bot = view_bot
         self.picker = None
-        self.hands_by_name = OrderedDict()
-        self.calendars = []
-        self.menus_by_name = OrderedDict()
-        self.hover_iter_getters = [self.hands_by_name.itervalues, self.calendars.__iter__, self.menus_by_name.itervalues, lambda: (self.picker,)]
+        self.hover_iter_getters = [
+            self.hands_by_name.itervalues,
+            self.calendars.__iter__,
+            self.menus_by_name.itervalues,
+            lambda: (self.picker,)]
         self.edge_order = 1
 
         self.biggroup = pyglet.graphics.Group()
@@ -138,13 +182,10 @@ class AbstractGameWindow(SaveablePygletWindow):
 
         self.timeline = None
 
-        self.onscreen = set()
         self.last_age = -1
         self.last_timeline_y = -1
 
         self.dxdy_hist_counter = 0
-
-        self.set_vsync(True)
 
     def __getattr__(self, attrn):
         if attrn == 'hands':
@@ -412,7 +453,9 @@ class BoardWindow(AbstractGameWindow):
         self.main_menu_name = main_menu
         self.board = self.rumor.get_board(boardnum, self)
         self.hover_iter_getters.extend(
-            [self.board.pawndict.itervalues, self.board.spotdict.itervalues, self.board.arrowdict.itervalues])
+            [self.board.pawndict.itervalues,
+             self.board.spotdict.itervalues,
+             self.board.arrowdict.itervalues])
         self.placing = False
         self.thinging = False
         self.portaling = False
@@ -497,7 +540,6 @@ class BoardWindow(AbstractGameWindow):
             self.firstdraw = True
         AbstractGameWindow.on_draw(self)
 
-
     def on_close(self):
         for hand in self.hands_by_name.itervalues():
             hand.save()
@@ -536,11 +578,13 @@ class BoardWindow(AbstractGameWindow):
             except:
                 pass
         try:
-            self.place_pic_sprite.set_position(x - self.place_pic.rx, y - self.place_pic.ry)
+            self.place_pic_sprite.set_position(
+                x - self.place_pic.rx, y - self.place_pic.ry)
         except:
             pass
         try:
-            self.thing_pic_sprite.set_position(x - self.thing_pic.rx, y - self.thing_pic.ry)
+            self.thing_pic_sprite.set_position(
+                x - self.thing_pic.rx, y - self.thing_pic.ry)
         except:
             pass
         super(BoardWindow, self).update(dt)
@@ -581,7 +625,8 @@ class BoardWindow(AbstractGameWindow):
                     self.thing_pic_sprite.delete()
                 except:
                     pass
-                sp = self.board.get_spot_at(x + self.view_left, y + self.view_bot)
+                sp = self.board.get_spot_at(
+                    x + self.view_left, y + self.view_bot)
                 if sp is not None:
                     pl = sp.place
                     th = self.rumor.make_generic_thing(self.dimension, pl)
@@ -613,7 +658,7 @@ class BoardWindow(AbstractGameWindow):
                     port = self.rumor.make_portal(
                         self.portal_from.place,
                         self.pressed.place)
-                    self.board.make_arrow(self.portal_from.place, self.pressed.place)
+                    self.board.make_arrow(port)
                 self.portaling = False
                 self.portal_from = None
                 self.floaty_portal.delete()
@@ -641,23 +686,20 @@ class BoardWindow(AbstractGameWindow):
         self.pressed = None
 
     def create_place(self):
-        self.picker = PicPicker(self, 0.3, 0.6, 0.3, 0.6,
-                                self.calendars[0].style, 'place_pic', 'placing')
+        self.picker = PicPicker(
+            self, 0.3, 0.6, 0.3, 0.6,
+            self.calendars[0].style, 'place_pic', 'placing')
 
     def create_thing(self):
-        self.picker = PicPicker(self, 0.3, 0.6, 0.3, 0.6,
-                                self.calendars[0].style, 'thing_pic', 'thinging')
+        self.picker = PicPicker(
+            self, 0.3, 0.6, 0.3, 0.6,
+            self.calendars[0].style, 'thing_pic', 'thinging')
 
     def create_portal(self):
         boguspot = MousySpot()
         (boguspot.x, boguspot.y) = self.floaty_coords()
         self.floaty_portal = Arrow(self.board, boguspot, self.mouspot)
         self.portaling = True
-
-    def on_close(self):
-        self.dimension.save()
-        self.board.save()
-        super(BoardWindow, self).on_close()
 
     def floaty_coords(self):
         dx = self.dx
@@ -686,7 +728,7 @@ class BoardWindow(AbstractGameWindow):
             dx *= xco
             y *= yco
             dy *= yco
-            theta = atan(float(dy)/float(dx))
+            theta = atan(float(dy) / float(dx))
             xleft = int(x - cos(theta) * length)
             ybot = int(y - sin(theta) * length)
             return (xleft * xco, ybot * yco)
@@ -704,40 +746,3 @@ class BoardWindow(AbstractGameWindow):
                 "view_left": self.view_left,
                 "view_bot": self.view_bot,
                 "main_menu": self.main_menu_name}]}
-
-
-class TimestreamWindow(AbstractGameWindow):
-    def __init__(self, rumor, min_width, min_height, arrowhead_size,
-                 arrow_width, view_left, view_bot):
-        print "initializing timestream window"
-        super(TimestreamWindow, self).__init__(
-            rumor, min_width, min_height, arrowhead_size, arrow_width,
-            view_left, view_bot)
-        self.board = Timestream(self)
-        self.board.bggroup = pyglet.graphics.OrderedGroup(0, self.boardgroup)
-        self.bgpat = pyglet.image.SolidColorImagePattern((255,) * 4)
-        self.bgimg = None
-        self.bgsprite = None
-        self.set_maximum_size(*self.get_size())
-
-    def on_draw(self):
-        (width, height) = self.get_size()
-        if (
-                self.bgsprite is None or
-                width != self.bgsprite.width or
-                height != self.bgsprite.height):
-            self.bgimg = self.bgpat.create_image(width, height)
-            self.bgsprite = pyglet.sprite.Sprite(
-                self.bgimg,
-                0, 0,
-                batch=self.batch,
-                group=self.board.bggroup)
-        self.board.draw(self.batch, self.boardgroup)
-        super(TimestreamWindow, self).on_draw()
-
-    def update(self, ts):
-        self.board.update(ts)
-        super(TimestreamWindow, self).update(ts)
-
-    def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
-        pass

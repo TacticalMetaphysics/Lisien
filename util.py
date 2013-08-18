@@ -165,7 +165,7 @@ and your table will be ready.
                     fkey[0] for fkey in
                     fkeys.itervalues()]), create_stmt, prelude))
 
-        def insert_rowdicts_table(db, rowdicts, tabname):
+        def gen_sql_insert(rowdicts, tabname):
             if rowdicts == []:
                 return []
             sample = rowdicts[0]
@@ -180,10 +180,13 @@ and your table will be ready.
                 for col in cols_used:
                     qrylst.append(rowdict[col])
             qrytup = tuple(qrylst)
-            db.c.execute(qrystr, qrytup)
+            return (qrystr, qrytup)
+
+        def insert_rowdicts_table(db, rowdicts, tabname):
+            db.c.execute(*gen_sql_insert(rowdicts, tabname))
             return []
 
-        def delete_keydicts_table(db, keydicts, tabname):
+        def gen_sql_delete(keydicts, tabname):
             keyns = keynames[tabname]
             keys = []
             wheres = []
@@ -195,9 +198,12 @@ and your table will be ready.
                 wheres.append("(" + " AND ".join(checks) + ")")
             wherestr = " OR ".join(wheres)
             qrystr = "DELETE FROM {0} WHERE {1}".format(tabname, wherestr)
-            db.c.execute(qrystr, tuple(keys))
+            return (qrystr, tuple(keys))
 
-        def detect_keydicts_table(db, keydicts, tabname):
+        def delete_keydicts_table(db, keydicts, tabname):
+            db.c.execute(*gen_sql_delete(keydicts, tabname))
+
+        def gen_sql_detect(keydicts, tabname):
             keystr = keystrs[tabname]
             qrystr = detects[tabname] + ", ".join([keystr] * len(keydicts))
             qrylst = []
@@ -206,10 +212,13 @@ and your table will be ready.
                     if col in keydict:
                         qrylst.append(keydict[col])
             qrytup = tuple(qrylst)
-            db.c.execute(qrystr, qrytup)
+            return (qrystr, qrytup)
+
+        def detect_keydicts_table(db, keydicts, tabname):
+            db.c.execute(*gen_sql_detect(keydicts, tabname))
             return db.c.fetchall()
 
-        def missing_keydicts_table(db, keydicts, tabname):
+        def gen_sql_missing(keydicts, tabname):
             keystr = keystrs[tabname]
             qrystr = missings[tabname] + ", ".join([keystr] * len(keydicts))
             qrylst = []
@@ -218,7 +227,10 @@ and your table will be ready.
                     if col in keydict:
                         qrylst.append(keydict[col])
             qrytup = tuple(qrylst)
-            db.c.execute(qrystr, qrytup)
+            return (qrystr, qrytup)
+
+        def missing_keydicts_table(db, keydicts, tabname):
+            db.c.execute(*gen_sql_missing(keydicts, tabname))
             return db.c.fetchall()
 
         def insert_tabdict(db, tabdict):
@@ -293,28 +305,32 @@ and your table will be ready.
         def erase(self):
             delete_tabdict(self.rumor, self.get_keydict())
 
-        dbop = {'insert': insert_tabdict,
-                'delete': delete_tabdict,
-                'detect': detect_tabdict,
-                'missing': missing_tabdict}
-        atrdic = {'colnames': colnames,
-                  'colnamestr': colnamestr,
-                  'colnstr': colnamestr[tablenames[0]],
-                  'keynames': keynames,
-                  'valnames': valnames,
-                  'keyns': keynames[tablenames[0]],
-                  'valns': valnames[tablenames[0]],
-                  'colns': colnames[tablenames[0]],
-                  'keylen': keylen,
-                  'rowlen': rowlen,
-                  'keyqms': keyqms,
-                  'rowqms': rowqms,
-                  'dbop': dbop,
-                  'coresave': coresave,
-                  'save': save,
-                  'maintab': tablenames[0],
-                  'get_keydict': get_keydict,
-                  'erase': erase}
+        atrdic = {
+            'insert_tabdict': lambda self, db, td: insert_tabdict(db, td),
+            'delete_tabdict': lambda self, db, td: delete_tabdict(db, td),
+            'detect_tabdict': lambda self, db, td: detect_tabdict(db, td),
+            'missing_tabdict': lambda self, db, td: missing_tabdict(db, td),
+            'gen_sql_insert': lambda self, rd, tn: gen_sql_insert(rd, tn),
+            'gen_sql_delete': lambda self, rd, tn: gen_sql_delete(rd, tn),
+            'gen_sql_detect': lambda self, rd, tn: gen_sql_detect(rd, tn),
+            'gen_sql_missing': lambda self, rd, tn: gen_sql_missing(rd, tn),
+            'colnames': colnames,
+            'colnamestr': colnamestr,
+            'colnstr': colnamestr[tablenames[0]],
+            'keynames': keynames,
+            'valnames': valnames,
+            'keyns': keynames[tablenames[0]],
+            'valns': valnames[tablenames[0]],
+            'colns': colnames[tablenames[0]],
+            'keylen': keylen,
+            'rowlen': rowlen,
+            'keyqms': keyqms,
+            'rowqms': rowqms,
+            'coresave': coresave,
+            'save': save,
+            'maintab': tablenames[0],
+            'get_keydict': get_keydict,
+            'erase': erase}
         atrdic.update(attrs)
 
         return type.__new__(metaclass, clas, parents, atrdic)
@@ -779,7 +795,8 @@ class TerminableCoords:
             self.indefinite_coords[branch] = (x, y, tick_from)
 
     def new_branch_coords(self, parent, branch, tick):
-        for (tick_from, (x, y, tick_to)) in self.coord_dict[parent].iteritems():
+        for (tick_from, (x, y, tick_to)) in (
+                self.coord_dict[parent].iteritems()):
             if tick_to >= tick or tick_to is None:
                 if tick_from < tick:
                     self.coord_dict[branch][tick] = (x, y, tick_to)
@@ -789,6 +806,30 @@ class TerminableCoords:
                     self.coord_dict[branch][tick_from] = (x, y, tick_to)
                     if tick_to is None:
                         self.indefinite_coords[branch] = tick_from
+
+
+class ViewportOrderedGroup(pyglet.graphics.OrderedGroup):
+    def __init__(self, order, parent, view):
+        super(ViewportOrderedGroup, self).__init__(order, parent)
+        self.view = view
+
+    def set_state(self):
+        tup = (
+            self.view.window_left,
+            self.view.window_bot,
+            self.view.width,
+            self.view.height)
+        pyglet.gl.glViewport(*tup)
+        pyglet.gl.glScissor(*tup)
+        pyglet.gl.glEnable(pyglet.gl.GL_SCISSOR_TEST)
+
+    def unset_state(self):
+        pyglet.gl.glViewport(
+            0,
+            0,
+            self.view.window.width,
+            self.view.window.height)
+        pyglet.gl.glDisable(pyglet.gl.GL_SCISSOR_TEST)
 
 
 class PatternHolder:

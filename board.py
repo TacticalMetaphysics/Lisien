@@ -1,10 +1,10 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass
+from util import SaveableMetaclass, ViewportOrderedGroup
 from collections import OrderedDict
-from pawn import Pawn
-from spot import Spot
-from arrow import Arrow
+from pawn import Pawn, PawnWidget
+from spot import Spot, SpotWidget
+from arrow import Arrow, ArrowWidget
 from pyglet.graphics import OrderedGroup
 from pyglet.sprite import Sprite
 
@@ -12,58 +12,10 @@ from pyglet.sprite import Sprite
 """Class for user's view on gameworld, and support functions."""
 
 
-class BoardPawnIter:
-    def __init__(self, realit):
-        self.realit = realit
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        r = self.realit.next()
-        return r
+__metaclass__ = SaveableMetaclass
 
 
-class BoardSpotIter:
-    def __init__(self, board):
-        self.placeit = board.places
-        self.i = int(board)
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        r = self.placeit.next()
-        while (
-                not hasattr(r, 'spots') or
-                len(r.spots) <= self.i or
-                r.spots[self.i] is None):
-            r = self.placeit.next()
-        return r.spots[self.i]
-
-
-class BoardArrowIter:
-    def __init__(self, board):
-        self.portit = board.portals
-        self.i = int(board)
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        r = self.portit.next()
-        while (
-                not hasattr(r, 'arrows') or
-                len(r.arrows) <= self.i or
-                r.arrows[self.i] is None):
-            r = self.portit.next()
-        while not r.extant():
-            r.arrows[self.i].delete()
-            r = self.portit.next()
-        return r.arrows[self.i]
-
-
-class AbstractBoard:
+class Board:
     """A widget notionally representing the game board on which the rest
 of the game pieces lie.
 
@@ -77,14 +29,22 @@ board, but they are linked to the board anyhow, on the assumption that
 each board will be open in at most one window at a time.
 
     """
-    __metaclass__ = SaveableMetaclass
+    tables = [
+        ("board",
+         {"dimension": "text not null default 'Physical'",
+          "i": "integer not null default 0",
+          "wallpaper": "text not null default 'default_wallpaper'",
+          "width": "integer not null default 4000",
+          "height": "integer not null default 3000"},
+         ("dimension", "i"),
+         {"wallpaper": ("image", "name")},
+         [])]
 
-    def __init__(self, window, width, height, wallpaper):
+    def __init__(self, dimension, width, height, wallpaper):
         """Return a board representing the given dimension.
 
         """
-        self.window = window
-        self.dimension = window.dimension
+        self.dimension = dimension
         self.rumor = self.dimension.rumor
         self.width = width
         self.height = height
@@ -153,35 +113,6 @@ each board will be open in at most one window at a time.
             self.make_arrow(orig_or_port, dest)
         return self.arrowdict[name]
 
-    def draw(self, batch, group):
-        if not hasattr(self, 'bggroup'):
-            self.bggroup = OrderedGroup(0, group)
-        if not hasattr(self, 'arrowgroup'):
-            self.arrowgroup = OrderedGroup(1, group)
-        if not hasattr(self, 'spotgroup'):
-            self.spotgroup = OrderedGroup(2, group)
-        if not hasattr(self, 'pawngroup'):
-            self.pawngroup = OrderedGroup(3, group)
-        self.draw_bg(batch, self.bggroup)
-        for arrow in self.arrows:
-            arrow.draw(batch, self.arrowgroup)
-        for spot in self.spots:
-            spot.draw(batch, self.spotgroup)
-        for pawn in self.pawns:
-            pawn.draw(batch, self.pawngroup)
-
-    def draw_bg(self, batch, group):
-        if not hasattr(self, 'bgsprite'):
-            self.bgsprite = Sprite(
-                self.wallpaper.tex,
-                self.window.offset_x,
-                self.window.offset_y,
-                batch=batch,
-                group=group)
-        else:
-            self.bgsprite.x = self.window.offset_x
-            self.bgsprite.y = self.window.offset_y
-
     def new_branch(self, parent, branch, tick):
         for spot in self.spots:
             spot.new_branch(parent, branch, tick)
@@ -189,25 +120,6 @@ each board will be open in at most one window at a time.
             pawn.new_branch(parent, branch, tick)
         # Arrows don't have branchdicts. Just make them smart enough
         # to handle their portal changing its.
-
-
-
-class Board(AbstractBoard):
-    tables = [
-        ("board",
-         {"dimension": "text not null default 'Physical'",
-          "i": "integer not null default 0",
-          "wallpaper": "text not null default 'default_wallpaper'",
-          "width": "integer not null default 4000",
-          "height": "integer not null default 3000"},
-         ("dimension", "i"),
-         {"wallpaper": ("image", "name")},
-         []),
-    ]
-
-    def __init__(self, window, i, width, height, wallpaper):
-        self.i = i
-        super(Board, self).__init__(window, width, height, wallpaper)
 
     def get_tabdict(self):
         return {
@@ -217,3 +129,121 @@ class Board(AbstractBoard):
                  "wallpaper": str(self.wallpaper),
                  "width": self.width,
                  "height": self.height}]}
+
+
+class BoardViewport:
+    tables = [
+        ("board_viewport",
+         {"window": "text not null",
+          "dimension": "text not null",
+          "board": "integer not null default 0",
+          "idx": "integer not null default 0",
+          "left": "float not null default 0.0",
+          "bot": "float not null default 0.0",
+          "top": "float not null default 1.0",
+          "right": "float not null default 1.0",
+          "view_left": "integer not null default 0",
+          "view_bot": "integer not null default 0"},
+         ("window", "dimension", "board", "idx"),
+         {"window": ("window", "name"),
+          "dimension, board": ("board", "dimension, i")},
+         ["view_left>=0", "view_bot>=0", "left>=0.0", "bot>=0.0",
+          "right>=0.0", "top>=0.0", "left<=1.0", "bot<=1.0",
+          "right<=1.0", "top<=1.0", "right>left", "top>bot"])]
+
+    def __init__(self, window, board, idx,
+                 left, bot, top, right, view_left, view_bot):
+        self.board = board
+        self.window = window
+        self.idx = idx
+        self.left_prop = left
+        self.bot_prop = bot
+        self.top_prop = top
+        self.right_prop = right
+        self.view_left = view_left
+        self.view_bot = view_bot
+        self.pawndict = {}
+        self.spotdict = {}
+        self.arrowdict = {}
+        for (k, v) in self.board.pawndict.itervalues():
+            self.pawndict[k] = PawnWidget(v, self)
+        for (k, v) in self.board.spotdict.itervalues():
+            self.spotdict[k] = SpotWidget(v, self)
+        for (k, v) in self.board.arrowdict.itervalues():
+            self.arrowdict[k] = ArrowWidget(v, self)
+
+    def __getattr__(self, attrn):
+        if attrn == "window_left":
+            return self.left_prop * self.window.width
+        elif attrn == "window_right":
+            return self.right_prop * self.window.width
+        elif attrn == "window_bot":
+            return self.bot_prop * self.window.height
+        elif attrn == "window_top":
+            return self.top_prop * self.window.height
+        elif attrn == "width":
+            return self.window_right - self.window_left
+        elif attrn == "height":
+            return self.window_top - self.window_bot
+        elif attrn == "offset_x":
+            return -1 * self.view_left
+        elif attrn == "offset_y":
+            return -1 * self.view_bot
+        elif attrn == "arrows":
+            return self.arrowdict.itervalues()
+        elif attrn == "spots":
+            return self.spotdict.itervalues()
+        elif attrn == "pawns":
+            return self.pawndict.itervalues()
+        else:
+            raise AttributeError(
+                "BoardView instance has no attribute " + attrn)
+
+    def draw_bg(self, batch, group):
+        try:
+            self.bgsprite.x = self.offset_x
+            self.bgsprite.y = self.offset_y
+        except:
+            self.bgsprite = Sprite(
+                self.wallpaper.tex,
+                self.window.offset_x,
+                self.window.offset_y,
+                batch=batch,
+                group=group)
+
+    def draw(self, batch, group):
+        if not hasattr(self, 'supergroup'):
+            self.supergroup = ViewportOrderedGroup(0, group, self)
+        if not hasattr(self, 'bggroup'):
+            self.bggroup = OrderedGroup(0, self.supergroup)
+        if not hasattr(self, 'arrowgroup'):
+            self.arrowgroup = OrderedGroup(1, self.supergroup)
+        if not hasattr(self, 'spotgroup'):
+            self.spotgroup = OrderedGroup(2, self.supergroup)
+        if not hasattr(self, 'pawngroup'):
+            self.pawngroup = OrderedGroup(3, self.supergroup)
+        self.draw_bg(batch, self.bggroup)
+        for arrow in self.arrows:
+            arrow.draw(batch, self.arrowgroup)
+        for spot in self.spots:
+            spot.draw(batch, self.spotgroup)
+        for pawn in self.pawns:
+            pawn.draw(batch, self.pawngroup)
+
+    def get_tabdict(self):
+        return {
+            "board_viewport": {
+                "window": str(self.window),
+                "dimension": str(self.board.dimension),
+                "board": int(self.board),
+                "idx": self.idx,
+                "left": self.left_prop,
+                "bot": self.bot_prop,
+                "top": self.top_prop,
+                "right": self.right_prop,
+                "view_left": self.view_left,
+                "view_bot": self.view_bot}}
+
+    def save(self):
+        self.coresave()
+        self.board.save()

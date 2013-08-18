@@ -9,17 +9,21 @@ from util import (
 import pyglet
 
 
+GL_LINES = pyglet.gl.GL_LINES
+
+
 class DummySpot:
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
     def __getattr__(self, attrn):
-        if attrn == 'window_x':
+        if attrn in ('window_x', 'viewport_x', 'board_x'):
             return self.x
-        elif attrn == 'window_y':
+        elif attrn in ('window_y', 'viewport_y', 'board_y'):
             return self.y
-        elif attrn == 'window_coords':
+        elif attrn in ('coords', 'window_coords',
+                       'viewport_coords', 'board_coords'):
             return (self.x, self.y)
         else:
             raise AttributeError
@@ -80,14 +84,6 @@ class Arrow:
                 self.dest = DummySpot(*dest)
             else:
                 self.dest = dest
-        self.vertices = ((None, None), (None, None), (None, None))
-        self.oldstate = None
-        self.order = self.window.edge_order
-        self.window.edge_order += 1
-        self.selectable = True
-        self.overlap_hints = {}
-        self.y_at_hints = {}
-        self.tweaks = 0
 
     def __getattr__(self, attrn):
         if attrn == 'ox':
@@ -120,26 +116,26 @@ class Arrow:
                 return None
             else:
                 return self.rise / self.run
-        elif attrn == 'window_left':
-            if self.orig.window_x < self.dest.window_x:
-                return self.orig.window_x - self.margin
+        elif attrn == 'left':
+            if self.orig.x < self.dest.x:
+                return self.orig.x - self.margin
             else:
-                return self.dest.window_x - self.margin
-        elif attrn == 'window_right':
-            if self.orig.window_x < self.dest.window_x:
-                return self.dest.window_x + self.margin
+                return self.dest.x - self.margin
+        elif attrn == 'right':
+            if self.orig.x < self.dest.x:
+                return self.dest.x + self.margin
             else:
-                return self.orig.window_x + self.margin
-        elif attrn == 'window_bot':
-            if self.orig.window_y < self.dest.window_y:
-                return self.orig.window_y - self.margin
+                return self.orig.x + self.margin
+        elif attrn == 'bot':
+            if self.orig.y < self.dest.y:
+                return self.orig.y - self.margin
             else:
-                return self.dest.window_y - self.margin
-        elif attrn == 'window_top':
-            if self.orig.window_y < self.dest.window_y:
-                return self.dest.window_y + self.margin
+                return self.dest.y - self.margin
+        elif attrn == 'top':
+            if self.orig.y < self.dest.y:
+                return self.dest.y + self.margin
             else:
-                return self.orig.window_y + self.margin
+                return self.orig.y + self.margin
         elif attrn == 'b':
             # Returns a pair representing a fraction
             # y = mx + b
@@ -153,13 +149,6 @@ class Arrow:
             x_numerator = self.rise * self.ox
             y_numerator = denominator * self.oy
             return ((y_numerator - x_numerator), denominator)
-        elif attrn == 'highlit':
-            return self in self.window.selected
-        elif attrn == "tick_along":
-            # This is for the timestream.  After clicking an arrow you
-            # can get the tick represented by the point at which the
-            # arrow was clicked.
-            return int(self.e["length"] * self.clicked_along)
         else:
             raise AttributeError(
                 "Edge instance has no attribute {0}".format(attrn))
@@ -193,10 +182,10 @@ Take my width into account
         """
         # trivial rejections
         if not (
-                x > self.window_left and
-                x < self.window_right and
-                y > self.window_bot and
-                y < self.window_top):
+                x > self.left and
+                x < self.right and
+                y > self.bot and
+                y < self.top):
             return False
         try:
             perfect_x = self.x_at(y)
@@ -216,26 +205,6 @@ Take my width into account
             dist = hypot(a, b)
             return dist < self.width
 
-    def onclick(self, x, y, buttons, modifiers):
-        """In most circumstances, this does nothing; the window will handle my
-being selected.
-
-In the case where I'm in a timeline, clicking me initiates time travel.
-
-        """
-        if "branch" in self.portal.e.attribute_names():
-            branch = self.portal.e["branch"]
-            length = self.portal.e["length"]
-            start = self.orig.v["tick"]
-            self.rumor.time_travel(
-                branch, start + (length * self.clicked_along))
-            self.window.onscreen = set()
-
-    def get_state_tup(self):
-        return ((self.tweaks, self.highlit) +
-                self.orig.get_state_tup() +
-                self.dest.get_state_tup())
-
     def reciprocate(self):
         # Return the edge of the portal that connects the same two
         # places in the opposite direction, supposing it exists
@@ -245,27 +214,98 @@ In the case where I'm in a timeline, clicking me initiates time travel.
         except KeyError:
             return None
 
+
+class ArrowWidget:
+    selectable = True
+
+    def __init__(self, viewport, arrow):
+        self.viewport = viewport
+        self.window = self.viewport.window
+        self.arrow = arrow
+        self.vertices = ((None, None), (None, None), (None, None))
+        self.order = self.window.edge_order
+        self.window.edge_order += 1
+
+    def __getattr__(self, attrn):
+        if attrn == "board_left":
+            return self.arrow.left
+        elif attrn == "board_right":
+            return self.arrow.right
+        elif attrn == "board_top":
+            return self.arrow.top
+        elif attrn == "board_bot":
+            return self.arrow.bot
+        elif attrn == "viewport_left":
+            return self.board_left + self.viewport.offset_x
+        elif attrn == "viewport_right":
+            return self.board_right + self.viewport.offset_x
+        elif attrn == "viewport_bot":
+            return self.board_bot + self.viewport.offset_y
+        elif attrn == "viewport_top":
+            return self.board_top + self.viewport.offset_y
+        elif attrn == "window_left":
+            return self.viewport_left + self.viewport.window_left
+        elif attrn == "window_right":
+            return self.viewport_right + self.viewport.window_left
+        elif attrn == "window_bot":
+            return self.viewport_bot + self.viewport.window_bot
+        elif attrn == "window_top":
+            return self.viewport_top + self.viewport.window_bot
+        elif attrn in ("ox", "board_ox"):
+            return self.arrow.ox
+        elif attrn in ("oy", "board_oy"):
+            return self.arrow.oy
+        elif attrn in ("dx", "board_dx"):
+            return self.arrow.dx
+        elif attrn in ("dy", "board_dy"):
+            return self.arrow.dy
+        elif attrn == "viewport_ox":
+            return self.board_ox + self.viewport.offset_x
+        elif attrn == "viewport_dx":
+            return self.board_dx + self.viewport.offset_x
+        elif attrn == "viewport_dy":
+            return self.board_dy + self.viewport.offset_y
+        elif attrn == "viewport_oy":
+            return self.board_oy + self.viewport.offset_y
+        elif attrn == "window_ox":
+            return self.viewport_ox + self.viewport.window_left
+        elif attrn == "window_dx":
+            return self.viewport_dx + self.viewport.window_left
+        elif attrn == "window_oy":
+            return self.viewport_oy + self.viewport.window_bot
+        elif attrn == "window_dy":
+            return self.viewport_dy + self.viewport.window_bot
+        elif attrn in ("highlit", "selected"):
+            return self in self.window.selected
+        elif attrn in (
+                "rise", "run", "width", "length", "m", "slope"):
+            return getattr(attrn, self.arrow)
+        else:
+            raise AttributeError(
+                "ArrowWidget instance has no attribute " + attrn)
+
     def delete(self):
-        for pair in self.vertices:
-            for vertle in pair:
-                try:
-                    vertle.delete()
-                except:
-                    pass
+        for vertle in (self.bg_vertlist, self.fg_vertlist):
+            try:
+                vertle.delete()
+            except:
+                pass
 
     def draw(self, batch, group):
-        supergroup = pyglet.graphics.OrderedGroup(
-            self.order, group)
-        bggroup = SmoothBoldLineOrderedGroup(
-            0, supergroup, self.window.arrow_girth)
-        fggroup = BoldLineOrderedGroup(
-            1, supergroup, self.window.arrow_width)
-        owc = self.orig.window_coords
-        dwc = self.dest.window_coords
-        if None in (owc, dwc):
-            return
-        (ox, oy) = owc
-        (dx, dy) = dwc
+        # group had better be viewported
+        if not hasattr(self, 'supergroup'):
+            self.supergroup = pyglet.graphics.OrderedGroup(
+                self.order, group)
+        if not hasattr(self, 'bggroup'):
+            self.bggroup = SmoothBoldLineOrderedGroup(
+                0, self.supergroup, self.window.arrow_girth)
+        if not hasattr(self, 'fggroup'):
+            self.fggroup = BoldLineOrderedGroup(
+                1, self.supergroup, self.window.arrow_width)
+        ox = self.viewport_ox
+        dx = self.viewport_dx
+        oy = self.viewport_oy
+        dy = self.viewport_dy
         if dy < oy:
             yco = -1
         else:
@@ -277,7 +317,7 @@ In the case where I'm in a timeline, clicking me initiates time travel.
         (leftx, boty, rightx, topy) = truncated_line(
             float(ox * xco), float(oy * yco),
             float(dx * xco), float(dy * yco),
-            self.center_shrink+1)
+            self.center_shrink + 1)
         taillen = float(self.window.arrowhead_size)
         rise = topy - boty
         run = rightx - leftx
@@ -306,19 +346,26 @@ In the case where I'm in a timeline, clicking me initiates time travel.
         else:
             bgcolor = (64, 64, 64, 64)
             fgcolor = (255, 255, 255, 0)
-        lpoints = (x1, y1, endx, endy)
-        cpoints = (ox, oy, endx, endy)
-        rpoints = (x2, y2, endx, endy)
-        lbg = self.window.draw_line(
-            lpoints, bgcolor, bggroup, self.vertices[0][0])
-        cbg = self.window.draw_line(
-            cpoints, bgcolor, bggroup, self.vertices[1][0])
-        rbg = self.window.draw_line(
-            rpoints, bgcolor, bggroup, self.vertices[2][0])
-        lfg = self.window.draw_line(
-            lpoints, fgcolor, fggroup, self.vertices[0][1])
-        cfg = self.window.draw_line(
-            cpoints, fgcolor, fggroup, self.vertices[1][1])
-        rfg = self.window.draw_line(
-            rpoints, fgcolor, fggroup, self.vertices[2][1])
-        self.vertices = ((lbg, lfg), (cbg, cfg), (rbg, rfg))
+        points = (ox, oy, endx, endy, x1, y1, x2, y2)
+        bgcolors = bgcolor * 4
+        fgcolors = fgcolor * 4
+        try:
+            self.bg_vertlist.vertices = list(points)
+        except:
+            self.bg_vertlist = batch.add_indexed(
+                4,
+                GL_LINES,
+                self.bggroup,
+                (0, 1, 2, 1, 3),
+                ('v2i', points),
+                ('c4b', bgcolors))
+        try:
+            self.fg_vertlist.vertices = list(points)
+        except:
+            self.fg_vertlist = batch.add_indexed(
+                4,
+                GL_LINES,
+                self.fggroup,
+                (0, 1, 2, 1, 3),
+                ('v2i', points),
+                ('c4b', fgcolors))
