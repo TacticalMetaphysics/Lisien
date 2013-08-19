@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import os
 from sqlite3 import OperationalError
-from rltileins import ins_rltiles
+from# rltileins import ins_rltiles
 from util import schemata
 import board, card, calendar, character, dimension, effect, gui
 import img, menu, pawn, portal, spot, style, thing, rumor

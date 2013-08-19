@@ -410,7 +410,7 @@ schedule, possibly several.
         (
             "calendar",
             {"window": "text not null default 'Main'",
-             "i": "integer not null default 0",
+             "idx": "integer not null default 0",
              "left": "float not null default 0.8",
              "right": "float not null default 1.0",
              "top": "float not null default 1.0",
@@ -420,7 +420,7 @@ schedule, possibly several.
              "rows_shown": "integer not null default 240",
              "scrolled_to": "integer default null",
              "scroll_factor": "integer not null default 4"},
-            ("window", "i"),
+            ("window", "idx"),
             {"window": ("window", "name"),
              "style": ("style", "name")},
             ["rows_shown>0", "left>=0.0", "left<=1.0", "right<=1.0",
@@ -429,12 +429,11 @@ schedule, possibly several.
     visible = True
 
     def __init__(
-            self, window, i, left, right, top, bot, style, interactive,
+            self, window, idx, left, right, top, bot, style, interactive,
             rows_shown, scrolled_to, scroll_factor):
         self.window = window
-        self.i = i
-        self.board = self.window.board
-        self.rumor = self.board.rumor
+        self.rumor = self.window.rumor
+        self.idx = idx
         self.left_prop = left
         self.right_prop = right
         self.top_prop = top

@@ -21,70 +21,9 @@ __metaclass__ = SaveableMetaclass
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class AbstractSpot(
+class Spot(
         TerminableImg, TerminableInteractivity,
         TerminableCoords):
-    def __init__(self, board, vert):
-        self.board = board
-        self.rumor = self.board.rumor
-        self.vert = vert
-        self.interactivity = defaultdict(dict)
-        self.imagery = defaultdict(dict)
-        self.coord_dict = defaultdict(dict)
-        self.indefinite_imagery = {}
-        self.indefinite_coords = {}
-        self.indefinite_interactivity = {}
-        self.grabpoint = None
-        self.sprite = None
-        self.box_edges = (None, None, None, None)
-        self.oldstate = None
-        self.newstate = None
-        self.tweaks = 0
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
-
-    def __getattr__(self, attrn):
-        if attrn == 'dimension':
-            return self.board.dimension
-        elif attrn == 'interactive':
-            return self.is_interactive()
-        elif attrn == 'img':
-            return self.get_img()
-        elif attrn == 'coords':
-            return self.get_coords()
-        elif attrn == 'x':
-            return self.coords[0]
-        elif attrn == 'y':
-            return self.coords[1]
-        elif attrn == 'width':
-            if self.img is None:
-                return 0
-            else:
-                return self.img.width
-        elif attrn == 'height':
-            if self.img is None:
-                return 0
-            else:
-                return self.img.height
-        elif attrn == 'rx':
-            return self.width / 2
-        elif attrn == 'ry':
-            return self.height / 2
-        elif attrn == 'r':
-            if self.rx > self.ry:
-                return self.rx
-            else:
-                return self.ry
-        elif attrn == 'visible':
-            return self.img is not None
-        elif hasattr(self, 'saver') and hasattr(self.saver, attrn):
-            return getattr(self.saver, attrn)
-        else:
-            raise AttributeError(
-                "Spot instance has no such attribute: " +
-                attrn)
-
-class PlaceSpot(AbstractSpot):
     """The icon that represents a Place.
 
     The Spot is located on the Board that represents the same
@@ -92,13 +31,6 @@ class PlaceSpot(AbstractSpot):
     relative to its Board, not necessarily the window the Board is in.
 
     """
-    def __init__(self, board, place):
-        super(Spot, self).__init__(board, place.v)
-        self.place = place
-
-    def __str__(self):
-        return str(self.place)
-
     tables = [
         ("spot_img",
          {"dimension": "text not null default 'Physical'",
@@ -170,6 +102,66 @@ class PlaceSpot(AbstractSpot):
                     "y": y}
                 for (branch, tick_from, tick_to, x, y) in
                 BranchTicksIter(self.spot.coord_dict)]}
+
+    def __init__(self, board, vert):
+        self.board = board
+        self.rumor = self.board.rumor
+        self.vert = vert
+        self.interactivity = defaultdict(dict)
+        self.imagery = defaultdict(dict)
+        self.coord_dict = defaultdict(dict)
+        self.indefinite_imagery = {}
+        self.indefinite_coords = {}
+        self.indefinite_interactivity = {}
+        self.grabpoint = None
+        self.sprite = None
+        self.box_edges = (None, None, None, None)
+        self.oldstate = None
+        self.newstate = None
+        self.tweaks = 0
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
+
+    def __getattr__(self, attrn):
+        if attrn == 'dimension':
+            return self.board.dimension
+        elif attrn == 'interactive':
+            return self.is_interactive()
+        elif attrn == 'img':
+            return self.get_img()
+        elif attrn == 'coords':
+            return self.get_coords()
+        elif attrn == 'x':
+            return self.coords[0]
+        elif attrn == 'y':
+            return self.coords[1]
+        elif attrn == 'width':
+            if self.img is None:
+                return 0
+            else:
+                return self.img.width
+        elif attrn == 'height':
+            if self.img is None:
+                return 0
+            else:
+                return self.img.height
+        elif attrn == 'rx':
+            return self.width / 2
+        elif attrn == 'ry':
+            return self.height / 2
+        elif attrn == 'r':
+            if self.rx > self.ry:
+                return self.rx
+            else:
+                return self.ry
+        elif attrn == 'visible':
+            return self.img is not None
+        elif hasattr(self, 'saver') and hasattr(self.saver, attrn):
+            return getattr(self.saver, attrn)
+        else:
+            raise AttributeError(
+                "Spot instance has no such attribute: " +
+                attrn)
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)

@@ -32,19 +32,20 @@ each board will be open in at most one window at a time.
     tables = [
         ("board",
          {"dimension": "text not null default 'Physical'",
-          "i": "integer not null default 0",
+          "idx": "integer not null default 0",
           "wallpaper": "text not null default 'default_wallpaper'",
           "width": "integer not null default 4000",
           "height": "integer not null default 3000"},
-         ("dimension", "i"),
+         ("dimension", "idx"),
          {"wallpaper": ("image", "name")},
          [])]
 
-    def __init__(self, dimension, width, height, wallpaper):
+    def __init__(self, dimension, idx, width, height, wallpaper):
         """Return a board representing the given dimension.
 
         """
         self.dimension = dimension
+        self.idx = idx
         self.rumor = self.dimension.rumor
         self.width = width
         self.height = height
@@ -71,7 +72,7 @@ each board will be open in at most one window at a time.
             raise AttributeError("Board has no attribute named " + attrn)
 
     def __int__(self):
-        return self.i
+        return self.idx
 
     def get_spot_at(self, x, y):
         for spot in self.spots:

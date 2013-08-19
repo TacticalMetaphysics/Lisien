@@ -6,11 +6,11 @@ from util import SaveableMetaclass, fortyfive, dictify_row
 from math import atan, cos, sin
 from arrow import Arrow
 from menu import Menu, MenuItem
-from card import Hand
+from card import Hand, Card
 from board import BoardViewport
 from calendar import Calendar
 from picpicker import PicPicker
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 
 class SaveableWindowMetaclass(
@@ -81,6 +81,22 @@ of the mouse."""
             raise AttributeError
 
 
+class ViewportIter:
+    def __init__(self, viewportdict):
+        self.realiter = viewportdict.itervalues()
+        self.curlst = iter(self.realiter.next())
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        try:
+            return self.curlst.next()
+        except:
+            self.curlst = self.realiter.next()
+            return self.curlst.next()
+
+
 class GameWindow(pyglet.window.Window):
     __metaclass__ = SaveableWindowMetaclass
     tables = [
@@ -98,11 +114,12 @@ class GameWindow(pyglet.window.Window):
     def __init__(
             self, name, rumor, min_width, min_height,
             arrowhead_size, arrow_width, main_menu,
-            menu_rows,
-            menu_item_rows,
-            hand_rows=[],
-            board_view_rows=[],
-            calendar_rows=[]):
+            menu_rds,
+            menu_item_rds,
+            hand_rds,
+            card_rds,
+            viewport_rds,
+            calendar_rds):
         """Initialize the game window, its groups, and some state tracking."""
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
@@ -113,43 +130,75 @@ class GameWindow(pyglet.window.Window):
         self.arrowhead_size = arrowhead_size
         self.arrow_width = arrow_width
         self.main_menu_name = str(main_menu)
-        self.menus = OrderedDict()
-        for menu_row in menu_rows:
-            row = dictify_row(menu_row, Menu.colns)
-            assert(str(row["window"]) == str(self.name))
-            row["window"] = self
-            self.menus[row["name"]] = Menu(**row)
-        for menu_item_row in menu_item_rows:
-            row = dictify_row(menu_item_row, MenuItem.colns)
-            assert(str(row["window"]) == str(self.name))
-            del row["window"]
-            row["menu"] = self.menus[row["menu"]]
-            row["menu"].append(MenuItem(**row))
-        self.hands = []
-        for hand_row in hand_rows:
-            row = dictify_row(hand_row, Hand.colns)
-            assert(str(row["window"]) == str(self.name))
-            row["window"] = self
-            row["deck"] = self.rumor.effectdeckdict[row["deck"]]
-            row["style"] = self.rumor.styledict[row["style"]]
-            self.hands.append(Hand(**row))
-        self.board_viewports = []
-        for board_view_row in board_view_rows:
-            row = dictify_row(board_view_row, BoardViewport.colns)
-            assert(str(row["window"]) == str(self.name))
-            row["window"] = self
-            row["dimension"] = self.rumor.get_dimension(row["dimension"])
-            row["board"] = self.rumor.get_board(row["dimension"], row["board"])
-            while len(self.board_viewports) <= row["idx"]:
-                self.board_viewports.append(None)
-            self.board_viewports[row["idx"]] = BoardViewport(**row)
+        self.viewport_dict = defaultdict(list)
+        self.dimensiondict = self.rumor.get_dimensions(viewport_rds.keys())
+        for dimname in viewport_rds:
+            for boardi in viewport_rds[dimname]:
+                # boards get remembered in dimensions
+                self.rumor.get_board(dimname, boardi)
+        for rd in viewport_rds:
+            dimn = rd["dimension"]
+            boardi = rd["board"]
+            viewi = rd["idx"]
+            rd["window"] = self
+            rd["board"] = self.dimensiondict[dimn][boardi]
+            while len(self.viewport_dict[dimn]) <= boardi:
+                self.viewport_dict[dimn].append([])
+            while len(self.viewport_dict[dimn][boardi]) <= viewi:
+                self.viewport_dict[dimn][boardi].append(None)
+            self.viewport_dict[dimn][boardi][viewi] = BoardViewport(**rd)
+        stylenames = set()
+        for rd in menu_rds.itervalues():
+            stylenames.add(rd["style"])
+        for rd in calendar_rds.itervalues():
+            stylenames.add(rd["style"])
+        for rd in hand_rds.itervalues():
+            stylenames.add(rd["style"])
+        styles = self.rumor.get_styles(stylenames)
+        imagenames = set()
+        for mirdl in menu_item_rds.itervalues():
+            for mird in mirdl:
+                imagenames.add(mird["icon"])
+        for rd in card_rds.itervalues():
+            imagenames.add(rd["image"])
+        imgs = self.rumor.get_imgs(imagenames)
+        self.menudict = {}
+        for rd in menu_rds.itervalues():
+            rd["window"] = self
+            rd["style"] = styles[rd["style"]]
+            menuname = rd["name"]
+            menu = Menu(**rd)
+            for mird in menu_item_rds[menuname]:
+                mird["icon"] = imgs[mird["icon"]]
+                mird["menu"] = menu
+                mird["window"] = self
+                menu.items.append(MenuItem(**mird))
+            self.menudict[menuname] = menu
+        effect_deck_names = set()
+        for rd in hand_rds.itervalues():
+            effect_deck_names.add(rd["deck"])
+        effect_decks = self.rumor.get_effect_decks(effect_deck_names)
+        effects = self.rumor.get_effects(card_rds.keys())
+        self.handdict = {}
+        for (name, rd) in hand_rds.iteritems():
+            rd["window"] = self
+            rd["deck"] = effect_decks[rd["deck"]]
+            rd["style"] = styles[rd["style"]]
+            self.handdict[name] = Hand(**rd)
+        self.carddict = {}
+        for (name, rd) in card_rds.iteritems():
+            rd["effect"] = effects[rd["effect"]]
+            rd["image"] = imgs[rd["image"]]
+            rd["hand"] = self.handdict[rd["hand"]]
+            self.carddict[name] = Card(**rd)
         self.mouspot = MousySpot()
         self.squareoff = self.arrowhead_size * sin(fortyfive)
         self.picker = None
         self.hover_iter_getters = [
-            self.hands_by_name.itervalues,
-            self.calendars.__iter__,
-            self.menus_by_name.itervalues,
+            lambda: iter(self.hands),
+            lambda: iter(self.calendars),
+            self.menudict.itervalues,
+            self.board_viewport_dict.itervalues,
             lambda: (self.picker,)]
         self.edge_order = 1
 
@@ -161,16 +210,33 @@ class GameWindow(pyglet.window.Window):
         self.pickergroup = ScissorOrderedGroup(
             8, self.biggroup, self, 0.3, 0.6, 0.3, 0.6)
         self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
-        self.linegroups = {}
-        self.bggd = {}
-        self.fggd = {}
 
         self.pressed = None
         self.hovered = None
         self.grabbed = None
+        self.portal_from = None
+        self.thing_pic = None
+        self.thing_pic_sprite = None
+        self.place_pic = None
+        self.place_pic_sprite = None
+        self.placing = False
+        self.thinging = False
+        self.portaling = False
         self.selected = set()
         self.keep_selected = False
         self.prev_view_bot = 0
+
+        orbimg = self.rumor.imgdict['default_spot']
+        rx = orbimg.width / 2
+        ry = orbimg.height / 2
+        self.create_place_cursor = (
+            pyglet.window.ImageMouseCursor(orbimg, rx, ry))
+        self.create_place_cursor.rx = rx
+        self.create_place_cursor.ry = ry
+        self.drawn_board = None
+        self.drawn_edges = None
+        self.edge_order = 1
+        self.floaty_portal = None
 
         self.time_travel_target = None
 
@@ -188,12 +254,10 @@ class GameWindow(pyglet.window.Window):
         self.dxdy_hist_counter = 0
 
     def __getattr__(self, attrn):
-        if attrn == 'hands':
-            return self.hands_by_name.itervalues()
-        elif attrn == 'calendars':
-            return self.calendars_by_name.itervalues()
+        if attrn == 'viewports':
+            return ViewportIter(self.board_viewport_dict)
         elif attrn == 'menus':
-            return self.menus_by_name.itervalues()
+            return self.menudict.itervalues()
         elif attrn == 'dx':
             return sum(self.dx_hist)
         elif attrn == 'dy':
@@ -215,8 +279,7 @@ class GameWindow(pyglet.window.Window):
         (x, y) = self.mouspot.coords
         if self.hovered is None:
             for get in self.hover_iter_getters:
-                it = get()
-                for hoverable in it:
+                for hoverable in get():
                     if hoverable is None:
                         continue
                     if hoverable.overlaps(x, y):
@@ -232,6 +295,24 @@ class GameWindow(pyglet.window.Window):
                     self.hovered = None
             elif hasattr(self.hovered, 'hover'):
                 self.hovered = self.hovered.hover(x, y)
+        (x, y) = self.mouspot.coords
+        if self.portal_from is None:
+            try:
+                (self.floaty_portal.orig.x,
+                 self.floaty_portal.orig.y) = self.floaty_coords()
+            except:
+                pass
+        try:
+            self.place_pic_sprite.set_position(
+                x - self.place_pic.rx, y - self.place_pic.ry)
+        except:
+            pass
+        try:
+            self.thing_pic_sprite.set_position(
+                x - self.thing_pic.rx, y - self.thing_pic.ry)
+        except:
+            pass
+        super(BoardWindow, self).update(dt)
 
     def on_draw(self):
         (width, height) = self.get_size()
@@ -247,6 +328,8 @@ class GameWindow(pyglet.window.Window):
             calendar.draw(self.batch, self.calgroup)
         for hand in self.hands:
             hand.draw(self.batch, self.handgroup)
+        for viewport in self.viewports:
+            viewport.draw(self.batch, self.boardgroup)
         # well, I lied. I was really only adding those things to the batch.
         # NOW I'll draw them.
         self.batch.draw()
@@ -288,8 +371,100 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                             reciprocal.tweaks += 1
                 if hasattr(self.pressed, 'onclick'):
                     self.pressed.onclick()
-        self.pressed = None
+        if self.place_pic is not None:
+            if self.placing:
+                self.place_pic_sprite = pyglet.sprite.Sprite(
+                    self.place_pic.tex,
+                    x,
+                    y - self.place_pic.height,
+                    batch=self.batch,
+                    group=self.spotgroup)
+                self.placing = False
+            else:
+                try:
+                    self.place_pic_sprite.delete()
+                except:
+                    pass
+                pl = self.rumor.make_generic_place(self.dimension)
+                sp = self.board.get_spot(pl)
+                sp.set_coords(x + self.view_left, y + self.view_bot)
+                sp.set_img(self.place_pic)
+                self.place_pic = None
+                logger.debug("made generic place: %s", str(pl))
+            return
+        if self.thing_pic is not None:
+            if self.thinging:
+                self.thing_pic_sprite = pyglet.sprite.Sprite(
+                    self.thing_pic.tex,
+                    x,
+                    y - self.thing_pic.height,
+                    batch=self.batch,
+                    group=self.pawngroup)
+                self.thinging = False
+            else:
+                try:
+                    self.thing_pic_sprite.delete()
+                except:
+                    pass
+                sp = self.board.get_spot_at(
+                    x + self.view_left, y + self.view_bot)
+                if sp is not None:
+                    pl = sp.place
+                    th = self.rumor.make_generic_thing(self.dimension, pl)
+                    self.board.make_pawn(th)
+                    th.pawns[int(self.board)].set_img(self.thing_pic)
+                    logger.debug("made generic thing: %s", str(th))
+                self.thing_pic = None
+            return
+        if self.portaling:
+            if self.portal_from is None:
+                if hasattr(self.pressed, 'place'):
+                    print "portaling from {0}".format(self.pressed)
+                    self.portal_from = self.pressed
+                    self.floaty_portal.orig = self.portal_from
+                    return
+                else:
+                    self.portaling = False
+                    self.portal_from = None
+                    try:
+                        self.floaty_portal.delete()
+                    except:
+                        pass
+                    return
+            else:
+                if (
+                        hasattr(self.pressed, 'place') and
+                        hasattr(self.portal_from, 'place') and
+                        self.pressed.place != self.portal_from.place):
+                    port = self.rumor.make_portal(
+                        self.portal_from.place,
+                        self.pressed.place)
+                    self.board.make_arrow(port)
+                self.portaling = False
+                self.portal_from = None
+                self.floaty_portal.delete()
+                return
+        if (
+                self.pressed is not None and
+                self.pressed in self.selected):
+            self.selected.remove(self.pressed)
+        if hasattr(self.selected, 'unselect'):
+                self.selected.unselect()
+        if not self.keep_selected:
+            for it in iter(self.selected):
+                if hasattr(it, 'unselect'):
+                    it.unselect()
+            self.selected = set()
+        if hasattr(self.grabbed, 'dropped'):
+            self.grabbed.dropped(x, y, button, modifiers)
+        if hasattr(self.pressed, 'onclick'):
+            self.pressed.onclick(x, y, button, modifiers)
+        if hasattr(self.pressed, 'selectable'):
+            self.selected.add(self.pressed)
+            if hasattr(self.pressed, 'select'):
+                self.pressed.select()
         self.grabbed = None
+        self.pressed = None
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         """If the thing previously pressed has a
@@ -421,269 +596,6 @@ and highlight it.
 associated with the argument."""
         return self.calendars[0]
 
-
-class BoardWindow(AbstractGameWindow):
-    tables = [
-        ("window",
-         {"name": "text not null default 'Main'",
-          "min_width": "integer not null default 1280",
-          "min_height": "integer not null default 800",
-          "dimension": "text not null default 'Physical'",
-          "board": "integer not null default 0",
-          "arrowhead_size": "integer not null default 10",
-          "arrow_width": "float not null default 1.4",
-          "view_left": "integer not null default 0",
-          "view_bot": "integer not null default 0",
-          "main_menu": "text not null default 'Main'"},
-         ("name",),
-         {"dimension, board": ("board", "dimension, i"),
-          "main_menu": ("menu", "name")},
-         ["view_left>=0", "view_bot>=0"])]
-
-    def __init__(
-            self, rumor, name, min_width, min_height,
-            arrowhead_size, arrow_width,
-            view_left, view_bot, dimension, boardnum,
-            main_menu, hand_rows, cal_rows, menu_rows, menu_item_rows):
-        super(BoardWindow, self).__init__(
-            rumor, min_width, min_height, arrowhead_size,
-            arrow_width, view_left, view_bot)
-        self.name = name
-        self.dimension = dimension
-        self.main_menu_name = main_menu
-        self.board = self.rumor.get_board(boardnum, self)
-        self.hover_iter_getters.extend(
-            [self.board.pawndict.itervalues,
-             self.board.spotdict.itervalues,
-             self.board.arrowdict.itervalues])
-        self.placing = False
-        self.thinging = False
-        self.portaling = False
-        self.portal_from = None
-        self.thing_pic = None
-        self.thing_pic_sprite = None
-        self.place_pic = None
-        self.place_pic_sprite = None
-
-        orbimg = self.rumor.imgdict['default_spot']
-        rx = orbimg.width / 2
-        ry = orbimg.height / 2
-        self.create_place_cursor = (
-            pyglet.window.ImageMouseCursor(orbimg, rx, ry))
-        self.create_place_cursor.rx = rx
-        self.create_place_cursor.ry = ry
-        self.drawn_board = None
-        self.drawn_edges = None
-        self.edge_order = 1
-        self.floaty_portal = None
-
-        for row in menu_rows:
-            rowdict = dictify_row(row, Menu.colns)
-            self.menus_by_name[rowdict["name"]] = Menu(
-                self, rowdict["name"], rowdict["left"],
-                rowdict["bottom"], rowdict["top"], rowdict["right"],
-                self.rumor.styledict[rowdict["style"]])
-        for row in menu_item_rows:
-            rowdict = dictify_row(row, MenuItem.colns)
-            self.menus_by_name[rowdict["menu"]].items[
-                rowdict["idx"]] = MenuItem(
-                    self.menus_by_name[rowdict["menu"]],
-                    rowdict["idx"],
-                    rowdict["closer"],
-                    rowdict["on_click"],
-                    rowdict["text"],
-                    rowdict["icon"])
-        self.hands_by_name = OrderedDict()
-        for row in hand_rows:
-            self.hands_by_name[row[0]] = Hand(
-                self, self.rumor.effectdeckdict[row[0]],
-                row[1], row[2], row[3], row[4],
-                self.rumor.styledict[row[5]], row[6], row[7])
-        self.calendars = []
-        for row in cal_rows:
-            row = dictify_row(row, Calendar.colns)
-            self.calendars.append(
-                Calendar(
-                    self, row["i"], row["left"], row["right"], row["top"],
-                    row["bot"], self.rumor.styledict[row["style"]],
-                    row["interactive"], row["rows_shown"], row["scrolled_to"],
-                    row["scroll_factor"]))
-        for menu in self.menus:
-            menu.adjust()
-
-        self.firstdraw = False
-
-    def __getattr__(self, attrn):
-        if attrn == 'main_menu':
-            return self.menus_by_name[self.main_menu_name]
-        else:
-            if (
-                    hasattr(AbstractGameWindow, attrn) or
-                    attrn in (
-                        "hands", "calendars", "menus", "dx", "dy",
-                        "offset_x", "offset_y", "arrow_girth")):
-                return super(BoardWindow, self).__getattr__(attrn)
-            elif attrn in (
-                    "colnames", "colnamestr", "colnstr", "keynames",
-                    "valnames", "keyns", "valns", "colns", "keylen",
-                    "rowlen", "keyqms", "rowqms", "dbop", "coresave",
-                    "save", "maintab", "get_keydict", "erase"):
-                return getattr(self.saver, attrn)
-            else:
-                raise AttributeError(
-                    "BoardWindow has no such attribute " + attrn)
-
-    def on_draw(self):
-        self.board.draw(self.batch, self.boardgroup)
-        if not self.firstdraw:
-            self.set_location(0, 0)
-            self.firstdraw = True
-        AbstractGameWindow.on_draw(self)
-
-    def on_close(self):
-        for hand in self.hands_by_name.itervalues():
-            hand.save()
-        for cal in self.calendars:
-            cal.save()
-        for menu in self.menus_by_name.itervalues():
-            menu.save()
-        self.rumor.c.execute(
-            "DELETE FROM window WHERE name=?", (str(self),))
-        save_these = (
-            str(self),
-            self.min_width,
-            self.min_height,
-            str(self.dimension),
-            int(self.board),
-            self.arrowhead_size,
-            self.arrow_width,
-            self.view_left,
-            self.view_bot,
-            self.main_menu_name)
-        self.rumor.c.execute(
-            "INSERT INTO window (name, min_width, "
-            "min_height, dimension, board, arrowhead_size, "
-            "arrow_width, view_left, view_bot, main_menu) "
-            "VALUES ({0})".format(
-                ", ".join(["?"] * len(save_these))),
-            save_these)
-        super(BoardWindow, self).on_close()
-
-    def update(self, dt):
-        (x, y) = self.mouspot.coords
-        if self.portal_from is None:
-            try:
-                (self.floaty_portal.orig.x,
-                 self.floaty_portal.orig.y) = self.floaty_coords()
-            except:
-                pass
-        try:
-            self.place_pic_sprite.set_position(
-                x - self.place_pic.rx, y - self.place_pic.ry)
-        except:
-            pass
-        try:
-            self.thing_pic_sprite.set_position(
-                x - self.thing_pic.rx, y - self.thing_pic.ry)
-        except:
-            pass
-        super(BoardWindow, self).update(dt)
-
-    def on_mouse_release(self, x, y, button, modifiers):
-        if self.place_pic is not None:
-            if self.placing:
-                self.place_pic_sprite = pyglet.sprite.Sprite(
-                    self.place_pic.tex,
-                    x,
-                    y - self.place_pic.height,
-                    batch=self.batch,
-                    group=self.spotgroup)
-                self.placing = False
-            else:
-                try:
-                    self.place_pic_sprite.delete()
-                except:
-                    pass
-                pl = self.rumor.make_generic_place(self.dimension)
-                sp = self.board.get_spot(pl)
-                sp.set_coords(x + self.view_left, y + self.view_bot)
-                sp.set_img(self.place_pic)
-                self.place_pic = None
-                logger.debug("made generic place: %s", str(pl))
-            return
-        if self.thing_pic is not None:
-            if self.thinging:
-                self.thing_pic_sprite = pyglet.sprite.Sprite(
-                    self.thing_pic.tex,
-                    x,
-                    y - self.thing_pic.height,
-                    batch=self.batch,
-                    group=self.pawngroup)
-                self.thinging = False
-            else:
-                try:
-                    self.thing_pic_sprite.delete()
-                except:
-                    pass
-                sp = self.board.get_spot_at(
-                    x + self.view_left, y + self.view_bot)
-                if sp is not None:
-                    pl = sp.place
-                    th = self.rumor.make_generic_thing(self.dimension, pl)
-                    self.board.make_pawn(th)
-                    th.pawns[int(self.board)].set_img(self.thing_pic)
-                    logger.debug("made generic thing: %s", str(th))
-                self.thing_pic = None
-            return
-        if self.portaling:
-            if self.portal_from is None:
-                if hasattr(self.pressed, 'place'):
-                    print "portaling from {0}".format(self.pressed)
-                    self.portal_from = self.pressed
-                    self.floaty_portal.orig = self.portal_from
-                    return
-                else:
-                    self.portaling = False
-                    self.portal_from = None
-                    try:
-                        self.floaty_portal.delete()
-                    except:
-                        pass
-                    return
-            else:
-                if (
-                        hasattr(self.pressed, 'place') and
-                        hasattr(self.portal_from, 'place') and
-                        self.pressed.place != self.portal_from.place):
-                    port = self.rumor.make_portal(
-                        self.portal_from.place,
-                        self.pressed.place)
-                    self.board.make_arrow(port)
-                self.portaling = False
-                self.portal_from = None
-                self.floaty_portal.delete()
-                return
-        if (
-                self.pressed is not None and
-                self.pressed in self.selected):
-            self.selected.remove(self.pressed)
-        if hasattr(self.selected, 'unselect'):
-                self.selected.unselect()
-        if not self.keep_selected:
-            for it in iter(self.selected):
-                if hasattr(it, 'unselect'):
-                    it.unselect()
-            self.selected = set()
-        if hasattr(self.grabbed, 'dropped'):
-            self.grabbed.dropped(x, y, button, modifiers)
-        if hasattr(self.pressed, 'onclick'):
-            self.pressed.onclick(x, y, button, modifiers)
-        if hasattr(self.pressed, 'selectable'):
-            self.selected.add(self.pressed)
-            if hasattr(self.pressed, 'select'):
-                self.pressed.select()
-        self.grabbed = None
-        self.pressed = None
 
     def create_place(self):
         self.picker = PicPicker(

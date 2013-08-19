@@ -115,7 +115,7 @@ were right after firing them.
     tables = [
         ("effect_deck",
          {"name": "text not null",
-          "draw": "integer not null default 0"},
+          "draw_order": "integer not null default 0"},
          ("name",),
          {},
          ["draw>=0", "draw<=3"]),

@@ -18,15 +18,16 @@ from dimension import Dimension
 from spot import Spot
 from pawn import Pawn
 from arrow import Arrow
-from board import Board
-from card import Card
+from board import Board, BoardViewport
+from card import Card, Hand
 from calendar import Calendar
+from effect import Effect, EffectDeck
 from img import Img
 from menu import Menu, MenuItem
 from style import Style, Color
-from timestream import Timestream, TimestreamException
-from gui import BoardWindow, TimestreamWindow
-from collections import OrderedDict
+from timestream import Timestream
+from gui import GameWindow
+from collections import OrderedDict, defaultdict
 from logging import getLogger
 from util import dictify_row
 
@@ -57,36 +58,16 @@ READ_IMGS_QRYFMT = (
 LOAD_CARDS_QRYFMT = (
     "SELECT {0} FROM card WHERE effect IN ({1})".format(
         ", ".join(Card.colns), "{0}"))
-THING_LOC_QRY_START = (
-    "SELECT thing, branch, tick_from, tick_to, "
-    "location FROM thing_location WHERE dimension=?")
-THING_SPEED_QRY_START = (
-    "SELECT thing, branch, tick_from, tick_to, "
-    "ticks_per_span FROM thing_speed WHERE dimension=?")
-PORT_QRY_START = (
-    "SELECT origin, destination, branch, tick_from, "
-    "tick_to FROM portal_existence WHERE dimension=?")
-BOARD_QRY_START = (
-    "SELECT wallpaper, width, height "
-    "FROM board WHERE dimension=? AND i=?")
-SPOT_BOARD_QRY_START = (
-    "SELECT place, branch, tick_from, tick_to, "
-    "x, y FROM spot_coords WHERE dimension=? AND board=?")
-SPOT_IMG_QRY_START = (
-    "SELECT place, branch, tick_from, tick_to, "
-    "img FROM spot_img WHERE dimension=? AND board=?")
-SPOT_INTER_QRY_START = (
-    "SELECT place, branch, tick_from, tick_to "
-    "FROM spot_interactive WHERE dimension=? AND board=?")
-PAWN_IMG_QRY_START = (
-    "SELECT thing, branch, tick_from, tick_to, "
-    "img FROM pawn_img WHERE dimension=? AND board=?")
-PAWN_INTER_QRY_START = (
-    "SELECT thing, branch, tick_from, tick_to "
-    "FROM pawn_interactive WHERE dimension=? AND board=?")
-IMG_QRYFMT = (
-    "SELECT name, path, rltile FROM img WHERE "
-    "name IN ({0})")
+BOARD_QRYFMT = (
+    "SELECT {0} FROM board WHERE dimension=? AND idx=?".format(
+        Board.colnstr))
+BOARD_VIEWPORTS_QRYFMT = (
+    "SELECT {0} FROM board_viewport WHERE "
+    "window=? AND dimension=? AND board=?".format(
+        BoardViewport.colnstr))
+BOARD_VIEWPORT_WINDOW_QRYFMT = (
+    "SELECT {0} FROM board_viewport WHERE window=?".format(
+        BoardViewport.colnstr))
 COLOR_QRYFMT = (
     "SELECT {0} FROM color WHERE name IN ({1})".format(Color.colnstr, "{0}"))
 STYLE_QRYFMT = (
@@ -96,11 +77,31 @@ MENU_NAME_QRYFMT = (
 MENU_WINDOW_QRYFMT = (
     "SELECT {0} FROM menu WHERE window=?".format(Menu.colnstr))
 MENU_ITEM_MENU_QRYFMT = (
-    "SELECT {0} FROM menu_item WHERE menu IN ({1})".format(MenuItem.colnstr, "{0}"))
+    "SELECT {0} FROM menu_item WHERE menu IN ({1})".format(
+        MenuItem.colnstr, "{0}"))
 MENU_ITEM_WINDOW_QRYFMT = (
     "SELECT {0} FROM menu_item WHERE window=?".format(MenuItem.colnstr))
 CALENDAR_WINDOW_QRYFMT = (
-    "SELECT {0} FROM calendar WHERE window=? ORDER BY i".format(Calendar.colnstr))
+    "SELECT {0} FROM calendar WHERE window=? ORDER BY idx".format(
+        Calendar.colnstr))
+WINDOW_QRYFMT = (
+    "SELECT {0} FROM window WHERE name=?".format(GameWindow.colnstr))
+EFFECT_QRYFMT = (
+    "SELECT {0} FROM effect WHERE name IN ({1})".format(
+        Effect.colnstr, "{0}"))
+EFFECT_DECK_QRYFMT = (
+    "SELECT {0} FROM effect_deck WHERE name IN ({1})".format(
+        EffectDeck.colnstr, "{0}"))
+EFFECT_IN_DECK_QRYFMT = (
+    "SELECT {0} FROM effect WHERE name IN "
+    "(SELECT effect FROM effect_deck_link WHERE deck=?)".format(
+        Effect.colnstr))
+CARD_IN_DECK_QRYFMT = (
+    "SELECT {0} FROM card WHERE effect IN "
+    "(SELECT effect FROM effect_deck_link WHERE deck=?)".format(
+        Card.colnstr))
+HAND_WINDOW_QRYFMT = (
+    "SELECT {0} FROM hand WHERE window=?".format(Hand.colnstr))
 
 
 class RumorMill(object):
@@ -668,26 +669,81 @@ necessary."""
         port.persist()
         return port
 
-    def load_cards(self, names):
+    def load_effects(self, names):
         r = {}
-        qrystr = LOAD_CARDS_QRYFMT.format(", ".join(["?"] * len(names)))
+        qrystr = EFFECT_QRYFMT.format(", ".join(["?"] * len(names)))
         self.c.execute(qrystr, tuple(names))
+        effect_rds = set()
+        chars = set()
         for row in self.c:
-            rowdict = dictify_row(row, Card.colns)
-            effn = rowdict["effect"]
-            rowdict["db"] = self
-            r[effn] = Card(**rowdict)
+            rd = dictify_row(row, Effect.colns)
+            chars.add(rd["character"])
+            effect_rds.add(rd)
+        chard = self.get_characters(chars)
+        for rd in iter(effect_rds):
+            rd["character"] = chard[rd["character"]]
+            r[rd["name"]] = Effect(**rd)
         return r
 
-    def get_cards(self, cardnames):
+    def get_effects(self, names):
         r = {}
         unloaded = set()
-        for card in cardnames:
-            if card in self.carddict:
-                r[card] = self.carddict[card]
+        for name in names:
+            if name in self.effectdict:
+                r[name] = self.effectdict[name]
             else:
-                unloaded.add(card)
-        r.update(self.load_cards(unloaded))
+                unloaded.add(name)
+        r.update(self.load_effects(unloaded))
+        return r
+
+    def load_effect_decks(self, names):
+        qrystr = EFFECT_DECK_QRYFMT.format(
+            ", ".join(["?"] * len(names)))
+        self.c.execute(qrystr, tuple(names))
+        effect_deck_rdd = {}
+        effect_names = set()
+        for row in self.c:
+            rd = dictify_row(row, EffectDeck.colns)
+            effect_deck_rdd[rd["deck"]] = rd
+            effect_names.add(rd["effect"])
+        effectd = self.get_effects(effect_names)
+        self.c.execute(
+            "SELECT name, draw_order FROM effect_deck "
+            "WHERE name IN ({0})".format(
+                ", ".join(["?"] * len(names))))
+        for row in self.c:
+            effect_deck_rdd[row[0]]["draw_order"] = row[1]
+        effect_deck_d = {}
+        for name in iter(names):
+            effect_deck_d[name] = EffectDeck(
+                self, name, effect_deck_rdd[name]["draw_order"])
+        for rd in effect_deck_rdd.itervalues():
+            effect_deck = effect_deck_d[rd["deck"]]
+            try:
+                (effects, tick_to) = effect_deck.effects[
+                    rd["branch"]][rd["tick_from"]]
+                assert(rd["tick_to"] == tick_to)
+                while len(effects) <= rd["idx"]:
+                    effects.append(None)
+                effects[rd["idx"]] = effectd[rd["effect"]]
+                effect_deck.set_effects(
+                    effects, rd["branch"], rd["tick_from"], rd["tick_to"])
+            except:
+                effect_deck.set_effects(
+                    [effectd[rd["effect"]]], rd["branch"],
+                    rd["tick_from"], rd["tick_to"])
+        self.effectdeckdict.update(effect_deck_d)
+        return effect_deck_d
+
+    def get_effect_decks(self, names):
+        r = {}
+        unloaded = set()
+        for name in names:
+            if name in self.effectdeckdict:
+                r[name] = self.effectdeckdict[name]
+            else:
+                unloaded.add(name)
+        r.update(self.load_effect_decks(unloaded))
         return r
 
     def load_dimension(
@@ -744,6 +800,8 @@ necessary."""
     def get_board(self, dim, i):
         if len(dim.boards) <= i:
             return self.load_board(dim, i)
+        else:
+            return dim.boards[i]
 
     def load_board(self, dim, i):
         while len(dim.boards) <= i:
@@ -887,66 +945,60 @@ necessary."""
         r.update(self.read_styles(unloaded))
         return r
 
-    def get_effects(self, names):
-        r = {}
-        unloaded = set()
-        for eff in names:
-            if eff in self.effectdict:
-                r[eff] = self.effectdict[eff]
-            else:
-                unloaded.add(eff)
-        r.update(effect.load_effects(self, unloaded))
-        return r
-
     def load_window(self, name):
-        self.c.execute(
-            "SELECT min_width, min_height, dimension, board, arrowhead_size, "
-            "arrow_width, view_left, view_bot, main_menu FROM window "
-            "WHERE name=?", (name,))
-        (min_width, min_height, dimn, boardi, arrowhead_size,
-         arrow_width, view_left, view_bot, main_menu) = self.c.fetchone()
-        stylenames = set()
-        menunames = set()
-        imgs_needed = set()
-        dim = self.get_dimension(dimn)
+        self.c.execute(WINDOW_QRYFMT, (name,))
+        window_row = dictify_row(self.c.fetchone(), GameWindow.colns)
         self.c.execute(MENU_WINDOW_QRYFMT, (name,))
-        menu_rows = self.c.fetchall()
-        for row in menu_rows:
-            row = dictify_row(row, Menu.colns)
-            stylenames.add(row["style"])
+        menu_rds = {}
+        for row in self.c:
+            rd = dictify_row(row, Menu.colns)
+            menu_rds[rd["name"]] = rd
+        self.c.execute(MENU_ITEM_WINDOW_QRYFMT, (name,))
+        menu_item_rds = defaultdict(list)
+        for row in self.c:
+            rd = dictify_row(row, MenuItem.colns)
+            while len(menu_item_rds[rd["menu"]]) <= rd["idx"]:
+                menu_item_rds[rd["menu"]].append(None)
+            menu_item_rds[rd["menu"]][rd["idx"]] = rd
         self.c.execute(CALENDAR_WINDOW_QRYFMT, (name,))
-        cal_rows = self.c.fetchall()
-        for row in cal_rows:
-            row = dictify_row(row, Calendar.colns)
-            stylenames.add(row["style"])
-        self.get_styles(stylenames)
-
-        self.c.execute(
-            MENU_ITEM_WINDOW_QRYFMT, (name,))
-        menu_item_rows = self.c.fetchall()
-        for row in menu_item_rows:
-            row = dictify_row(row, MenuItem.colns)
-            imgs_needed.add(row["icon"])
-        self.get_imgs(imgs_needed)
-        return BoardWindow(
-            self, name, min_width, min_height, arrowhead_size,
-            arrow_width, view_left, view_bot, dim, boardi,
-            main_menu, [], cal_rows,
-            menu_rows, menu_item_rows)
-
-    def get_timestream(
-            self, min_width, min_height, arrowhead_size,
-            arrow_width, view_left, view_bot):
-        return TimestreamWindow(
-            self, min_width, min_height, arrowhead_size,
-            arrow_width, view_left, view_bot)
+        calendar_rds = []
+        for row in self.c:
+            rd = dictify_row(row, Calendar.colns)
+            while len(calendar_rds) <= rd["idx"]:
+                calendar_rds.append(None)
+            calendar_rds[rd["idx"]] = rd
+        self.c.execute(HAND_WINDOW_QRYFMT, (name,))
+        hand_rds = {}
+        for row in self.c:
+            rd = dictify_row(row, Hand.colns)
+            hand_rds[rd["effect_deck"]] = rd
+        self.c.execute(CARD_IN_DECK_QRYFMT, hand_rds.keys())
+        card_rds = {}
+        for row in self.c:
+            rd = dictify_row(row, Card.colns)
+            card_rds[rd["effect"]] = rd
+        self.c.execute(BOARD_VIEWPORT_WINDOW_QRYFMT, (name,))
+        viewport_rds = defaultdict(defaultdict(dict))
+        for row in self.c:
+            rd = dictify_row(row, BoardViewport.colns)
+            viewport_rds[rd["dimension"]][rd["board"]][rd["idx"]] = rd
+        window_row["menu_rds"] = menu_rds
+        window_row["menu_item_rds"] = menu_item_rds
+        window_row["calendar_rds"] = calendar_rds
+        window_row["hand_rds"] = hand_rds
+        window_row["card_rds"] = card_rds
+        window_row["viewport_rds"] = viewport_rds
+        window_row["rumor"] = self
+        return GameWindow(**window_row)
 
     def time_travel(self, mi, branch, tick):
         if branch not in self.timestream.branchdict:
-            raise Exception("Tried to time-travel to a branch that didn't exist yet")
+            raise Exception(
+                "Tried to time-travel to a branch that didn't exist yet")
         (tick_from, tick_to) = self.timestream.branchdict[branch]
         if tick < tick_from or tick > tick_to:
-            raise Exception("Tried to time-travel to a tick that hadn't passed yet")
+            raise Exception(
+                "Tried to time-travel to a tick that hadn't passed yet")
         self.time_travel_history.append((self.branch, self.tick))
         self.branch = branch
         self.tick = tick

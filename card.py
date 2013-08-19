@@ -19,22 +19,21 @@ class Card:
                 "effect": "text not null",
                 "display_name": "text not null",
                 "image": "text",
-                "text": "text",
-                "style": "text not null default 'BigLight'"},
+                "text": "text"}
             ("effect",),
             {
                 "image": ("img", "name"),
-                "style": ("style", "name"),
                 "effect": ("effect", "name")},
             [])]
 
-    def __init__(self, rumor, effect, display_name, image, text, style):
-        self.rumor = rumor
+    def __init__(self, hand, effect, display_name, image, text):
+        self.hand = hand
+        self.rumor = self.hand.rumor
+        self.style = self.hand.style
         self._display_name = display_name
         self._effect = str(effect)
         self.img = image
         self._text = text
-        self.style = style
         self.rumor.carddict[str(self)] = self
 
     def __getattr__(self, attrn):
@@ -341,9 +340,9 @@ class CardWidget:
 
 
 class HandIterator:
-    def __init__(self, hand):
-        self.rumor = hand.db
+    def __init__(self, hand, carddict):
         self.hand = hand
+        self.carddict = carddict
         self.deckiter = iter(hand.deck.effects)
 
     def __iter__(self):
@@ -351,7 +350,7 @@ class HandIterator:
 
     def next(self):
         effect = self.deckiter.next()
-        card = self.rumor.carddict[str(effect)]
+        card = self.carddict[str(effect)]
         if not hasattr(card, 'widget'):
             card.widget = CardWidget(card, self.hand)
         return card.widget
@@ -396,7 +395,7 @@ order."""
         return hash(self.get_state_tup())
 
     def __iter__(self):
-        return HandIterator(self)
+        return HandIterator(self, self.window.carddict)
 
     def __getattr__(self, attrn):
         if attrn == "board":
@@ -449,19 +448,6 @@ order."""
         while idx < 0:
             idx += len(self)
         return idx
-
-    def get_state_tup(self):
-        cardbits = []
-        for card in self:
-            cardbits.extend(iter(card.get_state_tup()))
-        return (
-            tuple(cardbits),
-            self.visible,
-            self.interactive,
-            self.window_left,
-            self.window_right,
-            self.window_bot,
-            self.window_top)
 
     def append(self, card):
         eff = card.effect
