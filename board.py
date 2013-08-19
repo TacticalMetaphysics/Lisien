@@ -77,8 +77,8 @@ each board will be open in at most one window at a time.
     def get_spot_at(self, x, y):
         for spot in self.spots:
             if (
-                    spot.window_left < x < spot.window_right and
-                    spot.window_bot < y < spot.window_top):
+                    spot.board_left < x < spot.board_right and
+                    spot.board_bot < y < spot.board_top):
                 return spot
         return None
 
@@ -166,12 +166,12 @@ class BoardViewport:
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
-        for (k, v) in self.board.pawndict.itervalues():
-            self.pawndict[k] = PawnWidget(v, self)
-        for (k, v) in self.board.spotdict.itervalues():
-            self.spotdict[k] = SpotWidget(v, self)
-        for (k, v) in self.board.arrowdict.itervalues():
-            self.arrowdict[k] = ArrowWidget(v, self)
+        for (k, v) in self.board.pawndict.iteritems():
+            self.pawndict[k] = PawnWidget(self, v)
+        for (k, v) in self.board.spotdict.iteritems():
+            self.spotdict[k] = SpotWidget(self, v)
+        for (k, v) in self.board.arrowdict.iteritems():
+            self.arrowdict[k] = ArrowWidget(self, v)
 
     def __getattr__(self, attrn):
         if attrn == "window_left":

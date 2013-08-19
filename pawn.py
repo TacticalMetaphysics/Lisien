@@ -54,7 +54,7 @@ interactive or not.
 
         """
         self.board = board
-        self.rumor = self.window.rumor
+        self.rumor = self.board.rumor
         self.thing = thing
         self.imagery = defaultdict(dict)
         self.indefinite_imagery = {}
@@ -186,7 +186,7 @@ interactive or not.
 class PawnWidget:
     selectable = True
 
-    def __init__(self, pawn, viewport):
+    def __init__(self, viewport, pawn):
         self.pawn = pawn
         self.viewport = viewport
         self.window = self.viewport.window

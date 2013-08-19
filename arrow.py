@@ -55,7 +55,6 @@ class Arrow:
 
     def __init__(self, board, orig_or_port, dest=None):
         self.board = board
-        self.window = board.window
         self.rumor = self.board.rumor
         self.center_shrink = 0
         if dest is None:
@@ -99,7 +98,7 @@ class Arrow:
         elif attrn == 'run':
             return self.dest.x - self.orig.x
         elif attrn == 'width':
-            return self.window.arrow_width
+            return self.board.arrow_width
         elif attrn == 'length':
             if "branch" in self.portal.e.attribute_names():
                 return self.board.get_edge_len(self.portal.e)

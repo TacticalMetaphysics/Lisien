@@ -11,6 +11,9 @@ phi = (1.0 + sqrt(5))/2.0
 
 schemata = []
 
+colnames = {}
+
+colnamestr = {}
 
 class SaveableMetaclass(type):
 # TODO make savers use sets of RowDict objs, rather than lists of regular dicts
@@ -95,8 +98,6 @@ and your table will be ready.
         rowstrs = {}
         keynames = {}
         valnames = {}
-        colnames = {}
-        colnamestr = {}
         for item in primarykeys.iteritems():
             (tablename, pkey) = item
             keynames[tablename] = sorted(pkey)

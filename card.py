@@ -19,7 +19,7 @@ class Card:
                 "effect": "text not null",
                 "display_name": "text not null",
                 "image": "text",
-                "text": "text"}
+                "text": "text"},
             ("effect",),
             {
                 "image": ("img", "name"),

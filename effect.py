@@ -118,7 +118,7 @@ were right after firing them.
           "draw_order": "integer not null default 0"},
          ("name",),
          {},
-         ["draw>=0", "draw<=3"]),
+         ["draw_order>=0", "draw_order<=3"]),
         ("effect_deck_link",
          {"deck": "text not null",
           "tick_from": "integer not null default 0",

@@ -123,6 +123,7 @@ class GameWindow(pyglet.window.Window):
         """Initialize the game window, its groups, and some state tracking."""
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
+        self.edge_order = 1
         self.name = name
         self.rumor = rumor
         self.min_width = min_width
@@ -130,27 +131,25 @@ class GameWindow(pyglet.window.Window):
         self.arrowhead_size = arrowhead_size
         self.arrow_width = arrow_width
         self.main_menu_name = str(main_menu)
-        self.viewport_dict = defaultdict(list)
-        self.dimensiondict = self.rumor.get_dimensions(viewport_rds.keys())
-        for dimname in viewport_rds:
-            for boardi in viewport_rds[dimname]:
-                # boards get remembered in dimensions
-                self.rumor.get_board(dimname, boardi)
+        self.viewportdict = defaultdict(list)
+        self.dimensiondict = self.rumor.get_dimensions([rd["dimension"] for rd in viewport_rds])
         for rd in viewport_rds:
+            self.rumor.get_board(rd["dimension"], rd["board"])
             dimn = rd["dimension"]
+            del rd["dimension"]
             boardi = rd["board"]
             viewi = rd["idx"]
             rd["window"] = self
-            rd["board"] = self.dimensiondict[dimn][boardi]
-            while len(self.viewport_dict[dimn]) <= boardi:
-                self.viewport_dict[dimn].append([])
-            while len(self.viewport_dict[dimn][boardi]) <= viewi:
-                self.viewport_dict[dimn][boardi].append(None)
-            self.viewport_dict[dimn][boardi][viewi] = BoardViewport(**rd)
+            rd["board"] = self.dimensiondict[dimn].boards[boardi]
+            while len(self.viewportdict[dimn]) <= boardi:
+                self.viewportdict[dimn].append([])
+            while len(self.viewportdict[dimn][boardi]) <= viewi:
+                self.viewportdict[dimn][boardi].append(None)
+            self.viewportdict[dimn][boardi][viewi] = BoardViewport(**rd)
         stylenames = set()
         for rd in menu_rds.itervalues():
             stylenames.add(rd["style"])
-        for rd in calendar_rds.itervalues():
+        for rd in calendar_rds:
             stylenames.add(rd["style"])
         for rd in hand_rds.itervalues():
             stylenames.add(rd["style"])
@@ -169,9 +168,10 @@ class GameWindow(pyglet.window.Window):
             menuname = rd["name"]
             menu = Menu(**rd)
             for mird in menu_item_rds[menuname]:
-                mird["icon"] = imgs[mird["icon"]]
+                if mird["icon"] is not None:
+                    mird["icon"] = imgs[mird["icon"]]
                 mird["menu"] = menu
-                mird["window"] = self
+                del mird["window"]
                 menu.items.append(MenuItem(**mird))
             self.menudict[menuname] = menu
         effect_deck_names = set()
@@ -195,12 +195,11 @@ class GameWindow(pyglet.window.Window):
         self.squareoff = self.arrowhead_size * sin(fortyfive)
         self.picker = None
         self.hover_iter_getters = [
-            lambda: iter(self.hands),
+            self.handdict.itervalues,
             lambda: iter(self.calendars),
             self.menudict.itervalues,
-            self.board_viewport_dict.itervalues,
+            lambda: self.viewports,
             lambda: (self.picker,)]
-        self.edge_order = 1
 
         self.biggroup = pyglet.graphics.Group()
         self.boardgroup = pyglet.graphics.OrderedGroup(0, self.biggroup)
@@ -255,7 +254,7 @@ class GameWindow(pyglet.window.Window):
 
     def __getattr__(self, attrn):
         if attrn == 'viewports':
-            return ViewportIter(self.board_viewport_dict)
+            return ViewportIter(self.viewportdict)
         elif attrn == 'menus':
             return self.menudict.itervalues()
         elif attrn == 'dx':

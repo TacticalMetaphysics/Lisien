@@ -12,7 +12,7 @@ logger = getLogger(__name__)
 class Portal:
     __metaclass__ = SaveableMetaclass
     tables = [
-        ("portal_existence",
+        ("portal",
          {"dimension": "text not null DEFAULT 'Physical'",
           "origin": "text not null",
           "destination": "text not null",

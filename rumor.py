@@ -29,7 +29,9 @@ from timestream import Timestream
 from gui import GameWindow
 from collections import OrderedDict, defaultdict
 from logging import getLogger
-from util import dictify_row
+from util import dictify_row, colnames, colnamestr
+from portal import Portal
+from thing import Thing
 
 
 logger = getLogger(__name__)
@@ -54,54 +56,73 @@ PORTAL_NAME_RE = re.compile(
     "Portal\((.+)->(.+)\)")
 READ_IMGS_QRYFMT = (
     "SELECT {0} FROM img WHERE name IN ({1})".format(
-        ", ".join(Img.colnames["img"]), "{0}"))
+        colnamestr["img"], "{0}"))
 LOAD_CARDS_QRYFMT = (
     "SELECT {0} FROM card WHERE effect IN ({1})".format(
-        ", ".join(Card.colns), "{0}"))
+        colnamestr["card"], "{0}"))
 BOARD_QRYFMT = (
     "SELECT {0} FROM board WHERE dimension=? AND idx=?".format(
-        Board.colnstr))
+        colnamestr["board"]))
 BOARD_VIEWPORTS_QRYFMT = (
     "SELECT {0} FROM board_viewport WHERE "
     "window=? AND dimension=? AND board=?".format(
-        BoardViewport.colnstr))
+        colnamestr["board_viewport"]))
 BOARD_VIEWPORT_WINDOW_QRYFMT = (
     "SELECT {0} FROM board_viewport WHERE window=?".format(
-        BoardViewport.colnstr))
+        colnamestr["board_viewport"]))
 COLOR_QRYFMT = (
-    "SELECT {0} FROM color WHERE name IN ({1})".format(Color.colnstr, "{0}"))
+    "SELECT {0} FROM color WHERE name IN ({1})".format(colnamestr["color"], "{0}"))
 STYLE_QRYFMT = (
-    "SELECT {0} FROM style WHERE name IN ({1})".format(Style.colnstr, "{0}"))
+    "SELECT {0} FROM style WHERE name IN ({1})".format(colnamestr["style"], "{0}"))
 MENU_NAME_QRYFMT = (
-    "SELECT {0} FROM menu WHERE name IN ({1})".format(Menu.colnstr, "{0}"))
+    "SELECT {0} FROM menu WHERE name IN ({1})".format(colnamestr["menu"], "{0}"))
 MENU_WINDOW_QRYFMT = (
-    "SELECT {0} FROM menu WHERE window=?".format(Menu.colnstr))
+    "SELECT {0} FROM menu WHERE window=?".format(colnamestr["menu"]))
 MENU_ITEM_MENU_QRYFMT = (
     "SELECT {0} FROM menu_item WHERE menu IN ({1})".format(
-        MenuItem.colnstr, "{0}"))
+        colnamestr["menu_item"], "{0}"))
 MENU_ITEM_WINDOW_QRYFMT = (
-    "SELECT {0} FROM menu_item WHERE window=?".format(MenuItem.colnstr))
+    "SELECT {0} FROM menu_item WHERE window=?".format(colnamestr["menu_item"]))
 CALENDAR_WINDOW_QRYFMT = (
     "SELECT {0} FROM calendar WHERE window=? ORDER BY idx".format(
-        Calendar.colnstr))
+        colnamestr["calendar"]))
 WINDOW_QRYFMT = (
     "SELECT {0} FROM window WHERE name=?".format(GameWindow.colnstr))
 EFFECT_QRYFMT = (
     "SELECT {0} FROM effect WHERE name IN ({1})".format(
-        Effect.colnstr, "{0}"))
+        colnamestr["effect"], "{0}"))
 EFFECT_DECK_QRYFMT = (
     "SELECT {0} FROM effect_deck WHERE name IN ({1})".format(
-        EffectDeck.colnstr, "{0}"))
+        colnamestr["effect_deck"], "{0}"))
 EFFECT_IN_DECK_QRYFMT = (
     "SELECT {0} FROM effect WHERE name IN "
     "(SELECT effect FROM effect_deck_link WHERE deck=?)".format(
-        Effect.colnstr))
+        colnamestr["effect"]))
 CARD_IN_DECK_QRYFMT = (
     "SELECT {0} FROM card WHERE effect IN "
     "(SELECT effect FROM effect_deck_link WHERE deck=?)".format(
-        Card.colnstr))
+        colnamestr["card"]))
 HAND_WINDOW_QRYFMT = (
-    "SELECT {0} FROM hand WHERE window=?".format(Hand.colnstr))
+    "SELECT {0} FROM hand WHERE window=?".format(colnamestr["hand"]))
+PORT_DIM_QRYFMT = (
+    "SELECT {0} FROM portal WHERE dimension=?".format(colnamestr["portal"]))
+THING_LOC_QRYFMT = (
+    "SELECT {0} FROM thing_location WHERE dimension=?".format(colnamestr["thing_location"]))
+SPOT_BOARD_COORD_QRYFMT = (
+    "SELECT {0} FROM spot_coords WHERE dimension=? AND board=?".format(colnamestr["spot_coords"]))
+SPOT_BOARD_IMG_QRYFMT = (
+    "SELECT {0} FROM spot_img WHERE dimension=? AND board=?".format(colnamestr["spot_img"]))
+SPOT_BOARD_INTER_QRYFMT = (
+    "SELECT {0} FROM spot_interactive WHERE dimension=? AND board=?".format(colnamestr["spot_interactive"]))
+PAWN_BOARD_INTER_QRYFMT = (
+    "SELECT {0} FROM pawn_interactive WHERE dimension=? AND board=?".format(
+        colnamestr["pawn_interactive"]))
+PAWN_BOARD_IMG_QRYFMT = (
+    "SELECT {0} FROM pawn_img WHERE dimension=? AND board=?".format(
+        colnamestr["pawn_img"]))
+IMG_QRYFMT = (
+    "SELECT {0} FROM img WHERE name IN ({1})".format(
+        colnamestr["img"], "{0}"))
 
 
 class RumorMill(object):
@@ -633,11 +654,6 @@ necessary."""
             self.stringdict[rowd[
                 "stringname"]][rowd["language"]] = rowd["string"]
 
-    def get_dimension(self, dimn):
-        if dimn not in self.dimensiondict:
-            self.load_dimension(dimn)
-        return self.dimensiondict[dimn]
-
     def make_generic_place(self, dimension):
         placen = "generic_place_{0}".format(self.hi_place)
         self.hi_place += 1
@@ -770,34 +786,47 @@ necessary."""
         valtup = tuple([dimn] + [
             b for b in (branches, tick_from, tick_to)
             if b is not None])
-        self.c.execute(PORT_QRY_START + extrastr, valtup)
+        self.c.execute(PORT_DIM_QRYFMT + extrastr, valtup)
         for row in self.c:
-            (orign, destn, branch, tick_from, tick_to) = row
-            if not dim.have_place(orign):
-                dim.make_place(orign)
-            if not dim.have_place(destn):
-                dim.make_place(destn)
-            if not dim.have_portal(orign, destn):
-                dim.make_portal(orign, destn)
-            po = dim.get_portal(orign, destn)
-            if not po.extant_between(branch, tick_from, tick_to):
-                po.persist(branch, tick_from, tick_to)
-        self.c.execute(THING_LOC_QRY_START + extrastr, valtup)
+            rd = dictify_row(row, Portal.colns)
+            if not dim.have_place(rd["origin"]):
+                dim.make_place(rd["origin"])
+            if not dim.have_place(rd["destination"]):
+                dim.make_place(rd["destination"])
+            if not dim.have_portal(rd["origin"], rd["destination"]):
+                dim.make_portal(rd["origin"], rd["destination"])
+            po = dim.get_portal(rd["origin"], rd["destination"])
+            if not po.extant_between(rd["branch"], rd["tick_from"], rd["tick_to"]):
+                po.persist(rd["branch"], rd["tick_from"], rd["tick_to"])
+        self.c.execute(THING_LOC_QRYFMT + extrastr, valtup)
         for row in self.c:
-            (thingn, branch, tick_from, tick_to, locn) = row
-            if thingn not in dim.thingdict:
-                dim.make_thing(thingn)
+            rd = dictify_row(row, Thing.colns)
+            if rd["thing"] not in dim.thingdict:
+                dim.make_thing(rd["thing"])
             try:
-                loc = dim.get_place(locn)
+                loc = dim.get_place(rd["location"])
             except ValueError:
-                loc = dim.get_portal(*re.match(PORTAL_NAME_RE, locn).groups())
-            logger.debug("putting thing %s in place %s", thingn, str(loc))
-            thing = dim.get_thing(thingn)
-            thing.set_location(loc, branch, tick_from, tick_to)
+                loc = dim.get_portal(*re.match(PORTAL_NAME_RE, rd["location"]).groups())
+            logger.debug("putting thing %s in place %s", rd["thing"], str(loc))
+            thing = dim.get_thing(rd["thing"])
+            thing.set_location(loc, rd["branch"], rd["tick_from"], rd["tick_to"])
         self.dimensiondict[dimn] = dim
         return dim
 
+    def get_dimension(self, dimn):
+        if dimn not in self.dimensiondict:
+            self.load_dimension(dimn)
+        return self.dimensiondict[dimn]
+
+    def get_dimensions(self, names):
+        r = {}
+        for name in names:
+            r[name] = self.get_dimension(name)
+        return r
+
     def get_board(self, dim, i):
+        if not isinstance(dim, Dimension):
+            dim = self.get_dimension(dim)
         if len(dim.boards) <= i:
             return self.load_board(dim, i)
         else:
@@ -807,61 +836,61 @@ necessary."""
         while len(dim.boards) <= i:
             dim.boards.append(None)
         # basic information for this board
-        self.c.execute(BOARD_QRY_START, (str(dim), i))
-        imgs2load = set()
-        walln = None
-        width = None
-        height = None
-        (walln, width, height) = self.c.fetchone()
-        imgs2load.add(walln)
+        self.c.execute(BOARD_QRYFMT, (str(dim), i))
+        rd = dictify_row(self.c.fetchone(), Board.colns)
+        walln = rd["wallpaper"]
+        width = rd["width"]
+        height = rd["height"]
+        imgs2load = set([walln, 'default_pawn', 'default_spot'])
         # images for the spots
-        self.c.execute(SPOT_IMG_QRY_START, (str(dim), i))
+        self.c.execute(SPOT_BOARD_IMG_QRYFMT, (str(dim), i))
         spot_rows = self.c.fetchall()
         for row in spot_rows:
             imgs2load.add(row[4])
         # images for the pawns
-        self.c.execute(PAWN_IMG_QRY_START, (str(dim), i))
+        self.c.execute(PAWN_BOARD_IMG_QRYFMT, (str(dim), i))
         pawn_rows = self.c.fetchall()
         for row in pawn_rows:
             imgs2load.add(row[4])
         imgs = self.load_imgs(imgs2load)
-        dim.boards[i] = Board(i, width, height, imgs[walln])
+        dim.boards[i] = Board(dim, i, width, height, imgs[walln])
         # actually assign images instead of just collecting the names
         for row in pawn_rows:
-            (thingn, branch, tick_from, tick_to, imgn) = row
-            thing = dim.thingdict[thingn]
-            pawn = dim.boards[i].get_pawn(thing)
-            pawn.set_img(imgs[imgn], branch, tick_from, tick_to)
+            rd = dictify_row(row, colnames["pawn_img"])
+            thing = dim.thingdict[rd["thing"]]
+            pawn = dim.boards[i].get_pawn(rd["thing"])
+            pawn.set_img(imgs[rd["img"]], rd["branch"],
+                         rd["tick_from"], rd["tick_to"])
         # interactivity for the pawns
-        self.c.execute(PAWN_INTER_QRY_START, (str(dim), i))
+        self.c.execute(PAWN_BOARD_INTER_QRYFMT, (str(dim), i))
         for row in self.c:
-            (thingn, branch, tick_from, tick_to) = row
-            pawn = dim.boards[i].get_pawn(dim.thingdict[thingn])
-            pawn.set_interactive(branch, tick_from, tick_to)
+            rd = dictify_row(row, colnames["pawn_interactive"])
+            pawn = dim.boards[i].get_pawn(dim.thingdict[rd["thing"]])
+            pawn.set_interactive(rd["branch"], rd["tick_from"], rd["tick_to"])
         # spots in this board
-        self.c.execute(SPOT_BOARD_QRY_START, (str(dim), i))
+        self.c.execute(SPOT_BOARD_COORD_QRYFMT, (str(dim), i))
         for row in self.c:
-            (placen, branch, tick_from, tick_to, x, y) = row
-            if placen not in dim.placenames:
-                dim.make_place(placen)
-            place = dim.get_place(placen)
+            rd = dictify_row(row, colnames["spot_coords"])
+            if rd["place"] not in dim.placenames:
+                dim.make_place(rd["place"])
+            place = dim.get_place(rd["place"])
             spot = dim.boards[i].get_spot(place)
             logger.debug(
                 "Loaded the spot for %s. Setting its coords to "
                 "(%d, %d) in branch %d from tick %d.",
-                str(place), x, y, branch, tick_from)
-            spot.set_coords(x, y, branch, tick_from, tick_to)
+                str(place), rd["x"], rd["y"], rd["branch"], rd["tick_from"])
+            spot.set_coords(rd["x"], rd["y"], rd["branch"], rd["tick_from"], rd["tick_to"])
         #their images
         for row in spot_rows:
-            (placen, branch, tick_from, tick_to, imgn) = row
-            spot = dim.boards[i].get_spot(placen)
-            spot.set_img(imgs[imgn], branch, tick_from, tick_to)
+            rd = dictify_row(row, colnames["spot_img"])
+            spot = dim.boards[i].get_spot(rd["place"])
+            spot.set_img(imgs[rd["img"]], rd["branch"], rd["tick_from"], rd["tick_to"])
         # interactivity for the spots
-        self.c.execute(SPOT_INTER_QRY_START, (str(dim), i))
+        self.c.execute(SPOT_BOARD_INTER_QRYFMT, (str(dim), i))
         for row in self.c:
-            (placen, branch, tick_from, tick_to) = row
-            spot = dim.boards[i].get_spot(placen)
-            spot.set_interactive(branch, tick_from, tick_to)
+            rd = dictify_row(row, colnames["spot_interactive"])
+            spot = dim.boards[i].get_spot(rd["place"])
+            spot.set_interactive(rd["branch"], rd["tick_from"], rd["tick_to"])
         # arrows in this board
         for port in dim.portals:
             dim.boards[i].get_arrow(port)
@@ -972,16 +1001,17 @@ necessary."""
         for row in self.c:
             rd = dictify_row(row, Hand.colns)
             hand_rds[rd["effect_deck"]] = rd
-        self.c.execute(CARD_IN_DECK_QRYFMT, hand_rds.keys())
+        if len(hand_rds) > 0:
+            self.c.execute(CARD_IN_DECK_QRYFMT, tuple(hand_rds.keys()))
         card_rds = {}
         for row in self.c:
             rd = dictify_row(row, Card.colns)
             card_rds[rd["effect"]] = rd
         self.c.execute(BOARD_VIEWPORT_WINDOW_QRYFMT, (name,))
-        viewport_rds = defaultdict(defaultdict(dict))
+        viewport_rds = []
         for row in self.c:
             rd = dictify_row(row, BoardViewport.colns)
-            viewport_rds[rd["dimension"]][rd["board"]][rd["idx"]] = rd
+            viewport_rds.append(rd)
         window_row["menu_rds"] = menu_rds
         window_row["menu_item_rds"] = menu_item_rds
         window_row["calendar_rds"] = calendar_rds
