@@ -77,9 +77,23 @@ each board will be open in at most one window at a time.
     def get_spot_at(self, x, y):
         for spot in self.spots:
             if (
-                    spot.board_left < x < spot.board_right and
-                    spot.board_bot < y < spot.board_top):
+                    spot.board_left < x and x < spot.board_right and
+                    spot.board_bot < y and y < spot.board_top):
                 return spot
+        return None
+
+    def get_arrow_at(self, x, y):
+        for arrow in self.arrows:
+            if arrow.overlaps(x, y):
+                return arrow
+        return None
+
+    def get_pawn_at(self, x, y):
+        for pawn in self.pawns:
+            if (
+                    pawn.board_left < x and x < pawn.board_right and
+                    pawn.board_bot < y and y < pawn.board_top):
+                return pawn
         return None
 
     def make_pawn(self, thing):
@@ -144,7 +158,9 @@ class BoardViewport:
           "top": "float not null default 1.0",
           "right": "float not null default 1.0",
           "view_left": "integer not null default 0",
-          "view_bot": "integer not null default 0"},
+          "view_bot": "integer not null default 0",
+          "arrow_width": "float not null default 1.4",
+          "arrowhead_size": "integer not null default 10"},
          ("window", "dimension", "board", "idx"),
          {"window": ("window", "name"),
           "dimension, board": ("board", "dimension, i")},
@@ -153,7 +169,8 @@ class BoardViewport:
           "right<=1.0", "top<=1.0", "right>left", "top>bot"])]
 
     def __init__(self, window, board, idx,
-                 left, bot, top, right, view_left, view_bot):
+                 left, bot, top, right, view_left, view_bot,
+                 arrow_width, arrowhead_size):
         self.board = board
         self.window = window
         self.idx = idx
@@ -163,6 +180,14 @@ class BoardViewport:
         self.right_prop = right
         self.view_left = view_left
         self.view_bot = view_bot
+        self.arrow_width = arrow_width
+        self.arrowhead_size = arrowhead_size
+        self.batch = self.window.batch
+        self.supergroup = OrderedGroup(0, self.window.boardgroup)
+        self.bggroup = OrderedGroup(0, self.supergroup)
+        self.arrowgroup = OrderedGroup(1, self.supergroup)
+        self.spotgroup = OrderedGroup(2, self.supergroup)
+        self.pawngroup = OrderedGroup(3, self.supergroup)
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
@@ -175,13 +200,13 @@ class BoardViewport:
 
     def __getattr__(self, attrn):
         if attrn == "window_left":
-            return self.left_prop * self.window.width
+            return int(self.left_prop * self.window.width)
         elif attrn == "window_right":
-            return self.right_prop * self.window.width
+            return int(self.right_prop * self.window.width)
         elif attrn == "window_bot":
-            return self.bot_prop * self.window.height
+            return int(self.bot_prop * self.window.height)
         elif attrn == "window_top":
-            return self.top_prop * self.window.height
+            return int(self.top_prop * self.window.height)
         elif attrn == "width":
             return self.window_right - self.window_left
         elif attrn == "height":
@@ -196,40 +221,83 @@ class BoardViewport:
             return self.spotdict.itervalues()
         elif attrn == "pawns":
             return self.pawndict.itervalues()
+        elif attrn in (
+                "dimension", "idx", "wallpaper"):
+            return getattr(self.board, attrn)
         else:
             raise AttributeError(
                 "BoardView instance has no attribute " + attrn)
 
-    def draw_bg(self, batch, group):
+    def overlaps(self, x, y):
+        return (
+            x > self.window_left and
+            x < self.window_right and
+            y > self.window_bot and
+            y < self.window_top)
+
+    def relativize(self, x, y):
+        return (
+            x + self.window_left + self.offset_x,
+            y + self.window_bot + self.offset_y)
+
+    def get_pawn_at(self, x, y):
+        for pawn in self.pawns:
+            if pawn.in_view and pawn.overlaps(x, y):
+                return pawn
+        return None
+
+    def get_spot_at(self, x, y):
+        for spot in self.spots:
+            if spot.in_view and spot.overlaps(x, y):
+                return spot
+        return None
+
+    def get_arrow_at(self, x, y):
+        for arrow in self.arrows:
+            if arrow.in_view and arrow.overlaps(x, y):
+                return arrow
+        return None
+
+    def hover(self, x, y):
+        x -= self.window_left
+        y -= self.window_bot
+        pawn_at = self.get_pawn_at(x, y)
+        if pawn_at is not None:
+            return pawn_at
+        spot_at = self.get_spot_at(x, y)
+        if spot_at is not None:
+            return spot_at
+        arrow_at = self.get_arrow_at(x, y)
+        if arrow_at is not None:
+            return arrow_at
+        else:
+            return self
+
+    def move_with_mouse(self, x, y, dx, dy, button, modifiers):
+        self.view_left -= dx
+        self.view_bot -= dy
+        if self.view_left < 0:
+            self.view_left = 0
+        if self.view_bot < 0:
+            self.view_bot = 0
+
+    def draw(self):
         try:
             self.bgsprite.x = self.offset_x
             self.bgsprite.y = self.offset_y
         except:
             self.bgsprite = Sprite(
                 self.wallpaper.tex,
-                self.window.offset_x,
-                self.window.offset_y,
-                batch=batch,
-                group=group)
-
-    def draw(self, batch, group):
-        if not hasattr(self, 'supergroup'):
-            self.supergroup = ViewportOrderedGroup(0, group, self)
-        if not hasattr(self, 'bggroup'):
-            self.bggroup = OrderedGroup(0, self.supergroup)
-        if not hasattr(self, 'arrowgroup'):
-            self.arrowgroup = OrderedGroup(1, self.supergroup)
-        if not hasattr(self, 'spotgroup'):
-            self.spotgroup = OrderedGroup(2, self.supergroup)
-        if not hasattr(self, 'pawngroup'):
-            self.pawngroup = OrderedGroup(3, self.supergroup)
-        self.draw_bg(batch, self.bggroup)
+                self.offset_x,
+                self.offset_y,
+                batch=self.batch,
+                group=self.bggroup)
         for arrow in self.arrows:
-            arrow.draw(batch, self.arrowgroup)
+            arrow.draw()
         for spot in self.spots:
-            spot.draw(batch, self.spotgroup)
+            spot.draw()
         for pawn in self.pawns:
-            pawn.draw(batch, self.pawngroup)
+            pawn.draw()
 
     def get_tabdict(self):
         return {

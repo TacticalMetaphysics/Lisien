@@ -32,6 +32,7 @@ from logging import getLogger
 from util import dictify_row, colnames, colnamestr
 from portal import Portal
 from thing import Thing
+from character import Character
 
 
 logger = getLogger(__name__)
@@ -123,6 +124,15 @@ PAWN_BOARD_IMG_QRYFMT = (
 IMG_QRYFMT = (
     "SELECT {0} FROM img WHERE name IN ({1})".format(
         colnamestr["img"], "{0}"))
+CHAR_THING_QRYFMT = (
+    "SELECT {0} FROM character_things WHERE character IN ({1})".format(
+        colnamestr["character_things"], "{0}"))
+CHAR_SKILL_QRYFMT = (
+    "SELECT {0} FROM character_skills WHERE character IN ({1})".format(
+        colnamestr["character_skills"], "{0}"))
+CHAR_STAT_QRYFMT = (
+    "SELECT {0} FROM character_stats WHERE character IN ({1})".format(
+        colnamestr["character_stats"], "{0}"))
 
 
 class RumorMill(object):
@@ -172,6 +182,7 @@ given name.
         self.styledict = {}
         self.tickdict = {}
         self.eventdict = {}
+        self.characterdict = {}
         self.lang = lang
 
         self.game_speed = 1
@@ -685,18 +696,68 @@ necessary."""
         port.persist()
         return port
 
+    def load_characters(self, names):
+        r = {}
+        qmstr = ", ".join(["?"] * len(names))
+        namet = tuple(names)
+        things2load = set()
+        decks2load = set()
+        qrystr = CHAR_THING_QRYFMT.format(qmstr)
+        self.c.execute(qrystr, namet)
+        getdefd = lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+        charthing_d = getdefd()
+        for row in self.c:
+            rd = dictify_row(row, colnames["character_things"])
+            charthing_d[rd["character"]][rd["dimension"]][rd["branch"]][rd["tick_from"]] = (
+                rd["thing"], rd["tick_to"])
+            things2load.add(rd["thing"])
+        charskil_d = getdefd()
+        qrystr = CHAR_SKILL_QRYFMT.format(qmstr)
+        self.c.execute(qrystr, namet)
+        for row in self.c:
+            rd = dictify_row(row, colnames["character_skills"])
+            charskil_d[rd["character"]][rd["skill"]][rd["branch"]][rd["tick_from"]] = (
+                rd["effect_deck"], rd["tick_to"])
+            decks2load.add(rd["effect_deck"])
+        charstat_d = getdefd()
+        qrystr = CHAR_STAT_QRYFMT.format(qmstr)
+        self.c.execute(qrystr, namet)
+        for row in self.c:
+            rd = dictify_row(row, colnames["character_stats"])
+            charstat_d[rd["character"]][rd["stat"]][rd["branch"]][
+                rd["tick_from"]] = (rd["value"], rd["tick_to"])
+        for name in iter(names):
+            r[name] = Character(
+                self, name,
+                charthing_d[name],
+                charskil_d[name],
+                charstat_d[name])
+        self.characterdict.update(r)
+        return r
+
+    def get_characters(self, names):
+        r = {}
+        unloaded = set()
+        for name in iter(names):
+            if name in self.characterdict:
+                r[name] = self.characterdict[name]
+            else:
+                unloaded.add(name)
+        r.update(self.load_characters(unloaded))
+        return r
+
     def load_effects(self, names):
         r = {}
         qrystr = EFFECT_QRYFMT.format(", ".join(["?"] * len(names)))
         self.c.execute(qrystr, tuple(names))
-        effect_rds = set()
         chars = set()
+        effect_rds = {}
         for row in self.c:
             rd = dictify_row(row, Effect.colns)
             chars.add(rd["character"])
-            effect_rds.add(rd)
+            effect_rds[rd["name"]] = rd
         chard = self.get_characters(chars)
-        for rd in iter(effect_rds):
+        for rd in effect_rds.itervalues():
             rd["character"] = chard[rd["character"]]
             r[rd["name"]] = Effect(**rd)
         return r
@@ -858,7 +919,7 @@ necessary."""
         for row in pawn_rows:
             rd = dictify_row(row, colnames["pawn_img"])
             thing = dim.thingdict[rd["thing"]]
-            pawn = dim.boards[i].get_pawn(rd["thing"])
+            pawn = dim.boards[i].get_pawn(thing)
             pawn.set_img(imgs[rd["img"]], rd["branch"],
                          rd["tick_from"], rd["tick_to"])
         # interactivity for the pawns

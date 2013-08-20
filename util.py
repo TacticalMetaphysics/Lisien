@@ -814,6 +814,18 @@ class ViewportOrderedGroup(pyglet.graphics.OrderedGroup):
         super(ViewportOrderedGroup, self).__init__(order, parent)
         self.view = view
 
+    def __getattr__(self, attrn):
+        oddtype = pyglet.gl.gl.GLint * 4
+        r = oddtype()
+        pyglet.gl.gl.glGetIntegerv(pyglet.gl.GL_VIEWPORT, r)
+        if attrn == "width":
+            return r[2]
+        elif attrn == "height":
+            return r[3]
+        else:
+            raise AttributeError(
+                "ViewportOrderedGroup has no attribute " + attrn)
+
     def set_state(self):
         tup = (
             self.view.window_left,

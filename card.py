@@ -28,6 +28,8 @@ class Card:
 
     def __init__(self, hand, effect, display_name, image, text):
         self.hand = hand
+        self.batch = self.hand.batch
+        self.group = self.hand.cardgroup
         self.rumor = self.hand.rumor
         self.style = self.hand.style
         self._display_name = display_name
@@ -81,6 +83,9 @@ class Card:
 class TextHolder:
     def __init__(self, cardwidget):
         self.cardwidget = cardwidget
+        self.batch = self.cardwidget.batch
+        self.bggroup = OrderedGroup(0, self.cardwidget.textgroup)
+        self.labelgroup = OrderedGroup(1, self.cardwidget.textgroup)
         self.bgimage = None
         self.bgsprite = None
         self.label = None
@@ -120,7 +125,7 @@ class TextHolder:
         else:
             return getattr(self.cardwidget, attrn)
 
-    def draw(self, batch, group):
+    def draw(self):
         if (
                 self.cardwidget.old_width != self.cardwidget.width or
                 self.cardwidget.old_height != self.cardwidget.height):
@@ -131,8 +136,8 @@ class TextHolder:
                 image,
                 self.window_left,
                 self.window_bot,
-                batch=batch,
-                group=bggroup)
+                batch=self.batch,
+                group=self.group)
             fggroup = OrderedGroup(2, group)
             self.label = Label(
                 self.card.text,
@@ -157,6 +162,11 @@ class CardWidget:
     def __init__(self, base, hand):
         self.base = base
         self.hand = hand
+        self.batch = self.hand.batch
+        self.supergroup = OrderedGroup(0, self.hand.cardgroup)
+        self.bggroup = OrderedGroup(0, self.supergroup)
+        self.imggroup = OrderedGroup(1, self.supergroup)
+        self.textgroup = OrderedGroup(2, self.supergroup)
         self.rumor = self.base.db
         self.window = self.hand.window
         self.grabpoint = None
@@ -313,7 +323,7 @@ class CardWidget:
             pass
         self.textholder.delete()
 
-    def draw(self, batch, group):
+    def draw(self):
         if (
                 self.width != self.old_width or
                 self.height != self.old_height):
@@ -380,6 +390,9 @@ order."""
     def __init__(self, window, deck, left, right, top, bot, style,
                  visible, interactive):
         self.window = window
+        self.batch = self.window.batch
+        self.cardgroup = OrderedGroup(self.window.hand_order, self.window.cardgroup)
+        self.window.hand_order += 1
         self.rumor = window.rumor
         self.deck = deck
         self.left_prop = left
@@ -504,6 +517,6 @@ order."""
             y > self.window_bot and
             y < self.window_top)
 
-    def draw(self, batch, group):
+    def draw(self):
         for card in iter(self):
-            card.draw(batch, group)
+            card.draw()

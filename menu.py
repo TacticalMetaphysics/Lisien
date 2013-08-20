@@ -41,8 +41,10 @@ visible or doesn't; and starts interactive or doesn't.
 With db, register in db's menuitemdict.
 
         """
-        self.rumor = menu.rumor
         self.menu = menu
+        self.rumor = self.menu.rumor
+        self.batch = self.menu.batch
+        self.group = self.menu.labelgroup
         self.window = self.menu.window
         self.idx = idx
         while len(self.menu.items) <= self.idx:
@@ -101,10 +103,16 @@ With db, register in db's menuitemdict.
                     self.menu.style.spacing)
         elif attrn == 'window_right':
             return self.menu.window_right - self.menu.style.spacing
+        elif attrn == 'label_window_right':
+            return self.window_right
         elif attrn == 'width':
             return self.window_right - self.window_left
         elif attrn == 'height':
-            return self.window_top - self.window_bot
+            return self.menu.style.fontsize + self.menu.style.spacing
+        elif attrn == 'window_top':
+            return self.menu.window_top - self.idx * self.height
+        elif attrn == 'window_bot':
+            return self.window_top - self.height
         elif attrn == 'rx':
             return self.width / 2
         elif attrn == 'ry':
@@ -129,20 +137,7 @@ With db, register in db's menuitemdict.
             y > self.window_bot and
             y < self.window_top)
 
-    def get_state_tup(self):
-        """Return a tuple containing everything that's relevant to deciding
-just how to display this widget"""
-        return (
-            hash(self.menu.get_state_tup()),
-            self.idx,
-            self.text,
-            self.visible,
-            self.interactive,
-            self.grabpoint,
-            self.pressed,
-            self.tweaks)
-
-    def draw(self, batch, group):
+    def draw(self):
         try:
             self.label.delete()
         except:
@@ -157,8 +152,8 @@ just how to display this widget"""
                         self.icon.tex,
                         self.window_left,
                         self.window_bot,
-                        batch=batch,
-                        group=group)
+                        batch=self.batch,
+                        group=self.group)
             if self.text not in ('', None):
                 try:
                     self.label.text = self.text
@@ -173,8 +168,8 @@ just how to display this widget"""
                         color=self.menu.style.textcolor.tup,
                         x=self.window_left,
                         y=self.window_bot,
-                        batch=batch,
-                        group=group)
+                        batch=self.batch,
+                        group=self.group)
             else:
                 try:
                     self.label.delete()
@@ -225,6 +220,10 @@ With db, register with db's menudict.
 
         """
         self.window = window
+        self.batch = self.window.batch
+        self.supergroup = OrderedGroup(0, self.window.menugroup)
+        self.bggroup = OrderedGroup(0, self.supergroup)
+        self.labelgroup = OrderedGroup(1, self.supergroup)
         self.rumor = self.window.rumor
         self.name = name
         self.left_prop = left
@@ -382,13 +381,9 @@ me"""
             it.save()
         self.coresave()
 
-    def draw(self, batch, group):
-        if not hasattr(self, 'bggroup'):
-            self.bggroup = OrderedGroup(0, group)
-        if not hasattr(self, 'labelgroup'):
-            self.labelgroup = OrderedGroup(1, group)
+    def draw(self):
         for item in self.items:
-            item.draw(batch, self.labelgroup)
+            item.draw()
         try:
             self.sprite.delete()
         except:
@@ -398,4 +393,4 @@ me"""
                 self.width, self.height)
             self.sprite = pyglet.sprite.Sprite(
                 image, self.window_left, self.window_bot,
-                batch=batch, group=self.bggroup)
+                batch=self.batch, group=self.bggroup)

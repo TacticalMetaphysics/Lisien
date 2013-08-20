@@ -4,15 +4,15 @@ import pyglet
 import logging
 from rumor import load_game
 from sys import argv
+from os import remove
 from sqlite3 import connect, DatabaseError
-
-logging.basicConfig(level=logging.DEBUG, filename="debug.log")
-logger = logging.getLogger()
 
 
 i = 0
 lang = "English"
 dbfn = "default.sqlite"
+debugfn = ""
+DEBUG = False
 for arg in argv:
     if arg == "-l":
         try:
@@ -21,6 +21,8 @@ for arg in argv:
             raise Exception("Couldn't parse language")
     elif arg == "-d":
         DEBUG = True
+    elif DEBUG:
+        debugfn = arg
     elif arg[-2:] != "py":
         try:
             connect(arg).cursor().execute("SELECT * FROM game;")
@@ -28,6 +30,13 @@ for arg in argv:
         except DatabaseError:
             print "Couldn't connect to the database named {0}.".format(arg)
     i += 1
+if DEBUG:
+    try:
+        remove(debugfn)
+    except OSError:
+        pass
+    logging.basicConfig(level=logging.DEBUG, filename=debugfn)
+    logger = logging.getLogger()
 clock = pyglet.clock.Clock()
 pyglet.clock.set_default(clock)
 rumor = load_game(dbfn, lang)

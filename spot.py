@@ -8,6 +8,8 @@ from util import (
     BranchTicksIter)
 from collections import defaultdict
 from pyglet.sprite import Sprite
+from pyglet.graphics import OrderedGroup
+from pyglet.gl import GL_LINES
 from logging import getLogger
 from igraph import ALL
 
@@ -114,8 +116,6 @@ class Spot(
         self.indefinite_coords = {}
         self.indefinite_interactivity = {}
         self.grabpoint = None
-        self.sprite = None
-        self.box_edges = (None, None, None, None)
         self.oldstate = None
         self.newstate = None
         self.tweaks = 0
@@ -156,8 +156,14 @@ class Spot(
                 return self.ry
         elif attrn == 'visible':
             return self.img is not None
-        elif hasattr(self, 'saver') and hasattr(self.saver, attrn):
-            return getattr(self.saver, attrn)
+        elif attrn == "board_left":
+            return self.x - self.rx + self.drag_offset_x
+        elif attrn == "board_bot":
+            return self.y - self.ry + self.drag_offset_y
+        elif attrn == "board_top":
+            return self.board_bot + self.height
+        elif attrn == "board_right":
+            return self.board_left + self.width
         else:
             raise AttributeError(
                 "Spot instance has no such attribute: " +
@@ -172,18 +178,16 @@ class Spot(
 class SpotWidget:
     def __init__(self, viewport, spot):
         self.viewport = viewport
+        self.supergroup = OrderedGroup(0, self.viewport.spotgroup)
+        self.spritegroup = OrderedGroup(0, self.supergroup)
+        self.boxgroup = OrderedGroup(1, self.supergroup)
+        self.batch = self.viewport.batch
         self.spot = spot
+        self.sprite = None
+        self.vertlist = None
 
     def __getattr__(self, attrn):
-        if attrn == "board_left":
-            return self.spot.x
-        elif attrn == "board_bot":
-            return self.spot.y
-        elif attrn == "board_top":
-            return self.board_bot + self.spot.height
-        elif attrn == "board_right":
-            return self.board_left + self.spot.width
-        elif attrn == "viewport_left":
+        if attrn == "viewport_left":
             return self.board_left + self.viewport.offset_x
         elif attrn == "viewport_bot":
             return self.board_bot + self.viewport.offset_y
@@ -199,71 +203,63 @@ class SpotWidget:
             return self.viewport_top + self.viewport.window_bot
         elif attrn == "window_right":
             return self.viewport_right + self.viewport.window_left
-        elif attrn in ("place", "img", "board", "get_img", "set_img",
-                       "get_coords", "set_coords", "is_interactive",
-                       "set_interactive", "new_branch"):
+        elif attrn == "in_view":
+            return (
+                self.viewport_right > 0 and
+                self.viewport_left < self.viewport.width and
+                self.viewport_top > 0 and
+                self.viewport_bot < self.viewport.height)
+        elif attrn == "selected":
+            return self in self.viewport.window.selected
+        elif attrn == "hovered":
+            return self is self.viewport.window.hovered
+        elif attrn == "pressed":
+            return self is self.viewport.window.pressed
+        elif attrn == "grabbed":
+            return self is self.window.grabbed
+        elif attrn in ("place", "img", "board", "vert",
+                       "visible", "interactive", "board_left",
+                       "board_right", "board_top", "board_bot"):
             return getattr(self.spot, attrn)
         else:
             raise AttributeError(
                 "SpotWidget instance has no attribute " + attrn)
 
     def dropped(self, x, y, button, modifiers):
-        c = self.get_coords()
-        newx = c[0] + self.drag_offset_x
-        newy = c[1] + self.drag_offset_y
-        self.set_coords(newx, newy)
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
-
-    def hovered(self):
-        """Become hovered"""
-        if not self.hovered:
-            self.hovered = True
-            self.tweaks += 1
-
-    def unhovered(self):
-        """Stop being hovered"""
-        if self.hovered:
-            self.hovered = False
-            self.tweaks += 1
-
-    def set_pressed(self):
-        """Become pressed"""
-        pass
-
-    def unset_pressed(self):
-        """Stop being pressed"""
-        pass
+        c = self.spot.get_coords()
+        newx = c[0] + self.spot.drag_offset_x
+        newy = c[1] + self.spot.drag_offset_y
+        self.spot.set_coords(newx, newy)
+        self.spot.drag_offset_x = 0
+        self.spot.drag_offset_y = 0
 
     def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
         """Remember where exactly I was grabbed, then move around with the
 mouse, always keeping the same relative position with respect to the
 mouse."""
-        self.drag_offset_x += dx
-        self.drag_offset_y += dy
+        self.spot.drag_offset_x += dx
+        self.spot.drag_offset_y += dy
 
     def overlaps(self, x, y):
-        if self.coords is None:
-            return False
-        (myx, myy) = self.window_coords
         return (
-            self.visible and
-            self.interactive and
-            abs(myx - x) < self.rx and
-            abs(myy - y) < self.ry)
+            self.viewport_left < x and x < self.viewport_right and
+            self.viewport_bot < y and y < self.viewport_top)
 
-    def draw(self, batch, group):
-        if self.visible and self.in_window:
+    def pass_focus(self):
+        return self.viewport
+
+    def draw(self):
+        if self.visible and self.in_view:
             try:
-                self.sprite.x = self.window_left
-                self.sprite.y = self.window_bot
+                self.sprite.x = self.viewport_left
+                self.sprite.y = self.viewport_bot
             except AttributeError:
                 self.sprite = Sprite(
                     self.img.tex,
-                    self.window_left,
-                    self.window_bot,
-                    batch=batch,
-                    group=group)
+                    self.viewport_left,
+                    self.viewport_bot,
+                    batch=self.batch,
+                    group=self.spritegroup)
         else:
             try:
                 self.sprite.delete()
@@ -271,21 +267,28 @@ mouse."""
                 pass
         if self.selected:
             yelo = (255, 255, 0, 0)
-            self.box_edges = self.window.draw_box(
-                self.window_left,
-                self.window_top,
-                self.window_right,
-                self.window_bot,
-                yelo,
-                self.window.topgroup,
-                self.box_edges)
+            colors = yelo * 4
+            points = (
+                self.viewport_left, self.viewport_top,
+                self.viewport_right, self.viewport_top,
+                self.viewport_right, self.viewport_bot,
+                self.viewport_left, self.viewport_bot)
+            try:
+                self.vertlist.vertices = points
+            except:
+                self.vertlist = self.batch.add_indexed(
+                    4,
+                    GL_LINES,
+                    self.boxgroup,
+                    (0, 1, 2, 3, 0),
+                    ('v2i', points),
+                    ('c4b', colors))
         else:
-            for vertls in self.box_edges:
-                try:
-                    vertls.delete()
-                except:
-                    pass
-            self.box_edges = (None, None, None, None)
+            try:
+                self.vertlist.delete()
+            except:
+                pass
+            self.vertlist = None
 
     def delete(self):
         for e in self.place.incident(mode=ALL):

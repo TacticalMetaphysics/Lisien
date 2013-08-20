@@ -5,6 +5,9 @@ from pyglet.image import SolidColorImagePattern as color_pattern
 from pyglet.sprite import Sprite
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 """User's view on a given item's schedule.
 
@@ -29,6 +32,8 @@ for the handle_side keyword argument.
         """The handle widget."""
         def __init__(self, timeline, handle_side, width=10, height=16):
             self.timeline = timeline
+            self.batch = self.timeline.batch
+            self.group = self.timeline.group
             self.on_the_left = handle_side == "left"
             self.vertlist = None
             self.width = width
@@ -63,7 +68,7 @@ for the handle_side keyword argument.
                 raise AttributeError(
                     "Handle instance has no attribute " + attrn)
 
-        def draw(self, batch, group):
+        def draw(self):
             colors = self.timeline.color * 3
             if self.on_the_left:
                 points = (
@@ -75,14 +80,15 @@ for the handle_side keyword argument.
                     self.calendar_left, self.timeline.calendar_y,
                     self.calendar_right, self.calendar_top,
                     self.calendar_right, self.calendar_bot)
+            logger.debug("drawing handle at %s", repr(points))
             try:
                 self.vertlist.vertices = list(points)
                 self.vertlist.colors = list(colors)
             except AttributeError:
-                self.vertlist = batch.add_indexed(
+                self.vertlist = self.batch.add_indexed(
                     3,
                     GL_TRIANGLES,
-                    group,
+                    self.group,
                     (0, 1, 2, 0),
                     ('v2i', points),
                     ('c4b', colors))
@@ -91,6 +97,8 @@ for the handle_side keyword argument.
         self.col = col
         self.cal = self.col.calendar
         self.window = self.cal.window
+        self.batch = self.window.batch
+        self.group = self.col.tlgroup
         self.rumor = self.col.rumor
         self.handle = Timeline.Handle(self, handle_side)
         self.vertlist = None
@@ -108,22 +116,25 @@ for the handle_side keyword argument.
             raise AttributeError(
                 "Timeline instance has no attribute " + attrn)
 
-    def draw(self, batch, group):
+    def draw(self):
         colors = self.color * 2
+        ws = self.cal.width_scalar
+        hs = self.cal.height_scalar
         points = (
-            self.window_left, self.y,
-            self.window_right, self.y)
+            self.calendar_left * ws, self.calendar_y * hs,
+            self.calendar_right * ws, self.calendar_y * hs)
+        logger.debug("drawing timeline at %s", repr(points))
         try:
             self.vertlist.vertices = list(points)
             self.vertlist.colors = list(colors)
         except AttributeError:
-            self.vertlist = batch.add(
+            self.vertlist = self.batch.add(
                 2,
                 GL_LINES,
-                group,
+                self.group,
                 ('v2i', points),
                 ('c4B', colors))
-        self.handle.draw(batch, group)
+        self.handle.draw()
 
 
 class CalendarCell:
@@ -136,22 +147,17 @@ represents to calculate its dimensions and coordinates.
     def __init__(self, col, tick_from, tick_to, text):
         self.col = col
         self.cal = self.col.calendar
+        self.batch = self.cal.batch
+        self.bggroup = OrderedGroup(0, self.col.cellgroup)
+        self.fggroup = OrderedGroup(1, self.col.cellgroup)
         self.tick_from = tick_from
         self.tick_to = tick_to
         self.text = text
         self.style = self.col.style
-        self.oldstate = None
         self.was_hovered = False
-        self.old_width = None
-        self.old_height = None
-        self.old_active_image = None
-        self.old_inactive_image = None
-        self.sprite = None
+        self.verts = None
         self.label = None
         self.visible = True
-        self.tweaks = 0
-        self.inactive_pattern = color_pattern(self.style.fg_inactive.tup)
-        self.active_pattern = color_pattern(self.style.fg_active.tup)
 
     def __len__(self):
         if self.tick_to is None:
@@ -165,27 +171,36 @@ represents to calculate its dimensions and coordinates.
         elif attrn == 'window':
             return self.col.calendar.window
         elif attrn == 'calendar_left':
-            return self.col.calendar_left + self.style.spacing
+            return self.col.calendar_left + (
+                self.style.spacing * self.cal.width_scalar)
         elif attrn == 'calendar_right':
-            return self.col.calendar_right - self.style.spacing
+            return self.col.calendar_right - (
+                self.style.spacing * self.cal.width_scalar)
         elif attrn == 'calendar_top':
             return self.cal.height - self.cal.row_height * (
                 self.tick_from - self.cal.scrolled_to)
         elif attrn == 'calendar_bot':
-            return self.cal.height - self.cal.row_height * (
-                self.tick_to - self.cal.scrolled_to)
-        elif attrn == 'width':
-            return self.calendar_right - self.calendar_left
-        elif attrn == 'height':
-            return len(self) * self.cal.row_height
+            try:
+                return self.cal.height - self.cal.row_height * (
+                    self.tick_to - self.cal.scrolled_to)
+            except TypeError:
+                return 0
         elif attrn == 'window_left':
-            return self.calendar_left + self.cal.window_left
+            return self.col.window_left + self.style.spacing
         elif attrn == 'window_right':
-            return self.calendar_right + self.cal.window_left
+            return self.window_left + self.col.width
+        elif attrn in ('width', 'label_width'):
+            return self.col.width
+        elif attrn == 'height':
+            try:
+                return len(self) * self.cal.window_row_height
+            except TypeError:
+                return self.cal.height
         elif attrn == 'window_top':
-            return self.calendar_top + self.cal.window_bot
+            return self.col.window_top - self.cal.row_height * (
+                self.tick_to - self.cal.scrolled_to)
         elif attrn == 'window_bot':
-            return self.calendar_bot + self.cal.window_bot
+            return self.window_top - self.window_height
         elif attrn == 'label_height':
             return self.style.fontsize + self.style.spacing
         elif attrn == 'hovered':
@@ -205,77 +220,68 @@ represents to calculate its dimensions and coordinates.
         except:
             pass
 
-    def draw(self, batch, group):
+    def draw(self):
+        ws = self.cal.width_scalar
+        hs = self.cal.height_scalar
         if self.visible and self.height > 0:
-            if self.hovered:
-                image = self.active_pattern.create_image(
-                    self.width, self.height)
-            else:
-                image = self.inactive_pattern.create_image(
-                    self.width, self.height)
-            if not hasattr(self, 'bggroup'):
-                self.bggroup = OrderedGroup(0, group)
-            if not hasattr(self, 'fggroup'):
-                self.fggroup = OrderedGroup(1, group)
-            if self.hovered != self.was_hovered:
-                self.sprite = Sprite(
-                    image,
-                    self.calendar_left,
-                    self.calendar_bot,
-                    batch=batch,
-                    group=self.bggroup)
-                self.was_hovered = self.hovered
-            else:
-                try:
-                    self.sprite.x = self.calendar_left
-                    self.sprite.y = self.calendar_bot
-                except:
-                    self.sprite = Sprite(
-                        image,
-                        self.calendar_left,
-                        self.calendar_bot,
-                        batch=batch,
-                        group=self.bggroup)
+            colors = self.style.fg_inactive.tup * 4
+            pointt = (
+                self.calendar_left * ws, self.calendar_bot * hs,
+                self.calendar_left * ws, self.calendar_top * hs,
+                self.calendar_right * ws, self.calendar_top * hs,
+                self.calendar_right * ws, self.calendar_bot * hs)
+            logger.debug("drawing calcell at %s", repr(pointt))
+            pointl = list(pointt)
+            try:
+                self.verts.vertices = pointl
+            except:
+                self.verts = self.batch.add_indexed(
+                    4,
+                    GL_TRIANGLES,
+                    self.bggroup,
+                    (0, 1, 2, 0, 3, 2, 0),
+                    ('v2i', pointt),
+                    ('c4B', colors))
             y = self.calendar_top - self.label_height
             try:
-                self.label.x = self.calendar_left
-                self.label.y = y
+                self.label.x = self.calendar_left * ws
+                self.label.y = y * hs
+                self.label.width = self.label_width * ws
+                self.label.height = self.label_height * hs
             except:
                 self.label = Label(
                     self.text,
                     self.style.fontface,
                     self.style.fontsize,
                     color=self.style.textcolor.tup,
-                    width=self.width,
-                    height=self.height,
-                    x=self.window_left,
-                    y=y,
                     multiline=True,
-                    batch=batch,
+                    width=self.label_width,
+                    height=self.label_height,
+                    x=self.calendar_left * ws,
+                    y=y * hs,
+                    batch=self.batch,
                     group=self.fggroup)
         else:
             self.delete()
 
 
 class CalendarCol:
-    def __init__(self, calendar, scheduledict, interactive, style):
+    def __init__(self, calendar, branch, scheduledict, interactive, style):
         self.calendar = calendar
+        self.branch = branch
         self.window = calendar.window
+        self.batch = self.window.batch
+        self.bggroup = OrderedGroup(0, self.calendar.supergroup)
+        self.cellgroup = OrderedGroup(1, self.calendar.supergroup)
+        self.tlgroup = OrderedGroup(2, self.calendar.supergroup)
         self.scheduledict = scheduledict
-        self.board = self.calendar.board
         self.rumor = self.calendar.rumor
         self.visible = False
         self.interactive = interactive
         self.style = style
-        self.oldstate = None
-        self.old_width = None
-        self.old_image = None
-        self.sprite = None
-        self.oldwidth = None
-        self.inactive_pattern = color_pattern(style.bg_inactive.tup)
-        self.active_pattern = color_pattern(style.bg_active.tup)
-        self.tweaks = 0
+        self.verts = None
         self.cells = []
+        self.timeline = Timeline(self)
         self.regen_cells()
 
     def __iter__(self):
@@ -290,12 +296,14 @@ class CalendarCol:
             return self.calendar.col_width
         elif attrn == 'height':
             return self.calendar.height
+        elif attrn == 'bgcolor':
+            return self.style.bg_inactive.tup
         elif attrn == 'calendar_left':
             return self.idx * self.width
         elif attrn == 'calendar_right':
             return self.calendar_left + self.width
         elif attrn == 'calendar_top':
-            return self.calendar.height
+            return self.calendar.supergroup.height
         elif attrn == 'calendar_bot':
             return 0
         elif attrn == 'window_left':
@@ -306,6 +314,8 @@ class CalendarCol:
             return self.calendar.window_top
         elif attrn == 'window_bot':
             return self.calendar.window_bot
+        elif attrn == 'width':
+            return self.calendar.col_width
         else:
             raise AttributeError(
                 "CalendarCol instance has no such attribute: " +
@@ -316,20 +326,7 @@ class CalendarCol:
             hash(cel.get_state_tup())
             for cel in self.cells]
         return hash(tuple(hashes))
-
-    def get_state_tup(self):
-        """Return a tuple containing information enough to tell the difference
-between any two states that should appear different on-screen."""
-        return (
-            self.celhash(),
-            self.window_top,
-            self.window_bot,
-            self.idx,
-            self.width,
-            self.visible,
-            self.interactive,
-            self.tweaks)
-
+ 
     def regen_cells(self, branch=None):
         for cell in self.cells:
             cell.delete()
@@ -373,31 +370,28 @@ between any two states that should appear different on-screen."""
             strings.append(str(unarg))
         return ";\n".join(strings)
 
-    def draw(self, batch, group):
-        if (
-                not hasattr(self, 'image') or
-                self.image.width != self.width or
-                self.image.height != self.height):
-            self.image = self.inactive_pattern.create_image(
-                self.width, self.height)
-        if not hasattr(self, 'bggroup'):
-            self.bggroup = OrderedGroup(0, group)
-        if not hasattr(self, 'fggroup'):
-            self.fggroup = OrderedGroup(1, group)
+    def draw(self):
+        ws = self.calendar.width_scalar
+        hs = self.calendar.height_scalar
+        pointt = (
+            self.calendar_left * ws, self.calendar_bot * hs,
+            self.calendar_left * ws, self.calendar_top * hs,
+            self.calendar_right * ws, self.calendar_top * hs,
+            self.calendar_right * ws, self.calendar_bot * hs)
+        logger.debug("drawing calcol at %s", repr(pointt))
+        pointl = list(pointt)
         try:
-            assert(self.sprite.width == self.width)
-            assert(self.sprite.height == self.height)
-            self.sprite.x = self.calendar_left
-            self.sprite.y = self.calendar_bot
+            self.verts.vertices = pointl
         except:
-            self.sprite = Sprite(
-                self.image,
-                self.calendar_left,
-                self.calendar_bot,
-                batch=batch,
-                group=self.bggroup)
-        for cel in self.cells:
-            cel.draw(batch, self.fggroup)
+            self.verts = self.batch.add_indexed(
+                4,
+                GL_TRIANGLES,
+                self.bggroup,
+                (0, 1, 2, 0, 3, 2, 0),
+                ('v2i', pointt),
+                ('c4B', self.bgcolor * 4))
+        for cell in self.cells:
+            cell.draw()
 
 
 class Calendar:
@@ -432,6 +426,9 @@ schedule, possibly several.
             self, window, idx, left, right, top, bot, style, interactive,
             rows_shown, scrolled_to, scroll_factor):
         self.window = window
+        self.batch = self.window.batch
+        self.supergroup = ViewportOrderedGroup(
+            0, self.window.calgroup, self)
         self.rumor = self.window.rumor
         self.idx = idx
         self.left_prop = left
@@ -458,28 +455,35 @@ schedule, possibly several.
         return len(self.cols)
 
     def __getattr__(self, attrn):
-        if attrn == 'board':
-            return self.rumor.boarddict[self._dimension]
-        elif attrn == 'window_top':
-            return int(self.top_prop * self.window.height)
-        elif attrn == 'window_bot':
+        if attrn == 'window_bot':
             return int(self.bot_prop * self.window.height)
         elif attrn == 'window_left':
             return int(self.left_prop * self.window.width)
         elif attrn == 'window_right':
-            return int(self.right_prop * self.window.width)
-        elif attrn == 'width':
-            return self.window_right - self.window_left
-        elif attrn == 'col_width':
-            return self.width / len(self.cols)
-        elif attrn == 'height':
+            r = int(self.right_prop * self.window.width)
+            return r
+        elif attrn == 'window_top':
+            return int(self.top_prop * self.window.height)
+        elif attrn == "width":
+            r = self.window_right - self.window_left
+            return r
+        elif attrn == "height":
             return self.window_top - self.window_bot
+        elif attrn == 'col_width':
+            try:
+                return self.width / len(self.cols)
+            except ZeroDivisionError:
+                return self.width
         elif attrn == 'row_height':
             return self.height / self.rows_shown
         elif attrn == 'visible':
             return self._visible and len(self.cols) > 0
         elif attrn == 'interactive':
             return self._interactive
+        elif attrn == 'width_scalar':
+            return self.supergroup.width / self.width
+        elif attrn == 'height_scalar':
+            return self.supergroup.height / self.height
         else:
             raise AttributeError(
                 "Calendar instance has no such attribute: " +
@@ -500,23 +504,6 @@ schedule, possibly several.
             for col in self.cols]
         return hash(tuple(hashes))
 
-    def get_state_tup(self):
-        """Return a tuple containing information enough to tell the difference
-between any two states that should appear different on-screen."""
-        return (
-            self.i,
-            self.colhash(),
-            self.window_left,
-            self.window_right,
-            self.window_top,
-            self.window_bot,
-            self.visible,
-            self.interactive,
-            self.rows_shown,
-            self.scrolled_to,
-            self.rumor.tick,
-            self.tweaks)
-
     def get_tabdict(self):
         return {
             "calendar": [
@@ -533,11 +520,11 @@ between any two states that should appear different on-screen."""
                     "scrolled_to": self.scrolled_to,
                     "scroll_factor": self.scroll_factor}]}
 
-    def mkcol(self, scheduledict, interactive=True, style=None):
+    def mkcol(self, scheduledict, branch, interactive=True, style=None):
         if style is None:
             style = self.style
         cc = CalendarCol(
-            self, scheduledict, interactive, style)
+            self, branch, scheduledict, interactive, style)
         self.cols.append(cc)
         return cc
 
@@ -550,12 +537,10 @@ between any two states that should appear different on-screen."""
             self.window_bot < y and
             self.window_top > y)
 
-    def draw(self, batch, group):
-        if not hasattr(self, 'supergroup'):
-            self.supergroup = ViewportOrderedGroup(0, group, self)
+    def draw(self):
         if self.visible and len(self.cols) > 0:
             for calcol in self.cols:
-                calcol.draw(batch, self.supergroup)
+                calcol.draw()
         else:
             for calcol in self.cols:
                 calcol.delete()

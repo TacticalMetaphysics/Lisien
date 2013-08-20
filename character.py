@@ -76,15 +76,42 @@ item's name, and the name of the attribute.
          {},
          [])]
 
-    def __init__(self, rumor, name):
+    def __init__(self, rumor, name, thingdict=None, skilldict=None, statdict=None):
         self.name = name
         self.rumor = rumor
-        self.thingdict = {}
-        self.indefinite_thing = {}
-        self.skilldict = {}
-        self.indefinite_skill = {}
-        self.statdict = {}
-        self.indefinite_stat = {}
+        if thingdict is None:
+            self.thingdict = {}
+            self.indefinite_thing = {}
+        else:
+            self.thingdict = thingdict
+            for dimension in self.thingdict:
+                for branch in self.thingdict[dimension]:
+                    for (tick_from, (effd, tick_to)) in self.thingdict[dimension][branch].iteritems():
+                        if tick_to is None:
+                            self.indefinite_thing[branch] = tick_from
+                            break
+        if skilldict is None:
+            self.skilldict = {}
+            self.indefinite_skill = {}
+        else:
+            self.skilldict = skilldict
+            for skill in self.skilldict:
+                for branch in self.skilldict[skill]:
+                    for (tick_from, (deck, tick_to)) in self.skilldict[skill][branch].iteritems():
+                        if tick_to is None:
+                            self.indefinite_skill[branch] = tick_from
+                            break
+        if statdict is None:
+            self.statdict = {}
+            self.indefinite_stat = {}
+        else:
+            self.statdict = statdict
+            for stat in self.statdict:
+                for branch in self.statdict[stat]:
+                    for (tick_from, (value, tick_to)) in self.statdict[stat][branch].iteritems():
+                        if tick_to is None:
+                            self.indefinite_stat[branch] = tick_from
+                            break
 
     def set_stat(self, stat, val, branch=None, tick_from=None, tick_to=None):
         if branch is None:

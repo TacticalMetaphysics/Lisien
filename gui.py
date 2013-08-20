@@ -85,16 +85,23 @@ class ViewportIter:
     def __init__(self, viewportdict):
         self.realiter = viewportdict.itervalues()
         self.curlst = iter(self.realiter.next())
+        self.what = iter(self.curlst.next())
+        
 
     def __iter__(self):
         return self
 
     def next(self):
         try:
-            return self.curlst.next()
-        except:
-            self.curlst = self.realiter.next()
-            return self.curlst.next()
+            return self.what.next()
+        except StopIteration:
+            try:
+                self.what = self.curlst.next()
+                return self.next()
+            except StopIteration:
+                self.curlst = iter(self.realiter.next())
+                self.what = self.curlst.next()
+                return self.next()
 
 
 class GameWindow(pyglet.window.Window):
@@ -124,6 +131,16 @@ class GameWindow(pyglet.window.Window):
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
         self.edge_order = 1
+        self.hand_order = 1
+        self.batch = pyglet.graphics.Batch()
+        self.biggroup = pyglet.graphics.Group()
+        self.boardgroup = pyglet.graphics.OrderedGroup(0, self.biggroup)
+        self.calgroup = TransparencyOrderedGroup(4, self.biggroup)
+        self.handgroup = pyglet.graphics.OrderedGroup(5, self.biggroup)
+        self.menugroup = pyglet.graphics.OrderedGroup(6, self.biggroup)
+        self.pickergroup = ScissorOrderedGroup(
+            8, self.biggroup, self, 0.3, 0.6, 0.3, 0.6)
+        self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
         self.name = name
         self.rumor = rumor
         self.min_width = min_width
@@ -154,6 +171,13 @@ class GameWindow(pyglet.window.Window):
         for rd in hand_rds.itervalues():
             stylenames.add(rd["style"])
         styles = self.rumor.get_styles(stylenames)
+        self.calendars = []
+        for rd in calendar_rds:
+            rd["window"] = self
+            rd["style"] = styles[rd["style"]]
+            while len(self.calendars) <= rd["idx"]:
+                self.calendars.append(None)
+            self.calendars[rd["idx"]] = Calendar(**rd)
         imagenames = set()
         for mirdl in menu_item_rds.itervalues():
             for mird in mirdl:
@@ -200,16 +224,6 @@ class GameWindow(pyglet.window.Window):
             self.menudict.itervalues,
             lambda: self.viewports,
             lambda: (self.picker,)]
-
-        self.biggroup = pyglet.graphics.Group()
-        self.boardgroup = pyglet.graphics.OrderedGroup(0, self.biggroup)
-        self.calgroup = TransparencyOrderedGroup(4, self.biggroup)
-        self.handgroup = pyglet.graphics.OrderedGroup(5, self.biggroup)
-        self.menugroup = pyglet.graphics.OrderedGroup(6, self.biggroup)
-        self.pickergroup = ScissorOrderedGroup(
-            8, self.biggroup, self, 0.3, 0.6, 0.3, 0.6)
-        self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
-
         self.pressed = None
         self.hovered = None
         self.grabbed = None
@@ -243,8 +257,6 @@ class GameWindow(pyglet.window.Window):
         self.dx_hist = [0] * self.dxdy_hist_max
         self.dy_hist = [0] * self.dxdy_hist_max
 
-        self.batch = pyglet.graphics.Batch()
-
         self.timeline = None
 
         self.last_age = -1
@@ -257,6 +269,8 @@ class GameWindow(pyglet.window.Window):
             return ViewportIter(self.viewportdict)
         elif attrn == 'menus':
             return self.menudict.itervalues()
+        elif attrn == 'hands':
+            return self.handdict.itervalues()
         elif attrn == 'dx':
             return sum(self.dx_hist)
         elif attrn == 'dy':
@@ -311,7 +325,6 @@ class GameWindow(pyglet.window.Window):
                 x - self.thing_pic.rx, y - self.thing_pic.ry)
         except:
             pass
-        super(BoardWindow, self).update(dt)
 
     def on_draw(self):
         (width, height) = self.get_size()
@@ -322,13 +335,13 @@ class GameWindow(pyglet.window.Window):
         if self.picker is not None:
             self.picker.draw(self.batch, self.pickergroup)
         for menu in self.menus:
-            menu.draw(self.batch, self.menugroup)
+            menu.draw()
         for calendar in self.calendars:
-            calendar.draw(self.batch, self.calgroup)
+            calendar.draw()
         for hand in self.hands:
-            hand.draw(self.batch, self.handgroup)
+            hand.draw()
         for viewport in self.viewports:
-            viewport.draw(self.batch, self.boardgroup)
+            viewport.draw()
         # well, I lied. I was really only adding those things to the batch.
         # NOW I'll draw them.
         self.batch.draw()
@@ -346,12 +359,12 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
         if self.grabbed is not None:
             if hasattr(self.grabbed, 'dropped'):
                 self.grabbed.dropped(x, y, button, modifiers)
+            self.grabbed = None
             return
         if (
                 self.pressed not in self.selected and
                 not self.keep_selected):
             for sel in iter(self.selected):
-                sel.tweaks += 1
                 if hasattr(sel, 'unselect'):
                     sel.unselect()
             self.selected = set()
@@ -362,12 +375,10 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                         self.pressed.select()
                     logger.debug("Selecting it.")
                     self.selected.add(self.pressed)
-                    self.pressed.tweaks += 1
                     if hasattr(self.pressed, 'reciprocate'):
                         reciprocal = self.pressed.reciprocate()
                         if reciprocal is not None:
                             self.selected.add(reciprocal)
-                            reciprocal.tweaks += 1
                 if hasattr(self.pressed, 'onclick'):
                     self.pressed.onclick()
         if self.place_pic is not None:
@@ -470,38 +481,7 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
 move_with_mouse method, use it.
      """
         if self.grabbed is None:
-            if (
-                    self.pressed is not None and
-                    x > self.pressed.window_left and
-                    x < self.pressed.window_right and
-                    y > self.pressed.window_bot and
-                    y < self.pressed.window_top and
-                    hasattr(self.pressed, 'move_with_mouse')):
-                self.grabbed = self.pressed
-            else:
-                self.view_left -= dx
-                if (
-                        self.view_left +
-                        self.width >
-                        self.board.wallpaper.width):
-                    self.view_left = (
-                        self.board.wallpaper.width -
-                        self.width)
-                elif self.view_left < 0:
-                    self.view_left = 0
-                self.view_bot -= dy
-                if (
-                        self.view_bot +
-                        self.height >
-                        self.board.wallpaper.height):
-                    self.view_bot = (
-                        self.board.wallpaper.height -
-                        self.height)
-                elif self.view_bot < 0:
-                    self.view_bot = 0
-                if self.pressed is not None:
-                    self.pressed = None
-                self.grabbed = None
+            self.grabbed = self.pressed
         else:
             self.grabbed.move_with_mouse(x, y, dx, dy, buttons, modifiers)
 

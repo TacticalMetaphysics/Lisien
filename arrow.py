@@ -86,19 +86,17 @@ class Arrow:
 
     def __getattr__(self, attrn):
         if attrn == 'ox':
-            return self.orig.x
+            return self.orig.x + self.orig.drag_offset_x
         elif attrn == 'oy':
-            return self.orig.y
+            return self.orig.y + self.orig.drag_offset_y
         elif attrn == 'dx':
-            return self.dest.x
+            return self.dest.x + self.dest.drag_offset_x
         elif attrn == 'dy':
-            return self.dest.y
+            return self.dest.y + self.dest.drag_offset_y
         elif attrn == 'rise':
             return self.dest.y - self.orig.y
         elif attrn == 'run':
             return self.dest.x - self.orig.x
-        elif attrn == 'width':
-            return self.board.arrow_width
         elif attrn == 'length':
             if "branch" in self.portal.e.attribute_names():
                 return self.board.get_edge_len(self.portal.e)
@@ -152,58 +150,6 @@ class Arrow:
             raise AttributeError(
                 "Edge instance has no attribute {0}".format(attrn))
 
-    def y_at(self, x):
-        if self.m is None:
-            return None
-        else:
-            b = self.b
-            mx = (self.rise * x, self.run)
-            y = (mx[0] + b[0], self.run)
-            return float(y[0]) / float(self.run)
-
-    def x_at(self, y):
-        # y = mx + b
-        # y - b = mx
-        # (y - b)/m = x
-        if self.m is None:
-            return self.ox
-        else:
-            b = self.b
-            numerator = y - b[1]
-            denominator = b[0]
-            return float(numerator) / float(denominator)
-
-    def overlaps(self, x, y):
-        """Do I overlap the point (x, y)?
-
-Take my width into account
-
-        """
-        # trivial rejections
-        if not (
-                x > self.left and
-                x < self.right and
-                y > self.bot and
-                y < self.top):
-            return False
-        try:
-            perfect_x = self.x_at(y)
-        except:
-            perfect_x = None
-        try:
-            perfect_y = self.y_at(x)
-        except:
-            perfect_y = None
-        if perfect_x is None:
-            return abs(perfect_y - y) < self.width
-        elif perfect_y is None:
-            return abs(perfect_x - x) < self.width
-        else:
-            a = perfect_y - y
-            b = perfect_x - x
-            dist = hypot(a, b)
-            return dist < self.width
-
     def reciprocate(self):
         # Return the edge of the portal that connects the same two
         # places in the opposite direction, supposing it exists
@@ -220,10 +166,22 @@ class ArrowWidget:
     def __init__(self, viewport, arrow):
         self.viewport = viewport
         self.window = self.viewport.window
+        self.batch = self.window.batch
         self.arrow = arrow
-        self.vertices = ((None, None), (None, None), (None, None))
+        self.shaft_bg_vertlist = None
+        self.wedge_bg_vertlist = None
+        self.shaft_fg_vertlist = None
+        self.wedge_fg_vertlist = None
+        self.bgvl = None
+        self.fgvl = None
         self.order = self.window.edge_order
         self.window.edge_order += 1
+        self.supergroup = pyglet.graphics.OrderedGroup(
+            self.order, self.viewport.arrowgroup)
+        self.bggroup = SmoothBoldLineOrderedGroup(
+            0, self.supergroup, self.viewport.arrow_width * 2)
+        self.fggroup = BoldLineOrderedGroup(
+            1, self.supergroup, self.viewport.arrow_width)
 
     def __getattr__(self, attrn):
         if attrn == "board_left":
@@ -276,9 +234,25 @@ class ArrowWidget:
             return self.viewport_dy + self.viewport.window_bot
         elif attrn in ("highlit", "selected"):
             return self in self.window.selected
+        elif attrn == "orig":
+            return self.viewport.spotdict[str(self.arrow.orig)]
+        elif attrn == "dest":
+            return self.viewport.spotdict[str(self.arrow.dest)]
+        elif attrn == "in_view":
+            return (
+                self.viewport_right > 0 and
+                self.viewport_left < self.viewport.width and
+                self.viewport_top > 0 and
+                self.viewport_bot < self.viewport.height)
+        elif attrn == "b":
+            ab = self.arrow.b
+            return (ab[0] + self.viewport.offset_x * ab[1], ab[1])
+        elif attrn == "width":
+            return self.viewport.arrow_width
         elif attrn in (
-                "rise", "run", "width", "length", "m", "slope"):
-            return getattr(attrn, self.arrow)
+                "rise", "run", "length", "m", "slope",
+                "center_shrink", "portal", "e"):
+            return getattr(self.arrow, attrn)
         else:
             raise AttributeError(
                 "ArrowWidget instance has no attribute " + attrn)
@@ -290,17 +264,63 @@ class ArrowWidget:
             except:
                 pass
 
-    def draw(self, batch, group):
+    def y_at(self, x):
+        if self.m is None:
+            return None
+        else:
+            b = self.b
+            mx = (self.rise * x, self.run)
+            y = (mx[0] + b[0], self.run)
+            return float(y[0]) / float(self.run)
+
+    def x_at(self, y):
+        # y = mx + b
+        # y - b = mx
+        # (y - b)/m = x
+        if self.m is None:
+            return self.ox
+        else:
+            b = self.b
+            numerator = y - b[1]
+            denominator = b[0]
+            return float(numerator) / float(denominator)
+
+    def overlaps(self, x, y):
+        """Do I overlap the point (x, y)?
+
+Take my width into account
+
+        """
+        # trivial rejections
+        if not (
+                x > self.viewport_left and
+                x < self.viewport_right and
+                y > self.viewport_bot and
+                y < self.viewport_top):
+            return False
+        try:
+            perfect_x = self.x_at(y)
+        except:
+            perfect_x = None
+        try:
+            perfect_y = self.y_at(x)
+        except:
+            perfect_y = None
+        if perfect_x is None:
+            return abs(perfect_y - y) < self.width
+        elif perfect_y is None:
+            return abs(perfect_x - x) < self.width
+        else:
+            a = perfect_y - y
+            b = perfect_x - x
+            dist = hypot(a, b)
+            return dist < self.width
+
+    def pass_focus(self):
+        return self.viewport
+
+    def draw(self):
         # group had better be viewported
-        if not hasattr(self, 'supergroup'):
-            self.supergroup = pyglet.graphics.OrderedGroup(
-                self.order, group)
-        if not hasattr(self, 'bggroup'):
-            self.bggroup = SmoothBoldLineOrderedGroup(
-                0, self.supergroup, self.window.arrow_girth)
-        if not hasattr(self, 'fggroup'):
-            self.fggroup = BoldLineOrderedGroup(
-                1, self.supergroup, self.window.arrow_width)
         ox = self.viewport_ox
         dx = self.viewport_dx
         oy = self.viewport_oy
@@ -317,7 +337,7 @@ class ArrowWidget:
             float(ox * xco), float(oy * yco),
             float(dx * xco), float(dy * yco),
             self.center_shrink + 1)
-        taillen = float(self.window.arrowhead_size)
+        taillen = float(self.viewport.arrowhead_size)
         rise = topy - boty
         run = rightx - leftx
         if rise == 0:
@@ -345,26 +365,34 @@ class ArrowWidget:
         else:
             bgcolor = (64, 64, 64, 64)
             fgcolor = (255, 255, 255, 0)
-        points = (ox, oy, endx, endy, x1, y1, x2, y2)
+        pointt = (ox, oy, endx, endy, x1, y1, x2, y2)
+        pointl = list(pointt)
         bgcolors = bgcolor * 4
         fgcolors = fgcolor * 4
-        try:
-            self.bg_vertlist.vertices = list(points)
-        except:
-            self.bg_vertlist = batch.add_indexed(
-                4,
-                GL_LINES,
-                self.bggroup,
-                (0, 1, 2, 1, 3),
-                ('v2i', points),
-                ('c4b', bgcolors))
-        try:
-            self.fg_vertlist.vertices = list(points)
-        except:
-            self.fg_vertlist = batch.add_indexed(
-                4,
-                GL_LINES,
-                self.fggroup,
-                (0, 1, 2, 1, 3),
-                ('v2i', points),
-                ('c4b', fgcolors))
+        if self.in_view:
+            try:
+                self.bgvl.vertices = pointl
+            except:
+                self.bgvl = self.batch.add_indexed(
+                    4,
+                    GL_LINES,
+                    self.bggroup,
+                    (0, 1, 2, 1, 3, 1),
+                    ('v2i', pointt),
+                    ('c4B', bgcolors))
+            try:
+                self.fgvl.vertices = pointl
+            except:
+                self.fgvl = self.batch.add_indexed(
+                    4,
+                    GL_LINES,
+                    self.fggroup,
+                    (0, 1, 2, 1, 3, 1),
+                    ('v2i', pointt),
+                    ('c4B', fgcolors))
+        else:
+            for vl in (self.bgvl, self.fgvl):
+                try:
+                    vl.delete()
+                except:
+                    pass

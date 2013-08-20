@@ -7,6 +7,8 @@ from util import (
     BranchTicksIter)
 from collections import defaultdict
 from pyglet.sprite import Sprite
+from pyglet.graphics import OrderedGroup
+from pyglet.gl import GL_LINES
 from logging import getLogger
 
 
@@ -67,8 +69,7 @@ interactive or not.
         self.drag_offset_x = 0
         self.drag_offset_y = 0
         self.selectable = True
-        self.box_edges = (None, None, None, None)
-        self.calcol = None
+        self.vertlist = None
 
     def __str__(self):
         return str(self.thing)
@@ -129,8 +130,8 @@ interactive or not.
             prog = self.thing.get_progress(branch, tick)
             odx = dx - ox
             ody = dy - oy
-            return (int(ox + odx * prog) + self.window.offset_x,
-                    int(oy + ody * prog) + self.window.offset_y)
+            return (int(ox + odx * prog),
+                    int(oy + ody * prog))
         elif str(loc) in self.board.spotdict:
             spot = self.board.get_spot(loc)
             coords = spot.get_coords(branch, tick)
@@ -138,8 +139,8 @@ interactive or not.
                 return None
             (x, y) = coords
             return (
-                x + spot.drag_offset_x + self.window.offset_x,
-                y + spot.drag_offset_y + self.window.offset_y)
+                x + spot.drag_offset_x,
+                y + spot.drag_offset_y)
         else:
             return None
 
@@ -176,11 +177,6 @@ interactive or not.
         if spot is not None:
             # if the thing is in a *portal*, it is traveling
             self.thing.journey_to(spot.place)
-        try:
-            self.calcol.regen_cells()
-            self.calcol.tweaks += 1
-        except:
-            pass
 
 
 class PawnWidget:
@@ -188,10 +184,16 @@ class PawnWidget:
 
     def __init__(self, viewport, pawn):
         self.pawn = pawn
+        self.rumor = self.pawn.rumor
         self.viewport = viewport
+        self.batch = self.viewport.batch
+        self.supergroup = OrderedGroup(0, self.viewport.pawngroup)
+        self.spritegroup = OrderedGroup(0, self.supergroup)
+        self.boxgroup = OrderedGroup(1, self.supergroup)
         self.window = self.viewport.window
         self.drag_offset_x = 0
         self.drag_offset_y = 0
+        self.calcol = None
 
     def __getattr__(self, attrn):
         if attrn == "board_left":
@@ -202,14 +204,22 @@ class PawnWidget:
             return self.pawn.y + self.pawn.height
         elif attrn == "board_right":
             return self.pawn.x + self.pawn.width
+        elif attrn == "viewport_left":
+            return self.board_left + self.viewport.offset_x
+        elif attrn == "viewport_right":
+            return self.board_right + self.viewport.offset_x
+        elif attrn == "viewport_bot":
+            return self.board_bot + self.viewport.offset_y
+        elif attrn == "viewport_top":
+            return self.board_top + self.viewport.offset_y
         elif attrn == "window_left":
-            return self.board_left + self.viewport.window_left
+            return self.viewport_left + self.viewport.window_left
         elif attrn == "window_right":
-            return self.board_right + self.viewport.window_left
+            return self.viewport_right + self.viewport.window_left
         elif attrn == "window_bot":
-            return self.board_bot + self.viewport.window_bot
+            return self.viewport_bot + self.viewport.window_bot
         elif attrn == "window_top":
-            return self.board_top + self.viewport.window_bot
+            return self.viewport_top + self.viewport.window_bot
         elif attrn in ("selected", "highlit"):
             return self in self.window.selected
         elif attrn == "hovered":
@@ -218,9 +228,15 @@ class PawnWidget:
             return self is self.window.pressed
         elif attrn == "grabbed":
             return self is self.window.grabbed
+        elif attrn == "in_view":
+            return (
+                self.viewport_right > 0 and
+                self.viewport_left < self.viewport.width and
+                self.viewport_top > 0 and
+                self.viewport_bot < self.viewport.height)
         elif attrn in (
                 "img", "visible", "interactive",
-                "width", "height"):
+                "width", "height", "thing"):
             return getattr(self.pawn, attrn)
         else:
             raise AttributeError(
@@ -230,7 +246,7 @@ class PawnWidget:
         return self
 
     def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
-        self.drag_offset_x += dx
+        self.pawn.drag_offset_x += dx
         self.drag_offset_y += dy
 
     def dropped(self, x, y, button, modifiers):
@@ -242,9 +258,14 @@ If it DOES have anything else to do, make the journey in another branch.
         """
         logger.debug("Dropped the pawn %s at (%d,%d)",
                      str(self), x, y)
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
+        self.pawn.drag_offset_x = 0
+        self.pawn.drag_offset_y = 0
         self.pawn.dropped(x, y)
+        try:
+            self.calcol.regen_cells()
+            self.calcol.tweaks += 1
+        except:
+            pass
 
     def delete(self):
         try:
@@ -252,8 +273,8 @@ If it DOES have anything else to do, make the journey in another branch.
         except:
             pass
 
-    def draw(self, batch, group):
-        if self.coords is not None:
+    def draw(self):
+        if self.visible:
             try:
                 self.sprite.x = self.window_left
                 self.sprite.y = self.window_bot
@@ -262,41 +283,45 @@ If it DOES have anything else to do, make the journey in another branch.
                     self.img.tex,
                     self.window_left,
                     self.window_bot,
-                    batch=batch,
-                    group=group)
+                    batch=self.batch,
+                    group=self.spritegroup)
         if self.selected:
             yelo = (255, 255, 0, 0)
-            self.box_edges = self.window.draw_box(
-                self.window_left,
-                self.window_top,
-                self.window_right,
-                self.window_bot,
-                yelo,
-                group,
-                self.box_edges)
+            colors = yelo * 4
+            points = (
+                self.viewport_left, self.viewport_top,
+                self.viewport_right, self.viewport_top,
+                self.viewport_right, self.viewport_bot,
+                self.viewport_left, self.viewport_bot)
+            try:
+                self.vertlist.vertices = points
+            except:
+                self.vertlist = self.batch.add_indexed(
+                    4,
+                    GL_LINES,
+                    self.boxgroup,
+                    (0, 1, 2, 3, 0),
+                    ('v2i', points),
+                    ('c4b', colors))
         else:
-            for edge in self.box_edges:
-                try:
-                    edge.delete()
-                except (AttributeError, AssertionError):
-                    pass
-            self.box_edges = (None, None, None, None)
+            try:
+                self.vertlist.delete()
+            except:
+                pass
+            self.vertlist = None
 
     def overlaps(self, x, y):
-        if self.visible and self.interactive and self.in_window:
-            (myx, myy) = self.get_coords()
-            return (
-                x > myx and
-                y > myy and
-                x - myx < self.width and
-                y - myy < self.height)
-        else:
-            return False
+        return (
+            self.viewport_left < x and x < self.viewport_right and
+            self.viewport_bot < y and y < self.viewport_top)
+
+    def pass_focus(self):
+        return self.viewport
 
     def select(self):
         if self.calcol is None:
             sensical = self.window.sensible_calendar_for(self.thing)
-            self.calcol = sensical.mkcol(self.thing.locations)
+            self.calcol = sensical.mkcol(self.thing.locations, self.rumor.branch)
             self.calcol.visible = True
 
     def unselect(self):
