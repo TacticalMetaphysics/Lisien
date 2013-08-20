@@ -290,25 +290,19 @@ class GameWindow(pyglet.window.Window):
 
     def update(self, dt):
         (x, y) = self.mouspot.coords
-        if self.hovered is None:
+        def get_hovered():
             for get in self.hover_iter_getters:
                 for hoverable in get():
-                    if hoverable is None:
-                        continue
-                    if hoverable.overlaps(x, y):
+                    if (
+                            hoverable is not None and
+                            hasattr(hoverable, 'overlaps') and
+                            hoverable.overlaps(x, y)):
                         if hasattr(hoverable, 'hover'):
                             self.hovered = hoverable.hover(x, y)
                         else:
                             self.hovered = hoverable
-        else:
-            if not self.hovered.overlaps(x, y):
-                if hasattr(self.hovered, 'pass_focus'):
-                    self.hovered = self.hovered.pass_focus()
-                else:
-                    self.hovered = None
-            elif hasattr(self.hovered, 'hover'):
-                self.hovered = self.hovered.hover(x, y)
-        (x, y) = self.mouspot.coords
+                        return
+        get_hovered()
         if self.portal_from is None:
             try:
                 (self.floaty_portal.orig.x,
@@ -349,13 +343,12 @@ class GameWindow(pyglet.window.Window):
     def on_mouse_press(self, x, y, button, modifiers):
         """If there's something already highlit, and the mouse is
 still over it when pressed, it's been half-way clicked; remember this."""
-        logger.debug("mouse pressed at %d, %d", x, y)
         self.pressed = self.hovered
+        print "pressed {0}".format(repr(self.pressed))
 
     def on_mouse_release(self, x, y, button, modifiers):
         """If something was being dragged, drop it. If something was being
 pressed but not dragged, it's been clicked. Otherwise do nothing."""
-        logger.debug("mouse released at %d, %d", x, y)
         if self.grabbed is not None:
             if hasattr(self.grabbed, 'dropped'):
                 self.grabbed.dropped(x, y, button, modifiers)
@@ -373,14 +366,14 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                 if hasattr(self.pressed, 'selectable'):
                     if hasattr(self.pressed, 'select'):
                         self.pressed.select()
-                    logger.debug("Selecting it.")
+                    print "selected {0}".format(repr(self.pressed))
                     self.selected.add(self.pressed)
                     if hasattr(self.pressed, 'reciprocate'):
                         reciprocal = self.pressed.reciprocate()
                         if reciprocal is not None:
                             self.selected.add(reciprocal)
                 if hasattr(self.pressed, 'onclick'):
-                    self.pressed.onclick()
+                    self.pressed.onclick(x, y, button, modifiers)
         if self.place_pic is not None:
             if self.placing:
                 self.place_pic_sprite = pyglet.sprite.Sprite(

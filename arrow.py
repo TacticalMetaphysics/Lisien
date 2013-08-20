@@ -86,13 +86,13 @@ class Arrow:
 
     def __getattr__(self, attrn):
         if attrn == 'ox':
-            return self.orig.x + self.orig.drag_offset_x
+            return self.orig.x
         elif attrn == 'oy':
-            return self.orig.y + self.orig.drag_offset_y
+            return self.orig.y
         elif attrn == 'dx':
-            return self.dest.x + self.dest.drag_offset_x
+            return self.dest.x
         elif attrn == 'dy':
-            return self.dest.y + self.dest.drag_offset_y
+            return self.dest.y
         elif attrn == 'rise':
             return self.dest.y - self.orig.y
         elif attrn == 'run':
@@ -176,12 +176,10 @@ class ArrowWidget:
         self.fgvl = None
         self.order = self.window.edge_order
         self.window.edge_order += 1
-        self.supergroup = pyglet.graphics.OrderedGroup(
-            self.order, self.viewport.arrowgroup)
         self.bggroup = SmoothBoldLineOrderedGroup(
-            0, self.supergroup, self.viewport.arrow_width * 2)
+            0, self.viewport.arrowgroup, self.viewport.arrow_width)
         self.fggroup = BoldLineOrderedGroup(
-            1, self.supergroup, self.viewport.arrow_width)
+            1, self.viewport.arrowgroup, self.viewport.arrow_width)
 
     def __getattr__(self, attrn):
         if attrn == "board_left":
@@ -377,7 +375,7 @@ Take my width into account
                     4,
                     GL_LINES,
                     self.bggroup,
-                    (0, 1, 2, 1, 3, 1),
+                    (0, 1, 1, 2, 1, 3),
                     ('v2i', pointt),
                     ('c4B', bgcolors))
             try:
@@ -387,7 +385,7 @@ Take my width into account
                     4,
                     GL_LINES,
                     self.fggroup,
-                    (0, 1, 2, 1, 3, 1),
+                    (0, 1, 1, 2, 1, 3),
                     ('v2i', pointt),
                     ('c4B', fgcolors))
         else:

@@ -4,8 +4,8 @@ from util import (
     SaveableMetaclass,
     TerminableImg,
     TerminableInteractivity,
-    TerminableCoords,
     BranchTicksIter)
+from place import Place
 from collections import defaultdict
 from pyglet.sprite import Sprite
 from pyglet.graphics import OrderedGroup
@@ -23,9 +23,7 @@ __metaclass__ = SaveableMetaclass
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class Spot(
-        TerminableImg, TerminableInteractivity,
-        TerminableCoords):
+class Spot(TerminableImg, TerminableInteractivity):
     """The icon that represents a Place.
 
     The Spot is located on the Board that represents the same
@@ -105,10 +103,16 @@ class Spot(
                 for (branch, tick_from, tick_to, x, y) in
                 BranchTicksIter(self.spot.coord_dict)]}
 
-    def __init__(self, board, vert):
+    def __init__(self, board, place):
         self.board = board
+        self.dimension = self.board.dimension
         self.rumor = self.board.rumor
-        self.vert = vert
+        if hasattr(place, 'v'):
+            self.place = place
+            self.vert = self.place.v
+        else:
+            self.vert = place
+            self.place = Place(self.dimenison, self.vert)
         self.interactivity = defaultdict(dict)
         self.imagery = defaultdict(dict)
         self.coord_dict = defaultdict(dict)
@@ -122,10 +126,11 @@ class Spot(
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
+    def __str__(self):
+        return self.vert["name"]
+
     def __getattr__(self, attrn):
-        if attrn == 'dimension':
-            return self.board.dimension
-        elif attrn == 'interactive':
+        if attrn == 'interactive':
             return self.is_interactive()
         elif attrn == 'img':
             return self.get_img()
@@ -157,17 +162,84 @@ class Spot(
         elif attrn == 'visible':
             return self.img is not None
         elif attrn == "board_left":
-            return self.x - self.rx + self.drag_offset_x
+            return self.x - self.rx
         elif attrn == "board_bot":
-            return self.y - self.ry + self.drag_offset_y
+            return self.y - self.ry
         elif attrn == "board_top":
             return self.board_bot + self.height
         elif attrn == "board_right":
             return self.board_left + self.width
+        elif attrn == "place":
+            return self.dimension.get_place(str(self))
         else:
             raise AttributeError(
                 "Spot instance has no such attribute: " +
                 attrn)
+
+    def get_coords(self, branch=None, tick=None):
+        if branch is None:
+            branch = self.rumor.branch
+        if tick is None:
+            tick = self.rumor.tick
+        if branch not in self.coord_dict:
+            return None
+        it = self.coord_dict[branch].iteritems()
+        for (tick_from, (x, y, tick_to)) in it:
+            if tick_from <= tick and (tick_to is None or tick <= tick_to):
+                return (
+                    x + self.drag_offset_x,
+                    y + self.drag_offset_y)
+        return None
+
+    def set_coords(self, x, y, branch=None, tick_from=None, tick_to=None):
+        if branch is None:
+            branch = self.rumor.branch
+        if tick_from is None:
+            tick_from = self.rumor.tick
+        if branch not in self.coord_dict:
+            self.coord_dict[branch] = {}
+        if str(self) == 'myroom':
+            pass
+        if branch in self.indefinite_coords:
+            (ix, iy, itf) = self.indefinite_coords[branch]
+            if tick_to is None:
+                self.coord_dict[branch][itf] = (ix, iy, tick_from - 1)
+                self.coord_dict[branch][tick_from] = (x, y, tick_to)
+            else:
+                if tick_from < itf:
+                    if tick_to < itf:
+                        self.coord_dict[branch][tick_from] = (x, y, tick_to)
+                    elif tick_to == itf:
+                        self.coord_dict[branch][tick_from] = (x, y, None)
+                        del self.coord_dict[branch][itf]
+                    else:
+                        del self.indefinite_coords[branch]
+                        del self.coord_dict[branch][itf]
+                        self.coord_dict[branch][tick_from] = (x, y, tick_to)
+                elif tick_from == itf:
+                    del self.indefinite_coords[branch]
+                    self.coord_dict[branch][tick_from] = (x, y, tick_to)
+                else:
+                    self.coord_dict[branch][itf] = (ix, iy, tick_from - 1)
+                    del self.indefinite_coords[branch]
+                    self.coord_dict[branch][tick_from] = (x, y, tick_to)
+        else:
+            self.coord_dict[branch][tick_from] = (x, y, tick_to)
+        if tick_to is None:
+            self.indefinite_coords[branch] = (x, y, tick_from)
+
+    def new_branch_coords(self, parent, branch, tick):
+        for (tick_from, (x, y, tick_to)) in (
+                self.coord_dict[parent].iteritems()):
+            if tick_to >= tick or tick_to is None:
+                if tick_from < tick:
+                    self.coord_dict[branch][tick] = (x, y, tick_to)
+                    if tick_to is None:
+                        self.indefinite_coords[branch] = tick
+                else:
+                    self.coord_dict[branch][tick_from] = (x, y, tick_to)
+                    if tick_to is None:
+                        self.indefinite_coords[branch] = tick_from
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)
@@ -188,9 +260,9 @@ class SpotWidget:
 
     def __getattr__(self, attrn):
         if attrn == "viewport_left":
-            return self.board_left + self.viewport.offset_x
+            return self.board_left
         elif attrn == "viewport_bot":
-            return self.board_bot + self.viewport.offset_y
+            return self.board_bot
         elif attrn == "viewport_top":
             return self.viewport_bot + self.spot.height
         elif attrn == "viewport_right":
@@ -226,10 +298,7 @@ class SpotWidget:
                 "SpotWidget instance has no attribute " + attrn)
 
     def dropped(self, x, y, button, modifiers):
-        c = self.spot.get_coords()
-        newx = c[0] + self.spot.drag_offset_x
-        newy = c[1] + self.spot.drag_offset_y
-        self.spot.set_coords(newx, newy)
+        self.spot.set_coords(*self.spot.get_coords())
         self.spot.drag_offset_x = 0
         self.spot.drag_offset_y = 0
 

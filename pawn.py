@@ -123,24 +123,17 @@ interactive or not.
             destspot = self.board.get_spot(loc.dest)
             (ox, oy) = origspot.get_coords(branch, tick)
             (dx, dy) = destspot.get_coords(branch, tick)
-            ox += origspot.drag_offset_x
-            dx += destspot.drag_offset_x
-            oy += origspot.drag_offset_y
-            dy += destspot.drag_offset_y
             prog = self.thing.get_progress(branch, tick)
             odx = dx - ox
             ody = dy - oy
-            return (int(ox + odx * prog),
-                    int(oy + ody * prog))
+            return (int(ox + odx * prog) + self.drag_offset_x,
+                    int(oy + ody * prog) + self.drag_offset_y)
         elif str(loc) in self.board.spotdict:
             spot = self.board.get_spot(loc)
             coords = spot.get_coords(branch, tick)
-            if coords is None:
-                return None
-            (x, y) = coords
             return (
-                x + spot.drag_offset_x,
-                y + spot.drag_offset_y)
+                coords[0] + self.drag_offset_x,
+                coords[1] + self.drag_offset_y)
         else:
             return None
 
@@ -172,12 +165,6 @@ interactive or not.
         self.new_branch_imagery(parent, branch, tick)
         self.new_branch_interactivity(parent, branch, tick)
 
-    def dropped(self, x, y):
-        spot = self.board.get_spot_at(x, y)
-        if spot is not None:
-            # if the thing is in a *portal*, it is traveling
-            self.thing.journey_to(spot.place)
-
 
 class PawnWidget:
     selectable = True
@@ -187,12 +174,9 @@ class PawnWidget:
         self.rumor = self.pawn.rumor
         self.viewport = viewport
         self.batch = self.viewport.batch
-        self.supergroup = OrderedGroup(0, self.viewport.pawngroup)
-        self.spritegroup = OrderedGroup(0, self.supergroup)
-        self.boxgroup = OrderedGroup(1, self.supergroup)
+        self.spritegroup = OrderedGroup(0, self.viewport.pawngroup)
+        self.boxgroup = OrderedGroup(1, self.viewport.pawngroup)
         self.window = self.viewport.window
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
         self.calcol = None
 
     def __getattr__(self, attrn):
@@ -247,7 +231,7 @@ class PawnWidget:
 
     def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
         self.pawn.drag_offset_x += dx
-        self.drag_offset_y += dy
+        self.pawn.drag_offset_y += dy
 
     def dropped(self, x, y, button, modifiers):
         """When dropped on a spot, if my thing doesn't have anything else to
@@ -256,16 +240,23 @@ do, make it journey there.
 If it DOES have anything else to do, make the journey in another branch.
 
         """
-        logger.debug("Dropped the pawn %s at (%d,%d)",
-                     str(self), x, y)
+        spotto = None
+        for spot in self.viewport.board.spots:
+            if (
+                    self.viewport_left < spot.x and
+                    spot.x < self.viewport_right and
+                    self.viewport_bot < spot.y and
+                    spot.y < self.viewport_top):
+                spotto = spot
+                break
+        if spotto is not None:
+            self.thing.journey_to(spotto.place)
+            try:
+                self.calcol.regen_cells()
+            except:
+                pass
         self.pawn.drag_offset_x = 0
         self.pawn.drag_offset_y = 0
-        self.pawn.dropped(x, y)
-        try:
-            self.calcol.regen_cells()
-            self.calcol.tweaks += 1
-        except:
-            pass
 
     def delete(self):
         try:
@@ -276,8 +267,8 @@ If it DOES have anything else to do, make the journey in another branch.
     def draw(self):
         if self.visible:
             try:
-                self.sprite.x = self.window_left
-                self.sprite.y = self.window_bot
+                self.sprite.x = self.viewport_left
+                self.sprite.y = self.viewport_bot
             except AttributeError:
                 self.sprite = Sprite(
                     self.img.tex,
@@ -286,7 +277,7 @@ If it DOES have anything else to do, make the journey in another branch.
                     batch=self.batch,
                     group=self.spritegroup)
         if self.selected:
-            yelo = (255, 255, 0, 0)
+            yelo = (255, 255, 0, 255)
             colors = yelo * 4
             points = (
                 self.viewport_left, self.viewport_top,
@@ -300,9 +291,9 @@ If it DOES have anything else to do, make the journey in another branch.
                     4,
                     GL_LINES,
                     self.boxgroup,
-                    (0, 1, 2, 3, 0),
+                    (0, 1, 1, 2, 2, 3, 3, 0),
                     ('v2i', points),
-                    ('c4b', colors))
+                    ('c4B', colors))
         else:
             try:
                 self.vertlist.delete()

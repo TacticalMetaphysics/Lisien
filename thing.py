@@ -239,12 +239,16 @@ then."""
             tick = self.rumor.tick
         if branch not in self.locations:
             raise BranchError("Branch not known")
-        for (tick_from, (loc, tick_to)) in self.locations[branch].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
-                self.locations[branch][tick_from] = (loc, tick)
-                if tick_to is None:
-                    del self.indefinite_locations[branch]
-                return
+        if branch in self.indefinite_locations:
+            tick_from = self.indefinite_locations[branch]
+            (loc, tick_to) = self.locations[branch][tick_from]
+            self.locations[branch][tick_from] = (loc, tick)
+            del self.indefinite_locations[branch]
+        else:
+            for (tick_from, (loc, tick_to)) in self.locations[branch].iteritems():
+                if tick_from <= tick and tick <= tick_to:
+                    self.locations[branch][tick_from] = (loc, tick)
+                    return
 
     def journey_to(self, destplace, branch=None, tick=None):
         """Schedule myself to travel to the given place, interrupting whatever
