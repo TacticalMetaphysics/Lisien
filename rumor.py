@@ -25,7 +25,7 @@ from effect import Effect, EffectDeck
 from img import Img
 from menu import Menu, MenuItem
 from style import Style, Color
-from timestream import Timestream
+from timestream import Timestream, TimestreamException
 from gui import GameWindow
 from collections import OrderedDict, defaultdict
 from logging import getLogger
@@ -188,7 +188,8 @@ given name.
         self.game_speed = 1
         self.updating = False
 
-        self.timestream = Timestream({0: (0, 0)}, {})
+        self.c.execute("SELECT branch, parent, tick_from, tick_to FROM timestream")
+        self.timestream = Timestream(self.c.fetchall())
         self.time_travel_history = []
 
         placeholder = (noop, ITEM_ARG_RE)
@@ -1086,7 +1087,7 @@ necessary."""
         if branch not in self.timestream.branchdict:
             raise Exception(
                 "Tried to time-travel to a branch that didn't exist yet")
-        (tick_from, tick_to) = self.timestream.branchdict[branch]
+        (parent, tick_from, tick_to) = self.timestream.branchdict[branch]
         if tick < tick_from or tick > tick_to:
             raise Exception(
                 "Tried to time-travel to a tick that hadn't passed yet")
@@ -1099,14 +1100,14 @@ necessary."""
 
     def more_time(self, branch_from, branch_to, tick_from, tick_to):
         if branch_to in self.timestream.branchdict:
-            (old_tick_from, old_tick_to) = self.timestream.branchdict[branch_to]
+            (parent, old_tick_from, old_tick_to) = self.timestream.branchdict[branch_to]
             if tick_to < old_tick_from:
                 raise TimestreamException(
                     "Can't make a new branch that starts earlier than its parent.")
             if tick_to > old_tick_to:
                 # TODO: This really demands special handling--
                 # STUFF may happen between old_tick_to and tick_to
-                self.timestream.branchdict[branch_to] = (old_tick_from, tick_to)
+                self.timestream.branchdict[branch_to] = (parent, old_tick_from, tick_to)
                 e = self.timestream.latest_edge(branch_to)
                 self.timestream.graph.vs[e.target]["tick"] = tick_to
         else:
@@ -1117,7 +1118,7 @@ necessary."""
                 tick_to)
             v = self.timestream.graph.vs[e.source]
             self.timestream.branch_head[branch_to] = v
-            self.timestream.branchdict[branch_to] = (tick_from, tick_to)
+            self.timestream.branchdict[branch_to] = (branch_from, tick_from, tick_to)
             for dimension in self.dimensions:
                 dimension.new_branch(branch_from, branch_to, tick_from)
                 for board in dimension.boards:

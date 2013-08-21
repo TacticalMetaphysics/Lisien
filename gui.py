@@ -475,7 +475,7 @@ move_with_mouse method, use it.
      """
         if self.grabbed is None:
             self.grabbed = self.pressed
-        else:
+        elif hasattr(self.grabbed, 'move_with_mouse'):
             self.grabbed.move_with_mouse(x, y, dx, dy, buttons, modifiers)
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):

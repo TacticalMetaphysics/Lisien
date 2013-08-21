@@ -215,6 +215,22 @@
 *** cards
 **** with image
 **** without
+* AI
+  Taking a page from... er, someone's *description of* Renderware AI
+** Perception
+   Some ways to automagically construct and maintain dimensions representing a character's *perception of* the gameworld, rather than the model that the game resolves conflicts with.
+** Decision
+   Algorithms acting on those perception graphs. Often this is just
+   pathfinding--though it may operate on a graph representing
+   *possible world states as perceived by the character*, with each
+   node on the graph containing a perception graph of its own. At that
+   point you're doing dynamic programming.
+** Action
+   The bit that executes the plans made by the decision part, and
+   perhaps makes small adjustments to those plans when the world
+   changes but not so much that you have to start over. Some
+   roadblocks may be bypassed by just waiting for them to go away, for
+   instance.
 * Basic features
   In my opinion, every life sim should have these.
 ** Characters

@@ -29,6 +29,8 @@ board, but they are linked to the board anyhow, on the assumption that
 each board will be open in at most one window at a time.
 
     """
+    provides = ["board"]
+    demands = ["img"]
     tables = [
         ("board",
          {"dimension": "text not null default 'Physical'",
@@ -37,7 +39,7 @@ each board will be open in at most one window at a time.
           "width": "integer not null default 4000",
           "height": "integer not null default 3000"},
          ("dimension", "idx"),
-         {"wallpaper": ("image", "name")},
+         {"wallpaper": ("img", "name")},
          [])]
 
     def __init__(self, dimension, idx, width, height, wallpaper):
@@ -138,13 +140,20 @@ each board will be open in at most one window at a time.
 
     def get_tabdict(self):
         return {
-            "board": [
+            "board":
                 {"dimension": str(self.dimension),
-                 "i": int(self),
+                 "idx": int(self),
                  "wallpaper": str(self.wallpaper),
                  "width": self.width,
-                 "height": self.height}]}
+                 "height": self.height}}
 
+    def update_from_tabdict(self, tabdict):
+        rd = tabdict["board"]
+        self.dimension = self.rumor.get_dimension(rd["dimension"])
+        self.idx = rd["idx"]
+        self.wallpaper = self.rumor.get_img(rd["wallpaper"])
+        self.width = rd["width"]
+        self.height = rd["height"]
 
 class BoardViewport:
     tables = [

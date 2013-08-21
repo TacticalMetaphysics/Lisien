@@ -9,11 +9,14 @@ logger = getLogger(__name__)
 
 phi = (1.0 + sqrt(5))/2.0
 
-schemata = []
+schemata = {}
 
 colnames = {}
 
 colnamestr = {}
+
+saveables = []
+
 
 class SaveableMetaclass(type):
 # TODO make savers use sets of RowDict objs, rather than lists of regular dicts
@@ -64,6 +67,7 @@ and your table will be ready.
 
     """
     def __new__(metaclass, clas, parents, attrs):
+        global schemata
         tablenames = []
         primarykeys = {}
         foreignkeys = {}
@@ -78,7 +82,19 @@ and your table will be ready.
         if 'prelude' in attrs:
             prelude = attrs["prelude"]
         else:
-            prelude = None
+            prelude = []
+        if 'postlude' in attrs:
+            postlude = attrs["postlude"]
+        else:
+            postlude = []
+        if 'provides' in attrs:
+            provides = set(attrs["provides"])
+        else:
+            provides = set()
+        if 'demands' in attrs:
+            demands = set(attrs["demands"])
+        else:
+            demands = set()
         for tabtup in tablist:
             (name, decls, pkey, fkeys, cks) = tabtup
             tablenames.append(name)
@@ -114,6 +130,7 @@ and your table will be ready.
             rowstrs[tablename] = "(" + rowqms[tablename] + ")"
         for tablename in coldecls.iterkeys():
             colnames[tablename] = keynames[tablename] + valnames[tablename]
+        local_schemata = []
         for tablename in tablenames:
             coldecl = coldecls[tablename]
             pkey = primarykeys[tablename]
@@ -161,10 +178,8 @@ and your table will be ready.
             missing_stmt_start = "SELECT %s FROM %s WHERE (%s) NOT IN " % (
                 colnamestr[tablename], tablename, pkeynamestr)
             missings[tablename] = missing_stmt_start
-            schemata.append((
-                tablename, set([
-                    fkey[0] for fkey in
-                    fkeys.itervalues()]), create_stmt, prelude))
+            schemata[tablename] =  create_stmt
+        saveables.append((prelude, tablenames, postlude))
 
         def gen_sql_insert(rowdicts, tabname):
             if rowdicts == []:

@@ -44,6 +44,12 @@ key is composed of the dimension an item of this character is in, the
 item's name, and the name of the attribute.
 
 """
+    postlude = [
+        "CREATE VIEW character AS "
+        "SELECT character FROM character_things UNION "
+        "SELECT character FROM character_skills UNION "
+        "SELECT character FROM character_stats"]
+    provides = ["character"]
     tables = [
         ("character_things",
          {"character": "text not null",
@@ -53,7 +59,8 @@ item's name, and the name of the attribute.
           "tick_to": "integer default null",
           "thing": "text not null"},
          ("character", "dimension", "thing", "branch", "tick_from"),
-         {"dimension, thing": ("thing", "dimension, name")},
+         {"dimension, thing": ("thing", "dimension, name"),
+          "character": ("character", "name")},
          []),
         ("character_skills",
          {"character": "text not null",
@@ -63,7 +70,8 @@ item's name, and the name of the attribute.
           "tick_to": "integer default null",
           "effect_deck": "text not null"},
          ("character", "skill", "branch", "tick_from"),
-         {"effect_deck": ("effect_deck", "name")},
+         {"effect_deck": ("effect_deck", "name"),
+          "character": ("character", "name")},
          []),
         ("character_stats",
          {"character": "text not null",
@@ -73,7 +81,7 @@ item's name, and the name of the attribute.
           "tick_to": "integer default null",
           "value": "text not null"},
          ("character", "stat", "branch", "tick_from"),
-         {},
+         {"character": ("character", "name")},
          [])]
 
     def __init__(self, rumor, name, thingdict=None, skilldict=None, statdict=None):

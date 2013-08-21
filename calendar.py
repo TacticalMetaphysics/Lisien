@@ -423,6 +423,18 @@ schedule, possibly several.
 
 """
     __metaclass__ = SaveableMetaclass
+    # There should be only one character-attribute for one
+    # calendar_col, although its record may be in any of several
+    # tables.
+    postlude = [
+        "CREATE TRIGGER unical_loc BEFORE INSERT ON calendar_col_loc BEGIN "
+        "INSERT INTO calendar_col (window, calendar, idx) VALUES "
+        "(NEW.window, NEW.calendar, NEW.idx);"
+        "END",
+        "CREATE TRIGGER unical_stat BEFORE INSERT ON calendar_col_stat BEGIN "
+        "INSERT INTO calendar_col (window, calendar, idx) VALUES "
+        "(NEW.window, NEW.calendar, NEW.idx);"
+        "END"]
     tables = [
         (
             "calendar",
@@ -432,6 +444,7 @@ schedule, possibly several.
              "right": "float not null default 1.0",
              "top": "float not null default 1.0",
              "bot": "float not null default 0.0",
+             "max_cols": "integer not null default 3",
              "style": "text not null default 'default_style'",
              "interactive": "boolean not null default 1",
              "rows_shown": "integer not null default 240",
@@ -442,12 +455,46 @@ schedule, possibly several.
              "style": ("style", "name")},
             ["rows_shown>0", "left>=0.0", "left<=1.0", "right<=1.0",
              "left<right", "top>=0.0", "top<=1.0", "bot>=0.0",
-             "bot<=1.0", "top>bot"])]
+             "bot<=1.0", "top>bot", "idx>=0"]),
+        (
+            "calendar_col",
+            {"window": "text not null default 'Main'",
+             "calendar": "integer not null default 0",
+             "idx": "integer not null"},
+            ("window", "calendar", "idx"),
+            {"window, calendar": ("calendar", "window, idx")},
+            ["idx>=0"]),
+        (
+            "calendar_col_loc",
+            {"window": "text not null default 'Main'",
+             "calendar": "integer not null default 0",
+             "idx": "integer not null",
+             "branch": "integer not null default 0",
+             "character": "text not null",
+             "dimension": "text not null",
+             "thing": "text not null"},
+            ("window", "calendar", "idx"),
+            {"window, calendar, idx": ("calendar_col", "window, calendar, idx"),
+             "character, dimension, branch, thing": (
+                 "character_things", "character, dimension, branch, thing")},
+            ["idx>=0"]),
+        (
+            "calendar_col_stat",
+            {"window": "text not null default 'Main'",
+             "calendar": "integer not null default 0",
+             "idx": "integer not null",
+             "branch": "integer not null default 0",
+             "character": "text not null",
+             "stat": "text not null"},
+            ("window", "calendar", "idx"),
+            {"window, calendar": ("calendar", "window, idx"),
+             "character, branch, stat": ("character_skills", "character, branch, stat")},
+            ["idx>=0"])]
     visible = True
 
     def __init__(
             self, window, idx, left, right, top, bot, style, interactive,
-            rows_shown, scrolled_to, scroll_factor):
+            rows_shown, scrolled_to, scroll_factor, max_cols, branches=None):
         self.window = window
         self.batch = self.window.batch
         self.group = self.window.calgroup
@@ -464,6 +511,9 @@ schedule, possibly several.
             scrolled_to = self.rumor.tick
         self.scrolled_to = scrolled_to
         self.scroll_factor = scroll_factor
+        self.max_cols = max_cols
+        if branches is not None:
+            self.branches = branches
         self.oldstate = None
         self.sprite = None
         self.tweaks = 0

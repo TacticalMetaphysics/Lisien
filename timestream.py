@@ -1,5 +1,21 @@
 from igraph import Graph, Vertex, Edge
+from util import SaveableMetaclass, dictify_row
 from collections import defaultdict
+
+
+__metaclass__ = SaveableMetaclass
+
+
+class BranchDictIter:
+    def __init__(self, branchdict):
+        self.realiter = branchdict.iteritems()
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        (branch, (parent, tick_from, tick_to)) = self.realiter.next()
+        return (branch, parent, tick_from, tick_to)
 
 
 class Timestream:
@@ -19,12 +35,25 @@ class Timestream:
     reflect the state of the branches.
 
     """
-    def __init__(self, branchdict, parentdict):
+    tables = [
+        ("timestream",
+         {"branch": "integer not null",
+          "parent": "integer not null",
+          "tick_from": "integer not null",
+          "tick_to": "integer not null"},
+         ("branch",),
+         {"parent": ("timestream", "branch")},
+         ["branch>=0", "tick_from>=0",
+          "tick_to>=tick_from", "parent=0 or parent<>branch"])]
+    def __init__(self, branches):
         # How am I going to populate the branchdict?
-        self.branchdict = branchdict
         self.branch_edges = defaultdict(set)
-        self.branch_parent = parentdict
         self.branch_done_to = defaultdict(lambda: -1)
+        self.branchdict = {}
+        for row in branches:
+            rd = dictify_row(row, self.colns)
+            self.branchdict[rd["branch"]] = (
+                rd["parent"], rd["tick_from"], rd["tick_to"])
         self.graph = Graph(directed=True)
         self.graph.add_vertices(2)
         self.graph.vs["tick"] = [0, 0]
@@ -56,9 +85,8 @@ be on the same tick, in which case they are connected by an edge of
 length zero.
 
         """
-        for branch in self.branchdict:
+        for (branch, (parent, tick_from, tick_to)) in self.branchdict.iteritems():
             done_to = self.branch_done_to[branch]
-            (tick_from, tick_to) = self.branchdict[branch]
             if tick_to > done_to:
                 # I am now looking at a tick-window that has not been
                 # put into the graph yet.
@@ -80,7 +108,6 @@ length zero.
                     # I assume that this dict reflects the genealogy
                     # of the branches accurately
                     try:
-                        parent = self.branch_parent[branch]
                         self.split_branch(
                             parent, branch, tick_from, tick_to - tick_from)
                     except KeyError:
@@ -124,18 +151,19 @@ length zero.
                 return True
         return False
 
-    def add_edge(self, vert_from, vert_to, branch):
+    def add_edge(self, branch, vert_from, vert_to):
+        assert(branch in self.branchdict)
         (vert_from, vi1) = self.sanitize_vert(vert_from)
         (vert_to, vi2) = self.sanitize_vert(vert_to)
         self.graph.add_edge(vi1, vi2, branch=branch)
         eid = self.graph.get_eid(vi1, vi2)
         self.branch_edges[branch].add(eid)
-        if branch not in self.branchdict:
-            self.branchdict[branch] = (vert_from["tick"], vert_to["tick"])
-        if vert_from["tick"] < self.branchdict[branch][0]:
-            self.branchdict[branch][0] = vert_from["tick"]
-        if vert_to["tick"] > self.branchdict[branch][1]:
-            self.branchdict[branch][1] = vert_to["tick"]
+        (p, a, z) = self.branchdict[branch]
+        if vert_from["tick"] < self.branchdict[branch][1]:
+            a = vert_from["tick"]
+        if vert_to["tick"] > self.branchdict[branch][2]:
+            z = vert_to["tick"]
+        self.branchdict[branch] = (p, a, z)
         return self.graph.es[eid]
 
     def delete_edge(self, e):
@@ -166,8 +194,8 @@ length zero.
         old_branch = e["branch"]
         v = self.add_vert(tick)
         i = v.index
-        e1 = self.add_edge(former, i, old_branch)
-        e2 = self.add_edge(i, latter, old_branch)
+        e1 = self.add_edge(old_branch, former, i)
+        e2 = self.add_edge(old_branch, i, latter)
         return (e1, v, e2)
 
     def get_edge(
@@ -234,6 +262,8 @@ a new edge off the split. The new edge will be a member of
 new_branch.
 
         """
+        assert(new_branch not in self.branchdict)
+        self.branchdict[new_branch] = (old_branch, tick_from, tick_to)
         e = self.get_edge_from_branch_tick(old_branch, tick_from)
         if e is None:
             vseq = self.graph.vs(tick_eq=tick_from)
@@ -242,7 +272,7 @@ new_branch.
         else:
             (e1, v1, e2) = self.add_vert_on(e, tick_from)
             v2 = self.add_vert(tick=tick_to)
-        return self.add_edge(v1, v2, new_branch)
+        return self.add_edge(new_branch, v1, v2)
 
     def latest_edge(self, branch):
         """Return the edge in the given branch that ends on the highest
@@ -277,6 +307,8 @@ the branch's current end."""
             self.branchdict[branch] = (
                 self.branchdict[branch][0], tick_to)
 
+    def get_tabdict(self):
+        return {"timestream": BranchDictIter(self.branchdict)}
 
 class TimestreamException(Exception):
     pass
