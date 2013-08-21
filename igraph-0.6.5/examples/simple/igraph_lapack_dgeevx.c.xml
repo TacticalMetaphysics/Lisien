@@ -1,0 +1,201 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2010-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;time.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdio.h&gt;
+
+<emphasis role="strong">#define</emphasis> DIM 10
+
+int <emphasis role="strong">real_cplx_mult</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *A,
+		   <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *v_real,
+		   <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *v_imag, 
+		   <link linkend='igraph_vector_t'>igraph_vector_t</link> *res_real,
+		   <link linkend='igraph_vector_t'>igraph_vector_t</link> *res_imag) {
+
+  int n=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v_real);
+  int r, c;
+
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(A) != n || 
+      <emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(A) != n || 
+      <emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v_imag) != n) {
+    <emphasis role="strong">printf</emphasis>("Wrong matrix or vector size");
+    <emphasis role="strong">return</emphasis> 1;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(res_real, n);
+  <emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(res_imag, n);
+
+  <emphasis role="strong">for</emphasis> (r=0; r&lt;n; r++) {
+    igraph_real_t s_real=0.0;
+    igraph_real_t s_imag=0.0;
+    <emphasis role="strong">for</emphasis> (c=0; c&lt;n; c++) {
+      s_real += <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*A, r, c) * <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v_real)[c];
+      s_imag += <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*A, r, c) * <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v_imag)[c];
+    }
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*res_real)[r]=s_real;
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*res_imag)[r]=s_imag;
+  }
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">sc_cplx_cplx_mult</emphasis>(igraph_real_t lambda_real,
+		      igraph_real_t lambda_imag,
+		      <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *v_real,
+		      <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *v_imag,
+		      <link linkend='igraph_vector_t'>igraph_vector_t</link> *res_real,
+		      <link linkend='igraph_vector_t'>igraph_vector_t</link> *res_imag) {
+  
+  int r;
+  int n=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v_real);
+  
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v_imag) != n) {
+    <emphasis role="strong">printf</emphasis>("Wrong vector sizes");
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(res_real, n);
+  <emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(res_imag, n);
+
+  <emphasis role="strong">for</emphasis> (r=0; r&lt;n; r++) {
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*res_real)[r] = (lambda_real * <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v_real)[r] -
+			    lambda_imag * <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v_imag)[r]);
+    <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*res_imag)[r] = (lambda_imag * <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v_real)[r] + 
+			    lambda_real * <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v_imag)[r]);
+  }
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+igraph_bool_t <emphasis role="strong">check_ev</emphasis>(<emphasis role="strong">const</emphasis> igraph_matrix_t *A, 
+		       <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *values_real,
+		       <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *values_imag,
+		       <emphasis role="strong">const</emphasis> igraph_matrix_t *vectors_left, 
+		       <emphasis role="strong">const</emphasis> igraph_matrix_t *vectors_right, 
+		       igraph_real_t tol) {
+
+  int n=<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(A);
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v_real, v_imag;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> AV_real, AV_imag, lv_real, lv_imag;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> null;
+  int i;
+  
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(A)             != n) { <emphasis role="strong">return</emphasis> 1; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(values_real)   != n) { <emphasis role="strong">return</emphasis> 1; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(values_imag)   != n) { <emphasis role="strong">return</emphasis> 1; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(vectors_left)  != n) { <emphasis role="strong">return</emphasis> 1; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(vectors_left)  != n) { <emphasis role="strong">return</emphasis> 1; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(vectors_right) != n) { <emphasis role="strong">return</emphasis> 1; }
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(vectors_right) != n) { <emphasis role="strong">return</emphasis> 1; }
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;AV_real, n);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;AV_imag, n);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;lv_real, n);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;lv_imag, n);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;null, n);
+  <emphasis role="strong"><link linkend='igraph_vector_null'>igraph_vector_null</link></emphasis>(&amp;null);
+
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*values_imag)[i]==0.0) {
+      <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;v_real, &amp;<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*vectors_right, 0, i), n);
+      <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;v_imag, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(null), n);
+    } <emphasis role="strong">else</emphasis> <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*values_imag)[i] &gt; 0.0) {
+      <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;v_real, &amp;<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*vectors_right, 0, i), n);
+      <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;v_imag, &amp;<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*vectors_right, 0, i+1), n);
+    } <emphasis role="strong">else</emphasis> <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*values_imag)[i] &lt; 0.0) {
+      <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;v_real, &amp;<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*vectors_right, 0, i-1), n);
+      <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;v_imag, &amp;<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(*vectors_right, 0, i), n);
+      <emphasis role="strong"><link linkend='igraph_vector_scale'>igraph_vector_scale</link></emphasis>(&amp;v_imag, -1.0);
+    }
+    <emphasis role="strong">real_cplx_mult</emphasis>(A, &amp;v_real, &amp;v_imag, &amp;AV_real, &amp;AV_imag);
+    <emphasis role="strong">sc_cplx_cplx_mult</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*values_real)[i], <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*values_imag)[i],
+		      &amp;v_real, &amp;v_imag, &amp;lv_real, &amp;lv_imag);
+    
+    <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_maxdifference'>igraph_vector_maxdifference</link></emphasis>(&amp;AV_real, &amp;lv_real) &gt; tol ||
+	<emphasis role="strong"><link linkend='igraph_vector_maxdifference'>igraph_vector_maxdifference</link></emphasis>(&amp;AV_imag, &amp;lv_imag) &gt; tol) {
+      <emphasis role="strong">igraph_vector_print</emphasis>(&amp;AV_real); <emphasis role="strong">igraph_vector_print</emphasis>(&amp;AV_imag);
+      <emphasis role="strong">igraph_vector_print</emphasis>(&amp;lv_real); <emphasis role="strong">igraph_vector_print</emphasis>(&amp;lv_imag);      
+      <emphasis role="strong">return</emphasis> 1;
+    }
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;null);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;AV_imag);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;AV_real);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;lv_imag);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;lv_real);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_matrix_t A;
+  igraph_matrix_t vectors_left, vectors_right;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> values_real, values_imag;
+  int i, j;
+  int info=1;
+  int ilo, ihi;
+  igraph_real_t abnrm;
+  
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 42);
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;A, DIM, DIM);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;vectors_left, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;vectors_right, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;values_real, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;values_imag, 0);
+
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;DIM; i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;DIM; j++) {
+      <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(A, i, j) = <emphasis role="strong"><link linkend='igraph_rng_get_integer'>igraph_rng_get_integer</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 1, 10);
+    }
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_lapack_dgeevx'>igraph_lapack_dgeevx</link></emphasis>(IGRAPH_LAPACK_DGEEVX_BALANCE_BOTH,
+		       &amp;A, &amp;values_real, &amp;values_imag, 
+		       &amp;vectors_left, &amp;vectors_right, &amp;ilo, &amp;ihi,
+		       <emphasis>/*scale=*/</emphasis> 0, &amp;abnrm, <emphasis>/*rconde=*/</emphasis> 0, 
+		       <emphasis>/*rcondv=*/</emphasis> 0, &amp;info);
+
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong">check_ev</emphasis>(&amp;A, &amp;values_real, &amp;values_imag, 
+	       &amp;vectors_left, &amp;vectors_right, <emphasis>/*tol=*/</emphasis> 1e-8)) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  
+  <emphasis>/* igraph_matrix_print(&amp;A); */</emphasis>
+  <emphasis>/* igraph_vector_print(&amp;values_real); */</emphasis>
+  <emphasis>/* igraph_vector_print(&amp;values_imag); */</emphasis>
+  <emphasis>/* igraph_matrix_print(&amp;vectors_left); */</emphasis>
+  <emphasis>/* igraph_matrix_print(&amp;vectors_right); */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;values_imag);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;values_real);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;vectors_right);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;vectors_left);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;A);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

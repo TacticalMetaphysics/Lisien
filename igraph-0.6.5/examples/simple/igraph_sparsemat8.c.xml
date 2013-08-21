@@ -1,0 +1,185 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2010-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+<emphasis role="strong">#define</emphasis> DIM1 10
+<emphasis role="strong">#define</emphasis> DIM2 5
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">INT</emphasis>(a) (<emphasis role="strong"><link linkend='igraph_rng_get_integer'>igraph_rng_get_integer</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 0, (a)))
+
+int <emphasis role="strong">main</emphasis>() {
+  igraph_matrix_t mat, mat2;
+  igraph_sparsemat_t spmat, spmat2;
+  int i, j, nz1, nz2;
+  igraph_real_t m1, m2;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> sums1, sums2;
+  
+  
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 42);
+
+  <emphasis>/* COPY */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;spmat, DIM1, DIM2, 20);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, <emphasis role="strong">INT</emphasis>(DIM1-1), <emphasis role="strong">INT</emphasis>(DIM2-1), 1.0);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_copy'>igraph_sparsemat_copy</link></emphasis>(&amp;spmat2, &amp;spmat);
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;mat, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;mat, &amp;spmat);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;mat2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;mat2, &amp;spmat2);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_all_e'>igraph_matrix_all_e</link></emphasis>(&amp;mat, &amp;mat2)) { <emphasis role="strong">return</emphasis> 1;}
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;mat2);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat2);
+  
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;spmat, &amp;spmat2);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_copy'>igraph_sparsemat_copy</link></emphasis>(&amp;spmat, &amp;spmat2);
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;mat2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;mat2, &amp;spmat);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_all_e'>igraph_matrix_all_e</link></emphasis>(&amp;mat, &amp;mat2)) { <emphasis role="strong">return</emphasis> 2; }
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat2);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;mat);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;mat2);
+
+  <emphasis>/* COLSUMS, ROWSUMS */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;spmat, DIM1, DIM2, 20);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, <emphasis role="strong">INT</emphasis>(DIM1-1), <emphasis role="strong">INT</emphasis>(DIM2-1), 1.0);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;spmat, &amp;spmat2);
+
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;mat, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;mat, &amp;spmat);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;sums1, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;sums2, 0);
+  <emphasis role="strong">igraph_sparsemat_colsums</emphasis>(&amp;spmat, &amp;sums1);
+  <emphasis role="strong"><link linkend='igraph_matrix_colsum'>igraph_matrix_colsum</link></emphasis>(&amp;mat, &amp;sums2);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_vector_all_e'>igraph_vector_all_e</link></emphasis>(&amp;sums1, &amp;sums2)) { <emphasis role="strong">return</emphasis> 3; }
+  <emphasis role="strong">igraph_sparsemat_colsums</emphasis>(&amp;spmat2, &amp;sums1);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_vector_all_e'>igraph_vector_all_e</link></emphasis>(&amp;sums1, &amp;sums2)) { <emphasis role="strong">return</emphasis> 4; }
+  
+  <emphasis role="strong">igraph_sparsemat_rowsums</emphasis>(&amp;spmat, &amp;sums1);
+  <emphasis role="strong"><link linkend='igraph_matrix_rowsum'>igraph_matrix_rowsum</link></emphasis>(&amp;mat, &amp;sums2);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_vector_all_e'>igraph_vector_all_e</link></emphasis>(&amp;sums1, &amp;sums2)) { <emphasis role="strong">return</emphasis> 5; }
+  <emphasis role="strong">igraph_sparsemat_rowsums</emphasis>(&amp;spmat2, &amp;sums1);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_vector_all_e'>igraph_vector_all_e</link></emphasis>(&amp;sums1, &amp;sums2)) { <emphasis role="strong">return</emphasis> 6; }
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;mat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat2);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;sums1);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;sums2);
+
+  <emphasis>/* COUNT_NONZERO, COUNT_NONZEROTOL */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;spmat, DIM1, DIM2, 20);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, 1, 2, 1.0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, 1, 2, 1.0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, 1, 3, 1e-12);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, <emphasis role="strong">INT</emphasis>(DIM1-1), <emphasis role="strong">INT</emphasis>(DIM2-1), 1.0);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;spmat, &amp;spmat2);
+
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;mat, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;mat, &amp;spmat2);
+
+  nz1=<emphasis role="strong">igraph_sparsemat_count_nonzero</emphasis>(&amp;spmat2);
+  <emphasis role="strong">for</emphasis> (nz2=0, i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;mat); i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(&amp;mat); j++) {
+      <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(mat, i, j) != 0) { nz2++; }
+    }
+  }
+  <emphasis role="strong">if</emphasis> (nz1 != nz2) { <emphasis role="strong">printf</emphasis>("%i %i\n", nz1, nz2); <emphasis role="strong">return</emphasis> 7; }
+  
+  nz1=<emphasis role="strong">igraph_sparsemat_count_nonzerotol</emphasis>(&amp;spmat2, 1e-10);
+  <emphasis role="strong">for</emphasis> (nz2=0, i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;mat); i++) {
+    <emphasis role="strong">for</emphasis> (j=0; j&lt;<emphasis role="strong"><link linkend='igraph_matrix_ncol'>igraph_matrix_ncol</link></emphasis>(&amp;mat); j++) {
+      <emphasis role="strong">if</emphasis> (<emphasis role="strong">fabs</emphasis>(<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(mat, i, j)) &gt;= 1e-10) { nz2++; }
+    }
+  }
+  <emphasis role="strong">if</emphasis> (nz1 != nz2) { <emphasis role="strong">printf</emphasis>("%i %i\n", nz1, nz2); <emphasis role="strong">return</emphasis> 8; }
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;mat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat2);
+
+  <emphasis>/* SCALE */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;spmat, DIM1, DIM2, 20);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, <emphasis role="strong">INT</emphasis>(DIM1-1), <emphasis role="strong">INT</emphasis>(DIM2-1), 1.0);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;spmat, &amp;spmat2);
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_scale'>igraph_sparsemat_scale</link></emphasis>(&amp;spmat, 2.0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_scale'>igraph_sparsemat_scale</link></emphasis>(&amp;spmat2, 2.0);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;mat, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;mat, &amp;spmat);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;mat2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;mat2, &amp;spmat2);
+  <emphasis role="strong"><link linkend='igraph_matrix_scale'>igraph_matrix_scale</link></emphasis>(&amp;mat, 1.0/2.0);
+  <emphasis role="strong"><link linkend='igraph_matrix_scale'>igraph_matrix_scale</link></emphasis>(&amp;mat2, 1.0/2.0);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_all_e'>igraph_matrix_all_e</link></emphasis>(&amp;mat, &amp;mat2)) { <emphasis role="strong">return</emphasis> 9; }
+
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;mat);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;mat2);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat2);
+
+  <emphasis>/* ADDROWS, ADDCOLS */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_sparsemat_init'>igraph_sparsemat_init</link></emphasis>(&amp;spmat, DIM1, DIM2, 20);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;10; i++) {
+    <emphasis role="strong"><link linkend='igraph_sparsemat_entry'>igraph_sparsemat_entry</link></emphasis>(&amp;spmat, <emphasis role="strong">INT</emphasis>(DIM1-1), <emphasis role="strong">INT</emphasis>(DIM2-1), 1.0);
+  }
+  <emphasis role="strong"><link linkend='igraph_sparsemat_compress'>igraph_sparsemat_compress</link></emphasis>(&amp;spmat, &amp;spmat2);
+  
+  <emphasis role="strong"><link linkend='igraph_sparsemat_add_rows'>igraph_sparsemat_add_rows</link></emphasis>(&amp;spmat, 3); 
+  <emphasis role="strong"><link linkend='igraph_sparsemat_add_cols'>igraph_sparsemat_add_cols</link></emphasis>(&amp;spmat, 2);
+  
+  <emphasis role="strong"><link linkend='igraph_sparsemat_add_rows'>igraph_sparsemat_add_rows</link></emphasis>(&amp;spmat2, 3);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_add_cols'>igraph_sparsemat_add_cols</link></emphasis>(&amp;spmat2, 2);
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;mat, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;mat, &amp;spmat);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;mat2, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_as_matrix'>igraph_sparsemat_as_matrix</link></emphasis>(&amp;mat2, &amp;spmat2);
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong"><link linkend='igraph_matrix_all_e'>igraph_matrix_all_e</link></emphasis>(&amp;mat, &amp;mat2)) { <emphasis role="strong">return</emphasis> 10; }
+
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;mat);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;mat2);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat);
+  <emphasis role="strong"><link linkend='igraph_sparsemat_destroy'>igraph_sparsemat_destroy</link></emphasis>(&amp;spmat2);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

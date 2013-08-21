@@ -1,0 +1,105 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdlib.h&gt;
+
+void <emphasis role="strong">free_complist</emphasis>(igraph_vector_ptr_t *complist) {
+  long int i;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(complist); i++) {
+    <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*complist)[i]);
+    <emphasis role="strong">free</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*complist)[i]);
+  }
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t ring, g;
+  igraph_vector_ptr_t complist;
+  long int i;
+  igraph_real_t edges[]= { 0,1,1,2,2,0,
+		    3,4,4,5,5,6,
+		    8,9,9,10 };
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> idvect;
+
+  <emphasis>/* A ring, a single component */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;ring, 10, IGRAPH_UNDIRECTED, 0, 1);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_init'>igraph_vector_ptr_init</link></emphasis>(&amp;complist, 0);
+  <emphasis role="strong"><link linkend='igraph_decompose'>igraph_decompose</link></emphasis>(&amp;ring, &amp;complist, IGRAPH_WEAK, -1, 0);
+  <emphasis role="strong"><link linkend='igraph_write_graph_edgelist'>igraph_write_graph_edgelist</link></emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(complist)[0], stdout);
+  <emphasis role="strong">free_complist</emphasis>(&amp;complist);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;ring);
+  
+  <emphasis>/* random graph with a giant component */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_erdos_renyi_game'>igraph_erdos_renyi_game</link></emphasis>(&amp;g, IGRAPH_ERDOS_RENYI_GNP, 100, 4.0/100, 
+			  IGRAPH_UNDIRECTED, 0);
+  <emphasis role="strong"><link linkend='igraph_decompose'>igraph_decompose</link></emphasis>(&amp;g, &amp;complist, IGRAPH_WEAK, -1, 20);
+  <emphasis role="strong">if</emphasis> (<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;complist) != 1) { 
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  <emphasis role="strong">free_complist</emphasis>(&amp;complist);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  
+  <emphasis>/* a toy graph, three components maximum, with at least 2 vertices each */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;g, 
+		<emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;v, edges, <emphasis role="strong">sizeof</emphasis>(edges)/<emphasis role="strong">sizeof</emphasis>(igraph_real_t)), 
+		0, IGRAPH_DIRECTED);
+  <emphasis role="strong"><link linkend='igraph_decompose'>igraph_decompose</link></emphasis>(&amp;g, &amp;complist, IGRAPH_WEAK, 3, 2);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_ptr_size'>igraph_vector_ptr_size</link></emphasis>(&amp;complist); i++) {
+    <emphasis role="strong"><link linkend='igraph_write_graph_edgelist'>igraph_write_graph_edgelist</link></emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(complist)[i], stdout);
+  }
+  <emphasis role="strong">free_complist</emphasis>(&amp;complist);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* The same graph, this time with vertex attributes */</emphasis>
+<emphasis>/*   igraph_vector_init_seq(&amp;idvect, 0, igraph_vcount(&amp;g)-1); */</emphasis>
+<emphasis>/*   igraph_add_vertex_attribute(&amp;g, "id", IGRAPH_ATTRIBUTE_NUM); */</emphasis>
+<emphasis>/*   igraph_set_vertex_attributes(&amp;g, "id", IGRAPH_VS_ALL(&amp;g), &amp;idvect); */</emphasis>
+<emphasis>/*   igraph_vector_destroy(&amp;idvect); */</emphasis>
+
+<emphasis>/*   igraph_decompose(&amp;g, &amp;complist, IGRAPH_WEAK, 3, 2); */</emphasis>
+<emphasis>/*   for (i=0; i&lt;igraph_vector_ptr_size(&amp;complist); i++) { */</emphasis>
+<emphasis>/*     igraph_t *comp=VECTOR(complist)[i]; */</emphasis>
+<emphasis>/*     igraph_es_t es; */</emphasis>
+<emphasis>/*     igraph_es_all(comp, &amp;es); */</emphasis>
+<emphasis>/*     while (!igraph_es_end(comp, &amp;es)) { */</emphasis>
+<emphasis>/*       igraph_real_t *from, *to;  */</emphasis>
+<emphasis>/*       igraph_get_vertex_attribute(comp, "id", igraph_es_from(comp, &amp;es), */</emphasis>
+<emphasis>/* 				  (void**) &amp;from, 0); */</emphasis>
+<emphasis>/*       igraph_get_vertex_attribute(comp, "id", igraph_es_to(comp, &amp;es), */</emphasis>
+<emphasis>/* 				  (void**) &amp;to, 0); */</emphasis>
+<emphasis>/*       printf("%li %li\n", (long int) *from, (long int) *to); */</emphasis>
+<emphasis>/*       igraph_es_next(comp, &amp;es); */</emphasis>
+<emphasis>/*     } */</emphasis>
+<emphasis>/*   } */</emphasis>
+  
+<emphasis>/*   free_complist(&amp;complist); */</emphasis>
+<emphasis>/*   igraph_destroy(&amp;g);   */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_vector_ptr_destroy'>igraph_vector_ptr_destroy</link></emphasis>(&amp;complist);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

@@ -1,0 +1,75 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+void <emphasis role="strong">print_vector</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link> *v, FILE *f) {
+  long int i;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v); i++) {
+    <emphasis role="strong">fprintf</emphasis>(f, " %li", (long int) <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v)[i]);
+  }
+  <emphasis role="strong">fprintf</emphasis>(f, "\n");
+}
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v;
+  int ret;
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, 8);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[0]=0; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[1]=1;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[2]=1; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[3]=2;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[4]=2; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[5]=3;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[6]=2; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[7]=2;
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;g, &amp;v, 0, 1);
+
+  <emphasis role="strong"><link linkend='igraph_neighbors'>igraph_neighbors</link></emphasis>(&amp;g, &amp;v, 2, IGRAPH_OUT);
+  <emphasis role="strong"><link linkend='igraph_vector_sort'>igraph_vector_sort</link></emphasis>(&amp;v);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v, stdout);
+  
+  <emphasis role="strong"><link linkend='igraph_neighbors'>igraph_neighbors</link></emphasis>(&amp;g, &amp;v, 2, IGRAPH_IN);
+  <emphasis role="strong"><link linkend='igraph_vector_sort'>igraph_vector_sort</link></emphasis>(&amp;v);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v, stdout);
+
+  <emphasis role="strong"><link linkend='igraph_neighbors'>igraph_neighbors</link></emphasis>(&amp;g, &amp;v, 2, IGRAPH_ALL);
+  <emphasis role="strong"><link linkend='igraph_vector_sort'>igraph_vector_sort</link></emphasis>(&amp;v);
+  <emphasis role="strong">print_vector</emphasis>(&amp;v, stdout);
+  
+  <emphasis>/* Errors */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_ignore'>igraph_error_handler_ignore</link>);
+  ret=<emphasis role="strong"><link linkend='igraph_neighbors'>igraph_neighbors</link></emphasis>(&amp;g, &amp;v, 2, (igraph_neimode_t)0); <emphasis>/* conv for c++ */</emphasis>
+  <emphasis role="strong">if</emphasis> (ret != IGRAPH_EINVMODE) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  
+  ret=<emphasis role="strong"><link linkend='igraph_neighbors'>igraph_neighbors</link></emphasis>(&amp;g, &amp;v, 4, IGRAPH_ALL);
+  <emphasis role="strong">if</emphasis> (ret != IGRAPH_EINVVID) {
+    <emphasis role="strong">return</emphasis> 2;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

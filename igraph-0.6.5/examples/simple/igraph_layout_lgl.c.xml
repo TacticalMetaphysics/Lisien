@@ -1,0 +1,50 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;math.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_t g;
+  igraph_matrix_t coords;
+  igraph_real_t vc;
+  
+  <emphasis role="strong"><link linkend='igraph_tree'>igraph_tree</link></emphasis>(&amp;g, 100, 3, IGRAPH_TREE_UNDIRECTED);
+<emphasis>/*   igraph_barabasi_game(&amp;g, 1000, 1, 0, 0, IGRAPH_UNDIRECTED); */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;coords, 0, 0);
+  vc=<emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g);
+  <emphasis role="strong"><link linkend='igraph_layout_lgl'>igraph_layout_lgl</link></emphasis>(&amp;g, &amp;coords, 
+		    <emphasis>/* maxiter */</emphasis>    150, 
+		    <emphasis>/* maxdelta */</emphasis>   vc,
+		    <emphasis>/* area */</emphasis>       vc*vc,
+		    <emphasis>/* coolexp */</emphasis>    1.5,
+		    <emphasis>/* repulserad */</emphasis> vc*vc*vc,
+		    <emphasis>/* cellsize */</emphasis>   <emphasis role="strong">sqrt</emphasis>(<emphasis role="strong">sqrt</emphasis>(vc)),
+		    <emphasis>/* root */</emphasis>       0);
+  
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;coords);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

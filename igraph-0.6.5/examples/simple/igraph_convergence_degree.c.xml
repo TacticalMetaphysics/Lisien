@@ -1,0 +1,52 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> result;
+  long i;
+  
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;result, 0);
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 7, 0, 0,1,0,2,0,3,1,2,1,3,2,3,3,4,4,5,4,6,5,6, -1);
+  <emphasis role="strong">igraph_convergence_degree</emphasis>(&amp;g, &amp;result, 0, 0);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;g); i++)
+    <emphasis role="strong">printf</emphasis>("%.4f ", (float)<emphasis role="strong"><link linkend='igraph_vector_e'>igraph_vector_e</link></emphasis>(&amp;result, i));
+  <emphasis role="strong">printf</emphasis>("\n");
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 6, 1, 1,0,2,0,3,0,4,0,0,5, -1);
+  <emphasis role="strong">igraph_convergence_degree</emphasis>(&amp;g, &amp;result, 0, 0);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;g); i++)
+    <emphasis role="strong">printf</emphasis>("%.4f ", (float)<emphasis role="strong"><link linkend='igraph_vector_e'>igraph_vector_e</link></emphasis>(&amp;result, i));
+  <emphasis role="strong">printf</emphasis>("\n");
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;result);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

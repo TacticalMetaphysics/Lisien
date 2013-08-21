@@ -1,0 +1,103 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdio.h&gt;
+
+int <emphasis role="strong">main</emphasis>(int argc, char **argv) {
+  int i;
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> values;
+  igraph_strvector_t strvalues;
+  <emphasis role="strong">const</emphasis> char* strings[] = {"foo", "bar", "baz", "spam", "eggs", "bacon"};
+
+  <emphasis>/* Setting up attribute handler */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_i_set_attribute_table'>igraph_i_set_attribute_table</link></emphasis>(&amp;igraph_cattribute_table);
+
+  <emphasis>/* Saving directed graph, no attributes */</emphasis>  
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;g, 5, <emphasis>/* directed = */</emphasis> 1,
+                     <emphasis>/* mutual   = */</emphasis> 0,
+                     <emphasis>/* circular = */</emphasis> 1);
+  <emphasis role="strong">igraph_write_graph_leda</emphasis>(&amp;g, stdout, 0, 0);
+  <emphasis role="strong">printf</emphasis>("===\n");
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* Saving undirected graph, no attributes */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;g, 5, <emphasis>/* directed = */</emphasis> 0,
+                     <emphasis>/* mutual   = */</emphasis> 0,
+                     <emphasis>/* circular = */</emphasis> 1);
+  <emphasis role="strong">igraph_write_graph_leda</emphasis>(&amp;g, stdout, 0, 0);
+  <emphasis role="strong">printf</emphasis>("===\n");
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* Saving directed graph with vertex attributes */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;g, 5, <emphasis>/* directed = */</emphasis> 1,
+                     <emphasis>/* mutual   = */</emphasis> 0,
+                     <emphasis>/* circular = */</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_vector_init_seq'>igraph_vector_init_seq</link></emphasis>(&amp;values, 5, 9);
+  <emphasis role="strong"><link linkend='SETVANV'>SETVANV</link></emphasis>(&amp;g, "name", &amp;values);
+  <emphasis role="strong">igraph_write_graph_leda</emphasis>(&amp;g, stdout, "name", 0);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;values);
+  <emphasis role="strong">printf</emphasis>("===\n");
+  <emphasis role="strong"><link linkend='DELVAS'>DELVAS</link></emphasis>(&amp;g);
+  <emphasis role="strong"><link linkend='igraph_strvector_init'>igraph_strvector_init</link></emphasis>(&amp;strvalues, 5);
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; 5; i++)
+    <emphasis role="strong"><link linkend='igraph_strvector_set'>igraph_strvector_set</link></emphasis>(&amp;strvalues, i, strings[i]);
+  <emphasis role="strong"><link linkend='SETVASV'>SETVASV</link></emphasis>(&amp;g, "name", &amp;strvalues);
+  <emphasis role="strong">igraph_write_graph_leda</emphasis>(&amp;g, stdout, "name", 0);
+  <emphasis role="strong"><link linkend='igraph_strvector_destroy'>igraph_strvector_destroy</link></emphasis>(&amp;strvalues);
+  <emphasis role="strong">printf</emphasis>("===\n");
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* Saving undirected graph with edge attributes */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;g, 5, <emphasis>/* directed = */</emphasis> 0,
+                     <emphasis>/* mutual   = */</emphasis> 0,
+                     <emphasis>/* circular = */</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_vector_init_seq'>igraph_vector_init_seq</link></emphasis>(&amp;values, 5, 9);
+  <emphasis role="strong"><link linkend='SETEANV'>SETEANV</link></emphasis>(&amp;g, "weight", &amp;values);
+  <emphasis role="strong">igraph_write_graph_leda</emphasis>(&amp;g, stdout, 0, "weight");
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;values);
+  <emphasis role="strong">printf</emphasis>("===\n");
+  <emphasis role="strong"><link linkend='DELEAS'>DELEAS</link></emphasis>(&amp;g);
+  <emphasis role="strong"><link linkend='igraph_strvector_init'>igraph_strvector_init</link></emphasis>(&amp;strvalues, 5);
+  <emphasis role="strong">for</emphasis> (i = 0; i &lt; 5; i++)
+    <emphasis role="strong"><link linkend='igraph_strvector_set'>igraph_strvector_set</link></emphasis>(&amp;strvalues, i, strings[i]);
+  <emphasis role="strong"><link linkend='SETEASV'>SETEASV</link></emphasis>(&amp;g, "weight", &amp;strvalues);
+  <emphasis role="strong">igraph_write_graph_leda</emphasis>(&amp;g, stdout, 0, "weight");
+  <emphasis role="strong"><link linkend='igraph_strvector_destroy'>igraph_strvector_destroy</link></emphasis>(&amp;strvalues);
+  <emphasis role="strong">printf</emphasis>("===\n");
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* Saving undirected graph with edge attributes and large weights */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;g, 5, <emphasis>/* directed = */</emphasis> 0,
+                     <emphasis>/* mutual   = */</emphasis> 0,
+                     <emphasis>/* circular = */</emphasis> 1);
+  <emphasis role="strong"><link linkend='igraph_vector_init_seq'>igraph_vector_init_seq</link></emphasis>(&amp;values, 123456789, 123456793);
+  <emphasis role="strong"><link linkend='SETEANV'>SETEANV</link></emphasis>(&amp;g, "weight", &amp;values);
+  <emphasis role="strong">igraph_write_graph_leda</emphasis>(&amp;g, stdout, 0, "weight");
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;values);
+  <emphasis role="strong">printf</emphasis>("===\n");
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

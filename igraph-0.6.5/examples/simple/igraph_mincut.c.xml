@@ -1,0 +1,110 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2007-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">print_mincut</emphasis>(<emphasis role="strong">const</emphasis> igraph_t *graph, igraph_real_t value, 
+		 <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *partition, 
+		 <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *partition2, 
+		 <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *cut, 
+		 <emphasis role="strong">const</emphasis> <link linkend='igraph_vector_t'>igraph_vector_t</link> *capacity) {
+  
+  long int i, nc=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(cut);
+  igraph_bool_t directed=<emphasis role="strong"><link linkend='igraph_is_directed'>igraph_is_directed</link></emphasis>(graph);
+
+  <emphasis role="strong">printf</emphasis>("mincut value: %g\n", (double) value);
+  <emphasis role="strong">printf</emphasis>("first partition:  ");  <emphasis role="strong">igraph_vector_print</emphasis>(partition);
+  <emphasis role="strong">printf</emphasis>("second partition: ");  <emphasis role="strong">igraph_vector_print</emphasis>(partition2);
+  <emphasis role="strong">printf</emphasis>("edges in the cut: ");
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;nc; i++) {
+    long int edge=<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*cut)[i];
+    long int from=<emphasis role="strong">IGRAPH_FROM</emphasis>(graph, edge);
+    long int to  =<emphasis role="strong">IGRAPH_TO</emphasis>  (graph, edge);
+    <emphasis role="strong">if</emphasis> (!directed &amp;&amp; from &gt; to) {
+      igraph_integer_t tmp=from;
+      from=to;
+      to=tmp;
+    }
+    <emphasis role="strong">printf</emphasis>("%li-%li (%g), ", from, to, <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*capacity)[edge]);
+  }
+  <emphasis role="strong">printf</emphasis>("\n");
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> weights, partition, partition2, cut;
+  igraph_real_t value;
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;partition, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;partition2, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;cut, 0);
+
+  <emphasis>/* -------------------------------------------- */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 0, IGRAPH_UNDIRECTED, 
+	       0,1, 0,4, 1,2, 1,4, 1,5, 2,3, 2,6, 3,6, 3,7, 4,5, 5,6, 6,7,
+	       -1);
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;weights, -1, 2,3,3,2,2, 4,2,2,2,3, 1,3, -1);
+  
+  <emphasis role="strong"><link linkend='igraph_mincut'>igraph_mincut</link></emphasis>(&amp;g, &amp;value, &amp;partition, &amp;partition2, &amp;cut, &amp;weights);
+  <emphasis role="strong">print_mincut</emphasis>(&amp;g, value, &amp;partition, &amp;partition2, &amp;cut, &amp;weights);
+  
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;weights);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* -------------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 6, IGRAPH_DIRECTED,
+	       0,1,1,2,2,3, 0,5,5,4,4,3, 3,0, -1);
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;weights, -1, 3,1,2, 10,1,3, 2, -1);
+
+  <emphasis role="strong"><link linkend='igraph_mincut'>igraph_mincut</link></emphasis>(&amp;g, &amp;value, &amp;partition, &amp;partition2, &amp;cut, &amp;weights);
+  <emphasis role="strong">print_mincut</emphasis>(&amp;g, value, &amp;partition, &amp;partition2, &amp;cut, &amp;weights);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;weights);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* -------------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 5, IGRAPH_DIRECTED,
+	       4,3, 3,2, 2,1, 1,0, 
+	       -1);
+  <emphasis role="strong">igraph_vector_init_int_end</emphasis>(&amp;weights, -1, 1,1,1,1, -1);
+  <emphasis role="strong"><link linkend='igraph_mincut'>igraph_mincut</link></emphasis>(&amp;g, &amp;value, &amp;partition, &amp;partition2, &amp;cut, &amp;weights);
+  <emphasis role="strong">print_mincut</emphasis>(&amp;g, value, &amp;partition, &amp;partition2, &amp;cut, &amp;weights);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;weights);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* -------------------------------------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;cut);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;partition2);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;partition);
+ 
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

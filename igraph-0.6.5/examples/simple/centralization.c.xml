@@ -1,0 +1,174 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2009-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;math.h&gt;
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">ALMOST_EQUALS</emphasis>(a, b) (<emphasis role="strong">fabs</emphasis>((a)-(b)) &lt; 1e-8)
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_t g;
+  igraph_real_t cent;
+  <link linkend='igraph_arpack_options_t'>igraph_arpack_options_t</link> arpack_options;
+
+  <emphasis>/****************************/</emphasis>
+  <emphasis>/* in-star */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_star'>igraph_star</link></emphasis>(&amp;g, 10, IGRAPH_STAR_IN, <emphasis>/*center=*/</emphasis> 0);
+  
+  <emphasis role="strong"><link linkend='igraph_centralization_degree'>igraph_centralization_degree</link></emphasis>(&amp;g, <emphasis>/*res=*/</emphasis> 0,
+			       <emphasis>/*mode=*/</emphasis> IGRAPH_IN, IGRAPH_NO_LOOPS,
+			       &amp;cent, <emphasis>/*theoretical_max=*/</emphasis> 0, 
+			       <emphasis>/*normalized=*/</emphasis> 1);
+  <emphasis role="strong">if</emphasis> (cent != 1.0) { 
+    <emphasis role="strong">fprintf</emphasis>(stderr, "in-star, degree: %g\n", cent); 
+    <emphasis role="strong">return</emphasis> 1; 
+  }
+
+  <emphasis role="strong"><link linkend='igraph_centralization_betweenness'>igraph_centralization_betweenness</link></emphasis>(&amp;g, <emphasis>/*res=*/</emphasis> 0,
+				    IGRAPH_UNDIRECTED, <emphasis>/*nobigint=*/</emphasis> 1, &amp;cent, 
+				    <emphasis>/*theoretical_max=*/</emphasis> 0,
+				    <emphasis>/*normalized=*/</emphasis> 1);
+  <emphasis role="strong">if</emphasis> (cent != 1.0) { 
+    <emphasis role="strong">fprintf</emphasis>(stderr, "in-star, betweenness: %g\n", cent); 
+    <emphasis role="strong">return</emphasis> 2; 
+  }
+
+  <emphasis role="strong"><link linkend='igraph_centralization_closeness'>igraph_centralization_closeness</link></emphasis>(&amp;g, <emphasis>/*res=*/</emphasis> 0,
+				  IGRAPH_IN, &amp;cent, 
+				  <emphasis>/*theoretical_max=*/</emphasis> 0,
+				  <emphasis>/*normalization=*/</emphasis> 1);
+  
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">ALMOST_EQUALS</emphasis>(cent, 1.0)) {
+    <emphasis role="strong">fprintf</emphasis>(stderr, "in-star, closeness: %g\n", cent);
+    <emphasis role="strong">return</emphasis> 3;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  
+  <emphasis>/****************************/</emphasis>
+  <emphasis>/* out-star */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_star'>igraph_star</link></emphasis>(&amp;g, 10, IGRAPH_STAR_OUT, <emphasis>/*center=*/</emphasis> 0);
+  
+  <emphasis role="strong"><link linkend='igraph_centralization_degree'>igraph_centralization_degree</link></emphasis>(&amp;g, <emphasis>/*res=*/</emphasis> 0,
+			       <emphasis>/*mode=*/</emphasis> IGRAPH_OUT, IGRAPH_NO_LOOPS,
+			       &amp;cent, <emphasis>/*theoretical_max=*/</emphasis> 0,
+			       <emphasis>/*normalized=*/</emphasis> 1);
+  <emphasis role="strong">if</emphasis> (cent != 1.0) { 
+    <emphasis role="strong">fprintf</emphasis>(stderr, "out-star, degree: %g\n", cent); 
+    <emphasis role="strong">return</emphasis> 11; 
+  }
+
+  <emphasis role="strong"><link linkend='igraph_centralization_betweenness'>igraph_centralization_betweenness</link></emphasis>(&amp;g, <emphasis>/*res=*/</emphasis> 0,
+				    IGRAPH_UNDIRECTED, <emphasis>/*nobigint=*/</emphasis> 1, &amp;cent,
+				    <emphasis>/*theoretical_max=*/</emphasis> 0,
+				    <emphasis>/*normalized=*/</emphasis> 1);
+  <emphasis role="strong">if</emphasis> (cent != 1.0) { 
+    <emphasis role="strong">fprintf</emphasis>(stderr, "out-star, betweenness: %g\n", cent); 
+    <emphasis role="strong">return</emphasis> 12; 
+  }
+
+  <emphasis role="strong"><link linkend='igraph_centralization_closeness'>igraph_centralization_closeness</link></emphasis>(&amp;g, <emphasis>/*res=*/</emphasis> 0,
+				  IGRAPH_OUT, &amp;cent, 
+				  <emphasis>/*theoretical_max=*/</emphasis> 0,
+				  <emphasis>/*normalization=*/</emphasis> 1);
+  
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">ALMOST_EQUALS</emphasis>(cent, 1.0)) {
+    <emphasis role="strong">fprintf</emphasis>(stderr, "out-star, closeness: %g\n", cent);
+    <emphasis role="strong">return</emphasis> 13;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  
+  <emphasis>/****************************/</emphasis>
+  <emphasis>/* undricted star */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_star'>igraph_star</link></emphasis>(&amp;g, 10, IGRAPH_STAR_UNDIRECTED, <emphasis>/*center=*/</emphasis> 0);
+  
+  <emphasis role="strong"><link linkend='igraph_centralization_degree'>igraph_centralization_degree</link></emphasis>(&amp;g, <emphasis>/*res=*/</emphasis> 0,
+			       <emphasis>/*mode=*/</emphasis> IGRAPH_ALL, IGRAPH_NO_LOOPS,
+			       &amp;cent, <emphasis>/*theoretical_max=*/</emphasis> 0,
+			       <emphasis>/*normalized=*/</emphasis> 1);
+  <emphasis role="strong">if</emphasis> (cent != 1.0) { 
+    <emphasis role="strong">fprintf</emphasis>(stderr, "undirected star, degree: %g\n", cent); 
+    <emphasis role="strong">return</emphasis> 21; 
+  }
+
+  <emphasis role="strong"><link linkend='igraph_centralization_betweenness'>igraph_centralization_betweenness</link></emphasis>(&amp;g, <emphasis>/*res=*/</emphasis> 0,
+				    IGRAPH_UNDIRECTED, <emphasis>/*nobigint=*/</emphasis> 1, &amp;cent,
+				    <emphasis>/*theoretical_max=*/</emphasis> 0,
+				    <emphasis>/*normalized=*/</emphasis> 1);
+  <emphasis role="strong">if</emphasis> (cent != 1.0) { 
+    <emphasis role="strong">fprintf</emphasis>(stderr, "undirected star, betweenness: %g\n", cent); 
+    <emphasis role="strong">return</emphasis> 22; 
+  }
+
+  <emphasis role="strong"><link linkend='igraph_centralization_closeness'>igraph_centralization_closeness</link></emphasis>(&amp;g, <emphasis>/*res=*/</emphasis> 0,
+				  IGRAPH_ALL, &amp;cent, 
+				  <emphasis>/*theoretical_max=*/</emphasis> 0,
+				  <emphasis>/*normalization=*/</emphasis> 1);
+  
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">ALMOST_EQUALS</emphasis>(cent, 1.0)) {
+    <emphasis role="strong">fprintf</emphasis>(stderr, "undirected star, closeness: %g\n", cent);
+    <emphasis role="strong">return</emphasis> 23;
+  }
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/****************************/</emphasis>
+  <emphasis>/* single dyad */</emphasis>
+  
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, <emphasis>/*n=*/</emphasis> 10, <emphasis>/*directed=*/</emphasis> 0, 
+	       0,1, -1);
+  
+  <emphasis role="strong"><link linkend='igraph_arpack_options_init'>igraph_arpack_options_init</link></emphasis>(&amp;arpack_options);
+  <emphasis role="strong"><link linkend='igraph_centralization_eigenvector_centrality'>igraph_centralization_eigenvector_centrality</link></emphasis>(&amp;g, <emphasis>/*vector=*/</emphasis> 0,
+					       <emphasis>/*value=*/</emphasis> 0, 
+					       <emphasis>/*directed=*/</emphasis> 1,
+					       <emphasis>/*scale=*/</emphasis> 1,
+					       &amp;arpack_options, &amp;cent,
+					       <emphasis>/*theoretical_max=*/</emphasis> 0,
+					       <emphasis>/*normalization=*/</emphasis> 1);
+  
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">ALMOST_EQUALS</emphasis>(cent, 1.0)) {
+    <emphasis role="strong">fprintf</emphasis>(stderr, "dyad, eigenvector centrality: %g\n", cent);
+    <emphasis role="strong">return</emphasis> 24;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_centralization_eigenvector_centrality'>igraph_centralization_eigenvector_centrality</link></emphasis>(&amp;g, <emphasis>/*vector=*/</emphasis> 0,
+					       <emphasis>/*value=*/</emphasis> 0, 
+					       <emphasis>/*directed=*/</emphasis> 1,
+					       <emphasis>/*scale=*/</emphasis> 0,
+					       &amp;arpack_options, &amp;cent,
+					       <emphasis>/*theoretical_max=*/</emphasis> 0,
+					       <emphasis>/*normalization=*/</emphasis> 1);
+  
+  <emphasis role="strong">if</emphasis> (!<emphasis role="strong">ALMOST_EQUALS</emphasis>(cent, 1.0)) {
+    <emphasis role="strong">fprintf</emphasis>(stderr, "dyad, eigenvector centrality, not scaled: %g\n", cent);
+    <emphasis role="strong">return</emphasis> 25;
+  }
+    
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

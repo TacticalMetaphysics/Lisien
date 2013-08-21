@@ -1,0 +1,11 @@
+DL n=5
+format = nodelist1
+labels embedded:
+data:
+george sally jim
+sally jim
+billy george
+jane jim 
+
+
+  

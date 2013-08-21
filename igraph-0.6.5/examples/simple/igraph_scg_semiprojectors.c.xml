@@ -1,0 +1,113 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2011-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_t g;
+  igraph_matrix_t L, R;
+  igraph_sparsemat_t Lsparse, Rsparse;
+  igraph_matrix_t adj, V;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> groups;
+  igraph_eigen_which_t which;
+
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;L, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;R, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;adj, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;V, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;groups, 0);
+    
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 42);
+  
+  <emphasis role="strong"><link linkend='igraph_tree'>igraph_tree</link></emphasis>(&amp;g, 10, <emphasis>/* children= */</emphasis> 3, IGRAPH_TREE_UNDIRECTED);
+  
+  <emphasis role="strong"><link linkend='igraph_get_adjacency'>igraph_get_adjacency</link></emphasis>(&amp;g, &amp;adj, IGRAPH_GET_ADJACENCY_BOTH, <emphasis>/*eids=*/</emphasis> 0);
+
+  which.pos=IGRAPH_EIGEN_LM;
+  which.howmany=1;
+  <emphasis role="strong">igraph_eigen_matrix_symmetric</emphasis>(&amp;adj, <emphasis>/*sparsemat=*/</emphasis> 0, <emphasis>/*fun=*/</emphasis> 0,
+				<emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g), <emphasis>/*extra=*/</emphasis> 0, 
+				<emphasis>/*algorithm=*/</emphasis> IGRAPH_EIGEN_LAPACK,
+				&amp;which, <emphasis>/*options=*/</emphasis> 0, <emphasis>/*storage=*/</emphasis> 0, 
+				<emphasis>/*values=*/</emphasis> 0, &amp;V);
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">SEMI</emphasis>()								\
+  <emphasis role="strong">do</emphasis> {									\
+    <emphasis role="strong"><link linkend='igraph_scg_semiprojectors'>igraph_scg_semiprojectors</link></emphasis>(&amp;groups, IGRAPH_SCG_SYMMETRIC, &amp;L, &amp;R,	\
+			      &amp;Lsparse, &amp;Rsparse, <emphasis>/*p=*/</emphasis> 0,		\
+			      IGRAPH_SCG_NORM_ROW);			\
+  } <emphasis role="strong">while</emphasis>(0)
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">PRINTRES</emphasis>()				\
+  <emphasis role="strong">do</emphasis> {						\
+    <emphasis role="strong">printf</emphasis>("----------------------\n");		\
+    <emphasis role="strong">igraph_matrix_print</emphasis>(&amp;L);			\
+    <emphasis role="strong">printf</emphasis>("---\n");				\
+    <emphasis role="strong">igraph_matrix_print</emphasis>(&amp;R);			\
+    <emphasis role="strong">printf</emphasis>("---\n");				\
+  } <emphasis role="strong">while</emphasis> (0)
+
+  <emphasis>/* -------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_scg_grouping'>igraph_scg_grouping</link></emphasis>(&amp;V, &amp;groups, <emphasis>/*intervals=*/</emphasis> 3, 
+		      <emphasis>/*intervals_vector=*/</emphasis> 0, IGRAPH_SCG_SYMMETRIC,
+		      IGRAPH_SCG_OPTIMUM, <emphasis>/*p=*/</emphasis> 0, <emphasis>/*maxiter=*/</emphasis> 10000);
+  <emphasis role="strong">SEMI</emphasis>();
+  <emphasis role="strong">PRINTRES</emphasis>();
+
+  <emphasis>/* -------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_scg_grouping'>igraph_scg_grouping</link></emphasis>(&amp;V, &amp;groups, <emphasis>/*intervals=*/</emphasis> 2, 
+		      <emphasis>/*intervals_vector=*/</emphasis> 0, IGRAPH_SCG_SYMMETRIC,
+		      IGRAPH_SCG_INTERV_KM, <emphasis>/*p=*/</emphasis> 0, <emphasis>/*maxiter=*/</emphasis> 10000);
+  <emphasis role="strong">SEMI</emphasis>();
+  <emphasis role="strong">PRINTRES</emphasis>();
+
+  <emphasis>/* -------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_scg_grouping'>igraph_scg_grouping</link></emphasis>(&amp;V, &amp;groups, <emphasis>/*intervals=*/</emphasis> 2, 
+		      <emphasis>/*intervals_vector=*/</emphasis> 0, IGRAPH_SCG_SYMMETRIC,
+		      IGRAPH_SCG_INTERV, <emphasis>/*p=*/</emphasis> 0, <emphasis>/*maxiter=*/</emphasis> 10000);
+  <emphasis role="strong">SEMI</emphasis>();
+  <emphasis role="strong">PRINTRES</emphasis>();
+
+  <emphasis>/* -------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_scg_grouping'>igraph_scg_grouping</link></emphasis>(&amp;V, &amp;groups, <emphasis>/*(ignored) intervals=*/</emphasis> 0, 
+		      <emphasis>/*intervals_vector=*/</emphasis> 0, IGRAPH_SCG_SYMMETRIC,
+		      IGRAPH_SCG_EXACT, <emphasis>/*p=*/</emphasis> 0, <emphasis>/*maxiter=*/</emphasis> 10000);
+  <emphasis role="strong">SEMI</emphasis>();
+  <emphasis role="strong">PRINTRES</emphasis>();
+
+  <emphasis>/* -------------- */</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;groups);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;V);
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;adj);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+    
+</programlisting>

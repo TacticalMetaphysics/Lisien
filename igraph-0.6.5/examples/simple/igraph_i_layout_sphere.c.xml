@@ -1,0 +1,87 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;time.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdlib.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;math.h&gt;
+
+int <emphasis role="strong">igraph_i_layout_sphere_2d</emphasis>(igraph_matrix_t *coords, igraph_real_t *x, igraph_real_t *y,
+			      igraph_real_t *r);
+int <emphasis role="strong">igraph_i_layout_sphere_3d</emphasis>(igraph_matrix_t *coords, igraph_real_t *x, igraph_real_t *y,
+			      igraph_real_t *z, igraph_real_t *r);
+
+int <emphasis role="strong">main</emphasis> () {
+  long int i; 
+  igraph_matrix_t m;
+  igraph_real_t x, y, z, r;
+
+  <emphasis role="strong">srand</emphasis>(<emphasis role="strong">time</emphasis>(0));
+
+  <emphasis>/* 2D */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m, 1000, 2);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;m); i++) {
+    <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,0)=<emphasis role="strong">rand</emphasis>()/(double)RAND_MAX;
+    <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,1)=<emphasis role="strong">rand</emphasis>()/(double)RAND_MAX;
+  }
+  <emphasis role="strong">igraph_i_layout_sphere_2d</emphasis>(&amp;m, &amp;x, &amp;y, &amp;r);
+  
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;m); i++) {
+    igraph_real_t dist=<emphasis role="strong">sqrt</emphasis>((<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,0)-x)*(<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,0)-x) + 
+		     (<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,1)-y)*(<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,1)-y));
+    <emphasis role="strong">if</emphasis> (dist &gt; r) {
+      <emphasis role="strong">printf</emphasis>("x: %f y: %f r: %f\n", x, y, r);
+      <emphasis role="strong">printf</emphasis>("x: %f y: %f dist: %f (%li)\n", 
+	     <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,0), <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,1), dist, i);
+      <emphasis role="strong">return</emphasis> 1;
+    }
+  }
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m);
+
+  <emphasis>/* 3D */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_matrix_init'>igraph_matrix_init</link></emphasis>(&amp;m, 1000, 3);
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;m); i++) {
+    <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,0)=<emphasis role="strong">rand</emphasis>()/(double)RAND_MAX;
+    <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,1)=<emphasis role="strong">rand</emphasis>()/(double)RAND_MAX;
+    <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,2)=<emphasis role="strong">rand</emphasis>()/(double)RAND_MAX;
+  }
+  <emphasis role="strong">igraph_i_layout_sphere_3d</emphasis>(&amp;m, &amp;x, &amp;y, &amp;z, &amp;r);
+  
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_matrix_nrow'>igraph_matrix_nrow</link></emphasis>(&amp;m); i++) {
+    igraph_real_t dist=<emphasis role="strong">sqrt</emphasis>((<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,0)-x)*(<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,0)-x) + 
+		     (<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,1)-y)*(<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,1)-y) +
+		     (<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,2)-z)*(<emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,2)-z));
+    <emphasis role="strong">if</emphasis> (dist &gt; r) {
+      <emphasis role="strong">printf</emphasis>("x: %f y: %f z: %f r: %f\n", x, y, z, r);
+      <emphasis role="strong">printf</emphasis>("x: %f y: %f z: %f dist: %f (%li)\n", 
+	     <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,0), <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,1), <emphasis role="strong"><link linkend='MATRIX'>MATRIX</link></emphasis>(m,i,2), dist, i);
+      <emphasis role="strong">return</emphasis> 1;
+    }
+  }
+  <emphasis role="strong"><link linkend='igraph_matrix_destroy'>igraph_matrix_destroy</link></emphasis>(&amp;m);
+
+  
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

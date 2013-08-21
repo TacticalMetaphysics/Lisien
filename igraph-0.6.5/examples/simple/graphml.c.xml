@@ -1,0 +1,99 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard street, Cambridge, MA 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdio.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;unistd.h&gt;		<emphasis>/* unlink */</emphasis>
+
+void <emphasis role="strong">custom_warning_handler</emphasis> (<emphasis role="strong">const</emphasis> char *reason, <emphasis role="strong">const</emphasis> char *file,
+			     int line, int igraph_errno) {
+  <emphasis role="strong">printf</emphasis>("Warning: %s\n", reason);
+}
+
+int <emphasis role="strong">main</emphasis>(int argc, char **argv) {
+  igraph_t g;
+  <link linkend='igraph_error_handler_t'>igraph_error_handler_t</link>* oldhandler;
+  <link linkend='igraph_warning_handler_t'>igraph_warning_handler_t</link>* oldwarnhandler;
+  int result;
+  FILE *ifile, *ofile;
+
+  <emphasis>/* GraphML */</emphasis>
+  ifile=<emphasis role="strong">fopen</emphasis>("test.gxl", "r");
+  <emphasis role="strong">if</emphasis> (ifile==0) {
+    <emphasis role="strong">return</emphasis> 10;
+  }
+  
+  oldhandler=<emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_ignore'>igraph_error_handler_ignore</link>);
+  oldwarnhandler=<emphasis role="strong"><link linkend='igraph_set_warning_handler'>igraph_set_warning_handler</link></emphasis>(custom_warning_handler);
+  <emphasis role="strong">if</emphasis> (result=<emphasis role="strong"><link linkend='igraph_read_graph_graphml'>igraph_read_graph_graphml</link></emphasis>(&amp;g, ifile, 0)) {
+    <emphasis>// maybe it is simply disabled at compile-time</emphasis>
+    <emphasis role="strong">if</emphasis> (result == IGRAPH_UNIMPLEMENTED) <emphasis role="strong">return</emphasis> 77;
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(oldhandler);
+
+  <emphasis role="strong">fclose</emphasis>(ifile);
+
+  <emphasis>/* Write it back */</emphasis>
+  ofile=<emphasis role="strong">fopen</emphasis>("test2.gxl", "w");
+  <emphasis>/* If we can't create the test file, just skip the test */</emphasis>
+  <emphasis role="strong">if</emphasis> (ofile) {
+    <emphasis role="strong">if</emphasis> (result=<emphasis role="strong"><link linkend='igraph_write_graph_graphml'>igraph_write_graph_graphml</link></emphasis>(&amp;g, ofile)) {
+      <emphasis role="strong">return</emphasis> 1;
+    }
+    <emphasis role="strong">fclose</emphasis>(ofile);
+    <emphasis role="strong">unlink</emphasis>("test2.gxl");
+  }
+  
+  <emphasis role="strong">printf</emphasis>("The directed graph:\n");
+  <emphasis role="strong">printf</emphasis>("Vertices: %li\n", (long int) <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+  <emphasis role="strong">printf</emphasis>("Edges: %li\n", (long int) <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;g));
+  <emphasis role="strong">printf</emphasis>("Directed: %i\n", (int) <emphasis role="strong"><link linkend='igraph_is_directed'>igraph_is_directed</link></emphasis>(&amp;g));
+  <emphasis role="strong"><link linkend='igraph_write_graph_edgelist'>igraph_write_graph_edgelist</link></emphasis>(&amp;g, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+ 
+  <emphasis>/* The same with undirected graph */</emphasis>
+  ifile=<emphasis role="strong">fopen</emphasis>("test.gxl", "r");
+  <emphasis role="strong">if</emphasis> (result=<emphasis role="strong"><link linkend='igraph_read_graph_graphml'>igraph_read_graph_graphml</link></emphasis>(&amp;g, ifile, 0)) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  <emphasis role="strong">fclose</emphasis>(ifile);
+  <emphasis role="strong">printf</emphasis>("The undirected graph:\n");
+  <emphasis role="strong">printf</emphasis>("Vertices: %li\n", (long int) <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;g));
+  <emphasis role="strong">printf</emphasis>("Edges: %li\n", (long int) <emphasis role="strong"><link linkend='igraph_ecount'>igraph_ecount</link></emphasis>(&amp;g));
+  <emphasis role="strong">printf</emphasis>("Directed: %i\n", (int) <emphasis role="strong"><link linkend='igraph_is_directed'>igraph_is_directed</link></emphasis>(&amp;g));
+  <emphasis role="strong"><link linkend='igraph_write_graph_edgelist'>igraph_write_graph_edgelist</link></emphasis>(&amp;g, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong"><link linkend='igraph_set_warning_handler'>igraph_set_warning_handler</link></emphasis>(oldwarnhandler);
+
+  <emphasis>/* There were sometimes problems with this file */</emphasis>
+  <emphasis>/* Only if called from R though, and only on random occasions, once in every </emphasis>
+<emphasis>     ten reads. Do testing here doesn't make much sense, but if we have the file </emphasis>
+<emphasis>     then let's do it anyway. */</emphasis>
+  ifile=<emphasis role="strong">fopen</emphasis>("graphml-hsa05010.xml", "r");  
+  <emphasis role="strong"><link linkend='igraph_read_graph_graphml'>igraph_read_graph_graphml</link></emphasis>(&amp;g, ifile, 0);
+  <emphasis role="strong">fclose</emphasis>(ifile);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

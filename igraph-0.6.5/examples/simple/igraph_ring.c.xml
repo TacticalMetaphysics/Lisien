@@ -1,0 +1,170 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/*</emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+
+<emphasis>   Ring test suite</emphasis>
+<emphasis>   Copyright (C) 2011 Minh Van Nguyen </emphasis>&lt;nguyenminh2@gmail.com&gt;
+
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA</emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+<emphasis role="strong">typedef</emphasis> <emphasis role="strong">struct</emphasis> {
+  int n, m;
+  igraph_bool_t directed, mutual, circular;
+  igraph_real_t *edges;
+} ring_test_t;
+
+<emphasis role="strong">#define</emphasis> <emphasis role="strong">RING_TEST</emphasis>(id, n, m, di, mu, ci, ...) \
+  igraph_real_t ring_ ## id ## _edges[] = { __VA_ARGS__ };		\
+  ring_test_t ring_ ## id = { n, m, di, mu, ci, ring_ ## id ## _edges }
+
+<emphasis>/*---------------n--m--di-mu-ci--edges-------------------------------------*/</emphasis>
+<emphasis role="strong">RING_TEST</emphasis>(uc_6,  6, 6, 0, 0, 1,  0,1, 1,2, 2,3, 3,4, 4,5, 5,0 );
+<emphasis role="strong">RING_TEST</emphasis>(uc_0,  0, 0, 0, 0, 1,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(uc_1,  1, 0, 0, 0, 1,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(uc_2,  2, 1, 0, 0, 1,  0,1 );
+
+<emphasis role="strong">RING_TEST</emphasis>(u_6,   6, 5, 0, 0, 0,  0,1, 1,2, 2,3, 3,4, 4,5 );
+<emphasis role="strong">RING_TEST</emphasis>(u_0,   0, 0, 0, 0, 0,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(u_1,   1, 0, 0, 0, 0,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(u_2,   2, 1, 0, 0, 0,  0,1 );
+
+<emphasis role="strong">RING_TEST</emphasis>(umc_6, 6, 6, 0, 1, 1,  0,1, 1,2, 2,3, 3,4, 4,5, 5,0 );
+<emphasis role="strong">RING_TEST</emphasis>(umc_0, 0, 0, 0, 1, 1,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(umc_1, 1, 0, 0, 1, 1,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(umc_2, 2, 1, 0, 1, 1,  0,1 );
+
+<emphasis role="strong">RING_TEST</emphasis>(um_6,  6, 5, 0, 1, 0,  0,1, 1,2, 2,3, 3,4, 4,5 );
+<emphasis role="strong">RING_TEST</emphasis>(um_0,  0, 0, 0, 1, 0,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(um_1,  1, 0, 0, 1, 0,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(um_2,  2, 1, 0, 1, 0,  0,1 );
+
+<emphasis role="strong">RING_TEST</emphasis>(dc_6,  6, 6, 1, 0, 1,  0,1, 1,2, 2,3, 3,4, 4,5, 5,0 );
+<emphasis role="strong">RING_TEST</emphasis>(dc_0,  0, 0, 1, 0, 1,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(dc_1,  1, 0, 1, 0, 1,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(dc_2,  2, 2, 1, 0, 1,  0,1, 1,0 );
+
+<emphasis role="strong">RING_TEST</emphasis>(d_6,   6, 5, 1, 0, 1,  0,1, 1,2, 2,3, 3,4, 4,5 );
+<emphasis role="strong">RING_TEST</emphasis>(d_0,   0, 0, 1, 0, 1,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(d_1,   1, 0, 1, 0, 1,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(d_2,   2, 1, 1, 0, 1,  0,1 );
+
+<emphasis role="strong">RING_TEST</emphasis>(dmc_6,  6,12, 1, 1, 1, 0,1, 1,2, 2,3, 3,4, 4,5, 5,0,
+                                 1,0, 2,1, 3,2, 4,3, 5,4, 0,5 );
+<emphasis role="strong">RING_TEST</emphasis>(dmc_0,  0, 0, 1, 1, 1, -1 );
+<emphasis role="strong">RING_TEST</emphasis>(dmc_1,  1, 0, 1, 1, 1, -1 );
+<emphasis role="strong">RING_TEST</emphasis>(dmc_2,  2, 2, 1, 1, 1, 0,1, 1,0 );
+
+<emphasis role="strong">RING_TEST</emphasis>(dm_6,  6,10, 1, 1, 0,  0,1, 1,2, 2,3, 3,4, 4,5,
+                                 1,0, 2,1, 3,2, 4,3, 5,4 );
+<emphasis role="strong">RING_TEST</emphasis>(dm_0,  0, 0, 1, 1, 0,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(dm_1,  1, 0, 1, 1, 0,  -1 );
+<emphasis role="strong">RING_TEST</emphasis>(dm_2,  2, 2, 1, 1, 0,  0,1, 1,0 );
+<emphasis>/*---------------n--m--di-mu-ci--edges-------------------------------------*/</emphasis>
+
+ring_test_t *all_checks[] = { <emphasis>/*  1 */</emphasis> &amp;ring_uc_6,   <emphasis>/*  2 */</emphasis> &amp;ring_uc_0,
+			      <emphasis>/*  3 */</emphasis> &amp;ring_uc_1,   <emphasis>/*  4 */</emphasis> &amp;ring_uc_2,
+			      <emphasis>/*  5 */</emphasis> &amp;ring_u_6,    <emphasis>/*  6 */</emphasis> &amp;ring_u_0,
+			      <emphasis>/*  7 */</emphasis> &amp;ring_u_1,    <emphasis>/*  8 */</emphasis> &amp;ring_u_2,
+			      <emphasis>/*  9 */</emphasis> &amp;ring_umc_6,  <emphasis>/* 10 */</emphasis> &amp;ring_umc_0,
+			      <emphasis>/* 11 */</emphasis> &amp;ring_umc_1,  <emphasis>/* 12 */</emphasis> &amp;ring_umc_2,
+			      <emphasis>/* 13 */</emphasis> &amp;ring_um_6,   <emphasis>/* 14 */</emphasis> &amp;ring_um_0,
+			      <emphasis>/* 15 */</emphasis> &amp;ring_um_1,   <emphasis>/* 16 */</emphasis> &amp;ring_um_2,
+			      <emphasis>/* 17 */</emphasis> &amp;ring_dc_6,   <emphasis>/* 18 */</emphasis> &amp;ring_dc_0,
+			      <emphasis>/* 19 */</emphasis> &amp;ring_dc_1,   <emphasis>/* 20 */</emphasis> &amp;ring_dc_2,
+			      <emphasis>/* 21 */</emphasis> &amp;ring_dmc_6,  <emphasis>/* 22 */</emphasis> &amp;ring_dmc_0,
+			      <emphasis>/* 23 */</emphasis> &amp;ring_dmc_1,  <emphasis>/* 24 */</emphasis> &amp;ring_dmc_2,
+			      <emphasis>/* 25 */</emphasis> &amp;ring_dm_6,   <emphasis>/* 26 */</emphasis> &amp;ring_dm_0,
+			      <emphasis>/* 27 */</emphasis> &amp;ring_dm_1,   <emphasis>/* 28 */</emphasis> &amp;ring_dm_2,
+			      0 };
+
+int <emphasis role="strong">check_ring_properties</emphasis>(<emphasis role="strong">const</emphasis> igraph_t *ring, igraph_bool_t directed,
+			  igraph_bool_t mutual, igraph_bool_t circular) {
+
+  igraph_bool_t res;
+
+  <emphasis>/* Connected */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_is_connected'>igraph_is_connected</link></emphasis>(ring, &amp;res, IGRAPH_WEAK); 
+  <emphasis role="strong">if</emphasis> (!res) {
+    <emphasis role="strong">printf</emphasis>("Not connected\n");
+    <emphasis role="strong">return</emphasis> 1;
+  }
+
+  <emphasis>/* Simple */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_is_simple'>igraph_is_simple</link></emphasis>(ring, &amp;res); 
+  <emphasis role="strong">if</emphasis> (!res) {
+    <emphasis role="strong">printf</emphasis>("Not simple\n");
+    <emphasis role="strong">return</emphasis> 2;
+  }
+  
+  <emphasis>/* Girth, for big enough circular graphs */</emphasis>
+  <emphasis role="strong">if</emphasis> (circular &amp;&amp; <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(ring) &gt; 2) { 
+    igraph_integer_t girth;
+    <emphasis role="strong"><link linkend='igraph_girth'>igraph_girth</link></emphasis>(ring, &amp;girth, NULL);
+    <emphasis role="strong">if</emphasis> (girth != <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(ring)) { 
+      <emphasis role="strong">printf</emphasis>("Wrong girth\n");
+      <emphasis role="strong">return</emphasis> 3; 
+    }
+  }
+   
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">check_ring</emphasis>(<emphasis role="strong">const</emphasis> ring_test_t *test) {
+  igraph_t graph, othergraph;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> otheredges;
+  igraph_bool_t iso;
+  int ret;
+
+  <emphasis>/* Create ring */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;graph, test-&gt;n, test-&gt;directed, test-&gt;mutual, test-&gt;circular);
+
+  <emphasis>/* Check its properties */</emphasis>
+  <emphasis role="strong">if</emphasis> ((ret=<emphasis role="strong">check_ring_properties</emphasis>(&amp;graph, test-&gt;directed, test-&gt;mutual, 
+				 test-&gt;circular))) { <emphasis role="strong">return</emphasis> ret;}
+
+  <emphasis>/* Check that it is isomorphic to the stored graph */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_view'>igraph_vector_view</link></emphasis>(&amp;otheredges, test-&gt;edges, test-&gt;m * 2);
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;othergraph, &amp;otheredges, test-&gt;n, test-&gt;directed);
+  <emphasis role="strong"><link linkend='igraph_isomorphic'>igraph_isomorphic</link></emphasis>(&amp;graph, &amp;othergraph, &amp;iso);
+  <emphasis role="strong">if</emphasis> (!iso) { <emphasis role="strong">return</emphasis> 50; }
+
+  <emphasis>/* Clean up */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;graph);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;othergraph);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+int <emphasis role="strong">main</emphasis>() {
+  int i, ret;
+
+  i=0;
+  <emphasis role="strong">while</emphasis> (all_checks[i]) {
+    <emphasis role="strong">if</emphasis> ((ret=<emphasis role="strong">check_ring</emphasis>(all_checks[i]))) { 
+      <emphasis role="strong">printf</emphasis>("Check no #%d failed.\n", (int) (i+1));
+      <emphasis role="strong">return</emphasis> ret;
+    }
+    i++;
+  }
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

@@ -1,0 +1,74 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C++ -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2011-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;stdio.h&gt;
+
+int <emphasis role="strong">main</emphasis>() {
+  igraph_t graph;
+  igraph_t full, tree;
+  <link linkend='igraph_hrg_t'>igraph_hrg_t</link> hrg;
+  igraph_t dendrogram;
+  int i, j;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> neis;
+
+  <emphasis role="strong"><link linkend='igraph_rng_seed'>igraph_rng_seed</link></emphasis>(<emphasis role="strong"><link linkend='igraph_rng_default'>igraph_rng_default</link></emphasis>(), 42);
+
+  <emphasis>// We need attributes</emphasis>
+  <emphasis role="strong"><link linkend='igraph_i_set_attribute_table'>igraph_i_set_attribute_table</link></emphasis>(&amp;igraph_cattribute_table);
+  
+  <emphasis role="strong"><link linkend='igraph_full'>igraph_full</link></emphasis>(&amp;full, 10, <emphasis>/*directed=*/</emphasis> 0, <emphasis>/*loops=*/</emphasis> 0);
+  <emphasis role="strong"><link linkend='igraph_tree'>igraph_tree</link></emphasis>(&amp;tree, 15, <emphasis>/*children=*/</emphasis> 2, <emphasis>/*type=*/</emphasis> IGRAPH_TREE_UNDIRECTED);
+  <emphasis role="strong"><link linkend='igraph_disjoint_union'>igraph_disjoint_union</link></emphasis>(&amp;graph, &amp;full, &amp;tree);
+  <emphasis role="strong"><link linkend='igraph_add_edge'>igraph_add_edge</link></emphasis>(&amp;graph, 0, 10);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;full);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;tree);
+
+  <emphasis>// Fit</emphasis>
+  <emphasis role="strong"><link linkend='igraph_hrg_init'>igraph_hrg_init</link></emphasis>(&amp;hrg, <emphasis role="strong"><link linkend='igraph_vcount'>igraph_vcount</link></emphasis>(&amp;graph));
+  <emphasis role="strong"><link linkend='igraph_hrg_fit'>igraph_hrg_fit</link></emphasis>(&amp;graph, &amp;hrg, <emphasis>/*start=*/</emphasis> 0, <emphasis>/*steps=*/</emphasis> 0);
+
+  <emphasis>// Create a graph from it</emphasis>
+  <emphasis role="strong"><link linkend='igraph_hrg_dendrogram'>igraph_hrg_dendrogram</link></emphasis>(&amp;dendrogram, &amp;hrg);
+
+  <emphasis>// Print the tree, with labels</emphasis>
+  <emphasis>// igraph_vector_init(&amp;neis, 0);</emphasis>
+  <emphasis>// for (i=0; i&lt;igraph_vcount(&amp;graph)-1; i++) {</emphasis>
+  <emphasis>//   printf("Vertex # %2i, ", (int) (i+igraph_vcount(&amp;graph)));</emphasis>
+  <emphasis>//   igraph_neighbors(&amp;dendrogram, &amp;neis, i+igraph_vcount(&amp;graph), IGRAPH_OUT);</emphasis>
+  <emphasis>//   printf("left: # %2i, right: # %2i, ", (int) VECTOR(neis)[0], </emphasis>
+  <emphasis>// 	   (int) VECTOR(neis)[1]);</emphasis>
+  <emphasis>//   printf("prob: %6.2g\n", </emphasis>
+  <emphasis>// 	   VAN(&amp;dendrogram, "probability", i+igraph_vcount(&amp;graph)));</emphasis>
+  <emphasis>// }</emphasis>
+  <emphasis>// igraph_vector_destroy(&amp;neis);</emphasis>
+
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;dendrogram);
+  <emphasis role="strong"><link linkend='igraph_hrg_destroy'>igraph_hrg_destroy</link></emphasis>(&amp;hrg);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;graph);
+
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+</programlisting>

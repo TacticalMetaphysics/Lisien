@@ -1,0 +1,168 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+<emphasis role="strong">#include</emphasis> &lt;unistd.h&gt;
+
+void <emphasis role="strong">print_vector</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link> *v, FILE *f) {
+  long int i;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v); i++) {
+    <emphasis role="strong">fprintf</emphasis>(f, " %4.2f", <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v)[i]);
+  }
+  <emphasis role="strong">fprintf</emphasis>(f, "\n");
+}
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> v, res, reset, weights;
+  <link linkend='igraph_arpack_options_t'>igraph_arpack_options_t</link> arpack_options;
+  igraph_real_t value;
+  int ret;
+
+  <emphasis>/* Test graphs taken from </emphasis>http://www.iprcom.com/papers/pagerank/<emphasis> */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, 10);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[0]=0; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[1]=1;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[2]=1; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[3]=2;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[4]=2; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[5]=0;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[6]=3; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[7]=2;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[8]=0; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[9]=2;
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;g, &amp;v, 0, 1);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;res, 0);
+  <emphasis role="strong"><link linkend='igraph_pagerank_old'>igraph_pagerank_old</link></emphasis>(&amp;g, &amp;res, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 1, 1000, 0.001, 0.85, 0);
+  <emphasis role="strong">print_vector</emphasis>(&amp;res, stdout);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;res);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, 28);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[ 0]=0; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[ 1]=1;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[ 2]=0; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[ 3]=2;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[ 4]=0; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[ 5]=3;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[ 6]=1; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[ 7]=0;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[ 8]=2; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[ 9]=0;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[10]=3; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[11]=0;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[12]=3; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[13]=4;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[14]=3; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[15]=5;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[16]=3; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[17]=6;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[18]=3; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[19]=7;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[20]=4; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[21]=0;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[22]=5; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[23]=0;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[24]=6; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[25]=0;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[26]=7; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(v)[27]=0;
+  <emphasis role="strong"><link linkend='igraph_create'>igraph_create</link></emphasis>(&amp;g, &amp;v, 0, 1);
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;res, 0);
+  <emphasis role="strong"><link linkend='igraph_pagerank_old'>igraph_pagerank_old</link></emphasis>(&amp;g, &amp;res, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 1, 10000, 0.0001, 0.85, 0);
+  <emphasis role="strong">print_vector</emphasis>(&amp;res, stdout);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;res);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+   
+  <emphasis>/* New PageRank */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_star'>igraph_star</link></emphasis>(&amp;g, 11, IGRAPH_STAR_UNDIRECTED, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;res, 0);
+  <emphasis role="strong"><link linkend='igraph_arpack_options_init'>igraph_arpack_options_init</link></emphasis>(&amp;arpack_options);
+  <emphasis role="strong"><link linkend='igraph_pagerank'>igraph_pagerank</link></emphasis>(&amp;g, &amp;res, 0, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 0, 0.85, 0, &amp;arpack_options);
+  <emphasis role="strong">print_vector</emphasis>(&amp;res, stdout);
+  <emphasis>/* Check twice more for consistency */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_pagerank'>igraph_pagerank</link></emphasis>(&amp;g, &amp;res, 0, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 0, 0.85, 0, &amp;arpack_options);
+  <emphasis role="strong">print_vector</emphasis>(&amp;res, stdout);
+  <emphasis role="strong"><link linkend='igraph_pagerank'>igraph_pagerank</link></emphasis>(&amp;g, &amp;res, 0, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 0, 0.85, 0, &amp;arpack_options);
+  <emphasis role="strong">print_vector</emphasis>(&amp;res, stdout);
+
+  <emphasis>/* Check personalized PageRank */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_personalized_pagerank_vs'>igraph_personalized_pagerank_vs</link></emphasis>(&amp;g, &amp;res, 0, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 0, 0.5, <emphasis role="strong"><link linkend='igraph_vss_1'>igraph_vss_1</link></emphasis>(1), 0,
+		  &amp;arpack_options);
+  <emphasis role="strong">print_vector</emphasis>(&amp;res, stdout);
+
+  <emphasis>/* Errors */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_ignore'>igraph_error_handler_ignore</link>);
+  ret=<emphasis role="strong"><link linkend='igraph_pagerank_old'>igraph_pagerank_old</link></emphasis>(&amp;g, &amp;res, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 1, -1, 0.0001, 0.85, 0);
+  <emphasis role="strong">if</emphasis> (ret != IGRAPH_EINVAL) {
+    <emphasis role="strong">return</emphasis> 1;
+  }
+  
+  ret=<emphasis role="strong"><link linkend='igraph_pagerank_old'>igraph_pagerank_old</link></emphasis>(&amp;g, &amp;res, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 1, 10000, -1, 0.85, 0);
+  <emphasis role="strong">if</emphasis> (ret != IGRAPH_EINVAL) {
+    <emphasis role="strong">return</emphasis> 2;
+  }
+  
+  ret=<emphasis role="strong"><link linkend='igraph_pagerank_old'>igraph_pagerank_old</link></emphasis>(&amp;g, &amp;res, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 1, 10000, 0.0001, 1.2, 0);
+  <emphasis role="strong">if</emphasis> (ret != IGRAPH_EINVAL) {
+    <emphasis role="strong">return</emphasis> 3;
+  }
+
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;reset, 2);
+  ret=<emphasis role="strong"><link linkend='igraph_personalized_pagerank'>igraph_personalized_pagerank</link></emphasis>(&amp;g, &amp;res, 0, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 0, 0.85, &amp;reset, 0, &amp;arpack_options);
+  <emphasis role="strong">if</emphasis> (ret != IGRAPH_EINVAL) {
+    <emphasis role="strong">return</emphasis> 4;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_resize'>igraph_vector_resize</link></emphasis>(&amp;reset, 10);
+  <emphasis role="strong"><link linkend='igraph_vector_fill'>igraph_vector_fill</link></emphasis>(&amp;reset, 0);
+  ret=<emphasis role="strong"><link linkend='igraph_personalized_pagerank'>igraph_personalized_pagerank</link></emphasis>(&amp;g, &amp;res, 0, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 0, 0.85, &amp;reset, 0, &amp;arpack_options);
+  <emphasis role="strong">if</emphasis> (ret != IGRAPH_EINVAL) {
+    <emphasis role="strong">return</emphasis> 5;
+  }
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;reset);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong"><link linkend='igraph_set_error_handler'>igraph_set_error_handler</link></emphasis>(<link linkend='igraph_error_handler_abort'>igraph_error_handler_abort</link>);
+
+  <emphasis>/* Special cases: check for empty graph */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_empty'>igraph_empty</link></emphasis>(&amp;g, 10, 0);
+  <emphasis role="strong"><link linkend='igraph_pagerank'>igraph_pagerank</link></emphasis>(&amp;g, &amp;res, &amp;value, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 1, 0.85, 0, &amp;arpack_options);
+  <emphasis role="strong">if</emphasis> (value != 1.0) {
+    <emphasis role="strong">return</emphasis> 6;
+  }
+  <emphasis role="strong">print_vector</emphasis>(&amp;res, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* Special cases: check for full graph, zero weights */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_full'>igraph_full</link></emphasis>(&amp;g, 10, 0, 0);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;v, 45);
+  <emphasis role="strong"><link linkend='igraph_vector_fill'>igraph_vector_fill</link></emphasis>(&amp;v, 0);
+  <emphasis role="strong"><link linkend='igraph_pagerank'>igraph_pagerank</link></emphasis>(&amp;g, &amp;res, &amp;value, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 1, 0.85, &amp;v, &amp;arpack_options);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;v);
+  <emphasis role="strong">if</emphasis> (value != 1.0) {
+    <emphasis role="strong">return</emphasis> 7;
+  }
+  <emphasis role="strong">print_vector</emphasis>(&amp;res, stdout);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis>/* Another test case for PageRank (bug #792352) */</emphasis>
+  <emphasis role="strong"><link linkend='igraph_small'>igraph_small</link></emphasis>(&amp;g, 9, 1, 0, 5, 1, 5, 2, 0, 3, 1, 5, 4, 5, 7, 6, 0, 8, 0, 8, 1, -1);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;weights, 9);
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(weights)[0] = 4; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(weights)[1] = 5; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(weights)[2] = 5;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(weights)[3] = 4; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(weights)[4] = 4; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(weights)[5] = 4;
+  <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(weights)[6] = 3; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(weights)[7] = 4; <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(weights)[8] = 4;
+  <emphasis role="strong"><link linkend='igraph_pagerank'>igraph_pagerank</link></emphasis>(&amp;g, &amp;res, 0, <emphasis role="strong"><link linkend='igraph_vss_all'>igraph_vss_all</link></emphasis>(), 1, 0.85, &amp;weights, &amp;arpack_options);
+  <emphasis role="strong">print_vector</emphasis>(&amp;res, stdout);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;weights);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;res);
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>

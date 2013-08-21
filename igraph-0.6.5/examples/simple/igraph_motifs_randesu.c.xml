@@ -1,0 +1,70 @@
+<programlisting linenumbering="numbered"><emphasis>/* -*- mode: C -*-  */</emphasis>
+<emphasis>/* </emphasis>
+<emphasis>   IGraph library.</emphasis>
+<emphasis>   Copyright (C) 2006-2012  Gabor Csardi </emphasis>&lt;csardi.gabor@gmail.com&gt;
+<emphasis>   334 Harvard st, Cambridge MA, 02139 USA</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is free software; you can redistribute it and/or modify</emphasis>
+<emphasis>   it under the terms of the GNU General Public License as published by</emphasis>
+<emphasis>   the Free Software Foundation; either version 2 of the License, or</emphasis>
+<emphasis>   (at your option) any later version.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   This program is distributed in the hope that it will be useful,</emphasis>
+<emphasis>   but WITHOUT ANY WARRANTY; without even the implied warranty of</emphasis>
+<emphasis>   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</emphasis>
+<emphasis>   GNU General Public License for more details.</emphasis>
+<emphasis>   </emphasis>
+<emphasis>   You should have received a copy of the GNU General Public License</emphasis>
+<emphasis>   along with this program; if not, write to the Free Software</emphasis>
+<emphasis>   Foundation, Inc.,  51 Franklin Street, Fifth Floor, Boston, MA </emphasis>
+<emphasis>   02110-1301 USA</emphasis>
+
+<emphasis>*/</emphasis>
+
+<emphasis role="strong">#include</emphasis> &lt;igraph.h&gt;
+
+void <emphasis role="strong">print_vector</emphasis>(<link linkend='igraph_vector_t'>igraph_vector_t</link> *v) {
+  long int i, n=<emphasis role="strong"><link linkend='igraph_vector_size'>igraph_vector_size</link></emphasis>(v); 
+  igraph_real_t sum=0.0;
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <emphasis role="strong">if</emphasis> (!<emphasis role="strong">igraph_is_nan</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v)[i])) { sum += <emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v)[i]; }
+  }
+  <emphasis role="strong">for</emphasis> (i=0; i&lt;n; i++) {
+    <emphasis role="strong">igraph_real_printf</emphasis>(<emphasis role="strong"><link linkend='VECTOR'>VECTOR</link></emphasis>(*v)[i]/sum);
+    <emphasis role="strong">printf</emphasis>(" ");
+  }
+  <emphasis role="strong">printf</emphasis>("\n");
+}
+
+igraph_bool_t <emphasis role="strong">print_motif</emphasis>(<emphasis role="strong">const</emphasis> igraph_t *graph, <link linkend='igraph_vector_t'>igraph_vector_t</link> *vids,
+    int isoclass, void* extra) {
+  <emphasis role="strong">printf</emphasis>("Class %d: ", isoclass);
+  <emphasis role="strong">igraph_vector_print</emphasis>(vids);
+  <emphasis role="strong">return</emphasis> 0;
+}
+
+
+int <emphasis role="strong">main</emphasis>() {
+
+  igraph_t g;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> hist;
+  <link linkend='igraph_vector_t'>igraph_vector_t</link> cp;
+
+  <emphasis role="strong">igraph_vector_init_real</emphasis>(&amp;cp, 8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+  <emphasis role="strong"><link linkend='igraph_ring'>igraph_ring</link></emphasis>(&amp;g, 1000, IGRAPH_DIRECTED, 1, 1);
+  <emphasis role="strong"><link linkend='igraph_vector_init'>igraph_vector_init</link></emphasis>(&amp;hist, 0);
+  <emphasis role="strong"><link linkend='igraph_motifs_randesu'>igraph_motifs_randesu</link></emphasis>(&amp;g, &amp;hist, 3, &amp;cp);
+  <emphasis role="strong">print_vector</emphasis>(&amp;hist);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;hist);
+
+  <emphasis role="strong"><link linkend='igraph_famous'>igraph_famous</link></emphasis>(&amp;g, "bull");
+  <emphasis role="strong"><link linkend='igraph_motifs_randesu_callback'>igraph_motifs_randesu_callback</link></emphasis>(&amp;g, 3, &amp;cp, &amp;print_motif, 0);
+  <emphasis role="strong"><link linkend='igraph_motifs_randesu_callback'>igraph_motifs_randesu_callback</link></emphasis>(&amp;g, 4, &amp;cp, &amp;print_motif, 0);
+  <emphasis role="strong"><link linkend='igraph_destroy'>igraph_destroy</link></emphasis>(&amp;g);
+
+  <emphasis role="strong"><link linkend='igraph_vector_destroy'>igraph_vector_destroy</link></emphasis>(&amp;cp);
+  <emphasis role="strong">return</emphasis> 0;
+}
+</programlisting>
