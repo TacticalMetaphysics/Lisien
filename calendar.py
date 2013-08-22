@@ -427,7 +427,7 @@ schedule, possibly several.
     # calendar_col, although its record may be in any of several
     # tables.
     postlude = [
-        "CREATE TRIGGER unical_loc BEFORE INSERT ON calendar_col_loc BEGIN "
+        "CREATE TRIGGER unical_thing BEFORE INSERT ON calendar_col_thing BEGIN "
         "INSERT INTO calendar_col (window, calendar, idx) VALUES "
         "(NEW.window, NEW.calendar, NEW.idx);"
         "END",
@@ -465,14 +465,15 @@ schedule, possibly several.
             {"window, calendar": ("calendar", "window, idx")},
             ["idx>=0"]),
         (
-            "calendar_col_loc",
+            "calendar_col_thing",
             {"window": "text not null default 'Main'",
              "calendar": "integer not null default 0",
              "idx": "integer not null",
              "branch": "integer not null default 0",
              "character": "text not null",
              "dimension": "text not null",
-             "thing": "text not null"},
+             "thing": "text not null",
+             "location": "boolean default 1"},
             ("window", "calendar", "idx"),
             {"window, calendar, idx": ("calendar_col", "window, calendar, idx"),
              "character, dimension, branch, thing": (
