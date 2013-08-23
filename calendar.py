@@ -417,6 +417,11 @@ between any two states that should appear different on-screen."""
             self.timeline.delete()
 
 
+COL_TYPE = {
+    "THING": 0,
+    "STAT": 1,
+    "SKILL": 2}
+
 class Calendar:
     """A collection of calendar columns representing at least one
 schedule, possibly several.
@@ -428,13 +433,17 @@ schedule, possibly several.
     # tables.
     postlude = [
         "CREATE TRIGGER unical_thing BEFORE INSERT ON calendar_col_thing BEGIN "
-        "INSERT INTO calendar_col (window, calendar, idx) VALUES "
-        "(NEW.window, NEW.calendar, NEW.idx);"
-        "END",
+        "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
+        "(NEW.window, NEW.calendar, NEW.idx, {0});"
+        "END".format(COL_TYPE["THING"]),
         "CREATE TRIGGER unical_stat BEFORE INSERT ON calendar_col_stat BEGIN "
-        "INSERT INTO calendar_col (window, calendar, idx) VALUES "
-        "(NEW.window, NEW.calendar, NEW.idx);"
-        "END"]
+        "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
+        "(NEW.window, NEW.calendar, NEW.idx, {0});"
+        "END".format(COL_TYPE["STAT"]),
+        "CREATE TRIGGER unical_skill BEFORE INSERT ON calendar_col_skill BEGIN "
+        "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
+        "(NEW.window, NEW.calendar, NEW.idx, {0});"
+        "END".format(COL_TYPE["SKILL"])]
     tables = [
         (
             "calendar",
@@ -460,10 +469,13 @@ schedule, possibly several.
             "calendar_col",
             {"window": "text not null default 'Main'",
              "calendar": "integer not null default 0",
-             "idx": "integer not null"},
+             "idx": "integer not null",
+             "type": "integer not null"},
             ("window", "calendar", "idx"),
             {"window, calendar": ("calendar", "window, idx")},
-            ["idx>=0"]),
+            ["idx>=0", "type IN ({0})".format(
+                ", ".join([str(it) for it in COL_TYPE.values()])
+            )])
         (
             "calendar_col_thing",
             {"window": "text not null default 'Main'",
@@ -475,9 +487,10 @@ schedule, possibly several.
              "thing": "text not null",
              "location": "boolean default 1"},
             ("window", "calendar", "idx"),
-            {"window, calendar, idx": ("calendar_col", "window, calendar, idx"),
-             "character, dimension, branch, thing": (
-                 "character_things", "character, dimension, branch, thing")},
+            {"window, calendar, idx, {0}".format(COL_TYPE["THING"]):
+             ("calendar_col", "window, calendar, idx, type", "ON DELETE CASCADE"),
+             "character, dimension, branch, thing":
+             ("character_things", "character, dimension, branch, thing")},
             ["idx>=0"]),
         (
             "calendar_col_stat",
@@ -488,8 +501,22 @@ schedule, possibly several.
              "character": "text not null",
              "stat": "text not null"},
             ("window", "calendar", "idx"),
-            {"window, calendar": ("calendar", "window, idx"),
+            {"window, calendar, idx, {0}".format(COL_TYPE["STAT"]):
+             ("calendar_col", "window, calendar, idx, type", "ON DELETE CASCADE"),
              "character, branch, stat": ("character_skills", "character, branch, stat")},
+            ["idx>=0"]),
+        (
+            "calendar_col_skill",
+            {"window": "text not null default 'Main'",
+             "calendar": "integer not null default 0",
+             "idx": "integer not null",
+             "branch": "integer not null default 0",
+             "character": "text not null",
+             "skill": "text not null"},
+            ("window", "calendar", "idx"),
+            {"window, calendar, idx, {0}".format(COL_TYPE["SKILL"]):
+             ("calendar_col", "window, calendar, idx, type", "ON DELETE CASCADE"),
+             "character, branch, skill": ("character_skills", "character, branch, skill")},
             ["idx>=0"])]
     visible = True
 

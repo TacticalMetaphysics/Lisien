@@ -152,9 +152,18 @@ and your table will be ready.
                     if valname not in pkey]
             colnamestr[tablename] = ", ".join(sorted(pkeys) + sorted(vals))
             pkeystr = "PRIMARY KEY (%s)" % (pkeycolstr,)
-            fkeystrs = ["FOREIGN KEY (%s) REFERENCES %s(%s)" %
-                        (item[0], item[1][0], item[1][1])
-                        for item in fkeys.iteritems()]
+            fkeystrs = []
+            for item in fkeys.iteritems():
+                if len(item[1]) == 2:
+                    fkeystrs.append(
+                        "FOREIGN KEY (%s) REFERENCES %s(%s)" %
+                        (item[0], item[1][0], item[1][1]))
+                elif len(item[1]) == 3:
+                    fkeystrs.append(
+                        "FOREIGN KEY {0} REFERENCES {1}({2}) {3}".format(
+                            item[0], item[1][0], item[1][1], item[1][2]))
+                else:
+                    raise Exception("Invalid foreign key: {0}".format(item))
             fkeystr = ", ".join(fkeystrs)
             chkstr = ", ".join(cks)
             table_decl_data = [coldecstr]
