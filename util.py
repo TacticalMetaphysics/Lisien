@@ -15,7 +15,14 @@ colnames = {}
 
 colnamestr = {}
 
+primarykeys = {}
+
 saveables = []
+
+
+class Callable:
+    def __init__(self, anything):
+        self.__call__ = anything
 
 
 class SaveableMetaclass(type):
@@ -69,7 +76,6 @@ and your table will be ready.
     def __new__(metaclass, clas, parents, attrs):
         global schemata
         tablenames = []
-        primarykeys = {}
         foreignkeys = {}
         coldecls = {}
         checks = {}
@@ -95,10 +101,12 @@ and your table will be ready.
             demands = set(attrs["demands"])
         else:
             demands = set()
+        local_pkeys = {}
         for tabtup in tablist:
             (name, decls, pkey, fkeys, cks) = tabtup
             tablenames.append(name)
             coldecls[name] = decls
+            local_pkeys[name] = pkey
             primarykeys[name] = pkey
             foreignkeys[name] = fkeys
             checks[name] = cks
@@ -114,7 +122,7 @@ and your table will be ready.
         rowstrs = {}
         keynames = {}
         valnames = {}
-        for item in primarykeys.iteritems():
+        for item in local_pkeys.iteritems():
             (tablename, pkey) = item
             keynames[tablename] = sorted(pkey)
             keylen[tablename] = len(pkey)
@@ -132,6 +140,7 @@ and your table will be ready.
             colnames[tablename] = keynames[tablename] + valnames[tablename]
         local_schemata = []
         for tablename in tablenames:
+            provides.add(tablename)
             coldecl = coldecls[tablename]
             pkey = primarykeys[tablename]
             fkeys = foreignkeys[tablename]
@@ -160,7 +169,7 @@ and your table will be ready.
                         (item[0], item[1][0], item[1][1]))
                 elif len(item[1]) == 3:
                     fkeystrs.append(
-                        "FOREIGN KEY {0} REFERENCES {1}({2}) {3}".format(
+                        "FOREIGN KEY ({0}) REFERENCES {1}({2}) {3}".format(
                             item[0], item[1][0], item[1][1], item[1][2]))
                 else:
                     raise Exception("Invalid foreign key: {0}".format(item))
@@ -188,7 +197,7 @@ and your table will be ready.
                 colnamestr[tablename], tablename, pkeynamestr)
             missings[tablename] = missing_stmt_start
             schemata[tablename] =  create_stmt
-        saveables.append((prelude, tablenames, postlude))
+        saveables.append((demands, provides, prelude, tablenames, postlude))
 
         def gen_sql_insert(rowdicts, tabname):
             if rowdicts == []:
@@ -207,8 +216,8 @@ and your table will be ready.
             qrytup = tuple(qrylst)
             return (qrystr, qrytup)
 
-        def insert_rowdicts_table(db, rowdicts, tabname):
-            db.c.execute(*gen_sql_insert(rowdicts, tabname))
+        def insert_rowdicts_table(c, rowdicts, tabname):
+            c.execute(*gen_sql_insert(rowdicts, tabname))
             return []
 
         def gen_sql_delete(keydicts, tabname):
@@ -225,8 +234,50 @@ and your table will be ready.
             qrystr = "DELETE FROM {0} WHERE {1}".format(tabname, wherestr)
             return (qrystr, tuple(keys))
 
-        def delete_keydicts_table(db, keydicts, tabname):
-            db.c.execute(*gen_sql_delete(keydicts, tabname))
+        def delete_keydicts_table(c, keydicts, tabname):
+            c.execute(*gen_sql_delete(keydicts, tabname))
+
+        def gen_sql_select(keydicts, tabname):
+            keys_in_use = set()
+            for keyd in keydicts:
+                for k in keyd:
+                    keys_in_use.add(k)
+            keys = [key for key in primarykeys[tabname] if key in keys_in_use]
+            andstr = "({0})".format(
+                " AND ".join(
+                    ["{0}=?".format(key) for key in keys]
+                ))
+            ands = [andstr] * len(keydicts)
+            colstr = colnamestr[tabname]
+            orstr = " OR ".join(ands)
+            return "SELECT {0} FROM {1} WHERE {2}".format(
+                colstr, tabname, orstr)
+
+
+        def select_keydicts_table(c, keydicts, tabname):
+            keys = primarykeys[tabname]
+            qrystr = gen_sql_select(keydicts, tabname)
+            qrylst = []
+            for keydict in keydicts:
+                for key in keys:
+                    try:
+                        qrylst.append(keydict[key])
+                    except KeyError:
+                        pass
+            c.execute(qrystr, tuple(qrylst))
+            return c.fetchall()
+
+        @staticmethod
+        def select_tabdict(c, td):
+            r = {}
+            for item in td.iteritems():
+                (tabname, rd) = item
+                if isinstance(rd, dict):
+                    rd = [rd]
+                r[tabname] = [
+                    dictify_row(row, colnames[tabname]) for row in
+                    select_keydicts_table(c, rd, tabname)]
+            return r
 
         def gen_sql_detect(keydicts, tabname):
             keystr = keystrs[tabname]
@@ -239,9 +290,9 @@ and your table will be ready.
             qrytup = tuple(qrylst)
             return (qrystr, qrytup)
 
-        def detect_keydicts_table(db, keydicts, tabname):
-            db.c.execute(*gen_sql_detect(keydicts, tabname))
-            return db.c.fetchall()
+        def detect_keydicts_table(keydicts, tabname):
+            c.execute(*gen_sql_detect(keydicts, tabname))
+            return c.fetchall()
 
         def gen_sql_missing(keydicts, tabname):
             keystr = keystrs[tabname]
@@ -254,16 +305,16 @@ and your table will be ready.
             qrytup = tuple(qrylst)
             return (qrystr, qrytup)
 
-        def missing_keydicts_table(db, keydicts, tabname):
-            db.c.execute(*gen_sql_missing(keydicts, tabname))
-            return db.c.fetchall()
+        def missing_keydicts_table(keydicts, tabname):
+            c.execute(*gen_sql_missing(keydicts, tabname))
+            return c.fetchall()
 
-        def insert_tabdict(db, tabdict):
+        def insert_tabdict(c, tabdict):
             for item in tabdict.iteritems():
                 (tabname, rd) = item
-                insert_rowdicts_table(db, rd, tabname)
+                insert_rowdicts_table(c, rd, tabname)
 
-        def delete_tabdict(db, tabdict):
+        def delete_tabdict(c, tabdict):
             qryfmt = "DELETE FROM {0} WHERE {1}"
             for (tabn, rows) in tabdict.iteritems():
                 if rows == []:
@@ -279,26 +330,26 @@ and your table will be ready.
                     ors.append("(" + " AND ".join(ands) + ")")
                 qrystr = qryfmt.format(tabn, " OR ".join(ors))
                 qrytup = tuple(vals)
-                db.c.execute(qrystr, qrytup)
+                c.execute(qrystr, qrytup)
 
-        def detect_tabdict(db, tabdict):
+        def detect_tabdict(c, tabdict):
             r = {}
             for item in tabdict.iteritems():
                 (tabname, rd) = item
                 if isinstance(rd, dict):
-                    r[tabname] = detect_keydicts_table(db, [rd], tabname)
+                    r[tabname] = detect_keydicts_table(c, [rd], tabname)
                 else:
-                    r[tabname] = detect_keydicts_table(db, rd, tabname)
+                    r[tabname] = detect_keydicts_table(c, rd, tabname)
             return r
 
-        def missing_tabdict(db, tabdict):
+        def missing_tabdict(c, tabdict):
             r = {}
             for item in tabdict.iteritems():
                 (tabname, rd) = item
                 if isinstance(rd, dict):
-                    r[tabname] = missing_keydicts_table(db, [rd], tabname)
+                    r[tabname] = missing_keydicts_table(c, [rd], tabname)
                 else:
-                    r[tabname] = missing_keydicts_table(db, rd, tabname)
+                    r[tabname] = missing_keydicts_table(c, rd, tabname)
             return r
 
         def coresave(self):
@@ -312,8 +363,8 @@ and your table will be ready.
                     i += 1
                     for (key, val) in record.iteritems():
                         logger.debug("------%s = %s", key, val)
-            delete_tabdict(self.rumor, td)
-            insert_tabdict(self.rumor, td)
+            delete_tabdict(self.rumor.c, td)
+            insert_tabdict(self.rumor.c, td)
 
         def save(self):
             coresave(self)
@@ -331,10 +382,12 @@ and your table will be ready.
             delete_tabdict(self.rumor, self.get_keydict())
 
         atrdic = {
-            'insert_tabdict': lambda self, db, td: insert_tabdict(db, td),
-            'delete_tabdict': lambda self, db, td: delete_tabdict(db, td),
-            'detect_tabdict': lambda self, db, td: detect_tabdict(db, td),
-            'missing_tabdict': lambda self, db, td: missing_tabdict(db, td),
+            '_select_tabdict': select_tabdict,
+            'insert_tabdict': lambda self, td: insert_tabdict(self.rumor.c, td),
+            'delete_tabdict': lambda self, td: delete_tabdict(self.rumor.c, td),
+            'detect_tabdict': lambda self, td: detect_tabdict(self.rumor.c, td),
+            'missing_tabdict': lambda self, td: missing_tabdict(self.rumor.c, td),
+            'select_tabdict': lambda self, td: select_tabdict(self.rumor.c, td),
             'gen_sql_insert': lambda self, rd, tn: gen_sql_insert(rd, tn),
             'gen_sql_delete': lambda self, rd, tn: gen_sql_delete(rd, tn),
             'gen_sql_detect': lambda self, rd, tn: gen_sql_detect(rd, tn),

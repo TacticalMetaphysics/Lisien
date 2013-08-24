@@ -48,18 +48,18 @@ too.
          [])]
     basic_speed = 0.1
 
-    def __init__(self, dimension, name, locations=None, indef_locs=None):
-        self.name = name
-        self.dimension = dimension
-        self.rumor = self.dimension.rumor
-        if locations is None:
-            self.locations = defaultdict(dict)
-        else:
-            self.locations = locations
-        if indef_locs is None:
-            self.indefinite_locations = defaultdict(dict)
-        else:
-            self.indefinite_locations = indef_locs
+    def __init__(self, rumor, td):
+        self.rumor = rumor
+        rd = td["thing_location"].pop()
+        self.name = rd["thing"]
+        self.dimension = self.rumor.get_dimension(rd["dimension"])
+        self.locations = defaultdict(dict)
+        while len(td["thing_location"]) > 0:
+            if rd["thing"] == self.name:
+                self.locations[rd["branch"]][rd["tick_from"]] = (
+                    self.rumor.get_place(rd["location"]), rd["tick_to"])
+            rd = td["thing_location"].pop()
+        
 
     def __getattr__(self, attrn):
         if attrn == 'location':

@@ -310,12 +310,9 @@ If it DOES have anything else to do, make the journey in another branch.
         return self.viewport
 
     def select(self):
-        if self.calcol is None:
-            sensical = self.window.sensible_calendar_for(self.thing)
-            self.calcol = sensical.mkcol(self.thing.locations, self.rumor.branch)
+        if self.calcol is not None:
             self.calcol.visible = True
 
     def unselect(self):
         if self.calcol is not None:
-            self.calcol.delete()
-            self.calcol = None
+            self.calcol.visible = False

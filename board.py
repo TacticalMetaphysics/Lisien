@@ -29,8 +29,6 @@ board, but they are linked to the board anyhow, on the assumption that
 each board will be open in at most one window at a time.
 
     """
-    provides = ["board"]
-    demands = ["img"]
     tables = [
         ("board",
          {"dimension": "text not null default 'Physical'",

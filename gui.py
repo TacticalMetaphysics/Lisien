@@ -125,8 +125,7 @@ class GameWindow(pyglet.window.Window):
             menu_item_rds,
             hand_rds,
             card_rds,
-            viewport_rds,
-            calendar_rds):
+            viewport_rds):
         """Initialize the game window, its groups, and some state tracking."""
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
@@ -166,18 +165,10 @@ class GameWindow(pyglet.window.Window):
         stylenames = set()
         for rd in menu_rds.itervalues():
             stylenames.add(rd["style"])
-        for rd in calendar_rds:
-            stylenames.add(rd["style"])
         for rd in hand_rds.itervalues():
             stylenames.add(rd["style"])
         styles = self.rumor.get_styles(stylenames)
         self.calendars = []
-        for rd in calendar_rds:
-            rd["window"] = self
-            rd["style"] = styles[rd["style"]]
-            while len(self.calendars) <= rd["idx"]:
-                self.calendars.append(None)
-            self.calendars[rd["idx"]] = Calendar(**rd)
         imagenames = set()
         for mirdl in menu_item_rds.itervalues():
             for mird in mirdl:
