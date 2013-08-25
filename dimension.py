@@ -166,10 +166,6 @@ this dimension, and laid out nicely."""
         except InternalError:
             return None
 
-    def make_thing(self, name, locations=None, indef_locs=None):
-        self.thingdict[name] = Thing(self, name, locations, indef_locs)
-        return self.thingdict[name]
-
     def get_thing(self, name):
         return self.thingdict[name]
 

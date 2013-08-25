@@ -29,7 +29,13 @@ from timestream import Timestream, TimestreamException
 from gui import GameWindow
 from collections import OrderedDict, defaultdict
 from logging import getLogger
-from util import dictify_row, colnames, colnamestr, stringlike
+from util import (
+    dictify_row,
+    colnames,
+    colnamestr,
+    stringlike,
+    LoadError,
+    TabdictIterator)
 from portal import Portal
 from thing import Thing
 from character import Character
@@ -855,18 +861,14 @@ This is game-world time. It doesn't always go forwards.
             if not po.extant_between(rd["branch"], rd["tick_from"], rd["tick_to"]):
                 po.persist(rd["branch"], rd["tick_from"], rd["tick_to"])
         self.c.execute(THING_LOC_QRYFMT + extrastr, valtup)
+        thing_rds = defaultdict(lambda: defaultdict(list))
         for row in self.c:
             rd = dictify_row(row, Thing.colns)
-            if rd["thing"] not in dim.thingdict:
-                dim.make_thing(rd["thing"])
-            try:
-                loc = dim.get_place(rd["location"])
-            except ValueError:
-                loc = dim.get_portal(*re.match(PORTAL_NAME_RE, rd["location"]).groups())
-            logger.debug("putting thing %s in place %s", rd["thing"], str(loc))
-            thing = dim.get_thing(rd["thing"])
-            thing.set_location(loc, rd["branch"], rd["tick_from"], rd["tick_to"])
-        self.dimensiondict[dimn] = dim
+            thing_rds[rd["dimension"]][rd["thing"]].append(rd)
+        for dimension in thing_rds:
+            for thing in thing_rds[dimension]:
+                dim.thingdict[thing] = Thing(
+                    self, {"thing_location": thing_rds[dimension][thing]})
         return dim
 
     def get_dimension(self, dimn):
@@ -904,25 +906,20 @@ This is game-world time. It doesn't always go forwards.
         for row in spot_rows:
             imgs2load.add(row[4])
         # images for the pawns
-        self.c.execute(PAWN_BOARD_IMG_QRYFMT, (str(dim), i))
-        pawn_rows = self.c.fetchall()
-        for row in pawn_rows:
-            imgs2load.add(row[4])
+        pawn_td = Pawn._select_tabdict(self.c, {
+            "pawn_img": {"dimension": str(dim)},
+            "pawn_interactive": {"dimension": str(dim)}})
+        for rd in TabdictIterator(pawn_td["pawn_img"]):
+            imgs2load.add(rd["img"])
         imgs = self.load_imgs(imgs2load)
         dim.boards[i] = Board(dim, i, width, height, imgs[walln])
+        for rd in TabdictIterator(pawn_td):
+            try:
+                dim.boards[i].pawndict[rd["thing"]] = Pawn(
+                    self, rd["dimension"], i, rd["thing"], pawn_td)
+            except LoadError:
+                pass
         # actually assign images instead of just collecting the names
-        for row in pawn_rows:
-            rd = dictify_row(row, colnames["pawn_img"])
-            thing = dim.thingdict[rd["thing"]]
-            pawn = dim.boards[i].get_pawn(thing)
-            pawn.set_img(imgs[rd["img"]], rd["branch"],
-                         rd["tick_from"], rd["tick_to"])
-        # interactivity for the pawns
-        self.c.execute(PAWN_BOARD_INTER_QRYFMT, (str(dim), i))
-        for row in self.c:
-            rd = dictify_row(row, colnames["pawn_interactive"])
-            pawn = dim.boards[i].get_pawn(dim.thingdict[rd["thing"]])
-            pawn.set_interactive(rd["branch"], rd["tick_from"], rd["tick_to"])
         # spots in this board
         self.c.execute(SPOT_BOARD_COORD_QRYFMT, (str(dim), i))
         for row in self.c:
@@ -1098,13 +1095,13 @@ This is game-world time. It doesn't always go forwards.
     def instantiate_calendars(self, td):
         windows = set()
         styles = set()
-        for rd in td["calendar"]:
+        for rd in TabdictIterator(td["calendar"]):
             windows.add(rd["window"])
             styles.add(rd["style"])
         windict = self.get_windows(windows)
         styledict = self.get_styles(styles)
         r = defaultdict(dict)
-        for rd in td["calendar"]:
+        for rd in TabdictIterator(td["calendar"]):
             window = windict[rd["window"]]
             while len(window.calendars) <= rd["idx"]:
                 window.calendars.append(None)
@@ -1240,7 +1237,7 @@ This is game-world time. It doesn't always go forwards.
         kds = [{"name": name} for name in names]
         td = Color._select_tabdict(self.c, {"color": kds})
         r = {}
-        for rd in td["color"]:
+        for rd in TabdictIterator(td):
             color = Color(**rd)
             r[str(color)] = color
             self.colordict[str(color)] = color
@@ -1258,21 +1255,25 @@ This is game-world time. It doesn't always go forwards.
         return r
 
     def load_styles(self, names):
+        if len(names) == 0:
+            return {}
         colorcols = (
                     "textcolor",
                     "bg_inactive",
                     "bg_active",
                     "fg_inactive",
                     "fg_active")
-        kds = [{"name": name} for name in names]
-        td = Style._select_tabdict(self.c, {"style": kds})
+        kd = {"style": {}}
+        for name in names:
+            kd["style"][name] = {"name": name}
+        td = Style._select_tabdict(self.c, kd)
         colors = set()
-        for rd in td["style"]:
+        for rd in TabdictIterator(td):
             for color in colorcols:
                 colors.add(rd[color])
         colordict = self.get_colors(colors)
         r = {}
-        for rd in td["style"]:
+        for rd in TabdictIterator(td):
             for color in colorcols:
                 rd[color] = colordict[rd[color]]
             style = Style(**rd)
@@ -1288,7 +1289,7 @@ This is game-world time. It doesn't always go forwards.
                 r[name] = self.styledict[name]
             else:
                 unhad.add(name)
-        r.update(self.load_styles(names))
+        r.update(self.load_styles(unhad))
         return r
 
 

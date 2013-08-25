@@ -239,7 +239,11 @@ and your table will be ready.
 
         def gen_sql_select(keydicts, tabname):
             keys_in_use = set()
-            for keyd in keydicts:
+            if isinstance(keydicts, list):
+                kitr = iter(keydicts)
+            else:
+                kitr = TabdictIterator(keydicts)
+            for keyd in kitr:
                 for k in keyd:
                     keys_in_use.add(k)
             keys = [key for key in primarykeys[tabname] if key in keys_in_use]
@@ -258,7 +262,11 @@ and your table will be ready.
             keys = primarykeys[tabname]
             qrystr = gen_sql_select(keydicts, tabname)
             qrylst = []
-            for keydict in keydicts:
+            if isinstance(keydicts, list):
+                kitr = iter(keydicts)
+            else:
+                kitr = TabdictIterator(keydicts)
+            for keydict in kitr:
                 for key in keys:
                     try:
                         qrylst.append(keydict[key])
@@ -268,15 +276,24 @@ and your table will be ready.
             return c.fetchall()
 
         @staticmethod
-        def select_tabdict(c, td):
+        def _select_tabdict(c, td):
             r = {}
             for item in td.iteritems():
                 (tabname, rd) = item
-                if isinstance(rd, dict):
-                    rd = [rd]
-                r[tabname] = [
-                    dictify_row(row, colnames[tabname]) for row in
-                    select_keydicts_table(c, rd, tabname)]
+                if tabname not in r:
+                    r[tabname] = {}
+                for row in select_keydicts_table(c, rd, tabname):
+                    rd = dictify_row(row, colnames[tabname])
+                    ptr = r[tabname]
+                    keys = list(primarykeys[tabname])
+                    oldptr = None
+                    while keys != []:
+                        key = keys.pop(0)
+                        if rd[key] not in ptr:
+                            ptr[rd[key]] = {}
+                        oldptr = ptr
+                        ptr = ptr[rd[key]]
+                    oldptr[rd[key]] = rd
             return r
 
         def gen_sql_detect(keydicts, tabname):
@@ -382,12 +399,12 @@ and your table will be ready.
             delete_tabdict(self.rumor, self.get_keydict())
 
         atrdic = {
-            '_select_tabdict': select_tabdict,
+            '_select_tabdict': _select_tabdict,
             'insert_tabdict': lambda self, td: insert_tabdict(self.rumor.c, td),
             'delete_tabdict': lambda self, td: delete_tabdict(self.rumor.c, td),
             'detect_tabdict': lambda self, td: detect_tabdict(self.rumor.c, td),
             'missing_tabdict': lambda self, td: missing_tabdict(self.rumor.c, td),
-            'select_tabdict': lambda self, td: select_tabdict(self.rumor.c, td),
+            'select_tabdict': lambda self, td: _select_tabdict(self.rumor.c, td),
             'gen_sql_insert': lambda self, rd, tn: gen_sql_insert(rd, tn),
             'gen_sql_delete': lambda self, rd, tn: gen_sql_delete(rd, tn),
             'gen_sql_detect': lambda self, rd, tn: gen_sql_detect(rd, tn),
@@ -892,6 +909,39 @@ class DictValues2DIterator:
             return self.layer2.next()
 
 
+class TabdictIterator:
+    def __init__(self, td):
+        self.ptrs = [dict(td)]
+        self.keyses = [self.ptrs[0].keys()]
+        i = 0
+        while True:
+            try:
+                self.next()
+                i += 1
+            except StopIteration:
+                self.ptrs = [dict(td)]
+                self.keyses = [self.ptrs[0].keys()]
+                self.__len__ = lambda: i
+                break
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        while self.ptrs != []:
+            ptr = self.ptrs.pop()
+            keys = self.keyses.pop()
+            while keys != []:
+                k = keys.pop()
+                if isinstance(ptr[k], dict):
+                    self.keyses.append(keys)
+                    self.keyses.append(ptr[k].keys())
+                    self.ptrs.append(ptr)
+                    self.ptrs.append(ptr[k])
+                else:
+                    return ptr
+        raise StopIteration
+
 class PortalException(Exception):
     """Exception raised when a Thing tried to move into or out of or along
 a Portal, and it made no sense."""
@@ -907,4 +957,8 @@ class ContainmentException(Exception):
 Thing, and it made no sense.
 
     """
+    pass
+
+
+class LoadError(Exception):
     pass

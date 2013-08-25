@@ -50,15 +50,22 @@ too.
 
     def __init__(self, rumor, td):
         self.rumor = rumor
+        self._tabdict = dict(td)
         rd = td["thing_location"].pop()
         self.name = rd["thing"]
         self.dimension = self.rumor.get_dimension(rd["dimension"])
         self.locations = defaultdict(dict)
-        while len(td["thing_location"]) > 0:
-            if rd["thing"] == self.name:
-                self.locations[rd["branch"]][rd["tick_from"]] = (
-                    self.rumor.get_place(rd["location"]), rd["tick_to"])
-            rd = td["thing_location"].pop()
+        self.indefinite_locations = {}
+        while True:
+            try:
+                if rd["thing"] == self.name:
+                    self.locations[rd["branch"]][rd["tick_from"]] = (
+                        self.dimension.get_place(rd["location"]), rd["tick_to"])
+                    if rd["tick_to"] is None:
+                        self.indefinite_locations[rd["branch"]] = rd["tick_from"]
+                rd = td["thing_location"].pop()
+            except IndexError:
+                break
         
 
     def __getattr__(self, attrn):
@@ -218,7 +225,7 @@ are n ticks of free time."""
         return laterthan + 1
 
     def get_tabdict(self):
-        return {
+        self._tabdict = {
             "thing_location": [
                 {
                     "dimension": str(self.dimension),
@@ -229,6 +236,7 @@ are n ticks of free time."""
                     "location": str(location)}
                 for (branch, tick_from, tick_to, location) in
                 BranchTicksIter(self.locations)]}
+        return self._tabdict
 
     def end_location(self, branch=None, tick=None):
         """Find where I am at the given time. Arrange to stop being there

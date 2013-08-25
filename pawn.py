@@ -4,7 +4,9 @@ from util import (
     SaveableMetaclass,
     TerminableImg,
     TerminableInteractivity,
-    BranchTicksIter)
+    BranchTicksIter,
+    LoadError,
+    TabdictIterator)
 from collections import defaultdict
 from pyglet.sprite import Sprite
 from pyglet.graphics import OrderedGroup
@@ -48,20 +50,38 @@ class Pawn(TerminableImg, TerminableInteractivity):
          {"dimension, board": ("board", "dimension, i"),
           "dimension, thing": ("thing_location", "dimension, name")},
          [])]
+    loaded_keys = set()
 
-    def __init__(self, board, thing):
+    def __init__(self, rumor, dimn, boardi, thingn, td):
         """Return a pawn on the board for the given dimension, representing
 the given thing with the given image. It may be visible or not,
 interactive or not.
 
         """
-        self.board = board
-        self.rumor = self.board.rumor
-        self.thing = thing
+        if (dimn, boardi, thingn) in Pawn.loaded_keys:
+            raise LoadError("Pawn already loaded: {0}[{1}].{2}".format(dimn, boardi, thingn))
+        else:
+            Pawn.loaded_keys.add((dimn, boardi, thingn))
+        self.rumor = rumor
+        self._tabdict = td
+        self._dimn = dimn
+        self._boardi = boardi
+        self._thingn = thingn
         self.imagery = defaultdict(dict)
         self.indefinite_imagery = {}
         self.interactivity = defaultdict(dict)
         self.indefinite_interactivity = {}
+        imgns = set()
+        for rd in TabdictIterator(self._tabdict["pawn_img"]):
+            imgns.add(rd["img"])
+        self.imgdict = self.rumor.get_imgs(imgns)
+        for rd in TabdictIterator(self._tabdict["pawn_img"]):
+            self.set_img(self.imgdict[rd["img"]],
+                         rd["branch"],
+                         rd["tick_from"],
+                         rd["tick_to"])
+        for rd in TabdictIterator(self._tabdict["pawn_interactive"]):
+            self.set_interactive(rd["branch"], rd["tick_from"], rd["tick_to"])
         self.grabpoint = None
         self.sprite = None
         self.oldstate = None
@@ -77,6 +97,12 @@ interactive or not.
     def __getattr__(self, attrn):
         if attrn == 'img':
             return self.get_img()
+        elif attrn == 'dimension':
+            return self.rumor.dimensiondict[self._dimn]
+        elif attrn == 'board':
+            return self.dimension.boards[self._boardi]
+        elif attrn == 'thing':
+            return self.dimension.thingdict[self._thingn]
         elif attrn == 'visible':
             return self.img is not None
         elif attrn == 'coords':
@@ -84,10 +110,16 @@ interactive or not.
             return coords
         elif attrn == 'x':
             coords = self.coords
-            return coords[0]
+            if coords is None:
+                return 0 - self.width
+            else:
+                return coords[0]
         elif attrn == 'y':
             coords = self.coords
-            return coords[1]
+            if coords is None:
+                return 0 - self.height
+            else:
+                return coords[1]
         elif attrn == 'width':
             return self.img.width
         elif attrn == 'height':
@@ -265,17 +297,19 @@ If it DOES have anything else to do, make the journey in another branch.
             pass
 
     def draw(self):
-        if self.visible:
-            try:
-                self.sprite.x = self.viewport_left
-                self.sprite.y = self.viewport_bot
-            except AttributeError:
-                self.sprite = Sprite(
-                    self.img.tex,
-                    self.window_left,
-                    self.window_bot,
-                    batch=self.batch,
-                    group=self.spritegroup)
+        if (
+                None in (self.viewport_left, self.viewport_bot)):
+            return
+        try:
+            self.sprite.x = self.viewport_left
+            self.sprite.y = self.viewport_bot
+        except AttributeError:
+            self.sprite = Sprite(
+                self.img.tex,
+                self.window_left,
+                self.window_bot,
+                batch=self.batch,
+                group=self.spritegroup)
         if self.selected:
             yelo = (255, 255, 0, 255)
             colors = yelo * 4

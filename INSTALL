@@ -1,9 +1,10 @@
-Temporary instructions for interested hackers
-
-git submodule init
-git submodule update
-cd igraph
+cd igraph*
 ./configure
 make
 sudo make install
 sudo pip install igraph
+cd ..
+python mkdb.py
+python lise.py
+
+There is not much to do at the moment.

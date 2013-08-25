@@ -331,7 +331,7 @@ schedule, possibly several.
         """
         class Wedge:
             """Downward pointing wedge, looks much like the Timeline's Handle"""
-            def __init__(self, bc, width=16, height=10):
+            def __init__(self, bc, width=16, height=10, color_tup=(255, 0, 0, 255)):
                 self.bc = bc
                 self.batch = self.bc.batch
                 self.group = self.bg.wedgegroup
@@ -339,6 +339,7 @@ schedule, possibly several.
                 self.rx = self.width / 2
                 self.height = height
                 self.ry = self.height / 2
+                self.color = color_tup
                 self.vertlist = None
 
             def __getattr__(self, attrn):
@@ -377,16 +378,21 @@ schedule, possibly several.
                         ('v2i', points),
                         ('c4B', colors))
 
-        def __init__(self, calendar, col1, tick1, col2, tick2, space=None):
+            def delete(self):
+                try:
+                    self.vertlist.delete()
+                except:
+                    pass
+
+        def __init__(self, calendar, col1, col2, tick, space=None):
             self.calendar = calendar
             self.batch = self.calendar.batch
             self.group = OrderedGroup(3, self.calendar.group)
             self.linegroup = OrderedGroup(0, self.group)
             self.wedgegroup = Orderedgroup(1, self.group)
             self.col1 = col1
-            self.tick1 = tick1
             self.col2 = col2
-            self.tick2 = tick2
+            self.tick = tick
             if space is None:
                 self.space = self.calendar.style.spacing
             else:
@@ -394,19 +400,19 @@ schedule, possibly several.
 
         def __getattr__(self, attrn):
             if attrn == "startx":
-                return self.col1.window_left + self.col1.rx
+                return self.col1.window_right
             elif attrn == "endx":
                 return self.col2.window_left + self.col2.rx
             elif attrn == "starty":
                 return (
                     self.col1.window_top -
                     self.calendar.row_height * (
-                        self.tick1 - self.calendar.scrolled_to))
+                        self.tick - self.calendar.scrolled_to))
             elif attrn == "endy":
                 return (
                     self.col2.window_top -
                     self.calendar.row_height * (
-                        self.tick2 - self.calendar.scrolled_to))
+                        self.tick - self.calendar.scrolled_to))
             elif attrn == "centerx":
                 if self.col1.window_x < self.col2.window_x:
                     return self.col1.window_x + self.calendar.style.spacing / 2
@@ -414,17 +420,15 @@ schedule, possibly several.
                     return self.col2.window_x + self.calendar.style.spacing / 2
             elif attrn == "points":
                 x0 = self.startx
-                y0 = self.starty
+                y = self.starty
                 x2 = self.centerx
                 x5 = self.endx
-                y5 = self.endy
                 return (
-                    x0, y0,
-                    x0, y0 + self.space,
-                    x2, y0 + self.space,
-                    x2, y5 + self.space,
-                    x5, y5 + self.space,
-                    x5, y5)
+                    x0, y,
+                    x2, y,
+                    x2, y + self.space,
+                    x5, y + self.space,
+                    x5, y)
             elif attrn == "start":
                 return (
                     self.startx,
@@ -433,10 +437,36 @@ schedule, possibly several.
                 return (
                     self.endx,
                     self.endy)
+            else:
+                raise AttributeError(
+                    "BranchConnector has no attribute named {0}".format(attrn))
+
+        def draw(self):
+            points = self.points
+            try:
+                self.vertlist.vertices = list(points)
+            except AttributeError:
+                colors = self.color * 6
+                self.vertlist = self.batch.add_indexed(
+                    5,
+                    GL_LINES,
+                    self.linegroup,
+                    (0, 1, 1, 2, 2, 3, 3, 4),
+                    ('v2i', points),
+                    ('c4B', colors))
+            self.wedge.draw()
+
+        def delete(self):
+            try:
+                self.vertlist.delete()
+            except:
+                pass
+            self.wedge.delete()
 
     def __init__(self, rumor, td):
         self.rumor = rumor
-        rd = td["calendar"]
+        self._tabdict = td
+        rd = self._tabdict["calendar"]
         self.window = self.rumor.get_window(rd["window"])
         self.batch = self.window.batch
         self.group = self.window.calgroup
@@ -467,9 +497,7 @@ schedule, possibly several.
     def __getattr__(self, attrn):
         if attrn == 'window_top':
             return int(self.top_prop * self.window.height)
-        elif attrn =
-
-        = 'window_bot':
+        elif attrn == 'window_bot':
             return int(self.bot_prop * self.window.height)
         elif attrn == 'window_left':
             return int(self.left_prop * self.window.width)
@@ -529,7 +557,30 @@ schedule, possibly several.
     def draw(self):
         if self.visible and len(self.cols) > 0:
             for calcol in self.cols:
-                calcol.draw()
+                col1 = calcol
+                (parent, start, end) = self.rumor.timestream.branchdict[calcol.branch]
+                parent_idx = None
+                i = 0
+                for calcol in self.cols:
+                    if calcol.branch == parent:
+                        parent_idx = i
+                        col2 = calcol
+                        break
+                    i += 1
+                if (
+                        parent_idx is not None and
+                        start > self.scrolled_to and
+                        end - start < self.rows_shown):
+                    if not hasattr(calcol, 'bc'):
+                        col1.bc = BranchConnector(
+                            self, col1, col2, start)
+                    col1.bc.draw()
+                else:
+                    try:
+                        col1.bc.delete()
+                    except:
+                        pass
+                col1.draw()
         else:
             for calcol in self.cols:
                 calcol.delete()
