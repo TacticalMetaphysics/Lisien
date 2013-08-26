@@ -67,10 +67,11 @@ for the handle_side keyword argument.
                 self.vertlist.delete()
             except:
                 pass
+            self.vertlist = None
 
         def draw(self):
             batch = self.timeline.batch
-            group = self.timeline.handlegroup
+            group = self.timeline.col.tlgroup
             colors = self.timeline.color * 3
             points = (
                 self.window_right, self.y,
@@ -92,8 +93,6 @@ for the handle_side keyword argument.
         self.col = col
         self.cal = self.col.calendar
         self.batch = self.col.batch
-        self.tlgroup = OrderedGroup(0, self.col.tlgroup)
-        self.handlegroup = OrderedGroup(1, self.col.tlgroup)
         self.window = self.cal.window
         self.rumor = self.col.rumor
         self.handle = Timeline.Handle(self, handle_side)
@@ -113,6 +112,12 @@ for the handle_side keyword argument.
             return self.calendar_left + self.col.width
         elif attrn == "window_right":
             return self.window_left + self.col.width
+        elif attrn == "in_window":
+            return (
+                self.y > 0 and
+                self.y < self.window.height and
+                self.window_right > 0 and
+                self.window_left < self.window.width)
         else:
             raise AttributeError(
                 "Timeline instance has no attribute " + attrn)
@@ -122,10 +127,8 @@ for the handle_side keyword argument.
             self.vertlist.delete()
         except:
             pass
-        try:
-            self.handle.delete()
-        except:
-            pass
+        self.vertlist = None
+        self.handle.delete()
 
     def draw(self):
         colors = self.color * 2
@@ -136,10 +139,15 @@ for the handle_side keyword argument.
             self.vertlist.vertices = list(points)
             self.vertlist.colors = list(colors)
         except AttributeError:
+            assert(self.vertlist is None)
+            print "new vertlist for timeline for CalendarCol {0}".format(int(self.col))
+            print "points: " + repr(points)
+            print "colors: " + repr(colors)
+            print "group ID: " + str(id(self.col.tlgroup))
             self.vertlist = self.batch.add(
                 2,
                 GL_LINES,
-                self.tlgroup,
+                self.col.tlgroup,
                 ('v2i', points),
                 ('c4B', colors))
         self.handle.draw()
@@ -225,52 +233,51 @@ represents to calculate its dimensions and coordinates.
             self.label.delete()
         except:
             pass
+        self.label = None
         try:
             self.vertlist.delete()
         except:
             pass
+        self.vertlist = None
 
     def draw(self):
-        if self.visible and self.height > 0:
-            colors = (0, 0, 0, 255) * 4
-            l = self.window_left
-            r = self.window_right
-            t = self.window_top
-            b = self.window_bot
-            points = (
-                l, b,
-                l, t,
-                r, t,
-                r, b)
-            try:
-                self.vertlist.vertices = list(points)
-            except AttributeError:
-                self.vertlist = self.batch.add_indexed(
-                    4,
-                    GL_LINES,
-                    self.bggroup,
-                    (0, 1, 1, 2, 2, 3, 3, 0),
-                    ('v2i', points),
-                    ('c4B', colors))
-            y = self.calendar_top - self.label_height
-            try:
-                self.label.x = self.window_left
-                self.label.y = y
-            except:
-                self.label = Label(
-                    self.text,
-                    self.style.fontface,
-                    self.style.fontsize,
-                    color=self.style.textcolor.tup,
-                    width=self.width,
-                    height=self.height,
-                    x=self.window_left,
-                    y=y,
-                    multiline=True,
-                    batch=self.batch,
-                    group=self.textgroup)
-        else:
-            self.delete()
+         colors = (0, 0, 0, 255) * 4
+         l = self.window_left
+         r = self.window_right
+         t = self.window_top
+         b = self.window_bot
+         points = (
+             l, b,
+             l, t,
+             r, t,
+             r, b)
+         try:
+             self.vertlist.vertices = list(points)
+         except AttributeError:
+             self.vertlist = self.batch.add_indexed(
+                 4,
+                 GL_LINES,
+                 self.bggroup,
+                 (0, 1, 1, 2, 2, 3, 3, 0),
+                 ('v2i', points),
+                 ('c4B', colors))
+         y = self.calendar_top - self.label_height
+         try:
+             self.label.x = self.window_left
+             self.label.y = y
+         except:
+             self.label = Label(
+                 self.text,
+                 self.style.fontface,
+                 self.style.fontsize,
+                 color=self.style.textcolor.tup,
+                 width=self.width,
+                 height=self.height,
+                 x=self.window_left,
+                 y=y,
+                 multiline=True,
+                 batch=self.batch,
+                 group=self.textgroup)
 
 
 COL_TYPE = {
@@ -332,12 +339,13 @@ schedule, possibly several.
         all.
 
         """
+        color = (255, 0, 0, 255)
         class Wedge:
             """Downward pointing wedge, looks much like the Timeline's Handle"""
             def __init__(self, bc, width=16, height=10, color_tup=(255, 0, 0, 255)):
                 self.bc = bc
                 self.batch = self.bc.batch
-                self.group = self.bg.wedgegroup
+                self.group = self.bc.wedgegroup
                 self.width = width
                 self.rx = self.width / 2
                 self.height = height
@@ -386,24 +394,29 @@ schedule, possibly several.
                     self.vertlist.delete()
                 except:
                     pass
+                self.vertlist = None
 
         def __init__(self, calendar, col1, col2, tick, space=None):
             self.calendar = calendar
             self.batch = self.calendar.batch
             self.group = OrderedGroup(3, self.calendar.group)
             self.linegroup = OrderedGroup(0, self.group)
-            self.wedgegroup = Orderedgroup(1, self.group)
+            self.wedgegroup = OrderedGroup(1, self.group)
             self.col1 = col1
             self.col2 = col2
             self.tick = tick
+            self.wedge = self.__class__.Wedge(self)
             if space is None:
-                self.space = self.calendar.style.spacing
+                self.space = self.calendar.style.spacing * 2
             else:
                 self.space = space
 
         def __getattr__(self, attrn):
             if attrn == "startx":
-                return self.col1.window_right
+                if self.col1.window_left < self.col2.window_left:
+                    return self.col1.window_right - self.calendar.style.spacing
+                else:
+                    return self.col1.window_left - self.calendar.style.spacing
             elif attrn == "endx":
                 return self.col2.window_left + self.col2.rx
             elif attrn == "starty":
@@ -417,10 +430,10 @@ schedule, possibly several.
                     self.calendar.row_height * (
                         self.tick - self.calendar.scrolled_to))
             elif attrn == "centerx":
-                if self.col1.window_x < self.col2.window_x:
-                    return self.col1.window_x + self.calendar.style.spacing / 2
+                if self.col1.window_left < self.col2.window_left:
+                    return self.col1.window_right + self.calendar.style.spacing / 2
                 else:
-                    return self.col2.window_x + self.calendar.style.spacing / 2
+                    return self.col2.window_right + self.calendar.style.spacing / 2
             elif attrn == "points":
                 x0 = self.startx
                 y = self.starty
@@ -449,7 +462,7 @@ schedule, possibly several.
             try:
                 self.vertlist.vertices = list(points)
             except AttributeError:
-                colors = self.color * 6
+                colors = self.color * 5
                 self.vertlist = self.batch.add_indexed(
                     5,
                     GL_LINES,
@@ -464,6 +477,7 @@ schedule, possibly several.
                 self.vertlist.delete()
             except:
                 pass
+            self.vertlist = None
             self.wedge.delete()
 
     def __init__(self, rumor, td):
@@ -565,27 +579,6 @@ schedule, possibly several.
                 except KeyError:
                     continue
                 col1 = calcol
-                parent_idx = None
-                i = 0
-                for calcol in self.cols:
-                    if calcol.branch == parent:
-                        parent_idx = i
-                        col2 = calcol
-                        break
-                    i += 1
-                if (
-                        parent_idx is not None and
-                        start > self.scrolled_to and
-                        end - start < self.rows_shown):
-                    if not hasattr(calcol, 'bc'):
-                        col1.bc = BranchConnector(
-                            self, col1, col2, start)
-                    col1.bc.draw()
-                else:
-                    try:
-                        col1.bc.delete()
-                    except:
-                        pass
                 col1.draw()
         else:
             for calcol in self.cols:
@@ -595,8 +588,22 @@ schedule, possibly several.
         self.cols.remove(it)
 
     def refresh(self):
-        for col in self.cols:
-            col.regen_cells()
+        for col1 in self.cols:
+            (parent, tick_from, tick_to) = self.rumor.timestream.branchdict[col1.branch]
+            if hasattr(col1, 'bc'):
+                col1.bc.delete()
+            col2 = None
+            for calcol in self.cols:
+                if calcol.branch == parent:
+                    col2 = calcol
+                    break
+            if (
+                    col2 is not None and
+                    tick_from > self.scrolled_to and
+                    tick_to < self.scrolled_to + self.rows_shown):
+                col1.bc = Calendar.BranchConnector(
+                    self, col2, col1, tick_from)
+            col1.regen_cells()
 
     def add_cols_from_tabdict(self, td):
         for rd in TabdictIterator(td):
@@ -700,7 +707,7 @@ class CalendarCol:
             self._rowdict = td["calendar_col_skill"][str(self.window)][int(self.calendar)][int(self)]
         self.vertl = None
         self.cells = []
-        self.regen_cells()
+        self.refresh()
 
     def __iter__(self):
         return iter(self.cells)
@@ -744,7 +751,10 @@ class CalendarCol:
     def __int__(self):
         return self.idx
 
-    def regen_cells(self, branch=None):
+    def refresh(self):
+        self.regen_cells()
+
+    def regen_cells(self):
         for cell in self.cells:
             cell.delete()
         self.cells = []
@@ -771,16 +781,10 @@ class CalendarCol:
         for cell in self.cells:
             cell.delete()
         try:
-            self.sprite.delete()
-        except:
-            pass
-        try:
             self.timeline.delete()
         except:
             pass
-        self.sprite = None
         self.timeline = None
-        self.calendar.remove(self)
 
     def pretty_caster(self, *args):
         unargs = []
@@ -821,7 +825,11 @@ class CalendarCol:
                 ('c4B', colors))
         for cel in self.cells:
             cel.draw()
-        if self.rumor.branch == self.branch:
+        if hasattr(self, 'bc'):
+            self.bc.draw()
+        if (
+                self.rumor.branch == self.branch and
+                self.timeline.in_window):
             self.timeline.draw()
         else:
             self.timeline.delete()
