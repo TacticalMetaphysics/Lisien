@@ -29,7 +29,13 @@ from timestream import Timestream, TimestreamException
 from gui import GameWindow
 from collections import OrderedDict, defaultdict
 from logging import getLogger
-from util import dictify_row, colnames, colnamestr
+from util import (
+    dictify_row,
+    colnames,
+    colnamestr,
+    stringlike,
+    LoadError,
+    TabdictIterator)
 from portal import Portal
 from thing import Thing
 from character import Character
@@ -183,6 +189,7 @@ given name.
         self.tickdict = {}
         self.eventdict = {}
         self.characterdict = {}
+        self.windowdict = {}
         self.lang = lang
 
         self.game_speed = 1
@@ -377,13 +384,6 @@ This is game-world time. It doesn't always go forwards.
         if name not in self.carddict:
             self.load_card(name)
         return self.carddict[name]
-
-    def get_style(self, name):
-        """Return the Style by the given name, loading it first if
-necessary."""
-        if name not in self.styledict:
-            self.load_styles(name)
-        return self.styledict[name]
 
     def make_igraph_graph(self, name):
         self.graphdict[name] = igraph.Graph(directed=True)
@@ -747,6 +747,12 @@ necessary."""
         r.update(self.load_characters(unloaded))
         return r
 
+    def get_character(self, name):
+        return self.get_characters([name])[name]
+
+    def get_thing(self, dimn, thingn):
+        return self.get_dimension(dimn).get_thing(thingn)
+
     def load_effects(self, names):
         r = {}
         qrystr = EFFECT_QRYFMT.format(", ".join(["?"] * len(names)))
@@ -861,18 +867,14 @@ necessary."""
             if not po.extant_between(rd["branch"], rd["tick_from"], rd["tick_to"]):
                 po.persist(rd["branch"], rd["tick_from"], rd["tick_to"])
         self.c.execute(THING_LOC_QRYFMT + extrastr, valtup)
+        thing_rds = defaultdict(lambda: defaultdict(list))
         for row in self.c:
             rd = dictify_row(row, Thing.colns)
-            if rd["thing"] not in dim.thingdict:
-                dim.make_thing(rd["thing"])
-            try:
-                loc = dim.get_place(rd["location"])
-            except ValueError:
-                loc = dim.get_portal(*re.match(PORTAL_NAME_RE, rd["location"]).groups())
-            logger.debug("putting thing %s in place %s", rd["thing"], str(loc))
-            thing = dim.get_thing(rd["thing"])
-            thing.set_location(loc, rd["branch"], rd["tick_from"], rd["tick_to"])
-        self.dimensiondict[dimn] = dim
+            thing_rds[rd["dimension"]][rd["thing"]].append(rd)
+        for dimension in thing_rds:
+            for thing in thing_rds[dimension]:
+                dim.thingdict[thing] = Thing(
+                    self, {"thing_location": thing_rds[dimension][thing]})
         return dim
 
     def get_dimension(self, dimn):
@@ -910,25 +912,20 @@ necessary."""
         for row in spot_rows:
             imgs2load.add(row[4])
         # images for the pawns
-        self.c.execute(PAWN_BOARD_IMG_QRYFMT, (str(dim), i))
-        pawn_rows = self.c.fetchall()
-        for row in pawn_rows:
-            imgs2load.add(row[4])
+        pawn_td = Pawn._select_tabdict(self.c, {
+            "pawn_img": {"dimension": str(dim)},
+            "pawn_interactive": {"dimension": str(dim)}})
+        for rd in TabdictIterator(pawn_td["pawn_img"]):
+            imgs2load.add(rd["img"])
         imgs = self.load_imgs(imgs2load)
         dim.boards[i] = Board(dim, i, width, height, imgs[walln])
+        for rd in TabdictIterator(pawn_td):
+            try:
+                dim.boards[i].pawndict[rd["thing"]] = Pawn(
+                    self, rd["dimension"], i, rd["thing"], pawn_td)
+            except LoadError:
+                pass
         # actually assign images instead of just collecting the names
-        for row in pawn_rows:
-            rd = dictify_row(row, colnames["pawn_img"])
-            thing = dim.thingdict[rd["thing"]]
-            pawn = dim.boards[i].get_pawn(thing)
-            pawn.set_img(imgs[rd["img"]], rd["branch"],
-                         rd["tick_from"], rd["tick_to"])
-        # interactivity for the pawns
-        self.c.execute(PAWN_BOARD_INTER_QRYFMT, (str(dim), i))
-        for row in self.c:
-            rd = dictify_row(row, colnames["pawn_interactive"])
-            pawn = dim.boards[i].get_pawn(dim.thingdict[rd["thing"]])
-            pawn.set_interactive(rd["branch"], rd["tick_from"], rd["tick_to"])
         # spots in this board
         self.c.execute(SPOT_BOARD_COORD_QRYFMT, (str(dim), i))
         for row in self.c:
@@ -1051,13 +1048,6 @@ necessary."""
             while len(menu_item_rds[rd["menu"]]) <= rd["idx"]:
                 menu_item_rds[rd["menu"]].append(None)
             menu_item_rds[rd["menu"]][rd["idx"]] = rd
-        self.c.execute(CALENDAR_WINDOW_QRYFMT, (name,))
-        calendar_rds = []
-        for row in self.c:
-            rd = dictify_row(row, Calendar.colns)
-            while len(calendar_rds) <= rd["idx"]:
-                calendar_rds.append(None)
-            calendar_rds[rd["idx"]] = rd
         self.c.execute(HAND_WINDOW_QRYFMT, (name,))
         hand_rds = {}
         for row in self.c:
@@ -1076,12 +1066,85 @@ necessary."""
             viewport_rds.append(rd)
         window_row["menu_rds"] = menu_rds
         window_row["menu_item_rds"] = menu_item_rds
-        window_row["calendar_rds"] = calendar_rds
         window_row["hand_rds"] = hand_rds
         window_row["card_rds"] = card_rds
         window_row["viewport_rds"] = viewport_rds
         window_row["rumor"] = self
-        return GameWindow(**window_row)
+        self.windowdict[window_row["name"]] = GameWindow(**window_row)
+        self.load_calendars_in_window(window_row["name"])
+
+    def load_windows(self, names):
+        if len(names) == 0:
+            return {}
+        r = {}
+        for name in iter(names):
+            self.load_window(name)
+            r[name] = self.windowdict[name]
+        return r
+
+    def get_window(self, name):
+        if name not in self.windowdict:
+            self.load_window(name)
+        return self.windowdict[name]
+
+    def get_windows(self, names):
+        r = {}
+        unhad = set()
+        for name in iter(names):
+            if name in self.windowdict:
+                r[name] = self.windowdict[name]
+            else:
+                unhad.add(name)
+        r.update(self.load_windows(unhad))
+        return r
+
+    def instantiate_calendars(self, td):
+        windows = set()
+        styles = set()
+        for rd in TabdictIterator(td["calendar"]):
+            windows.add(rd["window"])
+            styles.add(rd["style"])
+        windict = self.get_windows(windows)
+        styledict = self.get_styles(styles)
+        r = defaultdict(dict)
+        for rd in TabdictIterator(td["calendar"]):
+            window = windict[rd["window"]]
+            while len(window.calendars) <= rd["idx"]:
+                window.calendars.append(None)
+            cal = Calendar(self, {"calendar": rd})
+            cal.add_cols_from_tabdict(td)
+            window.calendars[rd["idx"]] = cal
+            r[window][rd["idx"]] = cal
+        return r
+
+    def load_calendars(self, td):
+        return self.instantiate_calendars(Calendar._select_tabdict(self.c, td))
+
+    def load_calendars_in_windows(self, winns):
+        td = {
+            "calendar": [{"window": winn} for winn in winns],
+            "calendar_col_stat": [{"window": winn} for winn in winns],
+            "calendar_col_skill": [{"window": winn} for winn in winns],
+            "calendar_col_thing": [{"window": winn} for winn in winns]}
+        return self.load_calendars(td)
+
+    def load_calendars_in_window(self, winn):
+        return self.load_calendars_in_windows([winn])
+
+    def get_calendars(self, kds):
+        got = defaultdict(dict)
+        ungot = defaultdict(set)
+        for kd in kds:
+            try:
+                got[kd["window"]][kd["idx"]] = self.windowdict[kd["window"]].calendars[kd["idx"]]
+            except KeyError:
+                ungot[kd["window"]].add(kd["idx"])
+        ungotl = []
+        for (winname, calindices) in ungot.iteritems():
+            for calidx in iter(calindices):
+                ungotl.append({"window": winname, "idx": calidx})
+        got.update(self.load_calendars(ungotl))
+        return got
 
     def time_travel(self, mi, branch, tick):
         if branch not in self.timestream.branchdict:
@@ -1173,6 +1236,71 @@ necessary."""
         self.c.close()
         self.conn.commit()
         self.conn.close()
+
+    def load_colors(self, names):
+        if len(names) == 0:
+            return {}
+        kds = [{"name": name} for name in names]
+        td = Color._select_tabdict(self.c, {"color": kds})
+        r = {}
+        for rd in TabdictIterator(td):
+            color = Color(**rd)
+            r[str(color)] = color
+            self.colordict[str(color)] = color
+        return r
+
+    def get_colors(self, names):
+        r = {}
+        unhad = set()
+        for name in names:
+            if name in self.colordict:
+                r[name] = self.colordict[name]
+            else:
+                unhad.add(name)
+        r.update(self.load_colors(unhad))
+        return r
+
+    def load_styles(self, names):
+        if len(names) == 0:
+            return {}
+        colorcols = (
+                    "textcolor",
+                    "bg_inactive",
+                    "bg_active",
+                    "fg_inactive",
+                    "fg_active")
+        kd = {"style": {}}
+        for name in names:
+            kd["style"][name] = {"name": name}
+        td = Style._select_tabdict(self.c, kd)
+        colors = set()
+        for rd in TabdictIterator(td):
+            for color in colorcols:
+                colors.add(rd[color])
+        colordict = self.get_colors(colors)
+        r = {}
+        for rd in TabdictIterator(td):
+            for color in colorcols:
+                rd[color] = colordict[rd[color]]
+            style = Style(**rd)
+            r[str(style)] = style
+            self.styledict[str(style)] = style
+        return r
+
+    def get_styles(self, names):
+        r = {}
+        unhad = set()
+        for name in names:
+            if name in self.styledict:
+                r[name] = self.styledict[name]
+            else:
+                unhad.add(name)
+        r.update(self.load_styles(unhad))
+        return r
+
+
+    def get_style(self, name):
+        return self.get_styles([name])[name]
 
 
 def load_game(dbfn, lang="eng"):

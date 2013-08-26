@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
 import logging
-from rumor import load_game
+import rumor
 from sys import argv
 from os import remove
 from sqlite3 import connect, DatabaseError
@@ -39,8 +39,8 @@ if DEBUG:
     logger = logging.getLogger()
 clock = pyglet.clock.Clock()
 pyglet.clock.set_default(clock)
-rumor = load_game(dbfn, lang)
-gw = rumor.load_window('Main')
+rumor = rumor.load_game(dbfn, lang)
+gw = rumor.get_window('Main')
 
 def update(ts):
     gw.update(ts)

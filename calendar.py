@@ -1,6 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, ViewportOrderedGroup
+from util import (
+    SaveableMetaclass,
+    ViewportOrderedGroup,
+    TabdictIterator)
 from pyglet.image import SolidColorImagePattern as color_pattern
 from pyglet.sprite import Sprite
 from pyglet.text import Label
@@ -12,6 +15,9 @@ Usually there should be only one calendar per board, but it can switch
 between showing various schedules, or even show many in parallel.
 
 """
+
+
+__metaclass__ = SaveableMetaclass
 
 
 class Timeline:
@@ -61,10 +67,11 @@ for the handle_side keyword argument.
                 self.vertlist.delete()
             except:
                 pass
+            self.vertlist = None
 
         def draw(self):
             batch = self.timeline.batch
-            group = self.timeline.handlegroup
+            group = self.timeline.col.tlgroup
             colors = self.timeline.color * 3
             points = (
                 self.window_right, self.y,
@@ -86,8 +93,6 @@ for the handle_side keyword argument.
         self.col = col
         self.cal = self.col.calendar
         self.batch = self.col.batch
-        self.tlgroup = OrderedGroup(0, self.col.tlgroup)
-        self.handlegroup = OrderedGroup(1, self.col.tlgroup)
         self.window = self.cal.window
         self.rumor = self.col.rumor
         self.handle = Timeline.Handle(self, handle_side)
@@ -107,6 +112,12 @@ for the handle_side keyword argument.
             return self.calendar_left + self.col.width
         elif attrn == "window_right":
             return self.window_left + self.col.width
+        elif attrn == "in_window":
+            return (
+                self.y > 0 and
+                self.y < self.window.height and
+                self.window_right > 0 and
+                self.window_left < self.window.width)
         else:
             raise AttributeError(
                 "Timeline instance has no attribute " + attrn)
@@ -116,10 +127,8 @@ for the handle_side keyword argument.
             self.vertlist.delete()
         except:
             pass
-        try:
-            self.handle.delete()
-        except:
-            pass
+        self.vertlist = None
+        self.handle.delete()
 
     def draw(self):
         colors = self.color * 2
@@ -130,10 +139,15 @@ for the handle_side keyword argument.
             self.vertlist.vertices = list(points)
             self.vertlist.colors = list(colors)
         except AttributeError:
+            assert(self.vertlist is None)
+            print "new vertlist for timeline for CalendarCol {0}".format(int(self.col))
+            print "points: " + repr(points)
+            print "colors: " + repr(colors)
+            print "group ID: " + str(id(self.col.tlgroup))
             self.vertlist = self.batch.add(
                 2,
                 GL_LINES,
-                self.tlgroup,
+                self.col.tlgroup,
                 ('v2i', points),
                 ('c4B', colors))
         self.handle.draw()
@@ -219,202 +233,57 @@ represents to calculate its dimensions and coordinates.
             self.label.delete()
         except:
             pass
+        self.label = None
         try:
             self.vertlist.delete()
         except:
             pass
+        self.vertlist = None
 
     def draw(self):
-        batch = self.batch
-        if self.visible and self.height > 0:
-            colors = (0, 0, 0, 255) * 4
-            points = (
-                self.window_left, self.window_bot,
-                self.window_left, self.window_top,
-                self.window_right, self.window_top,
-                self.window_right, self.window_bot)
-            try:
-                self.vertlist.vertices = list(points)
-            except AttributeError:
-                self.vertlist = self.batch.add_indexed(
-                    4,
-                    GL_LINES,
-                    self.bggroup,
-                    (0, 1, 1, 2, 2, 3, 3, 0),
-                    ('v2i', points),
-                    ('c4B', colors))
-            y = self.calendar_top - self.label_height
-            try:
-                self.label.x = self.window_left
-                self.label.y = y
-            except:
-                self.label = Label(
-                    self.text,
-                    self.style.fontface,
-                    self.style.fontsize,
-                    color=self.style.textcolor.tup,
-                    width=self.width,
-                    height=self.height,
-                    x=self.window_left,
-                    y=y,
-                    multiline=True,
-                    batch=batch,
-                    group=self.textgroup)
-        else:
-            self.delete()
+         colors = (0, 0, 0, 255) * 4
+         l = self.window_left
+         r = self.window_right
+         t = self.window_top
+         b = self.window_bot
+         points = (
+             l, b,
+             l, t,
+             r, t,
+             r, b)
+         try:
+             self.vertlist.vertices = list(points)
+         except AttributeError:
+             self.vertlist = self.batch.add_indexed(
+                 4,
+                 GL_LINES,
+                 self.bggroup,
+                 (0, 1, 1, 2, 2, 3, 3, 0),
+                 ('v2i', points),
+                 ('c4B', colors))
+         y = self.calendar_top - self.label_height
+         try:
+             self.label.x = self.window_left
+             self.label.y = y
+         except:
+             self.label = Label(
+                 self.text,
+                 self.style.fontface,
+                 self.style.fontsize,
+                 color=self.style.textcolor.tup,
+                 width=self.width,
+                 height=self.height,
+                 x=self.window_left,
+                 y=y,
+                 multiline=True,
+                 batch=self.batch,
+                 group=self.textgroup)
 
 
-class CalendarCol:
-    def __init__(self, calendar, scheduledict, branch, interactive, style):
-        self.calendar = calendar
-        self.rumor = self.calendar.rumor
-        self.batch = self.calendar.batch
-        self.bggroup = OrderedGroup(0, self.calendar.group)
-        self.cellgroup = OrderedGroup(1, self.calendar.group)
-        self.tlgroup = OrderedGroup(2, self.calendar.group)
-        self.timeline = Timeline(self)
-        self.window = calendar.window
-        self.scheduledict = scheduledict
-        self.branch = branch
-        self.visible = False
-        self.interactive = interactive
-        self.style = style
-        self.oldstate = None
-        self.old_width = None
-        self.old_image = None
-        self.sprite = None
-        self.oldwidth = None
-        self.inactive_pattern = color_pattern(style.bg_inactive.tup)
-        self.active_pattern = color_pattern(style.bg_active.tup)
-        self.tweaks = 0
-        self.cells = []
-        self.regen_cells()
-
-    def __iter__(self):
-        return iter(self.cells)
-
-    def __getattr__(self, attrn):
-        if attrn == 'dimension':
-            return self.rumor.get_dimension(self._dimension)
-        elif attrn == 'idx':
-            return self.calendar.cols.index(self)
-        elif attrn == 'width':
-            return self.calendar.col_width
-        elif attrn == 'height':
-            return self.calendar.height
-        elif attrn == 'calendar_left':
-            return self.idx * self.width
-        elif attrn == 'calendar_right':
-            return self.calendar_left + self.width
-        elif attrn == 'calendar_top':
-            return self.calendar.height
-        elif attrn == 'calendar_bot':
-            return 0
-        elif attrn == 'window_left':
-            return self.calendar.window_left + self.calendar_left
-        elif attrn == 'window_right':
-            return self.calendar.window_left + self.calendar_right
-        elif attrn == 'window_top':
-            return self.calendar.window_top
-        elif attrn == 'window_bot':
-            return self.calendar.window_bot
-        else:
-            raise AttributeError(
-                "CalendarCol instance has no such attribute: " +
-                attrn)
-
-    def celhash(self):
-        hashes = [
-            hash(cel.get_state_tup())
-            for cel in self.cells]
-        return hash(tuple(hashes))
-
-    def get_state_tup(self):
-        """Return a tuple containing information enough to tell the difference
-between any two states that should appear different on-screen."""
-        return (
-            self.celhash(),
-            self.window_top,
-            self.window_bot,
-            self.idx,
-            self.width,
-            self.visible,
-            self.interactive,
-            self.tweaks)
-
-    def regen_cells(self, branch=None):
-        for cell in self.cells:
-            cell.delete()
-        self.cells = []
-        if branch is None:
-            branch = self.rumor.branch
-        print "generating calendar cells from scheduledict:"
-        print self.scheduledict[branch]
-        for (tick_from, val) in self.scheduledict[branch].iteritems():
-            if isinstance(val, tuple):
-                tick_to = val[-1]
-                text = self.pretty_printer(val[:-1])
-            else:
-                tick_to = val
-                text = "..."
-            self.cells.append(CalendarCell(self, tick_from, tick_to, text))
-
-    def delete(self):
-        for cell in self.cells:
-            cell.delete()
-        try:
-            self.sprite.delete()
-        except:
-            pass
-        try:
-            self.timeline.delete()
-        except:
-            pass
-        self.sprite = None
-        self.timeline = None
-        self.calendar.remove(self)
-
-    def pretty_caster(self, *args):
-        unargs = []
-        for arg in args:
-            if isinstance(arg, tuple) or isinstance(arg, list):
-                unargs += self.pretty_caster(*arg)
-            else:
-                unargs.append(arg)
-        return unargs
-
-    def pretty_printer(self, *args):
-        strings = []
-        unargs = self.pretty_caster(*args)
-        for unarg in unargs:
-            strings.append(str(unarg))
-        return ";\n".join(strings)
-
-    def draw(self):
-        if (
-                not hasattr(self, 'image') or
-                self.image.width != self.width or
-                self.image.height != self.height):
-            self.image = self.inactive_pattern.create_image(
-                self.width, self.height)
-        try:
-            assert(self.sprite.width == self.width)
-            assert(self.sprite.height == self.height)
-            self.sprite.x = self.window_left
-            self.sprite.y = self.window_bot
-        except:
-            self.sprite = Sprite(
-                self.image,
-                self.window_left,
-                self.window_bot,
-                batch=self.batch,
-                group=self.bggroup)
-        for cel in self.cells:
-            cel.draw()
-        if self.rumor.branch == self.branch:
-            self.timeline.draw()
-        else:
-            self.timeline.delete()
+COL_TYPE = {
+    "THING": 0,
+    "STAT": 1,
+    "SKILL": 2}
 
 
 class Calendar:
@@ -422,19 +291,9 @@ class Calendar:
 schedule, possibly several.
 
 """
-    __metaclass__ = SaveableMetaclass
     # There should be only one character-attribute for one
     # calendar_col, although its record may be in any of several
     # tables.
-    postlude = [
-        "CREATE TRIGGER unical_loc BEFORE INSERT ON calendar_col_loc BEGIN "
-        "INSERT INTO calendar_col (window, calendar, idx) VALUES "
-        "(NEW.window, NEW.calendar, NEW.idx);"
-        "END",
-        "CREATE TRIGGER unical_stat BEFORE INSERT ON calendar_col_stat BEGIN "
-        "INSERT INTO calendar_col (window, calendar, idx) VALUES "
-        "(NEW.window, NEW.calendar, NEW.idx);"
-        "END"]
     tables = [
         (
             "calendar",
@@ -460,65 +319,191 @@ schedule, possibly several.
             "calendar_col",
             {"window": "text not null default 'Main'",
              "calendar": "integer not null default 0",
-             "idx": "integer not null"},
+             "idx": "integer not null",
+             "type": "integer not null"},
             ("window", "calendar", "idx"),
             {"window, calendar": ("calendar", "window, idx")},
-            ["idx>=0"]),
-        (
-            "calendar_col_loc",
-            {"window": "text not null default 'Main'",
-             "calendar": "integer not null default 0",
-             "idx": "integer not null",
-             "branch": "integer not null default 0",
-             "character": "text not null",
-             "dimension": "text not null",
-             "thing": "text not null"},
-            ("window", "calendar", "idx"),
-            {"window, calendar, idx": ("calendar_col", "window, calendar, idx"),
-             "character, dimension, branch, thing": (
-                 "character_things", "character, dimension, branch, thing")},
-            ["idx>=0"]),
-        (
-            "calendar_col_stat",
-            {"window": "text not null default 'Main'",
-             "calendar": "integer not null default 0",
-             "idx": "integer not null",
-             "branch": "integer not null default 0",
-             "character": "text not null",
-             "stat": "text not null"},
-            ("window", "calendar", "idx"),
-            {"window, calendar": ("calendar", "window, idx"),
-             "character, branch, stat": ("character_skills", "character, branch, stat")},
-            ["idx>=0"])]
+            ["idx>=0", "type IN ({0})".format(
+                ", ".join([str(it) for it in COL_TYPE.values()])
+            )])]
     visible = True
 
-    def __init__(
-            self, window, idx, left, right, top, bot, style, interactive,
-            rows_shown, scrolled_to, scroll_factor, max_cols, branches=None):
-        self.window = window
+    class BranchConnector:
+        """Widget to show where a branch branches off another.
+
+        It's an arrow that leads from the tick on one branch where
+        another branches from it, to the start of the latter.
+
+        It operates on the assumption that child branches will always
+        be displayed next to their parents, when they are displayed at
+        all.
+
+        """
+        color = (255, 0, 0, 255)
+        class Wedge:
+            """Downward pointing wedge, looks much like the Timeline's Handle"""
+            def __init__(self, bc, width=16, height=10, color_tup=(255, 0, 0, 255)):
+                self.bc = bc
+                self.batch = self.bc.batch
+                self.group = self.bc.wedgegroup
+                self.width = width
+                self.rx = self.width / 2
+                self.height = height
+                self.ry = self.height / 2
+                self.color = color_tup
+                self.vertlist = None
+
+            def __getattr__(self, attrn):
+                if attrn == "window_bot":
+                    return self.bc.end[1]
+                elif attrn == "window_top":
+                    return self.bc.end[1] + self.height
+                elif attrn == "window_left":
+                    return self.bc.end[0] - self.rx
+                elif attrn == "window_right":
+                    return self.bc.end[0] + self.rx
+                else:
+                    raise AttributeError(
+                        "Wedge instance has no attribute named {0}".format(attrn))
+
+            def draw(self):
+                (x, y) = self.bc.end
+                l = x - self.rx
+                c = x
+                r = x + self.rx
+                t = y + self.height
+                b = y
+                points = (
+                    c, b,
+                    l, t,
+                    r, t)
+                colors = self.bc.color * 3
+                try:
+                    self.vertlist.vertices = list(points)
+                except AttributeError:
+                    self.vertlist = self.batch.add_indexed(
+                        3,
+                        GL_TRIANGLES,
+                        self.group,
+                        (0,1,2,0),
+                        ('v2i', points),
+                        ('c4B', colors))
+
+            def delete(self):
+                try:
+                    self.vertlist.delete()
+                except:
+                    pass
+                self.vertlist = None
+
+        def __init__(self, calendar, col1, col2, tick, space=None):
+            self.calendar = calendar
+            self.batch = self.calendar.batch
+            self.group = OrderedGroup(3, self.calendar.group)
+            self.linegroup = OrderedGroup(0, self.group)
+            self.wedgegroup = OrderedGroup(1, self.group)
+            self.col1 = col1
+            self.col2 = col2
+            self.tick = tick
+            self.wedge = self.__class__.Wedge(self)
+            if space is None:
+                self.space = self.calendar.style.spacing * 2
+            else:
+                self.space = space
+
+        def __getattr__(self, attrn):
+            if attrn == "startx":
+                if self.col1.window_left < self.col2.window_left:
+                    return self.col1.window_right - self.calendar.style.spacing
+                else:
+                    return self.col1.window_left - self.calendar.style.spacing
+            elif attrn == "endx":
+                return self.col2.window_left + self.col2.rx
+            elif attrn == "starty":
+                return (
+                    self.col1.window_top -
+                    self.calendar.row_height * (
+                        self.tick - self.calendar.scrolled_to))
+            elif attrn == "endy":
+                return (
+                    self.col2.window_top -
+                    self.calendar.row_height * (
+                        self.tick - self.calendar.scrolled_to))
+            elif attrn == "centerx":
+                if self.col1.window_left < self.col2.window_left:
+                    return self.col1.window_right + self.calendar.style.spacing / 2
+                else:
+                    return self.col2.window_right + self.calendar.style.spacing / 2
+            elif attrn == "points":
+                x0 = self.startx
+                y = self.starty
+                x2 = self.centerx
+                x5 = self.endx
+                return (
+                    x0, y,
+                    x2, y,
+                    x2, y + self.space,
+                    x5, y + self.space,
+                    x5, y)
+            elif attrn == "start":
+                return (
+                    self.startx,
+                    self.starty)
+            elif attrn == "end":
+                return (
+                    self.endx,
+                    self.endy)
+            else:
+                raise AttributeError(
+                    "BranchConnector has no attribute named {0}".format(attrn))
+
+        def draw(self):
+            points = self.points
+            try:
+                self.vertlist.vertices = list(points)
+            except AttributeError:
+                colors = self.color * 5
+                self.vertlist = self.batch.add_indexed(
+                    5,
+                    GL_LINES,
+                    self.linegroup,
+                    (0, 1, 1, 2, 2, 3, 3, 4),
+                    ('v2i', points),
+                    ('c4B', colors))
+            self.wedge.draw()
+
+        def delete(self):
+            try:
+                self.vertlist.delete()
+            except:
+                pass
+            self.vertlist = None
+            self.wedge.delete()
+
+    def __init__(self, rumor, td):
+        self.rumor = rumor
+        self._tabdict = td
+        rd = self._tabdict["calendar"]
+        self.window = self.rumor.get_window(rd["window"])
         self.batch = self.window.batch
         self.group = self.window.calgroup
-        self.rumor = self.window.rumor
-        self.idx = idx
-        self.left_prop = left
-        self.right_prop = right
-        self.top_prop = top
-        self.bot_prop = bot
-        self.interactive = interactive
-        self.rows_shown = rows_shown
-        self.style = style
+        self.idx = rd["idx"]
+        self.left_prop = rd["left"]
+        self.right_prop = rd["right"]
+        self.top_prop = rd["top"]
+        self.bot_prop = rd["bot"]
+        self.interactive = rd["interactive"]
+        self.rows_shown = rd["rows_shown"]
+        self.style = self.rumor.get_style(rd["style"])
+        scrolled_to = rd["scrolled_to"]
         if scrolled_to is None:
             scrolled_to = self.rumor.tick
         self.scrolled_to = scrolled_to
-        self.scroll_factor = scroll_factor
-        self.max_cols = max_cols
-        if branches is not None:
-            self.branches = branches
-        self.oldstate = None
+        self.scroll_factor = rd["scroll_factor"]
+        self.max_cols = rd["max_cols"]
         self.sprite = None
-        self.tweaks = 0
         self.cols = []
-        self.timeline = None
+        self.add_cols_from_tabdict(td)
 
     def __iter__(self):
         return iter(self.cols)
@@ -559,30 +544,7 @@ schedule, possibly several.
         return col in self.cols
 
     def __int__(self):
-        return self.i
-
-    def colhash(self):
-        hashes = [
-            hash(col.get_state_tup())
-            for col in self.cols]
-        return hash(tuple(hashes))
-
-    def get_state_tup(self):
-        """Return a tuple containing information enough to tell the difference
-between any two states that should appear different on-screen."""
-        return (
-            self.i,
-            self.colhash(),
-            self.window_left,
-            self.window_right,
-            self.window_top,
-            self.window_bot,
-            self.visible,
-            self.interactive,
-            self.rows_shown,
-            self.scrolled_to,
-            self.rumor.tick,
-            self.tweaks)
+        return self.idx
 
     def get_tabdict(self):
         return {
@@ -600,14 +562,6 @@ between any two states that should appear different on-screen."""
                     "scrolled_to": self.scrolled_to,
                     "scroll_factor": self.scroll_factor}]}
 
-    def mkcol(self, scheduledict, branch, interactive=True, style=None):
-        if style is None:
-            style = self.style
-        cc = CalendarCol(
-            self, scheduledict, branch, interactive, style)
-        self.cols.append(cc)
-        return cc
-
     def overlaps(self, x, y):
         return (
             self.visible and
@@ -620,7 +574,12 @@ between any two states that should appear different on-screen."""
     def draw(self):
         if self.visible and len(self.cols) > 0:
             for calcol in self.cols:
-                calcol.draw()
+                try:
+                    (parent, start, end) = self.rumor.timestream.branchdict[calcol.branch]
+                except KeyError:
+                    continue
+                col1 = calcol
+                col1.draw()
         else:
             for calcol in self.cols:
                 calcol.delete()
@@ -629,5 +588,250 @@ between any two states that should appear different on-screen."""
         self.cols.remove(it)
 
     def refresh(self):
-        for col in self.cols:
-            col.regen_cells()
+        for col1 in self.cols:
+            (parent, tick_from, tick_to) = self.rumor.timestream.branchdict[col1.branch]
+            if hasattr(col1, 'bc'):
+                col1.bc.delete()
+            col2 = None
+            for calcol in self.cols:
+                if calcol.branch == parent:
+                    col2 = calcol
+                    break
+            if (
+                    col2 is not None and
+                    tick_from > self.scrolled_to and
+                    tick_to < self.scrolled_to + self.rows_shown):
+                col1.bc = Calendar.BranchConnector(
+                    self, col2, col1, tick_from)
+            col1.regen_cells()
+
+    def add_cols_from_tabdict(self, td):
+        for rd in TabdictIterator(td):
+            if "thing" in rd:
+                self.cols.append(CalendarCol(
+                    self,
+                    rd["character"],
+                    COL_TYPE["THING"],
+                    rd["idx"],
+                    td))
+
+
+class CalendarCol:
+    prelude = [
+        ("CREATE VIEW ccstat AS SELECT {0} FROM calendar_col WHERE type={1}".format(
+            ", ".join(Calendar.colnames["calendar_col"]),
+            COL_TYPE["STAT"])),
+        ("CREATE VIEW ccthing AS SELECT {0} FROM calendar_col WHERE type={1}".format(
+            ", ".join(Calendar.colnames["calendar_col"]),
+            COL_TYPE["THING"])),
+        ("CREATE VIEW ccskill AS SELECT {0} FROM calendar_col WHERE type={1}".format(
+            ", ".join(Calendar.colnames["calendar_col"]),
+            COL_TYPE["SKILL"]))]
+    postlude = [
+        ("CREATE TRIGGER unical_thing BEFORE INSERT ON calendar_col_thing BEGIN "
+         "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
+         "(NEW.window, NEW.calendar, NEW.idx, {0}); "
+         "END".format(COL_TYPE["THING"])),
+        ("CREATE TRIGGER unical_stat BEFORE INSERT ON calendar_col_stat BEGIN "
+         "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
+         "(NEW.window, NEW.calendar, NEW.idx, {0}); "
+         "END".format(COL_TYPE["STAT"])),
+        ("CREATE TRIGGER unical_skill BEFORE INSERT ON calendar_col_skill BEGIN "
+         "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
+         "(NEW.window, NEW.calendar, NEW.idx, {0}); "
+         "END".format(COL_TYPE["SKILL"]))]
+    tables = [
+        (
+            "calendar_col_thing",
+            {"window": "text not null default 'Main'",
+             "calendar": "integer not null default 0",
+             "idx": "integer not null",
+             "branch": "integer not null default 0",
+             "character": "text not null",
+             "dimension": "text not null",
+             "thing": "text not null",
+             "location": "boolean default 1"},
+            ("window", "calendar", "idx"),
+            {"window, calendar, idx":
+             ("ccthing", "window, calendar, idx", "ON DELETE CASCADE"),
+             "character, dimension, branch, thing":
+             ("character_things", "character, dimension, branch, thing")},
+            ["idx>=0"]),
+        (
+            "calendar_col_stat",
+            {"window": "text not null default 'Main'",
+             "calendar": "integer not null default 0",
+             "idx": "integer not null",
+             "branch": "integer not null default 0",
+             "character": "text not null",
+             "stat": "text not null"},
+            ("window", "calendar", "idx"),
+            {"window, calendar, idx":
+             ("ccstat", "window, calendar, idx", "ON DELETE CASCADE"),
+             "character, branch, stat": ("character_skills", "character, branch, stat")},
+            ["idx>=0"]),
+        (
+            "calendar_col_skill",
+            {"window": "text not null default 'Main'",
+             "calendar": "integer not null default 0",
+             "idx": "integer not null",
+             "branch": "integer not null default 0",
+             "character": "text not null",
+             "skill": "text not null"},
+            ("window", "calendar", "idx"),
+            {"window, calendar, idx":
+             ("ccskill", "window, calendar, idx", "ON DELETE CASCADE"),
+             "character, branch, skill": ("character_skills", "character, branch, skill")},
+            ["idx>=0"])]
+    def __init__(self, calendar, character, typ, idx, td):
+        self.calendar = calendar
+        self.rumor = self.calendar.rumor
+        self.batch = self.calendar.batch
+        self.style = self.calendar.style
+        self.bggroup = OrderedGroup(0, self.calendar.group)
+        self.cellgroup = OrderedGroup(1, self.calendar.group)
+        self.tlgroup = OrderedGroup(2, self.calendar.group)
+        self.timeline = Timeline(self)
+        self.window = self.calendar.window
+        self.character = self.rumor.get_character(character)
+        self.idx = idx
+        self.typ = typ
+        if self.typ == COL_TYPE["THING"]:
+            self._rowdict = td["calendar_col_thing"][str(self.window)][int(self.calendar)][int(self)]
+            if self._rowdict["location"]:
+                self.get_locations = lambda: self.rumor.get_thing(
+                    self._rowdict["dimension"], self._rowdict["thing"]).locations[self.branch]
+        elif self.typ == COL_TYPE["STAT"]:
+            self._rowdict = td["calendar_col_stat"][str(self.window)][int(self.calendar)][int(self)]
+        else:
+            self._rowdict = td["calendar_col_skill"][str(self.window)][int(self.calendar)][int(self)]
+        self.vertl = None
+        self.cells = []
+        self.refresh()
+
+    def __iter__(self):
+        return iter(self.cells)
+
+    def __getattr__(self, attrn):
+        if attrn == 'dimension' and self.typ == COL_TYPE["THING"]:
+            return self.rumor.get_dimension(self._dimension)
+        elif attrn in self._rowdict:
+            return self._rowdict[attrn]
+        elif hasattr(self.character, attrn):
+            return getattr(self.character, attrn)
+        elif attrn == 'width':
+            return self.calendar.col_width
+        elif attrn == 'rx':
+            return self.width / 2
+        elif attrn == 'height':
+            return self.calendar.height
+        elif attrn == 'ry':
+            return self.height / 2
+        elif attrn == 'calendar_left':
+            return self.idx * self.width
+        elif attrn == 'calendar_right':
+            return self.calendar_left + self.width
+        elif attrn == 'calendar_top':
+            return self.calendar.height
+        elif attrn == 'calendar_bot':
+            return 0
+        elif attrn == 'window_left':
+            return self.calendar.window_left + self.calendar_left
+        elif attrn == 'window_right':
+            return self.calendar.window_left + self.calendar_right
+        elif attrn == 'window_top':
+            return self.calendar.window_top
+        elif attrn == 'window_bot':
+            return self.calendar.window_bot
+        else:
+            raise AttributeError(
+                "CalendarCol instance has no such attribute: " +
+                attrn)
+
+    def __int__(self):
+        return self.idx
+
+    def refresh(self):
+        self.regen_cells()
+
+    def regen_cells(self):
+        for cell in self.cells:
+            cell.delete()
+        self.cells = []
+        if self.typ == COL_TYPE["THING"]:
+            if hasattr(self, 'get_locations'):
+                scheduledict = self.get_locations()
+                # Eliminate those entries when I am not the thing;
+                # truncate those when I spend only part of it being
+                # the thing
+            else:
+                scheduledict = self.thingdict
+        elif self.typ == COL_TYPE["STAT"]:
+            scheduledict = self.statdict
+        for (tick_from, val) in scheduledict.iteritems():
+            if isinstance(val, tuple):
+                tick_to = val[-1]
+                text = self.pretty_printer(val[:-1])
+            else:
+                tick_to = val
+                text = "..."
+            self.cells.append(CalendarCell(self, tick_from, tick_to, text))
+
+    def delete(self):
+        for cell in self.cells:
+            cell.delete()
+        try:
+            self.timeline.delete()
+        except:
+            pass
+        self.timeline = None
+
+    def pretty_caster(self, *args):
+        unargs = []
+        for arg in args:
+            if isinstance(arg, tuple) or isinstance(arg, list):
+                unargs += self.pretty_caster(*arg)
+            else:
+                unargs.append(arg)
+        return unargs
+
+    def pretty_printer(self, *args):
+        strings = []
+        unargs = self.pretty_caster(*args)
+        for unarg in unargs:
+            strings.append(str(unarg))
+        return ";\n".join(strings)
+
+    def draw(self):
+        colors = self.style.bg_inactive.tup * 4
+        l = self.window_left
+        r = self.window_right
+        t = self.window_top
+        b = self.window_bot
+        points = (
+            l, b,
+            l, t,
+            r, t,
+            r, b)
+        try:
+            self.vertl.vertices = list(points)
+        except AttributeError:
+            self.vertl = self.batch.add_indexed(
+                4,
+                GL_TRIANGLES,
+                self.bggroup,
+                [0, 2, 3, 0, 1, 2],
+                ('v2i', points),
+                ('c4B', colors))
+        for cel in self.cells:
+            cel.draw()
+        if hasattr(self, 'bc'):
+            self.bc.draw()
+        if (
+                self.rumor.branch == self.branch and
+                self.timeline.in_window):
+            self.timeline.draw()
+        else:
+            self.timeline.delete()
+
+

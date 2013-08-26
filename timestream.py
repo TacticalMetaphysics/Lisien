@@ -46,7 +46,6 @@ class Timestream:
          ["branch>=0", "tick_from>=0",
           "tick_to>=tick_from", "parent=0 or parent<>branch"])]
     def __init__(self, branches):
-        # How am I going to populate the branchdict?
         self.branch_edges = defaultdict(set)
         self.branch_done_to = defaultdict(lambda: -1)
         self.branchdict = {}

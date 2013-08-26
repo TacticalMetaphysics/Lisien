@@ -43,37 +43,73 @@ def mkdb(DB_NAME='default.sqlite'):
     
     done = set()
     while saveables != []:
-        (prelude, tablenames, finish) = saveables.pop(0)
-        if tablenames == []:
-            for pre in prelude:
-                c.execute(pre)
-            for fin in finish:
-                c.execute(fin)
-            continue
+        (demands, provides, prelude, tablenames, postlude) = saveables.pop(0)
+        print tablenames
+        if 'character_things' in tablenames:
+            pass
         breakout = False
-        try:
-            for pre in prelude:
-                c.execute(pre)
-        except OperationalError:
-            saveables.append((prelude, tablenames, finish))
-            continue
-        while tablenames != []:
-            tn = tablenames.pop(0)
-            try:
-                c.execute(schemata[tn])
-                done.add(tn)
-            except OperationalError:
+        for demand in iter(demands):
+            if demand not in done:
+                saveables.append((demands, provides, prelude, tablenames, postlude))
                 breakout = True
                 break
         if breakout:
-            saveables.append((prelude, tablenames, finish))
+            continue
+        if tablenames == []:
+            while prelude != []:
+                pre = prelude.pop()
+                if isinstance(pre, tuple):
+                    c.execute(*pre)
+                else:
+                    c.execute(pre)
+            while postlude != []:
+                post = postlude.pop()
+                if isinstance(post, tuple):
+                    c.execute(*post)
+                else:
+                    c.execute(post)
             continue
         try:
-            for fin in finish:
-                c.execute(fin)
-        except OperationalError:
-            saveables.append((prelude, tablenames, finish))
+            while prelude != []:
+                pre = prelude.pop()
+                if isinstance(pre, tuple):
+                    c.execute(*pre)
+                else:
+                    c.execute(pre)
+        except OperationalError as e:
+            print "OperationalError during prelude to {0}:".format(tn)
+            print e
+            saveables.append((demands, provides, prelude, tablenames, postlude))
             continue
+        breakout = False
+        while tablenames != []:
+            tn = tablenames.pop(0)
+            if tn == "calendar":
+                pass
+            try:
+                c.execute(schemata[tn])
+                done.add(tn)
+            except OperationalError as e:
+                print "OperationalError while creating table {0}:".format(tn)
+                print e
+                breakout = True
+                break
+        if breakout:
+            saveables.append((demands, provides, prelude, tablenames, postlude))
+            continue
+        try:
+            while postlude != []:
+                post = postlude.pop()
+                if isinstance(post, tuple):
+                    c.execute(*post)
+                else:
+                    c.execute(post)
+        except OperationalError as e:
+            print "OperationalError during postlude from {0}:".format(tn)
+            print e
+            saveables.append((demands, provides, prelude, tablenames, postlude))
+            continue
+        done.update(provides)
                 
     oldhome = os.getcwd()
     os.chdir('sql')

@@ -44,11 +44,21 @@ key is composed of the dimension an item of this character is in, the
 item's name, and the name of the attribute.
 
 """
+
+    prelude = [
+        "CREATE VIEW place AS "
+        "SELECT dimension, location AS name FROM thing_location UNION "
+        "SELECT dimension, origin AS name FROM portal UNION "
+        "SELECT dimension, destination AS name FROM portal UNION "
+        "SELECT dimension, place AS name FROM spot_coords"]
     postlude = [
         "CREATE VIEW character AS "
         "SELECT character FROM character_things UNION "
+        "SELECT character FROM character_places UNION "
+        "SELECT character FROM character_portals UNION "
         "SELECT character FROM character_skills UNION "
         "SELECT character FROM character_stats"]
+    demands = ["thing_location", "portal"]
     provides = ["character"]
     tables = [
         ("character_things",
@@ -59,8 +69,28 @@ item's name, and the name of the attribute.
           "tick_to": "integer default null",
           "thing": "text not null"},
          ("character", "dimension", "thing", "branch", "tick_from"),
-         {"dimension, thing": ("thing", "dimension, name"),
-          "character": ("character", "name")},
+         {"dimension, thing": ("thing", "dimension, name")},
+         []),
+        ("character_places",
+         {"character": "text not null",
+          "dimension": "text not null",
+          "branch": "integer not null default 0",
+          "tick_from": "integer not null default 0",
+          "tick_to": "integer default null",
+          "place": "text not null"},
+         ("character", "dimension", "place", "branch", "tick_from"),
+         {"dimension, place": ("place", "dimension, name")},
+         []),
+        ("character_portals",
+         {"character": "text not null",
+          "dimension": "text not null",
+          "branch": "integer not null default 0",
+          "tick_from": "integer not null default 0",
+          "tick_to": "integer default null",
+          "origin": "text not null",
+          "destination": "text not null"},
+         ("character", "dimension", "origin", "destination", "branch", "tick_from"),
+         {"dimension, origin, destination": ("portal", "dimension, origin, destination")},
          []),
         ("character_skills",
          {"character": "text not null",
@@ -70,8 +100,7 @@ item's name, and the name of the attribute.
           "tick_to": "integer default null",
           "effect_deck": "text not null"},
          ("character", "skill", "branch", "tick_from"),
-         {"effect_deck": ("effect_deck", "name"),
-          "character": ("character", "name")},
+         {"effect_deck": ("effect_deck", "name")},
          []),
         ("character_stats",
          {"character": "text not null",
@@ -81,15 +110,17 @@ item's name, and the name of the attribute.
           "tick_to": "integer default null",
           "value": "text not null"},
          ("character", "stat", "branch", "tick_from"),
-         {"character": ("character", "name")},
+         {},
          [])]
 
     def __init__(self, rumor, name, thingdict=None, skilldict=None, statdict=None):
         self.name = name
         self.rumor = rumor
+        self.indefinite_thing = {}
+        self.indefinite_skill = {}
+        self.indefinite_stat = {}
         if thingdict is None:
             self.thingdict = {}
-            self.indefinite_thing = {}
         else:
             self.thingdict = thingdict
             for dimension in self.thingdict:
@@ -100,7 +131,6 @@ item's name, and the name of the attribute.
                             break
         if skilldict is None:
             self.skilldict = {}
-            self.indefinite_skill = {}
         else:
             self.skilldict = skilldict
             for skill in self.skilldict:
@@ -111,7 +141,6 @@ item's name, and the name of the attribute.
                             break
         if statdict is None:
             self.statdict = {}
-            self.indefinite_stat = {}
         else:
             self.statdict = statdict
             for stat in self.statdict:

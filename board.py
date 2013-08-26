@@ -29,8 +29,6 @@ board, but they are linked to the board anyhow, on the assumption that
 each board will be open in at most one window at a time.
 
     """
-    provides = ["board"]
-    demands = ["img"]
     tables = [
         ("board",
          {"dimension": "text not null default 'Physical'",
@@ -98,12 +96,7 @@ each board will be open in at most one window at a time.
                 return pawn
         return None
 
-    def make_pawn(self, thing):
-        self.pawndict[str(thing)] = Pawn(self, thing)
-
     def get_pawn(self, thing):
-        if str(thing) not in self.pawndict:
-            self.make_pawn(thing)
         return self.pawndict[str(thing)]
 
     def make_spot(self, place):
