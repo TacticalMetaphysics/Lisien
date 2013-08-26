@@ -3,7 +3,8 @@
 from util import (
     SaveableMetaclass,
     ViewportOrderedGroup,
-    TabdictIterator)
+    TabdictIterator,
+    phi)
 from pyglet.image import SolidColorImagePattern as color_pattern
 from pyglet.sprite import Sprite
 from pyglet.text import Label
@@ -33,13 +34,13 @@ for the handle_side keyword argument.
 
     class Handle:
         """The handle widget."""
-        def __init__(self, timeline, handle_side, width=10, height=16):
+        def __init__(self, timeline, handle_side):
             self.timeline = timeline
             self.on_the_left = handle_side == "left"
             self.vertlist = None
-            self.width = width
+            self.width = self.timeline.cal.style.spacing * 2
+            self.height = int(self.width * phi)
             self.rx = self.width / 2
-            self.height = height
             self.ry = self.height / 2
 
         def __getattr__(self, attrn):
@@ -342,13 +343,13 @@ schedule, possibly several.
         color = (255, 0, 0, 255)
         class Wedge:
             """Downward pointing wedge, looks much like the Timeline's Handle"""
-            def __init__(self, bc, width=16, height=10, color_tup=(255, 0, 0, 255)):
+            def __init__(self, bc, color_tup=(255, 0, 0, 255)):
                 self.bc = bc
                 self.batch = self.bc.batch
                 self.group = self.bc.wedgegroup
-                self.width = width
+                self.width = self.bc.calendar.style.spacing * 2
+                self.height = int(self.width / phi)
                 self.rx = self.width / 2
-                self.height = height
                 self.ry = self.height / 2
                 self.color = color_tup
                 self.vertlist = None
@@ -396,7 +397,7 @@ schedule, possibly several.
                     pass
                 self.vertlist = None
 
-        def __init__(self, calendar, col1, col2, tick, space=None):
+        def __init__(self, calendar, col1, col2, tick):
             self.calendar = calendar
             self.batch = self.calendar.batch
             self.group = OrderedGroup(3, self.calendar.group)
@@ -406,10 +407,7 @@ schedule, possibly several.
             self.col2 = col2
             self.tick = tick
             self.wedge = self.__class__.Wedge(self)
-            if space is None:
-                self.space = self.calendar.style.spacing * 2
-            else:
-                self.space = space
+            self.space = self.calendar.style.spacing * 2
 
         def __getattr__(self, attrn):
             if attrn == "startx":
