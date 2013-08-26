@@ -57,8 +57,12 @@ With db, register in db's menuitemdict.
             on_click_arg_tup = re.match(argre, argstr).groups()
         except:
             on_click_arg_tup = tuple()
-
+        self.calls = 0
         def on_click_fun(self):
+            if self.calls == 1:
+                pass
+            print "menuitem function {0} called for the {1}th time".format(self._on_click, self.calls)
+            self.calls += 1
             t = (self,) + on_click_arg_tup
             return fun(*t)
 

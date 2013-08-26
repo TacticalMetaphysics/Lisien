@@ -747,6 +747,12 @@ This is game-world time. It doesn't always go forwards.
         r.update(self.load_characters(unloaded))
         return r
 
+    def get_character(self, name):
+        return self.get_characters([name])[name]
+
+    def get_thing(self, dimn, thingn):
+        return self.get_dimension(dimn).get_thing(thingn)
+
     def load_effects(self, names):
         r = {}
         qrystr = EFFECT_QRYFMT.format(", ".join(["?"] * len(names)))

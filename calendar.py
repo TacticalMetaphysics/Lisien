@@ -1,6 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, ViewportOrderedGroup
+from util import (
+    SaveableMetaclass,
+    ViewportOrderedGroup,
+    TabdictIterator)
 from pyglet.image import SolidColorImagePattern as color_pattern
 from pyglet.sprite import Sprite
 from pyglet.text import Label
@@ -264,7 +267,7 @@ represents to calculate its dimensions and coordinates.
                     x=self.window_left,
                     y=y,
                     multiline=True,
-                    batch=batch,
+                    batch=self.batch,
                     group=self.textgroup)
         else:
             self.delete()
@@ -527,7 +530,7 @@ schedule, possibly several.
         return col in self.cols
 
     def __int__(self):
-        return self.i
+        return self.idx
 
     def get_tabdict(self):
         return {
@@ -557,8 +560,11 @@ schedule, possibly several.
     def draw(self):
         if self.visible and len(self.cols) > 0:
             for calcol in self.cols:
+                try:
+                    (parent, start, end) = self.rumor.timestream.branchdict[calcol.branch]
+                except KeyError:
+                    continue
                 col1 = calcol
-                (parent, start, end) = self.rumor.timestream.branchdict[calcol.branch]
                 parent_idx = None
                 i = 0
                 for calcol in self.cols:
@@ -592,22 +598,15 @@ schedule, possibly several.
         for col in self.cols:
             col.regen_cells()
 
-    def add_col_from_tabdict(self, td):
-        self.cols.append(CalendarCol(self, td))
-
     def add_cols_from_tabdict(self, td):
-        if "calendar_col_thing" in td:
-            for rd in td["calendar_col_thing"]:
-                self.add_col_from_tabdict(
-                    {"calendar_col_thing": rd})
-        if "calendar_col_stat" in td:
-            for rd in td["calendar_col_stat"]:
-                self.add_col_from_tabdict(
-                    {"calendar_col_stat": rd})
-        if "calendar_col_skill" in td:
-            for rd in td["calendar_col_skill"]:
-                self.add_col_from_tabdict(
-                    {"calendar_col_skill": rd})
+        for rd in TabdictIterator(td):
+            if "thing" in rd:
+                self.cols.append(CalendarCol(
+                    self,
+                    rd["character"],
+                    COL_TYPE["THING"],
+                    rd["idx"],
+                    td))
 
 
 class CalendarCol:
@@ -624,19 +623,16 @@ class CalendarCol:
     postlude = [
         ("CREATE TRIGGER unical_thing BEFORE INSERT ON calendar_col_thing BEGIN "
          "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
-         "(NEW.window, NEW.calendar, NEW.idx, ?); "
-         "END",
-         (COL_TYPE["THING"],)),
+         "(NEW.window, NEW.calendar, NEW.idx, {0}); "
+         "END".format(COL_TYPE["THING"])),
         ("CREATE TRIGGER unical_stat BEFORE INSERT ON calendar_col_stat BEGIN "
          "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
-         "(NEW.window, NEW.calendar, NEW.idx, ?); "
-         "END",
-         (COL_TYPE["STAT"],)),
+         "(NEW.window, NEW.calendar, NEW.idx, {0}); "
+         "END".format(COL_TYPE["STAT"])),
         ("CREATE TRIGGER unical_skill BEFORE INSERT ON calendar_col_skill BEGIN "
          "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
-         "(NEW.window, NEW.calendar, NEW.idx, ?); "
-         "END",
-         (COL_TYPE["SKILL"],))]
+         "(NEW.window, NEW.calendar, NEW.idx, {0}); "
+         "END".format(COL_TYPE["SKILL"]))]
     tables = [
         (
             "calendar_col_thing",
@@ -680,41 +676,28 @@ class CalendarCol:
              ("ccskill", "window, calendar, idx", "ON DELETE CASCADE"),
              "character, branch, skill": ("character_skills", "character, branch, skill")},
             ["idx>=0"])]
-    def __init__(self, calendar, td):
+    def __init__(self, calendar, character, typ, idx, td):
         self.calendar = calendar
         self.rumor = self.calendar.rumor
         self.batch = self.calendar.batch
+        self.style = self.calendar.style
         self.bggroup = OrderedGroup(0, self.calendar.group)
         self.cellgroup = OrderedGroup(1, self.calendar.group)
         self.tlgroup = OrderedGroup(2, self.calendar.group)
         self.timeline = Timeline(self)
         self.window = self.calendar.window
-        if "calendar_col_thing" in td:
-            rd = td["calendar_col_thing"]
-            def is_thing(self, tick=None):
-                return self.character.is_thing_with_strs(
-                    rd["dimension"], rd["thing"], self.branch, tick)
-            self.is_thing = is_thing
-            def get_thing(self, tick=None):
-                if self.is_thing(branch, tick):
-                    return self.rumor.get_thing(
-                        rd["dimension"], rd["thing"], self.branch, tick)
-                else:
-                    return None
-            self.get_thing = get_thing
-            self.thingdict = self.character.thingdict[self.branch]
-            if rd["location"]:
-                def glocs(self, tick=None):
-                    return self.get_thing(tick).locations[self.branch]
-                self.get_locations = gloc
-        elif "calendar_col_stat" in td:
-            rd = td["calendar_col_stat"]
-            self.statdict = self.character.statdict[rd["stat"]]
+        self.character = self.rumor.get_character(character)
+        self.idx = idx
+        self.typ = typ
+        if self.typ == COL_TYPE["THING"]:
+            self._rowdict = td["calendar_col_thing"][str(self.window)][int(self.calendar)][int(self)]
+            if self._rowdict["location"]:
+                self.get_locations = lambda: self.rumor.get_thing(
+                    self._rowdict["dimension"], self._rowdict["thing"]).locations[self.branch]
+        elif self.typ == COL_TYPE["STAT"]:
+            self._rowdict = td["calendar_col_stat"][str(self.window)][int(self.calendar)][int(self)]
         else:
-            rd = td["calendar_col_skill"]
-            self.skilldict = self.character.skilldict[rd["skill"]]
-        self.character = self.rumor.get_character(rd["character"])
-        self.branch = rd["branch"]
+            self._rowdict = td["calendar_col_skill"][str(self.window)][int(self.calendar)][int(self)]
         self.vertl = None
         self.cells = []
         self.regen_cells()
@@ -723,10 +706,12 @@ class CalendarCol:
         return iter(self.cells)
 
     def __getattr__(self, attrn):
-        if attrn == 'dimension':
+        if attrn == 'dimension' and self.typ == COL_TYPE["THING"]:
             return self.rumor.get_dimension(self._dimension)
-        elif attrn == 'idx':
-            return self.calendar.cols.index(self)
+        elif attrn in self._rowdict:
+            return self._rowdict[attrn]
+        elif hasattr(self.character, attrn):
+            return getattr(self.character, attrn)
         elif attrn == 'width':
             return self.calendar.col_width
         elif attrn == 'rx':
@@ -756,19 +741,22 @@ class CalendarCol:
                 "CalendarCol instance has no such attribute: " +
                 attrn)
 
+    def __int__(self):
+        return self.idx
+
     def regen_cells(self, branch=None):
         for cell in self.cells:
             cell.delete()
         self.cells = []
-        if hasattr(self, 'is_thing'):
-            if hasattr(self, 'get_location'):
+        if self.typ == COL_TYPE["THING"]:
+            if hasattr(self, 'get_locations'):
                 scheduledict = self.get_locations()
                 # Eliminate those entries when I am not the thing;
                 # truncate those when I spend only part of it being
                 # the thing
             else:
                 scheduledict = self.thingdict
-        elif hasattr(self, 'statdict'):
+        elif self.typ == COL_TYPE["STAT"]:
             scheduledict = self.statdict
         for (tick_from, val) in scheduledict.iteritems():
             if isinstance(val, tuple):

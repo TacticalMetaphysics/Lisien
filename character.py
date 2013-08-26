@@ -116,9 +116,11 @@ item's name, and the name of the attribute.
     def __init__(self, rumor, name, thingdict=None, skilldict=None, statdict=None):
         self.name = name
         self.rumor = rumor
+        self.indefinite_thing = {}
+        self.indefinite_skill = {}
+        self.indefinite_stat = {}
         if thingdict is None:
             self.thingdict = {}
-            self.indefinite_thing = {}
         else:
             self.thingdict = thingdict
             for dimension in self.thingdict:
@@ -129,7 +131,6 @@ item's name, and the name of the attribute.
                             break
         if skilldict is None:
             self.skilldict = {}
-            self.indefinite_skill = {}
         else:
             self.skilldict = skilldict
             for skill in self.skilldict:
@@ -140,7 +141,6 @@ item's name, and the name of the attribute.
                             break
         if statdict is None:
             self.statdict = {}
-            self.indefinite_stat = {}
         else:
             self.statdict = statdict
             for stat in self.statdict:

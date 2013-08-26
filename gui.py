@@ -451,8 +451,6 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
             self.selected = set()
         if hasattr(self.grabbed, 'dropped'):
             self.grabbed.dropped(x, y, button, modifiers)
-        if hasattr(self.pressed, 'onclick'):
-            self.pressed.onclick(x, y, button, modifiers)
         if hasattr(self.pressed, 'selectable'):
             self.selected.add(self.pressed)
             if hasattr(self.pressed, 'select'):
