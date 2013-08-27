@@ -93,8 +93,8 @@ this dimension, and laid out nicely."""
         return name in self.graph.vs["name"]
 
     def get_place(self, iname):
-        vnames = self.graph.vs["name"]
         if not isinstance(iname, int):
+            vnames = self.graph.vs["name"]
             iname = vnames.index(iname)
         v = self.graph.vs[iname]
         return Place(self, v)

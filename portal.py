@@ -30,11 +30,11 @@ class Portal:
         self.e = e
 
     def __getattr__(self, attrn):
-        if attrn == "orig":
+        if attrn in ("orig", "origin"):
             return Place(
                 self.dimension,
                 self.dimension.graph.vs[self.e.source])
-        elif attrn == "dest":
+        elif attrn in ("dest", "destination"):
             return Place(
                 self.dimension,
                 self.dimension.graph.vs[self.e.target])

@@ -692,6 +692,7 @@ class CalendarCol:
         self.timeline = Timeline(self)
         self.window = self.calendar.window
         self.character = self.rumor.get_character(character)
+        self.character.register_update_handler(lambda nope: self.refresh)
         self.idx = idx
         self.typ = typ
         if self.typ == COL_TYPE["THING"]:
@@ -750,6 +751,7 @@ class CalendarCol:
         return self.idx
 
     def refresh(self):
+        print "refreshing CalendarCol {0}".format(int(self))
         self.regen_cells()
 
     def regen_cells(self):

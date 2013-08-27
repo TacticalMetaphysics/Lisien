@@ -20,11 +20,6 @@ primarykeys = {}
 saveables = []
 
 
-class Callable:
-    def __init__(self, anything):
-        self.__call__ = anything
-
-
 class SaveableMetaclass(type):
 # TODO make savers use sets of RowDict objs, rather than lists of regular dicts
     """Sort of an object relational mapper.
@@ -280,6 +275,8 @@ and your table will be ready.
             r = {}
             for item in td.iteritems():
                 (tabname, rd) = item
+                if tabname not in primarykeys:
+                    continue
                 if tabname not in r:
                     r[tabname] = {}
                 for row in select_keydicts_table(c, rd, tabname):
@@ -962,3 +959,6 @@ Thing, and it made no sense.
 
 class LoadError(Exception):
     pass
+
+
+deep_default_dict(5)

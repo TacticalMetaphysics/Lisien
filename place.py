@@ -37,7 +37,7 @@ thing located there.
         return self.v["name"]
 
     def __repr__(self):
-        return str(self.dimension) + "." + str(self)
+        return "Place({0}.{1})".format(str(self.dimension), self.v["name"])
 
     def incident(self, mode=OUT):
         return self.dimension.graph.incident(int(self), mode)

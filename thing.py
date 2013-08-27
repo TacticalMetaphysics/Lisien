@@ -50,6 +50,7 @@ too.
 
     def __init__(self, rumor, td):
         self.rumor = rumor
+        self.update_handlers = set()
         self._tabdict = dict(td)
         rd = td["thing_location"].pop()
         self.name = rd["thing"]
@@ -96,6 +97,13 @@ too.
 
     def __contains__(self, that):
         return that.location is self
+
+    def register_update_handler(self, that):
+        self.update_handlers.add(that)
+
+    def update(self):
+        for handler in self.update_handlers:
+            handler(self)
 
     def assert_can_enter(self, it):
         """If I can't enter the given location, raise a LocationException.
@@ -293,6 +301,7 @@ other journey I may be on at the time."""
         print "{0} will arrive at {1} at tick {2}.".format(
             str(self), str(destplace), int(prevtick))
         self.set_location(destplace, int(branch), int(prevtick))
+        self.update()
 
     def new_branch(self, parent, branch, tick):
         for (tick_from, (loc, tick_to)) in self.locations[parent].iteritems():

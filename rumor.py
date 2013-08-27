@@ -698,53 +698,30 @@ This is game-world time. It doesn't always go forwards.
         return port
 
     def load_characters(self, names):
+        qtd = {
+            "character_things": {"name": {}},
+            "character_stats": {"name": {}},
+            "character_skills": {"name": {}}}
+        for name in names:
+            qtd["character_things"]["name"][name] = {"name": name}
+            qtd["character_things"]["name"][name] = {"name": name}
+        td = Character._select_tabdict(self.c, qtd)
         r = {}
-        qmstr = ", ".join(["?"] * len(names))
-        namet = tuple(names)
-        things2load = set()
-        decks2load = set()
-        qrystr = CHAR_THING_QRYFMT.format(qmstr)
-        self.c.execute(qrystr, namet)
-        getdefd = lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
-        charthing_d = getdefd()
-        for row in self.c:
-            rd = dictify_row(row, colnames["character_things"])
-            charthing_d[rd["character"]][rd["dimension"]][rd["branch"]][rd["tick_from"]] = (
-                rd["thing"], rd["tick_to"])
-            things2load.add(rd["thing"])
-        charskil_d = getdefd()
-        qrystr = CHAR_SKILL_QRYFMT.format(qmstr)
-        self.c.execute(qrystr, namet)
-        for row in self.c:
-            rd = dictify_row(row, colnames["character_skills"])
-            charskil_d[rd["character"]][rd["skill"]][rd["branch"]][rd["tick_from"]] = (
-                rd["effect_deck"], rd["tick_to"])
-            decks2load.add(rd["effect_deck"])
-        charstat_d = getdefd()
-        qrystr = CHAR_STAT_QRYFMT.format(qmstr)
-        self.c.execute(qrystr, namet)
-        for row in self.c:
-            rd = dictify_row(row, colnames["character_stats"])
-            charstat_d[rd["character"]][rd["stat"]][rd["branch"]][
-                rd["tick_from"]] = (rd["value"], rd["tick_to"])
-        for name in iter(names):
-            r[name] = Character(
-                self, name,
-                charthing_d[name],
-                charskil_d[name],
-                charstat_d[name])
-        self.characterdict.update(r)
+        for name in names:
+            char = Character(self, name, td)
+            r[name] = char
+            self.characterdict[name] = char
         return r
 
     def get_characters(self, names):
         r = {}
-        unloaded = set()
-        for name in iter(names):
+        unhad = set()
+        for name in names:
             if name in self.characterdict:
                 r[name] = self.characterdict[name]
             else:
-                unloaded.add(name)
-        r.update(self.load_characters(unloaded))
+                unhad.add(name)
+        r.update(self.load_characters(names))
         return r
 
     def get_character(self, name):
@@ -888,6 +865,16 @@ This is game-world time. It doesn't always go forwards.
             r[name] = self.get_dimension(name)
         return r
 
+    def get_place(self, dim, placen):
+        if not isinstance(dim, Dimension):
+            dim = self.get_dimension(dim)
+        return dim.get_place(placen)
+
+    def get_portal(self, dim, origin, destination):
+        if not isinstance(dim, Dimension):
+            dim = self.get_dimension(dim)
+        return dim.get_portal(str(origin), str(destination))
+
     def get_board(self, dim, i):
         if not isinstance(dim, Dimension):
             dim = self.get_dimension(dim)
@@ -976,6 +963,9 @@ This is game-world time. It doesn't always go forwards.
                 unloaded.add(imgn)
         r.update(self.load_imgs(unloaded))
         return r
+
+    def get_img(self, imgn):
+        return self.get_imgs([imgn])[imgn]
 
     def read_colors(self, colornames):
         qrystr = COLOR_QRYFMT.format(", ".join(["?"] * len(colornames)))

@@ -1,7 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, ViewportOrderedGroup
-from collections import OrderedDict
+from util import (
+    SaveableMetaclass,
+    ViewportOrderedGroup,
+    TabdictIterator)
 from pawn import Pawn, PawnWidget
 from spot import Spot, SpotWidget
 from arrow import Arrow, ArrowWidget
@@ -40,23 +42,38 @@ each board will be open in at most one window at a time.
          {"wallpaper": ("img", "name")},
          [])]
 
-    def __init__(self, dimension, idx, width, height, wallpaper):
+    def __init__(self, rumor, dimension, idx, td):
         """Return a board representing the given dimension.
 
         """
-        self.dimension = dimension
+        self.rumor = rumor
+        self._dimension = str(dimension)
         self.idx = idx
-        self.rumor = self.dimension.rumor
-        self.width = width
-        self.height = height
-        self.wallpaper = wallpaper
-        self.menu_by_name = OrderedDict()
+        self._tabdict = td
+        rd = td["board"][self._dimension][self.idx]
+        self.width = rd["width"]
+        self.height = rd["height"]
+        self.wallpaper = rd["wallpaper"]
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
+        while len(self.dimension.boards) <= self.idx:
+            self.dimension.boards.append(None)
+        self.dimension.boards[self.idx] = self
+        if "spot_coords" in self._tabdict:
+            for rd in TabdictIterator(self._tabdict["spot_coords"]):
+                self.add_spot(rd)
 
     def __getattr__(self, attrn):
-        if attrn == "places":
+        if attrn == "dimension":
+            return self.rumor.get_dimension(self._dimension)
+        elif attrn == "_rowdict":
+            return self._tabdict["board"][self._dimension][self.idx]
+        elif attrn in ("wallpaper", "img"):
+            return self.rumor.get_img(self.wallpaper)
+        elif attrn in self._rowdict:
+            return self.rowdict[attrn]
+        elif attrn == "places":
             return iter(self.dimension.places)
         elif attrn == "things":
             return iter(self.dimension.things)
@@ -73,6 +90,12 @@ each board will be open in at most one window at a time.
 
     def __int__(self):
         return self.idx
+
+    def add_spot(self, rd):
+        assert(rd["dimension"] == self._dimension)
+        self.spotdict[rd["place"]] = Spot(
+            self.rumor, self._dimension, self.idx, rd["place"],
+            self._tabdict)
 
     def get_spot_at(self, x, y):
         for spot in self.spots:
@@ -98,9 +121,6 @@ each board will be open in at most one window at a time.
 
     def get_pawn(self, thing):
         return self.pawndict[str(thing)]
-
-    def make_spot(self, place):
-        self.spotdict[str(place)] = Spot(self, place)
 
     def get_spot(self, place):
         if str(place) not in self.spotdict:
