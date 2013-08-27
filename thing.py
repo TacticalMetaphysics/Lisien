@@ -3,7 +3,8 @@
 from util import (
     SaveableMetaclass,
     LocationException,
-    BranchTicksIter)
+    BranchTicksIter,
+    TabdictIterator)
 from collections import defaultdict
 from portal import Portal
 from logging import getLogger
@@ -48,29 +49,23 @@ too.
          [])]
     basic_speed = 0.1
 
-    def __init__(self, rumor, td):
+    def __init__(self, rumor, dimension, name, td):
         self.rumor = rumor
         self.update_handlers = set()
-        self._tabdict = dict(td)
-        rd = td["thing_location"].pop()
-        self.name = rd["thing"]
-        self.dimension = self.rumor.get_dimension(rd["dimension"])
-        self.locations = defaultdict(dict)
+        self.dimension = dimension
+        self._dimension = str(dimension)
+        self._name = str(name)
+        self._tabdict = td
         self.indefinite_locations = {}
-        while True:
-            try:
-                if rd["thing"] == self.name:
-                    self.locations[rd["branch"]][rd["tick_from"]] = (
-                        self.dimension.get_place(rd["location"]), rd["tick_to"])
-                    if rd["tick_to"] is None:
-                        self.indefinite_locations[rd["branch"]] = rd["tick_from"]
-                rd = td["thing_location"].pop()
-            except IndexError:
-                break
-        
+        for rd in TabdictIterator(self._tabdict["thing_location"]):
+            if rd["tick_to"] is None:
+                self.indefinite_locations[rd["branch"]] = rd["tick_from"]
+        self.dimension.thingdict[name] = self
 
     def __getattr__(self, attrn):
-        if attrn == 'location':
+        if attrn == "locations":
+            return self._tabdict["thing_location"][self._dimension][self._name]
+        elif attrn == 'location':
             return self.get_location()
         elif attrn == 'speed':
             return self.get_speed()
@@ -90,10 +85,7 @@ too.
             super(Thing, self).__setattr__(attrn, val)
 
     def __str__(self):
-        return self.name
-
-    def __int__(self):
-        return self.dimension.things.index(self)
+        return self._name
 
     def __contains__(self, that):
         return that.location is self
@@ -129,13 +121,25 @@ tick in the given branch."""
             tick = self.rumor.tick
         if branch not in self.locations:
             return None
-        if branch in self.indefinite_locations:
-            istart = self.indefinite_locations[branch]
-            if tick >= istart:
-                return self.locations[branch][istart][0]
-        for (tick_from, (loc, tick_to)) in self.locations[branch].iteritems():
-            if tick_from <= tick and tick <= tick_to:
-                return loc
+        if (
+                branch in self.indefinite_locations and
+                tick >= self.indefinite_locations[branch]):
+            itf = self.indefinite_locations[branch]
+            rd = self.locations[branch][itf]
+            if rd["location"][:6] == "Portal":
+                pstr = rd["location"][6:].strip("()")
+                (orign, destn) = pstr.split("->")
+                return self.dimension.get_portal(orign, destn)
+            else:
+                return self.dimension.get_place(rd["location"])
+        for rd in TabdictIterator(self.locations[branch]):
+            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
+                if rd["location"][:6] == "Portal":
+                    pstr = rd["location"][6:].strip("()")
+                    (orign, destn) = pstr.split("->")
+                    return self.dimension.get_portal(orign, destn)
+                else:
+                    return self.dimension.get_place(rd["location"])
         return None
 
     def set_location(self, loc, branch=None, tick_from=None, tick_to=None):
@@ -152,18 +156,28 @@ Return an Effect representing the change.
             branch = self.rumor.branch
         if tick_from is None:
             tick_from = self.rumor.tick
-        if branch not in self.locations:
-            self.locations[branch] = {}
         if branch in self.indefinite_locations:
-            ifrom = self.indefinite_locations[branch]
-            (iloc, ito) = self.locations[branch][ifrom]
-            if tick_from > ifrom:
-                self.locations[branch][ifrom] = (iloc, tick_from - 1)
+            indef_start = self.indefinite_locations[branch]
+            indef_rd = self.locations[indef_start]
+            if tick_from > indef_start:
+                indef_rd["tick_to"] = tick_from - 1
                 del self.indefinite_locations[branch]
-            elif tick_to > ifrom:
-                del self.locations[branch][ifrom]
+            elif tick_to > indef_start:
+                del self.locations[branch][indef_start]
                 del self.indefinite_locations[branch]
-        self.locations[branch][tick_from] = (loc, tick_to)
+            elif (
+                    tick_to == self.indef_start and
+                    indef_rd["location"] == str(loc)):
+                indef_rd["tick_from"] = tick_from
+                self.indefinite_locations[branch] = tick_from
+                return
+        self.locations[branch][tick_from] = {
+            "dimension": str(self.dimension),
+            "thing": str(self),
+            "branch": branch,
+            "tick_from": tick_from,
+            "tick_to": tick_to,
+            "location": str(loc)}
         if tick_to is None:
             self.indefinite_locations[branch] = tick_from
 
@@ -205,13 +219,12 @@ Presupposes that I'm in a portal.
             tick = self.rumor.tick
         if branch not in self.locations:
             raise LocationException("I am nowhere in that branch")
-        for (tick_from, (loc, tick_to)) in self.locations[branch].iteritems():
-            if tick_to is None:
+        for rd in TabdictIterator(self.locations[branch]):
+            if rd["tick_to"] is None:
                 continue
-            if tick_from <= tick and tick <= tick_to:
-                assert(hasattr(loc, 'orig') and hasattr(loc, 'dest'))
-                return float(tick - tick_from) / float(tick_to - tick_from)
-        raise LocationException("I am nowhere at that time")
+            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
+                return float(tick - rd["tick_from"]) / float(rd["tick_to"] - rd["tick_from"])
+        raise LocationException("I am not in a portal at that time")
 
     def free_time(self, n, branch=None, tick=None):
         """Return the first tick after the one given, and after which there
@@ -257,13 +270,13 @@ then."""
             raise BranchError("Branch not known")
         if branch in self.indefinite_locations:
             tick_from = self.indefinite_locations[branch]
-            (loc, tick_to) = self.locations[branch][tick_from]
-            self.locations[branch][tick_from] = (loc, tick)
+            rd = self.locations[branch][tick_from]
+            rd["tick_to"] = tick
             del self.indefinite_locations[branch]
         else:
-            for (tick_from, (loc, tick_to)) in self.locations[branch].iteritems():
-                if tick_from <= tick and tick <= tick_to:
-                    self.locations[branch][tick_from] = (loc, tick)
+            for rd in TabdictIterator(self.locations[branch]):
+                if rd["tick_from"] < tick and rd["tick_to"] > tick:
+                    rd["tick_to"] = tick
                     return
 
     def journey_to(self, destplace, branch=None, tick=None):
@@ -286,9 +299,7 @@ other journey I may be on at the time."""
         for p in ipath:
             desti = self.dimension.graph.es[p[-1]].target
             if desti == int(destplace):
-                path = [
-                    Portal(self.dimension,
-                           self.dimension.graph.es[step]) for step in p]
+                path = [e["portal"] for e in [self.dimension.graph.es[i] for i in p]]
                 break
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))

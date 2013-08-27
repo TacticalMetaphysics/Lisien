@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, BranchTicksIter
+from util import SaveableMetaclass, BranchTicksIter, TabdictIterator
 from place import Place
 from logging import getLogger
 from igraph import Edge
@@ -23,21 +23,36 @@ class Portal:
          {},
          [])]
 
-    def __init__(self, dimension, e):
-        assert(isinstance(e, Edge))
+    def __init__(self, rumor, dimension, origin, destination, td):
+        self.rumor = rumor
         self.dimension = dimension
-        self.rumor = self.dimension.rumor
-        self.e = e
-
+        self._dimension = str(self.dimension)
+        self._origin = str(origin)
+        self._destination = str(destination)
+        self._tabdict = td
+        self.indefinite_existence = {}
+        for rd in TabdictIterator(self._tabdict["portal"]):
+            if rd["tick_to"] is None:
+                self.indefinite_existence[rd["branch"]] = rd["tick_from"]
+        # mainly this is to make sure that the origin and destination exist
+        self.orig = self.dimension.get_place(self._origin)
+        self.dest = self.dimension.get_place(self._destination)
+        # now make the edge
+        self.dimension.graph.add_edge(self.origi, self.desti, portal=self)
+        
     def __getattr__(self, attrn):
-        if attrn in ("orig", "origin"):
-            return Place(
-                self.dimension,
-                self.dimension.graph.vs[self.e.source])
-        elif attrn in ("dest", "destination"):
-            return Place(
-                self.dimension,
-                self.dimension.graph.vs[self.e.target])
+        if attrn == "origin":
+            return self.orig
+        elif attrn == "origi":
+            return self.orig.index
+        elif attrn == "destination":
+            return self.dest
+        elif attrn == "desti":
+            return self.dest.index
+        elif attrn in ("e", "edge"):
+            return self.graph.es[self.graph.get_eid(self.origi, self.desti)]
+        elif attrn == "existence":
+            return self._tabdict["portal"][self._dimension][self._origin][self._destination]
         elif attrn in self.e.attribute_names():
             return self.e[attrn]
         else:
@@ -45,7 +60,7 @@ class Portal:
                 "Portal instance has no attribute named " + attrn)
 
     def __repr__(self):
-        return "Portal({0}->{1})".format(str(self.orig), str(self.dest))
+        return "Portal({0}->{1})".format(self._origin, self._destination)
 
     def __int__(self):
         return self.e.index
@@ -59,25 +74,14 @@ class Portal:
 otherwise."""
         return True
 
-    def extant(self, branch=None, tick=None):
-        return self.dimension.portal_extant(self.e, branch, tick)
-
-    def extant_between(self, branch=None, tick_from=None, tick_to=None):
-        return self.dimension.portal_extant_between(
-            self.e, branch, tick_from, tick_to)
-
-    def persist(self, branch=None, tick_from=None, tick_to=None):
-        self.dimension.persist_portal(self.e, branch, tick_from, tick_to)
-
-    def get_tabdict(self):
-        return {
-            "portal_existence": [
-                {
-                    "dimension": str(self.dimension),
-                    "origin": str(self.orig),
-                    "destination": str(self.dest),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to}
-                for (branch, tick_from, tick_to) in
-                BranchTicksIter(self.existence)]}
+    def new_branch(self, parent, branch, tick):
+        for rd in TabdictIterator(self.existence):
+            if rd["tick_to"] is None or rd["tick_to"] >= tick:
+                if rd["tick_from"] < tick:
+                    self.existence[branch][tick] = rd["tick_to"]
+                    if rd["tick_to"] is None:
+                        self.indefinite_existence[branch] = tick
+                else:
+                    self.existence[branch][rd["tick_from"]] = rd["tick_to"]
+                    if rd["tick_to"] is None:
+                        self.indefinite_existence[branch] = rd["tick_from"]

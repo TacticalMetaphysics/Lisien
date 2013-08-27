@@ -699,12 +699,12 @@ This is game-world time. It doesn't always go forwards.
 
     def load_characters(self, names):
         qtd = {
-            "character_things": {"name": {}},
-            "character_stats": {"name": {}},
-            "character_skills": {"name": {}}}
+            "character_things": {},
+            "character_stats": {},
+            "character_skills": {}}
         for name in names:
-            qtd["character_things"]["name"][name] = {"name": name}
-            qtd["character_things"]["name"][name] = {"name": name}
+            for tabn in qtd.iterkeys():
+                qtd[tabn][name] = {"character": name}
         td = Character._select_tabdict(self.c, qtd)
         r = {}
         for name in names:
@@ -807,52 +807,22 @@ This is game-world time. It doesn't always go forwards.
         r.update(self.load_effect_decks(unloaded))
         return r
 
-    def load_dimension(
-            self, dimn, branches=None, tick_from=None, tick_to=None):
+    def load_dimension(self, dimn):
         # I think it might eventually *make sense* to load the same
         # dimension more than once without unloading it first. Perhaps
         # you want to selectively load the parts of it that the player
         # is interested in at the moment, the game world being too
         # large to practically load all at once.
-        if dimn not in self.dimensiondict:
-            self.dimensiondict[dimn] = Dimension(self, dimn)
-        dim = self.dimensiondict[dimn]
-        branchexpr = ""
-        tickfromexpr = ""
-        ticktoexpr = ""
-        if branches is not None:
-            branchexpr = " AND branch IN ({0})".format(
-                ", ".join(["?"] * len(branches)))
-        if tick_from is not None:
-            tickfromexpr = " AND tick_from>=?"
-        if tick_to is not None:
-            ticktoexpr = " AND tick_to<=?"
-        extrastr = "".join((branchexpr, tickfromexpr, ticktoexpr))
-        valtup = tuple([dimn] + [
-            b for b in (branches, tick_from, tick_to)
-            if b is not None])
-        self.c.execute(PORT_DIM_QRYFMT + extrastr, valtup)
-        for row in self.c:
-            rd = dictify_row(row, Portal.colns)
-            if not dim.have_place(rd["origin"]):
-                dim.make_place(rd["origin"])
-            if not dim.have_place(rd["destination"]):
-                dim.make_place(rd["destination"])
-            if not dim.have_portal(rd["origin"], rd["destination"]):
-                dim.make_portal(rd["origin"], rd["destination"])
-            po = dim.get_portal(rd["origin"], rd["destination"])
-            if not po.extant_between(rd["branch"], rd["tick_from"], rd["tick_to"]):
-                po.persist(rd["branch"], rd["tick_from"], rd["tick_to"])
-        self.c.execute(THING_LOC_QRYFMT + extrastr, valtup)
-        thing_rds = defaultdict(lambda: defaultdict(list))
-        for row in self.c:
-            rd = dictify_row(row, Thing.colns)
-            thing_rds[rd["dimension"]][rd["thing"]].append(rd)
-        for dimension in thing_rds:
-            for thing in thing_rds[dimension]:
-                dim.thingdict[thing] = Thing(
-                    self, {"thing_location": thing_rds[dimension][thing]})
-        return dim
+        td = Portal._select_tabdict(
+            self.c,
+            {"portal":
+             {"dimension": dimn}})
+        td.update(Thing._select_tabdict(
+            self.c,
+            {"thing_location":
+             {"dimension": dimn}}))
+        Dimension(self, dimn, td)
+
 
     def get_dimension(self, dimn):
         if dimn not in self.dimensiondict:
@@ -878,69 +848,38 @@ This is game-world time. It doesn't always go forwards.
     def get_board(self, dim, i):
         if not isinstance(dim, Dimension):
             dim = self.get_dimension(dim)
-        if len(dim.boards) <= i:
+        if len(dim.boards) <= i or dim.boards[i] is None:
             return self.load_board(dim, i)
         else:
             return dim.boards[i]
 
     def load_board(self, dim, i):
-        while len(dim.boards) <= i:
-            dim.boards.append(None)
-        # basic information for this board
-        self.c.execute(BOARD_QRYFMT, (str(dim), i))
-        rd = dictify_row(self.c.fetchone(), Board.colns)
-        walln = rd["wallpaper"]
-        width = rd["width"]
-        height = rd["height"]
-        imgs2load = set([walln, 'default_pawn', 'default_spot'])
-        # images for the spots
-        self.c.execute(SPOT_BOARD_IMG_QRYFMT, (str(dim), i))
-        spot_rows = self.c.fetchall()
-        for row in spot_rows:
-            imgs2load.add(row[4])
-        # images for the pawns
-        pawn_td = Pawn._select_tabdict(self.c, {
-            "pawn_img": {"dimension": str(dim)},
-            "pawn_interactive": {"dimension": str(dim)}})
-        for rd in TabdictIterator(pawn_td["pawn_img"]):
-            imgs2load.add(rd["img"])
-        imgs = self.load_imgs(imgs2load)
-        dim.boards[i] = Board(dim, i, width, height, imgs[walln])
-        for rd in TabdictIterator(pawn_td):
-            try:
-                dim.boards[i].pawndict[rd["thing"]] = Pawn(
-                    self, rd["dimension"], i, rd["thing"], pawn_td)
-            except LoadError:
-                pass
-        # actually assign images instead of just collecting the names
-        # spots in this board
-        self.c.execute(SPOT_BOARD_COORD_QRYFMT, (str(dim), i))
-        for row in self.c:
-            rd = dictify_row(row, colnames["spot_coords"])
-            if rd["place"] not in dim.placenames:
-                dim.make_place(rd["place"])
-            place = dim.get_place(rd["place"])
-            spot = dim.boards[i].get_spot(place)
-            logger.debug(
-                "Loaded the spot for %s. Setting its coords to "
-                "(%d, %d) in branch %d from tick %d.",
-                str(place), rd["x"], rd["y"], rd["branch"], rd["tick_from"])
-            spot.set_coords(rd["x"], rd["y"], rd["branch"], rd["tick_from"], rd["tick_to"])
-        #their images
-        for row in spot_rows:
-            rd = dictify_row(row, colnames["spot_img"])
-            spot = dim.boards[i].get_spot(rd["place"])
-            spot.set_img(imgs[rd["img"]], rd["branch"], rd["tick_from"], rd["tick_to"])
-        # interactivity for the spots
-        self.c.execute(SPOT_BOARD_INTER_QRYFMT, (str(dim), i))
-        for row in self.c:
-            rd = dictify_row(row, colnames["spot_interactive"])
-            spot = dim.boards[i].get_spot(rd["place"])
-            spot.set_interactive(rd["branch"], rd["tick_from"], rd["tick_to"])
-        # arrows in this board
-        for port in dim.portals:
-            dim.boards[i].get_arrow(port)
-        return dim.boards[i]
+        dimn = str(dim)
+        td = Board._select_tabdict(
+            self.c,
+            {"board":
+             {"dimension": dimn,
+              "idx": i}})
+        td.update(Spot._select_tabdict(
+            self.c,
+            {"spot_img":
+             {"dimension": dimn,
+              "board": i},
+             "spot_interactive":
+             {"dimension": dimn,
+              "board": i},
+             "spot_coords":
+             {"dimension": dimn,
+              "board": i}}))
+        td.update(Pawn._select_tabdict(
+            self.c,
+            {"pawn_img":
+             {"dimension": dimn,
+              "board": i},
+             "pawn_interactive":
+             {"dimension": dimn,
+              "board": i}}))
+        return Board(self, dim, i, td)
 
     def load_imgs(self, imgs):
         qryfmt = IMG_QRYFMT
@@ -1111,11 +1050,12 @@ This is game-world time. It doesn't always go forwards.
         return self.instantiate_calendars(Calendar._select_tabdict(self.c, td))
 
     def load_calendars_in_windows(self, winns):
+        windic = dict([(winn, {"window": winn}) for winn in winns])
         td = {
-            "calendar": [{"window": winn} for winn in winns],
-            "calendar_col_stat": [{"window": winn} for winn in winns],
-            "calendar_col_skill": [{"window": winn} for winn in winns],
-            "calendar_col_thing": [{"window": winn} for winn in winns]}
+            "calendar": windic,
+            "calendar_col_stat": windic,
+            "calendar_col_skill": windic,
+            "calendar_col_thing": windic}
         return self.load_calendars(td)
 
     def load_calendars_in_window(self, winn):
@@ -1230,7 +1170,7 @@ This is game-world time. It doesn't always go forwards.
     def load_colors(self, names):
         if len(names) == 0:
             return {}
-        kds = [{"name": name} for name in names]
+        kds = dict([(name, {"name": name}) for name in names])
         td = Color._select_tabdict(self.c, {"color": kds})
         r = {}
         for rd in TabdictIterator(td):

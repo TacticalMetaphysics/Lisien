@@ -6,6 +6,7 @@ from portal import Portal
 from logging import getLogger
 from igraph import Graph, InternalError
 from collections import defaultdict
+from util import TabdictIterator, stringlike
 
 
 logger = getLogger(__name__)
@@ -25,14 +26,13 @@ class PlaceIter:
 
 class PortIter:
     def __init__(self, dim):
-        self.dim = dim
         self.realit = iter(dim.graph.es)
 
     def __iter__(self):
         return self
 
     def next(self):
-        return Portal(self.dim, self.realit.next())
+        return self.realit.next()["portal"]
 
 
 """Class and loaders for dimensions--the top of the world hierarchy."""
@@ -42,7 +42,7 @@ class Dimension:
     """Container for a given view on the game world, sharing no things,
 places, or portals with any other dimension, but possibly sharing
 characters."""
-    def __init__(self, rumor, name):
+    def __init__(self, rumor, name, td):
         """Return a dimension with the given name.
 
 Probably useless unless, once you're sure you've put all your places,
@@ -51,11 +51,17 @@ method. Thereafter, it will have dictionaries of all those items,
 keyed with their names.
 
         """
-        self.name = name
+        self._name = name
         self.rumor = rumor
+        self._tabdict = td
         self.boards = []
         self.thingdict = {}
         self.graph = Graph(directed=True)
+        for rd in TabdictIterator(td["portal"]):
+            Portal(self.rumor, self, rd["origin"], rd["destination"], td)
+        for rd in TabdictIterator(td["thing_location"]):
+            self.thingdict[rd["thing"]] = Thing(self.rumor, self, rd["thing"], td)
+        self.rumor.dimensiondict[str(self)] = self
 
     def __hash__(self):
         """Return the hash of this dimension's name, since the database
@@ -63,7 +69,7 @@ constrains it to be unique."""
         return hash(self.name)
 
     def __str__(self):
-        return self.name
+        return self._name
 
     def __getattr__(self, attrn):
         if attrn == "places":
@@ -93,160 +99,76 @@ this dimension, and laid out nicely."""
         return name in self.graph.vs["name"]
 
     def get_place(self, iname):
-        if not isinstance(iname, int):
-            vnames = self.graph.vs["name"]
-            iname = vnames.index(iname)
-        v = self.graph.vs[iname]
-        return Place(self, v)
+        try:
+            if not isinstance(iname, int):
+                vnames = self.graph.vs["name"]
+                name = iname
+                iname = vnames.index(iname)
+            v = self.graph.vs[iname]
+            return Place(self, v)
+        except (IndexError, KeyError, ValueError):
+            return self.make_place(iname)
 
-    def make_place(self, name, existence=None, indef_exist=None, spots=None):
-        if existence is None:
-            existence = {}
-        if indef_exist is None:
-            indef_exist = {}
-        if spots is None:
-            spots = []
-        self.graph.add_vertex(
-            name=name,
-            existence=existence,
-            indef_exist=indef_exist,
-            spots=spots)
-        return self.get_place(name)
+    def make_place(self, name):
+        i = len(self.graph.vs)
+        self.graph.add_vertex(name=name)
+        return Place(self, self.graph.vs[i])
 
     def have_portal(self, orig, dest):
-        vnames = self.graph.vs["name"]
-        if isinstance(orig, Place):
-            orig = int(orig)
-        elif not isinstance(orig, int):
-            orig = vnames.index(orig)
-        if isinstance(dest, Place):
-            dest = int(dest)
-        elif not isinstance(dest, int):
-            dest = vnames.index(dest)
+        (origi, orig) = self.sanitize_vert(orig)
+        (desti, dest) = self.sanitize_vert(dest)
         lgv = len(self.graph.vs)
-        if orig >= lgv or dest >= lgv:
+        if origi >= lgv or desti >= lgv:
             return False
-        return self.graph[orig, dest] > 0
-
-    def make_portal(
-            self, orig, dest,
-            existence=None, indef_exist=None):
-        vertns = self.graph.vs["name"]
-        if hasattr(orig, 'v'):
-            orig = int(orig)
-        elif not isinstance(orig, int):
-            orig = vertns.index(orig)
-        if hasattr(dest, 'v'):
-            dest = int(dest)
-        elif not isinstance(dest, int):
-            dest = vertns.index(dest)
-        if existence is None:
-            existence = defaultdict(dict)
-        if indef_exist is None:
-            indef_exist = defaultdict(dict)
-        self.graph.add_edge(
-            orig, dest,
-            existence=existence,
-            indef_exist=indef_exist)
-        return self.get_portal(orig, dest)
+        return self.graph[origi, desti] > 0
 
     def get_portal(self, orig, dest):
-        vertns = self.graph.vs["name"]
-        if isinstance(orig, Place):
-            orig = int(orig)
-        elif not isinstance(orig, int):
-            orig = vertns.index(orig)
-        if isinstance(dest, Place):
-            dest = int(dest)
-        elif not isinstance(dest, int):
-            dest = vertns.index(dest)
-        try:
-            eid = self.graph.get_eid(orig, dest)
-            return Portal(self, self.graph.es[eid])
-        except InternalError:
-            return None
+        (origi, orig) = self.sanitize_vert(orig)
+        (desti, dest) = self.sanitize_vert(dest)
+        return self.graph.es[self.graph.get_eid(origi, desti)]["portal"]
 
     def get_thing(self, name):
         return self.thingdict[name]
 
-    def portal_extant(self, e, branch=None, tick=None):
-        if branch is None:
-            branch = self.rumor.branch
-        if tick is None:
-            tick = self.rumor.tick
-        if branch in e["indef_exist"]:
-            if tick > e["indef_exist"][branch]:
-                return True
-        if branch not in e["existence"]:
-            return False
-        for (tick_from, tick_to) in e["existence"][branch].iteritems():
-            if tick_from <= tick and tick <= tick_to:
-                return True
-        return False
-
-    def portal_extant_between(
-            self, e, branch=None, tick_from=None, tick_to=None):
-        if branch is None:
-            branch = self.rumor.branch
-        if tick_from is None:
-            tick_from = self.rumor.tick
-        if tick_to is None:
-            if branch not in e["indef_exist"]:
-                return False
-            ifrom = e["indef_exist"][branch]
-            return ifrom < tick_from
-        if branch not in e["existence"]:
-            return False
-        # search for an existence window that either matches or
-        # contains the one given
-        for (tick_before, tick_after) in e["existence"][branch].iteritems():
-            if tick_before <= tick_from and tick_after >= tick_to:
-                return True
-        return False
-
-    def persist_portal(self, e, branch=None, tick_from=None, tick_to=None):
-        if branch is None:
-            branch = self.rumor.branch
-        if tick_from is None:
-            tick_from = self.rumor.tick
-        if branch in e["indef_exist"]:
-            ifrom = e["indef_exist"][branch]
-            if tick_from > ifrom:
-                e["existence"][branch][ifrom] = tick_from - 1
-                del e["indef_exist"][branch]
-            elif tick_from == ifrom:
-                del e["indef_exist"][branch]
-            elif tick_to >= ifrom:
-                del e["existence"][branch][ifrom]
-                e["existence"][branch][tick_from] = None
-                e["indef_exist"][branch] = tick_from
-                return
-        if tick_to is None:
-            e["indef_exist"][branch] = tick_from
-        if branch not in e["existence"]:
-            e["existence"][branch] = {}
-        e["existence"][branch][tick_from] = tick_to
-
     def new_branch(self, parent, branch, tick):
         for thing in self.things:
-            print "new branch for {0} in progress...".format(thing)
             thing.new_branch(parent, branch, tick)
         for e in self.graph.es:
-            print "new branch for portal between {0} and {1} in progress...".format(
-                self.graph.vs[e.source]["name"], self.graph.vs[e.target]["name"])
-            for (tick_from, tick_to) in e["existence"][parent].iteritems():
-                if tick_to >= tick or tick_to is None:
-                    if tick_from < tick:
-                        e["existence"][branch][tick] = tick_to
-                        if tick_to is None:
-                            e["indef_exist"][branch] = tick
-                    else:
-                        e["existence"][branch][tick_from] = tick_to
-                        if tick_to is None:
-                            e["indef_exist"][branch] = tick_from
+            e["portal"].new_branch(parent, branch, tick)
 
-    def save(self):
-        for portal in self.portals:
-            portal.save()
-        for thing in self.things:
-            thing.save()
+    def sanitize_vert(self, v):
+        if isinstance(v, int):
+            i = v
+            v = self.graph.vs[i]
+        elif isinstance(v, Place):
+            v = v.v
+            i = v.i
+        elif stringlike(v):
+            vname = str(v)
+            vnames = self.graph.vs["name"]
+            i = vnames.index(vname)
+            v = self.graph.vs[i]
+        else:
+            i = v.index
+        return (i, v)
+
+    def sanitize_edge(self, e):
+        if isinstance(e, int):
+            i = e
+            e = self.graph.es[i]
+        elif isinstance(e, Portal):
+            e = e.e
+            i = e.index
+        elif stringlike(e):
+            if e[:6] == "Portal":
+                e = e[6:]
+            if e[0] == "(":
+                e = e[1:]
+            if e[-1] == ")":
+                e = e[:-1]
+            (orign, destn) = e.split("->")
+            i = self.graph.get_eid(orign, destn)
+            e = self.graph.es[i]
+        else:
+            i = e.index
+        return (i, e)

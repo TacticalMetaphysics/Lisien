@@ -234,10 +234,7 @@ and your table will be ready.
 
         def gen_sql_select(keydicts, tabname):
             keys_in_use = set()
-            if isinstance(keydicts, list):
-                kitr = iter(keydicts)
-            else:
-                kitr = TabdictIterator(keydicts)
+            kitr = TabdictIterator(keydicts)
             for keyd in kitr:
                 for k in keyd:
                     keys_in_use.add(k)
@@ -246,7 +243,7 @@ and your table will be ready.
                 " AND ".join(
                     ["{0}=?".format(key) for key in keys]
                 ))
-            ands = [andstr] * len(keydicts)
+            ands = [andstr] * len(kitr)
             colstr = colnamestr[tabname]
             orstr = " OR ".join(ands)
             return "SELECT {0} FROM {1} WHERE {2}".format(
@@ -257,29 +254,27 @@ and your table will be ready.
             keys = primarykeys[tabname]
             qrystr = gen_sql_select(keydicts, tabname)
             qrylst = []
-            if isinstance(keydicts, list):
-                kitr = iter(keydicts)
-            else:
-                kitr = TabdictIterator(keydicts)
+            kitr = TabdictIterator(keydicts)
             for keydict in kitr:
                 for key in keys:
                     try:
                         qrylst.append(keydict[key])
                     except KeyError:
                         pass
+            if len(qrylst) == 0:
+                return []
             c.execute(qrystr, tuple(qrylst))
             return c.fetchall()
 
         @staticmethod
         def _select_tabdict(c, td):
             r = {}
-            for item in td.iteritems():
-                (tabname, rd) = item
+            for (tabname, rdd) in td.iteritems():
                 if tabname not in primarykeys:
                     continue
                 if tabname not in r:
                     r[tabname] = {}
-                for row in select_keydicts_table(c, rd, tabname):
+                for row in select_keydicts_table(c, rdd, tabname):
                     rd = dictify_row(row, colnames[tabname])
                     ptr = r[tabname]
                     keys = list(primarykeys[tabname])
@@ -693,61 +688,30 @@ class TerminableImg:
             tick = self.rumor.tick
         if branch not in self.imagery:
             return None
-        for (tick_from, (img, tick_to)) in self.imagery[branch].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
-                assert(hasattr(img, 'tex'))
-                return img
+        if branch in self.indefinite_imagery:
+            indef_start = self.indefinite_imagery[branch]
+            if tick >= indef_start:
+                rd = self.imagery[branch][indef_start]
+                return self.rumor.get_img(rd["img"])
+        for rd in TabdictIterator(self.imagery[branch]):
+            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
+                return self.rumor.get_img(rd["img"])
         return None
 
-    def set_img(self, img, branch=None, tick_from=None, tick_to=None):
-        assert(hasattr(img, 'tex'))
-        if branch is None:
-            branch = self.rumor.branch
-        if tick_from is None:
-            tick_from = self.rumor.tick
-        if branch not in self.imagery:
-            self.imagery[branch] = {}
-        if branch in self.indefinite_imagery:
-            (indef_img, indef_start) = self.indefinite_imagery[branch]
-            if tick_to is None:
-                del self.imagery[branch][indef_start]
-                self.imagery[branch][tick_from] = (img, None)
-                self.indefinite_imagery[branch] = (img, tick_from)
-            else:
-                if tick_from < indef_start:
-                    if tick_to < indef_start:
-                        self.imagery[branch][tick_from] = (img, tick_to)
-                    elif tick_to == indef_start:
-                        del self.indefinite_imagery[branch]
-                        self.imagery[branch][tick_from] = (img, tick_to)
-                    else:
-                        del self.imagery[branch][indef_start]
-                        del self.indefinite_imagery[branch]
-                        self.imagery[branch][tick_from] = (img, tick_to)
-                elif tick_from == indef_start:
-                    del self.indefinite_imagery[branch]
-                    self.imagery[branch][tick_from] = (img, tick_to)
-                else:
-                    self.imagery[branch][indef_start] = (
-                        indef_img, tick_from-1)
-                    del self.indefinite_imagery[branch]
-                    self.imagery[branch][tick_from] = (img, tick_to)
-        else:
-            self.imagery[branch][tick_from] = (img, tick_to)
-            if tick_to is None:
-                self.indefinite_imagery[branch] = (img, tick_from)
-
     def new_branch_imagery(self, parent, branch, tick):
-        for (tick_from, (img, tick_to)) in self.imagery[parent].iteritems():
-            if tick_to >= tick or tick_to is None:
-                if tick_from < tick:
-                    self.imagery[branch][tick] = (img, tick_to)
-                    if tick_to is None:
+        for rd in TabdictIterator(self.imagery[parent]):
+            if rd["tick_to"] is None or rd["tick_to"] >= tick:
+                if rd["tick_from"] < tick:
+                    rd2 = dict(rd)
+                    rd2["branch"] = branch
+                    rd2["tick_from"] = tick
+                    self.imagery[branch][tick] = rd2
+                    if rd2["tick_to"] is None:
                         self.indefinite_imagery[branch] = tick
                 else:
-                    self.imagery[branch][tick_from] = (img, tick_to)
-                    if tick_to is None:
-                        self.indefinite_imagery[branch] = tick_from
+                    self.imagery[branch][rd["tick_from"]] = dict(rd)
+                    if rd["tick_to"] is None:
+                        self.indefinite_imagery[branch] = rd["tick_from"]
 
 
 class TerminableInteractivity:
@@ -760,77 +724,25 @@ class TerminableInteractivity:
             tick = self.rumor.tick
         if branch not in self.interactivity:
             return False
-        for (tick_from, tick_to) in self.interactivity[branch].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
+        if (
+                branch in self.indefinite_interactivity and
+                tick >= self.indefinite_interactivity[branch]):
+            return True
+        for rd in TabdictIterator(self.interactivity):
+            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return True
         return False
 
-    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
-        if branch is None:
-            branch = self.rumor.branch
-        if tick_from is None:
-            tick_from = self.rumor.tick
-        if branch not in self.interactivity:
-            self.interactivity[branch] = {}
-        if branch in self.indefinite_interactivity:
-            prevstart = self.indefinite_interactivity[branch]
-            if tick_to is None:
-                # Two indefinite periods of interactivity cannot coexist.
-                # Assume that you meant to overwrite the old one.
-                del self.interactivity[branch][prevstart]
-                self.indefinite_interactivity[branch] = tick_from
-                self.interactivity[branch][tick_from] = None
-            else:
-                if tick_from < prevstart:
-                    if tick_to > prevstart:
-                        # You had an indefinite period of interactivity,
-                        # and asked to overwrite a span of it--from the
-                        # beginning to some tick--with part of a definite
-                        # period of interactivity.
-                        #
-                        # That's a bit weird. The only way to really
-                        # comply with that request is to delete the
-                        # indefinite period.
-                        del self.interactivity[branch][prevstart]
-                        del self.indefinite_interactivity[branch]
-                        self.interactivity[branch][tick_from] = tick_to
-                    elif tick_to == prevstart:
-                        # Putting a definite period of interactivity
-                        # on before the beginning of an indefinite one
-                        # is equivalent to rescheduling the start of
-                        # the indefinite one.
-                        del self.interactivity[branch][prevstart]
-                        self.interactivity[branch][tick_from] = None
-                    else:
-                        # This case I can simply schedule like normal.
-                        self.interactivity[branch][tick_from] = tick_to
-                elif tick_from == prevstart:
-                    # Assume you mean to overwrite
-                    self.interactivity[branch][tick_from] = tick_to
-                    del self.indefinite_interactivity[branch]
-                else:
-                    # By scheduling the start of something definite
-                    # after the start of something indefinite, you've
-                    # implied that the indefinite thing shouldn't be
-                    # so indefinite after all.
-                    self.interactivity[branch][prevstart] = tick_from - 1
-                    del self.indefinite_interactivity[branch]
-        else:
-            self.interactivity[branch][tick_from] = tick_to
-            if tick_to is None:
-                self.indefinite_interactivity[branch] = tick_from
-
     def new_branch_interactivity(self, parent, branch, tick):
-        for (tick_from, tick_to) in self.interactivity[parent].iteritems():
-            if tick_to >= tick or tick_to is None:
-                if tick_from < tick:
-                    self.interactivity[branch][tick] = tick_to
-                    if tick_to is None:
-                        self.indefinite_interactivity[branch] = tick
+        for rd in TabdictIterator(self.interactivity[parent]):
+            if rd["tick_to"] is None or rd["tick_to"] >= tick:
+                if rd["tick_from"] < tick:
+                    rd["tick_from"] = tick
+                    self.interactivity[branch][tick] = rd
                 else:
-                    self.interactivity[branch][tick_from] = tick_to
-                    if tick_to is None:
-                        self.indefinite_interactivity[branch] = tick_from
+                    self.interactivity[branch][rd["tick_from"]] = rd
+                if rd["tick_to"] is None:
+                    self.indefinite_interactivity[branch] = rd["tick_from"]
 
 
 class ViewportOrderedGroup(pyglet.graphics.OrderedGroup):
@@ -908,7 +820,7 @@ class DictValues2DIterator:
 
 class TabdictIterator:
     def __init__(self, td):
-        self.ptrs = [dict(td)]
+        self.ptrs = [td]
         self.keyses = [self.ptrs[0].keys()]
         i = 0
         while True:
@@ -916,7 +828,7 @@ class TabdictIterator:
                 self.next()
                 i += 1
             except StopIteration:
-                self.ptrs = [dict(td)]
+                self.ptrs = [td]
                 self.keyses = [self.ptrs[0].keys()]
                 self.__len__ = lambda: i
                 break
@@ -959,6 +871,3 @@ Thing, and it made no sense.
 
 class LoadError(Exception):
     pass
-
-
-deep_default_dict(5)

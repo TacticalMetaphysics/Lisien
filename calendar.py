@@ -692,14 +692,20 @@ class CalendarCol:
         self.timeline = Timeline(self)
         self.window = self.calendar.window
         self.character = self.rumor.get_character(character)
-        self.character.register_update_handler(lambda nope: self.refresh)
+        self.character.register_update_handler(self.refresh_char)
         self.idx = idx
         self.typ = typ
         if self.typ == COL_TYPE["THING"]:
             self._rowdict = td["calendar_col_thing"][str(self.window)][int(self.calendar)][int(self)]
+            self.thing = self.rumor.get_thing(
+                self._rowdict["dimension"], self._rowdict["thing"])
             if self._rowdict["location"]:
-                self.get_locations = lambda: self.rumor.get_thing(
-                    self._rowdict["dimension"], self._rowdict["thing"]).locations[self.branch]
+                def glocs():
+                    try:
+                        return self.thing.locations[self._rowdict["branch"]]
+                    except KeyError:
+                        return {}
+                self.get_locations = glocs
         elif self.typ == COL_TYPE["STAT"]:
             self._rowdict = td["calendar_col_stat"][str(self.window)][int(self.calendar)][int(self)]
         else:
@@ -712,9 +718,12 @@ class CalendarCol:
         return iter(self.cells)
 
     def __getattr__(self, attrn):
-        if attrn == 'dimension' and self.typ == COL_TYPE["THING"]:
-            return self.rumor.get_dimension(self._dimension)
-        elif attrn in self._rowdict:
+        if self.typ == COL_TYPE["THING"]:
+            if attrn == 'dimension':
+                return self.rumor.get_dimension(self._dimension)
+            elif attrn == 'locations':
+                return self.get_locations()
+        if attrn in self._rowdict:
             return self._rowdict[attrn]
         elif hasattr(self.character, attrn):
             return getattr(self.character, attrn)
@@ -766,16 +775,15 @@ class CalendarCol:
                 # the thing
             else:
                 scheduledict = self.thingdict
+            for rd in TabdictIterator(scheduledict):
+                if "location" in rd:
+                    text = rd["location"]
+                else:
+                    text = rd["thing"]
+                self.cells.append(CalendarCell(self, rd["tick_from"], rd["tick_to"], text))
         elif self.typ == COL_TYPE["STAT"]:
-            scheduledict = self.statdict
-        for (tick_from, val) in scheduledict.iteritems():
-            if isinstance(val, tuple):
-                tick_to = val[-1]
-                text = self.pretty_printer(val[:-1])
-            else:
-                tick_to = val
-                text = "..."
-            self.cells.append(CalendarCell(self, tick_from, tick_to, text))
+            for rd in TabdictIterator(self.statdict):
+                self.cells.append(CalendarCell(self, rd["tick_from"], rd["tick_to"], rd["val"]))
 
     def delete(self):
         for cell in self.cells:
@@ -834,4 +842,5 @@ class CalendarCol:
         else:
             self.timeline.delete()
 
-
+    def refresh_char(self, char):
+        self.refresh()

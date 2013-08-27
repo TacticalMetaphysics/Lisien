@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, TabdictIterator, deep_default_dict
+from util import SaveableMetaclass, TabdictIterator
 from thing import Thing
 from collections import defaultdict
 
@@ -116,8 +116,8 @@ item's name, and the name of the attribute.
          [])]
 
     def __init__(self, rumor, name, td):
-        dd = lambda: defaultdict(defaultdict)
-        self.name = name
+        dd = lambda: defaultdict(dd)
+        self._name = name
         self.rumor = rumor
         self.update_handlers = set()
         self.indefinite_thing = dd()
@@ -130,25 +130,29 @@ item's name, and the name of the attribute.
         self.statdict = dd()
         self.portdict = dd()
         self.placedict = dd()
-        if "character_things" in td:
-            for rd in TabdictIterator(td["character_things"][self.name]):
+        if "character_things" in td and str(self) in td["character_things"]:
+            for rd in TabdictIterator(td["character_things"][str(self)]):
                 self.add_thing_with_strs(**rd)
                 self.rumor.get_thing(
                     rd["dimension"], rd["thing"]).register_update_handler(self.update)
-        if "character_stats" in td:
-            for rd in TabdictIterator(td["character_stats"][self.name]):
+        if "character_stats" in td and str(self) in td["character_stats"]:
+            for rd in TabdictIterator(td["character_stats"][str(self)]):
                 self.set_stat(**rd)
-        if "character_skills" in td:
-            for rd in TabdictIterator(td["character_skills"][self.name]):
+        if "character_skills" in td and str(self) in td["character_skills"]:
+            for rd in TabdictIterator(td["character_skills"][str(self)]):
                 self.set_skill(**rd)
-        if "character_portals" in td:
-            for rd in TabdictIterator(td["character_portals"][self.name]):
+        if "character_portals" in td and str(self) in td["character_portals"]:
+            for rd in TabdictIterator(td["character_portals"][str(self)]):
                 self.add_portal_with_strs(**rd)
-        if "character_places" in td:
-            for rd in TabdictIterator(td["character_places"][self.name]):
+        if "character_places" in td and str(self) in td["character_places"]:
+            for rd in TabdictIterator(td["character_places"][str(self)]):
                 self.add_place_with_strs(**rd)
+        self.rumor.characterdict[str(self)] = self
 
-    def set_stat(self, stat, val, branch=None, tick_from=None, tick_to=None):
+    def __str__(self):
+        return self._name
+
+    def set_stat(self, stat, val, branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
@@ -186,7 +190,7 @@ item's name, and the name of the attribute.
                 return val
         return None
 
-    def set_skill(self, skill, val, branch=None, tick_from=None, tick_to=None):
+    def set_skill(self, skill, val, branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
@@ -226,7 +230,7 @@ item's name, and the name of the attribute.
 
     def add_thing_with_strs(
             self, dimension, thing,
-            branch=None, tick_from=None, tick_to=None):
+            branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
@@ -309,7 +313,7 @@ item's name, and the name of the attribute.
         return r
 
     def add_place_with_strs(
-            self, dimension, place, branch=None, tick_from=None, tick_to=None):
+            self, dimension, place, branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
@@ -387,7 +391,7 @@ item's name, and the name of the attribute.
         placen = str(place)
         return self.is_place_with_strs(dimn, placen, branch, tick)
 
-    def were_place_with_strs(self, dimension, place)
+    def were_place_with_strs(self, dimension, place):
         for branch in self.placedict:
             if dimension not in self.placedict[branch]:
                 continue
@@ -399,7 +403,7 @@ item's name, and the name of the attribute.
         return self.were_place_with_strs(str(place.dimension), str(place))
 
     def add_portal_with_strs(
-            self, dimension, origin, destination, branch=None, tick_from=None, tick_to=None):
+            self, dimension, origin, destination, branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
