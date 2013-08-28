@@ -41,7 +41,7 @@ green, blue, and alpha. Register in db.colordict.
         self.rumor = rumor
         self._name = name
         self._tabdict = td
-        self._rowdict = td[name]
+        self._rowdict = td["color"][name]
 
     def __getattr__(self, attrn):
         if attrn in ("r", "red"):

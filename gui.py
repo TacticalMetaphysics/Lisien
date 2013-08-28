@@ -2,6 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
 import logging
+import pdb
 from util import (
     SaveableMetaclass,
     fortyfive,
@@ -12,6 +13,7 @@ from menu import Menu, MenuItem
 from card import Hand, Card
 from board import BoardViewport
 from picpicker import PicPicker
+from calendar import Calendar
 
 
 class SaveableWindowMetaclass(
@@ -83,25 +85,26 @@ of the mouse."""
 
 
 class ViewportIter:
-    def __init__(self, viewportdict):
-        self.realiter = viewportdict.itervalues()
-        self.curlst = iter(self.realiter.next())
-        self.what = iter(self.curlst.next())
+    def __init__(self, dimensiondict):
+        self.dimiter = dimensiondict.itervalues()
+        self.boarditer = iter(self.dimiter.next().boards)
+        self.viewiter = iter(self.boarditer.next().viewports)
 
     def __iter__(self):
         return self
 
     def next(self):
         try:
-            return self.what.next()
+            r = self.viewiter.next()
+            if r is not None:
+                return r
         except StopIteration:
             try:
-                self.what = self.curlst.next()
-                return self.next()
+                self.viewiter = iter(self.boarditer.next().viewports)
             except StopIteration:
-                self.curlst = iter(self.realiter.next())
-                self.what = self.curlst.next()
-                return self.next()
+                self.boarditer = iter(self.dimiter.next().boards)
+                self.viewiter = iter(self.boarditer.next().viewports)
+        return self.next()
 
 
 class GameWindow(pyglet.window.Window):
@@ -142,17 +145,12 @@ class GameWindow(pyglet.window.Window):
              TabdictIterator(td["board_viewport"])])
         for rd in TabdictIterator(td["board_viewport"]):
             self.rumor.get_board(rd["dimension"], rd["board"])
-            dimn = rd["dimension"]
-            del rd["dimension"]
+            dimension = self.dimensiondict[rd["dimension"]]
             boardi = rd["board"]
             viewi = rd["idx"]
-            rd["window"] = self
-            rd["board"] = self.dimensiondict[dimn].boards[boardi]
-            while len(self.viewportdict[dimn]) <= boardi:
-                self.viewportdict[dimn].append([])
-            while len(self.viewportdict[dimn][boardi]) <= viewi:
-                self.viewportdict[dimn][boardi].append(None)
-            self.viewportdict[dimn][boardi][viewi] = BoardViewport(**rd)
+            board = dimension.boards[boardi]
+            board.viewports[viewi] = BoardViewport(
+                self.rumor, self, dimension, board, viewi, td)
         stylenames = set()
         handnames = set()
         for rd in TabdictIterator(td["menu"]):
@@ -160,9 +158,10 @@ class GameWindow(pyglet.window.Window):
         for rd in TabdictIterator(td["hand"]):
             stylenames.add(rd["style"])
             handnames.add(rd["name"])
+        for rd in TabdictIterator(td["calendar"]):
+            stylenames.add(rd["style"])
         styles = self.rumor.get_styles(stylenames)
         carddict = self.rumor.get_cards_in_hands(handnames)
-        self.calendars = []
         imagenames = set()
         for rd in TabdictIterator(td["menu_item"]):
             imagenames.add(rd["icon"])
@@ -194,12 +193,12 @@ class GameWindow(pyglet.window.Window):
             rd["deck"] = effect_decks[rd["deck"]]
             rd["style"] = styles[rd["style"]]
             self.handdict[name] = Hand(**rd)
-        self.carddict = {}
-        for rd in TabdictIterator(td["card"]):
-            rd["effect"] = effects[rd["effect"]]
-            rd["image"] = imgs[rd["image"]]
-            rd["hand"] = self.handdict[rd["hand"]]
-            self.carddict[name] = Card(**rd)
+        self.carddict = self.rumor.get_cards_in_hands(self.handdict.keys())
+        self.calendars = []
+        for rd in TabdictIterator(td["calendar"]):
+            while len(self.calendars) <= rd["idx"]:
+                self.calendars.append(None)
+            self.calendars[rd["idx"]] = Calendar(self, rd["idx"], td)
         self.mouspot = MousySpot()
         self.squareoff = self.arrowhead_size * sin(fortyfive)
         self.picker = None
@@ -256,7 +255,7 @@ class GameWindow(pyglet.window.Window):
         elif attrn == "main_menu_name":
             return self._tabdict["window"][str(self)]["main_menu"]
         elif attrn == 'viewports':
-            return ViewportIter(self.viewportdict)
+            return ViewportIter(self.dimensiondict)
         elif attrn == 'menus':
             return self.menudict.itervalues()
         elif attrn == 'hands':
@@ -323,7 +322,8 @@ class GameWindow(pyglet.window.Window):
         for menu in self.menus:
             menu.draw()
         for calendar in self.calendars:
-            calendar.draw()
+            if calendar is not None:
+                calendar.draw()
         for hand in self.hands:
             hand.draw()
         for viewport in self.viewports:

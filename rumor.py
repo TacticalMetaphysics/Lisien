@@ -14,6 +14,7 @@ import sqlite3
 import re
 import os
 import igraph
+from sys import argv
 from dimension import Dimension
 from spot import Spot
 from pawn import Pawn
@@ -34,8 +35,7 @@ from util import (
     LoadError,
     TabdictIterator,
     schemata,
-    saveables,
-    ins_rltiles)
+    saveables)
 from portal import Portal
 from thing import Thing
 from character import Character
@@ -662,7 +662,7 @@ This is game-world time. It doesn't always go forwards.
         kd = {"effect": {}}
         for name in names:
             kd["effect"][name] = {"name": name}
-        td = Effect._select_tabdict(kd)
+        td = Effect._select_tabdict(self.c, kd)
         need_chars = set()
         for rd in TabdictIterator(td):
             need_chars.add(rd["character"])
@@ -671,6 +671,8 @@ This is game-world time. It doesn't always go forwards.
             r[rd["name"]] = Effect(self, rd["name"], td)
 
     def get_effects(self, names):
+        if len(names) == 0:
+            return {}
         r = {}
         unloaded = set()
         for name in names:
@@ -848,7 +850,7 @@ This is game-world time. It doesn't always go forwards.
         kd = {"color": {}}
         for name in names:
             kd["color"][name] = {"name": name}
-        td = Color._select_tabdict(self, kd)
+        td = Color._select_tabdict(self.c, kd)
         r = {}
         for rd in TabdictIterator(td):
             r[rd["name"]] = Color(self, rd["name"], td)
@@ -862,7 +864,7 @@ This is game-world time. It doesn't always go forwards.
                 r[color] = self.colordict[color]
             else:
                 unloaded.add(color)
-        r.update(self.read_colors(unloaded))
+        r.update(self.load_colors(unloaded))
         return r
 
     def get_color(self, name):
@@ -891,7 +893,7 @@ This is game-world time. It doesn't always go forwards.
                 r[style] = self.styledict[style]
             else:
                 unloaded.add(style)
-        r.update(self.read_styles(unloaded))
+        r.update(self.load_styles(unloaded))
         return r
 
     def get_style(self, name):
@@ -903,10 +905,17 @@ This is game-world time. It doesn't always go forwards.
             "board_viewport": {},
             "menu": {},
             "hand": {},
-            "menu_item": {}}
+            "menu_item": {},
+            "calendar": {},
+            "calendar_col_thing": {},
+            "calendar_col_stat": {},
+            "calendar_col_skill": {}}
         for name in names:
-            for table in kd.iterkeys():
-                kd[table][name] = {"name": name}
+            kd["window"][name] = {"name": name}
+            for col in kd.iterkeys():
+                if col == "window":
+                    continue
+                kd[col][name] = {"window": name}
         td = GameWindow._select_tabdict(self.c, kd)
         r = {}
         for rd in TabdictIterator(td["window"]):
@@ -976,6 +985,44 @@ This is game-world time. It doesn't always go forwards.
                 ungotl.append({"window": winname, "idx": calidx})
         got.update(self.load_calendars(ungotl))
         return got
+
+    def load_cards(self, names):
+        effectdict = self.get_effects(names)
+        kd = {"card": {}}
+        for name in names:
+            kd["card"][name] = {"effect": name}
+        td = Card._select_tabdict(self.c, kd)
+        r = {}
+        for rd in TabdictIterator(td):
+            r[rd["effect"]] = Card(self, effectdict[rd["effect"]], td)
+        return r
+
+    def get_cards(self, names):
+        r = {}
+        unhad = set()
+        for name in names:
+            if name in self.carddict:
+                r[name] = self.carddict[name]
+            else:
+                unhad.add(name)
+        r.update(self.load_cards(unhad))
+        return r
+
+    def get_card(self, name):
+        return self.get_cards([name])[name]
+
+    def get_effects_in_decks(self, decks):
+        effds = self.get_effect_decks(decks)
+        effects = set()
+        for effd in effds.itervalues():
+            for rd in TabdictIterator(effd._card_links):
+                effects.add(rd["effect"])
+        return self.get_effects(effects)
+
+    def get_cards_in_hands(self, hands):
+        effects = self.get_effects_in_decks(hands)
+        return self.get_cards([
+            str(effect) for effect in effects.itervalues()])
 
     def time_travel(self, mi, branch, tick):
         if branch not in self.timestream.branchdict:
@@ -1067,6 +1114,53 @@ This is game-world time. It doesn't always go forwards.
 
 
 def mkdb(DB_NAME='default.sqlite'):
+    def isdir(p):
+        try:
+            os.chdir(p)
+            return True
+        except:
+            return False
+
+
+    def allsubdirs_core(doing, done):
+        if len(doing) == 0:
+            return done
+        here = doing.pop()
+        if isdir(here):
+            done.add(here + '/')
+            inside = (
+                [here + '/' + there for there in
+                 os.listdir(here) if there[0] != '.'])
+            doing.update(set(inside))
+
+
+    def allsubdirs(path):
+        inpath = os.path.realpath(path)
+        indoing = set()
+        indoing.add(inpath)
+        indone = set()
+        result = None
+        while result is None:
+            result = allsubdirs_core(indoing, indone)
+        return iter(result)
+
+
+    def ins_rltiles(curs, dirname):
+        here = os.getcwd()
+        directories = os.path.abspath(dirname).split("/")
+        home = "/".join(directories[:-1]) + "/"
+        dirs = allsubdirs(dirname)
+        for dir in dirs:
+            for bmp in os.listdir(dir):
+                if bmp[-4:] != ".bmp":
+                    continue
+                qrystr = """insert or replace into img
+    (name, path, rltile) values (?, ?, ?)"""
+                bmpr = bmp.replace('.bmp', '')
+                dirr = dir.replace(home, '') + bmp
+                curs.execute(qrystr, (bmpr, dirr, True))
+        os.chdir(here)
+
     try:
         os.remove(DB_NAME)
     except OSError:

@@ -479,28 +479,13 @@ schedule, possibly several.
             self.vertlist = None
             self.wedge.delete()
 
-    def __init__(self, rumor, td):
-        self.rumor = rumor
+    def __init__(self, window, idx, td):
+        self.window = window
+        self.rumor = self.window.rumor
+        self.idx = idx
         self._tabdict = td
-        rd = self._tabdict["calendar"]
-        self.window = self.rumor.get_window(rd["window"])
         self.batch = self.window.batch
         self.group = self.window.calgroup
-        self.idx = rd["idx"]
-        self.left_prop = rd["left"]
-        self.right_prop = rd["right"]
-        self.top_prop = rd["top"]
-        self.bot_prop = rd["bot"]
-        self.interactive = rd["interactive"]
-        self.rows_shown = rd["rows_shown"]
-        self.style = self.rumor.get_style(rd["style"])
-        scrolled_to = rd["scrolled_to"]
-        if scrolled_to is None:
-            scrolled_to = self.rumor.tick
-        self.scrolled_to = scrolled_to
-        self.scroll_factor = rd["scroll_factor"]
-        self.max_cols = rd["max_cols"]
-        self.sprite = None
         self.cols = []
         self.add_cols_from_tabdict(td)
 
@@ -510,8 +495,35 @@ schedule, possibly several.
     def __len__(self):
         return len(self.cols)
 
+    def __int__(self):
+        return self.idx
+
     def __getattr__(self, attrn):
-        if attrn == 'window_top':
+        if attrn == "_rowdict":
+            return self._tabdict["calendar"][str(self.window)][int(self)]
+        elif attrn == "left_prop":
+            return self._rowdict["left"]
+        elif attrn == "right_prop":
+            return self._rowdict["right"]
+        elif attrn == "top_prop":
+            return self._rowdict["top"]
+        elif attrn == "bot_prop":
+            return self._rowdict["bot"]
+        elif attrn == "scrolled_to":
+            r = self._rowdict["scrolled_to"]
+            if r is None:
+                return self.rumor.tick
+            else:
+                return r
+        elif attrn == "style":
+            return self.rumor.get_style(self._rowdict["style"])
+        elif attrn in (
+                "interactive",
+                "rows_shown",
+                "scroll_factor",
+                "max_cols"):
+            return self._rowdict[attrn]
+        elif attrn == 'window_top':
             return int(self.top_prop * self.window.height)
         elif attrn == 'window_bot':
             return int(self.bot_prop * self.window.height)

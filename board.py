@@ -53,7 +53,7 @@ each board will be open in at most one window at a time.
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
-        self.viewportdict = {}
+        self.viewports = []
         while len(self.dimension.boards) <= self.idx:
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
@@ -186,9 +186,12 @@ class BoardViewport:
         self.dimension = dimension
         self.board = board
         self.idx = idx
+        while len(self.board.viewports) <= self.idx:
+            self.board.viewports.append(None)
+        self.board.viewports[self.idx] = self
         self._tabdict = td
         self.batch = self.window.batch
-        self.bggroup = OrderedGroup(0, self.window.boardrgoup)
+        self.bggroup = OrderedGroup(0, self.window.boardgroup)
         self.arrowgroup = OrderedGroup(1, self.window.boardgroup)
         self.spotgroup = OrderedGroup(2, self.window.boardgroup)
         self.pawngroup = OrderedGroup(3, self.window.boardgroup)
@@ -201,14 +204,14 @@ class BoardViewport:
             self.spotdict[k] = SpotWidget(self, v)
         for (k, v) in self.board.arrowdict.iteritems():
             self.arrowdict[k] = ArrowWidget(self, v)
-        self.board.viewportdict[str(self.window)] = self
+
 
     def __int__(self):
         return self.idx
 
     def __getattr__(self, attrn):
         if attrn == "_rowdict":
-            return self._tabdict[
+            return self._tabdict["board_viewport"][
                 str(self.window)][
                     str(self.dimension)][
                         int(self.board)][

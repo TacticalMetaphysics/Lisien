@@ -212,8 +212,10 @@ were right after firing them.
             return self._card_links[self.indefinite_effects[branch]]["effects"]
         for rd in TabdictIterator(self._card_links[branch]):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
-                return TabdictIterator(
-                    self._card_links[branch][rd["tick_from"]])
+                return [
+                    self.rumor.get_effect(effect) for effect in
+                    TabdictIterator(
+                        self._card_links[branch][rd["tick_from"]])]
         return []
 
     def draw(self, i=None, branch=None, tick=None):

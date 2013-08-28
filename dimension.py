@@ -112,7 +112,7 @@ this dimension, and laid out nicely."""
         except (IndexError, KeyError, ValueError):
             try:
                 return self.make_place(name)
-            except ValueError:
+            except UnboundLocalError:
                 return self.make_place(iname)
 
     def make_place(self, name):
