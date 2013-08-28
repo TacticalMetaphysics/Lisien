@@ -4,8 +4,7 @@ from place import Place
 from thing import Thing
 from portal import Portal
 from logging import getLogger
-from igraph import Graph, InternalError
-from collections import defaultdict
+from igraph import Graph
 from util import TabdictIterator, stringlike
 
 
@@ -60,7 +59,8 @@ keyed with their names.
         for rd in TabdictIterator(td["portal"]):
             Portal(self.rumor, self, rd["origin"], rd["destination"], td)
         for rd in TabdictIterator(td["thing_location"]):
-            self.thingdict[rd["thing"]] = Thing(self.rumor, self, rd["thing"], td)
+            self.thingdict[rd["thing"]] = Thing(
+                self.rumor, self, rd["thing"], td)
         self.rumor.dimensiondict[str(self)] = self
 
     def __hash__(self):
@@ -100,14 +100,20 @@ this dimension, and laid out nicely."""
 
     def get_place(self, iname):
         try:
+            vnames = self.graph.vs["name"]
             if not isinstance(iname, int):
-                vnames = self.graph.vs["name"]
                 name = iname
-                iname = vnames.index(iname)
-            v = self.graph.vs[iname]
+                i = vnames.index(iname)
+            else:
+                i = iname
+                name = vnames[i]
+            v = self.graph.vs[i]
             return Place(self, v)
         except (IndexError, KeyError, ValueError):
-            return self.make_place(iname)
+            try:
+                return self.make_place(name)
+            except ValueError:
+                return self.make_place(iname)
 
     def make_place(self, name):
         i = len(self.graph.vs)

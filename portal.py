@@ -1,9 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, BranchTicksIter, TabdictIterator
-from place import Place
+from util import SaveableMetaclass, TabdictIterator
 from logging import getLogger
-from igraph import Edge
 
 
 logger = getLogger(__name__)
@@ -39,7 +37,7 @@ class Portal:
         self.dest = self.dimension.get_place(self._destination)
         # now make the edge
         self.dimension.graph.add_edge(self.origi, self.desti, portal=self)
-        
+
     def __getattr__(self, attrn):
         if attrn == "origin":
             return self.orig
@@ -52,7 +50,8 @@ class Portal:
         elif attrn in ("e", "edge"):
             return self.graph.es[self.graph.get_eid(self.origi, self.desti)]
         elif attrn == "existence":
-            return self._tabdict["portal"][self._dimension][self._origin][self._destination]
+            return self._tabdict["portal"][
+                self._dimension][self._origin][self._destination]
         elif attrn in self.e.attribute_names():
             return self.e[attrn]
         else:

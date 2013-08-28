@@ -2,15 +2,16 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
 import logging
-from util import SaveableMetaclass, fortyfive, dictify_row
+from util import (
+    SaveableMetaclass,
+    fortyfive,
+    TabdictIterator)
 from math import atan, cos, sin
 from arrow import Arrow
 from menu import Menu, MenuItem
 from card import Hand, Card
 from board import BoardViewport
-from calendar import Calendar
 from picpicker import PicPicker
-from collections import OrderedDict, defaultdict
 
 
 class SaveableWindowMetaclass(
@@ -86,7 +87,6 @@ class ViewportIter:
         self.realiter = viewportdict.itervalues()
         self.curlst = iter(self.realiter.next())
         self.what = iter(self.curlst.next())
-        
 
     def __iter__(self):
         return self
@@ -119,13 +119,7 @@ class GameWindow(pyglet.window.Window):
          [])]
 
     def __init__(
-            self, name, rumor, min_width, min_height,
-            arrowhead_size, arrow_width, main_menu,
-            menu_rds,
-            menu_item_rds,
-            hand_rds,
-            card_rds,
-            viewport_rds):
+            self, rumor, name, td):
         """Initialize the game window, its groups, and some state tracking."""
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
@@ -142,14 +136,11 @@ class GameWindow(pyglet.window.Window):
         self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
         self.name = name
         self.rumor = rumor
-        self.min_width = min_width
-        self.min_height = min_height
-        self.arrowhead_size = arrowhead_size
-        self.arrow_width = arrow_width
-        self.main_menu_name = str(main_menu)
-        self.viewportdict = defaultdict(list)
-        self.dimensiondict = self.rumor.get_dimensions([rd["dimension"] for rd in viewport_rds])
-        for rd in viewport_rds:
+        self._tabdict = td
+        self.dimensiondict = self.rumor.get_dimensions(
+            [rd["dimension"] for rd in
+             TabdictIterator(td["board_viewport"])])
+        for rd in TabdictIterator(td["board_viewport"]):
             self.rumor.get_board(rd["dimension"], rd["board"])
             dimn = rd["dimension"]
             del rd["dimension"]
@@ -163,26 +154,29 @@ class GameWindow(pyglet.window.Window):
                 self.viewportdict[dimn][boardi].append(None)
             self.viewportdict[dimn][boardi][viewi] = BoardViewport(**rd)
         stylenames = set()
-        for rd in menu_rds.itervalues():
+        handnames = set()
+        for rd in TabdictIterator(td["menu"]):
             stylenames.add(rd["style"])
-        for rd in hand_rds.itervalues():
+        for rd in TabdictIterator(td["hand"]):
             stylenames.add(rd["style"])
+            handnames.add(rd["name"])
         styles = self.rumor.get_styles(stylenames)
+        carddict = self.rumor.get_cards_in_hands(handnames)
         self.calendars = []
         imagenames = set()
-        for mirdl in menu_item_rds.itervalues():
-            for mird in mirdl:
-                imagenames.add(mird["icon"])
-        for rd in card_rds.itervalues():
+        for rd in TabdictIterator(td["menu_item"]):
+            imagenames.add(rd["icon"])
+        for rd in TabdictIterator(carddict):
             imagenames.add(rd["image"])
         imgs = self.rumor.get_imgs(imagenames)
         self.menudict = {}
-        for rd in menu_rds.itervalues():
+        for rd in TabdictIterator(td["menu"]):
             rd["window"] = self
             rd["style"] = styles[rd["style"]]
             menuname = rd["name"]
             menu = Menu(**rd)
-            for mird in menu_item_rds[menuname]:
+            for mird in TabdictIterator(
+                    td["menu_item"][str(self)][rd["name"]]):
                 if mird["icon"] is not None:
                     mird["icon"] = imgs[mird["icon"]]
                 mird["menu"] = menu
@@ -190,18 +184,18 @@ class GameWindow(pyglet.window.Window):
                 menu.items.append(MenuItem(**mird))
             self.menudict[menuname] = menu
         effect_deck_names = set()
-        for rd in hand_rds.itervalues():
+        for rd in TabdictIterator(td["hand"]):
             effect_deck_names.add(rd["deck"])
         effect_decks = self.rumor.get_effect_decks(effect_deck_names)
-        effects = self.rumor.get_effects(card_rds.keys())
+        effects = self.rumor.get_effects_in_decks(effect_deck_names)
         self.handdict = {}
-        for (name, rd) in hand_rds.iteritems():
+        for rd in TabdictIterator(td["hand"]):
             rd["window"] = self
             rd["deck"] = effect_decks[rd["deck"]]
             rd["style"] = styles[rd["style"]]
             self.handdict[name] = Hand(**rd)
         self.carddict = {}
-        for (name, rd) in card_rds.iteritems():
+        for rd in TabdictIterator(td["card"]):
             rd["effect"] = effects[rd["effect"]]
             rd["image"] = imgs[rd["image"]]
             rd["hand"] = self.handdict[rd["hand"]]
@@ -256,7 +250,12 @@ class GameWindow(pyglet.window.Window):
         self.dxdy_hist_counter = 0
 
     def __getattr__(self, attrn):
-        if attrn == 'viewports':
+        if attrn in ("min_width", "min_height",
+                     "arrowhead_size", "arrow_width"):
+            return self._tabdict["window"][str(self)][attrn]
+        elif attrn == "main_menu_name":
+            return self._tabdict["window"][str(self)]["main_menu"]
+        elif attrn == 'viewports':
             return ViewportIter(self.viewportdict)
         elif attrn == 'menus':
             return self.menudict.itervalues()
@@ -281,6 +280,7 @@ class GameWindow(pyglet.window.Window):
 
     def update(self, dt):
         (x, y) = self.mouspot.coords
+
         def get_hovered():
             for get in self.hover_iter_getters:
                 for hoverable in get():
@@ -294,6 +294,7 @@ class GameWindow(pyglet.window.Window):
                             self.hovered = hoverable
                         return
         get_hovered()
+
         if self.portal_from is None:
             try:
                 (self.floaty_portal.orig.x,
@@ -556,7 +557,6 @@ and highlight it.
         """Return a calendar appropriate for representing some schedule-dict
 associated with the argument."""
         return self.calendars[0]
-
 
     def create_place(self):
         self.picker = PicPicker(

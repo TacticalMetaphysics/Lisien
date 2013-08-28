@@ -18,11 +18,10 @@ thing's attributes.
 
 Every item in LiSE's world model must be part of a Character, though
 it may be the only member of that Character. Where items can only have
-generic attributes appropriate to the dimension they occupy,
-Characters have all the attributes of the items that make them up, and
-possibly many more. There are no particular restrictions on what
-manner of attribute a Character can have, so long as it is not used by
-the physics of any dimension.
+generic attributes, Characters have all the attributes of the items
+that make them up, and possibly many more. There are no particular
+restrictions on what manner of attribute a Character can have, so long
+as it is not used by the physics of any dimension.
 
 Characters may contain EventDecks. These may represent skills the
 character has, in which case every EventCard in the EventDeck
@@ -45,7 +44,7 @@ dictionaries, wherein you may look up the Character's attributes. The
 key is composed of the dimension an item of this character is in, the
 item's name, and the name of the attribute.
 
-"""
+    """
 
     prelude = [
         "CREATE VIEW place AS "
@@ -91,8 +90,10 @@ item's name, and the name of the attribute.
           "tick_to": "integer default null",
           "origin": "text not null",
           "destination": "text not null"},
-         ("character", "dimension", "origin", "destination", "branch", "tick_from"),
-         {"dimension, origin, destination": ("portal", "dimension, origin, destination")},
+         ("character", "dimension", "origin", "destination",
+          "branch", "tick_from"),
+         {"dimension, origin, destination":
+          ("portal", "dimension, origin, destination")},
          []),
         ("character_skills",
          {"character": "text not null",
@@ -116,7 +117,8 @@ item's name, and the name of the attribute.
          [])]
 
     def __init__(self, rumor, name, td):
-        dd = lambda: defaultdict(dd)
+        def dd():
+            return defaultdict(dd)
         self._name = name
         self.rumor = rumor
         self.update_handlers = set()
@@ -134,7 +136,8 @@ item's name, and the name of the attribute.
             for rd in TabdictIterator(td["character_things"][str(self)]):
                 self.add_thing_with_strs(**rd)
                 self.rumor.get_thing(
-                    rd["dimension"], rd["thing"]).register_update_handler(self.update)
+                    rd["dimension"],
+                    rd["thing"]).register_update_handler(self.update)
         if "character_stats" in td and str(self) in td["character_stats"]:
             for rd in TabdictIterator(td["character_stats"][str(self)]):
                 self.set_stat(**rd)
@@ -152,7 +155,9 @@ item's name, and the name of the attribute.
     def __str__(self):
         return self._name
 
-    def set_stat(self, stat, val, branch=None, tick_from=None, tick_to=None, **kwargs):
+    def set_stat(
+            self, stat, val,
+            branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
@@ -190,7 +195,9 @@ item's name, and the name of the attribute.
                 return val
         return None
 
-    def set_skill(self, skill, val, branch=None, tick_from=None, tick_to=None, **kwargs):
+    def set_skill(
+            self, skill, val,
+            branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
@@ -259,7 +266,7 @@ item's name, and the name of the attribute.
             del self.indefinite_thing[branch][dimension][thing]
         except KeyError:
             pass
-        del self.thingdict[branch][dimnension][thing][tick]
+        del self.thingdict[branch][dimension][thing][tick]
 
     def rm_thing(self, thing, branch, tick):
         dimn = str(thing.dimension)
@@ -276,9 +283,9 @@ item's name, and the name of the attribute.
                 dimension in self.thingdict[branch] and
                 thing in self.thingdict[branch][dimension]):
             return False
-        for (tick_from, tick_to) in self.thingdict[
-                branch][dimension][thing].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
+        for rd in TabdictIterator(self.thingdict[branch][dimension][thing]):
+            if rd["tick_from"] <= tick and (
+                    rd["tick_to"] is None or tick <= rd["tick_to"]):
                 return True
         return False
 
@@ -304,16 +311,13 @@ item's name, and the name of the attribute.
         r = set()
         if branch not in self.thingdict:
             return r
-        for dimn in self.thingdict[branch]:
-            for thingn in self.thingdict[branch][dimn]:
-                for (tick_from, tick_to) in self.thingdict[branch][dimn][thingn].iteritems():
-                    if tick_from <= tick and (tick_to is None or tick <= tick_to):
-                        thing = self.rumor.get_thing(dimn, thing)
-                        r.add(thing)
+        for rd in TabdictIterator[self.thingdict[branch]]:
+            r.add(self.rumor.get_thing(rd["dimension"], rd["thing"]))
         return r
 
     def add_place_with_strs(
-            self, dimension, place, branch=None, tick_from=None, tick_to=None, **kwargs):
+            self, dimension, place,
+            branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
@@ -321,8 +325,8 @@ item's name, and the name of the attribute.
         if (
                 branch in self.indefinite_place and
                 dimension in self.indefinite_place[branch] and
-                place in self.indefinite_place[branch][dimn]):
-            ifrom = self.indefinite_place[branch][dimn][place]
+                place in self.indefinite_place[branch][dimension]):
+            ifrom = self.indefinite_place[branch][dimension][place]
             if tick_from > ifrom:
                 self.placedict[branch][dimension][place][ifrom] = tick_from - 1
                 del self.indefinite_place[branch][dimension][place]
@@ -365,8 +369,9 @@ item's name, and the name of the attribute.
                 dimension in self.placedict[branch] and
                 place in self.placedict[branch][dimension]):
             return False
-        for (tick_from, tick_to) in self.thingdict[branch][dimension][placen].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
+        for rd in TabdictIterator(self.placedict[branch][dimension][place]):
+            if rd["tick_from"] <= tick and (
+                    rd["tick_to"] is None or tick <= rd["tick_to"]):
                 return True
         return False
 
@@ -378,12 +383,10 @@ item's name, and the name of the attribute.
         r = set()
         if branch not in self.placedict:
             return r
-        for dimn in self.placedict[branch]:
-            for placen in self.placedict[branch][dimn]:
-                for (tick_from, tick_to) in self.placedict[branch][dimn].iteritems():
-                    if tick_from <= tick and (tick_to is none or tick <= tick_to):
-                        place = self.rumor.get_place(dimn, placen)
-                        r.add(place)
+        for rd in TabdictIterator(self.placedict[branch]):
+            if rd["tick_from"] <= r and (
+                    rd["tick_to"] is None or tick <= rd["tick_to"]):
+                r.add(self.rumor.get_place(rd["dimension"], rd["place"]))
         return r
 
     def is_place(self, place, branch=None, tick=None):
@@ -403,36 +406,58 @@ item's name, and the name of the attribute.
         return self.were_place_with_strs(str(place.dimension), str(place))
 
     def add_portal_with_strs(
-            self, dimension, origin, destination, branch=None, tick_from=None, tick_to=None, **kwargs):
+            self, dimension, origin, destination,
+            branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
             tick_from = self.rumor.tick
         try:
-            ifrom = self.indefinite_portal[branch][dimension][origin][destination]
+            ifrom = self.indefinite_portal[
+                branch][dimension][origin][destination]
             if tick_from > ifrom:
-                self.portaldict[branch][dimension][origin][destination][ifrom] = tick_from - 1
-                del self.indefinite_place[branch][dimension][origin][destination]
+                self.portaldict[
+                    branch][dimension][origin][destination][ifrom] = {
+                        "dimension": dimension,
+                        "origin": origin,
+                        "destination": destination,
+                        "tick_from": ifrom,
+                        "tick_to": tick_from - 1}
+                del self.indefinite_portal[
+                    branch][dimension][origin][destination]
             elif tick_to > ifrom:
-                del self.portaldict[branch][dimension][origin][destination][ifrom]
-                del self.indefinite_place[branch][dimension][origin][destination]
+                del self.portaldict[
+                    branch][dimension][origin][destination][ifrom]
+                del self.indefinite_portal[
+                    branch][dimension][origin][destination]
             if tick_to == ifrom:
-                self.portaldict[branch][dimension][origin][destination][tick_from] = None
-                self.indefinite_place[branch][dimension][origin][destination] = tick_from
+                self.portaldict[
+                    branch][dimension][origin][destination][tick_from] = {
+                        "dimension": dimension,
+                        "origin": origin,
+                        "destination": destination,
+                        "tick_from": tick_from,
+                        "tick_to": None}
+                self.indefinite_portal[
+                    branch][dimension][origin][destination] = tick_from
                 return
         except KeyError:
             pass
-        self.portaldict[branch][dimension][origin][destination][tick_from] = tick_to
+        self.portaldict[
+            branch][dimension][origin][destination][tick_from] = tick_to
         if tick_to is None:
-            self.indefinite_portal[branch][dimension][origin][destination] = tick_from
+            self.indefinite_portal[
+                branch][dimension][origin][destination] = tick_from
 
     def add_portal(self, portal, branch=None, tick_from=None, tick_to=None):
         dimn = str(portal.dimension)
         orign = str(portal.origin)
         destn = str(portal.destination)
-        self.add_portal_with_strs(dimn, orign, destn, branch, tick_from, tick_to)
+        self.add_portal_with_strs(
+            dimn, orign, destn, branch, tick_from, tick_to)
 
-    def rm_portal_with_strs(self, dimension, origin, destination, branch, tick):
+    def rm_portal_with_strs(
+            self, dimension, origin, destination, branch, tick):
         try:
             del self.indefinite_portal[branch][dimension][origin][destination]
         except KeyError:
@@ -445,7 +470,8 @@ item's name, and the name of the attribute.
         destn = str(portal.destination)
         self.rm_portal_with_strs(dimn, orign, destn, branch, tick)
 
-    def is_portal_with_strs(self, dimension, origin, destination, branch=None, tick=None):
+    def is_portal_with_strs(
+            self, dimension, origin, destination, branch=None, tick=None):
         if branch is None:
             branch = self.rumor.branch
         if tick is None:
@@ -456,8 +482,10 @@ item's name, and the name of the attribute.
                 origin in self.portdict[branch][dimension] and
                 destination in self.portdict[branch][dimension][origin]):
             return False
-        for (tick_from, tick_to) in self.portdict[branch][dimension][origin][destination].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
+        for rd in TabdictIterator(
+                self.portdict[branch][dimension][origin][destination]):
+            if rd["tick_from"] <= tick and (
+                    rd["tick_to"] is None or tick <= rd["tick_to"]):
                 return True
         return False
 
@@ -475,13 +503,12 @@ item's name, and the name of the attribute.
         r = set()
         if branch not in self.portdict:
             return r
-        for dimn in self.portdict[branch]:
-            for orign in self.portdict[branch][dimn]:
-                for destn in self.portdict[branch][dimn][orign]:
-                    for (tick_from, tick_to) in self.portdict[branch][dimn][orign][destn].iteritems():
-                        if tick_from <= tick and (tick_to is None or tick <= tick_to):
-                            port = self.rumor.get_portal(dimn, orign, destn)
-                            r.add(port)
+        for rd in TabdictIterator(self.portdict[branch]):
+            if rd["tick_from"] <= tick and (
+                    rd["tick_to"] is None or tick <= rd["tick_to"]):
+                port = self.rumor.get_portal(
+                    rd["dimension"], rd["origin"], rd["destination"])
+                r.add(port)
         return r
 
     def were_portal_with_strs(self, dimension, origin, destination):

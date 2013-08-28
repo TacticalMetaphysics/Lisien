@@ -131,14 +131,12 @@ class TextHolder:
                 self.cardwidget.old_height != self.cardwidget.height):
             image = self.card.pats.bg_active.create_image(
                 self.width, self.height)
-            bggroup = OrderedGroup(1, group)
             self.sprite = Sprite(
                 image,
                 self.window_left,
                 self.window_bot,
                 batch=self.batch,
                 group=self.group)
-            fggroup = OrderedGroup(2, group)
             self.label = Label(
                 self.card.text,
                 self.style.fontface,
@@ -149,8 +147,8 @@ class TextHolder:
                 width=self.text_width,
                 height=self.text_height,
                 multiline=True,
-                batch=batch,
-                group=fggroup)
+                batch=self.batch,
+                group=self.labelgroup)
         else:
             self.sprite.x = self.window_left
             self.sprite.y = self.window_bot
@@ -335,14 +333,13 @@ class CardWidget:
             except:
                 image = self.card.pats.bg_inactive.create_image(
                     self.width, self.height)
-                bggroup = OrderedGroup(0, group)
                 self.sprite = Sprite(
                     image,
                     self.window_left,
                     self.window_bot,
-                    batch=batch,
-                    group=bggroup)
-            self.textholder.draw(batch, group)
+                    batch=self.batch,
+                    group=self.bggroup)
+            self.textholder.draw()
         else:
             self.delete()
         self.old_width = self.width
@@ -391,7 +388,8 @@ order."""
                  visible, interactive):
         self.window = window
         self.batch = self.window.batch
-        self.cardgroup = OrderedGroup(self.window.hand_order, self.window.cardgroup)
+        self.cardgroup = OrderedGroup(
+            self.window.hand_order, self.window.cardgroup)
         self.window.hand_order += 1
         self.rumor = window.rumor
         self.deck = deck

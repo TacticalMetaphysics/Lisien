@@ -2,7 +2,6 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     SaveableMetaclass,
-    ViewportOrderedGroup,
     TabdictIterator)
 from pawn import Pawn, PawnWidget
 from spot import Spot, SpotWidget
@@ -54,6 +53,7 @@ each board will be open in at most one window at a time.
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
+        self.viewportdict = {}
         while len(self.dimension.boards) <= self.idx:
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
@@ -157,22 +157,6 @@ each board will be open in at most one window at a time.
         # Arrows don't have branchdicts. Just make them smart enough
         # to handle their portal changing its.
 
-    def get_tabdict(self):
-        return {
-            "board":
-                {"dimension": str(self.dimension),
-                 "idx": int(self),
-                 "wallpaper": str(self.wallpaper),
-                 "width": self.width,
-                 "height": self.height}}
-
-    def update_from_tabdict(self, tabdict):
-        rd = tabdict["board"]
-        self.dimension = self.rumor.get_dimension(rd["dimension"])
-        self.idx = rd["idx"]
-        self.wallpaper = self.rumor.get_img(rd["wallpaper"])
-        self.width = rd["width"]
-        self.height = rd["height"]
 
 class BoardViewport:
     tables = [
@@ -196,26 +180,18 @@ class BoardViewport:
           "right>=0.0", "top>=0.0", "left<=1.0", "bot<=1.0",
           "right<=1.0", "top<=1.0", "right>left", "top>bot"])]
 
-    def __init__(self, window, board, idx,
-                 left, bot, top, right, view_left, view_bot,
-                 arrow_width, arrowhead_size):
-        self.board = board
+    def __init__(self, rumor, window, dimension, board, idx, td):
+        self.rumor = rumor
         self.window = window
+        self.dimension = dimension
+        self.board = board
         self.idx = idx
-        self.left_prop = left
-        self.bot_prop = bot
-        self.top_prop = top
-        self.right_prop = right
-        self.view_left = view_left
-        self.view_bot = view_bot
-        self.arrow_width = arrow_width
-        self.arrowhead_size = arrowhead_size
+        self._tabdict = td
         self.batch = self.window.batch
-        self.supergroup = OrderedGroup(0, self.window.boardgroup)
-        self.bggroup = OrderedGroup(0, self.supergroup)
-        self.arrowgroup = OrderedGroup(1, self.supergroup)
-        self.spotgroup = OrderedGroup(2, self.supergroup)
-        self.pawngroup = OrderedGroup(3, self.supergroup)
+        self.bggroup = OrderedGroup(0, self.window.boardrgoup)
+        self.arrowgroup = OrderedGroup(1, self.window.boardgroup)
+        self.spotgroup = OrderedGroup(2, self.window.boardgroup)
+        self.pawngroup = OrderedGroup(3, self.window.boardgroup)
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
@@ -225,9 +201,27 @@ class BoardViewport:
             self.spotdict[k] = SpotWidget(self, v)
         for (k, v) in self.board.arrowdict.iteritems():
             self.arrowdict[k] = ArrowWidget(self, v)
+        self.board.viewportdict[str(self.window)] = self
+
+    def __int__(self):
+        return self.idx
 
     def __getattr__(self, attrn):
-        if attrn == "window_left":
+        if attrn == "_rowdict":
+            return self._tabdict[
+                str(self.window)][
+                    str(self.dimension)][
+                        int(self.board)][
+                            int(self)]
+        elif attrn == "left_prop":
+            return self._rowdict["left"]
+        elif attrn == "right_prop":
+            return self._rowdict["right"]
+        elif attrn == "top_prop":
+            return self._rowdict["top"]
+        elif attrn == "bot_prop":
+            return self._rowdict["bot"]
+        elif attrn == "window_left":
             return int(self.left_prop * self.window.width)
         elif attrn == "window_right":
             return int(self.right_prop * self.window.width)
@@ -249,6 +243,8 @@ class BoardViewport:
             return self.spotdict.itervalues()
         elif attrn == "pawns":
             return self.pawndict.itervalues()
+        elif attrn in self._rowdict:
+            return self._rowdict[attrn]
         elif attrn in (
                 "dimension", "idx", "wallpaper"):
             return getattr(self.board, attrn)

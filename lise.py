@@ -16,7 +16,7 @@ DEBUG = False
 for arg in argv:
     if arg == "-l":
         try:
-            lang = argv[i+1]
+            lang = argv[i + 1]
         except:
             raise Exception("Couldn't parse language")
     elif arg == "-d":
@@ -41,6 +41,7 @@ clock = pyglet.clock.Clock()
 pyglet.clock.set_default(clock)
 rumor = rumor.load_game(dbfn, lang)
 gw = rumor.get_window('Main')
+
 
 def update(ts):
     gw.update(ts)

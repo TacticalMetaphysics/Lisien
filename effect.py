@@ -1,6 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, dictify_row
+from util import (
+    SaveableMetaclass,
+    TabdictIterator)
 
 
 """Ways to change the game world."""
@@ -51,15 +53,23 @@ contain only a single Effect.
          {},
          [])]
 
-    def __init__(self, name, chara, key, cbname):
-        self.name = name
-        self.character = chara
-        self.rumor = self.character.rumor
-        self.cb = self.rumor.effect_cbs[cbname]
-        self.key = key
+    def __init__(self, rumor, name, td):
+        self.rumor = rumor
+        self._name = name
+        self._tabdict = td
+        self._rowdict = td[name]
+        self.rumor.effectdict[str(self)] = self
+
+    def __getattr__(self, attrn):
+        if attrn == "character":
+            return self.rumor.get_character(self._rowdict["character"])
+        elif attrn == "key":
+            return self._rowdict["key"]
+        elif attrn == "callback":
+            return self.rumor.effect_cbs[self._rowdict["callback"]]
 
     def __str__(self):
-        return self.name
+        return self._name
 
     def do(self, branch=None, tick=None):
         """Call the callback, and add its results to this character."""
@@ -121,32 +131,37 @@ were right after firing them.
          ["draw_order>=0", "draw_order<=3"]),
         ("effect_deck_link",
          {"deck": "text not null",
+          "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
           "idx": "integer not null default 0",
           "effect": "text not null",
           "tick_to": "integer"},
-         ("deck", "tick_from", "idx"),
+         ("deck", "branch", "tick_from", "idx"),
          {"deck": ("effect_deck", "name"),
           "effect": ("effect", "name")},
          ["idx>=0"])]
 
-    def __init__(self, rumor, name, draw_order=DRAW_FILO):
+    def __init__(self, rumor, name, td):
         self.rumor = rumor
-        self.name = name
-        self.draw_order = draw_order
+        self._name = name
+        self._tabdict = td
+        self._deck_rowdict = td["effect_deck"][self._name]
+        self._card_links = td["effect_deck_link"][self._name]
         self.reset_to = {}
-        self.effects = {}
         self.indefinite_effects = {}
+        self.rumor.effectdeckdict[name] = self
 
     def __len__(self):
         return len(self.effects)
 
     def __str__(self):
-        return self.name
+        return self._name
 
     def __getattr__(self, attrn):
         if attrn == "effects":
             return self.get_effects()
+        elif attrn == "draw_order":
+            return self._deck_rowdict["draw_order"]
         else:
             raise AttributeError(
                 "EffectDeck instance has no attribute named " + attrn)
@@ -164,17 +179,25 @@ were right after firing them.
             tick_from = self.rumor.tick
         if branch in self.indefinite_effects:
             ifrom = self.indefinite_effects[branch]
-            (ieffects, ito) = self.effects[branch][ifrom]
-            assert(ito is None)
-            if tick_from > ito:
-                self.effects[branch][ifrom] = (ieffects, tick_from - 1)
+            rd = self.effects[branch][ifrom]
+            if tick_from > rd["tick_from"]:
+                rd["tick_to"] = tick_from - 1
                 del self.indefinite_effects[branch]
-            elif tick_to > ito:
+            elif tick_to > rd["tick_from"]:
                 del self.effects[branch][ifrom]
                 del self.indefinite_effects[branch]
         if branch not in self.effects:
             self.effects[branch] = {}
-        self.effects[branch][tick_from] = (effects, tick_to)
+        i = 0
+        for effect in effects:
+            self._card_links[branch][tick_from][i] = {
+                "deck": str(self),
+                "branch": branch,
+                "tick_from": tick_from,
+                "idx": i,
+                "tick_to": tick_to,
+                "effect": effect}
+            i += 1
         if tick_to is None:
             self.indefinite_effects[branch] = tick_from
 
@@ -186,41 +209,12 @@ were right after firing them.
         if (
                 branch in self.indefinite_effects and
                 self.indefinite_effects[branch] <= tick):
-            return self.effects[self.indefinite_effects[branch]][0]
-        for (tick_from, (val, tick_to)) in self.effects[branch].iteritems():
-            if tick_from <= tick and tick <= tick_to:
-                # return a *copy* of the effects--
-                # it would be embarassing to accidentally change history
-                return list(val)
+            return self._card_links[self.indefinite_effects[branch]]["effects"]
+        for rd in TabdictIterator(self._card_links[branch]):
+            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
+                return TabdictIterator(
+                    self._card_links[branch][rd["tick_from"]])
         return []
-
-    def get_tabdict(self):
-        r = {"effect_deck": []}
-        for branch in self.effects:
-            it = self.effects[branch].iteritems()
-            for (tick_from, (effects, tick_to)) in it:
-                i = 0
-                for effect in effects:
-                    r["effect_deck"].append(
-                        {"deck": str(self),
-                         "tick_from": tick_from,
-                         "idx": i,
-                         "effect": str(effect),
-                         "tick_to": tick_to})
-                    i += 1
-        return r
-
-    def get_keydict(self):
-        r = {"effect_deck": []}
-        for branch in self.effects:
-            it = self.effects[branch].iteritems()
-            for (tick_from, (effects, tick_to)) in it:
-                for i in xrange(tick_from, tick_to):
-                    r["effect_deck"].append(
-                        {"deck": str(self),
-                         "tick_from": tick_from,
-                         "idx": i})
-        return r
 
     def draw(self, i=None, branch=None, tick=None):
         effs = self.get_effects(branch, tick)
@@ -230,10 +224,10 @@ were right after firing them.
             elif self.draw_order == DRAW_FIFO:
                 r = effs.pop(0)
             elif self.draw_order == DRAW_RANDOM:
-                i = self.rumor.randrange(0, len(effs)-1)
+                i = self.rumor.randrange(0, len(effs) - 1)
                 r = effs.pop(i)
             elif self.draw_order == ROLL_RANDOM:
-                i = self.rumor.randrange(0, len(effs)-1)
+                i = self.rumor.randrange(0, len(effs) - 1)
                 r = effs[i]
             else:
                 raise Exception("What kind of draw order is that?")
@@ -256,62 +250,3 @@ were right after firing them.
             eff.do()
         if not reset:
             self.set_effects([], branch, tick)
-
-
-EFFECT_DECK_QRYFMT = "SELECT {0} FROM effect_deck WHERE name IN ({1})".format(
-    ", ".join(EffectDeck.colnames["effect_deck"]), "{0}")
-
-EFFECT_DECK_LINK_QRYFMT = "SELECT {0} FROM effect_deck_link WHERE "
-"deck IN ({1})".format(
-    ", ".join(EffectDeck.colnames["effect_deck_link"]), "{0}")
-
-
-def load_effect_decks(rumor, names):
-    qrystr = EFFECT_DECK_QRYFMT.format(", ".join(["?"] * len(names)))
-    rumor.c.execute(qrystr, tuple(names))
-    r = {}
-    for row in rumor.c:
-        rowdict = dictify_row(row, EffectDeck.colnames["effect_deck"])
-        r[rowdict["name"]] = EffectDeck(
-            rumor, rowdict["name"], rowdict["draw"])
-    qrystr = EFFECT_DECK_LINK_QRYFMT.format(", ".join(["?"] * len(names)))
-    rumor.c.execute(qrystr, tuple(names))
-    effect_deck_rows = rumor.c.fetchall()
-    effect_deck_rowdicts = []
-    effects2load = set()
-    for row in effect_deck_rows:
-        rowdict = dictify_row(row, EffectDeck.colnames["effect_deck_link"])
-        effect_deck_rowdicts.append(rowdict)
-        effects2load.add(rowdict["effect"])
-    effects_loaded = load_effects(rumor, effects2load)
-    for rowdict in effect_deck_rowdicts:
-        deck = r[rowdict["deck"]]
-        if (
-                rowdict["branch"] in deck.effects and
-                rowdict["tick_from"] in deck.effects[rowdict["branch"]]):
-            effects = deck.effects[rowdict["branch"]][rowdict["tick_from"]][0]
-        else:
-            effects = []
-        while len(effects) <= rowdict["idx"]:
-            effects.append(None)
-        effects[rowdict["idx"]] = effects_loaded[rowdict["effect"]]
-        r[rowdict["deck"]].set_effects(
-            effects, rowdict["branch"],
-            rowdict["tick_from"], rowdict["tick_to"])
-    rumor.effectdeckdict.update(r)
-    return r
-
-
-EFFECT_QRYFMT = "SELECT {0} FROM effect WHERE name IN ({1})".format(
-    ", ".join(Effect.colns), "{0}")
-
-
-def load_effects(rumor, names):
-    qrystr = EFFECT_QRYFMT.format(", ".join(["?"] * len(names)))
-    rumor.c.execute(qrystr, tuple(names))
-    r = {}
-    for row in rumor.c:
-        rowdict = dictify_row(row, Effect.colns)
-        r[rowdict["name"]] = Effect(**rowdict)
-    rumor.effectdict.update(r)
-    return r

@@ -249,7 +249,6 @@ and your table will be ready.
             return "SELECT {0} FROM {1} WHERE {2}".format(
                 colstr, tabname, orstr)
 
-
         def select_keydicts_table(c, keydicts, tabname):
             keys = primarykeys[tabname]
             qrystr = gen_sql_select(keydicts, tabname)
