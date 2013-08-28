@@ -315,13 +315,17 @@ other journey I may be on at the time."""
         self.update()
 
     def new_branch(self, parent, branch, tick):
-        for (tick_from, (loc, tick_to)) in self.locations[parent].iteritems():
-            if tick_to >= tick or tick_to is None:
-                if tick_from < tick:
-                    self.locations[branch][tick] = (loc, tick_to)
-                    if tick_to is None:
+        if branch not in self.locations:
+            self.locations[branch] = {}
+        for rd in TabdictIterator(self.locations[parent]):
+            if rd["tick_to"] is None or rd["tick_to"] >= tick:
+                if rd["tick_from"] < tick:
+                    rd2 = dict(rd)
+                    rd2["tick_from"] = tick
+                    self.locations[branch][tick] = rd2
+                    if rd["tick_to"] is None:
                         self.indefinite_locations[branch] = tick
                 else:
-                    self.locations[branch][tick_from] = (loc, tick_to)
-                    if tick_to is None:
+                    self.locations[branch][rd["tick_from"]] = rd
+                    if rd["tick_to"] is None:
                         self.indefinite_locations[branch] = tick_from

@@ -233,6 +233,8 @@ class Spot(TerminableImg, TerminableInteractivity):
             branch = self.rumor.branch
         if tick_from is None:
             tick_from = self.rumor.tick
+        if branch not in self.coord_dict:
+            self.coord_dict[branch] = {}
         if branch in self.indefinite_coords:
             itf = self.indefinite_coords[branch]
             rd = self.coord_dict[branch][itf]
@@ -265,9 +267,9 @@ class Spot(TerminableImg, TerminableInteractivity):
         for rd in TabdictIterator(self.coord_dict[parent]):
             if rd["tick_to"] >= tick or rd["tick_to"] is None:
                 if rd["tick_from"] < tick:
-                    self.set_coords(x, y, branch, tick, rd["tick_to"])
+                    self.set_coords(rd["x"], rd["y"], branch, tick, rd["tick_to"])
                 else:
-                    self.set_coords(x, y, branch, rd["tick_from"], rd["tick_to"])
+                    self.set_coords(rd["x"], rd["y"], branch, rd["tick_from"], rd["tick_to"])
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)

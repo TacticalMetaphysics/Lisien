@@ -75,6 +75,8 @@ otherwise."""
         return True
 
     def new_branch(self, parent, branch, tick):
+        if branch not in self.existence:
+            self.existence[branch] = {}
         for rd in TabdictIterator(self.existence):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 if rd["tick_from"] < tick:

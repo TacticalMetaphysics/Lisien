@@ -699,6 +699,8 @@ class TerminableImg:
         return None
 
     def new_branch_imagery(self, parent, branch, tick):
+        if branch not in self.imagery:
+            self.imagery[branch] = {}
         for rd in TabdictIterator(self.imagery[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 if rd["tick_from"] < tick:
@@ -734,6 +736,8 @@ class TerminableInteractivity:
         return False
 
     def new_branch_interactivity(self, parent, branch, tick):
+        if branch not in self.interactivity:
+            self.interactivity[branch] = {}
         for rd in TabdictIterator(self.interactivity[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 if rd["tick_from"] < tick:
