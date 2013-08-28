@@ -79,11 +79,13 @@ otherwise."""
             self.existence[branch] = {}
         for rd in TabdictIterator(self.existence):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
-                if rd["tick_from"] < tick:
-                    self.existence[branch][tick] = rd["tick_to"]
-                    if rd["tick_to"] is None:
+                rd2 = dict(rd)
+                if rd2["tick_from"] < tick:
+                    rd2["tick_from"] = tick
+                    self.existence[branch][tick] = rd2
+                    if rd2["tick_to"] is None:
                         self.indefinite_existence[branch] = tick
                 else:
-                    self.existence[branch][rd["tick_from"]] = rd["tick_to"]
-                    if rd["tick_to"] is None:
-                        self.indefinite_existence[branch] = rd["tick_from"]
+                    self.existence[branch][rd2["tick_from"]] = rd2["tick_to"]
+                    if rd2["tick_to"] is None:
+                        self.indefinite_existence[branch] = rd2["tick_from"]

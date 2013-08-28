@@ -319,13 +319,13 @@ other journey I may be on at the time."""
             self.locations[branch] = {}
         for rd in TabdictIterator(self.locations[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
-                if rd["tick_from"] < tick:
-                    rd2 = dict(rd)
+                rd2 = dict(rd)
+                if rd2["tick_from"] < tick:
                     rd2["tick_from"] = tick
                     self.locations[branch][tick] = rd2
-                    if rd["tick_to"] is None:
+                    if rd2["tick_to"] is None:
                         self.indefinite_locations[branch] = tick
                 else:
-                    self.locations[branch][rd["tick_from"]] = rd
-                    if rd["tick_to"] is None:
+                    self.locations[branch][rd2["tick_from"]] = rd2
+                    if rd2["tick_to"] is None:
                         self.indefinite_locations[branch] = tick_from

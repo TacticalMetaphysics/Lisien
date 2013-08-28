@@ -703,17 +703,17 @@ class TerminableImg:
             self.imagery[branch] = {}
         for rd in TabdictIterator(self.imagery[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
-                if rd["tick_from"] < tick:
-                    rd2 = dict(rd)
+                rd2 = dict(rd)
+                if rd2["tick_from"] < tick:
                     rd2["branch"] = branch
                     rd2["tick_from"] = tick
                     self.imagery[branch][tick] = rd2
                     if rd2["tick_to"] is None:
                         self.indefinite_imagery[branch] = tick
                 else:
-                    self.imagery[branch][rd["tick_from"]] = dict(rd)
-                    if rd["tick_to"] is None:
-                        self.indefinite_imagery[branch] = rd["tick_from"]
+                    self.imagery[branch][rd["tick_from"]] = rd2
+                    if rd2["tick_to"] is None:
+                        self.indefinite_imagery[branch] = rd2["tick_from"]
 
 
 class TerminableInteractivity:
@@ -740,13 +740,14 @@ class TerminableInteractivity:
             self.interactivity[branch] = {}
         for rd in TabdictIterator(self.interactivity[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
-                if rd["tick_from"] < tick:
-                    rd["tick_from"] = tick
+                rd2 = dict(rd)
+                if rd2["tick_from"] < tick:
+                    rd2["tick_from"] = tick
                     self.interactivity[branch][tick] = rd
                 else:
-                    self.interactivity[branch][rd["tick_from"]] = rd
-                if rd["tick_to"] is None:
-                    self.indefinite_interactivity[branch] = rd["tick_from"]
+                    self.interactivity[branch][rd2["tick_from"]] = rd
+                if rd2["tick_to"] is None:
+                    self.indefinite_interactivity[branch] = rd2["tick_from"]
 
 
 class ViewportOrderedGroup(pyglet.graphics.OrderedGroup):
