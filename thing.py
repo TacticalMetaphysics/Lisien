@@ -5,8 +5,6 @@ from util import (
     LocationException,
     BranchTicksIter,
     TabdictIterator)
-from collections import defaultdict
-from portal import Portal
 from logging import getLogger
 
 
@@ -49,22 +47,21 @@ too.
          [])]
     basic_speed = 0.1
 
-    def __init__(self, rumor, dimension, name, td):
+    def __init__(self, rumor, dimension, name):
         self.rumor = rumor
         self.update_handlers = set()
         self.dimension = dimension
-        self._dimension = str(dimension)
         self._name = str(name)
-        self._tabdict = td
         self.indefinite_locations = {}
-        for rd in TabdictIterator(self._tabdict["thing_location"]):
+        for rd in TabdictIterator(self.locations):
             if rd["tick_to"] is None:
                 self.indefinite_locations[rd["branch"]] = rd["tick_from"]
         self.dimension.thingdict[name] = self
 
     def __getattr__(self, attrn):
         if attrn == "locations":
-            return self._tabdict["thing_location"][self._dimension][self._name]
+            return self.rumor.tabdict["thing_location"][
+                str(self.dimension)][str(self)]
         elif attrn == 'location':
             return self.get_location()
         elif attrn == 'speed':

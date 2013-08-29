@@ -41,7 +41,7 @@ class Spot(TerminableImg, TerminableInteractivity):
           "tick_from": "integer not null default 0",
           "tick_to": "integer default null",
           "img": "text not null default 'default_spot'"},
-         ("dimension", "place", "board", "branch", "tick_from"),
+         ("dimension", "board", "place", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i"),
           "img": ("img", "name")},
          []),
@@ -52,7 +52,7 @@ class Spot(TerminableImg, TerminableInteractivity):
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
           "tick_to": "integer default null"},
-         ("dimension", "place", "board", "branch", "tick_from"),
+         ("dimension", "board", "place", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i")},
          []),
         ("spot_coords",
@@ -64,28 +64,35 @@ class Spot(TerminableImg, TerminableInteractivity):
           "tick_to": "integer default null",
           "x": "integer not null default 50",
           "y": "integer not null default 50"},
-         ("dimension", "place", "board", "branch", "tick_from"),
+         ("dimension", "board", "place", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i")},
          [])]
 
-    def __init__(self, rumor, dimension, board, place, td):
+    def __init__(self, rumor, dimension, board, place):
         self.rumor = rumor
         self.dimension = dimension
         self.board = board
         self.place = place
-        self._tabdict = td
         self.indefinite_imagery = {}
-        for rd in TabdictIterator(self._tabdict["spot_img"]):
+        for rd in TabdictIterator(
+                self.rumor.tabdict["spot_img"][
+                    str(self.dimension)][
+                        int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
                 break
         self.indefinite_coords = {}
-        for rd in TabdictIterator(self._tabdict["spot_coords"]):
+        for rd in TabdictIterator(
+                self.rumor.tabdict["spot_coords"][
+                    str(self.dimension)][
+                        int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_coords[rd["branch"]] = rd["tick_from"]
                 break
         self.indefinite_interactivity = {}
-        for rd in TabdictIterator(self._tabdict["spot_interactive"]):
+        for rd in TabdictIterator(self.rumor.tabdict["spot_interactive"][
+                str(self.dimension)][
+                    int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
                 break
@@ -96,17 +103,21 @@ class Spot(TerminableImg, TerminableInteractivity):
         return str(self.place)
 
     def __repr__(self):
-        return "Spot({0}[{1}].{2})".format(str(self.dimension), int(self.board), str(self.place))
+        return "Spot({0}[{1}].{2})".format(
+            str(self.dimension), int(self.board), str(self.place))
 
     def __getattr__(self, attrn):
         if attrn == "vertex":
             return self.place.v
         elif attrn == "interactivity":
-            return self._tabdict["spot_interactive"][str(self.dimension)][str(self.place)][int(self.board)]
+            return self.rumor.tabdict["spot_interactive"][
+                str(self.dimension)][int(self.board)][str(self.place)]
         elif attrn == "imagery":
-            return self._tabdict["spot_img"][str(self.dimension)][str(self.place)][int(self.board)]
+            return self.rumor.tabdict["spot_img"][
+                str(self.dimension)][int(self.board)][str(self.place)]
         elif attrn == "coord_dict":
-            return self._tabdict["spot_coords"][str(self.dimension)][str(self.place)][int(self.board)]
+            return self.rumor.tabdict["spot_coords"][
+                str(self.dimension)][int(self.board)][str(self.place)]
         elif attrn == 'interactive':
             return self.is_interactive()
         elif attrn == 'img':

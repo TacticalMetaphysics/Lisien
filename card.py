@@ -26,15 +26,14 @@ class Card:
                 "effect": ("effect", "name")},
             [])]
 
-    def __init__(self, rumor, effect, td):
+    def __init__(self, rumor, effect):
         self.rumor = rumor
         self.effect = effect
-        self._tabdict = td
         self.rumor.carddict[str(self)] = self
 
     def __getattr__(self, attrn):
         if attrn == '_rowdict':
-            return self._tabdict[str(self.effect)]
+            return self.rumor.tabdict["card"][str(self.effect)]
         elif attrn == '_text':
             return self._rowdict['text']
         elif attrn == '_display_name':
@@ -366,23 +365,14 @@ order."""
           "style": ("style", "name")},
          [])]
 
-    def __init__(self, window, deck, left, right, top, bot, style,
-                 visible, interactive):
+    def __init__(self, window, deck):
         self.window = window
+        self.rumor = self.window.rumor
         self.batch = self.window.batch
         self.cardgroup = OrderedGroup(
             self.window.hand_order, self.window.cardgroup)
         self.window.hand_order += 1
-        self.rumor = window.rumor
         self.deck = deck
-        self.left_prop = left
-        self.right_prop = right
-        self.top_prop = top
-        self.bot_prop = bot
-        self.style = style
-        self.visible = bool(visible)
-        self.interactive = bool(interactive)
-        self.oldstate = None
 
     def __hash__(self):
         return hash(self.get_state_tup())
@@ -391,7 +381,15 @@ order."""
         return HandIterator(self, self.window.carddict)
 
     def __getattr__(self, attrn):
-        if attrn == "board":
+        if attrn == "_rowdict":
+            return self.rumor.tabdict[str(self.window)][str(self.deck)]
+        elif attrn in (
+                "left_prop", "right_prop", "top_prop",
+                "bot_prop", "visible", "interactive"):
+            return self._rowdict[attrn]
+        elif attrn == "style":
+            return self.rumor.get_style(self._rowdict["style"])
+        elif attrn == "board":
             return self.window.board
         elif attrn == "hovered":
             return self.window.hovered is self
@@ -429,7 +427,7 @@ order."""
         return len(self.deck)
 
     def __str__(self):
-        return self.name
+        return str(self.deck)
 
     def _translate_index(self, idx):
         if idx > 0 and idx < len(self):

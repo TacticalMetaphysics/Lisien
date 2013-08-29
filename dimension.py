@@ -41,7 +41,7 @@ class Dimension:
     """Container for a given view on the game world, sharing no things,
 places, or portals with any other dimension, but possibly sharing
 characters."""
-    def __init__(self, rumor, name, td):
+    def __init__(self, rumor, name):
         """Return a dimension with the given name.
 
 Probably useless unless, once you're sure you've put all your places,
@@ -52,15 +52,18 @@ keyed with their names.
         """
         self._name = name
         self.rumor = rumor
-        self._tabdict = td
         self.boards = []
         self.thingdict = {}
         self.graph = Graph(directed=True)
-        for rd in TabdictIterator(td["portal"]):
-            Portal(self.rumor, self, rd["origin"], rd["destination"], td)
-        for rd in TabdictIterator(td["thing_location"]):
-            self.thingdict[rd["thing"]] = Thing(
-                self.rumor, self, rd["thing"], td)
+        for rd in TabdictIterator(self.rumor.tabdict["portal"][str(self)]):
+            orig = self.get_place(rd["origin"])
+            dest = self.get_place(rd["destination"])
+            Portal(self.rumor, self, orig, dest)
+        for rd in TabdictIterator(
+                self.rumor.tabdict["thing_location"][str(self)]):
+            if rd["thing"] not in self.thingdict:
+                self.thingdict[rd["thing"]] = Thing(
+                    self.rumor, self, rd["thing"])
         self.rumor.dimensiondict[str(self)] = self
 
     def __hash__(self):

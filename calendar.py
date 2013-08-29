@@ -4,7 +4,6 @@ from util import (
     SaveableMetaclass,
     TabdictIterator,
     phi)
-from pyglet.image import SolidColorImagePattern as color_pattern
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup
 
@@ -473,15 +472,14 @@ schedule, possibly several.
             self.vertlist = None
             self.wedge.delete()
 
-    def __init__(self, window, idx, td):
+    def __init__(self, window, idx):
         self.window = window
         self.rumor = self.window.rumor
         self.idx = idx
-        self._tabdict = td
         self.batch = self.window.batch
         self.group = self.window.calgroup
         self.cols = []
-        self.add_cols_from_tabdict(td)
+        self.add_thing_cols()
 
     def __iter__(self):
         return iter(self.cols)
@@ -494,7 +492,7 @@ schedule, possibly several.
 
     def __getattr__(self, attrn):
         if attrn == "_rowdict":
-            return self._tabdict["calendar"][str(self.window)][int(self)]
+            return self.rumor.tabdict["calendar"][str(self.window)][int(self)]
         elif attrn == "left_prop":
             return self._rowdict["left"]
         elif attrn == "right_prop":
@@ -612,15 +610,15 @@ schedule, possibly several.
                     self, col2, col1, tick_from)
             col1.regen_cells()
 
-    def add_cols_from_tabdict(self, td):
-        for rd in TabdictIterator(td):
-            if "thing" in rd:
-                self.cols.append(CalendarCol(
-                    self,
-                    rd["character"],
-                    COL_TYPE["THING"],
-                    rd["idx"],
-                    td))
+    def add_thing_cols(self):
+        for rd in TabdictIterator(
+                self.rumor.tabdict["calendar_col_thing"][
+                    str(self.window)][int(self)]):
+            self.cols.append(CalendarCol(
+                self,
+                rd["character"],
+                COL_TYPE["THING"],
+                rd["idx"]))
 
 
 class CalendarCol:
@@ -697,7 +695,7 @@ class CalendarCol:
              "character, branch, skill":
              ("character_skills", "character, branch, skill")},
             ["idx>=0"])]
-    def __init__(self, calendar, character, typ, idx, td):
+    def __init__(self, calendar, character, typ, idx):
         self.calendar = calendar
         self.rumor = self.calendar.rumor
         self.batch = self.calendar.batch
@@ -714,13 +712,6 @@ class CalendarCol:
         self._cells = []
         self.old_schedule_hash = 0
         if self.typ == COL_TYPE["THING"]:
-            self._rowdict = td[
-                "calendar_col_thing"][
-                    str(self.window)][
-                        int(self.calendar)][
-                            int(self)]
-            self.thing = self.rumor.get_thing(
-                self._rowdict["dimension"], self._rowdict["thing"])
             if self._rowdict["location"]:
                 def glocs():
                     try:
@@ -728,18 +719,6 @@ class CalendarCol:
                     except KeyError:
                         return {}
                 self.get_locations = glocs
-        elif self.typ == COL_TYPE["STAT"]:
-            self._rowdict = td[
-                "calendar_col_stat"][
-                    str(self.window)][
-                        int(self.calendar)][
-                            int(self)]
-        else:
-            self._rowdict = td[
-                "calendar_col_skill"][
-                    str(self.window)][
-                        int(self.calendar)][
-                            int(self)]
         self.vertl = None
         self.refresh()
 
@@ -752,8 +731,35 @@ class CalendarCol:
                 return self.rumor.get_dimension(self._dimension)
             elif attrn == 'locations':
                 return self.get_locations()
-        if attrn in self._rowdict:
-            return self._rowdict[attrn]
+            elif attrn == '_rowdict':
+                return self.rumor.tabdict[
+                    "calendar_col_thing"][
+                        str(self.window)][
+                            int(self.calendar)][
+                                int(self)]
+        elif self.typ == COL_TYPE["STAT"]:
+            if attrn == "_rowdict":
+                return self.rumor.tabdict[
+                    "calendar_col_stat"][
+                        str(self.window)][
+                            int(self.calendar)][
+                                int(self)]
+        else:
+            if attrn == "_rowdict":
+                return self.rumor.tabdict[
+                    "calendar_col_skill"][
+                        str(self.window)][
+                            int(self.calendar)][
+                                int(self)]
+        if attrn == 'branch':
+            return self._rowdict["branch"]
+        elif attrn == "character":
+            return self.rumor.get_character(self._rowdict["character"])
+        elif attrn == "dimension":
+            return self.rumor.get_dimension(self._rowdict["dimension"])
+        elif attrn == "thing":
+            return self.rumor.get_thing(
+                self._rowdict["dimension"], self._rowdict["thing"])
         elif attrn == 'cells':
             return self._cells
         elif hasattr(self.character, attrn):

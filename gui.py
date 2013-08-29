@@ -2,7 +2,6 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
 import logging
-import pdb
 from util import (
     SaveableMetaclass,
     fortyfive,
@@ -10,7 +9,7 @@ from util import (
 from math import atan, cos, sin
 from arrow import Arrow
 from menu import Menu, MenuItem
-from card import Hand, Card
+from card import Hand
 from board import BoardViewport
 from picpicker import PicPicker
 from calendar import Calendar
@@ -122,7 +121,7 @@ class GameWindow(pyglet.window.Window):
          [])]
 
     def __init__(
-            self, rumor, name, td):
+            self, rumor, name):
         """Initialize the game window, its groups, and some state tracking."""
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
@@ -139,75 +138,81 @@ class GameWindow(pyglet.window.Window):
         self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
         self.name = name
         self.rumor = rumor
-        self._tabdict = td
         self.dimensiondict = self.rumor.get_dimensions(
             [rd["dimension"] for rd in
-             TabdictIterator(td["board_viewport"])])
-        for rd in TabdictIterator(td["board_viewport"]):
+             TabdictIterator(self.rumor.tabdict[
+                 "board_viewport"][str(self)])])
+        for rd in TabdictIterator(self.rumor.tabdict[
+                "board_viewport"][str(self)]):
             self.rumor.get_board(rd["dimension"], rd["board"])
             dimension = self.dimensiondict[rd["dimension"]]
             boardi = rd["board"]
             viewi = rd["idx"]
             board = dimension.boards[boardi]
             board.viewports[viewi] = BoardViewport(
-                self.rumor, self, dimension, board, viewi, td)
+                self.rumor, self, dimension, board, viewi)
         stylenames = set()
         handnames = set()
-        for rd in TabdictIterator(td["menu"]):
+        for rd in TabdictIterator(
+                self.rumor.tabdict["menu"][str(self)]):
             stylenames.add(rd["style"])
-        for rd in TabdictIterator(td["hand"]):
+        if str(self) in self.rumor.tabdict["hand"]:
+            for rd in TabdictIterator(
+                    self.rumor.tabdict["hand"][str(self)]):
+                stylenames.add(rd["style"])
+                handnames.add(rd["name"])
+        for rd in TabdictIterator(
+                self.rumor.tabdict["calendar"][str(self)]):
             stylenames.add(rd["style"])
-            handnames.add(rd["name"])
-        for rd in TabdictIterator(td["calendar"]):
-            stylenames.add(rd["style"])
-        styles = self.rumor.get_styles(stylenames)
+        self.rumor.get_styles(stylenames)
         carddict = self.rumor.get_cards_in_hands(handnames)
         imagenames = set()
-        for rd in TabdictIterator(td["menu_item"]):
-            imagenames.add(rd["icon"])
+        for rd in TabdictIterator(
+                self.rumor.tabdict["menu_item"][str(self)]):
+            if rd["icon"] is not None:
+                imagenames.add(rd["icon"])
         for rd in TabdictIterator(carddict):
-            imagenames.add(rd["image"])
-        imgs = self.rumor.get_imgs(imagenames)
+            if rd["image"] is not None:
+                imagenames.add(rd["image"])
+        self.rumor.get_imgs(imagenames)
         self.menudict = {}
-        for rd in TabdictIterator(td["menu"]):
-            rd["window"] = self
-            rd["style"] = styles[rd["style"]]
-            menuname = rd["name"]
-            menu = Menu(**rd)
+        for rd in TabdictIterator(
+                self.rumor.tabdict["menu"][str(self)]):
+            menu = Menu(self, rd["name"])
             for mird in TabdictIterator(
-                    td["menu_item"][str(self)][rd["name"]]):
-                if mird["icon"] is not None:
-                    mird["icon"] = imgs[mird["icon"]]
-                mird["menu"] = menu
-                del mird["window"]
-                menu.items.append(MenuItem(**mird))
-            self.menudict[menuname] = menu
-        effect_deck_names = set()
-        for rd in TabdictIterator(td["hand"]):
-            effect_deck_names.add(rd["deck"])
-        effect_decks = self.rumor.get_effect_decks(effect_deck_names)
-        effects = self.rumor.get_effects_in_decks(effect_deck_names)
-        self.handdict = {}
-        for rd in TabdictIterator(td["hand"]):
-            rd["window"] = self
-            rd["deck"] = effect_decks[rd["deck"]]
-            rd["style"] = styles[rd["style"]]
-            self.handdict[name] = Hand(**rd)
-        self.carddict = self.rumor.get_cards_in_hands(self.handdict.keys())
+                    self.rumor.tabdict["menu_item"][
+                        str(self)][str(menu)]):
+                MenuItem(menu, mird["idx"])
+            self.menudict[str(menu)] = menu
+        if str(self) in self.rumor.tabdict["hand"]:
+            effect_deck_names = set()
+            for rd in TabdictIterator(
+                    self.rumor.tabdict["hand"][str(self)]):
+                effect_deck_names.add(rd["deck"])
+            effect_decks = self.rumor.get_effect_decks(effect_deck_names)
+            self.handdict = {}
+            for rd in TabdictIterator(
+                    self.rumor.tabdict["hand"][str(self)]):
+                effd = effect_decks[rd["effect_deck"]]
+                self.handdict[rd["effect_deck"]] = Hand(self, effd)
+        if hasattr(self, 'handdict'):
+            self.carddict = self.rumor.get_cards_in_hands(self.handdict.keys())
         self.calendars = []
-        for rd in TabdictIterator(td["calendar"]):
+        for rd in TabdictIterator(
+                self.rumor.tabdict["calendar"][str(self)]):
             while len(self.calendars) <= rd["idx"]:
                 self.calendars.append(None)
-            self.calendars[rd["idx"]] = Calendar(self, rd["idx"], td)
+            self.calendars[rd["idx"]] = Calendar(self, rd["idx"])
         self.mouspot = MousySpot()
         self.squareoff = self.arrowhead_size * sin(fortyfive)
         self.picker = None
         self.hover_iter_getters = [
-            self.handdict.itervalues,
             lambda: iter(self.calendars),
             self.menudict.itervalues,
             lambda: self.viewports,
             lambda: (self.picker,)]
+        if hasattr(self, 'handdict'):
+            self.hover_iter_getters.append(self.handdict.itervalues)
         self.pressed = None
         self.hovered = None
         self.grabbed = None
@@ -249,17 +254,22 @@ class GameWindow(pyglet.window.Window):
         self.dxdy_hist_counter = 0
 
     def __getattr__(self, attrn):
-        if attrn in ("min_width", "min_height",
-                     "arrowhead_size", "arrow_width"):
-            return self._tabdict["window"][str(self)][attrn]
+        if attrn == "_rowdict":
+            return self.rumor.tabdict["window"][str(self)]
+        elif attrn in ("min_width", "min_height",
+                       "arrowhead_size", "arrow_width"):
+            return self._rowdict[attrn]
         elif attrn == "main_menu_name":
-            return self._tabdict["window"][str(self)]["main_menu"]
+            return self._rowdict["main_menu"]
         elif attrn == 'viewports':
             return ViewportIter(self.dimensiondict)
         elif attrn == 'menus':
             return self.menudict.itervalues()
         elif attrn == 'hands':
-            return self.handdict.itervalues()
+            if hasattr(self, 'handdict'):
+                return self.handdict.itervalues()
+            else:
+                return []
         elif attrn == 'dx':
             return sum(self.dx_hist)
         elif attrn == 'dy':

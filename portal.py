@@ -21,20 +21,15 @@ class Portal:
          {},
          [])]
 
-    def __init__(self, rumor, dimension, origin, destination, td):
+    def __init__(self, rumor, dimension, origin, destination):
         self.rumor = rumor
         self.dimension = dimension
-        self._dimension = str(self.dimension)
-        self._origin = str(origin)
-        self._destination = str(destination)
-        self._tabdict = td
+        self.orig = origin
+        self.dest = destination
         self.indefinite_existence = {}
-        for rd in TabdictIterator(self._tabdict["portal"]):
+        for rd in TabdictIterator(self.existence):
             if rd["tick_to"] is None:
                 self.indefinite_existence[rd["branch"]] = rd["tick_from"]
-        # mainly this is to make sure that the origin and destination exist
-        self.orig = self.dimension.get_place(self._origin)
-        self.dest = self.dimension.get_place(self._destination)
         # now make the edge
         self.dimension.graph.add_edge(self.origi, self.desti, portal=self)
 
@@ -50,16 +45,15 @@ class Portal:
         elif attrn in ("e", "edge"):
             return self.graph.es[self.graph.get_eid(self.origi, self.desti)]
         elif attrn == "existence":
-            return self._tabdict["portal"][
-                self._dimension][self._origin][self._destination]
-        elif attrn in self.e.attribute_names():
-            return self.e[attrn]
+            return self.rumor.tabdict["portal"][
+                str(self.dimension)][str(self.orig)][str(self.dest)]
         else:
             raise AttributeError(
                 "Portal instance has no attribute named " + attrn)
 
     def __repr__(self):
-        return "Portal({0}->{1})".format(self._origin, self._destination)
+        return "Portal({0}->{1})".format(
+            str(self.orig), str(self.dest))
 
     def __int__(self):
         return self.e.index

@@ -2,7 +2,6 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass, TabdictIterator
 from thing import Thing
-from collections import defaultdict
 
 
 """Things that should have character sheets."""
@@ -116,7 +115,7 @@ item's name, and the name of the attribute.
          {},
          [])]
 
-    def __init__(self, rumor, name, td):
+    def __init__(self, rumor, name):
         self._name = name
         self.rumor = rumor
         self.update_handlers = set()
@@ -128,6 +127,7 @@ item's name, and the name of the attribute.
         self.statdict = {}
         self.portdict = {}
         self.placedict = {}
+        td = self.rumor.tabdict
         if "character_things" in td and str(self) in td["character_things"]:
             self.thingdict = {}
             self.indefinite_thing = {}

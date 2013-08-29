@@ -53,15 +53,15 @@ contain only a single Effect.
          {},
          [])]
 
-    def __init__(self, rumor, name, td):
+    def __init__(self, rumor, name):
         self.rumor = rumor
         self._name = name
-        self._tabdict = td
-        self._rowdict = td[name]
         self.rumor.effectdict[str(self)] = self
 
     def __getattr__(self, attrn):
-        if attrn == "character":
+        if attrn == "_rowdict":
+            return self.rumor.tabdict["effect"][str(self)]
+        elif attrn == "character":
             return self.rumor.get_character(self._rowdict["character"])
         elif attrn == "key":
             return self._rowdict["key"]
@@ -141,12 +141,9 @@ were right after firing them.
           "effect": ("effect", "name")},
          ["idx>=0"])]
 
-    def __init__(self, rumor, name, td):
+    def __init__(self, rumor, name):
         self.rumor = rumor
         self._name = name
-        self._tabdict = td
-        self._deck_rowdict = td["effect_deck"][self._name]
-        self._card_links = td["effect_deck_link"][self._name]
         self.reset_to = {}
         self.indefinite_effects = {}
         self.rumor.effectdeckdict[name] = self
@@ -158,7 +155,11 @@ were right after firing them.
         return self._name
 
     def __getattr__(self, attrn):
-        if attrn == "effects":
+        if attrn in ("_rowdict", "_deck_rowdict"):
+            return self.rumor.tabdict["effect_deck"][str(self)]
+        elif attrn == "_card_links":
+            return self.rumor.tabdict["effect_deck_link"][str(self)]
+        elif attrn == "effects":
             return self.get_effects()
         elif attrn == "draw_order":
             return self._deck_rowdict["draw_order"]

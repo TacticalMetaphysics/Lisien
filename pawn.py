@@ -52,7 +52,7 @@ class Pawn(TerminableImg, TerminableInteractivity):
          [])]
     loaded_keys = set()
 
-    def __init__(self, rumor, dimension, board, thing, td):
+    def __init__(self, rumor, dimension, board, thing):
         """Return a pawn on the board for the given dimension, representing
 the given thing with the given image. It may be visible or not,
 interactive or not.
@@ -66,19 +66,23 @@ interactive or not.
         else:
             Pawn.loaded_keys.add((dimn, boardi, thingn))
         self.rumor = rumor
-        self._tabdict = td
         self.dimension = dimension
         self.board = board
         self.thing = thing
         self.indefinite_imagery = {}
         self.indefinite_interactivity = {}
         imgns = set()
-        for rd in TabdictIterator(self._tabdict["pawn_img"]):
+        for rd in TabdictIterator(
+                self.rumor.tabdict["pawn_img"][
+                    str(self.dimension)][
+                        int(self.board)][str(self.thing)]):
             imgns.add(rd["img"])
             if rd["tick_to"] is None:
                 self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
-        imgdict = self.rumor.get_imgs(imgns)
-        for rd in TabdictIterator(self._tabdict["pawn_interactive"]):
+        self.rumor.get_imgs(imgns)
+        for rd in TabdictIterator(
+                self.rumor.tabdict["pawn_interactive"][
+                str(self.dimension)][int(self.board)][str(self.thing)]):
             if rd["tick_to"] is None:
                 self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
         self.grabpoint = None
@@ -95,9 +99,12 @@ interactive or not.
 
     def __getattr__(self, attrn):
         if attrn == "imagery":
-            return self._tabdict["pawn_img"][str(self.dimension)][int(self.board)][str(self.thing)]
+            return self.rumor.tabdict[
+                "pawn_img"][str(self.dimension)][
+                    int(self.board)][str(self.thing)]
         elif attrn == "interactivity":
-            return self._tabdict["pawn_interactive"][str(self.dimension)][int(self.board)][str(self.thing)]
+            return self.rumor.tabdict["pawn_interactive"][
+                str(self.dimension)][int(self.board)][str(self.thing)]
         elif attrn == 'img':
             return self.get_img()
         elif attrn == 'visible':

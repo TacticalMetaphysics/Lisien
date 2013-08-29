@@ -1,6 +1,6 @@
 -- This file is part of LiSE, a framework for life simulation games.
 -- Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-INSERT INTO menu (name, bottom, left, right, top, style) VALUES
+INSERT INTO menu (name, bot, left, right, top, style) VALUES
 ('Main', 0.12, 0.0, 0.1, 1.0, 'BigLight');
 INSERT INTO menu (name) VALUES ('Game'), ('Editor');
 INSERT INTO menu_item (idx, menu, closer, on_click, text) VALUES

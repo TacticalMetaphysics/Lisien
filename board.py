@@ -41,15 +41,13 @@ each board will be open in at most one window at a time.
          {"wallpaper": ("img", "name")},
          [])]
 
-    def __init__(self, rumor, dimension, idx, td):
+    def __init__(self, rumor, dimension, idx):
         """Return a board representing the given dimension.
 
         """
         self.rumor = rumor
         self.dimension = dimension
         self.idx = idx
-        self._tabdict = td
-        self._rowdict = td["board"][str(self.dimension)][self.idx]
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
@@ -57,20 +55,26 @@ each board will be open in at most one window at a time.
         while len(self.dimension.boards) <= self.idx:
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
-        if "spot_coords" in self._tabdict:
-            for rd in TabdictIterator(self._tabdict["spot_coords"]):
+        if "spot_coords" in self.rumor.tabdict:
+            for rd in TabdictIterator(
+                    self.rumor.tabdict[
+                        "spot_coords"][str(self.dimension)][int(self)]):
                 self.add_spot(rd)
-        if "pawn_img" in self._tabdict:
-            for rd in TabdictIterator(self._tabdict["pawn_img"]):
+        if "pawn_img" in self.rumor.tabdict:
+            for rd in TabdictIterator(
+                    self.rumor.tabdict[
+                        "pawn_img"][str(self.dimension)][int(self)]):
                 self.add_pawn(rd)
         for portal in self.dimension.portals:
             self.make_arrow(portal)
 
     def __getattr__(self, attrn):
-        if attrn in ("wallpaper", "img"):
+        if attrn == "_rowdict":
+            return self.rumor.tabdict["board"][str(self.dimension)][int(self)]
+        elif attrn in ("wallpaper", "img"):
             return self.rumor.get_img(self._rowdict["wallpaper"])
         elif attrn in self.colns:
-            return self.rowdict[attrn]
+            return self._rowdict[attrn]
         elif attrn == "places":
             return iter(self.dimension.places)
         elif attrn == "things":
@@ -93,15 +97,13 @@ each board will be open in at most one window at a time.
         assert(rd["dimension"] == str(self.dimension))
         self.spotdict[rd["place"]] = Spot(
             self.rumor, self.dimension, self,
-            self.dimension.get_place(rd["place"]),
-            self._tabdict)
+            self.dimension.get_place(rd["place"]))
 
     def add_pawn(self, rd):
         assert(rd["dimension"] == str(self.dimension))
         self.pawndict[rd["thing"]] = Pawn(
             self.rumor, self.dimension, self,
-            self.dimension.get_thing(rd["thing"]),
-            self._tabdict)
+            self.dimension.get_thing(rd["thing"]))
 
     def get_spot_at(self, x, y):
         for spot in self.spots:
@@ -180,7 +182,7 @@ class BoardViewport:
           "right>=0.0", "top>=0.0", "left<=1.0", "bot<=1.0",
           "right<=1.0", "top<=1.0", "right>left", "top>bot"])]
 
-    def __init__(self, rumor, window, dimension, board, idx, td):
+    def __init__(self, rumor, window, dimension, board, idx):
         self.rumor = rumor
         self.window = window
         self.dimension = dimension
@@ -189,7 +191,6 @@ class BoardViewport:
         while len(self.board.viewports) <= self.idx:
             self.board.viewports.append(None)
         self.board.viewports[self.idx] = self
-        self._tabdict = td
         self.batch = self.window.batch
         self.bggroup = OrderedGroup(0, self.window.boardgroup)
         self.arrowgroup = OrderedGroup(1, self.window.boardgroup)
@@ -205,13 +206,12 @@ class BoardViewport:
         for (k, v) in self.board.arrowdict.iteritems():
             self.arrowdict[k] = ArrowWidget(self, v)
 
-
     def __int__(self):
         return self.idx
 
     def __getattr__(self, attrn):
         if attrn == "_rowdict":
-            return self._tabdict["board_viewport"][
+            return self.rumor.tabdict["board_viewport"][
                 str(self.window)][
                     str(self.dimension)][
                         int(self.board)][
