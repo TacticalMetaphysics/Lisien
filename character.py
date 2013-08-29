@@ -117,22 +117,20 @@ item's name, and the name of the attribute.
          [])]
 
     def __init__(self, rumor, name, td):
-        def dd():
-            return defaultdict(dd)
         self._name = name
         self.rumor = rumor
         self.update_handlers = set()
-        self.indefinite_thing = dd()
-        self.indefinite_skill = dd()
-        self.indefinite_stat = dd()
-        self.indefinite_port = dd()
-        self.indefinite_place = dd()
-        self.thingdict = dd()
-        self.skilldict = dd()
-        self.statdict = dd()
-        self.portdict = dd()
-        self.placedict = dd()
+        self.indefinite_skill = {}
+        self.indefinite_stat = {}
+        self.indefinite_port = {}
+        self.indefinite_place = {}
+        self.skilldict = {}
+        self.statdict = {}
+        self.portdict = {}
+        self.placedict = {}
         if "character_things" in td and str(self) in td["character_things"]:
+            self.thingdict = {}
+            self.indefinite_thing = {}
             for rd in TabdictIterator(td["character_things"][str(self)]):
                 self.add_thing_with_strs(**rd)
                 self.rumor.get_thing(
@@ -242,6 +240,18 @@ item's name, and the name of the attribute.
             branch = self.rumor.branch
         if tick_from is None:
             tick_from = self.rumor.tick
+        if branch not in self.thingdict:
+            self.thingdict[branch] = {}
+        if dimension not in self.thingdict[branch]:
+            self.thingdict[branch][dimension] = {}
+        if thing not in self.thingdict[branch][dimension]:
+            self.thingdict[branch][dimension][thing] = {}
+        if branch not in self.indefinite_thing:
+            self.indefinite_thing[branch] = {}
+        if dimension not in self.indefinite_thing[branch]:
+            self.indefinite_thing[branch][dimension] = {}
+        if thing not in self.indefinite_thing[branch][dimension]:
+            self.indefinite_thing[branch][dimension][thing] = {}
         try:
             ifrom = self.indefinite_thing[branch][dimension][thing]
             if tick_from > ifrom:
@@ -283,9 +293,15 @@ item's name, and the name of the attribute.
                 dimension in self.thingdict[branch] and
                 thing in self.thingdict[branch][dimension]):
             return False
-        for rd in TabdictIterator(self.thingdict[branch][dimension][thing]):
-            if rd["tick_from"] <= tick and (
-                    rd["tick_to"] is None or tick <= rd["tick_to"]):
+        if (
+                branch in self.indefinite_thing and
+                dimension in self.indefinite_thing[branch] and
+                thing in self.indefinite_thing[branch][dimension]):
+            tick_from = self.indefinite_thing[branch][dimension][thing]
+            if tick >= tick_from:
+                return True
+        for (tick_from, tick_to) in self.thingdict[branch][dimension][thing].iteritems():
+            if tick_from <= tick and tick <= tick_to:
                 return True
         return False
 

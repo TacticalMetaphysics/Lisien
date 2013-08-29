@@ -166,18 +166,9 @@ represents to calculate its dimensions and coordinates.
         self.tick_to = tick_to
         self.text = text
         self.style = self.col.style
-        self.oldstate = None
-        self.was_hovered = False
-        self.old_width = None
-        self.old_height = None
-        self.old_active_image = None
-        self.old_inactive_image = None
         self.vertlist = None
         self.label = None
         self.visible = True
-        self.tweaks = 0
-        self.inactive_pattern = color_pattern(self.style.fg_inactive.tup)
-        self.active_pattern = color_pattern(self.style.fg_active.tup)
 
     def __len__(self):
         if self.tick_to is None:
@@ -223,6 +214,9 @@ represents to calculate its dimensions and coordinates.
             raise AttributeError(
                 "CalendarCell instance has no such attribute: " +
                 attrn)
+
+    def __hash__(self):
+        return hash((self.tick_from, self.tick_to, self.text))
 
     def delete(self):
         try:
@@ -703,7 +697,6 @@ class CalendarCol:
              "character, branch, skill":
              ("character_skills", "character, branch, skill")},
             ["idx>=0"])]
-
     def __init__(self, calendar, character, typ, idx, td):
         self.calendar = calendar
         self.rumor = self.calendar.rumor
@@ -718,6 +711,8 @@ class CalendarCol:
         self.character.register_update_handler(self.refresh_char)
         self.idx = idx
         self.typ = typ
+        self._cells = []
+        self.old_schedule_hash = 0
         if self.typ == COL_TYPE["THING"]:
             self._rowdict = td[
                 "calendar_col_thing"][
@@ -746,11 +741,10 @@ class CalendarCol:
                         int(self.calendar)][
                             int(self)]
         self.vertl = None
-        self.cells = []
         self.refresh()
 
     def __iter__(self):
-        return iter(self.cells)
+        return self.cells
 
     def __getattr__(self, attrn):
         if self.typ == COL_TYPE["THING"]:
@@ -760,6 +754,8 @@ class CalendarCol:
                 return self.get_locations()
         if attrn in self._rowdict:
             return self._rowdict[attrn]
+        elif attrn == 'cells':
+            return self._cells
         elif hasattr(self.character, attrn):
             return getattr(self.character, attrn)
         elif attrn == 'width':
@@ -799,9 +795,9 @@ class CalendarCol:
         self.regen_cells()
 
     def regen_cells(self):
-        for cell in self.cells:
+        for cell in self._cells:
             cell.delete()
-        self.cells = []
+        self._cells = []
         if self.typ == COL_TYPE["THING"]:
             if hasattr(self, 'get_locations'):
                 scheduledict = self.get_locations()
@@ -815,16 +811,16 @@ class CalendarCol:
                     text = rd["location"]
                 else:
                     text = rd["thing"]
-                self.cells.append(
+                self._cells.append(
                     CalendarCell(self, rd["tick_from"], rd["tick_to"], text))
         elif self.typ == COL_TYPE["STAT"]:
             for rd in TabdictIterator(self.statdict):
-                self.cells.append(
+                self._cells.append(
                     CalendarCell(
                         self, rd["tick_from"], rd["tick_to"], rd["val"]))
 
     def delete(self):
-        for cell in self.cells:
+        for cell in self._cells:
             cell.delete()
         try:
             self.timeline.delete()
@@ -869,7 +865,7 @@ class CalendarCol:
                 [0, 2, 3, 0, 1, 2],
                 ('v2i', points),
                 ('c4B', colors))
-        for cel in self.cells:
+        for cel in self._cells:
             cel.draw()
         if hasattr(self, 'bc'):
             self.bc.draw()
