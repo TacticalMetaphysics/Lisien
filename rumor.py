@@ -15,7 +15,6 @@ import re
 import os
 import igraph
 from collections import OrderedDict, defaultdict
-from copy import deepcopy
 from logging import getLogger
 from dimension import Dimension
 from spot import Spot
@@ -59,6 +58,29 @@ def updd(d1, d2):
             updd(d1[k], v)
         else:
             d1[k] = v
+
+
+def diffd(d1, d2):
+    """Returns the 'set difference' of the given tabdicts.
+
+That is, those rowdicts that are in d1, but not in d2.
+
+Including all layers of keys."""
+    # if I'm dealing with rowdicts, return None if they're the same,
+    # or d1 if they're different
+    r = None
+    for (k, v) in d2.iteritems():
+        if isinstance(v, dict):
+            if r is None:
+                # This indicates I'm not dealing with a rowdict yet.
+                r = {}
+            newv = diffd(d1[k], v)
+            if newv not in (None, {}):
+                r[k] = newv
+        else:
+            if v != d1[k]:
+                return d1
+    return r
 
 ONE_ARG_RE = re.compile("(.+)")
 TWO_ARG_RE = re.compile("(.+), ?(.+)")
@@ -341,16 +363,17 @@ This is game-world time. It doesn't always go forwards.
         return self.graphdict[name]
 
     def save_game(self):
+        to_save = diffd(self.tabdict, self.old_tabdict)
+        for clas in saveables:
+            clas._delete_tabdict(self.c, to_save)
+            clas._insert_tabdict(self.c, to_save)
         self.c.execute("DELETE FROM game")
-        fieldnames = self.game.keys()
-        qrystr = "INSERT INTO game ({0}) VALUES ({1})".format(
-            ", ".join(fieldnames), ", ".join(["?"] * len(fieldnames)))
-        qrylst = [self.game[field] for field in fieldnames]
-        qrytup = tuple(qrylst)
-        self.c.execute(qrystr, qrytup)
-        for dimension in self.dimensiondict.itervalues():
-            dimension.save()
-        self.old_tabdict = deepcopy(self.tabdict)
+        keys = self.game.keys()
+        self.c.execute(
+            "INSERT INTO game ({0}) VALUES ({1})".format(
+                ", ".join(keys),
+                ", ".join(["?"] * len(self.game))),
+            tuple([self.game[k] for k in keys]))
 
     # TODO: For all these schedule functions, handle the case where I
     # try to schedule something for a time outside of the given

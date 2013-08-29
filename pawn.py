@@ -110,8 +110,17 @@ interactive or not.
         elif attrn == 'visible':
             return self.img is not None
         elif attrn == 'coords':
-            coords = self.get_coords()
-            return coords
+            (x, y) = self.get_coords()
+            locn = str(self.thing.location)
+            if locn in self.board.spotdict:
+                spot = self.board.spotdict[locn]
+                return (
+                    x + spot.drag_offset_x,
+                    y + spot.drag_offset_y)
+            else:
+                return (
+                    x + self.drag_offset_x,
+                    y + self.drag_offset_y)
         elif attrn == 'x':
             return self.coords[0]
         elif attrn == 'y':

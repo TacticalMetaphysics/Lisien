@@ -123,7 +123,10 @@ class Spot(TerminableImg, TerminableInteractivity):
         elif attrn == 'img':
             return self.get_img()
         elif attrn == 'coords':
-            return self.get_coords()
+            (x, y) = self.get_coords()
+            return (
+                x + self.drag_offset_x,
+                y + self.drag_offset_y)
         elif attrn == 'x':
             return self.coords[0]
         elif attrn == 'y':
@@ -240,6 +243,7 @@ class Spot(TerminableImg, TerminableInteractivity):
         return None
 
     def set_coords(self, x, y, branch=None, tick_from=None, tick_to=None):
+        print "spot coords set to {0}, {1}".format(x, y)
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
@@ -278,9 +282,12 @@ class Spot(TerminableImg, TerminableInteractivity):
         for rd in TabdictIterator(self.coord_dict[parent]):
             if rd["tick_to"] >= tick or rd["tick_to"] is None:
                 if rd["tick_from"] < tick:
-                    self.set_coords(rd["x"], rd["y"], branch, tick, rd["tick_to"])
+                    self.set_coords(
+                        rd["x"], rd["y"], branch, tick, rd["tick_to"])
                 else:
-                    self.set_coords(rd["x"], rd["y"], branch, rd["tick_from"], rd["tick_to"])
+                    self.set_coords(
+                        rd["x"], rd["y"], branch,
+                        rd["tick_from"], rd["tick_to"])
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)
@@ -301,9 +308,11 @@ class SpotWidget:
 
     def __getattr__(self, attrn):
         if attrn == "viewport_left":
-            return self.board_left
+            return (
+                self.board_left +
+                self.viewport.view_left)
         elif attrn == "viewport_bot":
-            return self.board_bot
+            return self.board_bot + self.viewport.view_bot
         elif attrn == "viewport_top":
             return self.viewport_bot + self.spot.height
         elif attrn == "viewport_right":
@@ -339,7 +348,7 @@ class SpotWidget:
                 "SpotWidget instance has no attribute " + attrn)
 
     def dropped(self, x, y, button, modifiers):
-        self.spot.set_coords(*self.spot.get_coords())
+        self.spot.set_coords(*self.spot.coords)
         self.spot.drag_offset_x = 0
         self.spot.drag_offset_y = 0
 
@@ -352,8 +361,8 @@ mouse."""
 
     def overlaps(self, x, y):
         return (
-            self.viewport_left < x and x < self.viewport_right and
-            self.viewport_bot < y and y < self.viewport_top)
+            self.window_left < x and x < self.window_right and
+            self.window_bot < y and y < self.window_top)
 
     def pass_focus(self):
         return self.viewport

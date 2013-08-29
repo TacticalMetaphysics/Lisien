@@ -475,6 +475,7 @@ move_with_mouse method, use it.
      """
         if self.grabbed is None:
             self.grabbed = self.pressed
+            print "grabbed {0}".format(self.grabbed)
         elif hasattr(self.grabbed, 'move_with_mouse'):
             self.grabbed.move_with_mouse(x, y, dx, dy, buttons, modifiers)
 

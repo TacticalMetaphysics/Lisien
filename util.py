@@ -17,6 +17,8 @@ colnamestr = {}
 
 primarykeys = {}
 
+tabclas = {}
+
 saveables = []
 
 
@@ -192,24 +194,22 @@ and your table will be ready.
                 colnamestr[tablename], tablename, pkeynamestr)
             missings[tablename] = missing_stmt_start
             schemata[tablename] =  create_stmt
-        saveables.append((demands, provides, prelude, tablenames, postlude))
 
         def gen_sql_insert(rowdicts, tabname):
-            if rowdicts == []:
-                return []
-            sample = rowdicts[0]
-            cols_used = [col for col in colnames[tabname] if col in sample]
-            colsstr = ", ".join(cols_used)
-            row_qms = ", ".join(["?"] * len(sample))
-            rowstr = "({0})".format(row_qms)
-            rowsstr = ", ".join([rowstr] * len(rowdicts))
-            qrystr = inserts[tabname].format(colsstr, rowsstr)
+            if len(rowdicts) == 0:
+                return {}
+            if tabname in rowdicts:
+                itr = TabdictIterator(rowdicts[tabname])
+            else:
+                itr = TabdictIterator(rowdicts)
+            qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
+                tabname,
+                colnamestr[tablename],
+                ", ".join([rowstrs[tablename]] * len(itr)))
             qrylst = []
-            for rowdict in iter(rowdicts):
-                for col in cols_used:
-                    qrylst.append(rowdict[col])
-            qrytup = tuple(qrylst)
-            return (qrystr, qrytup)
+            for rd in itr:
+                qrylst.extend([rd[coln] for coln in colnames[tabname]])
+            return (qrystr, tuple(qrylst))
 
         def insert_rowdicts_table(c, rowdicts, tabname):
             c.execute(*gen_sql_insert(rowdicts, tabname))
@@ -298,7 +298,7 @@ and your table will be ready.
             qrytup = tuple(qrylst)
             return (qrystr, qrytup)
 
-        def detect_keydicts_table(keydicts, tabname):
+        def detect_keydicts_table(c, keydicts, tabname):
             c.execute(*gen_sql_detect(keydicts, tabname))
             return c.fetchall()
 
@@ -313,23 +313,26 @@ and your table will be ready.
             qrytup = tuple(qrylst)
             return (qrystr, qrytup)
 
-        def missing_keydicts_table(keydicts, tabname):
+        def missing_keydicts_table(c, keydicts, tabname):
             c.execute(*gen_sql_missing(keydicts, tabname))
             return c.fetchall()
 
-        def insert_tabdict(c, tabdict):
+        @staticmethod
+        def _insert_tabdict(c, tabdict):
             for item in tabdict.iteritems():
                 (tabname, rd) = item
-                insert_rowdicts_table(c, rd, tabname)
+                if tabname in tablenames:
+                    insert_rowdicts_table(c, rd, tabname)
 
-        def delete_tabdict(c, tabdict):
+        @staticmethod
+        def _delete_tabdict(c, tabdict):
             qryfmt = "DELETE FROM {0} WHERE {1}"
             for (tabn, rows) in tabdict.iteritems():
-                if rows == []:
+                if len(rows) == 0 or tabn not in tablenames:
                     continue
                 vals = []
                 ors = []
-                for row in iter(rows):
+                for row in TabdictIterator(rows):
                     keyns = keynames[tabn]
                     ands = []
                     for keyn in keyns:
@@ -340,7 +343,8 @@ and your table will be ready.
                 qrytup = tuple(vals)
                 c.execute(qrystr, qrytup)
 
-        def detect_tabdict(c, tabdict):
+        @staticmethod
+        def _detect_tabdict(c, tabdict):
             r = {}
             for item in tabdict.iteritems():
                 (tabname, rd) = item
@@ -350,7 +354,8 @@ and your table will be ready.
                     r[tabname] = detect_keydicts_table(c, rd, tabname)
             return r
 
-        def missing_tabdict(c, tabdict):
+        @staticmethod
+        def _missing_tabdict(c, tabdict):
             r = {}
             for item in tabdict.iteritems():
                 (tabname, rd) = item
@@ -359,23 +364,6 @@ and your table will be ready.
                 else:
                     r[tabname] = missing_keydicts_table(c, rd, tabname)
             return r
-
-        def coresave(self):
-            td = self.get_tabdict()
-            logger.debug("writing a tabdict to disk")
-            for item in td.iteritems():
-                logger.debug("--in the table %s:", item[0])
-                i = 0
-                for record in item[1]:
-                    logger.debug("----row %d:", i)
-                    i += 1
-                    for (key, val) in record.iteritems():
-                        logger.debug("------%s = %s", key, val)
-            delete_tabdict(self.rumor.c, td)
-            insert_tabdict(self.rumor.c, td)
-
-        def save(self):
-            coresave(self)
 
         def get_keydict(self):
             tabd = self.get_tabdict()
@@ -386,20 +374,16 @@ and your table will be ready.
                     r[tabn][keyn] = tabd[tabn][keyn]
             return r
 
-        def erase(self):
-            delete_tabdict(self.rumor, self.get_keydict())
-
         atrdic = {
             '_select_tabdict': _select_tabdict,
-            'insert_tabdict': lambda self, td: insert_tabdict(self.rumor.c, td),
-            'delete_tabdict': lambda self, td: delete_tabdict(self.rumor.c, td),
-            'detect_tabdict': lambda self, td: detect_tabdict(self.rumor.c, td),
-            'missing_tabdict': lambda self, td: missing_tabdict(self.rumor.c, td),
-            'select_tabdict': lambda self, td: _select_tabdict(self.rumor.c, td),
-            'gen_sql_insert': lambda self, rd, tn: gen_sql_insert(rd, tn),
-            'gen_sql_delete': lambda self, rd, tn: gen_sql_delete(rd, tn),
-            'gen_sql_detect': lambda self, rd, tn: gen_sql_detect(rd, tn),
-            'gen_sql_missing': lambda self, rd, tn: gen_sql_missing(rd, tn),
+            '_insert_tabdict': _insert_tabdict,
+            '_delete_tabdict': _delete_tabdict,
+            '_detect_tabdict': _detect_tabdict,
+            '_missing_tabdict': _missing_tabdict,
+            '_gen_sql_insert': gen_sql_insert,
+            '_gen_sql_delete': gen_sql_delete,
+            '_gen_sql_detect': gen_sql_detect,
+            '_gen_sql_missing': gen_sql_missing,
             'colnames': colnames,
             'colnamestr': colnamestr,
             'colnstr': colnamestr[tablenames[0]],
@@ -412,14 +396,15 @@ and your table will be ready.
             'rowlen': rowlen,
             'keyqms': keyqms,
             'rowqms': rowqms,
-            'coresave': coresave,
-            'save': save,
             'maintab': tablenames[0],
-            'get_keydict': get_keydict,
-            'erase': erase}
+            'get_keydict': get_keydict}
         atrdic.update(attrs)
 
-        return type.__new__(metaclass, clas, parents, atrdic)
+        nuclas = type.__new__(metaclass, clas, parents, atrdic)
+        saveables.append(nuclas)
+        for name in tablenames:
+            tabclas[name] = nuclas
+        return nuclas
 
 
 def start_new_map(nope):

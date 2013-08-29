@@ -695,6 +695,7 @@ class CalendarCol:
              "character, branch, skill":
              ("character_skills", "character, branch, skill")},
             ["idx>=0"])]
+
     def __init__(self, calendar, character, typ, idx):
         self.calendar = calendar
         self.rumor = self.calendar.rumor
