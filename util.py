@@ -21,6 +21,8 @@ tabclas = {}
 
 saveables = []
 
+saveable_classes = []
+
 
 class SaveableMetaclass(type):
 # TODO make savers use sets of RowDict objs, rather than lists of regular dicts
@@ -135,7 +137,6 @@ and your table will be ready.
             rowstrs[tablename] = "(" + rowqms[tablename] + ")"
         for tablename in coldecls.iterkeys():
             colnames[tablename] = keynames[tablename] + valnames[tablename]
-        local_schemata = []
         for tablename in tablenames:
             provides.add(tablename)
             coldecl = coldecls[tablename]
@@ -194,6 +195,8 @@ and your table will be ready.
                 colnamestr[tablename], tablename, pkeynamestr)
             missings[tablename] = missing_stmt_start
             schemata[tablename] =  create_stmt
+        saveables.append(
+            (demands, provides, prelude, tablenames, postlude))
 
         def gen_sql_insert(rowdicts, tabname):
             if len(rowdicts) == 0:
@@ -400,11 +403,9 @@ and your table will be ready.
             'get_keydict': get_keydict}
         atrdic.update(attrs)
 
-        nuclas = type.__new__(metaclass, clas, parents, atrdic)
-        saveables.append(nuclas)
-        for name in tablenames:
-            tabclas[name] = nuclas
-        return nuclas
+        clas = type.__new__(metaclass, clas, parents, atrdic)
+        saveable_classes.append(clas)
+        return clas
 
 
 def start_new_map(nope):

@@ -297,6 +297,9 @@ class PawnWidget:
             raise AttributeError(
                 "PawnWidget instance has no attribute " + attrn)
 
+    def __str__(self):
+        return str(self.pawn)
+
     def hover(self, x, y):
         return self
 

@@ -126,6 +126,7 @@ class GameWindow(pyglet.window.Window):
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
         self.edge_order = 1
+        self.viewport_order = 1
         self.hand_order = 1
         self.batch = pyglet.graphics.Batch()
         self.biggroup = pyglet.graphics.Group()
@@ -237,7 +238,6 @@ class GameWindow(pyglet.window.Window):
         self.create_place_cursor.ry = ry
         self.drawn_board = None
         self.drawn_edges = None
-        self.edge_order = 1
         self.floaty_portal = None
 
         self.time_travel_target = None

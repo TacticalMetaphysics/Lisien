@@ -51,6 +51,5 @@ def update(ts):
 pyglet.clock.schedule(update)
 pyglet.clock.schedule_interval(rumor.update, 0.1)
 pyglet.app.run()
-
 rumor.save_game()
 rumor.end_game()

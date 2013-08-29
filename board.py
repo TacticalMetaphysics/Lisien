@@ -2,7 +2,8 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     SaveableMetaclass,
-    TabdictIterator)
+    TabdictIterator,
+    ViewportOrderedGroup)
 from pawn import Pawn, PawnWidget
 from spot import Spot, SpotWidget
 from arrow import Arrow, ArrowWidget
@@ -192,10 +193,14 @@ class BoardViewport:
             self.board.viewports.append(None)
         self.board.viewports[self.idx] = self
         self.batch = self.window.batch
-        self.bggroup = OrderedGroup(0, self.window.boardgroup)
-        self.arrowgroup = OrderedGroup(1, self.window.boardgroup)
-        self.spotgroup = OrderedGroup(2, self.window.boardgroup)
-        self.pawngroup = OrderedGroup(3, self.window.boardgroup)
+        self.biggroup = ViewportOrderedGroup(
+            self.window.viewport_order, self.window.boardgroup,
+            self)
+        self.window.viewport_order += 1
+        self.bggroup = OrderedGroup(0, self.biggroup)
+        self.arrowgroup = OrderedGroup(1, self.biggroup)
+        self.spotgroup = OrderedGroup(2, self.biggroup)
+        self.pawngroup = OrderedGroup(3, self.biggroup)
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
@@ -319,27 +324,9 @@ class BoardViewport:
                 self.offset_y,
                 batch=self.batch,
                 group=self.bggroup)
-        for arrow in self.arrows:
-            arrow.draw()
         for spot in self.spots:
             spot.draw()
         for pawn in self.pawns:
             pawn.draw()
-
-    def get_tabdict(self):
-        return {
-            "board_viewport": {
-                "window": str(self.window),
-                "dimension": str(self.board.dimension),
-                "board": int(self.board),
-                "idx": self.idx,
-                "left": self.left_prop,
-                "bot": self.bot_prop,
-                "top": self.top_prop,
-                "right": self.right_prop,
-                "view_left": self.view_left,
-                "view_bot": self.view_bot}}
-
-    def save(self):
-        self.coresave()
-        self.board.save()
+        for arrow in self.arrows:
+            arrow.draw()

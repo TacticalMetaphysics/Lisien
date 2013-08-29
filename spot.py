@@ -298,6 +298,7 @@ class Spot(TerminableImg, TerminableInteractivity):
 class SpotWidget:
     def __init__(self, viewport, spot):
         self.viewport = viewport
+        self.window = self.viewport.window
         self.supergroup = OrderedGroup(0, self.viewport.spotgroup)
         self.spritegroup = OrderedGroup(0, self.supergroup)
         self.boxgroup = OrderedGroup(1, self.supergroup)
@@ -306,19 +307,22 @@ class SpotWidget:
         self.sprite = None
         self.vertlist = None
 
+    def __str__(self):
+        return str(self.spot)
+
     def __getattr__(self, attrn):
         if attrn == "viewport_left":
             return (
                 self.board_left +
-                self.viewport.view_left)
+                self.viewport.offset_x)
         elif attrn == "viewport_bot":
-            return self.board_bot + self.viewport.view_bot
+            return self.board_bot + self.viewport.offset_y
         elif attrn == "viewport_top":
             return self.viewport_bot + self.spot.height
         elif attrn == "viewport_right":
             return self.viewport_left + self.spot.width
         elif attrn == "window_left":
-            return self.viewport_left + self.viewport.window_left
+            return self.viewport_left + self.viewport.view_left
         elif attrn == "window_bot":
             return self.viewport_bot + self.viewport.window_bot
         elif attrn == "window_top":
@@ -327,10 +331,10 @@ class SpotWidget:
             return self.viewport_right + self.viewport.window_left
         elif attrn == "in_view":
             return (
-                self.viewport_right > 0 and
-                self.viewport_left < self.viewport.width and
-                self.viewport_top > 0 and
-                self.viewport_bot < self.viewport.height)
+                self.window_right > 0 and
+                self.window_left < self.window.width and
+                self.window_top > 0 and
+                self.window_bot < self.window.height)
         elif attrn == "selected":
             return self in self.viewport.window.selected
         elif attrn == "hovered":
@@ -384,6 +388,7 @@ mouse."""
                 self.sprite.delete()
             except:
                 pass
+            self.sprite = None
         if self.selected:
             yelo = (255, 255, 0, 0)
             colors = yelo * 4
@@ -410,10 +415,13 @@ mouse."""
             self.vertlist = None
 
     def delete(self):
-        for e in self.place.incident(mode=ALL):
-            for arrow in e.arrows:
-                arrow.delete()
         try:
             self.sprite.delete()
         except:
             pass
+        self.sprite = None
+        try:
+            self.vertlist.delete()
+        except:
+            pass
+        self.vertlist = None

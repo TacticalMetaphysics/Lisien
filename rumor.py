@@ -30,7 +30,8 @@ from util import (
     dictify_row,
     TabdictIterator,
     schemata,
-    saveables)
+    saveables,
+    saveable_classes)
 from portal import Portal
 from thing import Thing
 from character import Character
@@ -74,9 +75,12 @@ Including all layers of keys."""
             if r is None:
                 # This indicates I'm not dealing with a rowdict yet.
                 r = {}
-            newv = diffd(d1[k], v)
-            if newv not in (None, {}):
-                r[k] = newv
+            try:
+                newv = diffd(d1[k], v)
+                if newv not in (None, {}):
+                    r[k] = newv
+            except KeyError:
+                pass
         else:
             if v != d1[k]:
                 return d1
@@ -364,7 +368,9 @@ This is game-world time. It doesn't always go forwards.
 
     def save_game(self):
         to_save = diffd(self.tabdict, self.old_tabdict)
-        for clas in saveables:
+        to_delete = diffd(self.old_tabdict, self.tabdict)
+        for clas in saveable_classes:
+            clas._delete_tabdict(self.c, to_delete)
             clas._delete_tabdict(self.c, to_save)
             clas._insert_tabdict(self.c, to_save)
         self.c.execute("DELETE FROM game")
