@@ -199,7 +199,7 @@ and your table will be ready.
             (demands, provides, prelude, tablenames, postlude))
 
         def gen_sql_insert(rowdicts, tabname):
-            if len(rowdicts) == 0:
+            if len(rowdicts) == 0 or tabname not in tablenames:
                 return {}
             if tabname in rowdicts:
                 itr = TabdictIterator(rowdicts[tabname])
@@ -207,14 +207,16 @@ and your table will be ready.
                 itr = TabdictIterator(rowdicts)
             qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
                 tabname,
-                colnamestr[tablename],
-                ", ".join([rowstrs[tablename]] * len(itr)))
+                colnamestr[tabname],
+                ", ".join([rowstrs[tabname]] * len(itr)))
             qrylst = []
             for rd in itr:
                 qrylst.extend([rd[coln] for coln in colnames[tabname]])
             return (qrystr, tuple(qrylst))
 
         def insert_rowdicts_table(c, rowdicts, tabname):
+            if len(rowdicts) == 0:
+                return []
             c.execute(*gen_sql_insert(rowdicts, tabname))
             return []
 

@@ -6,7 +6,6 @@ import rumor
 from sys import argv
 from os import remove
 from sqlite3 import connect, DatabaseError
-from copy import deepcopy
 
 
 i = 0
@@ -45,7 +44,6 @@ clock = pyglet.clock.Clock()
 pyglet.clock.set_default(clock)
 rumor = rumor.load_game(dbfn, lang)
 gw = rumor.get_window('Main')
-rumor.old_tabdict = deepcopy(rumor.tabdict)
 
 
 def update(ts):

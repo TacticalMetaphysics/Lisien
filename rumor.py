@@ -73,7 +73,9 @@ Including all layers of keys."""
     r = dict(d1)
     for (k, v) in d2.iteritems():
         if isinstance(v, dict):
-            if r[k] == v:
+            if k not in r:
+                continue
+            elif r[k] == v:
                 del r[k]
             else:
                 r[k] = diffd(r[k], v)
@@ -361,9 +363,13 @@ This is game-world time. It doesn't always go forwards.
 
     def save_game(self):
         to_save = diffd(self.tabdict, self.old_tabdict)
+        to_delete = diffd(self.old_tabdict, self.tabdict)
         logger.debug(
             "Saving the tabdict:\n%s", repr(to_save))
+        logger.debug(
+            "Deleting the tabdict:\n%s", repr(to_delete))
         for clas in saveable_classes:
+            clas._delete_tabdict(self.c, to_delete)
             clas._delete_tabdict(self.c, to_save)
             clas._insert_tabdict(self.c, to_save)
         self.c.execute("DELETE FROM game")
@@ -373,6 +379,7 @@ This is game-world time. It doesn't always go forwards.
                 ", ".join(keys),
                 ", ".join(["?"] * len(self.game))),
             tuple([self.game[k] for k in keys]))
+        self.old_tabdict = deepcopy(self.tabdict)
 
     # TODO: For all these schedule functions, handle the case where I
     # try to schedule something for a time outside of the given
@@ -614,18 +621,23 @@ This is game-world time. It doesn't always go forwards.
 
     def load_game(self):
         self.c.execute(
-            "SELECT front_board, front_branch, tick, seed, "
-            "hi_branch, hi_place, hi_portal, hi_thing FROM game")
+            "SELECT front_board, front_branch, front_dimension, "
+            "tick, seed, hi_branch, hi_place, hi_portal, "
+            "hi_thing FROM game")
         for row in self.c:
             self.game = {
                 "front_board": row[0],
                 "front_branch": row[1],
-                "tick": row[2],
-                "seed": row[3],
-                "hi_branch": row[4],
-                "hi_place": row[5],
-                "hi_portal": row[6],
-                "hi_thing": row[7]}
+                "front_dimension": row[2],
+                "tick": row[3],
+                "seed": row[4],
+                "hi_branch": row[5],
+                "hi_place": row[6],
+                "hi_portal": row[7],
+                "hi_thing": row[8]}
+        dim = self.get_dimension(self.game["front_dimension"])
+        self.load_board(dim, self.game["front_board"])
+        self.old_tabdict = deepcopy(self.tabdict)
 
     def load_strings(self):
         self.c.execute("SELECT stringname, language, string FROM strings")
@@ -970,8 +982,9 @@ This is game-world time. It doesn't always go forwards.
                 if col == "window":
                     continue
                 kd[col][name] = {"window": name}
-        updd(self.tabdict,
-             GameWindow._select_tabdict(self.c, kd))
+        td = GameWindow._select_tabdict(self.c, kd)
+        updd(self.tabdict, td)
+        updd(self.old_tabdict, td)
         r = {}
         for name in names:
             r[name] = GameWindow(self, name)
@@ -1178,7 +1191,8 @@ def mkdb(DB_NAME='default.sqlite'):
 
     c.execute(
         "CREATE TABLE game"
-        " (front_board TEXT DEFAULT 'Physical', "
+        " (front_dimension TEXT DEFAULT 'Physical', "
+        "front_board INTEGER DEFAULT 0, "
         "front_branch INTEGER DEFAULT 0, "
         "tick INTEGER DEFAULT 0,"
         " seed INTEGER DEFAULT 0, hi_place INTEGER DEFAULT 0, "
