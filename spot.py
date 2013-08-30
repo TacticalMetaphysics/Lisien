@@ -4,7 +4,8 @@ from util import (
     SaveableMetaclass,
     TerminableImg,
     TerminableInteractivity,
-    BranchTicksIter)
+    BranchTicksIter,
+    TabdictIterator)
 from place import Place
 from collections import defaultdict
 from pyglet.sprite import Sprite
@@ -40,7 +41,7 @@ class Spot(TerminableImg, TerminableInteractivity):
           "tick_from": "integer not null default 0",
           "tick_to": "integer default null",
           "img": "text not null default 'default_spot'"},
-         ("dimension", "place", "board", "branch", "tick_from"),
+         ("dimension", "board", "place", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i"),
           "img": ("img", "name")},
          []),
@@ -51,7 +52,7 @@ class Spot(TerminableImg, TerminableInteractivity):
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
           "tick_to": "integer default null"},
-         ("dimension", "place", "board", "branch", "tick_from"),
+         ("dimension", "board", "place", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i")},
          []),
         ("spot_coords",
@@ -63,79 +64,69 @@ class Spot(TerminableImg, TerminableInteractivity):
           "tick_to": "integer default null",
           "x": "integer not null default 50",
           "y": "integer not null default 50"},
-         ("dimension", "place", "board", "branch", "tick_from"),
+         ("dimension", "board", "place", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i")},
          [])]
 
-    def get_tabdict(self):
-        return {
-            "spot_img": [
-                {
-                    "dimension": str(self.spot.dimension),
-                    "place": str(self.spot.place),
-                    "board": int(self.spot.board),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to,
-                    "img": str(img)}
-                for (branch, tick_from, tick_to, img) in
-                BranchTicksIter(self.spot.imagery)],
-            "spot_interactive": [
-                {
-                    "dimension": str(self.spot.dimension),
-                    "place": str(self.spot.place),
-                    "board": int(self.spot.board),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to}
-                for (branch, tick_from, tick_to) in
-                BranchTicksIter(self.spot.interactivity)],
-            "spot_coords": [
-                {
-                    "dimension": str(self.spot.dimension),
-                    "place": str(self.spot.place),
-                    "board": int(self.spot.board),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to,
-                    "x": x,
-                    "y": y}
-                for (branch, tick_from, tick_to, x, y) in
-                BranchTicksIter(self.spot.coord_dict)]}
-
-    def __init__(self, board, place):
+    def __init__(self, rumor, dimension, board, place):
+        self.rumor = rumor
+        self.dimension = dimension
         self.board = board
-        self.dimension = self.board.dimension
-        self.rumor = self.board.rumor
-        if hasattr(place, 'v'):
-            self.place = place
-            self.vert = self.place.v
-        else:
-            self.vert = place
-            self.place = Place(self.dimenison, self.vert)
-        self.interactivity = defaultdict(dict)
-        self.imagery = defaultdict(dict)
-        self.coord_dict = defaultdict(dict)
+        self.place = place
         self.indefinite_imagery = {}
+        for rd in TabdictIterator(
+                self.rumor.tabdict["spot_img"][
+                    str(self.dimension)][
+                        int(self.board)][str(self.place)]):
+            if rd["tick_to"] is None:
+                self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
+                break
         self.indefinite_coords = {}
+        for rd in TabdictIterator(
+                self.rumor.tabdict["spot_coords"][
+                    str(self.dimension)][
+                        int(self.board)][str(self.place)]):
+            if rd["tick_to"] is None:
+                self.indefinite_coords[rd["branch"]] = rd["tick_from"]
+                break
         self.indefinite_interactivity = {}
-        self.grabpoint = None
-        self.oldstate = None
-        self.newstate = None
-        self.tweaks = 0
+        for rd in TabdictIterator(self.rumor.tabdict["spot_interactive"][
+                str(self.dimension)][
+                    int(self.board)][str(self.place)]):
+            if rd["tick_to"] is None:
+                self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
+                break
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
     def __str__(self):
-        return self.vert["name"]
+        return str(self.place)
+
+    def __repr__(self):
+        return "Spot({0}[{1}].{2})".format(
+            str(self.dimension), int(self.board), str(self.place))
 
     def __getattr__(self, attrn):
-        if attrn == 'interactive':
+        if attrn == "vertex":
+            return self.place.v
+        elif attrn == "interactivity":
+            return self.rumor.tabdict["spot_interactive"][
+                str(self.dimension)][int(self.board)][str(self.place)]
+        elif attrn == "imagery":
+            return self.rumor.tabdict["spot_img"][
+                str(self.dimension)][int(self.board)][str(self.place)]
+        elif attrn == "coord_dict":
+            return self.rumor.tabdict["spot_coords"][
+                str(self.dimension)][int(self.board)][str(self.place)]
+        elif attrn == 'interactive':
             return self.is_interactive()
         elif attrn == 'img':
             return self.get_img()
         elif attrn == 'coords':
-            return self.get_coords()
+            (x, y) = self.get_coords()
+            return (
+                x + self.drag_offset_x,
+                y + self.drag_offset_y)
         elif attrn == 'x':
             return self.coords[0]
         elif attrn == 'y':
@@ -169,12 +160,66 @@ class Spot(TerminableImg, TerminableInteractivity):
             return self.board_bot + self.height
         elif attrn == "board_right":
             return self.board_left + self.width
-        elif attrn == "place":
-            return self.dimension.get_place(str(self))
         else:
             raise AttributeError(
                 "Spot instance has no such attribute: " +
                 attrn)
+
+    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
+        if branch is None:
+            branch = self.rumor.branch
+        if tick_from is None:
+            tick_from = self.rumor.tick
+        if branch in self.indefinite_interactivity:
+            indef_start = self.indefinite_interactivity[branch]
+            indef_rd = self.interactivity[branch][indef_start]
+            if tick_from > indef_start:
+                indef_rd["tick_to"] = tick_from - 1
+                del self.indefinite_interactivity[branch]
+            elif tick_to is None or tick_to > indef_start:
+                del self.interactivity[branch][indef_start]
+                del self.indefinite_interactivity[branch]
+            elif tick_to == indef_start:
+                indef_rd["tick_from"] = tick_from
+                return
+        self.interactivity[branch][tick_from] = {
+            "dimension": str(self.dimension),
+            "board": int(self.board),
+            "place": str(self.place),
+            "branch": branch,
+            "tick_from": tick_from,
+            "tick_to": tick_to}
+        if tick_to is None:
+            self.indefinite_interactivity[branch] = tick_from
+
+    def set_img(self, img, branch=None, tick_from=None, tick_to=None):
+        if branch is None:
+            branch = self.rumor.branch
+        if tick_from is None:
+            tick_from = self.rumor.tick
+        if branch in self.indefinite_imagery:
+            indef_start = self.indefinite_imagery[branch]
+            indef_rd = self.imagery[branch][indef_start]
+            if tick_from > indef_start:
+                del self.indefinite_imagery[branch]
+                indef_rd["tick_to"] = tick_from - 1
+                self.imagery[branch][indef_start] = indef_rd
+            elif tick_to is None or tick_to > indef_start:
+                del self.indefinite_imagery[branch]
+                del self.imagery[branch][indef_start]
+            elif tick_to == indef_start and str(img) == indef_rd["img"]:
+                indef_rd["tick_from"] = tick_from
+                return
+        self.imagery[branch][tick_from] = {
+            "dimension": str(self.dimension),
+            "place": str(self.place),
+            "board": int(self.board),
+            "branch": branch,
+            "tick_from": tick_from,
+            "tick_to": tick_to,
+            "img": str(img)}
+        if tick_to is None:
+            self.indefinite_imagery[branch] = tick_from
 
     def get_coords(self, branch=None, tick=None):
         if branch is None:
@@ -182,64 +227,67 @@ class Spot(TerminableImg, TerminableInteractivity):
         if tick is None:
             tick = self.rumor.tick
         if branch not in self.coord_dict:
+            import pdb
+            pdb.set_trace()
             return None
-        it = self.coord_dict[branch].iteritems()
-        for (tick_from, (x, y, tick_to)) in it:
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
-                return (
-                    x + self.drag_offset_x,
-                    y + self.drag_offset_y)
+        if (
+                branch in self.indefinite_coords and
+                tick >= self.indefinite_coords[branch]):
+            rd = self.coord_dict[branch][self.indefinite_coords[branch]]
+            return (rd["x"], rd["y"])
+        for rd in TabdictIterator(self.coord_dict):
+            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
+                return (rd["x"], rd["y"])
+        import pdb
+        pdb.set_trace()
         return None
 
     def set_coords(self, x, y, branch=None, tick_from=None, tick_to=None):
+        print "spot coords set to {0}, {1}".format(x, y)
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
             tick_from = self.rumor.tick
         if branch not in self.coord_dict:
             self.coord_dict[branch] = {}
-        if str(self) == 'myroom':
-            pass
         if branch in self.indefinite_coords:
-            (ix, iy, itf) = self.indefinite_coords[branch]
-            if tick_to is None:
-                self.coord_dict[branch][itf] = (ix, iy, tick_from - 1)
-                self.coord_dict[branch][tick_from] = (x, y, tick_to)
-            else:
-                if tick_from < itf:
-                    if tick_to < itf:
-                        self.coord_dict[branch][tick_from] = (x, y, tick_to)
-                    elif tick_to == itf:
-                        self.coord_dict[branch][tick_from] = (x, y, None)
-                        del self.coord_dict[branch][itf]
-                    else:
-                        del self.indefinite_coords[branch]
-                        del self.coord_dict[branch][itf]
-                        self.coord_dict[branch][tick_from] = (x, y, tick_to)
-                elif tick_from == itf:
-                    del self.indefinite_coords[branch]
-                    self.coord_dict[branch][tick_from] = (x, y, tick_to)
-                else:
-                    self.coord_dict[branch][itf] = (ix, iy, tick_from - 1)
-                    del self.indefinite_coords[branch]
-                    self.coord_dict[branch][tick_from] = (x, y, tick_to)
-        else:
-            self.coord_dict[branch][tick_from] = (x, y, tick_to)
+            itf = self.indefinite_coords[branch]
+            rd = self.coord_dict[branch][itf]
+            if itf < tick_from:
+                # You have cut off an indefinite coord
+                rd["tick_to"] = tick_from - 1
+                self.coord_dict[branch][itf] = rd
+                del self.indefinite_coords[branch]
+            elif itf < tick_to:
+                # You have overwritten an indefinite coord
+                del self.coord_dict[branch][itf]
+                del self.indefinite_coords[branch]
+            elif itf == tick_to:
+                # You have extended an indefinite coord, backward in time
+                del self.coord_dict[branch][itf]
+                tick_to = None
+        self.coord_dict[branch][tick_from] = {
+            "dimension": str(self.dimension),
+            "board": int(self.board),
+            "place": str(self.place),
+            "branch": branch,
+            "tick_from": tick_from,
+            "tick_to": tick_to,
+            "x": x,
+            "y": y}
         if tick_to is None:
-            self.indefinite_coords[branch] = (x, y, tick_from)
+            self.indefinite_coords[branch] = tick_from
 
     def new_branch_coords(self, parent, branch, tick):
-        for (tick_from, (x, y, tick_to)) in (
-                self.coord_dict[parent].iteritems()):
-            if tick_to >= tick or tick_to is None:
-                if tick_from < tick:
-                    self.coord_dict[branch][tick] = (x, y, tick_to)
-                    if tick_to is None:
-                        self.indefinite_coords[branch] = tick
+        for rd in TabdictIterator(self.coord_dict[parent]):
+            if rd["tick_to"] >= tick or rd["tick_to"] is None:
+                if rd["tick_from"] < tick:
+                    self.set_coords(
+                        rd["x"], rd["y"], branch, tick, rd["tick_to"])
                 else:
-                    self.coord_dict[branch][tick_from] = (x, y, tick_to)
-                    if tick_to is None:
-                        self.indefinite_coords[branch] = tick_from
+                    self.set_coords(
+                        rd["x"], rd["y"], branch,
+                        rd["tick_from"], rd["tick_to"])
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)
@@ -250,6 +298,7 @@ class Spot(TerminableImg, TerminableInteractivity):
 class SpotWidget:
     def __init__(self, viewport, spot):
         self.viewport = viewport
+        self.window = self.viewport.window
         self.supergroup = OrderedGroup(0, self.viewport.spotgroup)
         self.spritegroup = OrderedGroup(0, self.supergroup)
         self.boxgroup = OrderedGroup(1, self.supergroup)
@@ -258,17 +307,22 @@ class SpotWidget:
         self.sprite = None
         self.vertlist = None
 
+    def __str__(self):
+        return str(self.spot)
+
     def __getattr__(self, attrn):
         if attrn == "viewport_left":
-            return self.board_left
+            return (
+                self.board_left +
+                self.viewport.offset_x)
         elif attrn == "viewport_bot":
-            return self.board_bot
+            return self.board_bot + self.viewport.offset_y
         elif attrn == "viewport_top":
             return self.viewport_bot + self.spot.height
         elif attrn == "viewport_right":
             return self.viewport_left + self.spot.width
         elif attrn == "window_left":
-            return self.viewport_left + self.viewport.window_left
+            return self.viewport_left + self.viewport.view_left
         elif attrn == "window_bot":
             return self.viewport_bot + self.viewport.window_bot
         elif attrn == "window_top":
@@ -277,10 +331,10 @@ class SpotWidget:
             return self.viewport_right + self.viewport.window_left
         elif attrn == "in_view":
             return (
-                self.viewport_right > 0 and
-                self.viewport_left < self.viewport.width and
-                self.viewport_top > 0 and
-                self.viewport_bot < self.viewport.height)
+                self.window_right > 0 and
+                self.window_left < self.window.width and
+                self.window_top > 0 and
+                self.window_bot < self.window.height)
         elif attrn == "selected":
             return self in self.viewport.window.selected
         elif attrn == "hovered":
@@ -298,7 +352,7 @@ class SpotWidget:
                 "SpotWidget instance has no attribute " + attrn)
 
     def dropped(self, x, y, button, modifiers):
-        self.spot.set_coords(*self.spot.get_coords())
+        self.spot.set_coords(*self.spot.coords)
         self.spot.drag_offset_x = 0
         self.spot.drag_offset_y = 0
 
@@ -311,8 +365,8 @@ mouse."""
 
     def overlaps(self, x, y):
         return (
-            self.viewport_left < x and x < self.viewport_right and
-            self.viewport_bot < y and y < self.viewport_top)
+            self.window_left < x and x < self.window_right and
+            self.window_bot < y and y < self.window_top)
 
     def pass_focus(self):
         return self.viewport
@@ -334,6 +388,7 @@ mouse."""
                 self.sprite.delete()
             except:
                 pass
+            self.sprite = None
         if self.selected:
             yelo = (255, 255, 0, 0)
             colors = yelo * 4
@@ -360,10 +415,13 @@ mouse."""
             self.vertlist = None
 
     def delete(self):
-        for e in self.place.incident(mode=ALL):
-            for arrow in e.arrows:
-                arrow.delete()
         try:
             self.sprite.delete()
         except:
             pass
+        self.sprite = None
+        try:
+            self.vertlist.delete()
+        except:
+            pass
+        self.vertlist = None

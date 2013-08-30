@@ -32,7 +32,7 @@ class MenuItem:
     visible = True
     interactive = True
 
-    def __init__(self, menu, idx, closer, on_click, text=None, icon=None):
+    def __init__(self, menu, idx):
         """Return a menu item in the given board, the given menu; at the given
 index in that menu; with the given text; which executes the given
 effect deck when clicked; closes or doesn't when clicked; starts
@@ -50,41 +50,45 @@ With db, register in db's menuitemdict.
         while len(self.menu.items) <= self.idx:
             self.menu.items.append(None)
         self.menu.items[self.idx] = self
-        self._on_click = on_click
-        (funname, argstr) = re.match("(.+)\((.*)\)", on_click).groups()
+        (funname, argstr) = re.match("(.+)\((.*)\)", self._on_click).groups()
         (fun, argre) = self.rumor.func[funname]
         try:
             on_click_arg_tup = re.match(argre, argstr).groups()
         except:
             on_click_arg_tup = tuple()
         self.calls = 0
+
         def on_click_fun(self):
             if self.calls == 1:
                 pass
-            print "menuitem function {0} called for the {1}th time".format(self._on_click, self.calls)
+            print "menuitem function {0} called "
+            "for the {1}th time".format(
+                self._on_click, self.calls)
             self.calls += 1
             t = (self,) + on_click_arg_tup
             return fun(*t)
 
         self.on_click = on_click_fun
-        self.closer = closer
-        if icon in self.rumor.imgdict:
-            self.icon = self.rumor.imgdict[icon]
-        else:
-            self.icon = icon
-        self._text = text
-        self.grabpoint = None
-        self.label = None
-        self.oldstate = None
-        self.newstate = None
-        self.pressed = False
-        self.tweaks = 0
 
     def __int__(self):
         return self.idx
 
     def __getattr__(self, attrn):
-        if attrn == 'text':
+        if attrn == "_rowdict":
+            return self.rumor.tabdict["menu_item"][
+                str(self.window)][str(self.menu)][int(self)]
+        elif attrn == "closer":
+            return self._rowdict["closer"]
+        elif attrn == "_text":
+            return self._rowdict["text"]
+        elif attrn == "_icon":
+            return self._rowdict["icon"]
+        elif attrn == "_on_click":
+            return self._rowdict["on_click"]
+        elif attrn == "icon":
+            if self._icon is not None:
+                return self.rumor.get_img(self._icon)
+        elif attrn == 'text':
             if self._text is None:
                 return None
             elif self._text[0] == '@':
@@ -199,7 +203,7 @@ class Menu:
          {"window": "text not null default 'Main'",
           'name': 'text not null',
           'left': "float not null default 0.1",
-          'bottom': "float not null default 0.0",
+          'bot': "float not null default 0.0",
           'top': 'float not null default 1.0',
           'right': 'float not null default 0.2',
           'style': "text not null default 'SmallDark'"},
@@ -209,7 +213,7 @@ class Menu:
          [])]
     interactive = True
 
-    def __init__(self, window, name, left, bottom, top, right, style):
+    def __init__(self, window, name):
         """Return a menu in the given board, with the given name, bounds,
 style, and flags main_for_window and visible.
 
@@ -230,31 +234,34 @@ With db, register with db's menudict.
         self.labelgroup = OrderedGroup(1, self.supergroup)
         self.rumor = self.window.rumor
         self.name = name
-        self.left_prop = left
-        self.bot_prop = bottom
-        self.top_prop = top
-        self.right_prop = right
-        self.style = style
         self.active_pattern = pyglet.image.SolidColorImagePattern(
             self.style.bg_active.tup)
         self.inactive_pattern = pyglet.image.SolidColorImagePattern(
             self.style.bg_inactive.tup)
         self.rowheight = self.style.fontsize + self.style.spacing
         self.items = []
-        self.visible = False
-        self.grabpoint = None
         self.sprite = None
-        self.old_state = None
-        self.newstate = None
         self.pressed = False
         self.freshly_adjusted = False
-        self.tweaks = 0
+        self.visible = False
 
     def __str__(self):
         return self.name
 
     def __getattr__(self, attrn):
-        if attrn == 'hovered':
+        if attrn == "_rowdict":
+            return self.rumor.tabdict["menu"][str(self.window)][str(self)]
+        elif attrn == "left_prop":
+            return self._rowdict["left"]
+        elif attrn == "right_prop":
+            return self._rowdict["right"]
+        elif attrn == "top_prop":
+            return self._rowdict["top"]
+        elif attrn == "bot_prop":
+            return self._rowdict["bot"]
+        elif attrn == "style":
+            return self.rumor.get_style(self._rowdict["style"])
+        elif attrn == 'hovered':
             return self.window.hovered is self
         elif attrn == 'window_left':
             if self.window is None:

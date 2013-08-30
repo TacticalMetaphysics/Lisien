@@ -2,11 +2,8 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     SaveableMetaclass,
-    ViewportOrderedGroup,
     TabdictIterator,
     phi)
-from pyglet.image import SolidColorImagePattern as color_pattern
-from pyglet.sprite import Sprite
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup
 
@@ -63,6 +60,7 @@ for the handle_side keyword argument.
             else:
                 raise AttributeError(
                     "Handle instance has no attribute " + attrn)
+
         def delete(self):
             try:
                 self.vertlist.delete()
@@ -141,10 +139,6 @@ for the handle_side keyword argument.
             self.vertlist.colors = list(colors)
         except AttributeError:
             assert(self.vertlist is None)
-            print "new vertlist for timeline for CalendarCol {0}".format(int(self.col))
-            print "points: " + repr(points)
-            print "colors: " + repr(colors)
-            print "group ID: " + str(id(self.col.tlgroup))
             self.vertlist = self.batch.add(
                 2,
                 GL_LINES,
@@ -171,18 +165,9 @@ represents to calculate its dimensions and coordinates.
         self.tick_to = tick_to
         self.text = text
         self.style = self.col.style
-        self.oldstate = None
-        self.was_hovered = False
-        self.old_width = None
-        self.old_height = None
-        self.old_active_image = None
-        self.old_inactive_image = None
         self.vertlist = None
         self.label = None
         self.visible = True
-        self.tweaks = 0
-        self.inactive_pattern = color_pattern(self.style.fg_inactive.tup)
-        self.active_pattern = color_pattern(self.style.fg_active.tup)
 
     def __len__(self):
         if self.tick_to is None:
@@ -229,6 +214,9 @@ represents to calculate its dimensions and coordinates.
                 "CalendarCell instance has no such attribute: " +
                 attrn)
 
+    def __hash__(self):
+        return hash((self.tick_from, self.tick_to, self.text))
+
     def delete(self):
         try:
             self.label.delete()
@@ -242,43 +230,43 @@ represents to calculate its dimensions and coordinates.
         self.vertlist = None
 
     def draw(self):
-         colors = (0, 0, 0, 255) * 4
-         l = self.window_left
-         r = self.window_right
-         t = self.window_top
-         b = self.window_bot
-         points = (
-             l, b,
-             l, t,
-             r, t,
-             r, b)
-         try:
-             self.vertlist.vertices = list(points)
-         except AttributeError:
-             self.vertlist = self.batch.add_indexed(
-                 4,
-                 GL_LINES,
-                 self.bggroup,
-                 (0, 1, 1, 2, 2, 3, 3, 0),
-                 ('v2i', points),
-                 ('c4B', colors))
-         y = self.calendar_top - self.label_height
-         try:
-             self.label.x = self.window_left
-             self.label.y = y
-         except:
-             self.label = Label(
-                 self.text,
-                 self.style.fontface,
-                 self.style.fontsize,
-                 color=self.style.textcolor.tup,
-                 width=self.width,
-                 height=self.height,
-                 x=self.window_left,
-                 y=y,
-                 multiline=True,
-                 batch=self.batch,
-                 group=self.textgroup)
+        colors = (0, 0, 0, 255) * 4
+        l = self.window_left
+        r = self.window_right
+        t = self.window_top
+        b = self.window_bot
+        points = (
+            l, b,
+            l, t,
+            r, t,
+            r, b)
+        try:
+            self.vertlist.vertices = list(points)
+        except AttributeError:
+            self.vertlist = self.batch.add_indexed(
+                4,
+                GL_LINES,
+                self.bggroup,
+                (0, 1, 1, 2, 2, 3, 3, 0),
+                ('v2i', points),
+                ('c4B', colors))
+        y = self.calendar_top - self.label_height
+        try:
+            self.label.x = self.window_left
+            self.label.y = y
+        except:
+            self.label = Label(
+                self.text,
+                self.style.fontface,
+                self.style.fontsize,
+                color=self.style.textcolor.tup,
+                width=self.width,
+                height=self.height,
+                x=self.window_left,
+                y=y,
+                multiline=True,
+                batch=self.batch,
+                group=self.textgroup)
 
 
 COL_TYPE = {
@@ -341,8 +329,11 @@ schedule, possibly several.
 
         """
         color = (255, 0, 0, 255)
+
         class Wedge:
-            """Downward pointing wedge, looks much like the Timeline's Handle"""
+            """Downward pointing wedge, looks much like the Timeline's Handle
+
+            """
             def __init__(self, bc, color_tup=(255, 0, 0, 255)):
                 self.bc = bc
                 self.batch = self.bc.batch
@@ -365,7 +356,8 @@ schedule, possibly several.
                     return self.bc.end[0] + self.rx
                 else:
                     raise AttributeError(
-                        "Wedge instance has no attribute named {0}".format(attrn))
+                        "Wedge instance has no attribute named {0}".format(
+                            attrn))
 
             def draw(self):
                 (x, y) = self.bc.end
@@ -386,7 +378,7 @@ schedule, possibly several.
                         3,
                         GL_TRIANGLES,
                         self.group,
-                        (0,1,2,0),
+                        (0, 1, 2, 0),
                         ('v2i', points),
                         ('c4B', colors))
 
@@ -429,9 +421,11 @@ schedule, possibly several.
                         self.tick - self.calendar.scrolled_to))
             elif attrn == "centerx":
                 if self.col1.window_left < self.col2.window_left:
-                    return self.col1.window_right + self.calendar.style.spacing / 2
+                    return (self.col1.window_right +
+                            self.calendar.style.spacing / 2)
                 else:
-                    return self.col2.window_right + self.calendar.style.spacing / 2
+                    return (self.col2.window_right +
+                            self.calendar.style.spacing / 2)
             elif attrn == "points":
                 x0 = self.startx
                 y = self.starty
@@ -478,30 +472,14 @@ schedule, possibly several.
             self.vertlist = None
             self.wedge.delete()
 
-    def __init__(self, rumor, td):
-        self.rumor = rumor
-        self._tabdict = td
-        rd = self._tabdict["calendar"]
-        self.window = self.rumor.get_window(rd["window"])
+    def __init__(self, window, idx):
+        self.window = window
+        self.rumor = self.window.rumor
+        self.idx = idx
         self.batch = self.window.batch
         self.group = self.window.calgroup
-        self.idx = rd["idx"]
-        self.left_prop = rd["left"]
-        self.right_prop = rd["right"]
-        self.top_prop = rd["top"]
-        self.bot_prop = rd["bot"]
-        self.interactive = rd["interactive"]
-        self.rows_shown = rd["rows_shown"]
-        self.style = self.rumor.get_style(rd["style"])
-        scrolled_to = rd["scrolled_to"]
-        if scrolled_to is None:
-            scrolled_to = self.rumor.tick
-        self.scrolled_to = scrolled_to
-        self.scroll_factor = rd["scroll_factor"]
-        self.max_cols = rd["max_cols"]
-        self.sprite = None
         self.cols = []
-        self.add_cols_from_tabdict(td)
+        self.add_thing_cols()
 
     def __iter__(self):
         return iter(self.cols)
@@ -509,8 +487,35 @@ schedule, possibly several.
     def __len__(self):
         return len(self.cols)
 
+    def __int__(self):
+        return self.idx
+
     def __getattr__(self, attrn):
-        if attrn == 'window_top':
+        if attrn == "_rowdict":
+            return self.rumor.tabdict["calendar"][str(self.window)][int(self)]
+        elif attrn == "left_prop":
+            return self._rowdict["left"]
+        elif attrn == "right_prop":
+            return self._rowdict["right"]
+        elif attrn == "top_prop":
+            return self._rowdict["top"]
+        elif attrn == "bot_prop":
+            return self._rowdict["bot"]
+        elif attrn == "scrolled_to":
+            r = self._rowdict["scrolled_to"]
+            if r is None:
+                return self.rumor.tick
+            else:
+                return r
+        elif attrn == "style":
+            return self.rumor.get_style(self._rowdict["style"])
+        elif attrn in (
+                "interactive",
+                "rows_shown",
+                "scroll_factor",
+                "max_cols"):
+            return self._rowdict[attrn]
+        elif attrn == 'window_top':
             return int(self.top_prop * self.window.height)
         elif attrn == 'window_bot':
             return int(self.bot_prop * self.window.height)
@@ -573,7 +578,8 @@ schedule, possibly several.
         if self.visible and len(self.cols) > 0:
             for calcol in self.cols:
                 try:
-                    (parent, start, end) = self.rumor.timestream.branchdict[calcol.branch]
+                    (parent, start, end) = self.rumor.timestream.branchdict[
+                        calcol.branch]
                 except KeyError:
                     continue
                 col1 = calcol
@@ -587,7 +593,8 @@ schedule, possibly several.
 
     def refresh(self):
         for col1 in self.cols:
-            (parent, tick_from, tick_to) = self.rumor.timestream.branchdict[col1.branch]
+            (parent, tick_from, tick_to) = self.rumor.timestream.branchdict[
+                col1.branch]
             if hasattr(col1, 'bc'):
                 col1.bc.delete()
             col2 = None
@@ -603,30 +610,34 @@ schedule, possibly several.
                     self, col2, col1, tick_from)
             col1.regen_cells()
 
-    def add_cols_from_tabdict(self, td):
-        for rd in TabdictIterator(td):
-            if "thing" in rd:
-                self.cols.append(CalendarCol(
-                    self,
-                    rd["character"],
-                    COL_TYPE["THING"],
-                    rd["idx"],
-                    td))
+    def add_thing_cols(self):
+        for rd in TabdictIterator(
+                self.rumor.tabdict["calendar_col_thing"][
+                    str(self.window)][int(self)]):
+            self.cols.append(CalendarCol(
+                self,
+                rd["character"],
+                COL_TYPE["THING"],
+                rd["idx"]))
 
 
 class CalendarCol:
     prelude = [
-        ("CREATE VIEW ccstat AS SELECT {0} FROM calendar_col WHERE type={1}".format(
-            ", ".join(Calendar.colnames["calendar_col"]),
-            COL_TYPE["STAT"])),
-        ("CREATE VIEW ccthing AS SELECT {0} FROM calendar_col WHERE type={1}".format(
-            ", ".join(Calendar.colnames["calendar_col"]),
-            COL_TYPE["THING"])),
-        ("CREATE VIEW ccskill AS SELECT {0} FROM calendar_col WHERE type={1}".format(
-            ", ".join(Calendar.colnames["calendar_col"]),
-            COL_TYPE["SKILL"]))]
+        ("CREATE VIEW ccstat AS SELECT {0} FROM calendar_col "
+         "WHERE type={1}".format(
+             ", ".join(Calendar.colnames["calendar_col"]),
+             COL_TYPE["STAT"])),
+        ("CREATE VIEW ccthing AS SELECT {0} FROM calendar_col "
+         "WHERE type={1}".format(
+             ", ".join(Calendar.colnames["calendar_col"]),
+             COL_TYPE["THING"])),
+        ("CREATE VIEW ccskill AS SELECT {0} FROM calendar_col "
+         "WHERE type={1}".format(
+             ", ".join(Calendar.colnames["calendar_col"]),
+             COL_TYPE["SKILL"]))]
     postlude = [
-        ("CREATE TRIGGER unical_thing BEFORE INSERT ON calendar_col_thing BEGIN "
+        ("CREATE TRIGGER unical_thing BEFORE INSERT ON calendar_col_thing "
+         "BEGIN "
          "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
          "(NEW.window, NEW.calendar, NEW.idx, {0}); "
          "END".format(COL_TYPE["THING"])),
@@ -634,7 +645,8 @@ class CalendarCol:
          "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
          "(NEW.window, NEW.calendar, NEW.idx, {0}); "
          "END".format(COL_TYPE["STAT"])),
-        ("CREATE TRIGGER unical_skill BEFORE INSERT ON calendar_col_skill BEGIN "
+        ("CREATE TRIGGER unical_skill BEFORE INSERT ON calendar_col_skill "
+         "BEGIN "
          "INSERT INTO calendar_col (window, calendar, idx, type) VALUES "
          "(NEW.window, NEW.calendar, NEW.idx, {0}); "
          "END".format(COL_TYPE["SKILL"]))]
@@ -666,7 +678,8 @@ class CalendarCol:
             ("window", "calendar", "idx"),
             {"window, calendar, idx":
              ("ccstat", "window, calendar, idx", "ON DELETE CASCADE"),
-             "character, branch, stat": ("character_skills", "character, branch, stat")},
+             "character, branch, stat":
+             ("character_skills", "character, branch, stat")},
             ["idx>=0"]),
         (
             "calendar_col_skill",
@@ -679,9 +692,11 @@ class CalendarCol:
             ("window", "calendar", "idx"),
             {"window, calendar, idx":
              ("ccskill", "window, calendar, idx", "ON DELETE CASCADE"),
-             "character, branch, skill": ("character_skills", "character, branch, skill")},
+             "character, branch, skill":
+             ("character_skills", "character, branch, skill")},
             ["idx>=0"])]
-    def __init__(self, calendar, character, typ, idx, td):
+
+    def __init__(self, calendar, character, typ, idx):
         self.calendar = calendar
         self.rumor = self.calendar.rumor
         self.batch = self.calendar.batch
@@ -692,29 +707,62 @@ class CalendarCol:
         self.timeline = Timeline(self)
         self.window = self.calendar.window
         self.character = self.rumor.get_character(character)
+        self.character.register_update_handler(self.refresh_char)
         self.idx = idx
         self.typ = typ
+        self._cells = []
+        self.old_schedule_hash = 0
         if self.typ == COL_TYPE["THING"]:
-            self._rowdict = td["calendar_col_thing"][str(self.window)][int(self.calendar)][int(self)]
             if self._rowdict["location"]:
-                self.get_locations = lambda: self.rumor.get_thing(
-                    self._rowdict["dimension"], self._rowdict["thing"]).locations[self.branch]
-        elif self.typ == COL_TYPE["STAT"]:
-            self._rowdict = td["calendar_col_stat"][str(self.window)][int(self.calendar)][int(self)]
-        else:
-            self._rowdict = td["calendar_col_skill"][str(self.window)][int(self.calendar)][int(self)]
+                def glocs():
+                    try:
+                        return self.thing.locations[self._rowdict["branch"]]
+                    except KeyError:
+                        return {}
+                self.get_locations = glocs
         self.vertl = None
-        self.cells = []
         self.refresh()
 
     def __iter__(self):
-        return iter(self.cells)
+        return self.cells
 
     def __getattr__(self, attrn):
-        if attrn == 'dimension' and self.typ == COL_TYPE["THING"]:
-            return self.rumor.get_dimension(self._dimension)
-        elif attrn in self._rowdict:
-            return self._rowdict[attrn]
+        if self.typ == COL_TYPE["THING"]:
+            if attrn == 'dimension':
+                return self.rumor.get_dimension(self._dimension)
+            elif attrn == 'locations':
+                return self.get_locations()
+            elif attrn == '_rowdict':
+                return self.rumor.tabdict[
+                    "calendar_col_thing"][
+                        str(self.window)][
+                            int(self.calendar)][
+                                int(self)]
+        elif self.typ == COL_TYPE["STAT"]:
+            if attrn == "_rowdict":
+                return self.rumor.tabdict[
+                    "calendar_col_stat"][
+                        str(self.window)][
+                            int(self.calendar)][
+                                int(self)]
+        else:
+            if attrn == "_rowdict":
+                return self.rumor.tabdict[
+                    "calendar_col_skill"][
+                        str(self.window)][
+                            int(self.calendar)][
+                                int(self)]
+        if attrn == 'branch':
+            return self._rowdict["branch"]
+        elif attrn == "character":
+            return self.rumor.get_character(self._rowdict["character"])
+        elif attrn == "dimension":
+            return self.rumor.get_dimension(self._rowdict["dimension"])
+        elif attrn == "thing":
+            return self.rumor.get_thing(
+                self._rowdict["dimension"], self._rowdict["thing"])
+        elif attrn == 'cells':
+            return self._cells
         elif hasattr(self.character, attrn):
             return getattr(self.character, attrn)
         elif attrn == 'width':
@@ -753,9 +801,9 @@ class CalendarCol:
         self.regen_cells()
 
     def regen_cells(self):
-        for cell in self.cells:
+        for cell in self._cells:
             cell.delete()
-        self.cells = []
+        self._cells = []
         if self.typ == COL_TYPE["THING"]:
             if hasattr(self, 'get_locations'):
                 scheduledict = self.get_locations()
@@ -764,19 +812,21 @@ class CalendarCol:
                 # the thing
             else:
                 scheduledict = self.thingdict
+            for rd in TabdictIterator(scheduledict):
+                if "location" in rd:
+                    text = rd["location"]
+                else:
+                    text = rd["thing"]
+                self._cells.append(
+                    CalendarCell(self, rd["tick_from"], rd["tick_to"], text))
         elif self.typ == COL_TYPE["STAT"]:
-            scheduledict = self.statdict
-        for (tick_from, val) in scheduledict.iteritems():
-            if isinstance(val, tuple):
-                tick_to = val[-1]
-                text = self.pretty_printer(val[:-1])
-            else:
-                tick_to = val
-                text = "..."
-            self.cells.append(CalendarCell(self, tick_from, tick_to, text))
+            for rd in TabdictIterator(self.statdict):
+                self._cells.append(
+                    CalendarCell(
+                        self, rd["tick_from"], rd["tick_to"], rd["val"]))
 
     def delete(self):
-        for cell in self.cells:
+        for cell in self._cells:
             cell.delete()
         try:
             self.timeline.delete()
@@ -821,7 +871,7 @@ class CalendarCol:
                 [0, 2, 3, 0, 1, 2],
                 ('v2i', points),
                 ('c4B', colors))
-        for cel in self.cells:
+        for cel in self._cells:
             cel.draw()
         if hasattr(self, 'bc'):
             self.bc.draw()
@@ -832,4 +882,5 @@ class CalendarCol:
         else:
             self.timeline.delete()
 
-
+    def refresh_char(self, char):
+        self.refresh()

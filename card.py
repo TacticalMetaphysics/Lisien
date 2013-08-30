@@ -26,20 +26,21 @@ class Card:
                 "effect": ("effect", "name")},
             [])]
 
-    def __init__(self, hand, effect, display_name, image, text):
-        self.hand = hand
-        self.batch = self.hand.batch
-        self.group = self.hand.cardgroup
-        self.rumor = self.hand.rumor
-        self.style = self.hand.style
-        self._display_name = display_name
-        self._effect = str(effect)
-        self.img = image
-        self._text = text
+    def __init__(self, rumor, effect):
+        self.rumor = rumor
+        self.effect = effect
         self.rumor.carddict[str(self)] = self
 
     def __getattr__(self, attrn):
-        if attrn == 'text':
+        if attrn == '_rowdict':
+            return self.rumor.tabdict["card"][str(self.effect)]
+        elif attrn == '_text':
+            return self._rowdict['text']
+        elif attrn == '_display_name':
+            return self._rowdict['display_name']
+        elif attrn in ('image', 'img'):
+            return self.rumor.get_img(self._rowdict['image'])
+        elif attrn == 'text':
             if self._text is None:
                 return ''
             elif self._text[0] == '@':
@@ -53,31 +54,11 @@ class Card:
                 return self._display_name
         elif attrn == 'effect':
             return self.rumor.effectdict[self._effect]
-        elif attrn in ('width', 'height', 'x', 'y'):
-            if not hasattr(self, 'widget'):
-                return 0
-            else:
-                return getattr(self.widget, attrn)
         else:
             raise AttributeError("Card has no attribute {0}".format(attrn))
 
     def __str__(self):
-        return self._effect
-
-    def get_tabdict(self):
-        return {
-            "card": {
-                "display_name": self._display_name,
-                "effect": str(self.effect),
-                "img": str(self.img),
-                "text": self._text,
-                "style": str(self.style)}
-        }
-
-    def get_keydict(self):
-        return {
-            "card": {
-                "name": self.name}}
+        return str(self.effect)
 
 
 class TextHolder:
@@ -131,14 +112,12 @@ class TextHolder:
                 self.cardwidget.old_height != self.cardwidget.height):
             image = self.card.pats.bg_active.create_image(
                 self.width, self.height)
-            bggroup = OrderedGroup(1, group)
             self.sprite = Sprite(
                 image,
                 self.window_left,
                 self.window_bot,
                 batch=self.batch,
                 group=self.group)
-            fggroup = OrderedGroup(2, group)
             self.label = Label(
                 self.card.text,
                 self.style.fontface,
@@ -149,8 +128,8 @@ class TextHolder:
                 width=self.text_width,
                 height=self.text_height,
                 multiline=True,
-                batch=batch,
-                group=fggroup)
+                batch=self.batch,
+                group=self.labelgroup)
         else:
             self.sprite.x = self.window_left
             self.sprite.y = self.window_bot
@@ -335,14 +314,13 @@ class CardWidget:
             except:
                 image = self.card.pats.bg_inactive.create_image(
                     self.width, self.height)
-                bggroup = OrderedGroup(0, group)
                 self.sprite = Sprite(
                     image,
                     self.window_left,
                     self.window_bot,
-                    batch=batch,
-                    group=bggroup)
-            self.textholder.draw(batch, group)
+                    batch=self.batch,
+                    group=self.bggroup)
+            self.textholder.draw()
         else:
             self.delete()
         self.old_width = self.width
@@ -387,22 +365,14 @@ order."""
           "style": ("style", "name")},
          [])]
 
-    def __init__(self, window, deck, left, right, top, bot, style,
-                 visible, interactive):
+    def __init__(self, window, deck):
         self.window = window
+        self.rumor = self.window.rumor
         self.batch = self.window.batch
-        self.cardgroup = OrderedGroup(self.window.hand_order, self.window.cardgroup)
+        self.cardgroup = OrderedGroup(
+            self.window.hand_order, self.window.cardgroup)
         self.window.hand_order += 1
-        self.rumor = window.rumor
         self.deck = deck
-        self.left_prop = left
-        self.right_prop = right
-        self.top_prop = top
-        self.bot_prop = bot
-        self.style = style
-        self.visible = bool(visible)
-        self.interactive = bool(interactive)
-        self.oldstate = None
 
     def __hash__(self):
         return hash(self.get_state_tup())
@@ -411,7 +381,15 @@ order."""
         return HandIterator(self, self.window.carddict)
 
     def __getattr__(self, attrn):
-        if attrn == "board":
+        if attrn == "_rowdict":
+            return self.rumor.tabdict[str(self.window)][str(self.deck)]
+        elif attrn in (
+                "left_prop", "right_prop", "top_prop",
+                "bot_prop", "visible", "interactive"):
+            return self._rowdict[attrn]
+        elif attrn == "style":
+            return self.rumor.get_style(self._rowdict["style"])
+        elif attrn == "board":
             return self.window.board
         elif attrn == "hovered":
             return self.window.hovered is self
@@ -449,7 +427,7 @@ order."""
         return len(self.deck)
 
     def __str__(self):
-        return self.name
+        return str(self.deck)
 
     def _translate_index(self, idx):
         if idx > 0 and idx < len(self):
@@ -496,17 +474,6 @@ order."""
                 card.widget.x = x
                 card.widget.y = windobot
             prev_right = x + card.widget.width
-
-    def get_tabdict(self):
-        return {
-            "hand": [
-                {"window": str(self.window),
-                 "effect_deck": str(self.deck),
-                 "left": self.left_prop,
-                 "right": self.right_prop,
-                 "top": self.top_prop,
-                 "bot": self.bot_prop,
-                 "style": str(self.style)}]}
 
     def overlaps(self, x, y):
         return (

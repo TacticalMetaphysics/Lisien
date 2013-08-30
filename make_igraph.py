@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-import sys, os
+import os
 prefix = os.getcwd()
 os.chdir('igraph-0.6.5')
 os.system('./configure --prefix=' + prefix)
