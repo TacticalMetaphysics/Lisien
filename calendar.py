@@ -18,6 +18,223 @@ between showing various schedules, or even show many in parallel.
 __metaclass__ = SaveableMetaclass
 
 
+class Wedge:
+    """Downward pointing wedge, looks much like the Timeline's Handle
+
+    """
+    def __init__(self, bc, color_tup=(255, 0, 0, 255)):
+        self.bc = bc
+        self.batch = self.bc.batch
+        self.group = self.bc.wedgegroup
+        self.width = self.bc.calendar.style.spacing * 2
+        self.height = int(self.width / phi)
+        self.rx = self.width / 2
+        self.ry = self.height / 2
+        self.color = color_tup
+        self.vertlist = None
+
+    def __getattr__(self, attrn):
+        if attrn == "window_bot":
+            return self.bc.end[1]
+        elif attrn == "window_top":
+            return self.bc.end[1] + self.height
+        elif attrn == "window_left":
+            return self.bc.end[0] - self.rx
+        elif attrn == "window_right":
+            return self.bc.end[0] + self.rx
+        else:
+            raise AttributeError(
+                "Wedge instance has no attribute named {0}".format(
+                    attrn))
+
+    def draw(self):
+        (x, y) = self.bc.end
+        l = x - self.rx
+        c = x
+        r = x + self.rx
+        t = y + self.height
+        b = y
+        points = (
+            c, b,
+            l, t,
+            r, t)
+        colors = self.bc.color * 3
+        try:
+            self.vertlist.vertices = list(points)
+        except AttributeError:
+            self.vertlist = self.batch.add_indexed(
+                3,
+                GL_TRIANGLES,
+                self.group,
+                (0, 1, 2, 0),
+                ('v2i', points),
+                ('c4B', colors))
+
+    def delete(self):
+        try:
+            self.vertlist.delete()
+        except:
+            pass
+        self.vertlist = None
+
+
+class BranchConnector:
+    """Widget to show where a branch branches off another.
+
+    It's an arrow that leads from the tick on one branch where
+    another branches from it, to the start of the latter.
+
+    It operates on the assumption that child branches will always
+    be displayed next to their parents, when they are displayed at
+    all.
+
+    """
+    color = (255, 0, 0, 255)
+
+    def __init__(self, calendar, col1, col2, tick):
+        self.calendar = calendar
+        self.batch = self.calendar.batch
+        self.group = col2.bcgroup
+        self.linegroup = self.group
+        self.wedgegroup = self.group
+        self.col1 = col1
+        self.col2 = col2
+        self.tick = tick
+        self.wedge = Wedge(self)
+        self.space = self.calendar.style.spacing * 2
+
+    def __getattr__(self, attrn):
+        if attrn == "startx":
+            if self.col1.window_left < self.col2.window_left:
+                return self.col1.window_right - self.calendar.style.spacing
+            else:
+                return self.col1.window_left - self.calendar.style.spacing
+        elif attrn == "endx":
+            return self.col2.window_left + self.col2.rx
+        elif attrn == "starty":
+            return (
+                self.col1.window_top -
+                self.calendar.row_height * (
+                    self.tick - self.calendar.scrolled_to))
+        elif attrn == "endy":
+            return (
+                self.col2.window_top -
+                self.calendar.row_height * (
+                    self.tick - self.calendar.scrolled_to))
+        elif attrn == "centerx":
+            if self.col1.window_left < self.col2.window_left:
+                return (self.col1.window_right +
+                        self.calendar.style.spacing / 2)
+            else:
+                return (self.col2.window_right +
+                        self.calendar.style.spacing / 2)
+        elif attrn == "points":
+            x0 = self.startx
+            y = self.starty
+            x2 = self.centerx
+            x5 = self.endx
+            return (
+                x0, y,
+                x2, y,
+                x2, y + self.space,
+                x5, y + self.space,
+                x5, y)
+        elif attrn == "start":
+            return (
+                self.startx,
+                self.starty)
+        elif attrn == "end":
+            return (
+                self.endx,
+                self.endy)
+        else:
+            raise AttributeError(
+                "BranchConnector has no attribute named {0}".format(attrn))
+
+    def draw(self):
+        points = self.points
+        try:
+            self.vertlist.vertices = list(points)
+        except AttributeError:
+            colors = self.color * 5
+            self.vertlist = self.batch.add_indexed(
+                5,
+                GL_LINES,
+                self.linegroup,
+                (0, 1, 1, 2, 2, 3, 3, 4),
+                ('v2i', points),
+                ('c4B', colors))
+        self.wedge.draw()
+
+    def delete(self):
+        try:
+            self.vertlist.delete()
+        except:
+            pass
+        self.vertlist = None
+        self.wedge.delete()
+
+
+class Handle:
+    """The thing on the timeline that you grab to move"""
+    def __init__(self, timeline, handle_side):
+        self.timeline = timeline
+        self.on_the_left = handle_side == "left"
+        self.vertlist = None
+        self.width = self.timeline.cal.style.spacing * 2
+        self.height = int(self.width * phi)
+        self.rx = self.width / 2
+        self.ry = self.height / 2
+
+    def __getattr__(self, attrn):
+        if attrn in ("y", "window_y"):
+            return getattr(self.timeline, attrn)
+        elif attrn == "window_left":
+            if self.on_the_left:
+                return self.timeline.window_left - self.width
+            else:
+                return self.timeline.window_right
+        elif attrn == "window_right":
+            if self.on_the_left:
+                return self.timeline.window_left + 1
+            else:
+                return self.timeline.window_right + self.width - 1
+        elif attrn == "window_top":
+            return self.y + self.ry
+        elif attrn == "window_bot":
+            return self.y - self.ry
+        else:
+            raise AttributeError(
+                "Handle instance has no attribute " + attrn)
+
+    def delete(self):
+        try:
+            self.vertlist.delete()
+        except:
+            pass
+        self.vertlist = None
+
+    def draw(self):
+        batch = self.timeline.batch
+        group = self.timeline.col.tlgroup
+        colors = self.timeline.color * 3
+        points = (
+            self.window_right, self.y,
+            self.window_left, self.window_bot,
+            self.window_left, self.window_top)
+        try:
+            self.vertlist.vertices = list(points)
+            self.vertlist.colors = list(colors)
+        except AttributeError:
+            self.vertlist = batch.add_indexed(
+                3,
+                GL_TRIANGLES,
+                group,
+                (0, 1, 2, 0),
+                ('v2i', points),
+                ('c4B', colors))
+
+
 class Timeline:
     """A line that goes on top of a CalendarCol to indicate what time it
 is.
@@ -29,72 +246,13 @@ for the handle_side keyword argument.
     """
     color = (255, 0, 0, 255)
 
-    class Handle:
-        """The handle widget."""
-        def __init__(self, timeline, handle_side):
-            self.timeline = timeline
-            self.on_the_left = handle_side == "left"
-            self.vertlist = None
-            self.width = self.timeline.cal.style.spacing * 2
-            self.height = int(self.width * phi)
-            self.rx = self.width / 2
-            self.ry = self.height / 2
-
-        def __getattr__(self, attrn):
-            if attrn in ("y", "window_y"):
-                return getattr(self.timeline, attrn)
-            elif attrn == "window_left":
-                if self.on_the_left:
-                    return self.timeline.window_left - self.width
-                else:
-                    return self.timeline.window_right
-            elif attrn == "window_right":
-                if self.on_the_left:
-                    return self.timeline.window_left + 1
-                else:
-                    return self.timeline.window_right + self.width - 1
-            elif attrn == "window_top":
-                return self.y + self.ry
-            elif attrn == "window_bot":
-                return self.y - self.ry
-            else:
-                raise AttributeError(
-                    "Handle instance has no attribute " + attrn)
-
-        def delete(self):
-            try:
-                self.vertlist.delete()
-            except:
-                pass
-            self.vertlist = None
-
-        def draw(self):
-            batch = self.timeline.batch
-            group = self.timeline.col.tlgroup
-            colors = self.timeline.color * 3
-            points = (
-                self.window_right, self.y,
-                self.window_left, self.window_bot,
-                self.window_left, self.window_top)
-            try:
-                self.vertlist.vertices = list(points)
-                self.vertlist.colors = list(colors)
-            except AttributeError:
-                self.vertlist = batch.add_indexed(
-                    3,
-                    GL_TRIANGLES,
-                    group,
-                    (0, 1, 2, 0),
-                    ('v2i', points),
-                    ('c4B', colors))
-
     def __init__(self, col, handle_side="left"):
         self.col = col
         self.cal = self.col.calendar
         self.batch = self.col.batch
         self.window = self.cal.window
         self.rumor = self.col.rumor
-        self.handle = Timeline.Handle(self, handle_side)
+        self.handle = Handle(self, handle_side)
         self.vertlist = None
 
     def __getattr__(self, attrn):
@@ -171,9 +329,13 @@ represents to calculate its dimensions and coordinates.
 
     def __len__(self):
         if self.tick_to is None:
-            return self.cal.height - self.tick_from
+            r = self.cal.height - self.tick_from
         else:
-            return self.tick_to - self.tick_from
+            r = self.tick_to - self.tick_from
+        if r < 0:
+            return 0
+        else:
+            return r
 
     def __getattr__(self, attrn):
         if attrn == 'interactive':
@@ -209,6 +371,11 @@ represents to calculate its dimensions and coordinates.
             return self.style.fontsize + self.style.spacing
         elif attrn == 'hovered':
             return self is self.window.hovered
+        elif attrn == 'state':
+            return (
+                self.tick_from,
+                self.tick_to,
+                self.text)
         else:
             raise AttributeError(
                 "CalendarCell instance has no such attribute: " +
@@ -317,161 +484,6 @@ schedule, possibly several.
             )])]
     visible = True
 
-    class BranchConnector:
-        """Widget to show where a branch branches off another.
-
-        It's an arrow that leads from the tick on one branch where
-        another branches from it, to the start of the latter.
-
-        It operates on the assumption that child branches will always
-        be displayed next to their parents, when they are displayed at
-        all.
-
-        """
-        color = (255, 0, 0, 255)
-
-        class Wedge:
-            """Downward pointing wedge, looks much like the Timeline's Handle
-
-            """
-            def __init__(self, bc, color_tup=(255, 0, 0, 255)):
-                self.bc = bc
-                self.batch = self.bc.batch
-                self.group = self.bc.wedgegroup
-                self.width = self.bc.calendar.style.spacing * 2
-                self.height = int(self.width / phi)
-                self.rx = self.width / 2
-                self.ry = self.height / 2
-                self.color = color_tup
-                self.vertlist = None
-
-            def __getattr__(self, attrn):
-                if attrn == "window_bot":
-                    return self.bc.end[1]
-                elif attrn == "window_top":
-                    return self.bc.end[1] + self.height
-                elif attrn == "window_left":
-                    return self.bc.end[0] - self.rx
-                elif attrn == "window_right":
-                    return self.bc.end[0] + self.rx
-                else:
-                    raise AttributeError(
-                        "Wedge instance has no attribute named {0}".format(
-                            attrn))
-
-            def draw(self):
-                (x, y) = self.bc.end
-                l = x - self.rx
-                c = x
-                r = x + self.rx
-                t = y + self.height
-                b = y
-                points = (
-                    c, b,
-                    l, t,
-                    r, t)
-                colors = self.bc.color * 3
-                try:
-                    self.vertlist.vertices = list(points)
-                except AttributeError:
-                    self.vertlist = self.batch.add_indexed(
-                        3,
-                        GL_TRIANGLES,
-                        self.group,
-                        (0, 1, 2, 0),
-                        ('v2i', points),
-                        ('c4B', colors))
-
-            def delete(self):
-                try:
-                    self.vertlist.delete()
-                except:
-                    pass
-                self.vertlist = None
-
-        def __init__(self, calendar, col1, col2, tick):
-            self.calendar = calendar
-            self.batch = self.calendar.batch
-            self.group = OrderedGroup(3, self.calendar.group)
-            self.linegroup = OrderedGroup(0, self.group)
-            self.wedgegroup = OrderedGroup(1, self.group)
-            self.col1 = col1
-            self.col2 = col2
-            self.tick = tick
-            self.wedge = self.__class__.Wedge(self)
-            self.space = self.calendar.style.spacing * 2
-
-        def __getattr__(self, attrn):
-            if attrn == "startx":
-                if self.col1.window_left < self.col2.window_left:
-                    return self.col1.window_right - self.calendar.style.spacing
-                else:
-                    return self.col1.window_left - self.calendar.style.spacing
-            elif attrn == "endx":
-                return self.col2.window_left + self.col2.rx
-            elif attrn == "starty":
-                return (
-                    self.col1.window_top -
-                    self.calendar.row_height * (
-                        self.tick - self.calendar.scrolled_to))
-            elif attrn == "endy":
-                return (
-                    self.col2.window_top -
-                    self.calendar.row_height * (
-                        self.tick - self.calendar.scrolled_to))
-            elif attrn == "centerx":
-                if self.col1.window_left < self.col2.window_left:
-                    return (self.col1.window_right +
-                            self.calendar.style.spacing / 2)
-                else:
-                    return (self.col2.window_right +
-                            self.calendar.style.spacing / 2)
-            elif attrn == "points":
-                x0 = self.startx
-                y = self.starty
-                x2 = self.centerx
-                x5 = self.endx
-                return (
-                    x0, y,
-                    x2, y,
-                    x2, y + self.space,
-                    x5, y + self.space,
-                    x5, y)
-            elif attrn == "start":
-                return (
-                    self.startx,
-                    self.starty)
-            elif attrn == "end":
-                return (
-                    self.endx,
-                    self.endy)
-            else:
-                raise AttributeError(
-                    "BranchConnector has no attribute named {0}".format(attrn))
-
-        def draw(self):
-            points = self.points
-            try:
-                self.vertlist.vertices = list(points)
-            except AttributeError:
-                colors = self.color * 5
-                self.vertlist = self.batch.add_indexed(
-                    5,
-                    GL_LINES,
-                    self.linegroup,
-                    (0, 1, 1, 2, 2, 3, 3, 4),
-                    ('v2i', points),
-                    ('c4B', colors))
-            self.wedge.draw()
-
-        def delete(self):
-            try:
-                self.vertlist.delete()
-            except:
-                pass
-            self.vertlist = None
-            self.wedge.delete()
-
     def __init__(self, window, idx):
         self.window = window
         self.rumor = self.window.rumor
@@ -480,6 +492,7 @@ schedule, possibly several.
         self.group = self.window.calgroup
         self.cols = []
         self.add_thing_cols()
+        self.old_state = None
 
     def __iter__(self):
         return iter(self.cols)
@@ -535,6 +548,19 @@ schedule, possibly several.
             return self._visible and len(self.cols) > 0
         elif attrn == 'interactive':
             return self._interactive
+        elif attrn == 'state':
+            return (
+                self.rows_shown,
+                self.scrolled_to,
+                self.top_prop,
+                self.bot_prop,
+                self.left_prop,
+                self.right_prop,
+                self.window.width,
+                self.window.height,
+                self.rumor.branch,
+                self.rumor.tick,
+                tuple([col.state for col in self.cols]))
         else:
             raise AttributeError(
                 "Calendar instance has no such attribute: " +
@@ -606,7 +632,7 @@ schedule, possibly several.
                     col2 is not None and
                     tick_from > self.scrolled_to and
                     tick_to < self.scrolled_to + self.rows_shown):
-                col1.bc = Calendar.BranchConnector(
+                col1.bc = BranchConnector(
                     self, col2, col1, tick_from)
             col1.regen_cells()
 
@@ -704,6 +730,7 @@ class CalendarCol:
         self.bggroup = OrderedGroup(0, self.calendar.group)
         self.cellgroup = OrderedGroup(1, self.calendar.group)
         self.tlgroup = OrderedGroup(2, self.calendar.group)
+        self.bcgroup = OrderedGroup(3, self.calendar.group)
         self.timeline = Timeline(self)
         self.window = self.calendar.window
         self.character = self.rumor.get_character(character)
@@ -789,6 +816,9 @@ class CalendarCol:
             return self.calendar.window_top
         elif attrn == 'window_bot':
             return self.calendar.window_bot
+        elif attrn == 'state':
+            return tuple(
+                [cel.state for cel in self._cells])
         else:
             raise AttributeError(
                 "CalendarCol instance has no such attribute: " +

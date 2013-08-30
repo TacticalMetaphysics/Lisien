@@ -243,7 +243,6 @@ class Spot(TerminableImg, TerminableInteractivity):
         return None
 
     def set_coords(self, x, y, branch=None, tick_from=None, tick_to=None):
-        print "spot coords set to {0}, {1}".format(x, y)
         if branch is None:
             branch = self.rumor.branch
         if tick_from is None:
@@ -299,13 +298,13 @@ class SpotWidget:
     def __init__(self, viewport, spot):
         self.viewport = viewport
         self.window = self.viewport.window
-        self.supergroup = OrderedGroup(0, self.viewport.spotgroup)
-        self.spritegroup = OrderedGroup(0, self.supergroup)
-        self.boxgroup = OrderedGroup(1, self.supergroup)
+        self.spritegroup = self.viewport.spotgroup
+        self.boxgroup = self.viewport.spotgroup
         self.batch = self.viewport.batch
         self.spot = spot
         self.sprite = None
         self.vertlist = None
+        self.old_state = None
 
     def __str__(self):
         return str(self.spot)
@@ -343,6 +342,14 @@ class SpotWidget:
             return self is self.viewport.window.pressed
         elif attrn == "grabbed":
             return self is self.window.grabbed
+        elif attrn == "state":
+            return (
+                self.spot.coords,
+                self.viewport.window_left,
+                self.viewport.window_bot,
+                self.viewport.view_left,
+                self.viewport.view_bot,
+                self.selected)
         elif attrn in ("place", "img", "board", "vert",
                        "visible", "interactive", "board_left",
                        "board_right", "board_top", "board_bot"):

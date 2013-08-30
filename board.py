@@ -325,8 +325,17 @@ class BoardViewport:
                 batch=self.batch,
                 group=self.bggroup)
         for spot in self.spots:
-            spot.draw()
+            new_state = spot.state
+            if new_state != spot.old_state:
+                spot.draw()
+                spot.old_state = new_state
         for pawn in self.pawns:
-            pawn.draw()
+            new_state = pawn.state
+            if new_state != pawn.old_state:
+                pawn.draw()
+                pawn.old_state = new_state
         for arrow in self.arrows:
-            arrow.draw()
+            new_state = arrow.state
+            if new_state != arrow.old_state:
+                arrow.draw()
+                arrow.old_state = new_state

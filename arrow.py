@@ -180,6 +180,7 @@ class ArrowWidget:
             0, self.viewport.arrowgroup, self.viewport.arrow_width)
         self.fggroup = BoldLineOrderedGroup(
             1, self.viewport.arrowgroup, self.viewport.arrow_width)
+        self.old_state = None
 
     def __getattr__(self, attrn):
         if attrn == "board_left":
@@ -243,6 +244,14 @@ class ArrowWidget:
             return (ab[0] + self.viewport.offset_x * ab[1], ab[1])
         elif attrn == "width":
             return self.viewport.arrow_width
+        elif attrn == "state":
+            return (
+                self.viewport.window_left,
+                self.viewport.window_bot,
+                self.viewport.view_left,
+                self.viewport.view_bot,
+                self.orig.spot.coords,
+                self.dest.spot.coords)
         elif attrn in (
                 "rise", "run", "length", "m", "slope",
                 "center_shrink", "portal", "e"):

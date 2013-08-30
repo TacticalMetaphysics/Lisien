@@ -333,7 +333,10 @@ class GameWindow(pyglet.window.Window):
             menu.draw()
         for calendar in self.calendars:
             if calendar is not None:
-                calendar.draw()
+                new_state = calendar.state
+                if new_state != calendar.old_state:
+                    calendar.draw()
+                    calendar.old_state = new_state
         for hand in self.hands:
             hand.draw()
         for viewport in self.viewports:

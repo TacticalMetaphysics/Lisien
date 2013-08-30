@@ -50,7 +50,6 @@ class Pawn(TerminableImg, TerminableInteractivity):
          {"dimension, board": ("board", "dimension, i"),
           "dimension, thing": ("thing_location", "dimension, name")},
          [])]
-    loaded_keys = set()
 
     def __init__(self, rumor, dimension, board, thing):
         """Return a pawn on the board for the given dimension, representing
@@ -58,13 +57,6 @@ the given thing with the given image. It may be visible or not,
 interactive or not.
 
         """
-        dimn = str(dimension)
-        boardi = int(board)
-        thingn = str(thing)
-        if (dimn, boardi, thingn) in Pawn.loaded_keys:
-            raise LoadError("Pawn already loaded: {0}[{1}].{2}".format(dimn, boardi, thingn))
-        else:
-            Pawn.loaded_keys.add((dimn, boardi, thingn))
         self.rumor = rumor
         self.dimension = dimension
         self.board = board
@@ -110,7 +102,10 @@ interactive or not.
         elif attrn == 'visible':
             return self.img is not None
         elif attrn == 'coords':
-            (x, y) = self.get_coords()
+            try:
+                (x, y) = self.get_coords()
+            except TypeError:
+                return None
             locn = str(self.thing.location)
             if locn in self.board.spotdict:
                 spot = self.board.spotdict[locn]
@@ -208,8 +203,6 @@ interactive or not.
     def get_coords(self, branch=None, tick=None):
         loc = self.thing.get_location(branch, tick)
         if loc is None:
-            import pdb
-            pdb.set_trace()
             return None
         if hasattr(loc, 'dest'):
             origspot = self.board.get_spot(loc.orig)
@@ -245,10 +238,11 @@ class PawnWidget:
         self.rumor = self.pawn.rumor
         self.viewport = viewport
         self.batch = self.viewport.batch
-        self.spritegroup = OrderedGroup(0, self.viewport.pawngroup)
-        self.boxgroup = OrderedGroup(1, self.viewport.pawngroup)
+        self.spritegroup = self.viewport.pawngroup
+        self.boxgroup = self.viewport.pawngroup
         self.window = self.viewport.window
         self.calcol = None
+        self.old_state = None
 
     def __getattr__(self, attrn):
         if attrn == "board_left":
@@ -289,6 +283,14 @@ class PawnWidget:
                 self.viewport_left < self.viewport.width and
                 self.viewport_top > 0 and
                 self.viewport_bot < self.viewport.height)
+        elif attrn == "state":
+            return (
+                str(self.pawn.img),
+                self.pawn.get_coords(),
+                self.viewport.view_left,
+                self.viewport.view_bot,
+                self.viewport.window_left,
+                self.viewport.window_bot)
         elif attrn in (
                 "img", "visible", "interactive",
                 "width", "height", "thing"):
@@ -340,7 +342,7 @@ If it DOES have anything else to do, make the journey in another branch.
 
     def draw(self):
         if (
-                None in (self.viewport_left, self.viewport_bot) or
+                self.pawn.get_coords() is None or
                 self.img is None):
             return
         try:

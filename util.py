@@ -4,6 +4,7 @@ import pyglet
 import ctypes
 from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
+from sqlite3 import IntegrityError
 
 logger = getLogger(__name__)
 
@@ -217,7 +218,12 @@ and your table will be ready.
         def insert_rowdicts_table(c, rowdicts, tabname):
             if len(rowdicts) == 0:
                 return []
-            c.execute(*gen_sql_insert(rowdicts, tabname))
+            try:
+                c.execute(*gen_sql_insert(rowdicts, tabname))
+            except IntegrityError:
+                print gen_sql_insert(rowdicts, tabname)
+                import pdb
+                pdb.set_trace()
             return []
 
         def gen_sql_delete(keydicts, tabname):
@@ -344,6 +350,8 @@ and your table will be ready.
                         ands.append(keyn + "=?")
                         vals.append(row[keyn])
                     ors.append("(" + " AND ".join(ands) + ")")
+                if len(vals) == 0:
+                    return
                 qrystr = qryfmt.format(tabn, " OR ".join(ors))
                 qrytup = tuple(vals)
                 c.execute(qrystr, qrytup)
