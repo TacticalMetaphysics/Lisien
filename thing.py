@@ -57,6 +57,9 @@ too.
             if rd["tick_to"] is None:
                 self.indefinite_locations[rd["branch"]] = rd["tick_from"]
         self.dimension.thingdict[name] = self
+        logger.debug(
+            "Instantiated Thing %s. Its locations are:\n%s",
+            str(self), repr(self.locations))
 
     def __getattr__(self, attrn):
         if attrn == "locations":
@@ -288,8 +291,6 @@ other journey I may be on at the time."""
         if tick is None:
             tick = self.rumor.tick
         loc = self.get_location(branch, tick)
-        print "{0} journeys from {1} to {2}".format(
-            str(self), str(loc), str(destplace))
         ipath = self.dimension.graph.get_shortest_paths(
             str(loc), to=str(destplace), output="epath")
         path = None
@@ -306,9 +307,12 @@ other journey I may be on at the time."""
             tick_out = self.get_ticks_thru(port) + prevtick
             self.set_location(port, int(branch), int(prevtick), int(tick_out))
             prevtick = tick_out + 1
-        print "{0} will arrive at {1} at tick {2}.".format(
-            str(self), str(destplace), int(prevtick))
         self.set_location(destplace, int(branch), int(prevtick))
+        logger.debug(
+            "Thing %s found a path from %s to %s. It will arrive at tick %d."
+            "Its new location dict is:\n%s",
+            str(self), str(loc), str(destplace), prevtick,
+            repr(self.locations))
         self.update()
 
     def new_branch(self, parent, branch, tick):

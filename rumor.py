@@ -14,6 +14,7 @@ import sqlite3
 import re
 import os
 import igraph
+from copy import deepcopy
 from collections import OrderedDict, defaultdict
 from logging import getLogger
 from dimension import Dimension
@@ -69,21 +70,13 @@ That is, those rowdicts that are in d1, but not in d2.
 Including all layers of keys."""
     # if I'm dealing with rowdicts, return None if they're the same,
     # or d1 if they're different
-    r = None
+    r = dict(d1)
     for (k, v) in d2.iteritems():
         if isinstance(v, dict):
-            if r is None:
-                # This indicates I'm not dealing with a rowdict yet.
-                r = {}
-            try:
-                newv = diffd(d1[k], v)
-                if newv not in (None, {}):
-                    r[k] = newv
-            except KeyError:
-                pass
-        else:
-            if v != d1[k]:
-                return d1
+            if r[k] == v:
+                del r[k]
+            else:
+                r[k] = diffd(r[k], v)
     return r
 
 ONE_ARG_RE = re.compile("(.+)")
@@ -368,9 +361,9 @@ This is game-world time. It doesn't always go forwards.
 
     def save_game(self):
         to_save = diffd(self.tabdict, self.old_tabdict)
-        to_delete = diffd(self.old_tabdict, self.tabdict)
+        logger.debug(
+            "Saving the tabdict:\n%s", repr(to_save))
         for clas in saveable_classes:
-            clas._delete_tabdict(self.c, to_delete)
             clas._delete_tabdict(self.c, to_save)
             clas._insert_tabdict(self.c, to_save)
         self.c.execute("DELETE FROM game")

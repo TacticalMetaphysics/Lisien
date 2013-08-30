@@ -798,7 +798,6 @@ class CalendarCol:
         return self.idx
 
     def refresh(self):
-        print "refreshing CalendarCol {0}".format(int(self))
         self.regen_cells()
 
     def regen_cells(self):

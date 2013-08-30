@@ -346,7 +346,6 @@ class GameWindow(pyglet.window.Window):
         """If there's something already highlit, and the mouse is
 still over it when pressed, it's been half-way clicked; remember this."""
         self.pressed = self.hovered
-        print "pressed {0}".format(repr(self.pressed))
 
     def on_mouse_release(self, x, y, button, modifiers):
         """If something was being dragged, drop it. If something was being
@@ -368,7 +367,6 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                 if hasattr(self.pressed, 'selectable'):
                     if hasattr(self.pressed, 'select'):
                         self.pressed.select()
-                    print "selected {0}".format(repr(self.pressed))
                     self.selected.add(self.pressed)
                     if hasattr(self.pressed, 'reciprocate'):
                         reciprocal = self.pressed.reciprocate()
@@ -424,7 +422,6 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
         if self.portaling:
             if self.portal_from is None:
                 if hasattr(self.pressed, 'place'):
-                    print "portaling from {0}".format(self.pressed)
                     self.portal_from = self.pressed
                     self.floaty_portal.orig = self.portal_from
                     return
@@ -475,7 +472,6 @@ move_with_mouse method, use it.
      """
         if self.grabbed is None:
             self.grabbed = self.pressed
-            print "grabbed {0}".format(self.grabbed)
         elif hasattr(self.grabbed, 'move_with_mouse'):
             self.grabbed.move_with_mouse(x, y, dx, dy, buttons, modifiers)
 

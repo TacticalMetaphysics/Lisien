@@ -32,11 +32,14 @@ for arg in argv:
             print "Couldn't connect to the database named {0}.".format(arg)
     i += 1
 if DEBUG:
-    try:
-        remove(debugfn)
-    except OSError:
-        pass
-    logging.basicConfig(level=logging.DEBUG, filename=debugfn)
+    if debugfn == "":
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        try:
+            remove(debugfn)
+        except OSError:
+            pass
+        logging.basicConfig(level=logging.DEBUG, filename=debugfn)
     logger = logging.getLogger()
 clock = pyglet.clock.Clock()
 pyglet.clock.set_default(clock)
