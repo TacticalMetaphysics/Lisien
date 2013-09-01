@@ -496,85 +496,63 @@ time travel.
     tables = [
         (
             "calendar",
-            {"window": "text not null default 'Main'",
-             "idx": "integer not null default 0",
-             "left": "float not null default 0.8",
-             "right": "float not null default 1.0",
-             "top": "float not null default 1.0",
-             "bot": "float not null default 0.0",
-             "max_cols": "integer not null default 3",
-             "style": "text not null default 'default_style'",
-             "interactive": "boolean not null default 1",
-             "rows_shown": "integer not null default 240",
-             "scrolled_to": "integer default null",
-             "scroll_factor": "integer not null default 4",
-             "type": "integer not null default 0"}
+            {"window": "TEXT NOT NULL DEFAULT 'Main'",
+             "idx": "INTEGER NOT NULL DEFAULT 0",
+             "left": "FLOAT NOT NULL DEFAULT 0.8",
+             "right": "FLOAT NOT NULL DEFAULT 1.0",
+             "top": "FLOAT NOT NULL DEFAULT 1.0",
+             "bot": "FLOAT NOT NULL DEFAULT 0.0",
+             "max_cols": "INTEGER NOT NULL DEFAULT 3",
+             "style": "TEXT NOT NULL DEFAULT 'default_style'",
+             "interactive": "BOOLEAN NOT NULL DEFAULT 1",
+             "rows_shown": "INTEGER NOT NULL DEFAULT 240",
+             "scrolled_to": "INTEGER DEFAULT 0",
+             "scroll_factor": "INTEGER NOT NULL DEFAULT 4",
+             "type": "INTEGER NOT NULL DEFAULT {0}".format(CAL_TYPE['THING']),
+             "character": "TEXT NOT NULL",
+             "dimension": "TEXT DEFAULT NULL",
+             "thing": "TEXT DEFAULT NULL",
+             "thing_show_location": "BOOLEAN DEFAULT 1",
+             "place": "TEXT DEFAULT NULL",
+             "origin": "TEXT DEFAULT NULL",
+             "destination": "TEXT DEFAULT NULL",
+             "skill": "TEXT DEFAULT NULL",
+             "stat": "TEXT DEFAULT NULL"},
             ("window", "idx"),
             {"window": ("window", "name"),
-             "style": ("style", "name")}
+             "style": ("style", "name"),
+             "character, dimension, thing":
+             ("character_things", "character, dimension, thing"),
+             "character, dimension, place":
+             ("character_places", "character, dimension, place"),
+             "character, dimension, origin, destination":
+             ("character_portals",
+              "character, dimension, origin, destination"),
+             "character, skill":
+             ("character_skills", "character, skill"),
+             "character, stat":
+             ("character_stats", "character, stat")},
             ["rows_shown>0", "left>=0.0", "left<=1.0", "right<=1.0",
              "left<right", "top>=0.0", "top<=1.0", "bot>=0.0",
-             "bot<=1.0", "top>bot", "idx>=0"]),
-        ("thing_cal",
-         {"window": "text not null default 'Main'",
-          "idx": "integer not null default 0",
-          "type": "integer not null default {0}".format(COL_TYPE['THING']),
-          "character": "text not null",
-          "dimension": "text not null default 'Physical'",
-          "thing": "text not null",
-          "location": "boolean not null default 1"},
-         ("window", "idx"),
-         {"window, idx, type":
-          ("calendar", "window, idx, type"),
-          "character, dimension, thing":
-          ("character_things", "character, dimension, thing")},
-         ["type={0}".format(COL_TYPE['THING'])]),
-        ("place_cal",
-         {"window": "text not null default 'Main'",
-          "idx": "integer not null default 0",
-          "type": "integer not null default {0}".format(COL_TYPE['PLACE']),
-          "character": "text not null",
-          "dimension": "text not null default 'Physical'",
-          "place": "text not null"},
-         ("window", "idx"),
-         {"window, idx, type":
-          ("calendar", "window, idx, type"),
-          "character, dimension, place":
-          ("character_places", "character, dimension, place")},
-         ["type={0}".format(COL_TYPE['PLACE'])]),
-        ("port_cal",
-         {"window": "text not null default 'Main'",
-          "idx": "integer not null default 0",
-          "type": "integer not null default {0}".format(COL_TYPE['PORTAL']),
-          "character": "text not null",
-          "dimension": "text not null default 'Physical'",
-          "origin": "text not null",
-          "destination": "text not null"},
-         ("window", "idx"),
-         {"window, idx, type": ("calendar", "window, idx, type"),
-          "character, dimension, origin, destination":
-          ("character_portals", "character, dimension, origin, destination")},
-         ["type={0}".format(COL_TYPE['PORTAL'])]),
-        ("skill_cal",
-         {"window": "text not null default 'Main'",
-          "idx": "integer not null default 0",
-          "type": "integer not null default {0}".format(COL_TYPE['SKILL']),
-          "character": "text not null",
-          "skill": "text not null"},
-         ("window", "idx"),
-         {"window, idx, type": ("calendar", "window, idx, type"),
-          "character, skill": ("character_skills", "character, skill")},
-         ["type={0}".format(COL_TYPE['SKILL'])]),
-        ("stat_cal",
-         {"window": "text not null default 'Main'",
-          "idx": "integer not null default 0",
-          "type": "integer not null default {0}".format(COL_TYPE['STAT']),
-          "character": "text not null",
-          "stat": "text not null"},
-         ("window", "idx"),
-         {"window, idx, type, character": ("calendar", "window, idx, type, character"),
-          "character, stat": ("character_stats", "character, stat")},
-         ["type={0}".format(COL_TYPE['STAT'])])]
+             "bot<=1.0", "top>bot", "idx>=0",
+             "CASE type "
+             "WHEN {0} THEN (dimension NOTNULL AND thing NOTNULL) "
+             "WHEN {1} THEN (dimension NOTNULL AND place NOTNULL) "
+             "WHEN {2} THEN "
+             "(dimension NOTNULL AND "
+             "origin NOTNULL AND "
+             "destination NOTNULL) "
+             "WHEN {3} THEN skill NOTNULL "
+             "WHEN {4} THEN stat NOTNULL "
+             "ELSE 0 "
+             "END".format(
+                 CAL_TYPE['THING'],
+                 CAL_TYPE['PLACE'],
+                 CAL_TYPE['PORTAL'],
+                 CAL_TYPE['SKILL'],
+                 CAL_TYPE['STAT'])]
+        )]
+        
     visible = True
 
     def __init__(self, window, idx):
@@ -599,8 +577,14 @@ time travel.
     def __getattr__(self, attrn):
         if attrn == "_rowdict":
             return self.rumor.tabdict["calendar"][str(self.window)][int(self)]
-        elif attrn in ("typ",):
+        elif attrn in (
+                "interactive",
+                "rows_shown",
+                "scroll_factor",
+                "max_cols"):
             return self._rowdict[attrn]
+        elif attrn == "typ":
+            return self._rowdict["type"]
         elif attrn == "character":
             return self.rumor.characterdict[self._rowdict["character"]]
         elif attrn == "left_prop":
@@ -621,14 +605,6 @@ time travel.
             return self.top_tick + self.rows_shown
         elif attrn == "style":
             return self.rumor.get_style(self._rowdict["style"])
-        if attrn == "typ":
-            return self._rowdict["typ"]
-        elif attrn in (
-                "interactive",
-                "rows_shown",
-                "scroll_factor",
-                "max_cols"):
-            return self._rowdict[attrn]
         elif attrn == 'window_top':
             return int(self.top_prop * self.window.height)
         elif attrn == 'window_bot':
@@ -649,19 +625,47 @@ time travel.
             return self._visible and len(self.cols) > 0
         elif attrn == 'interactive':
             return self._interactive
-        elif attrn == 'state':
-            return (
-                self.rows_shown,
-                self.scrolled_to,
-                self.top_prop,
-                self.bot_prop,
-                self.left_prop,
-                self.right_prop,
-                self.window.width,
-                self.window.height,
-                self.rumor.branch,
-                self.rumor.tick,
-                tuple([col.state for col in self.cols]))
+        elif self.typ == CAL_TYPE['THING']:
+            if attrn == 'thing_show_location':
+                return self._rowdict['thing_show_location']
+            elif attrn == 'location_dict' and self.thing_show_location:
+                return self.rumor.tabdict[
+                    "thing_location"][
+                        self._rowdict["dimension"]][
+                            self._rowdict["thing"]]
+            elif attrn == 'coverage_dict':
+                return self.rumor.tabdict[
+                    "character_things"][
+                        self._rowdict["character"]][
+                            self._rowdict["dimension"]][
+                                self._rowdict["thing"]]
+        elif self.typ == CAL_TYPE['PLACE']:
+            if attrn == 'coverage_dict':
+                return self.rumor.tabdict[
+                    "character_places"][
+                        self._rowdict["character"]][
+                            self._rowdict["dimension"]][
+                                self._rowdict["place"]]
+        elif self.typ == CAL_TYPE['PORTAL']:
+            if attrn == 'coverage_dict':
+                charn = self._rowdict["character"]
+                dimn = self._rowdict["dimension"]
+                orign = self._rowdict["origin"]
+                destn = self._rowdict["destination"]
+                return self.rumor.tabdict[
+                    "character_portals"][charn][dimn][orign][destn]
+        elif self.typ == CAL_TYPE['SKILL']:
+            if attrn == 'coverage_dict':
+                return self.rumor.tabdict[
+                    "character_skills"][
+                        self._rowdict["character"]][
+                            self._rowdict["skill"]]
+        elif self.typ == CAL_TYPE['STAT']:
+            if attrn == 'coverage_dict':
+                return self.rumor.tabdict[
+                    "character_stats"][
+                        self._rowdict["character"]][
+                            self._rowdict["stat"]]
         else:
             raise AttributeError(
                 "Calendar instance has no such attribute: " +
@@ -675,22 +679,6 @@ time travel.
 
     def __int__(self):
         return self.idx
-
-    def get_tabdict(self):
-        return {
-            "calendar": [
-                {
-                    "window": str(self.window),
-                    "i": self.i,
-                    "left": self.left_prop,
-                    "right": self.right_prop,
-                    "top": self.top_prop,
-                    "bot": self.bot_prop,
-                    "style": str(self.style),
-                    "interactive": self.interactive,
-                    "rows_shown": self.rows_shown,
-                    "scrolled_to": self.scrolled_to,
-                    "scroll_factor": self.scroll_factor}]}
 
     def overlaps(self, x, y):
         return (
