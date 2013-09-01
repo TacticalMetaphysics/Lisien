@@ -27,25 +27,29 @@ saving the path.
          {},
          [])]
 
-    def __init__(self, rumor, name, path, rltile):
+    def __init__(self, rumor, name):
         """Return an Img, and register it with the imgdict of the database
 provided."""
-        self.name = name
-        self.path = path
-        self.rltile = rltile
-        if rltile:
-            self.tex = load_rltile(path)
-        else:
-            self.tex = load_regular_img(path)
         self.rumor = rumor
+        self._name = name
+        if self.rltile:
+            self.tex = load_rltile(self.path)
+        else:
+            self.tex = load_regular_img(self.path)
         self.rumor.imgdict[str(self)] = self
 
     def __str__(self):
-        return self.name
+        return self._name
 
     def __getattr__(self, attrn):
-        if attrn == 'center':
-            return (self.tex.width/2, self.tex.height/2)
+        if attrn == "_rowdict":
+            return self.rumor.tabdict["img"][str(self)]
+        elif attrn == "path":
+            return self._rowdict["path"]
+        elif attrn == "rltile":
+            return self._rowdict["rltile"]
+        elif attrn == 'center':
+            return (self.tex.width / 2, self.tex.height / 2)
         elif attrn == 'texture':
             return self.tex
         elif attrn == 'width':

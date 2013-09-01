@@ -12,30 +12,27 @@ SQL. That's in util.py, the class SaveableMetaclass.
 
 import sqlite3
 import re
+import os
 import igraph
-import effect
+from copy import deepcopy
+from collections import OrderedDict, defaultdict
+from logging import getLogger
 from dimension import Dimension
 from spot import Spot
 from pawn import Pawn
-from arrow import Arrow
 from board import Board, BoardViewport
-from card import Card, Hand
-from calendar import Calendar
+from card import Card
 from effect import Effect, EffectDeck
 from img import Img
-from menu import Menu, MenuItem
 from style import Style, Color
 from timestream import Timestream, TimestreamException
 from gui import GameWindow
-from collections import OrderedDict, defaultdict
-from logging import getLogger
 from util import (
     dictify_row,
-    colnames,
-    colnamestr,
-    stringlike,
-    LoadError,
-    TabdictIterator)
+    TabdictIterator,
+    schemata,
+    saveables,
+    saveable_classes)
 from portal import Portal
 from thing import Thing
 from character import Character
@@ -47,6 +44,42 @@ logger = getLogger(__name__)
 def noop(*args, **kwargs):
     """Do nothing."""
     pass
+
+
+def dd():
+    return defaultdict(dd)
+
+
+def updd(d1, d2):
+    """Deep update"""
+    for (k, v) in d2.iteritems():
+        if k not in d1:
+            d1[k] = v
+        elif isinstance(v, dict):
+            assert isinstance(d1[k], dict)
+            updd(d1[k], v)
+        else:
+            d1[k] = v
+
+
+def diffd(d1, d2):
+    """Returns the 'set difference' of the given tabdicts.
+
+That is, those rowdicts that are in d1, but not in d2.
+
+Including all layers of keys."""
+    # if I'm dealing with rowdicts, return None if they're the same,
+    # or d1 if they're different
+    r = dict(d1)
+    for (k, v) in d2.iteritems():
+        if isinstance(v, dict):
+            if k not in r:
+                continue
+            elif r[k] == v:
+                del r[k]
+            else:
+                r[k] = diffd(r[k], v)
+    return r
 
 ONE_ARG_RE = re.compile("(.+)")
 TWO_ARG_RE = re.compile("(.+), ?(.+)")
@@ -61,84 +94,6 @@ MAKE_THING_ARG_RE = re.compile(
     "(.+)\.(.+)@(.+)")
 PORTAL_NAME_RE = re.compile(
     "Portal\((.+)->(.+)\)")
-READ_IMGS_QRYFMT = (
-    "SELECT {0} FROM img WHERE name IN ({1})".format(
-        colnamestr["img"], "{0}"))
-LOAD_CARDS_QRYFMT = (
-    "SELECT {0} FROM card WHERE effect IN ({1})".format(
-        colnamestr["card"], "{0}"))
-BOARD_QRYFMT = (
-    "SELECT {0} FROM board WHERE dimension=? AND idx=?".format(
-        colnamestr["board"]))
-BOARD_VIEWPORTS_QRYFMT = (
-    "SELECT {0} FROM board_viewport WHERE "
-    "window=? AND dimension=? AND board=?".format(
-        colnamestr["board_viewport"]))
-BOARD_VIEWPORT_WINDOW_QRYFMT = (
-    "SELECT {0} FROM board_viewport WHERE window=?".format(
-        colnamestr["board_viewport"]))
-COLOR_QRYFMT = (
-    "SELECT {0} FROM color WHERE name IN ({1})".format(colnamestr["color"], "{0}"))
-STYLE_QRYFMT = (
-    "SELECT {0} FROM style WHERE name IN ({1})".format(colnamestr["style"], "{0}"))
-MENU_NAME_QRYFMT = (
-    "SELECT {0} FROM menu WHERE name IN ({1})".format(colnamestr["menu"], "{0}"))
-MENU_WINDOW_QRYFMT = (
-    "SELECT {0} FROM menu WHERE window=?".format(colnamestr["menu"]))
-MENU_ITEM_MENU_QRYFMT = (
-    "SELECT {0} FROM menu_item WHERE menu IN ({1})".format(
-        colnamestr["menu_item"], "{0}"))
-MENU_ITEM_WINDOW_QRYFMT = (
-    "SELECT {0} FROM menu_item WHERE window=?".format(colnamestr["menu_item"]))
-CALENDAR_WINDOW_QRYFMT = (
-    "SELECT {0} FROM calendar WHERE window=? ORDER BY idx".format(
-        colnamestr["calendar"]))
-WINDOW_QRYFMT = (
-    "SELECT {0} FROM window WHERE name=?".format(GameWindow.colnstr))
-EFFECT_QRYFMT = (
-    "SELECT {0} FROM effect WHERE name IN ({1})".format(
-        colnamestr["effect"], "{0}"))
-EFFECT_DECK_QRYFMT = (
-    "SELECT {0} FROM effect_deck WHERE name IN ({1})".format(
-        colnamestr["effect_deck"], "{0}"))
-EFFECT_IN_DECK_QRYFMT = (
-    "SELECT {0} FROM effect WHERE name IN "
-    "(SELECT effect FROM effect_deck_link WHERE deck=?)".format(
-        colnamestr["effect"]))
-CARD_IN_DECK_QRYFMT = (
-    "SELECT {0} FROM card WHERE effect IN "
-    "(SELECT effect FROM effect_deck_link WHERE deck=?)".format(
-        colnamestr["card"]))
-HAND_WINDOW_QRYFMT = (
-    "SELECT {0} FROM hand WHERE window=?".format(colnamestr["hand"]))
-PORT_DIM_QRYFMT = (
-    "SELECT {0} FROM portal WHERE dimension=?".format(colnamestr["portal"]))
-THING_LOC_QRYFMT = (
-    "SELECT {0} FROM thing_location WHERE dimension=?".format(colnamestr["thing_location"]))
-SPOT_BOARD_COORD_QRYFMT = (
-    "SELECT {0} FROM spot_coords WHERE dimension=? AND board=?".format(colnamestr["spot_coords"]))
-SPOT_BOARD_IMG_QRYFMT = (
-    "SELECT {0} FROM spot_img WHERE dimension=? AND board=?".format(colnamestr["spot_img"]))
-SPOT_BOARD_INTER_QRYFMT = (
-    "SELECT {0} FROM spot_interactive WHERE dimension=? AND board=?".format(colnamestr["spot_interactive"]))
-PAWN_BOARD_INTER_QRYFMT = (
-    "SELECT {0} FROM pawn_interactive WHERE dimension=? AND board=?".format(
-        colnamestr["pawn_interactive"]))
-PAWN_BOARD_IMG_QRYFMT = (
-    "SELECT {0} FROM pawn_img WHERE dimension=? AND board=?".format(
-        colnamestr["pawn_img"]))
-IMG_QRYFMT = (
-    "SELECT {0} FROM img WHERE name IN ({1})".format(
-        colnamestr["img"], "{0}"))
-CHAR_THING_QRYFMT = (
-    "SELECT {0} FROM character_things WHERE character IN ({1})".format(
-        colnamestr["character_things"], "{0}"))
-CHAR_SKILL_QRYFMT = (
-    "SELECT {0} FROM character_skills WHERE character IN ({1})".format(
-        colnamestr["character_skills"], "{0}"))
-CHAR_STAT_QRYFMT = (
-    "SELECT {0} FROM character_stats WHERE character IN ({1})".format(
-        colnamestr["character_stats"], "{0}"))
 
 
 class RumorMill(object):
@@ -173,6 +128,18 @@ given name.
         self.conn = sqlite3.connect(dbfilen)
         self.cursor = self.conn.cursor()
         self.c = self.cursor
+
+        # This dict is special. It contains all the game
+        # data--represented only as those types which sqlite3 is
+        # capable of storing. All my objects are ultimately just
+        # views on this thing.
+        self.tabdict = {}
+        # This is a copy of the tabdict as it existed at the time of
+        # the last save. I'll be finding the differences between it
+        # and the current tabdict in order to decide what to write to
+        # disk.
+        self.old_tabdict = {}
+
         self.windowdict = {}
         self.boardhanddict = {}
         self.calendardict = {}
@@ -195,8 +162,9 @@ given name.
         self.game_speed = 1
         self.updating = False
 
-        self.c.execute("SELECT branch, parent, tick_from, tick_to FROM timestream")
-        self.timestream = Timestream(self.c.fetchall())
+        updd(self.tabdict,
+             Timestream._select_table_all(self.c, 'timestream'))
+        self.timestream = Timestream(self)
         self.time_travel_history = []
 
         placeholder = (noop, ITEM_ARG_RE)
@@ -219,10 +187,12 @@ given name.
             (self.make_generic_place, ONE_ARG_RE),
             'increment_branch':
             (self.increment_branch, ONE_ARG_RE),
-            'increment_tick':
-            (self.increment_tick, ONE_ARG_RE),
+            'time_travel_inc_tick':
+            (self.time_travel_inc_tick, ONE_ARG_RE),
             'time_travel':
             (self.time_travel, TWO_ARG_RE),
+            'time_travel_inc_branch':
+            (self.time_travel_inc_branch, ONE_ARG_RE),
             'go':
             (self.go, ""),
             'stop':
@@ -394,15 +364,30 @@ This is game-world time. It doesn't always go forwards.
         return self.graphdict[name]
 
     def save_game(self):
+        to_save = diffd(self.tabdict, self.old_tabdict)
+        to_delete = diffd(self.old_tabdict, self.tabdict)
+        logger.debug(
+            "Saving the tabdict:\n%s", repr(to_save))
+        logger.debug(
+            "Deleting the tabdict:\n%s", repr(to_delete))
+        for clas in saveable_classes:
+            for tabname in clas.tablenames:
+                if tabname in to_delete:
+                    clas._delete_keydicts_table(
+                        self.c, to_delete[tabname], tabname)
+                if tabname in to_save:
+                    clas._delete_keydicts_table(
+                        self.c, to_save[tabname], tabname)
+                    clas._insert_rowdicts_table(
+                        self.c, to_save[tabname], tabname)
         self.c.execute("DELETE FROM game")
-        fieldnames = self.game.keys()
-        qrystr = "INSERT INTO game ({0}) VALUES ({1})".format(
-            ", ".join(fieldnames), ", ".join(["?"] * len(fieldnames)))
-        qrylst = [self.game[field] for field in fieldnames]
-        qrytup = tuple(qrylst)
-        self.c.execute(qrystr, qrytup)
-        for dimension in self.dimensiondict.itervalues():
-            dimension.save()
+        keys = self.game.keys()
+        self.c.execute(
+            "INSERT INTO game ({0}) VALUES ({1})".format(
+                ", ".join(keys),
+                ", ".join(["?"] * len(self.game))),
+            tuple([self.game[k] for k in keys]))
+        self.old_tabdict = deepcopy(self.tabdict)
 
     # TODO: For all these schedule functions, handle the case where I
     # try to schedule something for a time outside of the given
@@ -644,18 +629,23 @@ This is game-world time. It doesn't always go forwards.
 
     def load_game(self):
         self.c.execute(
-            "SELECT front_board, front_branch, tick, seed, "
-            "hi_branch, hi_place, hi_portal, hi_thing FROM game")
+            "SELECT front_board, front_branch, front_dimension, "
+            "tick, seed, hi_branch, hi_place, hi_portal, "
+            "hi_thing FROM game")
         for row in self.c:
             self.game = {
                 "front_board": row[0],
                 "front_branch": row[1],
-                "tick": row[2],
-                "seed": row[3],
-                "hi_branch": row[4],
-                "hi_place": row[5],
-                "hi_portal": row[6],
-                "hi_thing": row[7]}
+                "front_dimension": row[2],
+                "tick": row[3],
+                "seed": row[4],
+                "hi_branch": row[5],
+                "hi_place": row[6],
+                "hi_portal": row[7],
+                "hi_thing": row[8]}
+        dim = self.get_dimension(self.game["front_dimension"])
+        self.load_board(dim, self.game["front_board"])
+        self.old_tabdict = deepcopy(self.tabdict)
 
     def load_strings(self):
         self.c.execute("SELECT stringname, language, string FROM strings")
@@ -698,53 +688,31 @@ This is game-world time. It doesn't always go forwards.
         return port
 
     def load_characters(self, names):
+        qtd = {
+            "character_things": {},
+            "character_stats": {},
+            "character_skills": {}}
+        for name in names:
+            for tabn in qtd.iterkeys():
+                qtd[tabn][name] = {"character": name}
+        updd(self.tabdict,
+             Character._select_tabdict(self.c, qtd))
         r = {}
-        qmstr = ", ".join(["?"] * len(names))
-        namet = tuple(names)
-        things2load = set()
-        decks2load = set()
-        qrystr = CHAR_THING_QRYFMT.format(qmstr)
-        self.c.execute(qrystr, namet)
-        getdefd = lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
-        charthing_d = getdefd()
-        for row in self.c:
-            rd = dictify_row(row, colnames["character_things"])
-            charthing_d[rd["character"]][rd["dimension"]][rd["branch"]][rd["tick_from"]] = (
-                rd["thing"], rd["tick_to"])
-            things2load.add(rd["thing"])
-        charskil_d = getdefd()
-        qrystr = CHAR_SKILL_QRYFMT.format(qmstr)
-        self.c.execute(qrystr, namet)
-        for row in self.c:
-            rd = dictify_row(row, colnames["character_skills"])
-            charskil_d[rd["character"]][rd["skill"]][rd["branch"]][rd["tick_from"]] = (
-                rd["effect_deck"], rd["tick_to"])
-            decks2load.add(rd["effect_deck"])
-        charstat_d = getdefd()
-        qrystr = CHAR_STAT_QRYFMT.format(qmstr)
-        self.c.execute(qrystr, namet)
-        for row in self.c:
-            rd = dictify_row(row, colnames["character_stats"])
-            charstat_d[rd["character"]][rd["stat"]][rd["branch"]][
-                rd["tick_from"]] = (rd["value"], rd["tick_to"])
-        for name in iter(names):
-            r[name] = Character(
-                self, name,
-                charthing_d[name],
-                charskil_d[name],
-                charstat_d[name])
-        self.characterdict.update(r)
+        for name in names:
+            char = Character(self, name)
+            r[name] = char
+            self.characterdict[name] = char
         return r
 
     def get_characters(self, names):
         r = {}
-        unloaded = set()
-        for name in iter(names):
+        unhad = set()
+        for name in names:
             if name in self.characterdict:
                 r[name] = self.characterdict[name]
             else:
-                unloaded.add(name)
-        r.update(self.load_characters(unloaded))
+                unhad.add(name)
+        r.update(self.load_characters(names))
         return r
 
     def get_character(self, name):
@@ -755,21 +723,22 @@ This is game-world time. It doesn't always go forwards.
 
     def load_effects(self, names):
         r = {}
-        qrystr = EFFECT_QRYFMT.format(", ".join(["?"] * len(names)))
-        self.c.execute(qrystr, tuple(names))
-        chars = set()
-        effect_rds = {}
-        for row in self.c:
-            rd = dictify_row(row, Effect.colns)
-            chars.add(rd["character"])
-            effect_rds[rd["name"]] = rd
-        chard = self.get_characters(chars)
-        for rd in effect_rds.itervalues():
-            rd["character"] = chard[rd["character"]]
-            r[rd["name"]] = Effect(**rd)
-        return r
+        kd = {"effect": {}}
+        for name in names:
+            kd["effect"][name] = {"name": name}
+        updd(self.tabdict,
+             Effect._select_tabdict(self.c, kd))
+        need_chars = set()
+        for name in names:
+            rd = self.tabdict["effect"][name]
+            need_chars.add(rd["character"])
+        self.get_characters(need_chars)
+        for name in names:
+            r[name] = Effect(self, name)
 
     def get_effects(self, names):
+        if len(names) == 0:
+            return {}
         r = {}
         unloaded = set()
         for name in names:
@@ -781,43 +750,18 @@ This is game-world time. It doesn't always go forwards.
         return r
 
     def load_effect_decks(self, names):
-        qrystr = EFFECT_DECK_QRYFMT.format(
-            ", ".join(["?"] * len(names)))
-        self.c.execute(qrystr, tuple(names))
-        effect_deck_rdd = {}
-        effect_names = set()
-        for row in self.c:
-            rd = dictify_row(row, EffectDeck.colns)
-            effect_deck_rdd[rd["deck"]] = rd
-            effect_names.add(rd["effect"])
-        effectd = self.get_effects(effect_names)
-        self.c.execute(
-            "SELECT name, draw_order FROM effect_deck "
-            "WHERE name IN ({0})".format(
-                ", ".join(["?"] * len(names))))
-        for row in self.c:
-            effect_deck_rdd[row[0]]["draw_order"] = row[1]
-        effect_deck_d = {}
-        for name in iter(names):
-            effect_deck_d[name] = EffectDeck(
-                self, name, effect_deck_rdd[name]["draw_order"])
-        for rd in effect_deck_rdd.itervalues():
-            effect_deck = effect_deck_d[rd["deck"]]
-            try:
-                (effects, tick_to) = effect_deck.effects[
-                    rd["branch"]][rd["tick_from"]]
-                assert(rd["tick_to"] == tick_to)
-                while len(effects) <= rd["idx"]:
-                    effects.append(None)
-                effects[rd["idx"]] = effectd[rd["effect"]]
-                effect_deck.set_effects(
-                    effects, rd["branch"], rd["tick_from"], rd["tick_to"])
-            except:
-                effect_deck.set_effects(
-                    [effectd[rd["effect"]]], rd["branch"],
-                    rd["tick_from"], rd["tick_to"])
-        self.effectdeckdict.update(effect_deck_d)
-        return effect_deck_d
+        r = {}
+        kd = {
+            "effect_deck": {},
+            "effect_deck_link": {}}
+        for name in names:
+            kd["effect_deck"][name] = {"name": name}
+            kd["effect_deck_link"][name] = {"deck": name}
+        updd(self.tabdict,
+             EffectDeck._select_tabdict(self.c, kd))
+        for name in names:
+            r[name] = EffectDeck(self, name)
+        return r
 
     def get_effect_decks(self, names):
         r = {}
@@ -830,140 +774,133 @@ This is game-world time. It doesn't always go forwards.
         r.update(self.load_effect_decks(unloaded))
         return r
 
-    def load_dimension(
-            self, dimn, branches=None, tick_from=None, tick_to=None):
+    def load_dimensions(self, names):
         # I think it might eventually *make sense* to load the same
         # dimension more than once without unloading it first. Perhaps
         # you want to selectively load the parts of it that the player
         # is interested in at the moment, the game world being too
         # large to practically load all at once.
-        if dimn not in self.dimensiondict:
-            self.dimensiondict[dimn] = Dimension(self, dimn)
-        dim = self.dimensiondict[dimn]
-        branchexpr = ""
-        tickfromexpr = ""
-        ticktoexpr = ""
-        if branches is not None:
-            branchexpr = " AND branch IN ({0})".format(
-                ", ".join(["?"] * len(branches)))
-        if tick_from is not None:
-            tickfromexpr = " AND tick_from>=?"
-        if tick_to is not None:
-            ticktoexpr = " AND tick_to<=?"
-        extrastr = "".join((branchexpr, tickfromexpr, ticktoexpr))
-        valtup = tuple([dimn] + [
-            b for b in (branches, tick_from, tick_to)
-            if b is not None])
-        self.c.execute(PORT_DIM_QRYFMT + extrastr, valtup)
-        for row in self.c:
-            rd = dictify_row(row, Portal.colns)
-            if not dim.have_place(rd["origin"]):
-                dim.make_place(rd["origin"])
-            if not dim.have_place(rd["destination"]):
-                dim.make_place(rd["destination"])
-            if not dim.have_portal(rd["origin"], rd["destination"]):
-                dim.make_portal(rd["origin"], rd["destination"])
-            po = dim.get_portal(rd["origin"], rd["destination"])
-            if not po.extant_between(rd["branch"], rd["tick_from"], rd["tick_to"]):
-                po.persist(rd["branch"], rd["tick_from"], rd["tick_to"])
-        self.c.execute(THING_LOC_QRYFMT + extrastr, valtup)
-        thing_rds = defaultdict(lambda: defaultdict(list))
-        for row in self.c:
-            rd = dictify_row(row, Thing.colns)
-            thing_rds[rd["dimension"]][rd["thing"]].append(rd)
-        for dimension in thing_rds:
-            for thing in thing_rds[dimension]:
-                dim.thingdict[thing] = Thing(
-                    self, {"thing_location": thing_rds[dimension][thing]})
-        return dim
-
-    def get_dimension(self, dimn):
-        if dimn not in self.dimensiondict:
-            self.load_dimension(dimn)
-        return self.dimensiondict[dimn]
+        kd = {"portal": {},
+              "thing_location": {}}
+        for name in names:
+            kd["portal"][name] = {"dimension": name}
+            kd["thing_location"][name] = {"dimension": name}
+        updd(self.tabdict,
+             Portal._select_tabdict(self.c, kd))
+        updd(self.tabdict,
+             Thing._select_tabdict(self.c, kd))
+        r = {}
+        for name in names:
+            r[name] = Dimension(self, name)
+        return r
 
     def get_dimensions(self, names):
         r = {}
+        unhad = set()
         for name in names:
-            r[name] = self.get_dimension(name)
+            if name in self.dimensiondict:
+                r[name] = self.dimensiondict[name]
+            else:
+                unhad.add(name)
+        r.update(self.load_dimensions(unhad))
         return r
+
+    def get_dimension(self, name):
+        return self.get_dimensions([name])[name]
+
+    def get_place(self, dim, placen):
+        if not isinstance(dim, Dimension):
+            dim = self.get_dimension(dim)
+        return dim.get_place(placen)
+
+    def get_portal(self, dim, origin, destination):
+        if not isinstance(dim, Dimension):
+            dim = self.get_dimension(dim)
+        return dim.get_portal(str(origin), str(destination))
 
     def get_board(self, dim, i):
         if not isinstance(dim, Dimension):
             dim = self.get_dimension(dim)
-        if len(dim.boards) <= i:
+        if len(dim.boards) <= i or dim.boards[i] is None:
             return self.load_board(dim, i)
         else:
             return dim.boards[i]
 
     def load_board(self, dim, i):
-        while len(dim.boards) <= i:
-            dim.boards.append(None)
-        # basic information for this board
-        self.c.execute(BOARD_QRYFMT, (str(dim), i))
-        rd = dictify_row(self.c.fetchone(), Board.colns)
-        walln = rd["wallpaper"]
-        width = rd["width"]
-        height = rd["height"]
-        imgs2load = set([walln, 'default_pawn', 'default_spot'])
-        # images for the spots
-        self.c.execute(SPOT_BOARD_IMG_QRYFMT, (str(dim), i))
-        spot_rows = self.c.fetchall()
-        for row in spot_rows:
-            imgs2load.add(row[4])
-        # images for the pawns
-        pawn_td = Pawn._select_tabdict(self.c, {
-            "pawn_img": {"dimension": str(dim)},
-            "pawn_interactive": {"dimension": str(dim)}})
-        for rd in TabdictIterator(pawn_td["pawn_img"]):
-            imgs2load.add(rd["img"])
-        imgs = self.load_imgs(imgs2load)
-        dim.boards[i] = Board(dim, i, width, height, imgs[walln])
-        for rd in TabdictIterator(pawn_td):
-            try:
-                dim.boards[i].pawndict[rd["thing"]] = Pawn(
-                    self, rd["dimension"], i, rd["thing"], pawn_td)
-            except LoadError:
-                pass
-        # actually assign images instead of just collecting the names
-        # spots in this board
-        self.c.execute(SPOT_BOARD_COORD_QRYFMT, (str(dim), i))
-        for row in self.c:
-            rd = dictify_row(row, colnames["spot_coords"])
-            if rd["place"] not in dim.placenames:
-                dim.make_place(rd["place"])
-            place = dim.get_place(rd["place"])
-            spot = dim.boards[i].get_spot(place)
-            logger.debug(
-                "Loaded the spot for %s. Setting its coords to "
-                "(%d, %d) in branch %d from tick %d.",
-                str(place), rd["x"], rd["y"], rd["branch"], rd["tick_from"])
-            spot.set_coords(rd["x"], rd["y"], rd["branch"], rd["tick_from"], rd["tick_to"])
-        #their images
-        for row in spot_rows:
-            rd = dictify_row(row, colnames["spot_img"])
-            spot = dim.boards[i].get_spot(rd["place"])
-            spot.set_img(imgs[rd["img"]], rd["branch"], rd["tick_from"], rd["tick_to"])
-        # interactivity for the spots
-        self.c.execute(SPOT_BOARD_INTER_QRYFMT, (str(dim), i))
-        for row in self.c:
-            rd = dictify_row(row, colnames["spot_interactive"])
-            spot = dim.boards[i].get_spot(rd["place"])
-            spot.set_interactive(rd["branch"], rd["tick_from"], rd["tick_to"])
-        # arrows in this board
-        for port in dim.portals:
-            dim.boards[i].get_arrow(port)
-        return dim.boards[i]
+        dimn = str(dim)
+        if not isinstance(dim, Dimension):
+            dim = self.get_dimension(dimn)
+        updd(self.tabdict,
+             Board._select_tabdict(
+                 self.c,
+                 {"board":
+                  {"dimension": dimn,
+                   "idx": i}}))
+        updd(self.tabdict,
+             Spot._select_tabdict(
+                 self.c,
+                 {"spot_img":
+                  {"dimension": dimn,
+                   "board": i},
+                  "spot_interactive":
+                  {"dimension": dimn,
+                   "board": i},
+                  "spot_coords":
+                  {"dimension": dimn,
+                   "board": i}}))
+        updd(self.tabdict,
+             Pawn._select_tabdict(
+                 self.c,
+                 {"pawn_img":
+                  {"dimension": dimn,
+                   "board": i},
+                  "pawn_interactive":
+                  {"dimension": dimn,
+                   "board": i}}))
+        return Board(self, dim, i)
 
-    def load_imgs(self, imgs):
-        qryfmt = IMG_QRYFMT
-        qrystr = qryfmt.format(", ".join(["?"] * len(imgs)))
-        self.c.execute(qrystr, tuple(imgs))
+    def load_viewport(self, win, dim, board, viewi):
+        winn = str(win)
+        dimn = str(dim)
+        boardi = int(board)
+        if not isinstance(win, GameWindow):
+            win = self.get_window(winn)
+        if not isinstance(dim, Dimension):
+            dim = self.get_dimension(dimn)
+        if not isinstance(board, Board):
+            board = self.get_board(dim, boardi)
+        kd = {"board_viewport":
+              {"window": winn,
+               "dimension": dimn,
+               "board": boardi,
+               "idx": viewi}}
+        updd(self.tabdict,
+             BoardViewport._select_tabdict(self.c, kd))
+        return BoardViewport(
+            self, win, dim, board, viewi)
+
+    def get_viewport(self, win, dim, boardidx, viewi):
+        if isinstance(boardidx, Board):
+            board = boardidx
+        else:
+            board = self.get_board(dim, boardidx)
+        if (
+                len(board.views) > viewi and
+                board.views[viewi] is not None):
+            return board.views[viewi]
+        else:
+            return self.load_viewport(win, dim, board, viewi)
+
+    def load_imgs(self, names):
+        kd = {"img": {}}
+        for name in names:
+            kd["img"][name] = {"name": name}
+        updd(self.tabdict,
+             Img._select_tabdict(
+                 self.c, kd))
         r = {}
-        for row in self.c:
-            img = Img(self, row[0], row[1], row[2])
-            r[row[0]] = img
-        self.imgdict.update(r)
+        for name in names:
+            r[name] = Img(self, name)
         return r
 
     def get_imgs(self, imgnames):
@@ -977,15 +914,18 @@ This is game-world time. It doesn't always go forwards.
         r.update(self.load_imgs(unloaded))
         return r
 
-    def read_colors(self, colornames):
-        qrystr = COLOR_QRYFMT.format(", ".join(["?"] * len(colornames)))
-        self.c.execute(qrystr, tuple(colornames))
+    def get_img(self, imgn):
+        return self.get_imgs([imgn])[imgn]
+
+    def load_colors(self, names):
+        kd = {"color": {}}
+        for name in names:
+            kd["color"][name] = {"name": name}
+        updd(self.tabdict,
+             Color._select_tabdict(self.c, kd))
         r = {}
-        for row in self.c:
-            rowdict = dictify_row(row, Color.colns)
-            c = Color(**rowdict)
-            r[rowdict["name"]] = c
-            self.colordict[rowdict["name"]] = c
+        for name in names:
+            r[name] = Color(self, name)
         return r
 
     def get_colors(self, colornames):
@@ -996,30 +936,27 @@ This is game-world time. It doesn't always go forwards.
                 r[color] = self.colordict[color]
             else:
                 unloaded.add(color)
-        r.update(self.read_colors(unloaded))
+        r.update(self.load_colors(unloaded))
         return r
 
-    def read_styles(self, stylenames):
-        qrystr = STYLE_QRYFMT.format(", ".join(["?"] * len(stylenames)))
-        self.c.execute(qrystr, tuple(stylenames))
-        style_rows = self.c.fetchall()
+    def get_color(self, name):
+        return self.get_colors([name])[name]
+
+    def load_styles(self, stylenames):
+        kd = {"style": {}}
+        for name in stylenames:
+            kd["style"][name] = {"name": name}
+        updd(self.tabdict,
+             Style._select_tabdict(self.c, kd))
         colornames = set()
-        colorcols = (
-            "textcolor", "fg_inactive",
-            "fg_active", "bg_inactive", "bg_active")
-        for row in style_rows:
-            rowdict = dictify_row(row, Style.colns)
-            for colorcol in colorcols:
-                colornames.add(rowdict[colorcol])
-        colors = self.get_colors(tuple(colornames))
+        for name in stylenames:
+            rd = self.tabdict["style"][name]
+            for colorcol in Style.color_cols:
+                colornames.add(rd[colorcol])
+        self.get_colors(colornames)
         r = {}
-        for row in style_rows:
-            rowdict = dictify_row(row, Style.colns)
-            for colorcol in colorcols:
-                rowdict[colorcol] = colors[rowdict[colorcol]]
-            s = Style(**rowdict)
-            r[rowdict["name"]] = s
-            self.styledict[rowdict["name"]] = s
+        for name in stylenames:
+            r[name] = Style(self, name)
         return r
 
     def get_styles(self, stylenames):
@@ -1030,62 +967,36 @@ This is game-world time. It doesn't always go forwards.
                 r[style] = self.styledict[style]
             else:
                 unloaded.add(style)
-        r.update(self.read_styles(unloaded))
+        r.update(self.load_styles(unloaded))
         return r
 
-    def load_window(self, name):
-        self.c.execute(WINDOW_QRYFMT, (name,))
-        window_row = dictify_row(self.c.fetchone(), GameWindow.colns)
-        self.c.execute(MENU_WINDOW_QRYFMT, (name,))
-        menu_rds = {}
-        for row in self.c:
-            rd = dictify_row(row, Menu.colns)
-            menu_rds[rd["name"]] = rd
-        self.c.execute(MENU_ITEM_WINDOW_QRYFMT, (name,))
-        menu_item_rds = defaultdict(list)
-        for row in self.c:
-            rd = dictify_row(row, MenuItem.colns)
-            while len(menu_item_rds[rd["menu"]]) <= rd["idx"]:
-                menu_item_rds[rd["menu"]].append(None)
-            menu_item_rds[rd["menu"]][rd["idx"]] = rd
-        self.c.execute(HAND_WINDOW_QRYFMT, (name,))
-        hand_rds = {}
-        for row in self.c:
-            rd = dictify_row(row, Hand.colns)
-            hand_rds[rd["effect_deck"]] = rd
-        if len(hand_rds) > 0:
-            self.c.execute(CARD_IN_DECK_QRYFMT, tuple(hand_rds.keys()))
-        card_rds = {}
-        for row in self.c:
-            rd = dictify_row(row, Card.colns)
-            card_rds[rd["effect"]] = rd
-        self.c.execute(BOARD_VIEWPORT_WINDOW_QRYFMT, (name,))
-        viewport_rds = []
-        for row in self.c:
-            rd = dictify_row(row, BoardViewport.colns)
-            viewport_rds.append(rd)
-        window_row["menu_rds"] = menu_rds
-        window_row["menu_item_rds"] = menu_item_rds
-        window_row["hand_rds"] = hand_rds
-        window_row["card_rds"] = card_rds
-        window_row["viewport_rds"] = viewport_rds
-        window_row["rumor"] = self
-        self.windowdict[window_row["name"]] = GameWindow(**window_row)
-        self.load_calendars_in_window(window_row["name"])
+    def get_style(self, name):
+        return self.get_styles([name])[name]
 
     def load_windows(self, names):
-        if len(names) == 0:
-            return {}
+        kd = {
+            "window": {},
+            "board_viewport": {},
+            "menu": {},
+            "hand": {},
+            "menu_item": {},
+            "calendar": {},
+            "calendar_col_thing": {},
+            "calendar_col_stat": {},
+            "calendar_col_skill": {}}
+        for name in names:
+            kd["window"][name] = {"name": name}
+            for col in kd.iterkeys():
+                if col == "window":
+                    continue
+                kd[col][name] = {"window": name}
+        td = GameWindow._select_tabdict(self.c, kd)
+        updd(self.tabdict, td)
+        updd(self.old_tabdict, td)
         r = {}
-        for name in iter(names):
-            self.load_window(name)
-            r[name] = self.windowdict[name]
+        for name in names:
+            r[name] = GameWindow(self, name)
         return r
-
-    def get_window(self, name):
-        if name not in self.windowdict:
-            self.load_window(name)
-        return self.windowdict[name]
 
     def get_windows(self, names):
         r = {}
@@ -1098,53 +1009,46 @@ This is game-world time. It doesn't always go forwards.
         r.update(self.load_windows(unhad))
         return r
 
-    def instantiate_calendars(self, td):
-        windows = set()
-        styles = set()
-        for rd in TabdictIterator(td["calendar"]):
-            windows.add(rd["window"])
-            styles.add(rd["style"])
-        windict = self.get_windows(windows)
-        styledict = self.get_styles(styles)
-        r = defaultdict(dict)
-        for rd in TabdictIterator(td["calendar"]):
-            window = windict[rd["window"]]
-            while len(window.calendars) <= rd["idx"]:
-                window.calendars.append(None)
-            cal = Calendar(self, {"calendar": rd})
-            cal.add_cols_from_tabdict(td)
-            window.calendars[rd["idx"]] = cal
-            r[window][rd["idx"]] = cal
+    def get_window(self, name):
+        return self.get_windows([name])[name]
+
+    def load_cards(self, names):
+        effectdict = self.get_effects(names)
+        kd = {"card": {}}
+        for name in names:
+            kd["card"][name] = {"effect": name}
+        td = Card._select_tabdict(self.c, kd)
+        r = {}
+        for rd in TabdictIterator(td):
+            r[rd["effect"]] = Card(self, effectdict[rd["effect"]], td)
         return r
 
-    def load_calendars(self, td):
-        return self.instantiate_calendars(Calendar._select_tabdict(self.c, td))
+    def get_cards(self, names):
+        r = {}
+        unhad = set()
+        for name in names:
+            if name in self.carddict:
+                r[name] = self.carddict[name]
+            else:
+                unhad.add(name)
+        r.update(self.load_cards(unhad))
+        return r
 
-    def load_calendars_in_windows(self, winns):
-        td = {
-            "calendar": [{"window": winn} for winn in winns],
-            "calendar_col_stat": [{"window": winn} for winn in winns],
-            "calendar_col_skill": [{"window": winn} for winn in winns],
-            "calendar_col_thing": [{"window": winn} for winn in winns]}
-        return self.load_calendars(td)
+    def get_card(self, name):
+        return self.get_cards([name])[name]
 
-    def load_calendars_in_window(self, winn):
-        return self.load_calendars_in_windows([winn])
+    def get_effects_in_decks(self, decks):
+        effds = self.get_effect_decks(decks)
+        effects = set()
+        for effd in effds.itervalues():
+            for rd in TabdictIterator(effd._card_links):
+                effects.add(rd["effect"])
+        return self.get_effects(effects)
 
-    def get_calendars(self, kds):
-        got = defaultdict(dict)
-        ungot = defaultdict(set)
-        for kd in kds:
-            try:
-                got[kd["window"]][kd["idx"]] = self.windowdict[kd["window"]].calendars[kd["idx"]]
-            except KeyError:
-                ungot[kd["window"]].add(kd["idx"])
-        ungotl = []
-        for (winname, calindices) in ungot.iteritems():
-            for calidx in iter(calindices):
-                ungotl.append({"window": winname, "idx": calidx})
-        got.update(self.load_calendars(ungotl))
-        return got
+    def get_cards_in_hands(self, hands):
+        effects = self.get_effects_in_decks(hands)
+        return self.get_cards([
+            str(effect) for effect in effects.itervalues()])
 
     def time_travel(self, mi, branch, tick):
         if branch not in self.timestream.branchdict:
@@ -1163,14 +1067,17 @@ This is game-world time. It doesn't always go forwards.
 
     def more_time(self, branch_from, branch_to, tick_from, tick_to):
         if branch_to in self.timestream.branchdict:
-            (parent, old_tick_from, old_tick_to) = self.timestream.branchdict[branch_to]
+            (parent, old_tick_from, old_tick_to) = (
+                self.timestream.branchdict[branch_to])
             if tick_to < old_tick_from:
                 raise TimestreamException(
-                    "Can't make a new branch that starts earlier than its parent.")
+                    "Can't make a new branch that starts "
+                    "earlier than its parent.")
             if tick_to > old_tick_to:
                 # TODO: This really demands special handling--
                 # STUFF may happen between old_tick_to and tick_to
-                self.timestream.branchdict[branch_to] = (parent, old_tick_from, tick_to)
+                self.timestream.branchdict[branch_to] = (
+                    parent, old_tick_from, tick_to)
                 e = self.timestream.latest_edge(branch_to)
                 self.timestream.graph.vs[e.target]["tick"] = tick_to
         else:
@@ -1181,25 +1088,41 @@ This is game-world time. It doesn't always go forwards.
                 tick_to)
             v = self.timestream.graph.vs[e.source]
             self.timestream.branch_head[branch_to] = v
-            self.timestream.branchdict[branch_to] = (branch_from, tick_from, tick_to)
+            self.timestream.branchdict[branch_to] = (
+                branch_from, tick_from, tick_to)
             for dimension in self.dimensions:
                 dimension.new_branch(branch_from, branch_to, tick_from)
                 for board in dimension.boards:
                     board.new_branch(branch_from, branch_to, tick_from)
             if self.game["hi_branch"] < branch_to:
                 self.game["hi_branch"] = branch_to
-        
 
     def increment_branch(self, mi=None, branches=1):
+        b = self.branch + int(branches)
         try:
-            self.more_time(self.branch, self.branch+int(branches), self.tick, self.tick)
-        except TimestreamException:
-            return self.increment_branch(mi, int(branches)+1)
-        self.time_travel(mi, self.branch+int(branches), self.tick)
+            self.more_time(
+                self.branch, b,
+                self.tick, self.tick)
+        except TimestreamException as te:
+            if b in self.timestream.branchdict:
+                # The branch already exists, so you can go there, but
+                # it starts later than you're trying to get to, so
+                # I'll put you at the start of that branch instead.
+                return self.time_travel(
+                    mi, b, self.timestream.branchdict[b][1])
+            else:
+                raise te
 
-    def increment_tick(self, mi=None, ticks=1):
-        self.more_time(self.branch, self.branch, self.tick, self.tick+int(ticks))
-        self.time_travel(mi, self.branch, self.tick+int(ticks))
+    def time_travel_inc_tick(self, mi=None, ticks=1):
+        self.more_time(
+            self.branch, self.branch,
+            self.tick, self.tick + int(ticks))
+        self.time_travel(mi, self.branch, self.tick + int(ticks))
+
+    def time_travel_inc_branch(self, mi=None, branches=1):
+        b = self.branch + int(branches)
+        self.increment_branch(mi, branches)
+        self.time_travel(mi, b, self.tick)
 
     def go(self, nope=None):
         self.updating = True
@@ -1222,85 +1145,179 @@ This is game-world time. It doesn't always go forwards.
         if self.updating:
             self.increment_tick(ticks=self.game_speed)
 
-    def save_game(self):
-        self.c.execute("DELETE FROM game")
-        keynames = self.game.keys()
-        values = tuple([self.game[key] for key in keynames])
-        qrystr = (
-            "INSERT INTO game ({0}) VALUES ({1})".format(
-                ", ".join(keynames),
-                ", ".join(["?"] * len(keynames))))
-        self.c.execute(qrystr, values)
-
     def end_game(self):
         self.c.close()
         self.conn.commit()
         self.conn.close()
 
-    def load_colors(self, names):
-        if len(names) == 0:
-            return {}
-        kds = [{"name": name} for name in names]
-        td = Color._select_tabdict(self.c, {"color": kds})
-        r = {}
-        for rd in TabdictIterator(td):
-            color = Color(**rd)
-            r[str(color)] = color
-            self.colordict[str(color)] = color
-        return r
 
-    def get_colors(self, names):
-        r = {}
-        unhad = set()
-        for name in names:
-            if name in self.colordict:
-                r[name] = self.colordict[name]
-            else:
-                unhad.add(name)
-        r.update(self.load_colors(unhad))
-        return r
+def mkdb(DB_NAME='default.sqlite'):
+    def isdir(p):
+        try:
+            os.chdir(p)
+            return True
+        except:
+            return False
 
-    def load_styles(self, names):
-        if len(names) == 0:
-            return {}
-        colorcols = (
-                    "textcolor",
-                    "bg_inactive",
-                    "bg_active",
-                    "fg_inactive",
-                    "fg_active")
-        kd = {"style": {}}
-        for name in names:
-            kd["style"][name] = {"name": name}
-        td = Style._select_tabdict(self.c, kd)
-        colors = set()
-        for rd in TabdictIterator(td):
-            for color in colorcols:
-                colors.add(rd[color])
-        colordict = self.get_colors(colors)
-        r = {}
-        for rd in TabdictIterator(td):
-            for color in colorcols:
-                rd[color] = colordict[rd[color]]
-            style = Style(**rd)
-            r[str(style)] = style
-            self.styledict[str(style)] = style
-        return r
+    def allsubdirs_core(doing, done):
+        if len(doing) == 0:
+            return done
+        here = doing.pop()
+        if isdir(here):
+            done.add(here + '/')
+            inside = (
+                [here + '/' + there for there in
+                 os.listdir(here) if there[0] != '.'])
+            doing.update(set(inside))
 
-    def get_styles(self, names):
-        r = {}
-        unhad = set()
-        for name in names:
-            if name in self.styledict:
-                r[name] = self.styledict[name]
-            else:
-                unhad.add(name)
-        r.update(self.load_styles(unhad))
-        return r
+    def allsubdirs(path):
+        inpath = os.path.realpath(path)
+        indoing = set()
+        indoing.add(inpath)
+        indone = set()
+        result = None
+        while result is None:
+            result = allsubdirs_core(indoing, indone)
+        return iter(result)
 
+    def ins_rltiles(curs, dirname):
+        here = os.getcwd()
+        directories = os.path.abspath(dirname).split("/")
+        home = "/".join(directories[:-1]) + "/"
+        dirs = allsubdirs(dirname)
+        for dir in dirs:
+            for bmp in os.listdir(dir):
+                if bmp[-4:] != ".bmp":
+                    continue
+                qrystr = """insert or replace into img
+    (name, path, rltile) values (?, ?, ?)"""
+                bmpr = bmp.replace('.bmp', '')
+                dirr = dir.replace(home, '') + bmp
+                curs.execute(qrystr, (bmpr, dirr, True))
+        os.chdir(here)
 
-    def get_style(self, name):
-        return self.get_styles([name])[name]
+    try:
+        os.remove(DB_NAME)
+    except OSError:
+        pass
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+
+    def read_sql(filen):
+        sqlfile = open(filen, "r")
+        sql = sqlfile.read()
+        sqlfile.close()
+        c.executescript(sql)
+
+    c.execute(
+        "CREATE TABLE game"
+        " (front_dimension TEXT DEFAULT 'Physical', "
+        "front_board INTEGER DEFAULT 0, "
+        "front_branch INTEGER DEFAULT 0, "
+        "tick INTEGER DEFAULT 0,"
+        " seed INTEGER DEFAULT 0, hi_place INTEGER DEFAULT 0, "
+        "hi_portal INTEGER DEFAULT 0, "
+        "hi_thing INTEGER DEFAULT 0, hi_branch INTEGER DEFAULT 0);")
+    c.execute(
+        "CREATE TABLE strings (stringname TEXT NOT NULL, language TEXT NOT"
+        " NULL DEFAULT 'English', string TEXT NOT NULL, "
+        "PRIMARY KEY(stringname,  language));")
+
+    done = set()
+    while saveables != []:
+        (demands, provides, prelude,
+         tablenames, postlude) = saveables.pop(0)
+        print tablenames
+        if 'character_things' in tablenames:
+            pass
+        breakout = False
+        for demand in iter(demands):
+            if demand not in done:
+                saveables.append(
+                    (demands, provides, prelude,
+                     tablenames, postlude))
+                breakout = True
+                break
+        if breakout:
+            continue
+        if tablenames == []:
+            while prelude != []:
+                pre = prelude.pop()
+                if isinstance(pre, tuple):
+                    c.execute(*pre)
+                else:
+                    c.execute(pre)
+            while postlude != []:
+                post = postlude.pop()
+                if isinstance(post, tuple):
+                    c.execute(*post)
+                else:
+                    c.execute(post)
+            continue
+        try:
+            while prelude != []:
+                pre = prelude.pop()
+                if isinstance(pre, tuple):
+                    c.execute(*pre)
+                else:
+                    c.execute(pre)
+        except sqlite3.OperationalError as e:
+            saveables.append(
+                (demands, provides, prelude, tablenames, postlude))
+            continue
+        breakout = False
+        while tablenames != []:
+            tn = tablenames.pop(0)
+            if tn == "calendar":
+                pass
+            try:
+                c.execute(schemata[tn])
+                done.add(tn)
+            except sqlite3.OperationalError as e:
+                print "OperationalError while creating table {0}:".format(tn)
+                print e
+                breakout = True
+                break
+        if breakout:
+            saveables.append(
+                (demands, provides, prelude, tablenames, postlude))
+            continue
+        try:
+            while postlude != []:
+                post = postlude.pop()
+                if isinstance(post, tuple):
+                    c.execute(*post)
+                else:
+                    c.execute(post)
+        except sqlite3.OperationalError as e:
+            print "OperationalError during postlude from {0}:".format(tn)
+            print e
+            saveables.append(
+                (demands, provides, prelude, tablenames, postlude))
+            continue
+        done.update(provides)
+
+    oldhome = os.getcwd()
+    os.chdir('sql')
+    initfiles = sorted(os.listdir('.'))
+    for initfile in initfiles:
+        if initfile[-3:] == "sql":  # weed out automatic backups and so forth
+            print "reading SQL from file " + initfile
+            read_sql(initfile)
+
+    os.chdir(oldhome)
+
+    print "indexing the RLTiles"
+    ins_rltiles(c, 'rltiles')
+
+    # print "indexing the dumb effects"
+    # efns = db.c.execute("SELECT on_click FROM menu_item").fetchall()
+    # for row in efns:
+    #     print row[0]
+    #     dumb_effect(db, row[0])
+
+    c.close()
+    conn.commit()
 
 
 def load_game(dbfn, lang="eng"):

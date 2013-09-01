@@ -13,6 +13,9 @@ thing located there.
     """
     def __init__(self, dimension, v):
         assert(isinstance(v, Vertex))
+        if v["name"] == "Physical.Portal(myroom->livingroom)":
+            import pdb
+            pdb.set_trace()
         self.dimension = dimension
         self.rumor = self.dimension.rumor
         self.v = v
@@ -20,6 +23,8 @@ thing located there.
     def __getattr__(self, attrn):
         if attrn in self.v.attribute_names():
             return self.v[attrn]
+        elif attrn == "index":
+            return self.v.index
         else:
             raise AttributeError(
                 "Place instance has no attribute named " + attrn)
@@ -27,7 +32,7 @@ thing located there.
     def __contains__(self, that):
         try:
             return that.location.v is self.v
-        except:
+        except AttributeError:
             return False
 
     def __int__(self):
@@ -37,7 +42,14 @@ thing located there.
         return self.v["name"]
 
     def __repr__(self):
-        return str(self.dimension) + "." + str(self)
+        return "Place({0}.{1})".format(str(self.dimension), self.v["name"])
 
     def incident(self, mode=OUT):
         return self.dimension.graph.incident(int(self), mode)
+
+    def display_name(self, branch=None, tick=None):
+        # Stub.
+        #
+        # TODO: Look up a display name in a table or dictionary,
+        # perhaps using get_text
+        return self.v["name"]

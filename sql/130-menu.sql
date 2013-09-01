@@ -1,6 +1,6 @@
 -- This file is part of LiSE, a framework for life simulation games.
 -- Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-INSERT INTO menu (name, bottom, left, right, top, style) VALUES
+INSERT INTO menu (name, bot, left, right, top, style) VALUES
 ('Main', 0.12, 0.0, 0.1, 1.0, 'BigLight');
 INSERT INTO menu (name) VALUES ('Game'), ('Editor');
 INSERT INTO menu_item (idx, menu, closer, on_click, text) VALUES
@@ -26,7 +26,7 @@ INSERT INTO menu_item (idx, menu, on_click, icon) VALUES
 (6, 'Main', 'stop()', 'pause'),
 (7, 'Main', 'play_speed(-1)', 'reverse'),
 (8, 'Main', 'back_to_start()', 'revert'),
-(9, 'Main', 'increment_tick(1)', 'stepforward'),
-(10, 'Main', 'increment_tick(-1)', 'stepbackward'),
-(11, 'Main', 'increment_branch(1)', 'up'),
-(12, 'Main', 'increment_branch(-1)', 'down');
+(9, 'Main', 'time_travel_inc_tick(1)', 'stepforward'),
+(10, 'Main', 'time_travel_inc_tick(-1)', 'stepbackward'),
+(11, 'Main', 'time_travel_inc_branch(1)', 'up'),
+(12, 'Main', 'time_travel_inc_branch(-1)', 'down');

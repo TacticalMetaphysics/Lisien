@@ -1,5 +1,8 @@
 from igraph import Graph, Vertex, Edge
-from util import SaveableMetaclass, dictify_row
+from util import (
+    SaveableMetaclass,
+    dictify_row,
+    TabdictIterator)
 from collections import defaultdict
 
 
@@ -45,12 +48,13 @@ class Timestream:
          {"parent": ("timestream", "branch")},
          ["branch>=0", "tick_from>=0",
           "tick_to>=tick_from", "parent=0 or parent<>branch"])]
-    def __init__(self, branches):
+    def __init__(self, rumor):
+        self.rumor = rumor
+        td = self.rumor.tabdict
         self.branch_edges = defaultdict(set)
         self.branch_done_to = defaultdict(lambda: -1)
         self.branchdict = {}
-        for row in branches:
-            rd = dictify_row(row, self.colns)
+        for rd in TabdictIterator(td["timestream"]):
             self.branchdict[rd["branch"]] = (
                 rd["parent"], rd["tick_from"], rd["tick_to"])
         self.graph = Graph(directed=True)

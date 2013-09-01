@@ -16,7 +16,7 @@ DEBUG = False
 for arg in argv:
     if arg == "-l":
         try:
-            lang = argv[i+1]
+            lang = argv[i + 1]
         except:
             raise Exception("Couldn't parse language")
     elif arg == "-d":
@@ -31,16 +31,20 @@ for arg in argv:
             print "Couldn't connect to the database named {0}.".format(arg)
     i += 1
 if DEBUG:
-    try:
-        remove(debugfn)
-    except OSError:
-        pass
-    logging.basicConfig(level=logging.DEBUG, filename=debugfn)
+    if debugfn == "":
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        try:
+            remove(debugfn)
+        except OSError:
+            pass
+        logging.basicConfig(level=logging.DEBUG, filename=debugfn)
     logger = logging.getLogger()
 clock = pyglet.clock.Clock()
 pyglet.clock.set_default(clock)
 rumor = rumor.load_game(dbfn, lang)
 gw = rumor.get_window('Main')
+
 
 def update(ts):
     gw.update(ts)
@@ -48,6 +52,5 @@ def update(ts):
 pyglet.clock.schedule(update)
 pyglet.clock.schedule_interval(rumor.update, 0.1)
 pyglet.app.run()
-
 rumor.save_game()
 rumor.end_game()

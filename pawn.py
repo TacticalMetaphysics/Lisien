@@ -34,7 +34,7 @@ class Pawn(TerminableImg, TerminableInteractivity):
           "tick_from": "integer not null default 0",
           "tick_to": "integer default null",
           "img": "text not null default 'default_pawn'"},
-         ("dimension", "board", "thing", "tick_from"),
+         ("dimension", "board", "thing", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i"),
           "dimension, thing": ("thing_location", "dimension, name"),
           "img": ("img", "name")},
@@ -46,42 +46,37 @@ class Pawn(TerminableImg, TerminableInteractivity):
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
           "tick_to": "integer default null"},
-         ("dimension", "board", "thing", "tick_from"),
+         ("dimension", "board", "thing", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i"),
           "dimension, thing": ("thing_location", "dimension, name")},
          [])]
-    loaded_keys = set()
 
-    def __init__(self, rumor, dimn, boardi, thingn, td):
+    def __init__(self, rumor, dimension, board, thing):
         """Return a pawn on the board for the given dimension, representing
 the given thing with the given image. It may be visible or not,
 interactive or not.
 
         """
-        if (dimn, boardi, thingn) in Pawn.loaded_keys:
-            raise LoadError("Pawn already loaded: {0}[{1}].{2}".format(dimn, boardi, thingn))
-        else:
-            Pawn.loaded_keys.add((dimn, boardi, thingn))
         self.rumor = rumor
-        self._tabdict = td
-        self._dimn = dimn
-        self._boardi = boardi
-        self._thingn = thingn
-        self.imagery = defaultdict(dict)
+        self.dimension = dimension
+        self.board = board
+        self.thing = thing
         self.indefinite_imagery = {}
-        self.interactivity = defaultdict(dict)
         self.indefinite_interactivity = {}
         imgns = set()
-        for rd in TabdictIterator(self._tabdict["pawn_img"]):
+        for rd in TabdictIterator(
+                self.rumor.tabdict["pawn_img"][
+                    str(self.dimension)][
+                        int(self.board)][str(self.thing)]):
             imgns.add(rd["img"])
-        self.imgdict = self.rumor.get_imgs(imgns)
-        for rd in TabdictIterator(self._tabdict["pawn_img"]):
-            self.set_img(self.imgdict[rd["img"]],
-                         rd["branch"],
-                         rd["tick_from"],
-                         rd["tick_to"])
-        for rd in TabdictIterator(self._tabdict["pawn_interactive"]):
-            self.set_interactive(rd["branch"], rd["tick_from"], rd["tick_to"])
+            if rd["tick_to"] is None:
+                self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
+        self.rumor.get_imgs(imgns)
+        for rd in TabdictIterator(
+                self.rumor.tabdict["pawn_interactive"][
+                str(self.dimension)][int(self.board)][str(self.thing)]):
+            if rd["tick_to"] is None:
+                self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
         self.grabpoint = None
         self.sprite = None
         self.oldstate = None
@@ -95,31 +90,36 @@ interactive or not.
         return str(self.thing)
 
     def __getattr__(self, attrn):
-        if attrn == 'img':
+        if attrn == "imagery":
+            return self.rumor.tabdict[
+                "pawn_img"][str(self.dimension)][
+                    int(self.board)][str(self.thing)]
+        elif attrn == "interactivity":
+            return self.rumor.tabdict["pawn_interactive"][
+                str(self.dimension)][int(self.board)][str(self.thing)]
+        elif attrn == 'img':
             return self.get_img()
-        elif attrn == 'dimension':
-            return self.rumor.dimensiondict[self._dimn]
-        elif attrn == 'board':
-            return self.dimension.boards[self._boardi]
-        elif attrn == 'thing':
-            return self.dimension.thingdict[self._thingn]
         elif attrn == 'visible':
             return self.img is not None
         elif attrn == 'coords':
-            coords = self.get_coords()
-            return coords
+            try:
+                (x, y) = self.get_coords()
+            except TypeError:
+                return None
+            locn = str(self.thing.location)
+            if locn in self.board.spotdict:
+                spot = self.board.spotdict[locn]
+                return (
+                    x + spot.drag_offset_x,
+                    y + spot.drag_offset_y)
+            else:
+                return (
+                    x + self.drag_offset_x,
+                    y + self.drag_offset_y)
         elif attrn == 'x':
-            coords = self.coords
-            if coords is None:
-                return 0 - self.width
-            else:
-                return coords[0]
+            return self.coords[0]
         elif attrn == 'y':
-            coords = self.coords
-            if coords is None:
-                return 0 - self.height
-            else:
-                return coords[1]
+            return self.coords[1]
         elif attrn == 'width':
             return self.img.width
         elif attrn == 'height':
@@ -146,6 +146,60 @@ interactive or not.
         else:
             super(Pawn, self).__setattr__(attrn, val)
 
+    def set_img(self, img, branch=None, tick_from=None, tick_to=None):
+        if branch is None:
+            branch = self.rumor.branch
+        if tick_from is None:
+            tick_from = self.rumor.tick
+        if branch in self.indefinite_imagery:
+            indef_start = self.indefinite_imagery[branch]
+            indef_rd = self.imagery[branch][indef_start]
+            if tick_from > indef_start:
+                del self.indefinite_imagery[branch]
+                indef_rd["tick_to"] = tick_from - 1
+                self.imagery[branch][indef_start] = indef_rd
+            elif tick_to is None or tick_to > indef_start:
+                del self.indefinite_imagery[branch]
+                del self.imagery[branch][indef_start]
+            elif tick_to == indef_start and str(img) == indef_rd["img"]:
+                indef_rd["tick_from"] = tick_from
+                return
+        self.imagery[branch][tick_from] = {
+            "dimension": str(self.dimension),
+            "thing": str(self.thing),
+            "board": str(self.board),
+            "branch": branch,
+            "tick_from": tick_from,
+            "tick_to": tick_to,
+            "img": str(img)}
+
+    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
+        if branch is None:
+            branch = self.rumor.branch
+        if tick_from is None:
+            tick_from = self.rumor.tick
+        if branch in self.indefinite_interactivity:
+            indef_start = self.indefinite_interactivity[branch]
+            indef_rd = self.interactivity[branch][indef_start]
+            if tick_from > indef_start:
+                indef_rd["tick_to"] = tick_from - 1
+                del self.indefinite_interactivity[branch]
+            elif tick_to is None or tick_to > indef_start:
+                del self.interactivity[branch][indef_start]
+                del self.indefinite_interactivity[branch]
+            elif tick_to == indef_start:
+                indef_rd["tick_from"] = tick_from
+                return
+        self.interactivity[branch][tick_from] = {
+            "dimension": str(self.dimension),
+            "board": int(self.board),
+            "thing": str(self.thing),
+            "branch": branch,
+            "tick_from": tick_from,
+            "tick_to": tick_to}
+        if tick_to is None:
+            self.indefinite_interactivity[branch] = tick_from
+
     def get_coords(self, branch=None, tick=None):
         loc = self.thing.get_location(branch, tick)
         if loc is None:
@@ -167,31 +221,9 @@ interactive or not.
                 coords[0] + self.drag_offset_x,
                 coords[1] + self.drag_offset_y)
         else:
+            import pdb
+            pdb.set_trace()
             return None
-
-    def get_tabdict(self):
-        return {
-            "pawn_img": [
-                {
-                    "dimension": str(self.board.dimension),
-                    "board": int(self.board),
-                    "thing": str(self.thing),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to,
-                    "img": str(img)}
-                for (branch, tick_from, tick_to, img) in
-                BranchTicksIter(self.imagery)],
-            "pawn_interactive": [
-                {
-                    "dimension": str(self.board.dimension),
-                    "board": int(self.board),
-                    "thing": str(self.thing),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to}
-                for (branch, tick_from, tick_to) in
-                BranchTicksIter(self.interactivity)]}
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)
@@ -206,10 +238,11 @@ class PawnWidget:
         self.rumor = self.pawn.rumor
         self.viewport = viewport
         self.batch = self.viewport.batch
-        self.spritegroup = OrderedGroup(0, self.viewport.pawngroup)
-        self.boxgroup = OrderedGroup(1, self.viewport.pawngroup)
+        self.spritegroup = self.viewport.pawngroup
+        self.boxgroup = self.viewport.pawngroup
         self.window = self.viewport.window
         self.calcol = None
+        self.old_state = None
 
     def __getattr__(self, attrn):
         if attrn == "board_left":
@@ -250,6 +283,14 @@ class PawnWidget:
                 self.viewport_left < self.viewport.width and
                 self.viewport_top > 0 and
                 self.viewport_bot < self.viewport.height)
+        elif attrn == "state":
+            return (
+                str(self.pawn.img),
+                self.pawn.get_coords(),
+                self.viewport.view_left,
+                self.viewport.view_bot,
+                self.viewport.window_left,
+                self.viewport.window_bot)
         elif attrn in (
                 "img", "visible", "interactive",
                 "width", "height", "thing"):
@@ -257,6 +298,9 @@ class PawnWidget:
         else:
             raise AttributeError(
                 "PawnWidget instance has no attribute " + attrn)
+
+    def __str__(self):
+        return str(self.pawn)
 
     def hover(self, x, y):
         return self
@@ -298,7 +342,8 @@ If it DOES have anything else to do, make the journey in another branch.
 
     def draw(self):
         if (
-                None in (self.viewport_left, self.viewport_bot)):
+                self.pawn.get_coords() is None or
+                self.img is None):
             return
         try:
             self.sprite.x = self.viewport_left

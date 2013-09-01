@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, dictify_row
+from util import SaveableMetaclass
 import pyglet
 
 
@@ -33,55 +33,39 @@ you that.
           "blue between 0 and 255",
           "alpha between 0 and 255"])]
 
-    def __init__(self, name, red, green, blue, alpha):
+    def __init__(self, rumor, name):
         """Return a color with the given name, and the given values for red,
 green, blue, and alpha. Register in db.colordict.
 
         """
-        self.name = name
-        self.red = red
-        self.green = green
-        self.blue = blue
-        self.alpha = alpha
-        self.tup = (self.red, self.green, self.blue, self.alpha)
-        self.pattern = pyglet.image.SolidColorImagePattern(self.tup)
+        self.rumor = rumor
+        self._name = name
+
+    def __getattr__(self, attrn):
+        if attrn == "_rowdict":
+            return self.rumor.tabdict["color"][str(self)]
+        elif attrn in ("r", "red"):
+            return self._rowdict["red"]
+        elif attrn in ("green", "g"):
+            return self._rowdict["green"]
+        elif attrn in ("blue", "b"):
+            return self._rowdict["blue"]
+        elif attrn in ("alpha", "a"):
+            return self._rowdict["alpha"]
+        elif attrn in ("tup", "tuple"):
+            return (self.red, self.green, self.blue, self.alpha)
+        elif attrn in ("pat", "pattern"):
+            return pyglet.image.SolidColorImagePattern(self.tup)
+        else:
+            raise AttributeError(
+                "Color instance has no such attribute: {0}".format(attrn))
 
     def __str__(self):
-        return self.name
-
-    def __eq__(self, other):
-        """Just check if they're both colors and their names are the same."""
-        return (
-            isinstance(other, Color) and
-            self.name == other.name)
-
-    def __hash__(self):
-        """Hash of my name."""
-        return hash(self.name)
-
-    def __iter__(self):
-        """Iterator over my tuple."""
-        return iter(self.tup)
+        return self._name
 
     def __repr__(self):
         """Looks just like the tuple."""
         return "(" + ", ".join(self.tup) + ")"
-
-    def get_tabdict(self):
-        colorset = set()
-        colorcols = ("name", "red", "green", "blue", "alpha")
-        colorset.add((
-            self.name,
-            self.red,
-            self.green,
-            self.blue,
-            self.alpha))
-        return {
-            "color": [dictify_row(row, colorcols) for row in iter(colorset)]}
-
-    def delete(self):
-        del self.db.colordict[self.name]
-        self.erase()
 
 
 class Style:
@@ -105,10 +89,10 @@ that contain text."""
           "fg_inactive": ("color", "name"),
           "fg_active": ("color", "name")},
          [])]
-    color_cols = ["bg_inactive", "bg_active", "fg_inactive", "fg_active"]
+    color_cols = ["textcolor", "bg_inactive", "bg_active",
+                  "fg_inactive", "fg_active"]
 
-    def __init__(self, name, fontface, fontsize, textcolor, spacing,
-                 bg_inactive, bg_active, fg_inactive, fg_active):
+    def __init__(self, rumor, name):
         """Return a style by the given name, with the given face, font size,
 spacing, and four colors: active and inactive variants for each of the
 foreground and the background.
@@ -116,49 +100,29 @@ foreground and the background.
 With db, register in its styledict.
 
         """
-        self.name = name
-        self.fontface = fontface
-        self.fontsize = fontsize
-        self.textcolor = textcolor
-        self.spacing = spacing
-        self.bg_inactive = bg_inactive
-        self.bg_active = bg_active
-        self.fg_inactive = fg_inactive
-        self.fg_active = fg_active
+        self.rumor = rumor
+        self._name = name
+        self.rumor.styledict[str(self)] = self
+
+    def __getattr__(self, attrn):
+        if attrn == "_rowdict":
+            return self.rumor.tabdict["style"][str(self)]
+        elif attrn in self.color_cols:
+            return self.rumor.get_color(self._rowdict[attrn])
+        elif attrn in (
+                "fontface",
+                "fontsize",
+                "spacing"):
+            return self._rowdict[attrn]
+        else:
+            raise AttributeError(
+                "Style instance has no such attribute: {0}".format(attrn))
 
     def __str__(self):
-        return self.name
+        return self._name
 
     def __eq__(self, other):
         """Check we're both Style instances and we have the same name"""
         return (
             isinstance(other, Style) and
-            self.name == other.name)
-
-    def __hash__(self):
-        """Hash a tuple with all the colors, name, fontface, fontsize,
-spacing"""
-        return hash((self.name, self.fontface, self.fontsize, self.spacing,
-                     self.bg_inactive, self.bg_active, self.fg_inactive,
-                     self.fg_active))
-
-    def unravel(self):
-        pass
-
-    def get_tabdict(self):
-        styleset = set()
-        stylecols = (
-            "name", "fontface", "fontsize", "spacing",
-            "bg_inactive", "bg_active",
-            "fg_inactive", "fg_active")
-        styleset.add((
-            self.name,
-            self.fontface,
-            self.fontsize,
-            self.spacing,
-            self.bg_inactive,
-            self.bg_active,
-            self.fg_inactive,
-            self.fg_active))
-        return {
-            "style": [dictify_row(row, stylecols) for row in iter(styleset)]}
+            str(self) == str(other))

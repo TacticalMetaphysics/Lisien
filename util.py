@@ -4,6 +4,7 @@ import pyglet
 import ctypes
 from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
+from sqlite3 import IntegrityError
 
 logger = getLogger(__name__)
 
@@ -17,12 +18,11 @@ colnamestr = {}
 
 primarykeys = {}
 
+tabclas = {}
+
 saveables = []
 
-
-class Callable:
-    def __init__(self, anything):
-        self.__call__ = anything
+saveable_classes = []
 
 
 class SaveableMetaclass(type):
@@ -138,7 +138,6 @@ and your table will be ready.
             rowstrs[tablename] = "(" + rowqms[tablename] + ")"
         for tablename in coldecls.iterkeys():
             colnames[tablename] = keynames[tablename] + valnames[tablename]
-        local_schemata = []
         for tablename in tablenames:
             provides.add(tablename)
             coldecl = coldecls[tablename]
@@ -197,34 +196,46 @@ and your table will be ready.
                 colnamestr[tablename], tablename, pkeynamestr)
             missings[tablename] = missing_stmt_start
             schemata[tablename] =  create_stmt
-        saveables.append((demands, provides, prelude, tablenames, postlude))
+        saveables.append(
+            (demands, provides, prelude, tablenames, postlude))
 
         def gen_sql_insert(rowdicts, tabname):
-            if rowdicts == []:
-                return []
-            sample = rowdicts[0]
-            cols_used = [col for col in colnames[tabname] if col in sample]
-            colsstr = ", ".join(cols_used)
-            row_qms = ", ".join(["?"] * len(sample))
-            rowstr = "({0})".format(row_qms)
-            rowsstr = ", ".join([rowstr] * len(rowdicts))
-            qrystr = inserts[tabname].format(colsstr, rowsstr)
+            if tabname in rowdicts:
+                itr = TabdictIterator(rowdicts[tabname])
+            else:
+                itr = TabdictIterator(rowdicts)
+            if len(itr) == 0 or tabname not in tablenames:
+                raise EmptyTabdict
+            qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
+                tabname,
+                colnamestr[tabname],
+                ", ".join([rowstrs[tabname]] * len(itr)))
             qrylst = []
-            for rowdict in iter(rowdicts):
-                for col in cols_used:
-                    qrylst.append(rowdict[col])
-            qrytup = tuple(qrylst)
-            return (qrystr, qrytup)
+            for rd in itr:
+                qrylst.extend([rd[coln] for coln in colnames[tabname]])
+            return (qrystr, tuple(qrylst))
 
+        @staticmethod
         def insert_rowdicts_table(c, rowdicts, tabname):
-            c.execute(*gen_sql_insert(rowdicts, tabname))
-            return []
+            if len(rowdicts) == 0:
+                return []
+            try:
+                c.execute(*gen_sql_insert(rowdicts, tabname))
+            except IntegrityError:
+                print gen_sql_insert(rowdicts, tabname)
+                import pdb
+                pdb.set_trace()
+            except EmptyTabdict:
+                return
 
         def gen_sql_delete(keydicts, tabname):
             keyns = keynames[tabname]
             keys = []
             wheres = []
-            for keydict in iter(keydicts):
+            kitr = TabdictIterator(keydicts)
+            if len(kitr) == 0 or tabname not in tablenames:
+                raise EmptyTabdict
+            for keydict in kitr:
                 checks = []
                 for keyn in keyns:
                     checks.append(keyn + "=?")
@@ -234,15 +245,18 @@ and your table will be ready.
             qrystr = "DELETE FROM {0} WHERE {1}".format(tabname, wherestr)
             return (qrystr, tuple(keys))
 
+        @staticmethod
         def delete_keydicts_table(c, keydicts, tabname):
-            c.execute(*gen_sql_delete(keydicts, tabname))
+            if len(keydicts) == 0:
+                return
+            try:
+                c.execute(*gen_sql_delete(keydicts, tabname))
+            except EmptyTabdict:
+                return
 
         def gen_sql_select(keydicts, tabname):
             keys_in_use = set()
-            if isinstance(keydicts, list):
-                kitr = iter(keydicts)
-            else:
-                kitr = TabdictIterator(keydicts)
+            kitr = TabdictIterator(keydicts)
             for keyd in kitr:
                 for k in keyd:
                     keys_in_use.add(k)
@@ -251,38 +265,55 @@ and your table will be ready.
                 " AND ".join(
                     ["{0}=?".format(key) for key in keys]
                 ))
-            ands = [andstr] * len(keydicts)
+            ands = [andstr] * len(kitr)
             colstr = colnamestr[tabname]
             orstr = " OR ".join(ands)
             return "SELECT {0} FROM {1} WHERE {2}".format(
                 colstr, tabname, orstr)
 
-
         def select_keydicts_table(c, keydicts, tabname):
             keys = primarykeys[tabname]
             qrystr = gen_sql_select(keydicts, tabname)
             qrylst = []
-            if isinstance(keydicts, list):
-                kitr = iter(keydicts)
-            else:
-                kitr = TabdictIterator(keydicts)
+            kitr = TabdictIterator(keydicts)
             for keydict in kitr:
                 for key in keys:
                     try:
                         qrylst.append(keydict[key])
                     except KeyError:
                         pass
+            if len(qrylst) == 0:
+                return []
             c.execute(qrystr, tuple(qrylst))
             return c.fetchall()
 
         @staticmethod
+        def _select_table_all(c, tabname):
+            r = {}
+            qrystr = "SELECT {0} FROM {1}".format(
+                colnamestr[tabname], tabname)
+            c.execute(qrystr)
+            for row in c.fetchall():
+                rd = dictify_row(row, colnames[tabname])
+                ptr = r
+                lptr = r
+                for key in primarykeys[tabname]:
+                    if rd[key] not in ptr:
+                        ptr[rd[key]] = {}
+                    lptr = ptr
+                    ptr = ptr[rd[key]]
+                lptr[rd[key]] = rd
+            return {tabname: r}
+
+        @staticmethod
         def _select_tabdict(c, td):
             r = {}
-            for item in td.iteritems():
-                (tabname, rd) = item
+            for (tabname, rdd) in td.iteritems():
+                if tabname not in primarykeys:
+                    continue
                 if tabname not in r:
                     r[tabname] = {}
-                for row in select_keydicts_table(c, rd, tabname):
+                for row in select_keydicts_table(c, rdd, tabname):
                     rd = dictify_row(row, colnames[tabname])
                     ptr = r[tabname]
                     keys = list(primarykeys[tabname])
@@ -307,7 +338,7 @@ and your table will be ready.
             qrytup = tuple(qrylst)
             return (qrystr, qrytup)
 
-        def detect_keydicts_table(keydicts, tabname):
+        def detect_keydicts_table(c, keydicts, tabname):
             c.execute(*gen_sql_detect(keydicts, tabname))
             return c.fetchall()
 
@@ -322,34 +353,24 @@ and your table will be ready.
             qrytup = tuple(qrylst)
             return (qrystr, qrytup)
 
-        def missing_keydicts_table(keydicts, tabname):
+        def missing_keydicts_table(c, keydicts, tabname):
             c.execute(*gen_sql_missing(keydicts, tabname))
             return c.fetchall()
 
-        def insert_tabdict(c, tabdict):
-            for item in tabdict.iteritems():
-                (tabname, rd) = item
-                insert_rowdicts_table(c, rd, tabname)
+        @staticmethod
+        def _insert_tabdict(c, tabdict):
+            for (tabname, rds) in tabdict.iteritems():
+                if tabname in tablenames:
+                    insert_rowdicts_table(c, rds, tabname)
 
-        def delete_tabdict(c, tabdict):
-            qryfmt = "DELETE FROM {0} WHERE {1}"
-            for (tabn, rows) in tabdict.iteritems():
-                if rows == []:
-                    continue
-                vals = []
-                ors = []
-                for row in iter(rows):
-                    keyns = keynames[tabn]
-                    ands = []
-                    for keyn in keyns:
-                        ands.append(keyn + "=?")
-                        vals.append(row[keyn])
-                    ors.append("(" + " AND ".join(ands) + ")")
-                qrystr = qryfmt.format(tabn, " OR ".join(ors))
-                qrytup = tuple(vals)
-                c.execute(qrystr, qrytup)
+        @staticmethod
+        def _delete_tabdict(c, tabdict):
+            for (tabname, rds) in tabdict.iteritems():
+                if tabname in tablenames:
+                    delete_keydicts_table(c, rds, tabname)
 
-        def detect_tabdict(c, tabdict):
+        @staticmethod
+        def _detect_tabdict(c, tabdict):
             r = {}
             for item in tabdict.iteritems():
                 (tabname, rd) = item
@@ -359,7 +380,8 @@ and your table will be ready.
                     r[tabname] = detect_keydicts_table(c, rd, tabname)
             return r
 
-        def missing_tabdict(c, tabdict):
+        @staticmethod
+        def _missing_tabdict(c, tabdict):
             r = {}
             for item in tabdict.iteritems():
                 (tabname, rd) = item
@@ -368,23 +390,6 @@ and your table will be ready.
                 else:
                     r[tabname] = missing_keydicts_table(c, rd, tabname)
             return r
-
-        def coresave(self):
-            td = self.get_tabdict()
-            logger.debug("writing a tabdict to disk")
-            for item in td.iteritems():
-                logger.debug("--in the table %s:", item[0])
-                i = 0
-                for record in item[1]:
-                    logger.debug("----row %d:", i)
-                    i += 1
-                    for (key, val) in record.iteritems():
-                        logger.debug("------%s = %s", key, val)
-            delete_tabdict(self.rumor.c, td)
-            insert_tabdict(self.rumor.c, td)
-
-        def save(self):
-            coresave(self)
 
         def get_keydict(self):
             tabd = self.get_tabdict()
@@ -395,20 +400,19 @@ and your table will be ready.
                     r[tabn][keyn] = tabd[tabn][keyn]
             return r
 
-        def erase(self):
-            delete_tabdict(self.rumor, self.get_keydict())
-
         atrdic = {
             '_select_tabdict': _select_tabdict,
-            'insert_tabdict': lambda self, td: insert_tabdict(self.rumor.c, td),
-            'delete_tabdict': lambda self, td: delete_tabdict(self.rumor.c, td),
-            'detect_tabdict': lambda self, td: detect_tabdict(self.rumor.c, td),
-            'missing_tabdict': lambda self, td: missing_tabdict(self.rumor.c, td),
-            'select_tabdict': lambda self, td: _select_tabdict(self.rumor.c, td),
-            'gen_sql_insert': lambda self, rd, tn: gen_sql_insert(rd, tn),
-            'gen_sql_delete': lambda self, rd, tn: gen_sql_delete(rd, tn),
-            'gen_sql_detect': lambda self, rd, tn: gen_sql_detect(rd, tn),
-            'gen_sql_missing': lambda self, rd, tn: gen_sql_missing(rd, tn),
+            '_select_table_all': _select_table_all,
+            '_insert_tabdict': _insert_tabdict,
+            '_delete_tabdict': _delete_tabdict,
+            '_detect_tabdict': _detect_tabdict,
+            '_missing_tabdict': _missing_tabdict,
+            '_insert_rowdicts_table': insert_rowdicts_table,
+            '_delete_keydicts_table': delete_keydicts_table,
+            '_gen_sql_insert': gen_sql_insert,
+            '_gen_sql_delete': gen_sql_delete,
+            '_gen_sql_detect': gen_sql_detect,
+            '_gen_sql_missing': gen_sql_missing,
             'colnames': colnames,
             'colnamestr': colnamestr,
             'colnstr': colnamestr[tablenames[0]],
@@ -421,14 +425,13 @@ and your table will be ready.
             'rowlen': rowlen,
             'keyqms': keyqms,
             'rowqms': rowqms,
-            'coresave': coresave,
-            'save': save,
             'maintab': tablenames[0],
-            'get_keydict': get_keydict,
-            'erase': erase}
+            'tablenames': tablenames}
         atrdic.update(attrs)
 
-        return type.__new__(metaclass, clas, parents, atrdic)
+        clas = type.__new__(metaclass, clas, parents, atrdic)
+        saveable_classes.append(clas)
+        return clas
 
 
 def start_new_map(nope):
@@ -696,61 +699,32 @@ class TerminableImg:
             tick = self.rumor.tick
         if branch not in self.imagery:
             return None
-        for (tick_from, (img, tick_to)) in self.imagery[branch].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
-                assert(hasattr(img, 'tex'))
-                return img
+        if branch in self.indefinite_imagery:
+            indef_start = self.indefinite_imagery[branch]
+            if tick >= indef_start:
+                rd = self.imagery[branch][indef_start]
+                return self.rumor.get_img(rd["img"])
+        for rd in TabdictIterator(self.imagery[branch]):
+            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
+                return self.rumor.get_img(rd["img"])
         return None
 
-    def set_img(self, img, branch=None, tick_from=None, tick_to=None):
-        assert(hasattr(img, 'tex'))
-        if branch is None:
-            branch = self.rumor.branch
-        if tick_from is None:
-            tick_from = self.rumor.tick
+    def new_branch_imagery(self, parent, branch, tick):
         if branch not in self.imagery:
             self.imagery[branch] = {}
-        if branch in self.indefinite_imagery:
-            (indef_img, indef_start) = self.indefinite_imagery[branch]
-            if tick_to is None:
-                del self.imagery[branch][indef_start]
-                self.imagery[branch][tick_from] = (img, None)
-                self.indefinite_imagery[branch] = (img, tick_from)
-            else:
-                if tick_from < indef_start:
-                    if tick_to < indef_start:
-                        self.imagery[branch][tick_from] = (img, tick_to)
-                    elif tick_to == indef_start:
-                        del self.indefinite_imagery[branch]
-                        self.imagery[branch][tick_from] = (img, tick_to)
-                    else:
-                        del self.imagery[branch][indef_start]
-                        del self.indefinite_imagery[branch]
-                        self.imagery[branch][tick_from] = (img, tick_to)
-                elif tick_from == indef_start:
-                    del self.indefinite_imagery[branch]
-                    self.imagery[branch][tick_from] = (img, tick_to)
-                else:
-                    self.imagery[branch][indef_start] = (
-                        indef_img, tick_from-1)
-                    del self.indefinite_imagery[branch]
-                    self.imagery[branch][tick_from] = (img, tick_to)
-        else:
-            self.imagery[branch][tick_from] = (img, tick_to)
-            if tick_to is None:
-                self.indefinite_imagery[branch] = (img, tick_from)
-
-    def new_branch_imagery(self, parent, branch, tick):
-        for (tick_from, (img, tick_to)) in self.imagery[parent].iteritems():
-            if tick_to >= tick or tick_to is None:
-                if tick_from < tick:
-                    self.imagery[branch][tick] = (img, tick_to)
-                    if tick_to is None:
+        for rd in TabdictIterator(self.imagery[parent]):
+            if rd["tick_to"] is None or rd["tick_to"] >= tick:
+                rd2 = dict(rd)
+                if rd2["tick_from"] < tick:
+                    rd2["branch"] = branch
+                    rd2["tick_from"] = tick
+                    self.imagery[branch][tick] = rd2
+                    if rd2["tick_to"] is None:
                         self.indefinite_imagery[branch] = tick
                 else:
-                    self.imagery[branch][tick_from] = (img, tick_to)
-                    if tick_to is None:
-                        self.indefinite_imagery[branch] = tick_from
+                    self.imagery[branch][rd["tick_from"]] = rd2
+                    if rd2["tick_to"] is None:
+                        self.indefinite_imagery[branch] = rd2["tick_from"]
 
 
 class TerminableInteractivity:
@@ -763,77 +737,28 @@ class TerminableInteractivity:
             tick = self.rumor.tick
         if branch not in self.interactivity:
             return False
-        for (tick_from, tick_to) in self.interactivity[branch].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
+        if (
+                branch in self.indefinite_interactivity and
+                tick >= self.indefinite_interactivity[branch]):
+            return True
+        for rd in TabdictIterator(self.interactivity):
+            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return True
         return False
 
-    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
-        if branch is None:
-            branch = self.rumor.branch
-        if tick_from is None:
-            tick_from = self.rumor.tick
+    def new_branch_interactivity(self, parent, branch, tick):
         if branch not in self.interactivity:
             self.interactivity[branch] = {}
-        if branch in self.indefinite_interactivity:
-            prevstart = self.indefinite_interactivity[branch]
-            if tick_to is None:
-                # Two indefinite periods of interactivity cannot coexist.
-                # Assume that you meant to overwrite the old one.
-                del self.interactivity[branch][prevstart]
-                self.indefinite_interactivity[branch] = tick_from
-                self.interactivity[branch][tick_from] = None
-            else:
-                if tick_from < prevstart:
-                    if tick_to > prevstart:
-                        # You had an indefinite period of interactivity,
-                        # and asked to overwrite a span of it--from the
-                        # beginning to some tick--with part of a definite
-                        # period of interactivity.
-                        #
-                        # That's a bit weird. The only way to really
-                        # comply with that request is to delete the
-                        # indefinite period.
-                        del self.interactivity[branch][prevstart]
-                        del self.indefinite_interactivity[branch]
-                        self.interactivity[branch][tick_from] = tick_to
-                    elif tick_to == prevstart:
-                        # Putting a definite period of interactivity
-                        # on before the beginning of an indefinite one
-                        # is equivalent to rescheduling the start of
-                        # the indefinite one.
-                        del self.interactivity[branch][prevstart]
-                        self.interactivity[branch][tick_from] = None
-                    else:
-                        # This case I can simply schedule like normal.
-                        self.interactivity[branch][tick_from] = tick_to
-                elif tick_from == prevstart:
-                    # Assume you mean to overwrite
-                    self.interactivity[branch][tick_from] = tick_to
-                    del self.indefinite_interactivity[branch]
+        for rd in TabdictIterator(self.interactivity[parent]):
+            if rd["tick_to"] is None or rd["tick_to"] >= tick:
+                rd2 = dict(rd)
+                if rd2["tick_from"] < tick:
+                    rd2["tick_from"] = tick
+                    self.interactivity[branch][tick] = rd
                 else:
-                    # By scheduling the start of something definite
-                    # after the start of something indefinite, you've
-                    # implied that the indefinite thing shouldn't be
-                    # so indefinite after all.
-                    self.interactivity[branch][prevstart] = tick_from - 1
-                    del self.indefinite_interactivity[branch]
-        else:
-            self.interactivity[branch][tick_from] = tick_to
-            if tick_to is None:
-                self.indefinite_interactivity[branch] = tick_from
-
-    def new_branch_interactivity(self, parent, branch, tick):
-        for (tick_from, tick_to) in self.interactivity[parent].iteritems():
-            if tick_to >= tick or tick_to is None:
-                if tick_from < tick:
-                    self.interactivity[branch][tick] = tick_to
-                    if tick_to is None:
-                        self.indefinite_interactivity[branch] = tick
-                else:
-                    self.interactivity[branch][tick_from] = tick_to
-                    if tick_to is None:
-                        self.indefinite_interactivity[branch] = tick_from
+                    self.interactivity[branch][rd2["tick_from"]] = rd
+                if rd2["tick_to"] is None:
+                    self.indefinite_interactivity[branch] = rd2["tick_from"]
 
 
 class ViewportOrderedGroup(pyglet.graphics.OrderedGroup):
@@ -911,7 +836,7 @@ class DictValues2DIterator:
 
 class TabdictIterator:
     def __init__(self, td):
-        self.ptrs = [dict(td)]
+        self.ptrs = [td]
         self.keyses = [self.ptrs[0].keys()]
         i = 0
         while True:
@@ -919,7 +844,7 @@ class TabdictIterator:
                 self.next()
                 i += 1
             except StopIteration:
-                self.ptrs = [dict(td)]
+                self.ptrs = [td]
                 self.keyses = [self.ptrs[0].keys()]
                 self.__len__ = lambda: i
                 break
@@ -961,4 +886,12 @@ Thing, and it made no sense.
 
 
 class LoadError(Exception):
+    pass
+
+
+class EmptyTabdict(Exception):
+    pass
+
+
+class TimeParadox(Exception):
     pass
