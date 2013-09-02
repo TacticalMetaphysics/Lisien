@@ -25,7 +25,9 @@ class Portal:
         self.rumor = rumor
         self.dimension = dimension
         self.orig = origin
+        self.origin = origin
         self.dest = destination
+        self.destination = destination
         self.indefinite_existence = {}
         for rd in TabdictIterator(self.existence):
             if rd["tick_to"] is None:
@@ -34,12 +36,8 @@ class Portal:
         self.dimension.graph.add_edge(self.origi, self.desti, portal=self)
 
     def __getattr__(self, attrn):
-        if attrn == "origin":
-            return self.orig
-        elif attrn == "origi":
+        if attrn == "origi":
             return self.orig.index
-        elif attrn == "destination":
-            return self.dest
         elif attrn == "desti":
             return self.dest.index
         elif attrn in ("e", "edge"):

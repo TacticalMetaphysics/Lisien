@@ -212,7 +212,7 @@ given name.
             'mi_create_portal':
             (self.mi_create_portal, ONE_ARG_RE)}
         self.func.update(xfuncs)
-        self.game = {
+        self.tabdict["game"] = {
             "front_board": front_board,
             "front_branch": front_branch,
             "seed": seed,
@@ -220,25 +220,23 @@ given name.
             "hi_place": hi_place,
             "hi_portal": hi_portal,
             "hi_thing": hi_thing}
+        self.atrdic = {
+            "game": lambda: self.tabdict["game"],
+            "board": lambda: self.game["front_board"],
+            "front_board": lambda: self.game["front_board"],
+            "branch": lambda: self.game["front_branch"],
+            "front_branch": lambda: self.game["front_branch"],
+            "seed": lambda: self.game["seed"],
+            "tick": lambda: self.game["tick"],
+            "hi_place": lambda: self.game["hi_place"],
+            "hi_portal": lambda: self.game["hi_portal"],
+            "hi_thing": lambda: self.game["hi_thing"],
+            "dimensions": self.dimensiondict.itervalues}
 
     def __getattr__(self, attrn):
-        if attrn in ("board", "front_board"):
-            return self.game["front_board"]
-        elif attrn in ("branch", "front_branch"):
-            return self.game["front_branch"]
-        elif attrn == "seed":
-            return self.game["seed"]
-        elif attrn == "tick":
-            return self.game["tick"]
-        elif attrn == "hi_place":
-            return self.game["hi_place"]
-        elif attrn == "hi_portal":
-            return self.game["hi_portal"]
-        elif attrn == "hi_thing":
-            return self.game["hi_thing"]
-        elif attrn == "dimensions":
-            return self.dimensiondict.itervalues()
-        else:
+        try:
+            return self.atrdic[attrn]()
+        except KeyError:
             raise AttributeError(
                 "RumorMill doesn't have the attribute " + attrn)
 
@@ -632,17 +630,17 @@ This is game-world time. It doesn't always go forwards.
             "SELECT front_board, front_branch, front_dimension, "
             "tick, seed, hi_branch, hi_place, hi_portal, "
             "hi_thing FROM game")
-        for row in self.c:
-            self.game = {
-                "front_board": row[0],
-                "front_branch": row[1],
-                "front_dimension": row[2],
-                "tick": row[3],
-                "seed": row[4],
-                "hi_branch": row[5],
-                "hi_place": row[6],
-                "hi_portal": row[7],
-                "hi_thing": row[8]}
+        row = self.c.fetchone()
+        self.tabdict["game"] = {
+            "front_board": row[0],
+            "front_branch": row[1],
+            "front_dimension": row[2],
+            "tick": row[3],
+            "seed": row[4],
+            "hi_branch": row[5],
+            "hi_place": row[6],
+            "hi_portal": row[7],
+            "hi_thing": row[8]}
         dim = self.get_dimension(self.game["front_dimension"])
         self.load_board(dim, self.game["front_board"])
         self.old_tabdict = deepcopy(self.tabdict)

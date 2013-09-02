@@ -37,31 +37,24 @@ provided."""
         else:
             self.tex = load_regular_img(self.path)
         self.rumor.imgdict[str(self)] = self
+        self._rowdict = self.rumor.tabdict["img"][str(self)]
+        self.atrdic = {
+            "path": lambda: self._rowdict["path"],
+            "rltile": lambda: self._rowdict["rltile"],
+            "center": lambda: (self.tex.width / 2, self.tex.height / 2),
+            "texture": lambda: self.tex,
+            "width": lambda: self.tex.width,
+            "height": lambda: self.tex.height}
 
     def __str__(self):
         return self._name
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["img"][str(self)]
-        elif attrn == "path":
-            return self._rowdict["path"]
-        elif attrn == "rltile":
-            return self._rowdict["rltile"]
-        elif attrn == 'center':
-            return (self.tex.width / 2, self.tex.height / 2)
-        elif attrn == 'texture':
-            return self.tex
-        elif attrn == 'width':
-            return self.tex.width
-        elif attrn == 'height':
-            return self.tex.height
-        else:
-            try:
-                return getattr(self.tex, attrn)
-            except AttributeError:
-                raise AttributeError(
-                    "Img instance has no attribute {0}.".format(attrn))
+        try:
+            return self.atrdic[attrn]()
+        except KeyError:
+            raise AttributeError(
+                "Img instance has no attribute {0}.".format(attrn))
 
     def get_tabdict(self):
         return {

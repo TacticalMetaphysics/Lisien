@@ -253,36 +253,33 @@ class GameWindow(pyglet.window.Window):
 
         self.dxdy_hist_counter = 0
 
-    def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["window"][str(self)]
-        elif attrn in ("min_width", "min_height",
-                       "arrowhead_size", "arrow_width"):
-            return self._rowdict[attrn]
-        elif attrn == "main_menu_name":
-            return self._rowdict["main_menu"]
-        elif attrn == 'viewports':
-            return ViewportIter(self.dimensiondict)
-        elif attrn == 'menus':
-            return self.menudict.itervalues()
-        elif attrn == 'hands':
+        self._rowdict = self.rumor.tabdict["window"][str(self)]
+        def gethands():
             if hasattr(self, 'handdict'):
                 return self.handdict.itervalues()
             else:
                 return []
-        elif attrn == 'dx':
-            return sum(self.dx_hist)
-        elif attrn == 'dy':
-            return sum(self.dy_hist)
-        elif attrn == 'offset_x':
-            return -1 * self.view_left
-        elif attrn == 'offset_y':
-            return -1 * self.view_bot
-        elif attrn == 'arrow_girth':
-            return self.arrow_width * 2
+        self.atrdic = {
+            "main_menu_name": lambda: self._rowdict["main_menu"],
+            "viewports": lambda: ViewportIter(self.dimensiondict),
+            "menus": self.menudict.itervalues,
+            "hands": gethands,
+            'dx': lambda: sum(self.dx_hist),
+            'dy': lambda: sum(self.dy_hist),
+            'offset_x': lambda: -1 * self.view_left,
+            'offset_y': lambda: -1 * self.view_bot,
+            'arrow_girth': lambda: self.arrow_width * 2}
+
+    def __getattr__(self, attrn):
+        if attrn in ("min_width", "min_height",
+                       "arrowhead_size", "arrow_width"):
+            return self._rowdict[attrn]
         else:
-            raise AttributeError(
-                "AbstractGameWindow has no attribute named {0}".format(attrn))
+            try:
+                return self.atrdic[attrn]()
+            except KeyError:
+                raise AttributeError(
+                    "AbstractGameWindow has no attribute named {0}".format(attrn))
 
     def __str__(self):
         return self.name
@@ -612,17 +609,3 @@ associated with the argument."""
             xleft = int(x - cos(theta) * length)
             ybot = int(y - sin(theta) * length)
             return (xleft * xco, ybot * yco)
-
-    def get_tabdict(self):
-        return {
-            "window": [{
-                "name": str(self),
-                "min_width": self.min_width,
-                "min_height": self.min_height,
-                "dimension": str(self.dimension),
-                "board": int(self.board),
-                "arrowhead_size": self.arrowhead_size,
-                "arrow_width": self.arrow_width,
-                "view_left": self.view_left,
-                "view_bot": self.view_bot,
-                "main_menu": self.main_menu_name}]}

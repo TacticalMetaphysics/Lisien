@@ -57,16 +57,19 @@ contain only a single Effect.
         self.rumor = rumor
         self._name = name
         self.rumor.effectdict[str(self)] = self
+        self._rowdict = self.rumor.tabdict["effect"][str(self)]
+        self.atrdic = {
+            "character": lambda: self.rumor.get_character(self._rowdict["character"]),
+            "key": lambda: self._rowdict["key"],
+            "callback": lambda: self.rumor.effect_cbs[self._rowdict["callback"]]}
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["effect"][str(self)]
-        elif attrn == "character":
-            return self.rumor.get_character(self._rowdict["character"])
-        elif attrn == "key":
-            return self._rowdict["key"]
-        elif attrn == "callback":
-            return self.rumor.effect_cbs[self._rowdict["callback"]]
+        try:
+            return self.atrdic[attrn]()
+        except KeyError:
+            raise AttributeError(
+                "Effect instance has no attribute named {0}".format(
+                    attrn))
 
     def __str__(self):
         return self._name
@@ -147,6 +150,11 @@ were right after firing them.
         self.reset_to = {}
         self.indefinite_effects = {}
         self.rumor.effectdeckdict[name] = self
+        self._rowdict = self.rumor.tabdict["effect_deck"][str(self)]
+        self._card_links = self.rumor.tabdict["effect_deck_link"][str(self)]
+        self.atrdic = {
+            "effects": self.get_effects,
+            "draw_order": lambda: self._rowdict["draw_order"]}
 
     def __len__(self):
         return len(self.effects)
@@ -155,15 +163,9 @@ were right after firing them.
         return self._name
 
     def __getattr__(self, attrn):
-        if attrn in ("_rowdict", "_deck_rowdict"):
-            return self.rumor.tabdict["effect_deck"][str(self)]
-        elif attrn == "_card_links":
-            return self.rumor.tabdict["effect_deck_link"][str(self)]
-        elif attrn == "effects":
-            return self.get_effects()
-        elif attrn == "draw_order":
-            return self._deck_rowdict["draw_order"]
-        else:
+        try:
+            return self.atrdic[attrn]()
+        except KeyError:
             raise AttributeError(
                 "EffectDeck instance has no attribute named " + attrn)
 

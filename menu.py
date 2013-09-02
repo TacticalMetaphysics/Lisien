@@ -65,38 +65,19 @@ With db, register in db's menuitemdict.
 
         self.on_click = on_click_fun
 
-    def __int__(self):
-        return self.idx
-
-    def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["menu_item"][
-                str(self.window)][str(self.menu)][int(self)]
-        elif attrn == "closer":
-            return self._rowdict["closer"]
-        elif attrn == "_text":
-            return self._rowdict["text"]
-        elif attrn == "_icon":
-            return self._rowdict["icon"]
-        elif attrn == "_on_click":
-            return self._rowdict["on_click"]
-        elif attrn == "icon":
+        self._rowdict = self.rumor.tabdict["menu_item"][
+            str(self.window)][str(self.menu)][int(self)]
+        def geticon():
             if self._icon is not None:
                 return self.rumor.get_img(self._icon)
-        elif attrn == 'text':
+        def gettxt():
             if self._text is None:
                 return None
             elif self._text[0] == '@':
                 return self.rumor.get_text(self._text[1:])
             else:
                 return self._text
-        elif attrn == 'hovered':
-            return self.window.hovered is self
-        elif attrn == 'pressed':
-            return self.window.pressed is self
-        elif attrn == 'window_left':
-            return self.menu.window_left + self.menu.style.spacing
-        elif attrn == 'label_window_left':
+        def lwl():
             if self.icon is None:
                 return self.window_left
             else:
@@ -104,28 +85,34 @@ With db, register in db's menuitemdict.
                     self.window_left +
                     self.icon.width +
                     self.menu.style.spacing)
-        elif attrn == 'window_right':
-            return self.menu.window_right - self.menu.style.spacing
-        elif attrn == 'label_window_right':
-            return self.window_right
-        elif attrn == 'width':
-            return self.window_right - self.window_left
-        elif attrn == 'height':
-            return self.menu.style.fontsize + self.menu.style.spacing
-        elif attrn == 'window_top':
-            return self.menu.window_top - self.idx * self.height
-        elif attrn == 'window_bot':
-            return self.window_top - self.height
-        elif attrn == 'rx':
-            return self.width / 2
-        elif attrn == 'ry':
-            return self.height / 2
-        elif attrn == 'r':
-            if self.rx > self.ry:
-                return self.rx
-            else:
-                return self.ry
-        else:
+        self.atrdic = {
+            "closer": lambda: self._rowdict["closer"],
+            "_text": lambda: self._rowdict["text"],
+            "_icon": lambda: self._rowdict["icon"],
+            "_on_click": lambda: self._rowdict["on_click"],
+            "icon": geticon,
+            "text": gettxt,
+            "hovered": lambda: self.window.hovered is self,
+            "pressed": lambda: self.window.pressed is self,
+            "window_left": lambda: self.menu.window_left + self.menu.style.spacing,
+            "label_window_left": lwl,
+            "window_right": lambda: self.menu.window_right - self.menu.style.spacing,
+            "label_window_right": lambda: self.window_right,
+            "width": lambda: self.window_right - self.window_left,
+            "height": lambda: self.menu.style.fontsize + self.menu.style.spacing,
+            "window_top": lambda: self.menu.window_top - (self.idx * height),
+            "window_bot": lambda: self.window_top - self.height,
+            "rx": lambda: self.width / 2,
+            "ry": lambda: self.height / 2,
+            "r": lambda: {True: self.rx, False: self.ry}[self.rx > self.ry]}
+
+    def __int__(self):
+        return self.idx
+
+    def __getattr__(self, attrn):
+        try:
+            return self.atrdic[attrn]()
+        except KeyError:
             raise AttributeError(
                 "MenuItem instance has no such attribute: " +
                 attrn)
@@ -239,65 +226,50 @@ With db, register with db's menudict.
         self.pressed = False
         self.freshly_adjusted = False
         self.visible = False
+        self_rowdict = self.rumor.tabdict["menu"][
+            str(self.window)][str(self)]
+        def get_fun_if_window(fun):
+            def fun_if_window():
+                if self.window is None:
+                    return 0
+                else:
+                    return fun()
+            return fun_if_window
+        def r():
+            if self.rx > self.ry:
+                return self.rx
+            else:
+                return self.ry
+        self.atrdic = {
+            "left_prop": lambda: self._rowdict["left"],
+            "right_prop": lambda: self._rowdict["right"],
+            "top_prop": lambda: self._rowdict["top"],
+            "bot_prop": lambda: self._rowdict["bot"],
+            "style": lambda: (
+                self.rumor.get_style(self._rowdict["style"])),
+            "hovered": lambda: self.window.hovered is self,
+            "window_left": fun_if_window(lambda: (
+                int(self.window.width * self.left_prop))),
+            "window_right": fun_if_window(lambda: (
+                int(self.window.width * self.right_prop))),
+            "window_top": fun_if_window(lambda: (
+                int(self.window.height * self.top_prop))),
+            "window_bot": fun_if_window(lambda: (
+                int(self.window.height * self.bot_prop))),
+            "width": lambda: self.window_right - self.window_left,
+            "height": lambda: self.window_top - self.window_bot,
+            "rx": lambda: self.width / 2,
+            "ry": lambda: self.height / 2,
+            "r": r,
+            "state": self.get_state_tup}
 
     def __str__(self):
         return self.name
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["menu"][str(self.window)][str(self)]
-        elif attrn == "left_prop":
-            return self._rowdict["left"]
-        elif attrn == "right_prop":
-            return self._rowdict["right"]
-        elif attrn == "top_prop":
-            return self._rowdict["top"]
-        elif attrn == "bot_prop":
-            return self._rowdict["bot"]
-        elif attrn == "style":
-            return self.rumor.get_style(self._rowdict["style"])
-        elif attrn == 'hovered':
-            return self.window.hovered is self
-        elif attrn == 'window_left':
-            if self.window is None:
-                return 0
-            else:
-                return int(self.window.width * self.left_prop)
-        elif attrn == 'window_bot':
-            if self.window is None:
-                return 0
-            else:
-                return int(self.window.height * self.bot_prop)
-        elif attrn == 'window_top':
-            if self.window is None:
-                return 0
-            else:
-                return int(self.window.height * self.top_prop)
-        elif attrn == 'window_right':
-            if self.window is None:
-                return 0
-            else:
-                return int(self.window.width * self.right_prop)
-        elif attrn == 'width':
-            return self.window_right - self.window_left
-        elif attrn == 'height':
-            return self.window_top - self.window_bot
-        elif attrn == 'rx':
-            return int(
-                (self.window.width * self.right_prop -
-                 self.window.width * self.left_prop)
-                / 2)
-        elif attrn == 'ry':
-            return int(
-                (self.window.height * self.top_prop -
-                 self.window.height * self.bot_prop)
-                / 2)
-        elif attrn == 'r':
-            if self.rx > self.ry:
-                return self.rx
-            else:
-                return self.ry
-        else:
+        try:
+            return self.atrdic[attrn]()
+        except KeyError:
             raise AttributeError(
                 "Menu instance has no such attribute: " +
                 attrn)

@@ -68,28 +68,25 @@ each board will be open in at most one window at a time.
                 self.add_pawn(rd)
         for portal in self.dimension.portals:
             self.make_arrow(portal)
+        self.atrdic = {
+            "_rowdict": lambda: self.rumor.tabdict["board"][str(self.dimension)][int(self)],
+            "wallpaper": lambda: self.rumor.get_img(self._rowdict["wallpaper"]),
+            "img": lambda: self.wallpaper,
+            "places": lambda: iter(self.dimension.places),
+            "portals": lambda: iter(self.dimension.portals),
+            "things": lambda: iter(self.dimension.things),
+            "pawns": self.pawndict.itervalues,
+            "spots": self.spotdict.itervalues,
+            "arrows": self.arrowdict.itervalues}
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["board"][str(self.dimension)][int(self)]
-        elif attrn in ("wallpaper", "img"):
-            return self.rumor.get_img(self._rowdict["wallpaper"])
-        elif attrn in self.colns:
+        if attrn in self.colns:
             return self._rowdict[attrn]
-        elif attrn == "places":
-            return iter(self.dimension.places)
-        elif attrn == "things":
-            return iter(self.dimension.things)
-        elif attrn == "portals":
-            return iter(self.dimension.portals)
-        elif attrn == "pawns":
-            return self.pawndict.itervalues()
-        elif attrn == "spots":
-            return self.spotdict.itervalues()
-        elif attrn == "arrows":
-            return self.arrowdict.itervalues()
         else:
-            raise AttributeError("Board has no attribute named " + attrn)
+            try:
+                return self.atrdic[attrn]()
+            except KeyError:
+                raise AttributeError("Board has no attribute named " + attrn)
 
     def __int__(self):
         return self.idx
@@ -210,55 +207,44 @@ class BoardViewport:
             self.spotdict[k] = SpotWidget(self, v)
         for (k, v) in self.board.arrowdict.iteritems():
             self.arrowdict[k] = ArrowWidget(self, v)
+        self._rowdict = self.rumor.tabdict[
+            "board_viewport"][
+                str(self.window)][
+                    str(self.dimension)][
+                        int(self.board)][
+                            int(self)]
+        self.atrdic = {
+            "left_prop": lambda: self._rowdict["left"],
+            "right_prop": lambda: self._rowdict["right"],
+            "top_prop": lambda: self._rowdict["top"],
+            "bot_prop": lambda: self._rowdict["bot"],
+            "window_left": lambda: int(self.left_prop * self.window.width),
+            "window_right": lambda: int(self.right_prop * self.window.width),
+            "window_top": lambda: int(self.top_prop * self.window.height),
+            "window_bot": lambda: int(self.bot_prop * self.window.height),
+            "width": lambda: self.window_right - self.window_left,
+            "height": lambda: self.window_top - self.window_bot,
+            "offset_x": lambda: -1 * self.view_left,
+            "offset_y": lambda: -1 * self.view_bot,
+            "arrows": self.arrowdict.itervalues,
+            "spots": self.spotdict.itervalues,
+            "pawns": self.pawndict.itervalues}
 
     def __int__(self):
         return self.idx
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["board_viewport"][
-                str(self.window)][
-                    str(self.dimension)][
-                        int(self.board)][
-                            int(self)]
-        elif attrn == "left_prop":
-            return self._rowdict["left"]
-        elif attrn == "right_prop":
-            return self._rowdict["right"]
-        elif attrn == "top_prop":
-            return self._rowdict["top"]
-        elif attrn == "bot_prop":
-            return self._rowdict["bot"]
-        elif attrn == "window_left":
-            return int(self.left_prop * self.window.width)
-        elif attrn == "window_right":
-            return int(self.right_prop * self.window.width)
-        elif attrn == "window_bot":
-            return int(self.bot_prop * self.window.height)
-        elif attrn == "window_top":
-            return int(self.top_prop * self.window.height)
-        elif attrn == "width":
-            return self.window_right - self.window_left
-        elif attrn == "height":
-            return self.window_top - self.window_bot
-        elif attrn == "offset_x":
-            return -1 * self.view_left
-        elif attrn == "offset_y":
-            return -1 * self.view_bot
-        elif attrn == "arrows":
-            return self.arrowdict.itervalues()
-        elif attrn == "spots":
-            return self.spotdict.itervalues()
-        elif attrn == "pawns":
-            return self.pawndict.itervalues()
-        elif attrn in self._rowdict:
+        if attrn in self._rowdict:
             return self._rowdict[attrn]
         elif attrn in (
                 "dimension", "idx", "wallpaper"):
             return getattr(self.board, attrn)
         else:
-            raise AttributeError(
-                "BoardView instance has no attribute " + attrn)
+            try:
+                return self.atrdic[attrn]()
+            except KeyError:
+                raise AttributeError(
+                    "BoardView instance has no attribute " + attrn)
 
     def overlaps(self, x, y):
         return (

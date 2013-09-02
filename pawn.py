@@ -85,23 +85,7 @@ interactive or not.
         self.drag_offset_y = 0
         self.selectable = True
         self.vertlist = None
-
-    def __str__(self):
-        return str(self.thing)
-
-    def __getattr__(self, attrn):
-        if attrn == "imagery":
-            return self.rumor.tabdict[
-                "pawn_img"][str(self.dimension)][
-                    int(self.board)][str(self.thing)]
-        elif attrn == "interactivity":
-            return self.rumor.tabdict["pawn_interactive"][
-                str(self.dimension)][int(self.board)][str(self.thing)]
-        elif attrn == 'img':
-            return self.get_img()
-        elif attrn == 'visible':
-            return self.img is not None
-        elif attrn == 'coords':
+        def draggy_coords():
             try:
                 (x, y) = self.get_coords()
             except TypeError:
@@ -116,24 +100,35 @@ interactive or not.
                 return (
                     x + self.drag_offset_x,
                     y + self.drag_offset_y)
-        elif attrn == 'x':
-            return self.coords[0]
-        elif attrn == 'y':
-            return self.coords[1]
-        elif attrn == 'width':
-            return self.img.width
-        elif attrn == 'height':
-            return self.img.height
-        elif attrn == 'rx':
-            return self.width / 2
-        elif attrn == 'ry':
-            return self.height / 2
-        elif attrn == 'r':
+        def r():
             if self.rx > self.ry:
                 return self.rx
             else:
                 return self.ry
-        else:
+        self.atrdic = {
+            "imagery": lambda: self.rumor.tabdict[
+                "pawn_img"][str(self.dimension)][
+                    int(self.board)][str(self.thing)],
+            "interactivity": lambda: self.rumor.tabdict["pawn_interactive"][
+                str(self.dimension)][int(self.board)][str(self.thing)],
+            "img": self.get_img,
+            "visible": lambda: self.img is not None,
+            "coords": draggy_coords,
+            "x": lambda: self.coords[0],
+            "y": lambda: self.coords[1],
+            "width": lambda: self.img.width,
+            "height": lambda: self.img.height,
+            "rx": lambda: self.width / 2,
+            "ry": lambda: self.height / 2,
+            "r": r}
+
+    def __str__(self):
+        return str(self.thing)
+
+    def __getattr__(self, attrn):
+        try:
+            return self.atrdic[attrn]()
+        except KeyError:
             raise AttributeError(
                 "Pawn instance has no such attribute: " +
                 attrn)
