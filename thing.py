@@ -293,6 +293,8 @@ other journey I may be on at the time."""
         if tick is None:
             tick = self.rumor.tick
         loc = self.get_location(branch, tick)
+        if hasattr(loc, 'orig'):
+            loc = loc.orig
         ipath = self.dimension.graph.get_shortest_paths(
             str(loc), to=str(destplace), output="epath")
         path = None
@@ -309,21 +311,18 @@ other journey I may be on at the time."""
         except TimeParadox:
             self.new_branch_blank = True
             self.rumor.increment_branch()
-            self.follow_path(path, self.rumor.branch, tick)
             self.new_branch_blank = False
+            self.follow_path(path, self.rumor.branch, tick)
     
     def follow_path(self, path, branch, tick):
         self.end_location(branch, tick)
+        prevtick = tick
         for port in path:
             tick_out = self.get_ticks_thru(port) + prevtick
             self.set_location(port, int(branch), int(prevtick), int(tick_out))
             prevtick = tick_out + 1
+        destplace = path[-1].dest
         self.set_location(destplace, int(branch), int(prevtick))
-        logger.debug(
-            "Thing %s found a path from %s to %s. It will arrive at tick %d."
-            "Its new location dict is:\n%s",
-            str(self), str(loc), str(destplace), prevtick,
-        repr(self.locations))
         self.update()
 
     def new_branch(self, parent, branch, tick):

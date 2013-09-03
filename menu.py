@@ -82,7 +82,8 @@ With db, register in db's menuitemdict.
             "label_window_right": lambda: self.window_right,
             "width": lambda: self.window_right - self.window_left,
             "height": lambda: self.menu.style.fontsize + self.menu.style.spacing,
-            "window_top": lambda: self.menu.window_top - (self.idx * height),
+            "window_top": lambda: self.menu.window_top - (
+                self.idx * self.height),
             "window_bot": lambda: self.window_top - self.height,
             "rx": lambda: self.width / 2,
             "ry": lambda: self.height / 2,

@@ -24,6 +24,7 @@ class Portal:
     def __init__(self, rumor, dimension, origin, destination):
         self.rumor = rumor
         self.dimension = dimension
+        self.graph = self.dimension.graph
         self.orig = origin
         self.origin = origin
         self.dest = destination

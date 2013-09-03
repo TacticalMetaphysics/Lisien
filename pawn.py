@@ -207,18 +207,11 @@ interactive or not.
             prog = self.thing.get_progress(branch, tick)
             odx = dx - ox
             ody = dy - oy
-            return (int(ox + odx * prog) + self.drag_offset_x,
-                    int(oy + ody * prog) + self.drag_offset_y)
+            return (int(ox + odx * prog),
+                    int(oy + ody * prog))
         elif str(loc) in self.board.spotdict:
             spot = self.board.get_spot(loc)
-            coords = spot.get_coords(branch, tick)
-            return (
-                coords[0] + self.drag_offset_x,
-                coords[1] + self.drag_offset_y)
-        else:
-            import pdb
-            pdb.set_trace()
-            return None
+            return spot.get_coords()
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)
@@ -248,22 +241,14 @@ class PawnWidget:
             return self.pawn.y + self.pawn.height
         elif attrn == "board_right":
             return self.pawn.x + self.pawn.width
-        elif attrn == "viewport_left":
-            return self.board_left + self.viewport.offset_x
-        elif attrn == "viewport_right":
-            return self.board_right + self.viewport.offset_x
-        elif attrn == "viewport_bot":
-            return self.board_bot + self.viewport.offset_y
-        elif attrn == "viewport_top":
-            return self.board_top + self.viewport.offset_y
         elif attrn == "window_left":
-            return self.viewport_left + self.viewport.window_left
+            return self.board_left + self.viewport.offset_x
         elif attrn == "window_right":
-            return self.viewport_right + self.viewport.window_left
+            return self.board_right + self.viewport.offset_x
         elif attrn == "window_bot":
-            return self.viewport_bot + self.viewport.window_bot
+            return self.board_bot + self.viewport.offset_y
         elif attrn == "window_top":
-            return self.viewport_top + self.viewport.window_bot
+            return self.board_top + self.viewport.offset_y
         elif attrn in ("selected", "highlit"):
             return self in self.window.selected
         elif attrn == "hovered":
@@ -274,14 +259,14 @@ class PawnWidget:
             return self is self.window.grabbed
         elif attrn == "in_view":
             return (
-                self.viewport_right > 0 and
-                self.viewport_left < self.viewport.width and
-                self.viewport_top > 0 and
-                self.viewport_bot < self.viewport.height)
+                self.window_right > 0 and
+                self.window_left < self.window.width and
+                self.window_top > 0 and
+                self.window_bot < self.window.height)
         elif attrn == "state":
             return (
                 str(self.pawn.img),
-                self.pawn.get_coords(),
+                self.pawn.coords,
                 self.viewport.view_left,
                 self.viewport.view_bot,
                 self.viewport.window_left,
@@ -314,10 +299,10 @@ If it DOES have anything else to do, make the journey in another branch.
         spotto = None
         for spot in self.viewport.board.spots:
             if (
-                    self.viewport_left < spot.x and
-                    spot.x < self.viewport_right and
-                    self.viewport_bot < spot.y and
-                    spot.y < self.viewport_top):
+                    self.window_left < spot.x and
+                    spot.x < self.window_right and
+                    self.window_bot < spot.y and
+                    spot.y < self.window_top):
                 spotto = spot
                 break
         if spotto is not None:
@@ -341,8 +326,8 @@ If it DOES have anything else to do, make the journey in another branch.
                 self.img is None):
             return
         try:
-            self.sprite.x = self.viewport_left
-            self.sprite.y = self.viewport_bot
+            self.sprite.x = self.window_left
+            self.sprite.y = self.window_bot
         except AttributeError:
             self.sprite = Sprite(
                 self.img.tex,
@@ -354,10 +339,10 @@ If it DOES have anything else to do, make the journey in another branch.
             yelo = (255, 255, 0, 255)
             colors = yelo * 4
             points = (
-                self.viewport_left, self.viewport_top,
-                self.viewport_right, self.viewport_top,
-                self.viewport_right, self.viewport_bot,
-                self.viewport_left, self.viewport_bot)
+                self.window_left, self.window_top,
+                self.window_right, self.window_top,
+                self.window_right, self.window_bot,
+                self.window_left, self.window_bot)
             try:
                 self.vertlist.vertices = points
             except:
@@ -377,8 +362,8 @@ If it DOES have anything else to do, make the journey in another branch.
 
     def overlaps(self, x, y):
         return (
-            self.viewport_left < x and x < self.viewport_right and
-            self.viewport_bot < y and y < self.viewport_top)
+            self.window_left < x and x < self.window_right and
+            self.window_bot < y and y < self.window_top)
 
     def pass_focus(self):
         return self.viewport

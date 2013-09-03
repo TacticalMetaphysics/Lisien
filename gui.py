@@ -125,9 +125,20 @@ class GameWindow(pyglet.window.Window):
         """Initialize the game window, its groups, and some state tracking."""
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
+        self.rumor = rumor
+        self.name = name
         self.edge_order = 1
         self.viewport_order = 1
         self.hand_order = 1
+        self.menudict = {}
+        self.dimensiondict = self.rumor.get_dimensions(
+            [rd["dimension"] for rd in
+             TabdictIterator(self.rumor.tabdict[
+                 "board_viewport"][str(self)])])
+        self._rowdict = self.rumor.tabdict["window"][name]
+        self.dxdy_hist_max = 10
+        self.dx_hist = [0] * self.dxdy_hist_max
+        self.dy_hist = [0] * self.dxdy_hist_max
         self.batch = pyglet.graphics.Batch()
         self.biggroup = pyglet.graphics.Group()
         self.boardgroup = pyglet.graphics.OrderedGroup(0, self.biggroup)
@@ -137,12 +148,6 @@ class GameWindow(pyglet.window.Window):
         self.pickergroup = ScissorOrderedGroup(
             8, self.biggroup, self, 0.3, 0.6, 0.3, 0.6)
         self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
-        self.name = name
-        self.rumor = rumor
-        self.dimensiondict = self.rumor.get_dimensions(
-            [rd["dimension"] for rd in
-             TabdictIterator(self.rumor.tabdict[
-                 "board_viewport"][str(self)])])
         for rd in TabdictIterator(self.rumor.tabdict[
                 "board_viewport"][str(self)]):
             self.rumor.get_board(rd["dimension"], rd["board"])
@@ -177,7 +182,6 @@ class GameWindow(pyglet.window.Window):
             if rd["image"] is not None:
                 imagenames.add(rd["image"])
         self.rumor.get_imgs(imagenames)
-        self.menudict = {}
         for rd in TabdictIterator(
                 self.rumor.tabdict["menu"][str(self)]):
             menu = Menu(self, rd["name"])
@@ -233,7 +237,7 @@ class GameWindow(pyglet.window.Window):
         self.keep_selected = False
         self.prev_view_bot = 0
 
-        orbimg = self.rumor.imgdict['default_spot']
+        orbimg = self.rumor.imgdict['default_spot'].tex
         rx = orbimg.width / 2
         ry = orbimg.height / 2
         self.create_place_cursor = (
@@ -246,10 +250,6 @@ class GameWindow(pyglet.window.Window):
 
         self.time_travel_target = None
 
-        self.dxdy_hist_max = 10
-        self.dx_hist = [0] * self.dxdy_hist_max
-        self.dy_hist = [0] * self.dxdy_hist_max
-
         self.timeline = None
 
         self.last_age = -1
@@ -257,33 +257,22 @@ class GameWindow(pyglet.window.Window):
 
         self.dxdy_hist_counter = 0
 
-        self._rowdict = self.rumor.tabdict["window"][str(self)]
-        def gethands():
-            if hasattr(self, 'handdict'):
-                return self.handdict.itervalues()
-            else:
-                return []
-        self.atrdic = {
-            "main_menu_name": lambda: self._rowdict["main_menu"],
-            "viewports": lambda: ViewportIter(self.dimensiondict),
-            "menus": self.menudict.itervalues,
-            "hands": gethands,
-            'dx': lambda: sum(self.dx_hist),
-            'dy': lambda: sum(self.dy_hist),
-            'offset_x': lambda: -1 * self.view_left,
-            'offset_y': lambda: -1 * self.view_bot,
-            'arrow_girth': lambda: self.arrow_width * 2}
-
     def __getattr__(self, attrn):
         if attrn in ("min_width", "min_height",
                        "arrowhead_size", "arrow_width"):
             return self._rowdict[attrn]
         else:
-            try:
-                return self.atrdic[attrn]()
-            except KeyError:
-                raise AttributeError(
-                    "AbstractGameWindow has no attribute named {0}".format(attrn))
+            return {
+                "arrow_width": lambda: self._rowdict["arrow_width"],
+                "main_menu_name": lambda: self._rowdict["main_menu"],
+                "viewports": lambda: ViewportIter(self.dimensiondict),
+                "menus": self.menudict.itervalues,
+                "hands": {
+                    True: lambda: self.handdict.itervalues,
+                    False: lambda: []}[hasattr(self, 'handdict')],
+                'dx': lambda: sum(self.dx_hist),
+                'dy': lambda: sum(self.dy_hist),
+                'arrow_girth': lambda: self.arrow_width * 2}[attrn]()
 
     def __str__(self):
         return self.name

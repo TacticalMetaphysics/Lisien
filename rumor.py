@@ -1134,7 +1134,7 @@ This is game-world time. It doesn't always go forwards.
 
     def update(self, ts):
         if self.updating:
-            self.increment_tick(ticks=self.game_speed)
+            self.time_travel_inc_tick(ticks=self.game_speed)
 
     def end_game(self):
         self.c.close()

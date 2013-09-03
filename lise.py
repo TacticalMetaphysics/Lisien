@@ -3,12 +3,9 @@
 import pyglet
 import logging
 import rumor
-from sys import argv, setrecursionlimit
+from sys import argv
 from os import remove
 from sqlite3 import connect, DatabaseError
-
-setrecursionlimit(100)
-
 
 i = 0
 lang = "English"

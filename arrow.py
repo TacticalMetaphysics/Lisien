@@ -84,14 +84,19 @@ class Arrow:
                 self.dest = DummySpot(*dest)
             else:
                 self.dest = dest
-        self.atrdic = {
+
+    def __getattr__(self, attrn):
+        return {
             'ox': lambda: self.orig.x,
             'oy': lambda: self.orig.y,
             'dx': lambda: self.dest.x,
             'dy': lambda: self.dest.y,
             'rise': lambda: self.dest.y - self.orig.y,
             'run': lambda: self.dest.x - self.orig.x,
-            'length': self.get_length,
+            'length': {
+                True: lambda: self.board.get_edge_len(self.portal.e),
+                False: lambda: hypot(self.rise, self.run)
+            }["branch" in self.portal.e.attribute_names()],
             'slope': self.get_slope,
             'm': self.get_slope,
             'left': self.get_left,
@@ -100,9 +105,7 @@ class Arrow:
             'bottom': self.get_bot,
             'top': self.get_top,
             'b': self.get_b
-        }
-
-    def __getattr__(self, attrn):
+        }[attrn]()
         try:
             return self.atrdic[attrn]()
         except IndexError:
@@ -117,12 +120,6 @@ class Arrow:
             return port.arrows[int(self.board)]
         except KeyError:
             return None
-
-    def get_length(self):
-        if "branch" in self.portal.e.attribute_names():
-            return self.board.get_edge_len(self.portal.e)
-        else:
-            return hypot(self.rise, self.run)
 
     def get_slope(self):
         ox = self.orig.x
@@ -218,6 +215,10 @@ class ArrowWidget:
             "oy": lambda: self.arrow.oy,
             "dx": lambda: self.arrow.dx,
             "dy": lambda: self.arrow.dy,
+            "board_ox": lambda: self.arrow.ox,
+            "board_oy": lambda: self.arrow.oy,
+            "board_dx": lambda: self.arrow.dx,
+            "board_dy": lambda: self.arrow.dy,
             "viewport_ox": lambda: self.board_ox + self.viewport.offset_x,
             "viewport_dx": lambda: self.board_dx + self.viewport.offset_x,
             "viewport_dy": lambda: self.board_dy + self.viewport.offset_y,
@@ -341,7 +342,7 @@ Take my width into account
         y2 = int(topy - yoff2) * yco
         endx = int(rightx) * xco
         endy = int(topy) * yco
-        if self.highlit:
+        if self.selected:
             bgcolor = (255, 255, 0, 0)
             fgcolor = (0, 0, 0, 0)
         else:

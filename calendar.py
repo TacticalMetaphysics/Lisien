@@ -24,28 +24,24 @@ class Wedge:
     """
     def __init__(self, bc, color_tup=(255, 0, 0, 255)):
         self.bc = bc
-        self.batch = self.bc.batch
-        self.group = self.bc.wedgegroup
-        self.width = self.bc.calendar.style.spacing * 2
-        self.height = int(self.width / phi)
-        self.rx = self.width / 2
-        self.ry = self.height / 2
         self.color = color_tup
+        self.batch = bc.batch
+        self.group = bc.wedgegroup
+        width = self.bc.calendar.style.spacing * 2
+        self.width = width
+        self.height = int(width / phi)
+        self.rx = width / 2
+        self.ry = height / 2
+        self.atrdic = {
+            "window_bot": lambda: self.bc.end[1],
+            "window_top": lambda: self.bc.end[1] + self.height,
+            "window_left": lambda: self.bc.end[0] - self.rx,
+            "window_right": lambda: self.bc.end[0] + self.rx}
         self.vertlist = None
 
     def __getattr__(self, attrn):
-        if attrn == "window_bot":
-            return self.bc.end[1]
-        elif attrn == "window_top":
-            return self.bc.end[1] + self.height
-        elif attrn == "window_left":
-            return self.bc.end[0] - self.rx
-        elif attrn == "window_right":
-            return self.bc.end[0] + self.rx
-        else:
-            raise AttributeError(
-                "Wedge instance has no attribute named {0}".format(
-                    attrn))
+        assert(hasattr(self, 'atrdic'))
+        return self.atrdic[attrn]()
 
     def draw(self):
         (x, y) = self.bc.end
@@ -177,31 +173,29 @@ class Handle:
         self.timeline = timeline
         self.on_the_left = handle_side == "left"
         self.vertlist = None
-        self.width = self.timeline.cal.style.spacing * 2
-        self.height = int(self.width * phi)
-        self.rx = self.width / 2
-        self.ry = self.height / 2
+        width = timeline.cal.style.spacing * 2
+        self.width = width
+        height = int(width * phi)
+        self.height = height
+        self.rx = width / 2
+        self.ry = height / 2
+        self.atrdic = {
+            "y": lambda: self.timeline.y,
+            "window_y": lambda: self.timeline.window_y,
+            "window_left": lambda: {
+                True: self.timeline.window_left - self.width,
+                False: self.timeline.window_right}[self.on_the_left],
+            "window_right": lambda: {
+                True: self.timeline.window_left + 1,
+                False: self.timeline.window_right + self.width - 1
+                }[self.on_the_left],
+            "window_top": lambda: self.y + self.ry,
+            "window_bot": lambda: self.y - self.ry}
+            
 
     def __getattr__(self, attrn):
-        if attrn in ("y", "window_y"):
-            return getattr(self.timeline, attrn)
-        elif attrn == "window_left":
-            if self.on_the_left:
-                return self.timeline.window_left - self.width
-            else:
-                return self.timeline.window_right
-        elif attrn == "window_right":
-            if self.on_the_left:
-                return self.timeline.window_left + 1
-            else:
-                return self.timeline.window_right + self.width - 1
-        elif attrn == "window_top":
-            return self.y + self.ry
-        elif attrn == "window_bot":
-            return self.y - self.ry
-        else:
-            raise AttributeError(
-                "Handle instance has no attribute " + attrn)
+        assert(hasattr(self, 'atrdic'))
+        return self.atrdic[attrn]()
 
     def delete(self):
         try:
@@ -266,11 +260,8 @@ for the handle_side keyword argument.
         elif attrn in ("y", "window_y", "window_bot", "window_top"):
             return self.calendar_y + self.cal.window_bot
         else:
-            try:
-                return self.atrdic[attrn]()
-            except KeyError:
-                raise AttributeError(
-                    "Timeline instance has no attribute " + attrn)
+            assert(hasattr(self, 'atrdic'))
+            return self.atrdic[attrn]()
 
     def delete(self):
         try:
@@ -306,6 +297,7 @@ Uses information from the CalendarCol it's in and the Event it
 represents to calculate its dimensions and coordinates.
 
     """
+    visible = True
     def __init__(self, col, tick_from, tick_to, text):
         self.col = col
         self.cal = self.col.calendar
@@ -316,14 +308,25 @@ represents to calculate its dimensions and coordinates.
         self.tick_to = tick_to
         self.text = text
         self.style = self.col.style
-        self.visible = True
+
+    def __len__(self):
+        if self.tick_to is None:
+            r = self.cal.height - self.tick_from
+        else:
+            r = self.tick_to - self.tick_from
+        if r < 0:
+            return 0
+        else:
+            return r
+
+    def __getattr__(self, attrn):
         def calbot():
             try:
                 return self.cal.height - self.cal.row_height * (
                     self.tick_to - self.cal.scrolled_to)
             except TypeError:
                 return 0
-        self.atrdic = {
+        return {
             "interactive": lambda: self.col.calendar.interactive,
             "window": lambda: self.col.calendar.window,
             "calendar_left": lambda: self.col.calendar_left + self.style.spacing,
@@ -341,25 +344,7 @@ represents to calculate its dimensions and coordinates.
             "label_height": lambda: self.style.fontsize + self.style.spacing,
             "hovered": lambda: self is self.window.hovered,
             "vertlist": lambda: self.col.vertldict[str(self)],
-            "label": lambda: self.col.labeldict[str(self)]}
-
-    def __len__(self):
-        if self.tick_to is None:
-            r = self.cal.height - self.tick_from
-        else:
-            r = self.tick_to - self.tick_from
-        if r < 0:
-            return 0
-        else:
-            return r
-
-    def __getattr__(self, attrn):
-        try:
-            return self.atrdic[attrn]()
-        except KeyError:
-            raise AttributeError(
-                "CalendarCell instance has no such attribute: " +
-                attrn)
+            "label": lambda: self.col.labeldict[str(self)]}[attrn]()
 
     def __setattr__(self, attrn, value):
         if attrn == 'vertlist':
@@ -374,57 +359,6 @@ represents to calculate its dimensions and coordinates.
 
     def __str__(self):
         return "{0} from {1} to {2}".format(self.text, self.tick_from, self.tick_to)
-
-    def delete(self):
-        try:
-            self.label.delete()
-        except:
-            pass
-        self.label = None
-        try:
-            self.vertlist.delete()
-        except:
-            pass
-        self.vertlist = None
-
-    def draw(self):
-        colors = (0, 0, 0, 255) * 4
-        l = self.window_left
-        r = self.window_right
-        t = self.window_top
-        b = self.window_bot
-        points = (
-            l, b,
-            l, t,
-            r, t,
-            r, b)
-        try:
-            self.vertlist.vertices = list(points)
-        except KeyError:
-            self.vertlist = self.batch.add_indexed(
-                4,
-                GL_LINES,
-                self.bggroup,
-                (0, 1, 1, 2, 2, 3, 3, 0),
-                ('v2i', points),
-                ('c4B', colors))
-        y = self.calendar_top - self.label_height
-        try:
-            self.label.x = self.window_left
-            self.label.y = y
-        except:
-            self.label = Label(
-                self.text,
-                self.style.fontface,
-                self.style.fontsize,
-                color=self.style.textcolor.tup,
-                width=self.width,
-                height=self.height,
-                x=self.window_left,
-                y=y,
-                multiline=True,
-                batch=self.batch,
-                group=self.textgroup)
 
 
 CAL_TYPE = {
@@ -555,25 +489,6 @@ time travel.
                 return self.rumor.tick
             else:
                 return r
-        self.atrdic = {
-            "typ": lambda: self._rowdict["type"],
-            "character": lambda: self.rumor.characterdict[self._rowdict["character"]],
-            "left_prop": lambda: self._rowdict["left"],
-            "right_prop": lambda: self._rowdict["right"],
-            "top_prop": lambda: self._rowdict["top"],
-            "bot_prop": lambda: self._rowdict["bot"],
-            "scrolled_to": sttt,
-            "top_tick": sttt,
-            "bot_tick": lambda: self.top_tick + self.rows_shown,
-            "style": lambda: self.rumor.get_style(self._rowdict["style"]),
-            "window_top": lambda: int(self.top_prop * self.window.height),
-            "window_bot": lambda: int(self.bot_prop * self.window.height),
-            "window_left": lambda: int(self.left_prop * self.window.width),
-            "window_right": lambda: int(self.right_prop * self.window.width),
-            "width": lambda: self.window_right - self.window_left,
-            "col_width": lambda: self.width / len(self.cols),
-            "height": lambda: self.window_top - self.window_bot,
-            "row_height": lambda: self.height / self.rows_shown}
         self.cols = []
         self.refresh()
 
@@ -587,8 +502,44 @@ time travel.
         return self.idx
 
     def __getattr__(self, attrn):
-        if attrn in self.atrdic:
-            return self.atrdic[attrn]()
+        sttt = lambda: {
+                    True: self.rumor.tick, False: self._rowdict["scrolled_to"]
+                    }[self._rowdict["scrolled_to"] is None]
+        try:
+            return {
+                "typ": lambda: self._rowdict["type"],
+                "character": lambda: self.rumor.get_character(self._rowdict["character"]),
+                "dimension": lambda: self.rumor.get_dimension(self._rowdict["dimension"]),
+                "thing": lambda: self.rumor.get_thing(
+                    self._rowdict["dimension"], self._rowdict["thing"]),
+                "place": lambda: self.rumor.get_place(
+                    self._rowdict["dimension"], self._rowdict["place"]),
+                "portal": lambda: self.rumor.get_portal(
+                    self._rowdict["dimension"],
+                    self._rowdict["origin"],
+                    self._rowdict["destination"]),
+                "interactive": lambda: self._rowdict["interactive"],
+                "rows_shown": lambda: self._rowdict["rows_shown"],
+                "left_prop": lambda: self._rowdict["left"],
+                "right_prop": lambda: self._rowdict["right"],
+                "top_prop": lambda: self._rowdict["top"],
+                "bot_prop": lambda: self._rowdict["bot"],
+                "bot_tick": lambda: self.top_tick + self.rows_shown,
+                "style": lambda: self.rumor.get_style(self._rowdict["style"]),
+                "window_top": lambda: int(self.top_prop * self.window.height),
+                "window_bot": lambda: int(self.bot_prop * self.window.height),
+                "window_left": lambda: int(self.left_prop * self.window.width),
+                "window_right": lambda: int(self.right_prop * self.window.width),
+                "width": lambda: self.window_right - self.window_left,
+                "col_width": lambda: self.width / len(self.cols),
+                "height": lambda: self.window_top - self.window_bot,
+                "row_height": lambda: self.height / self.rows_shown,
+                "scrolled_to": sttt,
+                "top_tick": sttt,
+                "scroll_factor": lambda: self._rowdict["scroll_factor"]
+            }[attrn]()
+        except KeyError:
+            pass
         if self.typ == CAL_TYPE['THING']:
             if attrn == 'thing_show_location':
                 return self._rowdict['thing_show_location']
@@ -670,11 +621,12 @@ time travel.
         self.cols[branch] = ({
             CAL_TYPE['THING']: {
                 True: lambda: LocationCalendarCol(self, branch),
-                False: lambda: ThingCalendarCol(self, branch)}[self.thing_show_location](),
+                False: lambda: ThingCalendarCol(self, branch)}[self.thing_show_location],
             CAL_TYPE['PLACE']: lambda: PlaceCalendarCol(self, branch),
             CAL_TYPE['PORTAL']: lambda: PortalCalendarCol(self, branch),
             CAL_TYPE['STAT']: lambda: StatCalendarCol(self, branch),
-            CAL_TYPE['SKILL']: lambda: SkillCalendarCol(self, branch)}[self.typ]())
+            CAL_TYPE['SKILL']: lambda: SkillCalendarCol(self, branch)
+        }[self.typ]())
 
     def refresh(self):
         if self.cols == []:
@@ -695,8 +647,6 @@ time travel.
                     tick_to < self.scrolled_to + self.rows_shown):
                 col2.bc = BranchConnector(
                     self, col2, col1, tick_from)
-                col2.refresh()
-            col1.refresh()
 
 
 class CalendarCol:
@@ -708,14 +658,19 @@ class CalendarCol:
         self.style = self.calendar.style
         self.bggroup = OrderedGroup(0, self.calendar.group)
         self.cellgroup = OrderedGroup(1, self.calendar.group)
-        self.tlgroup = OrderedGroup(2, self.calendar.group)
-        self.bcgroup = OrderedGroup(3, self.calendar.group)
+        self.textgroup = OrderedGroup(2, self.calendar.group)
+        self.tlgroup = OrderedGroup(3, self.calendar.group)
+        self.bcgroup = OrderedGroup(4, self.calendar.group)
         self.timeline = Timeline(self)
         self.window = self.calendar.window
         self.old_schedule_hash = 0
+        self.celldict = {}
+        self.cells_on_screen = set()
         self.vertldict = {}
         self.labeldict = {}
-        self.atrdic = {
+
+    def __getattr__(self, attrn):
+        return {
             "width": lambda: self.calendar.col_width,
             "rx": lambda: self.width / 2,
             "height": lambda: self.calendar.height,
@@ -727,22 +682,31 @@ class CalendarCol:
             "window_left": lambda: self.calendar.window_left + self.calendar_left,
             "window_right": lambda: self.calendar.window_left + self.calendar_right,
             "window_top": lambda: self.calendar.window_top,
-            "window_bot": lambda: self.calendar.window_bot}
-
-    def __getattr__(self, attrn):
-        try:
-            return self.atrdic[attrn]()
-        except KeyError:
-            raise AttributeError(
-                "CalendarCol instance has no such attribute: " +
-                attrn)
+            "window_bot": lambda: self.calendar.window_bot,
+            "idx": lambda: self.calendar.cols.index(self)}[attrn]()
 
     def __int__(self):
-        return self.calendar.cells.index(self)
+        return self.calendar.cols.index(self)
 
     def delete(self):
-        for cell in self._cells:
-            cell.delete()
+        for cell in self.celldict.itervalues():
+            cellhash = hash(cell)
+            try:
+                self.vertldict[cellhash].delete()
+            except:
+                pass
+            try:
+                del self.vertldict[cellhash]
+            except:
+                pass
+            try:
+                self.labeldict[cellhash].delete()
+            except:
+                pass
+            try:
+                del self.labeldict[cellhash]
+            except:
+                pass
         try:
             self.timeline.delete()
         except:
@@ -777,17 +741,15 @@ class CalendarCol:
             r, t,
             r, b)
         try:
-            self.vertl['bg'] = list(points)
+            self.vertldict['bg'].vertices = list(points)
         except KeyError:
-            self.vertl['bg'] = self.batch.add_indexed(
+            self.vertldict['bg'] = self.batch.add_indexed(
                 4,
                 GL_TRIANGLES,
                 self.bggroup,
                 [0, 2, 3, 0, 1, 2],
                 ('v2i', points),
                 ('c4B', colors))
-        for cel in self._cells:
-            cel.draw()
         if hasattr(self, 'bc'):
             self.bc.draw()
         if (
@@ -796,6 +758,69 @@ class CalendarCol:
             self.timeline.draw()
         else:
             self.timeline.delete()
+        for cell in self.celldict.itervalues:
+            if cell not in self.cells_on_screen:
+                try:
+                    self.labeldict[cell_hash].delete()
+                except:
+                    pass
+                try:
+                    del self.labeldict[cell_hash]
+                except:
+                    pass
+                try:
+                    self.vertldict[cell_hash].delete()
+                except:
+                    pass
+                try:
+                    del self.labeldict[cell_hash]
+                except:
+                    pass
+                continue
+            text = cell.text
+            tick_from = cell.tick_from
+            tick_to = cell.tick_to
+            l = cell.window_left
+            r = cell.window_right
+            t = cell.window_top
+            b = cell.window_bot
+            print "checking drawability of calendar cell for {0} from {1} to {2}".format(
+                text, tick_from, tick_to)
+            print "drawing calendar cell for {0} from {1} to {2}".format(text, tick_from, tick_to)
+            cell_hash = hash(cell)
+            colors = (0, 0, 0, 255) * 4
+            points = (
+                l, b,
+                l, t,
+                r, t,
+                r, b)
+            try:
+                self.vertldict[cell_hash].vertices = points
+            except KeyError:
+                self.vertldict[cell_hash] = self.batch.add_indexed(
+                    4,
+                    GL_LINES,
+                    self.cellgroup,
+                    (0, 1, 1, 2, 2, 3, 3, 0),
+                    ('v2i', points),
+                    ('c4B', colors))
+            try:
+                self.labeldict[cell_hash].x = l
+                self.labeldict[cell_hash].y = b
+            except KeyError:
+                self.labeldict[cell_hash] = Label(
+                    text,
+                    self.style.fontface,
+                    self.style.fontsize,
+                    color=self.style.textcolor.tup,
+                    width=(self.width - self.style.spacing * 2),
+                    height=cell["height"](),
+                    x = l,
+                    y = b,
+                    anchor_y="bottom",
+                    multiline=True,
+                    batch=self.batch,
+                    group=self.textgroup)
 
 class LocationCalendarCellIterator:
     def __init__(self, loccol):
@@ -810,7 +835,8 @@ class LocationCalendarCellIterator:
         when = self.col.shows_when(rd["tick_from"], rd["tick_to"])
         while (
                 when is None or
-                when[1] < self.col.calendar.top_tick or
+                (when[1] is not None and
+                 when[1] < self.col.calendar.top_tick) or
                 when[0] > self.col.calendar.bot_tick):
             rd = self.lociter.next()
             when = self.col.shows_when(rd["tick_from"], rd["tick_to"])
@@ -819,14 +845,32 @@ class LocationCalendarCellIterator:
             a = self.col.calendar.top_tick
         if b > self.col.calendar.bot_tick:
             b = self.col.calendar.bot_tick
-        return CalendarCell(
-            self.col, a, b,
-            # TODO: if the display name of the place changes while the
-            # thing is there, split the calendar cell for each of
-            # those names
-            self.col.rumor.get_place(
-                rd["dimension"], rd["location"]).display_name(
-                    rd["branch"], rd["tick_from"]))
+        spacing = self.col.style.spacing
+        cal = self.col.calendar
+        def windobot():
+            if b is None:
+                return 0
+            if cal.scrolled_to is None:
+                scrolt = self.col.rumor.tick
+            else:
+                scrolt = cal.scrolled_to
+            return cal.window_bot - cal.height - cal.row_height * (b - scrolt)
+        def hi():
+            if b is None:
+                return cal.row_height * a - windobot()
+            else:
+                return cal.row_height * (b - a)
+        return {
+            "tick_from": lambda: a,
+            "tick_to": lambda: b,
+            "text": lambda: str(self.col.rumor.get_place(rd["dimension"], rd["location"])),
+            "spacing": lambda: spacing,
+            "height": hi,
+            "window_left": lambda: self.col.calendar_left + spacing + cal.window_left,
+            "window_right": lambda: self.col.calendar_right - spacing + cal.window_left,
+            "window_top": lambda: cal.window_bot - cal.height - spacing - cal.row_height * a,
+            "window_bot": windobot,
+            "label_height": lambda: self.col.style.fontsize + spacing}
 
 class LocationCalendarCol(CalendarCol):
     """A column of a calendar displaying a Thing's location over time.
@@ -845,17 +889,7 @@ instead, giving something like "in transit from A to B".
     """
     def __init__(self, calendar, branch):
         CalendarCol.__init__(self, calendar, branch)
-        winn = str(self.calendar.window)
-        cali = int(self.calendar)
-        charn = str(self.calendar.character)
-        dimn = str(self.calendar.dimension)
-        thingn = str(self.calendar.thing)
-        self.atrdic = {
-            "typ": lambda: COL_TYPE['THING'],
-            "locations": lambda: self.thing.locations[self.branch],
-            "coverage": lambda: self.character.thingdict[self.branch][dimn][thingn],
-            "_cells": lambda: LocationCalendarCellIterator(self),
-            "thing": lambda: self.rumor.get_thing(dimn, thingn)}
+        self.refresh()
 
     def __getattr__(self, attrn):
         if attrn in (
@@ -865,10 +899,40 @@ instead, giving something like "in transit from A to B".
                 "location"):
             return getattr(self.calendar, attrn)
         else:
+            charn = str(self.calendar.character)
+            dimn = str(self.calendar.dimension)
+            thingn = str(self.calendar.thing)
             try:
-                return self.atrdic[attrn]()
+                return {
+                    "typ": lambda: COL_TYPE['THING'],
+                    "locations": lambda: self.thing.locations[self.branch],
+                    "coverage": lambda: self.character.thingdict[
+                        self.branch][dimn][thingn],
+                    "thing": lambda: self.rumor.get_thing(dimn, thingn)
+                }[attrn]()
             except KeyError:
-                return super(LocationCalendarCol, self).__getattr__(attrn)
+                return CalendarCol.__getattr__(self, attrn)
+
+    def refresh(self):
+        self.regen_cells()
+
+    def regen_cells(self):
+        for rd in TabdictIterator(self.locations):
+            if rd["tick_from"] not in self.celldict:
+                cell = CalendarCol(
+                    rd["tick_from"], rd["tick_to"], rd["text"])
+                self.celldict[rd["tick_from"]] = cell
+            else:
+                cell = self.celldict[rd["tick_from"]]
+            cell.tick_to = rd["tick_to"]
+            cell.text = rd["text"]
+        todel = set()
+        for cell in self.celldict.itervalues():
+            if cell.tick_from not in self.locations:
+                todel.add(cell)
+        for cell in todel:
+            cell.delete()
+            del self.celldict[cell.tick_from]
 
     def shows_any_ever(self, tick_from, tick_to):
         for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
@@ -878,7 +942,8 @@ instead, giving something like "in transit from A to B".
 
     def shows_when(self, tick_from, tick_to):
         for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
-            if tick_to > cover_tick_from and tick_from < cover_tick_to:
+            if tick_to > cover_tick_from or tick_from < cover_tick_to:
+                # I show part of this cell, but which part?
                 if tick_from > cover_tick_from:
                     a = tick_from
                 else:

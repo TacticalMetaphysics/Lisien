@@ -54,15 +54,6 @@ each board will be open in at most one window at a time.
         self.arrowdict = {}
         self.viewports = []
         self._rowdict = self.rumor.tabdict["board"][str(self.dimension)][int(self)]
-        self.atrdic = {
-            "wallpaper": lambda: self.rumor.get_img(self._rowdict["wallpaper"]),
-            "img": lambda: self.wallpaper,
-            "places": lambda: iter(self.dimension.places),
-            "portals": lambda: iter(self.dimension.portals),
-            "things": lambda: iter(self.dimension.things),
-            "pawns": self.pawndict.itervalues,
-            "spots": self.spotdict.itervalues,
-            "arrows": self.arrowdict.itervalues}
         while len(self.dimension.boards) <= self.idx:
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
@@ -81,13 +72,15 @@ each board will be open in at most one window at a time.
 
 
     def __getattr__(self, attrn):
-        if attrn in self.colns:
-            return self._rowdict[attrn]
-        else:
-            try:
-                return self.atrdic[attrn]()
-            except KeyError:
-                raise AttributeError("Board has no attribute named " + attrn)
+        return {
+            "wallpaper": lambda: self.rumor.get_img(
+                self._rowdict["wallpaper"]),
+            "places": lambda: iter(self.dimension.places),
+            "portals": lambda: iter(self.dimension.portals),
+            "things": lambda: iter(self.dimension.things),
+            "pawns": self.pawndict.itervalues,
+            "spots": self.spotdict.itervalues,
+            "arrows": self.arrowdict.itervalues}[attrn]()
 
     def __int__(self):
         return self.idx
@@ -196,22 +189,6 @@ class BoardViewport:
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
-        self.atrdic = {
-            "left_prop": lambda: self._rowdict["left"],
-            "right_prop": lambda: self._rowdict["right"],
-            "top_prop": lambda: self._rowdict["top"],
-            "bot_prop": lambda: self._rowdict["bot"],
-            "window_left": lambda: int(self.left_prop * self.window.width),
-            "window_right": lambda: int(self.right_prop * self.window.width),
-            "window_top": lambda: int(self.top_prop * self.window.height),
-            "window_bot": lambda: int(self.bot_prop * self.window.height),
-            "width": lambda: self.window_right - self.window_left,
-            "height": lambda: self.window_top - self.window_bot,
-            "offset_x": lambda: -1 * self.view_left,
-            "offset_y": lambda: -1 * self.view_bot,
-            "arrows": self.arrowdict.itervalues,
-            "spots": self.spotdict.itervalues,
-            "pawns": self.pawndict.itervalues}
         while len(self.board.viewports) <= self.idx:
             self.board.viewports.append(None)
         self.board.viewports[self.idx] = self
@@ -241,7 +218,22 @@ class BoardViewport:
                 "dimension", "idx", "wallpaper"):
             return getattr(self.board, attrn)
         else:
-            return self.atrdic[attrn]()
+            return {
+                "left_prop": lambda: self._rowdict["left"],
+                "right_prop": lambda: self._rowdict["right"],
+                "top_prop": lambda: self._rowdict["top"],
+                "bot_prop": lambda: self._rowdict["bot"],
+                "window_left": lambda: int(self.left_prop * self.window.width),
+                "window_right": lambda: int(self.right_prop * self.window.width),
+                "window_top": lambda: int(self.top_prop * self.window.height),
+                "window_bot": lambda: int(self.bot_prop * self.window.height),
+                "width": lambda: self.window_right - self.window_left,
+                "height": lambda: self.window_top - self.window_bot,
+                "offset_x": lambda: -1 * self.view_left,
+                "offset_y": lambda: -1 * self.view_bot,
+                "arrows": self.arrowdict.itervalues,
+                "spots": self.spotdict.itervalues,
+                "pawns": self.pawndict.itervalues}[attrn]()
 
     def overlaps(self, x, y):
         return (
