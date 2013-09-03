@@ -308,6 +308,8 @@ represents to calculate its dimensions and coordinates.
         self.tick_to = tick_to
         self.text = text
         self.style = self.col.style
+        self.vertl = None
+        self.label = None
 
     def __len__(self):
         if self.tick_to is None:
@@ -341,10 +343,12 @@ represents to calculate its dimensions and coordinates.
             "window_right": lambda: self.calendar_right + self.cal.window_left,
             "window_top": lambda: self.calendar_top + self.cal.window_bot,
             "window_bot": lambda: self.calendar_bot + self.cal.window_bot,
+            "in_view": lambda: (self.window_right > 0 and
+                                self.window_left < self.window.width and
+                                self.window_top > 0 and
+                                self.window_bot < self.window.height),
             "label_height": lambda: self.style.fontsize + self.style.spacing,
-            "hovered": lambda: self is self.window.hovered,
-            "vertlist": lambda: self.col.vertldict[str(self)],
-            "label": lambda: self.col.labeldict[str(self)]}[attrn]()
+            "hovered": lambda: self is self.window.hovered}[attrn]()
 
     def __setattr__(self, attrn, value):
         if attrn == 'vertlist':
@@ -359,6 +363,57 @@ represents to calculate its dimensions and coordinates.
 
     def __str__(self):
         return "{0} from {1} to {2}".format(self.text, self.tick_from, self.tick_to)
+
+    def delete(self):
+        try:
+            self.label.delete()
+        except:
+            pass
+        self.label = None
+        try:
+            self.vertlist.delete()
+        except:
+            pass
+        self.vertlist = None
+
+    def draw(self):
+        colors = (0, 0, 0, 255) * 4
+        l = self.window_left
+        r = self.window_right
+        t = self.window_top
+        b = self.window_bot
+        points = (
+            l, b,
+            l, t,
+            r, t,
+            r, b)
+        try:
+            self.vertlist.vertices = list(points)
+        except KeyError:
+            self.vertlist = self.batch.add_indexed(
+                4,
+                GL_LINES,
+                self.bggroup,
+                (0, 1, 1, 2, 2, 3, 3, 0),
+                ('v2i', points),
+                ('c4B', colors))
+        y = self.calendar_top - self.label_height
+        try:
+            self.label.x = self.window_left
+            self.label.y = y
+        except:
+            self.label = Label(
+                self.text,
+                self.style.fontface,
+                self.style.fontsize,
+                color=self.style.textcolor.tup,
+                width=self.width,
+                height=self.height,
+                x=self.window_left,
+                y=y,
+                multiline=True,
+                batch=self.batch,
+                group=self.textgroup)
 
 
 CAL_TYPE = {
@@ -479,6 +534,7 @@ time travel.
         self.batch = self.window.batch
         self.group = self.window.calgroup
         self.old_state = None
+        self.tainted = False
         self._rowdict = self.rumor.tabdict[
             "calendar"][
                 str(self.window)][
@@ -490,6 +546,8 @@ time travel.
             else:
                 return r
         self.cols = []
+        for i in xrange(1, self._rowdict["max_cols"]):
+            self.add_col(i-1)
         self.refresh()
 
     def __iter__(self):
@@ -628,9 +686,7 @@ time travel.
             CAL_TYPE['SKILL']: lambda: SkillCalendarCol(self, branch)
         }[self.typ]())
 
-    def refresh(self):
-        if self.cols == []:
-            self.add_col(0)
+    def rearrow(self):
         for col1 in self.cols:
             (parent, tick_from, tick_to) = self.rumor.timestream.branchdict[
                 col1.branch]
@@ -648,6 +704,18 @@ time travel.
                 col2.bc = BranchConnector(
                     self, col2, col1, tick_from)
 
+    def review(self):
+        for col in self.cols:
+            col.review()
+
+    def regen(self):
+        for col in self.cols:
+            col.regen_cells()
+
+    def refresh(self):
+        self.regen()
+        self.rearrow()
+        self.review()
 
 class CalendarCol:
     def __init__(self, calendar, branch):
@@ -690,23 +758,7 @@ class CalendarCol:
 
     def delete(self):
         for cell in self.celldict.itervalues():
-            cellhash = hash(cell)
-            try:
-                self.vertldict[cellhash].delete()
-            except:
-                pass
-            try:
-                del self.vertldict[cellhash]
-            except:
-                pass
-            try:
-                self.labeldict[cellhash].delete()
-            except:
-                pass
-            try:
-                del self.labeldict[cellhash]
-            except:
-                pass
+            cell.delete()
         try:
             self.timeline.delete()
         except:
@@ -728,6 +780,16 @@ class CalendarCol:
         for unarg in unargs:
             strings.append(str(unarg))
         return ";\n".join(strings)
+
+    def review(self):
+        self.cells_on_screen = set()
+        for cell in self.celldict.itervalues():
+            if cell.in_view:
+                self.cells_on_screen.add(cell)
+
+    def refresh(self):
+        self.regen_cells()
+        self.review()
 
     def draw(self):
         colors = self.style.bg_inactive.tup * 4
@@ -758,119 +820,13 @@ class CalendarCol:
             self.timeline.draw()
         else:
             self.timeline.delete()
-        for cell in self.celldict.itervalues:
-            if cell not in self.cells_on_screen:
-                try:
-                    self.labeldict[cell_hash].delete()
-                except:
-                    pass
-                try:
-                    del self.labeldict[cell_hash]
-                except:
-                    pass
-                try:
-                    self.vertldict[cell_hash].delete()
-                except:
-                    pass
-                try:
-                    del self.labeldict[cell_hash]
-                except:
-                    pass
-                continue
-            text = cell.text
-            tick_from = cell.tick_from
-            tick_to = cell.tick_to
-            l = cell.window_left
-            r = cell.window_right
-            t = cell.window_top
-            b = cell.window_bot
-            print "checking drawability of calendar cell for {0} from {1} to {2}".format(
-                text, tick_from, tick_to)
-            print "drawing calendar cell for {0} from {1} to {2}".format(text, tick_from, tick_to)
-            cell_hash = hash(cell)
-            colors = (0, 0, 0, 255) * 4
-            points = (
-                l, b,
-                l, t,
-                r, t,
-                r, b)
-            try:
-                self.vertldict[cell_hash].vertices = points
-            except KeyError:
-                self.vertldict[cell_hash] = self.batch.add_indexed(
-                    4,
-                    GL_LINES,
-                    self.cellgroup,
-                    (0, 1, 1, 2, 2, 3, 3, 0),
-                    ('v2i', points),
-                    ('c4B', colors))
-            try:
-                self.labeldict[cell_hash].x = l
-                self.labeldict[cell_hash].y = b
-            except KeyError:
-                self.labeldict[cell_hash] = Label(
-                    text,
-                    self.style.fontface,
-                    self.style.fontsize,
-                    color=self.style.textcolor.tup,
-                    width=(self.width - self.style.spacing * 2),
-                    height=cell["height"](),
-                    x = l,
-                    y = b,
-                    anchor_y="bottom",
-                    multiline=True,
-                    batch=self.batch,
-                    group=self.textgroup)
-
-class LocationCalendarCellIterator:
-    def __init__(self, loccol):
-        self.col = loccol
-        self.lociter = TabdictIterator(self.col.locations)
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        rd = self.lociter.next()
-        when = self.col.shows_when(rd["tick_from"], rd["tick_to"])
-        while (
-                when is None or
-                (when[1] is not None and
-                 when[1] < self.col.calendar.top_tick) or
-                when[0] > self.col.calendar.bot_tick):
-            rd = self.lociter.next()
-            when = self.col.shows_when(rd["tick_from"], rd["tick_to"])
-        (a, b) = when
-        if a < self.col.calendar.top_tick:
-            a = self.col.calendar.top_tick
-        if b > self.col.calendar.bot_tick:
-            b = self.col.calendar.bot_tick
-        spacing = self.col.style.spacing
-        cal = self.col.calendar
-        def windobot():
-            if b is None:
-                return 0
-            if cal.scrolled_to is None:
-                scrolt = self.col.rumor.tick
+        for cell in self.celldict.itervalues():
+            if cell in self.cells_on_screen:
+                cell.draw()
             else:
-                scrolt = cal.scrolled_to
-            return cal.window_bot - cal.height - cal.row_height * (b - scrolt)
-        def hi():
-            if b is None:
-                return cal.row_height * a - windobot()
-            else:
-                return cal.row_height * (b - a)
-        return {
-            "tick_from": lambda: a,
-            "tick_to": lambda: b,
-            "text": lambda: str(self.col.rumor.get_place(rd["dimension"], rd["location"])),
-            "spacing": lambda: spacing,
-            "height": hi,
-            "window_left": lambda: self.col.calendar_left + spacing + cal.window_left,
-            "window_right": lambda: self.col.calendar_right - spacing + cal.window_left,
-            "window_top": lambda: cal.window_bot - cal.height - spacing - cal.row_height * a,
-            "window_bot": windobot,
-            "label_height": lambda: self.col.style.fontsize + spacing}
+                # Deleting the cell from video RAM, but keeping the
+                # object around anyhow in case it's on screen later.
+                cell.delete()
 
 class LocationCalendarCol(CalendarCol):
     """A column of a calendar displaying a Thing's location over time.
@@ -912,9 +868,6 @@ instead, giving something like "in transit from A to B".
                 }[attrn]()
             except KeyError:
                 return CalendarCol.__getattr__(self, attrn)
-
-    def refresh(self):
-        self.regen_cells()
 
     def regen_cells(self):
         for rd in TabdictIterator(self.locations):

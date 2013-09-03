@@ -130,6 +130,7 @@ class GameWindow(pyglet.window.Window):
         self.edge_order = 1
         self.viewport_order = 1
         self.hand_order = 1
+        self.last_timestream_hash = hash(self.rumor.timestream)
         self.menudict = {}
         self.dimensiondict = self.rumor.get_dimensions(
             [rd["dimension"] for rd in
@@ -261,6 +262,13 @@ class GameWindow(pyglet.window.Window):
         if attrn in ("min_width", "min_height",
                        "arrowhead_size", "arrow_width"):
             return self._rowdict[attrn]
+        def rehash():
+            tihash = hash(self.rumor.timestream)
+            r = self.last_timestream_hash != tihash
+            self.last_timestream_hash = tihash
+            return r
+        def recal():
+            calscroll
         else:
             return {
                 "arrow_width": lambda: self._rowdict["arrow_width"],
@@ -272,7 +280,8 @@ class GameWindow(pyglet.window.Window):
                     False: lambda: []}[hasattr(self, 'handdict')],
                 'dx': lambda: sum(self.dx_hist),
                 'dy': lambda: sum(self.dy_hist),
-                'arrow_girth': lambda: self.arrow_width * 2}[attrn]()
+                'arrow_girth': lambda: self.arrow_width * 2,
+                'timestream_changed': rehash}[attrn]()
 
     def __str__(self):
         return self.name
@@ -323,6 +332,11 @@ class GameWindow(pyglet.window.Window):
             menu.draw()
         for calendar in self.calendars:
             if calendar is not None:
+                if self.timestream_changed:
+                    calendar.refresh()
+                elif calendar.tainted:
+                    calendar.review()
+                calendar.tainted = False
                 calendar.draw()
         for hand in self.hands:
             hand.draw()
@@ -472,6 +486,7 @@ move_with_mouse method, use it.
             if calendar.overlaps(x, y):
                 sf = calendar.scroll_factor
                 calendar.scrolled_to += scroll_y * sf
+                calendar.tainted = True
                 return
         if self.picker is not None:
             if self.picker.overlaps(x, y):
