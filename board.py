@@ -53,6 +53,16 @@ each board will be open in at most one window at a time.
         self.spotdict = {}
         self.arrowdict = {}
         self.viewports = []
+        self._rowdict = self.rumor.tabdict["board"][str(self.dimension)][int(self)]
+        self.atrdic = {
+            "wallpaper": lambda: self.rumor.get_img(self._rowdict["wallpaper"]),
+            "img": lambda: self.wallpaper,
+            "places": lambda: iter(self.dimension.places),
+            "portals": lambda: iter(self.dimension.portals),
+            "things": lambda: iter(self.dimension.things),
+            "pawns": self.pawndict.itervalues,
+            "spots": self.spotdict.itervalues,
+            "arrows": self.arrowdict.itervalues}
         while len(self.dimension.boards) <= self.idx:
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
@@ -68,16 +78,7 @@ each board will be open in at most one window at a time.
                 self.add_pawn(rd)
         for portal in self.dimension.portals:
             self.make_arrow(portal)
-        self.atrdic = {
-            "_rowdict": lambda: self.rumor.tabdict["board"][str(self.dimension)][int(self)],
-            "wallpaper": lambda: self.rumor.get_img(self._rowdict["wallpaper"]),
-            "img": lambda: self.wallpaper,
-            "places": lambda: iter(self.dimension.places),
-            "portals": lambda: iter(self.dimension.portals),
-            "things": lambda: iter(self.dimension.things),
-            "pawns": self.pawndict.itervalues,
-            "spots": self.spotdict.itervalues,
-            "arrows": self.arrowdict.itervalues}
+
 
     def __getattr__(self, attrn):
         if attrn in self.colns:
@@ -186,33 +187,15 @@ class BoardViewport:
         self.dimension = dimension
         self.board = board
         self.idx = idx
-        while len(self.board.viewports) <= self.idx:
-            self.board.viewports.append(None)
-        self.board.viewports[self.idx] = self
-        self.batch = self.window.batch
-        self.biggroup = ViewportOrderedGroup(
-            self.window.viewport_order, self.window.boardgroup,
-            self)
-        self.window.viewport_order += 1
-        self.bggroup = OrderedGroup(0, self.biggroup)
-        self.arrowgroup = OrderedGroup(1, self.biggroup)
-        self.spotgroup = OrderedGroup(2, self.biggroup)
-        self.pawngroup = OrderedGroup(3, self.biggroup)
-        self.pawndict = {}
-        self.spotdict = {}
-        self.arrowdict = {}
-        for (k, v) in self.board.pawndict.iteritems():
-            self.pawndict[k] = PawnWidget(self, v)
-        for (k, v) in self.board.spotdict.iteritems():
-            self.spotdict[k] = SpotWidget(self, v)
-        for (k, v) in self.board.arrowdict.iteritems():
-            self.arrowdict[k] = ArrowWidget(self, v)
         self._rowdict = self.rumor.tabdict[
             "board_viewport"][
                 str(self.window)][
                     str(self.dimension)][
                         int(self.board)][
                             int(self)]
+        self.pawndict = {}
+        self.spotdict = {}
+        self.arrowdict = {}
         self.atrdic = {
             "left_prop": lambda: self._rowdict["left"],
             "right_prop": lambda: self._rowdict["right"],
@@ -229,6 +212,24 @@ class BoardViewport:
             "arrows": self.arrowdict.itervalues,
             "spots": self.spotdict.itervalues,
             "pawns": self.pawndict.itervalues}
+        while len(self.board.viewports) <= self.idx:
+            self.board.viewports.append(None)
+        self.board.viewports[self.idx] = self
+        self.batch = self.window.batch
+        self.biggroup = ViewportOrderedGroup(
+            self.window.viewport_order, self.window.boardgroup,
+            self)
+        self.window.viewport_order += 1
+        self.bggroup = OrderedGroup(0, self.biggroup)
+        self.arrowgroup = OrderedGroup(1, self.biggroup)
+        self.spotgroup = OrderedGroup(2, self.biggroup)
+        self.pawngroup = OrderedGroup(3, self.biggroup)
+        for (k, v) in self.board.pawndict.iteritems():
+            self.pawndict[k] = PawnWidget(self, v)
+        for (k, v) in self.board.spotdict.iteritems():
+            self.spotdict[k] = SpotWidget(self, v)
+        for (k, v) in self.board.arrowdict.iteritems():
+            self.arrowdict[k] = ArrowWidget(self, v)
 
     def __int__(self):
         return self.idx
@@ -240,11 +241,7 @@ class BoardViewport:
                 "dimension", "idx", "wallpaper"):
             return getattr(self.board, attrn)
         else:
-            try:
-                return self.atrdic[attrn]()
-            except KeyError:
-                raise AttributeError(
-                    "BoardView instance has no attribute " + attrn)
+            return self.atrdic[attrn]()
 
     def overlaps(self, x, y):
         return (

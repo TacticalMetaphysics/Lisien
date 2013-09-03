@@ -154,6 +154,7 @@ class GameWindow(pyglet.window.Window):
                 self.rumor, self, dimension, board, viewi)
         stylenames = set()
         handnames = set()
+        charnames = set()
         for rd in TabdictIterator(
                 self.rumor.tabdict["menu"][str(self)]):
             stylenames.add(rd["style"])
@@ -190,15 +191,18 @@ class GameWindow(pyglet.window.Window):
             for rd in TabdictIterator(
                     self.rumor.tabdict["hand"][str(self)]):
                 effect_deck_names.add(rd["deck"])
-            effect_decks = self.rumor.get_effect_decks(effect_deck_names)
+            deckd = self.rumor.get_effect_decks(effect_deck_names)
+            self.rumor.get_effects_in_decks(effect_deck_names)
             self.handdict = {}
-            for rd in TabdictIterator(
-                    self.rumor.tabdict["hand"][str(self)]):
-                effd = effect_decks[rd["effect_deck"]]
-                self.handdict[rd["effect_deck"]] = Hand(self, effd)
+            for (name, deck) in deckd.iteritems():
+                self.handdict[name] = Hand(self, deck)
         if hasattr(self, 'handdict'):
             self.carddict = self.rumor.get_cards_in_hands(self.handdict.keys())
         self.calendars = []
+        for rd in TabdictIterator(
+                self.rumor.tabdict["calendar"][str(self)]):
+            charnames.add(rd["character"])
+        self.rumor.load_characters(charnames)
         for rd in TabdictIterator(
                 self.rumor.tabdict["calendar"][str(self)]):
             while len(self.calendars) <= rd["idx"]:

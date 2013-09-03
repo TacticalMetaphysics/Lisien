@@ -89,7 +89,7 @@ class TextHolder:
             "window_left": lambda: (self.cardwidget.x + 2) * self.cardwidget.style.spacing,
             "window_right": lambda: self.window_left + self.width,
             "window_bot": lambda: (self.cardwidget.window_bot + 2) * self.cardwidget.style.spacing,
-            "window_top": lambda: self.window_bot + self.height
+            "window_top": lambda: self.window_bot + self.height,
             "text_left": lambda: self.window_left + self.cardwidget.style.spacing,
             "text_bot": lambda: self.window_bot + self.cardwidget.style.spacing,
             "text_width": lambda: self.width - self.cardwidget.style.spacing,

@@ -90,7 +90,7 @@ class Arrow:
             'dx': lambda: self.dest.x,
             'dy': lambda: self.dest.y,
             'rise': lambda: self.dest.y - self.orig.y,
-            'run': lambda: self.dest.x - self.orig.x
+            'run': lambda: self.dest.x - self.orig.x,
             'length': self.get_length,
             'slope': self.get_slope,
             'm': self.get_slope,
@@ -106,6 +106,7 @@ class Arrow:
         try:
             return self.atrdic[attrn]()
         except IndexError:
+            raise AttributeError(
                 "Edge instance has no attribute {0}".format(attrn))
 
     def reciprocate(self):

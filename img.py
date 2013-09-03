@@ -32,19 +32,19 @@ saving the path.
 provided."""
         self.rumor = rumor
         self._name = name
-        if self.rltile:
-            self.tex = load_rltile(self.path)
-        else:
-            self.tex = load_regular_img(self.path)
         self.rumor.imgdict[str(self)] = self
         self._rowdict = self.rumor.tabdict["img"][str(self)]
         self.atrdic = {
             "path": lambda: self._rowdict["path"],
             "rltile": lambda: self._rowdict["rltile"],
             "center": lambda: (self.tex.width / 2, self.tex.height / 2),
-            "texture": lambda: self.tex,
             "width": lambda: self.tex.width,
             "height": lambda: self.tex.height}
+        if self.rltile:
+            self.tex = load_rltile(self.path)
+        else:
+            self.tex = load_regular_img(self.path)
+        self.texture = self.tex
 
     def __str__(self):
         return self._name
@@ -55,13 +55,6 @@ provided."""
         except KeyError:
             raise AttributeError(
                 "Img instance has no attribute {0}.".format(attrn))
-
-    def get_tabdict(self):
-        return {
-            "img": {
-                "name": self.name,
-                "path": self.path,
-                "rltile": self.rltile}}
 
 
 def load_rltile(path):

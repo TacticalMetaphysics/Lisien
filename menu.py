@@ -47,24 +47,6 @@ With db, register in db's menuitemdict.
         self.group = self.menu.labelgroup
         self.window = self.menu.window
         self.idx = idx
-        while len(self.menu.items) <= self.idx:
-            self.menu.items.append(None)
-        self.menu.items[self.idx] = self
-        (funname, argstr) = re.match("(.+)\((.*)\)", self._on_click).groups()
-        (fun, argre) = self.rumor.func[funname]
-        try:
-            on_click_arg_tup = re.match(argre, argstr).groups()
-        except:
-            on_click_arg_tup = tuple()
-        self.calls = 0
-
-        def on_click_fun(self):
-            self.calls += 1
-            t = (self,) + on_click_arg_tup
-            return fun(*t)
-
-        self.on_click = on_click_fun
-
         self._rowdict = self.rumor.tabdict["menu_item"][
             str(self.window)][str(self.menu)][int(self)]
         def geticon():
@@ -105,17 +87,30 @@ With db, register in db's menuitemdict.
             "rx": lambda: self.width / 2,
             "ry": lambda: self.height / 2,
             "r": lambda: {True: self.rx, False: self.ry}[self.rx > self.ry]}
+        while len(self.menu.items) <= self.idx:
+            self.menu.items.append(None)
+        self.menu.items[self.idx] = self
+        (funname, argstr) = re.match("(.+)\((.*)\)", self._on_click).groups()
+        (fun, argre) = self.rumor.func[funname]
+        try:
+            on_click_arg_tup = re.match(argre, argstr).groups()
+        except:
+            on_click_arg_tup = tuple()
+        self.calls = 0
+
+        def on_click_fun(self):
+            self.calls += 1
+            t = (self,) + on_click_arg_tup
+            return fun(*t)
+
+        self.on_click = on_click_fun
 
     def __int__(self):
         return self.idx
 
     def __getattr__(self, attrn):
-        try:
-            return self.atrdic[attrn]()
-        except KeyError:
-            raise AttributeError(
-                "MenuItem instance has no such attribute: " +
-                attrn)
+        assert(hasattr(self, 'atrdic'))
+        return self.atrdic[attrn]()
 
     def onclick(self, x, y, button, modifiers):
         return self.on_click(self)
@@ -210,12 +205,32 @@ With db, register with db's menudict.
 
         """
         self.window = window
+        self.name = name
         self.batch = self.window.batch
+        self.rumor = self.window.rumor
+        self._rowdict = self.rumor.tabdict["menu"][str(self.window)][str(self)]
+        self.atrdic = {
+            "left_prop": lambda: self._rowdict["left"],
+            "right_prop": lambda: self._rowdict["right"],
+            "top_prop": lambda: self._rowdict["top"],
+            "bot_prop": lambda: self._rowdict["bot"],
+            "style": lambda: (
+                self.rumor.get_style(self._rowdict["style"])),
+            "hovered": lambda: self.window.hovered is self,
+            "window_left": lambda: int(self.window.width * self.left_prop),
+            "window_right": lambda: int(self.window.width * self.right_prop),
+            "window_top": lambda: int(self.window.height * self.top_prop),
+            "window_bot": lambda: int(self.window.height * self.bot_prop),
+            "width": lambda: self.window_right - self.window_left,
+            "height": lambda: self.window_top - self.window_bot,
+            "rx": lambda: self.width / 2,
+            "ry": lambda: self.height / 2,
+            "r": lambda: {True: rx, False: ry}[rx > ry],
+            "state": self.get_state_tup}
         self.supergroup = OrderedGroup(0, self.window.menugroup)
         self.bggroup = OrderedGroup(0, self.supergroup)
         self.labelgroup = OrderedGroup(1, self.supergroup)
         self.rumor = self.window.rumor
-        self.name = name
         self.active_pattern = pyglet.image.SolidColorImagePattern(
             self.style.bg_active.tup)
         self.inactive_pattern = pyglet.image.SolidColorImagePattern(
@@ -228,51 +243,21 @@ With db, register with db's menudict.
         self.visible = False
         self_rowdict = self.rumor.tabdict["menu"][
             str(self.window)][str(self)]
-        def get_fun_if_window(fun):
-            def fun_if_window():
-                if self.window is None:
-                    return 0
-                else:
-                    return fun()
-            return fun_if_window
+
         def r():
             if self.rx > self.ry:
                 return self.rx
             else:
                 return self.ry
-        self.atrdic = {
-            "left_prop": lambda: self._rowdict["left"],
-            "right_prop": lambda: self._rowdict["right"],
-            "top_prop": lambda: self._rowdict["top"],
-            "bot_prop": lambda: self._rowdict["bot"],
-            "style": lambda: (
-                self.rumor.get_style(self._rowdict["style"])),
-            "hovered": lambda: self.window.hovered is self,
-            "window_left": fun_if_window(lambda: (
-                int(self.window.width * self.left_prop))),
-            "window_right": fun_if_window(lambda: (
-                int(self.window.width * self.right_prop))),
-            "window_top": fun_if_window(lambda: (
-                int(self.window.height * self.top_prop))),
-            "window_bot": fun_if_window(lambda: (
-                int(self.window.height * self.bot_prop))),
-            "width": lambda: self.window_right - self.window_left,
-            "height": lambda: self.window_top - self.window_bot,
-            "rx": lambda: self.width / 2,
-            "ry": lambda: self.height / 2,
-            "r": r,
-            "state": self.get_state_tup}
+
 
     def __str__(self):
         return self.name
 
     def __getattr__(self, attrn):
-        try:
-            return self.atrdic[attrn]()
-        except KeyError:
-            raise AttributeError(
-                "Menu instance has no such attribute: " +
-                attrn)
+        if not hasattr(self, 'atrdic'):
+            raise Exception('I have no atrdic')
+        return self.atrdic[attrn]()
 
     def __eq__(self, other):
         """Return true if the names and boards match"""

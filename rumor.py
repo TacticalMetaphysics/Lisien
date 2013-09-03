@@ -679,11 +679,7 @@ This is game-world time. It doesn't always go forwards.
         spot.set_coords(x, y)
 
     def make_portal(self, orig, dest):
-        dimension = orig.dimension
-        dimension.make_portal(orig, dest)
-        port = dimension.get_portal(orig, dest)
-        port.persist()
-        return port
+        return orig.dimension.make_portal(orig, dest)
 
     def load_characters(self, names):
         qtd = {
@@ -978,10 +974,7 @@ This is game-world time. It doesn't always go forwards.
             "menu": {},
             "hand": {},
             "menu_item": {},
-            "calendar": {},
-            "calendar_col_thing": {},
-            "calendar_col_stat": {},
-            "calendar_col_skill": {}}
+            "calendar": {}}
         for name in names:
             kd["window"][name] = {"name": name}
             for col in kd.iterkeys():

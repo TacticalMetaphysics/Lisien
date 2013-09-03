@@ -587,6 +587,8 @@ time travel.
         return self.idx
 
     def __getattr__(self, attrn):
+        if attrn in self.atrdic:
+            return self.atrdic[attrn]()
         if self.typ == CAL_TYPE['THING']:
             if attrn == 'thing_show_location':
                 return self._rowdict['thing_show_location']
@@ -628,12 +630,8 @@ time travel.
                     "character_stats"][
                         self._rowdict["character"]][
                             self._rowdict["stat"]]
-        try:
-            return self.atrdic[attrn]()
-        except KeyError:
-            raise AttributeError(
-                "Calendar instance has no such attribute: " +
-                attrn)
+        raise AttributeError(
+            "Calendar instance has no attribute {0}".format(attrn))
 
     def __getitem__(self, i):
         return self.cols[i]
@@ -656,13 +654,7 @@ time travel.
     def draw(self):
         if self.visible and len(self.cols) > 0:
             for calcol in self.cols:
-                try:
-                    (parent, start, end) = self.rumor.timestream.branchdict[
-                        calcol.branch]
-                except KeyError:
-                    continue
-                col1 = calcol
-                col1.draw()
+                calcol.draw()
         else:
             for calcol in self.cols:
                 calcol.delete()
@@ -670,9 +662,23 @@ time travel.
     def remove(self, it):
         self.cols.remove(it)
 
+    def add_col(self, branch):
+        while len(self.cols) <= branch:
+            self.cols.append(None)
+        if self.cols[branch] is not None:
+            print "I am about to make a new CalendarCol replacing an old one, which is weird"
+        self.cols[branch] = ({
+            CAL_TYPE['THING']: {
+                True: lambda: LocationCalendarCol(self, branch),
+                False: lambda: ThingCalendarCol(self, branch)}[self.thing_show_location](),
+            CAL_TYPE['PLACE']: lambda: PlaceCalendarCol(self, branch),
+            CAL_TYPE['PORTAL']: lambda: PortalCalendarCol(self, branch),
+            CAL_TYPE['STAT']: lambda: StatCalendarCol(self, branch),
+            CAL_TYPE['SKILL']: lambda: SkillCalendarCol(self, branch)}[self.typ]())
+
     def refresh(self):
         if self.cols == []:
-            self.cols.append(CalendarCol(self, 0))
+            self.add_col(0)
         for col1 in self.cols:
             (parent, tick_from, tick_to) = self.rumor.timestream.branchdict[
                 col1.branch]
@@ -722,10 +728,6 @@ class CalendarCol:
             "window_right": lambda: self.calendar.window_left + self.calendar_right,
             "window_top": lambda: self.calendar.window_top,
             "window_bot": lambda: self.calendar.window_bot}
-        self.refresh()
-
-    def __iter__(self):
-        return self.cells
 
     def __getattr__(self, attrn):
         try:
@@ -841,20 +843,20 @@ displayed in the cell. If it is a Portal, a format-string is used
 instead, giving something like "in transit from A to B".
 
     """
-    def __init__(self, calendar, idx, branch):
-        CalendarCol.__init__(self, calendar, idx, branch)
+    def __init__(self, calendar, branch):
+        CalendarCol.__init__(self, calendar, branch)
         winn = str(self.calendar.window)
         cali = int(self.calendar)
         charn = str(self.calendar.character)
         dimn = str(self.calendar.dimension)
         thingn = str(self.calendar.thing)
-        self._rowdict = self.rumor.tabdict["thing_cal"][winn][cali]
         self.atrdic = {
             "typ": lambda: COL_TYPE['THING'],
             "locations": lambda: self.thing.locations[self.branch],
             "coverage": lambda: self.character.thingdict[self.branch][dimn][thingn],
             "_cells": lambda: LocationCalendarCellIterator(self),
             "thing": lambda: self.rumor.get_thing(dimn, thingn)}
+
     def __getattr__(self, attrn):
         if attrn in (
                 "character",
@@ -866,27 +868,44 @@ instead, giving something like "in transit from A to B".
             try:
                 return self.atrdic[attrn]()
             except KeyError:
-                raise AttributeError(
-                    "LocationCalendarCol instance has no attribute named {0}".format(
-                        attrn))
+                return super(LocationCalendarCol, self).__getattr__(attrn)
 
-        def shows_any_ever(self, tick_from, tick_to):
-            for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
-                if tick_to > cover_tick_from or tick_from < cover_tick_to:
-                    return True
-            return False
+    def shows_any_ever(self, tick_from, tick_to):
+        for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
+            if tick_to > cover_tick_from or tick_from < cover_tick_to:
+                return True
+        return False
 
-        def shows_when(self, tick_from, tick_to):
-            for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
-                if tick_to > cover_tick_from and tick_from < cover_tick_to:
-                    if tick_from > cover_tick_from:
-                        a = tick_from
-                    else:
-                        a = cover_tick_from
-                    if tick_to < cover_tick_to:
-                        b = tick_to
-                    else:
-                        b = cover_tick_to
-                    return (a, b)
-            return None
-                        
+    def shows_when(self, tick_from, tick_to):
+        for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
+            if tick_to > cover_tick_from and tick_from < cover_tick_to:
+                if tick_from > cover_tick_from:
+                    a = tick_from
+                else:
+                    a = cover_tick_from
+                if tick_to < cover_tick_to:
+                    b = tick_to
+                else:
+                    b = cover_tick_to
+                return (a, b)
+        return None
+
+
+class ThingCalendarCol(CalendarCol):
+    pass
+
+
+class PlaceCalendarCol(CalendarCol):
+    pass
+
+
+class PortalCalendarCol(CalendarCol):
+    pass
+
+
+class StatCalendarCol(CalendarCol):
+    pass
+
+
+class SkillCalendarCol(CalendarCol):
+    pass
