@@ -1089,6 +1089,7 @@ This is game-world time. It doesn't always go forwards.
                     board.new_branch(branch_from, branch_to, tick_from)
             if self.game["hi_branch"] < branch_to:
                 self.game["hi_branch"] = branch_to
+        self.timestream.update()
 
     def increment_branch(self, mi=None, branches=1):
         b = self.branch + int(branches)

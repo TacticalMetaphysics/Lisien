@@ -6,6 +6,7 @@ from util import (
     phi)
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup
+from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST
 
 """User's view on a given item's schedule.
 
@@ -292,6 +293,24 @@ for the handle_side keyword argument.
         self.handle.draw()
 
 
+class CalendarCellGroup(OrderedGroup):
+    def __init__(self, order, parent, cell):
+        OrderedGroup.__init__(
+            self, order, parent)
+        self.cell = cell
+
+    def set_state(self):
+        l = self.cell.window_left - 1
+        b = self.cell.window_bot - 1
+        w = self.cell.width + 1
+        h = self.cell.height + 1
+        glScissor(l, b, w, h)
+        glEnable(GL_SCISSOR_TEST)
+
+    def unset_state(self):
+        glDisable(GL_SCISSOR_TEST)
+
+
 class CalendarCell:
     """A block of time in a calendar.
 
@@ -302,8 +321,8 @@ represents to calculate its dimensions and coordinates.
     visible = True
     def get_calendar_bot(self):
         try:
-            return self.cal.height - self.cal.row_height * (
-                self.tick_to - self.cal.scrolled_to)
+            return self.calendar.height - self.calendar.row_height * (
+                self.tick_to - self.calendar.scrolled_to)
         except TypeError:
             return 0
     def is_same_size(self):
@@ -315,20 +334,20 @@ represents to calculate its dimensions and coordinates.
         return r
 
     atrdic = {
-        "interactive": lambda self: self.col.calendar.interactive,
-        "window": lambda self: self.col.calendar.window,
-        "calendar_left": lambda self: self.col.calendar_left + self.style.spacing,
-        'calendar_right': lambda self: self.col.calendar_right - self.style.spacing,
-        "calendar_top": lambda self: (self.cal.height - self.cal.row_height * 
-                                      (self.tick_from - self.cal.scrolled_to) -
+        "interactive": lambda self: self.column.calendar.interactive,
+        "window": lambda self: self.column.calendar.window,
+        "calendar_left": lambda self: self.column.calendar_left + self.style.spacing,
+        'calendar_right': lambda self: self.column.calendar_right - self.style.spacing,
+        "calendar_top": lambda self: (self.calendar.height - self.calendar.row_height * 
+                                      (self.tick_from - self.calendar.scrolled_to) -
                                       self.style.spacing),
         "calendar_bot": lambda self: self.get_calendar_bot(),
         "width": lambda self: self.calendar_right - self.calendar_left,
-        "height": lambda self: len(self) * self.cal.row_height,
-        "window_left": lambda self: self.calendar_left + self.cal.window_left,
-        "window_right": lambda self: self.calendar_right + self.cal.window_left,
-        "window_top": lambda self: self.calendar_top + self.cal.window_bot,
-        "window_bot": lambda self: self.calendar_bot + self.cal.window_bot,
+        "height": lambda self: len(self) * self.calendar.row_height,
+        "window_left": lambda self: self.calendar_left + self.calendar.window_left,
+        "window_right": lambda self: self.calendar_right + self.calendar.window_left,
+        "window_top": lambda self: self.calendar_top + self.calendar.window_bot,
+        "window_bot": lambda self: self.calendar_bot + self.calendar.window_bot,
         "in_view": lambda self: (self.window_right > 0 and
                                  self.window_left < self.window.width and
                                  self.window_top > 0 and
@@ -338,15 +357,13 @@ represents to calculate its dimensions and coordinates.
         "hovered": lambda self: self is self.window.hovered}
 
     def __init__(self, col, tick_from, tick_to, text):
-        self.col = col
-        self.cal = self.col.calendar
-        self.batch = self.col.batch
-        self.bggroup = OrderedGroup(0, self.col.cellgroup)
-        self.textgroup = OrderedGroup(1, self.col.cellgroup)
+        self.column = col
+        self.calendar = self.column.calendar
+        self.batch = self.column.batch
+        self.style = self.column.style
         self.tick_from = tick_from
         self.tick_to = tick_to
         self.text = text
-        self.style = self.col.style
         self.old_height = self.height
         self.old_width = self.width
         self.left_side = None
@@ -357,7 +374,7 @@ represents to calculate its dimensions and coordinates.
 
     def __len__(self):
         if self.tick_to is None:
-            r = self.cal.height - self.tick_from
+            r = self.calendar.height - self.tick_from
         else:
             r = self.tick_to - self.tick_from
         if r < 0:
@@ -401,7 +418,7 @@ represents to calculate its dimensions and coordinates.
             pass
         self.right_side = None
 
-    def draw(self):
+    def draw(self, group):
         colors = (0, 0, 0, 255) * 2
         l = self.window_left
         r = self.window_right
@@ -416,7 +433,7 @@ represents to calculate its dimensions and coordinates.
             self.top_side = self.batch.add(
                 2,
                 GL_LINES,
-                self.bggroup,
+                group,
                 ('v2i', (l, t, r, t)),
                 ('c4B', colors))
         try:
@@ -425,7 +442,7 @@ represents to calculate its dimensions and coordinates.
             self.left_side = self.batch.add(
                 2,
                 GL_LINES,
-                self.bggroup,
+                group,
                 ('v2i', (l, b, l, t)),
                 ('c4B', colors))
         try:
@@ -434,7 +451,7 @@ represents to calculate its dimensions and coordinates.
             self.bot_side = self.batch.add(
                 2,
                 GL_LINES,
-                self.bggroup,
+                group,
                 ('v2i', (l, b, r, b)),
                 ('c4B', colors))
         try:
@@ -443,7 +460,7 @@ represents to calculate its dimensions and coordinates.
             self.right_side = self.batch.add(
                 2,
                 GL_LINES,
-                self.bggroup,
+                group,
                 ('v2i', (r, b, r, t)),
                 ('c4B', colors))
         y = self.calendar_top - self.label_height
@@ -462,7 +479,7 @@ represents to calculate its dimensions and coordinates.
                 y=y,
                 multiline=True,
                 batch=self.batch,
-                group=self.textgroup)
+                group=group)
 
 
 CAL_TYPE = {
@@ -625,6 +642,7 @@ time travel.
         self.window = window
         self.rumor = self.window.rumor
         self.idx = idx
+        self.rumor.timestream.update_handlers.add(self)
         self.batch = self.window.batch
         self.group = self.window.calgroup
         self.old_state = None
@@ -633,16 +651,16 @@ time travel.
             "calendar"][
                 str(self.window)][
                     int(self)]
-        self.coldict = {}
         self.cols_shown = set()
+        self.coldict = {0: self.make_col(0)}
+        self.cols_shown.add(0)
         for i in xrange(0, self.rumor.hi_branch):
             self.coldict[i] = self.make_col(i)
         for i in xrange(0, self.max_cols - 1):
-            try:
-                self.cols_shown.add(self.coldict[i])
-            except KeyError:
-                break
+            if i in self.coldict:
+                self.cols_shown.add(i)
         self.branch_to = self.rumor.hi_branch
+        self.rumor.timestream.update_handlers.add(self)
         self.refresh()
 
     def __int__(self):
@@ -712,10 +730,10 @@ time travel.
     def draw(self):
         if self.visible and len(self.cols_shown) > 0:
             for calcol in self.cols_shown:
-                calcol.draw()
+                self.coldict[calcol].draw()
         else:
             for calcol in self.cols_shown:
-                calcol.delete()
+                self.coldict[calcol].delete()
 
     def make_col(self, branch):
         return {
@@ -729,13 +747,15 @@ time travel.
         }[self.typ](self, branch)
 
     def rearrow(self):
-        for col1 in self.cols_shown:
+        for coli in self.cols_shown:
+            col1 = self.coldict[coli]
             (parent, tick_from, tick_to) = self.rumor.timestream.branchdict[
                 col1.branch]
             if hasattr(col1, 'bc'):
                 col1.bc.delete()
             col2 = None
-            for calcol in self.cols_shown:
+            for coli in self.cols_shown:
+                calcol = self.coldict[coli]
                 if calcol.branch == parent:
                     col2 = calcol
                     break
@@ -748,18 +768,28 @@ time travel.
 
     def review(self):
         for col in self.cols_shown:
-            col.review()
+            self.coldict[col].review()
 
     def regen(self):
         for col in self.cols_shown:
-            col.regen_cells()
+            self.coldict[col].regen_cells()
 
     def refresh(self):
-        self.regen()
         self.rearrow()
-        self.review()
+        for col in self.cols_shown:
+            self.coldict[col].refresh()
+        CalendarCol.cell_order = 0
+
+    def on_timestream_update(self):
+        for branch in self.rumor.timestream.branchdict:
+            self.coldict[branch] = self.make_col(branch)
+            if len(self.cols_shown) == self.max_cols:
+                self.cols_shown.remove(min(self.cols_shown))
+            self.cols_shown.add(branch)
+        self.refresh()
 
 class CalendarCol:
+    cell_order = 0
     atrdic = {
         "width": lambda self: self.calendar.col_width,
         "rx": lambda self: self.width / 2,
@@ -783,14 +813,13 @@ class CalendarCol:
         self.style = self.calendar.style
         self.bggroup = OrderedGroup(0, self.calendar.group)
         self.cellgroup = OrderedGroup(1, self.calendar.group)
-        self.textgroup = OrderedGroup(2, self.calendar.group)
-        self.tlgroup = OrderedGroup(3, self.calendar.group)
-        self.bcgroup = OrderedGroup(4, self.calendar.group)
+        self.tlgroup = OrderedGroup(2, self.calendar.group)
+        self.bcgroup = OrderedGroup(3, self.calendar.group)
         self.timeline = Timeline(self)
         self.window = self.calendar.window
-        self.old_schedule_hash = 0
         self.celldict = {}
         self.cells_on_screen = set()
+        self.old_points = None
         self.vertl = None
 
     def __getattr__(self, attrn):
@@ -824,8 +853,21 @@ class CalendarCol:
             strings.append(str(unarg))
         return ";\n".join(strings)
 
+    def regen_cells(self):
+        self.celldict = {}
+        for rd in TabdictIterator(self.calendar.locations):
+            cell = CalendarCell(
+                self, rd["tick_from"], rd["tick_to"], rd["location"])
+            self.celldict[rd["tick_from"]] = cell
+
     def review(self):
-        self.cells_on_screen = set()
+        todel = set()
+        for cell in self.cells_on_screen:
+            if not cell.in_view:
+                todel.add(cell)
+        for cell in todel:
+            self.cells_on_screen.discard(cell)
+            cell.delete()
         for cell in self.celldict.itervalues():
             if cell.in_view:
                 self.cells_on_screen.add(cell)
@@ -845,16 +887,18 @@ class CalendarCol:
             l, t,
             r, t,
             r, b)
-        try:
-            self.vertl.vertices = list(points)
-        except:
-            self.vertl = self.batch.add_indexed(
-                4,
-                GL_TRIANGLES,
-                self.bggroup,
-                [0, 2, 3, 0, 1, 2],
-                ('v2i', points),
+        if points != self.old_points:
+            try:
+                self.vertl.vertices = points
+            except:
+                self.vertl = self.batch.add_indexed(
+                    4,
+                    GL_TRIANGLES,
+                    self.bggroup,
+                    [0, 2, 3, 0, 1, 2],
+                    ('v2i', points),
                 ('c4B', colors))
+            self.old_points = points
         if hasattr(self, 'bc'):
             self.bc.draw()
         if (
@@ -863,13 +907,11 @@ class CalendarCol:
             self.timeline.draw()
         else:
             self.timeline.delete()
-        for cell in self.celldict.itervalues():
-            if cell in self.cells_on_screen:
-                cell.draw()
-            else:
-                # Deleting the cell from video RAM, but keeping the
-                # object around anyhow in case it's on screen later.
-                cell.delete()
+        for cell in self.cells_on_screen:
+            cell.draw(CalendarCellGroup(
+                CalendarCol.cell_order, self.cellgroup, cell))
+            CalendarCol.cell_order += 1
+
 
 class LocationCalendarCol(CalendarCol):
     """A column of a calendar displaying a Thing's location over time.

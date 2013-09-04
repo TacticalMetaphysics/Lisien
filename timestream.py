@@ -71,6 +71,7 @@ class Timestream:
         # successor of the vertex for a different branch
         # altogether. That original branch now has another edge
         # representing it.
+        self.update_handlers = set()
         self.update(0)
 
     def __hash__(self):
@@ -79,7 +80,7 @@ class Timestream:
             b.extend(t)
         return hash(tuple(b))
 
-    def update(self, ts):
+    def update(self, ts=0):
         """Update the tree to reflect the current state of branchdict.
 
 For every branch in branchdict, there should be one vertex at the
@@ -127,6 +128,8 @@ length zero.
                         eid =self.graph.get_eid(0, 1)
                         self.branch_edges[0].add(eid)
             self.branch_done_to[branch] = tick_to
+            for handler in self.update_handlers:
+                handler.on_timestream_update()
 
     def get_edge_len(self, e):
         if isinstance(e, int):

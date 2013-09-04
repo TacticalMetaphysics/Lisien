@@ -50,21 +50,6 @@ class Pawn(TerminableImg, TerminableInteractivity):
          {"dimension, board": ("board", "dimension, i"),
           "dimension, thing": ("thing_location", "dimension, name")},
          [])]
-    def draggy_coords(self):
-        try:
-            (x, y) = self.get_coords()
-        except TypeError:
-            return None
-        locn = str(self.thing.location)
-        if locn in self.board.spotdict:
-            spot = self.board.spotdict[locn]
-            return (
-                x + spot.drag_offset_x,
-                y + spot.drag_offset_y)
-        else:
-            return (
-                x + self.drag_offset_x,
-                y + self.drag_offset_y)
     atrdic = {
         "imagery": lambda self: self.rumor.tabdict[
             "pawn_img"][str(self.dimension)][
@@ -73,7 +58,7 @@ class Pawn(TerminableImg, TerminableInteractivity):
             str(self.dimension)][int(self.board)][str(self.thing)],
         "img": lambda self: self.get_img(),
         "visible": lambda self: self.img is not None,
-        "coords": lambda self: self.draggy_coords(),
+        "coords": lambda self: self.get_coords(),
         "x": lambda self: self.coords[0],
         "y": lambda self: self.coords[1],
         "width": lambda self: self.img.width,
@@ -215,6 +200,47 @@ interactive or not.
 
 class PawnWidget:
     selectable = True
+    def get_board_coords(self):
+        loc = self.pawn.thing.location
+        if loc is None:
+            return None
+        if hasattr(loc, 'dest'):
+            # actually SpotWidgets
+            origspot = self.viewport.spotdict[str(loc.orig)]
+            destspot = self.viewport.spotdict[str(loc.dest)]
+            (ox, oy) = origspot.coords
+            (dx, dy) = destspot.coords
+            prog = self.pawn.thing.get_progress()
+            odx = dx - ox
+            ody = dy - oy
+            return (int(ox + odx * prog) + self.pawn.drag_offset_x,
+                    int(oy + ody * prog) + self.pawn.drag_offset_y)
+        elif str(loc) in self.viewport.spotdict:
+            (x, y) = self.viewport.spotdict[str(loc)].coords
+            return (x + self.pawn.drag_offset_x,
+                    y + self.pawn.drag_offset_y)
+        
+    atrdic = {
+        "coords": lambda self: self.get_board_coords(),
+        "board_x": lambda self: self.coords[0],
+        "board_y": lambda self: self.coords[1],
+        "board_left": lambda self: self.board_x,
+        "board_right": lambda self: self.board_x + self.pawn.width,
+        "board_top": lambda self: self.board_y + self.pawn.height,
+        "board_bot": lambda self: self.board_y,
+        "window_left": lambda self: self.board_left + self.viewport.offset_x,
+        "window_right": lambda self: self.board_right + self.viewport.offset_x,
+        "window_bot": lambda self: self.board_bot + self.viewport.offset_y,
+        "window_top": lambda self: self.board_top + self.viewport.offset_y,
+        "selected": lambda self: self in self.window.selected,
+        "hovered": lambda self: self is self.window.hovered,
+        "pressed": lambda self: self is self.window.pressed,
+        "grabbed": lambda self: self is self.window.grabbed,
+        "in_view": lambda self: (
+            self.window_right > 0 and
+            self.window_left < self.window.width and
+            self.window_top > 0 and
+            self.window_bot < self.window.height)}
 
     def __init__(self, viewport, pawn):
         self.pawn = pawn
@@ -225,47 +251,13 @@ class PawnWidget:
         self.boxgroup = self.viewport.pawngroup
         self.window = self.viewport.window
         self.calcol = None
-        self.old_state = None
+        self.old_window_left = None
+        self.old_window_bot = None
+        self.old_points = None
 
     def __getattr__(self, attrn):
-        if attrn == "board_left":
-            return self.pawn.x
-        elif attrn == "board_bot":
-            return self.pawn.y
-        elif attrn == "board_top":
-            return self.pawn.y + self.pawn.height
-        elif attrn == "board_right":
-            return self.pawn.x + self.pawn.width
-        elif attrn == "window_left":
-            return self.board_left + self.viewport.offset_x
-        elif attrn == "window_right":
-            return self.board_right + self.viewport.offset_x
-        elif attrn == "window_bot":
-            return self.board_bot + self.viewport.offset_y
-        elif attrn == "window_top":
-            return self.board_top + self.viewport.offset_y
-        elif attrn in ("selected", "highlit"):
-            return self in self.window.selected
-        elif attrn == "hovered":
-            return self is self.window.hovered
-        elif attrn == "pressed":
-            return self is self.window.pressed
-        elif attrn == "grabbed":
-            return self is self.window.grabbed
-        elif attrn == "in_view":
-            return (
-                self.window_right > 0 and
-                self.window_left < self.window.width and
-                self.window_top > 0 and
-                self.window_bot < self.window.height)
-        elif attrn == "state":
-            return (
-                str(self.pawn.img),
-                self.pawn.coords,
-                self.viewport.view_left,
-                self.viewport.view_bot,
-                self.viewport.window_left,
-                self.viewport.window_bot)
+        if attrn in PawnWidget.atrdic:
+            return PawnWidget.atrdic[attrn](self)
         elif attrn in (
                 "img", "visible", "interactive",
                 "width", "height", "thing"):
@@ -314,15 +306,26 @@ If it DOES have anything else to do, make the journey in another branch.
             self.sprite.delete()
         except:
             pass
+        try:
+            self.vertlist.delete()
+        except:
+            pass
 
     def draw(self):
         if (
                 self.pawn.get_coords() is None or
                 self.img is None):
+            self.delete()
             return
         try:
-            self.sprite.x = self.window_left
-            self.sprite.y = self.window_bot
+            wl = self.window_left
+            wb = self.window_bot
+            if self.old_window_left != wl:
+                self.sprite.x = self.window_left
+                self.old_window_left = wl
+            if self.old_window_bot != wb:
+                self.sprite.y = self.window_bot
+                self.old_window_bot = wb
         except AttributeError:
             self.sprite = Sprite(
                 self.img.tex,
@@ -338,16 +341,18 @@ If it DOES have anything else to do, make the journey in another branch.
                 self.window_right, self.window_top,
                 self.window_right, self.window_bot,
                 self.window_left, self.window_bot)
-            try:
-                self.vertlist.vertices = points
-            except:
-                self.vertlist = self.batch.add_indexed(
-                    4,
-                    GL_LINES,
-                    self.boxgroup,
-                    (0, 1, 1, 2, 2, 3, 3, 0),
-                    ('v2i', points),
-                    ('c4B', colors))
+            if points != self.old_points:
+                try:
+                    self.vertlist.vertices = points
+                except:
+                    self.vertlist = self.batch.add_indexed(
+                        4,
+                        GL_LINES,
+                        self.boxgroup,
+                        (0, 1, 1, 2, 2, 3, 3, 0),
+                        ('v2i', points),
+                        ('c4B', colors))
+                self.old_points = points
         else:
             try:
                 self.vertlist.delete()

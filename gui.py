@@ -5,7 +5,8 @@ import logging
 from util import (
     SaveableMetaclass,
     fortyfive,
-    TabdictIterator)
+    TabdictIterator,
+    ScissorOrderedGroup)
 from math import atan, cos, sin
 from arrow import Arrow
 from menu import Menu, MenuItem
@@ -27,29 +28,6 @@ platform = pyglet.window.get_platform()
 display = platform.get_default_display()
 
 screen = display.get_default_screen()
-
-
-class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
-    def __init__(self, order, parent, window, left, top, bot, right):
-        super(ScissorOrderedGroup, self).__init__(order, parent)
-        self.window = window
-        self.left_prop = left
-        self.top_prop = top
-        self.bot_prop = bot
-        self.right_prop = right
-
-    def set_state(self):
-        l = int(self.left_prop * self.window.width)
-        b = int(self.bot_prop * self.window.height)
-        r = int(self.right_prop * self.window.width)
-        t = int(self.top_prop * self.window.height)
-        w = r - l
-        h = t - b
-        pyglet.gl.glScissor(l, b, w, h)
-        pyglet.gl.glEnable(pyglet.gl.GL_SCISSOR_TEST)
-
-    def unset_state(self):
-        pyglet.gl.glDisable(pyglet.gl.GL_SCISSOR_TEST)
 
 
 class TransparencyGroup(pyglet.graphics.Group):
@@ -340,8 +318,6 @@ class GameWindow(pyglet.window.Window):
             if calendar is not None:
                 if calendar.tainted:
                     calendar.review()
-                elif self.timestream_changed:
-                    calendar.refresh()
                 calendar.tainted = False
                 calendar.draw()
         for hand in self.hands:

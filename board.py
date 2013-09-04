@@ -224,6 +224,8 @@ class BoardViewport:
             self.spotdict[k] = SpotWidget(self, v)
         for (k, v) in self.board.arrowdict.iteritems():
             self.arrowdict[k] = ArrowWidget(self, v)
+        self.old_offset_x = None
+        self.old_offset_y = None
 
     def __int__(self):
         return self.idx
@@ -292,8 +294,14 @@ class BoardViewport:
 
     def draw(self):
         try:
-            self.bgsprite.x = self.offset_x
-            self.bgsprite.y = self.offset_y
+            offx = self.offset_x
+            if offx != self.old_offset_x:
+                self.bgsprite.x = offx
+                self.old_offset_x = offx
+            offy = self.offset_y
+            if offy != self.old_offset_y:
+                self.bgsprite.y = self.offset_y
+                self.old_offset_y = offy
         except:
             self.bgsprite = Sprite(
                 self.wallpaper.tex,
@@ -302,17 +310,8 @@ class BoardViewport:
                 batch=self.batch,
                 group=self.bggroup)
         for spot in self.spots:
-            new_state = spot.state
-            if new_state != spot.old_state:
-                spot.draw()
-                spot.old_state = new_state
+            spot.draw()
         for pawn in self.pawns:
-            new_state = pawn.state
-            if new_state != pawn.old_state:
-                pawn.draw()
-                pawn.old_state = new_state
+            pawn.draw()
         for arrow in self.arrows:
-            new_state = arrow.state
-            if new_state != arrow.old_state:
-                arrow.draw()
-                arrow.old_state = new_state
+            arrow.draw()

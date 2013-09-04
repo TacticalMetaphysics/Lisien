@@ -183,35 +183,20 @@ class ArrowWidget:
         "window_right": lambda self: self.viewport_right + self.viewport.window_left,
         "window_bot": lambda self: self.viewport_bot + self.viewport.window_bot,
         "window_top": lambda self: self.viewport_top + self.viewport.window_bot,
-        "ox": lambda self: self.arrow.ox,
-        "oy": lambda self: self.arrow.oy,
-        "dx": lambda self: self.arrow.dx,
-        "dy": lambda self: self.arrow.dy,
-        "board_ox": lambda self: self.arrow.ox,
-        "board_oy": lambda self: self.arrow.oy,
-        "board_dx": lambda self: self.arrow.dx,
-        "board_dy": lambda self: self.arrow.dy,
-        "viewport_ox": lambda self: self.board_ox + self.viewport.offset_x,
-        "viewport_dx": lambda self: self.board_dx + self.viewport.offset_x,
-        "viewport_dy": lambda self: self.board_dy + self.viewport.offset_y,
-        "viewport_oy": lambda self: self.board_oy + self.viewport.offset_y,
-        "window_ox": lambda self: self.viewport_ox + self.viewport.window_left,
-        "window_dx": lambda self: self.viewport_dx + self.viewport.window_left,
-        "window_oy": lambda self: self.viewport_oy + self.viewport.window_bot,
-        "window_dy": lambda self: self.viewport_dy + self.viewport.window_bot,
+        "ox": lambda self: self.orig.board_x,
+        "oy": lambda self: self.orig.board_y,
+        "dx": lambda self: self.dest.board_x,
+        "dy": lambda self: self.dest.board_y,
+        "window_ox": lambda self: self.orig.window_x,
+        "window_oy": lambda self: self.orig.window_y,
+        "window_dx": lambda self: self.dest.window_x,
+        "window_dy": lambda self: self.dest.window_y,
         "selected": lambda self: self in self.window.selected,
         "orig": lambda self: self.viewport.spotdict[str(self.arrow.orig)],
         "dest": lambda self: self.viewport.spotdict[str(self.arrow.dest)],
         "in_view": lambda self: self.orig.in_view or self.dest.in_view,
         "b": lambda self: self.yint(),
-        "width": lambda self: self.viewport.arrow_width,
-        "state": lambda self: (
-            self.viewport.window_left,
-            self.viewport.window_bot,
-            self.viewport.view_left,
-            self.viewport.view_bot,
-            self.orig.spot.coords,
-            self.dest.spot.coords)}
+        "width": lambda self: self.viewport.arrow_width}
 
     def __init__(self, viewport, arrow):
         self.viewport = viewport
@@ -237,12 +222,11 @@ class ArrowWidget:
                 "rise", "run", "length", "m", "slope",
                 "center_shrink", "portal", "e"):
             return getattr(self.arrow, attrn)
+        elif attrn in ArrowWidget.atrdic:
+            return ArrowWidget.atrdic[attrn](self)
         else:
-            try:
-                return self.atrdic[attrn](self)
-            except KeyError:
-                raise AttributeError(
-                    "ArrowWidget instance has no attribute named {0}".format(attrn))
+            raise AttributeError(
+                "ArrowWidget instance has no attribute named {0}".format(attrn))
 
     def y_at(self, x):
         if self.m is None:
@@ -301,10 +285,10 @@ Take my width into account
 
     def draw(self):
         # group had better be viewported
-        ox = self.viewport_ox
-        dx = self.viewport_dx
-        oy = self.viewport_oy
-        dy = self.viewport_dy
+        ox = self.window_ox
+        dx = self.window_dx
+        oy = self.window_oy
+        dy = self.window_dy
         if dy < oy:
             yco = -1
         else:

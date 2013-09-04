@@ -867,6 +867,39 @@ class TabdictIterator:
                     return ptr
         raise StopIteration
 
+
+class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
+    def __init__(self, order, parent, window, left, top, bot, right, proportional=True):
+        super(ScissorOrderedGroup, self).__init__(order, parent)
+        self.window = window
+        self.left = left
+        self.top = top
+        self.bot = bot
+        self.right = right
+        self.proportional = proportional
+
+    def set_state(self):
+        if self.proportional:
+            l = int(self.left * self.window.width)
+            b = int(self.bot * self.window.height)
+            r = int(self.right * self.window.width)
+            t = int(self.top * self.window.height)
+        else:
+            l = self.left
+            b = self.bot
+            r = self.right
+            t = self.top
+        w = r - l
+        h = t - b
+        if not self.proportional:
+            print "scissoring {0} {1} {2} {3}".format(l, b, w, h)
+        pyglet.gl.glScissor(l, b, w, h)
+        pyglet.gl.glEnable(pyglet.gl.GL_SCISSOR_TEST)
+
+    def unset_state(self):
+        pyglet.gl.glDisable(pyglet.gl.GL_SCISSOR_TEST)
+
+
 class PortalException(Exception):
     """Exception raised when a Thing tried to move into or out of or along
 a Portal, and it made no sense."""

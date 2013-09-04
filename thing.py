@@ -96,6 +96,7 @@ too.
         self.update_handlers.add(that)
 
     def update(self):
+        self.rumor.timestream.update()
         for handler in self.update_handlers:
             handler(self)
 
@@ -180,6 +181,8 @@ Return an Effect representing the change.
             "tick_from": tick_from,
             "tick_to": tick_to,
             "location": str(loc)}
+        print "remembered a location rowdict:"
+        print self.locations[branch][tick_from]
         if tick_to is None:
             self.indefinite_locations[branch] = tick_from
 
