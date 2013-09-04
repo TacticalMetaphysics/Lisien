@@ -41,6 +41,15 @@ each board will be open in at most one window at a time.
          ("dimension", "idx"),
          {"wallpaper": ("img", "name")},
          [])]
+    atrdic = {
+        "wallpaper": lambda self: self.rumor.get_img(
+            self._rowdict["wallpaper"]),
+        "places": lambda self: iter(self.dimension.places),
+        "portals": lambda self: iter(self.dimension.portals),
+        "things": lambda self: iter(self.dimension.things),
+        "pawns": lambda self: self.pawndict.itervalues(),
+        "spots": lambda self: self.spotdict.itervalues(),
+        "arrows": lambda self: self.arrowdict.itervalues()}
 
     def __init__(self, rumor, dimension, idx):
         """Return a board representing the given dimension.
@@ -72,15 +81,7 @@ each board will be open in at most one window at a time.
 
 
     def __getattr__(self, attrn):
-        return {
-            "wallpaper": lambda: self.rumor.get_img(
-                self._rowdict["wallpaper"]),
-            "places": lambda: iter(self.dimension.places),
-            "portals": lambda: iter(self.dimension.portals),
-            "things": lambda: iter(self.dimension.things),
-            "pawns": self.pawndict.itervalues,
-            "spots": self.spotdict.itervalues,
-            "arrows": self.arrowdict.itervalues}[attrn]()
+        return self.atrdic[attrn](self)
 
     def __int__(self):
         return self.idx
@@ -173,6 +174,22 @@ class BoardViewport:
          ["view_left>=0", "view_bot>=0", "left>=0.0", "bot>=0.0",
           "right>=0.0", "top>=0.0", "left<=1.0", "bot<=1.0",
           "right<=1.0", "top<=1.0", "right>left", "top>bot"])]
+    atrdic = {
+        "left_prop": lambda self: self._rowdict["left"],
+        "right_prop": lambda self: self._rowdict["right"],
+        "top_prop": lambda self: self._rowdict["top"],
+        "bot_prop": lambda self: self._rowdict["bot"],
+        "window_left": lambda self: int(self.left_prop * self.window.width),
+        "window_right": lambda self: int(self.right_prop * self.window.width),
+        "window_top": lambda self: int(self.top_prop * self.window.height),
+        "window_bot": lambda self: int(self.bot_prop * self.window.height),
+        "width": lambda self: self.window_right - self.window_left,
+        "height": lambda self: self.window_top - self.window_bot,
+        "offset_x": lambda self: -1 * self.view_left,
+        "offset_y": lambda self: -1 * self.view_bot,
+        "arrows": lambda self: self.arrowdict.itervalues(),
+        "spots": lambda self: self.spotdict.itervalues(),
+        "pawns": lambda self: self.pawndict.itervalues()}
 
     def __init__(self, rumor, window, dimension, board, idx):
         self.rumor = rumor
@@ -218,22 +235,7 @@ class BoardViewport:
                 "dimension", "idx", "wallpaper"):
             return getattr(self.board, attrn)
         else:
-            return {
-                "left_prop": lambda: self._rowdict["left"],
-                "right_prop": lambda: self._rowdict["right"],
-                "top_prop": lambda: self._rowdict["top"],
-                "bot_prop": lambda: self._rowdict["bot"],
-                "window_left": lambda: int(self.left_prop * self.window.width),
-                "window_right": lambda: int(self.right_prop * self.window.width),
-                "window_top": lambda: int(self.top_prop * self.window.height),
-                "window_bot": lambda: int(self.bot_prop * self.window.height),
-                "width": lambda: self.window_right - self.window_left,
-                "height": lambda: self.window_top - self.window_bot,
-                "offset_x": lambda: -1 * self.view_left,
-                "offset_y": lambda: -1 * self.view_bot,
-                "arrows": self.arrowdict.itervalues,
-                "spots": self.spotdict.itervalues,
-                "pawns": self.pawndict.itervalues}[attrn]()
+            return self.atrdic[attrn](self)
 
     def overlaps(self, x, y):
         return (

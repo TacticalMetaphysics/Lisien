@@ -118,6 +118,20 @@ before RumorMill will work. For that, run mkdb.sh.
 
     """
 
+    atrdic = {
+        "game": lambda self: self.tabdict["game"],
+        "board": lambda self: self.game["front_board"],
+        "front_board": lambda self: self.game["front_board"],
+        "branch": lambda self: self.game["front_branch"],
+        "front_branch": lambda self: self.game["front_branch"],
+        "seed": lambda self: self.game["seed"],
+        "tick": lambda self: self.game["tick"],
+        "hi_place": lambda self: self.game["hi_place"],
+        "hi_portal": lambda self: self.game["hi_portal"],
+        "hi_thing": lambda self: self.game["hi_thing"],
+        "hi_branch": lambda self: self.game["hi_branch"],
+        "dimensions": lambda self: self.dimensiondict.itervalues()}
+
     def __init__(self, dbfilen, xfuncs={},
                  front_board="default_board", front_branch=0, seed=0, tick=0,
                  hi_branch=0, hi_place=0, hi_portal=0, hi_thing=0, lang="eng"):
@@ -220,22 +234,10 @@ given name.
             "hi_place": hi_place,
             "hi_portal": hi_portal,
             "hi_thing": hi_thing}
-        self.atrdic = {
-            "game": lambda: self.tabdict["game"],
-            "board": lambda: self.game["front_board"],
-            "front_board": lambda: self.game["front_board"],
-            "branch": lambda: self.game["front_branch"],
-            "front_branch": lambda: self.game["front_branch"],
-            "seed": lambda: self.game["seed"],
-            "tick": lambda: self.game["tick"],
-            "hi_place": lambda: self.game["hi_place"],
-            "hi_portal": lambda: self.game["hi_portal"],
-            "hi_thing": lambda: self.game["hi_thing"],
-            "dimensions": self.dimensiondict.itervalues}
 
     def __getattr__(self, attrn):
         try:
-            return self.atrdic[attrn]()
+            return self.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
                 "RumorMill doesn't have the attribute " + attrn)

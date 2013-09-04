@@ -29,6 +29,51 @@ class MenuItem:
          ("window", "menu", "idx"),
          {"window, menu": ("menu", "window, name")},
          [])]
+
+    def geticon(self):
+        if self._icon is not None:
+            return self.rumor.get_img(self._icon)
+
+    def gettxt(self):
+        if self._text is None:
+            return None
+        elif self._text[0] == '@':
+            return self.rumor.get_text(self._text[1:])
+        else:
+            return self._text
+
+    def lwl(self):
+            if self.icon is None:
+                return self.window_left
+            else:
+                return (
+                    self.window_left +
+                    self.icon.width +
+                    self.menu.style.spacing)
+
+
+    atrdic = {
+        "closer": lambda self: self._rowdict["closer"],
+        "_text": lambda self: self._rowdict["text"],
+        "_icon": lambda self: self._rowdict["icon"],
+        "_on_click": lambda self: self._rowdict["on_click"],
+        "icon": lambda self: self.geticon(),
+        "text": lambda self: self.gettxt(),
+        "hovered": lambda self: self.window.hovered is self,
+        "pressed": lambda self: self.window.pressed is self,
+        "window_left": lambda self: self.menu.window_left + self.menu.style.spacing,
+        "label_window_left": lambda self: self.lwl(),
+        "window_right": lambda self: self.menu.window_right - self.menu.style.spacing,
+        "label_window_right": lambda self: self.window_right,
+        "width": lambda self: self.window_right - self.window_left,
+        "height": lambda self: self.menu.style.fontsize + self.menu.style.spacing,
+        "window_top": lambda self: self.menu.window_top - (
+            self.idx * self.height),
+        "window_bot": lambda self: self.window_top - self.height,
+        "rx": lambda self: self.width / 2,
+        "ry": lambda self: self.height / 2,
+        "r": lambda self: {True: self.rx, False: self.ry}[self.rx > self.ry]}
+
     visible = True
     interactive = True
 
@@ -49,45 +94,6 @@ With db, register in db's menuitemdict.
         self.idx = idx
         self._rowdict = self.rumor.tabdict["menu_item"][
             str(self.window)][str(self.menu)][int(self)]
-        def geticon():
-            if self._icon is not None:
-                return self.rumor.get_img(self._icon)
-        def gettxt():
-            if self._text is None:
-                return None
-            elif self._text[0] == '@':
-                return self.rumor.get_text(self._text[1:])
-            else:
-                return self._text
-        def lwl():
-            if self.icon is None:
-                return self.window_left
-            else:
-                return (
-                    self.window_left +
-                    self.icon.width +
-                    self.menu.style.spacing)
-        self.atrdic = {
-            "closer": lambda: self._rowdict["closer"],
-            "_text": lambda: self._rowdict["text"],
-            "_icon": lambda: self._rowdict["icon"],
-            "_on_click": lambda: self._rowdict["on_click"],
-            "icon": geticon,
-            "text": gettxt,
-            "hovered": lambda: self.window.hovered is self,
-            "pressed": lambda: self.window.pressed is self,
-            "window_left": lambda: self.menu.window_left + self.menu.style.spacing,
-            "label_window_left": lwl,
-            "window_right": lambda: self.menu.window_right - self.menu.style.spacing,
-            "label_window_right": lambda: self.window_right,
-            "width": lambda: self.window_right - self.window_left,
-            "height": lambda: self.menu.style.fontsize + self.menu.style.spacing,
-            "window_top": lambda: self.menu.window_top - (
-                self.idx * self.height),
-            "window_bot": lambda: self.window_top - self.height,
-            "rx": lambda: self.width / 2,
-            "ry": lambda: self.height / 2,
-            "r": lambda: {True: self.rx, False: self.ry}[self.rx > self.ry]}
         while len(self.menu.items) <= self.idx:
             self.menu.items.append(None)
         self.menu.items[self.idx] = self
@@ -110,8 +116,7 @@ With db, register in db's menuitemdict.
         return self.idx
 
     def __getattr__(self, attrn):
-        assert(hasattr(self, 'atrdic'))
-        return self.atrdic[attrn]()
+        return self.atrdic[attrn](self)
 
     def onclick(self, x, y, button, modifiers):
         return self.on_click(self)
@@ -189,6 +194,24 @@ class Menu:
          {"window": ("window", "name"),
           "style": ("style", "name")},
          [])]
+    atrdic = {
+        "left_prop": lambda self: self._rowdict["left"],
+        "right_prop": lambda self: self._rowdict["right"],
+        "top_prop": lambda self: self._rowdict["top"],
+        "bot_prop": lambda self: self._rowdict["bot"],
+        "style": lambda self: (
+            self.rumor.get_style(self._rowdict["style"])),
+        "hovered": lambda self: self.window.hovered is self,
+        "window_left": lambda self: int(self.window.width * self.left_prop),
+        "window_right": lambda self: int(self.window.width * self.right_prop),
+        "window_top": lambda self: int(self.window.height * self.top_prop),
+        "window_bot": lambda self: int(self.window.height * self.bot_prop),
+        "width": lambda self: self.window_right - self.window_left,
+        "height": lambda self: self.window_top - self.window_bot,
+        "rx": lambda self: self.width / 2,
+        "ry": lambda self: self.height / 2,
+        "r": lambda self: {True: rx, False: ry}[rx > ry],
+        "state": lambda self: self.get_state_tup()}
     interactive = True
 
     def __init__(self, window, name):
@@ -210,24 +233,6 @@ With db, register with db's menudict.
         self.batch = self.window.batch
         self.rumor = self.window.rumor
         self._rowdict = self.rumor.tabdict["menu"][str(self.window)][str(self)]
-        self.atrdic = {
-            "left_prop": lambda: self._rowdict["left"],
-            "right_prop": lambda: self._rowdict["right"],
-            "top_prop": lambda: self._rowdict["top"],
-            "bot_prop": lambda: self._rowdict["bot"],
-            "style": lambda: (
-                self.rumor.get_style(self._rowdict["style"])),
-            "hovered": lambda: self.window.hovered is self,
-            "window_left": lambda: int(self.window.width * self.left_prop),
-            "window_right": lambda: int(self.window.width * self.right_prop),
-            "window_top": lambda: int(self.window.height * self.top_prop),
-            "window_bot": lambda: int(self.window.height * self.bot_prop),
-            "width": lambda: self.window_right - self.window_left,
-            "height": lambda: self.window_top - self.window_bot,
-            "rx": lambda: self.width / 2,
-            "ry": lambda: self.height / 2,
-            "r": lambda: {True: rx, False: ry}[rx > ry],
-            "state": self.get_state_tup}
         self.supergroup = OrderedGroup(0, self.window.menugroup)
         self.bggroup = OrderedGroup(0, self.supergroup)
         self.labelgroup = OrderedGroup(1, self.supergroup)
@@ -256,9 +261,7 @@ With db, register with db's menudict.
         return self.name
 
     def __getattr__(self, attrn):
-        if not hasattr(self, 'atrdic'):
-            raise Exception('I have no atrdic')
-        return self.atrdic[attrn]()
+        return self.atrdic[attrn](self)
 
     def __eq__(self, other):
         """Return true if the names and boards match"""

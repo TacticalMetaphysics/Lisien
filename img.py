@@ -27,6 +27,13 @@ saving the path.
          {},
          [])]
 
+    atrdic = {
+        "path": lambda self: self._rowdict["path"],
+        "rltile": lambda self: self._rowdict["rltile"],
+        "center": lambda self: (self.tex.width / 2, self.tex.height / 2),
+        "width": lambda self: self.tex.width,
+        "height": lambda self: self.tex.height}
+
     def __init__(self, rumor, name):
         """Return an Img, and register it with the imgdict of the database
 provided."""
@@ -34,12 +41,6 @@ provided."""
         self._name = name
         self.rumor.imgdict[str(self)] = self
         self._rowdict = self.rumor.tabdict["img"][str(self)]
-        self.atrdic = {
-            "path": lambda: self._rowdict["path"],
-            "rltile": lambda: self._rowdict["rltile"],
-            "center": lambda: (self.tex.width / 2, self.tex.height / 2),
-            "width": lambda: self.tex.width,
-            "height": lambda: self.tex.height}
         if self.rltile:
             self.tex = load_rltile(self.path)
         else:
@@ -51,7 +52,7 @@ provided."""
 
     def __getattr__(self, attrn):
         try:
-            return self.atrdic[attrn]()
+            return self.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
                 "Img instance has no attribute {0}.".format(attrn))

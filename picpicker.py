@@ -6,6 +6,22 @@ from time import time
 
 class PicPanel:
     """Icon for a particular picture in a PicPicker."""
+    atrdic = {
+        "right": lambda self: self.left + self.pic.width,
+        "bot": lambda self: self.left + self.pic.width,
+        "window_left": lambda self: self.picker.window_left + self.left,
+        "window_top": lambda self: self.picker.window_top - self.top + self.picker.scrolled_px,
+        "window_bot": lambda self: self.picker.window_top - self.bot + self.picker.scrolled_px,
+        "window_right": lambda self: self.picker.window_left + self.pic.width,
+        "tex": lambda self: self.pic.tex,
+        "texture": lambda self: self.pic.tex,
+        "width": lambda self: self.pic.width,
+        "height": lambda self: self.pic.height,
+        "pressed": lambda self: self.window.pressed is self,
+        "hovered": lambda self: self.window.hovered is self,
+        "in_picker": lambda self: (self.window_top > self.picker.window_bot and
+                              self.window_bot < self.picker.window_top)}
+
     def __init__(self, picker, pic):
         self.picker = picker
         self.window = self.picker.window
@@ -13,21 +29,6 @@ class PicPanel:
         self.pic = pic
         self.sprite = None
         self.tweaks = 0
-        self.atrdic = {
-            "right": lambda: self.left + self.pic.width,
-            "bot": lambda: self.left + self.pic.width,
-            "window_left": lambda: self.picker.window_left + self.left,
-            "window_top": lambda: self.picker.window_top - self.top + self.picker.scrolled_px,
-            "window_bot": lambda: self.picker.window_top - self.bot + self.picker.scrolled_px,
-            "window_right": lambda: self.picker.window_left + self.pic.width,
-            "tex": lambda: self.pic.tex,
-            "texture": lambda: self.pic.tex,
-            "width": lambda: self.pic.width,
-            "height": lambda: self.pic.height,
-            "pressed": lambda: self.window.pressed is self,
-            "hovered": lambda: self.window.hovered is self,
-            "in_picker": lambda: (self.window_top > self.picker.window_bot and
-                                  self.window_bot < self.picker.window_top)}
 
     def __getattr__(self, attrn):
         try:
@@ -99,6 +100,24 @@ Parameter targetn is the name of a window attribute. The pic picked
 will be assigned to that attribute of the window the picker is in.
 
     """
+    atrdic = {
+        "window_left": lambda self: int(self.left_prop * self.window.width),
+        "window_right": lambda self: int(self.right_prop * self.window.width),
+        "window_top": lambda self: int(self.top_prop * sel.window.height),
+        "window_bot": lambda self: int(self.bot_prop * self.window.height),
+        "width": lambda self: self.window_right - self.window_left,
+        "height": lambda self: self.window_top - self.window_bot,
+        "imgs": lambda self: self.rumor.imgdict.itervalues(),
+        "hovered": lambda self: self is self.window.hovered,
+        "pressed": lambda self: self is self.window.pressed,
+        "bgpat": lambda self: {
+            True: self.bgpat_active,
+            False: self.bgpat_inactive}[self.hovered],
+        "on_screen": lambda self: (self.window_top > 0 and
+                              self.window_bot < self.window.height and
+                              self.window_right > 0 and
+                              self.window_left < self.window.width)}
+
     def __init__(self, window, left, top, bot, right, style, targetn, flagn):
         self.window = window
         self.rumor = self.window.rumor
@@ -119,27 +138,10 @@ will be assigned to that attribute of the window the picker is in.
         self.bgimg = self.bgpat_inactive.create_image(self.width, self.height)
         self.bgpat_active = SolidColorImagePattern(style.bg_active.tup)
         self.panels = [PicPanel(self, img) for img in self.imgs]
-        self.atrdic = {
-            "window_left": lambda: int(self.left_prop * self.window.width),
-            "window_right": lambda: int(self.right_prop * self.window.width),
-            "window_top": lambda: int(self.top_prop * sel.window.height),
-            "window_bot": lambda: int(self.bot_prop * self.window.height),
-            "width": lambda: self.window_right - self.window_left,
-            "height": lambda: self.window_top - self.window_bot,
-            "imgs": self.rumor.imgdict.itervalues,
-            "hovered": lambda: self is self.window.hovered,
-            "pressed": lambda: self is self.window.pressed,
-            "bgpat": lambda: {
-                True: self.bgpat_active,
-                False: self.bgpat_inactive}[self.hovered],
-            "on_screen": lambda: (self.window_top > 0 and
-                                  self.window_bot < self.window.height and
-                                  self.window_right > 0 and
-                                  self.window_left < self.window.width)}
 
     def __getattr__(self, attrn):
         try:
-            return self.atrdic[attrn]()
+            return self.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
                 "PicPicker instance has no attribute named " + attrn)

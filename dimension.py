@@ -41,6 +41,18 @@ class Dimension:
     """Container for a given view on the game world, sharing no things,
 places, or portals with any other dimension, but possibly sharing
 characters."""
+    def placenames(self):
+        try:
+            return self.graph.vs["name"]
+        except KeyError:
+            return []
+
+    atrdic = {
+        "places": lambda self: PlaceIter(self),
+        "placenames": lambda self: self.placenames(),
+        "portals": lambda self: PortIter(self),
+        "things": lambda self: self.thingdict.itervalues()}
+
     def __init__(self, rumor, name):
         """Return a dimension with the given name.
 
@@ -65,16 +77,6 @@ keyed with their names.
                 self.thingdict[rd["thing"]] = Thing(
                     self.rumor, self, rd["thing"])
         self.rumor.dimensiondict[str(self)] = self
-        def placenames():
-            try:
-                return self.graph.vs["name"]
-            except KeyError:
-                return []
-        self.atrdic = {
-            "places": lambda: PlaceIter(self),
-            "placenames": placenames,
-            "portals": lambda: PortIter(self),
-            "things": self.thingdict.itervalues}
 
     def __hash__(self):
         """Return the hash of this dimension's name, since the database
@@ -86,7 +88,7 @@ constrains it to be unique."""
 
     def __getattr__(self, attrn):
         try:
-            return self.atrdic[attrn]()
+            return self.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
                 "Dimension instance has no attribute named " +

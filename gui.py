@@ -120,6 +120,23 @@ class GameWindow(pyglet.window.Window):
          {"main_menu": ("menu", "name")},
          [])]
 
+    def get_hand_iter(self):
+        if hasattr(self, 'handdict'):
+            return self.handdict.itervalues()
+        else:
+            return []
+
+    atrdic = {
+        "arrow_width": lambda self: self._rowdict["arrow_width"],
+        "main_menu_name": lambda self: self._rowdict["main_menu"], 
+        "viewports": lambda self: ViewportIter(self.dimensiondict),
+        "menus": lambda self: self.menudict.itervalues(),
+        "hands": lambda self: self.get_hand_iter(),
+        'dx': lambda self: sum(self.dx_hist),
+        'dy': lambda self: sum(self.dy_hist),
+        'arrow_girth': lambda self: self.arrow_width * 2,
+        'timestream_changed': lambda self: self.rehash_timeline()}
+
     def __init__(
             self, rumor, name):
         """Initialize the game window, its groups, and some state tracking."""
@@ -262,29 +279,18 @@ class GameWindow(pyglet.window.Window):
         if attrn in ("min_width", "min_height",
                        "arrowhead_size", "arrow_width"):
             return self._rowdict[attrn]
-        def rehash():
-            tihash = hash(self.rumor.timestream)
-            r = self.last_timestream_hash != tihash
-            self.last_timestream_hash = tihash
-            return r
-        def recal():
-            calscroll
         else:
-            return {
-                "arrow_width": lambda: self._rowdict["arrow_width"],
-                "main_menu_name": lambda: self._rowdict["main_menu"],
-                "viewports": lambda: ViewportIter(self.dimensiondict),
-                "menus": self.menudict.itervalues,
-                "hands": {
-                    True: lambda: self.handdict.itervalues,
-                    False: lambda: []}[hasattr(self, 'handdict')],
-                'dx': lambda: sum(self.dx_hist),
-                'dy': lambda: sum(self.dy_hist),
-                'arrow_girth': lambda: self.arrow_width * 2,
-                'timestream_changed': rehash}[attrn]()
+            return self.atrdic[attrn](self)
 
     def __str__(self):
         return self.name
+
+    def rehash_timeline(self):
+        tihash = hash(self.rumor.timestream)
+        r = self.last_timestream_hash != tihash
+        self.last_timestream_hash = tihash
+        return r
+
 
     def update(self, dt):
         (x, y) = self.mouspot.coords
@@ -332,10 +338,10 @@ class GameWindow(pyglet.window.Window):
             menu.draw()
         for calendar in self.calendars:
             if calendar is not None:
-                if self.timestream_changed:
-                    calendar.refresh()
-                elif calendar.tainted:
+                if calendar.tainted:
                     calendar.review()
+                elif self.timestream_changed:
+                    calendar.refresh()
                 calendar.tainted = False
                 calendar.draw()
         for hand in self.hands:
@@ -345,6 +351,11 @@ class GameWindow(pyglet.window.Window):
         # well, I lied. I was really only adding those things to the batch.
         # NOW I'll draw them.
         self.batch.draw()
+
+    def on_resize(self, w, h):
+        for calendar in self.calendars:
+            calendar.tainted = True
+        super(GameWindow, self).on_resize(w, h)
 
     def on_mouse_press(self, x, y, button, modifiers):
         """If there's something already highlit, and the mouse is
@@ -483,7 +494,7 @@ move_with_mouse method, use it.
         # for now, this only does anything if you're moused over
         # the calendar
         for calendar in self.calendars:
-            if calendar.overlaps(x, y):
+            if (calendar is not None and calendar.overlaps(x, y)):
                 sf = calendar.scroll_factor
                 calendar.scrolled_to += scroll_y * sf
                 calendar.tainted = True

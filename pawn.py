@@ -50,6 +50,37 @@ class Pawn(TerminableImg, TerminableInteractivity):
          {"dimension, board": ("board", "dimension, i"),
           "dimension, thing": ("thing_location", "dimension, name")},
          [])]
+    def draggy_coords(self):
+        try:
+            (x, y) = self.get_coords()
+        except TypeError:
+            return None
+        locn = str(self.thing.location)
+        if locn in self.board.spotdict:
+            spot = self.board.spotdict[locn]
+            return (
+                x + spot.drag_offset_x,
+                y + spot.drag_offset_y)
+        else:
+            return (
+                x + self.drag_offset_x,
+                y + self.drag_offset_y)
+    atrdic = {
+        "imagery": lambda self: self.rumor.tabdict[
+            "pawn_img"][str(self.dimension)][
+                int(self.board)][str(self.thing)],
+        "interactivity": lambda self: self.rumor.tabdict["pawn_interactive"][
+            str(self.dimension)][int(self.board)][str(self.thing)],
+        "img": lambda self: self.get_img(),
+        "visible": lambda self: self.img is not None,
+        "coords": lambda self: self.draggy_coords(),
+        "x": lambda self: self.coords[0],
+        "y": lambda self: self.coords[1],
+        "width": lambda self: self.img.width,
+        "height": lambda self: self.img.height,
+        "rx": lambda self: self.width / 2,
+        "ry": lambda self: self.height / 2,
+        "r": lambda self: {True: self.rx, False: self.ry}[self.rx > self.ry]}
 
     def __init__(self, rumor, dimension, board, thing):
         """Return a pawn on the board for the given dimension, representing
@@ -85,49 +116,13 @@ interactive or not.
         self.drag_offset_y = 0
         self.selectable = True
         self.vertlist = None
-        def draggy_coords():
-            try:
-                (x, y) = self.get_coords()
-            except TypeError:
-                return None
-            locn = str(self.thing.location)
-            if locn in self.board.spotdict:
-                spot = self.board.spotdict[locn]
-                return (
-                    x + spot.drag_offset_x,
-                    y + spot.drag_offset_y)
-            else:
-                return (
-                    x + self.drag_offset_x,
-                    y + self.drag_offset_y)
-        def r():
-            if self.rx > self.ry:
-                return self.rx
-            else:
-                return self.ry
-        self.atrdic = {
-            "imagery": lambda: self.rumor.tabdict[
-                "pawn_img"][str(self.dimension)][
-                    int(self.board)][str(self.thing)],
-            "interactivity": lambda: self.rumor.tabdict["pawn_interactive"][
-                str(self.dimension)][int(self.board)][str(self.thing)],
-            "img": self.get_img,
-            "visible": lambda: self.img is not None,
-            "coords": draggy_coords,
-            "x": lambda: self.coords[0],
-            "y": lambda: self.coords[1],
-            "width": lambda: self.img.width,
-            "height": lambda: self.img.height,
-            "rx": lambda: self.width / 2,
-            "ry": lambda: self.height / 2,
-            "r": r}
 
     def __str__(self):
         return str(self.thing)
 
     def __getattr__(self, attrn):
         try:
-            return self.atrdic[attrn]()
+            return self.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
                 "Pawn instance has no such attribute: " +

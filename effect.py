@@ -42,6 +42,11 @@ Effects are only ever fired by EffectDecks, though the EffectDeck may
 contain only a single Effect.
 
     """
+    atrdic = {
+        "character": lambda self: self.rumor.get_character(self._rowdict["character"]),
+        "key": lambda self: self._rowdict["key"],
+        "callback": lambda self: self.rumor.effect_cbs[self._rowdict["callback"]]}
+
     tables = [
         ("effect",
          {"name": "text not null",
@@ -58,10 +63,6 @@ contain only a single Effect.
         self._name = name
         self.rumor.effectdict[str(self)] = self
         self._rowdict = self.rumor.tabdict["effect"][str(self)]
-        self.atrdic = {
-            "character": lambda: self.rumor.get_character(self._rowdict["character"]),
-            "key": lambda: self._rowdict["key"],
-            "callback": lambda: self.rumor.effect_cbs[self._rowdict["callback"]]}
 
     def __getattr__(self, attrn):
         try:
@@ -144,6 +145,10 @@ were right after firing them.
           "effect": ("effect", "name")},
          ["idx>=0"])]
 
+    atrdic = {
+        "effects": lambda self: self.get_effects(),
+        "draw_order": lambda self: self._rowdict["draw_order"]}
+
     def __init__(self, rumor, name):
         self.rumor = rumor
         self._name = name
@@ -152,9 +157,6 @@ were right after firing them.
         self.rumor.effectdeckdict[name] = self
         self._rowdict = self.rumor.tabdict["effect_deck"][str(self)]
         self._card_links = self.rumor.tabdict["effect_deck_link"][str(self)]
-        self.atrdic = {
-            "effects": self.get_effects,
-            "draw_order": lambda: self._rowdict["draw_order"]}
 
     def __len__(self):
         return len(self.effects)
@@ -164,7 +166,7 @@ were right after firing them.
 
     def __getattr__(self, attrn):
         try:
-            return self.atrdic[attrn]()
+            return self.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
                 "EffectDeck instance has no attribute named " + attrn)

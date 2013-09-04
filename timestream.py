@@ -74,7 +74,10 @@ class Timestream:
         self.update(0)
 
     def __hash__(self):
-        hash(tuple(self.branchdict.itervalues()))
+        b = []
+        for t in self.branchdict.itervalues():
+            b.extend(t)
+        return hash(tuple(b))
 
     def update(self, ts):
         """Update the tree to reflect the current state of branchdict.
