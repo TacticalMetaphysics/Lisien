@@ -203,12 +203,8 @@ class ArrowWidget:
         self.window = self.viewport.window
         self.batch = self.window.batch
         self.arrow = arrow
-        self.shaft_bg_vertlist = None
-        self.wedge_bg_vertlist = None
-        self.shaft_fg_vertlist = None
-        self.wedge_fg_vertlist = None
-        self.bgvldict = {}
-        self.fgvldict = {}
+        self.bgvl = None
+        self.fgvl = None
         self.order = self.window.edge_order
         self.window.edge_order += 1
         self.bggroup = SmoothBoldLineOrderedGroup(
@@ -284,11 +280,15 @@ Take my width into account
         return self.viewport
 
     def draw(self):
-        # group had better be viewported
         ox = self.window_ox
         dx = self.window_dx
         oy = self.window_oy
         dy = self.window_dy
+        if (ox > 0 and oy > 0) or (dx > 0 and dy > 0):
+            self.really_draw(ox, oy, dx, dy)
+
+    def really_draw(self, ox, oy, dx, dy):
+        # group had better be viewported
         if dy < oy:
             yco = -1
         else:
@@ -329,101 +329,22 @@ Take my width into account
         else:
             bgcolor = (64, 64, 64, 64)
             fgcolor = (255, 255, 255, 0)
-        bgcolors = bgcolor * 2
-        fgcolors = fgcolor * 2
-        if (ox > 0 and oy > 0) or (endx > 0 and endy > 0):
-            try:
-                self.bgvldict['shaft'].vertices = [ox, oy, endx, endy]
-            except:
-                self.bgvldict['shaft'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.bggroup,
-                    ('v2i', (ox, oy, endx, endy)),
-                    ('c4B', bgcolors))
-            try:
-                self.fgvldict['shaft'].vertices = [ox, oy, endx, endy]
-            except:
-                self.fgvldict['shaft'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.fggroup,
-                    ('v2i', (ox, oy, endx, endy)),
-                    ('c4B', fgcolors))
+        vees = (ox, oy, endx, endy, x1, y1, endx, endy, x2, y2, endx, endy)
+        if self.bgvl is None:
+            self.bgvl = self.batch.add(
+                6,
+                GL_LINES,
+                self.bggroup,
+                ('v2i', vees),
+                ('c4B', bgcolor * 6))
         else:
-            if 'shaft' in self.bgvldict:
-                try:
-                    self.bgvldict['shaft'].delete()
-                except:
-                    pass
-                del self.bgvldict['shaft']
-            if 'shaft' in self.fgvldict:
-                try:
-                    self.fgvldict['shaft'].delete()
-                except:
-                    pass
-                del self.fgvldict['shaft']
-        if (x1 > 0 and y1 > 0) or (endx > 0 and endy > 0):
-            try:
-                self.bgvldict['left'].vertices = [x1, y1, endx, endy]
-            except:
-                self.bgvldict['left'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.bggroup,
-                    ('v2i', (x1, y1, endx, endy)),
-                    ('c4B', bgcolors))
-            try:
-                self.fgvldict['left'].vertices = [x1, y1, endx, endy]
-            except:
-                self.fgvldict['left'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.fggroup,
-                    ('v2i', (x1, y1, endx, endy)),
-                    ('c4B', fgcolors))
+            self.bgvl.vertices = vees
+        if self.fgvl is None:
+            self.fgvl = self.batch.add(
+                6,
+                GL_LINES,
+                self.fggroup,
+                ('v2i', vees),
+                ('c4B', fgcolor * 6))
         else:
-            if 'left' in self.bgvldict:
-                try:
-                    self.bgvldict['left'].delete()
-                except:
-                    pass
-                del self.bgvldict['left']
-            if 'left' in self.fgvldict:
-                try:
-                    self.fgvldict['left'].delete()
-                except:
-                    pass
-                del self.fgvldict['left']
-        if (x2 > 0 and y2 > 0) or (endx > 0 and endy > 0):
-            try:
-                self.bgvldict['right'].vertices = [x2, y2, endx, endy]
-            except:
-                self.bgvldict['right'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.bggroup,
-                    ('v2i', (x2, y2, endx, endy)),
-                    ('c4B', bgcolors))
-            try:
-                self.fgvldict['right'].vertices = [x2, y2, endx, endy]
-            except:
-                self.fgvldict['right'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.fggroup,
-                    ('v2i', (x2, y2, endx, endy)),
-                    ('c4B', fgcolors))
-        else:
-            if 'right' in self.bgvldict:
-                try:
-                    self.bgvldict['right'].delete()
-                except:
-                    pass
-                del self.bgvldict['right']
-            if 'right' in self.fgvldict:
-                try:
-                    self.fgvldict['right'].delete()
-                except:
-                    pass
-                del self.fgvldict['right']
+            self.fgvl.vertices = vees

@@ -112,6 +112,15 @@ With db, register in db's menuitemdict.
 
         self.on_click = on_click_fun
 
+        self.old_window_left = 0
+        self.old_window_bot = 0
+        self.old_label_text = ''
+        self.old_label_color = (0, 0, 0, 0)
+        self.old_label_x = 0
+        self.old_label_y = 0
+        self.label = None
+        self.sprite = None
+
     def __int__(self):
         return self.idx
 
@@ -129,43 +138,64 @@ With db, register in db's menuitemdict.
             y < self.window_top)
 
     def draw(self):
-        try:
-            self.label.delete()
-        except:
-            pass
         if self.menu.visible or self.window.main_menu_name == str(self.menu):
+            b = self.window_bot
+            l = self.window_left
             if self.icon is not None:
                 try:
-                    self.sprite.x = self.window_left
-                    self.sprite.y = self.window_bot
+                    if self.old_window_left != l:
+                        self.sprite.x = l
+                        self.old_window_left = l
+                    if self.old_window_bot != b:
+                        self.sprite.y = b
+                        self.old_window_bot = b
                 except:
                     self.sprite = pyglet.sprite.Sprite(
                         self.icon.tex,
-                        self.window_left,
-                        self.window_bot,
+                        l, b,
                         batch=self.batch,
                         group=self.group)
             if self.text not in ('', None):
+                txt = self.text
+                color = self.menu.style.textcolor.tup
+                l = self.label_window_left
                 try:
-                    self.label.text = self.text
-                    self.label.color = self.menu.style.textcolor.tup
-                    self.label.x = self.label_window_left
-                    self.label.y = self.window_bot
+                    if self.old_label_text != txt:
+                        self.label.text = self.text
+                        self.old_label_text = txt
+                    if self.old_label_color != color:
+                        self.label.color = self.menu.style.textcolor.tup
+                        self.old_label_color = color
+                    if self.old_label_x != l:
+                        self.label.x = l
+                        self.old_label_x = l
+                    if self.old_label_y != b:
+                        self.label.y = b
+                        self.old_label_y = b
                 except:
                     self.label = pyglet.text.Label(
                         self.text,
                         self.menu.style.fontface,
                         self.menu.style.fontsize,
                         color=self.menu.style.textcolor.tup,
-                        x=self.window_left,
-                        y=self.window_bot,
+                        x=l,
+                        y=b,
                         batch=self.batch,
                         group=self.group)
             else:
+                if self.label is not None:
+                    try:
+                        self.label.delete()
+                    except:
+                        pass
+                    self.label = None
+        else:
+            if self.sprite is not None:
                 try:
-                    self.label.delete()
+                    self.sprite.delete()
                 except:
                     pass
+                self.sprite = None
 
     def get_tabdict(self):
         return {

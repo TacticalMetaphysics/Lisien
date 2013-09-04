@@ -72,7 +72,7 @@ class Wedge:
     def delete(self):
         try:
             self.vertlist.delete()
-        except:
+        except AttributeError:
             pass
         self.vertlist = None
 
@@ -164,7 +164,7 @@ class BranchConnector:
     def delete(self):
         try:
             self.vertlist.delete()
-        except:
+        except AttributeError:
             pass
         self.vertlist = None
         self.wedge.delete()
@@ -203,7 +203,7 @@ class Handle:
     def delete(self):
         try:
             self.vertlist.delete()
-        except:
+        except AttributeError:
             pass
         self.vertlist = None
 
@@ -269,7 +269,7 @@ for the handle_side keyword argument.
     def delete(self):
         try:
             self.vertlist.delete()
-        except:
+        except AttributeError:
             pass
         self.vertlist = None
         self.handle.delete()
@@ -294,17 +294,21 @@ for the handle_side keyword argument.
 
 
 class CalendarCellGroup(OrderedGroup):
-    def __init__(self, order, parent, cell):
-        OrderedGroup.__init__(
-            self, order, parent)
+    def __init__(self, cell):
+        super(CalendarCellGroup, self).__init__(
+            cell.order, cell.column.cellgroup)
         self.cell = cell
 
+    def gettup(self):
+        return (
+            self.cell.window_left - 1,
+            self.cell.window_bot,
+            self.cell.width + 1,
+            self.cell.height)
+
     def set_state(self):
-        l = self.cell.window_left - 1
-        b = self.cell.window_bot - 1
-        w = self.cell.width + 1
-        h = self.cell.height + 1
-        glScissor(l, b, w, h)
+        tup = self.gettup()
+        glScissor(*tup)
         glEnable(GL_SCISSOR_TEST)
 
     def unset_state(self):
@@ -332,6 +336,11 @@ represents to calculate its dimensions and coordinates.
         self.old_width = self.width
         self.old_height = self.height
         return r
+    def get_height(self):
+        if self.tick_to is None:
+            return self.calendar.height - self.tick_from * self.calendar.row_height
+        else:
+            return self.calendar.row_height * len(self)
 
     atrdic = {
         "interactive": lambda self: self.column.calendar.interactive,
@@ -343,18 +352,35 @@ represents to calculate its dimensions and coordinates.
                                       self.style.spacing),
         "calendar_bot": lambda self: self.get_calendar_bot(),
         "width": lambda self: self.calendar_right - self.calendar_left,
-        "height": lambda self: len(self) * self.calendar.row_height,
+        "height": lambda self: self.get_height(),
         "window_left": lambda self: self.calendar_left + self.calendar.window_left,
         "window_right": lambda self: self.calendar_right + self.calendar.window_left,
         "window_top": lambda self: self.calendar_top + self.calendar.window_bot,
         "window_bot": lambda self: self.calendar_bot + self.calendar.window_bot,
-        "in_view": lambda self: (self.window_right > 0 and
-                                 self.window_left < self.window.width and
-                                 self.window_top > 0 and
+        "in_view": lambda self: (self.window_right > 0 or
+                                 self.window_left < self.window.width or
+                                 self.window_top > 0 or
                                  self.window_bot < self.window.height),
         "same_size": lambda self: self.is_same_size(),
         "label_height": lambda self: self.style.fontsize + self.style.spacing,
-        "hovered": lambda self: self is self.window.hovered}
+        "hovered": lambda self: self is self.window.hovered,
+        "coverage_dict": lambda self: {
+            CAL_TYPE['THING']: lambda self: self.rumor.tabdict[
+                "character_things"][self._rowdict["character"]][
+                    self._rowdict["dimension"]][self._rowdict["thing"]],
+            CAL_TYPE['PLACE']: lambda self: self.rumor.tabdict[
+                "character_places"][self._rowdict["character"]][
+                    self._rowdict["dimension"]][self._rowdict["place"]],
+            CAL_TYPE['PORTAL']: lambda self: self.rumor.tabdict[
+                "character_portals"][self._rowdict["character"]][
+                    self._rowdict["dimension"]][self._rowdict["origin"]][
+                        self._rowdict["destination"]],
+            CAL_TYPE['SKILL']: lambda self: self.rumor.tabdict[
+                "character_skills"][self._rowdict["character"]][
+                    self._rowdict["skill"]],
+            CAL_TYPE['STAT']: lambda self: self.rumor.tabdict[
+                "character_stats"][self._rowdict["character"]][
+                    self._rowdict["stat"]]}[self.typ]()}
 
     def __init__(self, col, tick_from, tick_to, text):
         self.column = col
@@ -364,17 +390,16 @@ represents to calculate its dimensions and coordinates.
         self.tick_from = tick_from
         self.tick_to = tick_to
         self.text = text
-        self.old_height = self.height
-        self.old_width = self.width
-        self.left_side = None
-        self.right_side = None
-        self.top_side = None
-        self.bot_side = None
+        self.old_left = None
+        self.old_right = None
+        self.old_top = None
+        self.old_bot = None
+        self.vertl = None
         self.label = None
 
     def __len__(self):
         if self.tick_to is None:
-            r = self.calendar.height - self.tick_from
+            r = self.calendar.bot_tick - self.tick_from
         else:
             r = self.tick_to - self.tick_from
         if r < 0:
@@ -394,93 +419,86 @@ represents to calculate its dimensions and coordinates.
     def delete(self):
         try:
             self.label.delete()
-        except:
+        except AttributeError:
             pass
         self.label = None
         try:
             self.top_side.delete()
-        except:
+        except AttributeError:
             pass
         self.top_side = None
         try:
             self.left_side.delete()
-        except:
+        except AttributeError:
             pass
         self.left_side = None
         try:
             self.bot_side.delete()
-        except:
+        except AttributeError:
             pass
         self.bot_side = None
         try:
             self.right_side.delete()
-        except:
+        except AttributeError:
             pass
         self.right_side = None
 
-    def draw(self, group):
-        colors = (0, 0, 0, 255) * 2
-        l = self.window_left
-        r = self.window_right
-        t = self.window_top
-        b = self.window_bot
-        if (t < 0 or b > self.window.height):
-            self.delete()
-            return
-        try:
-            self.top_side.vertices = (l, t, r, t)
-        except:
-            self.top_side = self.batch.add(
-                2,
-                GL_LINES,
-                group,
-                ('v2i', (l, t, r, t)),
-                ('c4B', colors))
-        try:
-            self.left_side.vertices = (l, b, l, t)
-        except:
-            self.left_side = self.batch.add(
-                2,
-                GL_LINES,
-                group,
-                ('v2i', (l, b, l, t)),
-                ('c4B', colors))
-        try:
-            self.bot_side.vertices = (l, b, r, b)
-        except:
-            self.bot_side = self.batch.add(
-                2,
-                GL_LINES,
-                group,
-                ('v2i', (l, b, r, b)),
-                ('c4B', colors))
-        try:
-            self.right_side.vertices = (r, b, r, t)
-        except:
-            self.right_side = self.batch.add(
-                2,
-                GL_LINES,
-                group,
-                ('v2i', (r, b, r, t)),
-                ('c4B', colors))
-        y = self.calendar_top - self.label_height
-        try:
-            self.label.x = self.window_left
-            self.label.y = y
-        except:
+    def draw_label(self, l, t, w, h):
+        if self.label is None:
             self.label = Label(
                 self.text,
                 self.style.fontface,
                 self.style.fontsize,
                 color=self.style.textcolor.tup,
-                width=self.width,
-                height=self.height,
-                x=self.window_left,
-                y=y,
+                width=w,
+                height=h,
+                x=l,
+                y=t,
+                anchor_x="left",
+                anchor_y="top",
+                halign="center",
                 multiline=True,
                 batch=self.batch,
-                group=group)
+                group=self.column.cellgroup)
+        else:
+            self.label.x = l
+            self.label.y = t
 
+    def draw_box(self, l, b, r, t, color):
+        colors = color * 8
+        vees = (l, t, r, t, r, t, r, b, r, b, l, b, l, b, l, t)
+        if self.vertl is None:
+            self.vertl = self.batch.add(
+                8,
+                GL_LINES,
+                self.column.cellgroup,
+                ('v2i', vees),
+                ('c4B', colors))
+        else:
+            self.vertl.vertices = vees
+
+    def draw(self):
+        l = self.window_left
+        r = self.window_right
+        t = self.window_top
+        b = self.window_bot
+        black = (0, 0, 0, 255)
+        if t != self.old_top:
+            self.draw_label(l, t, self.width, self.height)
+            self.draw_box(l, b, r, t, black)
+            self.old_top = t
+            self.old_right = r
+            self.old_bot = b
+            self.old_left = l
+        elif (
+                l != self.old_left or
+                r != self.old_right or
+                b != self.old_bot):
+            self.draw_box(l, b, r, t, black)
+            self.old_top = t
+            self.old_right = r
+            self.old_bot = b
+            self.old_left = l
 
 CAL_TYPE = {
     "THING": 0,
@@ -633,7 +651,9 @@ time travel.
         "scrolled_to": lambda self: self.sttt(),
         "top_tick": lambda self: self.sttt(),
         "scroll_factor": lambda self: self._rowdict["scroll_factor"],
-        "max_cols": lambda self: self._rowdict["max_cols"]
+        "max_cols": lambda self: self._rowdict["max_cols"],
+        "thing_show_location": lambda self: (
+            self._rowdict["thing_show_location"] not in (0, None, False))
     }
         
     visible = True
@@ -651,6 +671,11 @@ time travel.
             "calendar"][
                 str(self.window)][
                     int(self)]
+        if self._rowdict["thing_show_location"]:
+            self._location_dict = self.rumor.tabdict[
+                "thing_location"][
+                    self._rowdict["dimension"]][
+                        self._rowdict["thing"]]
         self.cols_shown = set()
         self.coldict = {0: self.make_col(0)}
         self.cols_shown.add(0)
@@ -670,50 +695,8 @@ time travel.
         try:
             return self.atrdic[attrn](self)
         except KeyError:
-            pass
-        if self.typ == CAL_TYPE['THING']:
-            if attrn == 'thing_show_location':
-                return self._rowdict['thing_show_location']
-            elif attrn == 'location_dict' and self.thing_show_location:
-                return self.rumor.tabdict[
-                    "thing_location"][
-                        self._rowdict["dimension"]][
-                            self._rowdict["thing"]]
-            elif attrn == 'coverage_dict':
-                return self.rumor.tabdict[
-                    "character_things"][
-                        self._rowdict["character"]][
-                            self._rowdict["dimension"]][
-                                self._rowdict["thing"]]
-        elif self.typ == CAL_TYPE['PLACE']:
-            if attrn == 'coverage_dict':
-                return self.rumor.tabdict[
-                    "character_places"][
-                        self._rowdict["character"]][
-                            self._rowdict["dimension"]][
-                                self._rowdict["place"]]
-        elif self.typ == CAL_TYPE['PORTAL']:
-            if attrn == 'coverage_dict':
-                charn = self._rowdict["character"]
-                dimn = self._rowdict["dimension"]
-                orign = self._rowdict["origin"]
-                destn = self._rowdict["destination"]
-                return self.rumor.tabdict[
-                    "character_portals"][charn][dimn][orign][destn]
-        elif self.typ == CAL_TYPE['SKILL']:
-            if attrn == 'coverage_dict':
-                return self.rumor.tabdict[
-                    "character_skills"][
-                        self._rowdict["character"]][
-                            self._rowdict["skill"]]
-        elif self.typ == CAL_TYPE['STAT']:
-            if attrn == 'coverage_dict':
-                return self.rumor.tabdict[
-                    "character_stats"][
-                        self._rowdict["character"]][
-                            self._rowdict["stat"]]
-        raise AttributeError(
-            "Calendar instance has no attribute {0}".format(attrn))
+            raise AttributeError(
+                "Calendar instance has no attribute {0}".format(attrn))
 
     def __int__(self):
         return self.idx
@@ -778,18 +761,38 @@ time travel.
         self.rearrow()
         for col in self.cols_shown:
             self.coldict[col].refresh()
-        CalendarCol.cell_order = 0
 
     def on_timestream_update(self):
         for branch in self.rumor.timestream.branchdict:
             self.coldict[branch] = self.make_col(branch)
-            if len(self.cols_shown) == self.max_cols:
-                self.cols_shown.remove(min(self.cols_shown))
             self.cols_shown.add(branch)
+            if len(self.cols_shown) > self.max_cols:
+                self.cols_shown.remove(min(self.cols_shown))
         self.refresh()
 
+class CalendarColGroup(OrderedGroup):
+    order = 0
+    def __init__(self, col):
+        super(CalendarColGroup, self).__init__(
+            CalendarColGroup.order, col.calendar.group)
+        CalendarColGroup.order += 1
+        self.col = col
+
+    def gettup(self):
+        return (
+            self.col.window_left,
+            self.col.window_bot,
+            self.col.width,
+            self.col.height)
+
+    def set_state(self):
+        glEnable(GL_SCISSOR_TEST)
+        glScissor(*self.gettup())
+
+    def unset_state(self):
+        glDisable(GL_SCISSOR_TEST)
+
 class CalendarCol:
-    cell_order = 0
     atrdic = {
         "width": lambda self: self.calendar.col_width,
         "rx": lambda self: self.width / 2,
@@ -811,10 +814,11 @@ class CalendarCol:
         self.rumor = self.calendar.rumor
         self.batch = self.calendar.batch
         self.style = self.calendar.style
-        self.bggroup = OrderedGroup(0, self.calendar.group)
-        self.cellgroup = OrderedGroup(1, self.calendar.group)
-        self.tlgroup = OrderedGroup(2, self.calendar.group)
-        self.bcgroup = OrderedGroup(3, self.calendar.group)
+        self.supergroup = CalendarColGroup(self)
+        self.bggroup = OrderedGroup(0, self.supergroup)
+        self.cellgroup = OrderedGroup(1, self.supergroup)
+        self.tlgroup = OrderedGroup(2, self.supergroup)
+        self.bcgroup = OrderedGroup(3, self.supergroup)
         self.timeline = Timeline(self)
         self.window = self.calendar.window
         self.celldict = {}
@@ -833,9 +837,14 @@ class CalendarCol:
             cell.delete()
         try:
             self.timeline.delete()
-        except:
+        except AttributeError:
             pass
         self.timeline = None
+        try:
+            self.vertl.delete()
+        except AttributeError:
+            pass
+        self.vertl = None
 
     def pretty_caster(self, *args):
         unargs = []
@@ -908,9 +917,7 @@ class CalendarCol:
         else:
             self.timeline.delete()
         for cell in self.cells_on_screen:
-            cell.draw(CalendarCellGroup(
-                CalendarCol.cell_order, self.cellgroup, cell))
-            CalendarCol.cell_order += 1
+            cell.draw()
 
 
 class LocationCalendarCol(CalendarCol):
@@ -935,36 +942,35 @@ instead, giving something like "in transit from A to B".
             self.branch][dimn][thingn],
         "thing": lambda self: self.rumor.get_thing(dimn, thingn)
     }
+    cal_attrs = set([
+        "character",
+        "dimension",
+        "thing",
+        "location"])
+    col_attrs = set([
+        "calendar_left",
+        "calendar_top",
+        "calendar_right",
+        "calendar_bot",
+        "window_left",
+        "window_top",
+        "window_right",
+        "window_bot",
+        "width",
+        "height",
+        "rx",
+        "ry"])
 
     def __init__(self, calendar, branch):
         CalendarCol.__init__(self, calendar, branch)
         self.refresh()
 
     def __getattr__(self, attrn):
-        if attrn in (
-                "character",
-                "dimension",
-                "thing",
-                "location"):
+        if attrn in LocationCalendarCol.cal_attrs:
             return getattr(self.calendar, attrn)
-        elif attrn in (
-                "calendar_left",
-                "calendar_top",
-                "calendar_right",
-                "calendar_bot",
-                "window_left",
-                "window_top",
-                "window_right",
-                "window_bot",
-                "width",
-                "height",
-                "rx",
-                "ry"):
+        elif attrn in LocationCalendarCol.col_attrs:
             return CalendarCol.__getattr__(self, attrn)
         else:
-            charn = str(self.calendar.character)
-            dimn = str(self.calendar.dimension)
-            thingn = str(self.calendar.thing)
             return LocationCalendarCol.atrdic[attrn](self)
 
     def regen_cells(self):
@@ -983,6 +989,7 @@ instead, giving something like "in transit from A to B".
                 todel.add(cell)
         for cell in todel:
             cell.delete()
+            self.cells_on_screen.discard(cell)
             del self.celldict[cell.tick_from]
 
     def shows_any_ever(self, tick_from, tick_to):

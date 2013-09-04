@@ -70,18 +70,6 @@ class Spot(TerminableImg, TerminableInteractivity):
 
     atrdic = {
         "vertex": lambda self: self.place.v,
-        "interactivity": lambda self: (
-            self.rumor.tabdict["spot_interactive"][
-                str(self.dimension)][
-                    int(self.board)][str(self.place)]),
-        "imagery": lambda self: (
-            self.rumor.tabdict["spot_img"][
-                str(self.dimension)][
-                    int(self.board)][str(self.place)]),
-        "coord_dict": lambda self: (
-            self.rumor.tabdict["spot_coords"][
-                str(self.dimension)][
-                    int(self.board)][str(self.place)]),
         "interactive": lambda self: self.is_interactive(),
         "img": lambda self: self.get_img(),
         "coords": lambda self: self.get_coords(),
@@ -109,6 +97,16 @@ class Spot(TerminableImg, TerminableInteractivity):
         self.dimension = dimension
         self.board = board
         self.place = place
+        self.vert = self.place.v
+        self.coord_dict = self.rumor.tabdict["spot_coords"][
+            str(self.dimension)][
+                int(self.board)][str(self.place)]
+        self.interactivity = self.rumor.tabdict["spot_interactive"][
+            str(self.dimension)][
+                int(self.board)][str(self.place)]
+        self.imagery = self.rumor.tabdict["spot_img"][
+            str(self.dimension)][
+                int(self.board)][str(self.place)]
         self.indefinite_imagery = {}
         for rd in TabdictIterator(
                 self.rumor.tabdict["spot_img"][
@@ -313,6 +311,9 @@ class SpotWidget:
         self.boxgroup = self.viewport.spotgroup
         self.batch = self.viewport.batch
         self.spot = spot
+        self.place = self.spot.place
+        self.board = self.spot.board
+        self.vert = self.spot.vert
         self.sprite = None
         self.vertlist = None
         self.old_window_left = None
@@ -322,12 +323,13 @@ class SpotWidget:
     def __str__(self):
         return str(self.spot)
 
+    spotattrs = set(["img","visible", "interactive", "board_left",
+                     "board_right", "board_top", "board_bot"])
+
     def __getattr__(self, attrn):
         if attrn in SpotWidget.atrdic:
             return SpotWidget.atrdic[attrn](self)
-        elif attrn in ("place", "img", "board", "vert",
-                       "visible", "interactive", "board_left",
-                       "board_right", "board_top", "board_bot"):
+        elif attrn in self.spotattrs:
             return getattr(self.spot, attrn)
         else:
             raise AttributeError(
@@ -353,32 +355,23 @@ class SpotWidget:
     def pass_focus(self):
         return self.viewport
 
-    def draw(self):
-        if self.visible and self.in_view:
-            try:
-                wl = self.window_left
-                wb = self.window_bot
-                if self.old_window_left != wl:
-                    self.sprite.x = wl
-                    self.old_window_left = wl
-                if self.old_window_bot != wb:
-                    self.sprite.y = wb
-                    self.old_window_bot = wb
-            except AttributeError:
-                self.sprite = Sprite(
-                    self.img.tex,
-                    self.window_left,
-                    self.window_bot,
-                    batch=self.batch,
-                    group=self.spritegroup)
-        else:
-            try:
-                self.sprite.delete()
-            except:
-                pass
-            self.sprite = None
-            self.old_window_left = None
-            self.old_window_bot = None
+    def actually_draw(self):
+        try:
+            wl = self.window_left
+            wb = self.window_bot
+            if self.old_window_left != wl:
+                self.sprite.x = wl
+                self.old_window_left = wl
+            if self.old_window_bot != wb:
+                self.sprite.y = wb
+                self.old_window_bot = wb
+        except AttributeError:
+            self.sprite = Sprite(
+                self.img.tex,
+                self.window_left,
+                self.window_bot,
+                batch=self.batch,
+                group=self.spritegroup)
         if self.selected:
             yelo = (255, 255, 0, 0)
             colors = yelo * 4
@@ -400,12 +393,40 @@ class SpotWidget:
                         ('c4b', colors))
                 self.old_points = points
         else:
-            try:
-                self.vertlist.delete()
-            except:
-                pass
-            self.vertlist = None
+            if self.vertlist is not None:
+                try:
+                    self.vertlist.delete()
+                except:
+                    pass
+                self.vertlist = None
             self.old_points = None
+
+    def draw(self):
+        if (
+                self.img is not None and
+                (self.window_top > 0 or
+                 self.window_right > 0 or
+                 self.window_bot < self.window.height or
+                 self.window_left < self.window.width)):
+            self.actually_draw()
+        else:
+            if self.sprite is not None:
+                try:
+                    self.sprite.delete()
+                except:
+                    pass
+                self.sprite = None
+            if self.vertlist is not None:
+                try:
+                    self.vertlist.delete()
+                except:
+                    pass
+                self.vertlist = None
+            self.old_window_left = None
+            self.old_window_bot = None
+            return
+
+
 
     def delete(self):
         try:

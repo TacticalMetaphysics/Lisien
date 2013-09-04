@@ -6,6 +6,9 @@ import rumor
 from sys import argv
 from os import remove
 from sqlite3 import connect, DatabaseError
+from hotshot import Profile
+
+Profile("lise.hot").start()
 
 i = 0
 lang = "English"
@@ -46,10 +49,10 @@ gw = rumor.get_window('Main')
 
 
 def update(ts):
+    rumor.update()
     gw.update(ts)
 
 pyglet.clock.schedule(update)
-pyglet.clock.schedule_interval(rumor.update, 0.1)
 pyglet.app.run()
 rumor.save_game()
 rumor.end_game()

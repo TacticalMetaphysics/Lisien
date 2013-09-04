@@ -2,9 +2,11 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
 import ctypes
+from time import time
 from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
+from collections import deque
 
 logger = getLogger(__name__)
 
@@ -255,6 +257,7 @@ and your table will be ready.
                 return
 
         def gen_sql_select(keydicts, tabname):
+            print "{1}:Generating SQL for table {0}".format(tabname, time())
             keys_in_use = set()
             kitr = TabdictIterator(keydicts)
             for keyd in kitr:
@@ -836,27 +839,28 @@ class DictValues2DIterator:
 
 class TabdictIterator:
     def __init__(self, td):
-        self.ptrs = [td]
-        self.keyses = [self.ptrs[0].keys()]
+        self.tabd = td
+        self.ptrs = deque([td])
+        self.keyses = deque([self.ptrs[0].keys()])
+
+    def __len__(self):
         i = 0
+        h = TabdictIterator(self.tabd)
         while True:
             try:
-                self.next()
+                h.next()
                 i += 1
             except StopIteration:
-                self.ptrs = [td]
-                self.keyses = [self.ptrs[0].keys()]
-                self.__len__ = lambda: i
-                break
+                return i
 
     def __iter__(self):
         return self
 
     def next(self):
-        while self.ptrs != []:
+        while len(self.ptrs) > 0:
             ptr = self.ptrs.pop()
             keys = self.keyses.pop()
-            while keys != []:
+            while len(keys) > 0:
                 k = keys.pop()
                 if isinstance(ptr[k], dict):
                     self.keyses.append(keys)

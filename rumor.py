@@ -17,6 +17,8 @@ import igraph
 from copy import deepcopy
 from collections import OrderedDict, defaultdict
 from logging import getLogger
+from hotshot import Profile
+
 from dimension import Dimension
 from spot import Spot
 from pawn import Pawn
@@ -39,6 +41,8 @@ from character import Character
 
 
 logger = getLogger(__name__)
+
+profiler = Profile(__name__ + ".hot")
 
 
 def noop(*args, **kwargs):
@@ -708,7 +712,8 @@ This is game-world time. It doesn't always go forwards.
                 r[name] = self.characterdict[name]
             else:
                 unhad.add(name)
-        r.update(self.load_characters(names))
+        if len(unhad) > 0:
+            r.update(self.load_characters(names))
         return r
 
     def get_character(self, name):
@@ -742,7 +747,8 @@ This is game-world time. It doesn't always go forwards.
                 r[name] = self.effectdict[name]
             else:
                 unloaded.add(name)
-        r.update(self.load_effects(unloaded))
+        if len(unloaded) > 0:
+            r.update(self.load_effects(unloaded))
         return r
 
     def load_effect_decks(self, names):
@@ -767,7 +773,8 @@ This is game-world time. It doesn't always go forwards.
                 r[name] = self.effectdeckdict[name]
             else:
                 unloaded.add(name)
-        r.update(self.load_effect_decks(unloaded))
+        if len(unloaded) > 0:
+            r.update(self.load_effect_decks(unloaded))
         return r
 
     def load_dimensions(self, names):
@@ -798,7 +805,8 @@ This is game-world time. It doesn't always go forwards.
                 r[name] = self.dimensiondict[name]
             else:
                 unhad.add(name)
-        r.update(self.load_dimensions(unhad))
+        if len(unhad) > 0:
+            r.update(self.load_dimensions(unhad))
         return r
 
     def get_dimension(self, name):
@@ -907,7 +915,8 @@ This is game-world time. It doesn't always go forwards.
                 r[imgn] = self.imgdict[imgn]
             else:
                 unloaded.add(imgn)
-        r.update(self.load_imgs(unloaded))
+        if len(unloaded) > 0:
+            r.update(self.load_imgs(unloaded))
         return r
 
     def get_img(self, imgn):
@@ -922,6 +931,7 @@ This is game-world time. It doesn't always go forwards.
         r = {}
         for name in names:
             r[name] = Color(self, name)
+            self.colordict[name] = r[name]
         return r
 
     def get_colors(self, colornames):
@@ -932,7 +942,8 @@ This is game-world time. It doesn't always go forwards.
                 r[color] = self.colordict[color]
             else:
                 unloaded.add(color)
-        r.update(self.load_colors(unloaded))
+        if len(unloaded) > 0:
+            r.update(self.load_colors(unloaded))
         return r
 
     def get_color(self, name):
@@ -963,7 +974,8 @@ This is game-world time. It doesn't always go forwards.
                 r[style] = self.styledict[style]
             else:
                 unloaded.add(style)
-        r.update(self.load_styles(unloaded))
+        if len(unloaded) > 0:
+            r.update(self.load_styles(unloaded))
         return r
 
     def get_style(self, name):
@@ -999,7 +1011,8 @@ This is game-world time. It doesn't always go forwards.
                 r[name] = self.windowdict[name]
             else:
                 unhad.add(name)
-        r.update(self.load_windows(unhad))
+        if len(unhad) > 0:
+            r.update(self.load_windows(unhad))
         return r
 
     def get_window(self, name):
@@ -1024,7 +1037,8 @@ This is game-world time. It doesn't always go forwards.
                 r[name] = self.carddict[name]
             else:
                 unhad.add(name)
-        r.update(self.load_cards(unhad))
+        if len(unhad) > 0:
+            r.update(self.load_cards(unhad))
         return r
 
     def get_card(self, name):
@@ -1135,7 +1149,7 @@ This is game-world time. It doesn't always go forwards.
         self.stop()
         self.time_travel(None, self.branch, 0)
 
-    def update(self, ts):
+    def update(self, ts=None):
         if self.updating:
             self.time_travel_inc_tick(ticks=self.game_speed)
 

@@ -8,12 +8,13 @@ from util import (
     TabdictIterator,
     ScissorOrderedGroup)
 from math import atan, cos, sin
-from arrow import Arrow
+from arrow import ArrowWidget
 from menu import Menu, MenuItem
 from card import Hand
 from board import BoardViewport
 from picpicker import PicPicker
 from calendar import Calendar
+from collections import deque
 
 
 class SaveableWindowMetaclass(
@@ -31,11 +32,12 @@ screen = display.get_default_screen()
 
 
 class TransparencyGroup(pyglet.graphics.Group):
-    def set_state(self):
-        pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
+    pass
+    # def set_state(self):
+    #     pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
 
-    def unset_state(self):
-        pyglet.gl.glDisable(pyglet.gl.GL_BLEND)
+    # def unset_state(self):
+    #     pyglet.gl.glDisable(pyglet.gl.GL_BLEND)
 
 
 class TransparencyOrderedGroup(
@@ -133,8 +135,8 @@ class GameWindow(pyglet.window.Window):
                  "board_viewport"][str(self)])])
         self._rowdict = self.rumor.tabdict["window"][name]
         self.dxdy_hist_max = 10
-        self.dx_hist = [0] * self.dxdy_hist_max
-        self.dy_hist = [0] * self.dxdy_hist_max
+        self.dx_hist = deque([], self.dxdy_hist_max)
+        self.dy_hist = deque([], self.dxdy_hist_max)
         self.batch = pyglet.graphics.Batch()
         self.biggroup = pyglet.graphics.Group()
         self.boardgroup = pyglet.graphics.OrderedGroup(0, self.biggroup)
@@ -273,36 +275,17 @@ class GameWindow(pyglet.window.Window):
     def update(self, dt):
         (x, y) = self.mouspot.coords
 
-        def get_hovered():
-            for get in self.hover_iter_getters:
-                for hoverable in get():
-                    if (
-                            hoverable is not None and
-                            hasattr(hoverable, 'overlaps') and
-                            hoverable.overlaps(x, y)):
-                        if hasattr(hoverable, 'hover'):
-                            self.hovered = hoverable.hover(x, y)
-                        else:
-                            self.hovered = hoverable
-                        return
-        get_hovered()
-
-        if self.portal_from is None:
-            try:
-                (self.floaty_portal.orig.x,
-                 self.floaty_portal.orig.y) = self.floaty_coords()
-            except:
-                pass
-        try:
-            self.place_pic_sprite.set_position(
-                x - self.place_pic.rx, y - self.place_pic.ry)
-        except:
-            pass
-        try:
-            self.thing_pic_sprite.set_position(
-                x - self.thing_pic.rx, y - self.thing_pic.ry)
-        except:
-            pass
+        for get in self.hover_iter_getters:
+            for hoverable in get():
+                if (
+                        hoverable is not None and
+                        hasattr(hoverable, 'overlaps') and
+                        hoverable.overlaps(x, y)):
+                    if hasattr(hoverable, 'hover'):
+                        self.hovered = hoverable.hover(x, y)
+                    else:
+                        self.hovered = hoverable
+                    return
 
     def on_draw(self):
         (width, height) = self.get_size()
@@ -490,9 +473,8 @@ and highlight it.
         """
         self.mouspot.x = x
         self.mouspot.y = y
-        self.dx_hist[self.dxdy_hist_counter % self.dxdy_hist_max] = dx
-        self.dy_hist[self.dxdy_hist_counter % self.dxdy_hist_max] = dy
-        self.dxdy_hist_counter += 1
+        self.dx_hist.append(dx)
+        self.dy_hist.append(dy)
 
     def on_key_press(self, symbol, modifiers):
         if symbol == pyglet.window.key.DELETE:
@@ -568,9 +550,10 @@ associated with the argument."""
             self.calendars[0].style, 'thing_pic', 'thinging')
 
     def create_portal(self):
-        boguspot = MousySpot()
-        (boguspot.x, boguspot.y) = self.floaty_coords()
-        self.floaty_portal = Arrow(self.board, boguspot, self.mouspot)
+#        boguspot = MousySpot()
+ #       (boguspot.x, boguspot.y) = self.floaty_coords()
+        # TODO: make it work with multiple viewports
+#        self.floaty_portal = ArrowWidget(self.viewports.next(), self.mouspot)
         self.portaling = True
 
     def floaty_coords(self):

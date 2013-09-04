@@ -293,20 +293,20 @@ class BoardViewport:
             self.view_bot = 0
 
     def draw(self):
+        offx = self.offset_x
+        offy = self.offset_y
         try:
-            offx = self.offset_x
+
             if offx != self.old_offset_x:
                 self.bgsprite.x = offx
                 self.old_offset_x = offx
-            offy = self.offset_y
             if offy != self.old_offset_y:
                 self.bgsprite.y = self.offset_y
                 self.old_offset_y = offy
         except:
             self.bgsprite = Sprite(
                 self.wallpaper.tex,
-                self.offset_x,
-                self.offset_y,
+                offx, offy,
                 batch=self.batch,
                 group=self.bggroup)
         for spot in self.spots:
