@@ -174,6 +174,10 @@ Return an Effect representing the change.
                 indef_rd["tick_from"] = tick_from
                 self.indefinite_locations[branch] = tick_from
                 return
+        while len(self.locations) <= branch:
+            self.locations.append([])
+        while len(self.locations[branch]) <= tick_from:
+            self.locations[branch].append({})
         self.locations[branch][tick_from] = {
             "dimension": str(self.dimension),
             "thing": str(self),

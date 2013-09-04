@@ -6,9 +6,6 @@ import rumor
 from sys import argv
 from os import remove
 from sqlite3 import connect, DatabaseError
-from hotshot import Profile
-
-Profile("lise.hot").start()
 
 i = 0
 lang = "English"

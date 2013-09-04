@@ -17,8 +17,6 @@ import igraph
 from copy import deepcopy
 from collections import OrderedDict, defaultdict
 from logging import getLogger
-from hotshot import Profile
-
 from dimension import Dimension
 from spot import Spot
 from pawn import Pawn
@@ -41,8 +39,6 @@ from character import Character
 
 
 logger = getLogger(__name__)
-
-profiler = Profile(__name__ + ".hot")
 
 
 def noop(*args, **kwargs):
@@ -790,8 +786,24 @@ This is game-world time. It doesn't always go forwards.
             kd["thing_location"][name] = {"dimension": name}
         updd(self.tabdict,
              Portal._select_tabdict(self.c, kd))
-        updd(self.tabdict,
-             Thing._select_tabdict(self.c, kd))
+        ttd = Thing._select_tabdict(self.c, kd)["thing_location"]
+        thing_td = {}
+        for dimension in ttd:
+            if dimension not in thing_td:
+                thing_td[dimension] = {}
+            for thing in ttd[dimension]:
+                if thing not in thing_td[dimension]:
+                    thing_td[dimension][thing] = []
+                l = thing_td[dimension][thing]
+                for branch in ttd[dimension][thing]:
+                    while len(l) <= branch:
+                        l.append([])
+                    l = l[branch]
+                    for tick_from in ttd[dimension][thing][branch]:
+                        while len(l) <= tick_from:
+                            l.append({})
+                        l[tick_from] = ttd[dimension][thing][branch][tick_from]
+        updd(self.tabdict, thing_td)
         r = {}
         for name in names:
             r[name] = Dimension(self, name)

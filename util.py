@@ -257,7 +257,6 @@ and your table will be ready.
                 return
 
         def gen_sql_select(keydicts, tabname):
-            print "{1}:Generating SQL for table {0}".format(tabname, time())
             keys_in_use = set()
             kitr = TabdictIterator(keydicts)
             for keyd in kitr:
