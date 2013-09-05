@@ -122,7 +122,7 @@ tick in the given branch."""
             branch = self.rumor.branch
         if tick is None:
             tick = self.rumor.tick
-        if branch not in self.locations:
+        if len(self.locations) < branch:
             return None
         if (
                 branch in self.indefinite_locations and
@@ -176,6 +176,8 @@ Return an Effect representing the change.
                 return
         while len(self.locations) <= branch:
             self.locations.extend([[]] * 100)
+        while len(self.locations[branch]) <= tick_from:
+            self.locations[branch].extend([[]] * 100)
         self.locations[branch][tick_from] = {
             "dimension": str(self.dimension),
             "thing": str(self),
@@ -224,7 +226,7 @@ Presupposes that I'm in a portal.
             branch = self.rumor.branch
         if tick is None:
             tick = self.rumor.tick
-        if branch not in self.locations:
+        if len(self.locations) < branch:
             raise LocationException("I am nowhere in that branch")
         for rd in TabdictIterator(self.locations[branch]):
             if rd["tick_to"] is None:
@@ -273,7 +275,7 @@ then."""
             branch = self.rumor.branch
         if tick is None:
             tick = self.rumor.tick
-        if branch not in self.locations:
+        if len(self.locations) < branch:
             raise BranchError("Branch not known")
         if branch in self.indefinite_locations:
             tick_from = self.indefinite_locations[branch]

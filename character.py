@@ -116,6 +116,7 @@ item's name, and the name of the attribute.
          [])]
 
     def __init__(self, rumor, name):
+        assert(len(rumor.tabdict['img']) > 1)
         self._name = name
         self.rumor = rumor
         self.update_handlers = set()

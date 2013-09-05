@@ -284,8 +284,21 @@ Take my width into account
         dx = self.window_dx
         oy = self.window_oy
         dy = self.window_dy
-        if (ox > 0 and oy > 0) or (dx > 0 and dy > 0):
+        try:
             self.really_draw(ox, oy, dx, dy)
+        except:
+            if self.bggroup is not None:
+                try:
+                    self.bggroup.delete()
+                except:
+                    pass
+                self.bggroup = None
+            if self.fggroup is not None:
+                try:
+                    self.fggroup.delete()
+                except:
+                    pass
+                self.fggroup = None
 
     def really_draw(self, ox, oy, dx, dy):
         # group had better be viewported

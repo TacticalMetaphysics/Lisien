@@ -10,6 +10,9 @@ from util import SaveableMetaclass
 __metaclass__ = SaveableMetaclass
 
 
+textures = {}
+
+
 class Img:
     """A pretty thin wrapper around a Pyglet image.
 
@@ -32,20 +35,24 @@ saving the path.
         "rltile": lambda self: self._rowdict["rltile"],
         "center": lambda self: (self.tex.width / 2, self.tex.height / 2),
         "width": lambda self: self.tex.width,
-        "height": lambda self: self.tex.height}
+        "height": lambda self: self.tex.height,
+        "tex": lambda self: textures[str(self)]}
 
     def __init__(self, rumor, name):
         """Return an Img, and register it with the imgdict of the database
 provided."""
+        global first_img_loaded
+        print "loading img {0}".format(name)
         self.rumor = rumor
         self._name = name
         self.rumor.imgdict[str(self)] = self
         self._rowdict = self.rumor.tabdict["img"][str(self)]
+        print "with rowdict:"
+        print self._rowdict
         if self.rltile:
-            self.tex = load_rltile(self.path)
+            textures[str(self)] = load_rltile(self.path)
         else:
-            self.tex = load_regular_img(self.path)
-        self.texture = self.tex
+            textures[str(self)] = load_regular_img(self.path)
 
     def __str__(self):
         return self._name

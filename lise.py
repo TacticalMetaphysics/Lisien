@@ -46,6 +46,7 @@ gw = rumor.get_window('Main')
 
 
 def update(ts):
+    assert(len(rumor.tabdict['img']) > 1)
     rumor.update()
     gw.update(ts)
 

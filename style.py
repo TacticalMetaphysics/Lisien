@@ -100,6 +100,7 @@ foreground and the background.
 With db, register in its styledict.
 
         """
+        assert(len(rumor.tabdict['img']) > 1)
         self.rumor = rumor
         self._name = name
         self.rumor.styledict[str(self)] = self

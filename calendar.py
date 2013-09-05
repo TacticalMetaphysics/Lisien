@@ -423,25 +423,10 @@ represents to calculate its dimensions and coordinates.
             pass
         self.label = None
         try:
-            self.top_side.delete()
+            self.vertl.delete()
         except AttributeError:
             pass
-        self.top_side = None
-        try:
-            self.left_side.delete()
-        except AttributeError:
-            pass
-        self.left_side = None
-        try:
-            self.bot_side.delete()
-        except AttributeError:
-            pass
-        self.bot_side = None
-        try:
-            self.right_side.delete()
-        except AttributeError:
-            pass
-        self.right_side = None
+        self.vertl = None
 
     def draw_label(self, l, t, w, h):
         if self.label is None:
@@ -862,13 +847,6 @@ class CalendarCol:
             strings.append(str(unarg))
         return ";\n".join(strings)
 
-    def regen_cells(self):
-        self.celldict = {}
-        for rd in TabdictIterator(self.calendar.locations):
-            cell = CalendarCell(
-                self, rd["tick_from"], rd["tick_to"], rd["location"])
-            self.celldict[rd["tick_from"]] = cell
-
     def review(self):
         todel = set()
         for cell in self.cells_on_screen:
@@ -974,7 +952,9 @@ instead, giving something like "in transit from A to B".
             return LocationCalendarCol.atrdic[attrn](self)
 
     def regen_cells(self):
+        location_ticks = set()
         for rd in TabdictIterator(self.locations):
+            location_ticks.add(rd["tick_from"])
             if rd["tick_from"] not in self.celldict:
                 cell = CalendarCell(
                     self, rd["tick_from"], rd["tick_to"], rd["location"])
@@ -985,7 +965,7 @@ instead, giving something like "in transit from A to B".
             cell.text = rd["location"]
         todel = set()
         for cell in self.celldict.itervalues():
-            if cell.tick_from not in self.locations:
+            if cell.tick_from not in location_ticks:
                 todel.add(cell)
         for cell in todel:
             cell.delete()

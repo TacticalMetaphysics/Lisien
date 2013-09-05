@@ -68,6 +68,14 @@ class Spot(TerminableImg, TerminableInteractivity):
          {"dimension, board": ("board", "dimension, i")},
          [])]
 
+    def get_r(self):
+        rx = self.rx
+        ry = self.ry
+        if rx > ry:
+            return rx
+        else:
+            return ry
+
     atrdic = {
         "vertex": lambda self: self.place.v,
         "interactive": lambda self: self.is_interactive(),
@@ -76,21 +84,19 @@ class Spot(TerminableImg, TerminableInteractivity):
         "x": lambda self: self.coords[0],
         "y": lambda self: self.coords[1],
         "width": lambda self: {
-            True: lambda: 0, False: lambda: self.img.width
-        }[self.img is None](),
+            True: lambda: 0, False: lambda: self.get_img().width
+        }[self.get_img() is None](),
         "height": lambda self: {
-            True: lambda: 0, False: lambda: self.img.height
-        }[self.img is None](),
+            True: lambda: 0, False: lambda: self.get_img().height
+        }[self.get_img() is None](),
         "rx": lambda self: self.width / 2,
         "ry": lambda self: self.height / 2,
-        "r": lambda self: {
-            True: lambda: self.rx, False: lambda: self.ry
-        }[self.rx > self.ry](),
-        "visible": lambda self: self.img is not None,
+        "r": lambda self: self.get_r(),
+        "visible": lambda self: self.get_img() is not None,
         "board_left": lambda self: self.x - self.rx,
         "board_bot": lambda self: self.y - self.ry,
-        "board_top": lambda self: self.board_bot + self.height,
-        "board_right": lambda self: self.board_left + self.width}
+        "board_top": lambda self: self.y + self.ry,
+        "board_right": lambda self: self.x + self.rx}
 
     def __init__(self, rumor, dimension, board, place):
         self.rumor = rumor
@@ -209,10 +215,6 @@ class Spot(TerminableImg, TerminableInteractivity):
             branch = self.rumor.branch
         if tick is None:
             tick = self.rumor.tick
-        if len(self.coord_lst) < tick:
-            import pdb
-            pdb.set_trace()
-            return None
         if (
                 branch in self.indefinite_coords and
                 tick >= self.indefinite_coords[branch]):

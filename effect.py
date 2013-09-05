@@ -150,6 +150,7 @@ were right after firing them.
         "draw_order": lambda self: self._rowdict["draw_order"]}
 
     def __init__(self, rumor, name):
+        assert(len(rumor.tabdict['img']) > 1)
         self.rumor = rumor
         self._name = name
         self.reset_to = {}

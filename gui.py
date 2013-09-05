@@ -120,6 +120,7 @@ class GameWindow(pyglet.window.Window):
     def __init__(
             self, rumor, name):
         """Initialize the game window, its groups, and some state tracking."""
+        assert(len(rumor.tabdict['img']) > 1)
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
         self.rumor = rumor
@@ -161,7 +162,7 @@ class GameWindow(pyglet.window.Window):
         for rd in TabdictIterator(
                 self.rumor.tabdict["menu"][str(self)]):
             stylenames.add(rd["style"])
-        if str(self) in self.rumor.tabdict["hand"]:
+        if "hand" in self.rumor.tabdict and str(self) in self.rumor.tabdict["hand"]:
             for rd in TabdictIterator(
                     self.rumor.tabdict["hand"][str(self)]):
                 stylenames.add(rd["style"])
@@ -188,7 +189,7 @@ class GameWindow(pyglet.window.Window):
                         str(self)][str(menu)]):
                 MenuItem(menu, mird["idx"])
             self.menudict[str(menu)] = menu
-        if str(self) in self.rumor.tabdict["hand"]:
+        if "hand" in self.rumor.tabdict and str(self) in self.rumor.tabdict["hand"]:
             effect_deck_names = set()
             for rd in TabdictIterator(
                     self.rumor.tabdict["hand"][str(self)]):

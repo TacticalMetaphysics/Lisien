@@ -50,19 +50,84 @@ def dd():
     return defaultdict(dd)
 
 
+class ListItemIterator:
+    """Iterate over a list in a way that resembles dict.iteritems()"""
+    def __init__(self, l):
+        self.l = l
+        self.l_iter = iter(l)
+        self.i = 0
+
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+        return len(self.l)
+
+    def next(self):
+        it = self.l_iter.next()
+        i = self.i
+        self.i += 1
+        return (i, it)
+
+
 def updd(d1, d2):
-    """Deep update"""
-    for (k, v) in d2.iteritems():
-        if k not in d1:
+    """Deep update of a dictionary of arbitrary depth, some of whose
+'levels' are actually lists. If asked to update from a dictionary
+whose keys are integers, I'll make a list instead.
+
+    """
+    if isinstance(d2, list):
+        d2iter = ListItemIterator(d2)
+    else:
+        d2iter = d2.iteritems()
+    for (k, v) in d2iter:
+        if not (
+                isinstance(v, dict) or
+                isinstance(v, list)):
             d1[k] = v
-        elif isinstance(v, dict):
-            assert isinstance(d1[k], dict)
-            updd(d1[k], v)
-        else:
-            d1[k] = v
+            continue
+        elif (
+                isinstance(d1, dict) and
+                k not in d1) or (
+                    len(d1) <= k) or (
+                        d1[k] != v):
+            try:
+                if (
+                        isinstance(v, list) or 
+                        (isinstance(v, dict) and
+                         isinstance(v.iterkeys().next(), int))):
+                    # v's keys are integers
+                    # therefore d1[k] should be a list
+                    d1[k] = []
+                    # desired length for d1[k]
+                    if isinstance(v, list):
+                        d1klen = len(v)
+                        sample = v[0]
+                    else:
+                        d1klen = max(v.keys()) + 1
+                        sample = v.itervalues().next()
+                    if (
+                            isinstance(sample, list) or
+                            (isinstance(sample, dict) and
+                             isinstance(sample.iterkeys().next(), int))):
+                        to_append = list
+                    else:
+                        to_append = dict
+                    while len(d1[k]) < d1klen:
+                        d1[k].append(to_append())
+                elif isinstance(d1, list):
+                    while len(d1) <= k:
+                        d1.append(dict())
+                else:
+                    if k not in d1:
+                        d1[k] = {}
+            except StopIteration:
+                # Means v was empty.
+                continue
+        updd(d1[k], v)
 
 
-def diffd(d1, d2):
+def dminusd(d1, d2):
     """Returns the 'set difference' of the given tabdicts.
 
 That is, those rowdicts that are in d1, but not in d2.
@@ -70,15 +135,35 @@ That is, those rowdicts that are in d1, but not in d2.
 Including all layers of keys."""
     # if I'm dealing with rowdicts, return None if they're the same,
     # or d1 if they're different
-    r = dict(d1)
-    for (k, v) in d2.iteritems():
-        if isinstance(v, dict):
-            if k not in r:
-                continue
-            elif r[k] == v:
-                del r[k]
+    if isinstance(d1, dict):
+        r = {}
+        d1iter = d1.iteritems()
+    elif isinstance(d1, list):
+        r = {}
+        d1iter = ListItemIterator(d1)
+    else:
+        return d1
+    for (k, v) in d1iter:
+        if v in ({}, [], None):
+            continue
+        if isinstance(d2, list):
+            if len(d2) > k:
+                if d2[k] != v:
+                    inner = dminusd(v, d2[k])
+                    if inner not in ({}, [], None):
+                        r[k] = v
             else:
-                r[k] = diffd(r[k], v)
+                r[k] = v
+        elif isinstance(d2, dict):
+            if k in d2:
+                if d2[k] != v:
+                    inner =  dminusd(v, d2[k])
+                    if inner not in ({}, [], None):
+                        r[k] = v
+            else:
+                r[k] = v
+        else:
+            r[k] = v
     return r
 
 ONE_ARG_RE = re.compile("(.+)")
@@ -364,8 +449,8 @@ This is game-world time. It doesn't always go forwards.
         return self.graphdict[name]
 
     def save_game(self):
-        to_save = diffd(self.tabdict, self.old_tabdict)
-        to_delete = diffd(self.old_tabdict, self.tabdict)
+        to_save = dminusd(self.tabdict, self.old_tabdict)
+        to_delete = dminusd(self.old_tabdict, self.tabdict)
         logger.debug(
             "Saving the tabdict:\n%s", repr(to_save))
         logger.debug(
@@ -784,28 +869,9 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["portal"][name] = {"dimension": name}
             kd["thing_location"][name] = {"dimension": name}
-        updd(self.tabdict,
-             Portal._select_tabdict(self.c, kd))
-        ttd = Thing._select_tabdict(self.c, kd)["thing_location"]
-        if "thing_location" not in self.tabdict:
-            self.tabdict["thing_location"] = {}
-        thing_td = self.tabdict["thing_location"]
-        for dimension in ttd:
-            if dimension not in thing_td:
-                thing_td[dimension] = {}
-            for thing in ttd[dimension]:
-                if thing not in thing_td[dimension]:
-                    thing_td[dimension][thing] = []
-                l = thing_td[dimension][thing]
-                for branch in ttd[dimension][thing]:
-                    while len(l) <= branch:
-                        l.append([])
-                    l = l[branch]
-                    for tick_from in ttd[dimension][thing][branch]:
-                        while len(l) <= tick_from:
-                            l.append({})
-                        l[tick_from] = ttd[dimension][thing][branch][tick_from]
-        updd(self.tabdict, thing_td)
+        dimtd = Portal._select_tabdict(self.c, kd)
+        dimtd.update(Thing._select_tabdict(self.c, kd))
+        updd(self.tabdict, dimtd)
         r = {}
         for name in names:
             r[name] = Dimension(self, name)
@@ -848,13 +914,12 @@ This is game-world time. It doesn't always go forwards.
         dimn = str(dim)
         if not isinstance(dim, Dimension):
             dim = self.get_dimension(dimn)
-        updd(self.tabdict,
-             Board._select_tabdict(
+        boardtd = Board._select_tabdict(
                  self.c,
                  {"board":
                   {"dimension": dimn,
-                   "idx": i}}))
-        spotd = Spot._select_tabdict(
+                   "idx": i}})
+        boardtd.update(Spot._select_tabdict(
             self.c,
             {"spot_img":
              {"dimension": dimn,
@@ -864,78 +929,16 @@ This is game-world time. It doesn't always go forwards.
               "board": i},
              "spot_coords":
              {"dimension": dimn,
-              "board": i}})
-        def loadspot(spotd, tabn):
-            if tabn not in self.tabdict:
-                self.tabdict[tabn] = {}
-            loaded = self.tabdict[tabn]
-            loading = spotd[tabn]
-            for dimension in loading:
-                if dimension not in loaded:
-                    loaded[dimension] = []
-                loading1 = loading[dimension]
-                loaded1 = loaded[dimension]
-                for board in loading1:
-                    while len(loaded1) <= board:
-                        loaded1.append({})
-                    loading2 = loading1[board]
-                    loaded2 = loaded1[board]
-                    for place in loading2:
-                        if place not in loaded2:
-                            loaded2[place] = []
-                        loading3 = loading2[place]
-                        loaded3 = loaded2[place]
-                        for branch in loading3:
-                            while len(loaded3) <= branch:
-                                loaded3.append([])
-                            loading4 = loading3[branch]
-                            loaded4 = loaded3[branch]
-                            for tick_from in loading4:
-                                while len(loaded4) <= tick_from:
-                                    loaded4.append(None)
-                                loaded4[tick_from] = loading4[tick_from]
-        loadspot(spotd, "spot_img")
-        loadspot(spotd, "spot_interactive")
-        loadspot(spotd, "spot_coords")
-        pawnd = Pawn._select_tabdict(
+              "board": i}}))
+        boardtd.update(Pawn._select_tabdict(
             self.c,
             {"pawn_img":
              {"dimension": dimn,
               "board": i},
              "pawn_interactive":
              {"dimension": dimn,
-              "board": i}})
-        def loadpawn(pawn_td, tabn):
-            if tabn not in self.tabdict:
-                self.tabdict[tabn] = {}
-            loading = pawn_td[tabn]
-            loaded = self.tabdict[tabn]
-            for dimension in loading:
-                if dimension not in loaded:
-                    loaded[dimension] = []
-            loading2 = loading[dimension]
-            loaded2 = loaded[dimension]
-            for board in loading2:
-                while len(loaded2) <= board:
-                    loaded2.append({})
-                loading3 = loading2[board]
-                loaded3 = loaded2[board]
-                for thing in loading3:
-                    if thing not in loaded3:
-                        loaded3[thing] = []
-                    loading4 = loading3[thing]
-                    loaded4 = loaded3[thing]
-                    for branch in loading4:
-                        while len(loaded4) <= branch:
-                            loaded4.append([])
-                        loading5 = loading4[branch]
-                        loaded5 = loaded4[branch]
-                        for tick_from in loading5:
-                            while len(loaded5) <= tick_from:
-                                loaded5.append(None)
-                            loaded5[tick_from] = loading5[tick_from]
-        loadpawn(pawnd, "pawn_img")
-        loadpawn(pawnd, "pawn_interactive")
+              "board": i}}))
+        updd(self.tabdict, boardtd)
         return Board(self, dim, i)
 
     def load_viewport(self, win, dim, board, viewi):

@@ -231,7 +231,10 @@ and your table will be ready.
                 return
 
         def gen_sql_delete(keydicts, tabname):
-            keyns = keynames[tabname]
+            try:
+                keyns = keynames[tabname]
+            except KeyError:
+                return
             keys = []
             wheres = []
             kitr = TabdictIterator(keydicts)
@@ -241,7 +244,11 @@ and your table will be ready.
                 checks = []
                 for keyn in keyns:
                     checks.append(keyn + "=?")
-                    keys.append(keydict[keyn])
+                    try:
+                        keys.append(keydict[keyn])
+                    except KeyError:
+                        import pdb
+                        pdb.set_trace()
                 wheres.append("(" + " AND ".join(checks) + ")")
             wherestr = " OR ".join(wheres)
             qrystr = "DELETE FROM {0} WHERE {1}".format(tabname, wherestr)
