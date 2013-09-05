@@ -38,15 +38,15 @@ saving the path.
         "height": lambda self: self.tex.height,
         "tex": lambda self: textures[str(self)]}
 
-    def __init__(self, rumor, name):
+    def __init__(self, closet, name):
         """Return an Img, and register it with the imgdict of the database
 provided."""
         global first_img_loaded
         print "loading img {0}".format(name)
-        self.rumor = rumor
+        self.closet = closet
         self._name = name
-        self.rumor.imgdict[str(self)] = self
-        self._rowdict = self.rumor.tabdict["img"][str(self)]
+        self.closet.imgdict[str(self)] = self
+        self._rowdict = self.closet.skeleton["img"][str(self)]
         print "with rowdict:"
         print self._rowdict
         if self.rltile:

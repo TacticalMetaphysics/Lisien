@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from rumor import mkdb
+from closet import mkdb
 from sys import argv
 
 """Make an empty database of LiSE's schema. By default it will be

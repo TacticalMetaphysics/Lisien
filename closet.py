@@ -128,7 +128,7 @@ whose keys are integers, I'll make a list instead.
 
 
 def dminusd(d1, d2):
-    """Returns the 'set difference' of the given tabdicts.
+    """Returns the 'set difference' of the given skeletons.
 
 That is, those rowdicts that are in d1, but not in d2.
 
@@ -204,7 +204,7 @@ before RumorMill will work. For that, run mkdb.sh.
     """
 
     atrdic = {
-        "game": lambda self: self.tabdict["game"],
+        "game": lambda self: self.skeleton["game"],
         "board": lambda self: self.game["front_board"],
         "front_board": lambda self: self.game["front_board"],
         "branch": lambda self: self.game["front_branch"],
@@ -232,12 +232,12 @@ given name.
         # data--represented only as those types which sqlite3 is
         # capable of storing. All my objects are ultimately just
         # views on this thing.
-        self.tabdict = {}
-        # This is a copy of the tabdict as it existed at the time of
+        self.skeleton = {}
+        # This is a copy of the skeleton as it existed at the time of
         # the last save. I'll be finding the differences between it
-        # and the current tabdict in order to decide what to write to
+        # and the current skeleton in order to decide what to write to
         # disk.
-        self.old_tabdict = {}
+        self.old_skeleton = {}
 
         self.windowdict = {}
         self.boardhanddict = {}
@@ -261,7 +261,7 @@ given name.
         self.game_speed = 1
         self.updating = False
 
-        updd(self.tabdict,
+        updd(self.skeleton,
              Timestream._select_table_all(self.c, 'timestream'))
         self.timestream = Timestream(self)
         self.time_travel_history = []
@@ -311,7 +311,7 @@ given name.
             'mi_create_portal':
             (self.mi_create_portal, ONE_ARG_RE)}
         self.func.update(xfuncs)
-        self.tabdict["game"] = {
+        self.skeleton["game"] = {
             "front_board": front_board,
             "front_branch": front_branch,
             "seed": seed,
@@ -449,12 +449,12 @@ This is game-world time. It doesn't always go forwards.
         return self.graphdict[name]
 
     def save_game(self):
-        to_save = dminusd(self.tabdict, self.old_tabdict)
-        to_delete = dminusd(self.old_tabdict, self.tabdict)
+        to_save = dminusd(self.skeleton, self.old_skeleton)
+        to_delete = dminusd(self.old_skeleton, self.skeleton)
         logger.debug(
-            "Saving the tabdict:\n%s", repr(to_save))
+            "Saving the skeleton:\n%s", repr(to_save))
         logger.debug(
-            "Deleting the tabdict:\n%s", repr(to_delete))
+            "Deleting the skeleton:\n%s", repr(to_delete))
         for clas in saveable_classes:
             for tabname in clas.tablenames:
                 if tabname in to_delete:
@@ -472,7 +472,7 @@ This is game-world time. It doesn't always go forwards.
                 ", ".join(keys),
                 ", ".join(["?"] * len(self.game))),
             tuple([self.game[k] for k in keys]))
-        self.old_tabdict = deepcopy(self.tabdict)
+        self.old_skeleton = deepcopy(self.skeleton)
 
     # TODO: For all these schedule functions, handle the case where I
     # try to schedule something for a time outside of the given
@@ -718,7 +718,7 @@ This is game-world time. It doesn't always go forwards.
             "tick, seed, hi_branch, hi_place, hi_portal, "
             "hi_thing FROM game")
         row = self.c.fetchone()
-        self.tabdict["game"] = {
+        self.skeleton["game"] = {
             "front_board": row[0],
             "front_branch": row[1],
             "front_dimension": row[2],
@@ -775,8 +775,8 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             for tabn in qtd.iterkeys():
                 qtd[tabn][name] = {"character": name}
-        updd(self.tabdict,
-             Character._select_tabdict(self.c, qtd))
+        updd(self.skeleton,
+             Character._select_skeleton(self.c, qtd))
         r = {}
         for name in names:
             char = Character(self, name)
@@ -807,11 +807,11 @@ This is game-world time. It doesn't always go forwards.
         kd = {"effect": {}}
         for name in names:
             kd["effect"][name] = {"name": name}
-        updd(self.tabdict,
-             Effect._select_tabdict(self.c, kd))
+        updd(self.skeleton,
+             Effect._select_skeleton(self.c, kd))
         need_chars = set()
         for name in names:
-            rd = self.tabdict["effect"][name]
+            rd = self.skeleton["effect"][name]
             need_chars.add(rd["character"])
         self.get_characters(need_chars)
         for name in names:
@@ -839,8 +839,8 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["effect_deck"][name] = {"name": name}
             kd["effect_deck_link"][name] = {"deck": name}
-        updd(self.tabdict,
-             EffectDeck._select_tabdict(self.c, kd))
+        updd(self.skeleton,
+             EffectDeck._select_skeleton(self.c, kd))
         for name in names:
             r[name] = EffectDeck(self, name)
         return r
@@ -868,9 +868,9 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["portal"][name] = {"dimension": name}
             kd["thing_location"][name] = {"dimension": name}
-        dimtd = Portal._select_tabdict(self.c, kd)
-        dimtd.update(Thing._select_tabdict(self.c, kd))
-        updd(self.tabdict, dimtd)
+        dimtd = Portal._select_skeleton(self.c, kd)
+        dimtd.update(Thing._select_skeleton(self.c, kd))
+        updd(self.skeleton, dimtd)
         r = {}
         for name in names:
             r[name] = Dimension(self, name)
@@ -913,12 +913,12 @@ This is game-world time. It doesn't always go forwards.
         dimn = str(dim)
         if not isinstance(dim, Dimension):
             dim = self.get_dimension(dimn)
-        boardtd = Board._select_tabdict(
+        boardtd = Board._select_skeleton(
                  self.c,
                  {"board":
                   {"dimension": dimn,
                    "idx": i}})
-        boardtd.update(Spot._select_tabdict(
+        boardtd.update(Spot._select_skeleton(
             self.c,
             {"spot_img":
              {"dimension": dimn,
@@ -929,7 +929,7 @@ This is game-world time. It doesn't always go forwards.
              "spot_coords":
              {"dimension": dimn,
               "board": i}}))
-        boardtd.update(Pawn._select_tabdict(
+        boardtd.update(Pawn._select_skeleton(
             self.c,
             {"pawn_img":
              {"dimension": dimn,
@@ -937,7 +937,7 @@ This is game-world time. It doesn't always go forwards.
              "pawn_interactive":
              {"dimension": dimn,
               "board": i}}))
-        updd(self.tabdict, boardtd)
+        updd(self.skeleton, boardtd)
         return Board(self, dim, i)
 
     def load_viewport(self, win, dim, board, viewi):
@@ -955,8 +955,8 @@ This is game-world time. It doesn't always go forwards.
                "dimension": dimn,
                "board": boardi,
                "idx": viewi}}
-        updd(self.tabdict,
-             BoardViewport._select_tabdict(self.c, kd))
+        updd(self.skeleton,
+             BoardViewport._select_skeleton(self.c, kd))
         return BoardViewport(
             self, win, dim, board, viewi)
 
@@ -976,8 +976,8 @@ This is game-world time. It doesn't always go forwards.
         kd = {"img": {}}
         for name in names:
             kd["img"][name] = {"name": name}
-        updd(self.tabdict,
-             Img._select_tabdict(
+        updd(self.skeleton,
+             Img._select_skeleton(
                  self.c, kd))
         r = {}
         for name in names:
@@ -1003,8 +1003,8 @@ This is game-world time. It doesn't always go forwards.
         kd = {"color": {}}
         for name in names:
             kd["color"][name] = {"name": name}
-        updd(self.tabdict,
-             Color._select_tabdict(self.c, kd))
+        updd(self.skeleton,
+             Color._select_skeleton(self.c, kd))
         r = {}
         for name in names:
             r[name] = Color(self, name)
@@ -1030,11 +1030,11 @@ This is game-world time. It doesn't always go forwards.
         kd = {"style": {}}
         for name in stylenames:
             kd["style"][name] = {"name": name}
-        updd(self.tabdict,
-             Style._select_tabdict(self.c, kd))
+        updd(self.skeleton,
+             Style._select_skeleton(self.c, kd))
         colornames = set()
         for name in stylenames:
-            rd = self.tabdict["style"][name]
+            rd = self.skeleton["style"][name]
             for colorcol in Style.color_cols:
                 colornames.add(rd[colorcol])
         self.get_colors(colornames)
@@ -1072,9 +1072,9 @@ This is game-world time. It doesn't always go forwards.
                 if col == "window":
                     continue
                 kd[col][name] = {"window": name}
-        td = GameWindow._select_tabdict(self.c, kd)
-        updd(self.tabdict, td)
-        updd(self.old_tabdict, td)
+        td = GameWindow._select_skeleton(self.c, kd)
+        updd(self.skeleton, td)
+        updd(self.old_skeleton, td)
         r = {}
         for name in names:
             r[name] = GameWindow(self, name, checkpoint)
@@ -1100,7 +1100,7 @@ This is game-world time. It doesn't always go forwards.
         kd = {"card": {}}
         for name in names:
             kd["card"][name] = {"effect": name}
-        td = Card._select_tabdict(self.c, kd)
+        td = Card._select_skeleton(self.c, kd)
         r = {}
         for rd in TabdictIterator(td):
             r[rd["effect"]] = Card(self, effectdict[rd["effect"]], td)
@@ -1236,7 +1236,7 @@ This is game-world time. It doesn't always go forwards.
         self.conn.close()
 
     def checkpoint(self):
-        self.old_tabdict = deepcopy(self.tabdict)
+        self.old_skeleton = deepcopy(self.skeleton)
 
 
 def mkdb(DB_NAME='default.sqlite'):

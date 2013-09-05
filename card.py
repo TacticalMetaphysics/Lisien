@@ -17,7 +17,7 @@ class Card:
         if self._text is None:
             return ''
         elif self._text[0] == '@':
-            return self.rumor.get_text(self._text[1:])
+            return self.closet.get_text(self._text[1:])
         else:
             return self._text
 
@@ -25,14 +25,14 @@ class Card:
         if self._display_name is None:
             return ''
         elif self._display_name[0] == '@':
-            return self.rumor.get_text(self._display_name[1:])
+            return self.closet.get_text(self._display_name[1:])
         else:
             return self._display_name
 
     atrdic = {
         "_text": lambda self: self._rowdict["text"],
         "_display_name": lambda self: self._rowdict["display_name"],
-        "image": lambda self: self.rumor.get_img(self._rowdict["image"]),
+        "image": lambda self: self.closet.get_img(self._rowdict["image"]),
         "img": lambda self: self.image,
         "text": lambda self: self.gett(),
         "display_name": lambda self: self.getd()}
@@ -51,11 +51,11 @@ class Card:
                 "effect": ("effect", "name")},
             [])]
 
-    def __init__(self, rumor, effect):
-        self.rumor = rumor
+    def __init__(self, closet, effect):
+        self.closet = closet
         self.effect = effect
-        self.rumor.carddict[str(self)] = self
-        self._rowdict = self.rumor.tabdict["card"][str(self.effect)]
+        self.closet.carddict[str(self)] = self
+        self._rowdict = self.closet.skeleton["card"][str(self.effect)]
 
     def __getattr__(self, attrn):
         try:
@@ -173,7 +173,7 @@ class CardWidget:
         self.bggroup = OrderedGroup(0, self.supergroup)
         self.imggroup = OrderedGroup(1, self.supergroup)
         self.textgroup = OrderedGroup(2, self.supergroup)
-        self.rumor = self.base.db
+        self.closet = self.base.db
         self.window = self.hand.window
         self.grabpoint = None
         self.visible = True
@@ -357,7 +357,7 @@ order."""
 
     def __init__(self, window, deck):
         self.window = window
-        self.rumor = self.window.rumor
+        self.closet = self.window.closet
         self.batch = self.window.batch
         self.cardgroup = OrderedGroup(
             self.window.hand_order, self.window.cardgroup)
@@ -372,13 +372,13 @@ order."""
 
     def __getattr__(self, attrn):
         if attrn == "_rowdict":
-            return self.rumor.tabdict[str(self.window)][str(self.deck)]
+            return self.closet.skeleton[str(self.window)][str(self.deck)]
         elif attrn in (
                 "left_prop", "right_prop", "top_prop",
                 "bot_prop", "visible", "interactive"):
             return self._rowdict[attrn]
         elif attrn == "style":
-            return self.rumor.get_style(self._rowdict["style"])
+            return self.closet.get_style(self._rowdict["style"])
         elif attrn == "board":
             return self.window.board
         elif attrn == "hovered":

@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
 import logging
-import rumor
+import closet
 from sys import argv
 from os import remove
 from sqlite3 import connect, DatabaseError
@@ -41,16 +41,16 @@ if DEBUG:
     logger = logging.getLogger()
 clock = pyglet.clock.Clock()
 pyglet.clock.set_default(clock)
-rumor = rumor.load_game(dbfn, lang)
-gw = rumor.get_window('Main', checkpoint=True)
+closet = closet.load_game(dbfn, lang)
+gw = closet.get_window('Main', checkpoint=True)
 
 
 def update(ts):
-    assert(len(rumor.tabdict['img']) > 1)
-    rumor.update()
+    assert(len(closet.skeleton['img']) > 1)
+    closet.update()
     gw.update(ts)
 
 pyglet.clock.schedule(update)
 pyglet.app.run()
-rumor.save_game()
-rumor.end_game()
+closet.save_game()
+closet.end_game()

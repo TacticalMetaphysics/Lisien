@@ -48,8 +48,8 @@ too.
          [])]
     basic_speed = 0.1
 
-    def __init__(self, rumor, dimension, name):
-        self.rumor = rumor
+    def __init__(self, closet, dimension, name):
+        self.closet = closet
         self.update_handlers = set()
         self.dimension = dimension
         self._name = str(name)
@@ -65,7 +65,7 @@ too.
 
     def __getattr__(self, attrn):
         if attrn == "locations":
-            return self.rumor.tabdict["thing_location"][
+            return self.closet.skeleton["thing_location"][
                 str(self.dimension)][str(self)]
         elif attrn == 'location':
             return self.get_location()
@@ -96,7 +96,7 @@ too.
         self.update_handlers.add(that)
 
     def update(self):
-        self.rumor.timestream.update()
+        self.closet.timestream.update()
         for handler in self.update_handlers:
             handler(self)
 
@@ -119,9 +119,9 @@ LocationException."""
         """Return my current location by default, or where I was at the given
 tick in the given branch."""
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if len(self.locations) < branch:
             return None
         if (
@@ -156,9 +156,9 @@ else to do.
 Return an Effect representing the change.
         """
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if branch in self.indefinite_locations:
             indef_start = self.indefinite_locations[branch]
             indef_rd = self.locations[indef_start]
@@ -223,9 +223,9 @@ Presupposes that I'm in a portal.
 
         """
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if len(self.locations) < branch:
             raise LocationException("I am nowhere in that branch")
         for rd in TabdictIterator(self.locations[branch]):
@@ -239,9 +239,9 @@ Presupposes that I'm in a portal.
         """Return the first tick after the one given, and after which there
 are n ticks of free time."""
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if branch not in self.locations:
             # Well, not existing is certainly ONE way not to have commitments
             return tick
@@ -254,8 +254,8 @@ are n ticks of free time."""
                 laterthan = tick_to
         return laterthan + 1
 
-    def get_tabdict(self):
-        self._tabdict = {
+    def get_skeleton(self):
+        self._skeleton = {
             "thing_location": [
                 {
                     "dimension": str(self.dimension),
@@ -266,15 +266,15 @@ are n ticks of free time."""
                     "location": str(location)}
                 for (branch, tick_from, tick_to, location) in
                 BranchTicksIter(self.locations)]}
-        return self._tabdict
+        return self._skeleton
 
     def end_location(self, branch=None, tick=None):
         """Find where I am at the given time. Arrange to stop being there
 then."""
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if len(self.locations) < branch:
             raise BranchError("Branch not known")
         if branch in self.indefinite_locations:
@@ -296,9 +296,9 @@ other journey I may be on at the time."""
         # anywhere I'm scheduled to be in a tick after the end of the
         # new journey, I'll still be there. It makes no sense.
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         loc = self.get_location(branch, tick)
         if hasattr(loc, 'orig'):
             loc = loc.orig
@@ -317,9 +317,9 @@ other journey I may be on at the time."""
             self.follow_path(path, branch, tick)
         except TimeParadox:
             self.new_branch_blank = True
-            self.rumor.increment_branch()
+            self.closet.increment_branch()
             self.new_branch_blank = False
-            self.follow_path(path, self.rumor.branch, tick)
+            self.follow_path(path, self.closet.branch, tick)
     
     def follow_path(self, path, branch, tick):
         self.end_location(branch, tick)

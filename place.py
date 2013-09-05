@@ -17,7 +17,7 @@ thing located there.
             import pdb
             pdb.set_trace()
         self.dimension = dimension
-        self.rumor = self.dimension.rumor
+        self.closet = self.dimension.closet
         self.v = v
 
     def __getattr__(self, attrn):

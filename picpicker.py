@@ -25,7 +25,7 @@ class PicPanel:
     def __init__(self, picker, pic):
         self.picker = picker
         self.window = self.picker.window
-        self.rumor = self.picker.rumor
+        self.closet = self.picker.closet
         self.pic = pic
         self.sprite = None
         self.tweaks = 0
@@ -107,7 +107,7 @@ will be assigned to that attribute of the window the picker is in.
         "window_bot": lambda self: int(self.bot_prop * self.window.height),
         "width": lambda self: self.window_right - self.window_left,
         "height": lambda self: self.window_top - self.window_bot,
-        "imgs": lambda self: self.rumor.imgdict.itervalues(),
+        "imgs": lambda self: self.closet.imgdict.itervalues(),
         "hovered": lambda self: self is self.window.hovered,
         "pressed": lambda self: self is self.window.pressed,
         "bgpat": lambda self: {
@@ -120,7 +120,7 @@ will be assigned to that attribute of the window the picker is in.
 
     def __init__(self, window, left, top, bot, right, style, targetn, flagn):
         self.window = window
-        self.rumor = self.window.rumor
+        self.closet = self.window.closet
         self.left_prop = left
         self.top_prop = top
         self.right_prop = right

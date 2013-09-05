@@ -60,13 +60,13 @@ clause in sqlite3.
 A class can have any number of such table-tuples. The tables will be
 declared in the order they appear in the tables attribute.
 
-To save, you need to define a method called get_tabdict. It should
+To save, you need to define a method called get_skeleton. It should
 return a dictionary where the keys are table names. The values are
 either rowdicts or iterables over rowdicts. A rowdict is a dictionary
 containing the information in a single record of a table; the keys are
 the names of the fields.
 
-To load, you need to define a method called from_tabdict that takes
+To load, you need to define a method called from_skeleton that takes
 that same kind of dictionary and returns an instance of your class.
 
 Once you've defined those, the save(db) and load(db) methods will save
@@ -315,7 +315,7 @@ and your table will be ready.
             return {tabname: r}
 
         @staticmethod
-        def _select_tabdict(c, td):
+        def _select_skeleton(c, td):
             r = {}
             for (tabname, rdd) in td.iteritems():
                 if tabname not in primarykeys:
@@ -367,21 +367,21 @@ and your table will be ready.
             return c.fetchall()
 
         @staticmethod
-        def _insert_tabdict(c, tabdict):
-            for (tabname, rds) in tabdict.iteritems():
+        def _insert_skeleton(c, skeleton):
+            for (tabname, rds) in skeleton.iteritems():
                 if tabname in tablenames:
                     insert_rowdicts_table(c, rds, tabname)
 
         @staticmethod
-        def _delete_tabdict(c, tabdict):
-            for (tabname, rds) in tabdict.iteritems():
+        def _delete_skeleton(c, skeleton):
+            for (tabname, rds) in skeleton.iteritems():
                 if tabname in tablenames:
                     delete_keydicts_table(c, rds, tabname)
 
         @staticmethod
-        def _detect_tabdict(c, tabdict):
+        def _detect_skeleton(c, skeleton):
             r = {}
-            for item in tabdict.iteritems():
+            for item in skeleton.iteritems():
                 (tabname, rd) = item
                 if isinstance(rd, dict):
                     r[tabname] = detect_keydicts_table(c, [rd], tabname)
@@ -390,9 +390,9 @@ and your table will be ready.
             return r
 
         @staticmethod
-        def _missing_tabdict(c, tabdict):
+        def _missing_skeleton(c, skeleton):
             r = {}
-            for item in tabdict.iteritems():
+            for item in skeleton.iteritems():
                 (tabname, rd) = item
                 if isinstance(rd, dict):
                     r[tabname] = missing_keydicts_table(c, [rd], tabname)
@@ -401,7 +401,7 @@ and your table will be ready.
             return r
 
         def get_keydict(self):
-            tabd = self.get_tabdict()
+            tabd = self.get_skeleton()
             r = {}
             for tabn in tablenames:
                 r[tabn] = {}
@@ -410,12 +410,12 @@ and your table will be ready.
             return r
 
         atrdic = {
-            '_select_tabdict': _select_tabdict,
+            '_select_skeleton': _select_skeleton,
             '_select_table_all': _select_table_all,
-            '_insert_tabdict': _insert_tabdict,
-            '_delete_tabdict': _delete_tabdict,
-            '_detect_tabdict': _detect_tabdict,
-            '_missing_tabdict': _missing_tabdict,
+            '_insert_skeleton': _insert_skeleton,
+            '_delete_skeleton': _delete_skeleton,
+            '_detect_skeleton': _detect_skeleton,
+            '_missing_skeleton': _missing_skeleton,
             '_insert_rowdicts_table': insert_rowdicts_table,
             '_delete_keydicts_table': delete_keydicts_table,
             '_gen_sql_insert': gen_sql_insert,
@@ -531,11 +531,11 @@ def deep_lookup(dic, keylst):
     return ptr[key]
 
 
-def compile_tabdicts(objs):
-    tabdicts = [o.tabdict for o in objs]
+def compile_skeletons(objs):
+    skeletons = [o.skeleton for o in objs]
     mastertab = {}
-    for tabdict in tabdicts:
-        for item in tabdict.iteritems():
+    for skeleton in skeletons:
+        for item in skeleton.iteritems():
             (tabname, rowdict) = item
             if tabname not in mastertab:
                 mastertab[tabname] = []
@@ -703,19 +703,19 @@ class TerminableImg:
 
     def get_img(self, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if len(self.imagery) < branch:
             return None
         if branch in self.indefinite_imagery:
             indef_start = self.indefinite_imagery[branch]
             if tick >= indef_start:
                 rd = self.imagery[branch][indef_start]
-                return self.rumor.get_img(rd["img"])
+                return self.closet.get_img(rd["img"])
         for rd in TabdictIterator(self.imagery[branch]):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
-                return self.rumor.get_img(rd["img"])
+                return self.closet.get_img(rd["img"])
         return None
 
     def new_branch_imagery(self, parent, branch, tick):
@@ -741,9 +741,9 @@ class TerminableInteractivity:
 
     def is_interactive(self, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if branch not in self.interactivity:
             return False
         if (

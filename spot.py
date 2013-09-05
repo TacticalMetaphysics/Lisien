@@ -98,24 +98,24 @@ class Spot(TerminableImg, TerminableInteractivity):
         "board_top": lambda self: self.y + self.ry,
         "board_right": lambda self: self.x + self.rx}
 
-    def __init__(self, rumor, dimension, board, place):
-        self.rumor = rumor
+    def __init__(self, closet, dimension, board, place):
+        self.closet = closet
         self.dimension = dimension
         self.board = board
         self.place = place
         self.vert = self.place.v
-        self.coord_lst = self.rumor.tabdict["spot_coords"][
+        self.coord_lst = self.closet.skeleton["spot_coords"][
             str(self.dimension)][
                 int(self.board)][str(self.place)]
-        self.interactivity = self.rumor.tabdict["spot_interactive"][
+        self.interactivity = self.closet.skeleton["spot_interactive"][
             str(self.dimension)][
                 int(self.board)][str(self.place)]
-        self.imagery = self.rumor.tabdict["spot_img"][
+        self.imagery = self.closet.skeleton["spot_img"][
             str(self.dimension)][
                 int(self.board)][str(self.place)]
         self.indefinite_imagery = {}
         for rd in TabdictIterator(
-                self.rumor.tabdict["spot_img"][
+                self.closet.skeleton["spot_img"][
                     str(self.dimension)][
                         int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
@@ -123,14 +123,14 @@ class Spot(TerminableImg, TerminableInteractivity):
                 break
         self.indefinite_coords = {}
         for rd in TabdictIterator(
-                self.rumor.tabdict["spot_coords"][
+                self.closet.skeleton["spot_coords"][
                     str(self.dimension)][
                         int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_coords[rd["branch"]] = rd["tick_from"]
                 break
         self.indefinite_interactivity = {}
-        for rd in TabdictIterator(self.rumor.tabdict["spot_interactive"][
+        for rd in TabdictIterator(self.closet.skeleton["spot_interactive"][
                 str(self.dimension)][
                     int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
@@ -156,9 +156,9 @@ class Spot(TerminableImg, TerminableInteractivity):
 
     def set_interactive(self, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if branch in self.indefinite_interactivity:
             indef_start = self.indefinite_interactivity[branch]
             indef_rd = self.interactivity[branch][indef_start]
@@ -183,9 +183,9 @@ class Spot(TerminableImg, TerminableInteractivity):
 
     def set_img(self, img, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if branch in self.indefinite_imagery:
             indef_start = self.indefinite_imagery[branch]
             indef_rd = self.imagery[branch][indef_start]
@@ -212,9 +212,9 @@ class Spot(TerminableImg, TerminableInteractivity):
 
     def get_coords(self, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if (
                 branch in self.indefinite_coords and
                 tick >= self.indefinite_coords[branch]):
@@ -229,9 +229,9 @@ class Spot(TerminableImg, TerminableInteractivity):
 
     def set_coords(self, x, y, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if len(self.coord_lst) < tick_from:
             self.coord_lst[branch] = []
         if branch in self.indefinite_coords:

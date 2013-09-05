@@ -51,10 +51,10 @@ class Pawn(TerminableImg, TerminableInteractivity):
           "dimension, thing": ("thing_location", "dimension, name")},
          [])]
     atrdic = {
-        "imagery": lambda self: self.rumor.tabdict[
+        "imagery": lambda self: self.closet.skeleton[
             "pawn_img"][str(self.dimension)][
                 int(self.board)][str(self.thing)],
-        "interactivity": lambda self: self.rumor.tabdict["pawn_interactive"][
+        "interactivity": lambda self: self.closet.skeleton["pawn_interactive"][
             str(self.dimension)][int(self.board)][str(self.thing)],
         "img": lambda self: self.get_img(),
         "visible": lambda self: self.img is not None,
@@ -67,13 +67,13 @@ class Pawn(TerminableImg, TerminableInteractivity):
         "ry": lambda self: self.height / 2,
         "r": lambda self: {True: self.rx, False: self.ry}[self.rx > self.ry]}
 
-    def __init__(self, rumor, dimension, board, thing):
+    def __init__(self, closet, dimension, board, thing):
         """Return a pawn on the board for the given dimension, representing
 the given thing with the given image. It may be visible or not,
 interactive or not.
 
         """
-        self.rumor = rumor
+        self.closet = closet
         self.dimension = dimension
         self.board = board
         self.thing = thing
@@ -81,15 +81,15 @@ interactive or not.
         self.indefinite_interactivity = {}
         imgns = set()
         for rd in TabdictIterator(
-                self.rumor.tabdict["pawn_img"][
+                self.closet.skeleton["pawn_img"][
                     str(self.dimension)][
                         int(self.board)][str(self.thing)]):
             imgns.add(rd["img"])
             if rd["tick_to"] is None:
                 self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
-        self.rumor.get_imgs(imgns)
+        self.closet.get_imgs(imgns)
         for rd in TabdictIterator(
-                self.rumor.tabdict["pawn_interactive"][
+                self.closet.skeleton["pawn_interactive"][
                 str(self.dimension)][int(self.board)][str(self.thing)]):
             if rd["tick_to"] is None:
                 self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
@@ -123,9 +123,9 @@ interactive or not.
 
     def set_img(self, img, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if branch in self.indefinite_imagery:
             indef_start = self.indefinite_imagery[branch]
             indef_rd = self.imagery[branch][indef_start]
@@ -150,9 +150,9 @@ interactive or not.
 
     def set_interactive(self, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if branch in self.indefinite_interactivity:
             indef_start = self.indefinite_interactivity[branch]
             indef_rd = self.interactivity[branch][indef_start]
@@ -244,7 +244,7 @@ class PawnWidget:
 
     def __init__(self, viewport, pawn):
         self.pawn = pawn
-        self.rumor = self.pawn.rumor
+        self.closet = self.pawn.closet
         self.viewport = viewport
         self.batch = self.viewport.batch
         self.spritegroup = self.viewport.pawngroup

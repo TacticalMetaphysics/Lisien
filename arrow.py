@@ -75,7 +75,7 @@ class Arrow:
 
     def __init__(self, board, orig_or_port, dest=None):
         self.board = board
-        self.rumor = self.board.rumor
+        self.closet = self.board.closet
         self.center_shrink = 0
         if dest is None:
             if hasattr(orig_or_port, 'orig'):

@@ -32,13 +32,13 @@ class MenuItem:
 
     def geticon(self):
         if self._icon is not None:
-            return self.rumor.get_img(self._icon)
+            return self.closet.get_img(self._icon)
 
     def gettxt(self):
         if self._text is None:
             return None
         elif self._text[0] == '@':
-            return self.rumor.get_text(self._text[1:])
+            return self.closet.get_text(self._text[1:])
         else:
             return self._text
 
@@ -87,18 +87,18 @@ With db, register in db's menuitemdict.
 
         """
         self.menu = menu
-        self.rumor = self.menu.rumor
+        self.closet = self.menu.closet
         self.batch = self.menu.batch
         self.group = self.menu.labelgroup
         self.window = self.menu.window
         self.idx = idx
-        self._rowdict = self.rumor.tabdict["menu_item"][
+        self._rowdict = self.closet.skeleton["menu_item"][
             str(self.window)][str(self.menu)][int(self)]
         while len(self.menu.items) <= self.idx:
             self.menu.items.append(None)
         self.menu.items[self.idx] = self
         (funname, argstr) = re.match("(.+)\((.*)\)", self._on_click).groups()
-        (fun, argre) = self.rumor.func[funname]
+        (fun, argre) = self.closet.func[funname]
         try:
             on_click_arg_tup = re.match(argre, argstr).groups()
         except:
@@ -197,7 +197,7 @@ With db, register in db's menuitemdict.
                     pass
                 self.sprite = None
 
-    def get_tabdict(self):
+    def get_skeleton(self):
         return {
             "menu_item": [{
                 "window": str(self.window),
@@ -230,7 +230,7 @@ class Menu:
         "top_prop": lambda self: self._rowdict["top"],
         "bot_prop": lambda self: self._rowdict["bot"],
         "style": lambda self: (
-            self.rumor.get_style(self._rowdict["style"])),
+            self.closet.get_style(self._rowdict["style"])),
         "hovered": lambda self: self.window.hovered is self,
         "window_left": lambda self: int(self.window.width * self.left_prop),
         "window_right": lambda self: int(self.window.width * self.right_prop),
@@ -261,12 +261,12 @@ With db, register with db's menudict.
         self.window = window
         self.name = name
         self.batch = self.window.batch
-        self.rumor = self.window.rumor
-        self._rowdict = self.rumor.tabdict["menu"][str(self.window)][str(self)]
+        self.closet = self.window.closet
+        self._rowdict = self.closet.skeleton["menu"][str(self.window)][str(self)]
         self.supergroup = OrderedGroup(0, self.window.menugroup)
         self.bggroup = OrderedGroup(0, self.supergroup)
         self.labelgroup = OrderedGroup(1, self.supergroup)
-        self.rumor = self.window.rumor
+        self.closet = self.window.closet
         self.active_pattern = pyglet.image.SolidColorImagePattern(
             self.style.bg_active.tup)
         self.inactive_pattern = pyglet.image.SolidColorImagePattern(
@@ -277,7 +277,7 @@ With db, register with db's menudict.
         self.pressed = False
         self.freshly_adjusted = False
         self.visible = False
-        self_rowdict = self.rumor.tabdict["menu"][
+        self_rowdict = self.closet.skeleton["menu"][
             str(self.window)][str(self)]
 
         def r():
@@ -361,7 +361,7 @@ me"""
             self.pressed,
             self.tweaks)
 
-    def get_tabdict(self):
+    def get_skeleton(self):
         return {
             "menu": [{
                 "window": str(self.window),

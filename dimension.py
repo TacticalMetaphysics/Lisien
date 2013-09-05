@@ -53,7 +53,7 @@ characters."""
         "portals": lambda self: PortIter(self),
         "things": lambda self: self.thingdict.itervalues()}
 
-    def __init__(self, rumor, name):
+    def __init__(self, closet, name):
         """Return a dimension with the given name.
 
 Probably useless unless, once you're sure you've put all your places,
@@ -63,20 +63,20 @@ keyed with their names.
 
         """
         self._name = name
-        self.rumor = rumor
+        self.closet = closet
         self.boards = []
         self.thingdict = {}
         self.graph = Graph(directed=True)
-        for rd in TabdictIterator(self.rumor.tabdict["portal"][str(self)]):
+        for rd in TabdictIterator(self.closet.skeleton["portal"][str(self)]):
             orig = self.get_place(rd["origin"])
             dest = self.get_place(rd["destination"])
-            Portal(self.rumor, self, orig, dest)
+            Portal(self.closet, self, orig, dest)
         for rd in TabdictIterator(
-                self.rumor.tabdict["thing_location"][str(self)]):
+                self.closet.skeleton["thing_location"][str(self)]):
             if rd["thing"] not in self.thingdict:
                 self.thingdict[rd["thing"]] = Thing(
-                    self.rumor, self, rd["thing"])
-        self.rumor.dimensiondict[str(self)] = self
+                    self.closet, self, rd["thing"])
+        self.closet.dimensiondict[str(self)] = self
 
     def __hash__(self):
         """Return the hash of this dimension's name, since the database

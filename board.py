@@ -42,7 +42,7 @@ each board will be open in at most one window at a time.
          {"wallpaper": ("img", "name")},
          [])]
     atrdic = {
-        "wallpaper": lambda self: self.rumor.get_img(
+        "wallpaper": lambda self: self.closet.get_img(
             self._rowdict["wallpaper"]),
         "places": lambda self: iter(self.dimension.places),
         "portals": lambda self: iter(self.dimension.portals),
@@ -51,29 +51,29 @@ each board will be open in at most one window at a time.
         "spots": lambda self: self.spotdict.itervalues(),
         "arrows": lambda self: self.arrowdict.itervalues()}
 
-    def __init__(self, rumor, dimension, idx):
+    def __init__(self, closet, dimension, idx):
         """Return a board representing the given dimension.
 
         """
-        self.rumor = rumor
+        self.closet = closet
         self.dimension = dimension
         self.idx = idx
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
         self.viewports = []
-        self._rowdict = self.rumor.tabdict["board"][str(self.dimension)][int(self)]
+        self._rowdict = self.closet.skeleton["board"][str(self.dimension)][int(self)]
         while len(self.dimension.boards) <= self.idx:
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
-        if "spot_coords" in self.rumor.tabdict:
+        if "spot_coords" in self.closet.skeleton:
             for rd in TabdictIterator(
-                    self.rumor.tabdict[
+                    self.closet.skeleton[
                         "spot_coords"][str(self.dimension)][int(self)]):
                 self.add_spot(rd)
-        if "pawn_img" in self.rumor.tabdict:
+        if "pawn_img" in self.closet.skeleton:
             for rd in TabdictIterator(
-                    self.rumor.tabdict[
+                    self.closet.skeleton[
                         "pawn_img"][str(self.dimension)][int(self)]):
                 self.add_pawn(rd)
         for portal in self.dimension.portals:
@@ -89,13 +89,13 @@ each board will be open in at most one window at a time.
     def add_spot(self, rd):
         assert(rd["dimension"] == str(self.dimension))
         self.spotdict[rd["place"]] = Spot(
-            self.rumor, self.dimension, self,
+            self.closet, self.dimension, self,
             self.dimension.get_place(rd["place"]))
 
     def add_pawn(self, rd):
         assert(rd["dimension"] == str(self.dimension))
         self.pawndict[rd["thing"]] = Pawn(
-            self.rumor, self.dimension, self,
+            self.closet, self.dimension, self,
             self.dimension.get_thing(rd["thing"]))
 
     def get_spot_at(self, x, y):
@@ -129,8 +129,8 @@ each board will be open in at most one window at a time.
         return self.spotdict[str(place)]
 
     def make_spot(self, place):
-        place = self.rumor.get_place(str(self.dimension), str(place))
-        self.spotdict[str(place)] = Spot(self.rumor, self.dimension, self, place)
+        place = self.closet.get_place(str(self.dimension), str(place))
+        self.spotdict[str(place)] = Spot(self.closet, self.dimension, self, place)
 
     def make_arrow(self, orig_or_port, dest=None):
         if dest is None:
@@ -195,13 +195,13 @@ class BoardViewport:
         "spots": lambda self: self.spotdict.itervalues(),
         "pawns": lambda self: self.pawndict.itervalues()}
 
-    def __init__(self, rumor, window, dimension, board, idx):
-        self.rumor = rumor
+    def __init__(self, closet, window, dimension, board, idx):
+        self.closet = closet
         self.window = window
         self.dimension = dimension
         self.board = board
         self.idx = idx
-        self._rowdict = self.rumor.tabdict[
+        self._rowdict = self.closet.skeleton[
             "board_viewport"][
                 str(self.window)][
                     str(self.dimension)][

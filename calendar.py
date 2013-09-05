@@ -244,7 +244,7 @@ for the handle_side keyword argument.
         self.cal = self.col.calendar
         self.batch = self.col.batch
         self.window = self.cal.window
-        self.rumor = self.col.rumor
+        self.closet = self.col.closet
         self.handle = Handle(self, handle_side)
         self.vertlist = None
         self.atrdic = {
@@ -259,7 +259,7 @@ for the handle_side keyword argument.
     def __getattr__(self, attrn):
         if attrn in ("calendar_y", "calendar_bot", "calendar_top"):
             return self.cal.height - self.cal.row_height * (
-                self.rumor.tick - self.cal.scrolled_to)
+                self.closet.tick - self.cal.scrolled_to)
         elif attrn in ("y", "window_y", "window_bot", "window_top"):
             return self.calendar_y + self.cal.window_bot
         else:
@@ -365,20 +365,20 @@ represents to calculate its dimensions and coordinates.
         "label_height": lambda self: self.style.fontsize + self.style.spacing,
         "hovered": lambda self: self is self.window.hovered,
         "coverage_dict": lambda self: {
-            CAL_TYPE['THING']: lambda self: self.rumor.tabdict[
+            CAL_TYPE['THING']: lambda self: self.closet.skeleton[
                 "character_things"][self._rowdict["character"]][
                     self._rowdict["dimension"]][self._rowdict["thing"]],
-            CAL_TYPE['PLACE']: lambda self: self.rumor.tabdict[
+            CAL_TYPE['PLACE']: lambda self: self.closet.skeleton[
                 "character_places"][self._rowdict["character"]][
                     self._rowdict["dimension"]][self._rowdict["place"]],
-            CAL_TYPE['PORTAL']: lambda self: self.rumor.tabdict[
+            CAL_TYPE['PORTAL']: lambda self: self.closet.skeleton[
                 "character_portals"][self._rowdict["character"]][
                     self._rowdict["dimension"]][self._rowdict["origin"]][
                         self._rowdict["destination"]],
-            CAL_TYPE['SKILL']: lambda self: self.rumor.tabdict[
+            CAL_TYPE['SKILL']: lambda self: self.closet.skeleton[
                 "character_skills"][self._rowdict["character"]][
                     self._rowdict["skill"]],
-            CAL_TYPE['STAT']: lambda self: self.rumor.tabdict[
+            CAL_TYPE['STAT']: lambda self: self.closet.skeleton[
                 "character_stats"][self._rowdict["character"]][
                     self._rowdict["stat"]]}[self.typ]()}
 
@@ -597,7 +597,7 @@ time travel.
     def sttt(self):
         r = self._rowdict["scrolled_to"]
         if r is None:
-            return self.rumor.tick
+            return self.closet.tick
         else:
             return r
     def get_col_width(self):
@@ -607,13 +607,13 @@ time travel.
             return self.width
     atrdic = {
         "typ": lambda self: self._rowdict["type"],
-        "character": lambda self: self.rumor.get_character(self._rowdict["character"]),
-        "dimension": lambda self: self.rumor.get_dimension(self._rowdict["dimension"]),
-        "thing": lambda self: self.rumor.get_thing(
+        "character": lambda self: self.closet.get_character(self._rowdict["character"]),
+        "dimension": lambda self: self.closet.get_dimension(self._rowdict["dimension"]),
+        "thing": lambda self: self.closet.get_thing(
             self._rowdict["dimension"], self._rowdict["thing"]),
-        "place": lambda self: self.rumor.get_place(
+        "place": lambda self: self.closet.get_place(
             self._rowdict["dimension"], self._rowdict["place"]),
-        "portal": lambda self: self.rumor.get_portal(
+        "portal": lambda self: self.closet.get_portal(
             self._rowdict["dimension"],
             self._rowdict["origin"],
             self._rowdict["destination"]),
@@ -624,7 +624,7 @@ time travel.
         "top_prop": lambda self: self._rowdict["top"],
         "bot_prop": lambda self: self._rowdict["bot"],
         "bot_tick": lambda self: self.top_tick + self.rows_shown,
-        "style": lambda self: self.rumor.get_style(self._rowdict["style"]),
+        "style": lambda self: self.closet.get_style(self._rowdict["style"]),
         "window_top": lambda self: int(self.top_prop * self.window.height),
         "window_bot": lambda self: int(self.bot_prop * self.window.height),
         "window_left": lambda self: int(self.left_prop * self.window.width),
@@ -645,32 +645,32 @@ time travel.
 
     def __init__(self, window, idx):
         self.window = window
-        self.rumor = self.window.rumor
+        self.closet = self.window.closet
         self.idx = idx
-        self.rumor.timestream.update_handlers.add(self)
+        self.closet.timestream.update_handlers.add(self)
         self.batch = self.window.batch
         self.group = self.window.calgroup
         self.old_state = None
         self.tainted = False
-        self._rowdict = self.rumor.tabdict[
+        self._rowdict = self.closet.skeleton[
             "calendar"][
                 str(self.window)][
                     int(self)]
         if self._rowdict["thing_show_location"]:
-            self._location_dict = self.rumor.tabdict[
+            self._location_dict = self.closet.skeleton[
                 "thing_location"][
                     self._rowdict["dimension"]][
                         self._rowdict["thing"]]
         self.cols_shown = set()
         self.coldict = {0: self.make_col(0)}
         self.cols_shown.add(0)
-        for i in xrange(0, self.rumor.hi_branch):
+        for i in xrange(0, self.closet.hi_branch):
             self.coldict[i] = self.make_col(i)
         for i in xrange(0, self.max_cols - 1):
             if i in self.coldict:
                 self.cols_shown.add(i)
-        self.branch_to = self.rumor.hi_branch
-        self.rumor.timestream.update_handlers.add(self)
+        self.branch_to = self.closet.hi_branch
+        self.closet.timestream.update_handlers.add(self)
         self.refresh()
 
     def __int__(self):
@@ -717,7 +717,7 @@ time travel.
     def rearrow(self):
         for coli in self.cols_shown:
             col1 = self.coldict[coli]
-            (parent, tick_from, tick_to) = self.rumor.timestream.branchdict[
+            (parent, tick_from, tick_to) = self.closet.timestream.branchdict[
                 col1.branch]
             if hasattr(col1, 'bc'):
                 col1.bc.delete()
@@ -748,7 +748,7 @@ time travel.
             self.coldict[col].refresh()
 
     def on_timestream_update(self):
-        for branch in self.rumor.timestream.branchdict:
+        for branch in self.closet.timestream.branchdict:
             self.coldict[branch] = self.make_col(branch)
             self.cols_shown.add(branch)
             if len(self.cols_shown) > self.max_cols:
@@ -796,7 +796,7 @@ class CalendarCol:
     def __init__(self, calendar, branch):
         self.calendar = calendar
         self.branch = branch
-        self.rumor = self.calendar.rumor
+        self.closet = self.calendar.closet
         self.batch = self.calendar.batch
         self.style = self.calendar.style
         self.supergroup = CalendarColGroup(self)
@@ -889,7 +889,7 @@ class CalendarCol:
         if hasattr(self, 'bc'):
             self.bc.draw()
         if (
-                self.rumor.branch == self.branch and
+                self.closet.branch == self.branch and
                 self.timeline.in_window):
             self.timeline.draw()
         else:
@@ -918,7 +918,7 @@ instead, giving something like "in transit from A to B".
         "locations": lambda self: self.thing.locations[self.branch],
         "coverage": lambda self: self.character.thingdict[
             self.branch][dimn][thingn],
-        "thing": lambda self: self.rumor.get_thing(dimn, thingn)
+        "thing": lambda self: self.closet.get_thing(dimn, thingn)
     }
     cal_attrs = set([
         "character",

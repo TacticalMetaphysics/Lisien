@@ -118,24 +118,24 @@ class GameWindow(pyglet.window.Window):
         'timestream_changed': lambda self: self.rehash_timeline()}
 
     def __init__(
-            self, rumor, name, checkpoint=False):
+            self, closet, name, checkpoint=False):
         """Initialize the game window, its groups, and some state tracking."""
-        assert(len(rumor.tabdict['img']) > 1)
+        assert(len(closet.skeleton['img']) > 1)
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
-        self.rumor = rumor
+        self.closet = closet
         self.name = name
         self.checkpoint = checkpoint
         self.edge_order = 1
         self.viewport_order = 1
         self.hand_order = 1
-        self.last_timestream_hash = hash(self.rumor.timestream)
+        self.last_timestream_hash = hash(self.closet.timestream)
         self.menudict = {}
-        self.dimensiondict = self.rumor.get_dimensions(
+        self.dimensiondict = self.closet.get_dimensions(
             [rd["dimension"] for rd in
-             TabdictIterator(self.rumor.tabdict[
+             TabdictIterator(self.closet.skeleton[
                  "board_viewport"][str(self)])])
-        self._rowdict = self.rumor.tabdict["window"][name]
+        self._rowdict = self.closet.skeleton["window"][name]
         self.dxdy_hist_max = 10
         self.dx_hist = deque([], self.dxdy_hist_max)
         self.dy_hist = deque([], self.dxdy_hist_max)
@@ -148,67 +148,67 @@ class GameWindow(pyglet.window.Window):
         self.pickergroup = ScissorOrderedGroup(
             8, self.biggroup, self, 0.3, 0.6, 0.3, 0.6)
         self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
-        for rd in TabdictIterator(self.rumor.tabdict[
+        for rd in TabdictIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
-            self.rumor.get_board(rd["dimension"], rd["board"])
+            self.closet.get_board(rd["dimension"], rd["board"])
             dimension = self.dimensiondict[rd["dimension"]]
             boardi = rd["board"]
             viewi = rd["idx"]
             board = dimension.boards[boardi]
             board.viewports[viewi] = BoardViewport(
-                self.rumor, self, dimension, board, viewi)
+                self.closet, self, dimension, board, viewi)
         stylenames = set()
         handnames = set()
         charnames = set()
         for rd in TabdictIterator(
-                self.rumor.tabdict["menu"][str(self)]):
+                self.closet.skeleton["menu"][str(self)]):
             stylenames.add(rd["style"])
-        if "hand" in self.rumor.tabdict and str(self) in self.rumor.tabdict["hand"]:
+        if "hand" in self.closet.skeleton and str(self) in self.closet.skeleton["hand"]:
             for rd in TabdictIterator(
-                    self.rumor.tabdict["hand"][str(self)]):
+                    self.closet.skeleton["hand"][str(self)]):
                 stylenames.add(rd["style"])
                 handnames.add(rd["name"])
         for rd in TabdictIterator(
-                self.rumor.tabdict["calendar"][str(self)]):
+                self.closet.skeleton["calendar"][str(self)]):
             stylenames.add(rd["style"])
-        self.rumor.get_styles(stylenames)
-        carddict = self.rumor.get_cards_in_hands(handnames)
+        self.closet.get_styles(stylenames)
+        carddict = self.closet.get_cards_in_hands(handnames)
         imagenames = set()
         for rd in TabdictIterator(
-                self.rumor.tabdict["menu_item"][str(self)]):
+                self.closet.skeleton["menu_item"][str(self)]):
             if rd["icon"] is not None:
                 imagenames.add(rd["icon"])
         for rd in TabdictIterator(carddict):
             if rd["image"] is not None:
                 imagenames.add(rd["image"])
-        self.rumor.get_imgs(imagenames)
+        self.closet.get_imgs(imagenames)
         for rd in TabdictIterator(
-                self.rumor.tabdict["menu"][str(self)]):
+                self.closet.skeleton["menu"][str(self)]):
             menu = Menu(self, rd["name"])
             for mird in TabdictIterator(
-                    self.rumor.tabdict["menu_item"][
+                    self.closet.skeleton["menu_item"][
                         str(self)][str(menu)]):
                 MenuItem(menu, mird["idx"])
             self.menudict[str(menu)] = menu
-        if "hand" in self.rumor.tabdict and str(self) in self.rumor.tabdict["hand"]:
+        if "hand" in self.closet.skeleton and str(self) in self.closet.skeleton["hand"]:
             effect_deck_names = set()
             for rd in TabdictIterator(
-                    self.rumor.tabdict["hand"][str(self)]):
+                    self.closet.skeleton["hand"][str(self)]):
                 effect_deck_names.add(rd["deck"])
-            deckd = self.rumor.get_effect_decks(effect_deck_names)
-            self.rumor.get_effects_in_decks(effect_deck_names)
+            deckd = self.closet.get_effect_decks(effect_deck_names)
+            self.closet.get_effects_in_decks(effect_deck_names)
             self.handdict = {}
             for (name, deck) in deckd.iteritems():
                 self.handdict[name] = Hand(self, deck)
         if hasattr(self, 'handdict'):
-            self.carddict = self.rumor.get_cards_in_hands(self.handdict.keys())
+            self.carddict = self.closet.get_cards_in_hands(self.handdict.keys())
         self.calendars = []
         for rd in TabdictIterator(
-                self.rumor.tabdict["calendar"][str(self)]):
+                self.closet.skeleton["calendar"][str(self)]):
             charnames.add(rd["character"])
-        self.rumor.load_characters(charnames)
+        self.closet.load_characters(charnames)
         for rd in TabdictIterator(
-                self.rumor.tabdict["calendar"][str(self)]):
+                self.closet.skeleton["calendar"][str(self)]):
             while len(self.calendars) <= rd["idx"]:
                 self.calendars.append(None)
             self.calendars[rd["idx"]] = Calendar(self, rd["idx"])
@@ -237,7 +237,7 @@ class GameWindow(pyglet.window.Window):
         self.keep_selected = False
         self.prev_view_bot = 0
 
-        orbimg = self.rumor.get_img('default_spot').tex
+        orbimg = self.closet.get_img('default_spot').tex
         rx = orbimg.width / 2
         ry = orbimg.height / 2
         self.create_place_cursor = (
@@ -268,7 +268,7 @@ class GameWindow(pyglet.window.Window):
         return self.name
 
     def rehash_timeline(self):
-        tihash = hash(self.rumor.timestream)
+        tihash = hash(self.closet.timestream)
         r = self.last_timestream_hash != tihash
         self.last_timestream_hash = tihash
         return r
@@ -313,7 +313,7 @@ class GameWindow(pyglet.window.Window):
         # NOW I'll draw them.
         self.batch.draw()
         if self.checkpoint:
-            self.rumor.checkpoint()
+            self.closet.checkpoint()
             self.checkpoint = False
 
     def on_resize(self, w, h):
@@ -367,7 +367,7 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                     self.place_pic_sprite.delete()
                 except:
                     pass
-                pl = self.rumor.make_generic_place(self.dimension)
+                pl = self.closet.make_generic_place(self.dimension)
                 sp = self.board.get_spot(pl)
                 sp.set_coords(x + self.view_left, y + self.view_bot)
                 sp.set_img(self.place_pic)
@@ -392,7 +392,7 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                     x + self.view_left, y + self.view_bot)
                 if sp is not None:
                     pl = sp.place
-                    th = self.rumor.make_generic_thing(self.dimension, pl)
+                    th = self.closet.make_generic_thing(self.dimension, pl)
                     self.board.make_pawn(th)
                     th.pawns[int(self.board)].set_img(self.thing_pic)
                     logger.debug("made generic thing: %s", str(th))
@@ -417,7 +417,7 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                         hasattr(self.pressed, 'place') and
                         hasattr(self.portal_from, 'place') and
                         self.pressed.place != self.portal_from.place):
-                    port = self.rumor.make_portal(
+                    port = self.closet.make_portal(
                         self.portal_from.place,
                         self.pressed.place)
                     self.board.make_arrow(port)

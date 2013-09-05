@@ -48,9 +48,9 @@ class Timestream:
          {"parent": ("timestream", "branch")},
          ["branch>=0", "tick_from>=0",
           "tick_to>=tick_from", "parent=0 or parent<>branch"])]
-    def __init__(self, rumor):
-        self.rumor = rumor
-        td = self.rumor.tabdict
+    def __init__(self, closet):
+        self.closet = closet
+        td = self.closet.skeleton
         self.branch_edges = defaultdict(set)
         self.branch_done_to = defaultdict(lambda: -1)
         self.branchdict = {}
@@ -319,7 +319,7 @@ the branch's current end."""
             self.branchdict[branch] = (
                 self.branchdict[branch][0], tick_to)
 
-    def get_tabdict(self):
+    def get_skeleton(self):
         return {"timestream": BranchDictIter(self.branchdict)}
 
 class TimestreamException(Exception):

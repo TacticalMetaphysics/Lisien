@@ -21,8 +21,8 @@ class Portal:
          {},
          [])]
 
-    def __init__(self, rumor, dimension, origin, destination):
-        self.rumor = rumor
+    def __init__(self, closet, dimension, origin, destination):
+        self.closet = closet
         self.dimension = dimension
         self.graph = self.dimension.graph
         self.orig = origin
@@ -44,7 +44,7 @@ class Portal:
         elif attrn in ("e", "edge"):
             return self.graph.es[self.graph.get_eid(self.origi, self.desti)]
         elif attrn == "existence":
-            return self.rumor.tabdict["portal"][
+            return self.closet.skeleton["portal"][
                 str(self.dimension)][str(self.orig)][str(self.dest)]
         else:
             raise AttributeError(
