@@ -730,7 +730,6 @@ This is game-world time. It doesn't always go forwards.
             "hi_thing": row[8]}
         dim = self.get_dimension(self.game["front_dimension"])
         self.load_board(dim, self.game["front_board"])
-        self.old_tabdict = deepcopy(self.tabdict)
 
     def load_strings(self):
         self.c.execute("SELECT stringname, language, string FROM strings")
@@ -1059,7 +1058,7 @@ This is game-world time. It doesn't always go forwards.
     def get_style(self, name):
         return self.get_styles([name])[name]
 
-    def load_windows(self, names):
+    def load_windows(self, names, checkpoint=False):
         kd = {
             "window": {},
             "board_viewport": {},
@@ -1078,10 +1077,10 @@ This is game-world time. It doesn't always go forwards.
         updd(self.old_tabdict, td)
         r = {}
         for name in names:
-            r[name] = GameWindow(self, name)
+            r[name] = GameWindow(self, name, checkpoint)
         return r
 
-    def get_windows(self, names):
+    def get_windows(self, names, checkpoint=False):
         r = {}
         unhad = set()
         for name in iter(names):
@@ -1090,11 +1089,11 @@ This is game-world time. It doesn't always go forwards.
             else:
                 unhad.add(name)
         if len(unhad) > 0:
-            r.update(self.load_windows(unhad))
+            r.update(self.load_windows(unhad, checkpoint))
         return r
 
-    def get_window(self, name):
-        return self.get_windows([name])[name]
+    def get_window(self, name, checkpoint=False):
+        return self.get_windows([name], checkpoint)[name]
 
     def load_cards(self, names):
         effectdict = self.get_effects(names)
@@ -1235,6 +1234,9 @@ This is game-world time. It doesn't always go forwards.
         self.c.close()
         self.conn.commit()
         self.conn.close()
+
+    def checkpoint(self):
+        self.old_tabdict = deepcopy(self.tabdict)
 
 
 def mkdb(DB_NAME='default.sqlite'):

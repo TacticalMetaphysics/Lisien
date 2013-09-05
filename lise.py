@@ -42,7 +42,7 @@ if DEBUG:
 clock = pyglet.clock.Clock()
 pyglet.clock.set_default(clock)
 rumor = rumor.load_game(dbfn, lang)
-gw = rumor.get_window('Main')
+gw = rumor.get_window('Main', checkpoint=True)
 
 
 def update(ts):

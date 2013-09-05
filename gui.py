@@ -118,13 +118,14 @@ class GameWindow(pyglet.window.Window):
         'timestream_changed': lambda self: self.rehash_timeline()}
 
     def __init__(
-            self, rumor, name):
+            self, rumor, name, checkpoint=False):
         """Initialize the game window, its groups, and some state tracking."""
         assert(len(rumor.tabdict['img']) > 1)
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
         self.rumor = rumor
         self.name = name
+        self.checkpoint = checkpoint
         self.edge_order = 1
         self.viewport_order = 1
         self.hand_order = 1
@@ -311,6 +312,9 @@ class GameWindow(pyglet.window.Window):
         # well, I lied. I was really only adding those things to the batch.
         # NOW I'll draw them.
         self.batch.draw()
+        if self.checkpoint:
+            self.rumor.checkpoint()
+            self.checkpoint = False
 
     def on_resize(self, w, h):
         for calendar in self.calendars:
