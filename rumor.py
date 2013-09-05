@@ -787,7 +787,9 @@ This is game-world time. It doesn't always go forwards.
         updd(self.tabdict,
              Portal._select_tabdict(self.c, kd))
         ttd = Thing._select_tabdict(self.c, kd)["thing_location"]
-        thing_td = {}
+        if "thing_location" not in self.tabdict:
+            self.tabdict["thing_location"] = {}
+        thing_td = self.tabdict["thing_location"]
         for dimension in ttd:
             if dimension not in thing_td:
                 thing_td[dimension] = {}
@@ -852,27 +854,88 @@ This is game-world time. It doesn't always go forwards.
                  {"board":
                   {"dimension": dimn,
                    "idx": i}}))
-        updd(self.tabdict,
-             Spot._select_tabdict(
-                 self.c,
-                 {"spot_img":
-                  {"dimension": dimn,
-                   "board": i},
-                  "spot_interactive":
-                  {"dimension": dimn,
-                   "board": i},
-                  "spot_coords":
-                  {"dimension": dimn,
-                   "board": i}}))
-        updd(self.tabdict,
-             Pawn._select_tabdict(
-                 self.c,
-                 {"pawn_img":
-                  {"dimension": dimn,
-                   "board": i},
-                  "pawn_interactive":
-                  {"dimension": dimn,
-                   "board": i}}))
+        spotd = Spot._select_tabdict(
+            self.c,
+            {"spot_img":
+             {"dimension": dimn,
+              "board": i},
+             "spot_interactive":
+             {"dimension": dimn,
+              "board": i},
+             "spot_coords":
+             {"dimension": dimn,
+              "board": i}})
+        def loadspot(spotd, tabn):
+            if tabn not in self.tabdict:
+                self.tabdict[tabn] = {}
+            loaded = self.tabdict[tabn]
+            loading = spotd[tabn]
+            for dimension in loading:
+                if dimension not in loaded:
+                    loaded[dimension] = []
+                loading1 = loading[dimension]
+                loaded1 = loaded[dimension]
+                for board in loading1:
+                    while len(loaded1) <= board:
+                        loaded1.append({})
+                    loading2 = loading1[board]
+                    loaded2 = loaded1[board]
+                    for place in loading2:
+                        if place not in loaded2:
+                            loaded2[place] = []
+                        loading3 = loading2[place]
+                        loaded3 = loaded2[place]
+                        for branch in loading3:
+                            while len(loaded3) <= branch:
+                                loaded3.append([])
+                            loading4 = loading3[branch]
+                            loaded4 = loaded3[branch]
+                            for tick_from in loading4:
+                                while len(loaded4) <= tick_from:
+                                    loaded4.append(None)
+                                loaded4[tick_from] = loading4[tick_from]
+        loadspot(spotd, "spot_img")
+        loadspot(spotd, "spot_interactive")
+        loadspot(spotd, "spot_coords")
+        pawnd = Pawn._select_tabdict(
+            self.c,
+            {"pawn_img":
+             {"dimension": dimn,
+              "board": i},
+             "pawn_interactive":
+             {"dimension": dimn,
+              "board": i}})
+        def loadpawn(pawn_td, tabn):
+            if tabn not in self.tabdict:
+                self.tabdict[tabn] = {}
+            loading = pawn_td[tabn]
+            loaded = self.tabdict[tabn]
+            for dimension in loading:
+                if dimension not in loaded:
+                    loaded[dimension] = []
+            loading2 = loading[dimension]
+            loaded2 = loaded[dimension]
+            for board in loading2:
+                while len(loaded2) <= board:
+                    loaded2.append({})
+                loading3 = loading2[board]
+                loaded3 = loaded2[board]
+                for thing in loading3:
+                    if thing not in loaded3:
+                        loaded3[thing] = []
+                    loading4 = loading3[thing]
+                    loaded4 = loaded3[thing]
+                    for branch in loading4:
+                        while len(loaded4) <= branch:
+                            loaded4.append([])
+                        loading5 = loading4[branch]
+                        loaded5 = loaded4[branch]
+                        for tick_from in loading5:
+                            while len(loaded5) <= tick_from:
+                                loaded5.append(None)
+                            loaded5[tick_from] = loading5[tick_from]
+        loadpawn(pawnd, "pawn_img")
+        loadpawn(pawnd, "pawn_interactive")
         return Board(self, dim, i)
 
     def load_viewport(self, win, dim, board, viewi):

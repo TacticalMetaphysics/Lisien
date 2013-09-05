@@ -235,7 +235,7 @@ class GameWindow(pyglet.window.Window):
         self.keep_selected = False
         self.prev_view_bot = 0
 
-        orbimg = self.rumor.imgdict['default_spot'].tex
+        orbimg = self.rumor.get_img('default_spot').tex
         rx = orbimg.width / 2
         ry = orbimg.height / 2
         self.create_place_cursor = (

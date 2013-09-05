@@ -699,7 +699,7 @@ class TerminableImg:
             branch = self.rumor.branch
         if tick is None:
             tick = self.rumor.tick
-        if branch not in self.imagery:
+        if len(self.imagery) < branch:
             return None
         if branch in self.indefinite_imagery:
             indef_start = self.indefinite_imagery[branch]
@@ -840,7 +840,10 @@ class TabdictIterator:
     def __init__(self, td):
         self.tabd = td
         self.ptrs = deque([td])
-        self.keyses = deque([self.ptrs[0].keys()])
+        if isinstance(self.ptrs[0], dict):
+            self.keyses = [self.ptrs[0].keys()]
+        else:
+            self.keyses = [[i for i in xrange(0, len(self.ptrs[0]))]]
 
     def __len__(self):
         i = 0
@@ -857,15 +860,33 @@ class TabdictIterator:
 
     def next(self):
         while len(self.ptrs) > 0:
-            ptr = self.ptrs.pop()
-            keys = self.keyses.pop()
+            try:
+                ptr = self.ptrs.pop()
+                keys = self.keyses.pop()
+            except IndexError:
+                # Happens when I try to descend into a list of length
+                # 1 or 0.  If it's length 1...I may have to descend a
+                # couple levels before I get something I can return.
+                if len(ptr) == 0:
+                    return
+                else:
+                    keys = [0]
             while len(keys) > 0:
                 k = keys.pop()
-                if isinstance(ptr[k], dict):
+                if k == []:
+                    continue
+                elif isinstance(ptr[k], list):
+                    self.keyses.append(keys)
+                    self.keyses.append([i for i in xrange(0, len(ptr[k]))])
+                    self.ptrs.append(ptr)
+                    self.ptrs.append(ptr[k])
+                elif isinstance(ptr[k], dict):
                     self.keyses.append(keys)
                     self.keyses.append(ptr[k].keys())
                     self.ptrs.append(ptr)
                     self.ptrs.append(ptr[k])
+                elif ptr[k] is None:
+                    continue
                 else:
                     return ptr
         raise StopIteration

@@ -98,7 +98,7 @@ class Spot(TerminableImg, TerminableInteractivity):
         self.board = board
         self.place = place
         self.vert = self.place.v
-        self.coord_dict = self.rumor.tabdict["spot_coords"][
+        self.coord_lst = self.rumor.tabdict["spot_coords"][
             str(self.dimension)][
                 int(self.board)][str(self.place)]
         self.interactivity = self.rumor.tabdict["spot_interactive"][
@@ -209,16 +209,16 @@ class Spot(TerminableImg, TerminableInteractivity):
             branch = self.rumor.branch
         if tick is None:
             tick = self.rumor.tick
-        if branch not in self.coord_dict:
+        if len(self.coord_lst) < tick:
             import pdb
             pdb.set_trace()
             return None
         if (
                 branch in self.indefinite_coords and
                 tick >= self.indefinite_coords[branch]):
-            rd = self.coord_dict[branch][self.indefinite_coords[branch]]
+            rd = self.coord_lst[branch][self.indefinite_coords[branch]]
             return (rd["x"], rd["y"])
-        for rd in TabdictIterator(self.coord_dict):
+        for rd in TabdictIterator(self.coord_lst):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return (rd["x"], rd["y"])
         import pdb
@@ -230,25 +230,25 @@ class Spot(TerminableImg, TerminableInteractivity):
             branch = self.rumor.branch
         if tick_from is None:
             tick_from = self.rumor.tick
-        if branch not in self.coord_dict:
-            self.coord_dict[branch] = {}
+        if len(self.coord_lst) < tick_from:
+            self.coord_lst[branch] = []
         if branch in self.indefinite_coords:
             itf = self.indefinite_coords[branch]
-            rd = self.coord_dict[branch][itf]
+            rd = self.coord_lst[branch][itf]
             if itf < tick_from:
                 # You have cut off an indefinite coord
                 rd["tick_to"] = tick_from - 1
-                self.coord_dict[branch][itf] = rd
+                self.coord_lst[branch][itf] = rd
                 del self.indefinite_coords[branch]
             elif itf < tick_to:
                 # You have overwritten an indefinite coord
-                del self.coord_dict[branch][itf]
+                del self.coord_lst[branch][itf]
                 del self.indefinite_coords[branch]
             elif itf == tick_to:
                 # You have extended an indefinite coord, backward in time
-                del self.coord_dict[branch][itf]
+                del self.coord_lst[branch][itf]
                 tick_to = None
-        self.coord_dict[branch][tick_from] = {
+        self.coord_lst[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
             "place": str(self.place),
@@ -261,7 +261,7 @@ class Spot(TerminableImg, TerminableInteractivity):
             self.indefinite_coords[branch] = tick_from
 
     def new_branch_coords(self, parent, branch, tick):
-        for rd in TabdictIterator(self.coord_dict[parent]):
+        for rd in TabdictIterator(self.coord_lst[parent]):
             if rd["tick_to"] >= tick or rd["tick_to"] is None:
                 if rd["tick_from"] < tick:
                     self.set_coords(

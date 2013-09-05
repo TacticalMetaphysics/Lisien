@@ -128,6 +128,10 @@ each board will be open in at most one window at a time.
             self.make_spot(place)
         return self.spotdict[str(place)]
 
+    def make_spot(self, place):
+        place = self.rumor.get_place(str(self.dimension), str(place))
+        self.spotdict[str(place)] = Spot(self.rumor, self.dimension, self, place)
+
     def make_arrow(self, orig_or_port, dest=None):
         if dest is None:
             self.arrowdict[str(orig_or_port)] = Arrow(self, orig_or_port)
