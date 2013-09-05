@@ -5,7 +5,7 @@ from thing import Thing
 from portal import Portal
 from logging import getLogger
 from igraph import Graph
-from util import TabdictIterator, stringlike
+from util import SkeletonIterator, stringlike
 
 
 logger = getLogger(__name__)
@@ -67,11 +67,11 @@ keyed with their names.
         self.boards = []
         self.thingdict = {}
         self.graph = Graph(directed=True)
-        for rd in TabdictIterator(self.closet.skeleton["portal"][str(self)]):
+        for rd in SkeletonIterator(self.closet.skeleton["portal"][str(self)]):
             orig = self.get_place(rd["origin"])
             dest = self.get_place(rd["destination"])
             Portal(self.closet, self, orig, dest)
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.closet.skeleton["thing_location"][str(self)]):
             if rd["thing"] not in self.thingdict:
                 self.thingdict[rd["thing"]] = Thing(

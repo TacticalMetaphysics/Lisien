@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     SaveableMetaclass,
-    TabdictIterator,
+    SkeletonIterator,
     phi)
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup
@@ -953,7 +953,7 @@ instead, giving something like "in transit from A to B".
 
     def regen_cells(self):
         location_ticks = set()
-        for rd in TabdictIterator(self.locations):
+        for rd in SkeletonIterator(self.locations):
             location_ticks.add(rd["tick_from"])
             if rd["tick_from"] not in self.celldict:
                 cell = CalendarCell(

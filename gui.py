@@ -5,7 +5,7 @@ import logging
 from util import (
     SaveableMetaclass,
     fortyfive,
-    TabdictIterator,
+    SkeletonIterator,
     ScissorOrderedGroup)
 from math import atan, cos, sin
 from arrow import ArrowWidget
@@ -133,7 +133,7 @@ class GameWindow(pyglet.window.Window):
         self.menudict = {}
         self.dimensiondict = self.closet.get_dimensions(
             [rd["dimension"] for rd in
-             TabdictIterator(self.closet.skeleton[
+             SkeletonIterator(self.closet.skeleton[
                  "board_viewport"][str(self)])])
         self._rowdict = self.closet.skeleton["window"][name]
         self.dxdy_hist_max = 10
@@ -148,7 +148,7 @@ class GameWindow(pyglet.window.Window):
         self.pickergroup = ScissorOrderedGroup(
             8, self.biggroup, self, 0.3, 0.6, 0.3, 0.6)
         self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
-        for rd in TabdictIterator(self.closet.skeleton[
+        for rd in SkeletonIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
             self.closet.get_board(rd["dimension"], rd["board"])
             dimension = self.dimensiondict[rd["dimension"]]
@@ -160,39 +160,39 @@ class GameWindow(pyglet.window.Window):
         stylenames = set()
         handnames = set()
         charnames = set()
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.closet.skeleton["menu"][str(self)]):
             stylenames.add(rd["style"])
         if "hand" in self.closet.skeleton and str(self) in self.closet.skeleton["hand"]:
-            for rd in TabdictIterator(
+            for rd in SkeletonIterator(
                     self.closet.skeleton["hand"][str(self)]):
                 stylenames.add(rd["style"])
                 handnames.add(rd["name"])
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.closet.skeleton["calendar"][str(self)]):
             stylenames.add(rd["style"])
         self.closet.get_styles(stylenames)
         carddict = self.closet.get_cards_in_hands(handnames)
         imagenames = set()
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.closet.skeleton["menu_item"][str(self)]):
             if rd["icon"] is not None:
                 imagenames.add(rd["icon"])
-        for rd in TabdictIterator(carddict):
+        for rd in SkeletonIterator(carddict):
             if rd["image"] is not None:
                 imagenames.add(rd["image"])
         self.closet.get_imgs(imagenames)
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.closet.skeleton["menu"][str(self)]):
             menu = Menu(self, rd["name"])
-            for mird in TabdictIterator(
+            for mird in SkeletonIterator(
                     self.closet.skeleton["menu_item"][
                         str(self)][str(menu)]):
                 MenuItem(menu, mird["idx"])
             self.menudict[str(menu)] = menu
         if "hand" in self.closet.skeleton and str(self) in self.closet.skeleton["hand"]:
             effect_deck_names = set()
-            for rd in TabdictIterator(
+            for rd in SkeletonIterator(
                     self.closet.skeleton["hand"][str(self)]):
                 effect_deck_names.add(rd["deck"])
             deckd = self.closet.get_effect_decks(effect_deck_names)
@@ -203,11 +203,11 @@ class GameWindow(pyglet.window.Window):
         if hasattr(self, 'handdict'):
             self.carddict = self.closet.get_cards_in_hands(self.handdict.keys())
         self.calendars = []
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.closet.skeleton["calendar"][str(self)]):
             charnames.add(rd["character"])
         self.closet.load_characters(charnames)
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.closet.skeleton["calendar"][str(self)]):
             while len(self.calendars) <= rd["idx"]:
                 self.calendars.append(None)

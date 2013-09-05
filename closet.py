@@ -29,7 +29,7 @@ from timestream import Timestream, TimestreamException
 from gui import GameWindow
 from util import (
     dictify_row,
-    TabdictIterator,
+    SkeletonIterator,
     schemata,
     saveables,
     saveable_classes)
@@ -1102,7 +1102,7 @@ This is game-world time. It doesn't always go forwards.
             kd["card"][name] = {"effect": name}
         td = Card._select_skeleton(self.c, kd)
         r = {}
-        for rd in TabdictIterator(td):
+        for rd in SkeletonIterator(td):
             r[rd["effect"]] = Card(self, effectdict[rd["effect"]], td)
         return r
 
@@ -1125,7 +1125,7 @@ This is game-world time. It doesn't always go forwards.
         effds = self.get_effect_decks(decks)
         effects = set()
         for effd in effds.itervalues():
-            for rd in TabdictIterator(effd._card_links):
+            for rd in SkeletonIterator(effd._card_links):
                 effects.add(rd["effect"])
         return self.get_effects(effects)
 

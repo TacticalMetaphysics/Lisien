@@ -2,7 +2,7 @@ from igraph import Graph, Vertex, Edge
 from util import (
     SaveableMetaclass,
     dictify_row,
-    TabdictIterator)
+    SkeletonIterator)
 from collections import defaultdict
 
 
@@ -54,7 +54,7 @@ class Timestream:
         self.branch_edges = defaultdict(set)
         self.branch_done_to = defaultdict(lambda: -1)
         self.branchdict = {}
-        for rd in TabdictIterator(td["timestream"]):
+        for rd in SkeletonIterator(td["timestream"]):
             self.branchdict[rd["branch"]] = (
                 rd["parent"], rd["tick_from"], rd["tick_to"])
         self.graph = Graph(directed=True)

@@ -6,7 +6,7 @@ from util import (
     TerminableInteractivity,
     BranchTicksIter,
     LoadError,
-    TabdictIterator)
+    SkeletonIterator)
 from collections import defaultdict
 from pyglet.sprite import Sprite
 from pyglet.graphics import OrderedGroup
@@ -80,7 +80,7 @@ interactive or not.
         self.indefinite_imagery = {}
         self.indefinite_interactivity = {}
         imgns = set()
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.closet.skeleton["pawn_img"][
                     str(self.dimension)][
                         int(self.board)][str(self.thing)]):
@@ -88,7 +88,7 @@ interactive or not.
             if rd["tick_to"] is None:
                 self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
         self.closet.get_imgs(imgns)
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.closet.skeleton["pawn_interactive"][
                 str(self.dimension)][int(self.board)][str(self.thing)]):
             if rd["tick_to"] is None:

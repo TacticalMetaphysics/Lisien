@@ -4,7 +4,7 @@ from util import (
     SaveableMetaclass,
     LocationException,
     BranchTicksIter,
-    TabdictIterator,
+    SkeletonIterator,
     TimeParadox)
 from logging import getLogger
 
@@ -55,7 +55,7 @@ too.
         self._name = str(name)
         self.indefinite_locations = {}
         self.new_branch_blank = False
-        for rd in TabdictIterator(self.locations):
+        for rd in SkeletonIterator(self.locations):
             if rd["tick_to"] is None:
                 self.indefinite_locations[rd["branch"]] = rd["tick_from"]
         self.dimension.thingdict[name] = self
@@ -135,7 +135,7 @@ tick in the given branch."""
                 return self.dimension.get_portal(orign, destn)
             else:
                 return self.dimension.get_place(rd["location"])
-        for rd in TabdictIterator(self.locations[branch]):
+        for rd in SkeletonIterator(self.locations[branch]):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 if rd["location"][:6] == "Portal":
                     pstr = rd["location"][6:].strip("()")
@@ -175,9 +175,9 @@ Return an Effect representing the change.
                 self.indefinite_locations[branch] = tick_from
                 return
         while len(self.locations) <= branch:
-            self.locations.extend([[]] * 100)
+            self.locations.append([])
         while len(self.locations[branch]) <= tick_from:
-            self.locations[branch].extend([[]] * 100)
+            self.locations[branch].append([])
         self.locations[branch][tick_from] = {
             "dimension": str(self.dimension),
             "thing": str(self),
@@ -228,7 +228,7 @@ Presupposes that I'm in a portal.
             tick = self.closet.tick
         if len(self.locations) < branch:
             raise LocationException("I am nowhere in that branch")
-        for rd in TabdictIterator(self.locations[branch]):
+        for rd in SkeletonIterator(self.locations[branch]):
             if rd["tick_to"] is None:
                 continue
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
@@ -242,9 +242,8 @@ are n ticks of free time."""
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        if branch not in self.locations:
-            # Well, not existing is certainly ONE way not to have commitments
-            return tick
+        if len(self.locations) < branch:
+            return None
         laterthan = tick
         for (tick_from, (loc, tick_to)) in self.locations[branch].iteritems():
             # This is only a *travel* event if it puts me in a portal
@@ -253,20 +252,6 @@ are n ticks of free time."""
             if (tick_from - n <= laterthan and laterthan <= tick_to):
                 laterthan = tick_to
         return laterthan + 1
-
-    def get_skeleton(self):
-        self._skeleton = {
-            "thing_location": [
-                {
-                    "dimension": str(self.dimension),
-                    "thing": str(self),
-                    "branch": branch,
-                    "tick_from": tick_from,
-                    "tick_to": tick_to,
-                    "location": str(location)}
-                for (branch, tick_from, tick_to, location) in
-                BranchTicksIter(self.locations)]}
-        return self._skeleton
 
     def end_location(self, branch=None, tick=None):
         """Find where I am at the given time. Arrange to stop being there
@@ -283,7 +268,7 @@ then."""
             rd["tick_to"] = tick
             del self.indefinite_locations[branch]
         else:
-            for rd in TabdictIterator(self.locations[branch]):
+            for rd in SkeletonIterator(self.locations[branch]):
                 if rd["tick_from"] < tick and rd["tick_to"] > tick:
                     rd["tick_to"] = tick
                     return
@@ -333,11 +318,13 @@ other journey I may be on at the time."""
         self.update()
 
     def new_branch(self, parent, branch, tick):
-        if branch not in self.locations:
-            self.locations[branch] = {}
+        while len(self.locations) <= branch:
+            self.locations.append([])
+        while len(self.locations[branch]) <= tick:
+            self.locations[branch].append([])
         if self.new_branch_blank:
             return
-        for rd in TabdictIterator(self.locations[parent]):
+        for rd in SkeletonIterator(self.locations[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
                 rd2["branch"] = branch
@@ -347,6 +334,8 @@ other journey I may be on at the time."""
                     if rd2["tick_to"] is None:
                         self.indefinite_locations[branch] = tick
                 else:
+                    while len(self.locations[branch]) <= rd2["tick_from"]:
+                        self.locations[branch].append([])
                     self.locations[branch][rd2["tick_from"]] = rd2
                     if rd2["tick_to"] is None:
                         self.indefinite_locations[branch] = rd2["tick_from"]

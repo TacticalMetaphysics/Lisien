@@ -5,7 +5,7 @@ from util import (
     TerminableImg,
     TerminableInteractivity,
     BranchTicksIter,
-    TabdictIterator)
+    SkeletonIterator)
 from place import Place
 from collections import defaultdict
 from pyglet.sprite import Sprite
@@ -114,7 +114,7 @@ class Spot(TerminableImg, TerminableInteractivity):
             str(self.dimension)][
                 int(self.board)][str(self.place)]
         self.indefinite_imagery = {}
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.closet.skeleton["spot_img"][
                     str(self.dimension)][
                         int(self.board)][str(self.place)]):
@@ -122,7 +122,7 @@ class Spot(TerminableImg, TerminableInteractivity):
                 self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
                 break
         self.indefinite_coords = {}
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.closet.skeleton["spot_coords"][
                     str(self.dimension)][
                         int(self.board)][str(self.place)]):
@@ -130,7 +130,7 @@ class Spot(TerminableImg, TerminableInteractivity):
                 self.indefinite_coords[rd["branch"]] = rd["tick_from"]
                 break
         self.indefinite_interactivity = {}
-        for rd in TabdictIterator(self.closet.skeleton["spot_interactive"][
+        for rd in SkeletonIterator(self.closet.skeleton["spot_interactive"][
                 str(self.dimension)][
                     int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
@@ -171,6 +171,10 @@ class Spot(TerminableImg, TerminableInteractivity):
             elif tick_to == indef_start:
                 indef_rd["tick_from"] = tick_from
                 return
+        while len(self.interactivity) <= branch:
+            self.interactivity.append([])
+        while len(self.interactivity[branch]) <= tick_from:
+            self.interactivity[branch].append([])
         self.interactivity[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
@@ -220,7 +224,7 @@ class Spot(TerminableImg, TerminableInteractivity):
                 tick >= self.indefinite_coords[branch]):
             rd = self.coord_lst[branch][self.indefinite_coords[branch]]
             return (rd["x"], rd["y"])
-        for rd in TabdictIterator(self.coord_lst):
+        for rd in SkeletonIterator(self.coord_lst):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return (rd["x"], rd["y"])
         import pdb
@@ -232,8 +236,10 @@ class Spot(TerminableImg, TerminableInteractivity):
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if len(self.coord_lst) < tick_from:
-            self.coord_lst[branch] = []
+        while len(self.coord_lst) <= branch:
+            self.coord_lst.append([])
+        while len(self.coord_lst[branch]) <= tick_from:
+            self.coord_lst[branch].append([])
         if branch in self.indefinite_coords:
             itf = self.indefinite_coords[branch]
             rd = self.coord_lst[branch][itf]
@@ -263,7 +269,7 @@ class Spot(TerminableImg, TerminableInteractivity):
             self.indefinite_coords[branch] = tick_from
 
     def new_branch_coords(self, parent, branch, tick):
-        for rd in TabdictIterator(self.coord_lst[parent]):
+        for rd in SkeletonIterator(self.coord_lst[parent]):
             if rd["tick_to"] >= tick or rd["tick_to"] is None:
                 if rd["tick_from"] < tick:
                     self.set_coords(

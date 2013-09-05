@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     SaveableMetaclass,
-    TabdictIterator)
+    SkeletonIterator)
 
 
 """Ways to change the game world."""
@@ -216,11 +216,11 @@ were right after firing them.
                 branch in self.indefinite_effects and
                 self.indefinite_effects[branch] <= tick):
             return self._card_links[self.indefinite_effects[branch]]["effects"]
-        for rd in TabdictIterator(self._card_links[branch]):
+        for rd in SkeletonIterator(self._card_links[branch]):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return [
                     self.closet.get_effect(effect) for effect in
-                    TabdictIterator(
+                    SkeletonIterator(
                         self._card_links[branch][rd["tick_from"]])]
         return []
 

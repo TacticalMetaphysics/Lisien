@@ -203,9 +203,9 @@ and your table will be ready.
 
         def gen_sql_insert(rowdicts, tabname):
             if tabname in rowdicts:
-                itr = TabdictIterator(rowdicts[tabname])
+                itr = SkeletonIterator(rowdicts[tabname])
             else:
-                itr = TabdictIterator(rowdicts)
+                itr = SkeletonIterator(rowdicts)
             if len(itr) == 0 or tabname not in tablenames:
                 raise EmptyTabdict
             qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
@@ -223,7 +223,8 @@ and your table will be ready.
                 return []
             try:
                 c.execute(*gen_sql_insert(rowdicts, tabname))
-            except IntegrityError:
+            except IntegrityError as ie:
+                print ie
                 print gen_sql_insert(rowdicts, tabname)
                 import pdb
                 pdb.set_trace()
@@ -237,7 +238,7 @@ and your table will be ready.
                 return
             keys = []
             wheres = []
-            kitr = TabdictIterator(keydicts)
+            kitr = SkeletonIterator(keydicts)
             if len(kitr) == 0 or tabname not in tablenames:
                 raise EmptyTabdict
             for keydict in kitr:
@@ -265,7 +266,7 @@ and your table will be ready.
 
         def gen_sql_select(keydicts, tabname):
             keys_in_use = set()
-            kitr = TabdictIterator(keydicts)
+            kitr = SkeletonIterator(keydicts)
             for keyd in kitr:
                 for k in keyd:
                     keys_in_use.add(k)
@@ -284,7 +285,7 @@ and your table will be ready.
             keys = primarykeys[tabname]
             qrystr = gen_sql_select(keydicts, tabname)
             qrylst = []
-            kitr = TabdictIterator(keydicts)
+            kitr = SkeletonIterator(keydicts)
             for keydict in kitr:
                 for key in keys:
                     try:
@@ -713,19 +714,21 @@ class TerminableImg:
             if tick >= indef_start:
                 rd = self.imagery[branch][indef_start]
                 return self.closet.get_img(rd["img"])
-        for rd in TabdictIterator(self.imagery[branch]):
+        for rd in SkeletonIterator(self.imagery[branch]):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return self.closet.get_img(rd["img"])
         return None
 
     def new_branch_imagery(self, parent, branch, tick):
-        if branch not in self.imagery:
-            self.imagery[branch] = {}
-        for rd in TabdictIterator(self.imagery[parent]):
+        while len(self.imagery) <= branch:
+            self.imagery.append([])
+        while len(self.imagery[branch]) <= tick:
+            self.imagery[branch].append([])
+        for rd in SkeletonIterator(self.imagery[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
+                rd2["branch"] = branch
                 if rd2["tick_from"] < tick:
-                    rd2["branch"] = branch
                     rd2["tick_from"] = tick
                     self.imagery[branch][tick] = rd2
                     if rd2["tick_to"] is None:
@@ -750,22 +753,25 @@ class TerminableInteractivity:
                 branch in self.indefinite_interactivity and
                 tick >= self.indefinite_interactivity[branch]):
             return True
-        for rd in TabdictIterator(self.interactivity):
+        for rd in SkeletonIterator(self.interactivity):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return True
         return False
 
     def new_branch_interactivity(self, parent, branch, tick):
-        if branch not in self.interactivity:
-            self.interactivity[branch] = {}
-        for rd in TabdictIterator(self.interactivity[parent]):
+        while len(self.interactivity) <= branch:
+            self.interactivity.append([])
+        while len(self.interactivity[branch]) <= tick:
+            self.interactivity[branch].append([])
+        for rd in SkeletonIterator(self.interactivity[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
+                rd2["branch"] = branch
                 if rd2["tick_from"] < tick:
                     rd2["tick_from"] = tick
-                    self.interactivity[branch][tick] = rd
+                    self.interactivity[branch][tick] = rd2
                 else:
-                    self.interactivity[branch][rd2["tick_from"]] = rd
+                    self.interactivity[branch][rd2["tick_from"]] = rd2
                 if rd2["tick_to"] is None:
                     self.indefinite_interactivity[branch] = rd2["tick_from"]
 
@@ -843,23 +849,27 @@ class DictValues2DIterator:
             return self.layer2.next()
 
 
-class TabdictIterator:
+class SkeletonIterator:
     def __init__(self, td):
         self.tabd = td
         self.ptrs = deque([td])
+        self.l = None
         if isinstance(self.ptrs[0], dict):
             self.keyses = [self.ptrs[0].keys()]
         else:
             self.keyses = [[i for i in xrange(0, len(self.ptrs[0]))]]
 
     def __len__(self):
+        if self.l is not None:
+            return self.l
         i = 0
-        h = TabdictIterator(self.tabd)
+        h = SkeletonIterator(self.tabd)
         while True:
             try:
                 h.next()
                 i += 1
             except StopIteration:
+                self.l = i
                 return i
 
     def __iter__(self):

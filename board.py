@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     SaveableMetaclass,
-    TabdictIterator,
+    SkeletonIterator,
     ViewportOrderedGroup)
 from pawn import Pawn, PawnWidget
 from spot import Spot, SpotWidget
@@ -67,12 +67,12 @@ each board will be open in at most one window at a time.
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
         if "spot_coords" in self.closet.skeleton:
-            for rd in TabdictIterator(
+            for rd in SkeletonIterator(
                     self.closet.skeleton[
                         "spot_coords"][str(self.dimension)][int(self)]):
                 self.add_spot(rd)
         if "pawn_img" in self.closet.skeleton:
-            for rd in TabdictIterator(
+            for rd in SkeletonIterator(
                     self.closet.skeleton[
                         "pawn_img"][str(self.dimension)][int(self)]):
                 self.add_pawn(rd)

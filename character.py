@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, TabdictIterator
+from util import SaveableMetaclass, SkeletonIterator
 from thing import Thing
 
 
@@ -132,22 +132,22 @@ item's name, and the name of the attribute.
         if "character_things" in td and str(self) in td["character_things"]:
             self.thingdict = {}
             self.indefinite_thing = {}
-            for rd in TabdictIterator(td["character_things"][str(self)]):
+            for rd in SkeletonIterator(td["character_things"][str(self)]):
                 self.add_thing_with_strs(**rd)
                 self.closet.get_thing(
                     rd["dimension"],
                     rd["thing"]).register_update_handler(self.update)
         if "character_stats" in td and str(self) in td["character_stats"]:
-            for rd in TabdictIterator(td["character_stats"][str(self)]):
+            for rd in SkeletonIterator(td["character_stats"][str(self)]):
                 self.set_stat(**rd)
         if "character_skills" in td and str(self) in td["character_skills"]:
-            for rd in TabdictIterator(td["character_skills"][str(self)]):
+            for rd in SkeletonIterator(td["character_skills"][str(self)]):
                 self.set_skill(**rd)
         if "character_portals" in td and str(self) in td["character_portals"]:
-            for rd in TabdictIterator(td["character_portals"][str(self)]):
+            for rd in SkeletonIterator(td["character_portals"][str(self)]):
                 self.add_portal_with_strs(**rd)
         if "character_places" in td and str(self) in td["character_places"]:
-            for rd in TabdictIterator(td["character_places"][str(self)]):
+            for rd in SkeletonIterator(td["character_places"][str(self)]):
                 self.add_place_with_strs(**rd)
         self.closet.characterdict[str(self)] = self
 
@@ -328,7 +328,7 @@ item's name, and the name of the attribute.
         r = set()
         if branch not in self.thingdict:
             return r
-        for rd in TabdictIterator[self.thingdict[branch]]:
+        for rd in SkeletonIterator[self.thingdict[branch]]:
             r.add(self.closet.get_thing(rd["dimension"], rd["thing"]))
         return r
 
@@ -386,7 +386,7 @@ item's name, and the name of the attribute.
                 dimension in self.placedict[branch] and
                 place in self.placedict[branch][dimension]):
             return False
-        for rd in TabdictIterator(self.placedict[branch][dimension][place]):
+        for rd in SkeletonIterator(self.placedict[branch][dimension][place]):
             if rd["tick_from"] <= tick and (
                     rd["tick_to"] is None or tick <= rd["tick_to"]):
                 return True
@@ -400,7 +400,7 @@ item's name, and the name of the attribute.
         r = set()
         if branch not in self.placedict:
             return r
-        for rd in TabdictIterator(self.placedict[branch]):
+        for rd in SkeletonIterator(self.placedict[branch]):
             if rd["tick_from"] <= r and (
                     rd["tick_to"] is None or tick <= rd["tick_to"]):
                 r.add(self.closet.get_place(rd["dimension"], rd["place"]))
@@ -499,7 +499,7 @@ item's name, and the name of the attribute.
                 origin in self.portdict[branch][dimension] and
                 destination in self.portdict[branch][dimension][origin]):
             return False
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.portdict[branch][dimension][origin][destination]):
             if rd["tick_from"] <= tick and (
                     rd["tick_to"] is None or tick <= rd["tick_to"]):
@@ -520,7 +520,7 @@ item's name, and the name of the attribute.
         r = set()
         if branch not in self.portdict:
             return r
-        for rd in TabdictIterator(self.portdict[branch]):
+        for rd in SkeletonIterator(self.portdict[branch]):
             if rd["tick_from"] <= tick and (
                     rd["tick_to"] is None or tick <= rd["tick_to"]):
                 port = self.closet.get_portal(
