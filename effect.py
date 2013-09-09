@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     SaveableMetaclass,
-    TabdictIterator)
+    SkeletonIterator)
 
 
 """Ways to change the game world."""
@@ -18,7 +18,7 @@ given time.
 When fired, an effect will call a callback function named in its
 constructor. The function should be registered by that name in the
 effect_cbs dictionary in the RumorMill of the character (accessible
-through the character's rumor attribute). This is how it will be called:
+through the character's closet attribute). This is how it will be called:
 
 callback(effect, branch, tick)
 
@@ -42,6 +42,11 @@ Effects are only ever fired by EffectDecks, though the EffectDeck may
 contain only a single Effect.
 
     """
+    atrdic = {
+        "character": lambda self: self.closet.get_character(self._rowdict["character"]),
+        "key": lambda self: self._rowdict["key"],
+        "callback": lambda self: self.closet.effect_cbs[self._rowdict["callback"]]}
+
     tables = [
         ("effect",
          {"name": "text not null",
@@ -53,20 +58,19 @@ contain only a single Effect.
          {},
          [])]
 
-    def __init__(self, rumor, name):
-        self.rumor = rumor
+    def __init__(self, closet, name):
+        self.closet = closet
         self._name = name
-        self.rumor.effectdict[str(self)] = self
+        self.closet.effectdict[str(self)] = self
+        self._rowdict = self.closet.skeleton["effect"][str(self)]
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["effect"][str(self)]
-        elif attrn == "character":
-            return self.rumor.get_character(self._rowdict["character"])
-        elif attrn == "key":
-            return self._rowdict["key"]
-        elif attrn == "callback":
-            return self.rumor.effect_cbs[self._rowdict["callback"]]
+        try:
+            return self.atrdic[attrn]()
+        except KeyError:
+            raise AttributeError(
+                "Effect instance has no attribute named {0}".format(
+                    attrn))
 
     def __str__(self):
         return self._name
@@ -74,9 +78,9 @@ contain only a single Effect.
     def do(self, branch=None, tick=None):
         """Call the callback, and add its results to this character."""
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         nuval = self.cb(self, branch, tick)
         if hasattr(nuval, 'locations'):
             if self.character.is_thing(nuval, branch, tick):
@@ -141,12 +145,19 @@ were right after firing them.
           "effect": ("effect", "name")},
          ["idx>=0"])]
 
-    def __init__(self, rumor, name):
-        self.rumor = rumor
+    atrdic = {
+        "effects": lambda self: self.get_effects(),
+        "draw_order": lambda self: self._rowdict["draw_order"]}
+
+    def __init__(self, closet, name):
+        assert(len(closet.skeleton['img']) > 1)
+        self.closet = closet
         self._name = name
         self.reset_to = {}
         self.indefinite_effects = {}
-        self.rumor.effectdeckdict[name] = self
+        self.closet.effectdeckdict[name] = self
+        self._rowdict = self.closet.skeleton["effect_deck"][str(self)]
+        self._card_links = self.closet.skeleton["effect_deck_link"][str(self)]
 
     def __len__(self):
         return len(self.effects)
@@ -155,15 +166,9 @@ were right after firing them.
         return self._name
 
     def __getattr__(self, attrn):
-        if attrn in ("_rowdict", "_deck_rowdict"):
-            return self.rumor.tabdict["effect_deck"][str(self)]
-        elif attrn == "_card_links":
-            return self.rumor.tabdict["effect_deck_link"][str(self)]
-        elif attrn == "effects":
-            return self.get_effects()
-        elif attrn == "draw_order":
-            return self._deck_rowdict["draw_order"]
-        else:
+        try:
+            return self.atrdic[attrn](self)
+        except KeyError:
             raise AttributeError(
                 "EffectDeck instance has no attribute named " + attrn)
 
@@ -175,9 +180,9 @@ were right after firing them.
 
     def set_effects(self, effects, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if branch in self.indefinite_effects:
             ifrom = self.indefinite_effects[branch]
             rd = self.effects[branch][ifrom]
@@ -204,18 +209,18 @@ were right after firing them.
 
     def get_effects(self, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if (
                 branch in self.indefinite_effects and
                 self.indefinite_effects[branch] <= tick):
             return self._card_links[self.indefinite_effects[branch]]["effects"]
-        for rd in TabdictIterator(self._card_links[branch]):
+        for rd in SkeletonIterator(self._card_links[branch]):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return [
-                    self.rumor.get_effect(effect) for effect in
-                    TabdictIterator(
+                    self.closet.get_effect(effect) for effect in
+                    SkeletonIterator(
                         self._card_links[branch][rd["tick_from"]])]
         return []
 
@@ -227,10 +232,10 @@ were right after firing them.
             elif self.draw_order == DRAW_FIFO:
                 r = effs.pop(0)
             elif self.draw_order == DRAW_RANDOM:
-                i = self.rumor.randrange(0, len(effs) - 1)
+                i = self.closet.randrange(0, len(effs) - 1)
                 r = effs.pop(i)
             elif self.draw_order == ROLL_RANDOM:
-                i = self.rumor.randrange(0, len(effs) - 1)
+                i = self.closet.randrange(0, len(effs) - 1)
                 r = effs[i]
             else:
                 raise Exception("What kind of draw order is that?")
@@ -242,9 +247,9 @@ were right after firing them.
 
     def do(self, reset=False, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         effs = self.get_effects(branch, tick)
         if branch not in self.reset_to:
             self.reset_to[branch] = {}

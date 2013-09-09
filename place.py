@@ -17,7 +17,7 @@ thing located there.
             import pdb
             pdb.set_trace()
         self.dimension = dimension
-        self.rumor = self.dimension.rumor
+        self.closet = self.dimension.closet
         self.v = v
 
     def __getattr__(self, attrn):
@@ -46,3 +46,10 @@ thing located there.
 
     def incident(self, mode=OUT):
         return self.dimension.graph.incident(int(self), mode)
+
+    def display_name(self, branch=None, tick=None):
+        # Stub.
+        #
+        # TODO: Look up a display name in a table or dictionary,
+        # perhaps using get_text
+        return self.v["name"]

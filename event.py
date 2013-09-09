@@ -113,30 +113,6 @@ the three given effect decks. Register with db.eventdict.
     def __len__(self):
         return self.end - self.start
 
-    def get_tabdict(self):
-        occur_rows = set()
-        occorder = (
-            "event",
-            "branch",
-            "tick_from",
-            "tick_to")
-        for branch in self.occurrences:
-            for (tick_from, tick_to) in self.occurrences[branch].iteritems():
-                occur_rows.add((
-                    str(self),
-                    branch,
-                    tick_from,
-                    tick_to))
-        return {
-            "event": [
-                {"name": str(self),
-                 "text": self._text,
-                 "commence_effect_deck": str(self.commence_effect_deck),
-                 "proceed_effect_deck": str(self.proceed_effect_deck),
-                 "conclude_effect_deck": str(self.conclude_effect_deck)}],
-            "scheduled_event": [dictify_row(row, occorder)
-                                for row in iter(occur_rows)]}
-
     def schedule(self, branch, tick_from, tick_to):
         if branch not in self.occurrences:
             self.occurrences[branch] = {}

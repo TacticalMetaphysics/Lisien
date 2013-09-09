@@ -10,6 +10,9 @@ from util import SaveableMetaclass
 __metaclass__ = SaveableMetaclass
 
 
+textures = {}
+
+
 class Img:
     """A pretty thin wrapper around a Pyglet image.
 
@@ -27,48 +30,39 @@ saving the path.
          {},
          [])]
 
-    def __init__(self, rumor, name):
+    atrdic = {
+        "path": lambda self: self._rowdict["path"],
+        "rltile": lambda self: self._rowdict["rltile"],
+        "center": lambda self: (self.tex.width / 2, self.tex.height / 2),
+        "width": lambda self: self.tex.width,
+        "height": lambda self: self.tex.height,
+        "tex": lambda self: textures[str(self)]}
+
+    def __init__(self, closet, name):
         """Return an Img, and register it with the imgdict of the database
 provided."""
-        self.rumor = rumor
+        global first_img_loaded
+        print "loading img {0}".format(name)
+        self.closet = closet
         self._name = name
+        self.closet.imgdict[str(self)] = self
+        self._rowdict = self.closet.skeleton["img"][str(self)]
+        print "with rowdict:"
+        print self._rowdict
         if self.rltile:
-            self.tex = load_rltile(self.path)
+            textures[str(self)] = load_rltile(self.path)
         else:
-            self.tex = load_regular_img(self.path)
-        self.rumor.imgdict[str(self)] = self
+            textures[str(self)] = load_regular_img(self.path)
 
     def __str__(self):
         return self._name
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["img"][str(self)]
-        elif attrn == "path":
-            return self._rowdict["path"]
-        elif attrn == "rltile":
-            return self._rowdict["rltile"]
-        elif attrn == 'center':
-            return (self.tex.width / 2, self.tex.height / 2)
-        elif attrn == 'texture':
-            return self.tex
-        elif attrn == 'width':
-            return self.tex.width
-        elif attrn == 'height':
-            return self.tex.height
-        else:
-            try:
-                return getattr(self.tex, attrn)
-            except AttributeError:
-                raise AttributeError(
-                    "Img instance has no attribute {0}.".format(attrn))
-
-    def get_tabdict(self):
-        return {
-            "img": {
-                "name": self.name,
-                "path": self.path,
-                "rltile": self.rltile}}
+        try:
+            return self.atrdic[attrn](self)
+        except KeyError:
+            raise AttributeError(
+                "Img instance has no attribute {0}.".format(attrn))
 
 
 def load_rltile(path):

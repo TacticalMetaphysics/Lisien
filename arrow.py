@@ -52,10 +52,30 @@ class SmoothBoldLineOrderedGroup(pyglet.graphics.OrderedGroup):
 class Arrow:
     margin = 20
     w = 10
+    atrdic = {
+            'ox': lambda self: self.orig.x,
+            'oy': lambda self: self.orig.y,
+            'dx': lambda self: self.dest.x,
+            'dy': lambda self: self.dest.y,
+            'rise': lambda self: self.dest.y - self.orig.y,
+            'run': lambda self: self.dest.x - self.orig.x,
+            'length': lambda self: {
+                True: self.board.get_edge_len(self.portal.e),
+                False: hypot(self.rise, self.run)
+            }["branch" in self.portal.e.attribute_names()],
+            'slope': lambda self: self.get_slope(),
+            'm': lambda self: self.get_slope(),
+            'left': lambda self: self.get_left(),
+            'right': lambda self: self.get_right(),
+            'bot': lambda self: self.get_bot(),
+            'bottom': lambda self: self.get_bot(),
+            'top': lambda self: self.get_top(),
+            'b': lambda self: self.get_b()
+        }
 
     def __init__(self, board, orig_or_port, dest=None):
         self.board = board
-        self.rumor = self.board.rumor
+        self.closet = self.board.closet
         self.center_shrink = 0
         if dest is None:
             if hasattr(orig_or_port, 'orig'):
@@ -85,68 +105,9 @@ class Arrow:
                 self.dest = dest
 
     def __getattr__(self, attrn):
-        if attrn == 'ox':
-            return self.orig.x
-        elif attrn == 'oy':
-            return self.orig.y
-        elif attrn == 'dx':
-            return self.dest.x
-        elif attrn == 'dy':
-            return self.dest.y
-        elif attrn == 'rise':
-            return self.dest.y - self.orig.y
-        elif attrn == 'run':
-            return self.dest.x - self.orig.x
-        elif attrn == 'length':
-            if "branch" in self.portal.e.attribute_names():
-                return self.board.get_edge_len(self.portal.e)
-            else:
-                return hypot(self.rise, self.run)
-        elif attrn in ('m', 'slope'):
-            ox = self.orig.x
-            oy = self.orig.y
-            dx = self.dest.x
-            dy = self.dest.y
-            if oy == dy:
-                return 0
-            elif ox == dx:
-                return None
-            else:
-                return self.rise / self.run
-        elif attrn == 'left':
-            if self.orig.x < self.dest.x:
-                return self.orig.x - self.margin
-            else:
-                return self.dest.x - self.margin
-        elif attrn == 'right':
-            if self.orig.x < self.dest.x:
-                return self.dest.x + self.margin
-            else:
-                return self.orig.x + self.margin
-        elif attrn == 'bot':
-            if self.orig.y < self.dest.y:
-                return self.orig.y - self.margin
-            else:
-                return self.dest.y - self.margin
-        elif attrn == 'top':
-            if self.orig.y < self.dest.y:
-                return self.dest.y + self.margin
-            else:
-                return self.orig.y + self.margin
-        elif attrn == 'b':
-            # Returns a pair representing a fraction
-            # y = mx + b
-            # y - b = mx
-            # -b = mx - y
-            # b = -mx + y
-            # b = y - mx
-            if self.m is None:
-                return None
-            denominator = self.run
-            x_numerator = self.rise * self.ox
-            y_numerator = denominator * self.oy
-            return ((y_numerator - x_numerator), denominator)
-        else:
+        try:
+            return self.atrdic[attrn](self)
+        except IndexError:
             raise AttributeError(
                 "Edge instance has no attribute {0}".format(attrn))
 
@@ -159,21 +120,91 @@ class Arrow:
         except KeyError:
             return None
 
+    def get_slope(self):
+        ox = self.orig.x
+        oy = self.orig.y
+        dx = self.dest.x
+        dy = self.dest.y
+        if oy == dy:
+            return 0
+        elif ox == dx:
+            return None
+        else:
+            return self.rise / self.run
+
+    def get_left(self):
+        if self.orig.x < self.dest.x:
+            return self.orig.x - self.margin
+        else:
+            return self.dest.x - self.margin
+
+    def get_right(self):
+        if self.orig.x < self.dest.x:
+            return self.dest.x + self.margin
+        else:
+            return self.orig.x + self.margin
+
+    def get_bot(self):
+        if self.orig.y < self.dest.y:
+            return self.orig.y - self.margin
+        else:
+            return self.dest.y - self.margin
+
+    def get_top(self):
+        if self.orig.y < self.dest.y:
+            return self.dest.y + self.margin
+        else:
+            return self.orig.y + self.margin
+
+    def get_b(self):
+        if self.m is None:
+            return None
+        denominator = self.run
+        x_numerator = self.rise * self.ox
+        y_numerator = denominator * self.oy
+        return ((y_numerator - x_numerator), denominator)
+
 
 class ArrowWidget:
     selectable = True
+    def yint(self):
+        ab = self.arrow.b
+        return (ab[0] + self.viewport.offset_x * ab[1], ab[1])
+    atrdic = {
+        "board_left": lambda self: self.arrow.left,
+        "board_right": lambda self: self.arrow.right,
+        "board_top": lambda self: self.arrow.top,
+        "board_bot": lambda self: self.arrow.bot,
+        "viewport_left": lambda self: self.board_left + self.viewport.offset_x,
+        "viewport_right": lambda self: self.board_right + self.viewport.offset_x,
+        "viewport_top": lambda self: self.board_top + self.viewport.offset_y,
+        "viewport_bot": lambda self: self.board_bot + self.viewport.offset_y,
+        "window_left": lambda self: self.viewport_left + self.viewport.window_left,
+        "window_right": lambda self: self.viewport_right + self.viewport.window_left,
+        "window_bot": lambda self: self.viewport_bot + self.viewport.window_bot,
+        "window_top": lambda self: self.viewport_top + self.viewport.window_bot,
+        "ox": lambda self: self.orig.board_x,
+        "oy": lambda self: self.orig.board_y,
+        "dx": lambda self: self.dest.board_x,
+        "dy": lambda self: self.dest.board_y,
+        "window_ox": lambda self: self.orig.window_x,
+        "window_oy": lambda self: self.orig.window_y,
+        "window_dx": lambda self: self.dest.window_x,
+        "window_dy": lambda self: self.dest.window_y,
+        "selected": lambda self: self in self.window.selected,
+        "orig": lambda self: self.viewport.spotdict[str(self.arrow.orig)],
+        "dest": lambda self: self.viewport.spotdict[str(self.arrow.dest)],
+        "in_view": lambda self: self.orig.in_view or self.dest.in_view,
+        "b": lambda self: self.yint(),
+        "width": lambda self: self.viewport.arrow_width}
 
     def __init__(self, viewport, arrow):
         self.viewport = viewport
         self.window = self.viewport.window
         self.batch = self.window.batch
         self.arrow = arrow
-        self.shaft_bg_vertlist = None
-        self.wedge_bg_vertlist = None
-        self.shaft_fg_vertlist = None
-        self.wedge_fg_vertlist = None
-        self.bgvldict = {}
-        self.fgvldict = {}
+        self.bgvl = None
+        self.fgvl = None
         self.order = self.window.edge_order
         self.window.edge_order += 1
         self.bggroup = SmoothBoldLineOrderedGroup(
@@ -183,82 +214,15 @@ class ArrowWidget:
         self.old_state = None
 
     def __getattr__(self, attrn):
-        if attrn == "board_left":
-            return self.arrow.left
-        elif attrn == "board_right":
-            return self.arrow.right
-        elif attrn == "board_top":
-            return self.arrow.top
-        elif attrn == "board_bot":
-            return self.arrow.bot
-        elif attrn == "viewport_left":
-            return self.board_left + self.viewport.offset_x
-        elif attrn == "viewport_right":
-            return self.board_right + self.viewport.offset_x
-        elif attrn == "viewport_bot":
-            return self.board_bot + self.viewport.offset_y
-        elif attrn == "viewport_top":
-            return self.board_top + self.viewport.offset_y
-        elif attrn == "window_left":
-            return self.viewport_left + self.viewport.window_left
-        elif attrn == "window_right":
-            return self.viewport_right + self.viewport.window_left
-        elif attrn == "window_bot":
-            return self.viewport_bot + self.viewport.window_bot
-        elif attrn == "window_top":
-            return self.viewport_top + self.viewport.window_bot
-        elif attrn in ("ox", "board_ox"):
-            return self.arrow.ox
-        elif attrn in ("oy", "board_oy"):
-            return self.arrow.oy
-        elif attrn in ("dx", "board_dx"):
-            return self.arrow.dx
-        elif attrn in ("dy", "board_dy"):
-            return self.arrow.dy
-        elif attrn == "viewport_ox":
-            return self.board_ox + self.viewport.offset_x
-        elif attrn == "viewport_dx":
-            return self.board_dx + self.viewport.offset_x
-        elif attrn == "viewport_dy":
-            return self.board_dy + self.viewport.offset_y
-        elif attrn == "viewport_oy":
-            return self.board_oy + self.viewport.offset_y
-        elif attrn == "window_ox":
-            return self.viewport_ox + self.viewport.window_left
-        elif attrn == "window_dx":
-            return self.viewport_dx + self.viewport.window_left
-        elif attrn == "window_oy":
-            return self.viewport_oy + self.viewport.window_bot
-        elif attrn == "window_dy":
-            return self.viewport_dy + self.viewport.window_bot
-        elif attrn in ("highlit", "selected"):
-            return self in self.window.selected
-        elif attrn == "orig":
-            return self.viewport.spotdict[str(self.arrow.orig)]
-        elif attrn == "dest":
-            return self.viewport.spotdict[str(self.arrow.dest)]
-        elif attrn == "in_view":
-            return (self.orig.in_view or self.dest.in_view)
-        elif attrn == "b":
-            ab = self.arrow.b
-            return (ab[0] + self.viewport.offset_x * ab[1], ab[1])
-        elif attrn == "width":
-            return self.viewport.arrow_width
-        elif attrn == "state":
-            return (
-                self.viewport.window_left,
-                self.viewport.window_bot,
-                self.viewport.view_left,
-                self.viewport.view_bot,
-                self.orig.spot.coords,
-                self.dest.spot.coords)
-        elif attrn in (
+        if attrn in (
                 "rise", "run", "length", "m", "slope",
                 "center_shrink", "portal", "e"):
             return getattr(self.arrow, attrn)
+        elif attrn in ArrowWidget.atrdic:
+            return ArrowWidget.atrdic[attrn](self)
         else:
             raise AttributeError(
-                "ArrowWidget instance has no attribute " + attrn)
+                "ArrowWidget instance has no attribute named {0}".format(attrn))
 
     def y_at(self, x):
         if self.m is None:
@@ -316,11 +280,28 @@ Take my width into account
         return self.viewport
 
     def draw(self):
+        ox = self.window_ox
+        dx = self.window_dx
+        oy = self.window_oy
+        dy = self.window_dy
+        try:
+            self.really_draw(ox, oy, dx, dy)
+        except:
+            if self.bggroup is not None:
+                try:
+                    self.bggroup.delete()
+                except:
+                    pass
+                self.bggroup = None
+            if self.fggroup is not None:
+                try:
+                    self.fggroup.delete()
+                except:
+                    pass
+                self.fggroup = None
+
+    def really_draw(self, ox, oy, dx, dy):
         # group had better be viewported
-        ox = self.viewport_ox
-        dx = self.viewport_dx
-        oy = self.viewport_oy
-        dy = self.viewport_dy
         if dy < oy:
             yco = -1
         else:
@@ -355,107 +336,28 @@ Take my width into account
         y2 = int(topy - yoff2) * yco
         endx = int(rightx) * xco
         endy = int(topy) * yco
-        if self.highlit:
+        if self.selected:
             bgcolor = (255, 255, 0, 0)
             fgcolor = (0, 0, 0, 0)
         else:
             bgcolor = (64, 64, 64, 64)
             fgcolor = (255, 255, 255, 0)
-        bgcolors = bgcolor * 2
-        fgcolors = fgcolor * 2
-        if (ox > 0 and oy > 0) or (endx > 0 and endy > 0):
-            try:
-                self.bgvldict['shaft'].vertices = [ox, oy, endx, endy]
-            except:
-                self.bgvldict['shaft'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.bggroup,
-                    ('v2i', (ox, oy, endx, endy)),
-                    ('c4B', bgcolors))
-            try:
-                self.fgvldict['shaft'].vertices = [ox, oy, endx, endy]
-            except:
-                self.fgvldict['shaft'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.fggroup,
-                    ('v2i', (ox, oy, endx, endy)),
-                    ('c4B', fgcolors))
+        vees = (ox, oy, endx, endy, x1, y1, endx, endy, x2, y2, endx, endy)
+        if self.bgvl is None:
+            self.bgvl = self.batch.add(
+                6,
+                GL_LINES,
+                self.bggroup,
+                ('v2i', vees),
+                ('c4B', bgcolor * 6))
         else:
-            if 'shaft' in self.bgvldict:
-                try:
-                    self.bgvldict['shaft'].delete()
-                except:
-                    pass
-                del self.bgvldict['shaft']
-            if 'shaft' in self.fgvldict:
-                try:
-                    self.fgvldict['shaft'].delete()
-                except:
-                    pass
-                del self.fgvldict['shaft']
-        if (x1 > 0 and y1 > 0) or (endx > 0 and endy > 0):
-            try:
-                self.bgvldict['left'].vertices = [x1, y1, endx, endy]
-            except:
-                self.bgvldict['left'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.bggroup,
-                    ('v2i', (x1, y1, endx, endy)),
-                    ('c4B', bgcolors))
-            try:
-                self.fgvldict['left'].vertices = [x1, y1, endx, endy]
-            except:
-                self.fgvldict['left'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.fggroup,
-                    ('v2i', (x1, y1, endx, endy)),
-                    ('c4B', fgcolors))
+            self.bgvl.vertices = vees
+        if self.fgvl is None:
+            self.fgvl = self.batch.add(
+                6,
+                GL_LINES,
+                self.fggroup,
+                ('v2i', vees),
+                ('c4B', fgcolor * 6))
         else:
-            if 'left' in self.bgvldict:
-                try:
-                    self.bgvldict['left'].delete()
-                except:
-                    pass
-                del self.bgvldict['left']
-            if 'left' in self.fgvldict:
-                try:
-                    self.fgvldict['left'].delete()
-                except:
-                    pass
-                del self.fgvldict['left']
-        if (x2 > 0 and y2 > 0) or (endx > 0 and endy > 0):
-            try:
-                self.bgvldict['right'].vertices = [x2, y2, endx, endy]
-            except:
-                self.bgvldict['right'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.bggroup,
-                    ('v2i', (x2, y2, endx, endy)),
-                    ('c4B', bgcolors))
-            try:
-                self.fgvldict['right'].vertices = [x2, y2, endx, endy]
-            except:
-                self.fgvldict['right'] = self.batch.add(
-                    2,
-                    pyglet.gl.GL_LINES,
-                    self.fggroup,
-                    ('v2i', (x2, y2, endx, endy)),
-                    ('c4B', fgcolors))
-        else:
-            if 'right' in self.bgvldict:
-                try:
-                    self.bgvldict['right'].delete()
-                except:
-                    pass
-                del self.bgvldict['right']
-            if 'right' in self.fgvldict:
-                try:
-                    self.fgvldict['right'].delete()
-                except:
-                    pass
-                del self.fgvldict['right']
+            self.fgvl.vertices = vees

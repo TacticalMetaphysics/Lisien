@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     SaveableMetaclass,
-    TabdictIterator,
+    SkeletonIterator,
     ViewportOrderedGroup)
 from pawn import Pawn, PawnWidget
 from spot import Spot, SpotWidget
@@ -41,55 +41,47 @@ each board will be open in at most one window at a time.
          ("dimension", "idx"),
          {"wallpaper": ("img", "name")},
          [])]
+    atrdic = {
+        "wallpaper": lambda self: self.closet.get_img(
+            self._rowdict["wallpaper"]),
+        "places": lambda self: iter(self.dimension.places),
+        "portals": lambda self: iter(self.dimension.portals),
+        "things": lambda self: iter(self.dimension.things),
+        "pawns": lambda self: self.pawndict.itervalues(),
+        "spots": lambda self: self.spotdict.itervalues(),
+        "arrows": lambda self: self.arrowdict.itervalues()}
 
-    def __init__(self, rumor, dimension, idx):
+    def __init__(self, closet, dimension, idx):
         """Return a board representing the given dimension.
 
         """
-        self.rumor = rumor
+        self.closet = closet
         self.dimension = dimension
         self.idx = idx
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
         self.viewports = []
+        self._rowdict = self.closet.skeleton["board"][str(self.dimension)][int(self)]
         while len(self.dimension.boards) <= self.idx:
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
-        if "spot_coords" in self.rumor.tabdict:
-            for rd in TabdictIterator(
-                    self.rumor.tabdict[
+        if "spot_coords" in self.closet.skeleton:
+            for rd in SkeletonIterator(
+                    self.closet.skeleton[
                         "spot_coords"][str(self.dimension)][int(self)]):
                 self.add_spot(rd)
-        if "pawn_img" in self.rumor.tabdict:
-            for rd in TabdictIterator(
-                    self.rumor.tabdict[
+        if "pawn_img" in self.closet.skeleton:
+            for rd in SkeletonIterator(
+                    self.closet.skeleton[
                         "pawn_img"][str(self.dimension)][int(self)]):
                 self.add_pawn(rd)
         for portal in self.dimension.portals:
             self.make_arrow(portal)
 
+
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["board"][str(self.dimension)][int(self)]
-        elif attrn in ("wallpaper", "img"):
-            return self.rumor.get_img(self._rowdict["wallpaper"])
-        elif attrn in self.colns:
-            return self._rowdict[attrn]
-        elif attrn == "places":
-            return iter(self.dimension.places)
-        elif attrn == "things":
-            return iter(self.dimension.things)
-        elif attrn == "portals":
-            return iter(self.dimension.portals)
-        elif attrn == "pawns":
-            return self.pawndict.itervalues()
-        elif attrn == "spots":
-            return self.spotdict.itervalues()
-        elif attrn == "arrows":
-            return self.arrowdict.itervalues()
-        else:
-            raise AttributeError("Board has no attribute named " + attrn)
+        return self.atrdic[attrn](self)
 
     def __int__(self):
         return self.idx
@@ -97,13 +89,13 @@ each board will be open in at most one window at a time.
     def add_spot(self, rd):
         assert(rd["dimension"] == str(self.dimension))
         self.spotdict[rd["place"]] = Spot(
-            self.rumor, self.dimension, self,
+            self.closet, self.dimension, self,
             self.dimension.get_place(rd["place"]))
 
     def add_pawn(self, rd):
         assert(rd["dimension"] == str(self.dimension))
         self.pawndict[rd["thing"]] = Pawn(
-            self.rumor, self.dimension, self,
+            self.closet, self.dimension, self,
             self.dimension.get_thing(rd["thing"]))
 
     def get_spot_at(self, x, y):
@@ -135,6 +127,10 @@ each board will be open in at most one window at a time.
         if str(place) not in self.spotdict:
             self.make_spot(place)
         return self.spotdict[str(place)]
+
+    def make_spot(self, place):
+        place = self.closet.get_place(str(self.dimension), str(place))
+        self.spotdict[str(place)] = Spot(self.closet, self.dimension, self, place)
 
     def make_arrow(self, orig_or_port, dest=None):
         if dest is None:
@@ -182,13 +178,38 @@ class BoardViewport:
          ["view_left>=0", "view_bot>=0", "left>=0.0", "bot>=0.0",
           "right>=0.0", "top>=0.0", "left<=1.0", "bot<=1.0",
           "right<=1.0", "top<=1.0", "right>left", "top>bot"])]
+    atrdic = {
+        "left_prop": lambda self: self._rowdict["left"],
+        "right_prop": lambda self: self._rowdict["right"],
+        "top_prop": lambda self: self._rowdict["top"],
+        "bot_prop": lambda self: self._rowdict["bot"],
+        "window_left": lambda self: int(self.left_prop * self.window.width),
+        "window_right": lambda self: int(self.right_prop * self.window.width),
+        "window_top": lambda self: int(self.top_prop * self.window.height),
+        "window_bot": lambda self: int(self.bot_prop * self.window.height),
+        "width": lambda self: self.window_right - self.window_left,
+        "height": lambda self: self.window_top - self.window_bot,
+        "offset_x": lambda self: -1 * self.view_left,
+        "offset_y": lambda self: -1 * self.view_bot,
+        "arrows": lambda self: self.arrowdict.itervalues(),
+        "spots": lambda self: self.spotdict.itervalues(),
+        "pawns": lambda self: self.pawndict.itervalues()}
 
-    def __init__(self, rumor, window, dimension, board, idx):
-        self.rumor = rumor
+    def __init__(self, closet, window, dimension, board, idx):
+        self.closet = closet
         self.window = window
         self.dimension = dimension
         self.board = board
         self.idx = idx
+        self._rowdict = self.closet.skeleton[
+            "board_viewport"][
+                str(self.window)][
+                    str(self.dimension)][
+                        int(self.board)][
+                            int(self)]
+        self.pawndict = {}
+        self.spotdict = {}
+        self.arrowdict = {}
         while len(self.board.viewports) <= self.idx:
             self.board.viewports.append(None)
         self.board.viewports[self.idx] = self
@@ -201,64 +222,26 @@ class BoardViewport:
         self.arrowgroup = OrderedGroup(1, self.biggroup)
         self.spotgroup = OrderedGroup(2, self.biggroup)
         self.pawngroup = OrderedGroup(3, self.biggroup)
-        self.pawndict = {}
-        self.spotdict = {}
-        self.arrowdict = {}
         for (k, v) in self.board.pawndict.iteritems():
             self.pawndict[k] = PawnWidget(self, v)
         for (k, v) in self.board.spotdict.iteritems():
             self.spotdict[k] = SpotWidget(self, v)
         for (k, v) in self.board.arrowdict.iteritems():
             self.arrowdict[k] = ArrowWidget(self, v)
+        self.old_offset_x = None
+        self.old_offset_y = None
 
     def __int__(self):
         return self.idx
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["board_viewport"][
-                str(self.window)][
-                    str(self.dimension)][
-                        int(self.board)][
-                            int(self)]
-        elif attrn == "left_prop":
-            return self._rowdict["left"]
-        elif attrn == "right_prop":
-            return self._rowdict["right"]
-        elif attrn == "top_prop":
-            return self._rowdict["top"]
-        elif attrn == "bot_prop":
-            return self._rowdict["bot"]
-        elif attrn == "window_left":
-            return int(self.left_prop * self.window.width)
-        elif attrn == "window_right":
-            return int(self.right_prop * self.window.width)
-        elif attrn == "window_bot":
-            return int(self.bot_prop * self.window.height)
-        elif attrn == "window_top":
-            return int(self.top_prop * self.window.height)
-        elif attrn == "width":
-            return self.window_right - self.window_left
-        elif attrn == "height":
-            return self.window_top - self.window_bot
-        elif attrn == "offset_x":
-            return -1 * self.view_left
-        elif attrn == "offset_y":
-            return -1 * self.view_bot
-        elif attrn == "arrows":
-            return self.arrowdict.itervalues()
-        elif attrn == "spots":
-            return self.spotdict.itervalues()
-        elif attrn == "pawns":
-            return self.pawndict.itervalues()
-        elif attrn in self._rowdict:
+        if attrn in self._rowdict:
             return self._rowdict[attrn]
         elif attrn in (
                 "dimension", "idx", "wallpaper"):
             return getattr(self.board, attrn)
         else:
-            raise AttributeError(
-                "BoardView instance has no attribute " + attrn)
+            return self.atrdic[attrn](self)
 
     def overlaps(self, x, y):
         return (
@@ -314,28 +297,25 @@ class BoardViewport:
             self.view_bot = 0
 
     def draw(self):
+        offx = self.offset_x
+        offy = self.offset_y
         try:
-            self.bgsprite.x = self.offset_x
-            self.bgsprite.y = self.offset_y
+
+            if offx != self.old_offset_x:
+                self.bgsprite.x = offx
+                self.old_offset_x = offx
+            if offy != self.old_offset_y:
+                self.bgsprite.y = self.offset_y
+                self.old_offset_y = offy
         except:
             self.bgsprite = Sprite(
                 self.wallpaper.tex,
-                self.offset_x,
-                self.offset_y,
+                offx, offy,
                 batch=self.batch,
                 group=self.bggroup)
         for spot in self.spots:
-            new_state = spot.state
-            if new_state != spot.old_state:
-                spot.draw()
-                spot.old_state = new_state
+            spot.draw()
         for pawn in self.pawns:
-            new_state = pawn.state
-            if new_state != pawn.old_state:
-                pawn.draw()
-                pawn.old_state = new_state
+            pawn.draw()
         for arrow in self.arrows:
-            new_state = arrow.state
-            if new_state != arrow.old_state:
-                arrow.draw()
-                arrow.old_state = new_state
+            arrow.draw()

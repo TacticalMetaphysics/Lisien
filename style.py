@@ -33,17 +33,17 @@ you that.
           "blue between 0 and 255",
           "alpha between 0 and 255"])]
 
-    def __init__(self, rumor, name):
+    def __init__(self, closet, name):
         """Return a color with the given name, and the given values for red,
 green, blue, and alpha. Register in db.colordict.
 
         """
-        self.rumor = rumor
+        self.closet = closet
         self._name = name
 
     def __getattr__(self, attrn):
         if attrn == "_rowdict":
-            return self.rumor.tabdict["color"][str(self)]
+            return self.closet.skeleton["color"][str(self)]
         elif attrn in ("r", "red"):
             return self._rowdict["red"]
         elif attrn in ("green", "g"):
@@ -92,7 +92,7 @@ that contain text."""
     color_cols = ["textcolor", "bg_inactive", "bg_active",
                   "fg_inactive", "fg_active"]
 
-    def __init__(self, rumor, name):
+    def __init__(self, closet, name):
         """Return a style by the given name, with the given face, font size,
 spacing, and four colors: active and inactive variants for each of the
 foreground and the background.
@@ -100,15 +100,16 @@ foreground and the background.
 With db, register in its styledict.
 
         """
-        self.rumor = rumor
+        assert(len(closet.skeleton['img']) > 1)
+        self.closet = closet
         self._name = name
-        self.rumor.styledict[str(self)] = self
+        self.closet.styledict[str(self)] = self
 
     def __getattr__(self, attrn):
         if attrn == "_rowdict":
-            return self.rumor.tabdict["style"][str(self)]
+            return self.closet.skeleton["style"][str(self)]
         elif attrn in self.color_cols:
-            return self.rumor.get_color(self._rowdict[attrn])
+            return self.closet.get_color(self._rowdict[attrn])
         elif attrn in (
                 "fontface",
                 "fontsize",

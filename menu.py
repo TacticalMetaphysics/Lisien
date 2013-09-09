@@ -29,6 +29,51 @@ class MenuItem:
          ("window", "menu", "idx"),
          {"window, menu": ("menu", "window, name")},
          [])]
+
+    def geticon(self):
+        if self._icon is not None:
+            return self.closet.get_img(self._icon)
+
+    def gettxt(self):
+        if self._text is None:
+            return None
+        elif self._text[0] == '@':
+            return self.closet.get_text(self._text[1:])
+        else:
+            return self._text
+
+    def lwl(self):
+            if self.icon is None:
+                return self.window_left
+            else:
+                return (
+                    self.window_left +
+                    self.icon.width +
+                    self.menu.style.spacing)
+
+
+    atrdic = {
+        "closer": lambda self: self._rowdict["closer"],
+        "_text": lambda self: self._rowdict["text"],
+        "_icon": lambda self: self._rowdict["icon"],
+        "_on_click": lambda self: self._rowdict["on_click"],
+        "icon": lambda self: self.geticon(),
+        "text": lambda self: self.gettxt(),
+        "hovered": lambda self: self.window.hovered is self,
+        "pressed": lambda self: self.window.pressed is self,
+        "window_left": lambda self: self.menu.window_left + self.menu.style.spacing,
+        "label_window_left": lambda self: self.lwl(),
+        "window_right": lambda self: self.menu.window_right - self.menu.style.spacing,
+        "label_window_right": lambda self: self.window_right,
+        "width": lambda self: self.window_right - self.window_left,
+        "height": lambda self: self.menu.style.fontsize + self.menu.style.spacing,
+        "window_top": lambda self: self.menu.window_top - (
+            self.idx * self.height),
+        "window_bot": lambda self: self.window_top - self.height,
+        "rx": lambda self: self.width / 2,
+        "ry": lambda self: self.height / 2,
+        "r": lambda self: {True: self.rx, False: self.ry}[self.rx > self.ry]}
+
     visible = True
     interactive = True
 
@@ -42,16 +87,18 @@ With db, register in db's menuitemdict.
 
         """
         self.menu = menu
-        self.rumor = self.menu.rumor
+        self.closet = self.menu.closet
         self.batch = self.menu.batch
         self.group = self.menu.labelgroup
         self.window = self.menu.window
         self.idx = idx
+        self._rowdict = self.closet.skeleton["menu_item"][
+            str(self.window)][str(self.menu)][int(self)]
         while len(self.menu.items) <= self.idx:
             self.menu.items.append(None)
         self.menu.items[self.idx] = self
         (funname, argstr) = re.match("(.+)\((.*)\)", self._on_click).groups()
-        (fun, argre) = self.rumor.func[funname]
+        (fun, argre) = self.closet.func[funname]
         try:
             on_click_arg_tup = re.match(argre, argstr).groups()
         except:
@@ -65,70 +112,20 @@ With db, register in db's menuitemdict.
 
         self.on_click = on_click_fun
 
+        self.old_window_left = 0
+        self.old_window_bot = 0
+        self.old_label_text = ''
+        self.old_label_color = (0, 0, 0, 0)
+        self.old_label_x = 0
+        self.old_label_y = 0
+        self.label = None
+        self.sprite = None
+
     def __int__(self):
         return self.idx
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["menu_item"][
-                str(self.window)][str(self.menu)][int(self)]
-        elif attrn == "closer":
-            return self._rowdict["closer"]
-        elif attrn == "_text":
-            return self._rowdict["text"]
-        elif attrn == "_icon":
-            return self._rowdict["icon"]
-        elif attrn == "_on_click":
-            return self._rowdict["on_click"]
-        elif attrn == "icon":
-            if self._icon is not None:
-                return self.rumor.get_img(self._icon)
-        elif attrn == 'text':
-            if self._text is None:
-                return None
-            elif self._text[0] == '@':
-                return self.rumor.get_text(self._text[1:])
-            else:
-                return self._text
-        elif attrn == 'hovered':
-            return self.window.hovered is self
-        elif attrn == 'pressed':
-            return self.window.pressed is self
-        elif attrn == 'window_left':
-            return self.menu.window_left + self.menu.style.spacing
-        elif attrn == 'label_window_left':
-            if self.icon is None:
-                return self.window_left
-            else:
-                return (
-                    self.window_left +
-                    self.icon.width +
-                    self.menu.style.spacing)
-        elif attrn == 'window_right':
-            return self.menu.window_right - self.menu.style.spacing
-        elif attrn == 'label_window_right':
-            return self.window_right
-        elif attrn == 'width':
-            return self.window_right - self.window_left
-        elif attrn == 'height':
-            return self.menu.style.fontsize + self.menu.style.spacing
-        elif attrn == 'window_top':
-            return self.menu.window_top - self.idx * self.height
-        elif attrn == 'window_bot':
-            return self.window_top - self.height
-        elif attrn == 'rx':
-            return self.width / 2
-        elif attrn == 'ry':
-            return self.height / 2
-        elif attrn == 'r':
-            if self.rx > self.ry:
-                return self.rx
-            else:
-                return self.ry
-        else:
-            raise AttributeError(
-                "MenuItem instance has no such attribute: " +
-                attrn)
+        return self.atrdic[attrn](self)
 
     def onclick(self, x, y, button, modifiers):
         return self.on_click(self)
@@ -141,45 +138,66 @@ With db, register in db's menuitemdict.
             y < self.window_top)
 
     def draw(self):
-        try:
-            self.label.delete()
-        except:
-            pass
         if self.menu.visible or self.window.main_menu_name == str(self.menu):
+            b = self.window_bot
+            l = self.window_left
             if self.icon is not None:
                 try:
-                    self.sprite.x = self.window_left
-                    self.sprite.y = self.window_bot
+                    if self.old_window_left != l:
+                        self.sprite.x = l
+                        self.old_window_left = l
+                    if self.old_window_bot != b:
+                        self.sprite.y = b
+                        self.old_window_bot = b
                 except:
                     self.sprite = pyglet.sprite.Sprite(
                         self.icon.tex,
-                        self.window_left,
-                        self.window_bot,
+                        l, b,
                         batch=self.batch,
                         group=self.group)
             if self.text not in ('', None):
+                txt = self.text
+                color = self.menu.style.textcolor.tup
+                l = self.label_window_left
                 try:
-                    self.label.text = self.text
-                    self.label.color = self.menu.style.textcolor.tup
-                    self.label.x = self.label_window_left
-                    self.label.y = self.window_bot
+                    if self.old_label_text != txt:
+                        self.label.text = self.text
+                        self.old_label_text = txt
+                    if self.old_label_color != color:
+                        self.label.color = self.menu.style.textcolor.tup
+                        self.old_label_color = color
+                    if self.old_label_x != l:
+                        self.label.x = l
+                        self.old_label_x = l
+                    if self.old_label_y != b:
+                        self.label.y = b
+                        self.old_label_y = b
                 except:
                     self.label = pyglet.text.Label(
                         self.text,
                         self.menu.style.fontface,
                         self.menu.style.fontsize,
                         color=self.menu.style.textcolor.tup,
-                        x=self.window_left,
-                        y=self.window_bot,
+                        x=l,
+                        y=b,
                         batch=self.batch,
                         group=self.group)
             else:
+                if self.label is not None:
+                    try:
+                        self.label.delete()
+                    except:
+                        pass
+                    self.label = None
+        else:
+            if self.sprite is not None:
                 try:
-                    self.label.delete()
+                    self.sprite.delete()
                 except:
                     pass
+                self.sprite = None
 
-    def get_tabdict(self):
+    def get_skeleton(self):
         return {
             "menu_item": [{
                 "window": str(self.window),
@@ -206,6 +224,24 @@ class Menu:
          {"window": ("window", "name"),
           "style": ("style", "name")},
          [])]
+    atrdic = {
+        "left_prop": lambda self: self._rowdict["left"],
+        "right_prop": lambda self: self._rowdict["right"],
+        "top_prop": lambda self: self._rowdict["top"],
+        "bot_prop": lambda self: self._rowdict["bot"],
+        "style": lambda self: (
+            self.closet.get_style(self._rowdict["style"])),
+        "hovered": lambda self: self.window.hovered is self,
+        "window_left": lambda self: int(self.window.width * self.left_prop),
+        "window_right": lambda self: int(self.window.width * self.right_prop),
+        "window_top": lambda self: int(self.window.height * self.top_prop),
+        "window_bot": lambda self: int(self.window.height * self.bot_prop),
+        "width": lambda self: self.window_right - self.window_left,
+        "height": lambda self: self.window_top - self.window_bot,
+        "rx": lambda self: self.width / 2,
+        "ry": lambda self: self.height / 2,
+        "r": lambda self: {True: rx, False: ry}[rx > ry],
+        "state": lambda self: self.get_state_tup()}
     interactive = True
 
     def __init__(self, window, name):
@@ -223,12 +259,14 @@ With db, register with db's menudict.
 
         """
         self.window = window
+        self.name = name
         self.batch = self.window.batch
+        self.closet = self.window.closet
+        self._rowdict = self.closet.skeleton["menu"][str(self.window)][str(self)]
         self.supergroup = OrderedGroup(0, self.window.menugroup)
         self.bggroup = OrderedGroup(0, self.supergroup)
         self.labelgroup = OrderedGroup(1, self.supergroup)
-        self.rumor = self.window.rumor
-        self.name = name
+        self.closet = self.window.closet
         self.active_pattern = pyglet.image.SolidColorImagePattern(
             self.style.bg_active.tup)
         self.inactive_pattern = pyglet.image.SolidColorImagePattern(
@@ -239,68 +277,21 @@ With db, register with db's menudict.
         self.pressed = False
         self.freshly_adjusted = False
         self.visible = False
+        self_rowdict = self.closet.skeleton["menu"][
+            str(self.window)][str(self)]
+
+        def r():
+            if self.rx > self.ry:
+                return self.rx
+            else:
+                return self.ry
+
 
     def __str__(self):
         return self.name
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["menu"][str(self.window)][str(self)]
-        elif attrn == "left_prop":
-            return self._rowdict["left"]
-        elif attrn == "right_prop":
-            return self._rowdict["right"]
-        elif attrn == "top_prop":
-            return self._rowdict["top"]
-        elif attrn == "bot_prop":
-            return self._rowdict["bot"]
-        elif attrn == "style":
-            return self.rumor.get_style(self._rowdict["style"])
-        elif attrn == 'hovered':
-            return self.window.hovered is self
-        elif attrn == 'window_left':
-            if self.window is None:
-                return 0
-            else:
-                return int(self.window.width * self.left_prop)
-        elif attrn == 'window_bot':
-            if self.window is None:
-                return 0
-            else:
-                return int(self.window.height * self.bot_prop)
-        elif attrn == 'window_top':
-            if self.window is None:
-                return 0
-            else:
-                return int(self.window.height * self.top_prop)
-        elif attrn == 'window_right':
-            if self.window is None:
-                return 0
-            else:
-                return int(self.window.width * self.right_prop)
-        elif attrn == 'width':
-            return self.window_right - self.window_left
-        elif attrn == 'height':
-            return self.window_top - self.window_bot
-        elif attrn == 'rx':
-            return int(
-                (self.window.width * self.right_prop -
-                 self.window.width * self.left_prop)
-                / 2)
-        elif attrn == 'ry':
-            return int(
-                (self.window.height * self.top_prop -
-                 self.window.height * self.bot_prop)
-                / 2)
-        elif attrn == 'r':
-            if self.rx > self.ry:
-                return self.rx
-            else:
-                return self.ry
-        else:
-            raise AttributeError(
-                "Menu instance has no such attribute: " +
-                attrn)
+        return self.atrdic[attrn](self)
 
     def __eq__(self, other):
         """Return true if the names and boards match"""
@@ -370,7 +361,7 @@ me"""
             self.pressed,
             self.tweaks)
 
-    def get_tabdict(self):
+    def get_skeleton(self):
         return {
             "menu": [{
                 "window": str(self.window),

@@ -5,14 +5,16 @@ import logging
 from util import (
     SaveableMetaclass,
     fortyfive,
-    TabdictIterator)
+    SkeletonIterator,
+    ScissorOrderedGroup)
 from math import atan, cos, sin
-from arrow import Arrow
+from arrow import ArrowWidget
 from menu import Menu, MenuItem
 from card import Hand
 from board import BoardViewport
 from picpicker import PicPicker
 from calendar import Calendar
+from collections import deque
 
 
 class SaveableWindowMetaclass(
@@ -29,35 +31,13 @@ display = platform.get_default_display()
 screen = display.get_default_screen()
 
 
-class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
-    def __init__(self, order, parent, window, left, top, bot, right):
-        super(ScissorOrderedGroup, self).__init__(order, parent)
-        self.window = window
-        self.left_prop = left
-        self.top_prop = top
-        self.bot_prop = bot
-        self.right_prop = right
-
-    def set_state(self):
-        l = int(self.left_prop * self.window.width)
-        b = int(self.bot_prop * self.window.height)
-        r = int(self.right_prop * self.window.width)
-        t = int(self.top_prop * self.window.height)
-        w = r - l
-        h = t - b
-        pyglet.gl.glScissor(l, b, w, h)
-        pyglet.gl.glEnable(pyglet.gl.GL_SCISSOR_TEST)
-
-    def unset_state(self):
-        pyglet.gl.glDisable(pyglet.gl.GL_SCISSOR_TEST)
-
-
 class TransparencyGroup(pyglet.graphics.Group):
-    def set_state(self):
-        pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
+    pass
+    # def set_state(self):
+    #     pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
 
-    def unset_state(self):
-        pyglet.gl.glDisable(pyglet.gl.GL_BLEND)
+    # def unset_state(self):
+    #     pyglet.gl.glDisable(pyglet.gl.GL_BLEND)
 
 
 class TransparencyOrderedGroup(
@@ -120,14 +100,45 @@ class GameWindow(pyglet.window.Window):
          {"main_menu": ("menu", "name")},
          [])]
 
+    def get_hand_iter(self):
+        if hasattr(self, 'handdict'):
+            return self.handdict.itervalues()
+        else:
+            return []
+
+    atrdic = {
+        "arrow_width": lambda self: self._rowdict["arrow_width"],
+        "main_menu_name": lambda self: self._rowdict["main_menu"], 
+        "viewports": lambda self: ViewportIter(self.dimensiondict),
+        "menus": lambda self: self.menudict.itervalues(),
+        "hands": lambda self: self.get_hand_iter(),
+        'dx': lambda self: sum(self.dx_hist),
+        'dy': lambda self: sum(self.dy_hist),
+        'arrow_girth': lambda self: self.arrow_width * 2,
+        'timestream_changed': lambda self: self.rehash_timeline()}
+
     def __init__(
-            self, rumor, name):
+            self, closet, name, checkpoint=False):
         """Initialize the game window, its groups, and some state tracking."""
+        assert(len(closet.skeleton['img']) > 1)
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
+        self.closet = closet
+        self.name = name
+        self.checkpoint = checkpoint
         self.edge_order = 1
         self.viewport_order = 1
         self.hand_order = 1
+        self.last_timestream_hash = hash(self.closet.timestream)
+        self.menudict = {}
+        self.dimensiondict = self.closet.get_dimensions(
+            [rd["dimension"] for rd in
+             SkeletonIterator(self.closet.skeleton[
+                 "board_viewport"][str(self)])])
+        self._rowdict = self.closet.skeleton["window"][name]
+        self.dxdy_hist_max = 10
+        self.dx_hist = deque([], self.dxdy_hist_max)
+        self.dy_hist = deque([], self.dxdy_hist_max)
         self.batch = pyglet.graphics.Batch()
         self.biggroup = pyglet.graphics.Group()
         self.boardgroup = pyglet.graphics.OrderedGroup(0, self.biggroup)
@@ -137,70 +148,67 @@ class GameWindow(pyglet.window.Window):
         self.pickergroup = ScissorOrderedGroup(
             8, self.biggroup, self, 0.3, 0.6, 0.3, 0.6)
         self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
-        self.name = name
-        self.rumor = rumor
-        self.dimensiondict = self.rumor.get_dimensions(
-            [rd["dimension"] for rd in
-             TabdictIterator(self.rumor.tabdict[
-                 "board_viewport"][str(self)])])
-        for rd in TabdictIterator(self.rumor.tabdict[
+        for rd in SkeletonIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
-            self.rumor.get_board(rd["dimension"], rd["board"])
+            self.closet.get_board(rd["dimension"], rd["board"])
             dimension = self.dimensiondict[rd["dimension"]]
             boardi = rd["board"]
             viewi = rd["idx"]
             board = dimension.boards[boardi]
             board.viewports[viewi] = BoardViewport(
-                self.rumor, self, dimension, board, viewi)
+                self.closet, self, dimension, board, viewi)
         stylenames = set()
         handnames = set()
-        for rd in TabdictIterator(
-                self.rumor.tabdict["menu"][str(self)]):
+        charnames = set()
+        for rd in SkeletonIterator(
+                self.closet.skeleton["menu"][str(self)]):
             stylenames.add(rd["style"])
-        if str(self) in self.rumor.tabdict["hand"]:
-            for rd in TabdictIterator(
-                    self.rumor.tabdict["hand"][str(self)]):
+        if "hand" in self.closet.skeleton and str(self) in self.closet.skeleton["hand"]:
+            for rd in SkeletonIterator(
+                    self.closet.skeleton["hand"][str(self)]):
                 stylenames.add(rd["style"])
                 handnames.add(rd["name"])
-        for rd in TabdictIterator(
-                self.rumor.tabdict["calendar"][str(self)]):
+        for rd in SkeletonIterator(
+                self.closet.skeleton["calendar"][str(self)]):
             stylenames.add(rd["style"])
-        self.rumor.get_styles(stylenames)
-        carddict = self.rumor.get_cards_in_hands(handnames)
+        self.closet.get_styles(stylenames)
+        carddict = self.closet.get_cards_in_hands(handnames)
         imagenames = set()
-        for rd in TabdictIterator(
-                self.rumor.tabdict["menu_item"][str(self)]):
+        for rd in SkeletonIterator(
+                self.closet.skeleton["menu_item"][str(self)]):
             if rd["icon"] is not None:
                 imagenames.add(rd["icon"])
-        for rd in TabdictIterator(carddict):
+        for rd in SkeletonIterator(carddict):
             if rd["image"] is not None:
                 imagenames.add(rd["image"])
-        self.rumor.get_imgs(imagenames)
-        self.menudict = {}
-        for rd in TabdictIterator(
-                self.rumor.tabdict["menu"][str(self)]):
+        self.closet.get_imgs(imagenames)
+        for rd in SkeletonIterator(
+                self.closet.skeleton["menu"][str(self)]):
             menu = Menu(self, rd["name"])
-            for mird in TabdictIterator(
-                    self.rumor.tabdict["menu_item"][
+            for mird in SkeletonIterator(
+                    self.closet.skeleton["menu_item"][
                         str(self)][str(menu)]):
                 MenuItem(menu, mird["idx"])
             self.menudict[str(menu)] = menu
-        if str(self) in self.rumor.tabdict["hand"]:
+        if "hand" in self.closet.skeleton and str(self) in self.closet.skeleton["hand"]:
             effect_deck_names = set()
-            for rd in TabdictIterator(
-                    self.rumor.tabdict["hand"][str(self)]):
+            for rd in SkeletonIterator(
+                    self.closet.skeleton["hand"][str(self)]):
                 effect_deck_names.add(rd["deck"])
-            effect_decks = self.rumor.get_effect_decks(effect_deck_names)
+            deckd = self.closet.get_effect_decks(effect_deck_names)
+            self.closet.get_effects_in_decks(effect_deck_names)
             self.handdict = {}
-            for rd in TabdictIterator(
-                    self.rumor.tabdict["hand"][str(self)]):
-                effd = effect_decks[rd["effect_deck"]]
-                self.handdict[rd["effect_deck"]] = Hand(self, effd)
+            for (name, deck) in deckd.iteritems():
+                self.handdict[name] = Hand(self, deck)
         if hasattr(self, 'handdict'):
-            self.carddict = self.rumor.get_cards_in_hands(self.handdict.keys())
+            self.carddict = self.closet.get_cards_in_hands(self.handdict.keys())
         self.calendars = []
-        for rd in TabdictIterator(
-                self.rumor.tabdict["calendar"][str(self)]):
+        for rd in SkeletonIterator(
+                self.closet.skeleton["calendar"][str(self)]):
+            charnames.add(rd["character"])
+        self.closet.load_characters(charnames)
+        for rd in SkeletonIterator(
+                self.closet.skeleton["calendar"][str(self)]):
             while len(self.calendars) <= rd["idx"]:
                 self.calendars.append(None)
             self.calendars[rd["idx"]] = Calendar(self, rd["idx"])
@@ -229,7 +237,7 @@ class GameWindow(pyglet.window.Window):
         self.keep_selected = False
         self.prev_view_bot = 0
 
-        orbimg = self.rumor.imgdict['default_spot']
+        orbimg = self.closet.get_img('default_spot').tex
         rx = orbimg.width / 2
         ry = orbimg.height / 2
         self.create_place_cursor = (
@@ -242,10 +250,6 @@ class GameWindow(pyglet.window.Window):
 
         self.time_travel_target = None
 
-        self.dxdy_hist_max = 10
-        self.dx_hist = [0] * self.dxdy_hist_max
-        self.dy_hist = [0] * self.dxdy_hist_max
-
         self.timeline = None
 
         self.last_age = -1
@@ -254,72 +258,36 @@ class GameWindow(pyglet.window.Window):
         self.dxdy_hist_counter = 0
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.rumor.tabdict["window"][str(self)]
-        elif attrn in ("min_width", "min_height",
+        if attrn in ("min_width", "min_height",
                        "arrowhead_size", "arrow_width"):
             return self._rowdict[attrn]
-        elif attrn == "main_menu_name":
-            return self._rowdict["main_menu"]
-        elif attrn == 'viewports':
-            return ViewportIter(self.dimensiondict)
-        elif attrn == 'menus':
-            return self.menudict.itervalues()
-        elif attrn == 'hands':
-            if hasattr(self, 'handdict'):
-                return self.handdict.itervalues()
-            else:
-                return []
-        elif attrn == 'dx':
-            return sum(self.dx_hist)
-        elif attrn == 'dy':
-            return sum(self.dy_hist)
-        elif attrn == 'offset_x':
-            return -1 * self.view_left
-        elif attrn == 'offset_y':
-            return -1 * self.view_bot
-        elif attrn == 'arrow_girth':
-            return self.arrow_width * 2
         else:
-            raise AttributeError(
-                "AbstractGameWindow has no attribute named {0}".format(attrn))
+            return self.atrdic[attrn](self)
 
     def __str__(self):
         return self.name
 
+    def rehash_timeline(self):
+        tihash = hash(self.closet.timestream)
+        r = self.last_timestream_hash != tihash
+        self.last_timestream_hash = tihash
+        return r
+
+
     def update(self, dt):
         (x, y) = self.mouspot.coords
 
-        def get_hovered():
-            for get in self.hover_iter_getters:
-                for hoverable in get():
-                    if (
-                            hoverable is not None and
-                            hasattr(hoverable, 'overlaps') and
-                            hoverable.overlaps(x, y)):
-                        if hasattr(hoverable, 'hover'):
-                            self.hovered = hoverable.hover(x, y)
-                        else:
-                            self.hovered = hoverable
-                        return
-        get_hovered()
-
-        if self.portal_from is None:
-            try:
-                (self.floaty_portal.orig.x,
-                 self.floaty_portal.orig.y) = self.floaty_coords()
-            except:
-                pass
-        try:
-            self.place_pic_sprite.set_position(
-                x - self.place_pic.rx, y - self.place_pic.ry)
-        except:
-            pass
-        try:
-            self.thing_pic_sprite.set_position(
-                x - self.thing_pic.rx, y - self.thing_pic.ry)
-        except:
-            pass
+        for get in self.hover_iter_getters:
+            for hoverable in get():
+                if (
+                        hoverable is not None and
+                        hasattr(hoverable, 'overlaps') and
+                        hoverable.overlaps(x, y)):
+                    if hasattr(hoverable, 'hover'):
+                        self.hovered = hoverable.hover(x, y)
+                    else:
+                        self.hovered = hoverable
+                    return
 
     def on_draw(self):
         (width, height) = self.get_size()
@@ -333,10 +301,10 @@ class GameWindow(pyglet.window.Window):
             menu.draw()
         for calendar in self.calendars:
             if calendar is not None:
-                new_state = calendar.state
-                if new_state != calendar.old_state:
-                    calendar.draw()
-                    calendar.old_state = new_state
+                if calendar.tainted:
+                    calendar.review()
+                calendar.tainted = False
+                calendar.draw()
         for hand in self.hands:
             hand.draw()
         for viewport in self.viewports:
@@ -344,6 +312,14 @@ class GameWindow(pyglet.window.Window):
         # well, I lied. I was really only adding those things to the batch.
         # NOW I'll draw them.
         self.batch.draw()
+        if self.checkpoint:
+            self.closet.checkpoint()
+            self.checkpoint = False
+
+    def on_resize(self, w, h):
+        for calendar in self.calendars:
+            calendar.tainted = True
+        super(GameWindow, self).on_resize(w, h)
 
     def on_mouse_press(self, x, y, button, modifiers):
         """If there's something already highlit, and the mouse is
@@ -391,7 +367,7 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                     self.place_pic_sprite.delete()
                 except:
                     pass
-                pl = self.rumor.make_generic_place(self.dimension)
+                pl = self.closet.make_generic_place(self.dimension)
                 sp = self.board.get_spot(pl)
                 sp.set_coords(x + self.view_left, y + self.view_bot)
                 sp.set_img(self.place_pic)
@@ -416,7 +392,7 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                     x + self.view_left, y + self.view_bot)
                 if sp is not None:
                     pl = sp.place
-                    th = self.rumor.make_generic_thing(self.dimension, pl)
+                    th = self.closet.make_generic_thing(self.dimension, pl)
                     self.board.make_pawn(th)
                     th.pawns[int(self.board)].set_img(self.thing_pic)
                     logger.debug("made generic thing: %s", str(th))
@@ -441,7 +417,7 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                         hasattr(self.pressed, 'place') and
                         hasattr(self.portal_from, 'place') and
                         self.pressed.place != self.portal_from.place):
-                    port = self.rumor.make_portal(
+                    port = self.closet.make_portal(
                         self.portal_from.place,
                         self.pressed.place)
                     self.board.make_arrow(port)
@@ -482,9 +458,10 @@ move_with_mouse method, use it.
         # for now, this only does anything if you're moused over
         # the calendar
         for calendar in self.calendars:
-            if calendar.overlaps(x, y):
+            if (calendar is not None and calendar.overlaps(x, y)):
                 sf = calendar.scroll_factor
                 calendar.scrolled_to += scroll_y * sf
+                calendar.tainted = True
                 return
         if self.picker is not None:
             if self.picker.overlaps(x, y):
@@ -501,9 +478,8 @@ and highlight it.
         """
         self.mouspot.x = x
         self.mouspot.y = y
-        self.dx_hist[self.dxdy_hist_counter % self.dxdy_hist_max] = dx
-        self.dy_hist[self.dxdy_hist_counter % self.dxdy_hist_max] = dy
-        self.dxdy_hist_counter += 1
+        self.dx_hist.append(dx)
+        self.dy_hist.append(dy)
 
     def on_key_press(self, symbol, modifiers):
         if symbol == pyglet.window.key.DELETE:
@@ -579,9 +555,10 @@ associated with the argument."""
             self.calendars[0].style, 'thing_pic', 'thinging')
 
     def create_portal(self):
-        boguspot = MousySpot()
-        (boguspot.x, boguspot.y) = self.floaty_coords()
-        self.floaty_portal = Arrow(self.board, boguspot, self.mouspot)
+#        boguspot = MousySpot()
+ #       (boguspot.x, boguspot.y) = self.floaty_coords()
+        # TODO: make it work with multiple viewports
+#        self.floaty_portal = ArrowWidget(self.viewports.next(), self.mouspot)
         self.portaling = True
 
     def floaty_coords(self):
@@ -615,17 +592,3 @@ associated with the argument."""
             xleft = int(x - cos(theta) * length)
             ybot = int(y - sin(theta) * length)
             return (xleft * xco, ybot * yco)
-
-    def get_tabdict(self):
-        return {
-            "window": [{
-                "name": str(self),
-                "min_width": self.min_width,
-                "min_height": self.min_height,
-                "dimension": str(self.dimension),
-                "board": int(self.board),
-                "arrowhead_size": self.arrowhead_size,
-                "arrow_width": self.arrow_width,
-                "view_left": self.view_left,
-                "view_bot": self.view_bot,
-                "main_menu": self.main_menu_name}]}

@@ -26,7 +26,7 @@ INSERT INTO menu_item (idx, menu, on_click, icon) VALUES
 (6, 'Main', 'stop()', 'pause'),
 (7, 'Main', 'play_speed(-1)', 'reverse'),
 (8, 'Main', 'back_to_start()', 'revert'),
-(9, 'Main', 'increment_tick(1)', 'stepforward'),
-(10, 'Main', 'increment_tick(-1)', 'stepbackward'),
-(11, 'Main', 'increment_branch(1)', 'up'),
-(12, 'Main', 'increment_branch(-1)', 'down');
+(9, 'Main', 'time_travel_inc_tick(1)', 'stepforward'),
+(10, 'Main', 'time_travel_inc_tick(-1)', 'stepbackward'),
+(11, 'Main', 'time_travel_inc_branch(1)', 'up'),
+(12, 'Main', 'time_travel_inc_branch(-1)', 'down');

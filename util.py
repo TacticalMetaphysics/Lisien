@@ -2,9 +2,11 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
 import ctypes
+from time import time
 from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
+from collections import deque
 
 logger = getLogger(__name__)
 
@@ -58,13 +60,13 @@ clause in sqlite3.
 A class can have any number of such table-tuples. The tables will be
 declared in the order they appear in the tables attribute.
 
-To save, you need to define a method called get_tabdict. It should
+To save, you need to define a method called get_skeleton. It should
 return a dictionary where the keys are table names. The values are
 either rowdicts or iterables over rowdicts. A rowdict is a dictionary
 containing the information in a single record of a table; the keys are
 the names of the fields.
 
-To load, you need to define a method called from_tabdict that takes
+To load, you need to define a method called from_skeleton that takes
 that same kind of dictionary and returns an instance of your class.
 
 Once you've defined those, the save(db) and load(db) methods will save
@@ -200,12 +202,12 @@ and your table will be ready.
             (demands, provides, prelude, tablenames, postlude))
 
         def gen_sql_insert(rowdicts, tabname):
-            if len(rowdicts) == 0 or tabname not in tablenames:
-                return {}
             if tabname in rowdicts:
-                itr = TabdictIterator(rowdicts[tabname])
+                itr = SkeletonIterator(rowdicts[tabname])
             else:
-                itr = TabdictIterator(rowdicts)
+                itr = SkeletonIterator(rowdicts)
+            if len(itr) == 0 or tabname not in tablenames:
+                raise EmptyTabdict
             qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
                 tabname,
                 colnamestr[tabname],
@@ -215,37 +217,56 @@ and your table will be ready.
                 qrylst.extend([rd[coln] for coln in colnames[tabname]])
             return (qrystr, tuple(qrylst))
 
+        @staticmethod
         def insert_rowdicts_table(c, rowdicts, tabname):
             if len(rowdicts) == 0:
                 return []
             try:
                 c.execute(*gen_sql_insert(rowdicts, tabname))
-            except IntegrityError:
+            except IntegrityError as ie:
+                print ie
                 print gen_sql_insert(rowdicts, tabname)
                 import pdb
                 pdb.set_trace()
-            return []
+            except EmptyTabdict:
+                return
 
         def gen_sql_delete(keydicts, tabname):
-            keyns = keynames[tabname]
+            try:
+                keyns = keynames[tabname]
+            except KeyError:
+                return
             keys = []
             wheres = []
-            for keydict in iter(keydicts):
+            kitr = SkeletonIterator(keydicts)
+            if len(kitr) == 0 or tabname not in tablenames:
+                raise EmptyTabdict
+            for keydict in kitr:
                 checks = []
                 for keyn in keyns:
                     checks.append(keyn + "=?")
-                    keys.append(keydict[keyn])
+                    try:
+                        keys.append(keydict[keyn])
+                    except KeyError:
+                        import pdb
+                        pdb.set_trace()
                 wheres.append("(" + " AND ".join(checks) + ")")
             wherestr = " OR ".join(wheres)
             qrystr = "DELETE FROM {0} WHERE {1}".format(tabname, wherestr)
             return (qrystr, tuple(keys))
 
+        @staticmethod
         def delete_keydicts_table(c, keydicts, tabname):
-            c.execute(*gen_sql_delete(keydicts, tabname))
+            if len(keydicts) == 0:
+                return
+            try:
+                c.execute(*gen_sql_delete(keydicts, tabname))
+            except EmptyTabdict:
+                return
 
         def gen_sql_select(keydicts, tabname):
             keys_in_use = set()
-            kitr = TabdictIterator(keydicts)
+            kitr = SkeletonIterator(keydicts)
             for keyd in kitr:
                 for k in keyd:
                     keys_in_use.add(k)
@@ -264,7 +285,7 @@ and your table will be ready.
             keys = primarykeys[tabname]
             qrystr = gen_sql_select(keydicts, tabname)
             qrylst = []
-            kitr = TabdictIterator(keydicts)
+            kitr = SkeletonIterator(keydicts)
             for keydict in kitr:
                 for key in keys:
                     try:
@@ -277,7 +298,25 @@ and your table will be ready.
             return c.fetchall()
 
         @staticmethod
-        def _select_tabdict(c, td):
+        def _select_table_all(c, tabname):
+            r = {}
+            qrystr = "SELECT {0} FROM {1}".format(
+                colnamestr[tabname], tabname)
+            c.execute(qrystr)
+            for row in c.fetchall():
+                rd = dictify_row(row, colnames[tabname])
+                ptr = r
+                lptr = r
+                for key in primarykeys[tabname]:
+                    if rd[key] not in ptr:
+                        ptr[rd[key]] = {}
+                    lptr = ptr
+                    ptr = ptr[rd[key]]
+                lptr[rd[key]] = rd
+            return {tabname: r}
+
+        @staticmethod
+        def _select_skeleton(c, td):
             r = {}
             for (tabname, rdd) in td.iteritems():
                 if tabname not in primarykeys:
@@ -329,37 +368,21 @@ and your table will be ready.
             return c.fetchall()
 
         @staticmethod
-        def _insert_tabdict(c, tabdict):
-            for item in tabdict.iteritems():
-                (tabname, rd) = item
+        def _insert_skeleton(c, skeleton):
+            for (tabname, rds) in skeleton.iteritems():
                 if tabname in tablenames:
-                    insert_rowdicts_table(c, rd, tabname)
+                    insert_rowdicts_table(c, rds, tabname)
 
         @staticmethod
-        def _delete_tabdict(c, tabdict):
-            qryfmt = "DELETE FROM {0} WHERE {1}"
-            for (tabn, rows) in tabdict.iteritems():
-                if len(rows) == 0 or tabn not in tablenames:
-                    continue
-                vals = []
-                ors = []
-                for row in TabdictIterator(rows):
-                    keyns = keynames[tabn]
-                    ands = []
-                    for keyn in keyns:
-                        ands.append(keyn + "=?")
-                        vals.append(row[keyn])
-                    ors.append("(" + " AND ".join(ands) + ")")
-                if len(vals) == 0:
-                    return
-                qrystr = qryfmt.format(tabn, " OR ".join(ors))
-                qrytup = tuple(vals)
-                c.execute(qrystr, qrytup)
+        def _delete_skeleton(c, skeleton):
+            for (tabname, rds) in skeleton.iteritems():
+                if tabname in tablenames:
+                    delete_keydicts_table(c, rds, tabname)
 
         @staticmethod
-        def _detect_tabdict(c, tabdict):
+        def _detect_skeleton(c, skeleton):
             r = {}
-            for item in tabdict.iteritems():
+            for item in skeleton.iteritems():
                 (tabname, rd) = item
                 if isinstance(rd, dict):
                     r[tabname] = detect_keydicts_table(c, [rd], tabname)
@@ -368,9 +391,9 @@ and your table will be ready.
             return r
 
         @staticmethod
-        def _missing_tabdict(c, tabdict):
+        def _missing_skeleton(c, skeleton):
             r = {}
-            for item in tabdict.iteritems():
+            for item in skeleton.iteritems():
                 (tabname, rd) = item
                 if isinstance(rd, dict):
                     r[tabname] = missing_keydicts_table(c, [rd], tabname)
@@ -379,7 +402,7 @@ and your table will be ready.
             return r
 
         def get_keydict(self):
-            tabd = self.get_tabdict()
+            tabd = self.get_skeleton()
             r = {}
             for tabn in tablenames:
                 r[tabn] = {}
@@ -388,11 +411,14 @@ and your table will be ready.
             return r
 
         atrdic = {
-            '_select_tabdict': _select_tabdict,
-            '_insert_tabdict': _insert_tabdict,
-            '_delete_tabdict': _delete_tabdict,
-            '_detect_tabdict': _detect_tabdict,
-            '_missing_tabdict': _missing_tabdict,
+            '_select_skeleton': _select_skeleton,
+            '_select_table_all': _select_table_all,
+            '_insert_skeleton': _insert_skeleton,
+            '_delete_skeleton': _delete_skeleton,
+            '_detect_skeleton': _detect_skeleton,
+            '_missing_skeleton': _missing_skeleton,
+            '_insert_rowdicts_table': insert_rowdicts_table,
+            '_delete_keydicts_table': delete_keydicts_table,
             '_gen_sql_insert': gen_sql_insert,
             '_gen_sql_delete': gen_sql_delete,
             '_gen_sql_detect': gen_sql_detect,
@@ -410,7 +436,7 @@ and your table will be ready.
             'keyqms': keyqms,
             'rowqms': rowqms,
             'maintab': tablenames[0],
-            'get_keydict': get_keydict}
+            'tablenames': tablenames}
         atrdic.update(attrs)
 
         clas = type.__new__(metaclass, clas, parents, atrdic)
@@ -506,11 +532,11 @@ def deep_lookup(dic, keylst):
     return ptr[key]
 
 
-def compile_tabdicts(objs):
-    tabdicts = [o.tabdict for o in objs]
+def compile_skeletons(objs):
+    skeletons = [o.skeleton for o in objs]
     mastertab = {}
-    for tabdict in tabdicts:
-        for item in tabdict.iteritems():
+    for skeleton in skeletons:
+        for item in skeleton.iteritems():
             (tabname, rowdict) = item
             if tabname not in mastertab:
                 mastertab[tabname] = []
@@ -678,29 +704,31 @@ class TerminableImg:
 
     def get_img(self, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
-        if branch not in self.imagery:
+            tick = self.closet.tick
+        if len(self.imagery) < branch:
             return None
         if branch in self.indefinite_imagery:
             indef_start = self.indefinite_imagery[branch]
             if tick >= indef_start:
                 rd = self.imagery[branch][indef_start]
-                return self.rumor.get_img(rd["img"])
-        for rd in TabdictIterator(self.imagery[branch]):
+                return self.closet.get_img(rd["img"])
+        for rd in SkeletonIterator(self.imagery[branch]):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
-                return self.rumor.get_img(rd["img"])
+                return self.closet.get_img(rd["img"])
         return None
 
     def new_branch_imagery(self, parent, branch, tick):
-        if branch not in self.imagery:
-            self.imagery[branch] = {}
-        for rd in TabdictIterator(self.imagery[parent]):
+        while len(self.imagery) <= branch:
+            self.imagery.append([])
+        while len(self.imagery[branch]) <= tick:
+            self.imagery[branch].append([])
+        for rd in SkeletonIterator(self.imagery[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
+                rd2["branch"] = branch
                 if rd2["tick_from"] < tick:
-                    rd2["branch"] = branch
                     rd2["tick_from"] = tick
                     self.imagery[branch][tick] = rd2
                     if rd2["tick_to"] is None:
@@ -716,31 +744,34 @@ class TerminableInteractivity:
 
     def is_interactive(self, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if branch not in self.interactivity:
             return False
         if (
                 branch in self.indefinite_interactivity and
                 tick >= self.indefinite_interactivity[branch]):
             return True
-        for rd in TabdictIterator(self.interactivity):
+        for rd in SkeletonIterator(self.interactivity):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return True
         return False
 
     def new_branch_interactivity(self, parent, branch, tick):
-        if branch not in self.interactivity:
-            self.interactivity[branch] = {}
-        for rd in TabdictIterator(self.interactivity[parent]):
+        while len(self.interactivity) <= branch:
+            self.interactivity.append([])
+        while len(self.interactivity[branch]) <= tick:
+            self.interactivity[branch].append([])
+        for rd in SkeletonIterator(self.interactivity[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
+                rd2["branch"] = branch
                 if rd2["tick_from"] < tick:
                     rd2["tick_from"] = tick
-                    self.interactivity[branch][tick] = rd
+                    self.interactivity[branch][tick] = rd2
                 else:
-                    self.interactivity[branch][rd2["tick_from"]] = rd
+                    self.interactivity[branch][rd2["tick_from"]] = rd2
                 if rd2["tick_to"] is None:
                     self.indefinite_interactivity[branch] = rd2["tick_from"]
 
@@ -818,38 +849,97 @@ class DictValues2DIterator:
             return self.layer2.next()
 
 
-class TabdictIterator:
+class SkeletonIterator:
     def __init__(self, td):
-        self.ptrs = [td]
-        self.keyses = [self.ptrs[0].keys()]
+        self.tabd = td
+        self.ptrs = deque([td])
+        self.l = None
+        if isinstance(self.ptrs[0], dict):
+            self.keyses = [self.ptrs[0].keys()]
+        else:
+            self.keyses = [[i for i in xrange(0, len(self.ptrs[0]))]]
+
+    def __len__(self):
+        if self.l is not None:
+            return self.l
         i = 0
+        h = SkeletonIterator(self.tabd)
         while True:
             try:
-                self.next()
+                h.next()
                 i += 1
             except StopIteration:
-                self.ptrs = [td]
-                self.keyses = [self.ptrs[0].keys()]
-                self.__len__ = lambda: i
-                break
+                self.l = i
+                return i
 
     def __iter__(self):
         return self
 
     def next(self):
-        while self.ptrs != []:
-            ptr = self.ptrs.pop()
-            keys = self.keyses.pop()
-            while keys != []:
+        while len(self.ptrs) > 0:
+            try:
+                ptr = self.ptrs.pop()
+                keys = self.keyses.pop()
+            except IndexError:
+                # Happens when I try to descend into a list of length
+                # 1 or 0.  If it's length 1...I may have to descend a
+                # couple levels before I get something I can return.
+                if len(ptr) == 0:
+                    return
+                else:
+                    keys = [0]
+            while len(keys) > 0:
                 k = keys.pop()
-                if isinstance(ptr[k], dict):
+                if k == []:
+                    continue
+                elif isinstance(ptr[k], list):
+                    self.keyses.append(keys)
+                    self.keyses.append([i for i in xrange(0, len(ptr[k]))])
+                    self.ptrs.append(ptr)
+                    self.ptrs.append(ptr[k])
+                elif isinstance(ptr[k], dict):
                     self.keyses.append(keys)
                     self.keyses.append(ptr[k].keys())
                     self.ptrs.append(ptr)
                     self.ptrs.append(ptr[k])
+                elif ptr[k] is None:
+                    continue
                 else:
                     return ptr
         raise StopIteration
+
+
+class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
+    def __init__(self, order, parent, window, left, top, bot, right, proportional=True):
+        super(ScissorOrderedGroup, self).__init__(order, parent)
+        self.window = window
+        self.left = left
+        self.top = top
+        self.bot = bot
+        self.right = right
+        self.proportional = proportional
+
+    def set_state(self):
+        if self.proportional:
+            l = int(self.left * self.window.width)
+            b = int(self.bot * self.window.height)
+            r = int(self.right * self.window.width)
+            t = int(self.top * self.window.height)
+        else:
+            l = self.left
+            b = self.bot
+            r = self.right
+            t = self.top
+        w = r - l
+        h = t - b
+        if not self.proportional:
+            print "scissoring {0} {1} {2} {3}".format(l, b, w, h)
+        pyglet.gl.glScissor(l, b, w, h)
+        pyglet.gl.glEnable(pyglet.gl.GL_SCISSOR_TEST)
+
+    def unset_state(self):
+        pyglet.gl.glDisable(pyglet.gl.GL_SCISSOR_TEST)
+
 
 class PortalException(Exception):
     """Exception raised when a Thing tried to move into or out of or along
@@ -870,4 +960,12 @@ Thing, and it made no sense.
 
 
 class LoadError(Exception):
+    pass
+
+
+class EmptyTabdict(Exception):
+    pass
+
+
+class TimeParadox(Exception):
     pass

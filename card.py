@@ -12,6 +12,31 @@ rectangles with letters and pictures on them."""
 
 class Card:
     __metaclass__ = SaveableMetaclass
+
+    def gett(self):
+        if self._text is None:
+            return ''
+        elif self._text[0] == '@':
+            return self.closet.get_text(self._text[1:])
+        else:
+            return self._text
+
+    def getd(self):
+        if self._display_name is None:
+            return ''
+        elif self._display_name[0] == '@':
+            return self.closet.get_text(self._display_name[1:])
+        else:
+            return self._display_name
+
+    atrdic = {
+        "_text": lambda self: self._rowdict["text"],
+        "_display_name": lambda self: self._rowdict["display_name"],
+        "image": lambda self: self.closet.get_img(self._rowdict["image"]),
+        "img": lambda self: self.image,
+        "text": lambda self: self.gett(),
+        "display_name": lambda self: self.getd()}
+
     tables = [
         (
             "card",
@@ -26,35 +51,16 @@ class Card:
                 "effect": ("effect", "name")},
             [])]
 
-    def __init__(self, rumor, effect):
-        self.rumor = rumor
+    def __init__(self, closet, effect):
+        self.closet = closet
         self.effect = effect
-        self.rumor.carddict[str(self)] = self
+        self.closet.carddict[str(self)] = self
+        self._rowdict = self.closet.skeleton["card"][str(self.effect)]
 
     def __getattr__(self, attrn):
-        if attrn == '_rowdict':
-            return self.rumor.tabdict["card"][str(self.effect)]
-        elif attrn == '_text':
-            return self._rowdict['text']
-        elif attrn == '_display_name':
-            return self._rowdict['display_name']
-        elif attrn in ('image', 'img'):
-            return self.rumor.get_img(self._rowdict['image'])
-        elif attrn == 'text':
-            if self._text is None:
-                return ''
-            elif self._text[0] == '@':
-                return self.rumor.get_text(self._text[1:])
-            else:
-                return self._text
-        elif attrn == 'display_name':
-            if self._display_name[0] == '@':
-                return self.rumor.get_text(self._display_name[1:])
-            else:
-                return self._display_name
-        elif attrn == 'effect':
-            return self.rumor.effectdict[self._effect]
-        else:
+        try:
+            return self.atrdic[attrn](self)
+        except KeyError:
             raise AttributeError("Card has no attribute {0}".format(attrn))
 
     def __str__(self):
@@ -62,6 +68,17 @@ class Card:
 
 
 class TextHolder:
+    atrdic = {
+        "width": lambda self: (self.cardwidget.width - 4) * self.cardwidget.style.spacing,
+        "height": lambda self: self.getheight(),
+        "window_left": lambda self: (self.cardwidget.x + 2) * self.cardwidget.style.spacing,
+        "window_right": lambda self: self.window_left + self.width,
+        "window_bot": lambda self: (self.cardwidget.window_bot + 2) * self.cardwidget.style.spacing,
+        "window_top": lambda self: self.window_bot + self.height,
+        "text_left": lambda self: self.window_left + self.cardwidget.style.spacing,
+        "text_bot": lambda self: self.window_bot + self.cardwidget.style.spacing,
+        "text_width": lambda self: self.width - self.cardwidget.style.spacing,
+        "text_height": lambda self: self.height - self.cardwidget.style.spacing}
     def __init__(self, cardwidget):
         self.cardwidget = cardwidget
         self.batch = self.cardwidget.batch
@@ -70,11 +87,7 @@ class TextHolder:
         self.bgimage = None
         self.bgsprite = None
         self.label = None
-
-    def __getattr__(self, attrn):
-        if attrn == "width":
-            return self.cardwidget.width - 4 * self.cardwidget.style.spacing
-        elif attrn == "height":
+        def getheight():
             if isinstance(
                     self.cardwidget.base.img,
                     AbstractImage):
@@ -85,26 +98,13 @@ class TextHolder:
                 return (
                     self.cardwidget.height - 4
                     * self.cardwidget.style.spacing)
-        elif attrn == "window_left":
-            return self.cardwidget.x + 2 * self.cardwidget.style.spacing
-        elif attrn == "window_right":
-            return self.window_left + self.width
-        elif attrn == "window_bot":
-            return (
-                self.cardwidget.window_bot + 2
-                * self.cardwidget.style.spacing)
-        elif attrn == "window_top":
-            return self.window_bot + self.height
-        elif attrn == "text_left":
-            return self.window_left + self.cardwidget.style.spacing
-        elif attrn == "text_bot":
-            return self.window_bot + self.cardwidget.style.spacing
-        elif attrn == "text_width":
-            return self.width - self.cardwidget.style.spacing
-        elif attrn == "text_height":
-            return self.height - self.cardwidget.style.spacing
-        else:
-            return getattr(self.cardwidget, attrn)
+
+    def __getattr__(self, attrn):
+        try:
+            return self.atrdic[attrn](self)
+        except KeyError:
+            raise AttributeError(
+                "TextHolder instance has no attribute named {0}".format(attrn))
 
     def draw(self):
         if (
@@ -138,6 +138,33 @@ class TextHolder:
 
 
 class CardWidget:
+    def getwidth(self):
+        if self.img is None:
+            # Just a default width for now
+            return 128
+        else:
+            # The width of the image plus some gutterspace on each side
+            return self.img.width + self.style.spacing * 2
+
+    atrdic = {
+        "x": lambda self: self.hand.window_left + self.width * int(self),
+        "y": lambda self: self.hand.window_bot,
+        "hovered": lambda self: self.gw.hovered is self,
+        "pressed": lambda self: self.gw.pressed is self,
+        "grabbed": lambda self: self.gw.grabbed is self,
+        "img": lambda self: self.base.img,
+        "display_name": lambda self: self.base.display_name,
+        "text": lambda self: self.base.text,
+        "style": lambda self: self.base.style,
+        "width": lambda self: self.getwidth(),
+        "height": lambda self: int(self.width * phi),
+        "window_left": lambda self: self.x,
+        "window_right": lambda self: self.x + self.width,
+        "window_bot": lambda self: self.y,
+        "window_top": lambda self: self.y + self.height,
+        "widget": lambda self: self,
+        "state": lambda self: self.get_state_tup}
+
     def __init__(self, base, hand):
         self.base = base
         self.hand = hand
@@ -146,7 +173,7 @@ class CardWidget:
         self.bggroup = OrderedGroup(0, self.supergroup)
         self.imggroup = OrderedGroup(1, self.supergroup)
         self.textgroup = OrderedGroup(2, self.supergroup)
-        self.rumor = self.base.db
+        self.closet = self.base.db
         self.window = self.hand.window
         self.grabpoint = None
         self.visible = True
@@ -166,46 +193,9 @@ class CardWidget:
         return self.hand.deck.index(self.base.effect)
 
     def __getattr__(self, attrn):
-        if attrn == 'x':
-            return self.hand.window_left + self.width * int(self)
-        elif attrn == 'y':
-            return self.hand.window_bot
-        elif attrn == 'hovered':
-            return self.gw.hovered is self
-        elif attrn == 'pressed':
-            return self.gw.pressed is self
-        elif attrn == 'grabbed':
-            return self.gw.grabbed is self
-        elif attrn == 'img':
-            return self.base.img
-        elif attrn == 'display_name':
-            return self.base.display_name
-        elif attrn == 'text':
-            return self.base.text
-        elif attrn == 'style':
-            return self.base.style
-        elif attrn == 'width':
-            if self.img is None:
-                # Just a default width for now
-                return 128
-            else:
-                # The width of the image plus some gutterspace on each side
-                return self.img.width + self.style.spacing * 2
-        elif attrn == 'height':
-            return int(self.width * phi)
-        elif attrn == 'window_left':
-            return self.x
-        elif attrn == 'window_right':
-            return self.x + self.width
-        elif attrn == 'window_bot':
-            return self.y
-        elif attrn == 'window_top':
-            return self.y + self.height
-        elif attrn == 'widget':
-            return self
-        elif hasattr(self.base, attrn):
-            return getattr(self.base, attrn)
-        else:
+        try:
+            return self.atrdic[attrn](self)
+        except KeyError:
             raise AttributeError(
                 "CardWidget has no attribute {0}".format(attrn))
 
@@ -367,7 +357,7 @@ order."""
 
     def __init__(self, window, deck):
         self.window = window
-        self.rumor = self.window.rumor
+        self.closet = self.window.closet
         self.batch = self.window.batch
         self.cardgroup = OrderedGroup(
             self.window.hand_order, self.window.cardgroup)
@@ -382,13 +372,13 @@ order."""
 
     def __getattr__(self, attrn):
         if attrn == "_rowdict":
-            return self.rumor.tabdict[str(self.window)][str(self.deck)]
+            return self.closet.skeleton[str(self.window)][str(self.deck)]
         elif attrn in (
                 "left_prop", "right_prop", "top_prop",
                 "bot_prop", "visible", "interactive"):
             return self._rowdict[attrn]
         elif attrn == "style":
-            return self.rumor.get_style(self._rowdict["style"])
+            return self.closet.get_style(self._rowdict["style"])
         elif attrn == "board":
             return self.window.board
         elif attrn == "hovered":

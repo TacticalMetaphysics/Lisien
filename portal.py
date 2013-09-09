@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, TabdictIterator
+from util import SaveableMetaclass, SkeletonIterator
 from logging import getLogger
 
 
@@ -21,31 +21,30 @@ class Portal:
          {},
          [])]
 
-    def __init__(self, rumor, dimension, origin, destination):
-        self.rumor = rumor
+    def __init__(self, closet, dimension, origin, destination):
+        self.closet = closet
         self.dimension = dimension
+        self.graph = self.dimension.graph
         self.orig = origin
+        self.origin = origin
         self.dest = destination
+        self.destination = destination
         self.indefinite_existence = {}
-        for rd in TabdictIterator(self.existence):
+        for rd in SkeletonIterator(self.existence):
             if rd["tick_to"] is None:
                 self.indefinite_existence[rd["branch"]] = rd["tick_from"]
         # now make the edge
         self.dimension.graph.add_edge(self.origi, self.desti, portal=self)
 
     def __getattr__(self, attrn):
-        if attrn == "origin":
-            return self.orig
-        elif attrn == "origi":
+        if attrn == "origi":
             return self.orig.index
-        elif attrn == "destination":
-            return self.dest
         elif attrn == "desti":
             return self.dest.index
         elif attrn in ("e", "edge"):
             return self.graph.es[self.graph.get_eid(self.origi, self.desti)]
         elif attrn == "existence":
-            return self.rumor.tabdict["portal"][
+            return self.closet.skeleton["portal"][
                 str(self.dimension)][str(self.orig)][str(self.dest)]
         else:
             raise AttributeError(
@@ -68,17 +67,20 @@ otherwise."""
         return True
 
     def new_branch(self, parent, branch, tick):
-        if branch not in self.existence:
-            self.existence[branch] = {}
-        for rd in TabdictIterator(self.existence):
+        while len(self.existence) <= branch:
+            self.existence.append([])
+        while len(self.existence[branch]) <= tick:
+            self.existence[branch].append([])
+        for rd in SkeletonIterator(self.existence):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
+                rd2["branch"] = branch
                 if rd2["tick_from"] < tick:
                     rd2["tick_from"] = tick
                     self.existence[branch][tick] = rd2
                     if rd2["tick_to"] is None:
                         self.indefinite_existence[branch] = tick
                 else:
-                    self.existence[branch][rd2["tick_from"]] = rd2["tick_to"]
+                    self.existence[branch][rd2["tick_from"]] = rd2
                     if rd2["tick_to"] is None:
                         self.indefinite_existence[branch] = rd2["tick_from"]

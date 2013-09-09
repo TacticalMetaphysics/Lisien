@@ -1,5 +1,8 @@
 from igraph import Graph, Vertex, Edge
-from util import SaveableMetaclass, dictify_row
+from util import (
+    SaveableMetaclass,
+    dictify_row,
+    SkeletonIterator)
 from collections import defaultdict
 
 
@@ -45,12 +48,13 @@ class Timestream:
          {"parent": ("timestream", "branch")},
          ["branch>=0", "tick_from>=0",
           "tick_to>=tick_from", "parent=0 or parent<>branch"])]
-    def __init__(self, branches):
+    def __init__(self, closet):
+        self.closet = closet
+        td = self.closet.skeleton
         self.branch_edges = defaultdict(set)
         self.branch_done_to = defaultdict(lambda: -1)
         self.branchdict = {}
-        for row in branches:
-            rd = dictify_row(row, self.colns)
+        for rd in SkeletonIterator(td["timestream"]):
             self.branchdict[rd["branch"]] = (
                 rd["parent"], rd["tick_from"], rd["tick_to"])
         self.graph = Graph(directed=True)
@@ -67,9 +71,16 @@ class Timestream:
         # successor of the vertex for a different branch
         # altogether. That original branch now has another edge
         # representing it.
+        self.update_handlers = set()
         self.update(0)
 
-    def update(self, ts):
+    def __hash__(self):
+        b = []
+        for t in self.branchdict.itervalues():
+            b.extend(t)
+        return hash(tuple(b))
+
+    def update(self, ts=0):
         """Update the tree to reflect the current state of branchdict.
 
 For every branch in branchdict, there should be one vertex at the
@@ -117,6 +128,8 @@ length zero.
                         eid =self.graph.get_eid(0, 1)
                         self.branch_edges[0].add(eid)
             self.branch_done_to[branch] = tick_to
+            for handler in self.update_handlers:
+                handler.on_timestream_update()
 
     def get_edge_len(self, e):
         if isinstance(e, int):
@@ -306,7 +319,7 @@ the branch's current end."""
             self.branchdict[branch] = (
                 self.branchdict[branch][0], tick_to)
 
-    def get_tabdict(self):
+    def get_skeleton(self):
         return {"timestream": BranchDictIter(self.branchdict)}
 
 class TimestreamException(Exception):

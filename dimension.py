@@ -5,7 +5,7 @@ from thing import Thing
 from portal import Portal
 from logging import getLogger
 from igraph import Graph
-from util import TabdictIterator, stringlike
+from util import SkeletonIterator, stringlike
 
 
 logger = getLogger(__name__)
@@ -41,7 +41,19 @@ class Dimension:
     """Container for a given view on the game world, sharing no things,
 places, or portals with any other dimension, but possibly sharing
 characters."""
-    def __init__(self, rumor, name):
+    def placenames(self):
+        try:
+            return self.graph.vs["name"]
+        except KeyError:
+            return []
+
+    atrdic = {
+        "places": lambda self: PlaceIter(self),
+        "placenames": lambda self: self.placenames(),
+        "portals": lambda self: PortIter(self),
+        "things": lambda self: self.thingdict.itervalues()}
+
+    def __init__(self, closet, name):
         """Return a dimension with the given name.
 
 Probably useless unless, once you're sure you've put all your places,
@@ -51,20 +63,20 @@ keyed with their names.
 
         """
         self._name = name
-        self.rumor = rumor
+        self.closet = closet
         self.boards = []
         self.thingdict = {}
         self.graph = Graph(directed=True)
-        for rd in TabdictIterator(self.rumor.tabdict["portal"][str(self)]):
+        for rd in SkeletonIterator(self.closet.skeleton["portal"][str(self)]):
             orig = self.get_place(rd["origin"])
             dest = self.get_place(rd["destination"])
-            Portal(self.rumor, self, orig, dest)
-        for rd in TabdictIterator(
-                self.rumor.tabdict["thing_location"][str(self)]):
+            Portal(self.closet, self, orig, dest)
+        for rd in SkeletonIterator(
+                self.closet.skeleton["thing_location"][str(self)]):
             if rd["thing"] not in self.thingdict:
                 self.thingdict[rd["thing"]] = Thing(
-                    self.rumor, self, rd["thing"])
-        self.rumor.dimensiondict[str(self)] = self
+                    self.closet, self, rd["thing"])
+        self.closet.dimensiondict[str(self)] = self
 
     def __hash__(self):
         """Return the hash of this dimension's name, since the database
@@ -75,18 +87,9 @@ constrains it to be unique."""
         return self._name
 
     def __getattr__(self, attrn):
-        if attrn == "places":
-            return PlaceIter(self)
-        elif attrn == "placenames":
-            try:
-                return self.graph.vs["name"]
-            except KeyError:
-                return []
-        elif attrn == "portals":
-            return PortIter(self)
-        elif attrn == "things":
-            return self.thingdict.itervalues()
-        else:
+        try:
+            return self.atrdic[attrn](self)
+        except KeyError:
             raise AttributeError(
                 "Dimension instance has no attribute named " +
                 attrn)

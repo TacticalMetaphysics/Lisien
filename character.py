@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, TabdictIterator
+from util import SaveableMetaclass, SkeletonIterator
 from thing import Thing
 
 
@@ -100,9 +100,9 @@ item's name, and the name of the attribute.
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
           "tick_to": "integer default null",
-          "effect_deck": "text not null"},
+          "deck": "text not null"},
          ("character", "skill", "branch", "tick_from"),
-         {"effect_deck": ("effect_deck", "name")},
+         {},
          []),
         ("character_stats",
          {"character": "text not null",
@@ -115,9 +115,10 @@ item's name, and the name of the attribute.
          {},
          [])]
 
-    def __init__(self, rumor, name):
+    def __init__(self, closet, name):
+        assert(len(closet.skeleton['img']) > 1)
         self._name = name
-        self.rumor = rumor
+        self.closet = closet
         self.update_handlers = set()
         self.indefinite_skill = {}
         self.indefinite_stat = {}
@@ -127,28 +128,28 @@ item's name, and the name of the attribute.
         self.statdict = {}
         self.portdict = {}
         self.placedict = {}
-        td = self.rumor.tabdict
+        td = self.closet.skeleton
         if "character_things" in td and str(self) in td["character_things"]:
             self.thingdict = {}
             self.indefinite_thing = {}
-            for rd in TabdictIterator(td["character_things"][str(self)]):
+            for rd in SkeletonIterator(td["character_things"][str(self)]):
                 self.add_thing_with_strs(**rd)
-                self.rumor.get_thing(
+                self.closet.get_thing(
                     rd["dimension"],
                     rd["thing"]).register_update_handler(self.update)
         if "character_stats" in td and str(self) in td["character_stats"]:
-            for rd in TabdictIterator(td["character_stats"][str(self)]):
+            for rd in SkeletonIterator(td["character_stats"][str(self)]):
                 self.set_stat(**rd)
         if "character_skills" in td and str(self) in td["character_skills"]:
-            for rd in TabdictIterator(td["character_skills"][str(self)]):
+            for rd in SkeletonIterator(td["character_skills"][str(self)]):
                 self.set_skill(**rd)
         if "character_portals" in td and str(self) in td["character_portals"]:
-            for rd in TabdictIterator(td["character_portals"][str(self)]):
+            for rd in SkeletonIterator(td["character_portals"][str(self)]):
                 self.add_portal_with_strs(**rd)
         if "character_places" in td and str(self) in td["character_places"]:
-            for rd in TabdictIterator(td["character_places"][str(self)]):
+            for rd in SkeletonIterator(td["character_places"][str(self)]):
                 self.add_place_with_strs(**rd)
-        self.rumor.characterdict[str(self)] = self
+        self.closet.characterdict[str(self)] = self
 
     def __str__(self):
         return self._name
@@ -157,9 +158,9 @@ item's name, and the name of the attribute.
             self, stat, val,
             branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if branch not in self.attribdict:
             self.attribdict[branch] = {}
         if stat not in self.statdict[branch]:
@@ -183,9 +184,9 @@ item's name, and the name of the attribute.
 
     def get_stat(self, stat, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if branch not in self.statdict:
             return None
         for (tick_from, (val, tick_to)) in self.statdict[branch].iteritems():
@@ -197,9 +198,9 @@ item's name, and the name of the attribute.
             self, skill, val,
             branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if branch not in self.skilldict:
             self.skilldict[branch] = {}
         if skill not in self.skilldict[branch]:
@@ -223,9 +224,9 @@ item's name, and the name of the attribute.
 
     def get_skill(self, skill, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if branch not in self.skilldict:
             return None
         for (tick_from, (val, tick_to)) in self.skilldict[branch].iteritems():
@@ -237,9 +238,9 @@ item's name, and the name of the attribute.
             self, dimension, thing,
             branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if branch not in self.thingdict:
             self.thingdict[branch] = {}
         if dimension not in self.thingdict[branch]:
@@ -285,9 +286,9 @@ item's name, and the name of the attribute.
 
     def is_thing_with_strs(self, dimension, thing, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if not (
                 branch in self.thingdict and
                 dimension in self.thingdict[branch] and
@@ -321,23 +322,23 @@ item's name, and the name of the attribute.
 
     def get_things(self, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         r = set()
         if branch not in self.thingdict:
             return r
-        for rd in TabdictIterator[self.thingdict[branch]]:
-            r.add(self.rumor.get_thing(rd["dimension"], rd["thing"]))
+        for rd in SkeletonIterator[self.thingdict[branch]]:
+            r.add(self.closet.get_thing(rd["dimension"], rd["thing"]))
         return r
 
     def add_place_with_strs(
             self, dimension, place,
             branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if (
                 branch in self.indefinite_place and
                 dimension in self.indefinite_place[branch] and
@@ -377,15 +378,15 @@ item's name, and the name of the attribute.
 
     def is_place_with_strs(self, dimension, place, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if not (
                 branch in self.placedict and
                 dimension in self.placedict[branch] and
                 place in self.placedict[branch][dimension]):
             return False
-        for rd in TabdictIterator(self.placedict[branch][dimension][place]):
+        for rd in SkeletonIterator(self.placedict[branch][dimension][place]):
             if rd["tick_from"] <= tick and (
                     rd["tick_to"] is None or tick <= rd["tick_to"]):
                 return True
@@ -393,16 +394,16 @@ item's name, and the name of the attribute.
 
     def get_places(self, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         r = set()
         if branch not in self.placedict:
             return r
-        for rd in TabdictIterator(self.placedict[branch]):
+        for rd in SkeletonIterator(self.placedict[branch]):
             if rd["tick_from"] <= r and (
                     rd["tick_to"] is None or tick <= rd["tick_to"]):
-                r.add(self.rumor.get_place(rd["dimension"], rd["place"]))
+                r.add(self.closet.get_place(rd["dimension"], rd["place"]))
         return r
 
     def is_place(self, place, branch=None, tick=None):
@@ -425,9 +426,9 @@ item's name, and the name of the attribute.
             self, dimension, origin, destination,
             branch=None, tick_from=None, tick_to=None, **kwargs):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         try:
             ifrom = self.indefinite_portal[
                 branch][dimension][origin][destination]
@@ -489,16 +490,16 @@ item's name, and the name of the attribute.
     def is_portal_with_strs(
             self, dimension, origin, destination, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         if not (
                 branch in self.portdict and
                 dimension in self.portdict[branch] and
                 origin in self.portdict[branch][dimension] and
                 destination in self.portdict[branch][dimension][origin]):
             return False
-        for rd in TabdictIterator(
+        for rd in SkeletonIterator(
                 self.portdict[branch][dimension][origin][destination]):
             if rd["tick_from"] <= tick and (
                     rd["tick_to"] is None or tick <= rd["tick_to"]):
@@ -513,16 +514,16 @@ item's name, and the name of the attribute.
 
     def get_portals(self, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
+            tick = self.closet.tick
         r = set()
         if branch not in self.portdict:
             return r
-        for rd in TabdictIterator(self.portdict[branch]):
+        for rd in SkeletonIterator(self.portdict[branch]):
             if rd["tick_from"] <= tick and (
                     rd["tick_to"] is None or tick <= rd["tick_to"]):
-                port = self.rumor.get_portal(
+                port = self.closet.get_portal(
                     rd["dimension"], rd["origin"], rd["destination"])
                 r.add(port)
         return r
@@ -547,6 +548,5 @@ item's name, and the name of the attribute.
         self.update_handlers.add(that)
 
     def update(self, wot):
-        if (isinstance(wot, Thing) and self.is_thing(wot)):
-            for handler in self.update_handlers:
-                handler(self)
+        for handler in self.update_handlers:
+            handler(self)

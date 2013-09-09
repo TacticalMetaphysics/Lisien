@@ -5,7 +5,7 @@ from util import (
     TerminableImg,
     TerminableInteractivity,
     BranchTicksIter,
-    TabdictIterator)
+    SkeletonIterator)
 from place import Place
 from collections import defaultdict
 from pyglet.sprite import Sprite
@@ -68,29 +68,69 @@ class Spot(TerminableImg, TerminableInteractivity):
          {"dimension, board": ("board", "dimension, i")},
          [])]
 
-    def __init__(self, rumor, dimension, board, place):
-        self.rumor = rumor
+    def get_r(self):
+        rx = self.rx
+        ry = self.ry
+        if rx > ry:
+            return rx
+        else:
+            return ry
+
+    atrdic = {
+        "vertex": lambda self: self.place.v,
+        "interactive": lambda self: self.is_interactive(),
+        "img": lambda self: self.get_img(),
+        "coords": lambda self: self.get_coords(),
+        "x": lambda self: self.coords[0],
+        "y": lambda self: self.coords[1],
+        "width": lambda self: {
+            True: lambda: 0, False: lambda: self.get_img().width
+        }[self.get_img() is None](),
+        "height": lambda self: {
+            True: lambda: 0, False: lambda: self.get_img().height
+        }[self.get_img() is None](),
+        "rx": lambda self: self.width / 2,
+        "ry": lambda self: self.height / 2,
+        "r": lambda self: self.get_r(),
+        "visible": lambda self: self.get_img() is not None,
+        "board_left": lambda self: self.x - self.rx,
+        "board_bot": lambda self: self.y - self.ry,
+        "board_top": lambda self: self.y + self.ry,
+        "board_right": lambda self: self.x + self.rx}
+
+    def __init__(self, closet, dimension, board, place):
+        self.closet = closet
         self.dimension = dimension
         self.board = board
         self.place = place
+        self.vert = self.place.v
+        self.coord_lst = self.closet.skeleton["spot_coords"][
+            str(self.dimension)][
+                int(self.board)][str(self.place)]
+        self.interactivity = self.closet.skeleton["spot_interactive"][
+            str(self.dimension)][
+                int(self.board)][str(self.place)]
+        self.imagery = self.closet.skeleton["spot_img"][
+            str(self.dimension)][
+                int(self.board)][str(self.place)]
         self.indefinite_imagery = {}
-        for rd in TabdictIterator(
-                self.rumor.tabdict["spot_img"][
+        for rd in SkeletonIterator(
+                self.closet.skeleton["spot_img"][
                     str(self.dimension)][
                         int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
                 break
         self.indefinite_coords = {}
-        for rd in TabdictIterator(
-                self.rumor.tabdict["spot_coords"][
+        for rd in SkeletonIterator(
+                self.closet.skeleton["spot_coords"][
                     str(self.dimension)][
                         int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_coords[rd["branch"]] = rd["tick_from"]
                 break
         self.indefinite_interactivity = {}
-        for rd in TabdictIterator(self.rumor.tabdict["spot_interactive"][
+        for rd in SkeletonIterator(self.closet.skeleton["spot_interactive"][
                 str(self.dimension)][
                     int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
@@ -107,69 +147,18 @@ class Spot(TerminableImg, TerminableInteractivity):
             str(self.dimension), int(self.board), str(self.place))
 
     def __getattr__(self, attrn):
-        if attrn == "vertex":
-            return self.place.v
-        elif attrn == "interactivity":
-            return self.rumor.tabdict["spot_interactive"][
-                str(self.dimension)][int(self.board)][str(self.place)]
-        elif attrn == "imagery":
-            return self.rumor.tabdict["spot_img"][
-                str(self.dimension)][int(self.board)][str(self.place)]
-        elif attrn == "coord_dict":
-            return self.rumor.tabdict["spot_coords"][
-                str(self.dimension)][int(self.board)][str(self.place)]
-        elif attrn == 'interactive':
-            return self.is_interactive()
-        elif attrn == 'img':
-            return self.get_img()
-        elif attrn == 'coords':
-            (x, y) = self.get_coords()
-            return (
-                x + self.drag_offset_x,
-                y + self.drag_offset_y)
-        elif attrn == 'x':
-            return self.coords[0]
-        elif attrn == 'y':
-            return self.coords[1]
-        elif attrn == 'width':
-            if self.img is None:
-                return 0
-            else:
-                return self.img.width
-        elif attrn == 'height':
-            if self.img is None:
-                return 0
-            else:
-                return self.img.height
-        elif attrn == 'rx':
-            return self.width / 2
-        elif attrn == 'ry':
-            return self.height / 2
-        elif attrn == 'r':
-            if self.rx > self.ry:
-                return self.rx
-            else:
-                return self.ry
-        elif attrn == 'visible':
-            return self.img is not None
-        elif attrn == "board_left":
-            return self.x - self.rx
-        elif attrn == "board_bot":
-            return self.y - self.ry
-        elif attrn == "board_top":
-            return self.board_bot + self.height
-        elif attrn == "board_right":
-            return self.board_left + self.width
-        else:
+        try:
+            return Spot.atrdic[attrn](self)
+        except KeyError:
             raise AttributeError(
                 "Spot instance has no such attribute: " +
                 attrn)
 
     def set_interactive(self, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if branch in self.indefinite_interactivity:
             indef_start = self.indefinite_interactivity[branch]
             indef_rd = self.interactivity[branch][indef_start]
@@ -182,6 +171,10 @@ class Spot(TerminableImg, TerminableInteractivity):
             elif tick_to == indef_start:
                 indef_rd["tick_from"] = tick_from
                 return
+        while len(self.interactivity) <= branch:
+            self.interactivity.append([])
+        while len(self.interactivity[branch]) <= tick_from:
+            self.interactivity[branch].append([])
         self.interactivity[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
@@ -194,9 +187,9 @@ class Spot(TerminableImg, TerminableInteractivity):
 
     def set_img(self, img, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
+            tick_from = self.closet.tick
         if branch in self.indefinite_imagery:
             indef_start = self.indefinite_imagery[branch]
             indef_rd = self.imagery[branch][indef_start]
@@ -223,19 +216,15 @@ class Spot(TerminableImg, TerminableInteractivity):
 
     def get_coords(self, branch=None, tick=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick is None:
-            tick = self.rumor.tick
-        if branch not in self.coord_dict:
-            import pdb
-            pdb.set_trace()
-            return None
+            tick = self.closet.tick
         if (
                 branch in self.indefinite_coords and
                 tick >= self.indefinite_coords[branch]):
-            rd = self.coord_dict[branch][self.indefinite_coords[branch]]
+            rd = self.coord_lst[branch][self.indefinite_coords[branch]]
             return (rd["x"], rd["y"])
-        for rd in TabdictIterator(self.coord_dict):
+        for rd in SkeletonIterator(self.coord_lst):
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return (rd["x"], rd["y"])
         import pdb
@@ -244,28 +233,30 @@ class Spot(TerminableImg, TerminableInteractivity):
 
     def set_coords(self, x, y, branch=None, tick_from=None, tick_to=None):
         if branch is None:
-            branch = self.rumor.branch
+            branch = self.closet.branch
         if tick_from is None:
-            tick_from = self.rumor.tick
-        if branch not in self.coord_dict:
-            self.coord_dict[branch] = {}
+            tick_from = self.closet.tick
+        while len(self.coord_lst) <= branch:
+            self.coord_lst.append([])
+        while len(self.coord_lst[branch]) <= tick_from:
+            self.coord_lst[branch].append([])
         if branch in self.indefinite_coords:
             itf = self.indefinite_coords[branch]
-            rd = self.coord_dict[branch][itf]
+            rd = self.coord_lst[branch][itf]
             if itf < tick_from:
                 # You have cut off an indefinite coord
                 rd["tick_to"] = tick_from - 1
-                self.coord_dict[branch][itf] = rd
+                self.coord_lst[branch][itf] = rd
                 del self.indefinite_coords[branch]
             elif itf < tick_to:
                 # You have overwritten an indefinite coord
-                del self.coord_dict[branch][itf]
+                del self.coord_lst[branch][itf]
                 del self.indefinite_coords[branch]
             elif itf == tick_to:
                 # You have extended an indefinite coord, backward in time
-                del self.coord_dict[branch][itf]
+                del self.coord_lst[branch][itf]
                 tick_to = None
-        self.coord_dict[branch][tick_from] = {
+        self.coord_lst[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
             "place": str(self.place),
@@ -278,7 +269,7 @@ class Spot(TerminableImg, TerminableInteractivity):
             self.indefinite_coords[branch] = tick_from
 
     def new_branch_coords(self, parent, branch, tick):
-        for rd in TabdictIterator(self.coord_dict[parent]):
+        for rd in SkeletonIterator(self.coord_lst[parent]):
             if rd["tick_to"] >= tick or rd["tick_to"] is None:
                 if rd["tick_from"] < tick:
                     self.set_coords(
@@ -295,6 +286,32 @@ class Spot(TerminableImg, TerminableInteractivity):
 
 
 class SpotWidget:
+    def get_board_coords(self):
+        (x, y) = self.spot.get_coords()
+        return (
+            x + self.spot.drag_offset_x,
+            y + self.spot.drag_offset_y)
+
+    atrdic = {
+        "coords": lambda self: self.get_board_coords(),
+        "board_x": lambda self: self.coords[0],
+        "board_y": lambda self: self.coords[1],
+        "window_x": lambda self: self.board_x + self.viewport.offset_x,
+        "window_y": lambda self: self.board_y + self.viewport.offset_y,
+        "window_left": lambda self: self.window_x - self.spot.rx,
+        "window_right": lambda self: self.window_x + self.spot.rx,
+        "window_top": lambda self: self.window_y + self.spot.ry,
+        "window_bot": lambda self: self.window_y - self.spot.ry,
+        "in_view": lambda self: (
+            self.window_right > 0 and
+            self.window_left < self.window.width and
+            self.window_top > 0 and
+            self.window_bot < self.window.height),
+        "selected": lambda self: self in self.viewport.window.selected,
+        "hovered": lambda self: self is self.viewport.window.hovered,
+        "pressed": lambda self: self is self.viewport.window.hovered,
+        "grabbed": lambda self: self is self.window.grabbed}
+
     def __init__(self, viewport, spot):
         self.viewport = viewport
         self.window = self.viewport.window
@@ -302,71 +319,39 @@ class SpotWidget:
         self.boxgroup = self.viewport.spotgroup
         self.batch = self.viewport.batch
         self.spot = spot
+        self.place = self.spot.place
+        self.board = self.spot.board
+        self.vert = self.spot.vert
         self.sprite = None
         self.vertlist = None
-        self.old_state = None
+        self.old_window_left = None
+        self.old_window_bot = None
+        self.old_points = None
 
     def __str__(self):
         return str(self.spot)
 
+    spotattrs = set(["img","visible", "interactive", "board_left",
+                     "board_right", "board_top", "board_bot"])
+
     def __getattr__(self, attrn):
-        if attrn == "viewport_left":
-            return (
-                self.board_left +
-                self.viewport.offset_x)
-        elif attrn == "viewport_bot":
-            return self.board_bot + self.viewport.offset_y
-        elif attrn == "viewport_top":
-            return self.viewport_bot + self.spot.height
-        elif attrn == "viewport_right":
-            return self.viewport_left + self.spot.width
-        elif attrn == "window_left":
-            return self.viewport_left + self.viewport.view_left
-        elif attrn == "window_bot":
-            return self.viewport_bot + self.viewport.window_bot
-        elif attrn == "window_top":
-            return self.viewport_top + self.viewport.window_bot
-        elif attrn == "window_right":
-            return self.viewport_right + self.viewport.window_left
-        elif attrn == "in_view":
-            return (
-                self.window_right > 0 and
-                self.window_left < self.window.width and
-                self.window_top > 0 and
-                self.window_bot < self.window.height)
-        elif attrn == "selected":
-            return self in self.viewport.window.selected
-        elif attrn == "hovered":
-            return self is self.viewport.window.hovered
-        elif attrn == "pressed":
-            return self is self.viewport.window.pressed
-        elif attrn == "grabbed":
-            return self is self.window.grabbed
-        elif attrn == "state":
-            return (
-                self.spot.coords,
-                self.viewport.window_left,
-                self.viewport.window_bot,
-                self.viewport.view_left,
-                self.viewport.view_bot,
-                self.selected)
-        elif attrn in ("place", "img", "board", "vert",
-                       "visible", "interactive", "board_left",
-                       "board_right", "board_top", "board_bot"):
+        if attrn in SpotWidget.atrdic:
+            return SpotWidget.atrdic[attrn](self)
+        elif attrn in self.spotattrs:
             return getattr(self.spot, attrn)
         else:
             raise AttributeError(
                 "SpotWidget instance has no attribute " + attrn)
 
     def dropped(self, x, y, button, modifiers):
-        self.spot.set_coords(*self.spot.coords)
+        (oldx, oldy) = self.spot.coords
+        self.spot.set_coords(
+            oldx + self.spot.drag_offset_x,
+            oldy + self.spot.drag_offset_y)
         self.spot.drag_offset_x = 0
         self.spot.drag_offset_y = 0
 
     def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
-        """Remember where exactly I was grabbed, then move around with the
-mouse, always keeping the same relative position with respect to the
-mouse."""
         self.spot.drag_offset_x += dx
         self.spot.drag_offset_y += dy
 
@@ -378,48 +363,78 @@ mouse."""
     def pass_focus(self):
         return self.viewport
 
-    def draw(self):
-        if self.visible and self.in_view:
-            try:
-                self.sprite.x = self.viewport_left
-                self.sprite.y = self.viewport_bot
-            except AttributeError:
-                self.sprite = Sprite(
-                    self.img.tex,
-                    self.viewport_left,
-                    self.viewport_bot,
-                    batch=self.batch,
-                    group=self.spritegroup)
-        else:
-            try:
-                self.sprite.delete()
-            except:
-                pass
-            self.sprite = None
+    def actually_draw(self):
+        try:
+            wl = self.window_left
+            wb = self.window_bot
+            if self.old_window_left != wl:
+                self.sprite.x = wl
+                self.old_window_left = wl
+            if self.old_window_bot != wb:
+                self.sprite.y = wb
+                self.old_window_bot = wb
+        except AttributeError:
+            self.sprite = Sprite(
+                self.img.tex,
+                self.window_left,
+                self.window_bot,
+                batch=self.batch,
+                group=self.spritegroup)
         if self.selected:
             yelo = (255, 255, 0, 0)
             colors = yelo * 4
             points = (
-                self.viewport_left, self.viewport_top,
-                self.viewport_right, self.viewport_top,
-                self.viewport_right, self.viewport_bot,
-                self.viewport_left, self.viewport_bot)
-            try:
-                self.vertlist.vertices = points
-            except:
-                self.vertlist = self.batch.add_indexed(
-                    4,
-                    GL_LINES,
-                    self.boxgroup,
-                    (0, 1, 2, 3, 0),
-                    ('v2i', points),
-                    ('c4b', colors))
+                self.window_left, self.window_top,
+                self.window_right, self.window_top,
+                self.window_right, self.window_bot,
+                self.window_left, self.window_bot)
+            if self.old_points != points:
+                try:
+                    self.vertlist.vertices = points
+                except:
+                    self.vertlist = self.batch.add_indexed(
+                        4,
+                        GL_LINES,
+                        self.boxgroup,
+                        (0, 1, 2, 3, 0),
+                        ('v2i', points),
+                        ('c4b', colors))
+                self.old_points = points
         else:
-            try:
-                self.vertlist.delete()
-            except:
-                pass
-            self.vertlist = None
+            if self.vertlist is not None:
+                try:
+                    self.vertlist.delete()
+                except:
+                    pass
+                self.vertlist = None
+            self.old_points = None
+
+    def draw(self):
+        if (
+                self.img is not None and
+                (self.window_top > 0 or
+                 self.window_right > 0 or
+                 self.window_bot < self.window.height or
+                 self.window_left < self.window.width)):
+            self.actually_draw()
+        else:
+            if self.sprite is not None:
+                try:
+                    self.sprite.delete()
+                except:
+                    pass
+                self.sprite = None
+            if self.vertlist is not None:
+                try:
+                    self.vertlist.delete()
+                except:
+                    pass
+                self.vertlist = None
+            self.old_window_left = None
+            self.old_window_bot = None
+            return
+
+
 
     def delete(self):
         try:

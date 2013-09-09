@@ -6,42 +6,34 @@ from time import time
 
 class PicPanel:
     """Icon for a particular picture in a PicPicker."""
+    atrdic = {
+        "right": lambda self: self.left + self.pic.width,
+        "bot": lambda self: self.left + self.pic.width,
+        "window_left": lambda self: self.picker.window_left + self.left,
+        "window_top": lambda self: self.picker.window_top - self.top + self.picker.scrolled_px,
+        "window_bot": lambda self: self.picker.window_top - self.bot + self.picker.scrolled_px,
+        "window_right": lambda self: self.picker.window_left + self.pic.width,
+        "tex": lambda self: self.pic.tex,
+        "texture": lambda self: self.pic.tex,
+        "width": lambda self: self.pic.width,
+        "height": lambda self: self.pic.height,
+        "pressed": lambda self: self.window.pressed is self,
+        "hovered": lambda self: self.window.hovered is self,
+        "in_picker": lambda self: (self.window_top > self.picker.window_bot and
+                              self.window_bot < self.picker.window_top)}
+
     def __init__(self, picker, pic):
         self.picker = picker
         self.window = self.picker.window
-        self.rumor = self.picker.rumor
+        self.closet = self.picker.closet
         self.pic = pic
         self.sprite = None
         self.tweaks = 0
 
     def __getattr__(self, attrn):
-        if attrn == "right":
-            return self.left + self.pic.width
-        elif attrn == "bot":
-            return self.top + self.pic.height
-        elif attrn == "window_left":
-            return self.picker.window_left + self.left
-        elif attrn == "window_top":
-            return self.picker.window_top - self.top + self.picker.scrolled_px
-        elif attrn == "window_bot":
-            return self.picker.window_top - self.bot + self.picker.scrolled_px
-        elif attrn == "window_right":
-            return self.picker.window_left + self.pic.width
-        elif attrn in ("tex", "texture"):
-            return self.pic.tex
-        elif attrn == 'width':
-            return self.pic.width
-        elif attrn == 'height':
-            return self.pic.height
-        elif attrn == "pressed":
-            return self.window.pressed is self
-        elif attrn == "hovered":
-            return self.window.hovered is self
-        elif attrn == "in_picker":
-            return (
-                self.window_top > self.picker.window_bot and
-                self.window_bot < self.picker.window_top)
-        else:
+        try:
+            return self.atrdic[attrn]()
+        except KeyError:
             raise AttributeError(
                 "PicPanel instance has no attribute named " + attrn)
 
@@ -108,9 +100,27 @@ Parameter targetn is the name of a window attribute. The pic picked
 will be assigned to that attribute of the window the picker is in.
 
     """
+    atrdic = {
+        "window_left": lambda self: int(self.left_prop * self.window.width),
+        "window_right": lambda self: int(self.right_prop * self.window.width),
+        "window_top": lambda self: int(self.top_prop * sel.window.height),
+        "window_bot": lambda self: int(self.bot_prop * self.window.height),
+        "width": lambda self: self.window_right - self.window_left,
+        "height": lambda self: self.window_top - self.window_bot,
+        "imgs": lambda self: self.closet.imgdict.itervalues(),
+        "hovered": lambda self: self is self.window.hovered,
+        "pressed": lambda self: self is self.window.pressed,
+        "bgpat": lambda self: {
+            True: self.bgpat_active,
+            False: self.bgpat_inactive}[self.hovered],
+        "on_screen": lambda self: (self.window_top > 0 and
+                              self.window_bot < self.window.height and
+                              self.window_right > 0 and
+                              self.window_left < self.window.width)}
+
     def __init__(self, window, left, top, bot, right, style, targetn, flagn):
         self.window = window
-        self.rumor = self.window.rumor
+        self.closet = self.window.closet
         self.left_prop = left
         self.top_prop = top
         self.right_prop = right
@@ -130,37 +140,9 @@ will be assigned to that attribute of the window the picker is in.
         self.panels = [PicPanel(self, img) for img in self.imgs]
 
     def __getattr__(self, attrn):
-        if attrn == 'window_left':
-            return int(self.left_prop * self.window.width)
-        elif attrn == 'window_right':
-            return int(self.right_prop * self.window.width)
-        elif attrn == 'window_top':
-            return int(self.top_prop * self.window.height)
-        elif attrn == 'window_bot':
-            return int(self.bot_prop * self.window.height)
-        elif attrn == 'width':
-            return self.window_right - self.window_left
-        elif attrn == 'height':
-            return self.window_top - self.window_bot
-        elif attrn == 'imgs':
-            # TODO some way to filter images, like by name or whatever
-            return self.rumor.imgdict.itervalues()
-        elif attrn == 'hovered':
-            return self is self.window.hovered
-        elif attrn == 'pressed':
-            return self is self.window.pressed
-        elif attrn == 'bgpat':
-            if self.hovered:
-                return self.bgpat_active
-            else:
-                return self.bgpat_inactive
-        elif attrn == 'on_screen':
-            return (
-                self.window_top > 0 and
-                self.window_bot < self.window.height and
-                self.window_right > 0 and
-                self.window_left < self.window.width)
-        else:
+        try:
+            return self.atrdic[attrn](self)
+        except KeyError:
             raise AttributeError(
                 "PicPicker instance has no attribute named " + attrn)
 
