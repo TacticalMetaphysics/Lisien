@@ -4,12 +4,8 @@ from util import (
     SaveableMetaclass,
     TerminableImg,
     TerminableInteractivity,
-    BranchTicksIter,
-    LoadError,
     SkeletonIterator)
-from collections import defaultdict
 from pyglet.sprite import Sprite
-from pyglet.graphics import OrderedGroup
 from pyglet.gl import GL_LINES
 from logging import getLogger
 
@@ -53,7 +49,7 @@ class Pawn(TerminableImg, TerminableInteractivity):
     atrdic = {
         "imagery": lambda self: self.closet.skeleton[
             "pawn_img"][str(self.dimension)][
-                int(self.board)][str(self.thing)],
+            int(self.board)][str(self.thing)],
         "interactivity": lambda self: self.closet.skeleton["pawn_interactive"][
             str(self.dimension)][int(self.board)][str(self.thing)],
         "img": lambda self: self.get_img(),
@@ -200,6 +196,7 @@ interactive or not.
 
 class PawnWidget:
     selectable = True
+
     def get_board_coords(self):
         loc = self.pawn.thing.location
         if loc is None:
@@ -219,7 +216,7 @@ class PawnWidget:
             (x, y) = self.viewport.spotdict[str(loc)].coords
             return (x + self.pawn.drag_offset_x,
                     y + self.pawn.drag_offset_y)
-        
+
     atrdic = {
         "coords": lambda self: self.get_board_coords(),
         "board_x": lambda self: self.coords[0],
@@ -240,7 +237,10 @@ class PawnWidget:
             self.window_right > 0 and
             self.window_left < self.window.width and
             self.window_top > 0 and
-            self.window_bot < self.window.height)}
+            self.window_bot < self.window.height),
+        "calendars": lambda self: [
+            cal for cal in self.window.calendars if
+            cal.thing == self.thing]}
 
     def __init__(self, viewport, pawn):
         self.pawn = pawn
@@ -250,14 +250,13 @@ class PawnWidget:
         self.spritegroup = self.viewport.pawngroup
         self.boxgroup = self.viewport.pawngroup
         self.window = self.viewport.window
-        self.calcol = None
         self.old_window_left = None
         self.old_window_bot = None
         self.old_points = None
 
     def __getattr__(self, attrn):
-        if attrn in PawnWidget.atrdic:
-            return PawnWidget.atrdic[attrn](self)
+        if attrn in self.atrdic:
+            return self.atrdic[attrn](self)
         elif attrn in (
                 "img", "visible", "interactive",
                 "width", "height", "thing"):
@@ -268,6 +267,13 @@ class PawnWidget:
 
     def __str__(self):
         return str(self.pawn)
+
+    def get_cals(self, branch=None, tick=None):
+        if branch is None:
+            branch = self.rumor.branch
+        if tick is None:
+            tick = self.rumor.tick
+        return 
 
     def hover(self, x, y):
         return self
@@ -294,10 +300,8 @@ If it DOES have anything else to do, make the journey in another branch.
                 break
         if spotto is not None:
             self.thing.journey_to(spotto.place)
-            try:
-                self.calcol.regen_cells()
-            except:
-                pass
+            for cal in self.calendars:
+                cal.refresh()
         self.pawn.drag_offset_x = 0
         self.pawn.drag_offset_y = 0
 
@@ -367,11 +371,3 @@ If it DOES have anything else to do, make the journey in another branch.
 
     def pass_focus(self):
         return self.viewport
-
-    def select(self):
-        if self.calcol is not None:
-            self.calcol.visible = True
-
-    def unselect(self):
-        if self.calcol is not None:
-            self.calcol.visible = False
