@@ -70,11 +70,12 @@ class Wedge:
                 ('c4B', colors))
 
     def delete(self):
-        try:
-            self.vertlist.delete()
-        except AttributeError:
-            pass
-        self.vertlist = None
+        if self.vertlist is not None:
+            try:
+                self.vertlist.delete()
+            except AttributeError:
+                pass
+            self.vertlist = None
 
 
 class BranchConnector:
@@ -104,7 +105,7 @@ class BranchConnector:
     def get_points(self):
         x0 = self.get_startx()
         y = self.col1.window_top - self.calendar.row_height * (
-                self.tick - self.calendar.scrolled_to)
+            self.tick - self.calendar.scrolled_to)
         x2 = self.get_centerx()
         x5 = self.col2.window_left + self.col2.rx
         return (
@@ -113,6 +114,16 @@ class BranchConnector:
             x2, y + self.space,
             x5, y + self.space,
             x5, y)
+    def is_wedge_visible(self):
+        y = self.col1.window_top - self.calendar.row_height * (
+                self.tick - self.calendar.scrolled_to)
+        x = self.col2.window_left + self.col2.rx
+        return (
+            x > self.calendar.window_left and
+            x < self.calendar.window_right and
+            y > self.calendar.window_bot and
+            y < self.calendar.window_top)
+
     atrdic = {
         "startx": lambda self: self.get_startx(),
         "endx": lambda self: self.col2.window_left + self.col2.rx,
@@ -125,7 +136,8 @@ class BranchConnector:
         "centerx": lambda self: self.get_centerx(),
         "points": lambda self: self.get_points(),
         "start": lambda self: (self.startx, self.starty),
-        "end": lambda self: (self.endx, self.endy)}
+        "end": lambda self: (self.endx, self.endy),
+        "wedge_visible": lambda self: self.is_wedge_visible()}
 
     def __init__(self, calendar, col1, col2, tick):
         self.calendar = calendar
@@ -138,6 +150,8 @@ class BranchConnector:
         self.tick = tick
         self.wedge = Wedge(self)
         self.space = self.calendar.style.spacing * 2
+        self.oldpoints = None
+        self.oldindices = None
 
     def __getattr__(self, attrn):
         try:
@@ -148,18 +162,34 @@ class BranchConnector:
 
     def draw(self):
         points = self.points
+        if self.wedge_visible:
+            indices = (0, 1, 1, 2, 2, 3, 3, 4)
+        elif (
+            points[2] > self.calendar.window_left and
+            points[2] < self.calendar.window_right):
+            indices = (0, 1, 1, 2, 2, 3)
+        else:
+            indices = (0, 1)
         try:
-            self.vertlist.vertices = list(points)
+            if points != self.oldpoints:
+                self.vertlist.vertices = points
+                self.oldpoints = points
+            if indices != self.oldindices:
+                self.vertlist.indices = indices
+                self.oldindices = indices
         except AttributeError:
             colors = self.color * 5
             self.vertlist = self.batch.add_indexed(
                 5,
                 GL_LINES,
                 self.linegroup,
-                (0, 1, 1, 2, 2, 3, 3, 4),
+                indices,
                 ('v2i', points),
                 ('c4B', colors))
-        self.wedge.draw()
+        if self.wedge_visible:
+            self.wedge.draw()
+        else:
+            self.wedge.delete()
 
     def delete(self):
         try:

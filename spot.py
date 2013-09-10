@@ -272,6 +272,8 @@ class Spot(TerminableImg, TerminableInteractivity):
                         "tick_to": rd["tick_to"],
                         "x": rd["x"],
                         "y": rd["y"]}
+                    if rd["tick_to"] is None:
+                        self.indefinite_coords[branch] = tick
                 else:
                     self.coord_lst[branch][rd["tick_from"]] = {
                         "dimension": rd["dimension"],
@@ -282,8 +284,8 @@ class Spot(TerminableImg, TerminableInteractivity):
                         "tick_to": rd["tick_to"],
                         "x": rd["x"],
                         "y": rd["y"]}
-                if rd["tick_to"] is None:
-                    self.indefinite_coords[branch] = rd["tick_from"]
+                    if rd["tick_to"] is None:
+                        self.indefinite_coords[branch] = rd["tick_from"]
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)
