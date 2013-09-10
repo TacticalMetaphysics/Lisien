@@ -171,10 +171,7 @@ class Spot(TerminableImg, TerminableInteractivity):
             elif tick_to == indef_start:
                 indef_rd["tick_from"] = tick_from
                 return
-        while len(self.interactivity) <= branch:
-            self.interactivity.append([])
-        while len(self.interactivity[branch]) <= tick_from:
-            self.interactivity[branch].append([])
+        assert branch in self.interactivity, "Make a new branch first"
         self.interactivity[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
@@ -236,10 +233,7 @@ class Spot(TerminableImg, TerminableInteractivity):
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        while len(self.coord_lst) <= branch:
-            self.coord_lst.append([])
-        while len(self.coord_lst[branch]) <= tick_from:
-            self.coord_lst[branch].append([])
+        assert branch in self.coord_lst, "Make a new branch first"
         if branch in self.indefinite_coords:
             itf = self.indefinite_coords[branch]
             rd = self.coord_lst[branch][itf]
@@ -269,6 +263,7 @@ class Spot(TerminableImg, TerminableInteractivity):
             self.indefinite_coords[branch] = tick_from
 
     def new_branch_coords(self, parent, branch, tick):
+        self.coord_lst[branch] = []
         for rd in SkeletonIterator(self.coord_lst[parent]):
             if rd["tick_to"] >= tick or rd["tick_to"] is None:
                 if rd["tick_from"] < tick:

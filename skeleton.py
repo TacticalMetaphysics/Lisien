@@ -1,8 +1,6 @@
 from collections import MutableMapping
-from util import (
-    ListItemIterator,
-    FilterIter,
-    FirstOfTupleFilter)
+from copy import copy
+from util import ListItemIterator
 
 
 
@@ -93,15 +91,54 @@ class Skeleton(MutableMapping):
         if self.typ is list:
             return xrange(0, len(self.it) - 1)
         else:
-            return FilterIter(self.it.iterkeys(), self.internal_keys)
+            return self.it.iterkeys()
 
     def __len__(self):
         return len(self.it)
 
+    def __add__(self, other):
+        newness = self.copy()
+        newness += other
+        return newness
+
+    def __iadd__(self, other):
+        self.update(other)
+
+    def __sub__(self, other):
+        newness = self.copy()
+        newness -= other
+        return newness
+
+    def __isub__(self, other):
+        if other.__class__ in (dict, Skeleton)
+            kitr = other.iteritems()
+        else:
+            kitr = ListItemIterator(other)
+        for (k, v) in kitr:
+            if k not in self:
+                continue
+            elif self[k] == v:
+                del self[k]
+            else:
+                self[k] -= v
+
+    def copy(self):
+        # Shallow copy
+        return Skeleton(self.it)
+
+    def deepcopy(self):
+        newness = Skeleton(self.typ())
+        for (k, v) in self.iteritems():
+            if isinstance(v, Skeleton):
+                newness[k] = v.deepcopy()
+            else:
+                assert self.rowdict, "I contain something I shouldn't"
+                newness[k] = copy(v)
+        return newness
+
     def iteritems(self):
         if self.typ is list:
-            return FilterIter(
-        ListItemIterator(self.it), FirstOfTupleFilter(self.internal_keys))
+            return ListItemIterator(self.it)
         else:
             return self.it.iteritems()
 
@@ -109,9 +146,11 @@ class Skeleton(MutableMapping):
         if self.typ is list:
             return range(0, len(self.it) - 1)
         else:
-            return [
-                key for key in self.it.iterkeys()
-                if key not in self.internal_keys]
+            return self.it.keys()
+
+    def iteritems(self):
+        return self.it.iteritems()
+
     def isrowdict(self):
         for that in self.it.itervalues():
             if that.__class__ in (dict, list):
@@ -126,3 +165,15 @@ class Skeleton(MutableMapping):
         else: # self.typ is list
             return typ(self.it[0])
 
+    def update(self, skellike):
+        if skellike.__class__ in (dict, Skeleton):
+            kitr = skellike.iteritems()
+        else:
+            kitr = ListItemIterator(skellike)
+        for (k, v) in kitr:
+            if k not in self:
+                self[k] = v
+            elif isinstance(self[k], Skeleton):
+                self[k].update(v)
+            elif self[k] != v:
+                self[k] = v

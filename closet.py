@@ -71,100 +71,36 @@ class ListItemIterator:
 
 
 def updd(d1, d2):
-    """Deep update of a dictionary of arbitrary depth, some of whose
-'levels' are actually lists. If asked to update from a dictionary
-whose keys are integers, I'll make a list instead.
-
-    """
-    if isinstance(d2, list):
-        d2iter = ListItemIterator(d2)
-    else:
-        d2iter = d2.iteritems()
-    for (k, v) in d2iter:
-        if not (
-                isinstance(v, dict) or
-                isinstance(v, list)):
+    """Deep update"""
+    for (k, v) in d2.iteritems():
+        if k not in d1:
             d1[k] = v
-            continue
-        elif (
-                isinstance(d1, dict) and
-                k not in d1) or (
-                    len(d1) <= k) or (
-                        d1[k] != v):
-            try:
-                if (
-                        isinstance(v, list) or 
-                        (isinstance(v, dict) and
-                         isinstance(v.iterkeys().next(), int))):
-                    # v's keys are integers
-                    # therefore d1[k] should be a list
-                    d1[k] = []
-                    # desired length for d1[k]
-                    if isinstance(v, list):
-                        d1klen = len(v)
-                        sample = v[0]
-                    else:
-                        d1klen = max(v.keys()) + 1
-                        sample = v.itervalues().next()
-                    if (
-                            isinstance(sample, list) or
-                            (isinstance(sample, dict) and
-                             isinstance(sample.iterkeys().next(), int))):
-                        to_append = list
-                    else:
-                        to_append = dict
-                    while len(d1[k]) < d1klen:
-                        d1[k].append(to_append())
-                elif isinstance(d1, list):
-                    while len(d1) <= k:
-                        d1.append(dict())
-                else:
-                    if k not in d1:
-                        d1[k] = {}
-            except StopIteration:
-                # Means v was empty.
-                continue
-        updd(d1[k], v)
+        elif isinstance(v, dict):
+            assert isinstance(d1[k], dict)
+            updd(d1[k], v)
+        else:
+            d1[k] = v
 
 
 def dminusd(d1, d2):
-    """Returns the 'set difference' of the given skeletons.
+    """Returns the 'set difference' of the given tabdicts.
 
 That is, those rowdicts that are in d1, but not in d2.
 
 Including all layers of keys."""
     # if I'm dealing with rowdicts, return None if they're the same,
     # or d1 if they're different
-    if isinstance(d1, dict):
-        r = {}
-        d1iter = d1.iteritems()
-    elif isinstance(d1, list):
-        r = {}
-        d1iter = ListItemIterator(d1)
-    else:
-        return d1
-    for (k, v) in d1iter:
-        if v in ({}, [], None):
-            continue
-        if isinstance(d2, list):
-            if len(d2) > k:
-                if d2[k] != v:
-                    inner = dminusd(v, d2[k])
-                    if inner not in ({}, [], None):
-                        r[k] = v
+    r = dict(d1)
+    for (k, v) in d2.iteritems():
+        if isinstance(v, dict):
+            if k not in r:
+                continue
+            elif r[k] == v:
+                del r[k]
             else:
-                r[k] = v
-        elif isinstance(d2, dict):
-            if k in d2:
-                if d2[k] != v:
-                    inner =  dminusd(v, d2[k])
-                    if inner not in ({}, [], None):
-                        r[k] = v
-            else:
-                r[k] = v
-        else:
-            r[k] = v
+                r[k] = dminusd(r[k], v)
     return r
+
 
 ONE_ARG_RE = re.compile("(.+)")
 TWO_ARG_RE = re.compile("(.+), ?(.+)")

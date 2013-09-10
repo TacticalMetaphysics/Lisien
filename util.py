@@ -532,18 +532,6 @@ def deep_lookup(dic, keylst):
     return ptr[key]
 
 
-def compile_skeletons(objs):
-    skeletons = [o.skeleton for o in objs]
-    mastertab = {}
-    for skeleton in skeletons:
-        for item in skeleton.iteritems():
-            (tabname, rowdict) = item
-            if tabname not in mastertab:
-                mastertab[tabname] = []
-            mastertab[tabname].append(rowdict)
-    return mastertab
-
-
 def stringlike(o):
     """Return True if I can easily cast this into a string, False
 otherwise."""
@@ -720,10 +708,7 @@ class TerminableImg:
         return None
 
     def new_branch_imagery(self, parent, branch, tick):
-        while len(self.imagery) <= branch:
-            self.imagery.append([])
-        while len(self.imagery[branch]) <= tick:
-            self.imagery[branch].append([])
+        self.imagery[branch] = []
         for rd in SkeletonIterator(self.imagery[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
@@ -759,10 +744,7 @@ class TerminableInteractivity:
         return False
 
     def new_branch_interactivity(self, parent, branch, tick):
-        while len(self.interactivity) <= branch:
-            self.interactivity.append([])
-        while len(self.interactivity[branch]) <= tick:
-            self.interactivity[branch].append([])
+        self.interactivity[branch] = []
         for rd in SkeletonIterator(self.interactivity[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
