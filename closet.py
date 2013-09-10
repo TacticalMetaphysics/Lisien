@@ -32,7 +32,8 @@ from util import (
     SkeletonIterator,
     schemata,
     saveables,
-    saveable_classes)
+    saveable_classes,
+    ListItemIterator)
 from portal import Portal
 from thing import Thing
 from character import Character
@@ -48,26 +49,6 @@ def noop(*args, **kwargs):
 
 def dd():
     return defaultdict(dd)
-
-
-class ListItemIterator:
-    """Iterate over a list in a way that resembles dict.iteritems()"""
-    def __init__(self, l):
-        self.l = l
-        self.l_iter = iter(l)
-        self.i = 0
-
-    def __iter__(self):
-        return self
-
-    def __len__(self):
-        return len(self.l)
-
-    def next(self):
-        it = self.l_iter.next()
-        i = self.i
-        self.i += 1
-        return (i, it)
 
 
 def updd(d1, d2):

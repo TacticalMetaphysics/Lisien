@@ -969,3 +969,23 @@ class EmptyTabdict(Exception):
 
 class TimeParadox(Exception):
     pass
+
+
+class ListItemIterator:
+    """Iterate over a list in a way that resembles dict.iteritems()"""
+    def __init__(self, l):
+        self.l = l
+        self.l_iter = iter(l)
+        self.i = 0
+
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+        return len(self.l)
+
+    def next(self):
+        it = self.l_iter.next()
+        i = self.i
+        self.i += 1
+        return (i, it)
