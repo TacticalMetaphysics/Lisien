@@ -656,6 +656,10 @@ time travel.
             "calendar"][
                 str(self.window)][
                     int(self)]
+        if self._rowdict["type"] == CAL_TYPE['THING']:
+            self.closet.skeleton["thing_location"][
+                self._rowdict["dimension"]][
+                self._rowdict["thing"]].listeners.add(self)
         if self._rowdict["thing_show_location"]:
             self._location_dict = self.closet.skeleton[
                 "thing_location"][
@@ -670,7 +674,6 @@ time travel.
             if i in self.coldict:
                 self.cols_shown.add(i)
         self.branch_to = self.closet.hi_branch
-        self.closet.timestream.update_handlers.add(self)
         self.refresh()
 
     def __int__(self):
@@ -746,6 +749,12 @@ time travel.
         self.rearrow()
         for col in self.cols_shown:
             self.coldict[col].refresh()
+
+    def on_skel_set(self, k, v):
+        self.refresh()
+
+    def on_skel_delete(self, k):
+        self.refresh()
 
     def on_timestream_update(self):
         for branch in self.closet.timestream.branchdict:

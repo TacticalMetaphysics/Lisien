@@ -28,16 +28,39 @@ saveables = []
 saveable_classes = []
 
 
-LIST_COEFFICIENT = 100
-
-
 class Skeleton(MutableMapping):
+    """A dict-like object to efficiently store the entire world model.
+
+Each LiSE instance should have one Skeleton in one Closet. Every
+object in that instance is a view onto the Skeleton.
+
+To get a particular object's data, first decide what table you want
+data from; that table's name is the key in the top level of the
+Skeleton. Then look it up in the Skeleton using the same keys as you
+would to get it from the database. Each successive field in the
+primary key gets its own level of the Skeleton.
+
+I say "the" Skeleton, but actually every level of the Skeleton is
+another Skeleton, and may be addressed similarly.
+
+The skeleton's leaves are "rowdicts": dictionaries keyed with field
+names, whose values are the values of those fields in a given row. You
+can look up the whole primary key from just the rowdict.
+
+Apart from the usual iterkeys(), itervalues(), and iteritems(), the
+Skeleton has a special iterator method iterrows(). This does a
+depth-first traversal through the Skeleton and gives you each rowdict
+it comes upon."""
     atrdic = {
         "subtype": lambda self: self.getsubtype(),
         "rowdict": lambda self: self.isrowdict()
         }
 
     def __init__(self, it, listeners=None):
+        if listeners is None:
+            self.listeners = set()
+        else:
+            self.listeners = listeners
         if isinstance(it, dict):
             if len(it) > 0 and isinstance(it.iterkeys().next(), int):
                 self.typ = list
@@ -52,10 +75,6 @@ class Skeleton(MutableMapping):
                 "Skeleton may only contain dict or list.")
         self.it = self.typ()
         self.update(it)
-        if listeners is None:
-            self.listeners = set()
-        else:
-            self.listeners = listeners
 
     def __getattr__(self, attrn):
         try:
@@ -66,7 +85,19 @@ class Skeleton(MutableMapping):
         "attribute {0}".format(attrn))
 
     def __getitem__(self, k):
-        return self.it[k]
+        if isinstance(self.it, list):
+            if k < len(self.it):
+                return self.it[k]
+            elif self.subtype is None:
+                raise IndexError(
+                    "That part of the skeleton is empty "
+                    "and I can't decide how to fill it. "
+                    "If you want to help out, set my subtype.")
+            while len(self.it) <= k:
+                self.it.append(Skeleton(self.subtype()))
+            return self.it[k]
+        else:
+            return self.it[k]
 
     def __setitem__(self, k, v):
         if self.typ is list:
@@ -90,6 +121,8 @@ class Skeleton(MutableMapping):
             assert(v.__class__ not in (list, dict, Skeleton))
             self.it[k] = v
             return
+        for listener in self.listeners:
+            listener.on_skel_set(k, v)
         self.it[k] = Skeleton(v)
 
     def __delitem__(self, k):
@@ -178,9 +211,14 @@ class Skeleton(MutableMapping):
         else:
             return self.it.iteritems()
 
+    def iterrows(self):
+        return SkeletonIterator(self)
+
     def keys(self):
         if self.typ is list:
-            return range(0, len(self.it))
+            return [
+                i for i in xrange(0, len(self.it))
+                if self.it[i] is not None]
         else:
             return self.it.keys()
 
@@ -220,7 +258,8 @@ class Skeleton(MutableMapping):
             elif self.rowdict or self.it == {}:
                 self.it[k] = v
                 continue
-            assert(isinstance(v, Skeleton))
+            if not isinstance(v, Skeleton):
+                continue
             if isinstance(self.it, dict):
                 if k in self.it:
                     self.it[k].update(v)
@@ -459,7 +498,8 @@ and your table will be ready.
                     checks.append(keyn + "=?")
                     try:
                         keys.append(keydict[keyn])
-                    except KeyError:
+                    except KeyError as ke:
+                        print ke
                         import pdb
                         pdb.set_trace()
                 wheres.append("(" + " AND ".join(checks) + ")")

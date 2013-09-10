@@ -300,8 +300,9 @@ If it DOES have anything else to do, make the journey in another branch.
                 break
         if spotto is not None:
             self.thing.journey_to(spotto.place)
-            for cal in self.calendars:
-                cal.refresh()
+            # This is a silly hack.
+#            for cal in self.calendars:
+#                cal.refresh()
         self.pawn.drag_offset_x = 0
         self.pawn.drag_offset_y = 0
 

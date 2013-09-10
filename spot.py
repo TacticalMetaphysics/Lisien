@@ -263,12 +263,27 @@ class Spot(TerminableImg, TerminableInteractivity):
         for rd in SkeletonIterator(self.coord_lst[parent]):
             if rd["tick_to"] >= tick or rd["tick_to"] is None:
                 if rd["tick_from"] < tick:
-                    self.set_coords(
-                        rd["x"], rd["y"], branch, tick, rd["tick_to"])
+                    self.coord_lst[branch][tick] = {
+                        "dimension": rd["dimension"],
+                        "place": rd["place"],
+                        "board": rd["board"],
+                        "branch": branch,
+                        "tick_from": tick,
+                        "tick_to": rd["tick_to"],
+                        "x": rd["x"],
+                        "y": rd["y"]}
                 else:
-                    self.set_coords(
-                        rd["x"], rd["y"], branch,
-                        rd["tick_from"], rd["tick_to"])
+                    self.coord_lst[branch][rd["tick_from"]] = {
+                        "dimension": rd["dimension"],
+                        "place": rd["place"],
+                        "board": rd["board"],
+                        "branch": branch,
+                        "tick_from": rd["tick_from"],
+                        "tick_to": rd["tick_to"],
+                        "x": rd["x"],
+                        "y": rd["y"]}
+                if rd["tick_to"] is None:
+                    self.indefinite_coords[branch] = rd["tick_from"]
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)
