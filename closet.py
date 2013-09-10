@@ -70,38 +70,6 @@ class ListItemIterator:
         return (i, it)
 
 
-def updd(d1, d2):
-    """Deep update"""
-    for (k, v) in d2.iteritems():
-        if k not in d1:
-            d1[k] = v
-        elif isinstance(v, dict):
-            assert isinstance(d1[k], dict)
-            updd(d1[k], v)
-        else:
-            d1[k] = v
-
-
-def dminusd(d1, d2):
-    """Returns the 'set difference' of the given tabdicts.
-
-That is, those rowdicts that are in d1, but not in d2.
-
-Including all layers of keys."""
-    # if I'm dealing with rowdicts, return None if they're the same,
-    # or d1 if they're different
-    r = dict(d1)
-    for (k, v) in d2.iteritems():
-        if isinstance(v, dict):
-            if k not in r:
-                continue
-            elif r[k] == v:
-                del r[k]
-            else:
-                r[k] = dminusd(r[k], v)
-    return r
-
-
 ONE_ARG_RE = re.compile("(.+)")
 TWO_ARG_RE = re.compile("(.+), ?(.+)")
 ITEM_ARG_RE = re.compile("(.+)\.(.+)")
@@ -197,8 +165,8 @@ given name.
         self.game_speed = 1
         self.updating = False
 
-        updd(self.skeleton,
-             Timestream._select_table_all(self.c, 'timestream'))
+        self.skeleton.update(
+            Timestream._select_table_all(self.c, 'timestream'))
         self.timestream = Timestream(self)
         self.time_travel_history = []
 
@@ -385,8 +353,8 @@ This is game-world time. It doesn't always go forwards.
         return self.graphdict[name]
 
     def save_game(self):
-        to_save = dminusd(self.skeleton, self.old_skeleton)
-        to_delete = dminusd(self.old_skeleton, self.skeleton)
+        to_save = self.skeleton - self.old_skeleton
+        to_delete = self.old_skeleton - self.skeleton
         logger.debug(
             "Saving the skeleton:\n%s", repr(to_save))
         logger.debug(
