@@ -14,7 +14,6 @@ import sqlite3
 import re
 import os
 import igraph
-from copy import deepcopy
 from collections import OrderedDict, defaultdict
 from logging import getLogger
 from dimension import Dimension
@@ -36,6 +35,7 @@ from util import (
 from portal import Portal
 from thing import Thing
 from character import Character
+from skeleton import Skeleton
 
 
 logger = getLogger(__name__)
@@ -85,7 +85,7 @@ PORTAL_NAME_RE = re.compile(
     "Portal\((.+)->(.+)\)")
 
 
-class RumorMill(object):
+class Closet(object):
     """This is where you should get all your LiSE objects from, generally.
 
 A RumorMill is a database connector that can load and generate LiSE
@@ -136,12 +136,12 @@ given name.
         # data--represented only as those types which sqlite3 is
         # capable of storing. All my objects are ultimately just
         # views on this thing.
-        self.skeleton = {}
+        self.skeleton = Skeleton({})
         # This is a copy of the skeleton as it existed at the time of
         # the last save. I'll be finding the differences between it
         # and the current skeleton in order to decide what to write to
         # disk.
-        self.old_skeleton = {}
+        self.old_skeleton = Skeleton({})
 
         self.windowdict = {}
         self.boardhanddict = {}
@@ -236,7 +236,7 @@ given name.
                      "hi_place", "hi_portal", "hi_thing"):
             getattr(self, "game")[attrn] = val
         else:
-            super(RumorMill, self).__setattr__(attrn, val)
+            super(Closet, self).__setattr__(attrn, val)
 
     def __del__(self):
         """Try to write changes to disk before dying.
@@ -376,7 +376,7 @@ This is game-world time. It doesn't always go forwards.
                 ", ".join(keys),
                 ", ".join(["?"] * len(self.game))),
             tuple([self.game[k] for k in keys]))
-        self.old_skeleton = deepcopy(self.skeleton)
+        self.old_skeleton = self.skeleton.deepcopy()
 
     # TODO: For all these schedule functions, handle the case where I
     # try to schedule something for a time outside of the given
@@ -679,8 +679,8 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             for tabn in qtd.iterkeys():
                 qtd[tabn][name] = {"character": name}
-        updd(self.skeleton,
-             Character._select_skeleton(self.c, qtd))
+        self.skeleton.update(
+            Character._select_skeleton(self.c, qtd))
         r = {}
         for name in names:
             char = Character(self, name)
@@ -711,7 +711,7 @@ This is game-world time. It doesn't always go forwards.
         kd = {"effect": {}}
         for name in names:
             kd["effect"][name] = {"name": name}
-        updd(self.skeleton,
+        self.skeleton.update(
              Effect._select_skeleton(self.c, kd))
         need_chars = set()
         for name in names:
@@ -743,7 +743,7 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["effect_deck"][name] = {"name": name}
             kd["effect_deck_link"][name] = {"deck": name}
-        updd(self.skeleton,
+        self.skeleton.update(
              EffectDeck._select_skeleton(self.c, kd))
         for name in names:
             r[name] = EffectDeck(self, name)
@@ -774,7 +774,7 @@ This is game-world time. It doesn't always go forwards.
             kd["thing_location"][name] = {"dimension": name}
         dimtd = Portal._select_skeleton(self.c, kd)
         dimtd.update(Thing._select_skeleton(self.c, kd))
-        updd(self.skeleton, dimtd)
+        self.skeleton += dimtd
         r = {}
         for name in names:
             r[name] = Dimension(self, name)
@@ -841,7 +841,7 @@ This is game-world time. It doesn't always go forwards.
              "pawn_interactive":
              {"dimension": dimn,
               "board": i}}))
-        updd(self.skeleton, boardtd)
+        self.skeleton += boardtd
         return Board(self, dim, i)
 
     def load_viewport(self, win, dim, board, viewi):
@@ -859,7 +859,7 @@ This is game-world time. It doesn't always go forwards.
                "dimension": dimn,
                "board": boardi,
                "idx": viewi}}
-        updd(self.skeleton,
+        self.skeleton.update(
              BoardViewport._select_skeleton(self.c, kd))
         return BoardViewport(
             self, win, dim, board, viewi)
@@ -880,7 +880,7 @@ This is game-world time. It doesn't always go forwards.
         kd = {"img": {}}
         for name in names:
             kd["img"][name] = {"name": name}
-        updd(self.skeleton,
+        self.skeleton.update(
              Img._select_skeleton(
                  self.c, kd))
         r = {}
@@ -907,7 +907,7 @@ This is game-world time. It doesn't always go forwards.
         kd = {"color": {}}
         for name in names:
             kd["color"][name] = {"name": name}
-        updd(self.skeleton,
+        self.skeleton.update(
              Color._select_skeleton(self.c, kd))
         r = {}
         for name in names:
@@ -934,7 +934,7 @@ This is game-world time. It doesn't always go forwards.
         kd = {"style": {}}
         for name in stylenames:
             kd["style"][name] = {"name": name}
-        updd(self.skeleton,
+        self.skeleton.update(
              Style._select_skeleton(self.c, kd))
         colornames = set()
         for name in stylenames:
@@ -977,8 +977,8 @@ This is game-world time. It doesn't always go forwards.
                     continue
                 kd[col][name] = {"window": name}
         td = GameWindow._select_skeleton(self.c, kd)
-        updd(self.skeleton, td)
-        updd(self.old_skeleton, td)
+        self.skeleton +=  td
+        self.old_skeleton += td
         r = {}
         for name in names:
             r[name] = GameWindow(self, name, checkpoint)
@@ -1140,7 +1140,7 @@ This is game-world time. It doesn't always go forwards.
         self.conn.close()
 
     def checkpoint(self):
-        self.old_skeleton = deepcopy(self.skeleton)
+        self.old_skeleton = self.skeleton.deepcopy()
 
 
 def mkdb(DB_NAME='default.sqlite'):
@@ -1313,7 +1313,7 @@ def mkdb(DB_NAME='default.sqlite'):
 
 
 def load_game(dbfn, lang="eng"):
-    db = RumorMill(dbfn, lang=lang)
+    db = Closet(dbfn, lang=lang)
     db.load_game()
     db.load_strings()
     return db

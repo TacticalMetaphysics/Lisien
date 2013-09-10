@@ -23,7 +23,8 @@ class Skeleton(MutableMapping):
         else:
             raise ValueError(
                 "Skeleton may only contain dict or list.")
-        self.it = it
+        self.it = self.typ()
+        self.update(it)
         if listeners is None:
             self.listeners = set()
         else:
@@ -47,7 +48,7 @@ class Skeleton(MutableMapping):
             else:
                 raise TypeError(
             "This part of the skeleton takes {0}, not {1}".format(
-                self.typ, type(v)))
+                self.subtype, type(v)))
         elif self.typ is list:
             if not isinstance(k, int):
                 raise TypeError(
@@ -55,7 +56,7 @@ class Skeleton(MutableMapping):
             if self.subtype not in (None, type(v)):
                 raise TypeError(
             "This part of the skeleton takes {0}, not {1}".format(
-                self.typ, type(v)))
+                self.subtype, type(v)))
             self.it[k] = Skeleton(v)
         else: # self.typ is None
             if self.rowdict:
@@ -103,6 +104,7 @@ class Skeleton(MutableMapping):
 
     def __iadd__(self, other):
         self.update(other)
+        return self
 
     def __sub__(self, other):
         newness = self.copy()
@@ -110,7 +112,7 @@ class Skeleton(MutableMapping):
         return newness
 
     def __isub__(self, other):
-        if other.__class__ in (dict, Skeleton)
+        if other.__class__ in (dict, Skeleton):
             kitr = other.iteritems()
         else:
             kitr = ListItemIterator(other)
@@ -121,6 +123,18 @@ class Skeleton(MutableMapping):
                 del self[k]
             else:
                 self[k] -= v
+        return self
+
+    def __repr__(self):
+        return "Skeleton({0})".format(repr(self.it))
+
+    def __eq__(self, other):
+        if isinstance(other, Skeleton):
+            return self.it == other.it
+        elif isinstance(other, dict):
+            return self.typ is dict and self.it == other
+        else:
+            return self.typ is list and self.it == other
 
     def copy(self):
         # Shallow copy
@@ -161,9 +175,9 @@ class Skeleton(MutableMapping):
         if len(self.it) == 0:
             return None
         if self.typ is dict:
-            return typ(self.it.iteritems().next())
+            self.it.itervalues().next().typ
         else: # self.typ is list
-            return typ(self.it[0])
+            return self.it[0].typ
 
     def update(self, skellike):
         if skellike.__class__ in (dict, Skeleton):
@@ -171,9 +185,13 @@ class Skeleton(MutableMapping):
         else:
             kitr = ListItemIterator(skellike)
         for (k, v) in kitr:
-            if k not in self:
-                self[k] = v
-            elif isinstance(self[k], Skeleton):
-                self[k].update(v)
-            elif self[k] != v:
-                self[k] = v
+            if v.__class__ in (dict, list):
+                v = Skeleton(v)
+            elif self.rowdict:
+                self.it[k] = v
+                continue
+            assert(isinstance(v, Skeleton))
+            if k in self.it:
+                self.it[k].update(v)
+            else:
+                self.it[k] = v
