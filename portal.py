@@ -67,7 +67,6 @@ otherwise."""
         return True
 
     def new_branch(self, parent, branch, tick):
-        self.existence[branch] = []
         for rd in SkeletonIterator(self.existence):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)

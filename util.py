@@ -39,12 +39,14 @@ class Skeleton(MutableMapping):
 
     def __init__(self, it, listeners=None):
         if isinstance(it, dict):
-            self.typ = dict
+            if len(it) > 0 and isinstance(it.iterkeys().next(), int):
+                self.typ = list
+            else:
+                self.typ = dict
         elif isinstance(it, list):
             self.typ = list
         elif isinstance(it, Skeleton):
             self.typ = it.typ
-            it = it.it
         else:
             raise ValueError(
                 "Skeleton may only contain dict or list.")
@@ -67,37 +69,28 @@ class Skeleton(MutableMapping):
         return self.it[k]
 
     def __setitem__(self, k, v):
-        if self.typ is dict:
-            if self.subtype in (None, type(v)):
-                self.it[k] = Skeleton(v)
+        if self.typ is list:
+            if type(k) is not int:
+                raise TypeError(
+                    "This level of the Skeleton requires integer keys.")
+            if self.subtype is not None:
+                newtyp = self.subtype
+            elif isinstance(v, Skeleton):
+                newtyp = v.typ
+            elif isinstance(v, list):
+                newtyp = list
+            elif isinstance(v, dict):
+                newtyp = dict
             else:
-                raise TypeError(
-            "This part of the skeleton takes {0}, not {1}".format(
-                self.subtype, type(v)))
-        elif self.typ is list:
-            if not isinstance(k, int):
-                raise TypeError(
-                    "Indices at this level must be integers")
-            if self.subtype not in (None, type(v)):
-                raise TypeError(
-            "This part of the skeleton takes {0}, not {1}".format(
-                self.subtype, type(v)))
-            self.it[k] = Skeleton(v)
-        else: # self.typ is None
-            if self.rowdict:
-                self.it[k] = v
-            elif self.subtype is None:
-                if isinstance(k, int):
-                    self.it = []
-                else:
-                    self.it = {}
-                self.__setitem__(k, v)
-            else:
-                raise TypeError(
-            "This part of the skeleton takes {0}, not {1}".format(
-                self.typ, type(v)))
-            for listener in self.listeners:
-                listener.on_skel_assign(k, v)
+                raise ValueError(
+                    "This level of the Skeleton can only hold Skeleton-alikes.")
+            while len(self.it) <= k:
+                self.it.append(Skeleton(newtyp()))
+        elif self.rowdict:
+            assert(v.__class__ not in (list, dict, Skeleton))
+            self.it[k] = v
+            return
+        self.it[k] = Skeleton(v)
 
     def __delitem__(self, k):
         if self.typ is list:
@@ -115,7 +108,7 @@ class Skeleton(MutableMapping):
 
     def __iter__(self):
         if self.typ is list:
-            return xrange(0, len(self.it) - 1)
+            return iter(xrange(0, len(self.it)))
         else:
             return self.it.iterkeys()
 
@@ -183,24 +176,29 @@ class Skeleton(MutableMapping):
 
     def keys(self):
         if self.typ is list:
-            return range(0, len(self.it) - 1)
+            return range(0, len(self.it))
         else:
             return self.it.keys()
 
     def iteritems(self):
-        return self.it.iteritems()
+        if self.typ is dict:
+            return self.it.iteritems()
+        else:
+            return ListItemIterator(self.it)
 
     def isrowdict(self):
-        for that in self.it.itervalues():
-            if that.__class__ in (dict, list):
+        if self.typ is not dict or len(self.it) == 0:
+            return False
+        for v in self.it.itervalues():
+            if v.__class__ in (list, dict, Skeleton):
                 return False
         return True
 
     def getsubtype(self):
-        if len(self.it) == 0:
+        if self.rowdict or len(self.it) == 0:
             return None
         if self.typ is dict:
-            self.it.itervalues().next().typ
+            return self.it.itervalues().next().typ
         else: # self.typ is list
             return self.it[0].typ
 
@@ -212,14 +210,29 @@ class Skeleton(MutableMapping):
         for (k, v) in kitr:
             if v.__class__ in (dict, list):
                 v = Skeleton(v)
-            elif self.rowdict:
+                if v.rowdict:
+                    self[k] = v
+                    continue
+            elif self.rowdict or self.it == {}:
                 self.it[k] = v
                 continue
             assert(isinstance(v, Skeleton))
-            if k in self.it:
-                self.it[k].update(v)
+            if isinstance(self.it, dict):
+                if k in self.it:
+                    self.it[k].update(v)
+                else:
+                    self.it[k] = v
             else:
-                self.it[k] = v
+                if self.subtype is not None:
+                    newtyp = self.subtype
+                else:
+                    newtyp = v.typ
+                while len(self.it) <= k:
+                    self.it.append(Skeleton(newtyp()))
+                if isinstance(self.it[k], Skeleton):
+                    self.it[k].update(v)
+                else:
+                    self.it[k] = v
 
 
 class SaveableMetaclass(type):
@@ -903,7 +916,6 @@ class TerminableImg:
         return None
 
     def new_branch_imagery(self, parent, branch, tick):
-        self.imagery[branch] = []
         for rd in SkeletonIterator(self.imagery[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
@@ -939,7 +951,6 @@ class TerminableInteractivity:
         return False
 
     def new_branch_interactivity(self, parent, branch, tick):
-        self.interactivity[branch] = []
         for rd in SkeletonIterator(self.interactivity[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
@@ -1027,11 +1038,15 @@ class DictValues2DIterator:
 
 
 class SkeletonIterator:
+    # TODO: Something is not quite right here
     def __init__(self, skellike):
-        self.skel = Skeleton(skellike)
+        if isinstance(skellike, Skeleton):
+            self.skel = skellike
+        else:
+            self.skel = Skeleton(skellike)
         self.ptrs = deque([self.skel])
         self.l = None
-        self.keyses = [self.ptrs[0].keys()]
+        self.keyses = [self.skel.keys()]
 
     def __len__(self):
         if self.l is not None:
@@ -1055,24 +1070,19 @@ class SkeletonIterator:
                 ptr = self.ptrs.pop()
                 keys = self.keyses.pop()
             except IndexError:
-                # Happens when I try to descend into a list of length
-                # 1 or 0.  If it's length 1...I may have to descend a
-                # couple levels before I get something I can return.
-                if len(ptr) == 0:
-                    return
-                else:
-                    keys = [0]
-            while len(keys) > 0:
-                k = keys.pop()
-                if isinstance(ptr[k], Skeleton):
-                    self.keyses.append(keys)
-                    self.keyses.append(ptr[k].keys())
-                    self.ptrs.append(ptr)
-                    self.ptrs.append(ptr[k])
-                elif ptr[k] is None:
+                raise StopIteration
+            if ptr.rowdict:
+                return ptr
+            else:
+                try:
+                    k = keys.pop()
+                except IndexError:
                     continue
-                else:
-                    return ptr
+                if len(keys) > 0:
+                    self.ptrs.append(ptr)
+                    self.keyses.append(keys)
+                self.ptrs.append(ptr[k])
+                self.keyses.append(ptr[k].keys())
         raise StopIteration
 
 

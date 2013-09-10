@@ -315,7 +315,6 @@ other journey I may be on at the time."""
         self.update()
 
     def new_branch(self, parent, branch, tick):
-        self.locations[branch] = []
         if self.new_branch_blank:
             return
         for rd in SkeletonIterator(self.locations[parent]):

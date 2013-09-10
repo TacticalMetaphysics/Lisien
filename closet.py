@@ -14,7 +14,6 @@ import sqlite3
 import re
 import os
 import igraph
-from collections import OrderedDict, defaultdict
 from logging import getLogger
 from dimension import Dimension
 from spot import Spot
@@ -44,10 +43,6 @@ logger = getLogger(__name__)
 def noop(*args, **kwargs):
     """Do nothing."""
     pass
-
-
-def dd():
-    return defaultdict(dd)
 
 
 class ListItemIterator:
@@ -151,7 +146,7 @@ given name.
         self.dimensiondict = {}
         self.effectdict = {}
         self.effectdeckdict = {}
-        self.imgdict = OrderedDict()
+        self.imgdict = {}
         self.menudict = {}
         self.menuitemdict = {}
         self.stringdict = {}

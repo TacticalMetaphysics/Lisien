@@ -120,7 +120,6 @@ class GameWindow(pyglet.window.Window):
     def __init__(
             self, closet, name, checkpoint=False):
         """Initialize the game window, its groups, and some state tracking."""
-        assert(len(closet.skeleton['img']) > 1)
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
         self.closet = closet

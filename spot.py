@@ -1,4 +1,4 @@
-# This file is part of LiSE, a framework for life simulation games.
+## This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     SaveableMetaclass,
@@ -120,22 +120,19 @@ class Spot(TerminableImg, TerminableInteractivity):
                         int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
-                break
         self.indefinite_coords = {}
         for rd in SkeletonIterator(
-                self.closet.skeleton["spot_coords"][
-                    str(self.dimension)][
-                        int(self.board)][str(self.place)]):
+            self.closet.skeleton["spot_coords"][
+                str(self.dimension)][
+                int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_coords[rd["branch"]] = rd["tick_from"]
-                break
         self.indefinite_interactivity = {}
         for rd in SkeletonIterator(self.closet.skeleton["spot_interactive"][
                 str(self.dimension)][
                     int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
-                break
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
@@ -263,7 +260,6 @@ class Spot(TerminableImg, TerminableInteractivity):
             self.indefinite_coords[branch] = tick_from
 
     def new_branch_coords(self, parent, branch, tick):
-        self.coord_lst[branch] = []
         for rd in SkeletonIterator(self.coord_lst[parent]):
             if rd["tick_to"] >= tick or rd["tick_to"] is None:
                 if rd["tick_from"] < tick:
