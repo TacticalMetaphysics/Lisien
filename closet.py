@@ -28,6 +28,7 @@ from timestream import Timestream, TimestreamException
 from gui import GameWindow
 from util import (
     dictify_row,
+    Skeleton,
     SkeletonIterator,
     schemata,
     saveables,
@@ -35,7 +36,6 @@ from util import (
 from portal import Portal
 from thing import Thing
 from character import Character
-from skeleton import Skeleton
 
 
 logger = getLogger(__name__)
