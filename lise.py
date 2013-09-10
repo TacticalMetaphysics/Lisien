@@ -44,13 +44,22 @@ pyglet.clock.set_default(clock)
 closet = closet.load_game(dbfn, lang)
 gw = closet.get_window('Main', checkpoint=True)
 
+class Updater:
+    def __init__(self, closet, gw):
+        self.tp = 0.0
+        self.closet = closet
+        self.gw = gw
 
-def update(ts):
-    assert(len(closet.skeleton['img']) > 1)
-    closet.update()
-    gw.update(ts)
+    def update(self, ts):
+        self.tp += ts
+        while self.tp >= 0.1:
+            self.closet.update()
+            self.tp -= 0.1
+        self.gw.update(ts)
 
-pyglet.clock.schedule(update)
+u = Updater(closet, gw)
+
+pyglet.clock.schedule(u.update)
 pyglet.app.run()
 closet.save_game()
 closet.end_game()

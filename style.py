@@ -100,7 +100,6 @@ foreground and the background.
 With db, register in its styledict.
 
         """
-        assert(len(closet.skeleton['img']) > 1)
         self.closet = closet
         self._name = name
         self.closet.styledict[str(self)] = self

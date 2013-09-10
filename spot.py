@@ -1,4 +1,4 @@
-# This file is part of LiSE, a framework for life simulation games.
+## This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     SaveableMetaclass,
@@ -120,22 +120,19 @@ class Spot(TerminableImg, TerminableInteractivity):
                         int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
-                break
         self.indefinite_coords = {}
         for rd in SkeletonIterator(
-                self.closet.skeleton["spot_coords"][
-                    str(self.dimension)][
-                        int(self.board)][str(self.place)]):
+            self.closet.skeleton["spot_coords"][
+                str(self.dimension)][
+                int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_coords[rd["branch"]] = rd["tick_from"]
-                break
         self.indefinite_interactivity = {}
         for rd in SkeletonIterator(self.closet.skeleton["spot_interactive"][
                 str(self.dimension)][
                     int(self.board)][str(self.place)]):
             if rd["tick_to"] is None:
                 self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
-                break
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
@@ -171,10 +168,7 @@ class Spot(TerminableImg, TerminableInteractivity):
             elif tick_to == indef_start:
                 indef_rd["tick_from"] = tick_from
                 return
-        while len(self.interactivity) <= branch:
-            self.interactivity.append([])
-        while len(self.interactivity[branch]) <= tick_from:
-            self.interactivity[branch].append([])
+        assert branch in self.interactivity, "Make a new branch first"
         self.interactivity[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
@@ -236,10 +230,7 @@ class Spot(TerminableImg, TerminableInteractivity):
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        while len(self.coord_lst) <= branch:
-            self.coord_lst.append([])
-        while len(self.coord_lst[branch]) <= tick_from:
-            self.coord_lst[branch].append([])
+        assert branch in self.coord_lst, "Make a new branch first"
         if branch in self.indefinite_coords:
             itf = self.indefinite_coords[branch]
             rd = self.coord_lst[branch][itf]
@@ -272,12 +263,27 @@ class Spot(TerminableImg, TerminableInteractivity):
         for rd in SkeletonIterator(self.coord_lst[parent]):
             if rd["tick_to"] >= tick or rd["tick_to"] is None:
                 if rd["tick_from"] < tick:
-                    self.set_coords(
-                        rd["x"], rd["y"], branch, tick, rd["tick_to"])
+                    self.coord_lst[branch][tick] = {
+                        "dimension": rd["dimension"],
+                        "place": rd["place"],
+                        "board": rd["board"],
+                        "branch": branch,
+                        "tick_from": tick,
+                        "tick_to": rd["tick_to"],
+                        "x": rd["x"],
+                        "y": rd["y"]}
                 else:
-                    self.set_coords(
-                        rd["x"], rd["y"], branch,
-                        rd["tick_from"], rd["tick_to"])
+                    self.coord_lst[branch][rd["tick_from"]] = {
+                        "dimension": rd["dimension"],
+                        "place": rd["place"],
+                        "board": rd["board"],
+                        "branch": branch,
+                        "tick_from": rd["tick_from"],
+                        "tick_to": rd["tick_to"],
+                        "x": rd["x"],
+                        "y": rd["y"]}
+                if rd["tick_to"] is None:
+                    self.indefinite_coords[branch] = rd["tick_from"]
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)

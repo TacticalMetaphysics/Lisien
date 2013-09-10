@@ -14,8 +14,6 @@ import sqlite3
 import re
 import os
 import igraph
-from copy import deepcopy
-from collections import OrderedDict, defaultdict
 from logging import getLogger
 from dimension import Dimension
 from spot import Spot
@@ -29,6 +27,7 @@ from timestream import Timestream, TimestreamException
 from gui import GameWindow
 from util import (
     dictify_row,
+    Skeleton,
     SkeletonIterator,
     schemata,
     saveables,
@@ -44,10 +43,6 @@ logger = getLogger(__name__)
 def noop(*args, **kwargs):
     """Do nothing."""
     pass
-
-
-def dd():
-    return defaultdict(dd)
 
 
 class ListItemIterator:
@@ -70,102 +65,6 @@ class ListItemIterator:
         return (i, it)
 
 
-def updd(d1, d2):
-    """Deep update of a dictionary of arbitrary depth, some of whose
-'levels' are actually lists. If asked to update from a dictionary
-whose keys are integers, I'll make a list instead.
-
-    """
-    if isinstance(d2, list):
-        d2iter = ListItemIterator(d2)
-    else:
-        d2iter = d2.iteritems()
-    for (k, v) in d2iter:
-        if not (
-                isinstance(v, dict) or
-                isinstance(v, list)):
-            d1[k] = v
-            continue
-        elif (
-                isinstance(d1, dict) and
-                k not in d1) or (
-                    len(d1) <= k) or (
-                        d1[k] != v):
-            try:
-                if (
-                        isinstance(v, list) or 
-                        (isinstance(v, dict) and
-                         isinstance(v.iterkeys().next(), int))):
-                    # v's keys are integers
-                    # therefore d1[k] should be a list
-                    d1[k] = []
-                    # desired length for d1[k]
-                    if isinstance(v, list):
-                        d1klen = len(v)
-                        sample = v[0]
-                    else:
-                        d1klen = max(v.keys()) + 1
-                        sample = v.itervalues().next()
-                    if (
-                            isinstance(sample, list) or
-                            (isinstance(sample, dict) and
-                             isinstance(sample.iterkeys().next(), int))):
-                        to_append = list
-                    else:
-                        to_append = dict
-                    while len(d1[k]) < d1klen:
-                        d1[k].append(to_append())
-                elif isinstance(d1, list):
-                    while len(d1) <= k:
-                        d1.append(dict())
-                else:
-                    if k not in d1:
-                        d1[k] = {}
-            except StopIteration:
-                # Means v was empty.
-                continue
-        updd(d1[k], v)
-
-
-def dminusd(d1, d2):
-    """Returns the 'set difference' of the given skeletons.
-
-That is, those rowdicts that are in d1, but not in d2.
-
-Including all layers of keys."""
-    # if I'm dealing with rowdicts, return None if they're the same,
-    # or d1 if they're different
-    if isinstance(d1, dict):
-        r = {}
-        d1iter = d1.iteritems()
-    elif isinstance(d1, list):
-        r = {}
-        d1iter = ListItemIterator(d1)
-    else:
-        return d1
-    for (k, v) in d1iter:
-        if v in ({}, [], None):
-            continue
-        if isinstance(d2, list):
-            if len(d2) > k:
-                if d2[k] != v:
-                    inner = dminusd(v, d2[k])
-                    if inner not in ({}, [], None):
-                        r[k] = v
-            else:
-                r[k] = v
-        elif isinstance(d2, dict):
-            if k in d2:
-                if d2[k] != v:
-                    inner =  dminusd(v, d2[k])
-                    if inner not in ({}, [], None):
-                        r[k] = v
-            else:
-                r[k] = v
-        else:
-            r[k] = v
-    return r
-
 ONE_ARG_RE = re.compile("(.+)")
 TWO_ARG_RE = re.compile("(.+), ?(.+)")
 ITEM_ARG_RE = re.compile("(.+)\.(.+)")
@@ -181,7 +80,7 @@ PORTAL_NAME_RE = re.compile(
     "Portal\((.+)->(.+)\)")
 
 
-class RumorMill(object):
+class Closet(object):
     """This is where you should get all your LiSE objects from, generally.
 
 A RumorMill is a database connector that can load and generate LiSE
@@ -232,12 +131,12 @@ given name.
         # data--represented only as those types which sqlite3 is
         # capable of storing. All my objects are ultimately just
         # views on this thing.
-        self.skeleton = {}
+        self.skeleton = Skeleton({})
         # This is a copy of the skeleton as it existed at the time of
         # the last save. I'll be finding the differences between it
         # and the current skeleton in order to decide what to write to
         # disk.
-        self.old_skeleton = {}
+        self.old_skeleton = Skeleton({})
 
         self.windowdict = {}
         self.boardhanddict = {}
@@ -247,7 +146,7 @@ given name.
         self.dimensiondict = {}
         self.effectdict = {}
         self.effectdeckdict = {}
-        self.imgdict = OrderedDict()
+        self.imgdict = {}
         self.menudict = {}
         self.menuitemdict = {}
         self.stringdict = {}
@@ -261,8 +160,8 @@ given name.
         self.game_speed = 1
         self.updating = False
 
-        updd(self.skeleton,
-             Timestream._select_table_all(self.c, 'timestream'))
+        self.skeleton.update(
+            Timestream._select_table_all(self.c, 'timestream'))
         self.timestream = Timestream(self)
         self.time_travel_history = []
 
@@ -332,7 +231,7 @@ given name.
                      "hi_place", "hi_portal", "hi_thing"):
             getattr(self, "game")[attrn] = val
         else:
-            super(RumorMill, self).__setattr__(attrn, val)
+            super(Closet, self).__setattr__(attrn, val)
 
     def __del__(self):
         """Try to write changes to disk before dying.
@@ -449,8 +348,8 @@ This is game-world time. It doesn't always go forwards.
         return self.graphdict[name]
 
     def save_game(self):
-        to_save = dminusd(self.skeleton, self.old_skeleton)
-        to_delete = dminusd(self.old_skeleton, self.skeleton)
+        to_save = self.skeleton - self.old_skeleton
+        to_delete = self.old_skeleton - self.skeleton
         logger.debug(
             "Saving the skeleton:\n%s", repr(to_save))
         logger.debug(
@@ -472,7 +371,7 @@ This is game-world time. It doesn't always go forwards.
                 ", ".join(keys),
                 ", ".join(["?"] * len(self.game))),
             tuple([self.game[k] for k in keys]))
-        self.old_skeleton = deepcopy(self.skeleton)
+        self.old_skeleton = self.skeleton.deepcopy()
 
     # TODO: For all these schedule functions, handle the case where I
     # try to schedule something for a time outside of the given
@@ -775,8 +674,8 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             for tabn in qtd.iterkeys():
                 qtd[tabn][name] = {"character": name}
-        updd(self.skeleton,
-             Character._select_skeleton(self.c, qtd))
+        self.skeleton.update(
+            Character._select_skeleton(self.c, qtd))
         r = {}
         for name in names:
             char = Character(self, name)
@@ -807,7 +706,7 @@ This is game-world time. It doesn't always go forwards.
         kd = {"effect": {}}
         for name in names:
             kd["effect"][name] = {"name": name}
-        updd(self.skeleton,
+        self.skeleton.update(
              Effect._select_skeleton(self.c, kd))
         need_chars = set()
         for name in names:
@@ -839,7 +738,7 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["effect_deck"][name] = {"name": name}
             kd["effect_deck_link"][name] = {"deck": name}
-        updd(self.skeleton,
+        self.skeleton.update(
              EffectDeck._select_skeleton(self.c, kd))
         for name in names:
             r[name] = EffectDeck(self, name)
@@ -870,7 +769,7 @@ This is game-world time. It doesn't always go forwards.
             kd["thing_location"][name] = {"dimension": name}
         dimtd = Portal._select_skeleton(self.c, kd)
         dimtd.update(Thing._select_skeleton(self.c, kd))
-        updd(self.skeleton, dimtd)
+        self.skeleton += dimtd
         r = {}
         for name in names:
             r[name] = Dimension(self, name)
@@ -937,7 +836,7 @@ This is game-world time. It doesn't always go forwards.
              "pawn_interactive":
              {"dimension": dimn,
               "board": i}}))
-        updd(self.skeleton, boardtd)
+        self.skeleton += boardtd
         return Board(self, dim, i)
 
     def load_viewport(self, win, dim, board, viewi):
@@ -955,7 +854,7 @@ This is game-world time. It doesn't always go forwards.
                "dimension": dimn,
                "board": boardi,
                "idx": viewi}}
-        updd(self.skeleton,
+        self.skeleton.update(
              BoardViewport._select_skeleton(self.c, kd))
         return BoardViewport(
             self, win, dim, board, viewi)
@@ -976,7 +875,7 @@ This is game-world time. It doesn't always go forwards.
         kd = {"img": {}}
         for name in names:
             kd["img"][name] = {"name": name}
-        updd(self.skeleton,
+        self.skeleton.update(
              Img._select_skeleton(
                  self.c, kd))
         r = {}
@@ -1003,7 +902,7 @@ This is game-world time. It doesn't always go forwards.
         kd = {"color": {}}
         for name in names:
             kd["color"][name] = {"name": name}
-        updd(self.skeleton,
+        self.skeleton.update(
              Color._select_skeleton(self.c, kd))
         r = {}
         for name in names:
@@ -1030,7 +929,7 @@ This is game-world time. It doesn't always go forwards.
         kd = {"style": {}}
         for name in stylenames:
             kd["style"][name] = {"name": name}
-        updd(self.skeleton,
+        self.skeleton.update(
              Style._select_skeleton(self.c, kd))
         colornames = set()
         for name in stylenames:
@@ -1073,8 +972,8 @@ This is game-world time. It doesn't always go forwards.
                     continue
                 kd[col][name] = {"window": name}
         td = GameWindow._select_skeleton(self.c, kd)
-        updd(self.skeleton, td)
-        updd(self.old_skeleton, td)
+        self.skeleton +=  td
+        self.old_skeleton += td
         r = {}
         for name in names:
             r[name] = GameWindow(self, name, checkpoint)
@@ -1236,7 +1135,7 @@ This is game-world time. It doesn't always go forwards.
         self.conn.close()
 
     def checkpoint(self):
-        self.old_skeleton = deepcopy(self.skeleton)
+        self.old_skeleton = self.skeleton.deepcopy()
 
 
 def mkdb(DB_NAME='default.sqlite'):
@@ -1409,7 +1308,7 @@ def mkdb(DB_NAME='default.sqlite'):
 
 
 def load_game(dbfn, lang="eng"):
-    db = RumorMill(dbfn, lang=lang)
+    db = Closet(dbfn, lang=lang)
     db.load_game()
     db.load_strings()
     return db

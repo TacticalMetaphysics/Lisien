@@ -174,10 +174,7 @@ Return an Effect representing the change.
                 indef_rd["tick_from"] = tick_from
                 self.indefinite_locations[branch] = tick_from
                 return
-        while len(self.locations) <= branch:
-            self.locations.append([])
-        while len(self.locations[branch]) <= tick_from:
-            self.locations[branch].append([])
+        assert branch in self.locations, "Make a new branch first"
         self.locations[branch][tick_from] = {
             "dimension": str(self.dimension),
             "thing": str(self),
@@ -318,10 +315,6 @@ other journey I may be on at the time."""
         self.update()
 
     def new_branch(self, parent, branch, tick):
-        while len(self.locations) <= branch:
-            self.locations.append([])
-        while len(self.locations[branch]) <= tick:
-            self.locations[branch].append([])
         if self.new_branch_blank:
             return
         for rd in SkeletonIterator(self.locations[parent]):
@@ -334,8 +327,6 @@ other journey I may be on at the time."""
                     if rd2["tick_to"] is None:
                         self.indefinite_locations[branch] = tick
                 else:
-                    while len(self.locations[branch]) <= rd2["tick_from"]:
-                        self.locations[branch].append([])
                     self.locations[branch][rd2["tick_from"]] = rd2
                     if rd2["tick_to"] is None:
                         self.indefinite_locations[branch] = rd2["tick_from"]

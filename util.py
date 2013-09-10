@@ -6,7 +6,8 @@ from time import time
 from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
-from collections import deque
+from collections import deque, MutableMapping
+from copy import copy
 
 logger = getLogger(__name__)
 
@@ -25,6 +26,256 @@ tabclas = {}
 saveables = []
 
 saveable_classes = []
+
+
+class Skeleton(MutableMapping):
+    """A dict-like object to efficiently store the entire world model.
+
+Each LiSE instance should have one Skeleton in one Closet. Every
+object in that instance is a view onto the Skeleton.
+
+To get a particular object's data, first decide what table you want
+data from; that table's name is the key in the top level of the
+Skeleton. Then look it up in the Skeleton using the same keys as you
+would to get it from the database. Each successive field in the
+primary key gets its own level of the Skeleton.
+
+I say "the" Skeleton, but actually every level of the Skeleton is
+another Skeleton, and may be addressed similarly.
+
+The skeleton's leaves are "rowdicts": dictionaries keyed with field
+names, whose values are the values of those fields in a given row. You
+can look up the whole primary key from just the rowdict.
+
+Apart from the usual iterkeys(), itervalues(), and iteritems(), the
+Skeleton has a special iterator method iterrows(). This does a
+depth-first traversal through the Skeleton and gives you each rowdict
+it comes upon."""
+    atrdic = {
+        "subtype": lambda self: self.getsubtype(),
+        "rowdict": lambda self: self.isrowdict()
+        }
+
+    def __init__(self, it, listeners=None):
+        if listeners is None:
+            self.listeners = set()
+        else:
+            self.listeners = listeners
+        if isinstance(it, dict):
+            if len(it) > 0 and isinstance(it.iterkeys().next(), int):
+                self.typ = list
+            else:
+                self.typ = dict
+        elif isinstance(it, list):
+            self.typ = list
+        elif isinstance(it, Skeleton):
+            self.typ = it.typ
+        else:
+            raise ValueError(
+                "Skeleton may only contain dict or list.")
+        self.it = self.typ()
+        self.update(it)
+
+    def __getattr__(self, attrn):
+        try:
+            return self.atrdic[attrn](self)
+        except KeyError:
+            raise AttributeError(
+        "Skeleton instance does not have and cannot compute "
+        "attribute {0}".format(attrn))
+
+    def __getitem__(self, k):
+        if isinstance(self.it, list):
+            if k < len(self.it):
+                return self.it[k]
+            elif self.subtype is None:
+                raise IndexError(
+                    "That part of the skeleton is empty "
+                    "and I can't decide how to fill it. "
+                    "If you want to help out, set my subtype.")
+            while len(self.it) <= k:
+                self.it.append(Skeleton(self.subtype()))
+            return self.it[k]
+        else:
+            return self.it[k]
+
+    def __setitem__(self, k, v):
+        if self.typ is list:
+            if type(k) is not int:
+                raise TypeError(
+                    "This level of the Skeleton requires integer keys.")
+            if self.subtype is not None:
+                newtyp = self.subtype
+            elif isinstance(v, Skeleton):
+                newtyp = v.typ
+            elif isinstance(v, list):
+                newtyp = list
+            elif isinstance(v, dict):
+                newtyp = dict
+            else:
+                raise ValueError(
+                    "This level of the Skeleton can only hold Skeleton-alikes.")
+            while len(self.it) <= k:
+                self.it.append(Skeleton(newtyp()))
+        elif self.rowdict:
+            assert(v.__class__ not in (list, dict, Skeleton))
+            self.it[k] = v
+            return
+        for listener in self.listeners:
+            listener.on_skel_set(k, v)
+        self.it[k] = Skeleton(v)
+
+    def __delitem__(self, k):
+        if self.typ is list:
+            self.it[k] = None
+        else:
+            for listener in self.listeners:
+                listener.on_skel_delete(k)
+            del self.it[k]
+
+    def __contains__(self, what):
+        if self.typ is list:
+            return what > -1 and what < len(self.it)
+        else:
+            return what in self.it
+
+    def __iter__(self):
+        if self.typ is list:
+            return iter(xrange(0, len(self.it)))
+        else:
+            return self.it.iterkeys()
+
+    def __len__(self):
+        return len(self.it)
+
+    def __add__(self, other):
+        newness = self.deepcopy()
+        newness += other.deepcopy()
+        return newness
+
+    def __iadd__(self, other):
+        self.update(other)
+        return self
+
+    def __sub__(self, other):
+        newness = self.deepcopy()
+        newness -= other.deepcopy()
+        return newness
+
+    def __isub__(self, other):
+        assert(isinstance(other, Skeleton))
+        kitr = other.iteritems()
+        for (k, v) in kitr:
+            if k not in self:
+                continue
+            elif v == self[k]:
+                assert(isinstance(self[k], Skeleton))
+                assert(isinstance(v, Skeleton))
+                del self[k]
+            elif self[k].rowdict:
+                continue
+            else:
+                assert(isinstance(self[k], Skeleton))
+                assert(isinstance(v, Skeleton))
+                self[k] -= v
+        return self
+
+    def __repr__(self):
+        return "Skeleton({0})".format(repr(self.it))
+
+    def __eq__(self, other):
+        if isinstance(other, Skeleton):
+            return self.it == other.it
+        elif isinstance(other, dict):
+            return self.typ is dict and self.it == other
+        else:
+            return self.typ is list and self.it == other
+
+    def copy(self):
+        # Shallow copy
+        return Skeleton(self.it)
+
+    def deepcopy(self):
+        newness = Skeleton(self.typ())
+        for (k, v) in self.iteritems():
+            if isinstance(v, Skeleton):
+                newness[k] = v.deepcopy()
+            else:
+                assert self.rowdict, "I contain something I shouldn't"
+                newness.it[k] = copy(v)
+        return newness
+
+    def iteritems(self):
+        if self.typ is list:
+            return ListItemIterator(self.it)
+        else:
+            return self.it.iteritems()
+
+    def iterrows(self):
+        return SkeletonIterator(self)
+
+    def keys(self):
+        if self.typ is list:
+            return [
+                i for i in xrange(0, len(self.it))
+                if self.it[i] is not None]
+        else:
+            return self.it.keys()
+
+    def iteritems(self):
+        if self.typ is dict:
+            return self.it.iteritems()
+        else:
+            return ListItemIterator(self.it)
+
+    def isrowdict(self):
+        if self.typ is not dict or len(self.it) == 0:
+            return False
+        for v in self.it.itervalues():
+            if v.__class__ in (list, dict, Skeleton):
+                return False
+        return True
+
+    def getsubtype(self):
+        if self.rowdict or len(self.it) == 0:
+            return None
+        if self.typ is dict:
+            return self.it.itervalues().next().typ
+        else: # self.typ is list
+            return self.it[0].typ
+
+    def update(self, skellike):
+        if skellike.__class__ in (dict, Skeleton):
+            kitr = skellike.iteritems()
+        else:
+            kitr = ListItemIterator(skellike)
+        for (k, v) in kitr:
+            if v.__class__ in (dict, list):
+                v = Skeleton(v)
+                if v.rowdict:
+                    self[k] = v
+                    continue
+            elif self.rowdict or self.it == {}:
+                self.it[k] = v
+                continue
+            if not isinstance(v, Skeleton):
+                continue
+            if isinstance(self.it, dict):
+                if k in self.it:
+                    self.it[k].update(v)
+                else:
+                    self.it[k] = v
+            else:
+                if self.subtype is not None:
+                    newtyp = self.subtype
+                else:
+                    newtyp = v.typ
+                while len(self.it) <= k:
+                    self.it.append(Skeleton(newtyp()))
+                if isinstance(self.it[k], Skeleton):
+                    self.it[k].update(v)
+                else:
+                    self.it[k] = v
 
 
 class SaveableMetaclass(type):
@@ -247,7 +498,8 @@ and your table will be ready.
                     checks.append(keyn + "=?")
                     try:
                         keys.append(keydict[keyn])
-                    except KeyError:
+                    except KeyError as ke:
+                        print ke
                         import pdb
                         pdb.set_trace()
                 wheres.append("(" + " AND ".join(checks) + ")")
@@ -532,18 +784,6 @@ def deep_lookup(dic, keylst):
     return ptr[key]
 
 
-def compile_skeletons(objs):
-    skeletons = [o.skeleton for o in objs]
-    mastertab = {}
-    for skeleton in skeletons:
-        for item in skeleton.iteritems():
-            (tabname, rowdict) = item
-            if tabname not in mastertab:
-                mastertab[tabname] = []
-            mastertab[tabname].append(rowdict)
-    return mastertab
-
-
 def stringlike(o):
     """Return True if I can easily cast this into a string, False
 otherwise."""
@@ -720,10 +960,6 @@ class TerminableImg:
         return None
 
     def new_branch_imagery(self, parent, branch, tick):
-        while len(self.imagery) <= branch:
-            self.imagery.append([])
-        while len(self.imagery[branch]) <= tick:
-            self.imagery[branch].append([])
         for rd in SkeletonIterator(self.imagery[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
@@ -759,10 +995,6 @@ class TerminableInteractivity:
         return False
 
     def new_branch_interactivity(self, parent, branch, tick):
-        while len(self.interactivity) <= branch:
-            self.interactivity.append([])
-        while len(self.interactivity[branch]) <= tick:
-            self.interactivity[branch].append([])
         for rd in SkeletonIterator(self.interactivity[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
@@ -850,20 +1082,21 @@ class DictValues2DIterator:
 
 
 class SkeletonIterator:
-    def __init__(self, td):
-        self.tabd = td
-        self.ptrs = deque([td])
-        self.l = None
-        if isinstance(self.ptrs[0], dict):
-            self.keyses = [self.ptrs[0].keys()]
+    # TODO: Something is not quite right here
+    def __init__(self, skellike):
+        if isinstance(skellike, Skeleton):
+            self.skel = skellike
         else:
-            self.keyses = [[i for i in xrange(0, len(self.ptrs[0]))]]
+            self.skel = Skeleton(skellike)
+        self.ptrs = deque([self.skel])
+        self.l = None
+        self.keyses = [self.skel.keys()]
 
     def __len__(self):
         if self.l is not None:
             return self.l
         i = 0
-        h = SkeletonIterator(self.tabd)
+        h = SkeletonIterator(self.skel)
         while True:
             try:
                 h.next()
@@ -881,31 +1114,19 @@ class SkeletonIterator:
                 ptr = self.ptrs.pop()
                 keys = self.keyses.pop()
             except IndexError:
-                # Happens when I try to descend into a list of length
-                # 1 or 0.  If it's length 1...I may have to descend a
-                # couple levels before I get something I can return.
-                if len(ptr) == 0:
-                    return
-                else:
-                    keys = [0]
-            while len(keys) > 0:
-                k = keys.pop()
-                if k == []:
+                raise StopIteration
+            if ptr.rowdict:
+                return ptr
+            else:
+                try:
+                    k = keys.pop()
+                except IndexError:
                     continue
-                elif isinstance(ptr[k], list):
-                    self.keyses.append(keys)
-                    self.keyses.append([i for i in xrange(0, len(ptr[k]))])
+                if len(keys) > 0:
                     self.ptrs.append(ptr)
-                    self.ptrs.append(ptr[k])
-                elif isinstance(ptr[k], dict):
                     self.keyses.append(keys)
-                    self.keyses.append(ptr[k].keys())
-                    self.ptrs.append(ptr)
-                    self.ptrs.append(ptr[k])
-                elif ptr[k] is None:
-                    continue
-                else:
-                    return ptr
+                self.ptrs.append(ptr[k])
+                self.keyses.append(ptr[k].keys())
         raise StopIteration
 
 
@@ -969,3 +1190,48 @@ class EmptyTabdict(Exception):
 
 class TimeParadox(Exception):
     pass
+
+
+class ListItemIterator:
+    """Iterate over a list in a way that resembles dict.iteritems()"""
+    def __init__(self, l):
+        self.l = l
+        self.l_iter = iter(l)
+        self.i = 0
+
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+        return len(self.l)
+
+    def next(self):
+        it = self.l_iter.next()
+        i = self.i
+        self.i += 1
+        return (i, it)
+
+
+class FilterIter:
+    def __init__(self, itr, do_not_return):
+        self.real = iter(itr)
+        self.do_not_return = do_not_return
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        r = self.real.next()
+        while r in self.do_not_return:
+            r = self.real.next()
+        return r
+
+
+class FirstOfTupleFilter:
+    def __init__(self, containable):
+        self.containable = containable
+
+    def __contains__(self, t):
+        return t[0] in self.containable
+
+
