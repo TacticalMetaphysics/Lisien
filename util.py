@@ -116,8 +116,8 @@ class Skeleton(MutableMapping):
         return len(self.it)
 
     def __add__(self, other):
-        newness = self.copy()
-        newness += other
+        newness = self.deepcopy()
+        newness += other.deepcopy()
         return newness
 
     def __iadd__(self, other):
@@ -125,21 +125,25 @@ class Skeleton(MutableMapping):
         return self
 
     def __sub__(self, other):
-        newness = self.copy()
-        newness -= other
+        newness = self.deepcopy()
+        newness -= other.deepcopy()
         return newness
 
     def __isub__(self, other):
-        if other.__class__ in (dict, Skeleton):
-            kitr = other.iteritems()
-        else:
-            kitr = ListItemIterator(other)
+        assert(isinstance(other, Skeleton))
+        kitr = other.iteritems()
         for (k, v) in kitr:
             if k not in self:
                 continue
-            elif self[k] == v:
+            elif v == self[k]:
+                assert(isinstance(self[k], Skeleton))
+                assert(isinstance(v, Skeleton))
                 del self[k]
+            elif self[k].rowdict:
+                continue
             else:
+                assert(isinstance(self[k], Skeleton))
+                assert(isinstance(v, Skeleton))
                 self[k] -= v
         return self
 
