@@ -1,5 +1,9 @@
 from collections import MutableMapping
-from util import ListItemIterator
+from util import (
+    ListItemIterator,
+    FilterIter,
+    FirstOfTupleFilter)
+
 
 
 LIST_COEFFICIENT = 100
@@ -11,30 +15,21 @@ class Skeleton(MutableMapping):
         "rowdict": lambda self: self.isrowdict()
         }
 
-    def isrowdict(self):
-        for that in self.it.itervalues():
-            if that.__class__ in (dict, list):
-                return False
-        return True
-
-    def getsubtype(self):
-        if len(self.it) == 0:
-            raise ValueError(
-                "Can't decide what the subtype is if there's nothing here.")
-        if self.typ is dict:
-            return typ(self.it.iteritems().next()))
-        else: # self.typ is list
-            return typ(self.it[0])
-
-    def __init__(self, it):
+    def __init__(self, it, listeners=None):
         if isinstance(it, dict):
             self.typ = dict
         elif isinstance(it, list):
             self.typ = list
+        elif isinstance(it, Skeleton):
+            return it
         else:
             raise ValueError(
                 "Skeleton may only contain dict or list.")
         self.it = it
+        if listeners is None:
+            self.listeners = set()
+        else:
+            self.listeners = listeners
 
     def __getattr__(self, attrn):
         try:
@@ -45,12 +40,12 @@ class Skeleton(MutableMapping):
         "attribute {0}".format(attrn))
 
     def __getitem__(self, k):
-        return Skeleton(self.it[k])
+        return self.it[k]
 
     def __setitem__(self, k, v):
         if self.typ is dict:
             if self.subtype in (None, type(v)):
-                self[k] = v
+                self.it[k] = Skeleton(v)
             else:
                 raise TypeError(
             "This part of the skeleton takes {0}, not {1}".format(
@@ -63,9 +58,7 @@ class Skeleton(MutableMapping):
                 raise TypeError(
             "This part of the skeleton takes {0}, not {1}".format(
                 self.typ, type(v)))
-            while len(self.it) <= k:
-                self.it.extend([self.typ()] * LIST_COEFFICIENT)
-            self.it[k] = v
+            self.it[k] = Skeleton(v)
         else: # self.typ is None
             if self.rowdict:
                 self.it[k] = v
@@ -79,11 +72,15 @@ class Skeleton(MutableMapping):
                 raise TypeError(
             "This part of the skeleton takes {0}, not {1}".format(
                 self.typ, type(v)))
+            for listener in self.listeners:
+                listener.on_skel_assign(k, v)
 
     def __delitem__(self, k):
         if self.typ is list:
             self.it[k] = None
         else:
+            for listener in self.listeners:
+                listener.on_skel_delete(k)
             del self.it[k]
 
     def __contains__(self, what):
@@ -96,11 +93,15 @@ class Skeleton(MutableMapping):
         if self.typ is list:
             return xrange(0, len(self.it) - 1)
         else:
-            return iter(self.it)
+            return FilterIter(self.it.iterkeys(), self.internal_keys)
+
+    def __len__(self):
+        return len(self.it)
 
     def iteritems(self):
         if self.typ is list:
-            return ListItemIterator(self.it)
+            return FilterIter(
+        ListItemIterator(self.it), FirstOfTupleFilter(self.internal_keys))
         else:
             return self.it.iteritems()
 
@@ -108,4 +109,20 @@ class Skeleton(MutableMapping):
         if self.typ is list:
             return range(0, len(self.it) - 1)
         else:
-            return self.it.keys()
+            return [
+                key for key in self.it.iterkeys()
+                if key not in self.internal_keys]
+    def isrowdict(self):
+        for that in self.it.itervalues():
+            if that.__class__ in (dict, list):
+                return False
+        return True
+
+    def getsubtype(self):
+        if len(self.it) == 0:
+            return None
+        if self.typ is dict:
+            return typ(self.it.iteritems().next())
+        else: # self.typ is list
+            return typ(self.it[0])
+

@@ -989,3 +989,28 @@ class ListItemIterator:
         i = self.i
         self.i += 1
         return (i, it)
+
+
+class FilterIter:
+    def __init__(self, itr, do_not_return):
+        self.real = iter(itr)
+        self.do_not_return = do_not_return
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        r = self.real.next()
+        while r in self.do_not_return:
+            r = self.real.next()
+        return r
+
+
+class FirstOfTupleFilter:
+    def __init__(self, containable):
+        self.containable = containable
+
+    def __contains__(self, t):
+        return t[0] in self.containable
+
+
