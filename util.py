@@ -43,7 +43,8 @@ class Skeleton(MutableMapping):
         elif isinstance(it, list):
             self.typ = list
         elif isinstance(it, Skeleton):
-            return it
+            self.typ = it.typ
+            it = it.it
         else:
             raise ValueError(
                 "Skeleton may only contain dict or list.")
@@ -171,7 +172,7 @@ class Skeleton(MutableMapping):
                 newness[k] = v.deepcopy()
             else:
                 assert self.rowdict, "I contain something I shouldn't"
-                newness[k] = copy(v)
+                newness.it[k] = copy(v)
         return newness
 
     def iteritems(self):
@@ -1028,7 +1029,7 @@ class DictValues2DIterator:
 class SkeletonIterator:
     def __init__(self, skellike):
         self.skel = Skeleton(skellike)
-        self.ptrs = deque([td])
+        self.ptrs = deque([self.skel])
         self.l = None
         self.keyses = [self.ptrs[0].keys()]
 
