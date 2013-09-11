@@ -93,8 +93,8 @@ With db, register in db's menuitemdict.
         self.menu = menu
         self.closet = self.menu.closet
         self.batch = self.menu.batch
-        self.group = self.menu.labelgroup
         self.window = self.menu.window
+        self.group = self.window.front_fg_group
         self.idx = idx
         self._rowdict = self.closet.skeleton["menu_item"][
             str(self.window)][str(self.menu)][int(self)]
@@ -255,9 +255,7 @@ With db, register with db's menudict.
         self.batch = self.window.batch
         self.closet = self.window.closet
         self._rowdict = self.closet.skeleton["menu"][str(self.window)][str(self)]
-        self.supergroup = OrderedGroup(0, self.window.menugroup)
-        self.bggroup = self.supergroup
-        self.labelgroup = self.supergroup
+        self.bggroup = self.window.front_bg_group
         self.closet = self.window.closet
         self.active_pattern = pyglet.image.SolidColorImagePattern(
             self.style.bg_active.tup)

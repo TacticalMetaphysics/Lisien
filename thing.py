@@ -6,7 +6,8 @@ from util import (
     BranchTicksIter,
     SkeletonIterator,
     TimeParadox,
-    TimestreamException)
+    TimestreamException,
+    FakeCloset)
 from logging import getLogger
 
 
@@ -116,8 +117,6 @@ tick in the given branch."""
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        if len(self.locations) < branch:
-            return None
         if (
                 branch in self.indefinite_locations and
                 tick >= self.indefinite_locations[branch]):
@@ -175,9 +174,6 @@ Return an Effect representing the change.
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch not in self.locations:
-            raise TimestreamException(
-                "Need to make a new branch before scheduling things there.")
         if self.has_location_during(branch, tick_from, tick_to):
             raise TimeParadox(
                 "I'm already somewhere then.")
@@ -303,28 +299,30 @@ other journey I may be on at the time."""
             str(loc), to=str(destplace), output="epath")
         path = None
         for p in ipath:
+            if p == []:
+                continue
             desti = self.dimension.graph.es[p[-1]].target
             if desti == int(destplace):
-                path = [e["portal"] for e in [self.dimension.graph.es[i] for i in p]]
+                path = [e["portal"] for e in
+                        [self.dimension.graph.es[i] for i in p]]
                 break
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
         prevtick = tick + 1
         try:
-            self.follow_path(path, branch, tick)
+            self.deepcopy().follow_path(path, branch, tick)
         except TimeParadox:
-            if not hasattr(self, 'peedeebee'):
-                import pdb
-                pdb.set_trace()
-                self.peedeebee = True
+            start_location = self.get_location(branch, tick)
             self.new_branch_blank = True
             self.closet.time_travel_inc_branch()
             self.new_branch_blank = False
-            self.follow_path(path, self.closet.branch, tick)
+            branch = self.closet.branch
+            self.set_location(start_location, branch, tick)
+        self.follow_path(path, branch, tick)
     
     def follow_path(self, path, branch, tick):
         self.end_location(branch, tick)
-        prevtick = tick
+        prevtick = tick + 1
         for port in path:
             tick_out = self.get_ticks_thru(port) + prevtick
             self.set_location(port, int(branch), int(prevtick), int(tick_out))
@@ -349,3 +347,15 @@ other journey I may be on at the time."""
                     self.locations[branch][rd2["tick_from"]] = rd2
                     if rd2["tick_to"] is None:
                         self.indefinite_locations[branch] = rd2["tick_from"]
+
+    def deepcopy(self):
+        skelly = {}
+        skelly["thing_location"] = {}
+        skelly["thing_location"][str(self.dimension)] = {}
+        skelly["thing_location"][str(self.dimension)][
+            str(self)] = self.closet.skeleton[
+            "thing_location"][str(self.dimension)][
+            str(self)].deepcopy()
+        skelly["timestream"] = self.closet.skeleton["timestream"]
+        uncloset = FakeCloset(skelly)
+        return Thing(uncloset, self.dimension, str(self))

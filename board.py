@@ -259,6 +259,9 @@ This is meant to be arbitrarily scalable, but it isn't really working."""
 
     def get_pawn_at(self, x, y):
         for pawn in self.pawns:
+            if pawn.coords is None:
+                import pdb
+                pdb.set_trace()
             if pawn.in_view and pawn.overlaps(x, y):
                 return pawn
         return None

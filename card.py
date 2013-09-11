@@ -169,10 +169,9 @@ class CardWidget:
         self.base = base
         self.hand = hand
         self.batch = self.hand.batch
-        self.supergroup = OrderedGroup(0, self.hand.cardgroup)
-        self.bggroup = OrderedGroup(0, self.supergroup)
-        self.imggroup = OrderedGroup(1, self.supergroup)
-        self.textgroup = OrderedGroup(2, self.supergroup)
+        self.bggroup = self.hand.window.front_bg_group
+        self.imggroup = self.hand.window.front_fg_group
+        self.textgroup = self.imggroup
         self.closet = self.base.db
         self.window = self.hand.window
         self.grabpoint = None
@@ -359,8 +358,6 @@ order."""
         self.window = window
         self.closet = self.window.closet
         self.batch = self.window.batch
-        self.cardgroup = OrderedGroup(
-            self.window.hand_order, self.window.cardgroup)
         self.window.hand_order += 1
         self.deck = deck
 

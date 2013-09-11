@@ -7,7 +7,7 @@ from util import (
 from logging import getLogger
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup
-from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST
+from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST, glStencilOp, GL_KEEP, GL_REPLACE
 from pyglet.image import SolidColorImagePattern
 from pyglet.sprite import Sprite
 
@@ -148,7 +148,7 @@ class BranchConnector:
 
     def __init__(self, calendar, col1, col2, tick):
         self.calendar = calendar
-        self.batch = self.calendar.batch
+        self.batch = self.calendar.window.batch
         self.group = col2.bcgroup
         self.linegroup = self.group
         self.wedgegroup = self.group
@@ -324,7 +324,7 @@ for the handle_side keyword argument.
             self.vertlist = self.batch.add(
                 2,
                 GL_LINES,
-                self.col.tlgroup,
+                self.window.front_fg_group,
                 ('v2i', points),
                 ('c4B', colors))
         self.handle.draw()
@@ -431,6 +431,8 @@ represents to calculate its dimensions and coordinates.
         self.old_right = None
         self.old_top = None
         self.old_bot = None
+        self.old_label_left = None
+        self.old_label_top = None
         self.vertl = None
         self.label = None
 
@@ -453,17 +455,25 @@ represents to calculate its dimensions and coordinates.
     def __str__(self):
         return "{0} from {1} to {2}".format(self.text, self.tick_from, self.tick_to)
 
+    def delete_label(self):
+        if self.label is not None:
+            try:
+                self.label.delete()
+            except AttributeError:
+                pass
+            self.label = None
+
+    def delete_vertl(self):
+        if self.vertl is not None:
+            try:
+                self.vertl.delete()
+            except AttributeError:
+                pass
+            self.vertl = None
+
     def delete(self):
-        try:
-            self.label.delete()
-        except AttributeError:
-            pass
-        self.label = None
-        try:
-            self.vertl.delete()
-        except AttributeError:
-            pass
-        self.vertl = None
+        self.delete_vertl()
+        self.delete_label()
 
     def draw_label(self, l, t, w, h):
         if self.label is None:
@@ -483,8 +493,12 @@ represents to calculate its dimensions and coordinates.
                 batch=self.batch,
                 group=self.column.cellgroup)
         else:
-            self.label.x = l
-            self.label.y = t
+            if self.old_label_left != l:
+                self.label.x = l
+                self.old_label_left = l
+            if self.old_label_top != t:
+                self.label.y = t
+                self.old_label_top = t
 
     def draw_box(self, l, b, r, t, color):
         colors = color * 8
@@ -685,8 +699,6 @@ time travel.
         self.closet = self.window.closet
         self.idx = idx
         self.closet.timestream.update_handlers.add(self)
-        self.batch = self.window.batch
-        self.group = self.window.calgroup
         self.old_state = None
         self.tainted = False
         self._rowdict = self.closet.skeleton[
@@ -742,6 +754,9 @@ time travel.
         else:
             for calcol in self.cols_shown:
                 self.coldict[calcol].delete()
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
+        self.window.clear()
+        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 
     def make_col(self, branch):
         return {
@@ -843,11 +858,10 @@ class CalendarCol:
         self.calendar = calendar
         self.branch = branch
         self.closet = self.calendar.closet
-        self.batch = self.calendar.batch
+        self.batch = self.calendar.window.batch
         self.style = self.calendar.style
-        self.supergroup = CalendarColGroup(self)
-        self.bggroup = OrderedGroup(0, self.supergroup)
-        self.cellgroup = OrderedGroup(1, self.supergroup)
+        self.bggroup = self.calendar.window.front_bg_group
+        self.cellgroup = self.calendar.window.front_fg_group
         self.tlgroup = self.cellgroup
         self.bcgroup = self.cellgroup
         self.timeline = Timeline(self)
@@ -922,21 +936,22 @@ class CalendarCol:
             batch=self.batch, group=self.bggroup)
 
     def draw(self):
-        if self.sprite is None:
-            self.draw_sprite()
-        elif self.width != self.oldwidth or self.height != self.oldheight:
-            oldsprite = self.sprite
-            self.draw_sprite()
-            try:
-                oldsprite.delete()
-            except AttributeError:
-                pass
-            self.oldwidth = self.width
-            self.oldheight = self.height
-        elif self.oldleft != self.window_left or self.oldbot != self.window_bot:
-            self.sprite.set_position(self.window_left, self.window_bot)
-            self.oldleft = self.window_left
-            self.oldbot = self.window_bot
+        self.draw_sprite()
+        # if self.sprite is None:
+        #     self.draw_sprite()
+        # elif self.width != self.oldwidth or self.height != self.oldheight:
+        #     oldsprite = self.sprite
+        #     self.draw_sprite()
+        #     try:
+        #         oldsprite.delete()
+        #     except AttributeError:
+        #         pass
+        #     self.oldwidth = self.width
+        #     self.oldheight = self.height
+        # elif self.oldleft != self.window_left or self.oldbot != self.window_bot:
+        #     self.sprite.set_position(self.window_left, self.window_bot)
+        #     self.oldleft = self.window_left
+        #     self.oldbot = self.window_bot
         if hasattr(self, 'bc'):
             self.bc.draw()
         if (
