@@ -6,10 +6,7 @@ from util import (
     SaveableMetaclass,
     fortyfive,
     SkeletonIterator,
-    ScissorOrderedGroup,
-    StencilAlsoOrderedGroup,
-    StencilProtestOrderedGroup,
-    StencilFollowerOrderedGroup)
+    ScissorOrderedGroup)
 from math import atan, cos, sin
 from arrow import ArrowWidget
 from menu import Menu, MenuItem
@@ -18,11 +15,6 @@ from board import BoardViewport
 from picpicker import PicPicker
 from calendar import Calendar
 from collections import deque
-
-
-pyglet.gl.glStencilFunc(pyglet.gl.GL_ALWAYS, 1, 0xFF)
-pyglet.gl.glStencilOp(*(pyglet.gl.GL_KEEP,) * 3)
-pyglet.gl.glStencilMask(0)
 
 
 OrderedGroup = pyglet.graphics.OrderedGroup
@@ -151,13 +143,13 @@ class GameWindow(pyglet.window.Window):
         self.dx_hist = deque([], self.dxdy_hist_max)
         self.dy_hist = deque([], self.dxdy_hist_max)
         self.batch = pyglet.graphics.Batch()
-        self.boardgroup = StencilFollowerOrderedGroup(0)
-        self.front_bg_group = StencilAlsoOrderedGroup(1)
-        self.front_fg_group = StencilProtestOrderedGroup(2)
+        self.boardgroup = OrderedGroup(0)
+        self.calgroup = OrderedGroup(1)
+        self.handgroup = self.calgroup
+        self.menugroup = self.calgroup
         self.pickergroup = ScissorOrderedGroup(
             2, None, self, 0.3, 0.6, 0.3, 0.6)
-        self.textgroup = OrderedGroup(3)
-        self.topgroup = pyglet.graphics.OrderedGroup(4)
+        self.topgroup = pyglet.graphics.OrderedGroup(3)
         for rd in SkeletonIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
             self.closet.get_board(rd["dimension"], rd["board"])
