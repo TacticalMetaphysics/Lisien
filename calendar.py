@@ -7,7 +7,7 @@ from util import (
 from logging import getLogger
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup
-from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST, glStencilOp, GL_KEEP, GL_REPLACE
+from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST
 from pyglet.image import SolidColorImagePattern
 from pyglet.sprite import Sprite
 
@@ -148,7 +148,7 @@ class BranchConnector:
 
     def __init__(self, calendar, col1, col2, tick):
         self.calendar = calendar
-        self.batch = self.calendar.window.batch
+        self.batch = self.calendar.batch
         self.group = col2.bcgroup
         self.linegroup = self.group
         self.wedgegroup = self.group
@@ -284,8 +284,6 @@ for the handle_side keyword argument.
         self.closet = self.col.closet
         self.handle = Handle(self, handle_side)
         self.vertlist = None
-        self.old_y = None
-        self.old_color = None
         self.atrdic = {
             "calendar_left": lambda: self.col.calendar_left + self.col.style.spacing,
             "calendar_right": lambda: self.calendar_left + self.col.width,
@@ -313,34 +311,24 @@ for the handle_side keyword argument.
         self.vertlist = None
         self.handle.delete()
 
-    def draw_line(self, points, colors):
-        self.vertlist = self.batch.add(
-            2,
-            GL_LINES,
-            self.window.front_fg_group,
-            ('v2i', points),
-            ('c4B', colors))
-
     def draw(self):
         colors = self.color * 2
         points = (
             self.window_left, self.y,
             self.window_right, self.y)
-        if self.vertlist is None:
-            self.draw_line(points, colors)
-        elif self.y != self.old_y:
-            try:
-                self.vertlist.points = points
-            except AttributeError:
-                self.draw_line(points, colors)
-            self.old_y = self.y
-        elif self.color != self.old_color:
-            try:
-                self.vertlist.colors = colors
-            except AttributeError:
-                self.draw_line(points, colors)
-            self.old_color = self.color
+        try:
+            self.vertlist.vertices = list(points)
+            self.vertlist.colors = list(colors)
+        except AttributeError:
+            assert(self.vertlist is None)
+            self.vertlist = self.batch.add(
+                2,
+                GL_LINES,
+                self.col.tlgroup,
+                ('v2i', points),
+                ('c4B', colors))
         self.handle.draw()
+
 
 class CalendarCellGroup(OrderedGroup):
     def __init__(self, cell):
@@ -443,8 +431,6 @@ represents to calculate its dimensions and coordinates.
         self.old_right = None
         self.old_top = None
         self.old_bot = None
-        self.old_label_left = None
-        self.old_label_top = None
         self.vertl = None
         self.label = None
 
@@ -467,25 +453,17 @@ represents to calculate its dimensions and coordinates.
     def __str__(self):
         return "{0} from {1} to {2}".format(self.text, self.tick_from, self.tick_to)
 
-    def delete_label(self):
-        if self.label is not None:
-            try:
-                self.label.delete()
-            except AttributeError:
-                pass
-            self.label = None
-
-    def delete_vertl(self):
-        if self.vertl is not None:
-            try:
-                self.vertl.delete()
-            except AttributeError:
-                pass
-            self.vertl = None
-
     def delete(self):
-        self.delete_vertl()
-        self.delete_label()
+        try:
+            self.label.delete()
+        except AttributeError:
+            pass
+        self.label = None
+        try:
+            self.vertl.delete()
+        except AttributeError:
+            pass
+        self.vertl = None
 
     def draw_label(self, l, t, w, h):
         if self.label is None:
@@ -505,12 +483,8 @@ represents to calculate its dimensions and coordinates.
                 batch=self.batch,
                 group=self.column.cellgroup)
         else:
-            if self.old_label_left != l:
-                self.label.x = l
-                self.old_label_left = l
-            if self.old_label_top != t:
-                self.label.y = t
-                self.old_label_top = t
+            self.label.x = l
+            self.label.y = t
 
     def draw_box(self, l, b, r, t, color):
         colors = color * 8
@@ -711,6 +685,8 @@ time travel.
         self.closet = self.window.closet
         self.idx = idx
         self.closet.timestream.update_handlers.add(self)
+        self.batch = self.window.batch
+        self.group = self.window.calgroup
         self.old_state = None
         self.tainted = False
         self._rowdict = self.closet.skeleton[
@@ -718,14 +694,17 @@ time travel.
                 str(self.window)][
                     int(self)]
         if self._rowdict["type"] == CAL_TYPE['THING']:
+            self.dimension = self.closet.get_dimension(self._rowdict["dimension"])
+            self.thing = self.closet.get_thing(
+                self._rowdict["dimension"], self._rowdict["thing"])
             self.closet.skeleton["thing_location"][
                 self._rowdict["dimension"]][
                 self._rowdict["thing"]].listeners.add(self)
-        if self._rowdict["thing_show_location"]:
-            self._location_dict = self.closet.skeleton[
-                "thing_location"][
+            if self._rowdict["thing_show_location"]:
+                self._location_dict = self.closet.skeleton[
+                    "thing_location"][
                     self._rowdict["dimension"]][
-                        self._rowdict["thing"]]
+                    self._rowdict["thing"]]
         self.cols_shown = set()
         self.coldict = {0: self.make_col(0)}
         self.cols_shown.add(0)
@@ -867,11 +846,11 @@ class CalendarCol:
         self.calendar = calendar
         self.branch = branch
         self.closet = self.calendar.closet
-        self.batch = self.calendar.window.batch
+        self.batch = self.calendar.batch
         self.style = self.calendar.style
-        self.stencilgroup = self.calendar.window.stencilgroup
-        self.bggroup = self.calendar.window.front_bg_group
-        self.cellgroup = self.calendar.window.front_fg_group
+        self.supergroup = CalendarColGroup(self)
+        self.bggroup = OrderedGroup(0, self.supergroup)
+        self.cellgroup = OrderedGroup(1, self.supergroup)
         self.tlgroup = self.cellgroup
         self.bcgroup = self.cellgroup
         self.timeline = Timeline(self)
@@ -879,13 +858,10 @@ class CalendarCol:
         self.celldict = {}
         self.cells_on_screen = set()
         self.sprite = None
-        self.stencil = None
         self.oldwidth = None
         self.oldheight = None
         self.oldleft = None
         self.oldbot = None
-        self.lasttick = None
-        self.lastbranch = None
         self.bgpat = SolidColorImagePattern((255,) * 4)
 
     def __getattr__(self, attrn):
@@ -893,6 +869,10 @@ class CalendarCol:
 
     def __int__(self):
         return self.branch
+
+    def __repr__(self):
+        return "CalendarCol:\n" + "\n".join(
+            [str(cell) for cell in self.cells_on_screen])
 
     def delete(self):
         logger.debug("Deleting a calendar")
@@ -940,6 +920,7 @@ class CalendarCol:
     def refresh(self):
         self.regen_cells()
         self.review()
+        logger.debug(repr(self))
 
     def draw_sprite(self):
         logger.debug("Drawing background for a CalendarCol")
@@ -947,33 +928,19 @@ class CalendarCol:
         self.sprite = Sprite(
             self.image, self.window_left, self.window_bot,
             batch=self.batch, group=self.bggroup)
-        self.stencil = Sprite(
-            self.image, self.window_left, self.window_bot,
-            batch=self.batch, group=self.stencilgroup)
 
     def draw(self):
-        self.draw_sprite()
         if self.sprite is None:
             self.draw_sprite()
-        elif (self.width != self.oldwidth or
-              self.height != self.oldheight or
-              self.closet.tick != self.lasttick or
-              self.closet.branch != self.lastbranch):
+        elif self.width != self.oldwidth or self.height != self.oldheight:
             oldsprite = self.sprite
-            oldstencil = self.stencil
+            self.draw_sprite()
             try:
                 oldsprite.delete()
             except AttributeError:
                 pass
-            try:
-                oldstencil.delete()
-            except AttributeError:
-                pass
-            self.draw_sprite()
             self.oldwidth = self.width
             self.oldheight = self.height
-            self.lasttick = self.closet.tick
-            self.lastbranch = self.closet.branch
         elif self.oldleft != self.window_left or self.oldbot != self.window_bot:
             self.sprite.set_position(self.window_left, self.window_bot)
             self.oldleft = self.window_left
@@ -1006,12 +973,6 @@ instead, giving something like "in transit from A to B".
 
     """
     typ = CAL_TYPE['THING']
-    atrdic = {
-        "locations": lambda self: self.thing.locations[self.branch],
-        "coverage": lambda self: self.character.thingdict[
-            self.branch][dimn][thingn],
-        "thing": lambda self: self.closet.get_thing(dimn, thingn)
-    }
     cal_attrs = set([
         "character",
         "dimension",
@@ -1033,6 +994,11 @@ instead, giving something like "in transit from A to B".
 
     def __init__(self, calendar, branch):
         CalendarCol.__init__(self, calendar, branch)
+        self.dimension = self.calendar.dimension
+        self.thing = self.calendar.thing
+        self.locations = self.thing.locations[branch]
+        self.coverage = self.character.thingdict[
+            str(self.dimension)][str(self.thing)][branch]
         self.refresh()
 
     def __getattr__(self, attrn):
@@ -1041,7 +1007,9 @@ instead, giving something like "in transit from A to B".
         elif attrn in LocationCalendarCol.col_attrs:
             return CalendarCol.__getattr__(self, attrn)
         else:
-            return LocationCalendarCol.atrdic[attrn](self)
+            raise AttributeError(
+                """LocationCalendarCol does not have and
+cannot compute attribute {0}""".format(attrn))
 
     def regen_cells(self):
         location_ticks = set()

@@ -23,7 +23,6 @@ from card import Card
 from effect import Effect, EffectDeck
 from img import Img
 from style import Style, Color
-from timestream import Timestream
 from gui import GameWindow
 from util import (
     dictify_row,
@@ -32,6 +31,7 @@ from util import (
     schemata,
     saveables,
     saveable_classes,
+    Timestream,
     TimestreamException)
 from portal import Portal
 from thing import Thing

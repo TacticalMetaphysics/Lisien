@@ -7,7 +7,7 @@ from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
 from igraph import Graph, Vertex, Edge
-from collections import deque, MutableMapping, defaultdict
+from collections import deque, defaultdict, MutableMapping
 from copy import copy
 
 logger = getLogger(__name__)
@@ -27,6 +27,256 @@ tabclas = {}
 saveables = []
 
 saveable_classes = []
+
+
+class Skeleton(MutableMapping):
+    """A dict-like object to efficiently store the entire world model.
+
+Each LiSE instance should have one Skeleton in one Closet. Every
+object in that instance is a view onto the Skeleton.
+
+To get a particular object's data, first decide what table you want
+data from; that table's name is the key in the top level of the
+Skeleton. Then look it up in the Skeleton using the same keys as you
+would to get it from the database. Each successive field in the
+primary key gets its own level of the Skeleton.
+
+I say "the" Skeleton, but actually every level of the Skeleton is
+another Skeleton, and may be addressed similarly.
+
+The skeleton's leaves are "rowdicts": dictionaries keyed with field
+names, whose values are the values of those fields in a given row. You
+can look up the whole primary key from just the rowdict.
+
+Apart from the usual iterkeys(), itervalues(), and iteritems(), the
+Skeleton has a special iterator method iterrows(). This does a
+depth-first traversal through the Skeleton and gives you each rowdict
+it comes upon."""
+    atrdic = {
+        "subtype": lambda self: self.getsubtype(),
+        "rowdict": lambda self: self.isrowdict()
+        }
+
+    def __init__(self, it, listeners=None):
+        if listeners is None:
+            self.listeners = set()
+        else:
+            self.listeners = listeners
+        if isinstance(it, dict):
+            if len(it) > 0 and isinstance(it.iterkeys().next(), int):
+                self.typ = list
+            else:
+                self.typ = dict
+        elif isinstance(it, list):
+            self.typ = list
+        elif isinstance(it, Skeleton):
+            self.typ = it.typ
+        else:
+            raise ValueError(
+                "Skeleton may only contain dict or list.")
+        self.it = self.typ()
+        self.update(it)
+
+    def __getattr__(self, attrn):
+        try:
+            return self.atrdic[attrn](self)
+        except KeyError:
+            raise AttributeError(
+        "Skeleton instance does not have and cannot compute "
+        "attribute {0}".format(attrn))
+
+    def __getitem__(self, k):
+        if isinstance(self.it, list):
+            if k < len(self.it):
+                return self.it[k]
+            elif self.subtype is None:
+                raise IndexError(
+                    "That part of the skeleton is empty "
+                    "and I can't decide how to fill it. "
+                    "If you want to help out, set my subtype.")
+            while len(self.it) <= k:
+                self.it.append(Skeleton(self.subtype()))
+            return self.it[k]
+        else:
+            return self.it[k]
+
+    def __setitem__(self, k, v):
+        if self.typ is list:
+            if type(k) is not int:
+                raise TypeError(
+                    "This level of the Skeleton requires integer keys.")
+            if self.subtype is not None:
+                newtyp = self.subtype
+            elif isinstance(v, Skeleton):
+                newtyp = v.typ
+            elif isinstance(v, list):
+                newtyp = list
+            elif isinstance(v, dict):
+                newtyp = dict
+            else:
+                raise ValueError(
+                    "This level of the Skeleton can only hold Skeleton-alikes.")
+            while len(self.it) <= k:
+                self.it.append(Skeleton(newtyp()))
+        elif self.rowdict:
+            assert(v.__class__ not in (list, dict, Skeleton))
+            self.it[k] = v
+            return
+        for listener in self.listeners:
+            listener.on_skel_set(k, v)
+        self.it[k] = Skeleton(v)
+
+    def __delitem__(self, k):
+        if self.typ is list:
+            self.it[k] = None
+        else:
+            for listener in self.listeners:
+                listener.on_skel_delete(k)
+            del self.it[k]
+
+    def __contains__(self, what):
+        if self.typ is list:
+            return what > -1 and what < len(self.it)
+        else:
+            return what in self.it
+
+    def __iter__(self):
+        if self.typ is list:
+            return iter(xrange(0, len(self.it)))
+        else:
+            return self.it.iterkeys()
+
+    def __len__(self):
+        return len(self.it)
+
+    def __add__(self, other):
+        newness = self.deepcopy()
+        newness += other.deepcopy()
+        return newness
+
+    def __iadd__(self, other):
+        self.update(other)
+        return self
+
+    def __sub__(self, other):
+        newness = self.deepcopy()
+        newness -= other.deepcopy()
+        return newness
+
+    def __isub__(self, other):
+        assert(isinstance(other, Skeleton))
+        kitr = other.iteritems()
+        for (k, v) in kitr:
+            if k not in self:
+                continue
+            elif v == self[k]:
+                assert(isinstance(self[k], Skeleton))
+                assert(isinstance(v, Skeleton))
+                del self[k]
+            elif self[k].rowdict:
+                continue
+            else:
+                assert(isinstance(self[k], Skeleton))
+                assert(isinstance(v, Skeleton))
+                self[k] -= v
+        return self
+
+    def __repr__(self):
+        return "Skeleton({0})".format(repr(self.it))
+
+    def __eq__(self, other):
+        if isinstance(other, Skeleton):
+            return self.it == other.it
+        elif isinstance(other, dict):
+            return self.typ is dict and self.it == other
+        else:
+            return self.typ is list and self.it == other
+
+    def copy(self):
+        # Shallow copy
+        return Skeleton(self.it)
+
+    def deepcopy(self):
+        newness = Skeleton(self.typ())
+        for (k, v) in self.iteritems():
+            if isinstance(v, Skeleton):
+                newness[k] = v.deepcopy()
+            else:
+                assert self.rowdict, "I contain something I shouldn't"
+                newness.it[k] = copy(v)
+        return newness
+
+    def iteritems(self):
+        if self.typ is list:
+            return ListItemIterator(self.it)
+        else:
+            return self.it.iteritems()
+
+    def iterrows(self):
+        return SkeletonIterator(self)
+
+    def keys(self):
+        if self.typ is list:
+            return [
+                i for i in xrange(0, len(self.it))
+                if self.it[i] is not None]
+        else:
+            return self.it.keys()
+
+    def iteritems(self):
+        if self.typ is dict:
+            return self.it.iteritems()
+        else:
+            return ListItemIterator(self.it)
+
+    def isrowdict(self):
+        if self.typ is not dict or len(self.it) == 0:
+            return False
+        for v in self.it.itervalues():
+            if v.__class__ in (list, dict, Skeleton):
+                return False
+        return True
+
+    def getsubtype(self):
+        if self.rowdict or len(self.it) == 0:
+            return None
+        if self.typ is dict:
+            return self.it.itervalues().next().typ
+        else: # self.typ is list
+            return self.it[0].typ
+
+    def update(self, skellike):
+        if skellike.__class__ in (dict, Skeleton):
+            kitr = skellike.iteritems()
+        else:
+            kitr = ListItemIterator(skellike)
+        for (k, v) in kitr:
+            if v.__class__ in (dict, list):
+                v = Skeleton(v)
+                if v.rowdict:
+                    self[k] = v
+                    continue
+            elif self.rowdict or self.it == {}:
+                self.it[k] = v
+                continue
+            if not isinstance(v, Skeleton):
+                continue
+            if isinstance(self.it, dict):
+                if k in self.it:
+                    self.it[k].update(v)
+                else:
+                    self.it[k] = v
+            else:
+                if self.subtype is not None:
+                    newtyp = self.subtype
+                else:
+                    newtyp = v.typ
+                while len(self.it) <= k:
+                    self.it.append(Skeleton(newtyp()))
+                if isinstance(self.it[k], Skeleton):
+                    self.it[k].update(v)
+                else:
+                    self.it[k] = v
 
 
 class SaveableMetaclass(type):
@@ -445,560 +695,6 @@ and your table will be ready.
         clas = type.__new__(metaclass, clas, parents, atrdic)
         saveable_classes.append(clas)
         return clas
-
-
-class Timestream:
-    __metaclass__ = SaveableMetaclass
-    """A graph of many timelines, some of which share some of their time.
-
-    The first argument is a dictionary keyed with branch indices, with
-    values composed of tuples like:
-
-    (parent_branch, start, end)
-
-    parent_branch must be another key in the branchdict. start and end
-    are the tick when a branch begins (which cannot change) and ends
-    (which can, and probably will, perhaps as often as once per
-    update).
-
-    Call the update method to rearrange the contents of this board to
-    reflect the state of the branches.
-
-    """
-    tables = [
-        ("timestream",
-         {"branch": "integer not null",
-          "parent": "integer not null",
-          "tick_from": "integer not null",
-          "tick_to": "integer not null"},
-         ("branch",),
-         {"parent": ("timestream", "branch")},
-         ["branch>=0", "tick_from>=0",
-          "tick_to>=tick_from", "parent=0 or parent<>branch"])]
-    def __init__(self, closet):
-        self.closet = closet
-        td = self.closet.skeleton
-        self.branch_edges = defaultdict(set)
-        self.branch_done_to = defaultdict(lambda: -1)
-        self.branchdict = {}
-        for rd in SkeletonIterator(td["timestream"]):
-            self.branchdict[rd["branch"]] = (
-                rd["parent"], rd["tick_from"], rd["tick_to"])
-        self.graph = Graph(directed=True)
-        self.graph.add_vertices(2)
-        self.graph.vs["tick"] = [0, 0]
-        self.graph.add_edge(0, 1, branch=0)
-        self.branch_edges[0].add(0)
-        self.branch_head = {0: self.graph.vs[0]}
-        # When the player travels to the past and then branches the
-        # timeline, it may result in a new vertex in the middle of
-        # what once was an unbroken edge. The edge succeeding the new
-        # vertex, representing how things went *originally*, is still
-        # representative of the old branch, even though it is now a
-        # successor of the vertex for a different branch
-        # altogether. That original branch now has another edge
-        # representing it.
-        self.update_handlers = set()
-        self.update(0)
-
-    def __hash__(self):
-        b = []
-        for t in self.branchdict.itervalues():
-            b.extend(t)
-        return hash(tuple(b))
-
-    def update(self, ts=0):
-        """Update the tree to reflect the current state of branchdict.
-
-For every branch in branchdict, there should be one vertex at the
-start and one at the end. If the branch has grown, but has as many
-child branches as previously, change the tick of the end vertex to
-reflect the growth.
-
-If there are more child branches than before, split an edge to place a
-vertex at the start point of each child branch. Then extend a new edge
-out to the end of the child branch. The start and end vertices may
-be on the same tick, in which case they are connected by an edge of
-length zero.
-
-        """
-        for (branch, (parent, tick_from, tick_to)) in self.branchdict.iteritems():
-            done_to = self.branch_done_to[branch]
-            if tick_to > done_to:
-                # I am now looking at a tick-window that has not been
-                # put into the graph yet.
-                #
-                # Where does it belong?
-                #
-                # Is its branch, at least, already in the graph somewhere?
-                if branch in self.branch_edges:
-                    # I may have to extend an edge to make it fit the
-                    # whole tick-window.
-                    e_to = self.get_edge(branch, tick_to)
-                    if e_to is None:
-                        e_to = self.latest_edge(branch)
-                        v = self.graph.vs[e_to.target]
-                        growth = tick_to - v["tick"]
-                        v["tick"] += growth
-                    # Otherwise there's not really much to do here.
-                else:
-                    # I assume that this dict reflects the genealogy
-                    # of the branches accurately
-                    try:
-                        self.split_branch(
-                            parent, branch, tick_from, tick_to - tick_from)
-                    except KeyError:
-                        assert(branch == 0)
-                        self.graph.add_vertices(2)
-                        self.graph.vs["tick"] = [0, tick_to]
-                        self.graph.add_edge(0, 1, branch=0)
-                        eid =self.graph.get_eid(0, 1)
-                        self.branch_edges[0].add(eid)
-            self.branch_done_to[branch] = tick_to
-            for handler in self.update_handlers:
-                handler.on_timestream_update()
-
-    def get_edge_len(self, e):
-        if isinstance(e, int):
-            e = self.graph.es[e]
-        vo = self.graph.vs[e.source]
-        vd = self.graph.vs[e.target]
-        return vd["tick"] - vo["tick"]
-
-    def sanitize_vert(self, v):
-        if isinstance(v, Vertex):
-            vert = v
-            vid = vert.index
-        else:
-            vid = v
-            vert = self.graph.vs[vid]
-        return (vert, vid)
-
-    def sanitize_edge(self, e):
-        if isinstance(e, Edge):
-            edge = e
-            eid = edge.index
-        else:
-            eid = e
-            edge = self.graph.es[eid]
-        return (edge, eid)
-
-    def vertex_in_branch(self, v, branch):
-        v = self.sanitize_vert(v)[1]
-        for eid in self.graph.incident(v):
-            if eid in self.branch_edges[branch]:
-                return True
-        return False
-
-    def add_edge(self, branch, vert_from, vert_to):
-        assert(branch in self.branchdict)
-        (vert_from, vi1) = self.sanitize_vert(vert_from)
-        (vert_to, vi2) = self.sanitize_vert(vert_to)
-        self.graph.add_edge(vi1, vi2, branch=branch)
-        eid = self.graph.get_eid(vi1, vi2)
-        self.branch_edges[branch].add(eid)
-        (p, a, z) = self.branchdict[branch]
-        if vert_from["tick"] < self.branchdict[branch][1]:
-            a = vert_from["tick"]
-        if vert_to["tick"] > self.branchdict[branch][2]:
-            z = vert_to["tick"]
-        self.branchdict[branch] = (p, a, z)
-        return self.graph.es[eid]
-
-    def delete_edge(self, e):
-        (e, eid) = self.sanitize_edge(e)
-        old_branch = e["branch"]
-        self.branch_edges[old_branch].discard(eid)
-        self.graph.delete_edges(eid)
-
-    def add_vert(self, tick):
-        i = len(self.graph.vs)
-        self.graph.add_vertex(tick=tick)
-        v = self.graph.vs[i]
-        return v
-
-    def vert_branch(self, vert):
-        if isinstance(vert, int):
-            vert = self.graph.vs[vert]
-        try:
-            eid = self.graph.incident(vert)[0]
-            return self.graph.es[eid]["branch"]
-        except:
-            return -1
-
-    def add_vert_on(self, e, tick):
-        (e, eid) = self.sanitize_edge(e)
-        former = self.graph.vs[e.source]
-        latter = self.graph.vs[e.target]
-        old_branch = e["branch"]
-        v = self.add_vert(tick)
-        i = v.index
-        e1 = self.add_edge(old_branch, former, i)
-        e2 = self.add_edge(old_branch, i, latter)
-        return (e1, v, e2)
-
-    def get_edge(
-            self,
-            vert_from_or_branch,
-            vert_to_or_tick,
-            mode="branch_tick"):
-        if mode == "branch_tick":
-            return self.get_edge_from_branch_tick(
-                vert_from_or_branch,
-                vert_to_or_tick)
-        elif mode == "verts":
-            return self.get_edge_from_verts(
-                vert_from_or_branch,
-                vert_to_or_tick)
-        else:
-            raise Exception("Invalid mode")
-
-    def get_edge_from_verts(self, vert_from, vert_to):
-        if isinstance(vert_from, Vertex):
-            vert_from = vert_from.index
-        if isinstance(vert_to, Vertex):
-            vert_to = vert_to.index
-        eid = self.graph.get_eid(vert_from, vert_to)
-        return self.graph.es[eid]
-
-    def get_edge_from_branch_tick(self, branch, tick):
-        """Return the edge that contains the given tick in the given branch,
-or None if no such edge exists."""
-        v = self.branch_head[branch]
-        if tick < v["tick"]:
-            raise Exception("This branch started after that tick.")
-        return self.successor_on_branch_tick(v, branch, tick)
-
-    def successor_on_branch_tick(self, v, branch, tick):
-        """Traverse the graph starting from the given vertex. Return the edge
-containing the given tick in the given branch. If it doesn't exist,
-return None."""
-        if tick == v["tick"]:
-            # I'll consider ticks coinciding exactly with a vertex to
-            # be in the descendant edge in that branch.
-            if self.vertex_in_branch(v, branch):
-                for e in self.graph.incident(v):
-                    if e in self.branch_edges[branch]:
-                        return e
-            return None
-        for eid in self.graph.incident(v):
-            e = self.graph.es[eid]
-            v_to = self.graph.vs[e.target]
-            if eid in self.branch_edges[branch]:
-                if v_to["tick"] > tick:
-                    return e
-                else:
-                    # None of these edges are right! You want the ones
-                    # after this vertex here.
-                    return self.successor_on_branch_tick(v_to, branch, tick)
-            elif v_to["tick"] >= tick:
-                return e
-        return None
-
-    def split_branch(self, old_branch, new_branch, tick_from, tick_to):
-        """Find the edge in old_branch in the given tick, split it, and start
-a new edge off the split. The new edge will be a member of
-new_branch.
-
-        """
-        assert(new_branch not in self.branchdict)
-        self.branchdict[new_branch] = (old_branch, tick_from, tick_to)
-        e = self.get_edge_from_branch_tick(old_branch, tick_from)
-        if e is None:
-            vseq = self.graph.vs(tick_eq=tick_from)
-            v1 = vseq[0]
-            v2 = self.add_vert(tick=tick_to)
-        else:
-            (e1, v1, e2) = self.add_vert_on(e, tick_from)
-            v2 = self.add_vert(tick=tick_to)
-        return self.add_edge(new_branch, v1, v2)
-
-    def latest_edge(self, branch):
-        """Return the edge in the given branch that ends on the highest
-tick."""
-        edges = set(self.branch_edges[branch])
-        late = self.graph.es[edges.pop()]
-        v_late = self.graph.vs[late.target]
-        while len(edges) > 0:
-            e = self.graph.es[edges.pop()]
-            v_e = self.graph.vs[e.target]
-            if v_e["tick"] > v_late["tick"]:
-                late = e
-                v_late = v_e
-        return late
-
-    def extend_branch(self, branch, n):
-        """Make the branch so many ticks longer."""
-        edge = self.latest_edge(branch)
-        vert = self.graph.vs[edge.target]
-        vert["tick"] += n
-        self.branchdict[branch] = (
-            self.branchdict[branch][0], self.branchdict.branch[1] + n)
-
-    def extend_branch_to(self, branch, tick_to):
-        """Make the branch end on the given tick, but only if it is later than
-the branch's current end."""
-        edge = self.latest_edge(branch)
-        vert = self.graph.vs[edge.target]
-        if tick_to > vert["tick"]:
-            vert["tick"] = tick_to
-        if tick_to > self.branchdict[branch][1]:
-            self.branchdict[branch] = (
-                self.branchdict[branch][0], tick_to)
-
-    def get_skeleton(self):
-        return {"timestream": BranchDictIter(self.branchdict)}
-
-
-
-class Skeleton(MutableMapping):
-    """A dict-like object to efficiently store the entire world model.
-
-Each LiSE instance should have one Skeleton in one Closet. Every
-object in that instance is a view onto the Skeleton.
-
-To get a particular object's data, first decide what table you want
-data from; that table's name is the key in the top level of the
-Skeleton. Then look it up in the Skeleton using the same keys as you
-would to get it from the database. Each successive field in the
-primary key gets its own level of the Skeleton.
-
-I say "the" Skeleton, but actually every level of the Skeleton is
-another Skeleton, and may be addressed similarly.
-
-The skeleton's leaves are "rowdicts": dictionaries keyed with field
-names, whose values are the values of those fields in a given row. You
-can look up the whole primary key from just the rowdict.
-
-Apart from the usual iterkeys(), itervalues(), and iteritems(), the
-Skeleton has a special iterator method iterrows(). This does a
-depth-first traversal through the Skeleton and gives you each rowdict
-it comes upon."""
-    atrdic = {
-        "subtype": lambda self: self.getsubtype(),
-        "rowdict": lambda self: self.isrowdict()
-        }
-
-    def __init__(self, it, listeners=None):
-        if listeners is None:
-            self.listeners = set()
-        else:
-            self.listeners = listeners
-        if isinstance(it, dict):
-            if len(it) > 0 and isinstance(it.iterkeys().next(), int):
-                self.typ = list
-            else:
-                self.typ = dict
-        elif isinstance(it, list):
-            self.typ = list
-        elif isinstance(it, Skeleton):
-            self.typ = it.typ
-        else:
-            raise ValueError(
-                "Skeleton may only contain dict or list.")
-        self.it = self.typ()
-        self.update(it)
-
-    def __getattr__(self, attrn):
-        try:
-            return self.atrdic[attrn](self)
-        except KeyError:
-            raise AttributeError(
-        "Skeleton instance does not have and cannot compute "
-        "attribute {0}".format(attrn))
-
-    def __getitem__(self, k):
-        if isinstance(self.it, list):
-            if k < len(self.it):
-                return self.it[k]
-            elif self.subtype is None:
-                raise IndexError(
-                    "That part of the skeleton is empty "
-                    "and I can't decide how to fill it. "
-                    "If you want to help out, set my subtype.")
-            while len(self.it) <= k:
-                self.it.append(Skeleton(self.subtype()))
-            return self.it[k]
-        else:
-            return self.it[k]
-
-    def __setitem__(self, k, v):
-        if self.typ is list:
-            if type(k) is not int:
-                raise TypeError(
-                    "This level of the Skeleton requires integer keys.")
-            if self.subtype is not None:
-                newtyp = self.subtype
-            elif isinstance(v, Skeleton):
-                newtyp = v.typ
-            elif isinstance(v, list):
-                newtyp = list
-            elif isinstance(v, dict):
-                newtyp = dict
-            else:
-                raise ValueError(
-                    "This level of the Skeleton can only hold Skeleton-alikes.")
-            while len(self.it) <= k:
-                self.it.append(Skeleton(newtyp()))
-        elif self.rowdict:
-            assert(v.__class__ not in (list, dict, Skeleton))
-            self.it[k] = v
-            return
-        for listener in self.listeners:
-            listener.on_skel_set(k, v)
-        self.it[k] = Skeleton(v)
-
-    def __delitem__(self, k):
-        if self.typ is list:
-            self.it[k] = None
-        else:
-            for listener in self.listeners:
-                listener.on_skel_delete(k)
-            del self.it[k]
-
-    def __contains__(self, what):
-        if self.typ is list:
-            return what > -1 and what < len(self.it)
-        else:
-            return what in self.it
-
-    def __iter__(self):
-        if self.typ is list:
-            return iter(xrange(0, len(self.it)))
-        else:
-            return self.it.iterkeys()
-
-    def __len__(self):
-        return len(self.it)
-
-    def __add__(self, other):
-        newness = self.deepcopy()
-        newness += other.deepcopy()
-        return newness
-
-    def __iadd__(self, other):
-        self.update(other)
-        return self
-
-    def __sub__(self, other):
-        newness = self.deepcopy()
-        newness -= other.deepcopy()
-        return newness
-
-    def __isub__(self, other):
-        assert(isinstance(other, Skeleton))
-        kitr = other.iteritems()
-        for (k, v) in kitr:
-            if k not in self:
-                continue
-            elif v == self[k]:
-                assert(isinstance(self[k], Skeleton))
-                assert(isinstance(v, Skeleton))
-                del self[k]
-            elif self[k].rowdict:
-                continue
-            else:
-                assert(isinstance(self[k], Skeleton))
-                assert(isinstance(v, Skeleton))
-                self[k] -= v
-        return self
-
-    def __repr__(self):
-        return "Skeleton({0})".format(repr(self.it))
-
-    def __eq__(self, other):
-        if isinstance(other, Skeleton):
-            return self.it == other.it
-        elif isinstance(other, dict):
-            return self.typ is dict and self.it == other
-        else:
-            return self.typ is list and self.it == other
-
-    def copy(self):
-        # Shallow copy
-        return Skeleton(self.it)
-
-    def deepcopy(self):
-        newness = Skeleton(self.typ())
-        for (k, v) in self.iteritems():
-            if isinstance(v, Skeleton):
-                newness[k] = v.deepcopy()
-            else:
-                assert self.rowdict, "I contain something I shouldn't"
-                newness.it[k] = copy(v)
-        return newness
-
-    def iteritems(self):
-        if self.typ is list:
-            return ListItemIterator(self.it)
-        else:
-            return self.it.iteritems()
-
-    def iterrows(self):
-        return SkeletonIterator(self)
-
-    def keys(self):
-        if self.typ is list:
-            return [
-                i for i in xrange(0, len(self.it))
-                if self.it[i] is not None]
-        else:
-            return self.it.keys()
-
-    def iteritems(self):
-        if self.typ is dict:
-            return self.it.iteritems()
-        else:
-            return ListItemIterator(self.it)
-
-    def isrowdict(self):
-        if self.typ is not dict or len(self.it) == 0:
-            return False
-        for v in self.it.itervalues():
-            if v.__class__ in (list, dict, Skeleton):
-                return False
-        return True
-
-    def getsubtype(self):
-        if self.rowdict or len(self.it) == 0:
-            return None
-        if self.typ is dict:
-            return self.it.itervalues().next().typ
-        else: # self.typ is list
-            return self.it[0].typ
-
-    def update(self, skellike):
-        if skellike.__class__ in (dict, Skeleton):
-            kitr = skellike.iteritems()
-        else:
-            kitr = ListItemIterator(skellike)
-        for (k, v) in kitr:
-            if v.__class__ in (dict, list):
-                v = Skeleton(v)
-                if v.rowdict:
-                    self[k] = v
-                    continue
-            elif self.rowdict or self.it == {}:
-                self.it[k] = v
-                continue
-            if not isinstance(v, Skeleton):
-                continue
-            if isinstance(self.it, dict):
-                if k in self.it:
-                    self.it[k].update(v)
-                else:
-                    self.it[k] = v
-            else:
-                if self.subtype is not None:
-                    newtyp = self.subtype
-                else:
-                    newtyp = v.typ
-                while len(self.it) <= k:
-                    self.it.append(Skeleton(newtyp()))
-                if isinstance(self.it[k], Skeleton):
-                    self.it[k].update(v)
-                else:
-                    self.it[k] = v
 
 
 def start_new_map(nope):
@@ -1545,76 +1241,309 @@ class FirstOfTupleFilter:
     def __contains__(self, t):
         return t[0] in self.containable
 
+
+class Timestream:
+    __metaclass__ = SaveableMetaclass
+    """A graph of many timelines, some of which share some of their time.
+
+    The first argument is a dictionary keyed with branch indices, with
+    values composed of tuples like:
+
+    (parent_branch, start, end)
+
+    parent_branch must be another key in the branchdict. start and end
+    are the tick when a branch begins (which cannot change) and ends
+    (which can, and probably will, perhaps as often as once per
+    update).
+
+    Call the update method to rearrange the contents of this board to
+    reflect the state of the branches.
+
+    """
+    tables = [
+        ("timestream",
+         {"branch": "integer not null",
+          "parent": "integer not null",
+          "tick_from": "integer not null",
+          "tick_to": "integer not null"},
+         ("branch",),
+         {"parent": ("timestream", "branch")},
+         ["branch>=0", "tick_from>=0",
+          "tick_to>=tick_from", "parent=0 or parent<>branch"])]
+    def __init__(self, closet):
+        self.closet = closet
+        td = self.closet.skeleton
+        self.branch_edges = defaultdict(set)
+        self.branch_done_to = defaultdict(lambda: -1)
+        self.branchdict = {}
+        for rd in SkeletonIterator(td["timestream"]):
+            self.branchdict[rd["branch"]] = (
+                rd["parent"], rd["tick_from"], rd["tick_to"])
+        self.graph = Graph(directed=True)
+        self.graph.add_vertices(2)
+        self.graph.vs["tick"] = [0, 0]
+        self.graph.add_edge(0, 1, branch=0)
+        self.branch_edges[0].add(0)
+        self.branch_head = {0: self.graph.vs[0]}
+        # When the player travels to the past and then branches the
+        # timeline, it may result in a new vertex in the middle of
+        # what once was an unbroken edge. The edge succeeding the new
+        # vertex, representing how things went *originally*, is still
+        # representative of the old branch, even though it is now a
+        # successor of the vertex for a different branch
+        # altogether. That original branch now has another edge
+        # representing it.
+        self.update_handlers = set()
+        self.update(0)
+
+    def __hash__(self):
+        b = []
+        for t in self.branchdict.itervalues():
+            b.extend(t)
+        return hash(tuple(b))
+
+    def update(self, ts=0):
+        """Update the tree to reflect the current state of branchdict.
+
+For every branch in branchdict, there should be one vertex at the
+start and one at the end. If the branch has grown, but has as many
+child branches as previously, change the tick of the end vertex to
+reflect the growth.
+
+If there are more child branches than before, split an edge to place a
+vertex at the start point of each child branch. Then extend a new edge
+out to the end of the child branch. The start and end vertices may
+be on the same tick, in which case they are connected by an edge of
+length zero.
+
+        """
+        for (branch, (parent, tick_from, tick_to)) in self.branchdict.iteritems():
+            done_to = self.branch_done_to[branch]
+            if tick_to > done_to:
+                # I am now looking at a tick-window that has not been
+                # put into the graph yet.
+                #
+                # Where does it belong?
+                #
+                # Is its branch, at least, already in the graph somewhere?
+                if branch in self.branch_edges:
+                    # I may have to extend an edge to make it fit the
+                    # whole tick-window.
+                    e_to = self.get_edge(branch, tick_to)
+                    if e_to is None:
+                        e_to = self.latest_edge(branch)
+                        v = self.graph.vs[e_to.target]
+                        growth = tick_to - v["tick"]
+                        v["tick"] += growth
+                    # Otherwise there's not really much to do here.
+                else:
+                    # I assume that this dict reflects the genealogy
+                    # of the branches accurately
+                    try:
+                        self.split_branch(
+                            parent, branch, tick_from, tick_to - tick_from)
+                    except KeyError:
+                        assert(branch == 0)
+                        self.graph.add_vertices(2)
+                        self.graph.vs["tick"] = [0, tick_to]
+                        self.graph.add_edge(0, 1, branch=0)
+                        eid =self.graph.get_eid(0, 1)
+                        self.branch_edges[0].add(eid)
+            self.branch_done_to[branch] = tick_to
+            for handler in self.update_handlers:
+                handler.on_timestream_update()
+
+    def get_edge_len(self, e):
+        if isinstance(e, int):
+            e = self.graph.es[e]
+        vo = self.graph.vs[e.source]
+        vd = self.graph.vs[e.target]
+        return vd["tick"] - vo["tick"]
+
+    def sanitize_vert(self, v):
+        if isinstance(v, Vertex):
+            vert = v
+            vid = vert.index
+        else:
+            vid = v
+            vert = self.graph.vs[vid]
+        return (vert, vid)
+
+    def sanitize_edge(self, e):
+        if isinstance(e, Edge):
+            edge = e
+            eid = edge.index
+        else:
+            eid = e
+            edge = self.graph.es[eid]
+        return (edge, eid)
+
+    def vertex_in_branch(self, v, branch):
+        v = self.sanitize_vert(v)[1]
+        for eid in self.graph.incident(v):
+            if eid in self.branch_edges[branch]:
+                return True
+        return False
+
+    def add_edge(self, branch, vert_from, vert_to):
+        assert(branch in self.branchdict)
+        (vert_from, vi1) = self.sanitize_vert(vert_from)
+        (vert_to, vi2) = self.sanitize_vert(vert_to)
+        self.graph.add_edge(vi1, vi2, branch=branch)
+        eid = self.graph.get_eid(vi1, vi2)
+        self.branch_edges[branch].add(eid)
+        (p, a, z) = self.branchdict[branch]
+        if vert_from["tick"] < self.branchdict[branch][1]:
+            a = vert_from["tick"]
+        if vert_to["tick"] > self.branchdict[branch][2]:
+            z = vert_to["tick"]
+        self.branchdict[branch] = (p, a, z)
+        return self.graph.es[eid]
+
+    def delete_edge(self, e):
+        (e, eid) = self.sanitize_edge(e)
+        old_branch = e["branch"]
+        self.branch_edges[old_branch].discard(eid)
+        self.graph.delete_edges(eid)
+
+    def add_vert(self, tick):
+        i = len(self.graph.vs)
+        self.graph.add_vertex(tick=tick)
+        v = self.graph.vs[i]
+        return v
+
+    def vert_branch(self, vert):
+        if isinstance(vert, int):
+            vert = self.graph.vs[vert]
+        try:
+            eid = self.graph.incident(vert)[0]
+            return self.graph.es[eid]["branch"]
+        except:
+            return -1
+
+    def add_vert_on(self, e, tick):
+        (e, eid) = self.sanitize_edge(e)
+        former = self.graph.vs[e.source]
+        latter = self.graph.vs[e.target]
+        old_branch = e["branch"]
+        v = self.add_vert(tick)
+        i = v.index
+        e1 = self.add_edge(old_branch, former, i)
+        e2 = self.add_edge(old_branch, i, latter)
+        return (e1, v, e2)
+
+    def get_edge(
+            self,
+            vert_from_or_branch,
+            vert_to_or_tick,
+            mode="branch_tick"):
+        if mode == "branch_tick":
+            return self.get_edge_from_branch_tick(
+                vert_from_or_branch,
+                vert_to_or_tick)
+        elif mode == "verts":
+            return self.get_edge_from_verts(
+                vert_from_or_branch,
+                vert_to_or_tick)
+        else:
+            raise Exception("Invalid mode")
+
+    def get_edge_from_verts(self, vert_from, vert_to):
+        if isinstance(vert_from, Vertex):
+            vert_from = vert_from.index
+        if isinstance(vert_to, Vertex):
+            vert_to = vert_to.index
+        eid = self.graph.get_eid(vert_from, vert_to)
+        return self.graph.es[eid]
+
+    def get_edge_from_branch_tick(self, branch, tick):
+        """Return the edge that contains the given tick in the given branch,
+or None if no such edge exists."""
+        v = self.branch_head[branch]
+        if tick < v["tick"]:
+            raise Exception("This branch started after that tick.")
+        return self.successor_on_branch_tick(v, branch, tick)
+
+    def successor_on_branch_tick(self, v, branch, tick):
+        """Traverse the graph starting from the given vertex. Return the edge
+containing the given tick in the given branch. If it doesn't exist,
+return None."""
+        if tick == v["tick"]:
+            # I'll consider ticks coinciding exactly with a vertex to
+            # be in the descendant edge in that branch.
+            if self.vertex_in_branch(v, branch):
+                for e in self.graph.incident(v):
+                    if e in self.branch_edges[branch]:
+                        return e
+            return None
+        for eid in self.graph.incident(v):
+            e = self.graph.es[eid]
+            v_to = self.graph.vs[e.target]
+            if eid in self.branch_edges[branch]:
+                if v_to["tick"] > tick:
+                    return e
+                else:
+                    # None of these edges are right! You want the ones
+                    # after this vertex here.
+                    return self.successor_on_branch_tick(v_to, branch, tick)
+            elif v_to["tick"] >= tick:
+                return e
+        return None
+
+    def split_branch(self, old_branch, new_branch, tick_from, tick_to):
+        """Find the edge in old_branch in the given tick, split it, and start
+a new edge off the split. The new edge will be a member of
+new_branch.
+
+        """
+        assert(new_branch not in self.branchdict)
+        self.branchdict[new_branch] = (old_branch, tick_from, tick_to)
+        e = self.get_edge_from_branch_tick(old_branch, tick_from)
+        if e is None:
+            vseq = self.graph.vs(tick_eq=tick_from)
+            v1 = vseq[0]
+            v2 = self.add_vert(tick=tick_to)
+        else:
+            (e1, v1, e2) = self.add_vert_on(e, tick_from)
+            v2 = self.add_vert(tick=tick_to)
+        return self.add_edge(new_branch, v1, v2)
+
+    def latest_edge(self, branch):
+        """Return the edge in the given branch that ends on the highest
+tick."""
+        edges = set(self.branch_edges[branch])
+        late = self.graph.es[edges.pop()]
+        v_late = self.graph.vs[late.target]
+        while len(edges) > 0:
+            e = self.graph.es[edges.pop()]
+            v_e = self.graph.vs[e.target]
+            if v_e["tick"] > v_late["tick"]:
+                late = e
+                v_late = v_e
+        return late
+
+    def extend_branch(self, branch, n):
+        """Make the branch so many ticks longer."""
+        edge = self.latest_edge(branch)
+        vert = self.graph.vs[edge.target]
+        vert["tick"] += n
+        self.branchdict[branch] = (
+            self.branchdict[branch][0], self.branchdict.branch[1] + n)
+
+    def extend_branch_to(self, branch, tick_to):
+        """Make the branch end on the given tick, but only if it is later than
+the branch's current end."""
+        edge = self.latest_edge(branch)
+        vert = self.graph.vs[edge.target]
+        if tick_to > vert["tick"]:
+            vert["tick"] = tick_to
+        if tick_to > self.branchdict[branch][1]:
+            self.branchdict[branch] = (
+                self.branchdict[branch][0], tick_to)
+
+
+
 class FakeCloset:
-    def __init__(self, skelly):
-        self.skeleton = Skeleton(skelly)
+    def __init__(self, skellike):
+        self.skeleton = Skeleton(skellike)
         self.timestream = Timestream(self)
-
-
-glStencilFunc = pyglet.gl.glStencilFunc
-glStencilOp = pyglet.gl.glStencilOp
-glColorMask = pyglet.gl.glColorMask
-glDepthMask = pyglet.gl.glDepthMask
-glStencilMask = pyglet.gl.glStencilMask
-GL_ALWAYS = pyglet.gl.GL_ALWAYS
-GL_KEEP = pyglet.gl.GL_KEEP
-GL_REPLACE = pyglet.gl.GL_REPLACE
-GL_FALSE = pyglet.gl.GL_FALSE
-GL_TRUE = pyglet.gl.GL_TRUE
-
-
-class StencilGroup(pyglet.graphics.Group):
-    pass
-    # def set_state(self):
-    #     glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE )
-    #     glDepthMask( GL_FALSE )
-    #     glStencilMask(0xFF)
-
-    # def unset_state(self):
-    #     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
-    #     glDepthMask(GL_TRUE)
-    #     glStencilMask(0)
-
-
-class StencilOrderedGroup(StencilGroup,
-                          pyglet.graphics.OrderedGroup):
-    pass
-
-
-class StencilAlsoGroup(pyglet.graphics.Group):
-    def set_state(self):
-        glStencilMask(0xFF)
-
-    def unset_state(self):
-        glStencilMask(0)
-
-
-class StencilAlsoOrderedGroup(StencilAlsoGroup,
-                              pyglet.graphics.OrderedGroup):
-    pass
-
-
-class StencilFollowerGroup(pyglet.graphics.Group):
-    pass
-    # def set_state(self):
-    #     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
-
-    # def unset_state(self):
-    #     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
-
-class StencilFollowerOrderedGroup(StencilFollowerGroup,
-                                  pyglet.graphics.OrderedGroup):
-    pass
-
-
-class StencilProtestGroup(pyglet.graphics.Group):
-    def set_state(self):
-        glStencilOp(GL_REPLACE, GL_REPLACE, GL_KEEP)
-
-    def unset_state(self):
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
-
-
-class StencilProtestOrderedGroup(StencilProtestGroup,
-                                 pyglet.graphics.OrderedGroup):
-    pass
