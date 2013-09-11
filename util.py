@@ -1563,20 +1563,21 @@ GL_FALSE = pyglet.gl.GL_FALSE
 GL_TRUE = pyglet.gl.GL_TRUE
 
 
-class StencilOnlyGroup(pyglet.graphics.Group):
-    def set_state(self):
-        glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE )
-        glDepthMask( GL_FALSE )
-        glStencilMask(0xFF)
+class StencilGroup(pyglet.graphics.Group):
+    pass
+    # def set_state(self):
+    #     glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE )
+    #     glDepthMask( GL_FALSE )
+    #     glStencilMask(0xFF)
 
-    def unset_state(self):
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
-        glDepthMask(GL_TRUE)
-        glStencilMask(0)
+    # def unset_state(self):
+    #     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
+    #     glDepthMask(GL_TRUE)
+    #     glStencilMask(0)
 
 
-class StencilOnlyOrderedGroup(StencilOnlyGroup,
-                              pyglet.graphics.OrderedGroup):
+class StencilOrderedGroup(StencilGroup,
+                          pyglet.graphics.OrderedGroup):
     pass
 
 
@@ -1594,11 +1595,12 @@ class StencilAlsoOrderedGroup(StencilAlsoGroup,
 
 
 class StencilFollowerGroup(pyglet.graphics.Group):
-    def set_state(self):
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
+    pass
+    # def set_state(self):
+    #     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
 
-    def unset_state(self):
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
+    # def unset_state(self):
+    #     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 
 class StencilFollowerOrderedGroup(StencilFollowerGroup,
                                   pyglet.graphics.OrderedGroup):

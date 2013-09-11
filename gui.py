@@ -7,8 +7,7 @@ from util import (
     fortyfive,
     SkeletonIterator,
     ScissorOrderedGroup,
-    StencilAlsoOrderedGroup,
-    StencilProtestOrderedGroup,
+    StencilOrderedGroup,
     StencilFollowerOrderedGroup)
 from math import atan, cos, sin
 from arrow import ArrowWidget
@@ -151,13 +150,14 @@ class GameWindow(pyglet.window.Window):
         self.dx_hist = deque([], self.dxdy_hist_max)
         self.dy_hist = deque([], self.dxdy_hist_max)
         self.batch = pyglet.graphics.Batch()
-        self.boardgroup = StencilFollowerOrderedGroup(0)
-        self.front_bg_group = StencilAlsoOrderedGroup(1)
-        self.front_fg_group = StencilProtestOrderedGroup(2)
+        self.stencilgroup = StencilOrderedGroup(0)
+        self.boardgroup = StencilFollowerOrderedGroup(1)
+        self.front_bg_group = TransparencyOrderedGroup(2)
+        self.front_fg_group = OrderedGroup(3)
         self.pickergroup = ScissorOrderedGroup(
-            2, None, self, 0.3, 0.6, 0.3, 0.6)
-        self.textgroup = OrderedGroup(3)
-        self.topgroup = pyglet.graphics.OrderedGroup(4)
+            4, None, self, 0.3, 0.6, 0.3, 0.6)
+        self.textgroup = OrderedGroup(5)
+        self.topgroup = pyglet.graphics.OrderedGroup(6)
         for rd in SkeletonIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
             self.closet.get_board(rd["dimension"], rd["board"])

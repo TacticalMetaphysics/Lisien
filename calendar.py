@@ -284,6 +284,8 @@ for the handle_side keyword argument.
         self.closet = self.col.closet
         self.handle = Handle(self, handle_side)
         self.vertlist = None
+        self.old_y = None
+        self.old_color = None
         self.atrdic = {
             "calendar_left": lambda: self.col.calendar_left + self.col.style.spacing,
             "calendar_right": lambda: self.calendar_left + self.col.width,
@@ -311,24 +313,34 @@ for the handle_side keyword argument.
         self.vertlist = None
         self.handle.delete()
 
+    def draw_line(self, points, colors):
+        self.vertlist = self.batch.add(
+            2,
+            GL_LINES,
+            self.window.front_fg_group,
+            ('v2i', points),
+            ('c4B', colors))
+
     def draw(self):
         colors = self.color * 2
         points = (
             self.window_left, self.y,
             self.window_right, self.y)
-        try:
-            self.vertlist.vertices = list(points)
-            self.vertlist.colors = list(colors)
-        except AttributeError:
-            assert(self.vertlist is None)
-            self.vertlist = self.batch.add(
-                2,
-                GL_LINES,
-                self.window.front_fg_group,
-                ('v2i', points),
-                ('c4B', colors))
+        if self.vertlist is None:
+            self.draw_line(points, colors)
+        elif self.y != self.old_y:
+            try:
+                self.vertlist.points = points
+            except AttributeError:
+                self.draw_line(points, colors)
+            self.old_y = self.y
+        elif self.color != self.old_color:
+            try:
+                self.vertlist.colors = colors
+            except AttributeError:
+                self.draw_line(points, colors)
+            self.old_color = self.color
         self.handle.draw()
-
 
 class CalendarCellGroup(OrderedGroup):
     def __init__(self, cell):
@@ -754,9 +766,6 @@ time travel.
         else:
             for calcol in self.cols_shown:
                 self.coldict[calcol].delete()
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
-        self.window.clear()
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 
     def make_col(self, branch):
         return {
@@ -860,6 +869,7 @@ class CalendarCol:
         self.closet = self.calendar.closet
         self.batch = self.calendar.window.batch
         self.style = self.calendar.style
+        self.stencilgroup = self.calendar.window.stencilgroup
         self.bggroup = self.calendar.window.front_bg_group
         self.cellgroup = self.calendar.window.front_fg_group
         self.tlgroup = self.cellgroup
@@ -869,10 +879,13 @@ class CalendarCol:
         self.celldict = {}
         self.cells_on_screen = set()
         self.sprite = None
+        self.stencil = None
         self.oldwidth = None
         self.oldheight = None
         self.oldleft = None
         self.oldbot = None
+        self.lasttick = None
+        self.lastbranch = None
         self.bgpat = SolidColorImagePattern((255,) * 4)
 
     def __getattr__(self, attrn):
@@ -934,24 +947,37 @@ class CalendarCol:
         self.sprite = Sprite(
             self.image, self.window_left, self.window_bot,
             batch=self.batch, group=self.bggroup)
+        self.stencil = Sprite(
+            self.image, self.window_left, self.window_bot,
+            batch=self.batch, group=self.stencilgroup)
 
     def draw(self):
         self.draw_sprite()
-        # if self.sprite is None:
-        #     self.draw_sprite()
-        # elif self.width != self.oldwidth or self.height != self.oldheight:
-        #     oldsprite = self.sprite
-        #     self.draw_sprite()
-        #     try:
-        #         oldsprite.delete()
-        #     except AttributeError:
-        #         pass
-        #     self.oldwidth = self.width
-        #     self.oldheight = self.height
-        # elif self.oldleft != self.window_left or self.oldbot != self.window_bot:
-        #     self.sprite.set_position(self.window_left, self.window_bot)
-        #     self.oldleft = self.window_left
-        #     self.oldbot = self.window_bot
+        if self.sprite is None:
+            self.draw_sprite()
+        elif (self.width != self.oldwidth or
+              self.height != self.oldheight or
+              self.closet.tick != self.lasttick or
+              self.closet.branch != self.lastbranch):
+            oldsprite = self.sprite
+            oldstencil = self.stencil
+            try:
+                oldsprite.delete()
+            except AttributeError:
+                pass
+            try:
+                oldstencil.delete()
+            except AttributeError:
+                pass
+            self.draw_sprite()
+            self.oldwidth = self.width
+            self.oldheight = self.height
+            self.lasttick = self.closet.tick
+            self.lastbranch = self.closet.branch
+        elif self.oldleft != self.window_left or self.oldbot != self.window_bot:
+            self.sprite.set_position(self.window_left, self.window_bot)
+            self.oldleft = self.window_left
+            self.oldbot = self.window_bot
         if hasattr(self, 'bc'):
             self.bc.draw()
         if (
