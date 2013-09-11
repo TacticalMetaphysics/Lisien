@@ -23,7 +23,7 @@ from card import Card
 from effect import Effect, EffectDeck
 from img import Img
 from style import Style, Color
-from timestream import Timestream, TimestreamException
+from timestream import Timestream
 from gui import GameWindow
 from util import (
     dictify_row,
@@ -31,7 +31,8 @@ from util import (
     SkeletonIterator,
     schemata,
     saveables,
-    saveable_classes)
+    saveable_classes,
+    TimestreamException)
 from portal import Portal
 from thing import Thing
 from character import Character
@@ -1126,8 +1127,7 @@ This is game-world time. It doesn't always go forwards.
         self.time_travel(None, self.branch, 0)
 
     def update(self, ts=None):
-        if self.updating:
-            self.time_travel_inc_tick(ticks=self.game_speed)
+        self.time_travel_inc_tick(ticks=self.game_speed)
 
     def end_game(self):
         self.c.close()
@@ -1296,12 +1296,6 @@ def mkdb(DB_NAME='default.sqlite'):
 
     print "indexing the RLTiles"
     ins_rltiles(c, 'rltiles')
-
-    # print "indexing the dumb effects"
-    # efns = db.c.execute("SELECT on_click FROM menu_item").fetchall()
-    # for row in efns:
-    #     print row[0]
-    #     dumb_effect(db, row[0])
 
     c.close()
     conn.commit()

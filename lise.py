@@ -53,13 +53,13 @@ class Updater:
     def update(self, ts):
         self.tp += ts
         while self.tp >= 0.1:
-            self.closet.update()
+            if self.closet.updating:
+                self.closet.update()
             self.tp -= 0.1
-        self.gw.update(ts)
 
 u = Updater(closet, gw)
 
-pyglet.clock.schedule(u.update)
+pyglet.clock.schedule_interval(u.update, 1/30.)
 pyglet.app.run()
 closet.save_game()
 closet.end_game()

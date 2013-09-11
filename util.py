@@ -1153,8 +1153,6 @@ class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
             t = self.top
         w = r - l
         h = t - b
-        if not self.proportional:
-            print "scissoring {0} {1} {2} {3}".format(l, b, w, h)
         pyglet.gl.glScissor(l, b, w, h)
         pyglet.gl.glEnable(pyglet.gl.GL_SCISSOR_TEST)
 
@@ -1188,7 +1186,15 @@ class EmptyTabdict(Exception):
     pass
 
 
+class TimestreamException(Exception):
+    pass
+
+
 class TimeParadox(Exception):
+    pass
+
+
+class JourneyException(Exception):
     pass
 
 

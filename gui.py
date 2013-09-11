@@ -17,6 +17,10 @@ from calendar import Calendar
 from collections import deque
 
 
+OrderedGroup = pyglet.graphics.OrderedGroup
+Group = pyglet.graphics.Group
+
+
 class SaveableWindowMetaclass(
         pyglet.window._WindowMetaclass, SaveableMetaclass):
     pass
@@ -139,14 +143,13 @@ class GameWindow(pyglet.window.Window):
         self.dx_hist = deque([], self.dxdy_hist_max)
         self.dy_hist = deque([], self.dxdy_hist_max)
         self.batch = pyglet.graphics.Batch()
-        self.biggroup = pyglet.graphics.Group()
-        self.boardgroup = pyglet.graphics.OrderedGroup(0, self.biggroup)
-        self.calgroup = TransparencyOrderedGroup(4, self.biggroup)
-        self.handgroup = pyglet.graphics.OrderedGroup(5, self.biggroup)
-        self.menugroup = pyglet.graphics.OrderedGroup(6, self.biggroup)
+        self.boardgroup = OrderedGroup(0)
+        self.calgroup = OrderedGroup(1)
+        self.handgroup = self.calgroup
+        self.menugroup = self.calgroup
         self.pickergroup = ScissorOrderedGroup(
-            8, self.biggroup, self, 0.3, 0.6, 0.3, 0.6)
-        self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
+            2, None, self, 0.3, 0.6, 0.3, 0.6)
+        self.topgroup = pyglet.graphics.OrderedGroup(3)
         for rd in SkeletonIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
             self.closet.get_board(rd["dimension"], rd["board"])
@@ -272,21 +275,6 @@ class GameWindow(pyglet.window.Window):
         self.last_timestream_hash = tihash
         return r
 
-
-    def update(self, dt):
-        (x, y) = self.mouspot.coords
-
-        for get in self.hover_iter_getters:
-            for hoverable in get():
-                if (
-                        hoverable is not None and
-                        hasattr(hoverable, 'overlaps') and
-                        hoverable.overlaps(x, y)):
-                    if hasattr(hoverable, 'hover'):
-                        self.hovered = hoverable.hover(x, y)
-                    else:
-                        self.hovered = hoverable
-                    return
 
     def on_draw(self):
         (width, height) = self.get_size()
@@ -471,10 +459,24 @@ move_with_mouse method, use it.
                     self.picker.scroll_down_once()
                     scroll_y += 1
 
+    def detect_hover(self, x, y):
+        for get in self.hover_iter_getters:
+            for hoverable in get():
+                if (
+                        hoverable is not None and
+                        hasattr(hoverable, 'overlaps') and
+                        hoverable.overlaps(x, y)):
+                    if hasattr(hoverable, 'hover'):
+                        self.hovered = hoverable.hover(x, y)
+                    else:
+                        self.hovered = hoverable
+                    return
+
     def on_mouse_motion(self, x, y, dx, dy):
         """Find the widget, if any, that the mouse is over,
 and highlight it.
         """
+        self.detect_hover(x, y)
         self.mouspot.x = x
         self.mouspot.y = y
         self.dx_hist.append(dx)

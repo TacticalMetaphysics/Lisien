@@ -2,8 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     SaveableMetaclass,
-    SkeletonIterator,
-    ViewportOrderedGroup)
+    SkeletonIterator)
 from pawn import Pawn, PawnWidget
 from spot import Spot, SpotWidget
 from arrow import Arrow, ArrowWidget
@@ -49,7 +48,9 @@ each board will be open in at most one window at a time.
         "things": lambda self: iter(self.dimension.things),
         "pawns": lambda self: self.pawndict.itervalues(),
         "spots": lambda self: self.spotdict.itervalues(),
-        "arrows": lambda self: self.arrowdict.itervalues()}
+        "arrows": lambda self: self.arrowdict.itervalues(),
+        "width": lambda self: self._rowdict["width"],
+        "height": lambda self: self._rowdict["height"]}
 
     def __init__(self, closet, dimension, idx):
         """Return a board representing the given dimension.
@@ -158,6 +159,9 @@ each board will be open in at most one window at a time.
 
 
 class BoardViewport:
+    """A board as it is seen in a window.
+
+This is meant to be arbitrarily scalable, but it isn't really working."""
     tables = [
         ("board_viewport",
          {"window": "text not null",
@@ -203,10 +207,10 @@ class BoardViewport:
         self.idx = idx
         self._rowdict = self.closet.skeleton[
             "board_viewport"][
-                str(self.window)][
-                    str(self.dimension)][
-                        int(self.board)][
-                            int(self)]
+            str(self.window)][
+            str(self.dimension)][
+            int(self.board)][
+            int(self)]
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
@@ -214,10 +218,8 @@ class BoardViewport:
             self.board.viewports.append(None)
         self.board.viewports[self.idx] = self
         self.batch = self.window.batch
-        self.biggroup = ViewportOrderedGroup(
-            self.window.viewport_order, self.window.boardgroup,
-            self)
         self.window.viewport_order += 1
+        self.biggroup = self.window.boardgroup
         self.bggroup = OrderedGroup(0, self.biggroup)
         self.arrowgroup = OrderedGroup(1, self.biggroup)
         self.spotgroup = OrderedGroup(2, self.biggroup)
@@ -295,6 +297,10 @@ class BoardViewport:
             self.view_left = 0
         if self.view_bot < 0:
             self.view_bot = 0
+        if self.view_left + self.width > self.board.width:
+            self.view_left = self.board.width - self.width
+        if self.view_bot + self.height > self.board.height:
+            self.view_bot = self.board.height - self.height
 
     def draw(self):
         offx = self.offset_x

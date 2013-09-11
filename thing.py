@@ -5,7 +5,8 @@ from util import (
     LocationException,
     BranchTicksIter,
     SkeletonIterator,
-    TimeParadox)
+    TimeParadox,
+    TimestreamException)
 from logging import getLogger
 
 
@@ -14,13 +15,6 @@ __metaclass__ = SaveableMetaclass
 
 logger = getLogger(__name__)
 
-
-class JourneyException(Exception):
-    pass
-
-
-class BranchError(Exception):
-    pass
 
 
 class Thing:
@@ -145,6 +139,28 @@ tick in the given branch."""
                     return self.dimension.get_place(rd["location"])
         return None
 
+    def has_location_during(self, branch, tick_from, tick_to=None):
+        if tick_to is None:
+            for rd in self.locations[branch].iterrows():
+                if (
+                    rd["tick_from"] <= tick_from and
+                    rd["tick_to"] is not None and
+                    rd["tick_to"] >= tick_from):
+                    return True
+        else:
+            for rd in self.locations[branch].iterrows():
+                if rd["tick_to"] is None:
+                    if tick_to >= rd["tick_from"]:
+                        return True
+                else:
+                    if (tick_to >= rd["tick_from"] and
+                        tick_to <= rd["tick_to"]):
+                        return True
+                    if (tick_from >= rd["tick_from"] and
+                        tick_from <= rd["tick_to"]):
+                        return True
+        return False
+
     def set_location(self, loc, branch=None, tick_from=None, tick_to=None):
         """Declare that I'm in the given Place, Portal, or Thing.
 
@@ -159,22 +175,12 @@ Return an Effect representing the change.
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch in self.indefinite_locations:
-            indef_start = self.indefinite_locations[branch]
-            indef_rd = self.locations[indef_start]
-            if tick_from > indef_start:
-                indef_rd["tick_to"] = tick_from - 1
-                del self.indefinite_locations[branch]
-            elif tick_to > indef_start:
-                del self.locations[branch][indef_start]
-                del self.indefinite_locations[branch]
-            elif (
-                    tick_to == self.indef_start and
-                    indef_rd["location"] == str(loc)):
-                indef_rd["tick_from"] = tick_from
-                self.indefinite_locations[branch] = tick_from
-                return
-        assert branch in self.locations, "Make a new branch first"
+        if branch not in self.locations:
+            raise TimestreamException(
+                "Need to make a new branch before scheduling things there.")
+        if self.has_location_during(branch, tick_from, tick_to):
+            raise TimeParadox(
+                "I'm already somewhere then.")
         self.locations[branch][tick_from] = {
             "dimension": str(self.dimension),
             "thing": str(self),
@@ -182,9 +188,18 @@ Return an Effect representing the change.
             "tick_from": tick_from,
             "tick_to": tick_to,
             "location": str(loc)}
-        print "remembered a location rowdict:"
-        print self.locations[branch][tick_from]
-        if tick_to is None:
+        if branch in self.indefinite_locations:
+            ifrom = self.indefinite_locations[branch]
+            ird = self.locations[branch][ifrom]
+            if tick_from > ifrom:
+                ird["tick_to"] = tick_from - 1
+                del self.indefinite_locations[branch]
+            elif tick_to is None:
+                del self.locations[branch][ifrom]
+                del self.indefinite_locations[branch]
+            elif tick_to > ifrom:
+                ird["tick_from"] = tick_to + 1
+        elif tick_to is None:
             self.indefinite_locations[branch] = tick_from
 
     def get_speed(self, branch=None, tick=None):
@@ -298,8 +313,12 @@ other journey I may be on at the time."""
         try:
             self.follow_path(path, branch, tick)
         except TimeParadox:
+            if not hasattr(self, 'peedeebee'):
+                import pdb
+                pdb.set_trace()
+                self.peedeebee = True
             self.new_branch_blank = True
-            self.closet.increment_branch()
+            self.closet.time_travel_inc_branch()
             self.new_branch_blank = False
             self.follow_path(path, self.closet.branch, tick)
     

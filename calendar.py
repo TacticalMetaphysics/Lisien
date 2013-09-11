@@ -4,9 +4,12 @@ from util import (
     SaveableMetaclass,
     SkeletonIterator,
     phi)
+from logging import getLogger
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup
 from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST
+from pyglet.image import SolidColorImagePattern
+from pyglet.sprite import Sprite
 
 """User's view on a given item's schedule.
 
@@ -17,6 +20,9 @@ between showing various schedules, or even show many in parallel.
 
 
 __metaclass__ = SaveableMetaclass
+
+
+logger = getLogger(__name__)
 
 
 class Wedge:
@@ -70,6 +76,7 @@ class Wedge:
                 ('c4B', colors))
 
     def delete(self):
+        logger.debug("Deleting a wedge")
         if self.vertlist is not None:
             try:
                 self.vertlist.delete()
@@ -841,14 +848,18 @@ class CalendarCol:
         self.supergroup = CalendarColGroup(self)
         self.bggroup = OrderedGroup(0, self.supergroup)
         self.cellgroup = OrderedGroup(1, self.supergroup)
-        self.tlgroup = OrderedGroup(2, self.supergroup)
-        self.bcgroup = OrderedGroup(3, self.supergroup)
+        self.tlgroup = self.cellgroup
+        self.bcgroup = self.cellgroup
         self.timeline = Timeline(self)
         self.window = self.calendar.window
         self.celldict = {}
         self.cells_on_screen = set()
-        self.old_points = None
-        self.vertl = None
+        self.sprite = None
+        self.oldwidth = None
+        self.oldheight = None
+        self.oldleft = None
+        self.oldbot = None
+        self.bgpat = SolidColorImagePattern((255,) * 4)
 
     def __getattr__(self, attrn):
         return CalendarCol.atrdic[attrn](self)
@@ -857,6 +868,7 @@ class CalendarCol:
         return self.branch
 
     def delete(self):
+        logger.debug("Deleting a calendar")
         for cell in self.celldict.itervalues():
             cell.delete()
         try:
@@ -902,29 +914,29 @@ class CalendarCol:
         self.regen_cells()
         self.review()
 
+    def draw_sprite(self):
+        logger.debug("Drawing background for a CalendarCol")
+        self.image = self.bgpat.create_image(self.width, self.height)
+        self.sprite = Sprite(
+            self.image, self.window_left, self.window_bot,
+            batch=self.batch, group=self.bggroup)
+
     def draw(self):
-        colors = self.style.bg_inactive.tup * 4
-        l = self.window_left
-        r = self.window_right
-        t = self.window_top
-        b = self.window_bot
-        points = (
-            l, b,
-            l, t,
-            r, t,
-            r, b)
-        if points != self.old_points:
+        if self.sprite is None:
+            self.draw_sprite()
+        elif self.width != self.oldwidth or self.height != self.oldheight:
+            oldsprite = self.sprite
+            self.draw_sprite()
             try:
-                self.vertl.vertices = points
-            except:
-                self.vertl = self.batch.add_indexed(
-                    4,
-                    GL_TRIANGLES,
-                    self.bggroup,
-                    [0, 2, 3, 0, 1, 2],
-                    ('v2i', points),
-                ('c4B', colors))
-            self.old_points = points
+                oldsprite.delete()
+            except AttributeError:
+                pass
+            self.oldwidth = self.width
+            self.oldheight = self.height
+        elif self.oldleft != self.window_left or self.oldbot != self.window_bot:
+            self.sprite.set_position(self.window_left, self.window_bot)
+            self.oldleft = self.window_left
+            self.oldbot = self.window_bot
         if hasattr(self, 'bc'):
             self.bc.draw()
         if (

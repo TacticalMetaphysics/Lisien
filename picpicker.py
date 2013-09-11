@@ -44,7 +44,6 @@ class PicPanel:
         return str(self.pic)
 
     def delete(self):
-        print "{0}: PicPanel showing {1} deleted".format(time(), str(self.pic))
         try:
             self.sprite.delete()
         except:
@@ -207,7 +206,6 @@ will be assigned to that attribute of the window the picker is in.
                         panel.right > x and
                         panel.top < y and
                         panel.bot > y):
-                    print "turning over to {0}".format(panel)
                     return panel
         # If not, return myself
         return self
@@ -222,7 +220,6 @@ will be assigned to that attribute of the window the picker is in.
                 pic.delete()
 
     def scroll_down_once(self):
-        print "{0}: PicPicker scrolled down".format(time())
         if self.scrolled_to_row + 1 == len(self.pixrows):
             return
         rowheight = max([
@@ -232,7 +229,6 @@ will be assigned to that attribute of the window the picker is in.
         self.scrolled_to_row += 1
 
     def scroll_up_once(self):
-        print "{0}: PicPicker scrolled up".format(time())
         if self.scrolled_to_row == 0:
             return
         rowheight = max([
