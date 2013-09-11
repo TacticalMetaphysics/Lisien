@@ -694,14 +694,17 @@ time travel.
                 str(self.window)][
                     int(self)]
         if self._rowdict["type"] == CAL_TYPE['THING']:
+            self.dimension = self.closet.get_dimension(self._rowdict["dimension"])
+            self.thing = self.closet.get_thing(
+                self._rowdict["dimension"], self._rowdict["thing"])
             self.closet.skeleton["thing_location"][
                 self._rowdict["dimension"]][
                 self._rowdict["thing"]].listeners.add(self)
-        if self._rowdict["thing_show_location"]:
-            self._location_dict = self.closet.skeleton[
-                "thing_location"][
+            if self._rowdict["thing_show_location"]:
+                self._location_dict = self.closet.skeleton[
+                    "thing_location"][
                     self._rowdict["dimension"]][
-                        self._rowdict["thing"]]
+                    self._rowdict["thing"]]
         self.cols_shown = set()
         self.coldict = {0: self.make_col(0)}
         self.cols_shown.add(0)
@@ -867,6 +870,10 @@ class CalendarCol:
     def __int__(self):
         return self.branch
 
+    def __repr__(self):
+        return "CalendarCol:\n" + "\n".join(
+            [str(cell) for cell in self.cells_on_screen])
+
     def delete(self):
         logger.debug("Deleting a calendar")
         for cell in self.celldict.itervalues():
@@ -913,6 +920,7 @@ class CalendarCol:
     def refresh(self):
         self.regen_cells()
         self.review()
+        logger.debug(repr(self))
 
     def draw_sprite(self):
         logger.debug("Drawing background for a CalendarCol")
@@ -965,12 +973,6 @@ instead, giving something like "in transit from A to B".
 
     """
     typ = CAL_TYPE['THING']
-    atrdic = {
-        "locations": lambda self: self.thing.locations[self.branch],
-        "coverage": lambda self: self.character.thingdict[
-            self.branch][dimn][thingn],
-        "thing": lambda self: self.closet.get_thing(dimn, thingn)
-    }
     cal_attrs = set([
         "character",
         "dimension",
@@ -992,6 +994,11 @@ instead, giving something like "in transit from A to B".
 
     def __init__(self, calendar, branch):
         CalendarCol.__init__(self, calendar, branch)
+        self.dimension = self.calendar.dimension
+        self.thing = self.calendar.thing
+        self.locations = self.thing.locations[branch]
+        self.coverage = self.character.thingdict[
+            str(self.dimension)][str(self.thing)][branch]
         self.refresh()
 
     def __getattr__(self, attrn):
@@ -1000,7 +1007,9 @@ instead, giving something like "in transit from A to B".
         elif attrn in LocationCalendarCol.col_attrs:
             return CalendarCol.__getattr__(self, attrn)
         else:
-            return LocationCalendarCol.atrdic[attrn](self)
+            raise AttributeError(
+                """LocationCalendarCol does not have and
+cannot compute attribute {0}""".format(attrn))
 
     def regen_cells(self):
         location_ticks = set()

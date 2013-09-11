@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, SkeletonIterator
+from util import SaveableMetaclass, SkeletonIterator, TimeParadox
 from thing import Thing
 
 
@@ -129,420 +129,124 @@ item's name, and the name of the attribute.
         self.portdict = {}
         self.placedict = {}
         td = self.closet.skeleton
-        if "character_things" in td and str(self) in td["character_things"]:
-            self.thingdict = {}
+        try:
+            self.thingdict = td["character_things"][str(self)]
             self.indefinite_thing = {}
-            for rd in SkeletonIterator(td["character_things"][str(self)]):
-                self.add_thing_with_strs(**rd)
-                self.closet.get_thing(
-                    rd["dimension"],
-                    rd["thing"]).register_update_handler(self.update)
-        if "character_stats" in td and str(self) in td["character_stats"]:
-            for rd in SkeletonIterator(td["character_stats"][str(self)]):
-                self.set_stat(**rd)
-        if "character_skills" in td and str(self) in td["character_skills"]:
-            for rd in SkeletonIterator(td["character_skills"][str(self)]):
-                self.set_skill(**rd)
-        if "character_portals" in td and str(self) in td["character_portals"]:
-            for rd in SkeletonIterator(td["character_portals"][str(self)]):
-                self.add_portal_with_strs(**rd)
-        if "character_places" in td and str(self) in td["character_places"]:
-            for rd in SkeletonIterator(td["character_places"][str(self)]):
-                self.add_place_with_strs(**rd)
-        self.closet.characterdict[str(self)] = self
+            for rd in self.thingdict.iterrows():
+                if rd["dimension"] not in self.indefinite_thing:
+                    self.indefinite_thing[rd["dimension"]] = {}
+                if rd["thing"] not in self.indefinite_thing[rd["dimension"]]:
+                    self.indefinite_thing[rd["dimension"]][rd["thing"]] = {}
+                if rd["tick_to"] is None:
+                    self.indefinite_thing[rd["dimension"]][
+                        rd["thing"]][rd["branch"]] = rd["tick_from"]
+        except KeyError:
+            if "character_things" not in td:
+                td["character_things"] = {}
+            if str(self) not in td["character_things"]:
+                td["character_things"][str(self)] = {}
+            self.thingdict = td["character_things"][str(self)]
+            self.indefinite_thing = {}
+        try:
+            self.statdict = td["character_stats"][str(self)]
+            self.indefinite_stat = {}
+            for rd in self.statdict.iterrows():
+                if rd["stat"] not in self.indefinite_stat:
+                    self.indefinite_stat[rd["stat"]] = {}
+                if rd["tick_to"] is None:
+                    self.indefinite_stat[
+                        rd["stat"]][rd["branch"]] = rd["tick_from"]
+        except KeyError:
+            if "character_stats" not in td:
+                td["character_stats"] = {}
+            if str(self) not in td["character_stats"]:
+                td["character_stats"][str(self)] = {}
+            self.statdict = td["character_stats"][str(self)]
+            self.indefinite_stat = {}
+        try:
+            self.skilldict = td["character_skills"][str(self)]
+            self.indefinite_skill = {}
+            for rd in self.skilldict.iterrows():
+                if rd["skill"] not in self.indefinite_skill:
+                    self.indefinite_skill[rd["skill"]] = {}
+                if rd["tick_to"] is None:
+                    self.indefinite_skill[
+                        rd["skill"]][rd["branch"]] = rd["tick_from"]
+        except KeyError:
+            if "character_skills" not in td:
+                td["character_skills"] = {}
+            if str(self) not in td["character_skills"]:
+                td["character_skills"][str(self)] = {}
+            self.skilldict = td["character_skills"][str(self)]
+            self.indefinite_skill = {}
+        try:
+            self.portaldict = td["character_portals"][str(self)]
+            self.indefinite_portal = {}
+            for rd in self.portaldict.iterrows():
+                if rd["dimension"] not in self.indefinite_portal:
+                    self.indefinite_portal[rd["dimension"]] = {}
+                if rd["origin"] not in self.indefinite_portal[rd["dimension"]]:
+                    self.indefinite_portal[rd["dimension"]][rd["origin"]] = {}
+                if rd["destination"] not in self.indefinite_portal[rd["dimension"]][rd["origin"]]:
+                    self.indefinite_portal[rd["dimension"]][rd["origin"]][rd["destination"]]
+                if rd["tick_to"] is None:
+                    self.indefinite_portal[rd["dimension"]][rd["origin"]][rd["destination"]][rd["branch"]] = rd["tick_from"]
+        except KeyError:
+            if "character_portals" not in td:
+                td["character_portals"] = {}
+            if str(self) not in td["character_portals"]:
+                td["character_portals"][str(self)] = {}
+            self.portaldict = td["character_portals"][str(self)]
+            self.indefinite_portal = {}
+        try:
+            self.placedict = td["character_places"][str(self)]
+            self.indefinite_place = {}
+            for rd in self.placedict.iterrows():
+                if rd["dimension"] not in self.indefinite_place:
+                    self.indefinite_place[rd["dimension"]] = {}
+                if rd["place"] not in self.indefinite_place[rd["dimension"]]:
+                    self.indefinite_place[rd["dimension"]][rd["place"]] = {}
+                if rd["tick_to"] is None:
+                    self.indefinite_place[rd["dimension"]][rd["place"]][rd["branch"]] = rd["tick_from"]
+            self.closet.characterdict[str(self)] = self
+        except KeyError:
+            if "character_places" not in td:
+                td["character_places"] = {}
+            if str(self) not in td["character_places"]:
+                td["character_places"][str(self)] = {}
+            self.placedict = td["character_places"][str(self)]
+            self.indefinite_place = {}
 
     def __str__(self):
         return self._name
 
-    def set_stat(
-            self, stat, val,
-            branch=None, tick_from=None, tick_to=None, **kwargs):
+    def add_thing_by_key(self, dimension, name,
+                         branch=None, tick_from=None, tick_to=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch not in self.attribdict:
-            self.attribdict[branch] = {}
-        if stat not in self.statdict[branch]:
-            self.statdict[branch][stat] = {}
-        if (
-                branch in self.indefinite_stat and
-                stat in self.indefinite_stats[branch]):
-            ifrom = self.indefinite_stat[branch][stat]
-            (ival, ito) = self.statdict[branch][ifrom][stat]
-            if tick_from > ifrom:
-                self.attribdict[branch][stat][ifrom] = (ival, tick_from - 1)
-                del self.indefinite_attrib[branch][stat]
-            elif tick_from == ifrom or tick_to > ifrom:
-                del self.attribdict[branch][stat][ifrom]
-                del self.indefinite_stat[branch][stat]
-        self.attribdict[branch][stat][tick_from] = (val, tick_to)
         if tick_to is None:
-            if branch not in self.indefinite_attrib:
-                self.indefinite_attrib[branch] = {}
-            self.indefinite_attrib[branch][stat] = tick_from
+            if branch in self.indefinite_thing[dimension][name]:
+                ifrom = self.indefinite_thing[dimension][name][branch]
+                irow = self.thingdict[dimension][name][branch][ifrom]
+                if irow["tick_from"] < tick_from:
+                    irow["tick_to"] = tick_from - 1
+                    self.indefinite_thing[dimension][name][branch] = tick_from
+                else:
+                    raise TimeParadox(
+                        "I'll have this thing as of {0}, so I need to not have it already at that time".format(ifrom))
+            else:
+                self.indefinite_thing[dimension][name][branch] = tick_from
+        self.thingdict[dimension][name][branch][tick_from] = {
+            "dimension": dimension,
+            "thing": name,
+            "branch": branch,
+            "tick_from": tick_from,
+            "tick_to": tick_to}
 
-    def get_stat(self, stat, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        if branch not in self.statdict:
-            return None
-        for (tick_from, (val, tick_to)) in self.statdict[branch].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
-                return val
-        return None
-
-    def set_skill(
-            self, skill, val,
-            branch=None, tick_from=None, tick_to=None, **kwargs):
-        if branch is None:
-            branch = self.closet.branch
-        if tick_from is None:
-            tick_from = self.closet.tick
-        if branch not in self.skilldict:
-            self.skilldict[branch] = {}
-        if skill not in self.skilldict[branch]:
-            self.skilldict[branch][skill] = {}
-        if (
-                branch in self.indefinite_skill and
-                skill in self.indefinite_skill[branch]):
-            ifrom = self.indefinite_skill[branch][skill]
-            (ival, ito) = self.skilldict[branch][skill][ifrom]
-            if tick_from > ifrom:
-                self.skilldict[branch][skill][ifrom] = (ival, tick_from - 1)
-                del self.indefinite_skill[branch][skill]
-            elif tick_from == ifrom or tick_to > ifrom:
-                del self.skilldict[branch][skill][ifrom]
-                del self.indefinite_skill[branch][skill]
-        self.skilldict[branch][skill][tick_from] = (val, tick_to)
-        if tick_to is None:
-            if branch not in self.indefinite_skill:
-                self.indefinite_skill[branch] = {}
-            self.indefinite_skill[branch][skill] = tick_from
-
-    def get_skill(self, skill, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        if branch not in self.skilldict:
-            return None
-        for (tick_from, (val, tick_to)) in self.skilldict[branch].iteritems():
-            if tick_from <= tick and (tick_to is None or tick <= tick_to):
-                return val
-        return None
-
-    def add_thing_with_strs(
-            self, dimension, thing,
-            branch=None, tick_from=None, tick_to=None, **kwargs):
-        if branch is None:
-            branch = self.closet.branch
-        if tick_from is None:
-            tick_from = self.closet.tick
-        if branch not in self.thingdict:
-            self.thingdict[branch] = {}
-        if dimension not in self.thingdict[branch]:
-            self.thingdict[branch][dimension] = {}
-        if thing not in self.thingdict[branch][dimension]:
-            self.thingdict[branch][dimension][thing] = {}
-        if branch not in self.indefinite_thing:
-            self.indefinite_thing[branch] = {}
-        if dimension not in self.indefinite_thing[branch]:
-            self.indefinite_thing[branch][dimension] = {}
-        if thing not in self.indefinite_thing[branch][dimension]:
-            self.indefinite_thing[branch][dimension][thing] = {}
-        try:
-            ifrom = self.indefinite_thing[branch][dimension][thing]
-            if tick_from > ifrom:
-                self.thingdict[branch][dimension][thing][ifrom] = tick_from - 1
-                del self.indefinite_thing[branch][dimension][thing]
-            elif tick_from == ifrom or tick_to > ifrom:
-                del self.thingdict[branch][dimension][thing][ifrom]
-                del self.indefinite_thing[branch][dimension][thing]
-        except KeyError:
-            pass
-        self.thingdict[branch][dimension][thing][tick_from] = tick_to
-        if tick_to is None:
-            self.indefinite_thing[branch][dimension][thing] = tick_from
-
-    def add_thing(self, thing, branch=None, tick=None):
-        dimn = str(thing.dimension)
-        thingn = str(thing)
-        self.add_thing_with_strs(dimn, thingn, branch, tick)
-
-    def rm_thing_with_strs(self, dimension, thing, branch, tick):
-        try:
-            del self.indefinite_thing[branch][dimension][thing]
-        except KeyError:
-            pass
-        del self.thingdict[branch][dimension][thing][tick]
-
-    def rm_thing(self, thing, branch, tick):
-        dimn = str(thing.dimension)
-        thingn = str(thing)
-        self.rm_thing_with_strs(dimn, thingn, branch, tick)
-
-    def is_thing_with_strs(self, dimension, thing, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        if not (
-                branch in self.thingdict and
-                dimension in self.thingdict[branch] and
-                thing in self.thingdict[branch][dimension]):
-            return False
-        if (
-                branch in self.indefinite_thing and
-                dimension in self.indefinite_thing[branch] and
-                thing in self.indefinite_thing[branch][dimension]):
-            tick_from = self.indefinite_thing[branch][dimension][thing]
-            if tick >= tick_from:
-                return True
-        for (tick_from, tick_to) in self.thingdict[branch][dimension][thing].iteritems():
-            if tick_from <= tick and tick <= tick_to:
-                return True
-        return False
-
-    def is_thing(self, thing, branch=None, tick=None):
-        dimn = str(thing.dimension)
-        thingn = str(thing)
-        return self.is_thing_with_strs(dimn, thingn, branch, tick)
-
-    def were_thing_with_strs(self, dimn, thingn):
-        """Was I ever, will I ever, be this thing?"""
-        for branch in self.thingdict:
-            if dimn not in self.thingdict[branch]:
-                continue
-            if thingn in self.thingdict[branch][dimn]:
-                return True
-        return False
-
-    def get_things(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        r = set()
-        if branch not in self.thingdict:
-            return r
-        for rd in SkeletonIterator[self.thingdict[branch]]:
-            r.add(self.closet.get_thing(rd["dimension"], rd["thing"]))
-        return r
-
-    def add_place_with_strs(
-            self, dimension, place,
-            branch=None, tick_from=None, tick_to=None, **kwargs):
-        if branch is None:
-            branch = self.closet.branch
-        if tick_from is None:
-            tick_from = self.closet.tick
-        if (
-                branch in self.indefinite_place and
-                dimension in self.indefinite_place[branch] and
-                place in self.indefinite_place[branch][dimension]):
-            ifrom = self.indefinite_place[branch][dimension][place]
-            if tick_from > ifrom:
-                self.placedict[branch][dimension][place][ifrom] = tick_from - 1
-                del self.indefinite_place[branch][dimension][place]
-            elif tick_to > ifrom:
-                del self.placedict[branch][dimension][place][ifrom]
-                del self.indefinite_place[branch][dimension][place]
-            if tick_to == ifrom:
-                self.placedict[branch][dimension][place][tick_from] = None
-                self.indefinite_place[branch][dimension][place] = tick_from
-                return
-        self.placedict[branch][dimension][place][tick_from] = tick_to
-        if tick_to is None:
-            self.indefinite_thing[branch][dimension][place] = tick_from
-
-    def add_place(
-            self, place, branch=None, tick_from=None, tick_to=None):
-        dimn = str(place.dimension)
-        placen = str(place)
-        self.add_place_with_strs(dimn, placen, branch, tick_from, tick_to)
-
-    def rm_place_with_strs(self, dimension, place, branch, tick):
-        try:
-            del self.indefinite_place[branch][dimension][place]
-        except KeyError:
-            pass
-        del self.placedict[branch][dimension][place][tick]
-
-    def rm_place(self, place, branch, tick):
-        dimn = str(place.dimension)
-        placen = str(place)
-        self.rm_place_with_strs(dimn, placen, branch, tick)
-
-    def is_place_with_strs(self, dimension, place, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        if not (
-                branch in self.placedict and
-                dimension in self.placedict[branch] and
-                place in self.placedict[branch][dimension]):
-            return False
-        for rd in SkeletonIterator(self.placedict[branch][dimension][place]):
-            if rd["tick_from"] <= tick and (
-                    rd["tick_to"] is None or tick <= rd["tick_to"]):
-                return True
-        return False
-
-    def get_places(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        r = set()
-        if branch not in self.placedict:
-            return r
-        for rd in SkeletonIterator(self.placedict[branch]):
-            if rd["tick_from"] <= r and (
-                    rd["tick_to"] is None or tick <= rd["tick_to"]):
-                r.add(self.closet.get_place(rd["dimension"], rd["place"]))
-        return r
-
-    def is_place(self, place, branch=None, tick=None):
-        dimn = str(place.dimension)
-        placen = str(place)
-        return self.is_place_with_strs(dimn, placen, branch, tick)
-
-    def were_place_with_strs(self, dimension, place):
-        for branch in self.placedict:
-            if dimension not in self.placedict[branch]:
-                continue
-            if place in self.placedict[branch][dimension]:
-                return True
-        return False
-
-    def were_place(self, place):
-        return self.were_place_with_strs(str(place.dimension), str(place))
-
-    def add_portal_with_strs(
-            self, dimension, origin, destination,
-            branch=None, tick_from=None, tick_to=None, **kwargs):
-        if branch is None:
-            branch = self.closet.branch
-        if tick_from is None:
-            tick_from = self.closet.tick
-        try:
-            ifrom = self.indefinite_portal[
-                branch][dimension][origin][destination]
-            if tick_from > ifrom:
-                self.portaldict[
-                    branch][dimension][origin][destination][ifrom] = {
-                        "dimension": dimension,
-                        "origin": origin,
-                        "destination": destination,
-                        "tick_from": ifrom,
-                        "tick_to": tick_from - 1}
-                del self.indefinite_portal[
-                    branch][dimension][origin][destination]
-            elif tick_to > ifrom:
-                del self.portaldict[
-                    branch][dimension][origin][destination][ifrom]
-                del self.indefinite_portal[
-                    branch][dimension][origin][destination]
-            if tick_to == ifrom:
-                self.portaldict[
-                    branch][dimension][origin][destination][tick_from] = {
-                        "dimension": dimension,
-                        "origin": origin,
-                        "destination": destination,
-                        "tick_from": tick_from,
-                        "tick_to": None}
-                self.indefinite_portal[
-                    branch][dimension][origin][destination] = tick_from
-                return
-        except KeyError:
-            pass
-        self.portaldict[
-            branch][dimension][origin][destination][tick_from] = tick_to
-        if tick_to is None:
-            self.indefinite_portal[
-                branch][dimension][origin][destination] = tick_from
-
-    def add_portal(self, portal, branch=None, tick_from=None, tick_to=None):
-        dimn = str(portal.dimension)
-        orign = str(portal.origin)
-        destn = str(portal.destination)
-        self.add_portal_with_strs(
-            dimn, orign, destn, branch, tick_from, tick_to)
-
-    def rm_portal_with_strs(
-            self, dimension, origin, destination, branch, tick):
-        try:
-            del self.indefinite_portal[branch][dimension][origin][destination]
-        except KeyError:
-            pass
-        del self.portdict[branch][dimension][origin][destination]
-
-    def rm_portal(self, portal, branch, tick):
-        dimn = str(portal.dimension)
-        orign = str(portal.origin)
-        destn = str(portal.destination)
-        self.rm_portal_with_strs(dimn, orign, destn, branch, tick)
-
-    def is_portal_with_strs(
-            self, dimension, origin, destination, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        if not (
-                branch in self.portdict and
-                dimension in self.portdict[branch] and
-                origin in self.portdict[branch][dimension] and
-                destination in self.portdict[branch][dimension][origin]):
-            return False
-        for rd in SkeletonIterator(
-                self.portdict[branch][dimension][origin][destination]):
-            if rd["tick_from"] <= tick and (
-                    rd["tick_to"] is None or tick <= rd["tick_to"]):
-                return True
-        return False
-
-    def is_portal(self, portal, branch=None, tick=None):
-        dimn = str(portal.dimension)
-        orign = str(portal.origin)
-        destn = str(portal.destination)
-        return self.is_portal_with_strs(dimn, orign, destn, branch, tick)
-
-    def get_portals(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        r = set()
-        if branch not in self.portdict:
-            return r
-        for rd in SkeletonIterator(self.portdict[branch]):
-            if rd["tick_from"] <= tick and (
-                    rd["tick_to"] is None or tick <= rd["tick_to"]):
-                port = self.closet.get_portal(
-                    rd["dimension"], rd["origin"], rd["destination"])
-                r.add(port)
-        return r
-
-    def were_portal_with_strs(self, dimension, origin, destination):
-        for branch in self.portdict:
-            if dimension not in self.portdict[branch]:
-                continue
-            if (
-                    origin in self.portdict[branch][dimension] and
-                    destination in self.portdict[branch][dimension][origin]):
-                return True
-        return False
-
-    def were_portal(self, portal):
-        dimn = str(portal.dimension)
-        orign = str(portal.origin)
-        destn = str(portal.destination)
-        return self.were_portal_with_strs(dimn, orign, destn)
+    def add_thing(self, thing, branch=None, tick_from=None, tick_to=None):
+        self.add_thing_by_key(str(thing.dimension), str(thing), branch, tick_from, tick_to)
 
     def register_update_handler(self, that):
         self.update_handlers.add(that)
