@@ -357,7 +357,7 @@ class SpotWidget:
         self.spot.drag_offset_x = 0
         self.spot.drag_offset_y = 0
 
-    def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.spot.drag_offset_x += dx
         self.spot.drag_offset_y += dy
 

@@ -57,7 +57,8 @@ it comes upon."""
         "rowdict": lambda self: self.isrowdict()
         }
 
-    def __init__(self, it, listeners=None):
+    def __init__(self, it, parent=None, listeners=None):
+        self.parent = parent
         if listeners is None:
             self.listeners = set()
         else:
@@ -71,6 +72,8 @@ it comes upon."""
             self.typ = list
         elif isinstance(it, Skeleton):
             self.typ = it.typ
+            if self.parent is None:
+                self.parent = it.parent
         else:
             raise ValueError(
                 "Skeleton may only contain dict or list.")
@@ -94,8 +97,10 @@ it comes upon."""
                     "That part of the skeleton is empty "
                     "and I can't decide how to fill it. "
                     "If you want to help out, set my subtype.")
+            i = 0
             while len(self.it) <= k:
-                self.it.append(Skeleton(self.subtype()))
+                self.it.append(Skeleton(self.subtype(), parent=self))
+                i += 1
             return self.it[k]
         else:
             return self.it[k]
@@ -116,23 +121,34 @@ it comes upon."""
             else:
                 raise ValueError(
                     "This level of the Skeleton can only hold Skeleton-alikes.")
+            i = 0
             while len(self.it) <= k:
-                self.it.append(Skeleton(newtyp()))
+                self.it.append(Skeleton(newtyp(), parent=self))
+                i += 1
         elif self.rowdict:
             assert(v.__class__ not in (list, dict, Skeleton))
             self.it[k] = v
+            for listener in self.listeners:
+                listener.on_skel_set((self,), k, v)
+            if self.parent is not None:
+                self.parent.on_child_set((self,), k, v)
             return
+        nuval = Skeleton(v, parent=self)
+        self.it[k] = nuval
         for listener in self.listeners:
-            listener.on_skel_set(k, v)
-        self.it[k] = Skeleton(v)
+            listener.on_skel_set((self,), k, nuval)
+        if self.parent is not None:
+            self.parent.on_child_set((self,), k, nuval)
 
     def __delitem__(self, k):
         if self.typ is list:
-            self.it[k] = None
+            self[k] = self.subtype()
         else:
             for listener in self.listeners:
-                listener.on_skel_delete(k)
+                listener.on_skel_delete((self,), k)
             del self.it[k]
+        if self.parent is not None:
+            self.parent.on_child_delete((self,), k)
 
     def __contains__(self, what):
         if self.typ is list:
@@ -150,8 +166,8 @@ it comes upon."""
         return len(self.it)
 
     def __add__(self, other):
-        newness = self.deepcopy()
-        newness += other.deepcopy()
+        newness = self.copy()
+        newness += other.copy()
         return newness
 
     def __iadd__(self, other):
@@ -159,8 +175,8 @@ it comes upon."""
         return self
 
     def __sub__(self, other):
-        newness = self.deepcopy()
-        newness -= other.deepcopy()
+        newness = self.copy()
+        newness -= other.copy()
         return newness
 
     def __isub__(self, other):
@@ -193,14 +209,12 @@ it comes upon."""
             return self.typ is list and self.it == other
 
     def copy(self):
-        # Shallow copy
-        return Skeleton(self.it)
-
-    def deepcopy(self):
+        # Sort of a deep copy but doesn't contain any lineage. Kind of
+        # crap really.
         newness = Skeleton(self.typ())
         for (k, v) in self.iteritems():
             if isinstance(v, Skeleton):
-                newness[k] = v.deepcopy()
+                newness[k] = v.copy()
             else:
                 assert self.rowdict, "I contain something I shouldn't"
                 newness.it[k] = copy(v)
@@ -252,7 +266,7 @@ it comes upon."""
             kitr = ListItemIterator(skellike)
         for (k, v) in kitr:
             if v.__class__ in (dict, list):
-                v = Skeleton(v)
+                v = Skeleton(v, parent=self)
                 if v.rowdict:
                     self[k] = v
                     continue
@@ -271,13 +285,32 @@ it comes upon."""
                     newtyp = self.subtype
                 else:
                     newtyp = v.typ
+                i=0
                 while len(self.it) <= k:
-                    self.it.append(Skeleton(newtyp()))
+                    self.it.append(Skeleton(newtyp(), parent=self))
+                    i+=1
                 if isinstance(self.it[k], Skeleton):
                     self.it[k].update(v)
                 else:
                     self.it[k] = v
 
+    def on_child_set(self, child, k, v):
+        chain = (self, child)
+        for listener in self.listeners:
+            listener.on_skel_set(chain, k, v)
+        if self.parent is not None:
+            self.parent.on_child_set(chain, k, v)
+
+    def on_child_delete(self, child, k):
+        chain = (self, child)
+        for listener in self.listeners:
+            listener.on_skel_delete(chain, k)
+        if self.parent is not None:
+            self.parent.on_child_delete(chain, k)
+
+    def add_listener(self, l):
+        logger.debug("Adding listener: {0} To skeleton: {1}".format(l, self))
+        self.listeners.add(l)
 
 class SaveableMetaclass(type):
 # TODO make savers use sets of RowDict objs, rather than lists of regular dicts

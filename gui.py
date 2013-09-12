@@ -435,12 +435,12 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         """If the thing previously pressed has a
-move_with_mouse method, use it.
+on_mouse_drag method, use it.
      """
         if self.grabbed is None:
             self.grabbed = self.pressed
-        elif hasattr(self.grabbed, 'move_with_mouse'):
-            self.grabbed.move_with_mouse(x, y, dx, dy, buttons, modifiers)
+        elif hasattr(self.grabbed, 'on_mouse_drag'):
+            self.grabbed.on_mouse_drag(x, y, dx, dy, buttons, modifiers)
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         # for now, this only does anything if you're moused over

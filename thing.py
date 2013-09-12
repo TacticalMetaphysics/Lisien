@@ -50,7 +50,9 @@ too.
         self._name = str(name)
         self.indefinite_locations = {}
         self.new_branch_blank = False
-        for rd in SkeletonIterator(self.locations):
+        self.locations = self.closet.skeleton["thing_location"][
+            str(self.dimension)][str(self)]
+        for rd in self.locations.iterrows():
             if rd["tick_to"] is None:
                 self.indefinite_locations[rd["branch"]] = rd["tick_from"]
         self.dimension.thingdict[name] = self
@@ -59,10 +61,7 @@ too.
             str(self), repr(self.locations))
 
     def __getattr__(self, attrn):
-        if attrn == "locations":
-            return self.closet.skeleton["thing_location"][
-                str(self.dimension)][str(self)]
-        elif attrn == 'location':
+        if attrn == 'location':
             return self.get_location()
         elif attrn == 'speed':
             return self.get_speed()
@@ -309,16 +308,19 @@ other journey I may be on at the time."""
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
         prevtick = tick + 1
+        locs = self.branch_loc_rds(branch)
         try:
-            self.deepcopy().follow_path(path, branch, tick)
+            self.follow_path(path, branch, tick)
         except TimeParadox:
+            del self.locations[branch]
+            self.restore_loc_rds(locs)
             start_location = self.get_location(branch, tick)
             self.new_branch_blank = True
             self.closet.time_travel_inc_branch()
             self.new_branch_blank = False
             branch = self.closet.branch
             self.set_location(start_location, branch, tick)
-        self.follow_path(path, branch, tick)
+            self.follow_path(path, branch, tick)
     
     def follow_path(self, path, branch, tick):
         self.end_location(branch, tick)
@@ -348,14 +350,15 @@ other journey I may be on at the time."""
                     if rd2["tick_to"] is None:
                         self.indefinite_locations[branch] = rd2["tick_from"]
 
-    def deepcopy(self):
-        skelly = {}
-        skelly["thing_location"] = {}
-        skelly["thing_location"][str(self.dimension)] = {}
-        skelly["thing_location"][str(self.dimension)][
-            str(self)] = self.closet.skeleton[
-            "thing_location"][str(self.dimension)][
-            str(self)].deepcopy()
-        skelly["timestream"] = self.closet.skeleton["timestream"]
-        uncloset = FakeCloset(skelly)
-        return Thing(uncloset, self.dimension, str(self))
+    def branch_loc_rds(self, branch=None):
+        if branch is None:
+            branch = self.closet.branch
+        return [rd for rd in self.locations[branch].iterrows()]
+
+    def restore_loc_rds(self, rds):
+        for rd in rds:
+            if rd["branch"] not in self.locations:
+                self.locations[rd["branch"]] = []
+            self.locations[rd["branch"]][rd["tick_from"]] = rd
+            if rd["tick_to"] is None:
+                self.indefinite_locations[rd["branch"]] = rd["tick_from"]

@@ -372,7 +372,7 @@ This is game-world time. It doesn't always go forwards.
                 ", ".join(keys),
                 ", ".join(["?"] * len(self.game))),
             tuple([self.game[k] for k in keys]))
-        self.old_skeleton = self.skeleton.deepcopy()
+        self.old_skeleton = self.skeleton.copy()
 
     # TODO: For all these schedule functions, handle the case where I
     # try to schedule something for a time outside of the given
@@ -1135,7 +1135,7 @@ This is game-world time. It doesn't always go forwards.
         self.conn.close()
 
     def checkpoint(self):
-        self.old_skeleton = self.skeleton.deepcopy()
+        self.old_skeleton = self.skeleton.copy()
 
 
 def mkdb(DB_NAME='default.sqlite'):

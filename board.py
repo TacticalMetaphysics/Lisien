@@ -285,7 +285,7 @@ This is meant to be arbitrarily scalable, but it isn't really working."""
         else:
             return self
 
-    def move_with_mouse(self, x, y, dx, dy, button, modifiers):
+    def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         self.view_left -= dx
         self.view_bot -= dy
         if self.view_left < 0:

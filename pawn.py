@@ -276,7 +276,7 @@ class PawnWidget:
     def hover(self, x, y):
         return self
 
-    def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.pawn.drag_offset_x += dx
         self.pawn.drag_offset_y += dy
 
