@@ -1542,7 +1542,6 @@ the branch's current end."""
                 self.branchdict[branch][0], tick_to)
 
 
-
 class FakeCloset:
     def __init__(self, skellike):
         self.skeleton = Skeleton(skellike)
