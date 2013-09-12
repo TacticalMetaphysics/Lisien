@@ -8,7 +8,7 @@ from logging import getLogger
 from sqlite3 import IntegrityError
 from igraph import Graph, Vertex, Edge
 from collections import deque, defaultdict, MutableMapping
-from copy import copy
+from copy import copy, deepcopy
 
 logger = getLogger(__name__)
 
@@ -208,17 +208,19 @@ it comes upon."""
         else:
             return self.typ is list and self.it == other
 
+    def __dict__(self):
+        r = {}
+        for (k, v) in self.iteritems():
+            if isinstance(v, Skeleton):
+                r[k] = v.__dict__()
+            else:
+                r[k] = v
+        return r
+
     def copy(self):
         # Sort of a deep copy but doesn't contain any lineage. Kind of
         # crap really.
-        newness = Skeleton(self.typ())
-        for (k, v) in self.iteritems():
-            if isinstance(v, Skeleton):
-                newness[k] = v.copy()
-            else:
-                assert self.rowdict, "I contain something I shouldn't"
-                newness.it[k] = copy(v)
-        return newness
+        return deepcopy(self.__dict__())
 
     def iteritems(self):
         if self.typ is list:
