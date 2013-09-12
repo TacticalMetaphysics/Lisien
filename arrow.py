@@ -208,9 +208,9 @@ class ArrowWidget:
         self.order = self.window.edge_order
         self.window.edge_order += 1
         self.bggroup = SmoothBoldLineOrderedGroup(
-            0, self.viewport.arrowgroup, self.viewport.arrow_width)
+            0, self.window.arrow_group, self.viewport.arrow_width)
         self.fggroup = BoldLineOrderedGroup(
-            1, self.viewport.arrowgroup, self.viewport.arrow_width)
+            1, self.window.arrow_group, self.viewport.arrow_width)
         self.old_state = None
 
     def __getattr__(self, attrn):
@@ -287,18 +287,21 @@ Take my width into account
         try:
             self.really_draw(ox, oy, dx, dy)
         except:
-            if self.bggroup is not None:
-                try:
-                    self.bggroup.delete()
-                except:
-                    pass
-                self.bggroup = None
-            if self.fggroup is not None:
-                try:
-                    self.fggroup.delete()
-                except:
-                    pass
-                self.fggroup = None
+            self.delete()
+
+    def delete(self):
+        if self.bgvl is not None:
+            try:
+                self.bgvl.delete()
+            except:
+                pass
+            self.bgvl = None
+        if self.fgvl is not None:
+            try:
+                self.fgvl.delete()
+            except:
+                pass
+            self.fgvl = None
 
     def really_draw(self, ox, oy, dx, dy):
         # group had better be viewported

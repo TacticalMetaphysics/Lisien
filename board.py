@@ -219,11 +219,6 @@ This is meant to be arbitrarily scalable, but it isn't really working."""
         self.board.viewports[self.idx] = self
         self.batch = self.window.batch
         self.window.viewport_order += 1
-        self.biggroup = self.window.boardgroup
-        self.bggroup = OrderedGroup(0, self.biggroup)
-        self.arrowgroup = OrderedGroup(1, self.biggroup)
-        self.spotgroup = OrderedGroup(2, self.biggroup)
-        self.pawngroup = OrderedGroup(3, self.biggroup)
         for (k, v) in self.board.pawndict.iteritems():
             self.pawndict[k] = PawnWidget(self, v)
         for (k, v) in self.board.spotdict.iteritems():
@@ -318,7 +313,7 @@ This is meant to be arbitrarily scalable, but it isn't really working."""
                 self.wallpaper.tex,
                 offx, offy,
                 batch=self.batch,
-                group=self.bggroup)
+                group=self.window.board_bg_group)
         for spot in self.spots:
             spot.draw()
         for pawn in self.pawns:

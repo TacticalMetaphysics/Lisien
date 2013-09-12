@@ -323,8 +323,6 @@ class SpotWidget:
     def __init__(self, viewport, spot):
         self.viewport = viewport
         self.window = self.viewport.window
-        self.spritegroup = self.viewport.spotgroup
-        self.boxgroup = self.viewport.spotgroup
         self.batch = self.viewport.batch
         self.spot = spot
         self.place = self.spot.place
@@ -387,7 +385,7 @@ class SpotWidget:
                 self.window_left,
                 self.window_bot,
                 batch=self.batch,
-                group=self.spritegroup)
+                group=self.window.spot_group)
         if self.selected:
             yelo = (255, 255, 0, 0)
             colors = yelo * 4
@@ -403,7 +401,7 @@ class SpotWidget:
                     self.vertlist = self.batch.add_indexed(
                         4,
                         GL_LINES,
-                        self.boxgroup,
+                        self.window.spot_group,
                         (0, 1, 2, 3, 0),
                         ('v2i', points),
                         ('c4b', colors))
@@ -426,32 +424,23 @@ class SpotWidget:
                  self.window_left < self.window.width)):
             self.actually_draw()
         else:
-            if self.sprite is not None:
-                try:
-                    self.sprite.delete()
-                except:
-                    pass
-                self.sprite = None
-            if self.vertlist is not None:
-                try:
-                    self.vertlist.delete()
-                except:
-                    pass
-                self.vertlist = None
-            self.old_window_left = None
-            self.old_window_bot = None
-            return
+            self.delete()
 
 
 
     def delete(self):
-        try:
-            self.sprite.delete()
-        except:
-            pass
-        self.sprite = None
-        try:
-            self.vertlist.delete()
-        except:
-            pass
-        self.vertlist = None
+        if self.sprite is not None:
+            try:
+                self.sprite.delete()
+            except:
+                pass
+            self.sprite = None
+        if self.vertlist is not None:
+            try:
+                self.vertlist.delete()
+            except:
+                pass
+            self.vertlist = None
+        self.old_window_left = None
+        self.old_window_bot = None
+        self.old_points = None

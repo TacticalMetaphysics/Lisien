@@ -93,7 +93,6 @@ With db, register in db's menuitemdict.
         self.menu = menu
         self.closet = self.menu.closet
         self.batch = self.menu.batch
-        self.group = self.menu.labelgroup
         self.window = self.menu.window
         self.idx = idx
         self._rowdict = self.closet.skeleton["menu_item"][
@@ -171,7 +170,7 @@ With db, register in db's menuitemdict.
                     self.icon.tex,
                     l, b,
                     batch=self.batch,
-                    group=self.group)
+                    group=self.window.menu_fg_group)
         if self.text not in ('', None):
             txt = self.text
             color = self.menu.style.textcolor.tup
@@ -198,7 +197,7 @@ With db, register in db's menuitemdict.
                     x=l,
                     y=b,
                     batch=self.batch,
-                    group=self.group)
+                    group=self.window.menu_fg_group)
 
 
 class Menu:
@@ -255,9 +254,6 @@ With db, register with db's menudict.
         self.batch = self.window.batch
         self.closet = self.window.closet
         self._rowdict = self.closet.skeleton["menu"][str(self.window)][str(self)]
-        self.supergroup = OrderedGroup(0, self.window.menugroup)
-        self.bggroup = self.supergroup
-        self.labelgroup = self.supergroup
         self.closet = self.window.closet
         self.active_pattern = pyglet.image.SolidColorImagePattern(
             self.style.bg_active.tup)
@@ -340,7 +336,7 @@ With db, register with db's menudict.
             self.width, self.height)
         self.sprite = pyglet.sprite.Sprite(
             image, self.window_left, self.window_bot,
-            batch=self.batch, group=self.bggroup)
+            batch=self.batch, group=self.window.menu_bg_group)
 
     def delete_sprite(self):
         if self.sprite is not None:

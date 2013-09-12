@@ -143,13 +143,14 @@ class GameWindow(pyglet.window.Window):
         self.dx_hist = deque([], self.dxdy_hist_max)
         self.dy_hist = deque([], self.dxdy_hist_max)
         self.batch = pyglet.graphics.Batch()
-        self.boardgroup = OrderedGroup(0)
-        self.calgroup = OrderedGroup(1)
-        self.handgroup = self.calgroup
-        self.menugroup = self.calgroup
+        self.board_bg_group = OrderedGroup(0)
+        self.arrow_group = OrderedGroup(1)
+        self.spot_group = OrderedGroup(2)
+        self.pawn_group = OrderedGroup(3)
+        self.menu_bg_group = OrderedGroup(4)
+        self.menu_fg_group = OrderedGroup(5)
         self.pickergroup = ScissorOrderedGroup(
             2, None, self, 0.3, 0.6, 0.3, 0.6)
-        self.topgroup = pyglet.graphics.OrderedGroup(3)
         for rd in SkeletonIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
             self.closet.get_board(rd["dimension"], rd["board"])
@@ -529,16 +530,6 @@ and highlight it.
                 color,
                 group,
                 verts[3]))
-
-    def draw_menu(self, menu):
-        menu.draw(self.batch, self.menugroup)
-        for menu_item in menu:
-            if menu_item.label is not None:
-                try:
-                    menu_item.label.delete()
-                except (AttributeError, AssertionError):
-                    pass
-            menu_item.draw(self.batch, menu.labelgroup)
 
     def sensible_calendar_for(self, something):
         """Return a calendar appropriate for representing some schedule-dict

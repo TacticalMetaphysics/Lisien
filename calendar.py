@@ -39,7 +39,7 @@ class Wedge:
         self.bc = bc
         self.color = color_tup
         self.batch = bc.batch
-        self.group = bc.wedgegroup
+        self.window = bc.window
         width = self.bc.calendar.style.spacing * 2
         self.width = width
         height = int(width / phi)
@@ -70,7 +70,7 @@ class Wedge:
             self.vertlist = self.batch.add_indexed(
                 3,
                 GL_TRIANGLES,
-                self.group,
+                self.window.menu_fg_group,
                 (0, 1, 2, 0),
                 ('v2i', points),
                 ('c4B', colors))
@@ -149,9 +149,7 @@ class BranchConnector:
     def __init__(self, calendar, col1, col2, tick):
         self.calendar = calendar
         self.batch = self.calendar.batch
-        self.group = col2.bcgroup
-        self.linegroup = self.group
-        self.wedgegroup = self.group
+        self.window = self.calendar.window
         self.col1 = col1
         self.col2 = col2
         self.tick = tick
@@ -189,7 +187,7 @@ class BranchConnector:
             self.vertlist = self.batch.add_indexed(
                 5,
                 GL_LINES,
-                self.linegroup,
+                self.window.menu_fg_group,
                 indices,
                 ('v2i', points),
                 ('c4B', colors))
@@ -211,6 +209,7 @@ class Handle:
     """The thing on the timeline that you grab to move"""
     def __init__(self, timeline, handle_side):
         self.timeline = timeline
+        self.window = self.timeline.window
         self.on_the_left = handle_side == "left"
         self.vertlist = None
         width = timeline.cal.style.spacing * 2
@@ -246,7 +245,7 @@ class Handle:
 
     def draw(self):
         batch = self.timeline.batch
-        group = self.timeline.col.tlgroup
+        group = self.window.menu_fg_group
         colors = self.timeline.color * 3
         points = (
             self.window_right, self.y,
@@ -304,30 +303,34 @@ for the handle_side keyword argument.
             return self.atrdic[attrn]()
 
     def delete(self):
-        try:
-            self.vertlist.delete()
-        except AttributeError:
-            pass
-        self.vertlist = None
+        if self.vertlist is not None:
+            try:
+                self.vertlist.delete()
+            except AttributeError:
+                pass
+            self.vertlist = None
         self.handle.delete()
 
-    def draw(self):
+    def really_draw(self):
         colors = self.color * 2
         points = (
             self.window_left, self.y,
             self.window_right, self.y)
-        try:
-            self.vertlist.vertices = list(points)
-            self.vertlist.colors = list(colors)
-        except AttributeError:
-            assert(self.vertlist is None)
-            self.vertlist = self.batch.add(
-                2,
-                GL_LINES,
-                self.col.tlgroup,
-                ('v2i', points),
-                ('c4B', colors))
+        self.delete()
+        assert(self.vertlist is None)
+        self.vertlist = self.batch.add(
+            2,
+            GL_LINES,
+            self.window.menu_fg_group,
+            ('v2i', points),
+            ('c4B', colors))
         self.handle.draw()
+
+    def draw(self):
+        if self.col.branch == self.closet.branch:
+            self.really_draw()
+        else:
+            self.delete()
 
 
 class CalendarCellGroup(OrderedGroup):
@@ -424,6 +427,7 @@ represents to calculate its dimensions and coordinates.
         self.calendar = self.column.calendar
         self.batch = self.column.batch
         self.style = self.column.style
+        self.window = self.column.window
         self.tick_from = tick_from
         self.tick_to = tick_to
         self.text = text
@@ -481,7 +485,7 @@ represents to calculate its dimensions and coordinates.
                 halign="center",
                 multiline=True,
                 batch=self.batch,
-                group=self.column.cellgroup)
+                group=self.window.menu_fg_group)
         else:
             self.label.x = l
             self.label.y = t
@@ -493,7 +497,7 @@ represents to calculate its dimensions and coordinates.
             self.vertl = self.batch.add(
                 8,
                 GL_LINES,
-                self.column.cellgroup,
+                self.window.menu_fg_group,
                 ('v2i', vees),
                 ('c4B', colors))
         else:
@@ -684,9 +688,7 @@ time travel.
         self.window = window
         self.closet = self.window.closet
         self.idx = idx
-        self.closet.timestream.update_handlers.add(self)
         self.batch = self.window.batch
-        self.group = self.window.calgroup
         self.old_state = None
         self.tainted = False
         self._rowdict = self.closet.skeleton[
@@ -796,14 +798,6 @@ time travel.
     def on_skel_delete(self, k):
         self.refresh()
 
-    def on_timestream_update(self):
-        for branch in self.closet.timestream.branchdict:
-            self.coldict[branch] = self.make_col(branch)
-            self.cols_shown.add(branch)
-            if len(self.cols_shown) > self.max_cols:
-                self.cols_shown.remove(min(self.cols_shown))
-        self.refresh()
-
 class CalendarColGroup(OrderedGroup):
     order = 0
     def __init__(self, col):
@@ -848,11 +842,6 @@ class CalendarCol:
         self.closet = self.calendar.closet
         self.batch = self.calendar.batch
         self.style = self.calendar.style
-        self.supergroup = CalendarColGroup(self)
-        self.bggroup = OrderedGroup(0, self.supergroup)
-        self.cellgroup = OrderedGroup(1, self.supergroup)
-        self.tlgroup = self.cellgroup
-        self.bcgroup = self.cellgroup
         self.timeline = Timeline(self)
         self.window = self.calendar.window
         self.celldict = {}
@@ -876,13 +865,9 @@ class CalendarCol:
 
     def delete(self):
         logger.debug("Deleting a calendar")
+        self.timeline.delete()
         for cell in self.celldict.itervalues():
             cell.delete()
-        try:
-            self.timeline.delete()
-        except AttributeError:
-            pass
-        self.timeline = None
         try:
             self.vertl.delete()
         except AttributeError:
@@ -927,7 +912,7 @@ class CalendarCol:
         self.image = self.bgpat.create_image(self.width, self.height)
         self.sprite = Sprite(
             self.image, self.window_left, self.window_bot,
-            batch=self.batch, group=self.bggroup)
+            batch=self.batch, group=self.window.menu_bg_group)
 
     def draw(self):
         if self.sprite is None:
@@ -947,12 +932,11 @@ class CalendarCol:
             self.oldbot = self.window_bot
         if hasattr(self, 'bc'):
             self.bc.draw()
-        if (
-                self.closet.branch == self.branch and
-                self.timeline.in_window):
-            self.timeline.draw()
+        self.timeline.draw()
+        if not hasattr(self, 'tlid'):
+            self.tlid = id(self.timeline)
         else:
-            self.timeline.delete()
+            assert(self.tlid == id(self.timeline))
         for cell in self.cells_on_screen:
             cell.draw()
 
