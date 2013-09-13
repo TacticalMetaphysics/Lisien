@@ -952,16 +952,19 @@ class CalendarCol:
         return ";\n".join(strings)
 
     def review(self):
+        logger.debug("Reviewing column for branch {0}".format(self.branch))
         todel = set()
         for cell in self.cells_on_screen:
             if not cell.in_view:
                 todel.add(cell)
+        logger.debug("These cells are no longer on screen:\n" + "\n".join([str(cell) for cell in todel]))
         for cell in todel:
             self.cells_on_screen.discard(cell)
             cell.delete()
         for cell in self.celldict.itervalues():
             if cell.in_view:
                 self.cells_on_screen.add(cell)
+        logger.debug("Here are the cells on screen now:\n" + "\n".join([str(cell) for cell in self.cells_on_screen]))
 
     def refresh(self):
         self.regen_cells()
@@ -1055,9 +1058,11 @@ instead, giving something like "in transit from A to B".
 cannot compute attribute {0}""".format(attrn))
 
     def regen_cells(self):
-        location_ticks = set()
-        for rd in SkeletonIterator(self.locations):
-            location_ticks.add(rd["tick_from"])
+        for cell in self.celldict.itervalues():
+            cell.delete()
+        self.cells_on_screen = set()
+        self.celldict = {}
+        for rd in self.locations.iterrows():
             if rd["tick_from"] not in self.celldict:
                 cell = CalendarCell(
                     self, rd["tick_from"], rd["tick_to"], rd["location"])
@@ -1066,14 +1071,10 @@ cannot compute attribute {0}""".format(attrn))
                 cell = self.celldict[rd["tick_from"]]
             cell.tick_to = rd["tick_to"]
             cell.text = rd["location"]
-        todel = set()
-        for cell in self.celldict.itervalues():
-            if cell.tick_from not in location_ticks:
-                todel.add(cell)
-        for cell in todel:
-            cell.delete()
-            self.cells_on_screen.discard(cell)
-            del self.celldict[cell.tick_from]
+            if cell.in_view:
+                self.cells_on_screen.add(cell)
+
+
 
     def shows_any_ever(self, tick_from, tick_to):
         for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():

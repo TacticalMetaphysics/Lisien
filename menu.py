@@ -331,7 +331,6 @@ With db, register with db's menudict.
                 return item
 
     def draw_sprite(self):
-        logger.debug("Drawin' menu sprite!")
         image = self.inactive_pattern.create_image(
             self.width, self.height)
         self.sprite = pyglet.sprite.Sprite(

@@ -270,7 +270,7 @@ then."""
             tick = self.closet.tick
         if len(self.locations) < branch:
             raise BranchError("Branch not known")
-        if branch in self.indefinite_locations:
+        if branch in self.indefinite_locations and self.indefinite_locations[branch] <= tick:
             tick_from = self.indefinite_locations[branch]
             rd = self.locations[branch][tick_from]
             rd["tick_to"] = tick
@@ -279,12 +279,10 @@ then."""
             for rd in self.locations[branch].iterrows():
                 if rd["tick_from"] < tick and rd["tick_to"] > tick:
                     rd["tick_to"] = tick
-                    return
 
     def journey_to(self, destplace, branch=None, tick=None):
         """Schedule myself to travel to the given place, interrupting whatever
 other journey I may be on at the time."""
-        self.check_locs()
         # TODO if I overwrite my extant travel schedule, overwrite
         # *everything* after the start of this new stuff. Right now,
         # anywhere I'm scheduled to be in a tick after the end of the
@@ -310,16 +308,12 @@ other journey I may be on at the time."""
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
         prevtick = tick + 1
-        self.check_locs()
         locs = self.branch_loc_rds(branch)
-        self.bklocs = locs
-        check_locs(locs)
         try:
             self.follow_path(path, branch, tick)
         except TimeParadox:
             del self.locations[branch]
             self.restore_loc_rds(locs)
-            self.check_locs()
             self.new_branch_blank = True
             increment = 1
             while branch + increment in self.locations:
@@ -331,14 +325,13 @@ other journey I may be on at the time."""
             self.follow_path(path, branch, tick)
     
     def follow_path(self, path, branch, tick):
+        logger.debug("Following path")
         self.end_location(branch, tick)
-        check_locs(self.bklocs)
         prevtick = tick + 1
         for port in path:
             tick_out = self.get_ticks_thru(port) + prevtick
             self.set_location(port, int(branch), int(prevtick), int(tick_out))
             prevtick = tick_out + 1
-        check_locs(self.bklocs)
         destplace = path[-1].dest
         self.set_location(destplace, int(branch), int(prevtick))
         self.update()
@@ -368,9 +361,11 @@ other journey I may be on at the time."""
     def branch_loc_rds(self, branch=None):
         if branch is None:
             branch = self.closet.branch
-        return [rd.__dict__() for rd in self.locations[branch].iterrows()]
+        r = [rd.deepcopy() for rd in self.locations[branch].iterrows()]
+        return r
 
     def restore_loc_rds(self, rds):
+        logger.debug("Restoring locations")
         for rd in rds:
             if rd["branch"] not in self.locations:
                 self.locations[rd["branch"]] = []

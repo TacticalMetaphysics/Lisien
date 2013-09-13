@@ -1153,6 +1153,11 @@ This is game-world time. It doesn't always go forwards.
     def checkpoint(self):
         self.old_skeleton = self.skeleton.copy()
 
+    def check_locs(self):
+        for dimension in self.dimensions:
+            for thing in dimension.things:
+                thing.check_locs()
+
 
 def mkdb(DB_NAME='default.sqlite'):
     def isdir(p):

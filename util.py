@@ -224,6 +224,19 @@ it comes upon."""
         # and I don't want any listeners to get that impression.
         return Skeleton(deepcopy(self.__dict__()))
 
+    def deepcopy(self):
+        # This one DOES contain the lineage
+        if self.rowdict:
+            return Skeleton(self.it, self.parent, self.listeners)
+        elif self.typ is list:
+            it = [inner.deepcopy() for inner in self.it]
+            return Skeleton(it, self.parent, self.listeners)
+        else:
+            it = {}
+            for (k, v) in self.it.iteritems():
+                it[k] = v.deepcopy()
+            return Skeleton(it, self.parent, self.listeners)
+
     def iteritems(self):
         if self.typ is list:
             return ListItemIterator(self.it)
