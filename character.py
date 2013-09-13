@@ -128,6 +128,7 @@ item's name, and the name of the attribute.
         self.statdict = {}
         self.portdict = {}
         self.placedict = {}
+        self.thingdict = {}
         td = self.closet.skeleton
         try:
             self.thingdict = td["character_things"][str(self)]

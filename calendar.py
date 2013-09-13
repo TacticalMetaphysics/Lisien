@@ -3,7 +3,9 @@
 from util import (
     SaveableMetaclass,
     SkeletonIterator,
-    phi)
+    phi,
+    deep_lookup,
+    ScissorOrderedGroup)
 from logging import getLogger
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup, Group
@@ -23,6 +25,37 @@ __metaclass__ = SaveableMetaclass
 
 
 logger = getLogger(__name__)
+
+
+def get_cal_cell_x_y_w_h(cal_cell):
+    return (
+        cal_cell.window_left,
+        cal_cell.window_right,
+        cal_cell.width,
+        cal_cell.height)
+
+
+class ScissorTestOrderedGroup(OrderedGroup):
+    def set_state(self):
+        glEnable(GL_SCISSOR_TEST)
+
+    def unset_state(self):
+        glDisable(GL_SCISSOR_TEST)
+
+
+class CalCellGroup(Group):
+    def __init__(self, parent, x, y, w, h):
+        logger.debug("Using a group at {0}, {1} width {2} height {3}".format(
+                x, y, w, h))
+        super(CalCellGroup, self).__init__(parent)
+        self.tup = (x, y, w, h)
+
+    def set_state(self):
+        glEnable(GL_SCISSOR_TEST)
+        glScissor(*self.tup)
+
+    def unset_state(self):
+        glDisable(GL_SCISSOR_TEST)
 
 
 class Wedge:
@@ -373,27 +406,6 @@ for the handle_side keyword argument.
             self.delete()
 
 
-class CalendarCellGroup(Group):
-    def __init__(self, cell, parent):
-        super(CalendarCellGroup, self).__init__(parent)
-        self.cell = cell
-
-    def gettup(self):
-        return (
-            self.cell.window_left - 1,
-            self.cell.window_bot - 1,
-            self.cell.width + 1,
-            self.cell.height + 1)
-
-    def set_state(self):
-        tup = self.gettup()
-        glScissor(*tup)
-        glEnable(GL_SCISSOR_TEST)
-
-    def unset_state(self):
-        glDisable(GL_SCISSOR_TEST)
-
-
 class CalendarCell:
     """A block of time in a calendar.
 
@@ -401,6 +413,7 @@ Uses information from the CalendarCol it's in and the Event it
 represents to calculate its dimensions and coordinates.
 
     """
+    cell_order = 1
     visible = True
     def get_calendar_bot(self):
         try:
@@ -415,11 +428,6 @@ represents to calculate its dimensions and coordinates.
         self.old_width = self.width
         self.old_height = self.height
         return r
-    def get_height(self):
-        if self.tick_to is None:
-            return self.calendar.height - self.tick_from * self.calendar.row_height
-        else:
-            return self.calendar.row_height * len(self)
 
     atrdic = {
         "interactive": lambda self: self.column.calendar.interactive,
@@ -431,7 +439,10 @@ represents to calculate its dimensions and coordinates.
                                       self.style.spacing),
         "calendar_bot": lambda self: self.get_calendar_bot(),
         "width": lambda self: self.calendar_right - self.calendar_left,
-        "height": lambda self: self.get_height(),
+        "height": lambda self: {
+            True: 1,
+            False: self.calendar.row_height * len(self)
+            }[len(self) == 0],
         "window_left": lambda self: self.calendar_left + self.calendar.window_left,
         "window_right": lambda self: self.calendar_right + self.calendar.window_left,
         "window_top": lambda self: self.calendar_top + self.calendar.window_bot,
@@ -443,6 +454,9 @@ represents to calculate its dimensions and coordinates.
         "same_size": lambda self: self.is_same_size(),
         "label_height": lambda self: self.style.fontsize + self.style.spacing,
         "hovered": lambda self: self is self.window.hovered,
+        "tick_from": lambda self: self._rowdict["tick_from"],
+        "tick_to": lambda self: self._rowdict["tick_to"],
+        "text": lambda self: self.get_text(),
         "coverage_dict": lambda self: {
             CAL_TYPE['THING']: lambda self: self.closet.skeleton[
                 "character_things"][self._rowdict["character"]][
@@ -461,28 +475,30 @@ represents to calculate its dimensions and coordinates.
                 "character_stats"][self._rowdict["character"]][
                     self._rowdict["stat"]]}[self.typ]()}
 
-    def __init__(self, col, tick_from, tick_to, text):
+    def __init__(self, col, rowdict):
         self.column = col
+        self._rowdict = rowdict
         self.calendar = self.column.calendar
         self.batch = self.column.batch
         self.style = self.column.style
         self.window = self.calendar.window
-        self.group = CalendarCellGroup(self, self.window.menu_fg_group)
-        self.tick_from = tick_from
-        self.tick_to = tick_to
-        self.text = text
         self.old_left = None
         self.old_right = None
         self.old_top = None
         self.old_bot = None
+        self.old_label_left = None
+        self.old_label_top = None
+        self.scissor_spots = (None, None, None, None)
         self.vertl = None
         self.label = None
 
     def __len__(self):
+        logger.debug("Computing length for rowdict: {0}".format(self._rowdict))
         if self.tick_to is None:
             r = self.calendar.bot_tick - self.tick_from
         else:
             r = self.tick_to - self.tick_from
+        logger.debug("Got length: {0}".format(r))
         if r < 0:
             return 0
         else:
@@ -509,7 +525,8 @@ represents to calculate its dimensions and coordinates.
             pass
         self.vertl = None
 
-    def draw_label(self, l, t, w, h):
+    def draw_label(self, l, t, w, h, group):
+        logger.debug("Label")
         if self.label is None:
             self.label = Label(
                 self.text,
@@ -525,46 +542,72 @@ represents to calculate its dimensions and coordinates.
                 halign="center",
                 multiline=True,
                 batch=self.batch,
-                group=self.group)
+                group=group)
         else:
-            self.label.x = l
-            self.label.y = t
+            self.label.group = group
+            if self.old_label_left != l:
+                self.label.x = l
+                self.old_label_left = l
+            if self.old_label_top != t:
+                self.label.y = t
+                self.old_label_top = t
 
-    def draw_box(self, l, b, r, t, color):
+    def draw_box(self, l, b, r, t, color, group):
+        logger.debug("Box")
         colors = color * 8
         vees = (l, t, r, t, r, t, r, b, r, b, l, b, l, b, l, t)
         if self.vertl is None:
             self.vertl = self.batch.add(
                 8,
                 GL_LINES,
-                self.group,
+                group,
                 ('v2i', vees),
                 ('c4B', colors))
-        else:
+        elif (l != self.old_left or
+              r != self.old_right or
+              t != self.old_top or
+              b != self.old_bot):
             self.vertl.vertices = vees
+            self.vertl.group = group
+            self.old_left = l
+            self.old_right = r
+            self.old_top = t
+            self.old_bot = b
 
     def draw(self):
+        if self.tick_from == self.tick_to:
+            return
         l = self.window_left
         r = self.window_right
         t = self.window_top
         b = self.window_bot
         black = (0, 0, 0, 255)
+        logger.debug("I will draw {0} with top {1} bot {2}".format(self, t, b))
+        groop = CalCellGroup(
+            self.window.arbitrarigroup,
+            l, b, r - l, t - b)
+        assert t - b > 0, "Top is lower than bottom"
         if t != self.old_top:
-            self.draw_label(l, t, self.width, self.height)
-            self.draw_box(l, b, r, t, black)
-            self.old_top = t
-            self.old_right = r
-            self.old_bot = b
-            self.old_left = l
+            self.draw_label(l, t, self.width, self.height, groop)
+            self.draw_box(l, b, r, t, black, groop)
         elif (
                 l != self.old_left or
                 r != self.old_right or
                 b != self.old_bot):
-            self.draw_box(l, b, r, t, black)
-            self.old_top = t
-            self.old_right = r
-            self.old_bot = b
-            self.old_left = l
+            self.draw_box(l, b, r, t, black, groop)
+
+
+class ThingCalendarCell(CalendarCell):
+    def __init__(self, col, rd, show_location=True):
+        super(ThingCalendarCell, self).__init__(col, rd)
+        self.show_location = show_location
+
+    def get_text(self):
+        if self.show_location:
+            return self._rowdict["location"]
+        else:
+            return self._rowdict["thing"]
+
 
 CAL_TYPE = {
     "THING": 0,
@@ -859,28 +902,6 @@ time travel.
     def on_skel_delete(self, skel, k):
         self.refresh()
 
-class CalendarColGroup(OrderedGroup):
-    order = 0
-    def __init__(self, col):
-        super(CalendarColGroup, self).__init__(
-            CalendarColGroup.order, col.calendar.group)
-        CalendarColGroup.order += 1
-        self.col = col
-
-    def gettup(self):
-        return (
-            self.col.window_left,
-            self.col.window_bot,
-            self.col.width,
-            self.col.height)
-
-    def set_state(self):
-        glEnable(GL_SCISSOR_TEST)
-        glScissor(*self.gettup())
-
-    def unset_state(self):
-        glDisable(GL_SCISSOR_TEST)
-
 class CalendarCol:
     atrdic = {
         "width": lambda self: self.calendar.col_width,
@@ -1058,23 +1079,26 @@ instead, giving something like "in transit from A to B".
 cannot compute attribute {0}""".format(attrn))
 
     def regen_cells(self):
-        for cell in self.celldict.itervalues():
-            cell.delete()
-        self.cells_on_screen = set()
-        self.celldict = {}
+        cells_accounted_for = set()
         for rd in self.locations.iterrows():
             if rd["tick_from"] not in self.celldict:
-                cell = CalendarCell(
-                    self, rd["tick_from"], rd["tick_to"], rd["location"])
+                cell = ThingCalendarCell(self, rd)
                 self.celldict[rd["tick_from"]] = cell
             else:
                 cell = self.celldict[rd["tick_from"]]
-            cell.tick_to = rd["tick_to"]
-            cell.text = rd["location"]
+            cells_accounted_for.add(rd["tick_from"])
+        show = set()
+        unshow = self.celldict.viewkeys() - cells_accounted_for
+        for cell in self.celldict.itervalues():
             if cell.in_view:
-                self.cells_on_screen.add(cell)
-
-
+                show.add(cell)
+            else:
+                unshow.add(cell)
+        for cell in unshow:
+            if cell in self.cells_on_screen:
+                cell.delete()
+                self.cells_on_screen.remove(cell)
+        self.cells_on_screen.update(show)
 
     def shows_any_ever(self, tick_from, tick_to):
         for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
