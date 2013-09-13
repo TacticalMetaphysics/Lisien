@@ -1427,10 +1427,10 @@ length zero.
         return False
 
     def add_edge(self, branch, vert_from, vert_to):
-        assert(branch in self.branchdict)
-        assert(vert_from["tick"] <= vert_to["tick"])
         (vert_from, vi1) = self.sanitize_vert(vert_from)
         (vert_to, vi2) = self.sanitize_vert(vert_to)
+        assert(branch in self.branchdict)
+        assert(vert_from["tick"] <= vert_to["tick"])
         if branch not in self.branch_head:
             self.branch_head[branch] = vert_from
         self.graph.add_edge(vi1, vi2, branch=branch)

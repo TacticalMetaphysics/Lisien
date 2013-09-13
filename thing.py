@@ -4,7 +4,6 @@ from util import (
     SaveableMetaclass,
     LocationException,
     BranchTicksIter,
-    SkeletonIterator,
     TimeParadox,
     TimestreamException,
     FakeCloset)
@@ -16,6 +15,10 @@ __metaclass__ = SaveableMetaclass
 
 logger = getLogger(__name__)
 
+
+def check_locs(locs):
+    for loc in iter(locs):
+        assert(loc["tick_to"] is None or loc["tick_from"] <= loc["tick_to"])
 
 
 class Thing:
@@ -125,7 +128,7 @@ tick in the given branch."""
                 return self.dimension.get_portal(orign, destn)
             else:
                 return self.dimension.get_place(rd["location"])
-        for rd in SkeletonIterator(self.locations[branch]):
+        for rd in self.locations[branch].iterrows():
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 if rd["location"][:6] == "Portal":
                     pstr = rd["location"][6:].strip("()")
@@ -233,7 +236,7 @@ Presupposes that I'm in a portal.
             tick = self.closet.tick
         if len(self.locations) < branch:
             raise LocationException("I am nowhere in that branch")
-        for rd in SkeletonIterator(self.locations[branch]):
+        for rd in self.locations[branch].iterrows():
             if rd["tick_to"] is None:
                 continue
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
@@ -273,7 +276,7 @@ then."""
             rd["tick_to"] = tick
             del self.indefinite_locations[branch]
         else:
-            for rd in SkeletonIterator(self.locations[branch]):
+            for rd in self.locations[branch].iterrows():
                 if rd["tick_from"] < tick and rd["tick_to"] > tick:
                     rd["tick_to"] = tick
                     return
@@ -281,6 +284,7 @@ then."""
     def journey_to(self, destplace, branch=None, tick=None):
         """Schedule myself to travel to the given place, interrupting whatever
 other journey I may be on at the time."""
+        self.check_locs()
         # TODO if I overwrite my extant travel schedule, overwrite
         # *everything* after the start of this new stuff. Right now,
         # anywhere I'm scheduled to be in a tick after the end of the
@@ -306,12 +310,16 @@ other journey I may be on at the time."""
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
         prevtick = tick + 1
+        self.check_locs()
         locs = self.branch_loc_rds(branch)
+        self.bklocs = locs
+        check_locs(locs)
         try:
             self.follow_path(path, branch, tick)
         except TimeParadox:
             del self.locations[branch]
             self.restore_loc_rds(locs)
+            self.check_locs()
             self.new_branch_blank = True
             increment = 1
             while branch + increment in self.locations:
@@ -324,11 +332,13 @@ other journey I may be on at the time."""
     
     def follow_path(self, path, branch, tick):
         self.end_location(branch, tick)
+        check_locs(self.bklocs)
         prevtick = tick + 1
         for port in path:
             tick_out = self.get_ticks_thru(port) + prevtick
             self.set_location(port, int(branch), int(prevtick), int(tick_out))
             prevtick = tick_out + 1
+        check_locs(self.bklocs)
         destplace = path[-1].dest
         self.set_location(destplace, int(branch), int(prevtick))
         self.update()
@@ -338,7 +348,7 @@ other journey I may be on at the time."""
             start_loc = self.get_location(parent, tick)
             self.set_location(start_loc, branch, tick)
             return
-        for rd in SkeletonIterator(self.locations[parent]):
+        for rd in self.locations[parent].iterrows():
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
                 rd2["branch"] = branch
@@ -352,10 +362,13 @@ other journey I may be on at the time."""
                     if rd2["tick_to"] is None:
                         self.indefinite_locations[branch] = rd2["tick_from"]
 
+    def check_locs(self):
+        check_locs(self.locations.iterrows())
+
     def branch_loc_rds(self, branch=None):
         if branch is None:
             branch = self.closet.branch
-        return [rd for rd in self.locations[branch].iterrows()]
+        return [rd.__dict__() for rd in self.locations[branch].iterrows()]
 
     def restore_loc_rds(self, rds):
         for rd in rds:
