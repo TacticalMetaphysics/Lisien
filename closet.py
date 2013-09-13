@@ -1038,7 +1038,10 @@ This is game-world time. It doesn't always go forwards.
         if branch not in self.timestream.branchdict:
             raise Exception(
                 "Tried to time-travel to a branch that didn't exist yet")
-        (parent, tick_from, tick_to) = self.timestream.branchdict[branch]
+        rd = self.timestream.branchdict[branch]
+        parent = rd["parent"]
+        tick_from = rd["tick_from"]
+        tick_to = rd["tick_to"]
         if tick < tick_from or tick > tick_to:
             raise Exception(
                 "Tried to time-travel to a tick that hadn't passed yet")
@@ -1048,11 +1051,15 @@ This is game-world time. It doesn't always go forwards.
         if mi is not None:
             for calendar in mi.window.calendars:
                 calendar.refresh()
+        self.timestream.update()
 
     def more_time(self, branch_from, branch_to, tick_from, tick_to):
+        logger.debug("Making time")
         if branch_to in self.timestream.branchdict:
-            (parent, old_tick_from, old_tick_to) = (
-                self.timestream.branchdict[branch_to])
+            rd = self.timestream.branchdict[branch_to]
+            parent = rd["parent"]
+            old_tick_from = rd["tick_from"]
+            old_tick_to = rd["tick_to"]
             if tick_to < old_tick_from:
                 raise TimestreamException(
                     "Can't make a new branch that starts "
@@ -1060,8 +1067,11 @@ This is game-world time. It doesn't always go forwards.
             if tick_to > old_tick_to:
                 # TODO: This really demands special handling--
                 # STUFF may happen between old_tick_to and tick_to
-                self.timestream.branchdict[branch_to] = (
-                    parent, old_tick_from, tick_to)
+                self.timestream.branchdict[branch_to] = {
+                    "branch": branch_to,
+                    "parent": parent,
+                    "tick_from": old_tick_from,
+                    "tick_to": tick_to}
                 e = self.timestream.latest_edge(branch_to)
                 self.timestream.graph.vs[e.target]["tick"] = tick_to
         else:
@@ -1072,23 +1082,29 @@ This is game-world time. It doesn't always go forwards.
                 tick_to)
             v = self.timestream.graph.vs[e.source]
             self.timestream.branch_head[branch_to] = v
-            self.timestream.branchdict[branch_to] = (
-                branch_from, tick_from, tick_to)
+            self.timestream.branchdict[branch_to] = {
+                "branch": branch_to,
+                "parent": branch_from,
+                "tick_from": tick_from,
+                "tick_to": tick_to}
             for dimension in self.dimensions:
                 dimension.new_branch(branch_from, branch_to, tick_from)
                 for board in dimension.boards:
                     board.new_branch(branch_from, branch_to, tick_from)
             if self.game["hi_branch"] < branch_to:
                 self.game["hi_branch"] = branch_to
+        logger.debug("Updating timestream")
         self.timestream.update()
 
     def increment_branch(self, mi=None, branches=1):
         b = self.branch + int(branches)
         try:
+            logger.debug("Attempting to make more time...")
             self.more_time(
                 self.branch, b,
                 self.tick, self.tick)
         except TimestreamException as te:
+            logger.debug("Failed. Time travelling...")
             if b in self.timestream.branchdict:
                 # The branch already exists, so you can go there, but
                 # it starts later than you're trying to get to, so

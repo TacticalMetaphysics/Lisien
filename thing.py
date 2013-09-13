@@ -56,9 +56,7 @@ too.
             if rd["tick_to"] is None:
                 self.indefinite_locations[rd["branch"]] = rd["tick_from"]
         self.dimension.thingdict[name] = self
-        logger.debug(
-            "Instantiated Thing %s. Its locations are:\n%s",
-            str(self), repr(self.locations))
+        self.branches_in = set()
 
     def __getattr__(self, attrn):
         if attrn == 'location':
@@ -314,12 +312,14 @@ other journey I may be on at the time."""
         except TimeParadox:
             del self.locations[branch]
             self.restore_loc_rds(locs)
-            start_location = self.get_location(branch, tick)
             self.new_branch_blank = True
-            self.closet.time_travel_inc_branch()
+            increment = 1
+            while branch + increment in self.locations:
+                increment += 1
+            self.closet.time_travel_inc_branch(branches=increment)
+            self.dimension.check_thing_id(self)
             self.new_branch_blank = False
             branch = self.closet.branch
-            self.set_location(start_location, branch, tick)
             self.follow_path(path, branch, tick)
     
     def follow_path(self, path, branch, tick):
@@ -335,6 +335,8 @@ other journey I may be on at the time."""
 
     def new_branch(self, parent, branch, tick):
         if self.new_branch_blank:
+            start_loc = self.get_location(parent, tick)
+            self.set_location(start_loc, branch, tick)
             return
         for rd in SkeletonIterator(self.locations[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:

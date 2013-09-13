@@ -746,8 +746,12 @@ time travel.
                     self._rowdict["dimension"]][
                     self._rowdict["thing"]]
         self.cols_shown = set()
-        self.coldict = {0: self.make_col(0)}
-        self.cols_shown.add(0)
+        self.coldict = {}
+        for branch in self.closet.timestream.branchdict:
+            self.coldict[branch] = self.make_col(branch)
+            self.cols_shown.add(branch)
+            if len(self.cols_shown) > self.max_cols:
+                self.cols_shown.remove(min(self.cols_shown))
         for i in xrange(0, self.closet.hi_branch):
             self.coldict[i] = self.make_col(i)
         for i in xrange(0, self.max_cols - 1):
@@ -810,8 +814,11 @@ time travel.
     def rearrow(self):
         for coli in self.cols_shown:
             col1 = self.coldict[coli]
-            (parent, tick_from, tick_to) = self.closet.timestream.branchdict[
+            rd = self.closet.timestream.branchdict[
                 col1.branch]
+            parent = rd["parent"]
+            tick_from = rd["tick_from"]
+            tick_to = rd["tick_to"]
             if hasattr(col1, 'bc'):
                 col1.bc.delete()
             col2 = None

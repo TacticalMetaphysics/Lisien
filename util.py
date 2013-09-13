@@ -144,9 +144,9 @@ it comes upon."""
         if self.typ is list:
             self[k] = self.subtype()
         else:
+            del self.it[k]
             for listener in self.listeners:
                 listener.on_skel_delete((self,), k)
-            del self.it[k]
         if self.parent is not None:
             self.parent.on_child_delete((self,), k)
 
@@ -218,9 +218,11 @@ it comes upon."""
         return r
 
     def copy(self):
-        # Sort of a deep copy but doesn't contain any lineage. Kind of
-        # crap really.
-        return deepcopy(self.__dict__())
+        # Sort of a deep copy but doesn't contain any lineage. This is
+        # actually what I want when I'm doing "set difference,"
+        # because then I'm not deleting anything from the original,
+        # and I don't want any listeners to get that impression.
+        return Skeleton(deepcopy(self.__dict__()))
 
     def iteritems(self):
         if self.typ is list:
@@ -1310,10 +1312,7 @@ class Timestream:
         td = self.closet.skeleton
         self.branch_edges = defaultdict(set)
         self.branch_done_to = defaultdict(lambda: -1)
-        self.branchdict = {}
-        for rd in SkeletonIterator(td["timestream"]):
-            self.branchdict[rd["branch"]] = (
-                rd["parent"], rd["tick_from"], rd["tick_to"])
+        self.branchdict = td["timestream"]
         self.graph = Graph(directed=True)
         self.graph.add_vertices(2)
         self.graph.vs["tick"] = [0, 0]
@@ -1352,8 +1351,12 @@ be on the same tick, in which case they are connected by an edge of
 length zero.
 
         """
-        for (branch, (parent, tick_from, tick_to)) in self.branchdict.iteritems():
+        logger.debug("Updating timestream. Former branchdict: {0}".format(self.branchdict))
+        for (branch, rd) in self.branchdict.iteritems():
             done_to = self.branch_done_to[branch]
+            parent = rd["parent"]
+            tick_from = rd["tick_from"]
+            tick_to = rd["tick_to"]
             if tick_to > done_to:
                 # I am now looking at a tick-window that has not been
                 # put into the graph yet.
@@ -1371,7 +1374,7 @@ length zero.
                         growth = tick_to - v["tick"]
                         v["tick"] += growth
                     # Otherwise there's not really much to do here.
-                else:
+                elif branch not in self.branchdict:
                     # I assume that this dict reflects the genealogy
                     # of the branches accurately
                     try:
@@ -1382,11 +1385,14 @@ length zero.
                         self.graph.add_vertices(2)
                         self.graph.vs["tick"] = [0, tick_to]
                         self.graph.add_edge(0, 1, branch=0)
-                        eid =self.graph.get_eid(0, 1)
+                        eid = self.graph.get_eid(0, 1)
                         self.branch_edges[0].add(eid)
+                else:
+                    self.extend_branch_to(branch, tick_to)
             self.branch_done_to[branch] = tick_to
             for handler in self.update_handlers:
                 handler.on_timestream_update()
+        logger.debug("Latter branchdict: {0}".format(self.branchdict))
 
     def get_edge_len(self, e):
         if isinstance(e, int):
@@ -1422,17 +1428,28 @@ length zero.
 
     def add_edge(self, branch, vert_from, vert_to):
         assert(branch in self.branchdict)
+        assert(vert_from["tick"] <= vert_to["tick"])
         (vert_from, vi1) = self.sanitize_vert(vert_from)
         (vert_to, vi2) = self.sanitize_vert(vert_to)
+        if branch not in self.branch_head:
+            self.branch_head[branch] = vert_from
         self.graph.add_edge(vi1, vi2, branch=branch)
         eid = self.graph.get_eid(vi1, vi2)
         self.branch_edges[branch].add(eid)
-        (p, a, z) = self.branchdict[branch]
-        if vert_from["tick"] < self.branchdict[branch][1]:
+        p = self.branchdict[branch]["parent"]
+        if vert_from["tick"] < self.branchdict[branch]["tick_from"]:
             a = vert_from["tick"]
-        if vert_to["tick"] > self.branchdict[branch][2]:
+        else:
+            a = self.branchdict[branch]["tick_from"]
+        if vert_to["tick"] > self.branchdict[branch]["tick_to"]:
             z = vert_to["tick"]
-        self.branchdict[branch] = (p, a, z)
+        else:
+            z = self.branchdict[branch]["tick_to"]
+        self.branchdict[branch] = {
+            "branch": branch,
+            "parent": p,
+            "tick_from": a,
+            "tick_to": z}
         return self.graph.es[eid]
 
     def delete_edge(self, e):
@@ -1532,7 +1549,10 @@ new_branch.
 
         """
         assert(new_branch not in self.branchdict)
-        self.branchdict[new_branch] = (old_branch, tick_from, tick_to)
+        self.branchdict[new_branch] = {
+            "parent": old_branch,
+            "tick_from": tick_from,
+            "tick_to": tick_to}
         e = self.get_edge_from_branch_tick(old_branch, tick_from)
         if e is None:
             vseq = self.graph.vs(tick_eq=tick_from)
@@ -1562,19 +1582,22 @@ tick."""
         edge = self.latest_edge(branch)
         vert = self.graph.vs[edge.target]
         vert["tick"] += n
-        self.branchdict[branch] = (
-            self.branchdict[branch][0], self.branchdict.branch[1] + n)
+        self.branchdict[branch]["tick_to"] += n
 
     def extend_branch_to(self, branch, tick_to):
         """Make the branch end on the given tick, but only if it is later than
 the branch's current end."""
-        edge = self.latest_edge(branch)
+        try:
+            edge = self.latest_edge(branch)
+        except KeyError:
+            v1 = self.add_vert(0)
+            v2 = self.add_vert(tick_to)
+            return self.add_edge(branch, v1, v2)
         vert = self.graph.vs[edge.target]
         if tick_to > vert["tick"]:
             vert["tick"] = tick_to
-        if tick_to > self.branchdict[branch][1]:
-            self.branchdict[branch] = (
-                self.branchdict[branch][0], tick_to)
+        if tick_to > self.branchdict[branch]["tick_to"]:
+            self.branchdict[branch]["tick_to"] = tick_to
 
 
 class FakeCloset:
