@@ -34,23 +34,21 @@ each board will be open in at most one window at a time.
         ("board",
          {"dimension": "text not null default 'Physical'",
           "idx": "integer not null default 0",
-          "wallpaper": "text not null default 'default_wallpaper'",
-          "width": "integer not null default 4000",
-          "height": "integer not null default 3000"},
+          "wallpaper": "text not null default 'default_wallpaper'"},
          ("dimension", "idx"),
          {"wallpaper": ("img", "name")},
          [])]
     atrdic = {
         "wallpaper": lambda self: self.closet.get_img(
             self._rowdict["wallpaper"]),
+        "width": lambda self: self.wallpaper.tex.width,
+        "height": lambda self: self.wallpaper.tex.height,
         "places": lambda self: iter(self.dimension.places),
         "portals": lambda self: iter(self.dimension.portals),
         "things": lambda self: iter(self.dimension.things),
         "pawns": lambda self: self.pawndict.itervalues(),
         "spots": lambda self: self.spotdict.itervalues(),
-        "arrows": lambda self: self.arrowdict.itervalues(),
-        "width": lambda self: self._rowdict["width"],
-        "height": lambda self: self._rowdict["height"]}
+        "arrows": lambda self: self.arrowdict.itervalues()}
 
     def __init__(self, closet, dimension, idx):
         """Return a board representing the given dimension.

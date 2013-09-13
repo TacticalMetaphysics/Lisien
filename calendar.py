@@ -381,9 +381,9 @@ class CalendarCellGroup(Group):
     def gettup(self):
         return (
             self.cell.window_left - 1,
-            self.cell.window_bot,
+            self.cell.window_bot - 1,
             self.cell.width + 1,
-            self.cell.height)
+            self.cell.height + 1)
 
     def set_state(self):
         tup = self.gettup()

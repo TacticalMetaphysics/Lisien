@@ -36,12 +36,11 @@ screen = display.get_default_screen()
 
 
 class TransparencyGroup(pyglet.graphics.Group):
-    pass
-    # def set_state(self):
-    #     pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
+     def set_state(self):
+         pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
 
-    # def unset_state(self):
-    #     pyglet.gl.glDisable(pyglet.gl.GL_BLEND)
+     def unset_state(self):
+         pyglet.gl.glDisable(pyglet.gl.GL_BLEND)
 
 
 class TransparencyOrderedGroup(
