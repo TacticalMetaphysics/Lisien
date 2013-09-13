@@ -827,11 +827,11 @@ def dictify_row(row, colnames):
 
 
 def deep_lookup(dic, keylst):
-    key = keylst.pop(0)
+    key = keylst.pop()
     ptr = dic
     while keylst != []:
         ptr = ptr[key]
-        key = keylst.pop(0)
+        key = keylst.pop()
     return ptr[key]
 
 
@@ -1059,19 +1059,6 @@ class TerminableInteractivity:
                     self.indefinite_interactivity[branch] = rd2["tick_from"]
 
 
-class ScissorGroup(pyglet.graphics.Group):
-    def __init__(self, parent, x, y, w, h):
-        super(ScissorGroup, self).__init__(parent)
-        self.dims = (x, y, w, h)
-
-    def set_state(self):
-        pyglet.gl.glScissor(*self.dims)
-        pyglet.gl.glEnable(pyglet.gl.GL_SCISSOR_TEST)
-
-    def unset_state(self):
-        pyglet.gl.glDisable(pyglet.gl.GL_SCISSOR_TEST)
-
-
 class ViewportOrderedGroup(pyglet.graphics.OrderedGroup):
     def __init__(self, order, parent, view):
         super(ViewportOrderedGroup, self).__init__(order, parent)
@@ -1195,16 +1182,34 @@ class SkeletonIterator:
 
 
 class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
-    def __init__(self, order, parent, tup_getter):
+    def __init__(self, order, parent, window, left, top, bot, right, proportional=True):
         super(ScissorOrderedGroup, self).__init__(order, parent)
-        self.tup_getter = tup_getter
+        self.window = window
+        self.left = left
+        self.top = top
+        self.bot = bot
+        self.right = right
+        self.proportional = proportional
 
     def set_state(self):
+        if self.proportional:
+            l = int(self.left * self.window.width)
+            b = int(self.bot * self.window.height)
+            r = int(self.right * self.window.width)
+            t = int(self.top * self.window.height)
+        else:
+            l = self.left
+            b = self.bot
+            r = self.right
+            t = self.top
+        w = r - l
+        h = t - b
+        pyglet.gl.glScissor(l, b, w, h)
         pyglet.gl.glEnable(pyglet.gl.GL_SCISSOR_TEST)
-        pyglet.gl.glScissor(*self.tup_getter())
 
     def unset_state(self):
         pyglet.gl.glDisable(pyglet.gl.GL_SCISSOR_TEST)
+
 
 class PortalException(Exception):
     """Exception raised when a Thing tried to move into or out of or along

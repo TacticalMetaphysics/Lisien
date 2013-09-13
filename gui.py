@@ -149,8 +149,7 @@ class GameWindow(pyglet.window.Window):
         self.menu_bg_group = OrderedGroup(4)
         self.menu_fg_group = OrderedGroup(5)
         self.pickergroup = ScissorOrderedGroup(
-            6, None, lambda: (0.3, 0.6, 0.3, 0.6))
-        self.arbitrarigroup = OrderedGroup(7)
+            2, None, self, 0.3, 0.6, 0.3, 0.6)
         for rd in SkeletonIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
             self.closet.get_board(rd["dimension"], rd["board"])

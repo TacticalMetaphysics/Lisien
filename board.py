@@ -61,8 +61,7 @@ each board will be open in at most one window at a time.
         self.spotdict = {}
         self.arrowdict = {}
         self.viewports = []
-        self._rowdict = self.closet.skeleton["board"][
-            str(self.dimension)][int(self)]
+        self._rowdict = self.closet.skeleton["board"][str(self.dimension)][int(self)]
         while len(self.dimension.boards) <= self.idx:
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
