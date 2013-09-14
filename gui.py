@@ -286,12 +286,6 @@ class GameWindow(pyglet.window.Window):
             self.picker.draw(self.batch, self.pickergroup)
         for menu in self.menus:
             menu.draw()
-        for calendar in self.calendars:
-            if calendar is not None:
-                if calendar.tainted:
-                    calendar.review()
-                calendar.tainted = False
-                calendar.draw()
         for hand in self.hands:
             hand.draw()
         for viewport in self.viewports:
@@ -299,6 +293,12 @@ class GameWindow(pyglet.window.Window):
         # well, I lied. I was really only adding those things to the batch.
         # NOW I'll draw them.
         self.batch.draw()
+        for calendar in self.calendars:
+            if calendar is not None:
+                if calendar.tainted:
+                    calendar.review()
+                calendar.tainted = False
+                calendar.draw()
         if self.checkpoint:
             self.closet.checkpoint()
             self.checkpoint = False

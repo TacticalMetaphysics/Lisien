@@ -6,7 +6,7 @@ from util import (
     phi)
 from logging import getLogger
 from pyglet.text import Label
-from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup, Group
+from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup, Group, vertex_list
 from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST
 from pyglet.image import SolidColorImagePattern
 from pyglet.sprite import Sprite
@@ -524,24 +524,20 @@ represents to calculate its dimensions and coordinates.
                 anchor_y="top",
                 halign="center",
                 multiline=True,
-                batch=self.batch,
                 group=self.group)
         else:
             self.label.x = l
             self.label.y = t
+        self.label.draw()
 
     def draw_box(self, l, b, r, t, color):
         colors = color * 8
         vees = (l, t, r, t, r, t, r, b, r, b, l, b, l, b, l, t)
         if self.vertl is None:
-            self.vertl = self.batch.add(
-                8,
-                GL_LINES,
-                self.group,
-                ('v2i', vees),
-                ('c4B', colors))
-        else:
-            self.vertl.vertices = vees
+            self.vertl = vertex_list(8, 'v2i', 'c4B')
+        self.vertl.vertices = vees
+        self.vertl.colors = colors
+        self.vertl.draw(GL_LINES)
 
     def draw(self):
         l = self.window_left
@@ -549,22 +545,12 @@ represents to calculate its dimensions and coordinates.
         t = self.window_top
         b = self.window_bot
         black = (0, 0, 0, 255)
-        if t != self.old_top:
-            self.draw_label(l, t, self.width, self.height)
-            self.draw_box(l, b, r, t, black)
-            self.old_top = t
-            self.old_right = r
-            self.old_bot = b
-            self.old_left = l
-        elif (
-                l != self.old_left or
-                r != self.old_right or
-                b != self.old_bot):
-            self.draw_box(l, b, r, t, black)
-            self.old_top = t
-            self.old_right = r
-            self.old_bot = b
-            self.old_left = l
+        self.draw_label(l, t, self.width, self.height)
+        self.draw_box(l, b, r, t, black)
+        self.old_top = t
+        self.old_right = r
+        self.old_bot = b
+        self.old_left = l
 
 CAL_TYPE = {
     "THING": 0,
