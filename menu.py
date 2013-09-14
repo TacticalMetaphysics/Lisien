@@ -91,6 +91,7 @@ visible or doesn't; and starts interactive or doesn't.
 With db, register in db's menuitemdict.
 
         """
+        self.log_draw = False
         self.menu = menu
         self.closet = self.menu.closet
         self.batch = self.menu.batch
@@ -118,11 +119,16 @@ With db, register in db's menuitemdict.
 
         self.old_window_left = 0
         self.old_window_bot = 0
-        self.old_label_text = ''
-        self.old_label_color = (0, 0, 0, 0)
-        self.old_label_x = 0
-        self.old_label_y = 0
+        self.stencil = None
+        self.stencil_x = None
+        self.stencil_y = None
+        self.stencil_color = None
+        self.stencil_txt = None
         self.label = None
+        self.label_x = None
+        self.label_y = None
+        self.label_txt = None
+        self.label_color = None
         self.sprite = None
 
     def __int__(self):
@@ -131,7 +137,12 @@ With db, register in db's menuitemdict.
     def __getattr__(self, attrn):
         return self.atrdic[attrn](self)
 
+    def __repr__(self):
+        return "MenuItem({0})".format(self.text)
+
     def onclick(self, x, y, button, modifiers):
+        logger.debug("Clicked {0} at ({1}, {2})".format(self, x, y))
+        self.log_draw = True
         return self.on_click(self)
 
     def overlaps(self, x, y):
@@ -155,10 +166,67 @@ With db, register in db's menuitemdict.
                 pass
             self.sprite = None
 
-    def draw(self):
-        b = self.window_bot
-        l = self.window_left
-        if self.icon is not None:
+    def _really_draw_label(self, attrn, grp, l, b, txt, color, face, size):
+        logger.debug("_really_draw_label({0})".format(", ".join((attrn, str(grp), str(l), str(b), txt, str(color), face, str(size)))))
+        oldlabel = getattr(self, attrn)
+        if oldlabel is None:
+            logger.debug("Drawing label for {0} at ({1},{2})".format(self, l, b))
+            newlabel = pyglet.text.Label(
+                txt,
+                face,
+                size,
+                x=l,
+                y=b,
+                batch=self.batch,
+                group=grp)
+            setattr(self, attrn, newlabel)
+        else:
+            try:
+                oldtxt = getattr(self, attrn + "_txt")
+                if oldtxt != txt:
+                    oldlabel.text = txt
+                    setattr(self, attrn + "_txt", txt)
+                oldcolor = getattr(self, attrn + "_color")
+                if oldcolor != color:
+                    oldlabel.color = color
+                    setattr(self, attrn + "_color", color)
+                oldx = getattr(self, attrn + "_x")
+                if oldx != l:
+                    oldlabel.x = l
+                    setattr(self, attrn + "_x", l)
+                oldy = getattr(self, attrn + "_y")
+                if oldy != b:
+                    oldlabel.y = b
+                    setattr(self, attrn + "_y", b)
+            except AttributeError:
+                setattr(self, attrn, None)
+                self.draw_label(attrn, grp, l, b, txt, color)
+
+    def _draw_label(self, l, b, txt, color, face, size):
+        # make sure the background doesn't overwrite last frame's copy of me
+        self._really_draw_label(
+            'stencil', self.window.menu_stencil_group,
+            l, b, txt, (255, 255, 255, 255), face, size)
+        self._really_draw_label(
+            'label', self.window.menu_fg_group,
+            l, b, txt, color, face, size)
+
+    def _delete_label(self):
+        if self.label is not None:
+            try:
+                self.label.delete()
+            except AttributeError:
+                pass
+            self.label = None
+        if self.stencil is not None:
+            try:
+                self.stencil.delete()
+            except AttributeError:
+                pass
+            self.stencil = None
+
+    def _draw_sprite(self, l, b):
+        if self.sprite is not None:
             try:
                 if self.old_window_left != l:
                     self.sprite.x = l
@@ -167,38 +235,41 @@ With db, register in db's menuitemdict.
                     self.sprite.y = b
                     self.old_window_bot = b
             except AttributeError:
-                self.sprite = pyglet.sprite.Sprite(
-                    self.icon.tex,
-                    l, b,
-                    batch=self.batch,
-                    group=self.window.menu_fg_group)
+                pass
+        else:
+            self.sprite = pyglet.sprite.Sprite(
+                self.icon.tex,
+                l, b,
+                batch=self.batch,
+                group=self.window.menu_fg_group)
+
+    def _delete_sprite(self):
+        if self.sprite is not None:
+            try:
+                self.sprite.delete()
+            except AttributeError:
+                pass
+            self.sprite = None
+
+    def draw(self):
+        b = self.window_bot
+        l = self.window_left
+        if self.log_draw:
+            logger.debug("Drawing {0} at ({1},{2})".format(self, l, b))
+            self.log_draw = False
+        if self.icon is not None:
+            self._draw_sprite(l, b)
+        else:
+            self._delete_sprite()
         if self.text not in ('', None):
             txt = self.text
             color = self.menu.style.textcolor.tup
+            face = self.menu.style.fontface
+            size = self.menu.style.fontsize
             l = self.label_window_left
-            try:
-                if self.old_label_text != txt:
-                    self.label.text = self.text
-                    self.old_label_text = txt
-                if self.old_label_color != color:
-                    self.label.color = self.menu.style.textcolor.tup
-                    self.old_label_color = color
-                if self.old_label_x != l:
-                    self.label.x = l
-                    self.old_label_x = l
-                if self.old_label_y != b:
-                    self.label.y = b
-                    self.old_label_y = b
-            except AttributeError:
-                self.label = pyglet.text.Label(
-                    self.text,
-                    self.menu.style.fontface,
-                    self.menu.style.fontsize,
-                    color=self.menu.style.textcolor.tup,
-                    x=l,
-                    y=b,
-                    batch=self.batch,
-                    group=self.window.menu_fg_group)
+            self._draw_label(l, b, txt, color, face, size)
+        else:
+            self._delete_label()
 
 
 class Menu:

@@ -32,7 +32,7 @@ class PicPanel:
 
     def __getattr__(self, attrn):
         try:
-            return self.atrdic[attrn]()
+            return self.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
                 "PicPanel instance has no attribute named " + attrn)
@@ -102,7 +102,7 @@ will be assigned to that attribute of the window the picker is in.
     atrdic = {
         "window_left": lambda self: int(self.left_prop * self.window.width),
         "window_right": lambda self: int(self.right_prop * self.window.width),
-        "window_top": lambda self: int(self.top_prop * sel.window.height),
+        "window_top": lambda self: int(self.top_prop * self.window.height),
         "window_bot": lambda self: int(self.bot_prop * self.window.height),
         "width": lambda self: self.window_right - self.window_left,
         "height": lambda self: self.window_top - self.window_bot,
@@ -237,18 +237,14 @@ will be assigned to that attribute of the window the picker is in.
         self.scrolled_px -= rowheight
         self.scrolled_to_row -= 1
 
-    def draw(self, batch, group):
-        if (
-                not hasattr(self, 'pickerbggroup') or
-                self.pickerbggroup is None):
-            self.pickerbggroup = OrderedGroup(0, group)
+    def draw(self):
         self.sprite = Sprite(
             self.bgimg,
             self.window_left,
             self.window_bot,
-            batch=batch,
-            group=pickerbggroup)
+            batch=self.window.batch,
+            group=self.window.menu_bg_group)
         self.layout()
         for pixrow in self.pixrows:
             for pic in pixrow:
-                pic.draw(batch, group)
+                pic.draw(self.window.batch, self.window.menu_bg_group)

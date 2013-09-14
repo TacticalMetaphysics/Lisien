@@ -1,6 +1,21 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
+from pyglet.gl import (
+    GL_EQUAL,
+    GL_KEEP,
+    GL_REPLACE,
+    GL_ALWAYS,
+    GL_STENCIL_TEST,
+    GL_STENCIL_BUFFER_BIT,
+    GL_TRUE,
+    GL_FALSE,
+    glStencilFunc,
+    glStencilOp,
+    glEnable,
+    glDisable,
+    glClear,
+    glColorMask)
 import logging
 from util import (
     SaveableMetaclass,
@@ -19,7 +34,6 @@ from collections import deque
 
 OrderedGroup = pyglet.graphics.OrderedGroup
 Group = pyglet.graphics.Group
-
 
 class SaveableWindowMetaclass(
         pyglet.window._WindowMetaclass, SaveableMetaclass):
@@ -47,6 +61,28 @@ class TransparencyOrderedGroup(
         pyglet.graphics.OrderedGroup,
         TransparencyGroup):
     pass
+
+
+class StencillingOrderedGroup(pyglet.graphics.OrderedGroup):
+    def set_state(self):
+        glEnable(GL_STENCIL_TEST)
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE)
+        glClear(GL_STENCIL_BUFFER_BIT)
+        glStencilFunc(GL_ALWAYS, GL_TRUE, GL_TRUE)
+
+    def unset_state(self):
+        glDisable(GL_STENCIL_TEST)
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
+
+
+class StencilledOrderedGroup(pyglet.graphics.OrderedGroup):
+    def set_state(self):
+        glEnable(GL_STENCIL_TEST)
+        glStencilFunc(GL_EQUAL, GL_FALSE, GL_TRUE)
+        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
+
+    def unset_state(self):
+        glDisable(GL_STENCIL_TEST)
 
 
 class MousySpot:
@@ -142,14 +178,18 @@ class GameWindow(pyglet.window.Window):
         self.dx_hist = deque([], self.dxdy_hist_max)
         self.dy_hist = deque([], self.dxdy_hist_max)
         self.batch = pyglet.graphics.Batch()
-        self.board_bg_group = OrderedGroup(0)
-        self.arrow_group = OrderedGroup(1)
-        self.spot_group = OrderedGroup(2)
-        self.pawn_group = OrderedGroup(3)
-        self.menu_bg_group = OrderedGroup(4)
-        self.menu_fg_group = OrderedGroup(5)
+        self.board_stencil_group = StencillingOrderedGroup(0)
+        self.board_group = StencilledOrderedGroup(1)
+        self.board_bg_group = OrderedGroup(0, self.board_group)
+        self.arrow_group = OrderedGroup(1, self.board_group)
+        self.spot_group = OrderedGroup(2, self.board_group)
+        self.pawn_group = OrderedGroup(3, self.board_group)
+        self.menu_stencil_group = StencillingOrderedGroup(2)
+        self.menu_group = OrderedGroup(3)
+        self.menu_bg_group = StencilledOrderedGroup(0, self.menu_group)
+        self.menu_fg_group = OrderedGroup(1, self.menu_group)
         self.pickergroup = ScissorOrderedGroup(
-            2, None, self, 0.3, 0.6, 0.3, 0.6)
+            2, self.menu_group, self, 0.3, 0.6, 0.3, 0.6)
         for rd in SkeletonIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
             self.closet.get_board(rd["dimension"], rd["board"])
@@ -283,7 +323,7 @@ class GameWindow(pyglet.window.Window):
                 height < self.min_height):
             self.set_minimum_size(self.min_width, self.min_height)
         if self.picker is not None:
-            self.picker.draw(self.batch, self.pickergroup)
+            self.picker.draw()
         for menu in self.menus:
             menu.draw()
         for calendar in self.calendars:
