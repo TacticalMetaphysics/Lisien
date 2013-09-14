@@ -3,7 +3,6 @@
 from util import SaveableMetaclass
 import re
 import pyglet
-from pyglet.graphics import OrderedGroup
 from logging import getLogger
 
 
@@ -55,7 +54,6 @@ class MenuItem:
                     self.icon.width +
                     self.menu.style.spacing)
 
-
     atrdic = {
         "closer": lambda self: self._rowdict["closer"],
         "_text": lambda self: self._rowdict["text"],
@@ -65,12 +63,15 @@ class MenuItem:
         "text": lambda self: self.gettxt(),
         "hovered": lambda self: self.window.hovered is self,
         "pressed": lambda self: self.window.pressed is self,
-        "window_left": lambda self: self.menu.window_left + self.menu.style.spacing,
+        "window_left": lambda self: (
+            self.menu.window_left + self.menu.style.spacing),
         "label_window_left": lambda self: self.lwl(),
-        "window_right": lambda self: self.menu.window_right - self.menu.style.spacing,
+        "window_right": lambda self: (
+            self.menu.window_right - self.menu.style.spacing),
         "label_window_right": lambda self: self.window_right,
         "width": lambda self: self.window_right - self.window_left,
-        "height": lambda self: self.menu.style.fontsize + self.menu.style.spacing,
+        "height": lambda self: (
+            self.menu.style.fontsize + self.menu.style.spacing),
         "window_top": lambda self: self.menu.window_top - (
             self.idx * self.height),
         "window_bot": lambda self: self.window_top - self.height,
@@ -165,7 +166,7 @@ With db, register in db's menuitemdict.
                 if self.old_window_bot != b:
                     self.sprite.y = b
                     self.old_window_bot = b
-            except:
+            except AttributeError:
                 self.sprite = pyglet.sprite.Sprite(
                     self.icon.tex,
                     l, b,
@@ -188,7 +189,7 @@ With db, register in db's menuitemdict.
                 if self.old_label_y != b:
                     self.label.y = b
                     self.old_label_y = b
-            except:
+            except AttributeError:
                 self.label = pyglet.text.Label(
                     self.text,
                     self.menu.style.fontface,
@@ -231,7 +232,8 @@ class Menu:
         "height": lambda self: self.window_top - self.window_bot,
         "rx": lambda self: self.width / 2,
         "ry": lambda self: self.height / 2,
-        "r": lambda self: {True: rx, False: ry}[rx > ry],
+        "r": lambda self: {True: self.rx, False: self.ry
+                           }[self.rx > self.ry],
         "state": lambda self: self.get_state_tup()}
     interactive = True
 
@@ -253,7 +255,8 @@ With db, register with db's menudict.
         self.name = name
         self.batch = self.window.batch
         self.closet = self.window.closet
-        self._rowdict = self.closet.skeleton["menu"][str(self.window)][str(self)]
+        self._rowdict = self.closet.skeleton[
+            "menu"][str(self.window)][str(self)]
         self.closet = self.window.closet
         self.active_pattern = pyglet.image.SolidColorImagePattern(
             self.style.bg_active.tup)
@@ -268,7 +271,9 @@ With db, register with db's menudict.
         self.pressed = False
         self.freshly_adjusted = False
         self.visible = False
-        self_rowdict = self.closet.skeleton["menu"][
+        self.image = self.inactive_pattern.create_image(
+            self.width, self.height)
+        self._rowdict = self.closet.skeleton["menu"][
             str(self.window)][str(self)]
 
     def __str__(self):
@@ -331,10 +336,8 @@ With db, register with db's menudict.
                 return item
 
     def draw_sprite(self):
-        image = self.inactive_pattern.create_image(
-            self.width, self.height)
         self.sprite = pyglet.sprite.Sprite(
-            image, self.window_left, self.window_bot,
+            self.image, self.window_left, self.window_bot,
             batch=self.batch, group=self.window.menu_bg_group)
 
     def delete_sprite(self):
@@ -358,19 +361,21 @@ With db, register with db's menudict.
             coords = (self.window_left, self.window_bot)
             w = self.width
             h = self.height
-            for item in self.items:
-                item.draw()
-            if self.sprite is None:
-                self.draw_sprite()
-            elif self.oldwidth != w or self.oldheight != h:
+            if w != self.oldwidth or h != self.oldheight:
+                self.image = self.inactive_pattern.create_image(
+                    self.width, self.height)
                 old_sprite = self.sprite
                 self.draw_sprite()
                 try:
                     old_sprite.delete()
                 except AttributeError:
                     pass
+            elif self.sprite is None:
+                self.draw_sprite()
             elif self.oldcoords != coords:
                 self.sprite.set_position(*coords)
+            for item in self.items:
+                item.draw()
             self.oldwidth = w
             self.oldheight = h
             self.oldcoords = coords
