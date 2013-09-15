@@ -148,9 +148,8 @@ class GameWindow(pyglet.window.Window):
         self.pawn_group = OrderedGroup(3)
         self.menu_bg_group = OrderedGroup(4)
         self.menu_fg_group = OrderedGroup(5)
-        self.menu_text_group = OrderedGroup(6)
         self.pickergroup = ScissorOrderedGroup(
-            2, self.menu_fg_group, self, 0.3, 0.6, 0.3, 0.6)
+            2, None, self, 0.3, 0.6, 0.3, 0.6)
         for rd in SkeletonIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
             self.closet.get_board(rd["dimension"], rd["board"])
@@ -287,6 +286,12 @@ class GameWindow(pyglet.window.Window):
             self.picker.draw(self.batch, self.pickergroup)
         for menu in self.menus:
             menu.draw()
+        for calendar in self.calendars:
+            if calendar is not None:
+                if calendar.tainted:
+                    calendar.review()
+                calendar.tainted = False
+                calendar.draw()
         for hand in self.hands:
             hand.draw()
         for viewport in self.viewports:
@@ -294,12 +299,6 @@ class GameWindow(pyglet.window.Window):
         # well, I lied. I was really only adding those things to the batch.
         # NOW I'll draw them.
         self.batch.draw()
-        for calendar in self.calendars:
-            if calendar is not None:
-                if calendar.tainted:
-                    calendar.review()
-                calendar.tainted = False
-                calendar.draw()
         if self.checkpoint:
             self.closet.checkpoint()
             self.checkpoint = False
@@ -307,6 +306,8 @@ class GameWindow(pyglet.window.Window):
     def on_resize(self, w, h):
         for calendar in self.calendars:
             calendar.tainted = True
+        for viewport in self.viewports:
+            viewport.moved = True
         super(GameWindow, self).on_resize(w, h)
 
     def on_mouse_press(self, x, y, button, modifiers):

@@ -6,7 +6,7 @@ from util import (
     phi)
 from logging import getLogger
 from pyglet.text import Label
-from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup, Group, vertex_list
+from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup, Group
 from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST
 from pyglet.image import SolidColorImagePattern
 from pyglet.sprite import Sprite
@@ -64,16 +64,14 @@ class Wedge:
             l, t,
             r, t)
         colors = self.bc.color * 3
-        try:
-            self.vertlist.vertices = list(points)
-        except AttributeError:
-            self.vertlist = self.batch.add_indexed(
-                3,
-                GL_TRIANGLES,
-                self.window.menu_fg_group,
-                (0, 1, 2, 0),
-                ('v2i', points),
-                ('c4B', colors))
+        self.delete()
+        self.vertlist = self.batch.add_indexed(
+            3,
+            GL_TRIANGLES,
+            self.window.menu_fg_group,
+            (0, 1, 2, 0),
+            ('v2i', points),
+            ('c4B', colors))
 
     def delete(self):
         if self.vertlist is not None:
@@ -174,22 +172,15 @@ class BranchConnector:
             indices = (0, 1, 1, 2, 2, 3)
         else:
             indices = (0, 1)
-        try:
-            if points != self.oldpoints:
-                self.vertlist.vertices = points
-                self.oldpoints = points
-            if indices != self.oldindices:
-                self.vertlist.indices = indices
-                self.oldindices = indices
-        except AttributeError:
-            colors = self.color * 5
-            self.vertlist = self.batch.add_indexed(
-                5,
-                GL_LINES,
-                self.window.menu_fg_group,
-                indices,
-                ('v2i', points),
-                ('c4B', colors))
+        self.delete()
+        colors = self.color * 5
+        self.vertlist = self.batch.add_indexed(
+            5,
+            GL_LINES,
+            self.window.menu_fg_group,
+            indices,
+            ('v2i', points),
+            ('c4B', colors))
         if self.wedge_visible:
             self.wedge.draw()
         else:
@@ -373,6 +364,27 @@ for the handle_side keyword argument.
             self.delete()
 
 
+class CalendarCellGroup(Group):
+    def __init__(self, cell, parent):
+        super(CalendarCellGroup, self).__init__(parent)
+        self.cell = cell
+
+    def gettup(self):
+        return (
+            self.cell.window_left - 1,
+            self.cell.window_bot - 1,
+            self.cell.width + 1,
+            self.cell.height + 1)
+
+    def set_state(self):
+        tup = self.gettup()
+        glScissor(*tup)
+        glEnable(GL_SCISSOR_TEST)
+
+    def unset_state(self):
+        glDisable(GL_SCISSOR_TEST)
+
+
 class CalendarCell:
     """A block of time in a calendar.
 
@@ -409,7 +421,7 @@ represents to calculate its dimensions and coordinates.
                                       (self.tick_from - self.calendar.scrolled_to) -
                                       self.style.spacing),
         "calendar_bot": lambda self: self.get_calendar_bot(),
-        "width": lambda self: self.window_right - self.window_left,
+        "width": lambda self: self.calendar_right - self.calendar_left,
         "height": lambda self: self.get_height(),
         "window_left": lambda self: self.calendar_left + self.calendar.window_left,
         "window_right": lambda self: self.calendar_right + self.calendar.window_left,
@@ -446,6 +458,7 @@ represents to calculate its dimensions and coordinates.
         self.batch = self.column.batch
         self.style = self.column.style
         self.window = self.calendar.window
+        self.group = CalendarCellGroup(self, self.window.menu_fg_group)
         self.tick_from = tick_from
         self.tick_to = tick_to
         self.text = text
@@ -488,42 +501,31 @@ represents to calculate its dimensions and coordinates.
         self.vertl = None
 
     def draw_label(self, l, t, w, h):
-        if l != self.old_left or t != self.old_top or w != self.old_right - self.old_left or h != self.old_top - self.old_bot:
-            if self.label is None:
-                self.label = Label(
-                    self.text,
-                    self.style.fontface,
-                    self.style.fontsize,
-                    color=self.style.textcolor.tup,
-                    width=w,
-                    height=h,
-                    x=l,
-                    y=t,
-                    anchor_x="left",
-                    anchor_y="top",
-                    halign="center",
-                    multiline=False,
-                    batch=self.window.batch,
-                    group=self.window.menu_text_group)
-            else:
-                self.label.x = l
-                self.label.y = t
-            while self.label.content_width > self.width:
-                self.label.text = self.label.text[:-1]
+        self.label = Label(
+            self.text,
+            self.style.fontface,
+            self.style.fontsize,
+            color=self.style.textcolor.tup,
+            width=w,
+            height=h,
+            x=l,
+            y=t,
+            anchor_x="left",
+            anchor_y="top",
+            halign="center",
+            multiline=True,
+            batch=self.batch,
+            group=self.group)
 
     def draw_box(self, l, b, r, t, color):
         colors = color * 8
         vees = (l, t, r, t, r, t, r, b, r, b, l, b, l, b, l, t)
-        if self.old_left != l or self.old_bot != b or self.old_top != t or self.old_right != r:
-            if self.vertl is None:
-                self.vertl = self.window.batch.add(
-                    8,
-                    GL_LINES,
-                    self.window.menu_fg_group,
-                    ('v2i', vees),
-                    ('c4b', colors))
-            else:
-                self.vertl.vertices = vees
+        self.vertl = self.batch.add(
+            8,
+            GL_LINES,
+            self.group,
+            ('v2i', vees),
+            ('c4B', colors))
 
     def draw(self):
         l = self.window_left
@@ -531,12 +533,9 @@ represents to calculate its dimensions and coordinates.
         t = self.window_top
         b = self.window_bot
         black = (0, 0, 0, 255)
+        self.delete()
         self.draw_label(l, t, self.width, self.height)
         self.draw_box(l, b, r, t, black)
-        self.old_top = t
-        self.old_right = r
-        self.old_bot = b
-        self.old_left = l
 
 CAL_TYPE = {
     "THING": 0,

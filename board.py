@@ -198,6 +198,9 @@ This is meant to be arbitrarily scalable, but it isn't really working."""
         "pawns": lambda self: self.pawndict.itervalues()}
 
     def __init__(self, closet, window, dimension, board, idx):
+        self.moved = True
+        self.bgsprite = None
+        self.bgregion = None
         self.closet = closet
         self.window = window
         self.dimension = dimension
@@ -284,6 +287,7 @@ This is meant to be arbitrarily scalable, but it isn't really working."""
             return self
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
+        self.moved = True
         self.view_left -= dx
         self.view_bot -= dy
         if self.view_left < 0:
@@ -296,22 +300,16 @@ This is meant to be arbitrarily scalable, but it isn't really working."""
             self.view_bot = self.board.height - self.height
 
     def draw(self):
-        offx = self.offset_x
-        offy = self.offset_y
-        try:
-
-            if offx != self.old_offset_x:
-                self.bgsprite.x = offx
-                self.old_offset_x = offx
-            if offy != self.old_offset_y:
-                self.bgsprite.y = self.offset_y
-                self.old_offset_y = offy
-        except:
+        if self.moved:
+            self.bgregion = self.wallpaper.tex.get_region(
+                self.view_left, self.view_bot,
+                self.window.width, self.window.height)
             self.bgsprite = Sprite(
-                self.wallpaper.tex,
-                offx, offy,
+                self.bgregion,
+                0, 0,
                 batch=self.batch,
                 group=self.window.board_bg_group)
+            self.moved = False
         for spot in self.spots:
             spot.draw()
         for pawn in self.pawns:
