@@ -373,27 +373,6 @@ for the handle_side keyword argument.
             self.delete()
 
 
-class CalendarCellGroup(Group):
-    def __init__(self, cell, parent):
-        super(CalendarCellGroup, self).__init__(parent)
-        self.cell = cell
-
-    def gettup(self):
-        return (
-            self.cell.window_left - 1,
-            self.cell.window_bot - 1,
-            self.cell.width + 1,
-            self.cell.height + 1)
-
-    def set_state(self):
-        tup = self.gettup()
-        glScissor(*tup)
-        glEnable(GL_SCISSOR_TEST)
-
-    def unset_state(self):
-        glDisable(GL_SCISSOR_TEST)
-
-
 class CalendarCell:
     """A block of time in a calendar.
 
@@ -430,7 +409,7 @@ represents to calculate its dimensions and coordinates.
                                       (self.tick_from - self.calendar.scrolled_to) -
                                       self.style.spacing),
         "calendar_bot": lambda self: self.get_calendar_bot(),
-        "width": lambda self: self.calendar_right - self.calendar_left,
+        "width": lambda self: self.window_right - self.window_left,
         "height": lambda self: self.get_height(),
         "window_left": lambda self: self.calendar_left + self.calendar.window_left,
         "window_right": lambda self: self.calendar_right + self.calendar.window_left,
@@ -467,7 +446,6 @@ represents to calculate its dimensions and coordinates.
         self.batch = self.column.batch
         self.style = self.column.style
         self.window = self.calendar.window
-        self.group = CalendarCellGroup(self, self.window.menu_fg_group)
         self.tick_from = tick_from
         self.tick_to = tick_to
         self.text = text
@@ -510,34 +488,42 @@ represents to calculate its dimensions and coordinates.
         self.vertl = None
 
     def draw_label(self, l, t, w, h):
-        if self.label is None:
-            self.label = Label(
-                self.text,
-                self.style.fontface,
-                self.style.fontsize,
-                color=self.style.textcolor.tup,
-                width=w,
-                height=h,
-                x=l,
-                y=t,
-                anchor_x="left",
-                anchor_y="top",
-                halign="center",
-                multiline=True,
-                group=self.group)
-        else:
-            self.label.x = l
-            self.label.y = t
-        self.label.draw()
+        if l != self.old_left or t != self.old_top or w != self.old_right - self.old_left or h != self.old_top - self.old_bot:
+            if self.label is None:
+                self.label = Label(
+                    self.text,
+                    self.style.fontface,
+                    self.style.fontsize,
+                    color=self.style.textcolor.tup,
+                    width=w,
+                    height=h,
+                    x=l,
+                    y=t,
+                    anchor_x="left",
+                    anchor_y="top",
+                    halign="center",
+                    multiline=False,
+                    batch=self.window.batch,
+                    group=self.window.menu_text_group)
+            else:
+                self.label.x = l
+                self.label.y = t
+            while self.label.content_width > self.width:
+                self.label.text = self.label.text[:-1]
 
     def draw_box(self, l, b, r, t, color):
         colors = color * 8
         vees = (l, t, r, t, r, t, r, b, r, b, l, b, l, b, l, t)
-        if self.vertl is None:
-            self.vertl = vertex_list(8, 'v2i', 'c4B')
-        self.vertl.vertices = vees
-        self.vertl.colors = colors
-        self.vertl.draw(GL_LINES)
+        if self.old_left != l or self.old_bot != b or self.old_top != t or self.old_right != r:
+            if self.vertl is None:
+                self.vertl = self.window.batch.add(
+                    8,
+                    GL_LINES,
+                    self.window.menu_fg_group,
+                    ('v2i', vees),
+                    ('c4b', colors))
+            else:
+                self.vertl.vertices = vees
 
     def draw(self):
         l = self.window_left
