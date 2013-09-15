@@ -8,10 +8,8 @@ from logging import getLogger
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup, Group, vertex_list
 from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST
-from pyglet.gl.lib import GLException
 from pyglet.image import SolidColorImagePattern
 from pyglet.sprite import Sprite
-from pyglet.font import load as load_font
 
 """User's view on a given item's schedule.
 
@@ -456,10 +454,7 @@ represents to calculate its dimensions and coordinates.
         self.old_top = None
         self.old_bot = None
         self.vertl = None
-        self.sprite = None
-        self.image = None
-        self.font = load_font(self.style.fontface)
-        self.glyphs = self.font.get_glyphs(self.text)
+        self.label = None
 
     def __len__(self):
         if self.tick_to is None:
@@ -481,18 +476,16 @@ represents to calculate its dimensions and coordinates.
         return "{0} from {1} to {2}".format(self.text, self.tick_from, self.tick_to)
 
     def delete(self):
-        if self.sprite is not None:
-            try:
-                self.sprite.delete()
-            except AttributeError:
-                pass
-            self.label = None
-        if self.vertl is not None:
-            try:
-                self.vertl.delete()
-            except AttributeError:
-                pass
-            self.vertl = None
+        try:
+            self.label.delete()
+        except AttributeError:
+            pass
+        self.label = None
+        try:
+            self.vertl.delete()
+        except AttributeError:
+            pass
+        self.vertl = None
 
     def draw_label(self, l, t, w, h):
         if l != self.old_left or t != self.old_top or w != self.old_right - self.old_left or h != self.old_top - self.old_bot:
@@ -501,7 +494,6 @@ represents to calculate its dimensions and coordinates.
                     self.text,
                     self.style.fontface,
                     self.style.fontsize,
-                    dpi=self.style.dpi,
                     color=self.style.textcolor.tup,
                     width=w,
                     height=h,
@@ -516,22 +508,13 @@ represents to calculate its dimensions and coordinates.
             else:
                 self.label.x = l
                 self.label.y = t
-            # truncate the label so it fits in the cell.
-            # Label's idea of width is somehow different than mine.
-            while self.label.content_width - 30 > self.width:
+            while self.label.content_width > self.width:
                 self.label.text = self.label.text[:-1]
 
-    def draw_box(self):
-        l = self.window_left
-        r = self.window_right
-        t = self.window_top
-        b = self.window_bot
-        colors = self.style.bg_inactive.tup * 8
+    def draw_box(self, l, b, r, t, color):
+        colors = color * 8
         vees = (l, t, r, t, r, t, r, b, r, b, l, b, l, b, l, t)
-        if ( self.old_left != l or
-             self.old_bot != b or
-             self.old_top != t or
-             self.old_right != r):
+        if self.old_left != l or self.old_bot != b or self.old_top != t or self.old_right != r:
             if self.vertl is None:
                 self.vertl = self.window.batch.add(
                     8,
@@ -541,45 +524,19 @@ represents to calculate its dimensions and coordinates.
                     ('c4b', colors))
             else:
                 self.vertl.vertices = vees
-            self.old_left = l
-            self.old_bot = b
-            self.old_top = t
-            self.old_right = r
 
     def draw(self):
-        if self.width <= 0 or self.height <= 0:
-            return
-        if ( self.image is None or
-             self.image.width != self.width or
-             self.image.height != self.height):
-            logger.debug("Creating CalendarCell text image")
-            new_texture = SolidColorImagePattern((255, 255, 255, 0)).create_image(self.width, self.height).get_texture()
-            x = 0
-            glyphs = list(self.glyphs)
-            while x < new_texture.width and glyphs != []:
-                glyph = glyphs.pop(0)
-                glyph_data = glyph.get_image_data()
-                new_texture.blit_into(glyph_data, x, self.height/2, 0)
-                x += glyph_data.width
-            self.image = new_texture.get_transform(flip_y=True)
-        if ( self.sprite is None or
-             self.sprite.width != self.width or
-             self.sprite.height != self.height):
-            logger.debug("Creating CalendarCell sprite")
-            if self.sprite is not None:
-                try:
-                    self.sprite.delete()
-                except AttributeError:
-                    pass
-                self.sprite = None
-            self.sprite = Sprite(
-                self.image, self.window_left, self.window_top - self.height,
-                batch=self.window.batch, group=self.window.menu_text_group)
-        elif (
-            self.sprite.x != self.window_left or
-            self.sprite.y != self.window_bot):
-            self.sprite.set_position(self.window_left, self.window_bot)
-        self.draw_box()
+        l = self.window_left
+        r = self.window_right
+        t = self.window_top
+        b = self.window_bot
+        black = (0, 0, 0, 255)
+        self.draw_label(l, t, self.width, self.height)
+        self.draw_box(l, b, r, t, black)
+        self.old_top = t
+        self.old_right = r
+        self.old_bot = b
+        self.old_left = l
 
 CAL_TYPE = {
     "THING": 0,
@@ -874,6 +831,28 @@ time travel.
     def on_skel_delete(self, skel, k):
         self.refresh()
 
+class CalendarColGroup(OrderedGroup):
+    order = 0
+    def __init__(self, col):
+        super(CalendarColGroup, self).__init__(
+            CalendarColGroup.order, col.calendar.group)
+        CalendarColGroup.order += 1
+        self.col = col
+
+    def gettup(self):
+        return (
+            self.col.window_left,
+            self.col.window_bot,
+            self.col.width,
+            self.col.height)
+
+    def set_state(self):
+        glEnable(GL_SCISSOR_TEST)
+        glScissor(*self.gettup())
+
+    def unset_state(self):
+        glDisable(GL_SCISSOR_TEST)
+
 class CalendarCol:
     atrdic = {
         "width": lambda self: self.calendar.col_width,
@@ -1051,7 +1030,6 @@ instead, giving something like "in transit from A to B".
 cannot compute attribute {0}""".format(attrn))
 
     def regen_cells(self):
-        logger.debug("Generating LocationCalendarCol cells")
         for cell in self.celldict.itervalues():
             cell.delete()
         self.cells_on_screen = set()
