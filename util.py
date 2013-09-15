@@ -1181,9 +1181,9 @@ class SkeletonIterator:
         raise StopIteration
 
 
-class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
-    def __init__(self, order, parent, window, left, top, bot, right, proportional=True):
-        super(ScissorOrderedGroup, self).__init__(order, parent)
+class ScissorGroup(pyglet.graphics.Group):
+    def __init__(self, parent, window, left, top, bot, right, proportional=True):
+        super(ScissorGroup, self).__init__(parent)
         self.window = window
         self.left = left
         self.top = top

@@ -76,6 +76,7 @@ that contain text."""
          {"name": "text not null",
           "fontface": "text not null",
           "fontsize": "integer not null",
+          "dpi": "integer not null default 96",
           "textcolor": "text not null",
           "spacing": "integer default 6",
           "bg_inactive": "text not null",
@@ -112,6 +113,7 @@ With db, register in its styledict.
         elif attrn in (
                 "fontface",
                 "fontsize",
+                "dpi",
                 "spacing"):
             return self._rowdict[attrn]
         else:

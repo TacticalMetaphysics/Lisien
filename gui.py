@@ -6,7 +6,7 @@ from util import (
     SaveableMetaclass,
     fortyfive,
     SkeletonIterator,
-    ScissorOrderedGroup)
+    ScissorGroup)
 from math import atan, cos, sin
 from arrow import ArrowWidget
 from menu import Menu, MenuItem
@@ -149,8 +149,7 @@ class GameWindow(pyglet.window.Window):
         self.menu_bg_group = OrderedGroup(4)
         self.menu_fg_group = OrderedGroup(5)
         self.menu_text_group = OrderedGroup(6)
-        self.pickergroup = ScissorOrderedGroup(
-            2, self.menu_fg_group, self, 0.3, 0.6, 0.3, 0.6)
+        self.pickergroup = ScissorGroup(self.menu_fg_group, self, 0.3, 0.6, 0.3, 0.6)
         for rd in SkeletonIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
             self.closet.get_board(rd["dimension"], rd["board"])

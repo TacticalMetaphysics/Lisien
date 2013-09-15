@@ -211,7 +211,7 @@ class Menu:
           'bot': "float not null default 0.0",
           'top': 'float not null default 1.0',
           'right': 'float not null default 0.2',
-          'style': "text not null default 'SmallDark'"},
+          'style': "text not null default 'SmallLight'"},
          ("window", 'name'),
          {"window": ("window", "name"),
           "style": ("style", "name")},
