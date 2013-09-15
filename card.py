@@ -230,7 +230,7 @@ class CardWidget:
     def unhovered(self):
         self.hovered = False
 
-    def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         if self.grabpoint is None:
             self.oldx = x
             self.oldy = y

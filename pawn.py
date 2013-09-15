@@ -247,8 +247,6 @@ class PawnWidget:
         self.closet = self.pawn.closet
         self.viewport = viewport
         self.batch = self.viewport.batch
-        self.spritegroup = self.viewport.pawngroup
-        self.boxgroup = self.viewport.pawngroup
         self.window = self.viewport.window
         self.old_window_left = None
         self.old_window_bot = None
@@ -278,7 +276,7 @@ class PawnWidget:
     def hover(self, x, y):
         return self
 
-    def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.pawn.drag_offset_x += dx
         self.pawn.drag_offset_y += dy
 
@@ -337,7 +335,7 @@ If it DOES have anything else to do, make the journey in another branch.
                 self.window_left,
                 self.window_bot,
                 batch=self.batch,
-                group=self.spritegroup)
+                group=self.window.pawn_group)
         if self.selected:
             yelo = (255, 255, 0, 255)
             colors = yelo * 4
@@ -353,7 +351,7 @@ If it DOES have anything else to do, make the journey in another branch.
                     self.vertlist = self.batch.add_indexed(
                         4,
                         GL_LINES,
-                        self.boxgroup,
+                        self.window.pawn_group,
                         (0, 1, 1, 2, 2, 3, 3, 0),
                         ('v2i', points),
                         ('c4B', colors))

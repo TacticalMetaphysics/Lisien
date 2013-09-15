@@ -36,12 +36,11 @@ screen = display.get_default_screen()
 
 
 class TransparencyGroup(pyglet.graphics.Group):
-    pass
-    # def set_state(self):
-    #     pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
+     def set_state(self):
+         pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
 
-    # def unset_state(self):
-    #     pyglet.gl.glDisable(pyglet.gl.GL_BLEND)
+     def unset_state(self):
+         pyglet.gl.glDisable(pyglet.gl.GL_BLEND)
 
 
 class TransparencyOrderedGroup(
@@ -143,13 +142,14 @@ class GameWindow(pyglet.window.Window):
         self.dx_hist = deque([], self.dxdy_hist_max)
         self.dy_hist = deque([], self.dxdy_hist_max)
         self.batch = pyglet.graphics.Batch()
-        self.boardgroup = OrderedGroup(0)
-        self.calgroup = OrderedGroup(1)
-        self.handgroup = self.calgroup
-        self.menugroup = self.calgroup
+        self.board_bg_group = OrderedGroup(0)
+        self.arrow_group = OrderedGroup(1)
+        self.spot_group = OrderedGroup(2)
+        self.pawn_group = OrderedGroup(3)
+        self.menu_bg_group = OrderedGroup(4)
+        self.menu_fg_group = OrderedGroup(5)
         self.pickergroup = ScissorOrderedGroup(
             2, None, self, 0.3, 0.6, 0.3, 0.6)
-        self.topgroup = pyglet.graphics.OrderedGroup(3)
         for rd in SkeletonIterator(self.closet.skeleton[
                 "board_viewport"][str(self)]):
             self.closet.get_board(rd["dimension"], rd["board"])
@@ -306,6 +306,8 @@ class GameWindow(pyglet.window.Window):
     def on_resize(self, w, h):
         for calendar in self.calendars:
             calendar.tainted = True
+        for viewport in self.viewports:
+            viewport.moved = True
         super(GameWindow, self).on_resize(w, h)
 
     def on_mouse_press(self, x, y, button, modifiers):
@@ -434,12 +436,12 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         """If the thing previously pressed has a
-move_with_mouse method, use it.
+on_mouse_drag method, use it.
      """
         if self.grabbed is None:
             self.grabbed = self.pressed
-        elif hasattr(self.grabbed, 'move_with_mouse'):
-            self.grabbed.move_with_mouse(x, y, dx, dy, buttons, modifiers)
+        elif hasattr(self.grabbed, 'on_mouse_drag'):
+            self.grabbed.on_mouse_drag(x, y, dx, dy, buttons, modifiers)
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         # for now, this only does anything if you're moused over
@@ -529,16 +531,6 @@ and highlight it.
                 color,
                 group,
                 verts[3]))
-
-    def draw_menu(self, menu):
-        menu.draw(self.batch, self.menugroup)
-        for menu_item in menu:
-            if menu_item.label is not None:
-                try:
-                    menu_item.label.delete()
-                except (AttributeError, AssertionError):
-                    pass
-            menu_item.draw(self.batch, menu.labelgroup)
 
     def sensible_calendar_for(self, something):
         """Return a calendar appropriate for representing some schedule-dict

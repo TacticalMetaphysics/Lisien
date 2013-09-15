@@ -8,7 +8,7 @@ from logging import getLogger
 from sqlite3 import IntegrityError
 from igraph import Graph, Vertex, Edge
 from collections import deque, defaultdict, MutableMapping
-from copy import copy
+from copy import copy, deepcopy
 
 logger = getLogger(__name__)
 
@@ -57,7 +57,8 @@ it comes upon."""
         "rowdict": lambda self: self.isrowdict()
         }
 
-    def __init__(self, it, listeners=None):
+    def __init__(self, it, parent=None, listeners=None):
+        self.parent = parent
         if listeners is None:
             self.listeners = set()
         else:
@@ -71,6 +72,8 @@ it comes upon."""
             self.typ = list
         elif isinstance(it, Skeleton):
             self.typ = it.typ
+            if self.parent is None:
+                self.parent = it.parent
         else:
             raise ValueError(
                 "Skeleton may only contain dict or list.")
@@ -94,8 +97,10 @@ it comes upon."""
                     "That part of the skeleton is empty "
                     "and I can't decide how to fill it. "
                     "If you want to help out, set my subtype.")
+            i = 0
             while len(self.it) <= k:
-                self.it.append(Skeleton(self.subtype()))
+                self.it.append(Skeleton(self.subtype(), parent=self))
+                i += 1
             return self.it[k]
         else:
             return self.it[k]
@@ -116,23 +121,34 @@ it comes upon."""
             else:
                 raise ValueError(
                     "This level of the Skeleton can only hold Skeleton-alikes.")
+            i = 0
             while len(self.it) <= k:
-                self.it.append(Skeleton(newtyp()))
+                self.it.append(Skeleton(newtyp(), parent=self))
+                i += 1
         elif self.rowdict:
             assert(v.__class__ not in (list, dict, Skeleton))
             self.it[k] = v
+            for listener in self.listeners:
+                listener.on_skel_set((self,), k, v)
+            if self.parent is not None:
+                self.parent.on_child_set((self,), k, v)
             return
+        nuval = Skeleton(v, parent=self)
+        self.it[k] = nuval
         for listener in self.listeners:
-            listener.on_skel_set(k, v)
-        self.it[k] = Skeleton(v)
+            listener.on_skel_set((self,), k, nuval)
+        if self.parent is not None:
+            self.parent.on_child_set((self,), k, nuval)
 
     def __delitem__(self, k):
         if self.typ is list:
-            self.it[k] = None
+            self[k] = self.subtype()
         else:
-            for listener in self.listeners:
-                listener.on_skel_delete(k)
             del self.it[k]
+            for listener in self.listeners:
+                listener.on_skel_delete((self,), k)
+        if self.parent is not None:
+            self.parent.on_child_delete((self,), k)
 
     def __contains__(self, what):
         if self.typ is list:
@@ -150,8 +166,8 @@ it comes upon."""
         return len(self.it)
 
     def __add__(self, other):
-        newness = self.deepcopy()
-        newness += other.deepcopy()
+        newness = self.copy()
+        newness += other.copy()
         return newness
 
     def __iadd__(self, other):
@@ -159,8 +175,8 @@ it comes upon."""
         return self
 
     def __sub__(self, other):
-        newness = self.deepcopy()
-        newness -= other.deepcopy()
+        newness = self.copy()
+        newness -= other.copy()
         return newness
 
     def __isub__(self, other):
@@ -192,19 +208,34 @@ it comes upon."""
         else:
             return self.typ is list and self.it == other
 
-    def copy(self):
-        # Shallow copy
-        return Skeleton(self.it)
-
-    def deepcopy(self):
-        newness = Skeleton(self.typ())
+    def __dict__(self):
+        r = {}
         for (k, v) in self.iteritems():
             if isinstance(v, Skeleton):
-                newness[k] = v.deepcopy()
+                r[k] = v.__dict__()
             else:
-                assert self.rowdict, "I contain something I shouldn't"
-                newness.it[k] = copy(v)
-        return newness
+                r[k] = v
+        return r
+
+    def copy(self):
+        # Sort of a deep copy but doesn't contain any lineage. This is
+        # actually what I want when I'm doing "set difference,"
+        # because then I'm not deleting anything from the original,
+        # and I don't want any listeners to get that impression.
+        return Skeleton(deepcopy(self.__dict__()))
+
+    def deepcopy(self):
+        # This one DOES contain the lineage
+        if self.rowdict:
+            return Skeleton(self.it, self.parent, self.listeners)
+        elif self.typ is list:
+            it = [inner.deepcopy() for inner in self.it]
+            return Skeleton(it, self.parent, self.listeners)
+        else:
+            it = {}
+            for (k, v) in self.it.iteritems():
+                it[k] = v.deepcopy()
+            return Skeleton(it, self.parent, self.listeners)
 
     def iteritems(self):
         if self.typ is list:
@@ -252,7 +283,7 @@ it comes upon."""
             kitr = ListItemIterator(skellike)
         for (k, v) in kitr:
             if v.__class__ in (dict, list):
-                v = Skeleton(v)
+                v = Skeleton(v, parent=self)
                 if v.rowdict:
                     self[k] = v
                     continue
@@ -271,13 +302,32 @@ it comes upon."""
                     newtyp = self.subtype
                 else:
                     newtyp = v.typ
+                i=0
                 while len(self.it) <= k:
-                    self.it.append(Skeleton(newtyp()))
+                    self.it.append(Skeleton(newtyp(), parent=self))
+                    i+=1
                 if isinstance(self.it[k], Skeleton):
                     self.it[k].update(v)
                 else:
                     self.it[k] = v
 
+    def on_child_set(self, child, k, v):
+        chain = (self, child)
+        for listener in self.listeners:
+            listener.on_skel_set(chain, k, v)
+        if self.parent is not None:
+            self.parent.on_child_set(chain, k, v)
+
+    def on_child_delete(self, child, k):
+        chain = (self, child)
+        for listener in self.listeners:
+            listener.on_skel_delete(chain, k)
+        if self.parent is not None:
+            self.parent.on_child_delete(chain, k)
+
+    def add_listener(self, l):
+        logger.debug("Adding listener: {0} To skeleton: {1}".format(l, self))
+        self.listeners.add(l)
 
 class SaveableMetaclass(type):
 # TODO make savers use sets of RowDict objs, rather than lists of regular dicts
@@ -1305,6 +1355,74 @@ class Timestream:
     def update(self, ts=0):
         """Update the tree to reflect the current state of branchdict.
 
+class FirstOfTupleFilter:
+    def __init__(self, containable):
+        self.containable = containable
+
+    def __contains__(self, t):
+        return t[0] in self.containable
+
+
+class Timestream:
+    __metaclass__ = SaveableMetaclass
+    """A graph of many timelines, some of which share some of their time.
+
+    The first argument is a dictionary keyed with branch indices, with
+    values composed of tuples like:
+
+    (parent_branch, start, end)
+
+    parent_branch must be another key in the branchdict. start and end
+    are the tick when a branch begins (which cannot change) and ends
+    (which can, and probably will, perhaps as often as once per
+    update).
+
+    Call the update method to rearrange the contents of this board to
+    reflect the state of the branches.
+
+    """
+    tables = [
+        ("timestream",
+         {"branch": "integer not null",
+          "parent": "integer not null",
+          "tick_from": "integer not null",
+          "tick_to": "integer not null"},
+         ("branch",),
+         {"parent": ("timestream", "branch")},
+         ["branch>=0", "tick_from>=0",
+          "tick_to>=tick_from", "parent=0 or parent<>branch"])]
+    def __init__(self, closet):
+        self.closet = closet
+        td = self.closet.skeleton
+        self.branch_edges = defaultdict(set)
+        self.branch_done_to = defaultdict(lambda: -1)
+        self.branchdict = td["timestream"]
+        self.graph = Graph(directed=True)
+        self.graph.add_vertices(2)
+        self.graph.vs["tick"] = [0, 0]
+        self.graph.add_edge(0, 1, branch=0)
+        self.branch_edges[0].add(0)
+        self.branch_head = {0: self.graph.vs[0]}
+        # When the player travels to the past and then branches the
+        # timeline, it may result in a new vertex in the middle of
+        # what once was an unbroken edge. The edge succeeding the new
+        # vertex, representing how things went *originally*, is still
+        # representative of the old branch, even though it is now a
+        # successor of the vertex for a different branch
+        # altogether. That original branch now has another edge
+        # representing it.
+        self.update_handlers = set()
+        self.update(0)
+
+    def __hash__(self):
+        b = []
+        for t in self.branchdict.itervalues():
+            b.extend(t)
+        return hash(tuple(b))
+
+    def update(self, ts=0):
+        """Update the tree to reflect the current state of branchdict.
+
 For every branch in branchdict, there should be one vertex at the
 start and one at the end. If the branch has grown, but has as many
 child branches as previously, change the tick of the end vertex to
@@ -1317,8 +1435,12 @@ be on the same tick, in which case they are connected by an edge of
 length zero.
 
         """
-        for (branch, (parent, tick_from, tick_to)) in self.branchdict.iteritems():
+        logger.debug("Updating timestream. Former branchdict: {0}".format(self.branchdict))
+        for (branch, rd) in self.branchdict.iteritems():
             done_to = self.branch_done_to[branch]
+            parent = rd["parent"]
+            tick_from = rd["tick_from"]
+            tick_to = rd["tick_to"]
             if tick_to > done_to:
                 # I am now looking at a tick-window that has not been
                 # put into the graph yet.
@@ -1336,7 +1458,7 @@ length zero.
                         growth = tick_to - v["tick"]
                         v["tick"] += growth
                     # Otherwise there's not really much to do here.
-                else:
+                elif branch not in self.branchdict:
                     # I assume that this dict reflects the genealogy
                     # of the branches accurately
                     try:
@@ -1347,11 +1469,14 @@ length zero.
                         self.graph.add_vertices(2)
                         self.graph.vs["tick"] = [0, tick_to]
                         self.graph.add_edge(0, 1, branch=0)
-                        eid =self.graph.get_eid(0, 1)
+                        eid = self.graph.get_eid(0, 1)
                         self.branch_edges[0].add(eid)
+                else:
+                    self.extend_branch_to(branch, tick_to)
             self.branch_done_to[branch] = tick_to
             for handler in self.update_handlers:
                 handler.on_timestream_update()
+        logger.debug("Latter branchdict: {0}".format(self.branchdict))
 
     def get_edge_len(self, e):
         if isinstance(e, int):
@@ -1386,18 +1511,29 @@ length zero.
         return False
 
     def add_edge(self, branch, vert_from, vert_to):
-        assert(branch in self.branchdict)
         (vert_from, vi1) = self.sanitize_vert(vert_from)
         (vert_to, vi2) = self.sanitize_vert(vert_to)
+        assert(branch in self.branchdict)
+        assert(vert_from["tick"] <= vert_to["tick"])
+        if branch not in self.branch_head:
+            self.branch_head[branch] = vert_from
         self.graph.add_edge(vi1, vi2, branch=branch)
         eid = self.graph.get_eid(vi1, vi2)
         self.branch_edges[branch].add(eid)
-        (p, a, z) = self.branchdict[branch]
-        if vert_from["tick"] < self.branchdict[branch][1]:
+        p = self.branchdict[branch]["parent"]
+        if vert_from["tick"] < self.branchdict[branch]["tick_from"]:
             a = vert_from["tick"]
-        if vert_to["tick"] > self.branchdict[branch][2]:
+        else:
+            a = self.branchdict[branch]["tick_from"]
+        if vert_to["tick"] > self.branchdict[branch]["tick_to"]:
             z = vert_to["tick"]
-        self.branchdict[branch] = (p, a, z)
+        else:
+            z = self.branchdict[branch]["tick_to"]
+        self.branchdict[branch] = {
+            "branch": branch,
+            "parent": p,
+            "tick_from": a,
+            "tick_to": z}
         return self.graph.es[eid]
 
     def delete_edge(self, e):
@@ -1497,7 +1633,10 @@ new_branch.
 
         """
         assert(new_branch not in self.branchdict)
-        self.branchdict[new_branch] = (old_branch, tick_from, tick_to)
+        self.branchdict[new_branch] = {
+            "parent": old_branch,
+            "tick_from": tick_from,
+            "tick_to": tick_to}
         e = self.get_edge_from_branch_tick(old_branch, tick_from)
         if e is None:
             vseq = self.graph.vs(tick_eq=tick_from)
@@ -1527,20 +1666,22 @@ tick."""
         edge = self.latest_edge(branch)
         vert = self.graph.vs[edge.target]
         vert["tick"] += n
-        self.branchdict[branch] = (
-            self.branchdict[branch][0], self.branchdict.branch[1] + n)
+        self.branchdict[branch]["tick_to"] += n
 
     def extend_branch_to(self, branch, tick_to):
         """Make the branch end on the given tick, but only if it is later than
 the branch's current end."""
-        edge = self.latest_edge(branch)
+        try:
+            edge = self.latest_edge(branch)
+        except KeyError:
+            v1 = self.add_vert(0)
+            v2 = self.add_vert(tick_to)
+            return self.add_edge(branch, v1, v2)
         vert = self.graph.vs[edge.target]
         if tick_to > vert["tick"]:
             vert["tick"] = tick_to
-        if tick_to > self.branchdict[branch][1]:
-            self.branchdict[branch] = (
-                self.branchdict[branch][0], tick_to)
-
+        if tick_to > self.branchdict[branch]["tick_to"]:
+            self.branchdict[branch]["tick_to"] = tick_to
 
 
 class FakeCloset:
