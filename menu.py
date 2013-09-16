@@ -174,32 +174,20 @@ With db, register in db's menuitemdict.
                     batch=self.batch,
                     group=self.window.menu_fg_group)
         if self.text not in ('', None):
-            txt = self.text
-            color = self.menu.style.textcolor.tup
             l = self.label_window_left
             try:
-                if self.old_label_text != txt:
-                    self.label.text = self.text
-                    self.old_label_text = txt
-                if self.old_label_color != color:
-                    self.label.color = self.menu.style.textcolor.tup
-                    self.old_label_color = color
-                if self.old_label_x != l:
-                    self.label.x = l
-                    self.old_label_x = l
-                if self.old_label_y != b:
-                    self.label.y = b
-                    self.old_label_y = b
+                self.label.delete()
             except AttributeError:
-                self.label = pyglet.text.Label(
-                    self.text,
-                    self.menu.style.fontface,
-                    self.menu.style.fontsize,
-                    color=self.menu.style.textcolor.tup,
-                    x=l,
-                    y=b,
-                    batch=self.batch,
-                    group=self.window.menu_fg_group)
+                pass
+            self.label = pyglet.text.Label(
+                self.text,
+                self.menu.style.fontface,
+                self.menu.style.fontsize,
+                color=self.menu.style.textcolor.tup,
+                x=l,
+                y=b,
+                batch=self.batch,
+                group=self.window.menu_fg_group)
 
 
 class Menu:
@@ -253,6 +241,7 @@ With db, register with db's menudict.
 
         """
         self.window = window
+        self.labelgroup = self.window.menu_fg_group
         self.name = name
         self.batch = self.window.batch
         self.closet = self.window.closet

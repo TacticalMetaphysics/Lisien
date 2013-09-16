@@ -1,12 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import (
-    SaveableMetaclass,
-    SkeletonIterator)
+from util import SaveableMetaclass
 from pawn import Pawn, PawnWidget
 from spot import Spot, SpotWidget
 from arrow import Arrow, ArrowWidget
-from pyglet.graphics import OrderedGroup
 from pyglet.sprite import Sprite
 
 
@@ -61,23 +58,23 @@ each board will be open in at most one window at a time.
         self.spotdict = {}
         self.arrowdict = {}
         self.viewports = []
-        self._rowdict = self.closet.skeleton["board"][str(self.dimension)][int(self)]
+        self._rowdict = self.closet.skeleton[
+            "board"][str(self.dimension)][int(self)]
         while len(self.dimension.boards) <= self.idx:
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
         if "spot_coords" in self.closet.skeleton:
-            for rd in SkeletonIterator(
-                    self.closet.skeleton[
-                        "spot_coords"][str(self.dimension)][int(self)]):
+            for rd in self.closet.skeleton[
+                    "spot_coords"][str(self.dimension)][
+                    int(self)].iterrows():
                 self.add_spot(rd)
         if "pawn_img" in self.closet.skeleton:
-            for rd in SkeletonIterator(
-                    self.closet.skeleton[
-                        "pawn_img"][str(self.dimension)][int(self)]):
+            for rd in self.closet.skeleton[
+                    "pawn_img"][str(self.dimension)][
+                    int(self)].iterrows():
                 self.add_pawn(rd)
         for portal in self.dimension.portals:
             self.make_arrow(portal)
-
 
     def __getattr__(self, attrn):
         return self.atrdic[attrn](self)
@@ -129,7 +126,8 @@ each board will be open in at most one window at a time.
 
     def make_spot(self, place):
         place = self.closet.get_place(str(self.dimension), str(place))
-        self.spotdict[str(place)] = Spot(self.closet, self.dimension, self, place)
+        self.spotdict[str(place)] = Spot(
+            self.closet, self.dimension, self, place)
 
     def make_arrow(self, orig_or_port, dest=None):
         if dest is None:

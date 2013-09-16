@@ -3,10 +3,9 @@
 from util import (
     SaveableMetaclass,
     LocationException,
-    BranchTicksIter,
     TimeParadox,
-    TimestreamException,
-    FakeCloset)
+    BranchError,
+    JourneyException)
 from logging import getLogger
 
 
@@ -73,7 +72,7 @@ too.
         else:
             raise AttributeError(
                 "Thing instance {0} has no attribute {1}".format(
-                str(self), attrn))
+                    str(self), attrn))
 
     def __setattr__(self, attrn, val):
         if attrn == 'location':
@@ -142,9 +141,9 @@ tick in the given branch."""
         if tick_to is None:
             for rd in self.locations[branch].iterrows():
                 if (
-                    rd["tick_from"] <= tick_from and
-                    rd["tick_to"] is not None and
-                    rd["tick_to"] >= tick_from):
+                        rd["tick_from"] <= tick_from and
+                        rd["tick_to"] is not None and
+                        rd["tick_to"] >= tick_from):
                     return True
         else:
             for rd in self.locations[branch].iterrows():
@@ -152,11 +151,13 @@ tick in the given branch."""
                     if tick_to >= rd["tick_from"]:
                         return True
                 else:
-                    if (tick_to >= rd["tick_from"] and
-                        tick_to <= rd["tick_to"]):
+                    if (
+                            tick_to >= rd["tick_from"] and
+                            tick_to <= rd["tick_to"]):
                         return True
-                    if (tick_from >= rd["tick_from"] and
-                        tick_from <= rd["tick_to"]):
+                    if (
+                            tick_from >= rd["tick_from"] and
+                            tick_from <= rd["tick_to"]):
                         return True
         return False
 
@@ -240,7 +241,8 @@ Presupposes that I'm in a portal.
             if rd["tick_to"] is None:
                 continue
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
-                return float(tick - rd["tick_from"]) / float(rd["tick_to"] - rd["tick_from"])
+                return float(tick - rd["tick_from"]) / float(
+                    rd["tick_to"] - rd["tick_from"])
         raise LocationException("I am not in a portal at that time")
 
     def free_time(self, n, branch=None, tick=None):
@@ -270,7 +272,9 @@ then."""
             tick = self.closet.tick
         if len(self.locations) < branch:
             raise BranchError("Branch not known")
-        if branch in self.indefinite_locations and self.indefinite_locations[branch] <= tick:
+        if (
+                branch in self.indefinite_locations and
+                self.indefinite_locations[branch] <= tick):
             tick_from = self.indefinite_locations[branch]
             rd = self.locations[branch][tick_from]
             rd["tick_to"] = tick
@@ -307,7 +311,6 @@ other journey I may be on at the time."""
                 break
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
-        prevtick = tick + 1
         locs = self.branch_loc_rds(branch)
         try:
             self.follow_path(path, branch, tick)
@@ -323,7 +326,7 @@ other journey I may be on at the time."""
             self.new_branch_blank = False
             branch = self.closet.branch
             self.follow_path(path, branch, tick)
-    
+
     def follow_path(self, path, branch, tick):
         logger.debug("Following path")
         self.end_location(branch, tick)

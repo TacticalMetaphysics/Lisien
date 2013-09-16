@@ -12,7 +12,7 @@ Events get passed to the effect decks, which may or may not use them
 for anything in particular.
 
 """
-from util import SaveableMetaclass, dictify_row
+from util import SaveableMetaclass
 import logging
 
 

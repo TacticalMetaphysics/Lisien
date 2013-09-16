@@ -3,8 +3,7 @@
 from util import (
     SaveableMetaclass,
     TerminableImg,
-    TerminableInteractivity,
-    SkeletonIterator)
+    TerminableInteractivity)
 from pyglet.sprite import Sprite
 from pyglet.gl import GL_LINES
 from logging import getLogger
@@ -76,17 +75,16 @@ interactive or not.
         self.indefinite_imagery = {}
         self.indefinite_interactivity = {}
         imgns = set()
-        for rd in SkeletonIterator(
-                self.closet.skeleton["pawn_img"][
-                    str(self.dimension)][
-                        int(self.board)][str(self.thing)]):
+        for rd in self.closet.skeleton["pawn_img"][
+                str(self.dimension)][
+                int(self.board)][str(self.thing)].iterrows():
             imgns.add(rd["img"])
             if rd["tick_to"] is None:
                 self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
         self.closet.get_imgs(imgns)
-        for rd in SkeletonIterator(
-                self.closet.skeleton["pawn_interactive"][
-                str(self.dimension)][int(self.board)][str(self.thing)]):
+        for rd in self.closet.skeleton["pawn_interactive"][
+                str(self.dimension)][
+                int(self.board)][str(self.thing)].iterrows():
             if rd["tick_to"] is None:
                 self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
         self.grabpoint = None
@@ -271,7 +269,7 @@ class PawnWidget:
             branch = self.rumor.branch
         if tick is None:
             tick = self.rumor.tick
-        return 
+        return
 
     def hover(self, x, y):
         return self

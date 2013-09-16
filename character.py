@@ -1,7 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, SkeletonIterator, TimeParadox
-from thing import Thing
+from util import SaveableMetaclass, TimeParadox
 
 
 """Things that should have character sheets."""
@@ -187,10 +186,14 @@ item's name, and the name of the attribute.
                     self.indefinite_portal[rd["dimension"]] = {}
                 if rd["origin"] not in self.indefinite_portal[rd["dimension"]]:
                     self.indefinite_portal[rd["dimension"]][rd["origin"]] = {}
-                if rd["destination"] not in self.indefinite_portal[rd["dimension"]][rd["origin"]]:
-                    self.indefinite_portal[rd["dimension"]][rd["origin"]][rd["destination"]]
+                if rd["destination"] not in self.indefinite_portal[
+                        rd["dimension"]][rd["origin"]]:
+                    self.indefinite_portal[rd["dimension"]][
+                        rd["origin"]][rd["destination"]] = {}
                 if rd["tick_to"] is None:
-                    self.indefinite_portal[rd["dimension"]][rd["origin"]][rd["destination"]][rd["branch"]] = rd["tick_from"]
+                    self.indefinite_portal[rd["dimension"]][
+                        rd["origin"]][rd["destination"]][
+                        rd["branch"]] = rd["tick_from"]
         except KeyError:
             if "character_portals" not in td:
                 td["character_portals"] = {}
@@ -207,7 +210,8 @@ item's name, and the name of the attribute.
                 if rd["place"] not in self.indefinite_place[rd["dimension"]]:
                     self.indefinite_place[rd["dimension"]][rd["place"]] = {}
                 if rd["tick_to"] is None:
-                    self.indefinite_place[rd["dimension"]][rd["place"]][rd["branch"]] = rd["tick_from"]
+                    self.indefinite_place[rd["dimension"]][
+                        rd["place"]][rd["branch"]] = rd["tick_from"]
             self.closet.characterdict[str(self)] = self
         except KeyError:
             if "character_places" not in td:
@@ -226,13 +230,15 @@ item's name, and the name of the attribute.
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if ( dimension not in self.thingdict or
-             name not in self.thingdict[dimension]):
+        if (
+                dimension not in self.thingdict or
+                name not in self.thingdict[dimension]):
             return False
-        if ( dimension in self.indefinite_thing and
-             name in self.indefinite_thing[dimension] and
-             branch in self.indefinite_thing[dimension][name] and
-             self.indefinite_thing[dimension][name][branch] <= tick_from):
+        if (
+                dimension in self.indefinite_thing and
+                name in self.indefinite_thing[dimension] and
+                branch in self.indefinite_thing[dimension][name] and
+                self.indefinite_thing[dimension][name][branch] <= tick_from):
             return True
         if tick_to is None:
             for rd in self.thingdict[dimension][name][branch].iterrows():
@@ -277,11 +283,16 @@ item's name, and the name of the attribute.
                 del self.thingdict[dimension][name][branch][ifrom]
                 del self.indefinite_thing[dimension][name][branch]
             else:
-                raise TimeParadox("Tried to assign Thing to Character in a way that conflicted with the final period it was already assigned in")
+                raise TimeParadox(
+                    "Tried to assign Thing to Character in a way "
+                    "that conflicted with the final period it was "
+                    "already assigned in")
         except KeyError:
             pass
         if self.has_thing_by_key(dimension, name, branch, tick_from, tick_to):
-            raise TimeParadox("Tried to assign Thing to Character when it was already assigned there")
+            raise TimeParadox(
+                "Tried to assign Thing to Character when it was "
+                "already assigned there")
         self.thingdict[dimension][name][branch][tick_from] = {
             "character": str(self),
             "dimension": dimension,
@@ -297,7 +308,8 @@ item's name, and the name of the attribute.
             self.indefinite_thing[dimension][name][branch] = tick_from
 
     def add_thing(self, thing, branch=None, tick_from=None, tick_to=None):
-        self.add_thing_by_key(str(thing.dimension), str(thing), branch, tick_from, tick_to)
+        self.add_thing_by_key(
+            str(thing.dimension), str(thing), branch, tick_from, tick_to)
 
     def has_place_by_key(self, dimension, name,
                          branch=None, tick_from=None, tick_to=None):
@@ -305,14 +317,16 @@ item's name, and the name of the attribute.
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if ( dimension not in self.placedict or
-             name not in self.placedict[dimension] or
-             branch not in self.placedict[dimension][name]):
+        if (
+                dimension not in self.placedict or
+                name not in self.placedict[dimension] or
+                branch not in self.placedict[dimension][name]):
             return False
-        if ( dimension in self.indefinite_place and
-             name in self.indefinite_place[dimension] and
-             branch in self.indefinite_place[dimension][name] and
-             self.indefinite_place[dimension][name][branch] <= tick_from):
+        if (
+                dimension in self.indefinite_place and
+                name in self.indefinite_place[dimension] and
+                branch in self.indefinite_place[dimension][name] and
+                self.indefinite_place[dimension][name][branch] <= tick_from):
             return True
         if tick_to is None:
             for rd in self.placedict[dimension][name][branch].iterrows():
@@ -348,19 +362,24 @@ item's name, and the name of the attribute.
         if tick_from is None:
             tick_from = self.closet.tick
         try:
-            ifrom = self.indefinite_place[dimension][name][branch]
-            ird = self.placedict[dimension][name][branch][ifrom]
+            ifrom = self.indefinite_place[dimension][place][branch]
+            ird = self.placedict[dimension][place][branch][ifrom]
             if ird["tick_from"] < tick_from:
                 ird["tick_to"] = tick_from - 1
-                del self.indefinite_place[dimension][name][branch]
+                del self.indefinite_place[dimension][place][branch]
             elif ird["tick_from"] == tick_from:
-                del self.indefinite_place[dimension][name][branch]
+                del self.indefinite_place[dimension][place][branch]
             else:
-                raise TimeParadox("Tried to assign Place to Character in a way that conflicted with the final period it was already assigned in")
+                raise TimeParadox(
+                    "Tried to assign Place to Character in a way "
+                    "that conflicted with the final period it was "
+                    "already assigned in")
         except KeyError:
             pass
-        if self.has_place_by_key(dimension, name, branch, tick_from, tick_to):
-            raise TimeParadox("Tried to assign Place to Character when it was already assigned there")
+        if self.has_place_by_key(dimension, place, branch, tick_from, tick_to):
+            raise TimeParadox(
+                "Tried to assign Place to Character when "
+                "it was already assigned there")
         self.placedict[dimension][place][branch][tick_from] = {
             "dimension": dimension,
             "place": place,
@@ -384,26 +403,32 @@ item's name, and the name of the attribute.
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if ( dimension not in self.portaldict or
-             origin not in self.portaldict[dimension] or
-             destination not in self.portaldict[dimension][origin] or
-             branch not in self.portaldict[dimension][origin][destination]):
+        if (
+                dimension not in self.portaldict or
+                origin not in self.portaldict[dimension] or
+                destination not in self.portaldict[dimension][origin] or
+                branch not in self.portaldict[dimension][origin][destination]):
             return False
-        if ( dimension in self.indefinite_portal and
-             origin in self.indefinite_portal[dimension] and
-             destination in self.indefinite_portal[dimension][origin] and
-             branch in self.indefinite_portal[dimension][origin][destination] and
-             self.indefinite_portal[dimension][origin][destination][branch] <= tick_from ):
+        if (
+                dimension in self.indefinite_portal and
+                origin in self.indefinite_portal[dimension] and
+                destination in self.indefinite_portal[dimension][origin] and
+                branch in self.indefinite_portal[dimension][
+                    origin][destination] and
+                self.indefinite_portal[dimension][
+                    origin][destination][branch] <= tick_from):
             return True
         if tick_to is None:
-            for rd in self.portaldict[dimension][origin][destination][branch].iterrows():
+            for rd in self.portaldict[dimension][
+                    origin][destination][branch].iterrows():
                 if rd["tick_to"] is None:
                     continue
                 if rd["tick_from"] <= tick_from and tick_from <= rd["tick_to"]:
                     return True
             return False
         else:
-            for rd in self.portaldict[dimension][origin][destination][branch].iterrows():
+            for rd in self.portaldict[dimension][
+                    origin][destination][branch].iterrows():
                 if rd["tick_to"] is None:
                     if tick_to >= rd["tick_from"]:
                         return True
@@ -424,22 +449,32 @@ item's name, and the name of the attribute.
         if tick_from is None:
             tick_from = self.closet.tick
         try:
-            ifrom = self.indefinite_portal[dimension][origin][destination][branch]
-            ird = self.portaldict[dimension][name][branch][ifrom]
+            ifrom = self.indefinite_portal[dimension][
+                origin][destination][branch]
+            ird = self.portaldict[dimension][
+                origin][destination][branch][ifrom]
             if ird["tick_from"] < tick_from:
                 ird["tick_to"] = tick_to - 1
-                del self.indefinite_portal[dimension][origin][destination][branch]
+                del self.indefinite_portal[dimension][
+                    origin][destination][branch]
             elif ird["tick_from"] == tick_from:
-                del self.portaldict[dimension][name][branch][ifrom]
-                del self.indefinite_portal[dimension][origin][destination][branch]
+                del self.portaldict[dimension][
+                    origin][destination][branch][ifrom]
+                del self.indefinite_portal[dimension][
+                    origin][destination][branch]
             else:
-                raise TimeParadox("Tried to assign Portal to Character in a way that conflicted with the final period it was already assigned in")
+                raise TimeParadox(
+                    "Tried to assign Portal to Character in a way "
+                    "that conflicted with the final period it was "
+                    "already assigned in")
         except KeyError:
             pass
-        self.portaldict[dimension][origin][destination][branch][tick_from] = {
+        self.portaldict[dimension][
+            origin][destination][branch][tick_from] = {
             "character": str(self),
             "dimension": dimension,
-            "place": place,
+            "origin": origin,
+            "destination": destination,
             "branch": branch,
             "tick_from": tick_from,
             "tick_to": tick_to}
@@ -450,7 +485,8 @@ item's name, and the name of the attribute.
                 self.indefinite_portal[dimension][origin] = {}
             if destination not in self.indefinite_portal[dimension][origin]:
                 self.indefinite_portal[dimension][origin][destination] = {}
-            self.indefinite_portal[dimension][origin][destination][branch] = tick_from
+            self.indefinite_portal[dimension][
+                origin][destination][branch] = tick_from
 
     def add_portal(self, portal, branch=None, tick_from=None, tick_to=None):
         self.add_portal_by_key(
@@ -463,12 +499,14 @@ item's name, and the name of the attribute.
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if ( name not in self.statdict or
-             branch not in self.statdict[name]):
+        if (
+                name not in self.statdict or
+                branch not in self.statdict[name]):
             return False
-        if ( name in self.indefinite_stat and
-             branch in self.indefinite_stat[name] and
-             self.indefinite_stat[name][branch] <= tick_from):
+        if (
+                name in self.indefinite_stat and
+                branch in self.indefinite_stat[name] and
+                self.indefinite_stat[name][branch] <= tick_from):
             return True
         if tick_to is None:
             for rd in self.statdict[name][branch].iterrows():
@@ -497,13 +535,16 @@ item's name, and the name of the attribute.
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        if ( name not in self.statdict or
-             branch not in self.statdict[name]):
+        if (
+                name not in self.statdict or
+                branch not in self.statdict[name]):
             return None
-        if ( name in self.indefinite_stat and
-             branch in self.indefinite_stat[name] and
-             self.indefinite_stat[name][branch] <= tick):
-            return self.statdict[name][branch][self.indefinite_stat[name][branch]]
+        if (
+                name in self.indefinite_stat and
+                branch in self.indefinite_stat[name] and
+                self.indefinite_stat[name][branch] <= tick):
+            return self.statdict[name][
+                branch][self.indefinite_stat[name][branch]]
         for rd in self.statdict[name][branch].iterrows():
             if rd["tick_to"] is None:
                 continue
@@ -515,15 +556,16 @@ item's name, and the name of the attribute.
         return self.get_stat_value_row(name, branch, tick)["value"]
 
     def has_stat(self, name, branch=None, tick_from=None, tick_to=None):
-        if branch is none:
+        if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
         if name not in self.statdict or branch not in self.statdict[name]:
             return False
-        if ( name in self.indefinite_stat and
-             branch in self.indefinite_stat[name] and
-             self.indefinite_stat[name][branch] <= tick_from):
+        if (
+                name in self.indefinite_stat and
+                branch in self.indefinite_stat[name] and
+                self.indefinite_stat[name][branch] <= tick_from):
             return True
         if tick_to is None:
             for rd in self.statdict[name][branch].iterrows():
@@ -561,7 +603,10 @@ item's name, and the name of the attribute.
             elif ird["tick_from"] == tick_from:
                 del self.indefinite_stat[name][branch]
             else:
-                raise TimeParadox("Tried to assign stat to Character in a way that conflicted with the final period it was already assigned in")
+                raise TimeParadox(
+                    "Tried to assign stat to Character in a way "
+                    "that conflicted with the final period it was "
+                    "already assigned in")
         except KeyError:
             pass
         if self.has_stat(name, branch, tick_from, tick_to):
@@ -585,9 +630,10 @@ item's name, and the name of the attribute.
             tick_from = self.closet.tick
         if name not in self.skilldict or branch not in self.skilldict[name]:
             return False
-        if ( name in self.indefinite_skill and
-             branch in self.indefinite_skill[name] and
-             self.indefinite_skill[name][branch] <= tick_from):
+        if (
+                name in self.indefinite_skill and
+                branch in self.indefinite_skill[name] and
+                self.indefinite_skill[name][branch] <= tick_from):
             return True
         if tick_to is None:
             for rd in self.skilldict[name][branch].iterrows():
@@ -625,7 +671,10 @@ item's name, and the name of the attribute.
             elif ird["tick_from"] == tick_from:
                 del self.indefinite_skill[name][branch]
             else:
-                raise TimeParadox("Tried to assign skill to Character in a way that conflicted with the final period it was already assigned in")
+                raise TimeParadox(
+                    "Tried to assign skill to Character in a way that "
+                    "conflicted with the final period it was "
+                    "already assigned in")
         except KeyError:
             pass
         if self.has_skill(name, branch, tick_from, tick_to):

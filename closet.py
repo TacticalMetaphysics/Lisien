@@ -27,7 +27,6 @@ from gui import GameWindow
 from util import (
     dictify_row,
     Skeleton,
-    SkeletonIterator,
     schemata,
     saveables,
     saveable_classes,
@@ -708,7 +707,7 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["effect"][name] = {"name": name}
         self.skeleton.update(
-             Effect._select_skeleton(self.c, kd))
+            Effect._select_skeleton(self.c, kd))
         need_chars = set()
         for name in names:
             rd = self.skeleton["effect"][name]
@@ -740,7 +739,7 @@ This is game-world time. It doesn't always go forwards.
             kd["effect_deck"][name] = {"name": name}
             kd["effect_deck_link"][name] = {"deck": name}
         self.skeleton.update(
-             EffectDeck._select_skeleton(self.c, kd))
+            EffectDeck._select_skeleton(self.c, kd))
         for name in names:
             r[name] = EffectDeck(self, name)
         return r
@@ -814,10 +813,10 @@ This is game-world time. It doesn't always go forwards.
         if not isinstance(dim, Dimension):
             dim = self.get_dimension(dimn)
         boardtd = Board._select_skeleton(
-                 self.c,
-                 {"board":
-                  {"dimension": dimn,
-                   "idx": i}})
+            self.c,
+            {"board":
+             {"dimension": dimn,
+              "idx": i}})
         boardtd.update(Spot._select_skeleton(
             self.c,
             {"spot_img":
@@ -856,7 +855,7 @@ This is game-world time. It doesn't always go forwards.
                "board": boardi,
                "idx": viewi}}
         self.skeleton.update(
-             BoardViewport._select_skeleton(self.c, kd))
+            BoardViewport._select_skeleton(self.c, kd))
         return BoardViewport(
             self, win, dim, board, viewi)
 
@@ -877,8 +876,8 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["img"][name] = {"name": name}
         self.skeleton.update(
-             Img._select_skeleton(
-                 self.c, kd))
+            Img._select_skeleton(
+                self.c, kd))
         r = {}
         for name in names:
             r[name] = Img(self, name)
@@ -904,7 +903,7 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["color"][name] = {"name": name}
         self.skeleton.update(
-             Color._select_skeleton(self.c, kd))
+            Color._select_skeleton(self.c, kd))
         r = {}
         for name in names:
             r[name] = Color(self, name)
@@ -931,7 +930,7 @@ This is game-world time. It doesn't always go forwards.
         for name in stylenames:
             kd["style"][name] = {"name": name}
         self.skeleton.update(
-             Style._select_skeleton(self.c, kd))
+            Style._select_skeleton(self.c, kd))
         colornames = set()
         for name in stylenames:
             rd = self.skeleton["style"][name]
@@ -973,7 +972,7 @@ This is game-world time. It doesn't always go forwards.
                     continue
                 kd[col][name] = {"window": name}
         td = GameWindow._select_skeleton(self.c, kd)
-        self.skeleton +=  td
+        self.skeleton += td
         self.old_skeleton += td
         r = {}
         for name in names:
@@ -1002,12 +1001,12 @@ This is game-world time. It doesn't always go forwards.
             kd["card"][name] = {"effect": name}
         td = Card._select_skeleton(self.c, kd)
         r = {}
-        for rd in SkeletonIterator(td):
+        for rd in td.iterrows():
             r[rd["effect"]] = Card(self, effectdict[rd["effect"]], td)
         return r
 
     def get_cards(self, names):
-        r = {}
+        r = Skeleton({})
         unhad = set()
         for name in names:
             if name in self.carddict:
@@ -1025,7 +1024,7 @@ This is game-world time. It doesn't always go forwards.
         effds = self.get_effect_decks(decks)
         effects = set()
         for effd in effds.itervalues():
-            for rd in SkeletonIterator(effd._card_links):
+            for rd in effd._card_links:
                 effects.add(rd["effect"])
         return self.get_effects(effects)
 
@@ -1039,7 +1038,6 @@ This is game-world time. It doesn't always go forwards.
             raise Exception(
                 "Tried to time-travel to a branch that didn't exist yet")
         rd = self.timestream.branchdict[branch]
-        parent = rd["parent"]
         tick_from = rd["tick_from"]
         tick_to = rd["tick_to"]
         if tick < tick_from or tick > tick_to:

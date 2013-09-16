@@ -44,6 +44,7 @@ pyglet.clock.set_default(clock)
 closet = closet.load_game(dbfn, lang)
 gw = closet.get_window('Main', checkpoint=True)
 
+
 class Updater:
     def __init__(self, closet, gw):
         self.tp = 0.0

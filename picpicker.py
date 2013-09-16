@@ -1,7 +1,6 @@
 from pyglet.graphics import OrderedGroup
 from pyglet.image import SolidColorImagePattern
 from pyglet.sprite import Sprite
-from time import time
 
 
 class PicPanel:
@@ -10,17 +9,21 @@ class PicPanel:
         "right": lambda self: self.left + self.pic.width,
         "bot": lambda self: self.left + self.pic.width,
         "window_left": lambda self: self.picker.window_left + self.left,
-        "window_top": lambda self: self.picker.window_top - self.top + self.picker.scrolled_px,
-        "window_bot": lambda self: self.picker.window_top - self.bot + self.picker.scrolled_px,
-        "window_right": lambda self: self.picker.window_left + self.pic.width,
+        "window_top": lambda self:
+        self.picker.window_top - self.top + self.picker.scrolled_px,
+        "window_bot": lambda self:
+        self.picker.window_top - self.bot + self.picker.scrolled_px,
+        "window_right": lambda self:
+        self.picker.window_left + self.pic.width,
         "tex": lambda self: self.pic.tex,
         "texture": lambda self: self.pic.tex,
         "width": lambda self: self.pic.width,
         "height": lambda self: self.pic.height,
         "pressed": lambda self: self.window.pressed is self,
         "hovered": lambda self: self.window.hovered is self,
-        "in_picker": lambda self: (self.window_top > self.picker.window_bot and
-                              self.window_bot < self.picker.window_top)}
+        "in_picker": lambda self:
+        (self.window_top > self.picker.window_bot and
+         self.window_bot < self.picker.window_top)}
 
     def __init__(self, picker, pic):
         self.picker = picker
@@ -76,7 +79,6 @@ class PicPanel:
             self.tweaks)
 
     def draw(self, batch, group):
-        pickerfggroup = OrderedGroup(1, group)
         if self.in_picker:
             try:
                 self.sprite.x = self.window_left
@@ -102,20 +104,21 @@ will be assigned to that attribute of the window the picker is in.
     atrdic = {
         "window_left": lambda self: int(self.left_prop * self.window.width),
         "window_right": lambda self: int(self.right_prop * self.window.width),
-        "window_top": lambda self: int(self.top_prop * sel.window.height),
+        "window_top": lambda self: int(self.top_prop * self.window.height),
         "window_bot": lambda self: int(self.bot_prop * self.window.height),
         "width": lambda self: self.window_right - self.window_left,
         "height": lambda self: self.window_top - self.window_bot,
         "imgs": lambda self: self.closet.imgdict.itervalues(),
         "hovered": lambda self: self is self.window.hovered,
         "pressed": lambda self: self is self.window.pressed,
-        "bgpat": lambda self: {
-            True: self.bgpat_active,
-            False: self.bgpat_inactive}[self.hovered],
-        "on_screen": lambda self: (self.window_top > 0 and
-                              self.window_bot < self.window.height and
-                              self.window_right > 0 and
-                              self.window_left < self.window.width)}
+        "bgpat": lambda self:
+        {True: self.bgpat_active,
+         False: self.bgpat_inactive}[self.hovered],
+        "on_screen": lambda self:
+        (self.window_top > 0 and
+         self.window_bot < self.window.height and
+         self.window_right > 0 and
+         self.window_left < self.window.width)}
 
     def __init__(self, window, left, top, bot, right, style, targetn, flagn):
         self.window = window
@@ -247,7 +250,7 @@ will be assigned to that attribute of the window the picker is in.
             self.window_left,
             self.window_bot,
             batch=batch,
-            group=pickerbggroup)
+            group=self.pickerbggroup)
         self.layout()
         for pixrow in self.pixrows:
             for pic in pixrow:

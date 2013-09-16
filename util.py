@@ -2,13 +2,12 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
 import ctypes
-from time import time
 from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
 from igraph import Graph, Vertex, Edge
 from collections import deque, defaultdict, MutableMapping
-from copy import copy, deepcopy
+from copy import deepcopy
 
 logger = getLogger(__name__)
 
@@ -85,8 +84,8 @@ it comes upon."""
             return self.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
-        "Skeleton instance does not have and cannot compute "
-        "attribute {0}".format(attrn))
+                "Skeleton instance does not have and cannot compute "
+                "attribute {0}".format(attrn))
 
     def __getitem__(self, k):
         if isinstance(self.it, list):
@@ -120,7 +119,8 @@ it comes upon."""
                 newtyp = dict
             else:
                 raise ValueError(
-                    "This level of the Skeleton can only hold Skeleton-alikes.")
+                    "This level of the Skeleton can only "
+                    "hold Skeleton-alikes.")
             i = 0
             while len(self.it) <= k:
                 self.it.append(Skeleton(newtyp(), parent=self))
@@ -254,12 +254,6 @@ it comes upon."""
         else:
             return self.it.keys()
 
-    def iteritems(self):
-        if self.typ is dict:
-            return self.it.iteritems()
-        else:
-            return ListItemIterator(self.it)
-
     def isrowdict(self):
         if self.typ is not dict or len(self.it) == 0:
             return False
@@ -273,7 +267,7 @@ it comes upon."""
             return None
         if self.typ is dict:
             return self.it.itervalues().next().typ
-        else: # self.typ is list
+        else:  # self.typ is list
             return self.it[0].typ
 
     def update(self, skellike):
@@ -302,10 +296,10 @@ it comes upon."""
                     newtyp = self.subtype
                 else:
                     newtyp = v.typ
-                i=0
+                i = 0
                 while len(self.it) <= k:
                     self.it.append(Skeleton(newtyp(), parent=self))
-                    i+=1
+                    i += 1
                 if isinstance(self.it[k], Skeleton):
                     self.it[k].update(v)
                 else:
@@ -328,6 +322,7 @@ it comes upon."""
     def add_listener(self, l):
         logger.debug("Adding listener: {0} To skeleton: {1}".format(l, self))
         self.listeners.add(l)
+
 
 class SaveableMetaclass(type):
 # TODO make savers use sets of RowDict objs, rather than lists of regular dicts
@@ -499,7 +494,7 @@ and your table will be ready.
             missing_stmt_start = "SELECT %s FROM %s WHERE (%s) NOT IN " % (
                 colnamestr[tablename], tablename, pkeynamestr)
             missings[tablename] = missing_stmt_start
-            schemata[tablename] =  create_stmt
+            schemata[tablename] = create_stmt
         saveables.append(
             (demands, provides, prelude, tablenames, postlude))
 
@@ -620,7 +615,7 @@ and your table will be ready.
 
         @staticmethod
         def _select_skeleton(c, td):
-            r = {}
+            r = Skeleton({})
             for (tabname, rdd) in td.iteritems():
                 if tabname not in primarykeys:
                     continue
@@ -1182,7 +1177,8 @@ class SkeletonIterator:
 
 
 class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
-    def __init__(self, order, parent, window, left, top, bot, right, proportional=True):
+    def __init__(self, order, parent, window,
+                 left, top, bot, right, proportional=True):
         super(ScissorOrderedGroup, self).__init__(order, parent)
         self.window = window
         self.left = left
@@ -1320,6 +1316,7 @@ class Timestream:
          {"parent": ("timestream", "branch")},
          ["branch>=0", "tick_from>=0",
           "tick_to>=tick_from", "parent=0 or parent<>branch"])]
+
     def __init__(self, closet):
         self.closet = closet
         td = self.closet.skeleton
@@ -1352,16 +1349,6 @@ class Timestream:
             b.extend(t)
         return hash(tuple(b))
 
-    def update(self, ts=0):
-        """Update the tree to reflect the current state of branchdict.
-
-class FirstOfTupleFilter:
-    def __init__(self, containable):
-        self.containable = containable
-
-    def __contains__(self, t):
-        return t[0] in self.containable
-
 
 class Timestream:
     __metaclass__ = SaveableMetaclass
@@ -1391,6 +1378,7 @@ class Timestream:
          {"parent": ("timestream", "branch")},
          ["branch>=0", "tick_from>=0",
           "tick_to>=tick_from", "parent=0 or parent<>branch"])]
+
     def __init__(self, closet):
         self.closet = closet
         td = self.closet.skeleton
@@ -1435,7 +1423,9 @@ be on the same tick, in which case they are connected by an edge of
 length zero.
 
         """
-        logger.debug("Updating timestream. Former branchdict: {0}".format(self.branchdict))
+        logger.debug(
+            "Updating timestream. Former "
+            "branchdict: {0}".format(self.branchdict))
         for (branch, rd) in self.branchdict.iteritems():
             done_to = self.branch_done_to[branch]
             parent = rd["parent"]
@@ -1688,3 +1678,7 @@ class FakeCloset:
     def __init__(self, skellike):
         self.skeleton = Skeleton(skellike)
         self.timestream = Timestream(self)
+
+
+class BranchError(Exception):
+    pass

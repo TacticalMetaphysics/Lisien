@@ -13,22 +13,6 @@ rectangles with letters and pictures on them."""
 class Card:
     __metaclass__ = SaveableMetaclass
 
-    def gett(self):
-        if self._text is None:
-            return ''
-        elif self._text[0] == '@':
-            return self.closet.get_text(self._text[1:])
-        else:
-            return self._text
-
-    def getd(self):
-        if self._display_name is None:
-            return ''
-        elif self._display_name[0] == '@':
-            return self.closet.get_text(self._display_name[1:])
-        else:
-            return self._display_name
-
     atrdic = {
         "_text": lambda self: self._rowdict["text"],
         "_display_name": lambda self: self._rowdict["display_name"],
@@ -66,19 +50,43 @@ class Card:
     def __str__(self):
         return str(self.effect)
 
+    def gett(self):
+        if self._text is None:
+            return ''
+        elif self._text[0] == '@':
+            return self.closet.get_text(self._text[1:])
+        else:
+            return self._text
+
+    def getd(self):
+        if self._display_name is None:
+            return ''
+        elif self._display_name[0] == '@':
+            return self.closet.get_text(self._display_name[1:])
+        else:
+            return self._display_name
+
 
 class TextHolder:
     atrdic = {
-        "width": lambda self: (self.cardwidget.width - 4) * self.cardwidget.style.spacing,
+        "width": lambda self:
+        (self.cardwidget.width - 4) * self.cardwidget.style.spacing,
         "height": lambda self: self.getheight(),
-        "window_left": lambda self: (self.cardwidget.x + 2) * self.cardwidget.style.spacing,
+        "window_left": lambda self:
+        (self.cardwidget.x + 2) * self.cardwidget.style.spacing,
         "window_right": lambda self: self.window_left + self.width,
-        "window_bot": lambda self: (self.cardwidget.window_bot + 2) * self.cardwidget.style.spacing,
+        "window_bot": lambda self:
+        (self.cardwidget.window_bot + 2) * self.cardwidget.style.spacing,
         "window_top": lambda self: self.window_bot + self.height,
-        "text_left": lambda self: self.window_left + self.cardwidget.style.spacing,
-        "text_bot": lambda self: self.window_bot + self.cardwidget.style.spacing,
-        "text_width": lambda self: self.width - self.cardwidget.style.spacing,
-        "text_height": lambda self: self.height - self.cardwidget.style.spacing}
+        "text_left": lambda self:
+        self.window_left + self.cardwidget.style.spacing,
+        "text_bot": lambda self:
+        self.window_bot + self.cardwidget.style.spacing,
+        "text_width": lambda self:
+        self.width - self.cardwidget.style.spacing,
+        "text_height": lambda self:
+        self.height - self.cardwidget.style.spacing}
+
     def __init__(self, cardwidget):
         self.cardwidget = cardwidget
         self.batch = self.cardwidget.batch
@@ -87,17 +95,6 @@ class TextHolder:
         self.bgimage = None
         self.bgsprite = None
         self.label = None
-        def getheight():
-            if isinstance(
-                    self.cardwidget.base.img,
-                    AbstractImage):
-                return (
-                    self.cardwidget.height / 2 - 4
-                    * self.cardwidget.style.spacing)
-            else:
-                return (
-                    self.cardwidget.height - 4
-                    * self.cardwidget.style.spacing)
 
     def __getattr__(self, attrn):
         try:
@@ -105,6 +102,18 @@ class TextHolder:
         except KeyError:
             raise AttributeError(
                 "TextHolder instance has no attribute named {0}".format(attrn))
+
+    def getheight(self):
+        if isinstance(
+                self.cardwidget.base.img,
+                AbstractImage):
+            return (
+                self.cardwidget.height / 2 - 4
+                * self.cardwidget.style.spacing)
+        else:
+            return (
+                self.cardwidget.height - 4
+                * self.cardwidget.style.spacing)
 
     def draw(self):
         if (
@@ -138,16 +147,9 @@ class TextHolder:
 
 
 class CardWidget:
-    def getwidth(self):
-        if self.img is None:
-            # Just a default width for now
-            return 128
-        else:
-            # The width of the image plus some gutterspace on each side
-            return self.img.width + self.style.spacing * 2
-
     atrdic = {
-        "x": lambda self: self.hand.window_left + self.width * int(self),
+        "x": lambda self:
+        self.hand.window_left + self.width * int(self),
         "y": lambda self: self.hand.window_bot,
         "hovered": lambda self: self.gw.hovered is self,
         "pressed": lambda self: self.gw.pressed is self,
@@ -201,6 +203,14 @@ class CardWidget:
 
     def __hash__(self):
         return hash(self.get_state_tup())
+
+    def getwidth(self):
+        if self.img is None:
+            # Just a default width for now
+            return 128
+        else:
+            # The width of the image plus some gutterspace on each side
+            return self.img.width + self.style.spacing * 2
 
     def overlaps(self, x, y):
         return (
