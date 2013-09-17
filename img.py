@@ -42,13 +42,10 @@ saving the path.
         """Return an Img, and register it with the imgdict of the database
 provided."""
         global first_img_loaded
-        print "loading img {0}".format(name)
         self.closet = closet
         self._name = name
         self.closet.imgdict[str(self)] = self
         self._rowdict = self.closet.skeleton["img"][str(self)]
-        print "with rowdict:"
-        print self._rowdict
         if self.rltile:
             textures[str(self)] = load_rltile(self.path)
         else:

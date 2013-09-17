@@ -5,16 +5,18 @@ import logging
 from util import (
     SaveableMetaclass,
     fortyfive,
-    SkeletonIterator,
     ScissorOrderedGroup)
 from math import atan, cos, sin
-from arrow import ArrowWidget
 from menu import Menu, MenuItem
 from card import Hand
 from board import BoardViewport
 from picpicker import PicPicker
 from calendar import Calendar
 from collections import deque
+
+
+OrderedGroup = pyglet.graphics.OrderedGroup
+Group = pyglet.graphics.Group
 
 
 class SaveableWindowMetaclass(
@@ -108,7 +110,7 @@ class GameWindow(pyglet.window.Window):
 
     atrdic = {
         "arrow_width": lambda self: self._rowdict["arrow_width"],
-        "main_menu_name": lambda self: self._rowdict["main_menu"], 
+        "main_menu_name": lambda self: self._rowdict["main_menu"],
         "viewports": lambda self: ViewportIter(self.dimensiondict),
         "menus": lambda self: self.menudict.itervalues(),
         "hands": lambda self: self.get_hand_iter(),
@@ -116,6 +118,9 @@ class GameWindow(pyglet.window.Window):
         'dy': lambda self: sum(self.dy_hist),
         'arrow_girth': lambda self: self.arrow_width * 2,
         'timestream_changed': lambda self: self.rehash_timeline()}
+
+    rowattrs = set(["min_width", "min_height",
+                    "arrowhead_size", "arrow_width"])
 
     def __init__(
             self, closet, name, checkpoint=False):
@@ -131,25 +136,25 @@ class GameWindow(pyglet.window.Window):
         self.hand_order = 1
         self.last_timestream_hash = hash(self.closet.timestream)
         self.menudict = {}
-        self.dimensiondict = self.closet.get_dimensions(
-            [rd["dimension"] for rd in
-             SkeletonIterator(self.closet.skeleton[
-                 "board_viewport"][str(self)])])
+        self.dimensiondict = self.closet.get_dimensions([
+            rd["dimension"] for rd in
+            self.closet.skeleton[
+                "board_viewport"][str(self)].iterrows()])
         self._rowdict = self.closet.skeleton["window"][name]
         self.dxdy_hist_max = 10
         self.dx_hist = deque([], self.dxdy_hist_max)
         self.dy_hist = deque([], self.dxdy_hist_max)
         self.batch = pyglet.graphics.Batch()
-        self.biggroup = pyglet.graphics.Group()
-        self.boardgroup = pyglet.graphics.OrderedGroup(0, self.biggroup)
-        self.calgroup = TransparencyOrderedGroup(4, self.biggroup)
-        self.handgroup = pyglet.graphics.OrderedGroup(5, self.biggroup)
-        self.menugroup = pyglet.graphics.OrderedGroup(6, self.biggroup)
+        self.board_bg_group = OrderedGroup(0)
+        self.arrow_group = OrderedGroup(1)
+        self.spot_group = OrderedGroup(2)
+        self.pawn_group = OrderedGroup(3)
+        self.menu_bg_group = OrderedGroup(4)
+        self.menu_fg_group = OrderedGroup(5)
         self.pickergroup = ScissorOrderedGroup(
-            8, self.biggroup, self, 0.3, 0.6, 0.3, 0.6)
-        self.topgroup = pyglet.graphics.OrderedGroup(65535, self.biggroup)
-        for rd in SkeletonIterator(self.closet.skeleton[
-                "board_viewport"][str(self)]):
+            2, None, self, 0.3, 0.6, 0.3, 0.6)
+        for rd in self.closet.skeleton[
+                "board_viewport"][str(self)].iterrows():
             self.closet.get_board(rd["dimension"], rd["board"])
             dimension = self.dimensiondict[rd["dimension"]]
             boardi = rd["board"]
@@ -160,40 +165,37 @@ class GameWindow(pyglet.window.Window):
         stylenames = set()
         handnames = set()
         charnames = set()
-        for rd in SkeletonIterator(
-                self.closet.skeleton["menu"][str(self)]):
+        for rd in self.closet.skeleton["menu"][str(self)].iterrows():
             stylenames.add(rd["style"])
-        if "hand" in self.closet.skeleton and str(self) in self.closet.skeleton["hand"]:
-            for rd in SkeletonIterator(
-                    self.closet.skeleton["hand"][str(self)]):
+        if (
+                "hand" in self.closet.skeleton and
+                str(self) in self.closet.skeleton["hand"]):
+            for rd in self.closet.skeleton["hand"][str(self)].iterrows():
                 stylenames.add(rd["style"])
                 handnames.add(rd["name"])
-        for rd in SkeletonIterator(
-                self.closet.skeleton["calendar"][str(self)]):
+        for rd in self.closet.skeleton["calendar"][str(self)].iterrows():
             stylenames.add(rd["style"])
         self.closet.get_styles(stylenames)
         carddict = self.closet.get_cards_in_hands(handnames)
         imagenames = set()
-        for rd in SkeletonIterator(
-                self.closet.skeleton["menu_item"][str(self)]):
+        for rd in self.closet.skeleton["menu_item"][str(self)].iterrows():
             if rd["icon"] is not None:
                 imagenames.add(rd["icon"])
-        for rd in SkeletonIterator(carddict):
+        for rd in carddict.iterrows():
             if rd["image"] is not None:
                 imagenames.add(rd["image"])
         self.closet.get_imgs(imagenames)
-        for rd in SkeletonIterator(
-                self.closet.skeleton["menu"][str(self)]):
+        for rd in self.closet.skeleton["menu"][str(self)].iterrows():
             menu = Menu(self, rd["name"])
-            for mird in SkeletonIterator(
-                    self.closet.skeleton["menu_item"][
-                        str(self)][str(menu)]):
+            for mird in self.closet.skeleton["menu_item"][
+                    str(self)][str(menu)].iterrows():
                 MenuItem(menu, mird["idx"])
             self.menudict[str(menu)] = menu
-        if "hand" in self.closet.skeleton and str(self) in self.closet.skeleton["hand"]:
+        if (
+                "hand" in self.closet.skeleton and
+                str(self) in self.closet.skeleton["hand"]):
             effect_deck_names = set()
-            for rd in SkeletonIterator(
-                    self.closet.skeleton["hand"][str(self)]):
+            for rd in self.closet.skeleton["hand"][str(self)].iterrows():
                 effect_deck_names.add(rd["deck"])
             deckd = self.closet.get_effect_decks(effect_deck_names)
             self.closet.get_effects_in_decks(effect_deck_names)
@@ -201,14 +203,13 @@ class GameWindow(pyglet.window.Window):
             for (name, deck) in deckd.iteritems():
                 self.handdict[name] = Hand(self, deck)
         if hasattr(self, 'handdict'):
-            self.carddict = self.closet.get_cards_in_hands(self.handdict.keys())
+            self.carddict = self.closet.get_cards_in_hands(
+                self.handdict.keys())
         self.calendars = []
-        for rd in SkeletonIterator(
-                self.closet.skeleton["calendar"][str(self)]):
+        for rd in self.closet.skeleton["calendar"][str(self)].iterrows():
             charnames.add(rd["character"])
         self.closet.load_characters(charnames)
-        for rd in SkeletonIterator(
-                self.closet.skeleton["calendar"][str(self)]):
+        for rd in self.closet.skeleton["calendar"][str(self)].iterrows():
             while len(self.calendars) <= rd["idx"]:
                 self.calendars.append(None)
             self.calendars[rd["idx"]] = Calendar(self, rd["idx"])
@@ -258,8 +259,7 @@ class GameWindow(pyglet.window.Window):
         self.dxdy_hist_counter = 0
 
     def __getattr__(self, attrn):
-        if attrn in ("min_width", "min_height",
-                       "arrowhead_size", "arrow_width"):
+        if attrn in self.rowattrs:
             return self._rowdict[attrn]
         else:
             return self.atrdic[attrn](self)
@@ -272,22 +272,6 @@ class GameWindow(pyglet.window.Window):
         r = self.last_timestream_hash != tihash
         self.last_timestream_hash = tihash
         return r
-
-
-    def update(self, dt):
-        (x, y) = self.mouspot.coords
-
-        for get in self.hover_iter_getters:
-            for hoverable in get():
-                if (
-                        hoverable is not None and
-                        hasattr(hoverable, 'overlaps') and
-                        hoverable.overlaps(x, y)):
-                    if hasattr(hoverable, 'hover'):
-                        self.hovered = hoverable.hover(x, y)
-                    else:
-                        self.hovered = hoverable
-                    return
 
     def on_draw(self):
         (width, height) = self.get_size()
@@ -319,6 +303,8 @@ class GameWindow(pyglet.window.Window):
     def on_resize(self, w, h):
         for calendar in self.calendars:
             calendar.tainted = True
+        for viewport in self.viewports:
+            viewport.moved = True
         super(GameWindow, self).on_resize(w, h)
 
     def on_mouse_press(self, x, y, button, modifiers):
@@ -447,12 +433,12 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         """If the thing previously pressed has a
-move_with_mouse method, use it.
+on_mouse_drag method, use it.
      """
         if self.grabbed is None:
             self.grabbed = self.pressed
-        elif hasattr(self.grabbed, 'move_with_mouse'):
-            self.grabbed.move_with_mouse(x, y, dx, dy, buttons, modifiers)
+        elif hasattr(self.grabbed, 'on_mouse_drag'):
+            self.grabbed.on_mouse_drag(x, y, dx, dy, buttons, modifiers)
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         # for now, this only does anything if you're moused over
@@ -472,10 +458,24 @@ move_with_mouse method, use it.
                     self.picker.scroll_down_once()
                     scroll_y += 1
 
+    def detect_hover(self, x, y):
+        for get in self.hover_iter_getters:
+            for hoverable in get():
+                if (
+                        hoverable is not None and
+                        hasattr(hoverable, 'overlaps') and
+                        hoverable.overlaps(x, y)):
+                    if hasattr(hoverable, 'hover'):
+                        self.hovered = hoverable.hover(x, y)
+                    else:
+                        self.hovered = hoverable
+                    return
+
     def on_mouse_motion(self, x, y, dx, dy):
         """Find the widget, if any, that the mouse is over,
 and highlight it.
         """
+        self.detect_hover(x, y)
         self.mouspot.x = x
         self.mouspot.y = y
         self.dx_hist.append(dx)
@@ -528,16 +528,6 @@ and highlight it.
                 color,
                 group,
                 verts[3]))
-
-    def draw_menu(self, menu):
-        menu.draw(self.batch, self.menugroup)
-        for menu_item in menu:
-            if menu_item.label is not None:
-                try:
-                    menu_item.label.delete()
-                except (AttributeError, AssertionError):
-                    pass
-            menu_item.draw(self.batch, menu.labelgroup)
 
     def sensible_calendar_for(self, something):
         """Return a calendar appropriate for representing some schedule-dict

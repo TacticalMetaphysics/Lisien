@@ -53,24 +53,24 @@ class Arrow:
     margin = 20
     w = 10
     atrdic = {
-            'ox': lambda self: self.orig.x,
-            'oy': lambda self: self.orig.y,
-            'dx': lambda self: self.dest.x,
-            'dy': lambda self: self.dest.y,
-            'rise': lambda self: self.dest.y - self.orig.y,
-            'run': lambda self: self.dest.x - self.orig.x,
-            'length': lambda self: {
-                True: self.board.get_edge_len(self.portal.e),
-                False: hypot(self.rise, self.run)
+        'ox': lambda self: self.orig.x,
+        'oy': lambda self: self.orig.y,
+        'dx': lambda self: self.dest.x,
+        'dy': lambda self: self.dest.y,
+        'rise': lambda self: self.dest.y - self.orig.y,
+        'run': lambda self: self.dest.x - self.orig.x,
+        'length': lambda self: {
+            True: self.board.get_edge_len(self.portal.e),
+            False: hypot(self.rise, self.run)
             }["branch" in self.portal.e.attribute_names()],
-            'slope': lambda self: self.get_slope(),
-            'm': lambda self: self.get_slope(),
-            'left': lambda self: self.get_left(),
-            'right': lambda self: self.get_right(),
-            'bot': lambda self: self.get_bot(),
-            'bottom': lambda self: self.get_bot(),
-            'top': lambda self: self.get_top(),
-            'b': lambda self: self.get_b()
+        'slope': lambda self: self.get_slope(),
+        'm': lambda self: self.get_slope(),
+        'left': lambda self: self.get_left(),
+        'right': lambda self: self.get_right(),
+        'bot': lambda self: self.get_bot(),
+        'bottom': lambda self: self.get_bot(),
+        'top': lambda self: self.get_top(),
+        'b': lambda self: self.get_b()
         }
 
     def __init__(self, board, orig_or_port, dest=None):
@@ -198,6 +198,45 @@ class ArrowWidget:
         "b": lambda self: self.yint(),
         "width": lambda self: self.viewport.arrow_width}
 
+    atrdic = {
+        "board_left": lambda self: self.arrow.left,
+        "board_right": lambda self: self.arrow.right,
+        "board_top": lambda self: self.arrow.top,
+        "board_bot": lambda self: self.arrow.bot,
+        "viewport_left": lambda self:
+        self.board_left + self.viewport.offset_x,
+        "viewport_right": lambda self:
+        self.board_right + self.viewport.offset_x,
+        "viewport_top": lambda self:
+        self.board_top + self.viewport.offset_y,
+        "viewport_bot": lambda self:
+        self.board_bot + self.viewport.offset_y,
+        "window_left": lambda self:
+        self.viewport_left + self.viewport.window_left,
+        "window_right": lambda self:
+        self.viewport_right + self.viewport.window_left,
+        "window_bot": lambda self:
+        self.viewport_bot + self.viewport.window_bot,
+        "window_top": lambda self:
+        self.viewport_top + self.viewport.window_bot,
+        "ox": lambda self: self.orig.board_x,
+        "oy": lambda self: self.orig.board_y,
+        "dx": lambda self: self.dest.board_x,
+        "dy": lambda self: self.dest.board_y,
+        "window_ox": lambda self: self.orig.window_x,
+        "window_oy": lambda self: self.orig.window_y,
+        "window_dx": lambda self: self.dest.window_x,
+        "window_dy": lambda self: self.dest.window_y,
+        "selected": lambda self: self in self.window.selected,
+        "orig": lambda self: self.viewport.spotdict[str(self.arrow.orig)],
+        "dest": lambda self: self.viewport.spotdict[str(self.arrow.dest)],
+        "in_view": lambda self: self.orig.in_view or self.dest.in_view,
+        "b": lambda self: self.yint(),
+        "width": lambda self: self.viewport.arrow_width}
+
+    arrowatts = set(["rise", "run", "length", "m", "slope",
+                     "center_shrink", "portal", "e"])
+
     def __init__(self, viewport, arrow):
         self.viewport = viewport
         self.window = self.viewport.window
@@ -208,21 +247,24 @@ class ArrowWidget:
         self.order = self.window.edge_order
         self.window.edge_order += 1
         self.bggroup = SmoothBoldLineOrderedGroup(
-            0, self.viewport.arrowgroup, self.viewport.arrow_width)
+            0, self.window.arrow_group, self.viewport.arrow_width)
         self.fggroup = BoldLineOrderedGroup(
-            1, self.viewport.arrowgroup, self.viewport.arrow_width)
+            1, self.window.arrow_group, self.viewport.arrow_width)
         self.old_state = None
 
     def __getattr__(self, attrn):
-        if attrn in (
-                "rise", "run", "length", "m", "slope",
-                "center_shrink", "portal", "e"):
+        if attrn in self.arrowatts:
             return getattr(self.arrow, attrn)
         elif attrn in ArrowWidget.atrdic:
             return ArrowWidget.atrdic[attrn](self)
         else:
             raise AttributeError(
-                "ArrowWidget instance has no attribute named {0}".format(attrn))
+                "ArrowWidget instance has no attribute "
+                "named {0}".format(attrn))
+
+    def yint(self):
+        ab = self.arrow.b
+        return (ab[0] + self.viewport.offset_x * ab[1], ab[1])
 
     def y_at(self, x):
         if self.m is None:
@@ -287,18 +329,21 @@ Take my width into account
         try:
             self.really_draw(ox, oy, dx, dy)
         except:
-            if self.bggroup is not None:
-                try:
-                    self.bggroup.delete()
-                except:
-                    pass
-                self.bggroup = None
-            if self.fggroup is not None:
-                try:
-                    self.fggroup.delete()
-                except:
-                    pass
-                self.fggroup = None
+            self.delete()
+
+    def delete(self):
+        if self.bgvl is not None:
+            try:
+                self.bgvl.delete()
+            except:
+                pass
+            self.bgvl = None
+        if self.fgvl is not None:
+            try:
+                self.fgvl.delete()
+            except:
+                pass
+            self.fgvl = None
 
     def really_draw(self, ox, oy, dx, dy):
         # group had better be viewported

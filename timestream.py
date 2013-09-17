@@ -321,6 +321,3 @@ the branch's current end."""
 
     def get_skeleton(self):
         return {"timestream": BranchDictIter(self.branchdict)}
-
-class TimestreamException(Exception):
-    pass

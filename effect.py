@@ -1,8 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import (
-    SaveableMetaclass,
-    SkeletonIterator)
+from util import SaveableMetaclass
 
 
 """Ways to change the game world."""
@@ -43,9 +41,11 @@ contain only a single Effect.
 
     """
     atrdic = {
-        "character": lambda self: self.closet.get_character(self._rowdict["character"]),
+        "character": lambda self:
+        self.closet.get_character(self._rowdict["character"]),
         "key": lambda self: self._rowdict["key"],
-        "callback": lambda self: self.closet.effect_cbs[self._rowdict["callback"]]}
+        "callback": lambda self:
+        self.closet.effect_cbs[self._rowdict["callback"]]}
 
     tables = [
         ("effect",
@@ -216,12 +216,11 @@ were right after firing them.
                 branch in self.indefinite_effects and
                 self.indefinite_effects[branch] <= tick):
             return self._card_links[self.indefinite_effects[branch]]["effects"]
-        for rd in SkeletonIterator(self._card_links[branch]):
+        for rd in self._card_links[branch].iterrows():
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return [
                     self.closet.get_effect(effect) for effect in
-                    SkeletonIterator(
-                        self._card_links[branch][rd["tick_from"]])]
+                    self._card_links[branch][rd["tick_from"]].iterrows()]
         return []
 
     def draw(self, i=None, branch=None, tick=None):

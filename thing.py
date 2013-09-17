@@ -3,9 +3,9 @@
 from util import (
     SaveableMetaclass,
     LocationException,
-    BranchTicksIter,
-    SkeletonIterator,
-    TimeParadox)
+    TimeParadox,
+    BranchError,
+    JourneyException)
 from logging import getLogger
 
 
@@ -15,12 +15,9 @@ __metaclass__ = SaveableMetaclass
 logger = getLogger(__name__)
 
 
-class JourneyException(Exception):
-    pass
-
-
-class BranchError(Exception):
-    pass
+def check_locs(locs):
+    for loc in iter(locs):
+        assert(loc["tick_to"] is None or loc["tick_from"] <= loc["tick_to"])
 
 
 class Thing:
@@ -55,13 +52,13 @@ too.
         self._name = str(name)
         self.indefinite_locations = {}
         self.new_branch_blank = False
-        for rd in SkeletonIterator(self.locations):
+        self.locations = self.closet.skeleton["thing_location"][
+            str(self.dimension)][str(self)]
+        for rd in self.locations.iterrows():
             if rd["tick_to"] is None:
                 self.indefinite_locations[rd["branch"]] = rd["tick_from"]
         self.dimension.thingdict[name] = self
-        logger.debug(
-            "Instantiated Thing %s. Its locations are:\n%s",
-            str(self), repr(self.locations))
+        self.branches_in = set()
 
     def __getattr__(self, attrn):
         if attrn == "locations":
@@ -78,7 +75,7 @@ too.
         else:
             raise AttributeError(
                 "Thing instance {0} has no attribute {1}".format(
-                str(self), attrn))
+                    str(self), attrn))
 
     def __setattr__(self, attrn, val):
         if attrn == 'location':
@@ -122,8 +119,6 @@ tick in the given branch."""
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        if len(self.locations) < branch:
-            return None
         if (
                 branch in self.indefinite_locations and
                 tick >= self.indefinite_locations[branch]):
@@ -135,7 +130,7 @@ tick in the given branch."""
                 return self.dimension.get_portal(orign, destn)
             else:
                 return self.dimension.get_place(rd["location"])
-        for rd in SkeletonIterator(self.locations[branch]):
+        for rd in self.locations[branch].iterrows():
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 if rd["location"][:6] == "Portal":
                     pstr = rd["location"][6:].strip("()")
@@ -144,6 +139,30 @@ tick in the given branch."""
                 else:
                     return self.dimension.get_place(rd["location"])
         return None
+
+    def has_location_during(self, branch, tick_from, tick_to=None):
+        if tick_to is None:
+            for rd in self.locations[branch].iterrows():
+                if (
+                        rd["tick_from"] <= tick_from and
+                        rd["tick_to"] is not None and
+                        rd["tick_to"] >= tick_from):
+                    return True
+        else:
+            for rd in self.locations[branch].iterrows():
+                if rd["tick_to"] is None:
+                    if tick_to >= rd["tick_from"]:
+                        return True
+                else:
+                    if (
+                            tick_to >= rd["tick_from"] and
+                            tick_to <= rd["tick_to"]):
+                        return True
+                    if (
+                            tick_from >= rd["tick_from"] and
+                            tick_from <= rd["tick_to"]):
+                        return True
+        return False
 
     def set_location(self, loc, branch=None, tick_from=None, tick_to=None):
         """Declare that I'm in the given Place, Portal, or Thing.
@@ -159,25 +178,9 @@ Return an Effect representing the change.
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch in self.indefinite_locations:
-            indef_start = self.indefinite_locations[branch]
-            indef_rd = self.locations[indef_start]
-            if tick_from > indef_start:
-                indef_rd["tick_to"] = tick_from - 1
-                del self.indefinite_locations[branch]
-            elif tick_to > indef_start:
-                del self.locations[branch][indef_start]
-                del self.indefinite_locations[branch]
-            elif (
-                    tick_to == self.indef_start and
-                    indef_rd["location"] == str(loc)):
-                indef_rd["tick_from"] = tick_from
-                self.indefinite_locations[branch] = tick_from
-                return
-        while len(self.locations) <= branch:
-            self.locations.append([])
-        while len(self.locations[branch]) <= tick_from:
-            self.locations[branch].append([])
+        if self.has_location_during(branch, tick_from, tick_to):
+            raise TimeParadox(
+                "I'm already somewhere then.")
         self.locations[branch][tick_from] = {
             "dimension": str(self.dimension),
             "thing": str(self),
@@ -185,9 +188,18 @@ Return an Effect representing the change.
             "tick_from": tick_from,
             "tick_to": tick_to,
             "location": str(loc)}
-        print "remembered a location rowdict:"
-        print self.locations[branch][tick_from]
-        if tick_to is None:
+        if branch in self.indefinite_locations:
+            ifrom = self.indefinite_locations[branch]
+            ird = self.locations[branch][ifrom]
+            if tick_from > ifrom:
+                ird["tick_to"] = tick_from - 1
+                del self.indefinite_locations[branch]
+            elif tick_to is None:
+                del self.locations[branch][ifrom]
+                del self.indefinite_locations[branch]
+            elif tick_to > ifrom:
+                ird["tick_from"] = tick_to + 1
+        elif tick_to is None:
             self.indefinite_locations[branch] = tick_from
 
     def get_speed(self, branch=None, tick=None):
@@ -228,11 +240,12 @@ Presupposes that I'm in a portal.
             tick = self.closet.tick
         if len(self.locations) < branch:
             raise LocationException("I am nowhere in that branch")
-        for rd in SkeletonIterator(self.locations[branch]):
+        for rd in self.locations[branch].iterrows():
             if rd["tick_to"] is None:
                 continue
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
-                return float(tick - rd["tick_from"]) / float(rd["tick_to"] - rd["tick_from"])
+                return float(tick - rd["tick_from"]) / float(
+                    rd["tick_to"] - rd["tick_from"])
         raise LocationException("I am not in a portal at that time")
 
     def free_time(self, n, branch=None, tick=None):
@@ -262,16 +275,17 @@ then."""
             tick = self.closet.tick
         if len(self.locations) < branch:
             raise BranchError("Branch not known")
-        if branch in self.indefinite_locations:
+        if (
+                branch in self.indefinite_locations and
+                self.indefinite_locations[branch] <= tick):
             tick_from = self.indefinite_locations[branch]
             rd = self.locations[branch][tick_from]
             rd["tick_to"] = tick
             del self.indefinite_locations[branch]
         else:
-            for rd in SkeletonIterator(self.locations[branch]):
+            for rd in self.locations[branch].iterrows():
                 if rd["tick_from"] < tick and rd["tick_to"] > tick:
                     rd["tick_to"] = tick
-                    return
 
     def journey_to(self, destplace, branch=None, tick=None):
         """Schedule myself to travel to the given place, interrupting whatever
@@ -291,24 +305,35 @@ other journey I may be on at the time."""
             str(loc), to=str(destplace), output="epath")
         path = None
         for p in ipath:
+            if p == []:
+                continue
             desti = self.dimension.graph.es[p[-1]].target
             if desti == int(destplace):
-                path = [e["portal"] for e in [self.dimension.graph.es[i] for i in p]]
+                path = [e["portal"] for e in
+                        [self.dimension.graph.es[i] for i in p]]
                 break
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
-        prevtick = tick + 1
+        locs = self.branch_loc_rds(branch)
         try:
             self.follow_path(path, branch, tick)
         except TimeParadox:
+            del self.locations[branch]
+            self.restore_loc_rds(locs)
             self.new_branch_blank = True
-            self.closet.increment_branch()
+            increment = 1
+            while branch + increment in self.locations:
+                increment += 1
+            self.closet.time_travel_inc_branch(branches=increment)
+            self.dimension.check_thing_id(self)
             self.new_branch_blank = False
-            self.follow_path(path, self.closet.branch, tick)
-    
+            branch = self.closet.branch
+            self.follow_path(path, branch, tick)
+
     def follow_path(self, path, branch, tick):
+        logger.debug("Following path")
         self.end_location(branch, tick)
-        prevtick = tick
+        prevtick = tick + 1
         for port in path:
             tick_out = self.get_ticks_thru(port) + prevtick
             self.set_location(port, int(branch), int(prevtick), int(tick_out))
@@ -318,13 +343,11 @@ other journey I may be on at the time."""
         self.update()
 
     def new_branch(self, parent, branch, tick):
-        while len(self.locations) <= branch:
-            self.locations.append([])
-        while len(self.locations[branch]) <= tick:
-            self.locations[branch].append([])
         if self.new_branch_blank:
+            start_loc = self.get_location(parent, tick)
+            self.set_location(start_loc, branch, tick)
             return
-        for rd in SkeletonIterator(self.locations[parent]):
+        for rd in self.locations[parent].iterrows():
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
                 rd2["branch"] = branch
@@ -334,8 +357,24 @@ other journey I may be on at the time."""
                     if rd2["tick_to"] is None:
                         self.indefinite_locations[branch] = tick
                 else:
-                    while len(self.locations[branch]) <= rd2["tick_from"]:
-                        self.locations[branch].append([])
                     self.locations[branch][rd2["tick_from"]] = rd2
                     if rd2["tick_to"] is None:
                         self.indefinite_locations[branch] = rd2["tick_from"]
+
+    def check_locs(self):
+        check_locs(self.locations.iterrows())
+
+    def branch_loc_rds(self, branch=None):
+        if branch is None:
+            branch = self.closet.branch
+        r = [rd.deepcopy() for rd in self.locations[branch].iterrows()]
+        return r
+
+    def restore_loc_rds(self, rds):
+        logger.debug("Restoring locations")
+        for rd in rds:
+            if rd["branch"] not in self.locations:
+                self.locations[rd["branch"]] = []
+            self.locations[rd["branch"]][rd["tick_from"]] = rd
+            if rd["tick_to"] is None:
+                self.indefinite_locations[rd["branch"]] = rd["tick_from"]
