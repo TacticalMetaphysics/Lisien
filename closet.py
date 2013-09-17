@@ -217,6 +217,7 @@ given name.
             "front_branch": front_branch,
             "seed": seed,
             "tick": tick,
+            "hi_branch": hi_branch,
             "hi_place": hi_place,
             "hi_portal": hi_portal,
             "hi_thing": hi_thing}
@@ -225,10 +226,10 @@ given name.
 
     def __getattr__(self, attrn):
         try:
-            return self.atrdic[attrn](self)
+            return Closet.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
-                "RumorMill doesn't have the attribute " + attrn)
+                "Closet doesn't have the attribute " + attrn)
 
     def __setattr__(self, attrn, val):
         if attrn in ("front_board", "seed", "age",
@@ -1320,4 +1321,6 @@ def load_closet(dbfn, lang="eng", xfuncs={}):
     row = c.fetchone()
     c.close()
     initargs = (conn, xfuncs, lang) + row
-    return Closet(*initargs)
+    r = Closet(*initargs)
+    r.load_strings()
+    return r

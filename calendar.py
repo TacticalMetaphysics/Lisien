@@ -33,7 +33,7 @@ of the BranchConnector.
         "window_bot": lambda self: self.bc.end[1],
         "window_top": lambda self: self.bc.end[1] + self.height,
         "window_left": lambda self: self.bc.end[0] - self.rx,
-        "window_right": lambda self: self.bc.end[0] + self.rx
+        "window_right": lambda self: self.bc.end[0] + self.rx,
         "in_view": lambda self:
         self.window_right > 0 and
         self.window_top > 0 and
@@ -230,7 +230,12 @@ class Handle:
             False: self.timeline.window_right + self.width - 1
             }[self.on_the_left],
         "window_top": lambda self: self.y + self.ry,
-        "window_bot": lambda self: self.y - self.ry}
+        "window_bot": lambda self: self.y - self.ry,
+        "in_view": lambda self: (
+            self.window_right > 0 and
+            self.window_top > 0 and
+            self.window_bot < self.window.height and
+            self.window_left < self.window.width)}
 
     def __init__(self, timeline, handle_side):
         """Make a handle for the given timeline on its given side,
@@ -475,7 +480,7 @@ represents to calculate its dimensions and coordinates.
         "width": lambda self: self.calendar_right - self.calendar_left,
         "height": lambda self: {
             True: lambda:
-                self.calendar_height - (
+                self.calendar.height - (
                 self.tick_from * self.calendar.row_height),
             False: lambda: self.calendar.row_height * len(self)
             }[self.tick_to is None](),
@@ -768,8 +773,8 @@ time travel.
         "window_right": lambda self: int(self.right_prop * self.window.width),
         "width": lambda self: self.window_right - self.window_left,
         "col_width": lambda self: {
-            True: self.width,
-            False: self.width / len(self.cols_shown)
+            True: lambda: self.width,
+            False: lambda: self.width / len(self.cols_shown)
             }[len(self.cols_shown) == 0](),
         "height": lambda self: self.window_top - self.window_bot,
         "row_height": lambda self: self.height / self.rows_shown,
