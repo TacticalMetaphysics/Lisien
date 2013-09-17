@@ -116,14 +116,15 @@ before RumorMill will work. For that, run mkdb.sh.
         "hi_branch": lambda self: self.game["hi_branch"],
         "dimensions": lambda self: self.dimensiondict.itervalues()}
 
-    def __init__(self, dbfilen, xfuncs={},
-                 front_board="default_board", front_branch=0, seed=0, tick=0,
-                 hi_branch=0, hi_place=0, hi_portal=0, hi_thing=0, lang="eng"):
+    def __init__(self, connector, xfuncs={}, lang="eng",
+                 front_dimension="Physical", front_board=0,
+                 front_branch=0, seed=0, tick=0,
+                 hi_branch=0, hi_place=0, hi_portal=0, hi_thing=0):
         """Return a database wrapper around the SQLite database file by the
 given name.
 
         """
-        self.conn = sqlite3.connect(dbfilen)
+        self.conn = connector
         self.cursor = self.conn.cursor()
         self.c = self.cursor
 
@@ -167,7 +168,7 @@ given name.
 
         placeholder = (noop, ITEM_ARG_RE)
         self.effect_cbs = {}
-        self.func = {
+        self.menu_cbs = {
             'play_speed':
             (self.play_speed, ONE_ARG_RE),
             'back_to_start':
@@ -209,8 +210,9 @@ given name.
             (self.mi_create_thing, ONE_ARG_RE),
             'mi_create_portal':
             (self.mi_create_portal, ONE_ARG_RE)}
-        self.func.update(xfuncs)
+        self.menu_cbs.update(xfuncs)
         self.skeleton["game"] = {
+            "front_dimension": front_dimension,
             "front_board": front_board,
             "front_branch": front_branch,
             "seed": seed,
@@ -218,6 +220,8 @@ given name.
             "hi_place": hi_place,
             "hi_portal": hi_portal,
             "hi_thing": hi_thing}
+        fd = self.load_dimension(front_dimension)
+        self.load_board(fd, front_board)
 
     def __getattr__(self, attrn):
         try:
@@ -611,25 +615,6 @@ This is game-world time. It doesn't always go forwards.
                 return n
         return 0
 
-    def load_game(self):
-        self.c.execute(
-            "SELECT front_board, front_branch, front_dimension, "
-            "tick, seed, hi_branch, hi_place, hi_portal, "
-            "hi_thing FROM game")
-        row = self.c.fetchone()
-        self.skeleton["game"] = {
-            "front_board": row[0],
-            "front_branch": row[1],
-            "front_dimension": row[2],
-            "tick": row[3],
-            "seed": row[4],
-            "hi_branch": row[5],
-            "hi_place": row[6],
-            "hi_portal": row[7],
-            "hi_thing": row[8]}
-        dim = self.get_dimension(self.game["front_dimension"])
-        self.load_board(dim, self.game["front_board"])
-
     def load_strings(self):
         self.c.execute("SELECT stringname, language, string FROM strings")
         for row in self.c:
@@ -774,6 +759,9 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             r[name] = Dimension(self, name)
         return r
+
+    def load_dimension(self, name):
+        return self.load_dimensions([name])[name]
 
     def get_dimensions(self, names):
         r = {}
@@ -978,6 +966,9 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             r[name] = GameWindow(self, name, checkpoint)
         return r
+
+    def load_window(self, name, checkpoint=False):
+        return self.load_windows([name], checkpoint)[name]
 
     def get_windows(self, names, checkpoint=False):
         r = {}
@@ -1320,8 +1311,13 @@ def mkdb(DB_NAME='default.sqlite'):
     conn.commit()
 
 
-def load_game(dbfn, lang="eng"):
-    db = Closet(dbfn, lang=lang)
-    db.load_game()
-    db.load_strings()
-    return db
+def load_closet(dbfn, lang="eng", xfuncs={}):
+    conn = sqlite3.connect(dbfn)
+    c = conn.cursor()
+    c.execute(
+        "SELECT front_dimension, front_board, front_branch, seed, tick, "
+        "hi_branch, hi_place, hi_portal, hi_thing FROM game")
+    row = c.fetchone()
+    c.close()
+    initargs = (conn, xfuncs, lang) + row
+    return Closet(*initargs)

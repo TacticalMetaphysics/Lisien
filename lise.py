@@ -41,7 +41,7 @@ if DEBUG:
     logger = logging.getLogger()
 clock = pyglet.clock.Clock()
 pyglet.clock.set_default(clock)
-closet = closet.load_game(dbfn, lang)
+closet = closet.load_closet(dbfn, lang)
 gw = closet.get_window('Main', checkpoint=True)
 
 

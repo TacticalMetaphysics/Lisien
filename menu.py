@@ -103,7 +103,7 @@ With db, register in db's menuitemdict.
             self.menu.items.append(None)
         self.menu.items[self.idx] = self
         (funname, argstr) = re.match("(.+)\((.*)\)", self._on_click).groups()
-        (fun, argre) = self.closet.func[funname]
+        (fun, argre) = self.closet.menu_cbs[funname]
         try:
             on_click_arg_tup = re.match(argre, argstr).groups()
         except:
