@@ -456,28 +456,6 @@ class CalendarCellGroup(Group):
         glDisable(GL_SCISSOR_TEST)
 
 
-class CalendarCellGroup(OrderedGroup):
-    def __init__(self, cell):
-        super(CalendarCellGroup, self).__init__(
-            cell.order, cell.column.cellgroup)
-        self.cell = cell
-
-    def gettup(self):
-        return (
-            self.cell.window_left - 1,
-            self.cell.window_bot,
-            self.cell.width + 1,
-            self.cell.height)
-
-    def set_state(self):
-        tup = self.gettup()
-        glScissor(*tup)
-        glEnable(GL_SCISSOR_TEST)
-
-    def unset_state(self):
-        glDisable(GL_SCISSOR_TEST)
-
-
 class CalendarCell:
     """A block of time in a calendar.
 
@@ -549,7 +527,6 @@ represents to calculate its dimensions and coordinates.
         self.batch = self.column.batch
         self.style = self.column.style
         self.window = self.calendar.window
-        self.group = CalendarCellGroup(self, self.window.menu_fg_group)
         self.tick_from = tick_from
         self.tick_to = tick_to
         self.text = text
@@ -633,7 +610,7 @@ represents to calculate its dimensions and coordinates.
             halign="center",
             multiline=True,
             batch=self.batch,
-            group=self.group)
+            group=self.window.menu_fg_group)
 
     def draw_box(self, l, b, r, t, color):
         """Draw box with given edges and color"""
@@ -642,7 +619,7 @@ represents to calculate its dimensions and coordinates.
         self.vertl = self.batch.add(
             8,
             GL_LINES,
-            self.group,
+            self.window.menu_fg_group,
             ('v2i', vees),
             ('c4B', colors))
 
@@ -722,6 +699,7 @@ time travel.
              "rows_shown": "INTEGER NOT NULL DEFAULT 240",
              "scrolled_to": "INTEGER DEFAULT 0",
              "scroll_factor": "INTEGER NOT NULL DEFAULT 4",
+             "branch_left": "INTEGER NOT NULL DEFAULT 0",
              "type": "INTEGER NOT NULL DEFAULT {0}".format(CAL_TYPE['THING']),
              "character": "TEXT NOT NULL",
              "dimension": "TEXT DEFAULT NULL",
@@ -783,6 +761,7 @@ time travel.
             self._rowdict["destination"]),
         "interactive": lambda self: self._rowdict["interactive"],
         "rows_shown": lambda self: self._rowdict["rows_shown"],
+        "branch_left": lambda self: self._rowdict["branch_left"],
         "left_prop": lambda self: self._rowdict["left"],
         "right_prop": lambda self: self._rowdict["right"],
         "top_prop": lambda self: self._rowdict["top"],
@@ -805,7 +784,12 @@ time travel.
         "scroll_factor": lambda self: self._rowdict["scroll_factor"],
         "max_cols": lambda self: self._rowdict["max_cols"],
         "thing_show_location": lambda self: (
-            self._rowdict["thing_show_location"] not in (0, None, False))
+            self._rowdict["thing_show_location"]
+            not in (0, None, False)),
+        "cols_shown": lambda self: [
+            self.coldict[k] for k in xrange(
+                self.branch_left, self.branch_left + self.max_cols)
+            if k in self.coldict]
     }
 
     def __init__(self, window, idx):
@@ -831,19 +815,14 @@ time travel.
                     "thing_location"][
                     self._rowdict["dimension"]][
                     self._rowdict["thing"]]
-        self.cols_shown = set()
         self.coldict = {}
+        self.branch_to = 0
         for branch in self.closet.timestream.branchdict:
-            self.coldict[branch] = self.make_col(branch)
-            self.cols_shown.add(branch)
-            if len(self.cols_shown) > self.max_cols:
-                self.cols_shown.remove(min(self.cols_shown))
-        for i in xrange(0, self.closet.hi_branch):
-            self.coldict[i] = self.make_col(i)
-        for i in xrange(0, self.max_cols - 1):
-            if i in self.coldict:
-                self.cols_shown.add(i)
-        self.branch_to = self.closet.hi_branch
+            try:
+                self.coldict[branch] = self.make_col(branch)
+                self.branch_to = branch
+            except KeyError:
+                pass
         self.refresh()
 
     def __int__(self):
@@ -893,13 +872,14 @@ So, return my index."""
         """Draw all my columns."""
         if self.visible and len(self.cols_shown) > 0:
             for calcol in self.cols_shown:
-                self.coldict[calcol].draw()
+                calcol.draw()
         else:
             for calcol in self.cols_shown:
-                self.coldict[calcol].delete()
+                calcol.delete()
 
     def make_col(self, branch):
         """Return a new column for the given branch."""
+        logger.debug("Calendar making col {0}!".format(branch))
         return {
             CAL_TYPE['THING']: {
                 True: LocationCalendarCol,
@@ -912,7 +892,7 @@ So, return my index."""
 
     def rearrow(self):
         """Rearrange the BranchConnectors."""
-        for coli in self.cols_shown:
+        for coli in xrange(0, len(self.cols_shown) - 1):
             col1 = self.coldict[coli]
             rd = self.closet.timestream.branchdict[
                 col1.branch]
@@ -922,8 +902,7 @@ So, return my index."""
             if hasattr(col1, 'bc'):
                 col1.bc.delete()
             col2 = None
-            for coli in self.cols_shown:
-                calcol = self.coldict[coli]
+            for calcol in self.cols_shown:
                 if calcol.branch == parent:
                     col2 = calcol
                     break
@@ -937,25 +916,25 @@ So, return my index."""
     def review(self):
         """Review all my columns, deciding anew which cells are visible."""
         for col in self.cols_shown:
-            self.coldict[col].review()
+            col.review()
 
     def regen(self):
         """Regenerate cells in all my columns."""
         for col in self.cols_shown:
-            self.coldict[col].regen_cells()
+            col.regen_cells()
 
     def refresh(self):
         """Make sure I've got all the columns ready, review them and
         regenerate them."""
-        while self.branch_to < self.closet.hi_branch:
-            self.branch_to += 1
-            self.coldict[self.branch_to] = self.make_col(self.branch_to)
-            self.cols_shown.add(self.branch_to)
-            if len(self.cols_shown) > self.max_cols:
-                self.cols_shown.remove(min(self.cols_shown))
+        for branch in self.closet.timestream.branchdict:
+            if branch not in self.coldict:
+                try:
+                    self.coldict[branch] = self.make_col(branch)
+                except KeyError:
+                    pass
         self.rearrow()
         for col in self.cols_shown:
-            self.coldict[col].refresh()
+            col.refresh()
 
     def on_skel_set(self, skel, k, v):
         """Refresh myself when my schedule updates."""
@@ -1044,7 +1023,11 @@ Shows whatever the calendar is about, in that branch."""
         "rx": lambda self: self.width / 2,
         "height": lambda self: self.calendar.height,
         "ry": lambda self: self.height / 2,
-        "calendar_left": lambda self: int(self) * self.width,
+        "calendar_left": lambda self: {
+            True: lambda: (
+                self.calendar.cols_shown.index(self) * self.width),
+            False: lambda: self.calendar.width
+            }[self in self.calendar.cols_shown](),
         "calendar_right": lambda self: self.calendar_left + self.width,
         "calendar_top": lambda self: self.calendar.height,
         "calendar_bot": lambda self: 0,
@@ -1055,7 +1038,9 @@ Shows whatever the calendar is about, in that branch."""
         "window_top": lambda self: self.calendar.window_top,
         "window_bot": lambda self: self.calendar.window_bot,
         "window_center": lambda self: self.window_left + self.rx,
-        "in_view": lambda self: self in self.calendar.cols_shown,
+        "in_view": lambda self: (
+            int(self) >= self.calendar.branch_left and
+            int(self) < self.calendar.branch_left + self.calendar.max_cols),
         "idx": lambda self: self.calendar.cols.index(self)}
 
     def __init__(self, calendar, branch):

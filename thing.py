@@ -141,6 +141,8 @@ tick in the given branch."""
         return None
 
     def has_location_during(self, branch, tick_from, tick_to=None):
+        if branch not in self.locations:
+            return False
         if tick_to is None:
             for rd in self.locations[branch].iterrows():
                 if (
@@ -343,6 +345,8 @@ other journey I may be on at the time."""
         self.update()
 
     def new_branch(self, parent, branch, tick):
+        if branch not in self.locations:
+            self.locations[branch] = []
         if self.new_branch_blank:
             start_loc = self.get_location(parent, tick)
             self.set_location(start_loc, branch, tick)

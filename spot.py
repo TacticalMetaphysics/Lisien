@@ -252,6 +252,8 @@ class Spot(TerminableImg, TerminableInteractivity):
             self.indefinite_coords[branch] = tick_from
 
     def new_branch_coords(self, parent, branch, tick):
+        if branch not in self.coord_lst:
+            self.coord_lst[branch] = []
         for rd in self.coord_lst[parent].iterrows():
             if rd["tick_to"] >= tick or rd["tick_to"] is None:
                 if rd["tick_from"] < tick:

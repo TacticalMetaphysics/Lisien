@@ -1007,6 +1007,8 @@ class TerminableImg:
         return None
 
     def new_branch_imagery(self, parent, branch, tick):
+        if branch not in self.imagery:
+            self.imagery[branch] = []
         for rd in SkeletonIterator(self.imagery[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
@@ -1042,6 +1044,8 @@ class TerminableInteractivity:
         return False
 
     def new_branch_interactivity(self, parent, branch, tick):
+        if branch not in self.interactivity:
+            self.interactivity[branch] = []
         for rd in SkeletonIterator(self.interactivity[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
@@ -1683,3 +1687,30 @@ class FakeCloset:
 
 class BranchError(Exception):
     pass
+
+
+def new_branch_rd(dic, idic, branch, tick, rd):
+    """Given:
+
+    - a Skeleton whose first key is a branch number
+    - a dictionary of start times for indefinite events
+    - a branch number
+    - a tick
+    - a rowdict
+
+    Copy the rowdict into that branch of that Skeleton, or such of it
+    as takes place after the tick. And, if the rowdict's tick_to is
+    None, add the appropriate tick to the dictionary of
+    indefinites."""
+    if branch not in dic:
+        dic[branch] = []
+    rd2 = dict(rd)
+    if rd2["tick_from"] < tick:
+        rd2["tick_from"] = tick
+        dic[branch][tick] = rd2
+        if rd2["tick_to"] is None:
+            idic[branch] = tick
+    else:
+        dic[branch][rd2["tick_from"]] = rd2
+        if rd2["tick_to"] is None:
+            idic[branch] = rd2["tick_from"]

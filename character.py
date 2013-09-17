@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, TimeParadox
+from util import SaveableMetaclass, TimeParadox, new_branch_rd
 
 
 """Things that should have character sheets."""
@@ -123,10 +123,6 @@ item's name, and the name of the attribute.
         self.indefinite_stat = {}
         self.indefinite_portal = {}
         self.indefinite_place = {}
-        self.skilldict = {}
-        self.statdict = {}
-        self.portdict = {}
-        self.placedict = {}
         td = self.closet.skeleton
         try:
             self.thingdict = td["character_things"][str(self)]
@@ -691,9 +687,56 @@ item's name, and the name of the attribute.
                 self.indefinite_skill[name] = {}
             self.indefinite_skill[name][branch] = tick_from
 
-    def register_update_handler(self, that):
-        self.update_handlers.add(that)
 
-    def update(self, wot):
-        for handler in self.update_handlers:
-            handler(self)
+    def new_branch_dimdict(self, dic, idic, parent, branch, tick):
+        for dimension in dic.keys():
+            for name in dic[dimension].keys():
+                if branch not in dic[dimension][name]:
+                    dic[dimension][name][branch] = []
+                for rd in dic[dimension][name][parent].iterrows():
+                    new_branch_rd(dic,
+                                  idic,
+                                  branch,
+                                  tick,
+                                  rd)
+
+    def new_branch_thingdict(self, parent, branch, tick):
+        self.new_branch_dimdict(
+            self.thingdict, self.indefinite_thing, parent, branch, tick)
+
+    def new_branch_placedict(self, parent, branch, tick):
+        self.new_branch_dimdict(
+            self.placedict, self.indefinite_place, parent, branch, tick)
+
+    def new_branch_portaldict(self, parent, branch, tick):
+        self.new_branch_dimdict(
+            self.portaldict, self.indefinite_portal, parent, branch, tick)
+
+    def new_branch_statdict(self, parent, branch, tick):
+        for stat in self.statdict.keys():
+            if branch not in self.statdict[stat]:
+                self.statdict[stat][branch] = []
+            for rd in self.statdict[stat][parent].iterrows():
+                new_branch_rd(self.statdict,
+                              self.indefinite_stat,
+                              branch,
+                              tick,
+                              rd)
+
+    def new_branch_skilldict(self, parent, branch, tick):
+        for skill in self.skilldict.keys():
+            if branch not in self.skilldict[skill]:
+                self.skilldict[skill][branch] = []
+            for rd in self.skilldict[skill][parent].iterrows():
+                new_branch_rd(self.skilldict,
+                              self.indefinite_skill,
+                              branch,
+                              tick,
+                              rd)
+
+    def new_branch(self, parent, branch, tick):
+        self.new_branch_thingdict(parent, branch, tick)
+        self.new_branch_placedict(parent, branch, tick)
+        self.new_branch_portaldict(parent, branch, tick)
+        self.new_branch_statdict(parent, branch, tick)
+        self.new_branch_skilldict(parent, branch, tick)

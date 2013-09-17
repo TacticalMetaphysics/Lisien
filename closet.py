@@ -114,7 +114,8 @@ before RumorMill will work. For that, run mkdb.sh.
         "hi_portal": lambda self: self.game["hi_portal"],
         "hi_thing": lambda self: self.game["hi_thing"],
         "hi_branch": lambda self: self.game["hi_branch"],
-        "dimensions": lambda self: self.dimensiondict.itervalues()}
+        "dimensions": lambda self: self.dimensiondict.itervalues(),
+        "characters": lambda self: self.characterdict.itervalues()}
 
     def __init__(self, connector, xfuncs={}, lang="eng",
                  front_dimension="Physical", front_board=0,
@@ -1081,6 +1082,8 @@ This is game-world time. It doesn't always go forwards.
                 dimension.new_branch(branch_from, branch_to, tick_from)
                 for board in dimension.boards:
                     board.new_branch(branch_from, branch_to, tick_from)
+            for character in self.characters:
+                character.new_branch(branch_from, branch_to, tick_from)
             if self.game["hi_branch"] < branch_to:
                 self.game["hi_branch"] = branch_to
         logger.debug("Updating timestream")

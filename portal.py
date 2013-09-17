@@ -67,6 +67,8 @@ otherwise."""
         return True
 
     def new_branch(self, parent, branch, tick):
+        if branch not in self.existence:
+            self.existence[branch] = []
         for rd in self.existence.iterrows():
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
