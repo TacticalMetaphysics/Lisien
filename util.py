@@ -104,17 +104,26 @@ it comes upon."""
             if k < len(self.it):
                 return self.it[k]
             elif self.subtype is None:
-                raise IndexError(
+                raise KeyError(
                     "That part of the skeleton is empty "
                     "and I can't decide how to fill it. "
                     "If you want to help out, set my subtype.")
-            i = 0
             while len(self.it) <= k:
                 self.it.append(Skeleton(self.subtype(), parent=self))
-                i += 1
             return self.it[k]
+        elif isinstance(self.it, dict):
+            if k in self.it:
+                return self.it[k]
+            elif self.subtype is None:
+                raise KeyError(
+                    "That part of the skeleton is empty "
+                    "and I can't decide how to fill it. "
+                    "If you want to help out, set my subtype.")
+            else:
+                self.it[k] = Skeleton(self.subtype(), parent=self)
+                return self.it[k]
         else:
-            return self.it[k]
+            assert(False)
 
     def __setitem__(self, k, v):
         if self.typ is list:
@@ -1018,8 +1027,6 @@ class TerminableImg:
         return None
 
     def new_branch_imagery(self, parent, branch, tick):
-        if branch not in self.imagery:
-            self.imagery[branch] = []
         for rd in SkeletonIterator(self.imagery[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
@@ -1055,8 +1062,6 @@ class TerminableInteractivity:
         return False
 
     def new_branch_interactivity(self, parent, branch, tick):
-        if branch not in self.interactivity:
-            self.interactivity[branch] = []
         for rd in SkeletonIterator(self.interactivity[parent]):
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
@@ -1713,8 +1718,6 @@ def new_branch_rd(dic, idic, branch, tick, rd):
     as takes place after the tick. And, if the rowdict's tick_to is
     None, add the appropriate tick to the dictionary of
     indefinites."""
-    if branch not in dic:
-        dic[branch] = []
     rd2 = dict(rd)
     if rd2["tick_from"] < tick:
         rd2["tick_from"] = tick
