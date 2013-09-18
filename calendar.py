@@ -630,9 +630,15 @@ represents to calculate its dimensions and coordinates.
         t = self.window_top
         b = self.window_bot
         black = (0, 0, 0, 255)
-        self.delete()
-        self.draw_label(l, t, self.width, self.height)
-        self.draw_box(l, b, r, t, black)
+        if self.label is None:
+            self.draw_label(l, t, self.width, self.height)
+        else:
+            self.label.x = l
+            self.label.y = t
+        if self.vertl is None:
+            self.draw_box(l, b, r, t, black)
+        else:
+            self.vertl.vertices = (l, t, r, t, r, t, r, b, r, b, l, b, l, b, l, t)
 
 CAL_TYPE = {
     "THING": 0,
