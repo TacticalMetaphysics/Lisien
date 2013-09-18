@@ -107,7 +107,7 @@ it comes upon."""
                 raise KeyError(
                     "That part of the skeleton is empty "
                     "and I can't decide how to fill it. "
-                    "If you want to help out, set my subtype.")
+                    "If you want to help out, add something.")
             while len(self.it) <= k:
                 self.it.append(Skeleton(self.subtype(), parent=self))
             return self.it[k]
@@ -118,7 +118,7 @@ it comes upon."""
                 raise KeyError(
                     "That part of the skeleton is empty "
                     "and I can't decide how to fill it. "
-                    "If you want to help out, set my subtype.")
+                    "If you want to help out, add something.")
             else:
                 self.it[k] = Skeleton(self.subtype(), parent=self)
                 return self.it[k]
