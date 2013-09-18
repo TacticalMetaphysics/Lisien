@@ -698,21 +698,48 @@ item's name, and the name of the attribute.
                             rd2["tick_from"] = tick
                         self.thingdict[dimension][thing][branch][tick] = rd2
 
-    def new_branch_placedict(self, parent, branch, tick):
-        pass
-
-    def new_branch_portaldict(self, parent, branch, tick):
-        pass
-
-    def new_branch_statdict(self, parent, branch, tick):
-        pass
-
-    def new_branch_skilldict(self, parent, branch, tick):
-        pass
-
     def new_branch(self, parent, branch, tick):
-        self.new_branch_thingdict(parent, branch, tick)
-        self.new_branch_placedict(parent, branch, tick)
-        self.new_branch_portaldict(parent, branch, tick)
-        self.new_branch_statdict(parent, branch, tick)
-        self.new_branch_skilldict(parent, branch, tick)
+        for dimension in self.thingdict.iterkeys():
+            for thing in self.thingdict[dimension]:
+                for rd in self.thingdict[dimension][thing][parent].iterrows():
+                    if rd["tick_to"] > tick:
+                        rd2 = dict(rd)
+                        rd2["branch"] = branch
+                        if rd["tick_from"] < tick:
+                            rd2["tick_from"] = tick
+                        self.thingdict[dimension][thing][branch][rd2["tick_from"]] = rd2
+        for dimension in self.placedict.iterkeys():
+            for place in self.placedict[dimension]:
+                for rd in self.placedict[dimension][place][parent].iterrows():
+                    if rd["tick_to"] > tick:
+                        rd2 = dict(rd)
+                        rd2["branch"] = branch
+                        if rd["tick_from"] < tick:
+                            rd2["tick_from"] = tick
+                        self.placedict[dimension][place][branch][rd2["tick_from"]] = rd2
+        for dimension in self.portaldict.iterkeys():
+            for origin in self.portaldict[dimension]:
+                for destination in self.portaldict[dimension][origin]:
+                    for rd in self.portaldict[dimension][origin][destination][parent].iterrows():
+                        if rd["tick_to"] > tick:
+                            rd2 = dict(rd)
+                            rd2["branch"] = branch
+                        if rd["tick_from"] < tick:
+                            rd2["tick_from"] = tick
+                        self.portaldict[dimension][origin][destination][branch][rd2["tick_from"]] = rd2
+        for skill in self.skilldict.iterkeys():
+            for rd in self.skilldict[skill][parent].iterrows():
+                if rd["tick_to"] > tick:
+                    rd2 = dict(rd)
+                    rd2["branch"] = branch
+                    if rd["tick_from"] < tick:
+                        rd2["tick_from"] = tick
+                    self.skilldict[skill][branch][rd2["tick_from"]] = rd2
+        for stat in self.statdict.iterkeys():
+            for rd in self.statdict[stat][parent].iterrows():
+                if rd["tick_to"] > tick:
+                    rd2 = dict(rd)
+                    rd2["branch"] = branch
+                    if rd["tick_from"] < tick:
+                        rd2["tick_from"] = tick
+                    self.statdict[stat][branch][rd2["tick_from"]] = rd2
