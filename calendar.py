@@ -2,6 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass, phi
 from logging import getLogger
+from collections import defaultdict
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup, Group
 from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST
@@ -123,20 +124,21 @@ class BranchConnector:
             self.col2.window_top - self.calendar.row_height * (
                 self.tick - self.calendar.scrolled_to)),
         "centerx": lambda self: {
-            True:
-                lambda:
-                self.col1.window_right + self.calendar.style.spacing / 2,
-            False:
-                lambda:
-                self.col2.window_right + self.calendar.style.spacing / 2
+            True: lambda:
+            self.col1.window_right + self.calendar.style.spacing / 2,
+            False: lambda:
+            self.col2.window_right + self.calendar.style.spacing / 2
             }[self.col1.window_left < self.col2.window_left](),
         "in_view": lambda self: self.col1.in_view or self.col2.in_view,
         "points": lambda self: self.get_points(),
         "start": lambda self: (self.startx, self.starty),
         "end": lambda self: (self.endx, self.endy),
-        "wedge_visible": lambda self: self.wedge.in_view()}
+        "wedge_visible": lambda self: self.wedge.in_view(),
+        "col1": lambda self: self.calendar.make_col(self.branch1),
+        "col2": lambda self: self.calendar.make_col(self.branch2)}
 
-    def __init__(self, calendar, col1, col2, tick, color=(255, 0, 0, 255)):
+    def __init__(self, calendar, branch1, branch2,
+                 tick, color=(255, 0, 0, 255)):
         """Get a BranchConnector for the given calendar, connecting
         the two given columns, and branching off of the first one at
         the given tick.
@@ -146,8 +148,8 @@ Alpha."""
         self.calendar = calendar
         self.batch = self.calendar.batch
         self.window = self.calendar.window
-        self.col1 = col1
-        self.col2 = col2
+        self.branch1 = branch1
+        self.branch2 = branch2
         self.tick = tick
         self.color = color
         self.wedge = Wedge(self)
@@ -824,10 +826,7 @@ time travel.
         "window_left": lambda self: int(self.left_prop * self.window.width),
         "window_right": lambda self: int(self.right_prop * self.window.width),
         "width": lambda self: self.window_right - self.window_left,
-        "col_width": lambda self: {
-            True: lambda: self.width,
-            False: lambda: self.width / len(self.cols_shown)
-            }[len(self.cols_shown) == 0](),
+        "col_width": lambda self: self.get_col_width(),
         "height": lambda self: self.window_top - self.window_bot,
         "row_height": lambda self: self.height / self.rows_shown,
         "scrolled_to": lambda self: self.sttt(),
@@ -837,10 +836,7 @@ time travel.
         "thing_show_location": lambda self: (
             self._rowdict["thing_show_location"]
             not in (0, None, False)),
-        "cols_shown": lambda self: [
-            self.coldict[k] for k in xrange(
-                self.branch_left, self.branch_left + self.max_cols)
-            if k in self.coldict]
+        "columns": lambda self: CalendarColIter(self)
     }
 
     def __init__(self, window, idx):
@@ -849,8 +845,7 @@ time travel.
         self.closet = self.window.closet
         self.idx = idx
         self.batch = self.window.batch
-        self.old_state = None
-        self.tainted = False
+        self.branch_connector_dict = {}
         self._rowdict = self.closet.skeleton[
             "calendar"][
             str(self.window)][
@@ -865,14 +860,14 @@ time travel.
                     "thing_location"][
                     self._rowdict["dimension"]][
                     self._rowdict["thing"]]
-        self.coldict = {}
-        self.branch_to = 0
-        for branch in self.closet.timestream.branchdict:
-            try:
-                self.coldict[branch] = self.make_col(branch)
-                self.branch_to = branch
-            except KeyError:
-                pass
+        self.col_cells_label_dict = defaultdict(dict)
+        self.col_cells_box_dict = defaultdict(dict)
+        self.col_sprite_dict = defaultdict(lambda: None)
+        self.col_width_dict = defaultdict(lambda: None)
+        self.col_height_dict = defaultdict(lambda: None)
+        self.col_left_dict = defaultdict(lambda: None)
+        self.col_bot_dict = defaultdict(lambda: None)
+        self.col_tl_dict = {}
 
     def __int__(self):
         """What-th calendar in my window am I?
@@ -887,6 +882,14 @@ So, return my index."""
         except KeyError:
             raise AttributeError(
                 "Calendar instance has no attribute {0}".format(attrn))
+
+    def get_col_width(self):
+        if self.closet.hi_branch == 1:
+            return self.width
+        elif self.max_cols > self.closet.hi_branch - 1:
+            return self.width / self.max_cols
+        else:
+            return self.width / (self.closet.hi_branch - 1)
 
     def sttt(self):
         """Return the tick I'm scrolled to, if any; otherwise pick a
@@ -919,48 +922,56 @@ So, return my index."""
 
     def draw(self):
         """Draw all my columns."""
-        if self.visible and len(self.cols_shown) > 0:
-            for calcol in self.cols_shown:
-                calcol.draw()
+        if self.visible:
+            for calcol in self.columns:
+                if calcol.in_view:
+                    calcol.draw()
         else:
-            for calcol in self.cols_shown:
-                calcol.delete()
+            self.delete()
 
-    def make_col(self, branch):
-        """Return a new column for the given branch."""
-        logger.debug("Calendar making col {0}!".format(branch))
-        return {
-            CAL_TYPE['THING']: {
-                True: LocationCalendarCol,
-                False: ThingCalendarCol}[self.thing_show_location],
-            CAL_TYPE['PLACE']: PlaceCalendarCol,
-            CAL_TYPE['PORTAL']: PortalCalendarCol,
-            CAL_TYPE['STAT']: StatCalendarCol,
-            CAL_TYPE['SKILL']: SkillCalendarCol
-        }[self.typ](self, branch)
+    def delete(self):
+        for dattr in (
+                self.col_cells_label_dict,
+                self.col_cells_box_dict,
+                self.col_sprite_dict,
+                self.col_width_dict,
+                self.col_height_dict,
+                self.col_left_dict,
+                self.col_bot_dict,
+                self.col_tl_dict):
+            for thingus in dattr.itervalues():
+                try:
+                    thingus.delete()
+                except AttributeError:
+                    pass
 
     def rearrow(self):
         """Rearrange the BranchConnectors."""
-        for coli in xrange(0, len(self.cols_shown) - 1):
-            col1 = self.coldict[coli]
+        for col1 in self.columns:
             rd = self.closet.timestream.branchdict[
                 col1.branch]
             parent = rd["parent"]
             tick_from = rd["tick_from"]
             tick_to = rd["tick_to"]
-            if hasattr(col1, 'bc'):
-                col1.bc.delete()
-            col2 = None
-            for calcol in self.cols_shown:
-                if calcol.branch == parent:
-                    col2 = calcol
-                    break
+            if int(parent) in self.branch_connector_dict:
+                return
             if (
-                    col2 is not None and
                     tick_from > self.scrolled_to and
                     tick_to < self.scrolled_to + self.rows_shown):
-                col2.bc = BranchConnector(
-                    self, col2, col1, tick_from)
+                self.branch_connector_dict[parent] = BranchConnector(
+                    self, parent, col1.branch, tick_from)
+
+    def make_col(self, branch):
+        return {
+            CAL_TYPE['THING']: {
+                True: LocationCalendarCol,
+                False: ThingCalendarCol}[
+                self.thing_show_location],
+            CAL_TYPE['PLACE']: PlaceCalendarCol,
+            CAL_TYPE['PORTAL']: PortalCalendarCol,
+            CAL_TYPE['STAT']: StatCalendarCol,
+            CAL_TYPE['SKILL']: SkillCalendarCol
+        }[self.typ](self, branch)
 
 
 class CalendarColGroup(OrderedGroup):
@@ -1017,6 +1028,23 @@ argument is the name of the field to be displayed in the cell.
             rd["tick_to"], rd[self.field])
 
 
+class CalendarColIter:
+    """Iterator over the columns in a given calendar. Lazily evaluated."""
+    def __init__(self, cal):
+        self.calendar = cal
+        self.branchiter = self.calendar.closet.timestream.branchdict.iterkeys()
+
+    def make_col(self, branch):
+        """Return a new column for the given branch."""
+        return self.calendar.make_col(branch)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return self.make_col(self.branchiter.next())
+
+
 class CalendarCol:
     """A column in a calendar. Represents one branch.
 
@@ -1026,11 +1054,8 @@ Shows whatever the calendar is about, in that branch."""
         "rx": lambda self: self.width / 2,
         "height": lambda self: self.calendar.height,
         "ry": lambda self: self.height / 2,
-        "calendar_left": lambda self: {
-            True: lambda: (
-                self.calendar.cols_shown.index(self) * self.width),
-            False: lambda: self.calendar.width
-            }[self in self.calendar.cols_shown](),
+        "calendar_left": lambda self: self.width * (
+            self.branch - self.calendar.branch_left),
         "calendar_right": lambda self: self.calendar_left + self.width,
         "calendar_top": lambda self: self.calendar.height,
         "calendar_bot": lambda self: 0,
@@ -1044,7 +1069,15 @@ Shows whatever the calendar is about, in that branch."""
         "in_view": lambda self: (
             int(self) >= self.calendar.branch_left and
             int(self) < self.calendar.branch_left + self.calendar.max_cols),
-        "idx": lambda self: self.calendar.cols.index(self)}
+        "idx": lambda self: self.calendar.cols.index(self),
+        "group": lambda self: CalendarColGroup(self),
+        "timeline": lambda self: self.calendar.col_tl_dict[self],
+        "labeldict": lambda self: self.calendar.col_cells_label_dict[self],
+        "boxdict": lambda self: self.calendar.col_cells_box_dict[self],
+        "oldwidth": lambda self: self.calendar.col_width_dict[self],
+        "oldheight": lambda self: self.calendar.col_height_dict[self],
+        "oldleft": lambda self: self.calendar.col_left_dict[self],
+        "oldbot": lambda self: self.calendar.col_bot_dict[self]}
 
     def __init__(self, calendar, branch, bgcolor=(255, 255, 255, 255)):
         """Get CalendarCol for the given branch in the given
@@ -1054,15 +1087,9 @@ Shows whatever the calendar is about, in that branch."""
         self.closet = self.calendar.closet
         self.batch = self.calendar.batch
         self.style = self.calendar.style
-        self.timeline = Timeline(self)
         self.window = self.calendar.window
-        self.group = CalendarColGroup(self)
+        self.calendar.col_tl_dict[self] = Timeline(self)
         self.bgpat = SolidColorImagePattern(bgcolor)
-        self.sprite = None
-        self.oldwidth = None
-        self.oldheight = None
-        self.oldleft = None
-        self.oldbot = None
 
     def __getattr__(self, attrn):
         """Use a lambda from my atrdic to compute the attribute."""
@@ -1072,16 +1099,27 @@ Shows whatever the calendar is about, in that branch."""
         """Return my branch."""
         return self.branch
 
+    def __eq__(self, other):
+        return int(self) == int(other)
+
+    def __gt__(self, other):
+        return int(self) > int(other)
+
+    def __lt__(self, other):
+        return int(self) < int(other)
+
+    def __hash__(self):
+        return hash(int(self))
+
     def delete(self):
         """Remove from video memory"""
         self.timeline.delete()
         for cell in self.celldict.itervalues():
             cell.delete()
         try:
-            self.vertl.delete()
+            self.sprite.delete()
         except AttributeError:
             pass
-        self.vertl = None
 
     def pretty_caster(self, *args):
         """Make my content into a single, flat list"""
@@ -1110,7 +1148,10 @@ Shows whatever the calendar is about, in that branch."""
 
     def draw(self):
         """Put myself and all my cells into the batch"""
-        if self.sprite is None:
+        if not self.in_view:
+            self.delete()
+            return
+        if self.sprite is None and self.in_view:
             self.draw_sprite()
         elif self.width != self.oldwidth or self.height != self.oldheight:
             oldsprite = self.sprite
@@ -1167,13 +1208,13 @@ instead, giving something like "in transit from A to B".
         self.locations = self.thing.locations[branch]
         self.coverage = self.character.thingdict[
             str(self.dimension)][str(self.thing)][branch]
-        self.labeldict = {}
-        self.boxdict = {}
 
     def __getattr__(self, attrn):
         """Try looking up the attribute in the calendar first;
         otherwise use lambdas from CalendarCol.atrdic to compute it"""
-        if attrn in LocationCalendarCol.cal_attrs:
+        if attrn == "sprite":
+            return self.calendar.col_sprite_dict[self]
+        elif attrn in LocationCalendarCol.cal_attrs:
             return getattr(self.calendar, attrn)
         elif attrn == "cells":
             return CalendarColCellIter(self, self.locations, "location")
@@ -1209,6 +1250,9 @@ cannot compute attribute {0}""".format(attrn))
     def draw(self):
         super(LocationCalendarCol, self).draw()
         for cell in self.cells:
+            if not cell.in_view:
+                cell.delete()
+                continue
             if cell in self.boxdict:
                 vertl = self.boxdict[cell]
                 l = cell.window_left

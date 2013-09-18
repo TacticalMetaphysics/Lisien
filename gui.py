@@ -306,10 +306,10 @@ class GameWindow(pyglet.window.Window):
             self.checkpoint = False
 
     def on_resize(self, w, h):
-        for calendar in self.calendars:
-            calendar.tainted = True
         for viewport in self.viewports:
             viewport.moved = True
+        for calendar in self.calendars:
+            calendar.delete()
         super(GameWindow, self).on_resize(w, h)
 
     def on_mouse_press(self, x, y, button, modifiers):
