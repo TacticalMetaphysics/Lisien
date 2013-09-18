@@ -860,7 +860,6 @@ time travel.
                 self._rowdict["dimension"])
             self.thing = self.closet.get_thing(
                 self._rowdict["dimension"], self._rowdict["thing"])
-            self.thing.locations.listeners.add(self)
             if self._rowdict["thing_show_location"]:
                 self._location_dict = self.closet.skeleton[
                     "thing_location"][
