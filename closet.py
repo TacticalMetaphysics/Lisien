@@ -110,17 +110,12 @@ before RumorMill will work. For that, run mkdb.sh.
         "front_branch": lambda self: self.game["front_branch"],
         "seed": lambda self: self.game["seed"],
         "tick": lambda self: self.game["tick"],
-        "hi_place": lambda self: self.game["hi_place"],
-        "hi_portal": lambda self: self.game["hi_portal"],
-        "hi_thing": lambda self: self.game["hi_thing"],
-        "hi_branch": lambda self: self.game["hi_branch"],
         "dimensions": lambda self: self.dimensiondict.itervalues(),
         "characters": lambda self: self.characterdict.itervalues()}
 
     def __init__(self, connector, xfuncs={}, lang="eng",
                  front_dimension="Physical", front_board=0,
-                 front_branch=0, seed=0, tick=0,
-                 hi_branch=0, hi_place=0, hi_portal=0, hi_thing=0):
+                 front_branch=0, seed=0, tick=0):
         """Return a database wrapper around the SQLite database file by the
 given name.
 
@@ -217,11 +212,7 @@ given name.
             "front_board": front_board,
             "front_branch": front_branch,
             "seed": seed,
-            "tick": tick,
-            "hi_branch": hi_branch,
-            "hi_place": hi_place,
-            "hi_portal": hi_portal,
-            "hi_thing": hi_thing}
+            "tick": tick}
         fd = self.load_dimension(front_dimension)
         self.load_board(fd, front_board)
 
@@ -233,8 +224,7 @@ given name.
                 "Closet doesn't have the attribute " + attrn)
 
     def __setattr__(self, attrn, val):
-        if attrn in ("front_board", "seed", "age",
-                     "hi_place", "hi_portal", "hi_thing"):
+        if attrn in ("front_board", "seed", "age"):
             getattr(self, "game")[attrn] = val
         else:
             super(Closet, self).__setattr__(attrn, val)
@@ -627,14 +617,12 @@ This is game-world time. It doesn't always go forwards.
                 "stringname"]][rowd["language"]] = rowd["string"]
 
     def make_generic_place(self, dimension):
-        placen = "generic_place_{0}".format(self.hi_place)
-        self.hi_place += 1
+        placen = "generic_place_{0}".format(len(dimension.graph.vs))
         dimension.make_place(placen)
         return dimension.get_place(placen)
 
     def make_generic_thing(self, dimension, location):
-        thingn = "generic_thing_{0}".format(self.hi_thing)
-        self.hi_thing += 1
+        thingn = "generic_thing_{0}".format(len(dimension.thingdict))
         dimension.make_thing(thingn)
         th = dimension.get_thing(thingn)
         th.set_location(location)
@@ -1084,8 +1072,6 @@ This is game-world time. It doesn't always go forwards.
                     board.new_branch(branch_from, branch_to, tick_from)
             for character in self.characters:
                 character.new_branch(branch_from, branch_to, tick_from)
-            if self.game["hi_branch"] < branch_to:
-                self.game["hi_branch"] = branch_to
         logger.debug("Updating timestream")
         self.timestream.update()
 
@@ -1223,9 +1209,7 @@ def mkdb(DB_NAME='default.sqlite'):
         "front_board INTEGER DEFAULT 0, "
         "front_branch INTEGER DEFAULT 0, "
         "tick INTEGER DEFAULT 0,"
-        " seed INTEGER DEFAULT 0, hi_place INTEGER DEFAULT 0, "
-        "hi_portal INTEGER DEFAULT 0, "
-        "hi_thing INTEGER DEFAULT 0, hi_branch INTEGER DEFAULT 0);")
+        " seed INTEGER DEFAULT 0);")
     c.execute(
         "CREATE TABLE strings (stringname TEXT NOT NULL, language TEXT NOT"
         " NULL DEFAULT 'English', string TEXT NOT NULL, "
@@ -1326,8 +1310,8 @@ def load_closet(dbfn, lang="eng", xfuncs={}):
     conn = sqlite3.connect(dbfn)
     c = conn.cursor()
     c.execute(
-        "SELECT front_dimension, front_board, front_branch, seed, tick, "
-        "hi_branch, hi_place, hi_portal, hi_thing FROM game")
+        "SELECT front_dimension, front_board, front_branch, seed, tick "
+        "FROM game")
     row = c.fetchone()
     c.close()
     initargs = (conn, xfuncs, lang) + row

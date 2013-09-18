@@ -884,12 +884,16 @@ So, return my index."""
                 "Calendar instance has no attribute {0}".format(attrn))
 
     def get_col_width(self):
-        if self.closet.hi_branch == 1:
+        branches = len(self.closet.timestream.branchdict)
+        if branches == 1:
+            logger.debug("Only one branch; col_width same as calendar.width")
             return self.width
-        elif self.max_cols > self.closet.hi_branch - 1:
+        elif self.max_cols < branches:
+            logger.debug("{0} is more branches than can fit; col_width is self.width / self.max_cols".format(branches))
             return self.width / self.max_cols
         else:
-            return self.width / (self.closet.hi_branch - 1)
+            logger.debug("{0} is fewer branches than can fit; col_width is self.width / branches".format(branches))
+            return self.width / branches
 
     def sttt(self):
         """Return the tick I'm scrolled to, if any; otherwise pick a
@@ -1111,16 +1115,6 @@ Shows whatever the calendar is about, in that branch."""
     def __hash__(self):
         return hash(int(self))
 
-    def delete(self):
-        """Remove from video memory"""
-        self.timeline.delete()
-        for cell in self.celldict.itervalues():
-            cell.delete()
-        try:
-            self.sprite.delete()
-        except AttributeError:
-            pass
-
     def pretty_caster(self, *args):
         """Make my content into a single, flat list"""
         unargs = []
@@ -1141,17 +1135,41 @@ Shows whatever the calendar is about, in that branch."""
 
     def draw_sprite(self):
         """Draw a flat color background image"""
-        self.image = self.bgpat.create_image(self.width, self.height)
-        self.sprite = Sprite(
-            self.image, self.window_left, self.window_bot,
+        image = self.bgpat.create_image(self.width, self.height)
+        self.calendar.col_sprite_dict[self] = Sprite(
+            image, self.window_left, self.window_bot,
             batch=self.batch, group=self.window.menu_bg_group)
 
     def draw(self):
         """Put myself and all my cells into the batch"""
         if not self.in_view:
-            self.delete()
-            return
-        if self.sprite is None and self.in_view:
+            if self in self.calendar.col_cells_label_dict:
+                for label in self.calendar.col_cells_label_dict[self].itervalues():
+                    try:
+                        label.delete()
+                    except AttributeError:
+                        pass
+            if self in self.calendar.col_cells_box_dict:
+                for vertl in self.calendar.col_cells_box_dict[self]:
+                    try:
+                        vertl.delete()
+                    except AttributeError:
+                        pass
+            if self in self.calendar.col_sprite_dict:
+                try:
+                    self.calendar.col_sprite_dict[self].delete()
+                except AttributeError:
+                    pass
+            self.calendar.col_width_dict[self] = None
+            self.calendar.col_height_dict[self] = None
+            self.calendar.col_left_dict[self] = None
+            self.calendar.col_bot_dict[self] = None
+            if self in self.calendar.col_tl_dict:
+                try:
+                    self.calendar.col_tl_dict[self].delete()
+                except AttributeError:
+                    pass
+        elif self.sprite is None:
             self.draw_sprite()
         elif self.width != self.oldwidth or self.height != self.oldheight:
             oldsprite = self.sprite
@@ -1160,21 +1178,15 @@ Shows whatever the calendar is about, in that branch."""
                 oldsprite.delete()
             except AttributeError:
                 pass
-            self.oldwidth = self.width
-            self.oldheight = self.height
+            self.calendar.col_width_dict[self] = self.width
+            self.calendar.col_height_dict[self] = self.height
         elif (
                 self.oldleft != self.window_left or
                 self.oldbot != self.window_bot):
             self.sprite.set_position(self.window_left, self.window_bot)
-            self.oldleft = self.window_left
-            self.oldbot = self.window_bot
-        if hasattr(self, 'bc'):
-            self.bc.draw()
+            self.calendar.col_left_dict[self] = self.window_left
+            self.calendar.col_bot_dict[self] = self.window_bot
         self.timeline.draw()
-        if not hasattr(self, 'tlid'):
-            self.tlid = id(self.timeline)
-        else:
-            assert(self.tlid == id(self.timeline))
 
 
 class LocationCalendarCol(CalendarCol):
