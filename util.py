@@ -83,10 +83,12 @@ it comes upon."""
             for (k, v) in it.iteritems():
                 if v.__class__ not in (Skeleton, dict, list):
                     rowdict = True
-                if rowdict:
+            if rowdict:
+                for (k, v) in it.iteritems():
                     assert(v.__class__ not in (Skeleton, dict, list))
                     self.it[k] = v
-                else:
+            else:
+                for (k, v) in it.iteritems():
                     self.it[k] = Skeleton(v, parent=self)
         else:
             assert False
@@ -1343,68 +1345,6 @@ class Timestream:
         td = self.closet.skeleton
         self.branch_edges = defaultdict(set)
         self.branch_done_to = defaultdict(lambda: -1)
-        self.branchdict = {}
-        for rd in SkeletonIterator(td["timestream"]):
-            self.branchdict[rd["branch"]] = (
-                rd["parent"], rd["tick_from"], rd["tick_to"])
-        self.graph = Graph(directed=True)
-        self.graph.add_vertices(2)
-        self.graph.vs["tick"] = [0, 0]
-        self.graph.add_edge(0, 1, branch=0)
-        self.branch_edges[0].add(0)
-        self.branch_head = {0: self.graph.vs[0]}
-        # When the player travels to the past and then branches the
-        # timeline, it may result in a new vertex in the middle of
-        # what once was an unbroken edge. The edge succeeding the new
-        # vertex, representing how things went *originally*, is still
-        # representative of the old branch, even though it is now a
-        # successor of the vertex for a different branch
-        # altogether. That original branch now has another edge
-        # representing it.
-        self.update_handlers = set()
-        self.update(0)
-
-    def __hash__(self):
-        b = []
-        for t in self.branchdict.itervalues():
-            b.extend(t)
-        return hash(tuple(b))
-
-
-class Timestream:
-    __metaclass__ = SaveableMetaclass
-    """A graph of many timelines, some of which share some of their time.
-
-    The first argument is a dictionary keyed with branch indices, with
-    values composed of tuples like:
-
-    (parent_branch, start, end)
-
-    parent_branch must be another key in the branchdict. start and end
-    are the tick when a branch begins (which cannot change) and ends
-    (which can, and probably will, perhaps as often as once per
-    update).
-
-    Call the update method to rearrange the contents of this board to
-    reflect the state of the branches.
-
-    """
-    tables = [
-        ("timestream",
-         {"branch": "integer not null",
-          "parent": "integer not null",
-          "tick_from": "integer not null",
-          "tick_to": "integer not null"},
-         ("branch",),
-         {"parent": ("timestream", "branch")},
-         ["branch>=0", "tick_from>=0",
-          "tick_to>=tick_from", "parent=0 or parent<>branch"])]
-
-    def __init__(self, closet):
-        self.closet = closet
-        td = self.closet.skeleton
-        self.branch_edges = defaultdict(set)
-        self.branch_done_to = defaultdict(lambda: -1)
         self.branchdict = td["timestream"]
         self.graph = Graph(directed=True)
         self.graph.add_vertices(2)
@@ -1444,9 +1384,6 @@ be on the same tick, in which case they are connected by an edge of
 length zero.
 
         """
-        logger.debug(
-            "Updating timestream. Former "
-            "branchdict: {0}".format(self.branchdict))
         for (branch, rd) in self.branchdict.iteritems():
             done_to = self.branch_done_to[branch]
             parent = rd["parent"]
@@ -1487,7 +1424,6 @@ length zero.
             self.branch_done_to[branch] = tick_to
             for handler in self.update_handlers:
                 handler.on_timestream_update()
-        logger.debug("Latter branchdict: {0}".format(self.branchdict))
 
     def get_edge_len(self, e):
         if isinstance(e, int):
@@ -1685,7 +1621,8 @@ the branch's current end."""
         try:
             edge = self.latest_edge(branch)
         except KeyError:
-            v1 = self.add_vert(0)
+            rd = self.branchdict[branch]
+            v1 = self.add_vert(rd["tick_from"])
             v2 = self.add_vert(tick_to)
             return self.add_edge(branch, v1, v2)
         vert = self.graph.vs[edge.target]

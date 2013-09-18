@@ -157,6 +157,8 @@ given name.
         self.game_speed = 1
         self.updating = False
 
+        import pdb
+        pdb.set_trace()
         self.skeleton.update(
             Timestream._select_table_all(self.c, 'timestream'))
         self.timestream = Timestream(self)
@@ -1016,24 +1018,22 @@ This is game-world time. It doesn't always go forwards.
 
     def time_travel(self, mi, branch, tick):
         if branch not in self.timestream.branchdict:
-            raise Exception(
+            raise TimestreamException(
                 "Tried to time-travel to a branch that didn't exist yet")
         rd = self.timestream.branchdict[branch]
-        tick_from = rd["tick_from"]
-        tick_to = rd["tick_to"]
-        if tick < tick_from or tick > tick_to:
-            raise Exception(
-                "Tried to time-travel to a tick that hadn't passed yet")
+        if tick < rd["tick_from"]:
+            if rd["parent"] == branch:
+                raise TimestreamException(
+                    "Tried to travel to before the start of time")
+            return self.time_travel(mi, rd["parent"], tick)
+        if rd["tick_to"] < tick:
+            rd["tick_to"] = tick
         self.time_travel_history.append((self.branch, self.tick))
         self.branch = branch
         self.tick = tick
-        if mi is not None:
-            for calendar in mi.window.calendars:
-                calendar.refresh()
         self.timestream.update()
 
     def more_time(self, branch_from, branch_to, tick_from, tick_to):
-        logger.debug("Making time")
         if branch_to in self.timestream.branchdict:
             rd = self.timestream.branchdict[branch_to]
             parent = rd["parent"]
@@ -1064,7 +1064,8 @@ This is game-world time. It doesn't always go forwards.
             self.timestream.branchdict[branch_to] = {
                 "branch": branch_to,
                 "parent": branch_from,
-                "tick_from": tick_from,
+                # this is the first tick *in the branch*
+                "tick_from": tick_to,
                 "tick_to": tick_to}
             for dimension in self.dimensions:
                 dimension.new_branch(branch_from, branch_to, tick_from)
@@ -1072,16 +1073,21 @@ This is game-world time. It doesn't always go forwards.
                     board.new_branch(branch_from, branch_to, tick_from)
             for character in self.characters:
                 character.new_branch(branch_from, branch_to, tick_from)
-        logger.debug("Updating timestream")
+        logger.debug("Updating timestream. Old branchdict: {0}".format(self.timestream.branchdict))
         self.timestream.update()
+        logger.debug("New branchdict: {0}".format(self.timestream.branchdict))
 
     def increment_branch(self, mi=None, branches=1):
         b = self.branch + int(branches)
+        rd = self.timestream.branchdict[self.branch]
+        if rd["tick_to"] < self.tick:
+            tick_to = rd["tick_to"]
+        else:
+            tick_to = self.tick
         try:
-            logger.debug("Attempting to make more time...")
             self.more_time(
                 self.branch, b,
-                self.tick, self.tick)
+                self.tick, tick_to)
         except TimestreamException as te:
             logger.debug("Failed. Time travelling...")
             if b in self.timestream.branchdict:
@@ -1094,9 +1100,11 @@ This is game-world time. It doesn't always go forwards.
                 raise te
 
     def time_travel_inc_tick(self, mi=None, ticks=1):
-        self.more_time(
-            self.branch, self.branch,
-            self.tick, self.tick + int(ticks))
+        rd = self.timestream.branchdict[self.branch]
+        if self.tick == rd["tick_to"]:
+            self.more_time(
+                self.branch, self.branch,
+                rd["tick_from"], rd["tick_to"] + int(ticks))
         self.time_travel(mi, self.branch, self.tick + int(ticks))
 
     def time_travel_inc_branch(self, mi=None, branches=1):

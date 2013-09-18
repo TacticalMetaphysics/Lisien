@@ -141,6 +141,12 @@ interactive or not.
             "tick_from": tick_from,
             "tick_to": tick_to,
             "img": str(img)}
+        if tick_to is None:
+            self.indefinite_imagery[branch] = tick_from
+        else:
+            rd = self.closet.skeleton.branchdict[branch]
+            if rd["tick_to"] < tick_to:
+                rd["tick_to"] = tick_to
 
     def set_interactive(self, branch=None, tick_from=None, tick_to=None):
         if branch is None:
@@ -168,6 +174,10 @@ interactive or not.
             "tick_to": tick_to}
         if tick_to is None:
             self.indefinite_interactivity[branch] = tick_from
+        else:
+            rd = self.closet.skeleton.branchdict[branch]
+            if rd["tick_to"] < tick_to:
+                rd["tick_to"] = tick_to
 
     def get_coords(self, branch=None, tick=None):
         loc = self.thing.get_location(branch, tick)

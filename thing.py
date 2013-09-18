@@ -190,6 +190,10 @@ Return an Effect representing the change.
             "tick_from": tick_from,
             "tick_to": tick_to,
             "location": str(loc)}
+        if tick_to is not None:
+            rd = self.closet.timestream.branchdict[branch]
+            if tick_to > rd["tick_to"]:
+                rd["tick_to"] = tick_to
         if branch in self.indefinite_locations:
             ifrom = self.indefinite_locations[branch]
             ird = self.locations[branch][ifrom]
@@ -320,6 +324,8 @@ other journey I may be on at the time."""
         try:
             self.follow_path(path, branch, tick)
         except TimeParadox:
+            import pdb
+            pdb.set_trace()
             del self.locations[branch]
             self.restore_loc_rds(locs)
             self.new_branch_blank = True

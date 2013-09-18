@@ -250,6 +250,10 @@ class Spot(TerminableImg, TerminableInteractivity):
             "y": y}
         if tick_to is None:
             self.indefinite_coords[branch] = tick_from
+        else:
+            rd = self.closet.skeleton.branchdict[branch]
+            if rd["tick_to"] < tick_to:
+                rd["tick_to"] = tick_to
 
     def new_branch_coords(self, parent, branch, tick):
         if branch not in self.coord_lst:

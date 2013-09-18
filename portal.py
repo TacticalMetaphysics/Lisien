@@ -66,6 +66,9 @@ class Portal:
 otherwise."""
         return True
 
+    def set_existence(self, branch=None, tick_from=None, tick_to=None):
+        pass
+
     def new_branch(self, parent, branch, tick):
         if branch not in self.existence:
             self.existence[branch] = []
