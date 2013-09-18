@@ -530,6 +530,8 @@ represents to calculate its dimensions and coordinates.
         self.tick_from = tick_from
         self.tick_to = tick_to
         self.text = text
+        self.old_label_left = None
+        self.old_label_top = None
         self.old_left = None
         self.old_right = None
         self.old_top = None
@@ -632,9 +634,14 @@ represents to calculate its dimensions and coordinates.
         black = (0, 0, 0, 255)
         if self.label is None:
             self.draw_label(l, t, self.width, self.height)
-        else:
-            self.label.x = l
-            self.label.y = t
+        elif self.old_label_left != l or self.old_label_top != t:
+            try:
+                self.label.delete()
+            except AttributeError:
+                pass
+            self.draw_label(l, t, self.width, self.height)
+        self.old_label_left = l
+        self.old_label_top = t
         if self.vertl is None:
             self.draw_box(l, b, r, t, black)
         else:
