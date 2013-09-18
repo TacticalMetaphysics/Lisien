@@ -415,7 +415,7 @@ color is a 4-tuple of Red, Green, Blue, Alpha."""
         self.vertlist = self.batch.add(
             2,
             GL_LINES,
-            self.window.menu_fg_group,
+            self.window.timeline_group,
             ('v2i', points),
             ('c4B', colors))
         self.handle.draw()
@@ -598,6 +598,8 @@ represents to calculate its dimensions and coordinates.
     def draw_label(self, l, t, w, h):
         """Draw label at the given coordinates with the given width
         and height"""
+        if self.style.fontsize > self.height:
+            return
         self.label = Label(
             self.text,
             self.style.fontface,
@@ -612,7 +614,7 @@ represents to calculate its dimensions and coordinates.
             halign="center",
             multiline=True,
             batch=self.batch,
-            group=self.window.menu_fg_group)
+            group=self.column.group)
 
     def draw_box(self, l, b, r, t, color):
         """Draw box with given edges and color"""
@@ -1009,7 +1011,7 @@ class CalendarColGroup(OrderedGroup):
     order = 0
     def __init__(self, col):
         super(CalendarColGroup, self).__init__(
-            CalendarColGroup.order, col.calendar.group)
+            CalendarColGroup.order, col.window.menu_fg_group)
         CalendarColGroup.order += 1
         self.col = col
 
@@ -1017,7 +1019,7 @@ class CalendarColGroup(OrderedGroup):
         return (
             self.col.window_left,
             self.col.window_bot,
-            self.col.width,
+            self.col.width - self.col.style.spacing,
             self.col.height)
 
     def set_state(self):
@@ -1066,6 +1068,7 @@ Shows whatever the calendar is about, in that branch."""
         self.style = self.calendar.style
         self.timeline = Timeline(self)
         self.window = self.calendar.window
+        self.group = CalendarColGroup(self)
         self.celldict = {}
         self.cells_on_screen = set()
         self.sprite = None
