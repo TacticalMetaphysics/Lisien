@@ -480,7 +480,7 @@ represents to calculate its dimensions and coordinates.
         "width": lambda self: self.calendar_right - self.calendar_left,
         "height": lambda self: {
             True: lambda:
-                self.calendar.height - (
+            self.calendar.height - (
                 self.tick_from * self.calendar.row_height),
             False: lambda: self.calendar.row_height * len(self)
             }[self.tick_to is None](),
@@ -530,14 +530,6 @@ represents to calculate its dimensions and coordinates.
         self.tick_from = tick_from
         self.tick_to = tick_to
         self.text = text
-        self.old_label_left = None
-        self.old_label_top = None
-        self.old_left = None
-        self.old_right = None
-        self.old_top = None
-        self.old_bot = None
-        self.vertl = None
-        self.label = None
 
     def __len__(self):
         """The number of ticks I show. May be lower than the number of
@@ -555,9 +547,11 @@ represents to calculate its dimensions and coordinates.
         """Try using the lambdas in my atrdic to compute the value"""
         return CalendarCell.atrdic[attrn](self)
 
+    def __eq__(self, other):
+        return self.tick_from == other.tick_from
+
     def __hash__(self):
-        """Hash the tick_from, tick_to, and text"""
-        return hash((self.tick_from, self.tick_to, self.text))
+        return hash(self.tick_from)
 
     def __str__(self):
         """(text) from (tick) to (tick)"""
@@ -594,6 +588,47 @@ represents to calculate its dimensions and coordinates.
         except AttributeError:
             pass
         self.vertl = None
+
+    def get_label(self, batch, group):
+        l = self.window_left
+        t = self.window_top
+        w = self.width
+        h = self.height
+        if self.style.fontsize > h:
+            return
+        else:
+            return Label(
+                self.text,
+                self.style.fontface,
+                self.style.fontsize,
+                color=self.style.textcolor.tup,
+                width=w,
+                height=h,
+                x=l,
+                y=t,
+                anchor_x="left",
+                anchor_y="top",
+                halign="center",
+                multiline=True,
+                batch=batch,
+                group=group)
+
+    def get_box(self, batch, group):
+        l = self.window_left
+        b = self.window_bot
+        r = self.window_right
+        t = self.window_top
+        colors = self.style.fg_inactive.tup * 8
+        vees = (l, t, r, t,
+                r, t, r, b,
+                r, b, l, b,
+                l, b, l, t)
+        return batch.add(
+            8,
+            GL_LINES,
+            group,
+            ('v2i', vees),
+            ('c4B', colors))
 
     def draw_label(self, l, t, w, h):
         """Draw label at the given coordinates with the given width
@@ -647,7 +682,8 @@ represents to calculate its dimensions and coordinates.
         if self.vertl is None:
             self.draw_box(l, b, r, t, black)
         else:
-            self.vertl.vertices = (l, t, r, t, r, t, r, b, r, b, l, b, l, b, l, t)
+            self.vertl.vertices = (
+                l, t, r, t, r, t, r, b, r, b, l, b, l, b, l, t)
 
 CAL_TYPE = {
     "THING": 0,
@@ -838,7 +874,6 @@ time travel.
                 self.branch_to = branch
             except KeyError:
                 pass
-        self.refresh()
 
     def __int__(self):
         """What-th calendar in my window am I?
@@ -928,37 +963,6 @@ So, return my index."""
                 col2.bc = BranchConnector(
                     self, col2, col1, tick_from)
 
-    def review(self):
-        """Review all my columns, deciding anew which cells are visible."""
-        for col in self.cols_shown:
-            col.review()
-
-    def regen(self):
-        """Regenerate cells in all my columns."""
-        for col in self.cols_shown:
-            col.regen_cells()
-
-    def refresh(self):
-        """Make sure I've got all the columns ready, review them and
-        regenerate them."""
-        for branch in self.closet.timestream.branchdict:
-            if branch not in self.coldict:
-                try:
-                    self.coldict[branch] = self.make_col(branch)
-                except KeyError:
-                    pass
-        self.rearrow()
-        for col in self.cols_shown:
-            col.refresh()
-
-    def on_skel_set(self, skel, k, v):
-        """Refresh myself when my schedule updates."""
-        self.refresh()
-
-    def on_skel_delete(self, skel, k):
-        """Refresh myself when something's removed from my schedule."""
-        self.refresh()
-
 
 class CalendarColGroup(OrderedGroup):
     """A group to scissor-test columns so the text doesn't run out of
@@ -969,46 +973,6 @@ OrderedGroup and Pyglet seems to get confused when an unordered group
 is child of an ordered one."""
     order = 0
 
-    def __init__(self, col):
-        """Get a group for the given column, its parent being the
-        group of the calendar."""
-        super(CalendarColGroup, self).__init__(
-            CalendarColGroup.order, col.calendar.group)
-        CalendarColGroup.order += 1
-        self.col = col
-
-    def gettup(self):
-        """Get what I have to pass to glScissor"""
-        return (
-            self.col.window_left,
-            self.col.window_bot,
-            self.col.width,
-            self.col.height)
-
-    def set_state(self):
-        """Set scissor and enable GL_SCISSOR_TEST"""
-        glEnable(GL_SCISSOR_TEST)
-        glScissor(*self.gettup())
-
-    def unset_state(self):
-        """Disable GL_SCISSOR_TEST"""
-        glDisable(GL_SCISSOR_TEST)
-
-    def refresh(self):
-        self.rearrow()
-        for col in self.cols_shown:
-            self.coldict[col].refresh()
-
-    def on_timestream_update(self):
-        for branch in self.closet.timestream.branchdict:
-            self.coldict[branch] = self.make_col(branch)
-            self.cols_shown.add(branch)
-            if len(self.cols_shown) > self.max_cols:
-                self.cols_shown.remove(min(self.cols_shown))
-        self.refresh()
-
-class CalendarColGroup(OrderedGroup):
-    order = 0
     def __init__(self, col):
         super(CalendarColGroup, self).__init__(
             CalendarColGroup.order, col.window.menu_fg_group)
@@ -1028,6 +992,31 @@ class CalendarColGroup(OrderedGroup):
 
     def unset_state(self):
         glDisable(GL_SCISSOR_TEST)
+
+
+class CalendarColCellIter:
+    """Lazy iterator over the cells in a column.
+
+First argument is the column itself. Second argument is the skeleton
+of its schedule, with the first level key being the branch ID. Third
+argument is the name of the field to be displayed in the cell.
+
+    """
+    def __init__(self, col, skel, field=""):
+        self.column = col
+        self.skeleton = skel
+        self.realiter = self.skeleton.iterrows()
+        self.field = field
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        rd = self.realiter.next()
+        return CalendarCell(
+            self.column, rd["tick_from"],
+            rd["tick_to"], rd[self.field])
+
 
 class CalendarCol:
     """A column in a calendar. Represents one branch.
@@ -1058,7 +1047,7 @@ Shows whatever the calendar is about, in that branch."""
             int(self) < self.calendar.branch_left + self.calendar.max_cols),
         "idx": lambda self: self.calendar.cols.index(self)}
 
-    def __init__(self, calendar, branch):
+    def __init__(self, calendar, branch, bgcolor=(255, 255, 255, 255)):
         """Get CalendarCol for the given branch in the given
         calendar."""
         self.calendar = calendar
@@ -1069,14 +1058,12 @@ Shows whatever the calendar is about, in that branch."""
         self.timeline = Timeline(self)
         self.window = self.calendar.window
         self.group = CalendarColGroup(self)
-        self.celldict = {}
-        self.cells_on_screen = set()
+        self.bgpat = SolidColorImagePattern(bgcolor)
         self.sprite = None
         self.oldwidth = None
         self.oldheight = None
         self.oldleft = None
         self.oldbot = None
-        self.bgpat = SolidColorImagePattern((255,) * 4)
 
     def __getattr__(self, attrn):
         """Use a lambda from my atrdic to compute the attribute."""
@@ -1085,12 +1072,6 @@ Shows whatever the calendar is about, in that branch."""
     def __int__(self):
         """Return my branch."""
         return self.branch
-
-    def __repr__(self):
-        """Return string representations of all my cells, joined
-        together with newlines."""
-        return "CalendarCol:\n" + "\n".join(
-            [str(cell) for cell in self.cells_on_screen])
 
     def delete(self):
         """Remove from video memory"""
@@ -1120,25 +1101,6 @@ Shows whatever the calendar is about, in that branch."""
         for unarg in unargs:
             strings.append(str(unarg))
         return ";\n".join(strings)
-
-    def review(self):
-        """Re-evaluate which cells ought to be drawn."""
-        todel = set()
-        for cell in self.cells_on_screen:
-            if not cell.in_view:
-                todel.add(cell)
-        for cell in todel:
-            self.cells_on_screen.discard(cell)
-            cell.delete()
-        for cell in self.celldict.itervalues():
-            if cell.in_view:
-                self.cells_on_screen.add(cell)
-
-    def refresh(self):
-        """Regenerate my cells and review them."""
-        self.regen_cells()
-        self.review()
-        logger.debug(repr(self))
 
     def draw_sprite(self):
         """Draw a flat color background image"""
@@ -1173,8 +1135,6 @@ Shows whatever the calendar is about, in that branch."""
             self.tlid = id(self.timeline)
         else:
             assert(self.tlid == id(self.timeline))
-        for cell in self.cells_on_screen:
-            cell.draw()
 
 
 class LocationCalendarCol(CalendarCol):
@@ -1199,7 +1159,6 @@ instead, giving something like "in transit from A to B".
         "thing",
         "location"])
 
-
     def __init__(self, calendar, branch):
         """Initialize a LocationCalendarCol representing the given
         branch in the given calendar."""
@@ -1209,13 +1168,16 @@ instead, giving something like "in transit from A to B".
         self.locations = self.thing.locations[branch]
         self.coverage = self.character.thingdict[
             str(self.dimension)][str(self.thing)][branch]
-        self.refresh()
+        self.labeldict = {}
+        self.boxdict = {}
 
     def __getattr__(self, attrn):
         """Try looking up the attribute in the calendar first;
         otherwise use lambdas from CalendarCol.atrdic to compute it"""
         if attrn in LocationCalendarCol.cal_attrs:
             return getattr(self.calendar, attrn)
+        elif attrn == "cells":
+            return CalendarColCellIter(self, self.locations, "location")
         else:
             try:
                 return CalendarCol.atrdic[attrn](self)
@@ -1223,24 +1185,6 @@ instead, giving something like "in transit from A to B".
                 raise AttributeError(
                     """LocationCalendarCol does not have and
 cannot compute attribute {0}""".format(attrn))
-
-    def regen_cells(self):
-        """Remake all my CalendarCells"""
-        for cell in self.celldict.itervalues():
-            cell.delete()
-        self.cells_on_screen = set()
-        self.celldict = {}
-        for rd in self.locations.iterrows():
-            if rd["tick_from"] not in self.celldict:
-                cell = CalendarCell(
-                    self, rd["tick_from"], rd["tick_to"], rd["location"])
-                self.celldict[rd["tick_from"]] = cell
-            else:
-                cell = self.celldict[rd["tick_from"]]
-            cell.tick_to = rd["tick_to"]
-            cell.text = rd["location"]
-            if cell.in_view:
-                self.cells_on_screen.add(cell)
 
     def shows_any_ever(self, tick_from, tick_to):
         for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
@@ -1263,6 +1207,47 @@ cannot compute attribute {0}""".format(attrn))
                 return (a, b)
         return None
 
+    def draw(self):
+        super(LocationCalendarCol, self).draw()
+        for cell in self.cells:
+            if cell in self.boxdict:
+                vertl = self.boxdict[cell]
+                l = cell.window_left
+                r = cell.window_right
+                t = cell.window_top
+                b = cell.window_bot
+                try:
+                    vertl.vertices = (
+                        l, t, r, t,
+                        r, t, r, b,
+                        r, b, l, b,
+                        l, b, l, t)
+                except AttributeError:
+                    vertl = cell.get_box(
+                        self.batch, self.group)
+                self.boxdict[cell] = vertl
+            else:
+                self.boxdict[cell] = cell.get_box(
+                    self.batch, self.group)
+            if cell in self.labeldict:
+                (label, l, t) = self.labeldict[cell]
+                if (
+                        label is None or
+                        l != cell.window_left or
+                        t != cell.window_top):
+                    try:
+                        label.delete()
+                    except AttributeError:
+                        pass
+                    self.labeldict[cell] = (
+                        cell.get_label(self.batch, self.group),
+                        cell.window_left,
+                        cell.window_top)
+            else:
+                self.labeldict[cell] = (
+                    cell.get_label(self.batch, self.group),
+                    cell.window_left,
+                    cell.window_top)
 
 class ThingCalendarCol(CalendarCol):
     pass

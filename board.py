@@ -158,6 +158,7 @@ class BoardViewport:
     """A board as it is seen in a window.
 
 This is meant to be arbitrarily scalable, but it isn't really working."""
+    draggable = True
     tables = [
         ("board_viewport",
          {"window": "text not null",

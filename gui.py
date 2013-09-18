@@ -131,6 +131,7 @@ class GameWindow(pyglet.window.Window):
         self.closet = closet
         self.name = name
         self.checkpoint = checkpoint
+        self.cursor = self.CURSOR_DEFAULT
         self.edge_order = 1
         self.viewport_order = 1
         self.hand_order = 1
@@ -268,6 +269,13 @@ class GameWindow(pyglet.window.Window):
     def __str__(self):
         return self.name
 
+    def set_system_mouse_cursor(self, cursor_name):
+        if cursor_name != self.cursor:
+            self.set_mouse_cursor(
+                self.get_system_mouse_cursor(
+                    cursor_name))
+            self.cursor = cursor_name
+
     def rehash_timeline(self):
         tihash = hash(self.closet.timestream)
         r = self.last_timestream_hash != tihash
@@ -285,11 +293,7 @@ class GameWindow(pyglet.window.Window):
         for menu in self.menus:
             menu.draw()
         for calendar in self.calendars:
-            if calendar is not None:
-                if calendar.tainted:
-                    calendar.review()
-                calendar.tainted = False
-                calendar.draw()
+            calendar.draw()
         for hand in self.hands:
             hand.draw()
         for viewport in self.viewports:
@@ -320,6 +324,9 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
             if hasattr(self.grabbed, 'dropped'):
                 self.grabbed.dropped(x, y, button, modifiers)
             self.grabbed = None
+            self.set_mouse_cursor(
+                self.get_system_mouse_cursor(
+                    self.CURSOR_DEFAULT))
             return
         if (
                 self.pressed not in self.selected and
@@ -470,7 +477,15 @@ on_mouse_drag method, use it.
                         self.hovered = hoverable.hover(x, y)
                     else:
                         self.hovered = hoverable
+                    if hasattr(self.hovered, 'on_click'):
+                        self.set_system_mouse_cursor(
+                            self.CURSOR_HAND)
+                    else:
+                        self.set_system_mouse_cursor(
+                            self.CURSOR_DEFAULT)
                     return
+        self.set_system_mouse_cursor(
+            self.CURSOR_DEFAULT)
 
     def on_mouse_motion(self, x, y, dx, dy):
         """Find the widget, if any, that the mouse is over,
