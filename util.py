@@ -8,7 +8,7 @@ from logging import getLogger
 from sqlite3 import IntegrityError
 from igraph import Graph, Vertex, Edge
 from collections import deque, defaultdict, MutableMapping
-from copy import deepcopy
+from copy import copy, deepcopy
 
 logger = getLogger(__name__)
 
@@ -53,6 +53,9 @@ Skeleton has a special iterator method iterrows(). This does a
 depth-first traversal through the Skeleton and gives you each rowdict
 it comes upon."""
     atrdic = {
+        "typ": lambda self: {
+            True: lambda: type(self.it),
+            False: lambda: None}[hasattr(self, 'it')](),
         "subtype": lambda self: self.getsubtype(),
         "rowdict": lambda self: self.isrowdict()
         }
@@ -62,23 +65,31 @@ it comes upon."""
         if listeners is None:
             self.listeners = set()
         else:
-            self.listeners = listeners
-        if isinstance(it, dict):
-            if len(it) > 0 and isinstance(it.iterkeys().next(), int):
-                self.typ = list
-            else:
-                self.typ = dict
+            self.listeners = set(listeners)
+        if isinstance(it, Skeleton):
+            self.it = copy(it.it)
+            self.parent = it.parent
         elif isinstance(it, list):
-            self.typ = list
-        elif isinstance(it, Skeleton):
-            self.typ = it.typ
-            if self.parent is None:
-                self.parent = it.parent
+            self.it = []
+            for that in it:
+                assert(that.__class__ in (Skeleton, dict, list))
+                if isinstance(that, Skeleton):
+                    self.it.append(that)
+                else:
+                    self.it.append(Skeleton(that, parent=self))
+        elif isinstance(it, dict):
+            rowdict = False
+            self.it = {}
+            for (k, v) in it.iteritems():
+                if v.__class__ not in (Skeleton, dict, list):
+                    rowdict = True
+                if rowdict:
+                    assert(v.__class__ not in (Skeleton, dict, list))
+                    self.it[k] = v
+                else:
+                    self.it[k] = Skeleton(v, parent=self)
         else:
-            raise ValueError(
-                "Skeleton may only contain dict or list.")
-        self.it = self.typ()
-        self.update(it)
+            assert False
 
     def __getattr__(self, attrn):
         try:
@@ -256,10 +267,10 @@ it comes upon."""
             return self.it.keys()
 
     def isrowdict(self):
-        if self.typ is not dict or len(self.it) == 0:
+        if len(self.it) == 0:
             return False
-        for v in self.it.itervalues():
-            if v.__class__ in (list, dict, Skeleton):
+        for v in self.itervalues():
+            if v.__class__ in (Skeleton, dict, list):
                 return False
         return True
 
