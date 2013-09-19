@@ -297,6 +297,7 @@ This is meant to be arbitrarily scalable, but it isn't really working."""
             self.view_left = self.board.width - self.width
         if self.view_bot + self.height > self.board.height:
             self.view_bot = self.board.height - self.height
+        return self
 
     def draw(self):
         if self.moved:

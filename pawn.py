@@ -287,6 +287,7 @@ class PawnWidget:
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.pawn.drag_offset_x += dx
         self.pawn.drag_offset_y += dy
+        return self
 
     def dropped(self, x, y, button, modifiers):
         """When dropped on a spot, if my thing doesn't have anything else to

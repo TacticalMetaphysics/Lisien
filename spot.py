@@ -358,6 +358,7 @@ class SpotWidget:
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.spot.drag_offset_x += dx
         self.spot.drag_offset_y += dy
+        return self
 
     def overlaps(self, x, y):
         return (

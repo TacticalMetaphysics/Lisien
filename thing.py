@@ -324,8 +324,6 @@ other journey I may be on at the time."""
         try:
             self.follow_path(path, branch, tick)
         except TimeParadox:
-            import pdb
-            pdb.set_trace()
             del self.locations[branch]
             self.restore_loc_rds(locs)
             self.new_branch_blank = True

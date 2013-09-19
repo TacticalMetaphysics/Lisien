@@ -157,8 +157,6 @@ given name.
         self.game_speed = 1
         self.updating = False
 
-        import pdb
-        pdb.set_trace()
         self.skeleton.update(
             Timestream._select_table_all(self.c, 'timestream'))
         self.timestream = Timestream(self)
@@ -187,7 +185,7 @@ given name.
             'time_travel_inc_tick':
             (self.time_travel_inc_tick, ONE_ARG_RE),
             'time_travel':
-            (self.time_travel, TWO_ARG_RE),
+            (self.time_travel_menu_item, TWO_ARG_RE),
             'time_travel_inc_branch':
             (self.time_travel_inc_branch, ONE_ARG_RE),
             'go':
@@ -1016,7 +1014,10 @@ This is game-world time. It doesn't always go forwards.
         return self.get_cards([
             str(effect) for effect in effects.itervalues()])
 
-    def time_travel(self, mi, branch, tick):
+    def time_travel_menu_item(self, mi, branch, tick):
+        return self.time_travel(branch, tick)
+
+    def time_travel(self, branch, tick):
         if branch not in self.timestream.branchdict:
             raise TimestreamException(
                 "Tried to time-travel to a branch that didn't exist yet")
@@ -1101,16 +1102,16 @@ This is game-world time. It doesn't always go forwards.
 
     def time_travel_inc_tick(self, mi=None, ticks=1):
         rd = self.timestream.branchdict[self.branch]
-        if self.tick == rd["tick_to"]:
+        if self.tick >= rd["tick_to"]:
             self.more_time(
                 self.branch, self.branch,
                 rd["tick_from"], rd["tick_to"] + int(ticks))
-        self.time_travel(mi, self.branch, self.tick + int(ticks))
+        self.time_travel(self.branch, self.tick + int(ticks))
 
     def time_travel_inc_branch(self, mi=None, branches=1):
         b = self.branch + int(branches)
         self.increment_branch(mi, branches)
-        self.time_travel(mi, b, self.tick)
+        self.time_travel(b, self.tick)
 
     def go(self, nope=None):
         self.updating = True

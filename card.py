@@ -250,6 +250,7 @@ class CardWidget:
         (grabx, graby) = self.grabpoint
         self.x = x - grabx + dx
         self.y = y - graby + dy
+        return self
 
     def dropped(self, x, y, button, modifiers):
         if (

@@ -1199,37 +1199,6 @@ class SkeletonIterator:
         raise StopIteration
 
 
-class ScissorOrderedGroup(pyglet.graphics.OrderedGroup):
-    def __init__(self, order, parent, window,
-                 left, top, bot, right, proportional=True):
-        super(ScissorOrderedGroup, self).__init__(order, parent)
-        self.window = window
-        self.left = left
-        self.top = top
-        self.bot = bot
-        self.right = right
-        self.proportional = proportional
-
-    def set_state(self):
-        if self.proportional:
-            l = int(self.left * self.window.width)
-            b = int(self.bot * self.window.height)
-            r = int(self.right * self.window.width)
-            t = int(self.top * self.window.height)
-        else:
-            l = self.left
-            b = self.bot
-            r = self.right
-            t = self.top
-        w = r - l
-        h = t - b
-        pyglet.gl.glScissor(l, b, w, h)
-        pyglet.gl.glEnable(pyglet.gl.GL_SCISSOR_TEST)
-
-    def unset_state(self):
-        pyglet.gl.glDisable(pyglet.gl.GL_SCISSOR_TEST)
-
-
 class PortalException(Exception):
     """Exception raised when a Thing tried to move into or out of or along
 a Portal, and it made no sense."""
@@ -1361,6 +1330,7 @@ class Timestream:
         # altogether. That original branch now has another edge
         # representing it.
         self.update_handlers = set()
+        self.hi_branch = 0
         self.update(0)
 
     def __hash__(self):
@@ -1368,6 +1338,14 @@ class Timestream:
         for t in self.branchdict.itervalues():
             b.extend(t)
         return hash(tuple(b))
+
+    def __getattr__(self, attrn):
+        if attrn == "latest_tick":
+            return max(rd["tick_to"] for rd in self.branchdict.itervalues())
+        else:
+            raise AttributeError(
+                "Timestream instance does not have and cannot compute "
+                "attribute {0}".format(attrn))
 
     def update(self, ts=0):
         """Update the tree to reflect the current state of branchdict.
@@ -1385,6 +1363,8 @@ length zero.
 
         """
         for (branch, rd) in self.branchdict.iteritems():
+            if branch > self.hi_branch:
+                self.hi_branch = branch
             done_to = self.branch_done_to[branch]
             parent = rd["parent"]
             tick_from = rd["tick_from"]

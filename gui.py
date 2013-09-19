@@ -4,8 +4,7 @@ import pyglet
 import logging
 from util import (
     SaveableMetaclass,
-    fortyfive,
-    ScissorOrderedGroup)
+    fortyfive)
 from math import atan, cos, sin
 from menu import Menu, MenuItem
 from card import Hand
@@ -154,8 +153,7 @@ class GameWindow(pyglet.window.Window):
         self.menu_fg_group = OrderedGroup(5)
         self.calendar_group = OrderedGroup(6)
         self.timeline_group = OrderedGroup(7)
-        self.pickergroup = ScissorOrderedGroup(
-            2, None, self, 0.3, 0.6, 0.3, 0.6)
+        self.pickergroup = OrderedGroup(8)  # should be scissored
         for rd in self.closet.skeleton[
                 "board_viewport"][str(self)].iterrows():
             self.closet.get_board(rd["dimension"], rd["board"])
@@ -309,8 +307,6 @@ class GameWindow(pyglet.window.Window):
     def on_resize(self, w, h):
         for viewport in self.viewports:
             viewport.moved = True
-        for calendar in self.calendars:
-            calendar.delete()
         super(GameWindow, self).on_resize(w, h)
 
     def on_mouse_press(self, x, y, button, modifiers):
