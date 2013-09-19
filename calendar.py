@@ -834,8 +834,9 @@ would be good.
         batch = self.window.batch
         group = self.group
         drawn = []
-        o = self.left_branch - self.offx % self.col_width
-        d = self.left_branch + self.max_cols + self.offx % self.col_width
+        slew = self.offx % self.col_width
+        o = self.left_branch - slew
+        d = self.left_branch + self.max_cols + slew
         rightmostbranch = self.closet.timestream.hi_branch
         if d > rightmostbranch:
             d = rightmostbranch + 1
