@@ -153,7 +153,8 @@ class GameWindow(pyglet.window.Window):
         self.menu_fg_group = OrderedGroup(5)
         self.calendar_group = OrderedGroup(6)
         self.timeline_group = OrderedGroup(7)
-        self.pickergroup = OrderedGroup(8)  # should be scissored
+        self.char_sheet_group = OrderedGroup(8)
+        self.pickergroup = OrderedGroup(9)  # should be scissored
         for rd in self.closet.skeleton[
                 "board_viewport"][str(self)].iterrows():
             self.closet.get_board(rd["dimension"], rd["board"])

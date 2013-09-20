@@ -6,10 +6,12 @@ from util import (
     wedge_offsets_rise_run,
     truncated_line,
     fortyfive)
-import pyglet
-
-
-GL_LINES = pyglet.gl.GL_LINES
+from pyglet.graphics import OrderedGroup
+from pyglet.gl import (
+    glEnable,
+    glDisable,
+    GL_LINES,
+    GL_LINE_SMOOTH)
 
 
 class DummySpot:
@@ -29,24 +31,25 @@ class DummySpot:
             raise AttributeError
 
 
-class BoldLineOrderedGroup(pyglet.graphics.OrderedGroup):
+class BoldLineOrderedGroup(OrderedGroup):
     def __init__(self, order, parent=None, width=1.0):
         self.width = float(width)
-        pyglet.graphics.OrderedGroup.__init__(self, order, parent)
+        OrderedGroup.__init__(self, order, parent)
 
     def set_state(self):
-        pyglet.gl.glDisable(pyglet.gl.GL_LINE_SMOOTH)
+        glDisable(GL_LINE_SMOOTH)
         set_line_width(self.width)
 
 
-class SmoothBoldLineOrderedGroup(pyglet.graphics.OrderedGroup):
+class SmoothBoldLineOrderedGroup(OrderedGroup):
     def __init__(self, order, parent=None, width=1.0):
         self.width = float(width)
-        pyglet.graphics.OrderedGroup.__init__(self, order, parent)
+        OrderedGroup.__init__(self, order, parent)
 
     def set_state(self):
         set_line_width(self.width)
-        pyglet.gl.glEnable(pyglet.gl.GL_LINE_SMOOTH)
+        glEnable(
+            GL_LINE_SMOOTH)
 
 
 class Arrow:

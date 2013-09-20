@@ -662,7 +662,9 @@ This is game-world time. It doesn't always go forwards.
         r = {}
         unhad = set()
         for name in names:
-            if name in self.characterdict:
+            if isinstance(name, Character):
+                r[str(name)] = name
+            elif name in self.characterdict:
                 r[name] = self.characterdict[name]
             else:
                 unhad.add(name)
@@ -671,7 +673,7 @@ This is game-world time. It doesn't always go forwards.
         return r
 
     def get_character(self, name):
-        return self.get_characters([name])[name]
+        return self.get_characters([str(name)])[str(name)]
 
     def get_thing(self, dimn, thingn):
         return self.get_dimension(dimn).get_thing(thingn)

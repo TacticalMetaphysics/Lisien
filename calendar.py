@@ -1,12 +1,17 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, phi
+from util import SaveableMetaclass, phi, get_box, get_label
 from logging import getLogger
-from pyglet.text import Label
-from pyglet.graphics import GL_LINES, GL_TRIANGLES, Group
-from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST
-from pyglet.image import SolidColorImagePattern
-from pyglet.sprite import Sprite
+from pyglet.graphics import (
+    GL_LINES,
+    GL_TRIANGLES,
+    Group)
+from pyglet.gl import (
+    glScissor,
+    glEnable,
+    glDisable,
+    GL_SCISSOR_TEST)
+
 
 """User's view on a given item's schedule.
 
@@ -166,7 +171,6 @@ class Handle:
         self.ry = height / 2
         self.closet = self.timeline.cal.closet
         self.calendar = self.timeline.cal
-
 
     def __getattr__(self, attrn):
         """Look up computed attributes in the atrdic of the class."""
@@ -486,42 +490,18 @@ represents to calculate its dimensions and coordinates.
         t = self.window_top
         w = self.width
         h = self.height
-        if self.style.fontsize > h:
-            return
-        else:
-            l = Label(
-                self.text,
-                self.style.fontface,
-                self.style.fontsize,
-                color=self.style.textcolor.tup,
-                width=w,
-                height=h,
-                x=l,
-                y=t,
-                anchor_x="left",
-                anchor_y="top",
-                halign="center",
-                multiline=True,
-                batch=batch,
-                group=group)
-            while l.content_width > w:
-                l.text = l.text[:-1]
-            return l
+        return get_label(l, t, w, h, batch, group)
 
     def get_box(self, batch, group):
-        l = self.window_left
-        b = self.window_bot
-        r = self.window_right
-        t = self.window_top
-        colors = self.style.fg_inactive.tup * 6
-        vees = (l, t, r, t, r, b,
-                r, b, l, b, l, t)
-        return batch.add(
-            6,
+        return get_box(
+            self.window_left,
+            self.window_right,
+            self.window_bot,
+            self.window_top,
             GL_TRIANGLES,
-            group,
-            ('v2i', vees),
-            ('c4B', colors))
+            self.style.bg_inactive.tup,
+            batch,
+            group)
 
 CAL_TYPE = {
     "THING": 0,
@@ -550,7 +530,7 @@ class CalendarGroup(Group):
         glDisable(GL_SCISSOR_TEST)
 
 
-class Calendar:
+class Calendar(object):
     """A collection of columns representing values over time for
 a given attribute of a character.
 
@@ -591,12 +571,12 @@ handle, which may be dragged within and between branches to effect
 time travel.
 
     """
-    visible = True
     tables = [
         (
             "calendar",
             {"window": "TEXT NOT NULL DEFAULT 'Main'",
              "idx": "INTEGER NOT NULL DEFAULT 0",
+             "visible": "BOOLEAN NOT NULL DEFAULT 0",
              "left": "FLOAT NOT NULL DEFAULT 0.8",
              "right": "FLOAT NOT NULL DEFAULT 1.0",
              "top": "FLOAT NOT NULL DEFAULT 1.0",
@@ -653,6 +633,10 @@ time travel.
                  CAL_TYPE['STAT'])]
         )]
 
+    rdfields = set(["left_branch", "visible",
+                    "interactive", "scroll_factor", "type",
+                    "rows_shown", "left", "right", "top", "bot"])
+
     atrdic = {
         "typ": lambda self: self._rowdict["type"],
         "character": lambda self:
@@ -667,9 +651,6 @@ time travel.
             self._rowdict["dimension"],
             self._rowdict["origin"],
             self._rowdict["destination"]),
-        "interactive": lambda self: self._rowdict["interactive"],
-        "rows_shown": lambda self: self._rowdict["rows_shown"],
-        "left_branch": lambda self: self._rowdict["left_branch"],
         "left_prop": lambda self: self._rowdict["left"],
         "right_prop": lambda self: self._rowdict["right"],
         "top_prop": lambda self: self._rowdict["top"],
@@ -705,13 +686,14 @@ time travel.
         self.closet.skeleton["thing_location"][
             self._rowdict["dimension"]][
             self._rowdict["thing"]],
+        "closet": lambda self: self.window.closet
     }
 
     def __init__(self, window, idx):
         """Get the idx-th calendar in the given window"""
-        super(Calendar, self).__setattr__("window", window)
-        super(Calendar, self).__setattr__("closet", self.window.closet)
-        super(Calendar, self).__setattr__("idx", idx)
+        s = super(Calendar, self)
+        s.__setattr__('window', window)
+        s.__setattr__('idx', idx)
         self.batch = self.window.batch
         self.group = CalendarGroup(self)
         self.offx = 0
@@ -729,6 +711,8 @@ So, return my index."""
 
     def __getattr__(self, attrn):
         """Compute the attribute using the correct lambda from my atrdic"""
+        if attrn in self.rdfields:
+            return self._rowdict[attrn]
         try:
             return self.atrdic[attrn](self)
         except KeyError:

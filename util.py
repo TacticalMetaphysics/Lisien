@@ -1620,3 +1620,36 @@ class FakeCloset:
 
 class BranchError(Exception):
     pass
+
+
+def get_box(l, r, b, t, mode, color, batch, group):
+    colors = color * 6
+    vees = (l, t, r, t, r, b,
+            r, b, l, b, l, t)
+    return batch.add(
+        6,
+        mode,
+        group,
+        ('v2i', vees),
+        ('c4B', colors))
+
+
+def get_label(text, style, l, t, w, h, batch, group):
+    l = pyglet.Label(
+        text,
+        style.fontface,
+        style.fontsize,
+        color=style.textcolor.tup,
+        width=w,
+        height=h,
+        x=l,
+        y=t,
+        anchor_x="left",
+        anchor_y="top",
+        halign="center",
+        multiline=True,
+        batch=batch,
+        group=group)
+    while l.content_width > w:
+        l.text = l.text[:-1]
+    return l
