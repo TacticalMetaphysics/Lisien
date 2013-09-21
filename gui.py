@@ -469,6 +469,10 @@ on_mouse_drag method, use it.
                         hoverable is not None and
                         hasattr(hoverable, 'overlaps') and
                         hoverable.overlaps(x, y)):
+                    if hasattr(hoverable, 'chk_overlap'):
+                        hoverable = hoverable.chk_overlap(x, y)
+                    if hoverable is None:
+                        continue
                     if hasattr(hoverable, 'hover'):
                         self.hovered = hoverable.hover(x, y)
                     else:

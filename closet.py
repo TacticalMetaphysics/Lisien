@@ -183,11 +183,12 @@ given name.
             'increment_branch':
             (self.increment_branch, ONE_ARG_RE),
             'time_travel_inc_tick':
-            (self.time_travel_inc_tick, ONE_ARG_RE),
+            (lambda mi, ticks: self.time_travel_inc_tick(ticks), ONE_ARG_RE),
             'time_travel':
             (self.time_travel_menu_item, TWO_ARG_RE),
             'time_travel_inc_branch':
-            (self.time_travel_inc_branch, ONE_ARG_RE),
+            (lambda mi, branches: self.time_travel_inc_branch(branches),
+             ONE_ARG_RE),
             'go':
             (self.go, ""),
             'stop':
@@ -1026,7 +1027,7 @@ This is game-world time. It doesn't always go forwards.
             if rd["parent"] == branch:
                 raise TimestreamException(
                     "Tried to travel to before the start of time")
-            return self.time_travel(mi, rd["parent"], tick)
+            return self.time_travel(rd["parent"], tick)
         if rd["tick_to"] < tick:
             rd["tick_to"] = tick
         self.time_travel_history.append((self.branch, self.tick))
@@ -1078,7 +1079,7 @@ This is game-world time. It doesn't always go forwards.
         self.timestream.update()
         logger.debug("New branchdict: {0}".format(self.timestream.branchdict))
 
-    def increment_branch(self, mi=None, branches=1):
+    def increment_branch(self, branches=1):
         b = self.branch + int(branches)
         rd = self.timestream.branchdict[self.branch]
         if rd["tick_to"] < self.tick:
@@ -1095,12 +1096,11 @@ This is game-world time. It doesn't always go forwards.
                 # The branch already exists, so you can go there, but
                 # it starts later than you're trying to get to, so
                 # I'll put you at the start of that branch instead.
-                return self.time_travel(
-                    mi, b, self.timestream.branchdict[b][1])
+                return self.time_travel(b, self.timestream.branchdict[b][1])
             else:
                 raise te
 
-    def time_travel_inc_tick(self, mi=None, ticks=1):
+    def time_travel_inc_tick(self, ticks=1):
         rd = self.timestream.branchdict[self.branch]
         if self.tick >= rd["tick_to"]:
             self.more_time(
@@ -1108,9 +1108,9 @@ This is game-world time. It doesn't always go forwards.
                 rd["tick_from"], rd["tick_to"] + int(ticks))
         self.time_travel(self.branch, self.tick + int(ticks))
 
-    def time_travel_inc_branch(self, mi=None, branches=1):
+    def time_travel_inc_branch(self, branches=1):
         b = self.branch + int(branches)
-        self.increment_branch(mi, branches)
+        self.increment_branch(branches)
         self.time_travel(b, self.tick)
 
     def go(self, nope=None):
