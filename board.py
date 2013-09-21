@@ -1,13 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import (
-    SaveableMetaclass,
-    SkeletonIterator,
-    ViewportOrderedGroup)
+from util import SaveableMetaclass
 from pawn import Pawn, PawnWidget
 from spot import Spot, SpotWidget
 from arrow import Arrow, ArrowWidget
-from pyglet.graphics import OrderedGroup
 from pyglet.sprite import Sprite
 
 
@@ -35,15 +31,15 @@ each board will be open in at most one window at a time.
         ("board",
          {"dimension": "text not null default 'Physical'",
           "idx": "integer not null default 0",
-          "wallpaper": "text not null default 'default_wallpaper'",
-          "width": "integer not null default 4000",
-          "height": "integer not null default 3000"},
+          "wallpaper": "text not null default 'default_wallpaper'"},
          ("dimension", "idx"),
          {"wallpaper": ("img", "name")},
          [])]
     atrdic = {
         "wallpaper": lambda self: self.closet.get_img(
             self._rowdict["wallpaper"]),
+        "width": lambda self: self.wallpaper.tex.width,
+        "height": lambda self: self.wallpaper.tex.height,
         "places": lambda self: iter(self.dimension.places),
         "portals": lambda self: iter(self.dimension.portals),
         "things": lambda self: iter(self.dimension.things),
@@ -62,23 +58,23 @@ each board will be open in at most one window at a time.
         self.spotdict = {}
         self.arrowdict = {}
         self.viewports = []
-        self._rowdict = self.closet.skeleton["board"][str(self.dimension)][int(self)]
+        self._rowdict = self.closet.skeleton[
+            "board"][str(self.dimension)][int(self)]
         while len(self.dimension.boards) <= self.idx:
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
         if "spot_coords" in self.closet.skeleton:
-            for rd in SkeletonIterator(
-                    self.closet.skeleton[
-                        "spot_coords"][str(self.dimension)][int(self)]):
+            for rd in self.closet.skeleton[
+                    "spot_coords"][str(self.dimension)][
+                    int(self)].iterrows():
                 self.add_spot(rd)
         if "pawn_img" in self.closet.skeleton:
-            for rd in SkeletonIterator(
-                    self.closet.skeleton[
-                        "pawn_img"][str(self.dimension)][int(self)]):
+            for rd in self.closet.skeleton[
+                    "pawn_img"][str(self.dimension)][
+                    int(self)].iterrows():
                 self.add_pawn(rd)
         for portal in self.dimension.portals:
             self.make_arrow(portal)
-
 
     def __getattr__(self, attrn):
         return self.atrdic[attrn](self)
@@ -130,7 +126,8 @@ each board will be open in at most one window at a time.
 
     def make_spot(self, place):
         place = self.closet.get_place(str(self.dimension), str(place))
-        self.spotdict[str(place)] = Spot(self.closet, self.dimension, self, place)
+        self.spotdict[str(place)] = Spot(
+            self.closet, self.dimension, self, place)
 
     def make_arrow(self, orig_or_port, dest=None):
         if dest is None:
@@ -158,6 +155,10 @@ each board will be open in at most one window at a time.
 
 
 class BoardViewport:
+    """A board as it is seen in a window.
+
+This is meant to be arbitrarily scalable, but it isn't really working."""
+    draggable = True
     tables = [
         ("board_viewport",
          {"window": "text not null",
@@ -196,6 +197,9 @@ class BoardViewport:
         "pawns": lambda self: self.pawndict.itervalues()}
 
     def __init__(self, closet, window, dimension, board, idx):
+        self.moved = True
+        self.bgsprite = None
+        self.bgregion = None
         self.closet = closet
         self.window = window
         self.dimension = dimension
@@ -203,10 +207,10 @@ class BoardViewport:
         self.idx = idx
         self._rowdict = self.closet.skeleton[
             "board_viewport"][
-                str(self.window)][
-                    str(self.dimension)][
-                        int(self.board)][
-                            int(self)]
+            str(self.window)][
+            str(self.dimension)][
+            int(self.board)][
+            int(self)]
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
@@ -214,14 +218,7 @@ class BoardViewport:
             self.board.viewports.append(None)
         self.board.viewports[self.idx] = self
         self.batch = self.window.batch
-        self.biggroup = ViewportOrderedGroup(
-            self.window.viewport_order, self.window.boardgroup,
-            self)
         self.window.viewport_order += 1
-        self.bggroup = OrderedGroup(0, self.biggroup)
-        self.arrowgroup = OrderedGroup(1, self.biggroup)
-        self.spotgroup = OrderedGroup(2, self.biggroup)
-        self.pawngroup = OrderedGroup(3, self.biggroup)
         for (k, v) in self.board.pawndict.iteritems():
             self.pawndict[k] = PawnWidget(self, v)
         for (k, v) in self.board.spotdict.iteritems():
@@ -288,31 +285,31 @@ class BoardViewport:
         else:
             return self
 
-    def move_with_mouse(self, x, y, dx, dy, button, modifiers):
+    def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
+        self.moved = True
         self.view_left -= dx
         self.view_bot -= dy
         if self.view_left < 0:
             self.view_left = 0
         if self.view_bot < 0:
             self.view_bot = 0
+        if self.view_left + self.width > self.board.width:
+            self.view_left = self.board.width - self.width
+        if self.view_bot + self.height > self.board.height:
+            self.view_bot = self.board.height - self.height
+        return self
 
     def draw(self):
-        offx = self.offset_x
-        offy = self.offset_y
-        try:
-
-            if offx != self.old_offset_x:
-                self.bgsprite.x = offx
-                self.old_offset_x = offx
-            if offy != self.old_offset_y:
-                self.bgsprite.y = self.offset_y
-                self.old_offset_y = offy
-        except:
+        if self.moved:
+            self.bgregion = self.wallpaper.tex.get_region(
+                self.view_left, self.view_bot,
+                self.window.width, self.window.height)
             self.bgsprite = Sprite(
-                self.wallpaper.tex,
-                offx, offy,
+                self.bgregion,
+                0, 0,
                 batch=self.batch,
-                group=self.bggroup)
+                group=self.window.board_bg_group)
+            self.moved = False
         for spot in self.spots:
             spot.draw()
         for pawn in self.pawns:

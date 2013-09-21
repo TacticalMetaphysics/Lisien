@@ -3,16 +3,10 @@
 from util import (
     SaveableMetaclass,
     TerminableImg,
-    TerminableInteractivity,
-    BranchTicksIter,
-    SkeletonIterator)
-from place import Place
-from collections import defaultdict
+    TerminableInteractivity)
 from pyglet.sprite import Sprite
-from pyglet.graphics import OrderedGroup
 from pyglet.gl import GL_LINES
 from logging import getLogger
-from igraph import ALL
 
 
 logger = getLogger(__name__)
@@ -106,31 +100,29 @@ class Spot(TerminableImg, TerminableInteractivity):
         self.vert = self.place.v
         self.coord_lst = self.closet.skeleton["spot_coords"][
             str(self.dimension)][
-                int(self.board)][str(self.place)]
+            int(self.board)][str(self.place)]
         self.interactivity = self.closet.skeleton["spot_interactive"][
             str(self.dimension)][
-                int(self.board)][str(self.place)]
+            int(self.board)][str(self.place)]
         self.imagery = self.closet.skeleton["spot_img"][
             str(self.dimension)][
-                int(self.board)][str(self.place)]
+            int(self.board)][str(self.place)]
         self.indefinite_imagery = {}
-        for rd in SkeletonIterator(
-                self.closet.skeleton["spot_img"][
-                    str(self.dimension)][
-                        int(self.board)][str(self.place)]):
+        for rd in self.closet.skeleton["spot_img"][
+                str(self.dimension)][
+                int(self.board)][str(self.place)].iterrows():
             if rd["tick_to"] is None:
                 self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
         self.indefinite_coords = {}
-        for rd in SkeletonIterator(
-            self.closet.skeleton["spot_coords"][
+        for rd in self.closet.skeleton["spot_coords"][
                 str(self.dimension)][
-                int(self.board)][str(self.place)]):
+                int(self.board)][str(self.place)].iterrows():
             if rd["tick_to"] is None:
                 self.indefinite_coords[rd["branch"]] = rd["tick_from"]
         self.indefinite_interactivity = {}
-        for rd in SkeletonIterator(self.closet.skeleton["spot_interactive"][
+        for rd in self.closet.skeleton["spot_interactive"][
                 str(self.dimension)][
-                    int(self.board)][str(self.place)]):
+                int(self.board)][str(self.place)].iterrows():
             if rd["tick_to"] is None:
                 self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
         self.drag_offset_x = 0
@@ -218,7 +210,7 @@ class Spot(TerminableImg, TerminableInteractivity):
                 tick >= self.indefinite_coords[branch]):
             rd = self.coord_lst[branch][self.indefinite_coords[branch]]
             return (rd["x"], rd["y"])
-        for rd in SkeletonIterator(self.coord_lst):
+        for rd in self.coord_lst.iterrows():
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return (rd["x"], rd["y"])
         import pdb
@@ -258,9 +250,15 @@ class Spot(TerminableImg, TerminableInteractivity):
             "y": y}
         if tick_to is None:
             self.indefinite_coords[branch] = tick_from
+        else:
+            rd = self.closet.skeleton.branchdict[branch]
+            if rd["tick_to"] < tick_to:
+                rd["tick_to"] = tick_to
 
     def new_branch_coords(self, parent, branch, tick):
-        for rd in SkeletonIterator(self.coord_lst[parent]):
+        if branch not in self.coord_lst:
+            self.coord_lst[branch] = []
+        for rd in self.coord_lst[parent].iterrows():
             if rd["tick_to"] >= tick or rd["tick_to"] is None:
                 if rd["tick_from"] < tick:
                     self.coord_lst[branch][tick] = {
@@ -272,6 +270,8 @@ class Spot(TerminableImg, TerminableInteractivity):
                         "tick_to": rd["tick_to"],
                         "x": rd["x"],
                         "y": rd["y"]}
+                    if rd["tick_to"] is None:
+                        self.indefinite_coords[branch] = tick
                 else:
                     self.coord_lst[branch][rd["tick_from"]] = {
                         "dimension": rd["dimension"],
@@ -282,8 +282,8 @@ class Spot(TerminableImg, TerminableInteractivity):
                         "tick_to": rd["tick_to"],
                         "x": rd["x"],
                         "y": rd["y"]}
-                if rd["tick_to"] is None:
-                    self.indefinite_coords[branch] = rd["tick_from"]
+                    if rd["tick_to"] is None:
+                        self.indefinite_coords[branch] = rd["tick_from"]
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)
@@ -321,8 +321,6 @@ class SpotWidget:
     def __init__(self, viewport, spot):
         self.viewport = viewport
         self.window = self.viewport.window
-        self.spritegroup = self.viewport.spotgroup
-        self.boxgroup = self.viewport.spotgroup
         self.batch = self.viewport.batch
         self.spot = spot
         self.place = self.spot.place
@@ -337,7 +335,7 @@ class SpotWidget:
     def __str__(self):
         return str(self.spot)
 
-    spotattrs = set(["img","visible", "interactive", "board_left",
+    spotattrs = set(["img", "visible", "interactive", "board_left",
                      "board_right", "board_top", "board_bot"])
 
     def __getattr__(self, attrn):
@@ -357,9 +355,10 @@ class SpotWidget:
         self.spot.drag_offset_x = 0
         self.spot.drag_offset_y = 0
 
-    def move_with_mouse(self, x, y, dx, dy, buttons, modifiers):
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.spot.drag_offset_x += dx
         self.spot.drag_offset_y += dy
+        return self
 
     def overlaps(self, x, y):
         return (
@@ -385,7 +384,7 @@ class SpotWidget:
                 self.window_left,
                 self.window_bot,
                 batch=self.batch,
-                group=self.spritegroup)
+                group=self.window.spot_group)
         if self.selected:
             yelo = (255, 255, 0, 0)
             colors = yelo * 4
@@ -401,7 +400,7 @@ class SpotWidget:
                     self.vertlist = self.batch.add_indexed(
                         4,
                         GL_LINES,
-                        self.boxgroup,
+                        self.window.spot_group,
                         (0, 1, 2, 3, 0),
                         ('v2i', points),
                         ('c4b', colors))
@@ -424,32 +423,21 @@ class SpotWidget:
                  self.window_left < self.window.width)):
             self.actually_draw()
         else:
-            if self.sprite is not None:
-                try:
-                    self.sprite.delete()
-                except:
-                    pass
-                self.sprite = None
-            if self.vertlist is not None:
-                try:
-                    self.vertlist.delete()
-                except:
-                    pass
-                self.vertlist = None
-            self.old_window_left = None
-            self.old_window_bot = None
-            return
-
-
+            self.delete()
 
     def delete(self):
-        try:
-            self.sprite.delete()
-        except:
-            pass
-        self.sprite = None
-        try:
-            self.vertlist.delete()
-        except:
-            pass
-        self.vertlist = None
+        if self.sprite is not None:
+            try:
+                self.sprite.delete()
+            except:
+                pass
+            self.sprite = None
+        if self.vertlist is not None:
+            try:
+                self.vertlist.delete()
+            except:
+                pass
+            self.vertlist = None
+        self.old_window_left = None
+        self.old_window_bot = None
+        self.old_points = None

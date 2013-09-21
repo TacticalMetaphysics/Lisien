@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, SkeletonIterator
+from util import SaveableMetaclass
 from logging import getLogger
 
 
@@ -30,7 +30,7 @@ class Portal:
         self.dest = destination
         self.destination = destination
         self.indefinite_existence = {}
-        for rd in SkeletonIterator(self.existence):
+        for rd in self.existence.iterrows():
             if rd["tick_to"] is None:
                 self.indefinite_existence[rd["branch"]] = rd["tick_from"]
         # now make the edge
@@ -66,8 +66,13 @@ class Portal:
 otherwise."""
         return True
 
+    def set_existence(self, branch=None, tick_from=None, tick_to=None):
+        pass
+
     def new_branch(self, parent, branch, tick):
-        for rd in SkeletonIterator(self.existence):
+        if branch not in self.existence:
+            self.existence[branch] = []
+        for rd in self.existence.iterrows():
             if rd["tick_to"] is None or rd["tick_to"] >= tick:
                 rd2 = dict(rd)
                 rd2["branch"] = branch

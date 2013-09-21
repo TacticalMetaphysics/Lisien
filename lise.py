@@ -41,8 +41,14 @@ if DEBUG:
     logger = logging.getLogger()
 clock = pyglet.clock.Clock()
 pyglet.clock.set_default(clock)
-closet = closet.load_game(dbfn, lang)
+closet = closet.load_closet(dbfn, lang)
 gw = closet.get_window('Main', checkpoint=True)
+
+class Updater:
+    def __init__(self, closet, gw):
+        self.tp = 0.0
+        self.closet = closet
+        self.gw = gw
 
 class Updater:
     def __init__(self, closet, gw):
@@ -53,13 +59,13 @@ class Updater:
     def update(self, ts):
         self.tp += ts
         while self.tp >= 0.1:
-            self.closet.update()
+            if self.closet.updating:
+                self.closet.update()
             self.tp -= 0.1
-        self.gw.update(ts)
 
 u = Updater(closet, gw)
 
-pyglet.clock.schedule(u.update)
+pyglet.clock.schedule_interval(u.update, 1/30.)
 pyglet.app.run()
 closet.save_game()
 closet.end_game()

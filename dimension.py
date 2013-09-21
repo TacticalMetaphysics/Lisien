@@ -5,7 +5,6 @@ from thing import Thing
 from portal import Portal
 from logging import getLogger
 from igraph import Graph
-from util import SkeletonIterator, stringlike
 
 
 logger = getLogger(__name__)
@@ -66,16 +65,33 @@ keyed with their names.
         self.closet = closet
         self.boards = []
         self.thingdict = {}
+        self.thing_location_id_dict = {}
+        self.thing_id_dict = {}
         self.graph = Graph(directed=True)
-        for rd in SkeletonIterator(self.closet.skeleton["portal"][str(self)]):
+        for rd in self.closet.skeleton["portal"][str(self)].iterrows():
             orig = self.get_place(rd["origin"])
             dest = self.get_place(rd["destination"])
             Portal(self.closet, self, orig, dest)
-        for rd in SkeletonIterator(
-                self.closet.skeleton["thing_location"][str(self)]):
+        for rd in self.closet.skeleton["thing_location"][str(self)].iterrows():
             if rd["thing"] not in self.thingdict:
                 self.thingdict[rd["thing"]] = Thing(
                     self.closet, self, rd["thing"])
+            if rd["thing"] not in self.thing_location_id_dict:
+                self.thing_location_id_dict[rd["thing"]] = id(
+                    self.thingdict[rd["thing"]].locations)
+            elif self.thing_location_id_dict[rd["thing"]] != id(
+                    self.thingdict[rd["thing"]].locations):
+                raise Exception(
+                    "Thing {0} had its locations replaced".format(
+                        rd["thing"]))
+            if rd["thing"] not in self.thing_id_dict:
+                self.thing_id_dict[rd["thing"]] = id(
+                    self.thingdict[rd["thing"]])
+            elif self.thing_id_dict[rd["thing"]] != id(
+                    self.thingdict[rd["thing"]]):
+                raise Exception(
+                    "Thing {0} seems to have been created twice".format(
+                        rd["thing"]))
         self.closet.dimensiondict[str(self)] = self
 
     def __hash__(self):
@@ -140,13 +156,29 @@ this dimension, and laid out nicely."""
         return self.graph.es[self.graph.get_eid(origi, desti)]["portal"]
 
     def get_thing(self, name):
-        return self.thingdict[name]
+        thing = self.thingdict[name]
+        if id(thing.locations) != self.thing_location_id_dict[str(thing)]:
+            raise Exception(
+                "Thing {0} had its locations replaced".format(thing))
+        return thing
 
     def new_branch(self, parent, branch, tick):
         for thing in self.things:
             thing.new_branch(parent, branch, tick)
+            if id(thing.locations) != self.thing_location_id_dict[str(thing)]:
+                raise Exception(
+                    "Thing {0} had its locations replaced".format(thing))
         for e in self.graph.es:
             e["portal"].new_branch(parent, branch, tick)
+
+    def check_thing_locations(self):
+        for thing in self.things:
+            if id(thing.locations) != self.thing_location_id_dict[str(thing)]:
+                raise Exception(
+                    "Thing {0} had its locations replaced".format(thing))
+
+    def check_thing_id(self, thing):
+        assert(id(thing) == self.thing_id_dict[str(thing)])
 
     def sanitize_vert(self, v):
         if isinstance(v, int):
@@ -155,7 +187,7 @@ this dimension, and laid out nicely."""
         elif isinstance(v, Place):
             v = v.v
             i = v.i
-        elif stringlike(v):
+        elif isinstance(v, unicode) or isinstance(v, str):
             vname = str(v)
             vnames = self.graph.vs["name"]
             i = vnames.index(vname)
@@ -171,7 +203,7 @@ this dimension, and laid out nicely."""
         elif isinstance(e, Portal):
             e = e.e
             i = e.index
-        elif stringlike(e):
+        elif isinstance(e, unicode) or isinstance(e, str):
             if e[:6] == "Portal":
                 e = e[6:]
             if e[0] == "(":

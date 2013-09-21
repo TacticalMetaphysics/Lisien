@@ -3,13 +3,16 @@
 from util import SaveableMetaclass
 import re
 import pyglet
-from pyglet.graphics import OrderedGroup
+from logging import getLogger
 
 
 """Simple menu widgets"""
 
 
 __metaclass__ = SaveableMetaclass
+
+
+logger = getLogger(__name__)
 
 
 ON_CLICK_RE = re.compile("""([a-zA-Z0-9_]+)\((.*)\)""")
@@ -51,7 +54,6 @@ class MenuItem:
                     self.icon.width +
                     self.menu.style.spacing)
 
-
     atrdic = {
         "closer": lambda self: self._rowdict["closer"],
         "_text": lambda self: self._rowdict["text"],
@@ -61,12 +63,15 @@ class MenuItem:
         "text": lambda self: self.gettxt(),
         "hovered": lambda self: self.window.hovered is self,
         "pressed": lambda self: self.window.pressed is self,
-        "window_left": lambda self: self.menu.window_left + self.menu.style.spacing,
+        "window_left": lambda self: (
+            self.menu.window_left + self.menu.style.spacing),
         "label_window_left": lambda self: self.lwl(),
-        "window_right": lambda self: self.menu.window_right - self.menu.style.spacing,
+        "window_right": lambda self: (
+            self.menu.window_right - self.menu.style.spacing),
         "label_window_right": lambda self: self.window_right,
         "width": lambda self: self.window_right - self.window_left,
-        "height": lambda self: self.menu.style.fontsize + self.menu.style.spacing,
+        "height": lambda self: (
+            self.menu.style.fontsize + self.menu.style.spacing),
         "window_top": lambda self: self.menu.window_top - (
             self.idx * self.height),
         "window_bot": lambda self: self.window_top - self.height,
@@ -98,7 +103,7 @@ With db, register in db's menuitemdict.
             self.menu.items.append(None)
         self.menu.items[self.idx] = self
         (funname, argstr) = re.match("(.+)\((.*)\)", self._on_click).groups()
-        (fun, argre) = self.closet.func[funname]
+        (fun, argre) = self.closet.menu_cbs[funname]
         try:
             on_click_arg_tup = re.match(argre, argstr).groups()
         except:
@@ -137,76 +142,52 @@ With db, register in db's menuitemdict.
             y > self.window_bot and
             y < self.window_top)
 
-    def draw(self):
-        if self.menu.visible or self.window.main_menu_name == str(self.menu):
-            b = self.window_bot
-            l = self.window_left
-            if self.icon is not None:
-                try:
-                    if self.old_window_left != l:
-                        self.sprite.x = l
-                        self.old_window_left = l
-                    if self.old_window_bot != b:
-                        self.sprite.y = b
-                        self.old_window_bot = b
-                except:
-                    self.sprite = pyglet.sprite.Sprite(
-                        self.icon.tex,
-                        l, b,
-                        batch=self.batch,
-                        group=self.group)
-            if self.text not in ('', None):
-                txt = self.text
-                color = self.menu.style.textcolor.tup
-                l = self.label_window_left
-                try:
-                    if self.old_label_text != txt:
-                        self.label.text = self.text
-                        self.old_label_text = txt
-                    if self.old_label_color != color:
-                        self.label.color = self.menu.style.textcolor.tup
-                        self.old_label_color = color
-                    if self.old_label_x != l:
-                        self.label.x = l
-                        self.old_label_x = l
-                    if self.old_label_y != b:
-                        self.label.y = b
-                        self.old_label_y = b
-                except:
-                    self.label = pyglet.text.Label(
-                        self.text,
-                        self.menu.style.fontface,
-                        self.menu.style.fontsize,
-                        color=self.menu.style.textcolor.tup,
-                        x=l,
-                        y=b,
-                        batch=self.batch,
-                        group=self.group)
-            else:
-                if self.label is not None:
-                    try:
-                        self.label.delete()
-                    except:
-                        pass
-                    self.label = None
-        else:
-            if self.sprite is not None:
-                try:
-                    self.sprite.delete()
-                except:
-                    pass
-                self.sprite = None
+    def delete(self):
+        if self.label is not None:
+            try:
+                self.label.delete()
+            except AttributeError:
+                pass
+            self.label = None
+        if self.sprite is not None:
+            try:
+                self.sprite.delete()
+            except AttributeError:
+                pass
+            self.sprite = None
 
-    def get_skeleton(self):
-        return {
-            "menu_item": [{
-                "window": str(self.window),
-                "menu": str(self.menu),
-                "idx": self.idx,
-                "text": self._text,
-                "on_click": self._on_click,
-                "closer": self.closer}]
-        }
+    def draw(self):
+        b = self.window_bot
+        l = self.window_left
+        if self.icon is not None:
+            try:
+                if self.old_window_left != l:
+                    self.sprite.x = l
+                    self.old_window_left = l
+                if self.old_window_bot != b:
+                    self.sprite.y = b
+                    self.old_window_bot = b
+            except AttributeError:
+                self.sprite = pyglet.sprite.Sprite(
+                    self.icon.tex,
+                    l, b,
+                    batch=self.batch,
+                    group=self.window.menu_fg_group)
+        if self.text not in ('', None):
+            l = self.label_window_left
+            try:
+                self.label.delete()
+            except AttributeError:
+                pass
+            self.label = pyglet.text.Label(
+                self.text,
+                self.menu.style.fontface,
+                self.menu.style.fontsize,
+                color=self.menu.style.textcolor.tup,
+                x=l,
+                y=b,
+                batch=self.batch,
+                group=self.window.menu_fg_group)
 
 
 class Menu:
@@ -240,7 +221,8 @@ class Menu:
         "height": lambda self: self.window_top - self.window_bot,
         "rx": lambda self: self.width / 2,
         "ry": lambda self: self.height / 2,
-        "r": lambda self: {True: rx, False: ry}[rx > ry],
+        "r": lambda self: {True: self.rx, False: self.ry
+                           }[self.rx > self.ry],
         "state": lambda self: self.get_state_tup()}
     interactive = True
 
@@ -259,13 +241,12 @@ With db, register with db's menudict.
 
         """
         self.window = window
+        self.labelgroup = self.window.menu_fg_group
         self.name = name
         self.batch = self.window.batch
         self.closet = self.window.closet
-        self._rowdict = self.closet.skeleton["menu"][str(self.window)][str(self)]
-        self.supergroup = OrderedGroup(0, self.window.menugroup)
-        self.bggroup = OrderedGroup(0, self.supergroup)
-        self.labelgroup = OrderedGroup(1, self.supergroup)
+        self._rowdict = self.closet.skeleton[
+            "menu"][str(self.window)][str(self)]
         self.closet = self.window.closet
         self.active_pattern = pyglet.image.SolidColorImagePattern(
             self.style.bg_active.tup)
@@ -274,18 +255,16 @@ With db, register with db's menudict.
         self.rowheight = self.style.fontsize + self.style.spacing
         self.items = []
         self.sprite = None
+        self.oldwidth = None
+        self.oldheight = None
+        self.oldcoords = None
         self.pressed = False
         self.freshly_adjusted = False
         self.visible = False
-        self_rowdict = self.closet.skeleton["menu"][
+        self.image = self.inactive_pattern.create_image(
+            self.width, self.height)
+        self._rowdict = self.closet.skeleton["menu"][
             str(self.window)][str(self)]
-
-        def r():
-            if self.rx > self.ry:
-                return self.rx
-            else:
-                return self.ry
-
 
     def __str__(self):
         return self.name
@@ -346,48 +325,47 @@ With db, register with db's menudict.
             if item.overlaps(x, y):
                 return item
 
-    def get_state_tup(self):
-        """Return a tuple containing everything you need to decide how to draw
-me"""
-        return (
-            self,
-            self.window_left,
-            self.window_bot,
-            self.window_top,
-            self.window_right,
-            self.style,
-            self.visible,
-            self.grabpoint,
-            self.pressed,
-            self.tweaks)
+    def draw_sprite(self):
+        self.sprite = pyglet.sprite.Sprite(
+            self.image, self.window_left, self.window_bot,
+            batch=self.batch, group=self.window.menu_bg_group)
 
-    def get_skeleton(self):
-        return {
-            "menu": [{
-                "window": str(self.window),
-                "name": str(self),
-                "left": self.left_prop,
-                "bottom": self.bot_prop,
-                "top": self.top_prop,
-                "right": self.right_prop,
-                "style": str(self.style)
-            }]}
+    def delete_sprite(self):
+        if self.sprite is not None:
+            try:
+                self.sprite.delete()
+            except AttributeError:
+                pass
+            self.sprite = None
 
-    def save(self):
-        for it in self.items:
-            it.save()
-        self.coresave()
+    def delete_items(self):
+        for item in self.items:
+            item.delete()
+
+    def delete(self):
+        self.delete_items()
+        self.delete_sprite()
 
     def draw(self):
-        for item in self.items:
-            item.draw()
-        try:
-            self.sprite.delete()
-        except:
-            pass
         if self.visible or str(self) == self.window.main_menu_name:
-            image = self.inactive_pattern.create_image(
-                self.width, self.height)
-            self.sprite = pyglet.sprite.Sprite(
-                image, self.window_left, self.window_bot,
-                batch=self.batch, group=self.bggroup)
+            coords = (self.window_left, self.window_bot)
+            w = self.width
+            h = self.height
+            if w != self.oldwidth or h != self.oldheight:
+                self.image = self.inactive_pattern.create_image(
+                    self.width, self.height)
+                old_sprite = self.sprite
+                self.draw_sprite()
+                try:
+                    old_sprite.delete()
+                except AttributeError:
+                    pass
+            elif self.sprite is None:
+                self.draw_sprite()
+            elif self.oldcoords != coords:
+                self.sprite.set_position(*coords)
+            for item in self.items:
+                item.draw()
+            self.oldwidth = w
+            self.oldheight = h
+            self.oldcoords = coords

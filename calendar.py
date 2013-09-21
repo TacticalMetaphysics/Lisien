@@ -1,11 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import (
-    SaveableMetaclass,
-    SkeletonIterator,
-    phi)
+from util import SaveableMetaclass, TimestreamException
+from logging import getLogger
 from pyglet.text import Label
-from pyglet.graphics import GL_LINES, GL_TRIANGLES, OrderedGroup
+from pyglet.graphics import GL_LINES, GL_TRIANGLES, Group, OrderedGroup
 from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST
 
 """User's view on a given item's schedule.
@@ -19,213 +17,112 @@ between showing various schedules, or even show many in parallel.
 __metaclass__ = SaveableMetaclass
 
 
-class Wedge:
-    """Downward pointing wedge, looks much like the Timeline's Handle
-
-    """
-    atrdic = {
-        "window_bot": lambda self: self.bc.end[1],
-        "window_top": lambda self: self.bc.end[1] + self.height,
-        "window_left": lambda self: self.bc.end[0] - self.rx,
-        "window_right": lambda self: self.bc.end[0] + self.rx}
-
-    def __init__(self, bc, color_tup=(255, 0, 0, 255)):
-        self.bc = bc
-        self.color = color_tup
-        self.batch = bc.batch
-        self.group = bc.wedgegroup
-        width = self.bc.calendar.style.spacing * 2
-        self.width = width
-        height = int(width / phi)
-        self.height = height
-        self.rx = width / 2
-        self.ry = height / 2
-        self.vertlist = None
-
-    def __getattr__(self, attrn):
-        assert(hasattr(self, 'atrdic'))
-        return Wedge.atrdic[attrn](self)
-
-    def draw(self):
-        (x, y) = self.bc.end
-        l = x - self.rx
-        c = x
-        r = x + self.rx
-        t = y + self.height
-        b = y
-        points = (
-            c, b,
-            l, t,
-            r, t)
-        colors = self.bc.color * 3
-        try:
-            self.vertlist.vertices = list(points)
-        except AttributeError:
-            self.vertlist = self.batch.add_indexed(
-                3,
-                GL_TRIANGLES,
-                self.group,
-                (0, 1, 2, 0),
-                ('v2i', points),
-                ('c4B', colors))
-
-    def delete(self):
-        try:
-            self.vertlist.delete()
-        except AttributeError:
-            pass
-        self.vertlist = None
+logger = getLogger(__name__)
 
 
 class BranchConnector:
     """Widget to show where a branch branches off another.
 
-    It's an arrow that leads from the tick on one branch where
-    another branches from it, to the start of the latter.
-
-    It operates on the assumption that child branches will always
-    be displayed next to their parents, when they are displayed at
-    all.
+    It's an arrow that leads from the tick on one CalendarCol where
+    another branches from it, to the start of the child.
 
     """
-    color = (255, 0, 0, 255)
-    def get_startx(self):
-        if self.col1.window_left < self.col2.window_left:
-            return self.col1.window_right - self.calendar.style.spacing
-        else:
-            return self.col1.window_left - self.calendar.style.spacing
-    def get_centerx(self):
-        if self.col1.window_left < self.col2.window_left:
-            return (self.col1.window_right +
-                    self.calendar.style.spacing / 2)
-        else:
-            return (self.col2.window_right +
-                    self.calendar.style.spacing / 2)
-    def get_points(self):
-        x0 = self.get_startx()
-        y = self.col1.window_top - self.calendar.row_height * (
-                self.tick - self.calendar.scrolled_to)
-        x2 = self.get_centerx()
-        x5 = self.col2.window_left + self.col2.rx
-        return (
-            x0, y,
-            x2, y,
-            x2, y + self.space,
-            x5, y + self.space,
-            x5, y)
     atrdic = {
-        "startx": lambda self: self.get_startx(),
-        "endx": lambda self: self.col2.window_left + self.col2.rx,
-        "starty": lambda self: (
-            self.col1.window_top - self.calendar.row_height * (
-                self.tick - self.calendar.scrolled_to)),
-        "endy": lambda self: (
-            self.col2.window_top - self.calendar.row_height * (
-                self.tick - self.calendar.scrolled_to)),
-        "centerx": lambda self: self.get_centerx(),
-        "points": lambda self: self.get_points(),
-        "start": lambda self: (self.startx, self.starty),
-        "end": lambda self: (self.endx, self.endy)}
+        "window_bot": lambda self:
+        self.calendar.tick_to_y(self.column.start_tick) +
+        self.calendar.offy,
+        "window_top": lambda self: self.window_bot + self.space,
+        "window_left": lambda self:
+        self.column.parent.window_right -
+        self.column.parent.style.spacing,
+        "window_right": lambda self:
+        self.column.window_left +
+        self.column.style.spacing +
+        self.column.rx,
+        "window_center": lambda self:
+        (self.column.window_left + self.column.parent.window_right) / 2,
+        "in_view": lambda self:
+        self.column.in_view or self.column.parent.in_view,
+        "wedge_visible": lambda self: (
+            self.window_top > 0 and
+            self.window_bot < self.window.height and
+            self.column.in_view),
+        "branch": lambda self: int(self.column)}
 
-    def __init__(self, calendar, col1, col2, tick):
-        self.calendar = calendar
+    def __init__(self, column, color=(255, 0, 0, 255),
+                 wedge_height=8, wedge_width=16):
+        self.column = column
+        self.calendar = self.column.calendar
         self.batch = self.calendar.batch
-        self.group = col2.bcgroup
-        self.linegroup = self.group
-        self.wedgegroup = self.group
-        self.col1 = col1
-        self.col2 = col2
-        self.tick = tick
-        self.wedge = Wedge(self)
+        self.window = self.calendar.window
+        self.color = color
+        self.wedge_height = wedge_height
+        self.wedge_rx = wedge_width / 2
         self.space = self.calendar.style.spacing * 2
+        self.line_vertlist = None
+        self.wedge_vertlist = None
 
     def __getattr__(self, attrn):
+        """Look up computed attributes in the atrdic of the class."""
         try:
             return BranchConnector.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
                 "BranchConnector has no attribute named {0}".format(attrn))
 
-    def draw(self):
-        points = self.points
-        try:
-            self.vertlist.vertices = list(points)
-        except AttributeError:
-            colors = self.color * 5
-            self.vertlist = self.batch.add_indexed(
-                5,
-                GL_LINES,
-                self.linegroup,
-                (0, 1, 1, 2, 2, 3, 3, 4),
-                ('v2i', points),
-                ('c4B', colors))
-        self.wedge.draw()
-
-    def delete(self):
-        try:
-            self.vertlist.delete()
-        except AttributeError:
-            pass
-        self.vertlist = None
-        self.wedge.delete()
-
-
-class Handle:
-    """The thing on the timeline that you grab to move"""
-    def __init__(self, timeline, handle_side):
-        self.timeline = timeline
-        self.on_the_left = handle_side == "left"
-        self.vertlist = None
-        width = timeline.cal.style.spacing * 2
-        self.width = width
-        height = int(width * phi)
-        self.height = height
-        self.rx = width / 2
-        self.ry = height / 2
-        self.atrdic = {
-            "y": lambda: self.timeline.y,
-            "window_y": lambda: self.timeline.window_y,
-            "window_left": lambda: {
-                True: self.timeline.window_left - self.width,
-                False: self.timeline.window_right}[self.on_the_left],
-            "window_right": lambda: {
-                True: self.timeline.window_left + 1,
-                False: self.timeline.window_right + self.width - 1
-                }[self.on_the_left],
-            "window_top": lambda: self.y + self.ry,
-            "window_bot": lambda: self.y - self.ry}
-            
-
-    def __getattr__(self, attrn):
-        assert(hasattr(self, 'atrdic'))
-        return self.atrdic[attrn]()
-
-    def delete(self):
-        try:
-            self.vertlist.delete()
-        except AttributeError:
-            pass
-        self.vertlist = None
-
-    def draw(self):
-        batch = self.timeline.batch
-        group = self.timeline.col.tlgroup
-        colors = self.timeline.color * 3
+    def get_wedge(self, batch, group):
+        b = self.window_bot
+        assert(b is not None)
+        c = self.window_right
+        t = b + self.wedge_height
+        l = c - self.wedge_rx
+        r = c + self.wedge_rx
         points = (
-            self.window_right, self.y,
-            self.window_left, self.window_bot,
-            self.window_left, self.window_top)
+            c, b,
+            r, t,
+            l, t,
+            c, b)
+        return batch.add(
+            4,
+            GL_TRIANGLES,
+            group,
+            ('v2i', points),
+            ('c4B', self.color * 4))
+
+    def get_line(self, batch, group):
+        y0 = self.window_bot
+        if y0 > self.calendar.window_top:
+            return
+        y2 = y0
+        y1 = self.window_top
+        if y1 < self.calendar.window_bot:
+            return
+        x0 = self.window_left
+        x1 = self.window_center
+        x2 = self.window_right
+        verts = (x0, y0, x1, y0,
+                 x1, y0, x1, y1,
+                 x1, y1, x2, y1,
+                 x2, y1, x2, y2)
+        return batch.add(
+            len(verts) / 2,
+            GL_LINES,
+            group,
+            ('v2i', verts),
+            ('c4B', self.color * (len(verts) / 2)))
+
+    def delete(self):
+        """Immediately remove from video memory"""
         try:
-            self.vertlist.vertices = list(points)
-            self.vertlist.colors = list(colors)
-        except AttributeError:
-            self.vertlist = batch.add_indexed(
-                3,
-                GL_TRIANGLES,
-                group,
-                (0, 1, 2, 0),
-                ('v2i', points),
-                ('c4B', colors))
+            self.line_vertlist.delete()
+        except (AttributeError, AssertionError):
+            pass
+        self.line_vertlist = None
+        try:
+            self.wedge_vertlist.delete()
+        except (AttributeError, AssertionError):
+            pass
+        self.wedge_vertlist = None
 
 
 class Timeline:
@@ -237,82 +134,155 @@ which side it should be on by supplying "left" (default) or "right"
 for the handle_side keyword argument.
 
     """
-    color = (255, 0, 0, 255)
+    crosshair = True
 
-    def __init__(self, col, handle_side="left"):
-        self.col = col
-        self.cal = self.col.calendar
+    atrdic = {
+        "window_y": lambda self:
+        self.cal.tick_to_y(self.closet.tick) + self.cal.offy,
+        "y": lambda self: self.window_y,
+        "window_bot": lambda self: self.window_y,
+        "window_top": lambda self: self.window_y,
+        "window_left": lambda self:
+        self.col.window_left + self.col.style.spacing,
+        "window_right": lambda self:
+        self.col.window_right - self.col.style.spacing,
+        "in_view": lambda self:
+        (self.col.branch == self.col.closet.branch and
+         self.y > 0 and self.y < self.window.height
+         and self.window_right > 0
+         and self.window_left < self.window.width),
+        "col": lambda self: self.column,
+        "cal": lambda self: self.calendar}
+
+    def __init__(self, col, handle_side="left",
+                 handle_width=None, handle_height=None,
+                 color=(255, 0, 0, 255)):
+        """Make a timeline for the given column, optionally specifying
+        what side its handle is on, and what color it is.
+
+color is a 4-tuple of Red, Green, Blue, Alpha."""
+        self.column = col
+        self.calendar = self.col.calendar
         self.batch = self.col.batch
         self.window = self.cal.window
         self.closet = self.col.closet
-        self.handle = Handle(self, handle_side)
-        self.vertlist = None
-        self.atrdic = {
-            "calendar_left": lambda: self.col.calendar_left + self.col.style.spacing,
-            "calendar_right": lambda: self.calendar_left + self.col.width,
-            "window_left": lambda: self.calendar_left + self.cal.window_left,
-            "window_right": lambda: self.window_left + self.col.width,
-            "in_window": lambda: (self.y > 0 and self.y < self.window.height
-                                  and self.window_right > 0
-                                  and self.window_left < self.window.width)}
+        self.handle_side = handle_side
+        if handle_width is None:
+            self.handle_width = self.col.style.spacing * 2
+        else:
+            self.handle_width = handle_width
+        if handle_height is None:
+            self.handle_height = self.col.style.spacing * 2
+        else:
+            self.handle_height = handle_height
+        self.ry = self.handle_height / 2
+        self.color = color
+        self.offx = 0
+        self.offy = 0
 
     def __getattr__(self, attrn):
-        if attrn in ("calendar_y", "calendar_bot", "calendar_top"):
-            return self.cal.height - self.cal.row_height * (
-                self.closet.tick - self.cal.scrolled_to)
-        elif attrn in ("y", "window_y", "window_bot", "window_top"):
-            return self.calendar_y + self.cal.window_bot
-        else:
-            assert(hasattr(self, 'atrdic'))
-            return self.atrdic[attrn]()
-
-    def delete(self):
+        """Try to compute the attribute using the lambdas in my
+        atrdic."""
         try:
-            self.vertlist.delete()
-        except AttributeError:
-            pass
-        self.vertlist = None
-        self.handle.delete()
+            return self.atrdic[attrn](self)
+        except KeyError:
+            raise AttributeError(
+                "Timeline instance does not have and cannot "
+                "compute attribute {0}".format(attrn))
 
-    def draw(self):
-        colors = self.color * 2
+    def overlaps(self, x, y):
+        y = self.y
+        t = y + self.ry
+        b = y - self.ry
+        if self.handle_side == "left":
+            r = self.window_left
+            l = r - self.handle_width
+        else:
+            l = self.window_right
+            r = l + self.handle_width
+        return (
+            x > l and
+            x < r and
+            y > b and
+            y < t)
+
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        self.offx += dx
+        if y > self.column.window_top:
+            if self.closet.tick != self.calendar.scrolled_to:
+                self.closet.time_travel(
+                    self.column.branch,
+                    max((self.calendar.scrolled_to, 0)))
+        elif y < self.column.window_bot:
+            if self.closet.tick != self.calendar.bot_tick:
+                self.closet.time_travel(
+                    self.column.branch, self.calendar.bot_tick)
+        else:
+            self.offy += dy
+        while self.offy > self.calendar.row_height:
+            try:
+                self.closet.time_travel_inc_tick(-1)
+                self.offy -= self.calendar.row_height
+            except TimestreamException:
+                self.offy = 0
+                break
+        while self.offy * -1 > self.calendar.row_height:
+            try:
+                self.closet.time_travel_inc_tick(1)
+                self.offy += self.calendar.row_height
+            except TimestreamException:
+                self.offy = 0
+                break
+        while self.offx > self.column.width:
+            if self.closet.branch == self.closet.timestream.hi_branch:
+                self.offx = 0
+                break
+            self.closet.time_travel_inc_branch(1)
+            self.offx -= self.column.width
+            self.column = self.calendar.make_col(self.closet.branch)
+        while self.offx * -1 > self.column.width:
+            if self.closet.branch == 0:
+                self.offx = 0
+                break
+            self.closet.time_travel_inc_branch(-1)
+            self.offx += self.column.width
+            self.column = self.calendar.make_col(self.closet.branch)
+
+    def get_line(self, batch, group):
         points = (
             self.window_left, self.y,
             self.window_right, self.y)
-        try:
-            self.vertlist.vertices = list(points)
-            self.vertlist.colors = list(colors)
-        except AttributeError:
-            assert(self.vertlist is None)
-            self.vertlist = self.batch.add(
-                2,
-                GL_LINES,
-                self.col.tlgroup,
-                ('v2i', points),
-                ('c4B', colors))
-        self.handle.draw()
+        return batch.add(
+            2,
+            GL_LINES,
+            group,
+            ('v2i', points),
+            ('c4B', self.color * 2))
 
-
-class CalendarCellGroup(OrderedGroup):
-    def __init__(self, cell):
-        super(CalendarCellGroup, self).__init__(
-            cell.order, cell.column.cellgroup)
-        self.cell = cell
-
-    def gettup(self):
-        return (
-            self.cell.window_left - 1,
-            self.cell.window_bot,
-            self.cell.width + 1,
-            self.cell.height)
-
-    def set_state(self):
-        tup = self.gettup()
-        glScissor(*tup)
-        glEnable(GL_SCISSOR_TEST)
-
-    def unset_state(self):
-        glDisable(GL_SCISSOR_TEST)
+    def get_handle(self, batch, group):
+        y = self.y
+        b = y - self.ry
+        t = y + self.ry
+        if self.handle_side == "left":
+            r = self.window_left
+            l = r - self.handle_width
+            points = (r, y,
+                      l, t,
+                      l, b,
+                      r, y)
+        else:
+            l = self.window_right
+            r = l + self.handle_width
+            points = (l, y,
+                      r, t,
+                      r, b,
+                      l, y)
+        return batch.add(
+            4,
+            GL_TRIANGLES,
+            group,
+            ('v2i', points),
+            ('c4B', self.color * 4))
 
 
 class CalendarCell:
@@ -323,81 +293,69 @@ represents to calculate its dimensions and coordinates.
 
     """
     visible = True
-    def get_calendar_bot(self):
-        try:
-            return self.calendar.height - self.calendar.row_height * (
-                self.tick_to - self.calendar.scrolled_to)
-        except TypeError:
-            return 0
-    def is_same_size(self):
-        r = (
-            self.old_width == self.width and
-            self.old_height == self.height)
-        self.old_width = self.width
-        self.old_height = self.height
-        return r
-    def get_height(self):
-        if self.tick_to is None:
-            return self.calendar.height - self.tick_from * self.calendar.row_height
-        else:
-            return self.calendar.row_height * len(self)
 
     atrdic = {
         "interactive": lambda self: self.column.calendar.interactive,
         "window": lambda self: self.column.calendar.window,
-        "calendar_left": lambda self: self.column.calendar_left + self.style.spacing,
-        'calendar_right': lambda self: self.column.calendar_right - self.style.spacing,
-        "calendar_top": lambda self: (self.calendar.height - self.calendar.row_height * 
-                                      (self.tick_from - self.calendar.scrolled_to) -
-                                      self.style.spacing),
-        "calendar_bot": lambda self: self.get_calendar_bot(),
-        "width": lambda self: self.calendar_right - self.calendar_left,
-        "height": lambda self: self.get_height(),
-        "window_left": lambda self: self.calendar_left + self.calendar.window_left,
-        "window_right": lambda self: self.calendar_right + self.calendar.window_left,
-        "window_top": lambda self: self.calendar_top + self.calendar.window_bot,
-        "window_bot": lambda self: self.calendar_bot + self.calendar.window_bot,
-        "in_view": lambda self: (self.window_right > 0 or
-                                 self.window_left < self.window.width or
-                                 self.window_top > 0 or
-                                 self.window_bot < self.window.height),
+        "width": lambda self: self.window_right - self.window_left,
+        "height": lambda self: {
+            True: lambda:
+            self.calendar.height - (
+                self.tick_from * self.calendar.row_height),
+            False: lambda: self.calendar.row_height * len(self)
+            }[self.tick_to is None](),
+        "window_left": lambda self:
+        self.column.window_left + self.column.style.spacing,
+        "window_right": lambda self:
+        self.column.window_right - self.column.style.spacing,
+        "window_top": lambda self:
+        self.calendar.height + self.calendar.offy -
+        self.column.calendar.row_height * (
+            self.tick_from - self.column.calendar.scrolled_to),
+        "window_bot": lambda self:
+        self.window_top - self.height,
+        "in_view": lambda self:
+        (self.window_right > 0 or
+         self.window_left < self.window.width or
+         self.window_top > 0 or
+         self.window_bot < self.window.height),
         "same_size": lambda self: self.is_same_size(),
-        "label_height": lambda self: self.style.fontsize + self.style.spacing,
+        "label_height": lambda self:
+        self.style.fontsize + self.style.spacing,
         "hovered": lambda self: self is self.window.hovered,
         "coverage_dict": lambda self: {
             CAL_TYPE['THING']: lambda self: self.closet.skeleton[
                 "character_things"][self._rowdict["character"]][
-                    self._rowdict["dimension"]][self._rowdict["thing"]],
+                self._rowdict["dimension"]][self._rowdict["thing"]],
             CAL_TYPE['PLACE']: lambda self: self.closet.skeleton[
                 "character_places"][self._rowdict["character"]][
-                    self._rowdict["dimension"]][self._rowdict["place"]],
+                self._rowdict["dimension"]][self._rowdict["place"]],
             CAL_TYPE['PORTAL']: lambda self: self.closet.skeleton[
                 "character_portals"][self._rowdict["character"]][
-                    self._rowdict["dimension"]][self._rowdict["origin"]][
-                        self._rowdict["destination"]],
+                self._rowdict["dimension"]][self._rowdict["origin"]][
+                self._rowdict["destination"]],
             CAL_TYPE['SKILL']: lambda self: self.closet.skeleton[
                 "character_skills"][self._rowdict["character"]][
-                    self._rowdict["skill"]],
+                self._rowdict["skill"]],
             CAL_TYPE['STAT']: lambda self: self.closet.skeleton[
                 "character_stats"][self._rowdict["character"]][
-                    self._rowdict["stat"]]}[self.typ]()}
+                self._rowdict["stat"]]}[self.typ]()}
 
     def __init__(self, col, tick_from, tick_to, text):
+        """Get a CalendarCol in the given column, between the start
+        and and ticks given, and with the given text."""
         self.column = col
         self.calendar = self.column.calendar
         self.batch = self.column.batch
         self.style = self.column.style
+        self.window = self.calendar.window
         self.tick_from = tick_from
         self.tick_to = tick_to
         self.text = text
-        self.old_left = None
-        self.old_right = None
-        self.old_top = None
-        self.old_bot = None
-        self.vertl = None
-        self.label = None
 
     def __len__(self):
+        """The number of ticks I show. May be lower than the number of
+        ticks I *can* show, if I'm part-way off the screen."""
         if self.tick_to is None:
             r = self.calendar.bot_tick - self.tick_from
         else:
@@ -408,15 +366,40 @@ represents to calculate its dimensions and coordinates.
             return r
 
     def __getattr__(self, attrn):
+        """Try using the lambdas in my atrdic to compute the value"""
         return CalendarCell.atrdic[attrn](self)
 
+    def __eq__(self, other):
+        return self.tick_from == other.tick_from
+
     def __hash__(self):
-        return hash((self.tick_from, self.tick_to, self.text))
+        return hash(self.tick_from)
 
     def __str__(self):
-        return "{0} from {1} to {2}".format(self.text, self.tick_from, self.tick_to)
+        """(text) from (tick) to (tick)"""
+        return "{0} from {1} to {2}".format(
+            self.text, self.tick_from, self.tick_to)
+
+    def get_calendar_bot(self):
+        """How far above the bottom of the calendar is my bottom edge?"""
+        try:
+            return self.calendar.height - self.calendar.row_height * (
+                self.tick_to - self.calendar.scrolled_to)
+        except TypeError:
+            return 0
+
+    def is_same_size(self):
+        """Check if I have the same size as the last time I ran this
+        method."""
+        r = (
+            self.old_width == self.width and
+            self.old_height == self.height)
+        self.old_width = self.width
+        self.old_height = self.height
+        return r
 
     def delete(self):
+        """Get out of video memory right away."""
         try:
             self.label.delete()
         except AttributeError:
@@ -428,9 +411,15 @@ represents to calculate its dimensions and coordinates.
             pass
         self.vertl = None
 
-    def draw_label(self, l, t, w, h):
-        if self.label is None:
-            self.label = Label(
+    def get_label(self, batch, group):
+        l = self.window_left
+        t = self.window_top
+        w = self.width
+        h = self.height
+        if self.style.fontsize > h:
+            return
+        else:
+            l = Label(
                 self.text,
                 self.style.fontface,
                 self.style.fontsize,
@@ -443,47 +432,26 @@ represents to calculate its dimensions and coordinates.
                 anchor_y="top",
                 halign="center",
                 multiline=True,
-                batch=self.batch,
-                group=self.column.cellgroup)
-        else:
-            self.label.x = l
-            self.label.y = t
+                batch=batch,
+                group=group)
+            while l.content_width > w:
+                l.text = l.text[:-1]
+            return l
 
-    def draw_box(self, l, b, r, t, color):
-        colors = color * 8
-        vees = (l, t, r, t, r, t, r, b, r, b, l, b, l, b, l, t)
-        if self.vertl is None:
-            self.vertl = self.batch.add(
-                8,
-                GL_LINES,
-                self.column.cellgroup,
-                ('v2i', vees),
-                ('c4B', colors))
-        else:
-            self.vertl.vertices = vees
-
-    def draw(self):
+    def get_box(self, batch, group):
         l = self.window_left
+        b = self.window_bot
         r = self.window_right
         t = self.window_top
-        b = self.window_bot
-        black = (0, 0, 0, 255)
-        if t != self.old_top:
-            self.draw_label(l, t, self.width, self.height)
-            self.draw_box(l, b, r, t, black)
-            self.old_top = t
-            self.old_right = r
-            self.old_bot = b
-            self.old_left = l
-        elif (
-                l != self.old_left or
-                r != self.old_right or
-                b != self.old_bot):
-            self.draw_box(l, b, r, t, black)
-            self.old_top = t
-            self.old_right = r
-            self.old_bot = b
-            self.old_left = l
+        colors = self.style.fg_inactive.tup * 6
+        vees = (l, t, r, t, r, b,
+                r, b, l, b, l, t)
+        return batch.add(
+            6,
+            GL_TRIANGLES,
+            group,
+            ('v2i', vees),
+            ('c4B', colors))
 
 CAL_TYPE = {
     "THING": 0,
@@ -491,6 +459,37 @@ CAL_TYPE = {
     "PORTAL": 2,
     "STAT": 3,
     "SKILL": 4}
+
+
+class CalendarGroup(Group):
+    def __init__(self, cal):
+        super(CalendarGroup, self).__init__(cal.window.calendar_group)
+        self.calendar = cal
+
+    def set_state(self):
+        glEnable(GL_SCISSOR_TEST)
+        glScissor(self.calendar.window_left,
+                  self.calendar.window_bot,
+                  self.calendar.width,
+                  self.calendar.height)
+
+    def unset_state(self):
+        glDisable(GL_SCISSOR_TEST)
+
+
+class TimelineWedgeGroup(Group):
+    def __init__(self, cal, parent):
+        super(TimelineWedgeGroup, self).__init__(parent)
+        self.calendar = cal
+
+    def set_state(self):
+        glScissor(self.calendar.window_left - self.calendar.style.spacing,
+                  self.calendar.window_bot,
+                  self.calendar.width,
+                  self.calendar.height)
+
+    def unset_state(self):
+        pass
 
 
 class Calendar:
@@ -534,6 +533,7 @@ handle, which may be dragged within and between branches to effect
 time travel.
 
     """
+    visible = True
     tables = [
         (
             "calendar",
@@ -549,6 +549,7 @@ time travel.
              "rows_shown": "INTEGER NOT NULL DEFAULT 240",
              "scrolled_to": "INTEGER DEFAULT 0",
              "scroll_factor": "INTEGER NOT NULL DEFAULT 4",
+             "left_branch": "INTEGER NOT NULL DEFAULT 0",
              "type": "INTEGER NOT NULL DEFAULT {0}".format(CAL_TYPE['THING']),
              "character": "TEXT NOT NULL",
              "dimension": "TEXT DEFAULT NULL",
@@ -594,21 +595,12 @@ time travel.
                  CAL_TYPE['STAT'])]
         )]
 
-    def sttt(self):
-        r = self._rowdict["scrolled_to"]
-        if r is None:
-            return self.closet.tick
-        else:
-            return r
-    def get_col_width(self):
-        try:
-            return self.width / len(self.cols_shown)
-        except ZeroDivisionError:
-            return self.width
     atrdic = {
         "typ": lambda self: self._rowdict["type"],
-        "character": lambda self: self.closet.get_character(self._rowdict["character"]),
-        "dimension": lambda self: self.closet.get_dimension(self._rowdict["dimension"]),
+        "character": lambda self:
+        self.closet.get_character(self._rowdict["character"]),
+        "dimension": lambda self:
+        self.closet.get_dimension(self._rowdict["dimension"]),
         "thing": lambda self: self.closet.get_thing(
             self._rowdict["dimension"], self._rowdict["thing"]),
         "place": lambda self: self.closet.get_place(
@@ -619,11 +611,12 @@ time travel.
             self._rowdict["destination"]),
         "interactive": lambda self: self._rowdict["interactive"],
         "rows_shown": lambda self: self._rowdict["rows_shown"],
+        "left_branch": lambda self: self._rowdict["left_branch"],
         "left_prop": lambda self: self._rowdict["left"],
         "right_prop": lambda self: self._rowdict["right"],
         "top_prop": lambda self: self._rowdict["top"],
         "bot_prop": lambda self: self._rowdict["bot"],
-        "bot_tick": lambda self: self.top_tick + self.rows_shown,
+        "bot_tick": lambda self: self.scrolled_to + self.rows_shown,
         "style": lambda self: self.closet.get_style(self._rowdict["style"]),
         "window_top": lambda self: int(self.top_prop * self.window.height),
         "window_bot": lambda self: int(self.bot_prop * self.window.height),
@@ -634,213 +627,322 @@ time travel.
         "height": lambda self: self.window_top - self.window_bot,
         "row_height": lambda self: self.height / self.rows_shown,
         "scrolled_to": lambda self: self.sttt(),
-        "top_tick": lambda self: self.sttt(),
         "scroll_factor": lambda self: self._rowdict["scroll_factor"],
         "max_cols": lambda self: self._rowdict["max_cols"],
         "thing_show_location": lambda self: (
-            self._rowdict["thing_show_location"] not in (0, None, False))
+            self._rowdict["thing_show_location"]
+            not in (0, None, False)),
+        "columns": lambda self: CalendarColIter(self),
+        "_rowdict": lambda self:
+        self.closet.skeleton["calendar"][
+            str(self.window)][
+            int(self)],
+        "dimension": lambda self:
+        self.closet.get_dimension(self._rowdict["dimension"]),
+        "thing": lambda self:
+        self.closet.get_thing(
+            self._rowdict["dimension"],
+            self._rowdict["thing"]),
+        "_location_dict": lambda self:
+        self.closet.skeleton["thing_location"][
+            self._rowdict["dimension"]][
+            self._rowdict["thing"]],
     }
-        
-    visible = True
 
     def __init__(self, window, idx):
-        self.window = window
-        self.closet = self.window.closet
-        self.idx = idx
-        self.closet.timestream.update_handlers.add(self)
+        """Get the idx-th calendar in the given window"""
+        super(Calendar, self).__setattr__("window", window)
+        super(Calendar, self).__setattr__("closet", self.window.closet)
+        super(Calendar, self).__setattr__("idx", idx)
         self.batch = self.window.batch
-        self.group = self.window.calgroup
-        self.old_state = None
-        self.tainted = False
-        self._rowdict = self.closet.skeleton[
-            "calendar"][
-                str(self.window)][
-                    int(self)]
-        if self._rowdict["type"] == CAL_TYPE['THING']:
-            self.closet.skeleton["thing_location"][
-                self._rowdict["dimension"]][
-                self._rowdict["thing"]].listeners.add(self)
-        if self._rowdict["thing_show_location"]:
-            self._location_dict = self.closet.skeleton[
-                "thing_location"][
-                    self._rowdict["dimension"]][
-                        self._rowdict["thing"]]
-        self.cols_shown = set()
-        self.coldict = {0: self.make_col(0)}
-        self.cols_shown.add(0)
-        for i in xrange(0, self.closet.hi_branch):
-            self.coldict[i] = self.make_col(i)
-        for i in xrange(0, self.max_cols - 1):
-            if i in self.coldict:
-                self.cols_shown.add(i)
-        self.branch_to = self.closet.hi_branch
-        self.refresh()
+        self.biggroup = CalendarGroup(self)
+        self.group = OrderedGroup(0, self.biggroup)
+        self.tlgroup = OrderedGroup(1, self.biggroup)
+        self.wedgegroup = TimelineWedgeGroup(self, self.tlgroup)
+        self.offx = 0
+        self.offy = 0
+        self.last_draw = None
 
     def __int__(self):
+        """What-th calendar in my window am I?
+
+So, return my index."""
         return self.idx
 
+    def __iter__(self):
+        return self.columns
+
     def __getattr__(self, attrn):
+        """Compute the attribute using the correct lambda from my atrdic"""
         try:
             return self.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
                 "Calendar instance has no attribute {0}".format(attrn))
 
-    def __int__(self):
-        return self.idx
+    def __setattr__(self, attrn, val):
+        """Handle setting my field values in my rowdict"""
+        if attrn in self._rowdict:
+            assert(type(val) is type(self._rowdict[attrn]))
+            self._rowdict[attrn] = val
+        else:
+            super(Calendar, self).__setattr__(attrn, val)
+
+    def get_col_width(self):
+        branches = len(self.closet.timestream.branchdict)
+        if branches == 1:
+            return self.width
+        elif self.max_cols < branches:
+            return self.width / self.max_cols
+        else:
+            return self.width / branches
+
+    def sttt(self):
+        """Return the tick I'm scrolled to, if any; otherwise pick a
+        sensible tick to be at."""
+        r = self._rowdict["scrolled_to"]
+        if r is None:
+            return self.closet.tick
+        else:
+            return r
+
+    def tick_to_y(self, tick):
+        """Given a tick, return the y-coordinate on me that represents it."""
+        ticks_from_top = tick - self.scrolled_to
+        px_from_cal_top = self.row_height * ticks_from_top
+        return self.window_top - px_from_cal_top
+
+    def y_to_tick(self, y):
+        """Given a y-coordinate, what tick does it represent?"""
+        px_from_cal_top = self.window_top - y
+        ticks_from_top = px_from_cal_top / self.row_height
+        return ticks_from_top + self.scrolled_to
 
     def overlaps(self, x, y):
+        # My hitbox is a bit bigger than I appear, because sometimes
+        # the timeline flows out of my bounds.
         return (
-            self.visible and
-            self.interactive and
-            self.window_left < x and
-            self.window_right > x and
+            self.window_left - self.style.spacing < x and
+            self.window_right + self.style.spacing > x and
             self.window_bot < y and
             self.window_top > y)
 
-    def draw(self):
-        if self.visible and len(self.cols_shown) > 0:
-            for calcol in self.cols_shown:
-                self.coldict[calcol].draw()
-        else:
-            for calcol in self.cols_shown:
-                self.coldict[calcol].delete()
+    def chk_overlap(self, x, y):
+        col = self.make_col(self.closet.branch)
+        tl = Timeline(col)
+        if tl.overlaps(x, y):
+            return tl
+        elif self.overlaps(x, y):
+            return self
 
     def make_col(self, branch):
         return {
             CAL_TYPE['THING']: {
                 True: LocationCalendarCol,
-                False: ThingCalendarCol}[self.thing_show_location],
+                False: ThingCalendarCol}[
+                self.thing_show_location],
             CAL_TYPE['PLACE']: PlaceCalendarCol,
             CAL_TYPE['PORTAL']: PortalCalendarCol,
             CAL_TYPE['STAT']: StatCalendarCol,
             CAL_TYPE['SKILL']: SkillCalendarCol
         }[self.typ](self, branch)
 
-    def rearrow(self):
-        for coli in self.cols_shown:
-            col1 = self.coldict[coli]
-            (parent, tick_from, tick_to) = self.closet.timestream.branchdict[
-                col1.branch]
-            if hasattr(col1, 'bc'):
-                col1.bc.delete()
-            col2 = None
-            for coli in self.cols_shown:
-                calcol = self.coldict[coli]
-                if calcol.branch == parent:
-                    col2 = calcol
-                    break
-            if (
-                    col2 is not None and
-                    tick_from > self.scrolled_to and
-                    tick_to < self.scrolled_to + self.rows_shown):
-                col2.bc = BranchConnector(
-                    self, col2, col1, tick_from)
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        self.offx += dx
+        self.offy += dy
+        return self
 
-    def review(self):
-        for col in self.cols_shown:
-            self.coldict[col].review()
+    def dropped(self, x, y, button, modifiers):
+        while self.offx > self.col_width:
+            self.left_branch -= 1
+            self.offx -= self.col_width
+        rightmostbranch = self.closet.timestream.hi_branch
+        if rightmostbranch <= self.left_branch:
+            self.left_branch = rightmostbranch - 1
+        while (
+                self.offx * -1 > self.col_width):
+            self.left_branch += 1
+            self.offx += self.col_width
+        self.left_branch = max((self.left_branch, 0))
+        while (self.offy > self.row_height):
+            self.scrolled_to += 1
+            self.offy -= self.row_height
+        self.scrolled_to = min((
+            self.closet.timestream.latest_tick + self.rows_shown,
+            self.scrolled_to))
+        while self.offy * -1 > self.row_height:
+            self.scrolled_to -= 1
+            self.offy += self.row_height
+        if self.scrolled_to < -10:
+            self.scrolled_to = -10
+        self.offx = 0
+        self.offy = 0
 
-    def regen(self):
-        for col in self.cols_shown:
-            self.coldict[col].regen_cells()
+    def draw(self):
+        """Put all the visible CalendarCols and everything in them into my
+group in my batch.
 
-    def refresh(self):
-        self.rearrow()
-        for col in self.cols_shown:
-            self.coldict[col].refresh()
+While the CalendarCols are lazy, this method is not. Making it lazier
+would be good.
 
-    def on_skel_set(self, k, v):
-        self.refresh()
+        """
+        batch = self.window.batch
+        drawn = []
+        slew = self.offx % self.col_width
+        o = self.left_branch - slew
+        d = self.left_branch + self.max_cols + slew
+        rightmostbranch = self.closet.timestream.hi_branch
+        if d > rightmostbranch:
+            d = rightmostbranch + 1
+        if o < 0:
+            o = 0
+        for branch in xrange(o, d):
+            column = self.make_col(branch)
+            colgrp = Group(self.group)
+            if column.start_tick is None:
+                print "no start tick"
+                import pdb
+                pdb.set_trace()
+                continue
+            for cell in iter(column):
+                group = colgrp
+                drawn.extend((
+                    cell.get_box(batch, group),
+                    cell.get_label(batch, group)))
+            if int(column) != 0:
+                bc = BranchConnector(column)
+                bcgrp = colgrp
+                drawn.append(bc.get_line(batch, bcgrp))
+                drawn.append(bc.get_wedge(batch, bcgrp))
+            if int(column) == self.closet.branch:
+                tl = Timeline(column)
+                drawn.append(tl.get_line(batch, self.wedgegroup))
+                drawn.append(tl.get_handle(batch, self.wedgegroup))
+        self.delete()
+        self.last_draw = drawn
 
-    def on_skel_delete(self, k):
-        self.refresh()
+    def delete(self):
+        if self.last_draw is None:
+            return
+        for drawn in self.last_draw:
+            try:
+                drawn.delete()
+            except AttributeError:
+                pass
+        self.last_draw = None
 
-    def on_timestream_update(self):
-        for branch in self.closet.timestream.branchdict:
-            self.coldict[branch] = self.make_col(branch)
-            self.cols_shown.add(branch)
-            if len(self.cols_shown) > self.max_cols:
-                self.cols_shown.remove(min(self.cols_shown))
-        self.refresh()
 
-class CalendarColGroup(OrderedGroup):
-    order = 0
-    def __init__(self, col):
-        super(CalendarColGroup, self).__init__(
-            CalendarColGroup.order, col.calendar.group)
-        CalendarColGroup.order += 1
-        self.col = col
+class CalendarColCellIter:
+    """Lazy iterator over the cells in a column.
 
-    def gettup(self):
-        return (
-            self.col.window_left,
-            self.col.window_bot,
-            self.col.width,
-            self.col.height)
+First argument is the column itself. Second argument is the skeleton
+of its schedule, with the first level key being the branch ID. Third
+argument is the name of the field to be displayed in the cell.
 
-    def set_state(self):
-        glEnable(GL_SCISSOR_TEST)
-        glScissor(*self.gettup())
+    """
+    def __init__(self, col, skel, field=None):
+        self.column = col
+        self.skeleton = skel
+        self.realiter = self.skeleton.iterrows()
+        self.field = field
 
-    def unset_state(self):
-        glDisable(GL_SCISSOR_TEST)
+    def __iter__(self):
+        return self
+
+    def next(self):
+        rd = self.realiter.next()
+        if self.field is None:
+            return CalendarCell(
+                self.column, rd["tick_from"],
+                rd["tick_to"], "")
+        else:
+            return CalendarCell(
+                self.column, rd["tick_from"],
+                rd["tick_to"], rd[self.field])
+
+
+class CalendarColIter:
+    """Iterator over the columns in a given calendar. Lazily evaluated."""
+    def __init__(self, cal):
+        self.calendar = cal
+        self.branchiter = self.calendar.closet.timestream.branchdict.iterkeys()
+
+    def make_col(self, branch):
+        """Return a new column for the given branch."""
+        return self.calendar.make_col(branch)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return self.make_col(self.branchiter.next())
+
 
 class CalendarCol:
-    atrdic = {
-        "width": lambda self: self.calendar.col_width,
-        "rx": lambda self: self.width / 2,
-        "height": lambda self: self.calendar.height,
-        "ry": lambda self: self.height / 2,
-        "calendar_left": lambda self: int(self) * self.width,
-        "calendar_right": lambda self: self.calendar_left + self.width,
-        "calendar_top": lambda self: self.calendar.height,
-        "calendar_bot": lambda self: 0,
-        "window_left": lambda self: self.calendar.window_left + self.calendar_left,
-        "window_right": lambda self: self.calendar.window_left + self.calendar_right,
-        "window_top": lambda self: self.calendar.window_top,
-        "window_bot": lambda self: self.calendar.window_bot,
-        "idx": lambda self: self.calendar.cols.index(self)}
+    """A column in a calendar. Represents one branch.
 
-    def __init__(self, calendar, branch):
+Shows whatever the calendar is about, in that branch."""
+
+    atrdic = {
+        "width": lambda self: max((self.calendar.col_width, 1)),
+        "rx": lambda self: self.width / 2,
+        "height": lambda self: self.window_top - self.window_bot,
+        "ry": lambda self: self.height / 2,
+        "window_left": lambda self:
+        self.calendar.window_left + self.calendar.offx + (
+            int(self) -
+            self.calendar.left_branch
+        ) * self.calendar.col_width,
+        "window_right": lambda self:
+        self.window_left + self.calendar.col_width,
+        "window_top": lambda self: self.calendar.tick_to_y(self.start_tick),
+        "window_bot": lambda self: self.calendar.tick_to_y(self.end_tick),
+        "parent": lambda self: self.calendar.make_col(
+            self.closet.skeleton[
+                "timestream"][self.branch]["parent"]),
+        "start_tick": lambda self: {
+            True: lambda:
+            self.closet.skeleton["timestream"][int(self)]["tick_from"],
+            False: lambda: None
+        }[int(self) in self.closet.skeleton["timestream"]](),
+        "end_tick": lambda self: {
+            True: lambda:
+            self.closet.skeleton["timestream"][int(self)]["tick_to"],
+            False: lambda: None
+        }[int(self) in self.closet.skeleton["timestream"]]()}
+
+    def __init__(self, calendar, branch, bgcolor=(255, 255, 255, 255)):
+        """Get CalendarCol for the given branch in the given
+        calendar."""
         self.calendar = calendar
         self.branch = branch
         self.closet = self.calendar.closet
         self.batch = self.calendar.batch
         self.style = self.calendar.style
-        self.supergroup = CalendarColGroup(self)
-        self.bggroup = OrderedGroup(0, self.supergroup)
-        self.cellgroup = OrderedGroup(1, self.supergroup)
-        self.tlgroup = OrderedGroup(2, self.supergroup)
-        self.bcgroup = OrderedGroup(3, self.supergroup)
-        self.timeline = Timeline(self)
         self.window = self.calendar.window
-        self.celldict = {}
-        self.cells_on_screen = set()
-        self.old_points = None
-        self.vertl = None
 
     def __getattr__(self, attrn):
+        """Use a lambda from my atrdic to compute the attribute."""
         return CalendarCol.atrdic[attrn](self)
 
     def __int__(self):
+        """Return my branch."""
         return self.branch
 
-    def delete(self):
-        for cell in self.celldict.itervalues():
-            cell.delete()
-        try:
-            self.timeline.delete()
-        except AttributeError:
-            pass
-        self.timeline = None
-        try:
-            self.vertl.delete()
-        except AttributeError:
-            pass
-        self.vertl = None
+    def __eq__(self, other):
+        return int(self) == int(other)
+
+    def __gt__(self, other):
+        return int(self) > int(other)
+
+    def __lt__(self, other):
+        return int(self) < int(other)
+
+    def __hash__(self):
+        return hash(int(self))
 
     def pretty_caster(self, *args):
+        """Make my content into a single, flat list"""
         unargs = []
         for arg in args:
             if isinstance(arg, tuple) or isinstance(arg, list):
@@ -850,61 +952,12 @@ class CalendarCol:
         return unargs
 
     def pretty_printer(self, *args):
+        """Make my content look good."""
         strings = []
         unargs = self.pretty_caster(*args)
         for unarg in unargs:
             strings.append(str(unarg))
         return ";\n".join(strings)
-
-    def review(self):
-        todel = set()
-        for cell in self.cells_on_screen:
-            if not cell.in_view:
-                todel.add(cell)
-        for cell in todel:
-            self.cells_on_screen.discard(cell)
-            cell.delete()
-        for cell in self.celldict.itervalues():
-            if cell.in_view:
-                self.cells_on_screen.add(cell)
-
-    def refresh(self):
-        self.regen_cells()
-        self.review()
-
-    def draw(self):
-        colors = self.style.bg_inactive.tup * 4
-        l = self.window_left
-        r = self.window_right
-        t = self.window_top
-        b = self.window_bot
-        points = (
-            l, b,
-            l, t,
-            r, t,
-            r, b)
-        if points != self.old_points:
-            try:
-                self.vertl.vertices = points
-            except:
-                self.vertl = self.batch.add_indexed(
-                    4,
-                    GL_TRIANGLES,
-                    self.bggroup,
-                    [0, 2, 3, 0, 1, 2],
-                    ('v2i', points),
-                ('c4B', colors))
-            self.old_points = points
-        if hasattr(self, 'bc'):
-            self.bc.draw()
-        if (
-                self.closet.branch == self.branch and
-                self.timeline.in_window):
-            self.timeline.draw()
-        else:
-            self.timeline.delete()
-        for cell in self.cells_on_screen:
-            cell.draw()
 
 
 class LocationCalendarCol(CalendarCol):
@@ -923,63 +976,39 @@ instead, giving something like "in transit from A to B".
 
     """
     typ = CAL_TYPE['THING']
-    atrdic = {
-        "locations": lambda self: self.thing.locations[self.branch],
-        "coverage": lambda self: self.character.thingdict[
-            self.branch][dimn][thingn],
-        "thing": lambda self: self.closet.get_thing(dimn, thingn)
-    }
     cal_attrs = set([
         "character",
         "dimension",
         "thing",
         "location"])
-    col_attrs = set([
-        "calendar_left",
-        "calendar_top",
-        "calendar_right",
-        "calendar_bot",
-        "window_left",
-        "window_top",
-        "window_right",
-        "window_bot",
-        "width",
-        "height",
-        "rx",
-        "ry"])
 
     def __init__(self, calendar, branch):
+        """Initialize a LocationCalendarCol representing the given
+        branch in the given calendar."""
         CalendarCol.__init__(self, calendar, branch)
-        self.refresh()
+        self.dimension = self.calendar.dimension
+        self.thing = self.calendar.thing
+        self.locations = self.thing.locations[branch]
+        self.coverage = self.character.thingdict[
+            str(self.dimension)][str(self.thing)][branch]
+
+    def __iter__(self):
+        return CalendarColCellIter(self, self.locations, "location")
 
     def __getattr__(self, attrn):
-        if attrn in LocationCalendarCol.cal_attrs:
+        """Try looking up the attribute in the calendar first;
+        otherwise use lambdas from CalendarCol.atrdic to compute it"""
+        if attrn == "sprite":
+            return self.calendar.col_sprite_dict[self]
+        elif attrn in LocationCalendarCol.cal_attrs:
             return getattr(self.calendar, attrn)
-        elif attrn in LocationCalendarCol.col_attrs:
-            return CalendarCol.__getattr__(self, attrn)
         else:
-            return LocationCalendarCol.atrdic[attrn](self)
-
-    def regen_cells(self):
-        location_ticks = set()
-        for rd in SkeletonIterator(self.locations):
-            location_ticks.add(rd["tick_from"])
-            if rd["tick_from"] not in self.celldict:
-                cell = CalendarCell(
-                    self, rd["tick_from"], rd["tick_to"], rd["location"])
-                self.celldict[rd["tick_from"]] = cell
-            else:
-                cell = self.celldict[rd["tick_from"]]
-            cell.tick_to = rd["tick_to"]
-            cell.text = rd["location"]
-        todel = set()
-        for cell in self.celldict.itervalues():
-            if cell.tick_from not in location_ticks:
-                todel.add(cell)
-        for cell in todel:
-            cell.delete()
-            self.cells_on_screen.discard(cell)
-            del self.celldict[cell.tick_from]
+            try:
+                return CalendarCol.atrdic[attrn](self)
+            except KeyError:
+                raise AttributeError(
+                    """LocationCalendarCol does not have and
+cannot compute attribute {0}""".format(attrn))
 
     def shows_any_ever(self, tick_from, tick_to):
         for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
@@ -1004,20 +1033,25 @@ instead, giving something like "in transit from A to B".
 
 
 class ThingCalendarCol(CalendarCol):
-    pass
+    def __iter__(self):
+        return CalendarColCellIter(self, self.coverage)
 
 
 class PlaceCalendarCol(CalendarCol):
-    pass
+    def __iter__(self):
+        return CalendarColCellIter(self, self.coverage)
 
 
 class PortalCalendarCol(CalendarCol):
-    pass
+    def __iter__(self):
+        return CalendarColCellIter(self, self.coverage)
 
 
 class StatCalendarCol(CalendarCol):
-    pass
+    def __iter__(self):
+        return CalendarColCellIter(self, self.values, "value")
 
 
 class SkillCalendarCol(CalendarCol):
-    pass
+    def __iter__(self):
+        return CalendarColCellIter(self, self.decks, "deck")
