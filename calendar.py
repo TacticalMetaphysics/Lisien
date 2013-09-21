@@ -234,10 +234,16 @@ color is a 4-tuple of Red, Green, Blue, Alpha."""
                 self.offy = 0
                 break
         while self.offx > self.column.width:
+            if self.closet.branch == self.closet.timestream.hi_branch:
+                self.offx = 0
+                break
             self.closet.time_travel_inc_branch(1)
             self.offx -= self.column.width
             self.column = self.calendar.make_col(self.closet.branch)
         while self.offx * -1 > self.column.width:
+            if self.closet.branch == 0:
+                self.offx = 0
+                break
             self.closet.time_travel_inc_branch(-1)
             self.offx += self.column.width
             self.column = self.calendar.make_col(self.closet.branch)
