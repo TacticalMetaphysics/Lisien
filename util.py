@@ -2,7 +2,6 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import pyglet
 import ctypes
-from time import time
 from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
@@ -1016,32 +1015,36 @@ class TerminableImg:
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        if len(self.imagery) < branch:
+        if branch not in self.imagery:
             return None
-        if branch in self.indefinite_imagery:
-            indef_start = self.indefinite_imagery[branch]
-            if tick >= indef_start:
-                rd = self.imagery[branch][indef_start]
-                return self.closet.get_img(rd["img"])
-        for rd in SkeletonIterator(self.imagery[branch]):
-            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
-                return self.closet.get_img(rd["img"])
-        return None
+        prev = None
+        for rd in self.imagery[branch].iterrows():
+            if rd["tick_from"] > tick:
+                break
+            else:
+                prev = rd
+        if prev is None or prev["img"] in ("", None):
+            return None
+        else:
+            return self.closet.get_img(prev["img"])
 
     def new_branch_imagery(self, parent, branch, tick):
-        for rd in SkeletonIterator(self.imagery[parent]):
-            if rd["tick_to"] is None or rd["tick_to"] >= tick:
+        prev = None
+        started = False
+        for rd in self.imagery[parent].iterrows():
+            if rd["tick_from"] >= tick:
                 rd2 = dict(rd)
                 rd2["branch"] = branch
-                if rd2["tick_from"] < tick:
-                    rd2["tick_from"] = tick
-                    self.imagery[branch][tick] = rd2
-                    if rd2["tick_to"] is None:
-                        self.indefinite_imagery[branch] = tick
-                else:
-                    self.imagery[branch][rd["tick_from"]] = rd2
-                    if rd2["tick_to"] is None:
-                        self.indefinite_imagery[branch] = rd2["tick_from"]
+                self.imagery[branch][rd2["tick_from"]] = rd2
+                if (
+                        not started and prev is not None and
+                        rd["tick_from"] > tick and prev["tick_from"] < tick):
+                    rd3 = dict(prev)
+                    rd3["branch"] = branch
+                    rd3["tick_from"] = tick
+                    self.imagery[branch][rd3["tick_from"]] = rd3
+                started = True
+            prev = rd
 
 
 class TerminableInteractivity:

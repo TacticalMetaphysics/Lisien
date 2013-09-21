@@ -1,4 +1,4 @@
-# This file is part of LiSE, a framework for life simulation games.
+
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass, TimestreamException
 from logging import getLogger
@@ -799,11 +799,7 @@ would be good.
         for branch in xrange(o, d):
             column = self.make_col(branch)
             colgrp = Group(self.group)
-            if column.start_tick is None:
-                print "no start tick"
-                import pdb
-                pdb.set_trace()
-                continue
+            assert(column.start_tick is not None)
             for cell in iter(column):
                 group = colgrp
                 drawn.extend((
@@ -844,21 +840,30 @@ argument is the name of the field to be displayed in the cell.
         self.column = col
         self.skeleton = skel
         self.realiter = self.skeleton.iterrows()
+        self.prevrd = self.realiter.next()
+        self.last = False
         self.field = field
 
     def __iter__(self):
         return self
 
     def next(self):
-        rd = self.realiter.next()
+        if self.last:
+            raise StopIteration
+        try:
+            rd = self.realiter.next()
+        except StopIteration:
+            rd = {"tick_from": None}
+            self.last = True
         if self.field is None:
             return CalendarCell(
-                self.column, rd["tick_from"],
-                rd["tick_to"], "")
+                self.column, self.prevrd["tick_from"],
+                rd["tick_from"], "")
         else:
             return CalendarCell(
-                self.column, rd["tick_from"],
-                rd["tick_to"], rd[self.field])
+                self.column, self.prevrd["tick_from"],
+                rd["tick_from"], self.prevrd[self.field])
+        self.prevrd = rd
 
 
 class CalendarColIter:
@@ -1009,27 +1014,6 @@ instead, giving something like "in transit from A to B".
                 raise AttributeError(
                     """LocationCalendarCol does not have and
 cannot compute attribute {0}""".format(attrn))
-
-    def shows_any_ever(self, tick_from, tick_to):
-        for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
-            if tick_to > cover_tick_from or tick_from < cover_tick_to:
-                return True
-        return False
-
-    def shows_when(self, tick_from, tick_to):
-        for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
-            if tick_to > cover_tick_from or tick_from < cover_tick_to:
-                # I show part of this cell, but which part?
-                if tick_from > cover_tick_from:
-                    a = tick_from
-                else:
-                    a = cover_tick_from
-                if tick_to < cover_tick_to:
-                    b = tick_to
-                else:
-                    b = cover_tick_to
-                return (a, b)
-        return None
 
 
 class ThingCalendarCol(CalendarCol):

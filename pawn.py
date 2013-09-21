@@ -72,21 +72,6 @@ interactive or not.
         self.dimension = dimension
         self.board = board
         self.thing = thing
-        self.indefinite_imagery = {}
-        self.indefinite_interactivity = {}
-        imgns = set()
-        for rd in self.closet.skeleton["pawn_img"][
-                str(self.dimension)][
-                int(self.board)][str(self.thing)].iterrows():
-            imgns.add(rd["img"])
-            if rd["tick_to"] is None:
-                self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
-        self.closet.get_imgs(imgns)
-        for rd in self.closet.skeleton["pawn_interactive"][
-                str(self.dimension)][
-                int(self.board)][str(self.thing)].iterrows():
-            if rd["tick_to"] is None:
-                self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
         self.grabpoint = None
         self.sprite = None
         self.oldstate = None
@@ -115,69 +100,30 @@ interactive or not.
         else:
             super(Pawn, self).__setattr__(attrn, val)
 
-    def set_img(self, img, branch=None, tick_from=None, tick_to=None):
+    def set_img(self, img, branch=None, tick_from=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch in self.indefinite_imagery:
-            indef_start = self.indefinite_imagery[branch]
-            indef_rd = self.imagery[branch][indef_start]
-            if tick_from > indef_start:
-                del self.indefinite_imagery[branch]
-                indef_rd["tick_to"] = tick_from - 1
-                self.imagery[branch][indef_start] = indef_rd
-            elif tick_to is None or tick_to > indef_start:
-                del self.indefinite_imagery[branch]
-                del self.imagery[branch][indef_start]
-            elif tick_to == indef_start and str(img) == indef_rd["img"]:
-                indef_rd["tick_from"] = tick_from
-                return
         self.imagery[branch][tick_from] = {
             "dimension": str(self.dimension),
             "thing": str(self.thing),
             "board": str(self.board),
             "branch": branch,
             "tick_from": tick_from,
-            "tick_to": tick_to,
             "img": str(img)}
-        if tick_to is None:
-            self.indefinite_imagery[branch] = tick_from
-        else:
-            rd = self.closet.skeleton.branchdict[branch]
-            if rd["tick_to"] < tick_to:
-                rd["tick_to"] = tick_to
 
-    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
+    def set_interactive(self, branch=None, tick_from=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch in self.indefinite_interactivity:
-            indef_start = self.indefinite_interactivity[branch]
-            indef_rd = self.interactivity[branch][indef_start]
-            if tick_from > indef_start:
-                indef_rd["tick_to"] = tick_from - 1
-                del self.indefinite_interactivity[branch]
-            elif tick_to is None or tick_to > indef_start:
-                del self.interactivity[branch][indef_start]
-                del self.indefinite_interactivity[branch]
-            elif tick_to == indef_start:
-                indef_rd["tick_from"] = tick_from
-                return
         self.interactivity[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
             "thing": str(self.thing),
             "branch": branch,
-            "tick_from": tick_from,
-            "tick_to": tick_to}
-        if tick_to is None:
-            self.indefinite_interactivity[branch] = tick_from
-        else:
-            rd = self.closet.skeleton.branchdict[branch]
-            if rd["tick_to"] < tick_to:
-                rd["tick_to"] = tick_to
+            "tick_from": tick_from}
 
     def get_coords(self, branch=None, tick=None):
         loc = self.thing.get_location(branch, tick)

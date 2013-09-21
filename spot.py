@@ -107,24 +107,6 @@ class Spot(TerminableImg, TerminableInteractivity):
         self.imagery = self.closet.skeleton["spot_img"][
             str(self.dimension)][
             int(self.board)][str(self.place)]
-        self.indefinite_imagery = {}
-        for rd in self.closet.skeleton["spot_img"][
-                str(self.dimension)][
-                int(self.board)][str(self.place)].iterrows():
-            if rd["tick_to"] is None:
-                self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
-        self.indefinite_coords = {}
-        for rd in self.closet.skeleton["spot_coords"][
-                str(self.dimension)][
-                int(self.board)][str(self.place)].iterrows():
-            if rd["tick_to"] is None:
-                self.indefinite_coords[rd["branch"]] = rd["tick_from"]
-        self.indefinite_interactivity = {}
-        for rd in self.closet.skeleton["spot_interactive"][
-                str(self.dimension)][
-                int(self.board)][str(self.place)].iterrows():
-            if rd["tick_to"] is None:
-                self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
@@ -143,147 +125,80 @@ class Spot(TerminableImg, TerminableInteractivity):
                 "Spot instance has no such attribute: " +
                 attrn)
 
-    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
+    def set_interactive(self, branch=None, tick_from=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch in self.indefinite_interactivity:
-            indef_start = self.indefinite_interactivity[branch]
-            indef_rd = self.interactivity[branch][indef_start]
-            if tick_from > indef_start:
-                indef_rd["tick_to"] = tick_from - 1
-                del self.indefinite_interactivity[branch]
-            elif tick_to is None or tick_to > indef_start:
-                del self.interactivity[branch][indef_start]
-                del self.indefinite_interactivity[branch]
-            elif tick_to == indef_start:
-                indef_rd["tick_from"] = tick_from
-                return
         assert branch in self.interactivity, "Make a new branch first"
         self.interactivity[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
             "place": str(self.place),
             "branch": branch,
-            "tick_from": tick_from,
-            "tick_to": tick_to}
-        if tick_to is None:
-            self.indefinite_interactivity[branch] = tick_from
+            "tick_from": tick_from}
 
-    def set_img(self, img, branch=None, tick_from=None, tick_to=None):
+    def set_img(self, img, branch=None, tick_from=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch in self.indefinite_imagery:
-            indef_start = self.indefinite_imagery[branch]
-            indef_rd = self.imagery[branch][indef_start]
-            if tick_from > indef_start:
-                del self.indefinite_imagery[branch]
-                indef_rd["tick_to"] = tick_from - 1
-                self.imagery[branch][indef_start] = indef_rd
-            elif tick_to is None or tick_to > indef_start:
-                del self.indefinite_imagery[branch]
-                del self.imagery[branch][indef_start]
-            elif tick_to == indef_start and str(img) == indef_rd["img"]:
-                indef_rd["tick_from"] = tick_from
-                return
         self.imagery[branch][tick_from] = {
             "dimension": str(self.dimension),
             "place": str(self.place),
             "board": int(self.board),
             "branch": branch,
             "tick_from": tick_from,
-            "tick_to": tick_to,
             "img": str(img)}
-        if tick_to is None:
-            self.indefinite_imagery[branch] = tick_from
 
     def get_coords(self, branch=None, tick=None):
         if branch is None:
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        if (
-                branch in self.indefinite_coords and
-                tick >= self.indefinite_coords[branch]):
-            rd = self.coord_lst[branch][self.indefinite_coords[branch]]
-            return (rd["x"], rd["y"])
-        for rd in self.coord_lst.iterrows():
-            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
+        prev = None
+        for rd in self.coord_lst[branch].iterrows():
+            if rd["tick_from"] == tick:
                 return (rd["x"], rd["y"])
-        import pdb
-        pdb.set_trace()
-        return None
+            elif rd["tick_from"] > tick:
+                break
+        if prev is None:
+            return None
+        else:
+            return (prev["x"], prev["y"])
 
-    def set_coords(self, x, y, branch=None, tick_from=None, tick_to=None):
+    def set_coords(self, x, y, branch=None, tick_from=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
         assert branch in self.coord_lst, "Make a new branch first"
-        if branch in self.indefinite_coords:
-            itf = self.indefinite_coords[branch]
-            rd = self.coord_lst[branch][itf]
-            if itf < tick_from:
-                # You have cut off an indefinite coord
-                rd["tick_to"] = tick_from - 1
-                self.coord_lst[branch][itf] = rd
-                del self.indefinite_coords[branch]
-            elif itf < tick_to:
-                # You have overwritten an indefinite coord
-                del self.coord_lst[branch][itf]
-                del self.indefinite_coords[branch]
-            elif itf == tick_to:
-                # You have extended an indefinite coord, backward in time
-                del self.coord_lst[branch][itf]
-                tick_to = None
         self.coord_lst[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
             "place": str(self.place),
             "branch": branch,
             "tick_from": tick_from,
-            "tick_to": tick_to,
             "x": x,
             "y": y}
-        if tick_to is None:
-            self.indefinite_coords[branch] = tick_from
-        else:
-            rd = self.closet.skeleton.branchdict[branch]
-            if rd["tick_to"] < tick_to:
-                rd["tick_to"] = tick_to
 
     def new_branch_coords(self, parent, branch, tick):
-        if branch not in self.coord_lst:
-            self.coord_lst[branch] = []
+        prev = None
+        started = False
         for rd in self.coord_lst[parent].iterrows():
-            if rd["tick_to"] >= tick or rd["tick_to"] is None:
-                if rd["tick_from"] < tick:
-                    self.coord_lst[branch][tick] = {
-                        "dimension": rd["dimension"],
-                        "place": rd["place"],
-                        "board": rd["board"],
-                        "branch": branch,
-                        "tick_from": tick,
-                        "tick_to": rd["tick_to"],
-                        "x": rd["x"],
-                        "y": rd["y"]}
-                    if rd["tick_to"] is None:
-                        self.indefinite_coords[branch] = tick
-                else:
-                    self.coord_lst[branch][rd["tick_from"]] = {
-                        "dimension": rd["dimension"],
-                        "place": rd["place"],
-                        "board": rd["board"],
-                        "branch": branch,
-                        "tick_from": rd["tick_from"],
-                        "tick_to": rd["tick_to"],
-                        "x": rd["x"],
-                        "y": rd["y"]}
-                    if rd["tick_to"] is None:
-                        self.indefinite_coords[branch] = rd["tick_from"]
+            if rd["tick_from"] >= tick:
+                rd2 = dict(rd)
+                rd2["branch"] = branch
+                self.coord_lst[branch][rd2["tick_from"]] = rd2
+                if (
+                        not started and prev is not None and
+                        rd["tick_from"] > tick and prev["tick_from"] < tick):
+                    rd3 = dict(prev)
+                    rd3["branch"] = branch
+                    rd3["tick_from"] = tick
+                    self.coord_lst[branch][rd3["tick_from"]] = rd3
+                started = True
+            prev = rd
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)

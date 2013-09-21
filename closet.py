@@ -1154,14 +1154,6 @@ def mkdb(DB_NAME='default.sqlite'):
         except:
             return False
 
-def mkdb(DB_NAME='default.sqlite'):
-    def isdir(p):
-        try:
-            os.chdir(p)
-            return True
-        except:
-            return False
-
     def allsubdirs_core(doing, done):
         if len(doing) == 0:
             return done
