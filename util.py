@@ -1330,7 +1330,6 @@ class Timestream:
         # altogether. That original branch now has another edge
         # representing it.
         self.update_handlers = set()
-        self.hi_branch = 0
         self.update(0)
 
     def __hash__(self):
@@ -1342,6 +1341,8 @@ class Timestream:
     def __getattr__(self, attrn):
         if attrn == "latest_tick":
             return max(rd["tick_to"] for rd in self.branchdict.itervalues())
+        elif attrn == "hi_branch":
+            return max(rd["branch"] for rd in self.branchdict.itervalues())
         else:
             raise AttributeError(
                 "Timestream instance does not have and cannot compute "
@@ -1363,8 +1364,6 @@ length zero.
 
         """
         for (branch, rd) in self.branchdict.iteritems():
-            if branch > self.hi_branch:
-                self.hi_branch = branch
             done_to = self.branch_done_to[branch]
             parent = rd["parent"]
             tick_from = rd["tick_from"]

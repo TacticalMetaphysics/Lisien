@@ -480,6 +480,9 @@ on_mouse_drag method, use it.
                     if hasattr(self.hovered, 'on_click'):
                         self.set_system_mouse_cursor(
                             self.CURSOR_HAND)
+                    elif hasattr(self.hovered, 'crosshair'):
+                        self.set_system_mouse_cursor(
+                            self.CURSOR_CROSSHAIR)
                     else:
                         self.set_system_mouse_cursor(
                             self.CURSOR_DEFAULT)
