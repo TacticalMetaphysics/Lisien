@@ -1,17 +1,10 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, phi, get_box, get_label
+from util import SaveableMetaclass, TimestreamException
 from logging import getLogger
-from pyglet.graphics import (
-    GL_LINES,
-    GL_TRIANGLES,
-    Group)
-from pyglet.gl import (
-    glScissor,
-    glEnable,
-    glDisable,
-    GL_SCISSOR_TEST)
-
+from pyglet.text import Label
+from pyglet.graphics import GL_LINES, GL_TRIANGLES, Group, OrderedGroup
+from pyglet.gl import glScissor, glEnable, glDisable, GL_SCISSOR_TEST
 
 """User's view on a given item's schedule.
 
@@ -35,20 +28,26 @@ class BranchConnector:
 
     """
     atrdic = {
-        "window_top": lambda self: max((
-            self.calendar.tick_to_y(self.column.start_tick),
-            self.calendar.tick_to_y(self.tick))),
-        "window_bot": lambda self: min((
-            self.calendar.tick_to_y(self.column.start_tick),
-            self.calendar.tick_to_y(self.tick))),
+        "window_bot": lambda self:
+        self.calendar.tick_to_y(self.column.start_tick) +
+        self.calendar.offy,
+        "window_top": lambda self: self.window_bot + self.space,
+        "window_left": lambda self:
+        self.column.parent.window_right -
+        self.column.parent.style.spacing,
+        "window_right": lambda self:
+        self.column.window_left +
+        self.column.style.spacing +
+        self.column.rx,
+        "window_center": lambda self:
+        (self.column.window_left + self.column.parent.window_right) / 2,
         "in_view": lambda self:
         self.column.in_view or self.column.parent.in_view,
         "wedge_visible": lambda self: (
             self.window_top > 0 and
             self.window_bot < self.window.height and
             self.column.in_view),
-        "branch": lambda self: int(self.column),
-        "tick": lambda self: self.column.start_tick}
+        "branch": lambda self: int(self.column)}
 
     def __init__(self, column, color=(255, 0, 0, 255),
                  wedge_height=8, wedge_width=16):
@@ -72,9 +71,9 @@ class BranchConnector:
                 "BranchConnector has no attribute named {0}".format(attrn))
 
     def get_wedge(self, batch, group):
-        b = self.calendar.tick_to_y(self.column.start_tick)
+        b = self.window_bot
         assert(b is not None)
-        c = self.column.window_left + self.column.rx
+        c = self.window_right
         t = b + self.wedge_height
         l = c - self.wedge_rx
         r = c + self.wedge_rx
@@ -91,30 +90,20 @@ class BranchConnector:
             ('c4B', self.color * 4))
 
     def get_line(self, batch, group):
-        y0 = self.calendar.tick_to_y(self.tick)
-        y2 = self.calendar.tick_to_y(self.column.start_tick)
-        y1 = y2 + self.space
-        if self.column.window_left > self.column.parent.window_left:
-            x0 = (
-                self.column.parent.window_right -
-                self.column.parent.style.spacing)
-        else:
-            x0 = (
-                self.column.parent.window_left +
-                self.column.parent.style.spacing)
-        x1 = (self.column.window_left + self.column.parent.window_right) / 2
-        x2 = self.column.window_left + self.column.rx
-        verts = []
-        if self.tick >= self.calendar.scrolled_to:
-            verts.extend([x0, y0,
-                          x1, y0])
-        verts.extend([x1, y0,
-                      x1, y1])
-        if self.column.start_tick <= self.calendar.bot_tick:
-            verts.extend([x1, y1,
-                          x2, y1,
-                          x2, y1,
-                          x2, y2])
+        y0 = self.window_bot
+        if y0 > self.calendar.window_top:
+            return
+        y2 = y0
+        y1 = self.window_top
+        if y1 < self.calendar.window_bot:
+            return
+        x0 = self.window_left
+        x1 = self.window_center
+        x2 = self.window_right
+        verts = (x0, y0, x1, y0,
+                 x1, y0, x1, y1,
+                 x1, y1, x2, y1,
+                 x2, y1, x2, y2)
         return batch.add(
             len(verts) / 2,
             GL_LINES,
@@ -136,92 +125,6 @@ class BranchConnector:
         self.wedge_vertlist = None
 
 
-class Handle:
-    """The thing on the timeline that you grab to move it."""
-    atrdic = {
-        "y": lambda self: self.timeline.y,
-        "window_y": lambda self: self.timeline.window_y,
-        "window_left": lambda self: {
-            True: self.timeline.window_left - self.width,
-            False: self.timeline.window_right}[self.on_the_left],
-        "window_right": lambda self: {
-            True: self.timeline.window_left + 1,
-            False: self.timeline.window_right + self.width - 1
-            }[self.on_the_left],
-        "window_top": lambda self: self.y + self.ry,
-        "window_bot": lambda self: self.y - self.ry,
-        "in_view": lambda self: (
-            self.window_right > 0 and
-            self.window_top > 0 and
-            self.window_bot < self.window.height and
-            self.window_left < self.window.width)}
-
-    def __init__(self, timeline, handle_side):
-        """Make a handle for the given timeline on its given side,
-        "left" by default, possibly "right"."""
-        self.timeline = timeline
-        self.window = self.timeline.window
-        self.on_the_left = handle_side == "left"
-        self.vertlist = None
-        width = timeline.cal.style.spacing * 2
-        self.width = width
-        height = int(width * phi)
-        self.height = height
-        self.rx = width / 2
-        self.ry = height / 2
-        self.closet = self.timeline.cal.closet
-        self.calendar = self.timeline.cal
-
-    def __getattr__(self, attrn):
-        """Look up computed attributes in the atrdic of the class."""
-        if attrn in self.atrdic:
-            return self.atrdic[attrn](self)
-        else:
-            raise AttributeError(
-                "Handle instance does not have and "
-                "cannot compute attribute {0}".format(attrn))
-
-    def overlaps(self, x, y):
-        """Check if the given window coordinates are in me."""
-        return (
-            self.window_left < x and
-            x < self.window_right and
-            self.window_bot < y and
-            y < self.window_top)
-
-    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        """Move the branch and tick in accordance with how the user drags me.
-
-The tick shall always be the one represented by the calendar at the
-height of the mouse. The branch is the one represented by the column
-whose center line is nearest me, measured from the side of me that I
-point to."""
-        pointing_right = self.on_the_left
-        nearcol = self.timeline.column
-        if pointing_right:
-            for column in self.calendar.cols:
-                if (
-                        column.window_center > self.window_right and
-                        column.window_center < nearcol.window_center):
-                    nearcol = column
-        else:
-            for column in self.calendar.cols:
-                if (
-                        column.window_center < self.window_left and
-                        column.window_center > nearcol.window_center):
-                    nearcol = column
-        branch = nearcol.branch
-        tick = self.closet.tick
-        if y >= self.calendar.window_top:
-            tick = self.calendar.scrolled_to
-        elif y <= self.calendar.window_bot:
-            tick = self.calendar.bot_tick
-        else:
-            tick = self.calendar.y_to_tick(y)
-        if branch != self.closet.branch or tick != self.closet.tick:
-            self.closet.time_travel(None, branch, tick)
-
-
 class Timeline:
     """A line that goes on top of a CalendarCol to indicate what time it
 is.
@@ -231,8 +134,11 @@ which side it should be on by supplying "left" (default) or "right"
 for the handle_side keyword argument.
 
     """
+    crosshair = True
+
     atrdic = {
-        "window_y": lambda self: self.cal.tick_to_y(self.closet.tick),
+        "window_y": lambda self:
+        self.cal.tick_to_y(self.closet.tick) + self.cal.offy,
         "y": lambda self: self.window_y,
         "window_bot": lambda self: self.window_y,
         "window_top": lambda self: self.window_y,
@@ -244,7 +150,9 @@ for the handle_side keyword argument.
         (self.col.branch == self.col.closet.branch and
          self.y > 0 and self.y < self.window.height
          and self.window_right > 0
-         and self.window_left < self.window.width)}
+         and self.window_left < self.window.width),
+        "col": lambda self: self.column,
+        "cal": lambda self: self.calendar}
 
     def __init__(self, col, handle_side="left",
                  handle_width=None, handle_height=None,
@@ -253,20 +161,18 @@ for the handle_side keyword argument.
         what side its handle is on, and what color it is.
 
 color is a 4-tuple of Red, Green, Blue, Alpha."""
-        self.col = col
-        self.column = self.col
-        self.cal = self.col.calendar
-        self.calendar = self.cal
+        self.column = col
+        self.calendar = self.col.calendar
         self.batch = self.col.batch
         self.window = self.cal.window
         self.closet = self.col.closet
         self.handle_side = handle_side
         if handle_width is None:
-            self.handle_width = self.col.style.spacing
+            self.handle_width = self.col.style.spacing * 2
         else:
             self.handle_width = handle_width
         if handle_height is None:
-            self.handle_height = self.col.style.spacing
+            self.handle_height = self.col.style.spacing * 2
         else:
             self.handle_height = handle_height
         self.ry = self.handle_height / 2
@@ -302,26 +208,39 @@ color is a 4-tuple of Red, Green, Blue, Alpha."""
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.offx += dx
-        self.offy += dy
-
-    def dropped(self, x, y):
-        while self.offy > self.column.row_height:
-            self.closet.time_travel_inc_tick(ticks=-1)
-            self.offy -= self.column.row_height
-        while self.offy * -1 > self.column.row_height:
-            self.closet.time_travel_inc_tick(ticks=1)
-            self.offy += self.column.row_height
-        if self.offx > self.width and int(self) < max(
-                self.closet.skeleton["timestream"].iterkeys()):
-            self.offx = 0
-            self.offy = 0
-            if int(self) + 1 not in self.calendar.coldict:
-                self.calendar.coldict[
-                    int(self) + 1] = self.calendar.make_col(
-                    int(self) + 1)
-            return self.calendar.coldict[int(self) + 1].timeline
+        if y > self.column.window_top:
+            if self.closet.tick != self.calendar.scrolled_to:
+                self.closet.time_travel(
+                    self.column.branch,
+                    max((self.calendar.scrolled_to, 0)))
+        elif y < self.column.window_bot:
+            if self.closet.tick != self.calendar.bot_tick:
+                self.closet.time_travel(
+                    self.column.branch, self.calendar.bot_tick)
         else:
-            return self
+            self.offy += dy
+        while self.offy > self.calendar.row_height:
+            try:
+                self.closet.time_travel_inc_tick(-1)
+                self.offy -= self.calendar.row_height
+            except TimestreamException:
+                self.offy = 0
+                break
+        while self.offy * -1 > self.calendar.row_height:
+            try:
+                self.closet.time_travel_inc_tick(1)
+                self.offy += self.calendar.row_height
+            except TimestreamException:
+                self.offy = 0
+                break
+        while self.offx > self.column.width:
+            self.closet.time_travel_inc_branch(1)
+            self.offx -= self.column.width
+            self.column = self.calendar.make_col(self.closet.branch)
+        while self.offx * -1 > self.column.width:
+            self.closet.time_travel_inc_branch(-1)
+            self.offx += self.column.width
+            self.column = self.calendar.make_col(self.closet.branch)
 
     def get_line(self, batch, group):
         points = (
@@ -384,7 +303,8 @@ represents to calculate its dimensions and coordinates.
         "window_right": lambda self:
         self.column.window_right - self.column.style.spacing,
         "window_top": lambda self:
-        self.calendar.height - self.column.calendar.row_height * (
+        self.calendar.height + self.calendar.offy -
+        self.column.calendar.row_height * (
             self.tick_from - self.column.calendar.scrolled_to),
         "window_bot": lambda self:
         self.window_top - self.height,
@@ -516,9 +436,6 @@ class CalendarGroup(Group):
         super(CalendarGroup, self).__init__(cal.window.calendar_group)
         self.calendar = cal
 
-    def __iter__(self):
-        return self
-
     def set_state(self):
         glEnable(GL_SCISSOR_TEST)
         glScissor(self.calendar.window_left,
@@ -530,7 +447,22 @@ class CalendarGroup(Group):
         glDisable(GL_SCISSOR_TEST)
 
 
-class Calendar(object):
+class TimelineWedgeGroup(Group):
+    def __init__(self, cal, parent):
+        super(TimelineWedgeGroup, self).__init__(parent)
+        self.calendar = cal
+
+    def set_state(self):
+        glScissor(self.calendar.window_left - self.calendar.style.spacing,
+                  self.calendar.window_bot,
+                  self.calendar.width,
+                  self.calendar.height)
+
+    def unset_state(self):
+        pass
+
+
+class Calendar:
     """A collection of columns representing values over time for
 a given attribute of a character.
 
@@ -695,7 +627,10 @@ time travel.
         s.__setattr__('window', window)
         s.__setattr__('idx', idx)
         self.batch = self.window.batch
-        self.group = CalendarGroup(self)
+        self.biggroup = CalendarGroup(self)
+        self.group = OrderedGroup(0, self.biggroup)
+        self.tlgroup = OrderedGroup(1, self.biggroup)
+        self.wedgegroup = TimelineWedgeGroup(self, self.tlgroup)
         self.offx = 0
         self.offy = 0
         self.last_draw = None
@@ -758,12 +693,21 @@ So, return my index."""
         return ticks_from_top + self.scrolled_to
 
     def overlaps(self, x, y):
-        """Is that point in me?"""
+        # My hitbox is a bit bigger than I appear, because sometimes
+        # the timeline flows out of my bounds.
         return (
-            self.window_left < x and
-            self.window_right > x and
+            self.window_left - self.style.spacing < x and
+            self.window_right + self.style.spacing > x and
             self.window_bot < y and
             self.window_top > y)
+
+    def chk_overlap(self, x, y):
+        col = self.make_col(self.closet.branch)
+        tl = Timeline(col)
+        if tl.overlaps(x, y):
+            return tl
+        elif self.overlaps(x, y):
+            return self
 
     def make_col(self, branch):
         return {
@@ -787,8 +731,8 @@ So, return my index."""
             self.left_branch -= 1
             self.offx -= self.col_width
         rightmostbranch = self.closet.timestream.hi_branch
-        if rightmostbranch < self.left_branch:
-            self.left_branch = rightmostbranch
+        if rightmostbranch <= self.left_branch:
+            self.left_branch = rightmostbranch - 1
         while (
                 self.offx * -1 > self.col_width):
             self.left_branch += 1
@@ -803,7 +747,8 @@ So, return my index."""
         while self.offy * -1 > self.row_height:
             self.scrolled_to -= 1
             self.offy += self.row_height
-        self.scrolled_to = max((self.scrolled_to, 0))
+        if self.scrolled_to < -10:
+            self.scrolled_to = -10
         self.offx = 0
         self.offy = 0
 
@@ -816,7 +761,6 @@ would be good.
 
         """
         batch = self.window.batch
-        group = self.group
         drawn = []
         slew = self.offx % self.col_width
         o = self.left_branch - slew
@@ -828,25 +772,26 @@ would be good.
             o = 0
         for branch in xrange(o, d):
             column = self.make_col(branch)
+            colgrp = Group(self.group)
             if column.start_tick is None:
                 print "no start tick"
                 import pdb
                 pdb.set_trace()
                 continue
             for cell in iter(column):
+                group = colgrp
                 drawn.extend((
                     cell.get_box(batch, group),
                     cell.get_label(batch, group)))
             if int(column) != 0:
                 bc = BranchConnector(column)
-                bcgrp = Group(self.group)
+                bcgrp = colgrp
                 drawn.append(bc.get_line(batch, bcgrp))
                 drawn.append(bc.get_wedge(batch, bcgrp))
             if int(column) == self.closet.branch:
                 tl = Timeline(column)
-                tlgrp = Group(self.group)
-                drawn.append(tl.get_line(batch, tlgrp))
-                drawn.append(tl.get_handle(batch, tlgrp))
+                drawn.append(tl.get_line(batch, self.wedgegroup))
+                drawn.append(tl.get_handle(batch, self.wedgegroup))
         self.delete()
         self.last_draw = drawn
 

@@ -470,6 +470,10 @@ on_mouse_drag method, use it.
                         hoverable is not None and
                         hasattr(hoverable, 'overlaps') and
                         hoverable.overlaps(x, y)):
+                    if hasattr(hoverable, 'chk_overlap'):
+                        hoverable = hoverable.chk_overlap(x, y)
+                    if hoverable is None:
+                        continue
                     if hasattr(hoverable, 'hover'):
                         self.hovered = hoverable.hover(x, y)
                     else:
@@ -477,6 +481,9 @@ on_mouse_drag method, use it.
                     if hasattr(self.hovered, 'on_click'):
                         self.set_system_mouse_cursor(
                             self.CURSOR_HAND)
+                    elif hasattr(self.hovered, 'crosshair'):
+                        self.set_system_mouse_cursor(
+                            self.CURSOR_CROSSHAIR)
                     else:
                         self.set_system_mouse_cursor(
                             self.CURSOR_DEFAULT)
