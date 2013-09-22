@@ -802,9 +802,11 @@ would be good.
             assert(column.start_tick is not None)
             for cell in iter(column):
                 group = colgrp
-                drawn.extend((
+                gonna_draw = (
                     cell.get_box(batch, group),
-                    cell.get_label(batch, group)))
+                    cell.get_label(batch, group))
+                logger.debug("GONNA DRAW {0}".format(cell))
+                drawn.extend(gonna_draw)
             if int(column) != 0:
                 bc = BranchConnector(column)
                 bcgrp = colgrp
@@ -839,8 +841,8 @@ argument is the name of the field to be displayed in the cell.
     def __init__(self, col, skel, field=None):
         self.column = col
         self.skeleton = skel
-        self.realiter = self.skeleton.iterrows()
-        self.prevrd = self.realiter.next()
+        self.realiter = iter(skel)
+        self.prevrd = self.skeleton[self.realiter.next()]
         self.last = False
         self.field = field
 
@@ -851,19 +853,20 @@ argument is the name of the field to be displayed in the cell.
         if self.last:
             raise StopIteration
         try:
-            rd = self.realiter.next()
+            rd = self.skeleton[self.realiter.next()]
         except StopIteration:
             rd = {"tick_from": None}
             self.last = True
         if self.field is None:
-            return CalendarCell(
-                self.column, self.prevrd["tick_from"],
+            cc = CalendarCell(
+                self.column, self.prevrd["tick_from"] + 1,
                 rd["tick_from"], "")
         else:
-            return CalendarCell(
-                self.column, self.prevrd["tick_from"],
+            cc = CalendarCell(
+                self.column, self.prevrd["tick_from"] + 1,
                 rd["tick_from"], self.prevrd[self.field])
         self.prevrd = rd
+        return cc
 
 
 class CalendarColIter:
