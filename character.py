@@ -10,6 +10,37 @@ from collections import deque
 __metaclass__ = SaveableMetaclass
 
 
+class ThingSkelBranchIter(object):
+    def __init__(self, thingdict, branch):
+        self.thingdict = thingdict
+        self.branch = branch
+        self.level1 = self.thingdict.iterkeys()
+        self.k1 = self.level1.next()
+        self.level2 = self.thingdict[self.k1].iterkeys()
+        self.k2 = self.level2.next()
+        self.level3 = self.thingdict[self.k1][self.k2][self.branch].iterrows()
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        try:
+            return self.level3.next()
+        except StopIteration:
+            try:
+                self.k2 = self.level2.next()
+                self.level3 = self.thingdict[
+                    self.k1][self.k2][self.branch].iterrows()
+                return self.level3.next()
+            except StopIteration:
+                self.k1 = self.level1.next()
+                self.level2 = self.thingdict[self.k1].iterkeys()
+                self.k2 = self.level2.next()
+                self.level3 = self.thingdict[
+                    self.k1][self.k2][self.branch].iterrows()
+                return self.level3.next()
+
+
 class Character:
     """An incorporeal object connecting corporeal ones together across
 dimensions, indicating that they represent one thing and have that
@@ -66,6 +97,7 @@ item's name, and the name of the attribute.
           "dimension": "text not null",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
+          "tick_to": "integer default null",
           "thing": "text not null"},
          ("character", "dimension", "thing", "branch", "tick_from"),
          {"dimension, thing": ("thing", "dimension, name")},
@@ -75,6 +107,7 @@ item's name, and the name of the attribute.
           "dimension": "text not null",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
+          "tick_to": "integer default null",
           "place": "text not null"},
          ("character", "dimension", "place", "branch", "tick_from"),
          {"dimension, place": ("place", "dimension, name")},
@@ -84,6 +117,7 @@ item's name, and the name of the attribute.
           "dimension": "text not null",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
+          "tick_to": "integer default null",
           "origin": "text not null",
           "destination": "text not null"},
          ("character", "dimension", "origin", "destination",
@@ -96,7 +130,7 @@ item's name, and the name of the attribute.
           "skill": "text not null",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
-          "deck": "text not null"},
+          "deck": "text"},
          ("character", "skill", "branch", "tick_from"),
          {},
          []),
@@ -105,7 +139,7 @@ item's name, and the name of the attribute.
           "stat": "text not null",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
-          "value": "text not null"},
+          "value": "text"},
          ("character", "stat", "branch", "tick_from"),
          {},
          [])]
@@ -116,73 +150,53 @@ item's name, and the name of the attribute.
         self.closet = closet
         self.update_handlers = set()
         td = self.closet.skeleton
-        try:
-            self.thingdict = td["character_things"][str(self)]
-        except KeyError:
-            if "character_things" not in td:
-                td["character_things"] = {}
-            if str(self) not in td["character_things"]:
-                td["character_things"][str(self)] = {}
-            self.thingdict = td["character_things"][str(self)]
-            self.indefinite_thing = {}
-        try:
-            self.statdict = td["character_stats"][str(self)]
-        except KeyError:
-            if "character_stats" not in td:
-                td["character_stats"] = {}
-            if str(self) not in td["character_stats"]:
-                td["character_stats"][str(self)] = {}
-            self.statdict = td["character_stats"][str(self)]
-        try:
-            self.skilldict = td["character_skills"][str(self)]
-        except KeyError:
-            if "character_skills" not in td:
-                td["character_skills"] = {}
-            if str(self) not in td["character_skills"]:
-                td["character_skills"][str(self)] = {}
-            self.skilldict = td["character_skills"][str(self)]
-        try:
-            self.portaldict = td["character_portals"][str(self)]
-        except KeyError:
-            if "character_portals" not in td:
-                td["character_portals"] = {}
-            if str(self) not in td["character_portals"]:
-                td["character_portals"][str(self)] = {}
-            self.portaldict = td["character_portals"][str(self)]
-        try:
-            self.placedict = td["character_places"][str(self)]
-            self.indefinite_place = {}
-            self.closet.characterdict[str(self)] = self
-        except KeyError:
-            if "character_places" not in td:
-                td["character_places"] = {}
-            if str(self) not in td["character_places"]:
-                td["character_places"][str(self)] = {}
-            self.placedict = td["character_places"][str(self)]
+        if "character_things" not in td:
+            td["character_things"] = {}
+        if str(self) not in td["character_things"]:
+            td["character_things"][str(self)] = {}
+        self.thingdict = td["character_things"][str(self)]
+        if "character_stats" not in td:
+            td["character_stats"] = {}
+        if str(self) not in td["character_stats"]:
+            td["character_stats"][str(self)] = {}
+        self.statdict = td["character_stats"][str(self)]
+        if "character_skills" not in td:
+            td["character_skills"] = {}
+        if str(self) not in td["character_skills"]:
+            td["character_skills"][str(self)] = {}
+        self.skilldict = td["character_skills"][str(self)]
+        if "character_portals" not in td:
+            td["character_portals"] = {}
+        if str(self) not in td["character_portals"]:
+            td["character_portals"][str(self)] = {}
+        self.portaldict = td["character_portals"][str(self)]
+        if "character_places" not in td:
+            td["character_places"] = {}
+        if str(self) not in td["character_places"]:
+            td["character_places"][str(self)] = {}
+        self.placedict = td["character_places"][str(self)]
 
     def __str__(self):
         return self._name
 
-    def get_thing_rd_triad(self, dimension, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
+    def has_thing_by_key(self, dimension, thing, branch=None, tick=None):
         if tick is None:
             tick = self.closet.tick
-        r = deque([], 3)
-        for rd in self.thingdict[str(dimension)][str(name)][branch].iterrows():
-            r.append(rd)
-            if rd["tick_from"] > tick:
-                break
-        return tuple(r)
-
-    def has_thing_by_key(self, dimension, name,
-                         branch=None, tick=None):
-        rds = self.get_thing_rd_triad(dimension, name, branch, tick)
-        return rds[1] is not None
-
-    def has_thing(self, thing, branch=None, tick=None):
-        return self.has_thing_by_key(
-            str(thing.dimension), str(thing), branch, tick)
+        if (
+                dimension not in self.thingdict or
+                thing not in self.thingdict[dimension] or
+                (branch is not None and
+                 branch not in self.thingdict[dimension][thing])):
+            return False
+        if branch is None:
+            rditer = self.thingdict[dimension][thing].iterrows()
+        else:
+            rditer = self.thingdict[dimension][thing][branch].iterrows()
+        for rd in rditer:
+            if rd["tick_from"] <= tick:
+                if rd["tick_to"] is None or rd["tick_to"] <= tick:
+                    return True
+        return False
 
     def add_thing_by_rd(self, rd):
         if self.has_thing_by_key(
@@ -214,20 +228,24 @@ item's name, and the name of the attribute.
         self.add_thing_by_key(
             str(thing.dimension), str(thing), branch, tick_from, tick_to)
 
-    def has_place_by_key(self, dimension, name,
-                         branch=None, tick=None):
-        if (
-                dimension not in self.placedict or
-                name not in self.placedict[dimension]):
-            return False
-        if branch is None:
-            branch = self.closet.branch
-        if branch not in self.placedict[dimension]:
-            return False
+    def has_place_by_key(self, dimension, place, branch=None, tick=None):
         if tick is None:
             tick = self.closet.tick
-        rds = self.get_place_rd_triad(dimension, name, branch, tick)
-        return rds[1] is not None
+        if (
+                dimension not in self.placedict or
+                place not in self.placedict[dimension] or
+                (branch is not None and
+                 branch not in self.placedict[dimension][place])):
+            return False
+        if branch is None:
+            rditer = self.placedict[dimension][place].iterrows()
+        else:
+            rditer = self.placedict[dimension][place][branch].iterrows()
+        for rd in rditer:
+            if rd["tick_from"] <= tick:
+                if rd["tick_to"] is None or rd["tick_to"] <= tick:
+                    return True
+        return False
 
     def has_place(self, place, branch=None, tick=None):
         return self.has_place_by_key(
@@ -271,26 +289,27 @@ item's name, and the name of the attribute.
         self.add_place_by_key(str(place.dimension), str(place),
                               branch, tick)
 
-    def get_portal_rd_triad(self, dimension, origin, destination,
-                            branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        rds = deque([], 3)
-        for rd in self.portaldict[
-                str(dimension)][str(origin)][str(destination)][
-                branch].iterrows():
-            rds.append(rd)
-            if rd["tick_from"] > tick:
-                break
-        return tuple(rds)
-
     def has_portal_by_key(self, dimension, origin, destination,
                           branch=None, tick=None):
-        rds = self.get_portal_rd_triad(
-            dimension, origin, destination, branch, tick)
-        return rd[1] is not None and rd[1]["extant"]
+        if tick is None:
+            tick = self.closet.tick
+        if (
+                dimension not in self.portaldict or
+                origin not in self.portaldict[dimension] or
+                destination not in self.portaldict[dimension][origin] or
+                (branch is not None and branch not in
+                 self.portaldict[dimension][origin][destination])):
+            return False
+        if branch is None:
+            rditer = self.portaldict[dimension][origin][destination].iterrows()
+        else:
+            rditer = self.portaldict[dimension][origin][destination][
+                branch].iterrows()
+        for rd in rditer:
+            if rd["tick_from"] >= tick:
+                if rd["tick_to"] is None or rd["tick_to"] <= tick:
+                    return True
+        return False
 
     def add_portal_by_rd(self, rd):
         if self.has_portal_by_key(
@@ -439,12 +458,14 @@ item's name, and the name of the attribute.
         self.add_skill(name, None, branch, tick)
 
     def new_branch(self, parent, branch, tick):
-        for (assigner, iterator) in (
-                (self.add_thing_by_rd, self.thingdict[parent].iterrows()),
-                (self.add_place_by_rd, self.placedict[parent].iterrows()),
-                (self.add_portal_by_rd, self.portaldict[parent].iterrows()),
-                (self.add_stat_by_rd, self.statdict[parent].iterrows()),
-                (self.add_skill_by_rd, self.skilldict[parent].iterrows())):
+        l = [
+            (self.add_thing_by_rd,
+             ThingSkelBranchIter(self.thingdict, parent)),
+            (self.add_place_by_rd, self.placedict[parent].iterrows()),
+            (self.add_portal_by_rd, self.portaldict[parent].iterrows()),
+            (self.add_stat_by_rd, self.statdict[parent].iterrows()),
+            (self.add_skill_by_rd, self.skilldict[parent].iterrows())]
+        for (assigner, iterator) in l:
             prev = None
             started = False
             for rd in iterator:

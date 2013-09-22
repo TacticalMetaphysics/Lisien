@@ -152,20 +152,8 @@ this dimension, and laid out nicely."""
     def new_branch(self, parent, branch, tick):
         for thing in self.things:
             thing.new_branch(parent, branch, tick)
-            if id(thing.locations) != self.thing_location_id_dict[str(thing)]:
-                raise Exception(
-                    "Thing {0} had its locations replaced".format(thing))
         for e in self.graph.es:
             e["portal"].new_branch(parent, branch, tick)
-
-    def check_thing_locations(self):
-        for thing in self.things:
-            if id(thing.locations) != self.thing_location_id_dict[str(thing)]:
-                raise Exception(
-                    "Thing {0} had its locations replaced".format(thing))
-
-    def check_thing_id(self, thing):
-        assert(id(thing) == self.thing_id_dict[str(thing)])
 
     def sanitize_vert(self, v):
         if isinstance(v, int):

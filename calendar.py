@@ -647,6 +647,7 @@ time travel.
         self.closet.skeleton["thing_location"][
             self._rowdict["dimension"]][
             self._rowdict["thing"]],
+        "timeline": lambda self: Timeline(self.make_col(self.closet.branch))
     }
 
     def __init__(self, window, idx):
@@ -727,12 +728,10 @@ So, return my index."""
             self.window_bot < y and
             self.window_top > y)
 
-    def chk_overlap(self, x, y):
-        col = self.make_col(self.closet.branch)
-        tl = Timeline(col)
-        if tl.overlaps(x, y):
-            return tl
-        elif self.overlaps(x, y):
+    def hover(self, x, y):
+        if self.timeline.overlaps(x, y):
+            return self.timeline
+        else:
             return self
 
     def make_col(self, branch):
@@ -792,7 +791,7 @@ would be good.
         o = self.left_branch - slew
         d = self.left_branch + self.max_cols + slew
         rightmostbranch = self.closet.timestream.hi_branch
-        if d > rightmostbranch:
+        if d > rightmostbranch + 1:
             d = rightmostbranch + 1
         if o < 0:
             o = 0
@@ -805,7 +804,6 @@ would be good.
                 gonna_draw = (
                     cell.get_box(batch, group),
                     cell.get_label(batch, group))
-                logger.debug("GONNA DRAW {0}".format(cell))
                 drawn.extend(gonna_draw)
             if int(column) != 0:
                 bc = BranchConnector(column)

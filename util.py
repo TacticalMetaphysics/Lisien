@@ -103,6 +103,7 @@ it comes upon."""
                 if v.__class__ not in (list, dict):
                     rowdict = True
                 if rowdict:
+                    assert(v.__class__ not in (list, dict))
                     self.it[k] = v
                 else:
                     self.it[k] = Skeleton(v, parent=self)
@@ -159,7 +160,13 @@ it comes upon."""
         return self
 
     def __repr__(self):
-        return "Skeleton({0})".format(repr(self.it))
+        if isinstance(self.it, dict):
+            reprable = self.it
+        else:
+            reprable = {}
+            for (k, v) in SkeletonListItemIterator(self):
+                reprable[k] = v
+        return repr(reprable)
 
     def __eq__(self, other):
         if isinstance(other, Skeleton):
@@ -185,13 +192,17 @@ it comes upon."""
 
     def __getitem__(self, k):
         if isinstance(self.it, dict):
-            if k not in self.it:
+            if k not in self.it and not self.rowdict:
                 self.it[k] = Skeleton({}, parent=self)
             return self.it[k]
         else:
-            return self.it[k]
+            try:
+                return self.it[k]
+            except IndexError:
+                raise KeyError("Key not in skeleton")
 
     def __delitem__(self, k):
+        self.inhabited.discard(k)
         del self.it[k]
 
     def __iter__(self):
@@ -209,20 +220,21 @@ it comes upon."""
                 print "NOT A LIST"
                 pdb.set_trace()
             while len(self.it) <= k:
-                self.it.append(Skeleton(type(v)(), parent=self))
+                self.it.append(Skeleton(v, parent=self))
             self.it[k] = Skeleton(v, parent=self)
             self.inhabited.add(k)
         elif v.__class__ not in (list, dict, Skeleton):
             assert(len(self.it) == 0 or self.rowdict)
             self.it[k] = v
         else:
+            assert(not isinstance(k, int))
             self.it[k] = Skeleton(v, parent=self)
 
     def keys(self):
         if isinstance(self.it, dict):
             return self.it.keys()
         else:
-            return list(self.inhabited)
+            return sorted(list(self.inhabited))
 
     def viewkeys(self):
         if isinstance(self.it, dict):
@@ -234,7 +246,7 @@ it comes upon."""
         if isinstance(self.it, dict):
             return self.it.iterkeys()
         else:
-            return iter(self.inhabited)
+            return iter(sorted(list(self.inhabited)))
 
     def iteritems(self):
         if isinstance(self.it, dict):
@@ -1018,6 +1030,8 @@ class TerminableImg:
             if rd["tick_from"] >= tick:
                 rd2 = dict(rd)
                 rd2["branch"] = branch
+                if branch not in self.imagery:
+                    self.imagery[branch] = []
                 self.imagery[branch][rd2["tick_from"]] = rd2
                 if (
                         not started and prev is not None and
@@ -1050,17 +1064,24 @@ class TerminableInteractivity:
         return False
 
     def new_branch_interactivity(self, parent, branch, tick):
-        for rd in SkeletonIterator(self.interactivity[parent]):
-            if rd["tick_to"] is None or rd["tick_to"] >= tick:
+        prev = None
+        started = False
+        for rd in self.interactivity[parent].iterrows():
+            if rd["tick_from"] >= tick:
                 rd2 = dict(rd)
                 rd2["branch"] = branch
-                if rd2["tick_from"] < tick:
-                    rd2["tick_from"] = tick
-                    self.interactivity[branch][tick] = rd2
-                else:
-                    self.interactivity[branch][rd2["tick_from"]] = rd2
-                if rd2["tick_to"] is None:
-                    self.indefinite_interactivity[branch] = rd2["tick_from"]
+                if branch not in self.interactivity:
+                    self.interactivity[branch] = []
+                self.interactivity[branch][rd2["tick_from"]] = rd2
+                if (
+                        not started and prev is not None and
+                        rd["tick_from"] > tick and prev["tick_from"] < tick):
+                    rd3 = dict(prev)
+                    rd3["branch"] = branch
+                    rd3["tick_from"] = tick
+                    self.interactivity[branch][rd3["tick_from"]] = rd3
+                started = True
+            prev = rd
 
 
 class ViewportOrderedGroup(pyglet.graphics.OrderedGroup):

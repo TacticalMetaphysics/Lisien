@@ -81,6 +81,8 @@ otherwise."""
             if rd["tick_from"] >= tick:
                 rd2 = dict(rd)
                 rd2["branch"] = branch
+                if branch not in self.existence:
+                    self.existence[branch] = []
                 self.existence[branch][rd2["tick_from"]] = rd2
                 if (
                         not started and prev is not None and

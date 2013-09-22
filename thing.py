@@ -128,6 +128,8 @@ tick in the given branch."""
         for tick_from in self.locations[branch]:
             if tick_from > tick:
                 break
+            elif tick_from == tick:
+                return self.locations[branch][tick_from]
             prev = tick_from
         return self.locations[branch][prev]
 
@@ -168,7 +170,7 @@ Return an Effect representing the change.
         """How many ticks would it take to get through that portal?"""
         # basic_speed should really be looked up in a character, this
         # is really a placeholder
-        return len(po) / self.basic_speed
+        return int(len(po) / self.basic_speed)
 
     def determined_ticks_thru(self, po):
         """Can I assume that it will always take *the same* number of ticks to
@@ -195,20 +197,19 @@ If I'm not in a Portal, raise LocationException.
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
+        try:
+            min([tick_from for tick_from in self.locations[branch]
+                 if tick_from > tick])
+        except ValueError:
+            import pdb
+            pdb.set_trace()
         if branch not in self.locations:
             raise LocationException("I am nowhere in that branch")
-        prev = 0
-        verp = None
-        for tick_from in self.locations[branch]:
-            if tick_from > tick:
-                verp = tick_from
-                break
-            prev = tick_from
-        if verp is None:
-            raise Exception("I don't seem to ever leave this portal."
-                            " (presupposing I'm in a portal)")
-        duration = float(verp - prev)
-        passed = float(tick - prev)
+        t1 = self.get_location_rd(branch, tick)["tick_from"]
+        t2 = min([tick_from for tick_from in self.locations[branch]
+                  if tick_from > tick])
+        duration = float(t2 - t1)
+        passed = float(tick - t1)
         return passed / duration
 
     def journey_to(self, destplace, branch=None, tick=None):
@@ -259,16 +260,19 @@ other journey I may be on at the time."""
             while branch + increment in self.locations:
                 increment += 1
             self.closet.time_travel_inc_branch(branches=increment)
-            self.dimension.check_thing_id(self)
             self.new_branch_blank = False
             branch = self.closet.branch
             self.follow_path(path, branch, tick)
 
     def follow_path(self, path, branch, tick):
-        prevtick = tick + 1
+        # only acceptable if I'm currently in the last place I'll be
+        # in this branch
+        if max(self.locations[branch]) > tick:
+            raise TimeParadox
+        prevtick = tick
         for port in path:
-            self.set_location(port, int(branch), int(prevtick))
-            prevtick = self.get_ticks_thru(port) + prevtick + 1
+            self.set_location(port, branch, prevtick)
+            prevtick += self.get_ticks_thru(port)
         destplace = path[-1].dest
         self.set_location(destplace, int(branch), int(prevtick))
         self.update()
@@ -306,6 +310,4 @@ other journey I may be on at the time."""
     def restore_loc_rds(self, rds):
         logger.debug("Restoring locations")
         for rd in rds:
-            if rd["branch"] not in self.locations:
-                self.locations[rd["branch"]] = []
-            self.locations[rd["branch"]][rd["tick_from"]] = rd
+            self.set_location(rd["location"], rd["branch"], rd["tick_from"])
