@@ -66,6 +66,14 @@ keyed with their names.
         self.boards = []
         self.thingdict = {}
         self.graph = Graph(directed=True)
+        if "portal" not in self.closet.skeleton:
+            self.closet.skeleton["portal"] = {}
+        if str(self) not in self.closet.skeleton["portal"]:
+            self.closet.skeleton["portal"][str(self)] = {}
+        if "thing_location" not in self.closet.skeleton:
+            self.closet.skeleton["thing_location"] = {}
+        if str(self) not in self.closet.skeleton["thing_location"]:
+            self.closet.skeleton["thing_location"][str(self)] = {}
         for rd in self.closet.skeleton["portal"][str(self)].iterrows():
             orig = self.get_place(rd["origin"])
             dest = self.get_place(rd["destination"])

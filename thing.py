@@ -120,23 +120,16 @@ tick in the given branch."""
             return self.dimension.get_place(rd["location"])
 
     def get_location_rd(self, branch=None, tick=None):
-        r = self.get_location_rd_triad(branch, tick)
-        if len(r) < 2:
-            return None
-        else:
-            return r[1]
-
-    def get_location_rd_triad(self, branch=None, tick=None):
         if branch is None:
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        r = deque([], 3)
-        for rd in self.locations[branch].iterrows():
-            r.append(rd)
-            if rd["tick_from"] > tick:
+        prev = 0
+        for tick_from in self.locations[branch]:
+            if tick_from > tick:
                 break
-        return tuple(r)
+            prev = tick_from
+        return self.locations[branch][prev]
 
     def exists(self, branch=None, tick=None):
         rd = self.get_location_rd(branch, tick)
@@ -156,12 +149,15 @@ Return an Effect representing the change.
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
+        if branch not in self.locations:
+            self.locations[branch] = []
         self.locations[branch][tick] = {
             "dimension": str(self.dimension),
             "thing": str(self),
             "branch": branch,
             "tick_from": tick,
             "location": str(loc)}
+        assert(isinstance(self.locations[branch].it, list))
 
     def get_speed(self, branch=None, tick=None):
         lo = self.get_location(branch, tick)
@@ -197,16 +193,22 @@ If I'm not in a Portal, raise LocationException.
         """
         if branch is None:
             branch = self.closet.branch
+        if tick is None:
+            tick = self.closet.tick
         if branch not in self.locations:
             raise LocationException("I am nowhere in that branch")
-        rds = self.get_location_rd_triad(branch, tick)
-        if rds[1] is None or rds[1]["location"] is None:
-            raise LocationException("I am nowhere at that tick")
-        m = match(portex, rds[1]["location"])
-        if m is None:
-            raise LocationException("I am not in a portal at that tick")
-        duration = float(rds[2]["tick_from"] - rds[1]["tick_from"])
-        passed = float(tick - rds[2]["tick_from"])
+        prev = 0
+        verp = None
+        for tick_from in self.locations[branch]:
+            if tick_from > tick:
+                verp = tick_from
+                break
+            prev = tick_from
+        if verp is None:
+            raise Exception("I don't seem to ever leave this portal."
+                            " (presupposing I'm in a portal)")
+        duration = float(verp - prev)
+        passed = float(tick - prev)
         return passed / duration
 
     def journey_to(self, destplace, branch=None, tick=None):
@@ -220,16 +222,21 @@ other journey I may be on at the time."""
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        locrds = self.get_location_rd_triad(branch, tick)
-        m = match(portex, locrds[1]["location"])
+        prev = deque([], 2)
+        for tick_from in self.locations[branch]:
+            prev.append(tick_from)
+            if tick_from > tick:
+                break
+        rd = self.locations[branch][prev[0]]
+        m = match(portex, rd["location"])
         if m is None:
-            loc = locrds[1]["location"]
+            loc = rd["location"]
         else:
-            # I assume I'm not staying indefinitely in the portal I am in
-            loc = self.dimension.get_place(m.groups()[1])
-            tick = locrds[2]["tick_from"]
+            rd = self.locations[branch][prev[1]]
+            loc = rd["location"]
+            tick = rd["tick_from"]
         ipath = self.dimension.graph.get_shortest_paths(
-            str(loc), to=str(destplace), output="epath")
+            loc, to=str(destplace), output="epath")
         path = None
         for p in ipath:
             if p == []:
@@ -258,10 +265,10 @@ other journey I may be on at the time."""
             self.follow_path(path, branch, tick)
 
     def follow_path(self, path, branch, tick):
-        prevtick = tick
+        prevtick = tick + 1
         for port in path:
             self.set_location(port, int(branch), int(prevtick))
-            prevtick = self.get_ticks_thru(port) + prevtick
+            prevtick = self.get_ticks_thru(port) + prevtick + 1
         destplace = path[-1].dest
         self.set_location(destplace, int(branch), int(prevtick))
         self.update()

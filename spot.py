@@ -104,8 +104,6 @@ class Spot(TerminableImg, TerminableInteractivity):
         self.imagery = self.closet.skeleton["spot_img"][
             str(self.dimension)][
             int(self.board)][str(self.place)]
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
 
     def __str__(self):
         return str(self.place)
@@ -154,15 +152,18 @@ class Spot(TerminableImg, TerminableInteractivity):
         if tick is None:
             tick = self.closet.tick
         prev = None
-        for rd in self.coord_lst[branch].iterrows():
-            if rd["tick_from"] == tick:
+        for tick_from in self.coord_lst[branch]:
+            if tick_from == tick:
+                rd = self.coord_lst[branch][tick_from]
                 return (rd["x"], rd["y"])
-            elif rd["tick_from"] > tick:
+            elif tick_from > tick:
                 break
+            prev = tick_from
         if prev is None:
             return None
         else:
-            return (prev["x"], prev["y"])
+            rd = self.coord_lst[branch][prev]
+            return (rd["x"], rd["y"])
 
     def set_coords(self, x, y, branch=None, tick_from=None):
         if branch is None:
@@ -207,8 +208,8 @@ class SpotWidget:
     def get_board_coords(self):
         (x, y) = self.spot.get_coords()
         return (
-            x + self.spot.drag_offset_x,
-            y + self.spot.drag_offset_y)
+            x + self.drag_offset_x,
+            y + self.drag_offset_y)
 
     atrdic = {
         "coords": lambda self: self.get_board_coords(),
@@ -238,6 +239,8 @@ class SpotWidget:
         self.place = self.spot.place
         self.board = self.spot.board
         self.vert = self.spot.vert
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
         self.sprite = None
         self.vertlist = None
         self.old_window_left = None
@@ -262,14 +265,14 @@ class SpotWidget:
     def dropped(self, x, y, button, modifiers):
         (oldx, oldy) = self.spot.coords
         self.spot.set_coords(
-            oldx + self.spot.drag_offset_x,
-            oldy + self.spot.drag_offset_y)
-        self.spot.drag_offset_x = 0
-        self.spot.drag_offset_y = 0
+            oldx + self.drag_offset_x,
+            oldy + self.drag_offset_y)
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        self.spot.drag_offset_x += dx
-        self.spot.drag_offset_y += dy
+        self.drag_offset_x += dx
+        self.drag_offset_y += dy
         return self
 
     def overlaps(self, x, y):
@@ -282,21 +285,15 @@ class SpotWidget:
 
     def actually_draw(self):
         try:
-            wl = self.window_left
-            wb = self.window_bot
-            if self.old_window_left != wl:
-                self.sprite.x = wl
-                self.old_window_left = wl
-            if self.old_window_bot != wb:
-                self.sprite.y = wb
-                self.old_window_bot = wb
+            self.sprite.delete()
         except AttributeError:
-            self.sprite = Sprite(
-                self.img.tex,
-                self.window_left,
-                self.window_bot,
-                batch=self.batch,
-                group=self.window.spot_group)
+            pass
+        self.sprite = Sprite(
+            self.img.tex,
+            self.window_left,
+            self.window_bot,
+            batch=self.batch,
+            group=self.window.spot_group)
         if self.selected:
             yelo = (255, 255, 0, 0)
             colors = yelo * 4
@@ -305,26 +302,22 @@ class SpotWidget:
                 self.window_right, self.window_top,
                 self.window_right, self.window_bot,
                 self.window_left, self.window_bot)
-            if self.old_points != points:
-                try:
-                    self.vertlist.vertices = points
-                except:
-                    self.vertlist = self.batch.add_indexed(
-                        4,
-                        GL_LINES,
-                        self.window.spot_group,
-                        (0, 1, 2, 3, 0),
-                        ('v2i', points),
-                        ('c4b', colors))
-                self.old_points = points
+            try:
+                self.vertlist.delete()
+            except AttributeError:
+                pass
+            self.vertlist = self.batch.add_indexed(
+                4,
+                GL_LINES,
+                self.window.spot_group,
+                (0, 1, 2, 3, 0),
+                ('v2i', points),
+                ('c4b', colors))
         else:
-            if self.vertlist is not None:
-                try:
-                    self.vertlist.delete()
-                except:
-                    pass
-                self.vertlist = None
-            self.old_points = None
+            try:
+                self.vertlist.delete()
+            except AttributeError:
+                pass
 
     def draw(self):
         if (
@@ -338,18 +331,11 @@ class SpotWidget:
             self.delete()
 
     def delete(self):
-        if self.sprite is not None:
-            try:
-                self.sprite.delete()
-            except:
-                pass
-            self.sprite = None
-        if self.vertlist is not None:
-            try:
-                self.vertlist.delete()
-            except:
-                pass
-            self.vertlist = None
-        self.old_window_left = None
-        self.old_window_bot = None
-        self.old_points = None
+        try:
+            self.sprite.delete()
+        except AttributeError:
+            pass
+        try:
+            self.vertlist.delete()
+        except AttributeError:
+            pass

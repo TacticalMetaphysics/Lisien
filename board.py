@@ -154,6 +154,51 @@ each board will be open in at most one window at a time.
         # to handle their portal changing its.
 
 
+class SpotIterX(object):
+    def __init__(self, bv, x):
+        self.spotiter = bv.spots
+        self.x = x
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        spot = self.spotiter.next()
+        while spot.window_left > self.x or spot.window_right < self.x:
+            spot = self.spotiter.next()
+        return spot
+
+
+class PawnIterX(object):
+    def __init__(self, bv, x):
+        self.pawniter = bv.pawns
+        self.x = x
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        pawn = self.pawniter.next()
+        while self.x < pawn.window_left or pawn.window_right < self.x:
+            pawn = self.pawniter.next()
+        return pawn
+
+
+class ArrowIterX(object):
+    def __init__(self, bv, x):
+        self.arrowiter = bv.arrows
+        self.x = x
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        arrow = self.arrowiter.next()
+        while self.x < arrow.window_left or arrow.window_right < self.x:
+            arrow = self.arrowiter.next()
+        return arrow
+
+
 class BoardViewport:
     """A board as it is seen in a window.
 
@@ -253,20 +298,20 @@ This is meant to be arbitrarily scalable, but it isn't really working."""
             y + self.window_bot + self.offset_y)
 
     def get_pawn_at(self, x, y):
-        for pawn in self.pawns:
-            if pawn.in_view and pawn.overlaps(x, y):
+        for pawn in PawnIterX(self, x):
+            if pawn.window_bot < y and y < pawn.window_top:
                 return pawn
         return None
 
     def get_spot_at(self, x, y):
-        for spot in self.spots:
-            if spot.in_view and spot.overlaps(x, y):
+        for spot in SpotIterX(self, x):
+            if spot.window_bot < y and y < spot.window_top:
                 return spot
         return None
 
     def get_arrow_at(self, x, y):
-        for arrow in self.arrows:
-            if arrow.in_view and arrow.overlaps(x, y):
+        for arrow in ArrowIterX(self, x):
+            if arrow.window_bot < y and y < arrow.window_top:
                 return arrow
         return None
 

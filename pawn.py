@@ -162,12 +162,12 @@ class PawnWidget:
             prog = self.pawn.thing.get_progress()
             odx = dx - ox
             ody = dy - oy
-            return (int(ox + odx * prog) + self.pawn.drag_offset_x,
-                    int(oy + ody * prog) + self.pawn.drag_offset_y)
+            return (int(ox + odx * prog) + self.drag_offset_x,
+                    int(oy + ody * prog) + self.drag_offset_y)
         elif str(loc) in self.viewport.spotdict:
             (x, y) = self.viewport.spotdict[str(loc)].coords
-            return (x + self.pawn.drag_offset_x,
-                    y + self.pawn.drag_offset_y)
+            return (x + self.drag_offset_x,
+                    y + self.drag_offset_y)
 
     atrdic = {
         "coords": lambda self: self.get_board_coords(),
@@ -200,6 +200,8 @@ class PawnWidget:
         self.viewport = viewport
         self.batch = self.viewport.batch
         self.window = self.viewport.window
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
         self.old_window_left = None
         self.old_window_bot = None
         self.old_points = None
@@ -229,8 +231,8 @@ class PawnWidget:
         return self
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        self.pawn.drag_offset_x += dx
-        self.pawn.drag_offset_y += dy
+        self.drag_offset_x += dx
+        self.drag_offset_y += dy
         return self
 
     def dropped(self, x, y, button, modifiers):
@@ -254,8 +256,8 @@ If it DOES have anything else to do, make the journey in another branch.
             # This is a silly hack.
 #            for cal in self.calendars:
 #                cal.refresh()
-        self.pawn.drag_offset_x = 0
-        self.pawn.drag_offset_y = 0
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
 
     def delete(self):
         try:
