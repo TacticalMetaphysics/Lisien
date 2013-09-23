@@ -1,5 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 import pyglet
 import ctypes
 from math import sqrt, hypot, atan, pi, sin, cos
@@ -7,6 +10,7 @@ from logging import getLogger
 from sqlite3 import IntegrityError
 from igraph import Graph, Vertex, Edge
 from collections import deque, defaultdict, MutableMapping
+import pdb
 from copy import copy, deepcopy
 
 logger = getLogger(__name__)
@@ -30,7 +34,7 @@ saveable_classes = []
 
 class SkeletonListIterator(object):
     def __init__(self, skel):
-        self.kitr = iter(skel.inhabited)
+        self.kitr = iter(sorted(list(skel.inhabited)))
         self.it = skel.it
 
     def __iter__(self):
@@ -42,7 +46,7 @@ class SkeletonListIterator(object):
 
 class SkeletonListItemIterator(object):
     def __init__(self, skel):
-        self.kitr = iter(skel.inhabited)
+        self.kitr = iter(sorted(list(skel.inhabited)))
         self.it = skel.it
 
     def __iter__(self):
@@ -195,15 +199,18 @@ it comes upon."""
             if k not in self.it and not self.rowdict:
                 self.it[k] = Skeleton({}, parent=self)
             return self.it[k]
+        elif k in self.inhabited:
+            return self.it[k]
         else:
-            try:
-                return self.it[k]
-            except IndexError:
-                raise KeyError("Key not in skeleton")
+            raise KeyError("Key not in skeleton: {0}".format(k))
 
     def __delitem__(self, k):
         self.inhabited.discard(k)
         del self.it[k]
+        for listener in self.listeners:
+            listener.on_skel_delete((self,), k)
+        if self.parent is not None:
+            self.parent.on_child_delete((self,), k)
 
     def __iter__(self):
         if isinstance(self.it, dict):
@@ -216,11 +223,12 @@ it comes upon."""
             if len(self.it) == 0:
                 self.it = []
             if not isinstance(self.it, list):
-                import pdb
-                print "NOT A LIST"
-                pdb.set_trace()
+                raise TypeError("I need a list here")
             while len(self.it) <= k:
-                self.it.append(Skeleton(v, parent=self))
+                if isinstance(v, Skeleton):
+                    self.it.append(Skeleton({}, parent=self))
+                else:
+                    self.it.append(Skeleton(type(v)(), parent=self))
             self.it[k] = Skeleton(v, parent=self)
             self.inhabited.add(k)
         elif v.__class__ not in (list, dict, Skeleton):
@@ -229,6 +237,26 @@ it comes upon."""
         else:
             assert(not isinstance(k, int))
             self.it[k] = Skeleton(v, parent=self)
+        for listener in self.listeners:
+            listener.on_skel_set((self,), k, self[k])
+        if self.parent is not None:
+            self.parent.on_child_set((self,), k, self[k])
+
+    def key_before(self, k):
+        assert(isinstance(self.it, list))
+        anterior = [j for j in self.inhabited
+                    if j < k]
+        if anterior == []:
+            raise KeyError("There is nothing before {0}".format(k))
+        return max(anterior)
+
+    def key_after(self, k):
+        assert(isinstance(self.it, list))
+        posterior = [m for m in self.inhabited
+                     if m > k]
+        if posterior == []:
+            raise KeyError("There is nothing after {0}".format(k))
+        return min(posterior)
 
     def keys(self):
         if isinstance(self.it, dict):
@@ -312,27 +340,24 @@ it comes upon."""
                     self[k] = v
                     continue
             elif self.rowdict or self.it == {}:
-                self.it[k] = v
+                self[k] = v
                 continue
             if not isinstance(v, Skeleton):
                 continue
             if isinstance(self.it, dict):
                 if k in self.it:
-                    self.it[k].update(v)
+                    self[k].update(v)
                 else:
-                    self.it[k] = v
+                    self[k] = v
             else:
-                i = 0
-                while len(self.it) <= k:
-                    self.it.append(Skeleton(type(v)(), parent=self))
-                    i += 1
-                if isinstance(self.it[k], Skeleton):
+                if k in self.keys() and isinstance(self.it[k], Skeleton):
                     self.it[k].update(v)
                 else:
-                    self.it[k] = v
+                    self[k] = v
 
     def on_child_set(self, child, k, v):
         chain = (self, child)
+        logger.debug("Child of %s set", str(self.keys()))
         for listener in self.listeners:
             listener.on_skel_set(chain, k, v)
         if self.parent is not None:
@@ -348,6 +373,16 @@ it comes upon."""
     def add_listener(self, l):
         logger.debug("Adding listener: {0} To skeleton: {1}".format(l, self))
         self.listeners.add(l)
+
+
+def empty_skel():
+    tns = []
+    for saveable in saveables:
+        tns.extend(saveable[3])
+    r = Skeleton({})
+    for tn in tns:
+        r[tn] = {}
+    return r
 
 
 class SaveableMetaclass(type):
@@ -1026,22 +1061,22 @@ class TerminableImg:
     def new_branch_imagery(self, parent, branch, tick):
         prev = None
         started = False
-        for rd in self.imagery[parent].iterrows():
-            if rd["tick_from"] >= tick:
-                rd2 = dict(rd)
+        for tick_from in self.imagery[parent]:
+            if tick_from >= tick:
+                rd2 = dict(self.imagery[parent][tick_from])
                 rd2["branch"] = branch
                 if branch not in self.imagery:
                     self.imagery[branch] = []
                 self.imagery[branch][rd2["tick_from"]] = rd2
                 if (
                         not started and prev is not None and
-                        rd["tick_from"] > tick and prev["tick_from"] < tick):
-                    rd3 = dict(prev)
+                        tick_from > tick and prev < tick):
+                    rd3 = dict(self.imagery[parent][prev])
                     rd3["branch"] = branch
                     rd3["tick_from"] = tick
                     self.imagery[branch][rd3["tick_from"]] = rd3
                 started = True
-            prev = rd
+            prev = tick_from
 
 
 class TerminableInteractivity:
@@ -1066,22 +1101,22 @@ class TerminableInteractivity:
     def new_branch_interactivity(self, parent, branch, tick):
         prev = None
         started = False
-        for rd in self.interactivity[parent].iterrows():
-            if rd["tick_from"] >= tick:
-                rd2 = dict(rd)
+        for tick_from in self.interactivity[parent]:
+            if tick_from >= tick:
+                rd2 = dict(self.interactivity[parent][tick_from])
                 rd2["branch"] = branch
                 if branch not in self.interactivity:
                     self.interactivity[branch] = []
                 self.interactivity[branch][rd2["tick_from"]] = rd2
                 if (
                         not started and prev is not None and
-                        rd["tick_from"] > tick and prev["tick_from"] < tick):
-                    rd3 = dict(prev)
+                        tick_from > tick and prev < tick):
+                    rd3 = dict(self.interactivity[parent][prev])
                     rd3["branch"] = branch
                     rd3["tick_from"] = tick
                     self.interactivity[branch][rd3["tick_from"]] = rd3
                 started = True
-            prev = rd
+            prev = tick_from
 
 
 class ViewportOrderedGroup(pyglet.graphics.OrderedGroup):
@@ -1316,6 +1351,20 @@ class Timestream:
          ["branch>=0", "tick_from>=0",
           "tick_to>=tick_from", "parent=0 or parent<>branch"])]
 
+    tabs_for_update = set([
+        "character_places",
+        "character_portals",
+        "character_things",
+        "character_skills",
+        "character_stats",
+        "pawn_img",
+        "pawn_interactive",
+        "portal",
+        "spot_coords",
+        "spot_img",
+        "spot_interactive",
+        "thing_location"])
+
     def __init__(self, closet):
         self.closet = closet
         td = self.closet.skeleton
@@ -1336,8 +1385,9 @@ class Timestream:
         # successor of the vertex for a different branch
         # altogether. That original branch now has another edge
         # representing it.
-        self.update_handlers = set()
-        self.update(0)
+        self.update()
+        for tab in self.tabs_for_update:
+            self.closet.skeleton[tab].listeners.add(self)
 
     def __hash__(self):
         b = []
@@ -1354,6 +1404,14 @@ class Timestream:
             raise AttributeError(
                 "Timestream instance does not have and cannot compute "
                 "attribute {0}".format(attrn))
+
+    def on_skel_set(self, chain, k, v):
+        for rd in v.iterrows():
+            if rd["tick_from"] > self.branchdict[rd["branch"]]["tick_to"]:
+                self.branchdict[rd["branch"]]["tick_to"] = rd["tick_from"]
+
+    def on_skel_delete(self, chain, k):
+        pass
 
     def update(self, ts=0):
         """Update the tree to reflect the current state of branchdict.
@@ -1408,8 +1466,6 @@ length zero.
                 else:
                     self.extend_branch_to(branch, tick_to)
             self.branch_done_to[branch] = tick_to
-            for handler in self.update_handlers:
-                handler.on_timestream_update()
 
     def get_edge_len(self, e):
         if isinstance(e, int):

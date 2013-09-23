@@ -1,5 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 from util import (
     SaveableMetaclass,
     LocationException,
@@ -7,7 +10,7 @@ from util import (
     JourneyException)
 from re import match, compile
 from logging import getLogger
-from collections import deque
+import pdb
 
 
 __metaclass__ = SaveableMetaclass
@@ -108,7 +111,10 @@ LocationException."""
     def get_location(self, branch=None, tick=None):
         """Return my current location by default, or where I was at the given
 tick in the given branch."""
-        rd = self.get_location_rd(branch, tick)
+        try:
+            rd = self.get_location_rd(branch, tick)
+        except KeyError:
+            return None
         if rd is None or rd["location"] is None:
             return None
         m = match(portex, rd["location"])
@@ -124,17 +130,17 @@ tick in the given branch."""
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        prev = 0
-        for tick_from in self.locations[branch]:
-            if tick_from > tick:
-                break
-            elif tick_from == tick:
-                return self.locations[branch][tick_from]
-            prev = tick_from
-        return self.locations[branch][prev]
+        if branch not in self.locations:
+            return None
+        if tick not in self.locations[branch]:
+            tick = self.locations[branch].key_before(tick)
+        return self.locations[branch][tick]
 
     def exists(self, branch=None, tick=None):
-        rd = self.get_location_rd(branch, tick)
+        try:
+            rd = self.get_location_rd(branch, tick)
+        except KeyError:
+            return False
         return None not in (rd, rd["location"])
 
     def set_location(self, loc, branch=None, tick=None):
@@ -159,7 +165,7 @@ Return an Effect representing the change.
             "branch": branch,
             "tick_from": tick,
             "location": str(loc)}
-        assert(isinstance(self.locations[branch].it, list))
+        assert(self.closet.timestream.branchdict[branch]["tick_to"] >= tick)
 
     def get_speed(self, branch=None, tick=None):
         lo = self.get_location(branch, tick)
@@ -197,12 +203,6 @@ If I'm not in a Portal, raise LocationException.
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        try:
-            min([tick_from for tick_from in self.locations[branch]
-                 if tick_from > tick])
-        except ValueError:
-            import pdb
-            pdb.set_trace()
         if branch not in self.locations:
             raise LocationException("I am nowhere in that branch")
         t1 = self.get_location_rd(branch, tick)["tick_from"]
@@ -219,25 +219,19 @@ other journey I may be on at the time."""
         # *everything* after the start of this new stuff. Right now,
         # anywhere I'm scheduled to be in a tick after the end of the
         # new journey, I'll still be there. It makes no sense.
+        assert(len(self.closet.skeleton["thing_location"].listeners) > 0)
         if branch is None:
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        prev = deque([], 2)
-        for tick_from in self.locations[branch]:
-            prev.append(tick_from)
-            if tick_from > tick:
-                break
-        rd = self.locations[branch][prev[0]]
-        m = match(portex, rd["location"])
-        if m is None:
-            loc = rd["location"]
-        else:
-            rd = self.locations[branch][prev[1]]
-            loc = rd["location"]
-            tick = rd["tick_from"]
+        loc = str(self.get_location(branch, tick))
+        m = match(portex, loc)
+        if m is not None:
+            loc = m.groups()[0]
+            tick = self.locations[branch].key_after(tick)
+        assert(tick is not None)
         ipath = self.dimension.graph.get_shortest_paths(
-            loc, to=str(destplace), output="epath")
+            loc, to=str(destplace), output=ascii("epath"))
         path = None
         for p in ipath:
             if p == []:
@@ -262,17 +256,23 @@ other journey I may be on at the time."""
             self.closet.time_travel_inc_branch(branches=increment)
             self.new_branch_blank = False
             branch = self.closet.branch
+            assert(tick is not None)
             self.follow_path(path, branch, tick)
 
     def follow_path(self, path, branch, tick):
         # only acceptable if I'm currently in the last place I'll be
         # in this branch
-        if max(self.locations[branch]) > tick:
+        try:
+            self.locations[branch].key_after(tick)
             raise TimeParadox
+        except KeyError:
+            pass
         prevtick = tick
         for port in path:
             self.set_location(port, branch, prevtick)
             prevtick += self.get_ticks_thru(port)
+            self.set_location(port.destination, branch, prevtick)
+            prevtick += 1
         destplace = path[-1].dest
         self.set_location(destplace, int(branch), int(prevtick))
         self.update()
@@ -282,6 +282,9 @@ other journey I may be on at the time."""
             self.locations[branch] = []
         if self.new_branch_blank:
             start_loc = self.get_location(parent, tick)
+            if hasattr(start_loc, 'destination'):
+                tick = self.locations[parent].key_after(tick)
+                start_loc = self.get_location(parent, tick)
             self.set_location(start_loc, branch, tick)
             return
         prev = None
@@ -304,7 +307,7 @@ other journey I may be on at the time."""
     def branch_loc_rds(self, branch=None):
         if branch is None:
             branch = self.closet.branch
-        r = [rd.deepcopy() for rd in self.locations[branch].iterrows()]
+        r = [rd.__dict__() for rd in self.locations[branch].iterrows()]
         return r
 
     def restore_loc_rds(self, rds):

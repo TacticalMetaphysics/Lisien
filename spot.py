@@ -1,5 +1,8 @@
 ## This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 from util import (
     SaveableMetaclass,
     TerminableImg,
@@ -152,6 +155,8 @@ class Spot(TerminableImg, TerminableInteractivity):
         if tick is None:
             tick = self.closet.tick
         prev = None
+        if branch not in self.coord_lst:
+            return None
         for tick_from in self.coord_lst[branch]:
             if tick_from == tick:
                 rd = self.coord_lst[branch][tick_from]
@@ -183,22 +188,22 @@ class Spot(TerminableImg, TerminableInteractivity):
     def new_branch_coords(self, parent, branch, tick):
         prev = None
         started = False
-        for rd in self.coord_lst[parent].iterrows():
-            if rd["tick_from"] >= tick:
-                rd2 = dict(rd)
+        for tick_from in self.coord_lst[parent]:
+            if tick_from >= tick:
+                rd2 = dict(self.coord_lst[parent][tick_from])
                 rd2["branch"] = branch
                 if branch not in self.coord_lst:
                     self.coord_lst[branch] = []
                 self.coord_lst[branch][rd2["tick_from"]] = rd2
                 if (
                         not started and prev is not None and
-                        rd["tick_from"] > tick and prev["tick_from"] < tick):
-                    rd3 = dict(prev)
+                        tick_from > tick and prev < tick):
+                    rd3 = dict(self.coord_lst[branch][prev])
                     rd3["branch"] = branch
                     rd3["tick_from"] = tick
                     self.coord_lst[branch][rd3["tick_from"]] = rd3
                 started = True
-            prev = rd
+            prev = tick_from
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)
@@ -208,10 +213,15 @@ class Spot(TerminableImg, TerminableInteractivity):
 
 class SpotWidget:
     def get_board_coords(self):
-        (x, y) = self.spot.get_coords()
-        return (
+        cords = self.spot.get_coords()
+        if cords is None:
+            return (self.cheatx, self.cheaty)
+        (x, y) = cords
+        r = (
             x + self.drag_offset_x,
             y + self.drag_offset_y)
+        (self.cheatx, self.cheaty) = r
+        return r
 
     atrdic = {
         "coords": lambda self: self.get_board_coords(),
@@ -245,8 +255,8 @@ class SpotWidget:
         self.drag_offset_y = 0
         self.sprite = None
         self.vertlist = None
-        self.old_window_left = None
-        self.old_window_bot = None
+        self.cheatx = 0
+        self.cheaty = 0
         self.old_points = None
 
     def __str__(self):

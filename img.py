@@ -4,7 +4,7 @@ from pyglet.resource import image
 from util import SaveableMetaclass
 
 
-"""Container for images to be drawn, maybe."""
+u"""Container for images to be drawn, maybe."""
 
 
 __metaclass__ = SaveableMetaclass
@@ -22,30 +22,30 @@ saving the path.
 
     """
     tables = [
-        ("img",
-         {"name": "text not null",
-          "path": "text not null",
-          "rltile": "boolean not null DEFAULT 0"},
-         ("name",),
+        (u"img",
+         {u"name": u"text not null",
+          u"path": u"text not null",
+          u"rltile": u"boolean not null DEFAULT 0"},
+         (u"name",),
          {},
          [])]
 
     atrdic = {
-        "path": lambda self: self._rowdict["path"],
-        "rltile": lambda self: self._rowdict["rltile"],
-        "center": lambda self: (self.tex.width / 2, self.tex.height / 2),
-        "width": lambda self: self.tex.width,
-        "height": lambda self: self.tex.height,
-        "tex": lambda self: textures[str(self)]}
+        u"path": lambda self: self._rowdict[u"path"],
+        u"rltile": lambda self: self._rowdict[u"rltile"],
+        u"center": lambda self: (self.tex.width / 2, self.tex.height / 2),
+        u"width": lambda self: self.tex.width,
+        u"height": lambda self: self.tex.height,
+        u"tex": lambda self: textures[str(self)]}
 
     def __init__(self, closet, name):
-        """Return an Img, and register it with the imgdict of the database
+        u"""Return an Img, and register it with the imgdict of the database
 provided."""
         global first_img_loaded
         self.closet = closet
         self._name = name
         self.closet.imgdict[str(self)] = self
-        self._rowdict = self.closet.skeleton["img"][str(self)]
+        self._rowdict = self.closet.skeleton[u"img"][str(self)]
         if self.rltile:
             textures[str(self)] = load_rltile(self.path)
         else:
@@ -59,11 +59,11 @@ provided."""
             return self.atrdic[attrn](self)
         except KeyError:
             raise AttributeError(
-                "Img instance has no attribute {0}.".format(attrn))
+                u"Img instance has no attribute {0}.".format(attrn))
 
 
 def load_rltile(path):
-    """Load a Windows bitmap, and replace ffGll -> 00Gll and ff. -> 00."""
+    u"""Load a Windows bitmap, and replace ffGll -> 00Gll and ff. -> 00."""
     badimg = image(path)
     badimgd = badimg.get_image_data()
     bad_rgba = badimgd.get_data('RGBA', badimgd.pitch)
@@ -75,6 +75,6 @@ def load_rltile(path):
 
 
 def load_regular_img(path):
-    """Load an ordinary PNG image."""
+    u"""Load an ordinary PNG image."""
     tex = image(path).get_image_data().get_texture()
     return tex

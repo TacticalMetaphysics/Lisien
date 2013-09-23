@@ -1,5 +1,8 @@
-
+# This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 from util import SaveableMetaclass, TimestreamException
 from logging import getLogger
 from pyglet.text import Label
@@ -839,32 +842,29 @@ argument is the name of the field to be displayed in the cell.
     def __init__(self, col, skel, field=None):
         self.column = col
         self.skeleton = skel
-        self.realiter = iter(skel)
-        self.prevrd = self.skeleton[self.realiter.next()]
-        self.last = False
+        self.realiter = skel.iterkeys()
+        self.prevkey = self.realiter.next()
         self.field = field
+        self.stop_iteration = False
 
     def __iter__(self):
         return self
 
     def next(self):
-        if self.last:
+        if self.stop_iteration:
             raise StopIteration
+        rd = self.skeleton[self.prevkey]
+        tick_from = rd["tick_from"]
+        text = rd[self.field]
         try:
-            rd = self.skeleton[self.realiter.next()]
+            key = self.realiter.next()
+            rd = self.skeleton[key]
+            tick_to = rd["tick_from"]
+            self.prevkey = key
         except StopIteration:
-            rd = {"tick_from": None}
-            self.last = True
-        if self.field is None:
-            cc = CalendarCell(
-                self.column, self.prevrd["tick_from"] + 1,
-                rd["tick_from"], "")
-        else:
-            cc = CalendarCell(
-                self.column, self.prevrd["tick_from"] + 1,
-                rd["tick_from"], self.prevrd[self.field])
-        self.prevrd = rd
-        return cc
+            tick_to = None
+            self.stop_iteration = True
+        return CalendarCell(self.column, tick_from, tick_to, text)
 
 
 class CalendarColIter:
@@ -923,6 +923,10 @@ Shows whatever the calendar is about, in that branch."""
         self.calendar = calendar
         self.branch = branch
         self.closet = self.calendar.closet
+        if self.branch not in self.closet.timestream.branchdict:
+            self.closet.more_time(
+                self.closet.branch, self.branch,
+                self.closet.tick, self.closet.tick)
         self.batch = self.calendar.batch
         self.style = self.calendar.style
         self.window = self.calendar.window
@@ -995,8 +999,8 @@ instead, giving something like "in transit from A to B".
         self.dimension = self.calendar.dimension
         self.thing = self.calendar.thing
         self.locations = self.thing.locations[branch]
-        self.coverage = self.character.thingdict[
-            str(self.dimension)][str(self.thing)][branch]
+#        self.coverage = self.character.thingdict[
+#            str(self.dimension)][str(self.thing)][branch]
 
     def __iter__(self):
         return CalendarColCellIter(self, self.locations, "location")

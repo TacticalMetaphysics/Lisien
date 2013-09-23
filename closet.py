@@ -1,5 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 """The database backend, with dictionaries of loaded objects.
 
 This is a caching database connector. There are dictionaries for all
@@ -9,11 +12,11 @@ This module does not contain the code used to generate
 SQL. That's in util.py, the class SaveableMetaclass.
 
 """
-
 import sqlite3
 import re
 import os
 import igraph
+
 from logging import getLogger
 from dimension import Dimension
 from spot import Spot
@@ -27,6 +30,7 @@ from gui import GameWindow
 from util import (
     dictify_row,
     Skeleton,
+    empty_skel,
     schemata,
     saveables,
     saveable_classes,
@@ -128,12 +132,12 @@ given name.
         # data--represented only as those types which sqlite3 is
         # capable of storing. All my objects are ultimately just
         # views on this thing.
-        self.skeleton = Skeleton({})
+        self.skeleton = empty_skel()
         # This is a copy of the skeleton as it existed at the time of
         # the last save. I'll be finding the differences between it
         # and the current skeleton in order to decide what to write to
         # disk.
-        self.old_skeleton = Skeleton({})
+        self.old_skeleton = empty_skel()
 
         self.windowdict = {}
         self.boardhanddict = {}
@@ -738,14 +742,14 @@ This is game-world time. It doesn't always go forwards.
         # you want to selectively load the parts of it that the player
         # is interested in at the moment, the game world being too
         # large to practically load all at once.
-        kd = {"portal": {},
-              "thing_location": {}}
+        kd = Skeleton({"portal": {},
+                       "thing_location": {}})
         for name in names:
             kd["portal"][name] = {"dimension": name}
             kd["thing_location"][name] = {"dimension": name}
         dimtd = Portal._select_skeleton(self.c, kd)
         dimtd.update(Thing._select_skeleton(self.c, kd))
-        self.skeleton += dimtd
+        self.skeleton.update(dimtd)
         r = {}
         for name in names:
             r[name] = Dimension(self, name)
@@ -815,7 +819,7 @@ This is game-world time. It doesn't always go forwards.
              "pawn_interactive":
              {"dimension": dimn,
               "board": i}}))
-        self.skeleton += boardtd
+        self.skeleton.update(boardtd)
         return Board(self, dim, i)
 
     def load_viewport(self, win, dim, board, viewi):
@@ -951,8 +955,8 @@ This is game-world time. It doesn't always go forwards.
                     continue
                 kd[col][name] = {"window": name}
         td = GameWindow._select_skeleton(self.c, kd)
-        self.skeleton += td
-        self.old_skeleton += td
+        self.skeleton.update(td)
+        self.old_skeleton.update(td)
         r = {}
         for name in names:
             r[name] = GameWindow(self, name, checkpoint)
@@ -1075,9 +1079,7 @@ This is game-world time. It doesn't always go forwards.
                     board.new_branch(branch_from, branch_to, tick_from)
             for character in self.characters:
                 character.new_branch(branch_from, branch_to, tick_from)
-        logger.debug("Updating timestream. Old branchdict: {0}".format(self.timestream.branchdict))
         self.timestream.update()
-        logger.debug("New branchdict: {0}".format(self.timestream.branchdict))
 
     def increment_branch(self, branches=1):
         b = self.branch + int(branches)
@@ -1091,12 +1093,12 @@ This is game-world time. It doesn't always go forwards.
                 self.branch, b,
                 self.tick, tick_to)
         except TimestreamException as te:
-            logger.debug("Failed. Time travelling...")
             if b in self.timestream.branchdict:
                 # The branch already exists, so you can go there, but
                 # it starts later than you're trying to get to, so
                 # I'll put you at the start of that branch instead.
-                return self.time_travel(b, self.timestream.branchdict[b][1])
+                return self.time_travel(
+                    b, self.timestream.branchdict[b]["tick_from"])
             else:
                 raise te
 
@@ -1109,6 +1111,10 @@ This is game-world time. It doesn't always go forwards.
         self.time_travel(self.branch, self.tick + int(ticks))
 
     def time_travel_inc_branch(self, branches=1):
+        if not hasattr(self, 'beepboop'):
+            self.beepboop = True
+            import pdb
+            pdb.set_trace()
         b = self.branch + int(branches)
         self.increment_branch(branches)
         self.time_travel(b, self.tick)

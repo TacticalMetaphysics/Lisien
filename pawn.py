@@ -1,5 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 from util import (
     SaveableMetaclass,
     TerminableImg,
@@ -130,13 +133,18 @@ interactive or not.
         if hasattr(loc, 'dest'):
             origspot = self.board.get_spot(loc.orig)
             destspot = self.board.get_spot(loc.dest)
-            (ox, oy) = origspot.get_coords(branch, tick)
-            (dx, dy) = destspot.get_coords(branch, tick)
+            oc = origspot.get_coords(branch, tick)
+            dc = destspot.get_coords(branch, tick)
+            if None in (oc, dc):
+                return self.cheat_coords
+            (ox, oy) = oc
+            (dx, dy) = dc
             prog = self.thing.get_progress(branch, tick)
             odx = dx - ox
             ody = dy - oy
-            return (int(ox + odx * prog),
-                    int(oy + ody * prog))
+            self.cheat_coords = (int(ox + odx * prog),
+                                 int(oy + ody * prog))
+            return self.cheat_coords
         elif str(loc) in self.board.spotdict:
             spot = self.board.get_spot(loc)
             return spot.get_coords()
