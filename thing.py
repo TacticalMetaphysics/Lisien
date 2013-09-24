@@ -51,8 +51,6 @@ too.
         self.dimension = dimension
         self._name = str(name)
         self.new_branch_blank = False
-        self.locations = self.closet.skeleton["thing_location"][
-            str(self.dimension)][str(self)]
         self.dimension.thingdict[name] = self
         self.branches_in = set()
 
@@ -72,12 +70,6 @@ too.
             raise AttributeError(
                 "Thing instance {0} has no attribute {1}".format(
                     str(self), attrn))
-
-    def __setattr__(self, attrn, val):
-        if attrn == 'location':
-            self.set_location(val)
-        else:
-            super(Thing, self).__setattr__(attrn, val)
 
     def __str__(self):
         return self._name
@@ -158,14 +150,14 @@ Return an Effect representing the change.
         if tick is None:
             tick = self.closet.tick
         if branch not in self.locations:
-            self.locations[branch] = []
-        self.locations[branch][tick] = {
+            self.locations[branch] = {}
+        self.locations[branch].__setitem__(tick, {
             "dimension": str(self.dimension),
             "thing": str(self),
             "branch": branch,
             "tick_from": tick,
-            "location": str(loc)}
-        assert(self.closet.timestream.branchdict[branch]["tick_to"] >= tick)
+            "location": str(loc)})
+#        assert(self.closet.timestream.branchdict[branch]["tick_to"] >= tick)
 
     def get_speed(self, branch=None, tick=None):
         lo = self.get_location(branch, tick)
@@ -219,7 +211,6 @@ other journey I may be on at the time."""
         # *everything* after the start of this new stuff. Right now,
         # anywhere I'm scheduled to be in a tick after the end of the
         # new journey, I'll still be there. It makes no sense.
-        assert(len(self.closet.skeleton["thing_location"].listeners) > 0)
         if branch is None:
             branch = self.closet.branch
         if tick is None:
@@ -279,7 +270,7 @@ other journey I may be on at the time."""
 
     def new_branch(self, parent, branch, tick):
         if branch not in self.locations:
-            self.locations[branch] = []
+            self.locations[branch] = {}
         if self.new_branch_blank:
             start_loc = self.get_location(parent, tick)
             if hasattr(start_loc, 'destination'):
@@ -307,7 +298,7 @@ other journey I may be on at the time."""
     def branch_loc_rds(self, branch=None):
         if branch is None:
             branch = self.closet.branch
-        r = [rd.__dict__() for rd in self.locations[branch].iterrows()]
+        r = [dict(rd) for rd in self.locations[branch].iterrows()]
         return r
 
     def restore_loc_rds(self, rds):

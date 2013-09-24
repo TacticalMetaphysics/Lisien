@@ -10,8 +10,6 @@ from logging import getLogger
 from sqlite3 import IntegrityError
 from igraph import Graph, Vertex, Edge
 from collections import deque, defaultdict, MutableMapping
-import pdb
-from copy import copy, deepcopy
 
 logger = getLogger(__name__)
 
@@ -32,347 +30,198 @@ saveables = []
 saveable_classes = []
 
 
-class SkeletonListIterator(object):
+class SkelRowIter:
     def __init__(self, skel):
-        self.kitr = iter(sorted(list(skel.inhabited)))
-        self.it = skel.it
+        self.skel = skel
+        self.ptrs = deque([self.skel])
+        self.keyses = [self.skel.keys()]
+
+    def __len__(self):
+        if hasattr(self, 'l'):
+            return self.l
+        i = 0
+        h = SkelRowIter(self.skel)
+        while True:
+            try:
+                h.next()
+                i += 1
+            except StopIteration:
+                self.l = i
+                return i
 
     def __iter__(self):
         return self
 
     def next(self):
-        return self.it[self.kitr.next()]
-
-
-class SkeletonListItemIterator(object):
-    def __init__(self, skel):
-        self.kitr = iter(sorted(list(skel.inhabited)))
-        self.it = skel.it
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        k = self.kitr.next()
-        return (k, self.it[k])
+        while len(self.ptrs) > 0:
+            try:
+                ptr = self.ptrs.pop()
+                keys = self.keyses.pop()
+            except IndexError:
+                raise StopIteration
+            if ptr.rowdict:
+                return ptr
+            else:
+                try:
+                    k = keys.pop()
+                except IndexError:
+                    continue
+                if len(keys) > 0:
+                    self.ptrs.append(ptr)
+                    self.keyses.append(keys)
+                self.ptrs.append(ptr[k])
+                self.keyses.append(ptr[k].keys())
+        raise StopIteration
 
 
 class Skeleton(MutableMapping):
-    """A dict-like object to efficiently store the entire world model.
-
-Each LiSE instance should have one Skeleton in one Closet. Every
-object in that instance is a view onto the Skeleton.
-
-To get a particular object's data, first decide what table you want
-data from; that table's name is the key in the top level of the
-Skeleton. Then look it up in the Skeleton using the same keys as you
-would to get it from the database. Each successive field in the
-primary key gets its own level of the Skeleton.
-
-I say "the" Skeleton, but actually every level of the Skeleton is
-another Skeleton, and may be addressed similarly.
-
-The skeleton's leaves are "rowdicts": dictionaries keyed with field
-names, whose values are the values of those fields in a given row. You
-can look up the whole primary key from just the rowdict.
-
-Apart from the usual iterkeys(), itervalues(), and iteritems(), the
-Skeleton has a special iterator method iterrows(). This does a
-depth-first traversal through the Skeleton and gives you each rowdict
-it comes upon."""
-    atrdic = {
-        "typ": lambda self: {
-            True: lambda: type(self.it),
-            False: lambda: None}[hasattr(self, 'it')](),
-        "rowdict": lambda self: self.isrowdict()
-        }
-
-    def __init__(self, it, parent=None, listeners=None):
+    def __init__(self, content, name="", parent=None, listeners=None):
+        self.rowdict = None
+        self.name = name
         self.parent = parent
-        self.inhabited = set()
-        if listeners is None:
-            self.listeners = set()
+        if isinstance(content, Skeleton):
+            self.content = content.content
+            self.listeners = content.listeners
+            self.rowdict = content.rowdict
         else:
-            self.listeners = set(listeners)
-        if isinstance(it, Skeleton):
-            self.it = it.it
-            self.inhabited = it.inhabited
-        elif isinstance(it, list):
-            self.it = [Skeleton(that, parent=self) for that in it]
-            self.inhabited.update(range(0, len(self.it) - 1))
-        elif isinstance(it, dict):
-            self.it = {}
-            rowdict = False
-            for (k, v) in it.iteritems():
-                if v.__class__ not in (list, dict):
-                    rowdict = True
-                if rowdict:
-                    assert(v.__class__ not in (list, dict))
-                    self.it[k] = v
+            self.content = {}
+            if listeners is None:
+                self.listeners = set()
+            else:
+                self.listeners = listeners
+            for (k, v) in content.iteritems():
+                if self.rowdict is None:
+                    self.rowdict = v.__class__ in (str, int, float, type(None))
+                if self.rowdict:
+                    assert(v.__class__ in (str, int, float, type(None)))
+                    self.content[k] = v
                 else:
-                    self.it[k] = Skeleton(v, parent=self)
-        else:
-            assert False
+                    assert(v.__class__ in (dict, Skeleton))
+                    self.content[k] = Skeleton(v, k, self)
 
-    def __contains__(self, k):
-        if isinstance(self.it, dict):
-            return k in self.it
-        else:
-            return k in self.inhabited
+    def __getitem__(self, k):
+        return self.content[k]
 
-    def __getattr__(self, attrn):
-        try:
-            return self.atrdic[attrn](self)
-        except KeyError:
-            raise AttributeError(
-                "Skeleton instance does not have and cannot compute "
-                "attribute {0}".format(attrn))
+    def __setitem__(self, k, v):
+        assert(not isinstance(v, list))
+        if self.rowdict:
+            self.content[k] = v
+        else:
+            self.content[k] = Skeleton(v, k, self)
+        for listener in self.listeners:
+            listener.on_skel_set(self.name, k, v)
+        if self.parent is not None:
+            self.parent.on_child_set(self.name, k, v)
+
+    def __delitem__(self, k):
+        todel = self.content[k]
+        del self.content[k]
+        for listener in self.listeners:
+            listener.on_skel_delete(self.name, k, todel)
+        if self.parent is not None:
+            self.parent.on_child_delete(self.name, k, todel)
+
+    def __iter__(self):
+        return iter(self.content)
 
     def __len__(self):
-        return len(self.it)
+        return len(self.content)
 
-    def __add__(self, other):
-        newness = self.copy()
-        newness += other.copy()
-        return newness
+    def __repr__(self):
+        return repr(self.content)
 
     def __iadd__(self, other):
         self.update(other)
         return self
 
-    def __sub__(self, other):
-        newness = self.copy()
-        newness -= other.copy()
-        return newness
+    def __add__(self, other):
+        selfie = self.copy()
+        selfie.update(other)
+        return selfie
 
     def __isub__(self, other):
-        assert(isinstance(other, Skeleton))
-        kitr = other.iteritems()
-        for (k, v) in kitr:
+        if self.rowdict and self.content == other.content:
+            self.content = {}
+            return
+        for (k, v) in other.iteritems():
             if k not in self:
                 continue
             elif v == self[k]:
-                assert(isinstance(self[k], Skeleton))
-                assert(isinstance(v, Skeleton))
                 del self[k]
             elif self[k].rowdict:
                 continue
             else:
-                assert(isinstance(self[k], Skeleton))
-                assert(isinstance(v, Skeleton))
                 self[k] -= v
         return self
 
-    def __repr__(self):
-        if isinstance(self.it, dict):
-            reprable = self.it
-        else:
-            reprable = {}
-            for (k, v) in SkeletonListItemIterator(self):
-                reprable[k] = v
-        return repr(reprable)
+    def __sub__(self, other):
+        selfie = self.copy()
+        selfie -= other
+        return selfie
 
-    def __eq__(self, other):
-        if isinstance(other, Skeleton):
-            return self.it == other.it
-        elif isinstance(other, dict):
-            return self.typ is dict and self.it == other
-        else:
-            return self.typ is list and self.it == other
+    def keys(self):
+        return sorted(self.content.keys())
 
-    def __dict__(self):
-        if self.rowdict:
-            return self.it
-        elif isinstance(self.it, list):
-            r = {}
-            for (k, v) in SkeletonListItemIterator(self):
-                r[k] = v.__dict__()
-            return r
-        else:
-            r = {}
-            for (k, v) in self.it.iteritems():
-                r[k] = v.__dict__()
-            return r
-
-    def __getitem__(self, k):
-        if isinstance(self.it, dict):
-            if k not in self.it and not self.rowdict:
-                self.it[k] = Skeleton({}, parent=self)
-            return self.it[k]
-        elif k in self.inhabited:
-            return self.it[k]
-        else:
-            raise KeyError("Key not in skeleton: {0}".format(k))
-
-    def __delitem__(self, k):
-        self.inhabited.discard(k)
-        del self.it[k]
+    def on_child_set(self, child, k, v):
         for listener in self.listeners:
-            listener.on_skel_delete((self,), k)
+            listener.on_skel_set((self.name, child), k, v)
         if self.parent is not None:
-            self.parent.on_child_delete((self,), k)
+            self.parent.on_child_set((self.name, child), k, v)
 
-    def __iter__(self):
-        if isinstance(self.it, dict):
-            return iter(self.it)
-        else:
-            return iter(self.inhabited)
-
-    def __setitem__(self, k, v):
-        if isinstance(k, int):
-            if len(self.it) == 0:
-                self.it = []
-            if not isinstance(self.it, list):
-                raise TypeError("I need a list here")
-            while len(self.it) <= k:
-                if isinstance(v, Skeleton):
-                    self.it.append(Skeleton({}, parent=self))
-                else:
-                    self.it.append(Skeleton(type(v)(), parent=self))
-            self.it[k] = Skeleton(v, parent=self)
-            self.inhabited.add(k)
-        elif v.__class__ not in (list, dict, Skeleton):
-            assert(len(self.it) == 0 or self.rowdict)
-            self.it[k] = v
-        else:
-            assert(not isinstance(k, int))
-            self.it[k] = Skeleton(v, parent=self)
+    def on_child_delete(self, child, k, v):
         for listener in self.listeners:
-            listener.on_skel_set((self,), k, self[k])
+            listener.on_skel_delete((self.name, child), k, v)
         if self.parent is not None:
-            self.parent.on_child_set((self,), k, self[k])
+            self.parent.on_child_delete((self.name, child), k, v)
 
     def key_before(self, k):
-        assert(isinstance(self.it, list))
-        anterior = [j for j in self.inhabited
-                    if j < k]
+        anterior = [j for j in self.content.iterkeys() if j < k]
         if anterior == []:
             raise KeyError("There is nothing before {0}".format(k))
         return max(anterior)
 
     def key_after(self, k):
-        assert(isinstance(self.it, list))
-        posterior = [m for m in self.inhabited
-                     if m > k]
+        posterior = [j for j in self.content.iterkeys() if j > k]
         if posterior == []:
             raise KeyError("There is nothing after {0}".format(k))
         return min(posterior)
 
-    def keys(self):
-        if isinstance(self.it, dict):
-            return self.it.keys()
-        else:
-            return sorted(list(self.inhabited))
-
-    def viewkeys(self):
-        if isinstance(self.it, dict):
-            return self.it.viewkeys()
-        else:
-            return self.inhabited
-
-    def iterkeys(self):
-        if isinstance(self.it, dict):
-            return self.it.iterkeys()
-        else:
-            return iter(sorted(list(self.inhabited)))
-
-    def iteritems(self):
-        if isinstance(self.it, dict):
-            return self.it.iteritems()
-        else:
-            return SkeletonListItemIterator(self)
-
-    def itervalues(self):
-        if isinstance(self.it, dict):
-            return self.it.itervalues()
-        else:
-            return SkeletonListIterator(self)
-
-    def before(self, k):
-        ok = max([key for key in self.it.iterkeys() if key < k])
-        return self.it[ok]
-
     def copy(self):
-        # Sort of a deep copy but doesn't contain any lineage. This is
-        # actually what I want when I'm doing "set difference,"
-        # because then I'm not deleting anything from the original,
-        # and I don't want any listeners to get that impression.
-        if isinstance(self.it, list):
-            return Skeleton([that.copy() for that in self.it])
-        elif self.rowdict:
-            return Skeleton(dict(self.it))
+        if self.rowdict:
+            return Skeleton(dict(self.content))
         else:
             r = {}
-            for (k, v) in self.it.iteritems():
+            for (k, v) in self.content.iteritems():
                 r[k] = v.copy()
             return Skeleton(r)
 
     def deepcopy(self):
-        # This one DOES contain the lineage
         if self.rowdict:
-            return Skeleton(self.it, self.parent, self.listeners)
+            return Skeleton(self.content, self.name,
+                            self.parent, self.listeners)
         else:
-            it = {}
-            for (k, v) in self.it.iteritems():
-                it[k] = v.deepcopy()
-            return Skeleton(it, self.parent, self.listeners)
-
-    def iterrows(self):
-        return SkeletonIterator(self)
-
-    def isrowdict(self):
-        if len(self.it) == 0 or isinstance(self.it, list):
-            return False
-        for v in self.itervalues():
-            if v.__class__ in (Skeleton, dict, list):
-                return False
-        return True
+            r = {}
+            for (k, v) in self.content.iteritems():
+                r[k] = v.deepcopy()
+            return Skeleton(r, self.name, self.parent,
+                            self.listeners)
 
     def update(self, skellike):
-        if skellike.__class__ in (dict, Skeleton):
-            kitr = skellike.iteritems()
-        else:
-            kitr = ListItemIterator(skellike)
-        for (k, v) in kitr:
-            if v.__class__ in (dict, list):
-                v = Skeleton(v, parent=self)
-                if v.rowdict:
-                    self[k] = v
-                    continue
-            elif self.rowdict or self.it == {}:
+        for (k, v) in skellike.iteritems():
+            if v.rowdict:
                 self[k] = v
                 continue
-            if not isinstance(v, Skeleton):
-                continue
-            if isinstance(self.it, dict):
-                if k in self.it:
-                    self[k].update(v)
-                else:
-                    self[k] = v
+            v = Skeleton(v, k, self)
+            if k in self.content:
+                self.content[k].update(v)
             else:
-                if k in self.keys() and isinstance(self.it[k], Skeleton):
-                    self.it[k].update(v)
-                else:
-                    self[k] = v
+                self.content[k] = v
 
-    def on_child_set(self, child, k, v):
-        chain = (self, child)
-        logger.debug("Child of %s set", str(self.keys()))
-        for listener in self.listeners:
-            listener.on_skel_set(chain, k, v)
-        if self.parent is not None:
-            self.parent.on_child_set(chain, k, v)
+    def add_listener(self, listener):
+        self.listeners.add(listener)
 
-    def on_child_delete(self, child, k):
-        chain = (self, child)
-        for listener in self.listeners:
-            listener.on_skel_delete(chain, k)
-        if self.parent is not None:
-            self.parent.on_child_delete(chain, k)
-
-    def add_listener(self, l):
-        logger.debug("Adding listener: {0} To skeleton: {1}".format(l, self))
-        self.listeners.add(l)
+    def iterrows(self):
+        return SkelRowIter(self)
 
 
 def empty_skel():
@@ -561,9 +410,9 @@ and your table will be ready.
 
         def gen_sql_insert(rowdicts, tabname):
             if tabname in rowdicts:
-                itr = SkeletonIterator(rowdicts[tabname])
+                itr = Skeleton(rowdicts[tabname]).iterrows()
             else:
-                itr = SkeletonIterator(rowdicts)
+                itr = Skeleton(rowdicts).iterrows()
             if len(itr) == 0 or tabname not in tablenames:
                 raise EmptyTabdict
             qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
@@ -1066,7 +915,7 @@ class TerminableImg:
                 rd2 = dict(self.imagery[parent][tick_from])
                 rd2["branch"] = branch
                 if branch not in self.imagery:
-                    self.imagery[branch] = []
+                    self.imagery[branch] = {}
                 self.imagery[branch][rd2["tick_from"]] = rd2
                 if (
                         not started and prev is not None and
@@ -1093,7 +942,7 @@ class TerminableInteractivity:
                 branch in self.indefinite_interactivity and
                 tick >= self.indefinite_interactivity[branch]):
             return True
-        for rd in SkeletonIterator(self.interactivity):
+        for rd in self.interactivity.iterrows():
             if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
                 return True
         return False
@@ -1106,7 +955,7 @@ class TerminableInteractivity:
                 rd2 = dict(self.interactivity[parent][tick_from])
                 rd2["branch"] = branch
                 if branch not in self.interactivity:
-                    self.interactivity[branch] = []
+                    self.interactivity[branch] = {}
                 self.interactivity[branch][rd2["tick_from"]] = rd2
                 if (
                         not started and prev is not None and
@@ -1190,55 +1039,6 @@ class DictValues2DIterator:
         except (AttributeError, TypeError, StopIteration):
             self.layer2 = self.layer1.next().itervalues()
             return self.layer2.next()
-
-
-class SkeletonIterator:
-    # TODO: Something is not quite right here
-    def __init__(self, skellike):
-        if isinstance(skellike, Skeleton):
-            self.skel = skellike
-        else:
-            self.skel = Skeleton(skellike)
-        self.ptrs = deque([self.skel])
-        self.l = None
-        self.keyses = [self.skel.keys()]
-
-    def __len__(self):
-        if self.l is not None:
-            return self.l
-        i = 0
-        h = SkeletonIterator(self.skel)
-        while True:
-            try:
-                h.next()
-                i += 1
-            except StopIteration:
-                self.l = i
-                return i
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        while len(self.ptrs) > 0:
-            try:
-                ptr = self.ptrs.pop()
-                keys = self.keyses.pop()
-            except IndexError:
-                raise StopIteration
-            if ptr.rowdict:
-                return ptr
-            else:
-                try:
-                    k = keys.pop()
-                except IndexError:
-                    continue
-                if len(keys) > 0:
-                    self.ptrs.append(ptr)
-                    self.keyses.append(keys)
-                self.ptrs.append(ptr[k])
-                self.keyses.append(ptr[k].keys())
-        raise StopIteration
 
 
 class PortalException(Exception):
@@ -1373,7 +1173,7 @@ class Timestream:
         self.branchdict = td["timestream"]
         self.graph = Graph(directed=True)
         self.graph.add_vertices(2)
-        self.graph.vs["tick"] = [0, 0]
+        self.graph.vs[ascii("tick")] = [0, 0]
         self.graph.add_edge(0, 1, branch=0)
         self.branch_edges[0].add(0)
         self.branch_head = {0: self.graph.vs[0]}
@@ -1387,7 +1187,7 @@ class Timestream:
         # representing it.
         self.update()
         for tab in self.tabs_for_update:
-            self.closet.skeleton[tab].listeners.add(self)
+            self.closet.skeleton[tab].add_listener(self)
 
     def __hash__(self):
         b = []
@@ -1406,11 +1206,17 @@ class Timestream:
                 "attribute {0}".format(attrn))
 
     def on_skel_set(self, chain, k, v):
-        for rd in v.iterrows():
+        if isinstance(chain, tuple):
+            assert(chain[0] in self.closet.skeleton)
+            kee = chain[0]
+        else:
+            assert(chain in self.closet.skeleton)
+            kee = chain
+        for rd in self.closet.skeleton[kee].iterrows():
             if rd["tick_from"] > self.branchdict[rd["branch"]]["tick_to"]:
                 self.branchdict[rd["branch"]]["tick_to"] = rd["tick_from"]
 
-    def on_skel_delete(self, chain, k):
+    def on_skel_delete(self, skel, chain, k):
         pass
 
     def update(self, ts=0):
@@ -1447,8 +1253,8 @@ length zero.
                     if e_to is None:
                         e_to = self.latest_edge(branch)
                         v = self.graph.vs[e_to.target]
-                        growth = tick_to - v["tick"]
-                        v["tick"] += growth
+                        growth = tick_to - v[ascii("tick")]
+                        v[ascii("tick")] += growth
                     # Otherwise there's not really much to do here.
                 elif branch not in self.branchdict:
                     # I assume that this dict reflects the genealogy
@@ -1459,7 +1265,7 @@ length zero.
                     except KeyError:
                         assert(branch == 0)
                         self.graph.add_vertices(2)
-                        self.graph.vs["tick"] = [0, tick_to]
+                        self.graph.vs[ascii("tick")] = [0, tick_to]
                         self.graph.add_edge(0, 1, branch=0)
                         eid = self.graph.get_eid(0, 1)
                         self.branch_edges[0].add(eid)
@@ -1472,7 +1278,7 @@ length zero.
             e = self.graph.es[e]
         vo = self.graph.vs[e.source]
         vd = self.graph.vs[e.target]
-        return vd["tick"] - vo["tick"]
+        return vd[ascii("tick")] - vo[ascii("tick")]
 
     def sanitize_vert(self, v):
         if isinstance(v, Vertex):
@@ -1503,18 +1309,18 @@ length zero.
         (vert_from, vi1) = self.sanitize_vert(vert_from)
         (vert_to, vi2) = self.sanitize_vert(vert_to)
         assert(branch in self.branchdict)
-        assert(vert_from["tick"] <= vert_to["tick"])
+        assert(vert_from[ascii("tick")] <= vert_to[ascii("tick")])
         if branch not in self.branch_head:
             self.branch_head[branch] = vert_from
         self.graph.add_edge(vi1, vi2, branch=branch)
         eid = self.graph.get_eid(vi1, vi2)
         self.branch_edges[branch].add(eid)
         p = self.branchdict[branch]["parent"]
-        if vert_from["tick"] < self.branchdict[branch]["tick_from"]:
+        if vert_from[ascii("tick")] < self.branchdict[branch]["tick_from"]:
             a = vert_from["tick"]
         else:
             a = self.branchdict[branch]["tick_from"]
-        if vert_to["tick"] > self.branchdict[branch]["tick_to"]:
+        if vert_to[ascii("tick")] > self.branchdict[branch]["tick_to"]:
             z = vert_to["tick"]
         else:
             z = self.branchdict[branch]["tick_to"]
@@ -1527,7 +1333,7 @@ length zero.
 
     def delete_edge(self, e):
         (e, eid) = self.sanitize_edge(e)
-        old_branch = e["branch"]
+        old_branch = e[ascii("branch")]
         self.branch_edges[old_branch].discard(eid)
         self.graph.delete_edges(eid)
 
@@ -1542,7 +1348,7 @@ length zero.
             vert = self.graph.vs[vert]
         try:
             eid = self.graph.incident(vert)[0]
-            return self.graph.es[eid]["branch"]
+            return self.graph.es[eid][ascii("branch")]
         except:
             return -1
 
@@ -1550,7 +1356,7 @@ length zero.
         (e, eid) = self.sanitize_edge(e)
         former = self.graph.vs[e.source]
         latter = self.graph.vs[e.target]
-        old_branch = e["branch"]
+        old_branch = e[ascii("branch")]
         v = self.add_vert(tick)
         i = v.index
         e1 = self.add_edge(old_branch, former, i)
@@ -1585,7 +1391,7 @@ length zero.
         """Return the edge that contains the given tick in the given branch,
 or None if no such edge exists."""
         v = self.branch_head[branch]
-        if tick < v["tick"]:
+        if tick < v[ascii("tick")]:
             raise Exception("This branch started after that tick.")
         return self.successor_on_branch_tick(v, branch, tick)
 
@@ -1593,7 +1399,7 @@ or None if no such edge exists."""
         """Traverse the graph starting from the given vertex. Return the edge
 containing the given tick in the given branch. If it doesn't exist,
 return None."""
-        if tick == v["tick"]:
+        if tick == v[ascii("tick")]:
             # I'll consider ticks coinciding exactly with a vertex to
             # be in the descendant edge in that branch.
             if self.vertex_in_branch(v, branch):
@@ -1605,13 +1411,13 @@ return None."""
             e = self.graph.es[eid]
             v_to = self.graph.vs[e.target]
             if eid in self.branch_edges[branch]:
-                if v_to["tick"] > tick:
+                if v_to[ascii("tick")] > tick:
                     return e
                 else:
                     # None of these edges are right! You want the ones
                     # after this vertex here.
                     return self.successor_on_branch_tick(v_to, branch, tick)
-            elif v_to["tick"] >= tick:
+            elif v_to[ascii("tick")] >= tick:
                 return e
         return None
 
@@ -1645,7 +1451,7 @@ tick."""
         while len(edges) > 0:
             e = self.graph.es[edges.pop()]
             v_e = self.graph.vs[e.target]
-            if v_e["tick"] > v_late["tick"]:
+            if v_e[ascii("tick")] > v_late[ascii("tick")]:
                 late = e
                 v_late = v_e
         return late
@@ -1654,7 +1460,7 @@ tick."""
         """Make the branch so many ticks longer."""
         edge = self.latest_edge(branch)
         vert = self.graph.vs[edge.target]
-        vert["tick"] += n
+        vert[ascii("tick")] += n
         self.branchdict[branch]["tick_to"] += n
 
     def extend_branch_to(self, branch, tick_to):
@@ -1668,8 +1474,8 @@ the branch's current end."""
             v2 = self.add_vert(tick_to)
             return self.add_edge(branch, v1, v2)
         vert = self.graph.vs[edge.target]
-        if tick_to > vert["tick"]:
-            vert["tick"] = tick_to
+        if tick_to > vert[ascii("tick")]:
+            vert[ascii("tick")] = tick_to
         if tick_to > self.branchdict[branch]["tick_to"]:
             self.branchdict[branch]["tick_to"] = tick_to
 

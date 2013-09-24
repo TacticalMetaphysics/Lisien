@@ -1040,6 +1040,7 @@ This is game-world time. It doesn't always go forwards.
         self.timestream.update()
 
     def more_time(self, branch_from, branch_to, tick_from, tick_to):
+        self.check_listeners()
         if branch_to in self.timestream.branchdict:
             rd = self.timestream.branchdict[branch_to]
             parent = rd["parent"]
@@ -1089,10 +1090,12 @@ This is game-world time. It doesn't always go forwards.
         else:
             tick_to = self.tick
         try:
+            logger.debug("Making more time in increment_branch")
             self.more_time(
                 self.branch, b,
                 self.tick, tick_to)
         except TimestreamException as te:
+            logger.debug(te)
             if b in self.timestream.branchdict:
                 # The branch already exists, so you can go there, but
                 # it starts later than you're trying to get to, so
@@ -1111,10 +1114,6 @@ This is game-world time. It doesn't always go forwards.
         self.time_travel(self.branch, self.tick + int(ticks))
 
     def time_travel_inc_branch(self, branches=1):
-        if not hasattr(self, 'beepboop'):
-            self.beepboop = True
-            import pdb
-            pdb.set_trace()
         b = self.branch + int(branches)
         self.increment_branch(branches)
         self.time_travel(b, self.tick)
@@ -1147,10 +1146,16 @@ This is game-world time. It doesn't always go forwards.
     def checkpoint(self):
         self.old_skeleton = self.skeleton.copy()
 
-    def check_locs(self):
-        for dimension in self.dimensions:
-            for thing in dimension.things:
-                thing.check_locs()
+    def check_listeners(self):
+        if len(self.skeleton) < 1:
+            logger.debug("No skeleton.")
+            return
+        for (tabn, skel) in self.skeleton.iteritems():
+            if len(skel) < 1:
+                logger.debug("No skeleton for table {0}.".format(tabn))
+                return
+            for (primkey, subskel) in skel.iteritems():
+                logger.debug("In {0}, {1} has {2} listeners.".format(tabn, primkey, len(subskel.listeners)))
 
 def mkdb(DB_NAME='default.sqlite'):
     def isdir(p):

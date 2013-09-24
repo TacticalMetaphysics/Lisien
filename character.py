@@ -209,9 +209,9 @@ item's name, and the name of the attribute.
         if rd["dimension"] not in self.thingdict:
             self.thingdict[rd["dimension"]] = {}
         if rd["thing"] not in self.thingdict[rd["dimension"]]:
-            self.thingdict[rd["dimension"]][rd["thing"]] = []
+            self.thingdict[rd["dimension"]][rd["thing"]] = {}
         if rd["branch"] not in self.thingdict[rd["dimension"]][rd["thing"]]:
-            self.thingdict[rd["dimension"]][rd["thing"]][rd["branch"]] = []
+            self.thingdict[rd["dimension"]][rd["thing"]][rd["branch"]] = {}
         self.thingdict[
             rd["dimension"]][rd["thing"]][rd["branch"]][rd["tick_from"]] = rd
 
@@ -264,9 +264,9 @@ item's name, and the name of the attribute.
         if rd["dimension"] not in self.placedict:
             self.placedict[rd["dimension"]] = {}
         if rd["place"] not in self.placedict[rd["dimension"]]:
-            self.placedict[rd["dimension"]][rd["place"]] = []
+            self.placedict[rd["dimension"]][rd["place"]] = {}
         if rd["branch"] not in self.placedict[rd["dimension"]][rd["place"]]:
-            self.placedict[rd["dimension"]][rd["place"]][rd["branch"]] = []
+            self.placedict[rd["dimension"]][rd["place"]][rd["branch"]] = {}
         self.placedict[
             rd["dimension"]][rd["place"]][rd["branch"]][rd["tick_from"]] = {
             "character": str(self),
@@ -463,11 +463,7 @@ item's name, and the name of the attribute.
     def new_branch(self, parent, branch, tick):
         l = [
             (self.add_thing_by_rd,
-             ThingSkelBranchIter(self.thingdict, parent)),
-            (self.add_place_by_rd, self.placedict[parent].iterrows()),
-            (self.add_portal_by_rd, self.portaldict[parent].iterrows()),
-            (self.add_stat_by_rd, self.statdict[parent].iterrows()),
-            (self.add_skill_by_rd, self.skilldict[parent].iterrows())]
+             ThingSkelBranchIter(self.thingdict, parent))]
         for (assigner, iterator) in l:
             prev = None
             started = False

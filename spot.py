@@ -193,7 +193,7 @@ class Spot(TerminableImg, TerminableInteractivity):
                 rd2 = dict(self.coord_lst[parent][tick_from])
                 rd2["branch"] = branch
                 if branch not in self.coord_lst:
-                    self.coord_lst[branch] = []
+                    self.coord_lst[branch] = {}
                 self.coord_lst[branch][rd2["tick_from"]] = rd2
                 if (
                         not started and prev is not None and
