@@ -157,6 +157,9 @@ this dimension, and laid out nicely."""
             thing.new_branch(parent, branch, tick)
         for e in self.graph.es:
             e["portal"].new_branch(parent, branch, tick)
+        for board in self.boards:
+            if board is not None:
+                board.new_branch(parent, branch, tick)
 
     def sanitize_vert(self, v):
         if isinstance(v, int):

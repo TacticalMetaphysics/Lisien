@@ -1023,100 +1023,42 @@ This is game-world time. It doesn't always go forwards.
         return self.time_travel(branch, tick)
 
     def time_travel(self, branch, tick):
-        if branch not in self.timestream.branchdict:
-            raise TimestreamException(
-                "Tried to time-travel to a branch that didn't exist yet")
-        rd = self.timestream.branchdict[branch]
-        if tick < rd["tick_from"]:
-            if rd["parent"] == branch:
-                raise TimestreamException(
-                    "Tried to travel to before the start of time")
-            return self.time_travel(rd["parent"], tick)
-        if rd["tick_to"] < tick:
-            rd["tick_to"] = tick
+        maxbranch = self.timestream.max_branch()
+        if branch > maxbranch + 1:
+            raise TimestreamException("Tried to travel too high a branch")
+        elif branch == maxbranch + 1:
+            self.increment_branch()
+        # will need to take other games-stuff into account than the
+        # thing_location
+        mintick = self.timestream.min_tick(branch, "thing_location")
+        if tick < mintick:
+            tick = mintick
         self.time_travel_history.append((self.branch, self.tick))
         self.branch = branch
         self.tick = tick
-        self.timestream.update()
-
-    def more_time(self, branch_from, branch_to, tick_from, tick_to):
-        self.check_listeners()
-        if branch_to in self.timestream.branchdict:
-            rd = self.timestream.branchdict[branch_to]
-            parent = rd["parent"]
-            old_tick_from = rd["tick_from"]
-            old_tick_to = rd["tick_to"]
-            if tick_to < old_tick_from:
-                raise TimestreamException(
-                    "Can't make a new branch that starts "
-                    "earlier than its parent.")
-            if tick_to > old_tick_to:
-                # TODO: This really demands special handling--
-                # STUFF may happen between old_tick_to and tick_to
-                self.timestream.branchdict[branch_to] = {
-                    "branch": branch_to,
-                    "parent": parent,
-                    "tick_from": old_tick_from,
-                    "tick_to": tick_to}
-                e = self.timestream.latest_edge(branch_to)
-                self.timestream.graph.vs[e.target]["tick"] = tick_to
-        else:
-            e = self.timestream.split_branch(
-                branch_from,
-                branch_to,
-                tick_from,
-                tick_to)
-            v = self.timestream.graph.vs[e.source]
-            self.timestream.branch_head[branch_to] = v
-            self.timestream.branchdict[branch_to] = {
-                "branch": branch_to,
-                "parent": branch_from,
-                # this is the first tick *in the branch*
-                "tick_from": tick_to,
-                "tick_to": tick_to}
-            for dimension in self.dimensions:
-                dimension.new_branch(branch_from, branch_to, tick_from)
-                for board in dimension.boards:
-                    board.new_branch(branch_from, branch_to, tick_from)
-            for character in self.characters:
-                character.new_branch(branch_from, branch_to, tick_from)
-        self.timestream.update()
 
     def increment_branch(self, branches=1):
         b = self.branch + int(branches)
-        rd = self.timestream.branchdict[self.branch]
-        if rd["tick_to"] < self.tick:
-            tick_to = rd["tick_to"]
+        mb = self.timestream.max_branch()
+        if b > mb:
+            # I dunno where you THOUGHT you were going
+            self.timestream.split_branch(self.branch)
+            self.new_branch(self.branch, self.branch+1, self.tick)
+            return self.branch + 1
         else:
-            tick_to = self.tick
-        try:
-            logger.debug("Making more time in increment_branch")
-            self.more_time(
-                self.branch, b,
-                self.tick, tick_to)
-        except TimestreamException as te:
-            logger.debug(te)
-            if b in self.timestream.branchdict:
-                # The branch already exists, so you can go there, but
-                # it starts later than you're trying to get to, so
-                # I'll put you at the start of that branch instead.
-                return self.time_travel(
-                    b, self.timestream.branchdict[b]["tick_from"])
-            else:
-                raise te
+            return b
+
+    def new_branch(self, parent, branch, tick):
+        for dimension in self.dimensions:
+            dimension.new_branch(parent, branch, tick)
+        for character in self.characters:
+            character.new_branch(parent, branch, tick)
 
     def time_travel_inc_tick(self, ticks=1):
-        rd = self.timestream.branchdict[self.branch]
-        if self.tick >= rd["tick_to"]:
-            self.more_time(
-                self.branch, self.branch,
-                rd["tick_from"], rd["tick_to"] + int(ticks))
-        self.time_travel(self.branch, self.tick + int(ticks))
+        self.time_travel(self.branch, self.tick+ticks)
 
     def time_travel_inc_branch(self, branches=1):
-        b = self.branch + int(branches)
-        self.increment_branch(branches)
-        self.time_travel(b, self.tick)
+        self.time_travel(self.increment_branch(branches), self.tick)
 
     def go(self, nope=None):
         self.updating = True
@@ -1146,16 +1088,6 @@ This is game-world time. It doesn't always go forwards.
     def checkpoint(self):
         self.old_skeleton = self.skeleton.copy()
 
-    def check_listeners(self):
-        if len(self.skeleton) < 1:
-            logger.debug("No skeleton.")
-            return
-        for (tabn, skel) in self.skeleton.iteritems():
-            if len(skel) < 1:
-                logger.debug("No skeleton for table {0}.".format(tabn))
-                return
-            for (primkey, subskel) in skel.iteritems():
-                logger.debug("In {0}, {1} has {2} listeners.".format(tabn, primkey, len(subskel.listeners)))
 
 def mkdb(DB_NAME='default.sqlite'):
     def isdir(p):

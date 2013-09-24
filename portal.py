@@ -19,7 +19,7 @@ class Portal:
           "destination": "text not null",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
-          "extant": "boolean not null default 0"},
+          "tick_to": "integer default null"},
          ("dimension", "origin", "destination", "branch", "tick_from"),
          {},
          [])]
@@ -64,7 +64,7 @@ class Portal:
 otherwise."""
         return True
 
-    def set_existence(self, exist=True, branch=None, tick_from=None):
+    def set_existence(self, branch=None, tick_from=None, tick_to=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
@@ -75,7 +75,7 @@ otherwise."""
             "destination": str(self.destination),
             "branch": branch,
             "tick_from": tick_from,
-            "extant": exist}
+            "tick_to": tick_to}
 
     def new_branch(self, parent, branch, tick):
         prev = None

@@ -693,7 +693,7 @@ So, return my index."""
             super(Calendar, self).__setattr__(attrn, val)
 
     def get_col_width(self):
-        branches = len(self.closet.timestream.branchdict)
+        branches = self.closet.timestream.max_branch() + 1
         if branches == 1:
             return self.width
         elif self.max_cols < branches:
@@ -793,7 +793,7 @@ would be good.
         slew = self.offx % self.col_width
         o = self.left_branch - slew
         d = self.left_branch + self.max_cols + slew
-        rightmostbranch = self.closet.timestream.hi_branch
+        rightmostbranch = self.closet.timestream.max_branch()
         if d > rightmostbranch + 1:
             d = rightmostbranch + 1
         if o < 0:
@@ -801,7 +801,6 @@ would be good.
         for branch in xrange(o, d):
             column = self.make_col(branch)
             colgrp = Group(self.group)
-            assert(column.start_tick is not None)
             for cell in iter(column):
                 group = colgrp
                 gonna_draw = (
@@ -906,16 +905,9 @@ Shows whatever the calendar is about, in that branch."""
         "parent": lambda self: self.calendar.make_col(
             self.closet.skeleton[
                 "timestream"][self.branch]["parent"]),
-        "start_tick": lambda self: {
-            True: lambda:
-            self.closet.skeleton["timestream"][int(self)]["tick_from"],
-            False: lambda: None
-        }[int(self) in self.closet.skeleton["timestream"]](),
-        "end_tick": lambda self: {
-            True: lambda:
-            self.closet.skeleton["timestream"][int(self)]["tick_to"],
-            False: lambda: None
-        }[int(self) in self.closet.skeleton["timestream"]]()}
+        "start_tick": lambda self:
+        self.closet.timestream.min_tick(self.branch),
+        "end_tick": lambda self: self.closet.timestream.max_tick(self.branch)}
 
     def __init__(self, calendar, branch, bgcolor=(255, 255, 255, 255)):
         """Get CalendarCol for the given branch in the given
@@ -923,10 +915,6 @@ Shows whatever the calendar is about, in that branch."""
         self.calendar = calendar
         self.branch = branch
         self.closet = self.calendar.closet
-        if self.branch not in self.closet.timestream.branchdict:
-            self.closet.more_time(
-                self.closet.branch, self.branch,
-                self.closet.tick, self.closet.tick)
         self.batch = self.calendar.batch
         self.style = self.calendar.style
         self.window = self.calendar.window

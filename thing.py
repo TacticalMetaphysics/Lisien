@@ -47,7 +47,6 @@ too.
 
     def __init__(self, closet, dimension, name):
         self.closet = closet
-        self.update_handlers = set()
         self.dimension = dimension
         self._name = str(name)
         self.new_branch_blank = False
@@ -76,14 +75,6 @@ too.
 
     def __contains__(self, that):
         return that.location is self
-
-    def register_update_handler(self, that):
-        self.update_handlers.add(that)
-
-    def update(self):
-        self.closet.timestream.update()
-        for handler in self.update_handlers:
-            handler(self)
 
     def assert_can_enter(self, it):
         """If I can't enter the given location, raise a LocationException.
@@ -151,13 +142,12 @@ Return an Effect representing the change.
             tick = self.closet.tick
         if branch not in self.locations:
             self.locations[branch] = {}
-        self.locations[branch].__setitem__(tick, {
+        self.locations[branch][tick] = {
             "dimension": str(self.dimension),
             "thing": str(self),
             "branch": branch,
             "tick_from": tick,
-            "location": str(loc)})
-#        assert(self.closet.timestream.branchdict[branch]["tick_to"] >= tick)
+            "location": str(loc)}
 
     def get_speed(self, branch=None, tick=None):
         lo = self.get_location(branch, tick)
@@ -266,7 +256,6 @@ other journey I may be on at the time."""
             prevtick += 1
         destplace = path[-1].dest
         self.set_location(destplace, int(branch), int(prevtick))
-        self.update()
 
     def new_branch(self, parent, branch, tick):
         if branch not in self.locations:
