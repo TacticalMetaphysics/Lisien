@@ -900,8 +900,6 @@ Shows whatever the calendar is about, in that branch."""
         ) * self.calendar.col_width,
         "window_right": lambda self:
         self.window_left + self.calendar.col_width,
-        "window_top": lambda self: self.calendar.tick_to_y(self.start_tick),
-        "window_bot": lambda self: self.calendar.tick_to_y(self.end_tick),
         "parent": lambda self: self.calendar.make_col(
             self.closet.skeleton[
                 "timestream"][self.branch]["parent"]),
@@ -998,6 +996,12 @@ instead, giving something like "in transit from A to B".
         otherwise use lambdas from CalendarCol.atrdic to compute it"""
         if attrn == "sprite":
             return self.calendar.col_sprite_dict[self]
+        elif attrn == "window_top":
+            return max(self.gen_window_ys())
+        elif attrn == "window_bot":
+            return min(self.gen_window_ys())
+        elif attrn == "cells":
+            return self.gen_cells()
         elif attrn in LocationCalendarCol.cal_attrs:
             return getattr(self.calendar, attrn)
         else:
@@ -1007,6 +1011,19 @@ instead, giving something like "in transit from A to B".
                 raise AttributeError(
                     """LocationCalendarCol does not have and
 cannot compute attribute {0}""".format(attrn))
+
+    def gen_cells(self):
+        it = self.locations.iterrows()
+        prev = self.locations.iterrows().next()
+        for rd in it:
+            yield CalendarCell(
+                self, prev["tick_from"], rd["tick_from"], prev["location"])
+            prev = rd
+
+    def gen_window_ys(self):
+        for rd in self.locations.iterrows():
+            yield self.calendar.tick_to_y(rd["tick_from"])
+        yield 0
 
 
 class ThingCalendarCol(CalendarCol):
