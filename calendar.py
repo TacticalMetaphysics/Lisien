@@ -52,26 +52,22 @@ class BranchConnector:
             self.column.in_view),
         "branch": lambda self: int(self.column)}
 
-    def __init__(self, column, color=(255, 0, 0, 255),
+    def __init__(self, column, space, color=(255, 0, 0, 255),
                  wedge_height=8, wedge_width=16):
         self.column = column
+        self.space = space
         self.calendar = self.column.calendar
         self.batch = self.calendar.batch
         self.window = self.calendar.window
         self.color = color
         self.wedge_height = wedge_height
         self.wedge_rx = wedge_width / 2
-        self.space = self.calendar.style.spacing * 2
         self.line_vertlist = None
         self.wedge_vertlist = None
 
     def __getattr__(self, attrn):
         """Look up computed attributes in the atrdic of the class."""
-        try:
-            return BranchConnector.atrdic[attrn](self)
-        except KeyError:
-            raise AttributeError(
-                "BranchConnector has no attribute named {0}".format(attrn))
+        return BranchConnector.atrdic[attrn](self)
 
     def get_wedge(self, batch, group):
         b = self.window_bot
@@ -793,7 +789,7 @@ would be good.
         slew = self.offx % self.col_width
         o = self.left_branch - slew
         d = self.left_branch + self.max_cols + slew
-        rightmostbranch = self.closet.timestream.max_branch()
+        rightmostbranch = self.closet.timestream.hi_branch
         if d > rightmostbranch + 1:
             d = rightmostbranch + 1
         if o < 0:
@@ -808,8 +804,13 @@ would be good.
                     cell.get_label(batch, group))
                 drawn.extend(gonna_draw)
             if int(column) != 0:
-                bc = BranchConnector(column)
-                bcgrp = colgrp
+                ts = self.closet.timestream
+                siblings = 0
+                for child in ts.children(ts.parent(int(column))):
+                    siblings += 1
+                space = self.style.spacing * (siblings + int(column))
+                bc = BranchConnector(column, space)
+                bcgrp = Group(self.wedgegroup)
                 drawn.append(bc.get_line(batch, bcgrp))
                 drawn.append(bc.get_wedge(batch, bcgrp))
             if int(column) == self.closet.branch:
@@ -902,10 +903,7 @@ Shows whatever the calendar is about, in that branch."""
         self.window_left + self.calendar.col_width,
         "parent": lambda self: self.calendar.make_col(
             self.closet.skeleton[
-                "timestream"][self.branch]["parent"]),
-        "start_tick": lambda self:
-        self.closet.timestream.min_tick(self.branch),
-        "end_tick": lambda self: self.closet.timestream.max_tick(self.branch)}
+                "timestream"][self.branch]["parent"])}
 
     def __init__(self, calendar, branch, bgcolor=(255, 255, 255, 255)):
         """Get CalendarCol for the given branch in the given
@@ -996,6 +994,12 @@ instead, giving something like "in transit from A to B".
         otherwise use lambdas from CalendarCol.atrdic to compute it"""
         if attrn == "sprite":
             return self.calendar.col_sprite_dict[self]
+        elif attrn == "start_tick":
+            return min(self.closet.timestream.ticks(
+                self.branch, "thing_location"))
+        elif attrn == "end_tick":
+            return max(self.closet.timestream.ticks(
+                self.branch, "thing_location"))
         elif attrn == "window_top":
             return max(self.gen_window_ys())
         elif attrn == "window_bot":
@@ -1005,12 +1009,7 @@ instead, giving something like "in transit from A to B".
         elif attrn in LocationCalendarCol.cal_attrs:
             return getattr(self.calendar, attrn)
         else:
-            try:
-                return CalendarCol.atrdic[attrn](self)
-            except KeyError:
-                raise AttributeError(
-                    """LocationCalendarCol does not have and
-cannot compute attribute {0}""".format(attrn))
+            return CalendarCol.atrdic[attrn](self)
 
     def gen_cells(self):
         it = self.locations.iterrows()

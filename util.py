@@ -8,8 +8,7 @@ import ctypes
 from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
-from igraph import Graph, Vertex, Edge
-from collections import deque, defaultdict, MutableMapping
+from collections import deque, MutableMapping
 
 logger = getLogger(__name__)
 
@@ -75,23 +74,24 @@ class SkelRowIter(object):
 
 
 class Skeleton(MutableMapping):
-    def __init__(self, content, name="", parent=None, listener=None):
+    def __init__(self, content, name="", parent=None,
+                 set_listener=None, del_listener=None):
         self.rowdict = None
         self.name = name
         self.parent = parent
-        self.listener = listener
+        self.set_listener = set_listener
+        self.del_listener = del_listener
         if isinstance(content, Skeleton):
             content = content.content
         self.content = {}
         for (k, v) in content.iteritems():
             if self.rowdict is None:
                 self.rowdict = v.__class__ in (str, int, float, type(None))
-            if self.rowdict:
+            elif self.rowdict is True:
                 assert(v.__class__ in (str, int, float, type(None)))
-                self.content[k] = v
             else:
                 assert(v.__class__ in (dict, Skeleton))
-                self.content[k] = Skeleton(v, k, self)
+            self[k] = v
 
     def __getitem__(self, k):
         return self.content[k]
@@ -102,16 +102,16 @@ class Skeleton(MutableMapping):
             self.content[k] = v
         else:
             self.content[k] = Skeleton(v, k, self)
-        if self.listener is not None:
-            self.listener.on_skel_set((str(self),), k, v)
+        if self.set_listener is not None:
+            self.listener((str(self),), k, v)
         if self.parent is not None:
             self.parent.on_child_set((str(self),), k, v)
 
     def __delitem__(self, k):
         todel = self.content[k]
         del self.content[k]
-        if self.listener is not None:
-            self.listener.on_skel_delete((str(self),), k, todel)
+        if self.del_listener is not None:
+            self.listener((str(self),), k, todel)
         if self.parent is not None:
             self.parent.on_child_delete((str(self),), k, todel)
 
@@ -202,23 +202,20 @@ class Skeleton(MutableMapping):
             else:
                 self.content[k] = v
 
-    def add_listener(self, listener):
-        self.listener = listener
-
     def iterrows(self):
         return SkelRowIter(self)
 
     def on_child_set(self, childn, k, v):
         qn = (str(self),) + childn
-        if self.listener is not None:
-            self.listener.on_skel_set(qn, k, v)
+        if self.set_listener is not None:
+            self.set_listener(qn, k, v)
         if self.parent is not None:
             self.parent.on_child_set(qn, k, v)
 
     def on_child_delete(self, childn, k, v):
         qn = (str(self),) + childn
-        if self.listener is not None:
-            self.listener.on_skel_delete(qn, k, v)
+        if self.del_listener is not None:
+            self.del_listener(qn, k, v)
         if self.parent is not None:
             self.parent.on_child_delete(qn, k, v)
 
@@ -1110,95 +1107,9 @@ def skel_nth_generator(skel, n):
         yield iters[-1].next()
 
 
-tab_depth = {
-    "character_places": 3,
-    "character_portals": 4,
-    "character_things": 3,
-    "character_skills": 2,
-    "character_stats": 2,
-    "pawn_img": 3,
-    "pawn_interactive": 3,
-    "portal": 3,
-    "spot_coords": 3,
-    "spot_img": 3,
-    "spot_interactive": 3,
-    "thing_location": 2}
-
-
-def gen_branches(skel, table=None):
-    if table is None:
-        for (tabn, n) in tab_depth.iteritems():
-            if n == 1:
-                for d in skel[tabn].itervalues():
-                    for k in d.iterkeys():
-                        yield k
-            else:
-                for d in skel_nth_generator(skel[tabn], n):
-                    for k in d.iterkeys():
-                        yield k
-    else:
-        n = tab_depth[table]
-        if n == 1:
-            for d in skel[tabn].itervalues():
-                for k in d.iterkeys():
-                    yield k
-        else:
-            for d in skel_nth_generator(skel[table], n):
-                for k in d.iterkeys():
-                    yield k
-
-
-def gen_ticks(skel, branch=None, table=None):
-    if branch is None and table is None:
-        for (tabn, n) in tab_depth.iteritems():
-            if n == 1:
-                for d in skel[tabn].itervalues():
-                    for k in d.iterkeys():
-                        yield k
-            else:
-                for d in skel_nth_generator(skel[tabn], n):
-                    for k in d.iterkeys():
-                        yield k
-    elif table is None:
-        for (tabn, n) in tab_depth.iteritems():
-            if n == 1:
-                for d in skel[tabn].itervalues():
-                    for k in d[branch].iterkeys():
-                        yield k
-            else:
-                n = tab_depth[tabn]
-                ptr = skel[tabn]
-                try:
-                    for i in xrange(0, n):
-                        ptr = ptr.itervalues().next()
-                except StopIteration:
-                    continue
-                for k in ptr[branch].iterkeys():
-                    yield k
-    elif branch is None:
-        n = tab_depth[table]
-        if n == 1:
-            for d in skel[table].itervalues():
-                for k in d[branch].iterkeys():
-                    yield k
-        else:
-            for d in skel_nth_generator(skel[table], n):
-                for k in d.iterkeys():
-                    yield k
-    else:
-        n = tab_depth[table]
-        if n == 1:
-            for k in skel[table][branch].iterkeys():
-                yield k
-        else:
-            ptr = skel[table]
-            for i in xrange(0, n):
-                ptr = ptr.itervalues().next()
-            for k in ptr[branch].iterkeys():
-                yield k
-
-
 class Timestream(object):
+    # I think updating the start and end ticks of a branch using
+    # listeners might be a good idea
     __metaclass__ = SaveableMetaclass
 
     tables = [
@@ -1210,21 +1121,124 @@ class Timestream(object):
          ["branch>=0", "parent=0 or parent<>branch"])
         ]
 
+    listen_tables = set([
+        "thing_location"])
+
+    tab_depth = {
+        "character_places": 3,
+        "character_portals": 4,
+        "character_things": 3,
+        "character_skills": 2,
+        "character_stats": 2,
+        "pawn_img": 3,
+        "pawn_interactive": 3,
+        "portal": 3,
+        "spot_coords": 3,
+        "spot_img": 3,
+        "spot_interactive": 3,
+        "thing_location": 2}
+
     def __init__(self, closet):
         self.closet = closet
         self.skeleton = self.closet.skeleton
+        self.hi_branch = 0
+        for tab in self.listen_tables:
+            self.skeleton[tab].set_listener = self.skel_set
 
-    def __getattr__(self, attrn):
-        if attrn == "hi_branch":
-            return self.max_branch()
-        else:
-            raise AttributeError("Timestream has no attribute {0}".format(attrn))
+    def skel_set(self, qn, k, v):
+        if k == "branch":
+            if v > self.hi_branch:
+                self.hi_branch = v
 
     def branches(self, table=None):
-        return gen_branches(self.skeleton, table)
+        if table is None:
+            return self.allbranches()
+        else:
+            return self.branchtable(table)
+
+    def branchtable(self, table):
+        n = self.tab_depth[table]
+        if n == 1:
+            for d in self.skeleton[table].itervalues():
+                for k in d.iterkeys():
+                    yield k
+        else:
+            for d in skel_nth_generator(self.skeleton[table], n):
+                for k in d.iterkeys():
+                    yield k
+
+    def allbranches(self):
+        for (tabn, n) in self.tab_depth.iteritems():
+            if n == 1:
+                for d in self.skeleton[tabn].itervalues():
+                    for k in d.iterkeys():
+                        yield k
+            else:
+                for d in skel_nth_generator(self.skeleton[tabn], n):
+                    for k in d.iterkeys():
+                        yield k
+
+    def allticks(self):
+        for (tabn, n) in self.tab_depth.iteritems():
+                if n == 1:
+                    for d in self.skeleton[tabn].itervalues():
+                        for k in d.iterkeys():
+                            yield k
+                else:
+                    for d in skel_nth_generator(self.skeleton[tabn], n):
+                        for k in d.iterkeys():
+                            yield k
+
+    def branchticks(self, branch):
+        for (tabn, n) in self.tab_depth.iteritems():
+            if n == 1:
+                for d in self.skeleton[tabn].itervalues():
+                    for k in d[branch].iterkeys():
+                        yield k
+            else:
+                n = self.tab_depth[tabn]
+                ptr = self.skeleton[tabn]
+                try:
+                    for i in xrange(0, n):
+                        ptr = ptr.itervalues().next()
+                except StopIteration:
+                    continue
+                for k in ptr[branch].iterkeys():
+                    yield k
+
+    def tabticks(self, table):
+        n = self.tab_depth[table]
+        if n == 1:
+            for d in self.skeleton[table]:
+                for k in d.iterkeys():
+                    yield k
+        else:
+            for d in skel_nth_generator(self.skeleton[table], n):
+                for k in d.iterkeys():
+                    yield k
+
+    def branchtabticks(self, branch, table):
+        n = self.tab_depth[table]
+        if n == 1:
+            for k in self.skeleton[table][branch].iterkeys():
+                yield k
+        else:
+            ptr = self.skeleton[table]
+            for i in xrange(0, n):
+                ptr = ptr.itervalues().next()
+            if branch in ptr:
+                for k in ptr[branch].iterkeys():
+                    yield k
 
     def ticks(self, branch=None, table=None):
-        return gen_ticks(self.skeleton, branch, table)
+        if branch is None and table is None:
+            return self.allticks()
+        elif table is None:
+            return self.branchticks(branch)
+        elif branch is None:
+            return self.tabticks(table)
+        else:
+            return self.branchtabticks(branch, table)
 
     def max_branch(self, table=None):
         r = max(self.branches(table))
@@ -1233,21 +1247,20 @@ class Timestream(object):
     def min_branch(self, table=None):
         return min(self.branches(table))
 
-    def new_branch(self, branch, parent):
-        self.skeleton["timestream"][branch] = {
-            "branch": branch,
-            "parent": parent}
-
-    def split_branch(self, branch):
-        self.new_branch(self.max_branch()+1, branch)
-
     def max_tick(self, branch=None, table=None):
-        return max(self.ticks(branch, table))
+        try:
+            return max(self.ticks(branch, table))
+        except (KeyError, ValueError):
+            return None
 
     def min_tick(self, branch=None, table=None):
-        return min(self.ticks(branch, table))
+        try:
+            return min(self.ticks(branch, table))
+        except (KeyError, ValueError):
+            return None
 
     def parent(self, branch):
+        assert(branch > 0)
         return self.skeleton["timestream"][branch]["parent"]
 
     def children(self, branch):
