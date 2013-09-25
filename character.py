@@ -182,7 +182,30 @@ item's name, and the name of the attribute.
     def __str__(self):
         return self._name
 
+    def has_thing_by_key(self, dimension, thing, branch=None, tick=None):
+        if tick is None:
+            tick = self.closet.tick
+        if (
+                dimension not in self.thingdict or
+                thing not in self.thingdict[dimension] or
+                (branch is not None and
+                 branch not in self.thingdict[dimension][thing])):
+            return False
+        if branch is None:
+            rditer = self.thingdict[dimension][thing].iterrows()
+        else:
+            rditer = self.thingdict[dimension][thing][branch].iterrows()
+        for rd in rditer:
+            if rd["tick_from"] <= tick:
+                if rd["tick_to"] is None or rd["tick_to"] <= tick:
+                    return True
+        return False
+
     def add_thing_by_rd(self, rd):
+        if self.has_thing_by_key(
+                rd["dimension"], rd["thing"],
+                rd["branch"], rd["tick_from"]):
+            raise TimeParadox("I already have that then")
         if rd["dimension"] not in self.thingdict:
             self.thingdict[rd["dimension"]] = {}
         if rd["thing"] not in self.thingdict[rd["dimension"]]:
