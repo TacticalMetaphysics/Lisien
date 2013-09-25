@@ -184,8 +184,6 @@ given name.
             (self.show_menu, ONE_ARG_RE),
             'make_generic_place':
             (self.make_generic_place, ONE_ARG_RE),
-            'increment_branch':
-            (self.increment_branch, ONE_ARG_RE),
             'time_travel_inc_tick':
             (lambda mi, ticks: self.time_travel_inc_tick(ticks), ONE_ARG_RE),
             'time_travel':
@@ -1027,7 +1025,8 @@ This is game-world time. It doesn't always go forwards.
         if branch > maxbranch + 1:
             raise TimestreamException("Tried to travel too high a branch")
         elif branch == maxbranch + 1:
-            self.increment_branch()
+            self.timestream.split_branch(self.branch)
+            self.new_branch(self.branch, self.branch+1, tick)
         # will need to take other games-stuff into account than the
         # thing_location
         mintick = self.timestream.min_tick(branch, "thing_location")
@@ -1036,17 +1035,6 @@ This is game-world time. It doesn't always go forwards.
         self.time_travel_history.append((self.branch, self.tick))
         self.branch = branch
         self.tick = tick
-
-    def increment_branch(self, branches=1):
-        b = self.branch + int(branches)
-        mb = self.timestream.max_branch()
-        if b > mb:
-            # I dunno where you THOUGHT you were going
-            self.timestream.split_branch(self.branch)
-            self.new_branch(self.branch, self.branch+1, self.tick)
-            return self.branch + 1
-        else:
-            return b
 
     def new_branch(self, parent, branch, tick):
         for dimension in self.dimensions:
@@ -1058,7 +1046,7 @@ This is game-world time. It doesn't always go forwards.
         self.time_travel(self.branch, self.tick+ticks)
 
     def time_travel_inc_branch(self, branches=1):
-        self.time_travel(self.increment_branch(branches), self.tick)
+        self.time_travel(self.branch+branches, self.tick)
 
     def go(self, nope=None):
         self.updating = True

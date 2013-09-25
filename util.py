@@ -206,7 +206,18 @@ class Skeleton(MutableMapping):
         self.listener = listener
 
     def iterrows(self):
-        return SkelRowIter(self)
+        if self.rowdict:
+            yield self
+        else:
+            for v in self.itervalues():
+                for rd in v.iterrows():
+                    yield rd
+
+    def row_count(self):
+        i = 0
+        for rd in self.iterrows():
+            i += 1
+        return i
 
     def on_child_set(self, childn, k, v):
         qn = (str(self),) + childn
@@ -466,8 +477,8 @@ and your table will be ready.
 
         def gen_sql_select(keydicts, tabname):
             keys_in_use = set()
-            kitr = Skeleton(keydicts).iterrows()
-            for keyd in kitr:
+            skel = Skeleton(keydicts)
+            for keyd in skel.iterrows():
                 for k in keyd:
                     keys_in_use.add(k)
             keys = [key for key in primarykeys[tabname] if key in keys_in_use]
@@ -475,7 +486,7 @@ and your table will be ready.
                 " AND ".join(
                     ["{0}=?".format(key) for key in keys]
                 ))
-            ands = [andstr] * len(kitr)
+            ands = [andstr] * skel.row_count()
             colstr = colnamestr[tabname]
             orstr = " OR ".join(ands)
             return "SELECT {0} FROM {1} WHERE {2}".format(
@@ -1194,6 +1205,8 @@ def gen_ticks(skel, branch=None, table=None):
             ptr = skel[table]
             for i in xrange(0, n):
                 ptr = ptr.itervalues().next()
+            if branch not in ptr:
+                return
             for k in ptr[branch].iterkeys():
                 yield k
 
@@ -1245,7 +1258,10 @@ class Timestream(object):
         return max(self.ticks(branch, table))
 
     def min_tick(self, branch=None, table=None):
-        return min(self.ticks(branch, table))
+        try:
+            return min(self.ticks(branch, table))
+        except (KeyError, ValueError):
+            return 0
 
     def parent(self, branch):
         return self.skeleton["timestream"][branch]["parent"]
