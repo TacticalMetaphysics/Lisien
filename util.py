@@ -694,29 +694,6 @@ def keyify_dict(d, keytup):
         ptr = ptr[key]
 
 
-def tickly_get(db, get_from, branch, tick):
-    if branch is None:
-        branch = db.branch
-    if tick is None:
-        tick = db.tick
-    if branch not in get_from:
-        return None
-    if tick in get_from[branch]:
-        return get_from[branch][tick]
-    for (tick_from, (val, tick_to)) in get_from[branch].iteritems():
-        if tick_from <= tick and tick <= tick_to:
-            return val
-    return None
-
-
-def untuple(list_o_tups):
-    r = []
-    for tup in list_o_tups:
-        for val in tup:
-            r.append(val)
-    return r
-
-
 def dictify_row(row, colnames):
     return dict(zip(colnames, row))
 
