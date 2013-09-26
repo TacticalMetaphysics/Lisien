@@ -10,7 +10,6 @@ from util import (
     JourneyException)
 from re import match, compile
 from logging import getLogger
-import pdb
 
 
 __metaclass__ = SaveableMetaclass
@@ -40,8 +39,7 @@ too.
           "tick_from": "integer not null default 0",
           "location": "text not null"},
          ("dimension", "thing", "branch", "tick_from"),
-         {"dimension, thing": ("thing", "dimension, name"),
-          "dimension, location": ("place", "dimension, name")},
+         {},
          [])]
     basic_speed = 0.1
 

@@ -670,7 +670,8 @@ So, return my index."""
         return self.idx
 
     def __iter__(self):
-        return self.columns
+        for branch in self.closet.timestream.branchdict.iterkeys():
+            yield self.make_col(branch)
 
     def __getattr__(self, attrn):
         """Compute the attribute using the correct lambda from my atrdic"""
@@ -808,7 +809,8 @@ would be good.
                 siblings = 0
                 for child in ts.children(ts.parent(int(column))):
                     siblings += 1
-                space = self.style.spacing * (siblings + int(column))
+                space = self.style.spacing * (
+                    siblings + int(column) - self.left_branch)
                 bc = BranchConnector(column, space)
                 bcgrp = Group(self.wedgegroup)
                 drawn.append(bc.get_line(batch, bcgrp))
@@ -829,59 +831,6 @@ would be good.
             except AttributeError:
                 pass
         self.last_draw = None
-
-
-class CalendarColCellIter:
-    """Lazy iterator over the cells in a column.
-
-First argument is the column itself. Second argument is the skeleton
-of its schedule, with the first level key being the branch ID. Third
-argument is the name of the field to be displayed in the cell.
-
-    """
-    def __init__(self, col, skel, field=None):
-        self.column = col
-        self.skeleton = skel
-        self.realiter = skel.iterkeys()
-        self.prevkey = self.realiter.next()
-        self.field = field
-        self.stop_iteration = False
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        if self.stop_iteration:
-            raise StopIteration
-        rd = self.skeleton[self.prevkey]
-        tick_from = rd["tick_from"]
-        text = rd[self.field]
-        try:
-            key = self.realiter.next()
-            rd = self.skeleton[key]
-            tick_to = rd["tick_from"]
-            self.prevkey = key
-        except StopIteration:
-            tick_to = None
-            self.stop_iteration = True
-        return CalendarCell(self.column, tick_from, tick_to, text)
-
-
-class CalendarColIter:
-    """Iterator over the columns in a given calendar. Lazily evaluated."""
-    def __init__(self, cal):
-        self.calendar = cal
-        self.branchiter = self.calendar.closet.timestream.branchdict.iterkeys()
-
-    def make_col(self, branch):
-        """Return a new column for the given branch."""
-        return self.calendar.make_col(branch)
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        return self.make_col(self.branchiter.next())
 
 
 class CalendarCol:
@@ -983,11 +932,28 @@ instead, giving something like "in transit from A to B".
         self.dimension = self.calendar.dimension
         self.thing = self.calendar.thing
         self.locations = self.thing.locations[branch]
-#        self.coverage = self.character.thingdict[
-#            str(self.dimension)][str(self.thing)][branch]
+        self.coverage = self.character.thingdict[
+            str(self.dimension)][str(self.thing)][branch]
 
     def __iter__(self):
-        return CalendarColCellIter(self, self.locations, "location")
+        rowiter = self.locations.iterrows()
+        prev = rowiter.next()
+        for rd in rowiter:
+            for (a, b) in self.gen_cover_between(
+                    prev["tick_from"], rd["tick_from"]):
+                yield CalendarCell(
+                    self, a, b, rd["location"])
+            prev = rd
+        for rd in self.coverage.iterrows():
+            if rd["tick_from"] > prev["tick_from"]:
+                yield CalendarCell(
+                    self, rd["tick_from"], rd["tick_to"], prev["location"])
+            elif rd["tick_to"] is None:
+                yield CalendarCell(
+                    self, prev["tick_from"], None, prev["location"])
+            elif rd["tick_to"] > prev["tick_from"]:
+                yield CalendarCell(
+                    self, prev["tick_from"], rd["tick_to"], prev["location"])
 
     def __getattr__(self, attrn):
         """Try looking up the attribute in the calendar first;
@@ -1001,15 +967,32 @@ instead, giving something like "in transit from A to B".
             return max(self.closet.timestream.ticks(
                 self.branch, "thing_location"))
         elif attrn == "window_top":
-            return max(self.gen_window_ys())
+            return self.calendar.tick_to_y(min(self.locations[self.branch]))
         elif attrn == "window_bot":
-            return min(self.gen_window_ys())
+            return 0
         elif attrn == "cells":
             return self.gen_cells()
         elif attrn in LocationCalendarCol.cal_attrs:
             return getattr(self.calendar, attrn)
         else:
             return CalendarCol.atrdic[attrn](self)
+
+    def gen_cover_between(self, tick_from, tick_to):
+        for rd in self.coverage.iterrows():
+            if (
+                    rd["tick_to"] is None or
+                    rd["tick_to"] < tick_from or
+                    rd["tick_from"] > tick_to):
+                continue
+            if rd["tick_from"] <= tick_from:
+                a = tick_from
+            else:
+                a = rd["tick_from"]
+            if rd["tick_to"] >= tick_to:
+                b = tick_to
+            else:
+                b = rd["tick_to"]
+            yield (a, b)
 
     def gen_cells(self):
         it = self.locations.iterrows()
@@ -1026,25 +1009,20 @@ instead, giving something like "in transit from A to B".
 
 
 class ThingCalendarCol(CalendarCol):
-    def __iter__(self):
-        return CalendarColCellIter(self, self.coverage)
+    pass
 
 
 class PlaceCalendarCol(CalendarCol):
-    def __iter__(self):
-        return CalendarColCellIter(self, self.coverage)
+    pass
 
 
 class PortalCalendarCol(CalendarCol):
-    def __iter__(self):
-        return CalendarColCellIter(self, self.coverage)
+    pass
 
 
 class StatCalendarCol(CalendarCol):
-    def __iter__(self):
-        return CalendarColCellIter(self, self.values, "value")
+    pass
 
 
 class SkillCalendarCol(CalendarCol):
-    def __iter__(self):
-        return CalendarColCellIter(self, self.decks, "deck")
+    pass
