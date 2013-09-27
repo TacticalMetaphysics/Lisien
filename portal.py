@@ -1,5 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 from util import SaveableMetaclass
 from logging import getLogger
 
@@ -29,11 +32,6 @@ class Portal:
         self.origin = origin
         self.dest = destination
         self.destination = destination
-        self.indefinite_existence = {}
-        for rd in self.existence.iterrows():
-            if rd["tick_to"] is None:
-                self.indefinite_existence[rd["branch"]] = rd["tick_from"]
-        # now make the edge
         self.dimension.graph.add_edge(self.origi, self.desti, portal=self)
 
     def __getattr__(self, attrn):
@@ -67,21 +65,34 @@ otherwise."""
         return True
 
     def set_existence(self, branch=None, tick_from=None, tick_to=None):
-        pass
+        if branch is None:
+            branch = self.closet.branch
+        if tick_from is None:
+            tick_from = self.closet.tick
+        self.existence[branch][tick_from] = {
+            "dimension": str(self.dimension),
+            "origin": str(self.origin),
+            "destination": str(self.destination),
+            "branch": branch,
+            "tick_from": tick_from,
+            "tick_to": tick_to}
 
     def new_branch(self, parent, branch, tick):
-        if branch not in self.existence:
-            self.existence[branch] = []
-        for rd in self.existence.iterrows():
-            if rd["tick_to"] is None or rd["tick_to"] >= tick:
+        prev = None
+        started = False
+        for rd in self.existence[parent].iterrows():
+            if rd["tick_from"] >= tick:
                 rd2 = dict(rd)
                 rd2["branch"] = branch
-                if rd2["tick_from"] < tick:
-                    rd2["tick_from"] = tick
-                    self.existence[branch][tick] = rd2
-                    if rd2["tick_to"] is None:
-                        self.indefinite_existence[branch] = tick
-                else:
-                    self.existence[branch][rd2["tick_from"]] = rd2
-                    if rd2["tick_to"] is None:
-                        self.indefinite_existence[branch] = rd2["tick_from"]
+                if branch not in self.existence:
+                    self.existence[branch] = {}
+                self.existence[branch][rd2["tick_from"]] = rd2
+                if (
+                        not started and prev is not None and
+                        rd["tick_from"] > tick and prev["tick_from"] < tick):
+                    rd3 = dict(prev)
+                    rd3["branch"] = branch
+                    rd3["tick_from"] = tick
+                    self.existence[branch][rd3["tick_from"]] = rd3
+                started = True
+            prev = rd

@@ -10,7 +10,7 @@ Existing games that LiSE seeks to imitate include:
 
 * The Sims
 * Kudos
-* Animal Crossing
+* Monster Rancher
 * Dwarf Fortress
 
 # Why should I use LiSE for this purpose?
@@ -56,7 +56,7 @@ render multiple saves unnecessary.
 
 # How does LiSE simulate life?
 
-The stand-alone form of the engine provides a simple user interface
+The engine provides a simple user interface
 for both playing and developing games. The distinction is only in how
 much control the user has over the world model--developers can
 arbitrarily create and delete anything, players generally can't.
@@ -109,18 +109,6 @@ player. Outcome decks from events already resolved may be kept around
 and used again. They may also be rebuilt into their original state,
 resulting in behavior similar to the roll of the die, or generated on
 the fly by whatever algorithm you'd care to write.
-
-Everything that happens in the game world happens as the result of
-such an outcome deck, including eg. walking from one place to
-another. Most of them won't be shown to the player, and many of the
-decks will have only one effect in them. Some events aren't played
-from the hand, but rather generated in response to some other command,
-such as dragging the pawn representing your character to another place
-in the game world. This will cause the engine (through the igraph
-library) to perform pathfinding, and then schedule whatever movement
-events it deems appropriate. You can reschedule those if you want,
-though if you put them in the wrong order, you won't get to the place
-you expected.
 
 Most games will have more than one board in them. Events on all of
 these can happen at the same time. Generally, only one of those boards

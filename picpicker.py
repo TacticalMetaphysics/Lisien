@@ -1,3 +1,6 @@
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 from pyglet.graphics import OrderedGroup
 from pyglet.image import SolidColorImagePattern
 from pyglet.sprite import Sprite

@@ -1,5 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 import pyglet
 import logging
 from util import (
@@ -87,6 +90,89 @@ class ViewportIter:
         return self.next()
 
 
+class CalendarIterX(object):
+    def __init__(self, cals, x):
+        self.calit = iter(cals)
+        self.x = x
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        cal = self.calit.next()
+        while self.x < cal.window_left or cal.window_right < self.x:
+            cal = self.calit.next()
+        return cal
+
+
+class MenuIterX(object):
+    def __init__(self, menuiter, x):
+        self.menuiter = menuiter
+        self.x = x
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        menu = self.menuiter.next()
+        while self.x < menu.window_left or menu.window_right < self.x:
+            menu = self.menuiter.next()
+        return menu
+
+
+class ViewportIterX(object):
+    def __init__(self, gw, x):
+        self.vpiter = ViewportIter(gw.dimensiondict)
+        self.x = x
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        vp = self.vpiter.next()
+        while self.x < vp.window_left or vp.window_right < self.x:
+            vp = self.vpiter.next()
+        return vp
+
+
+class HandIterX(object):
+    def __init__(self, gw, x):
+        if hasattr(gw, 'handdict'):
+            self.realiter = gw.handdict.itervalues()
+        else:
+            self.realiter = iter([])
+        self.x = x
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        h = self.realiter.next()
+        while self.x < h.window_left or h.window_right < self.x:
+            h = self.realiter.next()
+        return h
+
+
+class PickerIterX(object):
+    def __init__(self, gw, x):
+        self.picker = gw.picker
+        self.x = x
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if (
+                self.picker is None or
+                self.x < self.picker.window_left or
+                self.picker.window_right < self.x):
+            raise StopIteration
+        else:
+            p = self.picker
+            self.picker = None
+            return p
+
+
 class GameWindow(pyglet.window.Window):
     __metaclass__ = SaveableWindowMetaclass
     tables = [
@@ -110,13 +196,13 @@ class GameWindow(pyglet.window.Window):
     atrdic = {
         "arrow_width": lambda self: self._rowdict["arrow_width"],
         "main_menu_name": lambda self: self._rowdict["main_menu"],
-        "viewports": lambda self: ViewportIter(self.dimensiondict),
         "menus": lambda self: self.menudict.itervalues(),
         "hands": lambda self: self.get_hand_iter(),
         'dx': lambda self: sum(self.dx_hist),
         'dy': lambda self: sum(self.dy_hist),
         'arrow_girth': lambda self: self.arrow_width * 2,
-        'timestream_changed': lambda self: self.rehash_timeline()}
+        'timestream_changed': lambda self: self.rehash_timeline(),
+        "viewports": lambda self: ViewportIter(self.dimensiondict)}
 
     rowattrs = set(["min_width", "min_height",
                     "arrowhead_size", "arrow_width"])
@@ -124,7 +210,6 @@ class GameWindow(pyglet.window.Window):
     def __init__(
             self, closet, name, checkpoint=False):
         """Initialize the game window, its groups, and some state tracking."""
-        assert(len(closet.skeleton['img']) > 1)
         config = screen.get_best_config()
         pyglet.window.Window.__init__(self, config=config)
         self.closet = closet
@@ -219,12 +304,11 @@ class GameWindow(pyglet.window.Window):
         self.squareoff = self.arrowhead_size * sin(fortyfive)
         self.picker = None
         self.hover_iter_getters = [
-            lambda: iter(self.calendars),
-            self.menudict.itervalues,
-            lambda: self.viewports,
-            lambda: (self.picker,)]
-        if hasattr(self, 'handdict'):
-            self.hover_iter_getters.append(self.handdict.itervalues)
+            lambda x: CalendarIterX(self.calendars, x),
+            lambda x: MenuIterX(self.menudict.itervalues(), x),
+            lambda x: ViewportIterX(self, x),
+            lambda x: PickerIterX(self, x),
+            lambda x: HandIterX(self, x)]
         self.pressed = None
         self.hovered = None
         self.grabbed = None
@@ -465,13 +549,11 @@ on_mouse_drag method, use it.
 
     def detect_hover(self, x, y):
         for get in self.hover_iter_getters:
-            for hoverable in get():
+            for hoverable in get(x):
                 if (
                         hoverable is not None and
                         hasattr(hoverable, 'overlaps') and
                         hoverable.overlaps(x, y)):
-                    if hasattr(hoverable, 'chk_overlap'):
-                        hoverable = hoverable.chk_overlap(x, y)
                     if hoverable is None:
                         continue
                     if hasattr(hoverable, 'hover'):

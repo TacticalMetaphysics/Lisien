@@ -1,5 +1,8 @@
 ## This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 from util import (
     SaveableMetaclass,
     TerminableImg,
@@ -33,7 +36,6 @@ class Spot(TerminableImg, TerminableInteractivity):
           "board": "integer not null default 0",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
-          "tick_to": "integer default null",
           "img": "text not null default 'default_spot'"},
          ("dimension", "board", "place", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i"),
@@ -44,8 +46,7 @@ class Spot(TerminableImg, TerminableInteractivity):
           "place": "text not null",
           "board": "integer not null default 0",
           "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
-          "tick_to": "integer default null"},
+          "tick_from": "integer not null default 0"},
          ("dimension", "board", "place", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i")},
          []),
@@ -55,7 +56,6 @@ class Spot(TerminableImg, TerminableInteractivity):
           "board": "integer not null default 0",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
-          "tick_to": "integer default null",
           "x": "integer not null default 50",
           "y": "integer not null default 50"},
          ("dimension", "board", "place", "branch", "tick_from"),
@@ -107,26 +107,6 @@ class Spot(TerminableImg, TerminableInteractivity):
         self.imagery = self.closet.skeleton["spot_img"][
             str(self.dimension)][
             int(self.board)][str(self.place)]
-        self.indefinite_imagery = {}
-        for rd in self.closet.skeleton["spot_img"][
-                str(self.dimension)][
-                int(self.board)][str(self.place)].iterrows():
-            if rd["tick_to"] is None:
-                self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
-        self.indefinite_coords = {}
-        for rd in self.closet.skeleton["spot_coords"][
-                str(self.dimension)][
-                int(self.board)][str(self.place)].iterrows():
-            if rd["tick_to"] is None:
-                self.indefinite_coords[rd["branch"]] = rd["tick_from"]
-        self.indefinite_interactivity = {}
-        for rd in self.closet.skeleton["spot_interactive"][
-                str(self.dimension)][
-                int(self.board)][str(self.place)].iterrows():
-            if rd["tick_to"] is None:
-                self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
 
     def __str__(self):
         return str(self.place)
@@ -143,147 +123,87 @@ class Spot(TerminableImg, TerminableInteractivity):
                 "Spot instance has no such attribute: " +
                 attrn)
 
-    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
+    def set_interactive(self, branch=None, tick_from=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch in self.indefinite_interactivity:
-            indef_start = self.indefinite_interactivity[branch]
-            indef_rd = self.interactivity[branch][indef_start]
-            if tick_from > indef_start:
-                indef_rd["tick_to"] = tick_from - 1
-                del self.indefinite_interactivity[branch]
-            elif tick_to is None or tick_to > indef_start:
-                del self.interactivity[branch][indef_start]
-                del self.indefinite_interactivity[branch]
-            elif tick_to == indef_start:
-                indef_rd["tick_from"] = tick_from
-                return
         assert branch in self.interactivity, "Make a new branch first"
         self.interactivity[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
             "place": str(self.place),
             "branch": branch,
-            "tick_from": tick_from,
-            "tick_to": tick_to}
-        if tick_to is None:
-            self.indefinite_interactivity[branch] = tick_from
+            "tick_from": tick_from}
 
-    def set_img(self, img, branch=None, tick_from=None, tick_to=None):
+    def set_img(self, img, branch=None, tick_from=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch in self.indefinite_imagery:
-            indef_start = self.indefinite_imagery[branch]
-            indef_rd = self.imagery[branch][indef_start]
-            if tick_from > indef_start:
-                del self.indefinite_imagery[branch]
-                indef_rd["tick_to"] = tick_from - 1
-                self.imagery[branch][indef_start] = indef_rd
-            elif tick_to is None or tick_to > indef_start:
-                del self.indefinite_imagery[branch]
-                del self.imagery[branch][indef_start]
-            elif tick_to == indef_start and str(img) == indef_rd["img"]:
-                indef_rd["tick_from"] = tick_from
-                return
         self.imagery[branch][tick_from] = {
             "dimension": str(self.dimension),
             "place": str(self.place),
             "board": int(self.board),
             "branch": branch,
             "tick_from": tick_from,
-            "tick_to": tick_to,
             "img": str(img)}
-        if tick_to is None:
-            self.indefinite_imagery[branch] = tick_from
 
     def get_coords(self, branch=None, tick=None):
         if branch is None:
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        if (
-                branch in self.indefinite_coords and
-                tick >= self.indefinite_coords[branch]):
-            rd = self.coord_lst[branch][self.indefinite_coords[branch]]
-            return (rd["x"], rd["y"])
-        for rd in self.coord_lst.iterrows():
-            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
+        prev = None
+        if branch not in self.coord_lst:
+            return None
+        for tick_from in self.coord_lst[branch]:
+            if tick_from == tick:
+                rd = self.coord_lst[branch][tick_from]
                 return (rd["x"], rd["y"])
-        import pdb
-        pdb.set_trace()
-        return None
+            elif tick_from > tick:
+                break
+            prev = tick_from
+        if prev is None:
+            return None
+        else:
+            rd = self.coord_lst[branch][prev]
+            return (rd["x"], rd["y"])
 
-    def set_coords(self, x, y, branch=None, tick_from=None, tick_to=None):
+    def set_coords(self, x, y, branch=None, tick_from=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
         assert branch in self.coord_lst, "Make a new branch first"
-        if branch in self.indefinite_coords:
-            itf = self.indefinite_coords[branch]
-            rd = self.coord_lst[branch][itf]
-            if itf < tick_from:
-                # You have cut off an indefinite coord
-                rd["tick_to"] = tick_from - 1
-                self.coord_lst[branch][itf] = rd
-                del self.indefinite_coords[branch]
-            elif itf < tick_to:
-                # You have overwritten an indefinite coord
-                del self.coord_lst[branch][itf]
-                del self.indefinite_coords[branch]
-            elif itf == tick_to:
-                # You have extended an indefinite coord, backward in time
-                del self.coord_lst[branch][itf]
-                tick_to = None
         self.coord_lst[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
             "place": str(self.place),
             "branch": branch,
             "tick_from": tick_from,
-            "tick_to": tick_to,
             "x": x,
             "y": y}
-        if tick_to is None:
-            self.indefinite_coords[branch] = tick_from
-        else:
-            rd = self.closet.skeleton.branchdict[branch]
-            if rd["tick_to"] < tick_to:
-                rd["tick_to"] = tick_to
 
     def new_branch_coords(self, parent, branch, tick):
-        if branch not in self.coord_lst:
-            self.coord_lst[branch] = []
-        for rd in self.coord_lst[parent].iterrows():
-            if rd["tick_to"] >= tick or rd["tick_to"] is None:
-                if rd["tick_from"] < tick:
-                    self.coord_lst[branch][tick] = {
-                        "dimension": rd["dimension"],
-                        "place": rd["place"],
-                        "board": rd["board"],
-                        "branch": branch,
-                        "tick_from": tick,
-                        "tick_to": rd["tick_to"],
-                        "x": rd["x"],
-                        "y": rd["y"]}
-                    if rd["tick_to"] is None:
-                        self.indefinite_coords[branch] = tick
-                else:
-                    self.coord_lst[branch][rd["tick_from"]] = {
-                        "dimension": rd["dimension"],
-                        "place": rd["place"],
-                        "board": rd["board"],
-                        "branch": branch,
-                        "tick_from": rd["tick_from"],
-                        "tick_to": rd["tick_to"],
-                        "x": rd["x"],
-                        "y": rd["y"]}
-                    if rd["tick_to"] is None:
-                        self.indefinite_coords[branch] = rd["tick_from"]
+        prev = None
+        started = False
+        for tick_from in self.coord_lst[parent]:
+            if tick_from >= tick:
+                rd2 = dict(self.coord_lst[parent][tick_from])
+                rd2["branch"] = branch
+                if branch not in self.coord_lst:
+                    self.coord_lst[branch] = {}
+                self.coord_lst[branch][rd2["tick_from"]] = rd2
+                if (
+                        not started and prev is not None and
+                        tick_from > tick and prev < tick):
+                    rd3 = dict(self.coord_lst[branch][prev])
+                    rd3["branch"] = branch
+                    rd3["tick_from"] = tick
+                    self.coord_lst[branch][rd3["tick_from"]] = rd3
+                started = True
+            prev = tick_from
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)
@@ -293,10 +213,15 @@ class Spot(TerminableImg, TerminableInteractivity):
 
 class SpotWidget:
     def get_board_coords(self):
-        (x, y) = self.spot.get_coords()
-        return (
-            x + self.spot.drag_offset_x,
-            y + self.spot.drag_offset_y)
+        cords = self.spot.get_coords()
+        if cords is None:
+            return (self.cheatx, self.cheaty)
+        (x, y) = cords
+        r = (
+            x + self.drag_offset_x,
+            y + self.drag_offset_y)
+        (self.cheatx, self.cheaty) = r
+        return r
 
     atrdic = {
         "coords": lambda self: self.get_board_coords(),
@@ -326,10 +251,12 @@ class SpotWidget:
         self.place = self.spot.place
         self.board = self.spot.board
         self.vert = self.spot.vert
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
         self.sprite = None
         self.vertlist = None
-        self.old_window_left = None
-        self.old_window_bot = None
+        self.cheatx = 0
+        self.cheaty = 0
         self.old_points = None
 
     def __str__(self):
@@ -350,14 +277,14 @@ class SpotWidget:
     def dropped(self, x, y, button, modifiers):
         (oldx, oldy) = self.spot.coords
         self.spot.set_coords(
-            oldx + self.spot.drag_offset_x,
-            oldy + self.spot.drag_offset_y)
-        self.spot.drag_offset_x = 0
-        self.spot.drag_offset_y = 0
+            oldx + self.drag_offset_x,
+            oldy + self.drag_offset_y)
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        self.spot.drag_offset_x += dx
-        self.spot.drag_offset_y += dy
+        self.drag_offset_x += dx
+        self.drag_offset_y += dy
         return self
 
     def overlaps(self, x, y):
@@ -370,21 +297,15 @@ class SpotWidget:
 
     def actually_draw(self):
         try:
-            wl = self.window_left
-            wb = self.window_bot
-            if self.old_window_left != wl:
-                self.sprite.x = wl
-                self.old_window_left = wl
-            if self.old_window_bot != wb:
-                self.sprite.y = wb
-                self.old_window_bot = wb
+            self.sprite.delete()
         except AttributeError:
-            self.sprite = Sprite(
-                self.img.tex,
-                self.window_left,
-                self.window_bot,
-                batch=self.batch,
-                group=self.window.spot_group)
+            pass
+        self.sprite = Sprite(
+            self.img.tex,
+            self.window_left,
+            self.window_bot,
+            batch=self.batch,
+            group=self.window.spot_group)
         if self.selected:
             yelo = (255, 255, 0, 0)
             colors = yelo * 4
@@ -393,26 +314,22 @@ class SpotWidget:
                 self.window_right, self.window_top,
                 self.window_right, self.window_bot,
                 self.window_left, self.window_bot)
-            if self.old_points != points:
-                try:
-                    self.vertlist.vertices = points
-                except:
-                    self.vertlist = self.batch.add_indexed(
-                        4,
-                        GL_LINES,
-                        self.window.spot_group,
-                        (0, 1, 2, 3, 0),
-                        ('v2i', points),
-                        ('c4b', colors))
-                self.old_points = points
+            try:
+                self.vertlist.delete()
+            except AttributeError:
+                pass
+            self.vertlist = self.batch.add_indexed(
+                4,
+                GL_LINES,
+                self.window.spot_group,
+                (0, 1, 2, 3, 0),
+                ('v2i', points),
+                ('c4b', colors))
         else:
-            if self.vertlist is not None:
-                try:
-                    self.vertlist.delete()
-                except:
-                    pass
-                self.vertlist = None
-            self.old_points = None
+            try:
+                self.vertlist.delete()
+            except AttributeError:
+                pass
 
     def draw(self):
         if (
@@ -426,18 +343,11 @@ class SpotWidget:
             self.delete()
 
     def delete(self):
-        if self.sprite is not None:
-            try:
-                self.sprite.delete()
-            except:
-                pass
-            self.sprite = None
-        if self.vertlist is not None:
-            try:
-                self.vertlist.delete()
-            except:
-                pass
-            self.vertlist = None
-        self.old_window_left = None
-        self.old_window_bot = None
-        self.old_points = None
+        try:
+            self.sprite.delete()
+        except AttributeError:
+            pass
+        try:
+            self.vertlist.delete()
+        except AttributeError:
+            pass

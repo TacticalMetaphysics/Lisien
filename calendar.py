@@ -1,5 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 from util import SaveableMetaclass, TimestreamException
 from logging import getLogger
 from pyglet.text import Label
@@ -49,26 +52,22 @@ class BranchConnector:
             self.column.in_view),
         "branch": lambda self: int(self.column)}
 
-    def __init__(self, column, color=(255, 0, 0, 255),
+    def __init__(self, column, space, color=(255, 0, 0, 255),
                  wedge_height=8, wedge_width=16):
         self.column = column
+        self.space = space
         self.calendar = self.column.calendar
         self.batch = self.calendar.batch
         self.window = self.calendar.window
         self.color = color
         self.wedge_height = wedge_height
         self.wedge_rx = wedge_width / 2
-        self.space = self.calendar.style.spacing * 2
         self.line_vertlist = None
         self.wedge_vertlist = None
 
     def __getattr__(self, attrn):
         """Look up computed attributes in the atrdic of the class."""
-        try:
-            return BranchConnector.atrdic[attrn](self)
-        except KeyError:
-            raise AttributeError(
-                "BranchConnector has no attribute named {0}".format(attrn))
+        return BranchConnector.atrdic[attrn](self)
 
     def get_wedge(self, batch, group):
         b = self.window_bot
@@ -234,10 +233,16 @@ color is a 4-tuple of Red, Green, Blue, Alpha."""
                 self.offy = 0
                 break
         while self.offx > self.column.width:
+            if self.closet.branch == self.closet.timestream.hi_branch:
+                self.offx = 0
+                break
             self.closet.time_travel_inc_branch(1)
             self.offx -= self.column.width
             self.column = self.calendar.make_col(self.closet.branch)
         while self.offx * -1 > self.column.width:
+            if self.closet.branch == 0:
+                self.offx = 0
+                break
             self.closet.time_travel_inc_branch(-1)
             self.offx += self.column.width
             self.column = self.calendar.make_col(self.closet.branch)
@@ -618,7 +623,7 @@ time travel.
         self.closet.skeleton["thing_location"][
             self._rowdict["dimension"]][
             self._rowdict["thing"]],
-        "closet": lambda self: self.window.closet
+        "timeline": lambda self: Timeline(self.make_col(self.closet.branch))
     }
 
     def __init__(self, window, idx):
@@ -642,7 +647,8 @@ So, return my index."""
         return self.idx
 
     def __iter__(self):
-        return self.columns
+        for branch in self.closet.timestream.branchdict.iterkeys():
+            yield self.make_col(branch)
 
     def __getattr__(self, attrn):
         """Compute the attribute using the correct lambda from my atrdic"""
@@ -663,7 +669,7 @@ So, return my index."""
             super(Calendar, self).__setattr__(attrn, val)
 
     def get_col_width(self):
-        branches = len(self.closet.timestream.branchdict)
+        branches = self.closet.timestream.max_branch() + 1
         if branches == 1:
             return self.width
         elif self.max_cols < branches:
@@ -701,12 +707,10 @@ So, return my index."""
             self.window_bot < y and
             self.window_top > y)
 
-    def chk_overlap(self, x, y):
-        col = self.make_col(self.closet.branch)
-        tl = Timeline(col)
-        if tl.overlaps(x, y):
-            return tl
-        elif self.overlaps(x, y):
+    def hover(self, x, y):
+        if self.timeline.overlaps(x, y):
+            return self.timeline
+        else:
             return self
 
     def make_col(self, branch):
@@ -742,7 +746,7 @@ So, return my index."""
             self.scrolled_to += 1
             self.offy -= self.row_height
         self.scrolled_to = min((
-            self.closet.timestream.latest_tick + self.rows_shown,
+            self.closet.timestream.hi_tick + self.rows_shown,
             self.scrolled_to))
         while self.offy * -1 > self.row_height:
             self.scrolled_to -= 1
@@ -766,26 +770,28 @@ would be good.
         o = self.left_branch - slew
         d = self.left_branch + self.max_cols + slew
         rightmostbranch = self.closet.timestream.hi_branch
-        if d > rightmostbranch:
+        if d > rightmostbranch + 1:
             d = rightmostbranch + 1
         if o < 0:
             o = 0
         for branch in xrange(o, d):
             column = self.make_col(branch)
             colgrp = Group(self.group)
-            if column.start_tick is None:
-                print "no start tick"
-                import pdb
-                pdb.set_trace()
-                continue
             for cell in iter(column):
                 group = colgrp
-                drawn.extend((
+                gonna_draw = (
                     cell.get_box(batch, group),
-                    cell.get_label(batch, group)))
+                    cell.get_label(batch, group))
+                drawn.extend(gonna_draw)
             if int(column) != 0:
-                bc = BranchConnector(column)
-                bcgrp = colgrp
+                ts = self.closet.timestream
+                siblings = 0
+                for child in ts.children(ts.parent(int(column))):
+                    siblings += 1
+                space = self.style.spacing * (
+                    siblings + int(column) - self.left_branch)
+                bc = BranchConnector(column, space)
+                bcgrp = Group(self.wedgegroup)
                 drawn.append(bc.get_line(batch, bcgrp))
                 drawn.append(bc.get_wedge(batch, bcgrp))
             if int(column) == self.closet.branch:
@@ -806,52 +812,6 @@ would be good.
         self.last_draw = None
 
 
-class CalendarColCellIter:
-    """Lazy iterator over the cells in a column.
-
-First argument is the column itself. Second argument is the skeleton
-of its schedule, with the first level key being the branch ID. Third
-argument is the name of the field to be displayed in the cell.
-
-    """
-    def __init__(self, col, skel, field=None):
-        self.column = col
-        self.skeleton = skel
-        self.realiter = self.skeleton.iterrows()
-        self.field = field
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        rd = self.realiter.next()
-        if self.field is None:
-            return CalendarCell(
-                self.column, rd["tick_from"],
-                rd["tick_to"], "")
-        else:
-            return CalendarCell(
-                self.column, rd["tick_from"],
-                rd["tick_to"], rd[self.field])
-
-
-class CalendarColIter:
-    """Iterator over the columns in a given calendar. Lazily evaluated."""
-    def __init__(self, cal):
-        self.calendar = cal
-        self.branchiter = self.calendar.closet.timestream.branchdict.iterkeys()
-
-    def make_col(self, branch):
-        """Return a new column for the given branch."""
-        return self.calendar.make_col(branch)
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        return self.make_col(self.branchiter.next())
-
-
 class CalendarCol:
     """A column in a calendar. Represents one branch.
 
@@ -869,21 +829,9 @@ Shows whatever the calendar is about, in that branch."""
         ) * self.calendar.col_width,
         "window_right": lambda self:
         self.window_left + self.calendar.col_width,
-        "window_top": lambda self: self.calendar.tick_to_y(self.start_tick),
-        "window_bot": lambda self: self.calendar.tick_to_y(self.end_tick),
         "parent": lambda self: self.calendar.make_col(
             self.closet.skeleton[
-                "timestream"][self.branch]["parent"]),
-        "start_tick": lambda self: {
-            True: lambda:
-            self.closet.skeleton["timestream"][int(self)]["tick_from"],
-            False: lambda: None
-        }[int(self) in self.closet.skeleton["timestream"]](),
-        "end_tick": lambda self: {
-            True: lambda:
-            self.closet.skeleton["timestream"][int(self)]["tick_to"],
-            False: lambda: None
-        }[int(self) in self.closet.skeleton["timestream"]]()}
+                "timestream"][self.branch]["parent"])}
 
     def __init__(self, calendar, branch, bgcolor=(255, 255, 255, 255)):
         """Get CalendarCol for the given branch in the given
@@ -967,65 +915,93 @@ instead, giving something like "in transit from A to B".
             str(self.dimension)][str(self.thing)][branch]
 
     def __iter__(self):
-        return CalendarColCellIter(self, self.locations, "location")
+        rowiter = self.locations.iterrows()
+        prev = rowiter.next()
+        for rd in rowiter:
+            for (a, b) in self.gen_cover_between(
+                    prev["tick_from"], rd["tick_from"]):
+                yield CalendarCell(
+                    self, a, b, rd["location"])
+            prev = rd
+        for rd in self.coverage.iterrows():
+            if rd["tick_from"] > prev["tick_from"]:
+                yield CalendarCell(
+                    self, rd["tick_from"], rd["tick_to"], prev["location"])
+            elif rd["tick_to"] is None:
+                yield CalendarCell(
+                    self, prev["tick_from"], None, prev["location"])
+            elif rd["tick_to"] > prev["tick_from"]:
+                yield CalendarCell(
+                    self, prev["tick_from"], rd["tick_to"], prev["location"])
 
     def __getattr__(self, attrn):
         """Try looking up the attribute in the calendar first;
         otherwise use lambdas from CalendarCol.atrdic to compute it"""
         if attrn == "sprite":
             return self.calendar.col_sprite_dict[self]
+        elif attrn == "start_tick":
+            return min(self.closet.timestream.ticks(
+                self.branch, "thing_location"))
+        elif attrn == "end_tick":
+            return max(self.closet.timestream.ticks(
+                self.branch, "thing_location"))
+        elif attrn == "window_top":
+            return self.calendar.tick_to_y(min(self.locations[self.branch]))
+        elif attrn == "window_bot":
+            return 0
+        elif attrn == "cells":
+            return self.gen_cells()
         elif attrn in LocationCalendarCol.cal_attrs:
             return getattr(self.calendar, attrn)
         else:
-            try:
-                return CalendarCol.atrdic[attrn](self)
-            except KeyError:
-                raise AttributeError(
-                    """LocationCalendarCol does not have and
-cannot compute attribute {0}""".format(attrn))
+            return CalendarCol.atrdic[attrn](self)
 
-    def shows_any_ever(self, tick_from, tick_to):
-        for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
-            if tick_to > cover_tick_from or tick_from < cover_tick_to:
-                return True
-        return False
+    def gen_cover_between(self, tick_from, tick_to):
+        for rd in self.coverage.iterrows():
+            if (
+                    rd["tick_to"] is None or
+                    rd["tick_to"] < tick_from or
+                    rd["tick_from"] > tick_to):
+                continue
+            if rd["tick_from"] <= tick_from:
+                a = tick_from
+            else:
+                a = rd["tick_from"]
+            if rd["tick_to"] >= tick_to:
+                b = tick_to
+            else:
+                b = rd["tick_to"]
+            yield (a, b)
 
-    def shows_when(self, tick_from, tick_to):
-        for (cover_tick_from, cover_tick_to) in self.coverage.iteritems():
-            if tick_to > cover_tick_from or tick_from < cover_tick_to:
-                # I show part of this cell, but which part?
-                if tick_from > cover_tick_from:
-                    a = tick_from
-                else:
-                    a = cover_tick_from
-                if tick_to < cover_tick_to:
-                    b = tick_to
-                else:
-                    b = cover_tick_to
-                return (a, b)
-        return None
+    def gen_cells(self):
+        it = self.locations.iterrows()
+        prev = self.locations.iterrows().next()
+        for rd in it:
+            yield CalendarCell(
+                self, prev["tick_from"], rd["tick_from"], prev["location"])
+            prev = rd
+
+    def gen_window_ys(self):
+        for rd in self.locations.iterrows():
+            yield self.calendar.tick_to_y(rd["tick_from"])
+        yield 0
 
 
 class ThingCalendarCol(CalendarCol):
-    def __iter__(self):
-        return CalendarColCellIter(self, self.coverage)
+    pass
 
 
 class PlaceCalendarCol(CalendarCol):
-    def __iter__(self):
-        return CalendarColCellIter(self, self.coverage)
+    pass
 
 
 class PortalCalendarCol(CalendarCol):
-    def __iter__(self):
-        return CalendarColCellIter(self, self.coverage)
+    pass
 
 
 class StatCalendarCol(CalendarCol):
-    def __iter__(self):
-        return CalendarColCellIter(self, self.values, "value")
+    pass
 
 
 class SkillCalendarCol(CalendarCol):
-    def __iter__(self):
-        return CalendarColCellIter(self, self.decks, "deck")
+    pass

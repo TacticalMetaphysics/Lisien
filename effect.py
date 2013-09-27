@@ -1,6 +1,10 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 from util import SaveableMetaclass
+from random import randrange
 
 
 """Ways to change the game world."""
@@ -9,7 +13,7 @@ from util import SaveableMetaclass
 __metaclass__ = SaveableMetaclass
 
 
-class Effect:
+class Effect(object):
     """One change to one attribute of one character. It may occur at any
 given time.
 
@@ -99,7 +103,7 @@ DRAW_RANDOM = 2
 ROLL_RANDOM = 3
 
 
-class EffectDeck:
+class EffectDeck(object):
     """Several effects in a specified order, which may happen all at once
 or one at a time.
 
@@ -138,8 +142,7 @@ were right after firing them.
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
           "idx": "integer not null default 0",
-          "effect": "text not null",
-          "tick_to": "integer"},
+          "effect": "text not null"},
          ("deck", "branch", "tick_from", "idx"),
          {"deck": ("effect_deck", "name"),
           "effect": ("effect", "name")},
@@ -178,49 +181,40 @@ were right after firing them.
         else:
             super(EffectDeck, self).__setattr__(attrn, val)
 
-    def set_effects(self, effects, branch=None, tick_from=None, tick_to=None):
+    def set_effects(self, effects, branch=None, tick=None):
         if branch is None:
             branch = self.closet.branch
-        if tick_from is None:
-            tick_from = self.closet.tick
-        if branch in self.indefinite_effects:
-            ifrom = self.indefinite_effects[branch]
-            rd = self.effects[branch][ifrom]
-            if tick_from > rd["tick_from"]:
-                rd["tick_to"] = tick_from - 1
-                del self.indefinite_effects[branch]
-            elif tick_to > rd["tick_from"]:
-                del self.effects[branch][ifrom]
-                del self.indefinite_effects[branch]
+        if tick is None:
+            tick = self.closet.tick
         if branch not in self.effects:
-            self.effects[branch] = {}
+            self.effects[branch] = []
         i = 0
         for effect in effects:
-            self._card_links[branch][tick_from][i] = {
+            self._card_links[branch][tick][i] = {
                 "deck": str(self),
                 "branch": branch,
-                "tick_from": tick_from,
+                "tick_from": tick,
                 "idx": i,
-                "tick_to": tick_to,
                 "effect": effect}
             i += 1
-        if tick_to is None:
-            self.indefinite_effects[branch] = tick_from
 
     def get_effects(self, branch=None, tick=None):
         if branch is None:
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        if (
-                branch in self.indefinite_effects and
-                self.indefinite_effects[branch] <= tick):
-            return self._card_links[self.indefinite_effects[branch]]["effects"]
+        tick_from = None
+        r = []
         for rd in self._card_links[branch].iterrows():
-            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
-                return [
-                    self.closet.get_effect(effect) for effect in
-                    self._card_links[branch][rd["tick_from"]].iterrows()]
+            if tick_from is None:
+                if rd["tick_from"] >= tick:
+                    tick_from = rd["tick_from"]
+                    r.append(rd["name"])
+            elif rd["tick_from"] == tick_from:
+                r.append(rd["name"])
+            else:
+                effd = self.closet.get_effects(r)
+                return [effd[effn] for effn in r]
         return []
 
     def draw(self, i=None, branch=None, tick=None):
@@ -231,10 +225,10 @@ were right after firing them.
             elif self.draw_order == DRAW_FIFO:
                 r = effs.pop(0)
             elif self.draw_order == DRAW_RANDOM:
-                i = self.closet.randrange(0, len(effs) - 1)
+                i = randrange(0, len(effs) - 1)
                 r = effs.pop(i)
             elif self.draw_order == ROLL_RANDOM:
-                i = self.closet.randrange(0, len(effs) - 1)
+                i = randrange(0, len(effs) - 1)
                 r = effs[i]
             else:
                 raise Exception("What kind of draw order is that?")

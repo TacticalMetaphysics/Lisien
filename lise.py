@@ -1,5 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 import pyglet
 import logging
 import closet
@@ -44,6 +47,11 @@ pyglet.clock.set_default(clock)
 closet = closet.load_closet(dbfn, lang)
 gw = closet.get_window('Main', checkpoint=True)
 
+class Updater:
+    def __init__(self, closet, gw):
+        self.tp = 0.0
+        self.closet = closet
+        self.gw = gw
 
 class Updater:
     def __init__(self, closet, gw):

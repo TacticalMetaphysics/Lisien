@@ -1,5 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import unicode_literals
+ascii = str
+str = unicode
 from util import (
     SaveableMetaclass,
     TerminableImg,
@@ -27,7 +30,6 @@ class Pawn(TerminableImg, TerminableInteractivity):
           "board": "integer not null default 0",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
-          "tick_to": "integer default null",
           "img": "text not null default 'default_pawn'"},
          ("dimension", "board", "thing", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i"),
@@ -39,8 +41,7 @@ class Pawn(TerminableImg, TerminableInteractivity):
           "thing": "text not null",
           "board": "integer not null default 0",
           "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
-          "tick_to": "integer default null"},
+          "tick_from": "integer not null default 0"},
          ("dimension", "board", "thing", "branch", "tick_from"),
          {"dimension, board": ("board", "dimension, i"),
           "dimension, thing": ("thing_location", "dimension, name")},
@@ -72,21 +73,6 @@ interactive or not.
         self.dimension = dimension
         self.board = board
         self.thing = thing
-        self.indefinite_imagery = {}
-        self.indefinite_interactivity = {}
-        imgns = set()
-        for rd in self.closet.skeleton["pawn_img"][
-                str(self.dimension)][
-                int(self.board)][str(self.thing)].iterrows():
-            imgns.add(rd["img"])
-            if rd["tick_to"] is None:
-                self.indefinite_imagery[rd["branch"]] = rd["tick_from"]
-        self.closet.get_imgs(imgns)
-        for rd in self.closet.skeleton["pawn_interactive"][
-                str(self.dimension)][
-                int(self.board)][str(self.thing)].iterrows():
-            if rd["tick_to"] is None:
-                self.indefinite_interactivity[rd["branch"]] = rd["tick_from"]
         self.grabpoint = None
         self.sprite = None
         self.oldstate = None
@@ -115,69 +101,30 @@ interactive or not.
         else:
             super(Pawn, self).__setattr__(attrn, val)
 
-    def set_img(self, img, branch=None, tick_from=None, tick_to=None):
+    def set_img(self, img, branch=None, tick_from=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch in self.indefinite_imagery:
-            indef_start = self.indefinite_imagery[branch]
-            indef_rd = self.imagery[branch][indef_start]
-            if tick_from > indef_start:
-                del self.indefinite_imagery[branch]
-                indef_rd["tick_to"] = tick_from - 1
-                self.imagery[branch][indef_start] = indef_rd
-            elif tick_to is None or tick_to > indef_start:
-                del self.indefinite_imagery[branch]
-                del self.imagery[branch][indef_start]
-            elif tick_to == indef_start and str(img) == indef_rd["img"]:
-                indef_rd["tick_from"] = tick_from
-                return
         self.imagery[branch][tick_from] = {
             "dimension": str(self.dimension),
             "thing": str(self.thing),
             "board": str(self.board),
             "branch": branch,
             "tick_from": tick_from,
-            "tick_to": tick_to,
             "img": str(img)}
-        if tick_to is None:
-            self.indefinite_imagery[branch] = tick_from
-        else:
-            rd = self.closet.skeleton.branchdict[branch]
-            if rd["tick_to"] < tick_to:
-                rd["tick_to"] = tick_to
 
-    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
+    def set_interactive(self, branch=None, tick_from=None):
         if branch is None:
             branch = self.closet.branch
         if tick_from is None:
             tick_from = self.closet.tick
-        if branch in self.indefinite_interactivity:
-            indef_start = self.indefinite_interactivity[branch]
-            indef_rd = self.interactivity[branch][indef_start]
-            if tick_from > indef_start:
-                indef_rd["tick_to"] = tick_from - 1
-                del self.indefinite_interactivity[branch]
-            elif tick_to is None or tick_to > indef_start:
-                del self.interactivity[branch][indef_start]
-                del self.indefinite_interactivity[branch]
-            elif tick_to == indef_start:
-                indef_rd["tick_from"] = tick_from
-                return
         self.interactivity[branch][tick_from] = {
             "dimension": str(self.dimension),
             "board": int(self.board),
             "thing": str(self.thing),
             "branch": branch,
-            "tick_from": tick_from,
-            "tick_to": tick_to}
-        if tick_to is None:
-            self.indefinite_interactivity[branch] = tick_from
-        else:
-            rd = self.closet.skeleton.branchdict[branch]
-            if rd["tick_to"] < tick_to:
-                rd["tick_to"] = tick_to
+            "tick_from": tick_from}
 
     def get_coords(self, branch=None, tick=None):
         loc = self.thing.get_location(branch, tick)
@@ -186,13 +133,18 @@ interactive or not.
         if hasattr(loc, 'dest'):
             origspot = self.board.get_spot(loc.orig)
             destspot = self.board.get_spot(loc.dest)
-            (ox, oy) = origspot.get_coords(branch, tick)
-            (dx, dy) = destspot.get_coords(branch, tick)
+            oc = origspot.get_coords(branch, tick)
+            dc = destspot.get_coords(branch, tick)
+            if None in (oc, dc):
+                return self.cheat_coords
+            (ox, oy) = oc
+            (dx, dy) = dc
             prog = self.thing.get_progress(branch, tick)
             odx = dx - ox
             ody = dy - oy
-            return (int(ox + odx * prog),
-                    int(oy + ody * prog))
+            self.cheat_coords = (int(ox + odx * prog),
+                                 int(oy + ody * prog))
+            return self.cheat_coords
         elif str(loc) in self.board.spotdict:
             spot = self.board.get_spot(loc)
             return spot.get_coords()
@@ -218,12 +170,12 @@ class PawnWidget:
             prog = self.pawn.thing.get_progress()
             odx = dx - ox
             ody = dy - oy
-            return (int(ox + odx * prog) + self.pawn.drag_offset_x,
-                    int(oy + ody * prog) + self.pawn.drag_offset_y)
+            return (int(ox + odx * prog) + self.drag_offset_x,
+                    int(oy + ody * prog) + self.drag_offset_y)
         elif str(loc) in self.viewport.spotdict:
             (x, y) = self.viewport.spotdict[str(loc)].coords
-            return (x + self.pawn.drag_offset_x,
-                    y + self.pawn.drag_offset_y)
+            return (x + self.drag_offset_x,
+                    y + self.drag_offset_y)
 
     atrdic = {
         "coords": lambda self: self.get_board_coords(),
@@ -256,6 +208,8 @@ class PawnWidget:
         self.viewport = viewport
         self.batch = self.viewport.batch
         self.window = self.viewport.window
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
         self.old_window_left = None
         self.old_window_bot = None
         self.old_points = None
@@ -285,8 +239,8 @@ class PawnWidget:
         return self
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        self.pawn.drag_offset_x += dx
-        self.pawn.drag_offset_y += dy
+        self.drag_offset_x += dx
+        self.drag_offset_y += dy
         return self
 
     def dropped(self, x, y, button, modifiers):
@@ -307,8 +261,11 @@ If it DOES have anything else to do, make the journey in another branch.
                 break
         if spotto is not None:
             self.thing.journey_to(spotto.place)
-        self.pawn.drag_offset_x = 0
-        self.pawn.drag_offset_y = 0
+            # This is a silly hack.
+#            for cal in self.calendars:
+#                cal.refresh()
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
 
     def delete(self):
         try:
