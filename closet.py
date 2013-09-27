@@ -161,9 +161,6 @@ given name.
         self.game_speed = 1
         self.updating = False
 
-        self.skeleton.update(
-            Timestream._select_table_all(self.c, 'timestream'))
-        self.timestream = Timestream(self)
         self.time_travel_history = []
 
         placeholder = (noop, ITEM_ARG_RE)
@@ -1019,6 +1016,11 @@ This is game-world time. It doesn't always go forwards.
         return self.get_cards([
             str(effect) for effect in effects.itervalues()])
 
+    def load_timestream(self):
+        self.skeleton.update(
+            Timestream._select_table_all(self.c, 'timestream'))
+        self.timestream = Timestream(self)
+
     def time_travel_menu_item(self, mi, branch, tick):
         return self.time_travel(branch, tick)
 
@@ -1263,4 +1265,5 @@ def load_closet(dbfn, lang="eng", xfuncs={}):
     initargs = (conn, xfuncs, lang) + row
     r = Closet(*initargs)
     r.load_strings()
+    r.load_timestream()
     return r

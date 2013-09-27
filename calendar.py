@@ -767,7 +767,7 @@ So, return my index."""
             self.scrolled_to += 1
             self.offy -= self.row_height
         self.scrolled_to = min((
-            self.closet.timestream.latest_tick + self.rows_shown,
+            self.closet.timestream.hi_tick + self.rows_shown,
             self.scrolled_to))
         while self.offy * -1 > self.row_height:
             self.scrolled_to -= 1

@@ -263,20 +263,6 @@ clause in sqlite3.
 A class can have any number of such table-tuples. The tables will be
 declared in the order they appear in the tables attribute.
 
-To save, you need to define a method called get_skeleton. It should
-return a dictionary where the keys are table names. The values are
-either rowdicts or iterables over rowdicts. A rowdict is a dictionary
-containing the information in a single record of a table; the keys are
-the names of the fields.
-
-To load, you need to define a method called from_skeleton that takes
-that same kind of dictionary and returns an instance of your class.
-
-Once you've defined those, the save(db) and load(db) methods will save
-or load your class in the given database. If you need to create the
-database, look at the schemata attribute: execute that in a SQL cursor
-and your table will be ready.
-
     """
     def __new__(metaclass, clas, parents, attrs):
         global schemata
@@ -1141,7 +1127,8 @@ class Timestream(object):
     def __init__(self, closet):
         self.closet = closet
         self.skeleton = self.closet.skeleton
-        self.hi_branch = 0
+        self.hi_branch = max(self.branches())
+        self.hi_tick = max(self.ticks())
         for tab in self.listen_tables:
             self.skeleton[tab].set_listener = self.skel_set
 
