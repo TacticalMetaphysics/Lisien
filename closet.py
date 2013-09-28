@@ -937,6 +937,8 @@ This is game-world time. It doesn't always go forwards.
         return r
 
     def get_style(self, name):
+        if isinstance(name, Style):
+            return name
         return self.get_styles([name])[name]
 
     def load_windows(self, names, checkpoint=False):

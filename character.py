@@ -182,6 +182,24 @@ item's name, and the name of the attribute.
     def __str__(self):
         return self._name
 
+    def get_item_history(self, mydict, *keys):
+        if mydict == "thing":
+            #(dimension, thing) = keys
+            return self.thingdict[keys[0]][keys[1]]
+        elif mydict == "place":
+            #(dimension, place) = keys
+            return self.placedict[keys[0]][keys[1]]
+        elif mydict == "portal":
+            #(dimension, origin, destination) = keys
+            return self.portaldict[keys[0]][keys[1]][keys[2]]
+        elif mydict == "stat":
+            return self.statdict[keys[0]]
+        elif mydict == "skill":
+            return self.skilldict[keys[0]]
+        else:
+            raise AttributeError(
+                "I do not have that dictionary.")
+
     def has_thing_by_key(self, dimension, thing, branch=None, tick=None):
         if tick is None:
             tick = self.closet.tick

@@ -5,14 +5,20 @@ ascii = str
 str = unicode
 from logging import getLogger
 from util import SaveableMetaclass
+from calendar import Calendar, CAL_TYPE
 from pyglet.text import Label
-from pyglet.gl import GL_TRIANGLES, GL_LINES
+from pyglet.gl import GL_TRIANGLES
 
 
 __metaclass__ = SaveableMetaclass
 
 
 logger = getLogger(__name__)
+
+
+MAX_COLS = 240
+ROWS_SHOWN = 3
+SCROLL_FACTOR = 4
 
 
 def generate_items(skel, keykey, valkey):
@@ -32,14 +38,11 @@ class CharSheetItem(object):
         "window_bot": lambda self: self.window_top - self.height,
         "height": lambda self: len(self) * self.rowheight}
 
-    def __init__(self, charsheet):
-        self.charsheet = charsheet
-
     def __len__(self):
         return len(self.skel)
 
     def __getattr__(self, attrn):
-        if attrn in self.charsheet_atts:
+        if attrn in CharSheetItem.charsheet_atts:
             return getattr(self.charsheet, attrn)
         elif hasattr(self, 'atrdic') and attrn in self.atrdic:
             return self.atrdic[attrn](self)
@@ -115,6 +118,12 @@ class CharSheetThingTable(CharSheetTable):
                             rd["thing"]).location)}
 
 
+class CharSheetPlaceTable(CharSheetTable):
+    atrdic = {
+        "skeleton": lambda self: self.character.placedict}
+    colkeys = ["dimension", "place"]
+
+
 class CharSheetPortalTable(CharSheetTable):
     atrdic = {
         "skeleton": lambda self: self.character.portaldict}
@@ -131,6 +140,73 @@ class CharSheetSkillTable(CharSheetTable):
     atrdic = {
         "skeleton": lambda self: self.character.skilldict}
     colkeys = ["skill", "deck"]
+
+
+class CharSheetCalendar(Calendar, CharSheetItem):
+    def __init__(self, charsheet, height, typ, *keys):
+        self.charsheet = charsheet
+        self.height = height
+        s = super(CharSheetCalendar, self)
+        s.__init__(charsheet.window, charsheet.character,
+                   ROWS_SHOWN, MAX_COLS,
+                   None, None, SCROLL_FACTOR, charsheet.style,
+                   typ, *keys)
+
+
+class CharSheetThingCalendar(CharSheetCalendar):
+    def __init__(self, charsheet, height, *keys):
+        super(CharSheetThingCalendar, self).__init__(
+            charsheet, height, CAL_TYPE["THING"], *keys)
+
+
+class CharSheetPlaceCalendar(CharSheetCalendar):
+    def __init__(self, charsheet, height, *keys):
+        super(CharSheetPlaceCalendar, self).__init__(
+            charsheet, height, CAL_TYPE["PLACE"], *keys)
+
+
+class CharSheetPortalCalendar(CharSheetCalendar):
+    def __init__(self, charsheet, height, *keys):
+        super(CharSheetPortalCalendar, self).__init__(
+            charsheet, height, CAL_TYPE["PORTAL"], *keys)
+
+
+class CharSheetStatCalendar(CharSheetCalendar):
+    def __init__(self, charsheet, height, *keys):
+        super(CharSheetStatCalendar, self).__init__(
+            charsheet, height, CAL_TYPE["STAT"], *keys)
+
+
+class CharSheetSkillCalendar(CharSheetCalendar):
+    def __init__(self, charsheet, height, *keys):
+        super(CharSheetSkillCalendar, self).__init__(
+            charsheet, height, CAL_TYPE["SKILL"], *keys)
+
+
+SHEET_ITEM_TYPE = {
+    "THINGTAB": 0,
+    "PLACETAB": 1,
+    "PORTALTAB": 2,
+    "STATTAB": 3,
+    "SKILLTAB": 4,
+    "THINGCAL": 5,
+    "PLACECAL": 6,
+    "PORTALCAL": 7,
+    "STATCAL": 8,
+    "SKILLCAL": 9}
+
+
+SHEET_ITEM_CLASS = {
+    SHEET_ITEM_TYPE["THINGTAB"]: CharSheetThingTable,
+    SHEET_ITEM_TYPE["PLACETAB"]: CharSheetPlaceTable,
+    SHEET_ITEM_TYPE["PORTALTAB"]: CharSheetPortalTable,
+    SHEET_ITEM_TYPE["STATTAB"]: CharSheetStatTable,
+    SHEET_ITEM_TYPE["SKILLTAB"]: CharSheetSkillTable,
+    SHEET_ITEM_TYPE["THINGCAL"]: CharSheetThingCalendar,
+    SHEET_ITEM_TYPE["PLACECAL"]: CharSheetPlaceCalendar,
+    SHEET_ITEM_TYPE["PORTALCAL"]: CharSheetPortalCalendar,
+    SHEET_ITEM_TYPE["STATCAL"]: CharSheetStatCalendar,
+    SHEET_ITEM_TYPE["SKILLCAL"]: CharSheetSkillCalendar}
 
 
 class CharSheet(object):
@@ -152,13 +228,39 @@ class CharSheet(object):
             {"window": ("window", "name"),
              "character": ("character", "name"),
              "style": ("style", "name")},
-            [])
+            []),
+        (
+            "charsheet_item",
+            {"window": "TEXT NOT NULL DEFAULT 'Main'",
+             "character": "TEXT NOT NULL",
+             "idx": "INTEGER NOT NULL",
+             "type": "INTEGER NOT NULL DEFAULT {}".format(
+                 SHEET_ITEM_TYPE["THINGCAL"]),
+             "key0": "TEXT NOT NULL",
+             "key1": "TEXT",
+             "key2": "TEXT",
+             "height": "INTEGER"},
+            ("window", "character", "idx"),
+            {"window, character": ("charsheet", "window, character")},
+            ["CASE key1 WHEN NULL THEN type NOT IN ({0}) END".format(
+                ", ".join([str(SHEET_ITEM_TYPE[typ]) for typ in (
+                    "THINGTAB", "THINGCAL",
+                    "PLACETAB", "PLACECAL",
+                    "PORTALTAB", "PORTALCAL")])),
+             "CASE key2 WHEN NULL THEN type<>{0} END".format(
+                 str(SHEET_ITEM_TYPE["PORTALTAB"])),
+             "CASE height WHEN NULL THEN type NOT IN ({0}) END".format(
+                 ", ".join([str(SHEET_ITEM_TYPE[typ]) for typ in (
+                     "THINGCAL", "PLACECAL", "PORTALCAL",
+                     "STATCAL", "SKILLCAL")])),
+             "idx>=0"])
     ]
 
     rdfields = set(["visible", "interactive",
                     "left", "right", "bot", "top"])
 
     atrdic = {
+        "closet": lambda self: self.window.closet,
         "batch": lambda self: self.window.batch,
         "group": lambda self: self.window.char_sheet_group,
         "window_left": lambda self: int(self.left * self.window.width),
@@ -169,9 +271,7 @@ class CharSheet(object):
     def __init__(self, window, character):
         s = super(CharSheet, self)
         s.__setattr__("window", window)
-        s.__setattr__("closet", window.closet)
         s.__setattr__("character", self.closet.get_character(character))
-        s.__setattr__("items", [])
 
     def __getattr__(self, attrn):
         if attrn in self.rdfields:
@@ -190,9 +290,14 @@ class CharSheet(object):
         else:
             super(CharSheet, self).__setattr__(attrn, val)
 
+    def items(self):
+        skel = self.window.closet.skeleton[
+            "charsheet_item"][str(self.window)][str(self.character)]
+        for rd in skel.itervalues():
+            yield SHEET_ITEM_TYPE["type"](
+                self, rd["height"], rd["key0"], rd["key1"], rd["key2"])
+
     def item_window_top(self, it):
-        if isinstance(it, int):
-            it = self.items[it]
         window_top = self.window_top
         for item in self.items:
             if item is not it:
@@ -202,12 +307,20 @@ class CharSheet(object):
                 return window_top
 
     def get_box(self, batch, group):
-        return get_box(
-            self.window_left,
-            self.window_right,
-            self.window_bot,
-            self.window_top,
+        l = self.window_left
+        r = self.window_right
+        b = self.window_bot
+        t = self.window_top
+        if (
+                r < 0 or
+                t < 0 or
+                l > self.window.width or
+                b > self.window.height):
+            return
+        return batch.add_indexed(
+            4,
             GL_TRIANGLES,
-            self.style.bg_inactive.tup,
-            batch,
-            group)
+            group,
+            (0, 1, 2, 0, 2, 3),
+            ('v2i', (l, b, l, t, r, t, r, b)),
+            ('c4B', self.style.bg_inactive.tup * 4))

@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 ascii = str
 str = unicode
-from util import SaveableMetaclass, TimestreamException
+from util import TimestreamException
 from logging import getLogger
 from pyglet.text import Label
 from pyglet.graphics import GL_LINES, GL_TRIANGLES, Group, OrderedGroup
@@ -15,9 +15,6 @@ Usually there should be only one calendar per board, but it can switch
 between showing various schedules, or even show many in parallel.
 
 """
-
-
-__metaclass__ = SaveableMetaclass
 
 
 logger = getLogger(__name__)
@@ -415,18 +412,36 @@ represents to calculate its dimensions and coordinates.
         t = self.window_top
         w = self.width
         h = self.height
-        return get_label(l, t, w, h, batch, group)
+        r = Label(
+            self.text,
+            self.style.fontface,
+            self.style.fontsize,
+            color=self.style.textcolor.tup,
+            x=l,
+            y=t,
+            anchor_y='top',
+            batch=batch,
+            group=group)
+        if r.content_height > h:
+            return
+        while r.content_width > w:
+            r.text = r.text[:-1]
+        return r
 
     def get_box(self, batch, group):
-        return get_box(
-            self.window_left,
-            self.window_right,
-            self.window_bot,
-            self.window_top,
+        l = self.window_left
+        b = self.window_right
+        t = self.window_top
+        r = self.window_right
+        if not self.in_view:
+            return
+        return batch.add_indexed(
+            4,
             GL_TRIANGLES,
-            self.style.bg_inactive.tup,
-            batch,
-            group)
+            group,
+            (0, 1, 2, 0, 2, 3)
+            ('v2i', (l, b, l, t, r, t, r, b)),
+            ('c4B', self.style.bg_inactive.tup * 4))
 
 CAL_TYPE = {
     "THING": 0,
@@ -508,129 +523,26 @@ handle, which may be dragged within and between branches to effect
 time travel.
 
     """
-    tables = [
-        (
-            "calendar",
-            {"window": "TEXT NOT NULL DEFAULT 'Main'",
-             "idx": "INTEGER NOT NULL DEFAULT 0",
-             "visible": "BOOLEAN NOT NULL DEFAULT 0",
-             "left": "FLOAT NOT NULL DEFAULT 0.8",
-             "right": "FLOAT NOT NULL DEFAULT 1.0",
-             "top": "FLOAT NOT NULL DEFAULT 1.0",
-             "bot": "FLOAT NOT NULL DEFAULT 0.0",
-             "max_cols": "INTEGER NOT NULL DEFAULT 3",
-             "style": "TEXT NOT NULL DEFAULT 'default_style'",
-             "interactive": "BOOLEAN NOT NULL DEFAULT 1",
-             "rows_shown": "INTEGER NOT NULL DEFAULT 240",
-             "scrolled_to": "INTEGER DEFAULT 0",
-             "scroll_factor": "INTEGER NOT NULL DEFAULT 4",
-             "left_branch": "INTEGER NOT NULL DEFAULT 0",
-             "type": "INTEGER NOT NULL DEFAULT {0}".format(CAL_TYPE['THING']),
-             "character": "TEXT NOT NULL",
-             "dimension": "TEXT DEFAULT NULL",
-             "thing": "TEXT DEFAULT NULL",
-             "thing_show_location": "BOOLEAN DEFAULT 1",
-             "place": "TEXT DEFAULT NULL",
-             "origin": "TEXT DEFAULT NULL",
-             "destination": "TEXT DEFAULT NULL",
-             "skill": "TEXT DEFAULT NULL",
-             "stat": "TEXT DEFAULT NULL"},
-            ("window", "idx"),
-            {"window": ("window", "name"),
-             "style": ("style", "name"),
-             "character, dimension, thing":
-             ("character_things", "character, dimension, thing"),
-             "character, dimension, place":
-             ("character_places", "character, dimension, place"),
-             "character, dimension, origin, destination":
-             ("character_portals",
-              "character, dimension, origin, destination"),
-             "character, skill":
-             ("character_skills", "character, skill"),
-             "character, stat":
-             ("character_stats", "character, stat")},
-            ["rows_shown>0", "left>=0.0", "left<=1.0", "right<=1.0",
-             "left<right", "top>=0.0", "top<=1.0", "bot>=0.0",
-             "bot<=1.0", "top>bot", "idx>=0",
-             "CASE type "
-             "WHEN {0} THEN (dimension NOTNULL AND thing NOTNULL) "
-             "WHEN {1} THEN (dimension NOTNULL AND place NOTNULL) "
-             "WHEN {2} THEN "
-             "(dimension NOTNULL AND "
-             "origin NOTNULL AND "
-             "destination NOTNULL) "
-             "WHEN {3} THEN skill NOTNULL "
-             "WHEN {4} THEN stat NOTNULL "
-             "ELSE 0 "
-             "END".format(
-                 CAL_TYPE['THING'],
-                 CAL_TYPE['PLACE'],
-                 CAL_TYPE['PORTAL'],
-                 CAL_TYPE['SKILL'],
-                 CAL_TYPE['STAT'])]
-        )]
-
-    rdfields = set(["left_branch", "visible",
-                    "interactive", "scroll_factor", "type",
-                    "rows_shown", "left", "right", "top", "bot"])
-
     atrdic = {
-        "typ": lambda self: self._rowdict["type"],
-        "character": lambda self:
-        self.closet.get_character(self._rowdict["character"]),
-        "dimension": lambda self:
-        self.closet.get_dimension(self._rowdict["dimension"]),
-        "thing": lambda self: self.closet.get_thing(
-            self._rowdict["dimension"], self._rowdict["thing"]),
-        "place": lambda self: self.closet.get_place(
-            self._rowdict["dimension"], self._rowdict["place"]),
-        "portal": lambda self: self.closet.get_portal(
-            self._rowdict["dimension"],
-            self._rowdict["origin"],
-            self._rowdict["destination"]),
-        "left_prop": lambda self: self._rowdict["left"],
-        "right_prop": lambda self: self._rowdict["right"],
-        "top_prop": lambda self: self._rowdict["top"],
-        "bot_prop": lambda self: self._rowdict["bot"],
-        "bot_tick": lambda self: self.scrolled_to + self.rows_shown,
-        "style": lambda self: self.closet.get_style(self._rowdict["style"]),
-        "window_top": lambda self: int(self.top_prop * self.window.height),
-        "window_bot": lambda self: int(self.bot_prop * self.window.height),
-        "window_left": lambda self: int(self.left_prop * self.window.width),
-        "window_right": lambda self: int(self.right_prop * self.window.width),
-        "width": lambda self: self.window_right - self.window_left,
+        "bot_tick": lambda self: self.top_tick + self.rows_shown,
         "col_width": lambda self: self.get_col_width(),
-        "height": lambda self: self.window_top - self.window_bot,
         "row_height": lambda self: self.height / self.rows_shown,
-        "scrolled_to": lambda self: self.sttt(),
-        "scroll_factor": lambda self: self._rowdict["scroll_factor"],
-        "max_cols": lambda self: self._rowdict["max_cols"],
-        "thing_show_location": lambda self: (
-            self._rowdict["thing_show_location"]
-            not in (0, None, False)),
-        "columns": lambda self: CalendarColIter(self),
-        "_rowdict": lambda self:
-        self.closet.skeleton["calendar"][
-            str(self.window)][
-            int(self)],
-        "dimension": lambda self:
-        self.closet.get_dimension(self._rowdict["dimension"]),
-        "thing": lambda self:
-        self.closet.get_thing(
-            self._rowdict["dimension"],
-            self._rowdict["thing"]),
-        "_location_dict": lambda self:
-        self.closet.skeleton["thing_location"][
-            self._rowdict["dimension"]][
-            self._rowdict["thing"]],
+        "columns": lambda self: iter(self),
         "timeline": lambda self: Timeline(self.make_col(self.closet.branch))
     }
 
-    def __init__(self, window, idx):
-        """Get the idx-th calendar in the given window"""
-        s = super(Calendar, self)
-        s.__setattr__('window', window)
-        s.__setattr__('idx', idx)
+    def __init__(self, window, character, rows_shown, max_cols,
+                 top_tick, left_branch, scroll_factor, style,
+                 typ, *keys):
+        self.window = window
+        self.character = character
+        self.rows_shown = rows_shown
+        self.max_cols = max_cols
+        self.top_tick = top_tick
+        self.left_branch = left_branch
+        self.scroll_factor = scroll_factor
+        self.style = self.closet.get_style(style)
+        self.change_type(typ, *keys)
         self.batch = self.window.batch
         self.biggroup = CalendarGroup(self)
         self.group = OrderedGroup(0, self.biggroup)
@@ -640,33 +552,29 @@ time travel.
         self.offy = 0
         self.last_draw = None
 
-    def __int__(self):
-        """What-th calendar in my window am I?
-
-So, return my index."""
-        return self.idx
-
-    def __iter__(self):
+    def itercolumns(self):
         for branch in self.closet.timestream.branchdict.iterkeys():
             yield self.make_col(branch)
 
+    def __iter__(self):
+        if not hasattr(self, 'data'):
+            return iter([])
+        else:
+            return self.itercolumns()
+
     def __getattr__(self, attrn):
         """Compute the attribute using the correct lambda from my atrdic"""
-        if attrn in self.rdfields:
-            return self._rowdict[attrn]
-        try:
-            return self.atrdic[attrn](self)
-        except KeyError:
-            raise AttributeError(
-                "Calendar instance has no attribute {0}".format(attrn))
+        return self.atrdic[attrn](self)
 
-    def __setattr__(self, attrn, val):
-        """Handle setting my field values in my rowdict"""
-        if attrn in self._rowdict:
-            assert(type(val) is type(self._rowdict[attrn]))
-            self._rowdict[attrn] = val
-        else:
-            super(Calendar, self).__setattr__(attrn, val)
+    def change_type(self, cal_type, *keys):
+        self.typ = cal_type
+        dk = {
+            CAL_TYPE["THING"]: "thing",
+            CAL_TYPE["PLACE"]: "place",
+            CAL_TYPE["PORTAL"]: "portal",
+            CAL_TYPE["STAT"]: "stat",
+            CAL_TYPE["SKILL"]: "skill"}[cal_type]
+        self.skel = self.character.get_item_history(dk, *keys)
 
     def get_col_width(self):
         branches = self.closet.timestream.max_branch() + 1
@@ -680,7 +588,7 @@ So, return my index."""
     def sttt(self):
         """Return the tick I'm scrolled to, if any; otherwise pick a
         sensible tick to be at."""
-        r = self._rowdict["scrolled_to"]
+        r = self.scrolled_to
         if r is None:
             return self.closet.tick
         else:
@@ -767,8 +675,12 @@ would be good.
         batch = self.window.batch
         drawn = []
         slew = self.offx % self.col_width
-        o = self.left_branch - slew
-        d = self.left_branch + self.max_cols + slew
+        if self.left_branch is None:
+            o = self.closet.branch - slew
+            d = self.closet.branch + self.max_cols + slew
+        else:
+            o = self.left_branch - slew
+            d = self.left_branch + self.max_cols + slew
         rightmostbranch = self.closet.timestream.hi_branch
         if d > rightmostbranch + 1:
             d = rightmostbranch + 1
