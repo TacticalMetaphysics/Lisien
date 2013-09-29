@@ -16,8 +16,8 @@ __metaclass__ = SaveableMetaclass
 logger = getLogger(__name__)
 
 
-MAX_COLS = 240
-ROWS_SHOWN = 3
+MAX_COLS = 3
+ROWS_SHOWN = 240
 SCROLL_FACTOR = 4
 
 
@@ -143,20 +143,59 @@ class CharSheetSkillTable(CharSheetTable):
 
 
 class CharSheetCalendar(Calendar, CharSheetItem):
+    atrdic = {
+        "width": lambda self: self.charsheet.width,
+        "row_height": lambda self: self.height / self.rows_shown}
+
     def __init__(self, charsheet, height, typ, *keys):
         self.charsheet = charsheet
         self.height = height
-        s = super(CharSheetCalendar, self)
-        s.__init__(charsheet.window, charsheet.character,
-                   ROWS_SHOWN, MAX_COLS,
-                   None, None, SCROLL_FACTOR, charsheet.style,
-                   typ, *keys)
+        Calendar.__init__(
+            self, charsheet, ROWS_SHOWN, MAX_COLS,
+            None, None, SCROLL_FACTOR, self.charsheet.style,
+            typ, *keys)
+
+    def __getattr__(self, attrn):
+        if attrn in self.atrdic:
+            return self.atrdic[attrn](self)
+        elif attrn in CharSheetCalendar.atrdic:
+            return CharSheetCalendar.atrdic[attrn](self)
+        elif attrn in Calendar.atrdic:
+            return Calendar.atrdic[attrn](self)
+        else:
+            return CharSheetItem.__getattr__(self, attrn)
 
 
 class CharSheetThingCalendar(CharSheetCalendar):
+    atrdic = {
+        "dimension": lambda self:
+        self.charsheet.closet.get_dimension(self._dimension),
+        "thing": lambda self:
+        self.charsheet.closet.get_thing(self._dimension, self._thing),
+        "col_width": lambda self:
+        self.width / MAX_COLS}
+
     def __init__(self, charsheet, height, *keys):
+        self._dimension = keys[0]
+        self._thing = keys[1]
         super(CharSheetThingCalendar, self).__init__(
             charsheet, height, CAL_TYPE["THING"], *keys)
+
+    def __eq__(self, other):
+        return (
+            self.charsheet is other.charsheet and
+            self._thing == other._thing and
+            self._dimension == other._dimension)
+
+    def __getattr__(self, attrn):
+        if attrn in self.atrdic:
+            return self.atrdic[attrn](self)
+        elif attrn in CharSheetCalendar.atrdic:
+            return CharSheetCalendar.atrdic[attrn](self)
+        elif attrn in Calendar.atrdic:
+            return Calendar.atrdic[attrn](self)
+        else:
+            return CharSheetItem.__getattr__(self, attrn)
 
 
 class CharSheetPlaceCalendar(CharSheetCalendar):
@@ -210,6 +249,7 @@ SHEET_ITEM_CLASS = {
 
 
 class CharSheet(object):
+    __metaclass__ = SaveableMetaclass
     demands = ["character"]
 
     tables = [
@@ -234,8 +274,7 @@ class CharSheet(object):
             {"window": "TEXT NOT NULL DEFAULT 'Main'",
              "character": "TEXT NOT NULL",
              "idx": "INTEGER NOT NULL",
-             "type": "INTEGER NOT NULL DEFAULT {}".format(
-                 SHEET_ITEM_TYPE["THINGCAL"]),
+             "type": "INTEGER NOT NULL",
              "key0": "TEXT NOT NULL",
              "key1": "TEXT",
              "key2": "TEXT",
@@ -253,7 +292,8 @@ class CharSheet(object):
                  ", ".join([str(SHEET_ITEM_TYPE[typ]) for typ in (
                      "THINGCAL", "PLACECAL", "PORTALCAL",
                      "STATCAL", "SKILLCAL")])),
-             "idx>=0"])
+             "idx>=0",
+             "idx<={}".format(max(SHEET_ITEM_TYPE.viewvalues()))])
     ]
 
     rdfields = set(["visible", "interactive",
@@ -266,12 +306,20 @@ class CharSheet(object):
         "window_left": lambda self: int(self.left * self.window.width),
         "window_bot": lambda self: int(self.bot * self.window.height),
         "window_top": lambda self: int(self.top * self.window.height),
-        "window_right": lambda self: int(self.right * self.window.width)}
+        "window_right": lambda self: int(self.right * self.window.width),
+        "width": lambda self: self.window_right - self.window_left,
+        "_rowdict": lambda self: self.closet.skeleton[
+            "charsheet"][self._window][self._character],
+        "window": lambda self: self.closet.get_window(self._window),
+        "character": lambda self: self.closet.get_character(self._character),
+        "style": lambda self: self.closet.get_style(self._rowdict["style"])}
 
-    def __init__(self, window, character):
+    def __init__(self, closet, window, character):
         s = super(CharSheet, self)
-        s.__setattr__("window", window)
-        s.__setattr__("character", self.closet.get_character(character))
+        s.__setattr__("closet", closet)
+        s.__setattr__("_window", window)
+        s.__setattr__("_character", character)
+        s.__setattr__("lastdraw", [])
 
     def __getattr__(self, attrn):
         if attrn in self.rdfields:
@@ -294,13 +342,13 @@ class CharSheet(object):
         skel = self.window.closet.skeleton[
             "charsheet_item"][str(self.window)][str(self.character)]
         for rd in skel.itervalues():
-            yield SHEET_ITEM_TYPE["type"](
+            yield SHEET_ITEM_CLASS[rd["type"]](
                 self, rd["height"], rd["key0"], rd["key1"], rd["key2"])
 
     def item_window_top(self, it):
         window_top = self.window_top
-        for item in self.items:
-            if item is not it:
+        for item in self.items():
+            if item != it:
                 window_top -= item.height
                 window_top -= self.style.spacing
             else:
@@ -317,10 +365,22 @@ class CharSheet(object):
                 l > self.window.width or
                 b > self.window.height):
             return
-        return batch.add_indexed(
-            4,
+        return batch.add(
+            6,
             GL_TRIANGLES,
             group,
-            (0, 1, 2, 0, 2, 3),
-            ('v2i', (l, b, l, t, r, t, r, b)),
-            ('c4B', self.style.bg_inactive.tup * 4))
+            ('v2i', (l, b, l, t, r, t, l, b, r, b, r, t)),
+            ('c4B', self.style.bg_inactive.tup * 6))
+
+    def draw(self):
+        drawn = []
+        drawn.append(
+            self.get_box(self.window.batch, self.window.calendar_group))
+        drawn.extend([item.draw()
+                      for item in self.items()])
+        for done in self.lastdraw:
+            try:
+                done.delete()
+            except AttributeError:
+                pass
+        self.lastdraw = drawn

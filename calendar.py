@@ -205,10 +205,10 @@ color is a 4-tuple of Red, Green, Blue, Alpha."""
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.offx += dx
         if y > self.column.window_top:
-            if self.closet.tick != self.calendar.scrolled_to:
+            if self.closet.tick != self.calendar.top_tick:
                 self.closet.time_travel(
                     self.column.branch,
-                    max((self.calendar.scrolled_to, 0)))
+                    max((self.calendar.top_tick, 0)))
         elif y < self.column.window_bot:
             if self.closet.tick != self.calendar.bot_tick:
                 self.closet.time_travel(
@@ -380,7 +380,7 @@ represents to calculate its dimensions and coordinates.
         """How far above the bottom of the calendar is my bottom edge?"""
         try:
             return self.calendar.height - self.calendar.row_height * (
-                self.tick_to - self.calendar.scrolled_to)
+                self.tick_to - self.calendar.top_tick)
         except TypeError:
             return 0
 
@@ -439,7 +439,7 @@ represents to calculate its dimensions and coordinates.
             4,
             GL_TRIANGLES,
             group,
-            (0, 1, 2, 0, 2, 3)
+            (0, 1, 2, 0, 2, 3),
             ('v2i', (l, b, l, t, r, t, r, b)),
             ('c4B', self.style.bg_inactive.tup * 4))
 
@@ -528,14 +528,21 @@ time travel.
         "col_width": lambda self: self.get_col_width(),
         "row_height": lambda self: self.height / self.rows_shown,
         "columns": lambda self: iter(self),
-        "timeline": lambda self: Timeline(self.make_col(self.closet.branch))
+        "timeline": lambda self: Timeline(self.make_col(self.closet.branch)),
+        "closet": lambda self: self.charsheet.closet,
+        "window": lambda self: self.charsheet.window,
+        "character": lambda self: self.charsheet.character,
+        "scrolled_to": lambda self: {
+            True: self.closet.tick,
+            False: self.top_tick}[self.top_tick is None],
+        "window_top": lambda self: self.charsheet.item_window_top(self),
+        "window_bot": lambda self: self.window_top - self.height
     }
 
-    def __init__(self, window, character, rows_shown, max_cols,
+    def __init__(self, charsheet, rows_shown, max_cols,
                  top_tick, left_branch, scroll_factor, style,
                  typ, *keys):
-        self.window = window
-        self.character = character
+        self.charsheet = charsheet
         self.rows_shown = rows_shown
         self.max_cols = max_cols
         self.top_tick = top_tick
@@ -562,9 +569,14 @@ time travel.
         else:
             return self.itercolumns()
 
-    def __getattr__(self, attrn):
-        """Compute the attribute using the correct lambda from my atrdic"""
-        return self.atrdic[attrn](self)
+    def __eq__(self, other):
+        return self.charsheet is other.charsheet and self.typ == other.typ and self.skel == other.skel
+
+    def __ne__(self, other):
+        return (
+            self.charsheet is not other.charsheet or
+            self.typ != other.typ or
+            self.skel != other.skel)
 
     def change_type(self, cal_type, *keys):
         self.typ = cal_type
@@ -588,7 +600,7 @@ time travel.
     def sttt(self):
         """Return the tick I'm scrolled to, if any; otherwise pick a
         sensible tick to be at."""
-        r = self.scrolled_to
+        r = self.top_tick
         if r is None:
             return self.closet.tick
         else:
@@ -604,7 +616,7 @@ time travel.
         """Given a y-coordinate, what tick does it represent?"""
         px_from_cal_top = self.window_top - y
         ticks_from_top = px_from_cal_top / self.row_height
-        return ticks_from_top + self.scrolled_to
+        return ticks_from_top + self.top_tick
 
     def overlaps(self, x, y):
         # My hitbox is a bit bigger than I appear, because sometimes
@@ -623,10 +635,7 @@ time travel.
 
     def make_col(self, branch):
         return {
-            CAL_TYPE['THING']: {
-                True: LocationCalendarCol,
-                False: ThingCalendarCol}[
-                self.thing_show_location],
+            CAL_TYPE['THING']: LocationCalendarCol,
             CAL_TYPE['PLACE']: PlaceCalendarCol,
             CAL_TYPE['PORTAL']: PortalCalendarCol,
             CAL_TYPE['STAT']: StatCalendarCol,
@@ -651,16 +660,16 @@ time travel.
             self.offx += self.col_width
         self.left_branch = max((self.left_branch, 0))
         while (self.offy > self.row_height):
-            self.scrolled_to += 1
+            self.top_tick += 1
             self.offy -= self.row_height
-        self.scrolled_to = min((
+        self.top_tick = min((
             self.closet.timestream.hi_tick + self.rows_shown,
-            self.scrolled_to))
+            self.top_tick))
         while self.offy * -1 > self.row_height:
-            self.scrolled_to -= 1
+            self.top_tick -= 1
             self.offy += self.row_height
-        if self.scrolled_to < -10:
-            self.scrolled_to = -10
+        if self.top_tick < -10:
+            self.top_tick = -10
         self.offx = 0
         self.offy = 0
 
@@ -734,11 +743,13 @@ Shows whatever the calendar is about, in that branch."""
         "rx": lambda self: self.width / 2,
         "height": lambda self: self.window_top - self.window_bot,
         "ry": lambda self: self.height / 2,
-        "window_left": lambda self:
-        self.calendar.window_left + self.calendar.offx + (
-            int(self) -
-            self.calendar.left_branch
-        ) * self.calendar.col_width,
+        "window_left": lambda self: {
+            True: lambda: self.calendar.window_left + self.calendar.offx + int(self) * self.calendar.col_width,
+            False: lambda: 
+            self.calendar.window_left + self.calendar.offx + (
+                int(self) -
+                self.calendar.left_branch
+        ) * self.calendar.col_width}[self.calendar.left_branch is None](),
         "window_right": lambda self:
         self.window_left + self.calendar.col_width,
         "parent": lambda self: self.calendar.make_col(

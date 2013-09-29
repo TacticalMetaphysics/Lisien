@@ -39,6 +39,7 @@ from util import (
 from portal import Portal
 from thing import Thing
 from character import Character
+from charsheet import CharSheet
 
 
 logger = getLogger(__name__)
@@ -643,6 +644,20 @@ This is game-world time. It doesn't always go forwards.
     def make_portal(self, orig, dest):
         return orig.dimension.make_portal(orig, dest)
 
+    def load_charsheet(self, window, character):
+        window = str(window)
+        character = str(character)
+        skel = Skeleton({
+            "charsheet": {
+                "window": window,
+                "character": character},
+            "charsheet_item": {
+                "window": window,
+                "character": character}})
+        self.skeleton.update(
+            CharSheet._select_skeleton(self.c, skel))
+        return CharSheet(self, window, character)
+
     def load_characters(self, names):
         qtd = {
             "character_things": {},
@@ -948,7 +963,7 @@ This is game-world time. It doesn't always go forwards.
             "menu": {},
             "hand": {},
             "menu_item": {},
-            "calendar": {}}
+            "charsheet": {}}
         for name in names:
             kd["window"][name] = {"name": name}
             for col in kd.iterkeys():

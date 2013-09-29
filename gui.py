@@ -13,7 +13,7 @@ from menu import Menu, MenuItem
 from card import Hand
 from board import BoardViewport
 from picpicker import PicPicker
-from calendar import Calendar
+from charsheet import CharSheet
 from collections import deque
 
 
@@ -202,7 +202,8 @@ class GameWindow(pyglet.window.Window):
         'dy': lambda self: sum(self.dy_hist),
         'arrow_girth': lambda self: self.arrow_width * 2,
         'timestream_changed': lambda self: self.rehash_timeline(),
-        "viewports": lambda self: ViewportIter(self.dimensiondict)}
+        "viewports": lambda self: ViewportIter(self.dimensiondict),
+        "charsheets": lambda self: self.charsheetdict.itervalues()}
 
     rowattrs = set(["min_width", "min_height",
                     "arrowhead_size", "arrow_width"])
@@ -260,7 +261,7 @@ class GameWindow(pyglet.window.Window):
             for rd in self.closet.skeleton["hand"][str(self)].iterrows():
                 stylenames.add(rd["style"])
                 handnames.add(rd["name"])
-        for rd in self.closet.skeleton["calendar"][str(self)].iterrows():
+        for rd in self.closet.skeleton["charsheet"][str(self)].iterrows():
             stylenames.add(rd["style"])
         self.closet.get_styles(stylenames)
         carddict = self.closet.get_cards_in_hands(handnames)
@@ -292,19 +293,18 @@ class GameWindow(pyglet.window.Window):
         if hasattr(self, 'handdict'):
             self.carddict = self.closet.get_cards_in_hands(
                 self.handdict.keys())
-        self.calendars = []
-        for rd in self.closet.skeleton["calendar"][str(self)].iterrows():
+        for rd in self.closet.skeleton["charsheet"][str(self)].iterrows():
             charnames.add(rd["character"])
         self.closet.load_characters(charnames)
-        for rd in self.closet.skeleton["calendar"][str(self)].iterrows():
-            while len(self.calendars) <= rd["idx"]:
-                self.calendars.append(None)
-            self.calendars[rd["idx"]] = Calendar(self, rd["idx"])
+        self.charsheetdict = {}
+        for rd in self.closet.skeleton["charsheet"][str(self)].iterrows():
+            self.charsheetdict[rd["character"]] = self.closet.load_charsheet(
+                rd["window"], rd["character"])
         self.mouspot = MousySpot()
         self.squareoff = self.arrowhead_size * sin(fortyfive)
         self.picker = None
         self.hover_iter_getters = [
-            lambda x: CalendarIterX(self.calendars, x),
+            lambda x: self.charsheetdict.itervalues(),
             lambda x: MenuIterX(self.menudict.itervalues(), x),
             lambda x: ViewportIterX(self, x),
             lambda x: PickerIterX(self, x),
@@ -343,6 +343,7 @@ class GameWindow(pyglet.window.Window):
         self.last_timeline_y = -1
 
         self.dxdy_hist_counter = 0
+        self.closet.windowdict[str(self)] = self
 
     def __getattr__(self, attrn):
         if attrn in self.rowattrs:
@@ -367,6 +368,8 @@ class GameWindow(pyglet.window.Window):
         return r
 
     def on_draw(self):
+        if str(self) not in self.closet.windowdict:
+            return
         (width, height) = self.get_size()
         if (
                 width < self.min_width or
@@ -376,8 +379,8 @@ class GameWindow(pyglet.window.Window):
             self.picker.draw(self.batch, self.pickergroup)
         for menu in self.menus:
             menu.draw()
-        for calendar in self.calendars:
-            calendar.draw()
+        for charsheet in self.charsheets:
+            charsheet.draw()
         for hand in self.hands:
             hand.draw()
         for viewport in self.viewports:
@@ -536,7 +539,7 @@ on_mouse_drag method, use it.
         for calendar in self.calendars:
             if (calendar is not None and calendar.overlaps(x, y)):
                 sf = calendar.scroll_factor
-                calendar.scrolled_to += scroll_y * sf
+                calendar.top_tick += scroll_y * sf
                 return
         if self.picker is not None:
             if self.picker.overlaps(x, y):
