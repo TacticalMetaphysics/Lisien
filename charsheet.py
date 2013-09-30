@@ -19,6 +19,8 @@ logger = getLogger(__name__)
 MAX_COLS = 3
 ROWS_SHOWN = 240
 SCROLL_FACTOR = 4
+TOP_TICK = 0
+LEFT_BRANCH = 0
 
 
 def generate_items(skel, keykey, valkey):
@@ -89,16 +91,42 @@ class CharSheetTable(CharSheetItem):
                 group=group)
             l += step
 
-    def iterlabels(self, batch, group, branch=None, tick=None):
+    def iterlabels(self, branch=None, tick=None):
         t = self.window_top
         l = self.window_left
-        for label in self.row_labels(self.colkeys, t, batch, group):
-            yield label
+        for label in self.row_labels(
+                self.colkeys, t, self.window.batch,
+                self.window.charsheet_group):
+            if (
+                    label.x < self.charsheet.window_top and
+                    label.y < self.charsheet.window_right and
+                    label.x + label.content_width > self.charsheet.window_left and
+                    label.y + label.content_height > self.charsheet.window_bot):
+                yield label
         t -= self.rowheight
         for row in self.iterrows(branch, tick):
-            for label in self.row_labels(row, l, t, batch, group):
-                yield label
+            if (
+                    label.x < self.charsheet.window_top and
+                    label.y < self.charsheet.window_right and
+                    label.x + label.content_width > self.charsheet.window_left and
+                    label.y + label.content_height > self.charsheet.window_bot):
+                for label in self.row_labels(
+                        row, l, t,
+                        self.window.batch,
+                        self.window.charsheet_group):
+                    yield label
             t -= self.rowheight
+
+    def draw(self, batch, group):
+        return self.iterlabels(batch, group)
+
+    def hover(self, x, y):
+        if (
+                x > self.window_right and
+                x < self.window_left and
+                y > self.window_bot and
+                y < self.window_top):
+            return self
 
 
 class CharSheetThingTable(CharSheetTable):
@@ -143,24 +171,16 @@ class CharSheetSkillTable(CharSheetTable):
 
 
 class CharSheetCalendar(Calendar, CharSheetItem):
-    atrdic = {
-        "width": lambda self: self.charsheet.width,
-        "row_height": lambda self: self.height / self.rows_shown}
-
     def __init__(self, charsheet, height, typ, *keys):
         self.charsheet = charsheet
         self.height = height
         Calendar.__init__(
             self, charsheet, ROWS_SHOWN, MAX_COLS,
-            None, None, SCROLL_FACTOR, self.charsheet.style,
+            LEFT_BRANCH, SCROLL_FACTOR, self.charsheet.style,
             typ, *keys)
 
     def __getattr__(self, attrn):
-        if attrn in self.atrdic:
-            return self.atrdic[attrn](self)
-        elif attrn in CharSheetCalendar.atrdic:
-            return CharSheetCalendar.atrdic[attrn](self)
-        elif attrn in Calendar.atrdic:
+        if attrn in Calendar.atrdic:
             return Calendar.atrdic[attrn](self)
         else:
             return CharSheetItem.__getattr__(self, attrn)
@@ -188,14 +208,10 @@ class CharSheetThingCalendar(CharSheetCalendar):
             self._dimension == other._dimension)
 
     def __getattr__(self, attrn):
-        if attrn in self.atrdic:
-            return self.atrdic[attrn](self)
-        elif attrn in CharSheetCalendar.atrdic:
-            return CharSheetCalendar.atrdic[attrn](self)
-        elif attrn in Calendar.atrdic:
+        if attrn in Calendar.atrdic:
             return Calendar.atrdic[attrn](self)
         else:
-            return CharSheetItem.__getattr__(self, attrn)
+            return super(CharSheetThingCalendar, self).__getattr__(attrn)
 
 
 class CharSheetPlaceCalendar(CharSheetCalendar):
@@ -320,6 +336,9 @@ class CharSheet(object):
         s.__setattr__("_window", window)
         s.__setattr__("_character", character)
         s.__setattr__("lastdraw", [])
+        s.__setattr__("top_ticks", {})
+        s.__setattr__("offxs", {})
+        s.__setattr__("offys", {})
 
     def __getattr__(self, attrn):
         if attrn in self.rdfields:
@@ -337,6 +356,45 @@ class CharSheet(object):
             self._rowdict[attrn] = val
         else:
             super(CharSheet, self).__setattr__(attrn, val)
+
+    def __iter__(self):
+        return self.items()
+
+    def get_for_cal(self, cal, d, default):
+        (k0, k1, k2) = cal.keys
+        if k0 not in d:
+            d[k0] = {}
+        if k1 not in d[k0]:
+            d[k0][k1] = {}
+        if k2 not in d[k0][k1]:
+            d[k0][k1][k2] = default
+        return d[k0][k1][k2]
+
+    def set_for_cal(self, cal, d, val):
+        (k0, k1, k2) = cal.keys
+        if k0 not in d:
+            d[k0] = {}
+        if k1 not in d[k0]:
+            d[k0][k1] = {}
+        d[k0][k1][k2] = val
+
+    def get_cal_top_tick(self, cal):
+        return self.get_for_cal(cal, self.top_ticks, TOP_TICK)
+
+    def set_cal_top_tick(self, cal, tick):
+        self.set_for_cal(cal, self.top_ticks, tick)
+
+    def get_cal_offx(self, cal):
+        return self.get_for_cal(cal, self.offxs, 0)
+
+    def set_cal_offx(self, cal, offx):
+        self.set_for_cal(cal, self.offxs, offx)
+
+    def get_cal_offy(self, cal):
+        return self.get_for_cal(cal, self.offys, 0)
+
+    def set_cal_offy(self, cal, offy):
+        self.set_for_cal(cal, self.offys, offy)
 
     def items(self):
         skel = self.window.closet.skeleton[
@@ -374,13 +432,25 @@ class CharSheet(object):
 
     def draw(self):
         drawn = []
-        drawn.append(
-            self.get_box(self.window.batch, self.window.calendar_group))
-        drawn.extend([item.draw()
-                      for item in self.items()])
-        for done in self.lastdraw:
+        for item in self:
+            drawn.extend(item.draw(
+                self.window.batch, self.window.charsheet_group))
+        for item in self.lastdraw:
             try:
-                done.delete()
+                item.delete()
             except AttributeError:
                 pass
         self.lastdraw = drawn
+
+    def hover(self, x, y):
+        for item in self:
+            hovered = item.hover(x, y)
+            if hovered is not None:
+                return hovered
+
+    def overlaps(self, x, y):
+        return (
+            self.window_left < x and
+            x < self.window_right and
+            self.window_bot < y and
+            y < self.window_top)

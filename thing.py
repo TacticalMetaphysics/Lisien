@@ -131,9 +131,9 @@ With no tick_to argument, I'll stay in this location
 indefinitely--that is, until I have anything else to do. With tick_to,
 I'll stay in this location until then, even if I DO have something
 else to do.
-
-Return an Effect representing the change.
         """
+        def gethibranch():
+            return self.dimension.closet.timestream.hi_branch
         if branch is None:
             branch = self.closet.branch
         if tick is None:
@@ -256,6 +256,8 @@ other journey I may be on at the time."""
         self.set_location(destplace, int(branch), int(prevtick))
 
     def new_branch(self, parent, branch, tick):
+        def gethibranch():
+            return self.dimension.closet.timestream.hi_branch
         if branch not in self.locations:
             self.locations[branch] = {}
         if self.new_branch_blank:
@@ -267,7 +269,9 @@ other journey I may be on at the time."""
             return
         prev = None
         started = False
+        i = 0
         for rd in self.locations[parent].iterrows():
+            i += 1
             if rd["tick_from"] >= tick:
                 rd2 = dict(rd)
                 rd2["branch"] = branch

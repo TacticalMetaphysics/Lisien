@@ -118,7 +118,7 @@ With db, register in db's menuitemdict.
             t = (self,) + on_click_arg_tup
             return fun(*t)
 
-        self.on_click = on_click_fun
+        self.on_click_fun = on_click_fun
 
         self.old_window_left = 0
         self.old_window_bot = 0
@@ -135,8 +135,8 @@ With db, register in db's menuitemdict.
     def __getattr__(self, attrn):
         return self.atrdic[attrn](self)
 
-    def onclick(self, x, y, button, modifiers):
-        return self.on_click(self)
+    def on_click(self, x, y, buttons, modifiers):
+        return self.on_click_fun(self)
 
     def overlaps(self, x, y):
         return (

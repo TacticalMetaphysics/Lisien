@@ -1046,12 +1046,8 @@ This is game-world time. It doesn't always go forwards.
     def time_travel(self, branch, tick):
         if branch > self.timestream.hi_branch + 1:
             raise TimestreamException("Tried to travel too high a branch")
-        elif branch == self.timestream.hi_branch + 1:
-            self.skeleton["timestream"][branch] = {
-                "branch": branch,
-                "parent": self.branch}
+        if branch == self.timestream.hi_branch + 1:
             self.new_branch(self.branch, branch, tick)
-            self.timestream.hi_branch += 1
         # will need to take other games-stuff into account than the
         # thing_location
         mintick = self.timestream.min_tick(branch, "thing_location")
@@ -1076,6 +1072,11 @@ This is game-world time. It doesn't always go forwards.
             dimension.new_branch(parent, branch, tick)
         for character in self.characters:
             character.new_branch(parent, branch, tick)
+        self.skeleton["timestream"][branch] = {
+            "branch": branch,
+            "parent": parent}
+        assert(branch == self.timestream.hi_branch + 1)
+        self.timestream.hi_branch = branch
 
     def time_travel_inc_tick(self, ticks=1):
         self.time_travel(self.branch, self.tick+ticks)

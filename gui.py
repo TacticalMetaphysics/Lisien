@@ -90,36 +90,6 @@ class ViewportIter:
         return self.next()
 
 
-class CalendarIterX(object):
-    def __init__(self, cals, x):
-        self.calit = iter(cals)
-        self.x = x
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        cal = self.calit.next()
-        while self.x < cal.window_left or cal.window_right < self.x:
-            cal = self.calit.next()
-        return cal
-
-
-class MenuIterX(object):
-    def __init__(self, menuiter, x):
-        self.menuiter = menuiter
-        self.x = x
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        menu = self.menuiter.next()
-        while self.x < menu.window_left or menu.window_right < self.x:
-            menu = self.menuiter.next()
-        return menu
-
-
 class ViewportIterX(object):
     def __init__(self, gw, x):
         self.vpiter = ViewportIter(gw.dimensiondict)
@@ -239,7 +209,7 @@ class GameWindow(pyglet.window.Window):
         self.menu_fg_group = OrderedGroup(5)
         self.calendar_group = OrderedGroup(6)
         self.timeline_group = OrderedGroup(7)
-        self.char_sheet_group = OrderedGroup(8)
+        self.charsheet_group = OrderedGroup(8)
         self.pickergroup = OrderedGroup(9)  # should be scissored
         for rd in self.closet.skeleton[
                 "board_viewport"][str(self)].iterrows():
@@ -303,12 +273,56 @@ class GameWindow(pyglet.window.Window):
         self.mouspot = MousySpot()
         self.squareoff = self.arrowhead_size * sin(fortyfive)
         self.picker = None
+
+        def charsheet_iter_x(x):
+            for charsheet in self.charsheets:
+                for item in charsheet:
+                    if hasattr(item, 'timeline'):
+                        if (
+                                x > item.timeline.window_left and
+                                x < item.timeline.window_right):
+                            yield item.timeline
+                        if (
+                                x > item.window_left and
+                                x < item.window_right):
+                            yield item
+
+        def viewport_iter_x(x):
+            for viewport in self.viewports:
+                if (
+                        x < viewport.window_right and
+                        x > viewport.window_left):
+                    for pawn in viewport.pawns:
+                        if (
+                                pawn.window_left < x and
+                                x < pawn.window_right):
+                            yield pawn
+                    for spot in viewport.spots:
+                        if (
+                                spot.window_left < x and
+                                x < spot.window_right):
+                            yield spot
+                    for arrow in viewport.arrows:
+                        if (
+                                arrow.window_left < x and
+                                x < arrow.window_right):
+                            yield arrow
+                    yield viewport
+
+        def menu_item_iter_x(x):
+            for menu in self.menudict.itervalues():
+                for item in menu.items:
+                    if (
+                            item.window_left < x and
+                            x < item.window_right):
+                        yield item
+
         self.hover_iter_getters = [
-            lambda x: self.charsheetdict.itervalues(),
-            lambda x: MenuIterX(self.menudict.itervalues(), x),
-            lambda x: ViewportIterX(self, x),
+            charsheet_iter_x,
+            menu_item_iter_x,
             lambda x: PickerIterX(self, x),
-            lambda x: HandIterX(self, x)]
+            lambda x: HandIterX(self, x),
+            viewport_iter_x]
         self.pressed = None
         self.hovered = None
         self.grabbed = None
@@ -557,21 +571,16 @@ on_mouse_drag method, use it.
                         hoverable is not None and
                         hasattr(hoverable, 'overlaps') and
                         hoverable.overlaps(x, y)):
-                    if hoverable is None:
-                        continue
-                    if hasattr(hoverable, 'hover'):
-                        self.hovered = hoverable.hover(x, y)
-                    else:
-                        self.hovered = hoverable
-                    if hasattr(self.hovered, 'on_click'):
-                        self.set_system_mouse_cursor(
-                            self.CURSOR_HAND)
-                    elif hasattr(self.hovered, 'crosshair'):
+                    if hasattr(hoverable, 'crosshair'):
                         self.set_system_mouse_cursor(
                             self.CURSOR_CROSSHAIR)
+                    elif hasattr(hoverable, 'on_click'):
+                        self.set_system_mouse_cursor(
+                            self.CURSOR_HAND)
                     else:
                         self.set_system_mouse_cursor(
                             self.CURSOR_DEFAULT)
+                    self.hovered = hoverable
                     return
         self.set_system_mouse_cursor(
             self.CURSOR_DEFAULT)

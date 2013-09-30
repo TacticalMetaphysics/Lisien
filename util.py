@@ -62,7 +62,7 @@ class SkelRowIter(object):
                 return ptr
             else:
                 try:
-                    k = keys.pop()
+                    k = keys.pop(0)
                 except IndexError:
                     continue
                 if len(keys) > 0:
@@ -1133,9 +1133,7 @@ class Timestream(object):
             self.skeleton[tab].set_listener = self.skel_set
 
     def skel_set(self, qn, k, v):
-        if k == "branch":
-            if v > self.hi_branch:
-                self.hi_branch = v
+        pass
 
     def branches(self, table=None):
         if table is None:

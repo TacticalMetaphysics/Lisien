@@ -153,8 +153,10 @@ this dimension, and laid out nicely."""
         return thing
 
     def new_branch(self, parent, branch, tick):
+        i = 0
         for thing in self.things:
             thing.new_branch(parent, branch, tick)
+            i += 1
         for e in self.graph.es:
             e["portal"].new_branch(parent, branch, tick)
         for board in self.boards:
