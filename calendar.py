@@ -819,7 +819,8 @@ instead, giving something like "in transit from A to B".
             cc = CalendarCell(
                 self, prev["tick_from"], rd["tick_from"], prev["location"])
             prev = rd
-            yield cc
+            if cc.height > cc.style.fontsize + cc.style.spacing:
+                yield cc
         yield CalendarCell(
             self, prev["tick_from"], None, prev["location"])
 
