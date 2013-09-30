@@ -17,7 +17,7 @@ logger = getLogger(__name__)
 
 
 MAX_COLS = 3
-ROWS_SHOWN = 240
+ROWS_SHOWN = 50
 SCROLL_FACTOR = 4
 TOP_TICK = 0
 LEFT_BRANCH = 0
