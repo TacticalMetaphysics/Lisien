@@ -203,11 +203,15 @@ other journey I may be on at the time."""
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        loc = str(self.get_location(branch, tick))
-        m = match(portex, loc)
+        oloc = str(self.get_location(branch, tick))
+        otick = tick
+        m = match(portex, oloc)
         if m is not None:
             loc = m.groups()[0]
-            tick = self.locations[branch].key_after(tick)
+            tick = self.locations[branch].key_after(otick)
+        else:
+            loc = oloc
+            tick = otick
         assert(tick is not None)
         ipath = self.dimension.graph.get_shortest_paths(
             loc, to=str(destplace), output=ascii("epath"))
@@ -235,7 +239,13 @@ other journey I may be on at the time."""
             self.closet.time_travel_inc_branch(branches=increment)
             self.new_branch_blank = False
             branch = self.closet.branch
-            assert(tick is not None)
+            m = match(portex, oloc)
+            if m is not None:
+                loc = m.groups()[0]
+                tick = self.locations[branch].key_after(otick)
+            else:
+                loc = oloc
+                tick = otick
             self.follow_path(path, branch, tick)
 
     def follow_path(self, path, branch, tick):
@@ -246,7 +256,7 @@ other journey I may be on at the time."""
             raise TimeParadox
         except KeyError:
             pass
-        prevtick = tick
+        prevtick = tick + 1
         for port in path:
             self.set_location(port, branch, prevtick)
             prevtick += self.get_ticks_thru(port)
