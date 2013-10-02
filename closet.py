@@ -1094,12 +1094,12 @@ This is game-world time. It doesn't always go forwards.
         self.game_speed = newspeed
 
     def play_speed(self, mi, gamespeed):
-        self.set_speed(float(gamespeed))
+        self.set_speed(int(gamespeed))
         self.go()
 
     def back_to_start(self, nope):
         self.stop()
-        self.time_travel(None, self.branch, 0)
+        self.time_travel(self.branch, 0)
 
     def update(self, ts=None):
         self.time_travel_inc_tick(ticks=self.game_speed)

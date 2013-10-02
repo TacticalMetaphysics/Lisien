@@ -132,6 +132,12 @@ With db, register in db's menuitemdict.
     def __int__(self):
         return self.idx
 
+    def __str__(self):
+        if self.text is None:
+            return self._on_click
+        else:
+            return self.text
+
     def __getattr__(self, attrn):
         return self.atrdic[attrn](self)
 

@@ -66,12 +66,16 @@ each board will be open in at most one window at a time.
         while len(self.dimension.boards) <= self.idx:
             self.dimension.boards.append(None)
         self.dimension.boards[self.idx] = self
-        if "spot_coords" in self.closet.skeleton:
+        if (
+                "spot_coords" in self.closet.skeleton and
+                str(self.dimension) in self.closet.skeleton["spot_coords"]):
             for rd in self.closet.skeleton[
                     "spot_coords"][str(self.dimension)][
                     int(self)].iterrows():
                 self.add_spot(rd)
-        if "pawn_img" in self.closet.skeleton:
+        if (
+                "pawn_img" in self.closet.skeleton and
+                str(self.dimension) in self.closet.skeleton["pawn_img"]):
             for rd in self.closet.skeleton[
                     "pawn_img"][str(self.dimension)][
                     int(self)].iterrows():

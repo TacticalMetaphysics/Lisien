@@ -38,7 +38,13 @@ class CharSheetItem(object):
     atrdic = {
         "window_top": lambda self: self.charsheet.item_window_top(self),
         "window_bot": lambda self: self.window_top - self.height,
+        "rowheight": lambda self: self.style.fontsize + self.style.spacing,
         "height": lambda self: len(self) * self.rowheight}
+
+    def __init__(self, charsheet, height, *keys):
+        self.charsheet = charsheet
+        self.height = height
+        self.keys = keys
 
     def __len__(self):
         return len(self.skel)
@@ -55,11 +61,20 @@ class CharSheetItem(object):
             "cannot compute attribute {0}.".format(
                 attrn, self.__class__.__name__))
 
+    def __eq__(self, other):
+        return (
+            self.charsheet is other.charsheet and
+            self.height == other.height and
+            self.keys == other.keys)
+
+    def __ne__(self, other):
+        return (
+            self.charsheet is not other.charsheet or
+            self.height != other.height or
+            self.keys != other.keys)
+
 
 class CharSheetTable(CharSheetItem):
-    def __init__(self, charsheet):
-        self.charsheet = charsheet
-
     def iter_skeleton(self, branch, tick):
         for rd in self.skeleton[branch].iterrows():
             if rd["tick_from"] <= tick and (
@@ -77,7 +92,9 @@ class CharSheetTable(CharSheetItem):
 
     def row_labels(self, row, l, t, batch, group):
         step = self.width / len(row)
+        celled = []
         for cell in row:
+            celled.append(cell)
             yield Label(
                 cell,
                 self.style.fontface,
@@ -91,34 +108,17 @@ class CharSheetTable(CharSheetItem):
                 group=group)
             l += step
 
-    def iterlabels(self, branch=None, tick=None):
-        t = self.window_top
+    def draw(self, batch, group, branch=None, tick=None):
+        t = self.window_top - self.rowheight
         l = self.window_left
         for label in self.row_labels(
-                self.colkeys, t, self.window.batch,
-                self.window.charsheet_group):
-            if (
-                    label.x < self.charsheet.window_top and
-                    label.y < self.charsheet.window_right and
-                    label.x + label.content_width > self.charsheet.window_left and
-                    label.y + label.content_height > self.charsheet.window_bot):
-                yield label
-        t -= self.rowheight
+                self.colkeys, l, t, batch, group):
+            yield label
         for row in self.iterrows(branch, tick):
-            if (
-                    label.x < self.charsheet.window_top and
-                    label.y < self.charsheet.window_right and
-                    label.x + label.content_width > self.charsheet.window_left and
-                    label.y + label.content_height > self.charsheet.window_bot):
-                for label in self.row_labels(
-                        row, l, t,
-                        self.window.batch,
-                        self.window.charsheet_group):
-                    yield label
             t -= self.rowheight
-
-    def draw(self, batch, group):
-        return self.iterlabels(batch, group)
+            for label in self.row_labels(
+                    row, l, t, batch, group):
+                yield label
 
     def hover(self, x, y):
         if (
@@ -130,25 +130,50 @@ class CharSheetTable(CharSheetItem):
 
 
 class CharSheetThingTable(CharSheetTable):
+    atrdic = {
+        "skeleton": lambda self:
+        self.character.thingdict[
+            self.keys[0]][self.keys[1]]}
     colkeys = ["dimension", "thing", "location"]
 
+    def __repr__(self):
+        return "CharSheetThingTable({}, {}, {})".format(
+            str(self.character), self.keys[0], self.keys[1])
+
     def iter_skeleton(self, branch, tick):
-        for rd in self.character.thingdict[branch]:
-            if rd["tick_from"] >= tick and (
+        for (tick_from, rd) in self.skeleton[branch].iteritems():
+            if tick_from <= tick and (
                     rd["tick_to"] is None or
                     rd["tick_to"] >= tick):
-                yield {
-                    "dimension": rd["dimension"],
-                    "thing": rd["thing"],
-                    "location": str(
-                        self.closet.get_thing(
-                            rd["dimension"],
-                            rd["thing"]).location)}
+                # The iterators in the Skeleton class ensure that this
+                # will proceed in chronological order.
+                rd2 = self.closet.skeleton["thing_location"][
+                    rd["dimension"]][rd["thing"]][branch]
+                prev = None
+                r = None
+                for (tick_from, rd3) in rd2.iteritems():
+                    if tick_from > tick:
+                        if prev is not None:
+                            r = {
+                                "dimension": rd["dimension"],
+                                "thing": rd["thing"],
+                                "location": prev["location"]}
+                        break
+                    prev = rd3
+                if r is None:
+                    r = {
+                        "dimension": rd["dimension"],
+                        "thing": rd["thing"],
+                        "location": prev["location"]}
+                yield r
+                return
 
 
 class CharSheetPlaceTable(CharSheetTable):
     atrdic = {
-        "skeleton": lambda self: self.character.placedict}
+        "skeleton": lambda self:
+        self.character.placedict[
+            self.keys[0]][self.keys[1]]}
     colkeys = ["dimension", "place"]
 
 
@@ -318,7 +343,7 @@ class CharSheet(object):
     atrdic = {
         "closet": lambda self: self.window.closet,
         "batch": lambda self: self.window.batch,
-        "group": lambda self: self.window.char_sheet_group,
+        "group": lambda self: self.window.charsheet_group,
         "window_left": lambda self: int(self.left * self.window.width),
         "window_bot": lambda self: int(self.bot * self.window.height),
         "window_top": lambda self: int(self.top * self.window.height),
@@ -335,7 +360,6 @@ class CharSheet(object):
         s.__setattr__("closet", closet)
         s.__setattr__("_window", window)
         s.__setattr__("_character", character)
-        s.__setattr__("lastdraw", [])
         s.__setattr__("top_ticks", {})
         s.__setattr__("offxs", {})
         s.__setattr__("offys", {})
@@ -430,17 +454,10 @@ class CharSheet(object):
             ('v2i', (l, b, l, t, r, t, l, b, r, b, r, t)),
             ('c4B', self.style.bg_inactive.tup * 6))
 
-    def draw(self):
-        drawn = []
+    def draw(self, batch, group):
         for item in self:
-            drawn.extend(item.draw(
-                self.window.batch, self.window.charsheet_group))
-        for item in self.lastdraw:
-            try:
-                item.delete()
-            except AttributeError:
-                pass
-        self.lastdraw = drawn
+            for drawable in item.draw(batch, group):
+                yield drawable
 
     def hover(self, x, y):
         for item in self:

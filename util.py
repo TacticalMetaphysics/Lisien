@@ -84,24 +84,54 @@ class Skeleton(MutableMapping):
         if isinstance(content, Skeleton):
             content = content.content
         self.content = {}
-        for (k, v) in content.iteritems():
+        if isinstance(content, dict):
+            kitr = content.iteritems()
+        else:
+            kitr = ListItemIterator(content)
+        for (k, v) in kitr:
             if self.rowdict is None:
                 self.rowdict = v.__class__ in (str, int, float, type(None))
             elif self.rowdict is True:
                 assert(v.__class__ in (str, int, float, type(None)))
+            elif v is None:
+                continue
             else:
-                assert(v.__class__ in (dict, Skeleton))
+                assert(v.__class__ in (dict, list, Skeleton))
             self[k] = v
 
+    def __contains__(self, k):
+        if isinstance(self.content, dict):
+            return k in self.content
+        else:
+            return k in self.ikeys
+
     def __getitem__(self, k):
+        if isinstance(self.content, list) and k not in self.ikeys:
+            raise KeyError("key not in skeleton: {}".format(k))
         return self.content[k]
 
     def __setitem__(self, k, v):
-        assert(not isinstance(v, list))
+        def really_set(k, v):
+            if len(self.content) == 0:
+                if isinstance(k, int):
+                    self.ikeys = set()
+                    self.content = []
+                else:
+                    self.content = {}
+            if isinstance(k, int):
+                assert(isinstance(self.content, list))
+                while len(self.content) <= k:
+                    self.content.append(None)
+                self.content[k] = v
+                self.ikeys.add(k)
+            else:
+                assert(isinstance(self.content, dict))
+                self.content[k] = v
+
         if self.rowdict:
-            self.content[k] = v
+            really_set(k, v)
         else:
-            self.content[k] = Skeleton(v, k, self)
+            really_set(k, Skeleton(v, k, self))
         if self.set_listener is not None:
             self.listener((str(self),), k, v)
         if self.parent is not None:
@@ -109,17 +139,26 @@ class Skeleton(MutableMapping):
 
     def __delitem__(self, k):
         todel = self.content[k]
-        del self.content[k]
+        if isinstance(self.content, dict):
+            del self.content[k]
+        else:
+            self.ikeys.remove(k)
         if self.del_listener is not None:
             self.listener((str(self),), k, todel)
         if self.parent is not None:
             self.parent.on_child_delete((str(self),), k, todel)
 
     def __iter__(self):
-        return iter(self.content)
+        if isinstance(self.content, dict):
+            return iter(self.content)
+        else:
+            return iter(sorted(self.ikeys))
 
     def __len__(self):
-        return len(self.content)
+        if isinstance(self.content, dict):
+            return len(self.content)
+        else:
+            return len(self.ikeys)
 
     def __repr__(self):
         return repr(self.content)
@@ -157,16 +196,19 @@ class Skeleton(MutableMapping):
         return str(self.name)
 
     def keys(self):
-        return sorted(self.content.keys())
+        if isinstance(self.content, dict):
+            return self.content.keys()
+        else:
+            return sorted(self.ikeys)
 
     def key_before(self, k):
-        anterior = [j for j in self.content.iterkeys() if j < k]
+        anterior = [j for j in self.ikeys if j < k]
         if anterior == []:
             raise KeyError("There is nothing before {0}".format(k))
         return max(anterior)
 
     def key_after(self, k):
-        posterior = [j for j in self.content.iterkeys() if j > k]
+        posterior = [j for j in self.ikeys if j > k]
         if posterior == []:
             raise KeyError("There is nothing after {0}".format(k))
         return min(posterior)
@@ -174,6 +216,11 @@ class Skeleton(MutableMapping):
     def copy(self):
         if self.rowdict:
             return Skeleton(dict(self.content))
+        elif isinstance(self.content, list):
+            r = {}
+            for k in self.ikeys:
+                r[k] = self.content[k].copy()
+            return Skeleton(r)
         else:
             r = {}
             for (k, v) in self.content.iteritems():

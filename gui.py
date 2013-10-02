@@ -13,7 +13,6 @@ from menu import Menu, MenuItem
 from card import Hand
 from board import BoardViewport
 from picpicker import PicPicker
-from charsheet import CharSheet
 from collections import deque
 
 
@@ -358,6 +357,7 @@ class GameWindow(pyglet.window.Window):
 
         self.dxdy_hist_counter = 0
         self.closet.windowdict[str(self)] = self
+        self.char_sheets_drawn = []
 
     def __getattr__(self, attrn):
         if attrn in self.rowattrs:
@@ -384,6 +384,12 @@ class GameWindow(pyglet.window.Window):
     def on_draw(self):
         if str(self) not in self.closet.windowdict:
             return
+        for old in self.char_sheets_drawn:
+            try:
+                old.delete()
+            except AttributeError:
+                pass
+        self.char_sheets_drawn = []
         (width, height) = self.get_size()
         if (
                 width < self.min_width or
@@ -394,7 +400,8 @@ class GameWindow(pyglet.window.Window):
         for menu in self.menus:
             menu.draw()
         for charsheet in self.charsheets:
-            charsheet.draw()
+            for drawable in charsheet.draw(self.batch, self.charsheet_group):
+                self.char_sheets_drawn.append(drawable)
         for hand in self.hands:
             hand.draw()
         for viewport in self.viewports:
@@ -444,8 +451,8 @@ pressed but not dragged, it's been clicked. Otherwise do nothing."""
                         reciprocal = self.pressed.reciprocate()
                         if reciprocal is not None:
                             self.selected.add(reciprocal)
-                if hasattr(self.pressed, 'onclick'):
-                    self.pressed.onclick(x, y, button, modifiers)
+                if hasattr(self.pressed, 'on_click'):
+                    self.pressed.on_click(x, y, button, modifiers)
         if self.place_pic is not None:
             if self.placing:
                 self.place_pic_sprite = pyglet.sprite.Sprite(

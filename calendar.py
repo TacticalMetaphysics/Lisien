@@ -300,7 +300,7 @@ represents to calculate its dimensions and coordinates.
                 self._rowdict["skill"]],
             CAL_TYPE['STAT']: lambda self: self.closet.skeleton[
                 "character_stats"][self._rowdict["character"]][
-                self._rowdict["stat"]]}[self.typ]()}
+                self._rowdict["stat"]]}[self.cal_type]()}
 
     def __init__(self, col, tick_from, tick_to, text):
         """Get a CalendarCol in the given column, between the start
@@ -520,7 +520,7 @@ time travel.
         self.style = self.closet.get_style(style)
         self.change_type(typ, *keys)
         self.batch = self.window.batch
-        self.last_draw = None
+        self.lastdrawn = []
 
     def itercolumns(self):
         for branch in self.closet.timestream.branchdict.iterkeys():
@@ -533,12 +533,17 @@ time travel.
             return self.itercolumns()
 
     def __eq__(self, other):
-        return self.charsheet is other.charsheet and self.typ == other.typ and self.skel == other.skel
+        return (
+            self.charsheet is other.charsheet and
+            hasattr(other, 'cal_type') and
+            self.cal_type == other.cal_type and
+            self.skel == other.skel)
 
     def __ne__(self, other):
         return (
             self.charsheet is not other.charsheet or
-            self.typ != other.typ or
+            not hasattr(other, 'cal_type') or
+            other.cal_type != self.cal_type or
             self.skel != other.skel)
 
     def __setattr__(self, attrn, val):
@@ -552,7 +557,7 @@ time travel.
             super(Calendar, self).__setattr__(attrn, val)
 
     def change_type(self, cal_type, *keys):
-        self.typ = cal_type
+        self.cal_type = cal_type
         dk = {
             CAL_TYPE["THING"]: "thing",
             CAL_TYPE["PLACE"]: "place",
@@ -608,7 +613,7 @@ time travel.
             CAL_TYPE['PORTAL']: PortalCalendarCol,
             CAL_TYPE['STAT']: StatCalendarCol,
             CAL_TYPE['SKILL']: SkillCalendarCol
-        }[self.typ](self, branch)
+        }[self.cal_type](self, branch)
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.offx += dx
@@ -649,7 +654,6 @@ While the CalendarCols are lazy, this method is not. Making it lazier
 would be good.
 
         """
-        drawn = []
         slew = self.offx % self.col_width
         leftmostbranch = self.left_branch
         if leftmostbranch is None:
@@ -671,10 +675,8 @@ would be good.
         for branch in branchese:
             column = self.make_col(branch)
             for cell in iter(column):
-                gonna_draw = (
-                    cell.get_box(batch, bggroup),
-                    cell.get_label(batch, fggroup))
-                drawn.extend(gonna_draw)
+                yield cell.get_box(batch, bggroup),
+                yield cell.get_label(batch, fggroup)
             if int(column) != 0:
                 bgroup = Group(linegroup)
                 ts = self.closet.timestream
@@ -684,24 +686,13 @@ would be good.
                 space = self.style.spacing * (
                     siblings + int(column) - leftmostbranch)
                 bc = BranchConnector(column, space)
-                drawn.append(bc.get_line(batch, bgroup))
-                drawn.append(bc.get_wedge(batch, bgroup))
+                yield bc.get_line(batch, bgroup)
+                yield bc.get_wedge(batch, bgroup)
             if int(column) == self.closet.branch:
                 tlgroup = Group(linegroup)
                 tl = Timeline(column)
-                drawn.append(tl.get_line(batch, tlgroup))
-                drawn.append(tl.get_handle(batch, tlgroup))
-        return drawn
-
-    def delete(self):
-        if self.last_draw is None:
-            return
-        for drawn in self.last_draw:
-            try:
-                drawn.delete()
-            except AttributeError:
-                pass
-        self.last_draw = None
+                yield tl.get_line(batch, tlgroup)
+                yield tl.get_handle(batch, tlgroup)
 
 
 class CalendarCol:

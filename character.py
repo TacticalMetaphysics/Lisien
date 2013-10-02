@@ -13,37 +13,6 @@ from collections import deque
 __metaclass__ = SaveableMetaclass
 
 
-class ThingSkelBranchIter(object):
-    def __init__(self, thingdict, branch):
-        self.thingdict = thingdict
-        self.branch = branch
-        self.level1 = self.thingdict.iterkeys()
-        self.k1 = self.level1.next()
-        self.level2 = self.thingdict[self.k1].iterkeys()
-        self.k2 = self.level2.next()
-        self.level3 = self.thingdict[self.k1][self.k2][self.branch].iterrows()
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        try:
-            return self.level3.next()
-        except StopIteration:
-            try:
-                self.k2 = self.level2.next()
-                self.level3 = self.thingdict[
-                    self.k1][self.k2][self.branch].iterrows()
-                return self.level3.next()
-            except StopIteration:
-                self.k1 = self.level1.next()
-                self.level2 = self.thingdict[self.k1].iterkeys()
-                self.k2 = self.level2.next()
-                self.level3 = self.thingdict[
-                    self.k1][self.k2][self.branch].iterrows()
-                return self.level3.next()
-
-
 class Character:
     """An incorporeal object connecting corporeal ones together across
 dimensions, indicating that they represent one thing and have that
@@ -478,10 +447,83 @@ item's name, and the name of the attribute.
     def remove_skill(self, name, branch=None, tick=None):
         self.add_skill(name, None, branch, tick)
 
+    def thing_skel_branch_iter(self, branch, dimension=None, thing=None):
+        if dimension is None:
+            for dimension in self.thingdict:
+                for rd in self.thing_skel_branch_iter(
+                        branch, dimension, thing):
+                    yield rd
+        elif thing is None:
+            for thing in self.thingdict[dimension]:
+                for rd in self.thing_skel_branch_iter(
+                        branch, dimension, thing):
+                    yield rd
+        else:
+            for rd in self.thingdict[dimension][thing][branch].iterrows():
+                yield rd
+
+    def place_skel_branch_iter(self, branch, dimension=None, place=None):
+        if dimension is None:
+            for dimension in self.placedict:
+                for rd in self.place_skel_branch_iter(
+                        branch, dimension, place):
+                    yield rd
+        elif place is None:
+            for place in self.placedict[dimension]:
+                for rd in self.place_skel_branch_iter(
+                        branch, dimension, place):
+                    yield rd
+        else:
+            for rd in self.placedict[dimension][place][branch].iterrows():
+                yield rd
+
+    def portal_skel_branch_iter(
+            self, branch, dimension=None,
+            origin=None, destination=None):
+        if dimension is None:
+            for dimension in self.portaldict:
+                for rd in self.portal_skel_branch_iter(
+                        branch, dimension, origin, destination):
+                    yield rd
+        elif origin is None:
+            for origin in self.portaldict[dimension]:
+                for rd in self.portal_skel_branch_iter(
+                        branch, dimension, origin, destination):
+                    yield rd
+        elif destination is None:
+            for destination in self.portaldict[dimension][origin]:
+                for rd in self.portal_skel_branch_iter(
+                        branch, dimension, origin, destination):
+                    yield rd
+        else:
+            for rd in self.portaldict[
+                    dimension][origin][destination][branch].iterrows():
+                yield rd
+
+    def stat_skel_branch_iter(
+            self, branch, stat=None):
+        if stat is None:
+            for stat in self.statdict:
+                for rd in self.statdict[stat][branch].iterrows():
+                    yield rd
+        else:
+            for rd in self.statdict[stat][branch].iterrows():
+                yield rd
+
+    def skill_skel_branch_iter(
+            self, branch, skill=None):
+        if skill is None:
+            for skill in self.skilldict:
+                for rd in self.skilldict[skill][branch].iterrows():
+                    yield rd
+        else:
+            for rd in self.skilldict[skill][branch].iterrows():
+                yield rd
+
     def new_branch(self, parent, branch, tick):
         l = [
             (self.add_thing_by_rd,
-             ThingSkelBranchIter(self.thingdict, parent))]
+             self.thing_skel_branch_iter(parent))]
         for (assigner, iterator) in l:
             prev = None
             started = False
