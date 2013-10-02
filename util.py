@@ -89,8 +89,8 @@ class Skeleton(MutableMapping):
         else:
             kitr = ListItemIterator(content)
         for (k, v) in kitr:
-            if self.rowdict is None:
-                self.rowdict = v.__class__ in (str, int, float, type(None))
+            if self.rowdict is None and v is not None:
+                self.rowdict = v.__class__ in (str, int, float)
             elif self.rowdict is True:
                 assert(v.__class__ in (str, int, float, type(None)))
             elif v is None:

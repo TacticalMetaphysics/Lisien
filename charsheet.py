@@ -133,7 +133,7 @@ class CharSheetThingTable(CharSheetTable):
     atrdic = {
         "skeleton": lambda self:
         self.character.thingdict[
-            self.keys[0]][self.keys[1]]}
+            self.keys[0]]}
     colkeys = ["dimension", "thing", "location"]
 
     def __repr__(self):
@@ -141,32 +141,33 @@ class CharSheetThingTable(CharSheetTable):
             str(self.character), self.keys[0], self.keys[1])
 
     def iter_skeleton(self, branch, tick):
-        for (tick_from, rd) in self.skeleton[branch].iteritems():
-            if tick_from <= tick and (
-                    rd["tick_to"] is None or
-                    rd["tick_to"] >= tick):
-                # The iterators in the Skeleton class ensure that this
-                # will proceed in chronological order.
-                rd2 = self.closet.skeleton["thing_location"][
-                    rd["dimension"]][rd["thing"]][branch]
-                prev = None
-                r = None
-                for (tick_from, rd3) in rd2.iteritems():
-                    if tick_from > tick:
-                        if prev is not None:
-                            r = {
-                                "dimension": rd["dimension"],
-                                "thing": rd["thing"],
-                                "location": prev["location"]}
-                        break
-                    prev = rd3
-                if r is None:
-                    r = {
-                        "dimension": rd["dimension"],
-                        "thing": rd["thing"],
-                        "location": prev["location"]}
-                yield r
-                return
+        for thing in self.skeleton:
+            for (tick_from, rd) in self.skeleton[thing][branch].iteritems():
+                if tick_from <= tick and (
+                        rd["tick_to"] is None or
+                        rd["tick_to"] >= tick):
+                    # The iterators in the Skeleton class ensure that this
+                    # will proceed in chronological order.
+                    rd2 = self.closet.skeleton["thing_location"][
+                        rd["dimension"]][rd["thing"]][branch]
+                    prev = None
+                    r = None
+                    for (tick_from, rd3) in rd2.iteritems():
+                        if tick_from > tick:
+                            if prev is not None:
+                                r = {
+                                    "dimension": rd["dimension"],
+                                    "thing": rd["thing"],
+                                    "location": prev["location"]}
+                            break
+                        prev = rd3
+                    if r is None:
+                        r = {
+                            "dimension": rd["dimension"],
+                            "thing": rd["thing"],
+                            "location": prev["location"]}
+                    yield r
+                    break
 
 
 class CharSheetPlaceTable(CharSheetTable):
