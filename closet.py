@@ -809,31 +809,14 @@ This is game-world time. It doesn't always go forwards.
         dimn = str(dim)
         if not isinstance(dim, Dimension):
             dim = self.get_dimension(dimn)
-        boardtd = Board._select_skeleton(
-            self.c,
-            {"board":
-             {"dimension": dimn,
-              "idx": i}})
-        boardtd.update(Spot._select_skeleton(
-            self.c,
-            {"spot_img":
-             {"dimension": dimn,
-              "board": i},
-             "spot_interactive":
-             {"dimension": dimn,
-              "board": i},
-             "spot_coords":
-             {"dimension": dimn,
-              "board": i}}))
-        boardtd.update(Pawn._select_skeleton(
-            self.c,
-            {"pawn_img":
-             {"dimension": dimn,
-              "board": i},
-             "pawn_interactive":
-             {"dimension": dimn,
-              "board": i}}))
-        self.skeleton.update(boardtd)
+        self.skeleton.update(
+            Board._select_skeleton(
+                self.c,
+                {"board":
+                 {"dimension": dimn,
+                  "idx": i}}))
+        for character in self.characterdict.itervalues():
+            for 
         return Board(self, dim, i)
 
     def load_viewport(self, win, dim, board, viewi):

@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 ascii = str
 str = unicode
 from util import (
-    SaveableMetaclass,
     TerminableImg,
     TerminableInteractivity)
 from pyglet.sprite import Sprite
@@ -15,43 +14,14 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-__metaclass__ = SaveableMetaclass
-
-
 """Widget representing things that move about from place to place."""
 
 
 class Pawn(TerminableImg, TerminableInteractivity):
     """A token to represent something that moves about between places."""
-    tables = [
-        ("pawn_img",
-         {"dimension": "text not null default 'Physical'",
-          "thing": "text not null",
-          "board": "integer not null default 0",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
-          "img": "text not null default 'default_pawn'"},
-         ("dimension", "board", "thing", "branch", "tick_from"),
-         {"dimension, board": ("board", "dimension, i"),
-          "dimension, thing": ("thing_location", "dimension, name"),
-          "img": ("img", "name")},
-         []),
-        ("pawn_interactive",
-         {"dimension": "text not null default 'Physical'",
-          "thing": "text not null",
-          "board": "integer not null default 0",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0"},
-         ("dimension", "board", "thing", "branch", "tick_from"),
-         {"dimension, board": ("board", "dimension, i"),
-          "dimension, thing": ("thing_location", "dimension, name")},
-         [])]
     atrdic = {
-        "imagery": lambda self: self.closet.skeleton[
-            "pawn_img"][str(self.dimension)][
-            int(self.board)][str(self.thing)],
-        "interactivity": lambda self: self.closet.skeleton["pawn_interactive"][
-            str(self.dimension)][int(self.board)][str(self.thing)],
+        "imagery": lambda self: self.get_imagery(),
+        "interactivity": lambda self: self.get_interactivity(),
         "img": lambda self: self.get_img(),
         "visible": lambda self: self.img is not None,
         "coords": lambda self: self.get_coords(),

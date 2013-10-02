@@ -293,27 +293,31 @@ SHEET_ITEM_CLASS = {
 class CharSheet(object):
     __metaclass__ = SaveableMetaclass
     demands = ["character"]
-
     tables = [
         (
-            "charsheet",
-            {"window": "TEXT NOT NULL DEFAULT 'Main'",
+            "charsheet_viewport",
+            {"dimension": "TEXT NOT NULL DEFAULT 'Physical'",
+             "board": "INTEGER NOT NULL DEFAULT 0",
+             "window": "TEXT NOT NULL DEFAULT 'Main'",
              "character": "TEXT NOT NULL",
-             "visible": "BOOLEAN NOT NULL DEFAULT 0",
-             "interactive": "BOOLEAN NOT NULL DEFAULT 1",
              "left": "FLOAT NOT NULL DEFAULT 0.8",
-             "right": "FLOAT NOT NULL DEFAULT 1.0",
              "bot": "FLOAT NOT NULL DEFAULT 0.0",
              "top": "FLOAT NOT NULL DEFAULT 1.0",
+             "right": "FLOAT NOT NULL DEFAULT 1.0",
+             "visible": "BOOLEAN NOT NULL DEFAULT 1",
+             "interactive": "BOOLEAN NOT NULL DEFAULT 1",
              "style": "TEXT NOT NULL DEFAULT 'default_style'"},
-            ("window", "character"),
+            ("dimension", "board", "window", "character"),
             {"window": ("window", "name"),
-             "character": ("character", "name"),
-             "style": ("style", "name")},
+             "style": ("style", "name"),
+             "dimension, board": ("board", "dimension, idx"),
+             "character": ("character", "name")
+             },
             []),
         (
             "charsheet_item",
-            {"window": "TEXT NOT NULL DEFAULT 'Main'",
+            {"dimension": "TEXT NOT NULL DEFAULT 'Physical'",
+             "board": "INTEGER NOT NULL DEFAULT 0",
              "character": "TEXT NOT NULL",
              "idx": "INTEGER NOT NULL",
              "type": "INTEGER NOT NULL",
@@ -321,8 +325,9 @@ class CharSheet(object):
              "key1": "TEXT",
              "key2": "TEXT",
              "height": "INTEGER"},
-            ("window", "character", "idx"),
-            {"window, character": ("charsheet", "window, character")},
+            ("dimension", "board", "character", "idx"),
+            {"dimension, board": ("board", "dimension, idx"),
+             "character": ("character", "name")},
             ["CASE key1 WHEN NULL THEN type NOT IN ({0}) END".format(
                 ", ".join([str(SHEET_ITEM_TYPE[typ]) for typ in (
                     "THINGTAB", "THINGCAL",
@@ -337,10 +342,8 @@ class CharSheet(object):
              "idx>=0",
              "idx<={}".format(max(SHEET_ITEM_TYPE.viewvalues()))])
     ]
-
     rdfields = set(["visible", "interactive",
                     "left", "right", "bot", "top"])
-
     atrdic = {
         "closet": lambda self: self.window.closet,
         "batch": lambda self: self.window.batch,
@@ -351,14 +354,23 @@ class CharSheet(object):
         "window_right": lambda self: int(self.right * self.window.width),
         "width": lambda self: self.window_right - self.window_left,
         "_rowdict": lambda self: self.closet.skeleton[
-            "charsheet"][self._window][self._character],
+            "charsheet_viewport"][
+            self._dimension][
+            self._board][
+            self._window][
+            self._character],
+        "dimension": lambda self: self.closet.get_dimension(self._dimension),
+        "board": lambda self:
+        self.closet.get_board(self._dimension, self._board),
         "window": lambda self: self.closet.get_window(self._window),
         "character": lambda self: self.closet.get_character(self._character),
         "style": lambda self: self.closet.get_style(self._rowdict["style"])}
 
-    def __init__(self, closet, window, character):
+    def __init__(self, closet, dimension, board, window, character):
         s = super(CharSheet, self)
         s.__setattr__("closet", closet)
+        s.__setattr__("_dimension", dimension)
+        s.__setattr__("_board", board)
         s.__setattr__("_window", window)
         s.__setattr__("_character", character)
         s.__setattr__("top_ticks", {})
