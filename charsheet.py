@@ -21,6 +21,17 @@ ROWS_SHOWN = 50
 SCROLL_FACTOR = 4
 TOP_TICK = 0
 LEFT_BRANCH = 0
+SHEET_ITEM_TYPE = {
+    "THINGTAB": 0,
+    "PLACETAB": 1,
+    "PORTALTAB": 2,
+    "STATTAB": 3,
+    "SKILLTAB": 4,
+    "THINGCAL": 5,
+    "PLACECAL": 6,
+    "PORTALCAL": 7,
+    "STATCAL": 8,
+    "SKILLCAL": 9}
 
 
 def generate_items(skel, keykey, valkey):
@@ -39,47 +50,78 @@ class CharSheetItem(object):
         "window_top": lambda self: self.charsheet.item_window_top(self),
         "window_bot": lambda self: self.window_top - self.height,
         "rowheight": lambda self: self.style.fontsize + self.style.spacing,
-        "height": lambda self: len(self) * self.rowheight}
+        "_rowdict": lambda self:
+        self.closet.skeleton["charsheet_item"][
+            str(self.window)][str(self.character)][int(self)],
+        "height": lambda self:
+        self._rowdict["height"],
+        "keys": lambda self:
+        (self._rowdict["key0"], self._rowdict["key1"], self._rowdict["key2"])}
 
-    def __init__(self, charsheet, height, *keys):
+    def __init__(self, charsheet, idx):
         self.charsheet = charsheet
-        self.height = height
-        self.keys = keys
+        self.idx = idx
+
+    def __int__(self):
+        return self.idx
 
     def __len__(self):
         return len(self.skel)
 
-    def __getattr__(self, attrn):
-        if attrn in CharSheetItem.charsheet_atts:
-            return getattr(self.charsheet, attrn)
-        elif hasattr(self, 'atrdic') and attrn in self.atrdic:
-            return self.atrdic[attrn](self)
-        elif attrn in CharSheetItem.atrdic:
-            return CharSheetItem.atrdic[attrn](self)
-        raise AttributeError(
-            "{1} instance does not have and "
-            "cannot compute attribute {0}.".format(
-                attrn, self.__class__.__name__))
-
     def __eq__(self, other):
         return (
             self.charsheet is other.charsheet and
-            self.height == other.height and
-            self.keys == other.keys)
+            int(self) == int(other))
 
     def __ne__(self, other):
         return (
             self.charsheet is not other.charsheet or
-            self.height != other.height or
-            self.keys != other.keys)
+            int(self) != int(other))
+
+    def __getattr__(self, attrn):
+        if attrn in CharSheetItem.charsheet_atts:
+            return getattr(self.charsheet, attrn)
+        else:
+            try:
+                return CharSheetItem.atrdic[attrn](self)
+            except KeyError:
+                raise AttributeError(
+                    "CharSheetItem does not have and cannot "
+                    "compute attribute {}".format(attrn))
 
 
 class CharSheetTable(CharSheetItem):
+    atrdic = {
+        "skeleton": lambda self:
+        self.getskel()}
+
+    def __getattr__(self, attrn):
+        try:
+            return self.atrdic[attrn](self)
+        except KeyError:
+            try:
+                return CharSheetTable.atrdic[attrn](self)
+            except KeyError:
+                return CharSheetItem.__getattr__(self, attrn)
+
+    def getskel(self):
+        if self.keys[0] is None:
+            return self.character_skel
+        elif self.keys[1] is None:
+            return self.character_skel[self.keys[0]]
+        elif self.keys[2] is None:
+            return self.character_skel[self.keys[0]][self.keys[1]]
+        else:
+            return self.character_skel[
+                self.keys[0]][self.keys[1]][self.keys[2]]
+
     def iter_skeleton(self, branch, tick):
-        for rd in self.skeleton[branch].iterrows():
-            if rd["tick_from"] <= tick and (
+        for rd in self.skeleton.iterrows():
+            if (
+                    rd["branch"] == branch and
+                    rd["tick_from"] <= tick and (
                     rd["tick_to"] is None or
-                    rd["tick_to"] >= tick):
+                    rd["tick_to"] >= tick)):
                 yield rd
 
     def iterrows(self, branch=None, tick=None):
@@ -115,6 +157,8 @@ class CharSheetTable(CharSheetItem):
                 self.colkeys, l, t, batch, group):
             yield label
         for row in self.iterrows(branch, tick):
+            if t < self.window_bot + self.rowheight:
+                return
             t -= self.rowheight
             for label in self.row_labels(
                     row, l, t, batch, group):
@@ -131,79 +175,157 @@ class CharSheetTable(CharSheetItem):
 
 class CharSheetThingTable(CharSheetTable):
     atrdic = {
-        "skeleton": lambda self:
-        self.character.thingdict[
-            self.keys[0]]}
+        "character_skel": lambda self:
+        self.character.thingdict}
     colkeys = ["dimension", "thing", "location"]
 
-    def __repr__(self):
-        return "CharSheetThingTable({}, {}, {})".format(
-            str(self.character), self.keys[0], self.keys[1])
+    def get_branch_rd_iter(self, branch):
+        if self.keys[0] is None:
+            for dimension in self.character.thingdict:
+                for thing in self.character.thingdict[dimension]:
+                    for rd in self.character.thingdict[
+                            dimension][thing][branch].iterrows():
+                        yield rd
+        elif self.keys[1] is None:
+            dimension = self.keys[0]
+            for thing in self.character.thingdict[dimension]:
+                for rd in self.character.thingdict[
+                        dimension][thing][branch].iterrows():
+                    yield rd
+        else:
+            dimension = self.keys[0]
+            thing = self.keys[1]
+            for rd in self.character.thingdict[
+                    dimension][thing][branch].iterrows():
+                yield rd
 
     def iter_skeleton(self, branch, tick):
-        for thing in self.skeleton:
-            for (tick_from, rd) in self.skeleton[thing][branch].iteritems():
-                if tick_from <= tick and (
-                        rd["tick_to"] is None or
-                        rd["tick_to"] >= tick):
-                    # The iterators in the Skeleton class ensure that this
-                    # will proceed in chronological order.
-                    rd2 = self.closet.skeleton["thing_location"][
-                        rd["dimension"]][rd["thing"]][branch]
-                    prev = None
-                    r = None
-                    for (tick_from, rd3) in rd2.iteritems():
-                        if tick_from > tick:
-                            if prev is not None:
-                                r = {
-                                    "dimension": rd["dimension"],
-                                    "thing": rd["thing"],
-                                    "location": prev["location"]}
-                            break
-                        prev = rd3
-                    if r is None:
+        covered = set()
+        for rd in self.get_branch_rd_iter(branch):
+            if (rd["dimension"], rd["thing"]) in covered:
+                continue
+            if rd["tick_from"] <= tick and (
+                    rd["tick_to"] is None or
+                    rd["tick_to"] >= tick):
+                thing = self.closet.get_thing(
+                    rd["dimension"], rd["thing"])
+                rd2 = thing.locations[branch]
+                prev = None
+                r = None
+                for (tick_from, rd3) in rd2.iteritems():
+                    if tick_from > tick:
+                        if prev is not None:
+                            r = {
+                                "dimension": rd["dimension"],
+                                "thing": rd["thing"],
+                                "location": prev["location"]}
+                        break
+                    prev = rd3
+                if r is None:
+                    if prev is None:
+                        r = {
+                            "dimension": rd["dimension"],
+                            "thing": rd["thing"],
+                            "location": "nowhere"}
+                    else:
                         r = {
                             "dimension": rd["dimension"],
                             "thing": rd["thing"],
                             "location": prev["location"]}
-                    yield r
-                    break
+                covered.add((rd["dimension"], rd["thing"]))
+                yield r
 
 
 class CharSheetPlaceTable(CharSheetTable):
     atrdic = {
-        "skeleton": lambda self:
-        self.character.placedict[
-            self.keys[0]][self.keys[1]]}
+        "character_skel": lambda self:
+        self.character.placedict}
     colkeys = ["dimension", "place"]
 
 
 class CharSheetPortalTable(CharSheetTable):
     atrdic = {
-        "skeleton": lambda self: self.character.portaldict}
+        "character_skel": lambda self:
+        self.character.portaldict}
     colkeys = ["dimension", "origin", "destination"]
 
 
 class CharSheetStatTable(CharSheetTable):
     atrdic = {
-        "skeleton": lambda self: self.character.statdict}
+        "character_skel": lambda self:
+        self.character.statdict}
     colkeys = ["stat", "value"]
+
+    def get_branch_rd_iter(self, branch):
+        if self.keys[0] is None:
+            for stat in self.character.statdict:
+                for rd in self.character.statdict[stat][branch].iterrows():
+                    yield rd
+        else:
+            stat = self.keys[0]
+            for rd in self.character.statdict[stat][branch].iterrows():
+                yield rd
+
+    def iter_skeleton(self, branch, tick):
+        covered = set()
+        prev = None
+        for rd in self.get_branch_rd_iter(branch):
+            if rd["stat"] in covered:
+                continue
+            elif rd["tick_from"] == tick:
+                covered.add(rd["stat"])
+                prev = None
+                yield rd
+            elif rd["tick_from"] > tick:
+                covered.add(rd["stat"])
+                r = prev
+                prev = None
+                yield r
+            prev = rd
 
 
 class CharSheetSkillTable(CharSheetTable):
     atrdic = {
-        "skeleton": lambda self: self.character.skilldict}
+        "character_skel": lambda self:
+        self.character.skilldict}
     colkeys = ["skill", "deck"]
+
+    def get_branch_rd_iter(self, branch):
+        if self.keys[0] is None:
+            for skill in self.character.skilldict:
+                for rd in self.character.skilldict[skill][branch].iterrows():
+                    yield rd
+        else:
+            skill = self.keys[0]
+            for rd in self.character.skilldict[skill][branch].iterrows():
+                yield rd
+
+    def iter_skeleton(self, branch, tick):
+        covered = set()
+        prev = None
+        for rd in self.get_branch_rd_iter(branch):
+            if rd["skill"] in covered:
+                continue
+            elif rd["tick_from"] == tick:
+                covered.add(rd["skill"])
+                prev = None
+                yield rd
+            elif rd["tick_from"] > tick:
+                covered.add(rd["skill"])
+                r = prev
+                prev = None
+                yield r
+            prev = rd
 
 
 class CharSheetCalendar(Calendar, CharSheetItem):
-    def __init__(self, charsheet, height, typ, *keys):
+    def __init__(self, charsheet, idx, cal_typ):
         self.charsheet = charsheet
-        self.height = height
+        self.idx = idx
         Calendar.__init__(
             self, charsheet, ROWS_SHOWN, MAX_COLS,
             LEFT_BRANCH, SCROLL_FACTOR, self.charsheet.style,
-            typ, *keys)
+            cal_typ, *self.keys)
 
     def __getattr__(self, attrn):
         if attrn in Calendar.atrdic:
@@ -215,66 +337,54 @@ class CharSheetCalendar(Calendar, CharSheetItem):
 class CharSheetThingCalendar(CharSheetCalendar):
     atrdic = {
         "dimension": lambda self:
-        self.charsheet.closet.get_dimension(self._dimension),
+        self.charsheet.closet.get_dimension(self.keys[0]),
         "thing": lambda self:
-        self.charsheet.closet.get_thing(self._dimension, self._thing),
+        self.charsheet.closet.get_thing(
+            self.keys[0], self.keys[1]),
+        "character_skel": lambda self:
+        self.charsheet.thingdict[self.keys[0]][self.keys[1]],
         "col_width": lambda self:
         self.width / MAX_COLS}
 
-    def __init__(self, charsheet, height, *keys):
-        self._dimension = keys[0]
-        self._thing = keys[1]
+    def __init__(self, charsheet, idx):
         super(CharSheetThingCalendar, self).__init__(
-            charsheet, height, CAL_TYPE["THING"], *keys)
+            charsheet, idx, CAL_TYPE["THING"])
 
     def __eq__(self, other):
         return (
             self.charsheet is other.charsheet and
-            self._thing == other._thing and
-            self._dimension == other._dimension)
+            self.thing == other.thing and
+            self.dimension == other.dimension)
 
     def __getattr__(self, attrn):
-        if attrn in Calendar.atrdic:
-            return Calendar.atrdic[attrn](self)
+        if attrn in CharSheetThingCalendar.atrdic:
+            return CharSheetThingCalendar.atrdic[attrn](self)
         else:
-            return super(CharSheetThingCalendar, self).__getattr__(attrn)
+            return CharSheetCalendar.__getattr__(self, attrn)
 
 
 class CharSheetPlaceCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, height, *keys):
+    def __init__(self, charsheet, idx):
         super(CharSheetPlaceCalendar, self).__init__(
-            charsheet, height, CAL_TYPE["PLACE"], *keys)
+            charsheet, idx, CAL_TYPE["PLACE"])
 
 
 class CharSheetPortalCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, height, *keys):
+    def __init__(self, charsheet, idx):
         super(CharSheetPortalCalendar, self).__init__(
-            charsheet, height, CAL_TYPE["PORTAL"], *keys)
+            charsheet, idx, CAL_TYPE["PORTAL"])
 
 
 class CharSheetStatCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, height, *keys):
+    def __init__(self, charsheet, idx):
         super(CharSheetStatCalendar, self).__init__(
-            charsheet, height, CAL_TYPE["STAT"], *keys)
+            charsheet, idx, CAL_TYPE["STAT"])
 
 
 class CharSheetSkillCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, height, *keys):
+    def __init__(self, charsheet, idx):
         super(CharSheetSkillCalendar, self).__init__(
-            charsheet, height, CAL_TYPE["SKILL"], *keys)
-
-
-SHEET_ITEM_TYPE = {
-    "THINGTAB": 0,
-    "PLACETAB": 1,
-    "PORTALTAB": 2,
-    "STATTAB": 3,
-    "SKILLTAB": 4,
-    "THINGCAL": 5,
-    "PLACECAL": 6,
-    "PORTALCAL": 7,
-    "STATCAL": 8,
-    "SKILLCAL": 9}
+            charsheet, idx, CAL_TYPE["SKILL"])
 
 
 SHEET_ITEM_CLASS = {
@@ -317,7 +427,7 @@ class CharSheet(object):
              "character": "TEXT NOT NULL",
              "idx": "INTEGER NOT NULL",
              "type": "INTEGER NOT NULL",
-             "key0": "TEXT NOT NULL",
+             "key0": "TEXT",
              "key1": "TEXT",
              "key2": "TEXT",
              "height": "INTEGER"},
@@ -383,7 +493,7 @@ class CharSheet(object):
             super(CharSheet, self).__setattr__(attrn, val)
 
     def __iter__(self):
-        return self.items()
+        return self.values()
 
     def get_for_cal(self, cal, d, default):
         (k0, k1, k2) = cal.keys
@@ -424,18 +534,27 @@ class CharSheet(object):
     def items(self):
         skel = self.window.closet.skeleton[
             "charsheet_item"][str(self.window)][str(self.character)]
+        i = 0
+        for rd in skel.itervalues():
+            yield (i, SHEET_ITEM_CLASS[rd["type"]](
+                self, rd["idx"]))
+            i += 1
+
+    def values(self):
+        skel = self.window.closet.skeleton[
+            "charsheet_item"][str(self.window)][str(self.character)]
         for rd in skel.itervalues():
             yield SHEET_ITEM_CLASS[rd["type"]](
-                self, rd["height"], rd["key0"], rd["key1"], rd["key2"])
+                self, rd["idx"])
 
     def item_window_top(self, it):
         window_top = self.window_top
-        for item in self.items():
-            if item != it:
+        for item in self.values():
+            if item == it:
+                return window_top
+            else:
                 window_top -= item.height
                 window_top -= self.style.spacing
-            else:
-                return window_top
 
     def get_box(self, batch, group):
         l = self.window_left

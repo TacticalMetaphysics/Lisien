@@ -661,6 +661,8 @@ This is game-world time. It doesn't always go forwards.
     def load_characters(self, names):
         qtd = {
             "character_things": {},
+            "character_places": {},
+            "character_portals": {},
             "character_stats": {},
             "character_skills": {}}
         for name in names:
