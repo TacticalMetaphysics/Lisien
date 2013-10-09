@@ -6,8 +6,12 @@ str = unicode
 from place import Place
 from thing import Thing
 from portal import Portal
+from spot import Spot
+from pawn import Pawn
+from arrow import Arrow
 from logging import getLogger
 from igraph import Graph
+from kivy.uix.scatter import Scatter
 
 
 logger = getLogger(__name__)
@@ -66,7 +70,6 @@ keyed with their names.
         """
         self._name = name
         self.closet = closet
-        self.boards = []
         self.thingdict = {}
         self.graph = Graph(directed=True)
         if "portal" not in self.closet.skeleton:
@@ -199,3 +202,32 @@ this dimension, and laid out nicely."""
         else:
             i = e.index
         return (i, e)
+
+
+class Board(Scatter):
+    def __init__(self, dimension):
+        Scatter(self)
+        self.dimension = dimension
+        if (
+                "spot_coords" in self.closet.skeleton and
+                str(self.dimension) in self.dimension.closet.skeleton[
+                    "spot_coords"]):
+            for rd in self.dimension.closet.skeleton[
+                    "spot_coords"][str(self.dimension)][
+                    int(self)].iterrows():
+                place = self.dimension.get_place(rd["place"])
+                place.spot = Spot(self, place)
+                self.add_widget(place.spot)
+        if (
+                "pawn_img" in self.closet.skeleton and
+                str(self.dimension) in self.dimension.closet.skeleton[
+                    "pawn_img"]):
+            for rd in self.dimension.closet.skeleton[
+                    "pawn_img"][str(self.dimension)][
+                    int(self)].iterrows():
+                thing = self.dimension.get_thing(rd["thing"])
+                thing.pawn = Pawn(self, thing)
+                self.add_widget(thing.pawn)
+        for portal in self.dimension.portals:
+            portal.arrow = Arrow(self, portal)
+            self.add_widget(portal.arrow)

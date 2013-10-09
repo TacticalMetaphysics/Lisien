@@ -24,7 +24,6 @@ from pawn import Pawn
 from board import Board, BoardViewport
 from card import Card
 from effect import Effect, EffectDeck
-from img import Img
 from style import Style, Color
 from gui import GameWindow
 from util import (
@@ -40,6 +39,7 @@ from portal import Portal
 from thing import Thing
 from character import Character
 from charsheet import CharSheet
+from img import Img
 
 
 logger = getLogger(__name__)

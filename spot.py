@@ -7,8 +7,7 @@ from util import (
     SaveableMetaclass,
     TerminableImg,
     TerminableInteractivity)
-from pyglet.sprite import Sprite
-from pyglet.gl import GL_LINES
+from kivy.uix import Image
 from logging import getLogger
 
 
@@ -21,7 +20,7 @@ __metaclass__ = SaveableMetaclass
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class Spot(TerminableImg, TerminableInteractivity):
+class Spot(Image, TerminableImg, TerminableInteractivity):
     """The icon that represents a Place.
 
     The Spot is located on the Board that represents the same
@@ -62,7 +61,67 @@ class Spot(TerminableImg, TerminableInteractivity):
          {"dimension, board": ("board", "dimension, i")},
          [])]
 
-    def get_r(self):
+    def __init__(self, board, place):
+        self.closet = closet
+        self.board = board
+        self.place = place
+        self.vert = self.place.v
+        self.coord_lst = self.closet.skeleton["spot_coords"][
+            str(self.dimension)][str(self.place)]
+        self.interactivity = self.closet.skeleton["spot_interactive"][
+            str(self.dimension)][str(self.place)]
+        self.imagery = self.closet.skeleton["spot_img"][
+            str(self.dimension)][str(self.place)]
+
+    def __str__(self):
+        return str(self.place)
+
+    @property
+    def vertex(self):
+        return self.place.v
+
+    @property
+    def interactive(self):
+        return self.is_interactive()
+
+    @property
+    def coords(self):
+        return self.get_coords()
+
+    @property
+    def x(self):
+        return self.coords[0]
+
+    @property
+    def y(self):
+        return self.coords[1]
+
+    @property
+    def width(self):
+        img = self.get_img()
+        if img is None:
+            return 0
+        else:
+            return img.width
+
+    @property
+    def height(self):
+        img = self.get_img()
+        if img is None:
+            return 0
+        else:
+            return img.width
+
+    @property
+    def rx(self):
+        return self.width / 2
+
+    @property
+    def ry(self):
+        return self.height / 2
+
+    @property
+    def r(self):
         rx = self.rx
         ry = self.ry
         if rx > ry:
@@ -70,58 +129,25 @@ class Spot(TerminableImg, TerminableInteractivity):
         else:
             return ry
 
-    atrdic = {
-        "vertex": lambda self: self.place.v,
-        "interactive": lambda self: self.is_interactive(),
-        "img": lambda self: self.get_img(),
-        "coords": lambda self: self.get_coords(),
-        "x": lambda self: self.coords[0],
-        "y": lambda self: self.coords[1],
-        "width": lambda self: {
-            True: lambda: 0, False: lambda: self.get_img().width
-        }[self.get_img() is None](),
-        "height": lambda self: {
-            True: lambda: 0, False: lambda: self.get_img().height
-        }[self.get_img() is None](),
-        "rx": lambda self: self.width / 2,
-        "ry": lambda self: self.height / 2,
-        "r": lambda self: self.get_r(),
-        "visible": lambda self: self.get_img() is not None,
-        "board_left": lambda self: self.x - self.rx,
-        "board_bot": lambda self: self.y - self.ry,
-        "board_top": lambda self: self.y + self.ry,
-        "board_right": lambda self: self.x + self.rx}
+    @property
+    def visible(self):
+        return self.img is not None
 
-    def __init__(self, closet, dimension, board, place):
-        self.closet = closet
-        self.dimension = dimension
-        self.board = board
-        self.place = place
-        self.vert = self.place.v
-        self.coord_lst = self.closet.skeleton["spot_coords"][
-            str(self.dimension)][
-            int(self.board)][str(self.place)]
-        self.interactivity = self.closet.skeleton["spot_interactive"][
-            str(self.dimension)][
-            int(self.board)][str(self.place)]
-        self.imagery = self.closet.skeleton["spot_img"][
-            str(self.dimension)][
-            int(self.board)][str(self.place)]
+    @property
+    def board_left(self):
+        return self.x - self.rx
 
-    def __str__(self):
-        return str(self.place)
+    @property
+    def board_right(self):
+        return self.x + self.rx
 
-    def __repr__(self):
-        return "Spot({0}[{1}].{2})".format(
-            str(self.dimension), int(self.board), str(self.place))
+    @property
+    def board_bot(self):
+        return self.y - self.ry
 
-    def __getattr__(self, attrn):
-        try:
-            return Spot.atrdic[attrn](self)
-        except KeyError:
-            raise AttributeError(
-                "Spot instance has no such attribute: " +
-                attrn)
+    @property
+    def board_top(self):
+        return self.y + self.ry
 
     def set_interactive(self, branch=None, tick_from=None):
         if branch is None:
@@ -210,9 +236,8 @@ class Spot(TerminableImg, TerminableInteractivity):
         self.new_branch_interactivity(parent, branch, tick)
         self.new_branch_coords(parent, branch, tick)
 
-
-class SpotWidget:
-    def get_board_coords(self):
+    @property
+    def pos(self):
         cords = self.spot.get_coords()
         if cords is None:
             return (self.cheatx, self.cheaty)
@@ -223,56 +248,13 @@ class SpotWidget:
         (self.cheatx, self.cheaty) = r
         return r
 
-    atrdic = {
-        "coords": lambda self: self.get_board_coords(),
-        "board_x": lambda self: self.coords[0],
-        "board_y": lambda self: self.coords[1],
-        "window_x": lambda self: self.board_x + self.viewport.offset_x,
-        "window_y": lambda self: self.board_y + self.viewport.offset_y,
-        "window_left": lambda self: self.window_x - self.spot.rx,
-        "window_right": lambda self: self.window_x + self.spot.rx,
-        "window_top": lambda self: self.window_y + self.spot.ry,
-        "window_bot": lambda self: self.window_y - self.spot.ry,
-        "in_view": lambda self: (
+    @property
+    def in_view(self):
+        return (
             self.window_right > 0 and
             self.window_left < self.window.width and
             self.window_top > 0 and
-            self.window_bot < self.window.height),
-        "selected": lambda self: self in self.viewport.window.selected,
-        "hovered": lambda self: self is self.viewport.window.hovered,
-        "pressed": lambda self: self is self.viewport.window.hovered,
-        "grabbed": lambda self: self is self.window.grabbed}
-
-    def __init__(self, viewport, spot):
-        self.viewport = viewport
-        self.window = self.viewport.window
-        self.batch = self.viewport.batch
-        self.spot = spot
-        self.place = self.spot.place
-        self.board = self.spot.board
-        self.vert = self.spot.vert
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
-        self.sprite = None
-        self.vertlist = None
-        self.cheatx = 0
-        self.cheaty = 0
-        self.old_points = None
-
-    def __str__(self):
-        return str(self.spot)
-
-    spotattrs = set(["img", "visible", "interactive", "board_left",
-                     "board_right", "board_top", "board_bot"])
-
-    def __getattr__(self, attrn):
-        if attrn in SpotWidget.atrdic:
-            return SpotWidget.atrdic[attrn](self)
-        elif attrn in self.spotattrs:
-            return getattr(self.spot, attrn)
-        else:
-            raise AttributeError(
-                "SpotWidget instance has no attribute " + attrn)
+            self.window_bot < self.window.height)
 
     def dropped(self, x, y, button, modifiers):
         (oldx, oldy) = self.spot.coords
@@ -294,60 +276,3 @@ class SpotWidget:
 
     def pass_focus(self):
         return self.viewport
-
-    def actually_draw(self):
-        try:
-            self.sprite.delete()
-        except AttributeError:
-            pass
-        self.sprite = Sprite(
-            self.img.tex,
-            self.window_left,
-            self.window_bot,
-            batch=self.batch,
-            group=self.window.spot_group)
-        if self.selected:
-            yelo = (255, 255, 0, 0)
-            colors = yelo * 4
-            points = (
-                self.window_left, self.window_top,
-                self.window_right, self.window_top,
-                self.window_right, self.window_bot,
-                self.window_left, self.window_bot)
-            try:
-                self.vertlist.delete()
-            except AttributeError:
-                pass
-            self.vertlist = self.batch.add_indexed(
-                4,
-                GL_LINES,
-                self.window.spot_group,
-                (0, 1, 2, 3, 0),
-                ('v2i', points),
-                ('c4b', colors))
-        else:
-            try:
-                self.vertlist.delete()
-            except AttributeError:
-                pass
-
-    def draw(self):
-        if (
-                self.img is not None and
-                (self.window_top > 0 or
-                 self.window_right > 0 or
-                 self.window_bot < self.window.height or
-                 self.window_left < self.window.width)):
-            self.actually_draw()
-        else:
-            self.delete()
-
-    def delete(self):
-        try:
-            self.sprite.delete()
-        except AttributeError:
-            pass
-        try:
-            self.vertlist.delete()
-        except AttributeError:
-            pass

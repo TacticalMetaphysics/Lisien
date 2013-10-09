@@ -6,8 +6,9 @@ str = unicode
 from logging import getLogger
 from util import SaveableMetaclass
 from calendar import Calendar, CAL_TYPE
-from pyglet.text import Label
-from pyglet.gl import GL_TRIANGLES
+from kivy.uix.label import Label
+from kivy.uix.layout import BoxLayout
+from kivy.graphics import Color, Rectangle, InstructionGroup
 
 
 __metaclass__ = SaveableMetaclass
@@ -400,7 +401,20 @@ SHEET_ITEM_CLASS = {
     SHEET_ITEM_TYPE["SKILLCAL"]: CharSheetSkillCalendar}
 
 
-class CharSheet(object):
+class CharSheetBg(Rectangle):
+    def __init__(self, cs):
+        self.charsheet = cs
+
+    @property
+    def pos(self):
+        return (self.charsheet.window_left, self.charsheet.window_bot)
+
+    @property
+    def size(self):
+        return (self.charsheet.width, self.charsheet.height)
+
+
+class CharSheet(BoxLayout):
     __metaclass__ = SaveableMetaclass
     demands = ["character"]
 
@@ -474,6 +488,7 @@ class CharSheet(object):
         s.__setattr__("top_ticks", {})
         s.__setattr__("offxs", {})
         s.__setattr__("offys", {})
+        s.__setattr__("bg", CharSheetBg(self))
 
     def __getattr__(self, attrn):
         if attrn in self.rdfields:
@@ -555,29 +570,6 @@ class CharSheet(object):
             else:
                 window_top -= item.height
                 window_top -= self.style.spacing
-
-    def get_box(self, batch, group):
-        l = self.window_left
-        r = self.window_right
-        b = self.window_bot
-        t = self.window_top
-        if (
-                r < 0 or
-                t < 0 or
-                l > self.window.width or
-                b > self.window.height):
-            return
-        return batch.add(
-            6,
-            GL_TRIANGLES,
-            group,
-            ('v2i', (l, b, l, t, r, t, l, b, r, b, r, t)),
-            ('c4B', self.style.bg_inactive.tup * 6))
-
-    def draw(self, batch, group):
-        for item in self:
-            for drawable in item.draw(batch, group):
-                yield drawable
 
     def hover(self, x, y):
         for item in self:

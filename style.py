@@ -27,14 +27,12 @@ you that.
          {'name': 'text not null',
           'red': 'integer not null ',
           'green': 'integer not null ',
-          'blue': 'integer not null ',
-          'alpha': 'integer not null default 255 '},
+          'blue': 'integer not null '},
          ("name",),
          {},
          ["red between 0 and 255",
           "green between 0 and 255",
-          "blue between 0 and 255",
-          "alpha between 0 and 255"])]
+          "blue between 0 and 255"])]
 
     def __init__(self, closet, name):
         """Return a color with the given name, and the given values for red,
@@ -53,8 +51,6 @@ green, blue, and alpha. Register in db.colordict.
             return self._rowdict["green"]
         elif attrn in ("blue", "b"):
             return self._rowdict["blue"]
-        elif attrn in ("alpha", "a"):
-            return self._rowdict["alpha"]
         elif attrn in ("tup", "tuple"):
             return (self.red, self.green, self.blue, self.alpha)
         elif attrn in ("pat", "pattern"):

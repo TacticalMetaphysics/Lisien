@@ -3,11 +3,11 @@
 from __future__ import unicode_literals
 ascii = str
 str = unicode
-from pyglet.graphics import OrderedGroup
-from pyglet.sprite import Sprite
-from pyglet.text import Label
-from pyglet.image import AbstractImage
-from util import SaveableMetaclass, PatternHolder, phi
+from util import SaveableMetaclass, phi
+from kivy.graphics import InstructionGroup, Rectangle
+from kivy.uix.image import Image
+from kivy.uix.label import Label
+
 
 """Views on Effects and EffectDecks that look like cards--you know,
 rectangles with letters and pictures on them."""
@@ -92,12 +92,6 @@ class TextHolder:
 
     def __init__(self, cardwidget):
         self.cardwidget = cardwidget
-        self.batch = self.cardwidget.batch
-        self.bggroup = OrderedGroup(0, self.cardwidget.textgroup)
-        self.labelgroup = OrderedGroup(1, self.cardwidget.textgroup)
-        self.bgimage = None
-        self.bgsprite = None
-        self.label = None
 
     def __getattr__(self, attrn):
         try:
@@ -106,10 +100,9 @@ class TextHolder:
             raise AttributeError(
                 "TextHolder instance has no attribute named {0}".format(attrn))
 
-    def getheight(self):
-        if isinstance(
-                self.cardwidget.base.img,
-                AbstractImage):
+    @property
+    def height(self):
+        if self.cardwidget.base.img is not None:
             return (
                 self.cardwidget.height / 2 - 4
                 * self.cardwidget.style.spacing)
@@ -118,38 +111,24 @@ class TextHolder:
                 self.cardwidget.height - 4
                 * self.cardwidget.style.spacing)
 
-    def draw(self):
-        if (
-                self.cardwidget.old_width != self.cardwidget.width or
-                self.cardwidget.old_height != self.cardwidget.height):
-            image = self.card.pats.bg_active.create_image(
-                self.width, self.height)
-            self.sprite = Sprite(
-                image,
-                self.window_left,
-                self.window_bot,
-                batch=self.batch,
-                group=self.group)
-            self.label = Label(
-                self.card.text,
-                self.style.fontface,
-                self.style.fontsize,
-                anchor_y='bottom',
-                x=self.text_left,
-                y=self.text_bot,
-                width=self.text_width,
-                height=self.text_height,
-                multiline=True,
-                batch=self.batch,
-                group=self.labelgroup)
-        else:
-            self.sprite.x = self.window_left
-            self.sprite.y = self.window_bot
-            self.label.x = self.text_left
-            self.label.y = self.text_bot
+    def get_instructions(self, group=None):
+        if group is None:
+            group = InstructionGroup()
+        w = self.width
+        h = self.height
+        group.add(Rectangle(pos=(self.window_left, self.window_bot),
+                            size=()))
+        group.add(Label(
+            text=self.card.text,
+            color=self.style.textcolor.tup,
+            font_name=self.style.fontface,
+            font_size=self.style.fontsize,
+            text_size=(w, h),
+            valign='top'))
+        return group
 
 
-class CardWidget:
+class CardWidget(Image):
     atrdic = {
         "x": lambda self:
         self.hand.window_left + self.width * int(self),
@@ -168,31 +147,18 @@ class CardWidget:
         "window_bot": lambda self: self.y,
         "window_top": lambda self: self.y + self.height,
         "widget": lambda self: self,
-        "state": lambda self: self.get_state_tup}
+        "state": lambda self: self.get_state_tup,
+        "closet": lambda self: self.base.closet}
 
     def __init__(self, base, hand):
         self.base = base
         self.hand = hand
-        self.batch = self.hand.batch
-        self.supergroup = OrderedGroup(0, self.hand.cardgroup)
-        self.bggroup = OrderedGroup(0, self.supergroup)
-        self.imggroup = OrderedGroup(1, self.supergroup)
-        self.textgroup = OrderedGroup(2, self.supergroup)
-        self.closet = self.base.db
         self.window = self.hand.window
-        self.grabpoint = None
         self.visible = True
         self.interactive = True
         self.hovered = False
         self.floating = False
-        self.tweaks = 0
-        self.pats = PatternHolder(self.base.style)
-        self.bgimage = None
-        self.bgsprite = None
         self.textholder = TextHolder(self)
-        self.imgsprite = None
-        self.old_width = -1
-        self.old_height = -1
 
     def __int__(self):
         return self.hand.deck.index(self.base.effect)
@@ -299,36 +265,13 @@ class CardWidget:
             self.window_bot,
             self.tweaks)
 
-    def delete(self):
-        try:
-            self.bgsprite.delete()
-        except:
-            pass
-        self.textholder.delete()
-
-    def draw(self):
-        if (
-                self.width != self.old_width or
-                self.height != self.old_height):
-            self.delete()
-        if self.visible:
-            try:
-                self.bgsprite.x = self.window_left
-                self.bgsprite.y = self.window_bot
-            except:
-                image = self.card.pats.bg_inactive.create_image(
-                    self.width, self.height)
-                self.sprite = Sprite(
-                    image,
-                    self.window_left,
-                    self.window_bot,
-                    batch=self.batch,
-                    group=self.bggroup)
-            self.textholder.draw()
-        else:
-            self.delete()
-        self.old_width = self.width
-        self.old_height = self.height
+    def get_instructions(self, group=None):
+        if group is None:
+            group = InstructionGroup()
+        group.add(Rectangle(pos=(self.window_left, self.window_bot),
+                            size=(self.width, self.height)))
+        self.textholder.get_instructions(group)
+        return group
 
 
 class HandIterator:
@@ -372,10 +315,6 @@ order."""
     def __init__(self, window, deck):
         self.window = window
         self.closet = self.window.closet
-        self.batch = self.window.batch
-        self.cardgroup = OrderedGroup(
-            self.window.hand_order, self.window.cardgroup)
-        self.window.hand_order += 1
         self.deck = deck
 
     def __hash__(self):
@@ -488,6 +427,8 @@ order."""
             y > self.window_bot and
             y < self.window_top)
 
-    def draw(self):
-        for card in iter(self):
-            card.draw()
+    def get_instructions(self, group=None):
+        if group is None:
+            group = InstructionGroup()
+        for card in self:
+            card.get_instructions(group)

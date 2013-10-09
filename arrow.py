@@ -5,57 +5,15 @@ ascii = str
 str = unicode
 from math import hypot, cos, sin
 from util import (
-    set_line_width,
     wedge_offsets_rise_run,
     truncated_line,
     fortyfive)
-from pyglet.graphics import OrderedGroup
-from pyglet.gl import (
-    glEnable,
-    glDisable,
-    GL_LINES,
-    GL_LINE_SMOOTH)
+from kivy.graphics import Line, Color
+from kivy.graphics.instructions import InstructionGroup
+from kivy.uix.widget import Widget
 
 
-class DummySpot:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def __getattr__(self, attrn):
-        if attrn in ('window_x', 'viewport_x', 'board_x'):
-            return self.x
-        elif attrn in ('window_y', 'viewport_y', 'board_y'):
-            return self.y
-        elif attrn in ('coords', 'window_coords',
-                       'viewport_coords', 'board_coords'):
-            return (self.x, self.y)
-        else:
-            raise AttributeError
-
-
-class BoldLineOrderedGroup(OrderedGroup):
-    def __init__(self, order, parent=None, width=1.0):
-        self.width = float(width)
-        OrderedGroup.__init__(self, order, parent)
-
-    def set_state(self):
-        glDisable(GL_LINE_SMOOTH)
-        set_line_width(self.width)
-
-
-class SmoothBoldLineOrderedGroup(OrderedGroup):
-    def __init__(self, order, parent=None, width=1.0):
-        self.width = float(width)
-        OrderedGroup.__init__(self, order, parent)
-
-    def set_state(self):
-        set_line_width(self.width)
-        glEnable(
-            GL_LINE_SMOOTH)
-
-
-class Arrow:
+class Arrow(Widget):
     margin = 20
     w = 10
     atrdic = {
@@ -79,7 +37,7 @@ class Arrow:
         'b': lambda self: self.get_b()
         }
 
-    def __init__(self, board, orig_or_port, dest=None):
+    def __init__(self, board, portal):
         self.board = board
         self.closet = self.board.closet
         self.center_shrink = 0
@@ -126,6 +84,59 @@ class Arrow:
         except KeyError:
             return None
 
+    def get_lines_instructions(self, offx=0, offy=0, group=None):
+        if self.dest.y < self.orig.y:
+            yco = -1
+        else:
+            yco = 1
+        if self.dest.x < self.orig.x:
+            xco = -1
+        else:
+            xco = 1
+        (leftx, boty, rightx, topy) = truncated_line(
+            float(self.orig.x * xco), float(self.orig.y * yco),
+            float(self.dest.x * xco), float(self.dest.y * yco),
+            self.center_shrink + 1)
+        taillen = float(self.viewport.arrowhead_size)
+        rise = topy - boty
+        run = rightx - leftx
+        if rise == 0:
+            xoff1 = cos(fortyfive) * taillen
+            yoff1 = xoff1
+            xoff2 = xoff1
+            yoff2 = -1 * yoff1
+        elif run == 0:
+            xoff1 = sin(fortyfive) * taillen
+            yoff1 = xoff1
+            xoff2 = -1 * xoff1
+            yoff2 = yoff1
+        else:
+            (xoff1, yoff1, xoff2, yoff2) = wedge_offsets_rise_run(
+                rise, run, taillen)
+        x1 = int(rightx - xoff1) * xco
+        x2 = int(rightx - xoff2) * xco
+        y1 = int(topy - yoff1) * yco
+        y2 = int(topy - yoff2) * yco
+        endx = int(rightx) * xco
+        endy = int(topy) * yco
+        points = [self.orig.x + offx, self.orig.y + offy,
+                  endx + offx, endy + offy, x1 + offx, y1 + offy,
+                  endx + offx, endy + offy, x2 + offx, y2 + offy,
+                  endx + offx, endy + offy]
+        if self.selected:
+            bgcolor = (255, 255, 0)
+            fgcolor = (0, 0, 0)
+        else:
+            bgcolor = (64, 64, 64)
+            fgcolor = (255, 255, 255)
+        if group is None:
+            group = InstructionGroup()
+        group.add(Color(*bgcolor))
+        group.add(Line(points=points, width=self.w))
+        group.add(Color(*fgcolor))
+        group.add(Line(points=points, width=self.w/3))
+        return group
+
     def get_slope(self):
         ox = self.orig.x
         oy = self.orig.y
@@ -169,246 +180,3 @@ class Arrow:
         x_numerator = self.rise * self.ox
         y_numerator = denominator * self.oy
         return ((y_numerator - x_numerator), denominator)
-
-
-class ArrowWidget:
-    selectable = True
-    def yint(self):
-        ab = self.arrow.b
-        return (ab[0] + self.viewport.offset_x * ab[1], ab[1])
-    atrdic = {
-        "board_left": lambda self: self.arrow.left,
-        "board_right": lambda self: self.arrow.right,
-        "board_top": lambda self: self.arrow.top,
-        "board_bot": lambda self: self.arrow.bot,
-        "viewport_left": lambda self: self.board_left + self.viewport.offset_x,
-        "viewport_right": lambda self: self.board_right + self.viewport.offset_x,
-        "viewport_top": lambda self: self.board_top + self.viewport.offset_y,
-        "viewport_bot": lambda self: self.board_bot + self.viewport.offset_y,
-        "window_left": lambda self: self.viewport_left + self.viewport.window_left,
-        "window_right": lambda self: self.viewport_right + self.viewport.window_left,
-        "window_bot": lambda self: self.viewport_bot + self.viewport.window_bot,
-        "window_top": lambda self: self.viewport_top + self.viewport.window_bot,
-        "ox": lambda self: self.orig.board_x,
-        "oy": lambda self: self.orig.board_y,
-        "dx": lambda self: self.dest.board_x,
-        "dy": lambda self: self.dest.board_y,
-        "window_ox": lambda self: self.orig.window_x,
-        "window_oy": lambda self: self.orig.window_y,
-        "window_dx": lambda self: self.dest.window_x,
-        "window_dy": lambda self: self.dest.window_y,
-        "selected": lambda self: self in self.window.selected,
-        "orig": lambda self: self.viewport.spotdict[str(self.arrow.orig)],
-        "dest": lambda self: self.viewport.spotdict[str(self.arrow.dest)],
-        "in_view": lambda self: self.orig.in_view or self.dest.in_view,
-        "b": lambda self: self.yint(),
-        "width": lambda self: self.viewport.arrow_width}
-
-    atrdic = {
-        "board_left": lambda self: self.arrow.left,
-        "board_right": lambda self: self.arrow.right,
-        "board_top": lambda self: self.arrow.top,
-        "board_bot": lambda self: self.arrow.bot,
-        "viewport_left": lambda self:
-        self.board_left + self.viewport.offset_x,
-        "viewport_right": lambda self:
-        self.board_right + self.viewport.offset_x,
-        "viewport_top": lambda self:
-        self.board_top + self.viewport.offset_y,
-        "viewport_bot": lambda self:
-        self.board_bot + self.viewport.offset_y,
-        "window_left": lambda self:
-        self.viewport_left + self.viewport.window_left,
-        "window_right": lambda self:
-        self.viewport_right + self.viewport.window_left,
-        "window_bot": lambda self:
-        self.viewport_bot + self.viewport.window_bot,
-        "window_top": lambda self:
-        self.viewport_top + self.viewport.window_bot,
-        "ox": lambda self: self.orig.board_x,
-        "oy": lambda self: self.orig.board_y,
-        "dx": lambda self: self.dest.board_x,
-        "dy": lambda self: self.dest.board_y,
-        "window_ox": lambda self: self.orig.window_x,
-        "window_oy": lambda self: self.orig.window_y,
-        "window_dx": lambda self: self.dest.window_x,
-        "window_dy": lambda self: self.dest.window_y,
-        "selected": lambda self: self in self.window.selected,
-        "orig": lambda self: self.viewport.spotdict[str(self.arrow.orig)],
-        "dest": lambda self: self.viewport.spotdict[str(self.arrow.dest)],
-        "in_view": lambda self: self.orig.in_view or self.dest.in_view,
-        "b": lambda self: self.yint(),
-        "width": lambda self: self.viewport.arrow_width}
-
-    arrowatts = set(["rise", "run", "length", "m", "slope",
-                     "center_shrink", "portal", "e"])
-
-    def __init__(self, viewport, arrow):
-        self.viewport = viewport
-        self.window = self.viewport.window
-        self.batch = self.window.batch
-        self.arrow = arrow
-        self.bgvl = None
-        self.fgvl = None
-        self.order = self.window.edge_order
-        self.window.edge_order += 1
-        self.bggroup = SmoothBoldLineOrderedGroup(
-            0, self.window.arrow_group, self.viewport.arrow_width)
-        self.fggroup = BoldLineOrderedGroup(
-            1, self.window.arrow_group, self.viewport.arrow_width)
-        self.old_state = None
-
-    def __getattr__(self, attrn):
-        if attrn in self.arrowatts:
-            return getattr(self.arrow, attrn)
-        elif attrn in ArrowWidget.atrdic:
-            return ArrowWidget.atrdic[attrn](self)
-        else:
-            raise AttributeError(
-                "ArrowWidget instance has no attribute "
-                "named {0}".format(attrn))
-
-    def yint(self):
-        ab = self.arrow.b
-        return (ab[0] + self.viewport.offset_x * ab[1], ab[1])
-
-    def y_at(self, x):
-        if self.m is None:
-            return None
-        else:
-            b = self.b
-            mx = (self.rise * x, self.run)
-            y = (mx[0] + b[0], self.run)
-            return float(y[0]) / float(self.run)
-
-    def x_at(self, y):
-        # y = mx + b
-        # y - b = mx
-        # (y - b)/m = x
-        if self.m is None:
-            return self.ox
-        else:
-            b = self.b
-            numerator = y - b[1]
-            denominator = b[0]
-            return float(numerator) / float(denominator)
-
-    def overlaps(self, x, y):
-        """Do I overlap the point (x, y)?
-
-Take my width into account
-
-        """
-        # trivial rejections
-        if not (
-                x > self.viewport_left and
-                x < self.viewport_right and
-                y > self.viewport_bot and
-                y < self.viewport_top):
-            return False
-        try:
-            perfect_x = self.x_at(y)
-        except:
-            perfect_x = None
-        try:
-            perfect_y = self.y_at(x)
-        except:
-            perfect_y = None
-        if perfect_x is None:
-            return abs(perfect_y - y) < self.width
-        elif perfect_y is None:
-            return abs(perfect_x - x) < self.width
-        else:
-            a = perfect_y - y
-            b = perfect_x - x
-            dist = hypot(a, b)
-            return dist < self.width
-
-    def pass_focus(self):
-        return self.viewport
-
-    def draw(self):
-        ox = self.window_ox
-        dx = self.window_dx
-        oy = self.window_oy
-        dy = self.window_dy
-        try:
-            self.really_draw(ox, oy, dx, dy)
-        except:
-            self.delete()
-
-    def delete(self):
-        if self.bgvl is not None:
-            try:
-                self.bgvl.delete()
-            except:
-                pass
-            self.bgvl = None
-        if self.fgvl is not None:
-            try:
-                self.fgvl.delete()
-            except:
-                pass
-            self.fgvl = None
-
-    def really_draw(self, ox, oy, dx, dy):
-        # group had better be viewported
-        if dy < oy:
-            yco = -1
-        else:
-            yco = 1
-        if dx < ox:
-            xco = -1
-        else:
-            xco = 1
-        (leftx, boty, rightx, topy) = truncated_line(
-            float(ox * xco), float(oy * yco),
-            float(dx * xco), float(dy * yco),
-            self.center_shrink + 1)
-        taillen = float(self.viewport.arrowhead_size)
-        rise = topy - boty
-        run = rightx - leftx
-        if rise == 0:
-            xoff1 = cos(fortyfive) * taillen
-            yoff1 = xoff1
-            xoff2 = xoff1
-            yoff2 = -1 * yoff1
-        elif run == 0:
-            xoff1 = sin(fortyfive) * taillen
-            yoff1 = xoff1
-            xoff2 = -1 * xoff1
-            yoff2 = yoff1
-        else:
-            (xoff1, yoff1, xoff2, yoff2) = wedge_offsets_rise_run(
-                rise, run, taillen)
-        x1 = int(rightx - xoff1) * xco
-        x2 = int(rightx - xoff2) * xco
-        y1 = int(topy - yoff1) * yco
-        y2 = int(topy - yoff2) * yco
-        endx = int(rightx) * xco
-        endy = int(topy) * yco
-        if self.selected:
-            bgcolor = (255, 255, 0, 0)
-            fgcolor = (0, 0, 0, 0)
-        else:
-            bgcolor = (64, 64, 64, 64)
-            fgcolor = (255, 255, 255, 0)
-        vees = (ox, oy, endx, endy, x1, y1, endx, endy, x2, y2, endx, endy)
-        if self.bgvl is None:
-            self.bgvl = self.batch.add(
-                6,
-                GL_LINES,
-                self.bggroup,
-                ('v2i', vees),
-                ('c4B', bgcolor * 6))
-        else:
-            self.bgvl.vertices = vees
-        if self.fgvl is None:
-            self.fgvl = self.batch.add(
-                6,
-                GL_LINES,
-                self.fggroup,
-                ('v2i', vees),
-                ('c4B', fgcolor * 6))
-        else:
-            self.fgvl.vertices = vees

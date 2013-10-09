@@ -4,10 +4,10 @@ from __future__ import unicode_literals
 ascii = str
 str = unicode
 from util import SaveableMetaclass
-from pawn import Pawn, PawnWidget
-from spot import Spot, SpotWidget
-from arrow import Arrow, ArrowWidget
-from pyglet.sprite import Sprite
+from pawn import Pawn
+from spot import Spot
+from arrow import Arrow
+from kivy.uix.scatter import Scatter
 
 
 """Class for user's view on gameworld, and support functions."""
@@ -16,7 +16,7 @@ from pyglet.sprite import Sprite
 __metaclass__ = SaveableMetaclass
 
 
-class Board:
+class Board(object):
     """A widget notionally representing the game board on which the rest
 of the game pieces lie.
 
@@ -33,7 +33,6 @@ each board will be open in at most one window at a time.
     tables = [
         ("board",
          {"dimension": "text not null default 'Physical'",
-          "idx": "integer not null default 0",
           "wallpaper": "text not null default 'default_wallpaper'"},
          ("dimension", "idx"),
          {"wallpaper": ("img", "name")},
@@ -48,40 +47,44 @@ each board will be open in at most one window at a time.
         "things": lambda self: iter(self.dimension.things),
         "pawns": lambda self: self.pawndict.itervalues(),
         "spots": lambda self: self.spotdict.itervalues(),
-        "arrows": lambda self: self.arrowdict.itervalues()}
+        "arrows": lambda self: self.arrowdict.itervalues(),
 
-    def __init__(self, closet, dimension, idx):
+    def __init__(self, closet, dimension):
         """Return a board representing the given dimension.
 
         """
         self.closet = closet
         self.dimension = dimension
-        self.idx = idx
         self.pawndict = {}
         self.spotdict = {}
         self.arrowdict = {}
-        self.viewports = []
-        self._rowdict = self.closet.skeleton[
-            "board"][str(self.dimension)][int(self)]
-        while len(self.dimension.boards) <= self.idx:
-            self.dimension.boards.append(None)
-        self.dimension.boards[self.idx] = self
-        if (
-                "spot_coords" in self.closet.skeleton and
-                str(self.dimension) in self.closet.skeleton["spot_coords"]):
-            for rd in self.closet.skeleton[
-                    "spot_coords"][str(self.dimension)][
-                    int(self)].iterrows():
-                self.add_spot(rd)
-        if (
-                "pawn_img" in self.closet.skeleton and
-                str(self.dimension) in self.closet.skeleton["pawn_img"]):
-            for rd in self.closet.skeleton[
-                    "pawn_img"][str(self.dimension)][
-                    int(self)].iterrows():
-                self.add_pawn(rd)
-        for portal in self.dimension.portals:
-            self.make_arrow(portal)
+        # self.closet = closet
+        # self.dimension = dimension
+        # self.idx = idx
+        # self.pawndict = {}
+        # self.spotdict = {}
+        # self.arrowdict = {}
+        # self._rowdict = self.closet.skeleton[
+        #     "board"][str(self.dimension)][int(self)]
+        # while len(self.dimension.boards) <= self.idx:
+        #     self.dimension.boards.append(None)
+        # self.dimension.boards[self.idx] = self
+        # if (
+        #         "spot_coords" in self.closet.skeleton and
+        #         str(self.dimension) in self.closet.skeleton["spot_coords"]):
+        #     for rd in self.closet.skeleton[
+        #             "spot_coords"][str(self.dimension)][
+        #             int(self)].iterrows():
+        #         self.add_spot(rd)
+        # if (
+        #         "pawn_img" in self.closet.skeleton and
+        #         str(self.dimension) in self.closet.skeleton["pawn_img"]):
+        #     for rd in self.closet.skeleton[
+        #             "pawn_img"][str(self.dimension)][
+        #             int(self)].iterrows():
+        #         self.add_pawn(rd)
+        # for portal in self.dimension.portals:
+        #     self.make_arrow(portal)
 
     def __getattr__(self, attrn):
         return self.atrdic[attrn](self)
@@ -160,138 +163,6 @@ each board will be open in at most one window at a time.
         # Arrows don't have branchdicts. Just make them smart enough
         # to handle their portal changing its.
 
-
-class SpotIterX(object):
-    def __init__(self, bv, x):
-        self.spotiter = bv.spots
-        self.x = x
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        spot = self.spotiter.next()
-        while spot.window_left > self.x or spot.window_right < self.x:
-            spot = self.spotiter.next()
-        return spot
-
-
-class PawnIterX(object):
-    def __init__(self, bv, x):
-        self.pawniter = bv.pawns
-        self.x = x
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        pawn = self.pawniter.next()
-        while self.x < pawn.window_left or pawn.window_right < self.x:
-            pawn = self.pawniter.next()
-        return pawn
-
-
-class ArrowIterX(object):
-    def __init__(self, bv, x):
-        self.arrowiter = bv.arrows
-        self.x = x
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        arrow = self.arrowiter.next()
-        while self.x < arrow.window_left or arrow.window_right < self.x:
-            arrow = self.arrowiter.next()
-        return arrow
-
-
-class BoardViewport:
-    """A board as it is seen in a window.
-
-This is meant to be arbitrarily scalable, but it isn't really working."""
-    draggable = True
-    tables = [
-        ("board_viewport",
-         {"window": "text not null",
-          "dimension": "text not null",
-          "board": "integer not null default 0",
-          "idx": "integer not null default 0",
-          "left": "float not null default 0.0",
-          "bot": "float not null default 0.0",
-          "top": "float not null default 1.0",
-          "right": "float not null default 1.0",
-          "view_left": "integer not null default 0",
-          "view_bot": "integer not null default 0",
-          "arrow_width": "float not null default 1.4",
-          "arrowhead_size": "integer not null default 10"},
-         ("window", "dimension", "board", "idx"),
-         {"window": ("window", "name"),
-          "dimension, board": ("board", "dimension, i")},
-         ["view_left>=0", "view_bot>=0", "left>=0.0", "bot>=0.0",
-          "right>=0.0", "top>=0.0", "left<=1.0", "bot<=1.0",
-          "right<=1.0", "top<=1.0", "right>left", "top>bot"])]
-    atrdic = {
-        "left_prop": lambda self: self._rowdict["left"],
-        "right_prop": lambda self: self._rowdict["right"],
-        "top_prop": lambda self: self._rowdict["top"],
-        "bot_prop": lambda self: self._rowdict["bot"],
-        "window_left": lambda self: int(self.left_prop * self.window.width),
-        "window_right": lambda self: int(self.right_prop * self.window.width),
-        "window_top": lambda self: int(self.top_prop * self.window.height),
-        "window_bot": lambda self: int(self.bot_prop * self.window.height),
-        "width": lambda self: self.window_right - self.window_left,
-        "height": lambda self: self.window_top - self.window_bot,
-        "offset_x": lambda self: -1 * self.view_left,
-        "offset_y": lambda self: -1 * self.view_bot,
-        "arrows": lambda self: self.arrowdict.itervalues(),
-        "spots": lambda self: self.spotdict.itervalues(),
-        "pawns": lambda self: self.pawndict.itervalues()}
-
-    def __init__(self, closet, window, dimension, board, idx):
-        self.moved = True
-        self.bgsprite = None
-        self.bgregion = None
-        self.closet = closet
-        self.window = window
-        self.dimension = dimension
-        self.board = board
-        self.idx = idx
-        self._rowdict = self.closet.skeleton[
-            "board_viewport"][
-            str(self.window)][
-            str(self.dimension)][
-            int(self.board)][
-            int(self)]
-        self.pawndict = {}
-        self.spotdict = {}
-        self.arrowdict = {}
-        while len(self.board.viewports) <= self.idx:
-            self.board.viewports.append(None)
-        self.board.viewports[self.idx] = self
-        self.batch = self.window.batch
-        self.window.viewport_order += 1
-        for (k, v) in self.board.pawndict.iteritems():
-            self.pawndict[k] = PawnWidget(self, v)
-        for (k, v) in self.board.spotdict.iteritems():
-            self.spotdict[k] = SpotWidget(self, v)
-        for (k, v) in self.board.arrowdict.iteritems():
-            self.arrowdict[k] = ArrowWidget(self, v)
-        self.old_offset_x = None
-        self.old_offset_y = None
-
-    def __int__(self):
-        return self.idx
-
-    def __getattr__(self, attrn):
-        if attrn in self._rowdict:
-            return self._rowdict[attrn]
-        elif attrn in (
-                "dimension", "idx", "wallpaper"):
-            return getattr(self.board, attrn)
-        else:
-            return self.atrdic[attrn](self)
-
     def overlaps(self, x, y):
         return (
             x > self.window_left and
@@ -368,3 +239,48 @@ This is meant to be arbitrarily scalable, but it isn't really working."""
             pawn.draw()
         for arrow in self.arrows:
             arrow.draw()
+
+
+class SpotIterX(object):
+    def __init__(self, bv, x):
+        self.spotiter = bv.spots
+        self.x = x
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        spot = self.spotiter.next()
+        while spot.window_left > self.x or spot.window_right < self.x:
+            spot = self.spotiter.next()
+        return spot
+
+
+class PawnIterX(object):
+    def __init__(self, bv, x):
+        self.pawniter = bv.pawns
+        self.x = x
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        pawn = self.pawniter.next()
+        while self.x < pawn.window_left or pawn.window_right < self.x:
+            pawn = self.pawniter.next()
+        return pawn
+
+
+class ArrowIterX(object):
+    def __init__(self, bv, x):
+        self.arrowiter = bv.arrows
+        self.x = x
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        arrow = self.arrowiter.next()
+        while self.x < arrow.window_left or arrow.window_right < self.x:
+            arrow = self.arrowiter.next()
+        return arrow
