@@ -4,9 +4,7 @@ from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
 from collections import deque, MutableMapping
-from kivy.graphics import Line
 from kivy.uix.widget import WidgetMetaclass
-from kivy.uix.label import Label
 from kivy.properties import AliasProperty
 
 logger = getLogger(__name__)
@@ -71,6 +69,9 @@ class SkelRowIter(object):
                 self.keyses.append(list(ptr[k].keys()))
         raise StopIteration
 
+    def next(self):
+        return self.__next__()
+
 
 class Skeleton(MutableMapping):
     def __init__(self, content, name="", parent=None,
@@ -80,18 +81,18 @@ class Skeleton(MutableMapping):
         self.parent = parent
         self.set_listener = set_listener
         self.del_listener = del_listener
-        if isinstance(content, Skeleton):
+        if hasattr(content, 'content'):
             content = content.content
         self.content = {}
         if isinstance(content, dict):
-            kitr = iter(content.items())
+            kitr = content.iteritems()
         else:
             kitr = ListItemIterator(content)
         for (k, v) in kitr:
             if self.rowdict is None and v is not None:
-                self.rowdict = v.__class__ in (str, int, float)
+                self.rowdict = v.__class__ in (str, unicode, int, float)
             elif self.rowdict is True:
-                assert(v.__class__ in (str, int, float, type(None)))
+                assert(v.__class__ in (str, unicode, int, float, type(None)))
             elif v is None:
                 continue
             else:
@@ -473,7 +474,7 @@ declared in the order they appear in the tables attribute.
             wheres = []
             kitr = Skeleton(keydicts).iterrows()
             if len(kitr) == 0 or tabname not in tablenames:
-                raise EmptyTabdict
+                raise EmptySkeleton
             for keydict in kitr:
                 checks = []
                 for keyn in keyns:
@@ -490,7 +491,7 @@ declared in the order they appear in the tables attribute.
                 return
             try:
                 c.execute(*gen_sql_delete(keydicts, tabname))
-            except EmptyTabdict:
+            except EmptySkeleton:
                 return
 
         def gen_sql_select(keydicts, tabname):
@@ -1015,6 +1016,9 @@ class ListItemIterator:
         self.i += 1
         return (i, it)
 
+    def next(self):
+        return self.__next__()
+
 
 class FilterIter:
     def __init__(self, itr, do_not_return):
@@ -1029,6 +1033,9 @@ class FilterIter:
         while r in self.do_not_return:
             r = next(self.real)
         return r
+
+    def next(self):
+        return self.__next__()
 
 
 class FirstOfTupleFilter:
@@ -1064,7 +1071,7 @@ def next_val_iter(litter):
 def skel_nth_generator(skel, n):
     iters = [iter(skel.values())]
     for i in range(0, n-1):
-        iters.append(iter(iters[-1].__next__().values()))
+        iters.append(iter(next(iters[-1]).values()))
     try:
         yield next(iters[-1])
     except StopIteration:
@@ -1074,7 +1081,8 @@ def skel_nth_generator(skel, n):
         yield next(iters[-1])
 
 
-class Timestream(object, metaclass=SaveableMetaclass):
+class Timestream(object):
+    __metaclass__ = SaveableMetaclass
     # I think updating the start and end ticks of a branch using
     # listeners might be a good idea
     tables = [

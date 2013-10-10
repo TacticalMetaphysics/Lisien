@@ -7,7 +7,8 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-class Portal(metaclass=SaveableMetaclass):
+class Portal(object):
+    __metaclass__ = SaveableMetaclass
     tables = [
         ("portal",
          {"dimension": "text not null DEFAULT 'Physical'",

@@ -15,7 +15,8 @@ logger = getLogger(__name__)
 """Widget representing things that move about from place to place."""
 
 
-class Pawn(Image, TerminableImg, TerminableInteractivity, metaclass=SaveableWidgetMetaclass):
+class Pawn(Image, TerminableImg, TerminableInteractivity):
+    __metaclass__ = SaveableWidgetMetaclass
     """A token to represent something that moves about between places."""
     pos_hint = AliasProperty(
         lambda self: self.get_board_coords(), lambda self, v: None)

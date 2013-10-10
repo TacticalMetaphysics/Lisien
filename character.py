@@ -7,7 +7,8 @@ from collections import deque
 """Things that should have character sheets."""
 
 
-class Character(metaclass=SaveableMetaclass):
+class Character(object):
+    __metaclass__ = SaveableMetaclass
     """An incorporeal object connecting corporeal ones together across
 dimensions, indicating that they represent one thing and have that
 thing's attributes.

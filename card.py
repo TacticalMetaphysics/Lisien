@@ -2,7 +2,6 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass, SaveableWidgetMetaclass, phi
 from kivy.graphics import InstructionGroup, Rectangle
-from kivy.uix.widget import Widget
 from kivy.uix.image import Image
 from kivy.uix.label import Label
 
@@ -11,7 +10,8 @@ from kivy.uix.label import Label
 rectangles with letters and pictures on them."""
 
 
-class Card(object, metaclass=SaveableMetaclass):
+class Card(object):
+    __metaclass__ = SaveableMetaclass
     atrdic = {
         "_text": lambda self: self._rowdict["text"],
         "_display_name": lambda self: self._rowdict["display_name"],
@@ -124,7 +124,8 @@ class TextHolder:
         return group
 
 
-class CardWidget(Image, metaclass=SaveableWidgetMetaclass):
+class CardWidget(Image):
+    __metaclass__ = SaveableWidgetMetaclass
     atrdic = {
         "x": lambda self:
         self.hand.window_left + self.width * int(self),
@@ -287,7 +288,8 @@ class HandIterator:
         return card.widget
 
 
-class Hand(metaclass=SaveableMetaclass):
+class Hand(object):
+    __metaclass__ = SaveableMetaclass
     """A view onto an EffectDeck that shows every card in it, in the same
 order."""
     tables = [

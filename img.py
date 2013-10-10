@@ -3,13 +3,13 @@
 from util import SaveableMetaclass
 from kivy.core.image import ImageData
 from kivy.uix.image import Image
-from kivy.graphics.texture import Texture
 
 
 """Container for images to be drawn, maybe."""
 
 
-class Img(metaclass=SaveableMetaclass):
+class Img(object):
+    __metaclass__ = SaveableMetaclass
     """A pretty thin wrapper around a Pyglet image.
 
 Has savers and loaders that work with the LiSE database. The image

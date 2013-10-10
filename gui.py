@@ -142,7 +142,8 @@ class PickerIterX(object):
             return p
 
 
-class GameWindow(pyglet.window.Window, metaclass=SaveableWindowMetaclass):
+class GameWindow(pyglet.window.Window):
+    __metaclass__ = SaveableWindowMetaclass
     tables = [
         ("window",
          {"name": "text not null default 'Main'",

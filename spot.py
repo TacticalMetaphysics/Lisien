@@ -15,8 +15,8 @@ logger = getLogger(__name__)
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class Spot(Image, TerminableImg, TerminableInteractivity,
-           metaclass=SaveableWidgetMetaclass):
+class Spot(Image, TerminableImg, TerminableInteractivity):
+    __metaclass__ = SaveableWidgetMetaclass
     """The icon that represents a Place.
 
     The Spot is located on the Board that represents the same

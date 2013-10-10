@@ -1,4 +1,3 @@
-from kivy.graphics import Color, InstructionGroup
 from kivy.uix.image import Image
 
 

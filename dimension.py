@@ -1,8 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-
-
-str = str
 from place import Place
 from thing import Thing
 from portal import Portal

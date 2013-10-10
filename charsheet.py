@@ -2,11 +2,11 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from logging import getLogger
 from util import SaveableWidgetMetaclass
-from calendar import Calendar, CAL_TYPE
+from calendar import Calendar
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
-from kivy.graphics import Color, Rectangle
+from kivy.graphics import Rectangle
 from kivy.properties import AliasProperty
 
 
@@ -341,7 +341,8 @@ class CharSheetBg(Rectangle):
         Rectangle.__init__(self)
 
 
-class CharSheet(BoxLayout, metaclass=SaveableWidgetMetaclass):
+class CharSheet(BoxLayout):
+    __metaclass__ = SaveableWidgetMetaclass
     demands = ["character"]
 
     tables = [
@@ -402,7 +403,7 @@ class CharSheet(BoxLayout, metaclass=SaveableWidgetMetaclass):
             self.character.closet.skeleton[
                 "charsheet"][str(self.character)][attrn] = val
         else:
-            super().__setattr__(attrn, val)
+            BoxLayout.__setattr__(self, attrn, val)
 
     def __init__(self, character):
         self.character = character

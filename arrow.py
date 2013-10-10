@@ -1,9 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-
-
-str = str
-from math import hypot, cos, sin
+from __future__ import print_function
+from math import cos, sin
 from util import (
     wedge_offsets_rise_run,
     truncated_line,

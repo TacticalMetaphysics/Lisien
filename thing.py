@@ -13,7 +13,8 @@ logger = getLogger(__name__)
 portex = compile("Portal\((.+)->(.+)\)")
 
 
-class Thing(metaclass=SaveableMetaclass):
+class Thing(object):
+    __metaclass__ = SaveableMetaclass
     """The sort of item that has a particular location at any given time.
 
 Every Thing has a Journey and a Schedule, but either may be empty.
@@ -207,7 +208,7 @@ other journey I may be on at the time."""
             tick = otick
         assert(tick is not None)
         ipath = self.dimension.graph.get_shortest_paths(
-            loc, to=str(destplace), output=ascii("epath"))
+            loc, to=unicode(destplace), output=str("epath"))
         path = None
         for p in ipath:
             if p == []:

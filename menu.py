@@ -7,7 +7,10 @@ from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
 from kivy.uix.modalview import ModalView
 from kivy.uix.boxlayout import BoxLayout
-from kivy.properties import AliasProperty, StringProperty, ObjectProperty
+from kivy.properties import (
+    AliasProperty,
+    StringProperty,
+    ObjectProperty)
 import re
 from logging import getLogger
 
@@ -42,7 +45,8 @@ class MenuItem(Button):
             self.add_widget(GetterLabel(self.menu.closet, text))
 
 
-class Menu(metaclass=SaveableWidgetMetaclass):
+class Menu(object):
+    __metaclass__ = SaveableWidgetMetaclass
     _name = StringProperty()
     closet = ObjectProperty()
     tables = [
@@ -94,21 +98,24 @@ class Menu(metaclass=SaveableWidgetMetaclass):
 
 
 class MainMenu(DropDown, Menu):
-    def __init__(self, **kwargs):
+    def __init__(self, closet, **kwargs):
         self._name = "Main"
-        self.closet = kwargs["closet"]
+        self.closet = closet
         DropDown.__init__(self, **kwargs)
 
 
 class SubMenu(Widget, Menu):
-    def __init__(self, **kwargs):
-        self._name = kwargs["name"]
-        self.closet = kwargs["closet"]
+    def __init__(self, closet, name, **kwargs):
+        self._name = name
+        self.closet = closet
         Widget.__init__(self, **kwargs)
 
     def build(self):
         self.view = ModalView()
-        self.layout = BoxLayout(orientation='vertical')
+        self.layout = BoxLayout(
+            orientation='vertical',
+            pos_hint=(0.2, 0.0),
+            size_hint=(0.8, 1.0))
         self.view.add(self.layout)
         Menu.build(self)
 

@@ -1,14 +1,15 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass
-import kivy.graphics
+from kivy.graphics import Color
 
 
 """Simple data structures to hold style information for text and
 things that contain text."""
 
 
-class Color(kivy.graphics.Color, metaclass=SaveableMetaclass):
+class Color(Color):
+    __metaclass__ = SaveableMetaclass
     """Red, green, blue, and alpha values.
 
     This is just a container class for the (red, green, blue, alpha)
@@ -42,7 +43,8 @@ green, blue. Register in db.colordict.
         return self._name
 
 
-class Style(object, metaclass=SaveableMetaclass):
+class Style(object):
+    __metaclass__ = SaveableMetaclass
     """A collection of cogent information for rendering text and things
 that contain text."""
     tables = [

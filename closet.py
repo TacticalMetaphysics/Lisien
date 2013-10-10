@@ -9,6 +9,7 @@ This module does not contain the code used to generate
 SQL. That's in util.py, the class SaveableMetaclass.
 
 """
+from __future__ import print_function
 import sqlite3
 import re
 import os
@@ -106,7 +107,6 @@ before RumorMill will work. For that, run mkdb.sh.
 
     atrdic = {
         "game": lambda self: self.skeleton["game"],
-        "board": lambda self: self.game["front_board"],
         "branch": lambda self: self.game["front_branch"],
         "front_branch": lambda self: self.game["front_branch"],
         "seed": lambda self: self.game["seed"],
@@ -373,7 +373,7 @@ This is game-world time. It doesn't always go forwards.
             if rowd["stringname"] not in self.skeleton["strings"]:
                 self.skeleton["strings"][rowd["stringname"]] = {}
             self.skeleton["strings"][
-                rowd["stringname"]][rowd["language"]] = rowd["string"]
+                rowd["stringname"]][rowd["language"]] = rowd
 
     def make_generic_place(self, dimension):
         placen = "generic_place_{0}".format(len(dimension.graph.vs))
@@ -557,7 +557,8 @@ This is game-world time. It doesn't always go forwards.
 
     def get_board(self, name):
         dim = self.get_dimension(name)
-        return Board(closet=self, dimension=dim)
+        return Board(self, dim, pos_hint={'x': 0.2, 'y': 0.0},
+                     size_hint=(0.8, 1.0))
 
     def get_place(self, dim, placen):
         if not isinstance(dim, Dimension):
@@ -693,10 +694,10 @@ This is game-world time. It doesn't always go forwards.
         for rd in skel.iterrows():
             if rd["name"] == "Main":
                 self.load_menu_items("Main")
-                r["Main"] = MainMenu(closet=self)
+                r["Main"] = MainMenu(self)
             else:
                 self.load_menu_items(rd["name"])
-                r[rd["name"]] = SubMenu(closet=self, name=rd["name"])
+                r[rd["name"]] = SubMenu(self, rd["name"])
         return r
 
     def load_menu(self, name):

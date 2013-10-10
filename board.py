@@ -1,11 +1,11 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from __future__ import print_function
 from util import SaveableWidgetMetaclass
 from pawn import Pawn
 from spot import Spot
 from arrow import Arrow
 from kivy.uix.scatterlayout import ScatterLayout
-from kivy.properties import ObjectProperty
 
 
 """Class for user's view on gameworld, and support functions."""
@@ -15,12 +15,9 @@ __metaclass__ = SaveableWidgetMetaclass
 
 
 class Board(ScatterLayout):
-    closet = ObjectProperty()
-    dimension = ObjectProperty()
-
-    def __init__(self, **kwargs):
-        self.closet = kwargs["closet"]
-        self.dimension = kwargs["dimension"]
+    def __init__(self, closet, dimension, **kwargs):
+        self.closet = closet
+        self.dimension = dimension
         ScatterLayout.__init__(self, **kwargs)
 
     def build(self):
