@@ -1,26 +1,22 @@
 ## This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
 from util import (
-    SaveableMetaclass,
+    SaveableWidgetMetaclass,
     TerminableImg,
     TerminableInteractivity)
-from kivy.uix import Image
+from kivy.uix.image import Image
+from kivy.properties import AliasProperty
 from logging import getLogger
 
 
 logger = getLogger(__name__)
 
 
-__metaclass__ = SaveableMetaclass
-
-
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class Spot(Image, TerminableImg, TerminableInteractivity):
+class Spot(Image, TerminableImg, TerminableInteractivity,
+           metaclass=SaveableWidgetMetaclass):
     """The icon that represents a Place.
 
     The Spot is located on the Board that represents the same
@@ -28,132 +24,117 @@ class Spot(Image, TerminableImg, TerminableInteractivity):
     relative to its Board, not necessarily the window the Board is in.
 
     """
+    width = AliasProperty(
+        lambda self: self.get_width(), lambda self, v: None)
+    height = AliasProperty(
+        lambda self: self.get_height(), lambda self, v: None)
+    size = AliasProperty(
+        lambda self: self.get_size(), lambda self, v: None)
+    texture = AliasProperty(
+        lambda self: self.get_texture(), lambda self, v: None)
+    pos_hint = AliasProperty(
+        lambda self: self.get_pos(), lambda self, v: None)
+    closet = AliasProperty(
+        lambda self: self.board.closet, lambda self, v: None)
+    dimension = AliasProperty(
+        lambda self: self.board.dimension, lambda self, v: None)
     tables = [
         ("spot_img",
          {"dimension": "text not null default 'Physical'",
           "place": "text not null",
-          "board": "integer not null default 0",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
           "img": "text not null default 'default_spot'"},
-         ("dimension", "board", "place", "branch", "tick_from"),
-         {"dimension, board": ("board", "dimension, i"),
+         ("dimension", "place", "branch", "tick_from"),
+         {"dimension": ("board", "dimension"),
           "img": ("img", "name")},
          []),
         ("spot_interactive",
          {"dimension": "text not null default 'Physical'",
           "place": "text not null",
-          "board": "integer not null default 0",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0"},
-         ("dimension", "board", "place", "branch", "tick_from"),
-         {"dimension, board": ("board", "dimension, i")},
+         ("dimension", "place", "branch", "tick_from"),
+         {"dimension": ("board", "dimension")},
          []),
         ("spot_coords",
          {"dimension": "text not null default 'Physical'",
           "place": "text not null",
-          "board": "integer not null default 0",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
           "x": "integer not null default 50",
           "y": "integer not null default 50"},
-         ("dimension", "board", "place", "branch", "tick_from"),
-         {"dimension, board": ("board", "dimension, i")},
+         ("dimension", "place", "branch", "tick_from"),
+         {"dimension": ("board", "dimension")},
          [])]
 
-    def __init__(self, board, place):
-        self.closet = closet
-        self.board = board
-        self.place = place
-        self.vert = self.place.v
-        self.coord_lst = self.closet.skeleton["spot_coords"][
-            str(self.dimension)][str(self.place)]
-        self.interactivity = self.closet.skeleton["spot_interactive"][
-            str(self.dimension)][str(self.place)]
-        self.imagery = self.closet.skeleton["spot_img"][
-            str(self.dimension)][str(self.place)]
+    def __init__(self, **kwargs):
+        self.board = kwargs["board"]
+        self.place = kwargs["place"]
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
+        Image.__init__(self)
 
     def __str__(self):
         return str(self.place)
 
     @property
-    def vertex(self):
-        return self.place.v
+    def coord_lst(self):
+        return self.board.closet.skeleton["spot_coords"][
+            str(self.dimension)][str(self.place)]
 
     @property
-    def interactive(self):
-        return self.is_interactive()
+    def interactivity(self):
+        return self.board.closet.skeleton["spot_interactive"][
+            str(self.dimension)][str(self.place)]
 
     @property
-    def coords(self):
-        return self.get_coords()
+    def imagery(self):
+        return self.board.closet.skeleton["spot_img"][
+            str(self.dimension)][str(self.place)]
 
-    @property
-    def x(self):
-        return self.coords[0]
-
-    @property
-    def y(self):
-        return self.coords[1]
-
-    @property
-    def width(self):
+    def get_width(self):
         img = self.get_img()
         if img is None:
             return 0
         else:
-            return img.width
+            return img.texture.width
 
-    @property
-    def height(self):
+    def get_height(self):
         img = self.get_img()
         if img is None:
             return 0
         else:
-            return img.width
+            return img.texture.height
 
-    @property
-    def rx(self):
-        return self.width / 2
-
-    @property
-    def ry(self):
-        return self.height / 2
-
-    @property
-    def r(self):
-        rx = self.rx
-        ry = self.ry
-        if rx > ry:
-            return rx
+    def get_size(self):
+        img = self.get_img()
+        if img is None:
+            return [0, 0]
         else:
-            return ry
+            return [img.texture.width, img.texture.height]
 
-    @property
-    def visible(self):
-        return self.img is not None
+    def get_texture(self):
+        img = self.get_img()
+        if img is not None:
+            return img.texture
 
-    @property
-    def board_left(self):
-        return self.x - self.rx
-
-    @property
-    def board_right(self):
-        return self.x + self.rx
-
-    @property
-    def board_bot(self):
-        return self.y - self.ry
-
-    @property
-    def board_top(self):
-        return self.y + self.ry
+    def get_pos(self):
+        cords = self.spot.get_coords()
+        if cords is None:
+            return (self.cheatx, self.cheaty)
+        (x, y) = cords
+        r = (
+            x + self.drag_offset_x,
+            y + self.drag_offset_y)
+        (self.cheatx, self.cheaty) = r
+        return r
 
     def set_interactive(self, branch=None, tick_from=None):
         if branch is None:
-            branch = self.closet.branch
+            branch = self.board.closet.branch
         if tick_from is None:
-            tick_from = self.closet.tick
+            tick_from = self.board.closet.tick
         assert branch in self.interactivity, "Make a new branch first"
         self.interactivity[branch][tick_from] = {
             "dimension": str(self.dimension),
@@ -164,9 +145,9 @@ class Spot(Image, TerminableImg, TerminableInteractivity):
 
     def set_img(self, img, branch=None, tick_from=None):
         if branch is None:
-            branch = self.closet.branch
+            branch = self.board.closet.branch
         if tick_from is None:
-            tick_from = self.closet.tick
+            tick_from = self.board.closet.tick
         self.imagery[branch][tick_from] = {
             "dimension": str(self.dimension),
             "place": str(self.place),
@@ -177,16 +158,17 @@ class Spot(Image, TerminableImg, TerminableInteractivity):
 
     def get_coords(self, branch=None, tick=None):
         if branch is None:
-            branch = self.closet.branch
+            branch = self.board.closet.branch
         if tick is None:
-            tick = self.closet.tick
+            tick = self.board.closet.tick
         prev = None
         if branch not in self.coord_lst:
             return None
         for tick_from in self.coord_lst[branch]:
             if tick_from == tick:
                 rd = self.coord_lst[branch][tick_from]
-                return (rd["x"], rd["y"])
+                return (rd["x"] + self.drag_offset_x,
+                        rd["y"] + self.drag_offset_y)
             elif tick_from > tick:
                 break
             prev = tick_from
@@ -194,13 +176,13 @@ class Spot(Image, TerminableImg, TerminableInteractivity):
             return None
         else:
             rd = self.coord_lst[branch][prev]
-            return (rd["x"], rd["y"])
+            return (rd["x"] + self.drag_offset_x, rd["y"] + self.drag_offset_y)
 
     def set_coords(self, x, y, branch=None, tick_from=None):
         if branch is None:
-            branch = self.closet.branch
+            branch = self.board.closet.branch
         if tick_from is None:
-            tick_from = self.closet.tick
+            tick_from = self.board.closet.tick
         assert branch in self.coord_lst, "Make a new branch first"
         self.coord_lst[branch][tick_from] = {
             "dimension": str(self.dimension),
@@ -235,26 +217,6 @@ class Spot(Image, TerminableImg, TerminableInteractivity):
         self.new_branch_imagery(parent, branch, tick)
         self.new_branch_interactivity(parent, branch, tick)
         self.new_branch_coords(parent, branch, tick)
-
-    @property
-    def pos(self):
-        cords = self.spot.get_coords()
-        if cords is None:
-            return (self.cheatx, self.cheaty)
-        (x, y) = cords
-        r = (
-            x + self.drag_offset_x,
-            y + self.drag_offset_y)
-        (self.cheatx, self.cheaty) = r
-        return r
-
-    @property
-    def in_view(self):
-        return (
-            self.window_right > 0 and
-            self.window_left < self.window.width and
-            self.window_top > 0 and
-            self.window_bot < self.window.height)
 
     def dropped(self, x, y, button, modifiers):
         (oldx, oldy) = self.spot.coords

@@ -1,8 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
 """The database backend, with dictionaries of loaded objects.
 
 This is a caching database connector. There are dictionaries for all
@@ -21,11 +18,10 @@ from logging import getLogger
 from dimension import Dimension
 from spot import Spot
 from pawn import Pawn
-from board import Board, BoardViewport
+from board import Board
 from card import Card
 from effect import Effect, EffectDeck
 from style import Style, Color
-from gui import GameWindow
 from util import (
     dictify_row,
     Skeleton,
@@ -40,6 +36,7 @@ from thing import Thing
 from character import Character
 from charsheet import CharSheet
 from img import Img
+from menu import Menu, MainMenu, SubMenu
 
 
 logger = getLogger(__name__)
@@ -63,8 +60,8 @@ class ListItemIterator:
     def __len__(self):
         return len(self.l)
 
-    def next(self):
-        it = self.l_iter.next()
+    def __next__(self):
+        it = next(self.l_iter)
         i = self.i
         self.i += 1
         return (i, it)
@@ -110,13 +107,12 @@ before RumorMill will work. For that, run mkdb.sh.
     atrdic = {
         "game": lambda self: self.skeleton["game"],
         "board": lambda self: self.game["front_board"],
-        "front_board": lambda self: self.game["front_board"],
         "branch": lambda self: self.game["front_branch"],
         "front_branch": lambda self: self.game["front_branch"],
         "seed": lambda self: self.game["seed"],
         "tick": lambda self: self.game["tick"],
-        "dimensions": lambda self: self.dimensiondict.itervalues(),
-        "characters": lambda self: self.characterdict.itervalues()}
+        "dimensions": lambda self: iter(self.dimensiondict.values()),
+        "characters": lambda self: iter(self.characterdict.values())}
 
     def __init__(self, connector, xfuncs={}, lang="eng",
                  front_dimension="Physical", front_board=0,
@@ -151,7 +147,6 @@ given name.
         self.imgdict = {}
         self.menudict = {}
         self.menuitemdict = {}
-        self.stringdict = {}
         self.styledict = {}
         self.tickdict = {}
         self.eventdict = {}
@@ -212,12 +207,9 @@ given name.
         self.menu_cbs.update(xfuncs)
         self.skeleton["game"] = {
             "front_dimension": front_dimension,
-            "front_board": front_board,
             "front_branch": front_branch,
             "seed": seed,
             "tick": tick}
-        fd = self.load_dimension(front_dimension)
-        self.load_board(fd, front_board)
 
     def __getattr__(self, attrn):
         try:
@@ -227,7 +219,7 @@ given name.
                 "Closet doesn't have the attribute " + attrn)
 
     def __setattr__(self, attrn, val):
-        if attrn in ("front_board", "seed", "age"):
+        if attrn in ("seed", "age"):
             getattr(self, "game")[attrn] = val
         else:
             super(Closet, self).__setattr__(attrn, val)
@@ -321,7 +313,7 @@ This is game-world time. It doesn't always go forwards.
         elif strname == "branch":
             return str(self.branch)
         else:
-            return self.stringdict[strname][self.lang]
+            return self.skeleton["strings"][strname][self.language]
 
     def mi_create_place(self, menuitem):
         return menuitem.window.create_place()
@@ -364,7 +356,7 @@ This is game-world time. It doesn't always go forwards.
                     clas._insert_rowdicts_table(
                         self.c, to_save[tabname], tabname)
         self.c.execute("DELETE FROM game")
-        keys = self.game.keys()
+        keys = list(self.game.keys())
         self.c.execute(
             "INSERT INTO game ({0}) VALUES ({1})".format(
                 ", ".join(keys),
@@ -372,252 +364,16 @@ This is game-world time. It doesn't always go forwards.
             tuple([self.game[k] for k in keys]))
         self.old_skeleton = self.skeleton.copy()
 
-    # TODO: For all these schedule functions, handle the case where I
-    # try to schedule something for a time outside of the given
-    # branch. These functions may not be the most appropriate *place*
-    # to handle that.
-
-    def schedule_something(
-            self, scheddict, dictkeytup,
-            val=None, branch=None, tick_from=None, tick_to=None):
-        if branch is None:
-            branch = self.branch
-        if tick_from is None:
-            tick_from = self.tick
-        ptr = scheddict
-        for key in dictkeytup + (branch,):
-            if key not in ptr:
-                ptr[key] = {}
-            ptr = ptr[key]
-        if val is None:
-            ptr[tick_from] = tick_to
-        else:
-            ptr[tick_from] = (val, tick_to)
-
-    def schedule_event(self, ev, branch=None, tick_from=None, tick_to=None):
-        if not hasattr(ev, 'schedule'):
-            ev.schedule = {}
-        if branch not in ev.schedule:
-            ev.schedule[branch] = {}
-        ev.schedule[branch][tick_from] = tick_to
-
-    def event_is_commencing(self, ev, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-
-    def event_is_concluding(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return False
-        for prevstart in self.event_scheduled[name][branch]:
-            if (
-                    prevstart < tick and
-                    self.event_scheduled[
-                        name][branch][prevstart] == tick):
-                return True
-        return False
-
-    def event_is_proceeding(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return False
-        for prevstart in self.event_scheduled[name][branch]:
-            if (
-                    prevstart < tick and
-                    self.event_scheduled[
-                        name][branch][prevstart] > tick):
-                return True
-        return False
-
-    def event_is_starting_or_proceeding(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return False
-        for prevstart in self.event_scheduled[name][branch]:
-            if prevstart == tick:
-                return True
-            elif (
-                    prevstart < tick and
-                    self.event_scheduled[
-                        name][branch][prevstart] > tick):
-                return True
-        return False
-
-    def event_is_proceeding_or_concluding(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return False
-        for prevstart in self.event_scheduled[name][branch]:
-            if prevstart < tick:
-                if self.event_scheduled[name][branch][prevstart] >= tick:
-                    return True
-        return False
-
-    def event_is_happening(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return False
-        for prevstart in self.event_scheduled[name][branch]:
-            if prevstart == tick:
-                return True
-            elif prevstart < tick:
-                if self.event_scheduled[name][branch][prevstart] >= tick:
-                    return True
-        return False
-
-    def get_event_start(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return None
-        for (tick_from, tick_to) in (
-                self.event_scheduled[name][branch].iteritems()):
-            if tick_from <= tick and tick <= tick_to:
-                return tick_from
-        return None
-
-    def get_event_end(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return None
-        for (tick_from, tick_to) in (
-                self.event_scheduled[name][branch].iteritems()):
-            if tick_from <= tick and tick <= tick_to:
-                return tick_to
-        return None
-
-    def schedule_effect_deck(self, name, cards,
-                             branch=None, tick_from=None, tick_to=None):
-        self.schedule_something(
-            self.effect_deck_scheduled,
-            (name,), cards, branch, tick_from, tick_to)
-
-    def get_effect_deck_card_names(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        for (commencement, (cards, conclusion)) in self.effect_deck_scheduled[
-                name][branch].iteritems():
-            if commencement <= tick and conclusion >= tick:
-                return cards
-        return None
-
-    def schedule_char_att(self, char_s, att_s, val,
-                          branch=None, tick_from=None, tick_to=None):
-        self.schedule_something(
-            self.char_att_scheduled,
-            (char_s, att_s), val, branch, tick_from, tick_to)
-
-    def get_char_att_val(self, char_s, att_s, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        for (commencement, (value, conclusion)) in self.char_att_scheduled[
-                char_s][att_s][branch].iteritems():
-            if commencement <= tick and conclusion >= tick:
-                return value
-        return None
-
-    def schedule_char_skill(self, char_s, skill_s, effect_deck_s,
-                            branch=None, tick_from=None, tick_to=None):
-        self.schedule_something(
-            self.char_skill_scheduled, (char_s, skill_s), effect_deck_s,
-            branch, tick_from, tick_to)
-
-    def get_char_skill_deck_name(
-            self, char_s, skill_s, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        for (commencement, (deck, conclusion)) in self.char_skill_scheduled[
-                char_s][skill_s][branch].iteritems():
-            if commencement <= tick and conclusion >= tick:
-                return deck
-        return ''
-
-    def schedule_char_item(self, char_s, dimension_s, item_s,
-                           branch=None, tick_from=None, tick_to=None):
-        self.schedule_something(
-            self.char_item_scheduled, (char_s, dimension_s, item_s),
-            None, branch, tick_from, tick_to)
-
-    def character_is_item(self, char_s, dimension_s, item_s,
-                          branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        for (commencement, conclusion) in (
-                self.char_item_scheduled[
-                    char_s][dimension_s][item_s][branch]):
-            if commencement <= tick and conclusion >= tick:
-                return True
-        return False
-
-    def schedule_hand_card(self, hand_s, card_s, card_n,
-                           branch=None, tick_from=None, tick_to=None):
-        self.schedule_something(
-            self.hand_card_scheduled, (hand_s, card_s), card_n,
-            branch, tick_from, tick_to)
-
-    def card_copies_in_hand(self, hand_s, card_s, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        for (commencement, (n, conclusion)) in self.hand_card_scheduled[
-                hand_s][card_s][branch].iteritems():
-            if commencement <= tick and conclusion >= tick:
-                return n
-        return 0
-
     def load_strings(self):
         self.c.execute("SELECT stringname, language, string FROM strings")
+        if "strings" not in self.skeleton:
+            self.skeleton["strings"] = {}
         for row in self.c:
             rowd = dictify_row(row, ("stringname", "language", "string"))
-            if rowd["stringname"] not in self.stringdict:
-                self.stringdict[rowd["stringname"]] = {}
-            self.stringdict[rowd[
-                "stringname"]][rowd["language"]] = rowd["string"]
+            if rowd["stringname"] not in self.skeleton["strings"]:
+                self.skeleton["strings"][rowd["stringname"]] = {}
+            self.skeleton["strings"][
+                rowd["stringname"]][rowd["language"]] = rowd["string"]
 
     def make_generic_place(self, dimension):
         placen = "generic_place_{0}".format(len(dimension.graph.vs))
@@ -644,19 +400,16 @@ This is game-world time. It doesn't always go forwards.
     def make_portal(self, orig, dest):
         return orig.dimension.make_portal(orig, dest)
 
-    def load_charsheet(self, window, character):
-        window = str(window)
+    def load_charsheet(self, character):
         character = str(character)
         skel = Skeleton({
             "charsheet": {
-                "window": window,
                 "character": character},
             "charsheet_item": {
-                "window": window,
                 "character": character}})
         self.skeleton.update(
             CharSheet._select_skeleton(self.c, skel))
-        return CharSheet(self, window, character)
+        return CharSheet(self.get_character(character))
 
     def load_characters(self, names):
         qtd = {
@@ -666,7 +419,7 @@ This is game-world time. It doesn't always go forwards.
             "character_stats": {},
             "character_skills": {}}
         for name in names:
-            for tabn in qtd.iterkeys():
+            for tabn in qtd.keys():
                 qtd[tabn][name] = {"character": name}
         self.skeleton.update(
             Character._select_skeleton(self.c, qtd))
@@ -774,7 +527,10 @@ This is game-world time. It doesn't always go forwards.
     def load_dimension(self, name):
         return self.load_dimensions([name])[name]
 
-    def get_dimensions(self, names):
+    def get_dimensions(self, names=None):
+        if names is None:
+            self.c.execute("SELECT name FROM dimension")
+            names = [row[0] for row in self.c.fetchall()]
         r = {}
         unhad = set()
         for name in names:
@@ -789,6 +545,20 @@ This is game-world time. It doesn't always go forwards.
     def get_dimension(self, name):
         return self.get_dimensions([name])[name]
 
+    def load_board(self, name):
+        self.skeleton.update(Spot._select_skeleton(self.c, {
+            "spot_img": {"dimension": name},
+            "spot_interactive": {"dimension": name},
+            "spot_coords": {"dimension": name}}))
+        self.skeleton.update(Pawn._select_skeleton(self.c, {
+            "pawn_img": {"dimension": name},
+            "pawn_interactive": {"dimension": name}}))
+        return self.get_board(name)
+
+    def get_board(self, name):
+        dim = self.get_dimension(name)
+        return Board(closet=self, dimension=dim)
+
     def get_place(self, dim, placen):
         if not isinstance(dim, Dimension):
             dim = self.get_dimension(dim)
@@ -798,77 +568,6 @@ This is game-world time. It doesn't always go forwards.
         if not isinstance(dim, Dimension):
             dim = self.get_dimension(dim)
         return dim.get_portal(str(origin), str(destination))
-
-    def get_board(self, dim, i):
-        if not isinstance(dim, Dimension):
-            dim = self.get_dimension(dim)
-        if len(dim.boards) <= i or dim.boards[i] is None:
-            return self.load_board(dim, i)
-        else:
-            return dim.boards[i]
-
-    def load_board(self, dim, i):
-        dimn = str(dim)
-        if not isinstance(dim, Dimension):
-            dim = self.get_dimension(dimn)
-        boardtd = Board._select_skeleton(
-            self.c,
-            {"board":
-             {"dimension": dimn,
-              "idx": i}})
-        boardtd.update(Spot._select_skeleton(
-            self.c,
-            {"spot_img":
-             {"dimension": dimn,
-              "board": i},
-             "spot_interactive":
-             {"dimension": dimn,
-              "board": i},
-             "spot_coords":
-             {"dimension": dimn,
-              "board": i}}))
-        boardtd.update(Pawn._select_skeleton(
-            self.c,
-            {"pawn_img":
-             {"dimension": dimn,
-              "board": i},
-             "pawn_interactive":
-             {"dimension": dimn,
-              "board": i}}))
-        self.skeleton.update(boardtd)
-        return Board(self, dim, i)
-
-    def load_viewport(self, win, dim, board, viewi):
-        winn = str(win)
-        dimn = str(dim)
-        boardi = int(board)
-        if not isinstance(win, GameWindow):
-            win = self.get_window(winn)
-        if not isinstance(dim, Dimension):
-            dim = self.get_dimension(dimn)
-        if not isinstance(board, Board):
-            board = self.get_board(dim, boardi)
-        kd = {"board_viewport":
-              {"window": winn,
-               "dimension": dimn,
-               "board": boardi,
-               "idx": viewi}}
-        self.skeleton.update(
-            BoardViewport._select_skeleton(self.c, kd))
-        return BoardViewport(
-            self, win, dim, board, viewi)
-
-    def get_viewport(self, win, dim, boardidx, viewi):
-        if isinstance(boardidx, Board):
-            board = boardidx
-        else:
-            board = self.get_board(dim, boardidx)
-        if (
-                len(board.views) > viewi and
-                board.views[viewi] is not None):
-            return board.views[viewi]
-        else:
-            return self.load_viewport(win, dim, board, viewi)
 
     def load_imgs(self, names):
         kd = {"img": {}}
@@ -958,46 +657,6 @@ This is game-world time. It doesn't always go forwards.
             return name
         return self.get_styles([name])[name]
 
-    def load_windows(self, names, checkpoint=False):
-        kd = {
-            "window": {},
-            "board_viewport": {},
-            "menu": {},
-            "hand": {},
-            "menu_item": {},
-            "charsheet": {}}
-        for name in names:
-            kd["window"][name] = {"name": name}
-            for col in kd.iterkeys():
-                if col == "window":
-                    continue
-                kd[col][name] = {"window": name}
-        td = GameWindow._select_skeleton(self.c, kd)
-        self.skeleton.update(td)
-        self.old_skeleton.update(td)
-        r = {}
-        for name in names:
-            r[name] = GameWindow(self, name, checkpoint)
-        return r
-
-    def load_window(self, name, checkpoint=False):
-        return self.load_windows([name], checkpoint)[name]
-
-    def get_windows(self, names, checkpoint=False):
-        r = {}
-        unhad = set()
-        for name in iter(names):
-            if name in self.windowdict:
-                r[name] = self.windowdict[name]
-            else:
-                unhad.add(name)
-        if len(unhad) > 0:
-            r.update(self.load_windows(unhad, checkpoint))
-        return r
-
-    def get_window(self, name, checkpoint=False):
-        return self.get_windows([name], checkpoint)[name]
-
     def load_cards(self, names):
         effectdict = self.get_effects(names)
         kd = {"card": {}}
@@ -1024,10 +683,34 @@ This is game-world time. It doesn't always go forwards.
     def get_card(self, name):
         return self.get_cards([name])[name]
 
+    def load_menus(self, names):
+        kd = Skeleton({"menu": {}})
+        for name in names:
+            kd["menu"][name] = {"name": name}
+        skel = Menu._select_skeleton(self.c, kd)
+        self.skeleton.update(skel)
+        r = {}
+        for rd in skel.iterrows():
+            if rd["name"] == "Main":
+                self.load_menu_items("Main")
+                r["Main"] = MainMenu(closet=self)
+            else:
+                self.load_menu_items(rd["name"])
+                r[rd["name"]] = SubMenu(closet=self, name=rd["name"])
+        return r
+
+    def load_menu(self, name):
+        return self.load_menus([name])[name]
+
+    def load_menu_items(self, menu):
+        kd = Skeleton({"menu_item": {"menu": menu}})
+        skel = Menu._select_skeleton(self.c, kd)
+        self.skeleton.update(skel)
+
     def get_effects_in_decks(self, decks):
         effds = self.get_effect_decks(decks)
         effects = set()
-        for effd in effds.itervalues():
+        for effd in effds.values():
             for rd in effd._card_links:
                 effects.add(rd["effect"])
         return self.get_effects(effects)
@@ -1035,7 +718,7 @@ This is game-world time. It doesn't always go forwards.
     def get_cards_in_hands(self, hands):
         effects = self.get_effects_in_decks(hands)
         return self.get_cards([
-            str(effect) for effect in effects.itervalues()])
+            str(effect) for effect in effects.values()])
 
     def load_timestream(self):
         self.skeleton.update(
@@ -1176,7 +859,6 @@ def mkdb(DB_NAME='default.sqlite'):
     c.execute(
         "CREATE TABLE game"
         " (front_dimension TEXT DEFAULT 'Physical', "
-        "front_board INTEGER DEFAULT 0, "
         "front_branch INTEGER DEFAULT 0, "
         "tick INTEGER DEFAULT 0,"
         " seed INTEGER DEFAULT 0);")
@@ -1189,9 +871,7 @@ def mkdb(DB_NAME='default.sqlite'):
     while saveables != []:
         (demands, provides, prelude,
          tablenames, postlude) = saveables.pop(0)
-        print tablenames
-        if 'character_things' in tablenames:
-            pass
+        print(tablenames)
         breakout = False
         for demand in iter(demands):
             if demand not in done:
@@ -1202,13 +882,13 @@ def mkdb(DB_NAME='default.sqlite'):
                 break
         if breakout:
             continue
+        while prelude != []:
+            pre = prelude.pop()
+            if isinstance(pre, tuple):
+                c.execute(*pre)
+            else:
+                c.execute(pre)
         if tablenames == []:
-            while prelude != []:
-                pre = prelude.pop()
-                if isinstance(pre, tuple):
-                    c.execute(*pre)
-                else:
-                    c.execute(pre)
             while postlude != []:
                 post = postlude.pop()
                 if isinstance(post, tuple):
@@ -1230,14 +910,12 @@ def mkdb(DB_NAME='default.sqlite'):
         breakout = False
         while tablenames != []:
             tn = tablenames.pop(0)
-            if tn == "calendar":
-                pass
             try:
                 c.execute(schemata[tn])
                 done.add(tn)
             except sqlite3.OperationalError as e:
-                print "OperationalError while creating table {0}:".format(tn)
-                print e
+                print("OperationalError while creating table {0}:".format(tn))
+                print(e)
                 breakout = True
                 break
         if breakout:
@@ -1252,8 +930,8 @@ def mkdb(DB_NAME='default.sqlite'):
                 else:
                     c.execute(post)
         except sqlite3.OperationalError as e:
-            print "OperationalError during postlude from {0}:".format(tn)
-            print e
+            print("OperationalError during postlude from {0}:".format(tn))
+            print(e)
             saveables.append(
                 (demands, provides, prelude, tablenames, postlude))
             continue
@@ -1264,12 +942,12 @@ def mkdb(DB_NAME='default.sqlite'):
     initfiles = sorted(os.listdir('.'))
     for initfile in initfiles:
         if initfile[-3:] == "sql":  # weed out automatic backups and so forth
-            print "reading SQL from file " + initfile
+            print("reading SQL from file " + initfile)
             read_sql(initfile)
 
     os.chdir(oldhome)
 
-    print "indexing the RLTiles"
+    print("indexing the RLTiles")
     ins_rltiles(c, 'rltiles')
 
     c.close()
@@ -1280,7 +958,7 @@ def load_closet(dbfn, lang="eng", xfuncs={}):
     conn = sqlite3.connect(dbfn)
     c = conn.cursor()
     c.execute(
-        "SELECT front_dimension, front_board, front_branch, seed, tick "
+        "SELECT front_dimension, front_branch, seed, tick "
         "FROM game")
     row = c.fetchone()
     c.close()

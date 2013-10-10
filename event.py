@@ -1,8 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
 """Containers for EffectDecks that have beginnings, middles, and ends.
 
 Events, in LiSE, resemble events in programming generally insofar as
@@ -128,7 +125,7 @@ the three given effect decks. Register with db.eventdict.
             tick = self.db.tick
         if branch not in self.occurrences:
             return False
-        for (tick_from, tick_to) in self.occurrences.iteritems():
+        for (tick_from, tick_to) in self.occurrences.items():
             if tick_from <= tick and tick <= tick_to:
                 return True
         return False
@@ -149,7 +146,7 @@ the three given effect decks. Register with db.eventdict.
             tick = self.db.tick
         if branch not in self.occurrences:
             return False
-        for (tick_from, tick_to) in self.occurrences[branch].iteritems():
+        for (tick_from, tick_to) in self.occurrences[branch].items():
             if tick_from < tick and tick < tick_to:
                 return True
         return False
@@ -161,7 +158,7 @@ the three given effect decks. Register with db.eventdict.
             tick = self.db.tick
         if branch not in self.occurrences:
             return False
-        return tick in self.occurrences[branch].values()
+        return tick in list(self.occurrences[branch].values())
 
     def commence(self, reset=True, branch=None, tick=None):
         """Perform all commence effects."""

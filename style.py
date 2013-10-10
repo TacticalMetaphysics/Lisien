@@ -1,20 +1,14 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
 from util import SaveableMetaclass
-import pyglet
+import kivy.graphics
 
 
 """Simple data structures to hold style information for text and
 things that contain text."""
 
 
-__metaclass__ = SaveableMetaclass
-
-
-class Color:
+class Color(kivy.graphics.Color, metaclass=SaveableMetaclass):
     """Red, green, blue, and alpha values.
 
     This is just a container class for the (red, green, blue, alpha)
@@ -25,49 +19,30 @@ you that.
     tables = [
         ("color",
          {'name': 'text not null',
-          'red': 'integer not null ',
-          'green': 'integer not null ',
-          'blue': 'integer not null '},
+          'red': 'float not null',
+          'green': 'float not null',
+          'blue': 'float not null'},
          ("name",),
          {},
-         ["red between 0 and 255",
-          "green between 0 and 255",
-          "blue between 0 and 255"])]
+         ["red between 0.0 and 1.0",
+          "green between 0.0 and 1.0",
+          "blue between 0.0 and 1.0"])]
 
     def __init__(self, closet, name):
         """Return a color with the given name, and the given values for red,
-green, blue, and alpha. Register in db.colordict.
+green, blue. Register in db.colordict.
 
         """
         self.closet = closet
         self._name = name
-
-    def __getattr__(self, attrn):
-        if attrn == "_rowdict":
-            return self.closet.skeleton["color"][str(self)]
-        elif attrn in ("r", "red"):
-            return self._rowdict["red"]
-        elif attrn in ("green", "g"):
-            return self._rowdict["green"]
-        elif attrn in ("blue", "b"):
-            return self._rowdict["blue"]
-        elif attrn in ("tup", "tuple"):
-            return (self.red, self.green, self.blue, self.alpha)
-        elif attrn in ("pat", "pattern"):
-            return pyglet.image.SolidColorImagePattern(self.tup)
-        else:
-            raise AttributeError(
-                "Color instance has no such attribute: {0}".format(attrn))
+        rd = self.closet.skeleton["color"][str(self)]
+        super(self, Color).__init__(rd["red"], rd["green"], rd["blue"])
 
     def __str__(self):
         return self._name
 
-    def __repr__(self):
-        """Looks just like the tuple."""
-        return "(" + ", ".join(self.tup) + ")"
 
-
-class Style:
+class Style(object, metaclass=SaveableMetaclass):
     """A collection of cogent information for rendering text and things
 that contain text."""
     tables = [
@@ -95,8 +70,6 @@ that contain text."""
         """Return a style by the given name, with the given face, font size,
 spacing, and four colors: active and inactive variants for each of the
 foreground and the background.
-
-With db, register in its styledict.
 
         """
         self.closet = closet

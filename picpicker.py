@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-ascii = str
-str = unicode
 from kivy.graphics import Color, InstructionGroup
 from kivy.uix.image import Image
 

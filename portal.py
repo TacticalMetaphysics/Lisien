@@ -1,8 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
 from util import SaveableMetaclass
 from logging import getLogger
 
@@ -10,8 +7,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-class Portal:
-    __metaclass__ = SaveableMetaclass
+class Portal(metaclass=SaveableMetaclass):
     tables = [
         ("portal",
          {"dimension": "text not null DEFAULT 'Physical'",

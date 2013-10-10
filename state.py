@@ -1,8 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
 import logging
 # do I want to handle the timer here? that might be good
 logger = logging.getLogger(__name__)

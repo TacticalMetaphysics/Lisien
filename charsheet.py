@@ -1,17 +1,13 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
 from logging import getLogger
-from util import SaveableMetaclass
+from util import SaveableWidgetMetaclass
 from calendar import Calendar, CAL_TYPE
 from kivy.uix.label import Label
-from kivy.uix.layout import BoxLayout
-from kivy.graphics import Color, Rectangle, InstructionGroup
-
-
-__metaclass__ = SaveableMetaclass
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
+from kivy.graphics import Color, Rectangle
+from kivy.properties import AliasProperty
 
 
 logger = getLogger(__name__)
@@ -40,72 +36,9 @@ def generate_items(skel, keykey, valkey):
         yield (rd[keykey], rd[valkey])
 
 
-class CharSheetItem(object):
-    charsheet_atts = set([
-        "closet", "batch", "window_left", "window_right",
-        "width", "window", "character", "visible",
-        "interactive", "left", "right", "style",
-        "character"])
-
-    atrdic = {
-        "window_top": lambda self: self.charsheet.item_window_top(self),
-        "window_bot": lambda self: self.window_top - self.height,
-        "rowheight": lambda self: self.style.fontsize + self.style.spacing,
-        "_rowdict": lambda self:
-        self.closet.skeleton["charsheet_item"][
-            str(self.window)][str(self.character)][int(self)],
-        "height": lambda self:
-        self._rowdict["height"],
-        "keys": lambda self:
-        (self._rowdict["key0"], self._rowdict["key1"], self._rowdict["key2"])}
-
-    def __init__(self, charsheet, idx):
-        self.charsheet = charsheet
-        self.idx = idx
-
-    def __int__(self):
-        return self.idx
-
-    def __len__(self):
-        return len(self.skel)
-
-    def __eq__(self, other):
-        return (
-            self.charsheet is other.charsheet and
-            int(self) == int(other))
-
-    def __ne__(self, other):
-        return (
-            self.charsheet is not other.charsheet or
-            int(self) != int(other))
-
-    def __getattr__(self, attrn):
-        if attrn in CharSheetItem.charsheet_atts:
-            return getattr(self.charsheet, attrn)
-        else:
-            try:
-                return CharSheetItem.atrdic[attrn](self)
-            except KeyError:
-                raise AttributeError(
-                    "CharSheetItem does not have and cannot "
-                    "compute attribute {}".format(attrn))
-
-
-class CharSheetTable(CharSheetItem):
-    atrdic = {
-        "skeleton": lambda self:
-        self.getskel()}
-
-    def __getattr__(self, attrn):
-        try:
-            return self.atrdic[attrn](self)
-        except KeyError:
-            try:
-                return CharSheetTable.atrdic[attrn](self)
-            except KeyError:
-                return CharSheetItem.__getattr__(self, attrn)
-
-    def getskel(self):
+class CharSheetTable(GridLayout):
+    @property
+    def skel(self):
         if self.keys[0] is None:
             return self.character_skel
         elif self.keys[1] is None:
@@ -116,7 +49,31 @@ class CharSheetTable(CharSheetItem):
             return self.character_skel[
                 self.keys[0]][self.keys[1]][self.keys[2]]
 
-    def iter_skeleton(self, branch, tick):
+    def __init__(self, cs, skel, *keys):
+        self.charsheet = cs
+        self.keys = keys
+        GridLayout.__init__(cols=len(self.colkeys))
+
+    def build(self):
+        for key in self.colkeys:
+            self.add_widget(Label(
+                text=key,
+                font_name=self.charsheet.style.fontface,
+                font_size=self.charsheet.style.fontsize,
+                color=self.charsheet.style.textcolor.tup))
+        for rd in self.iter_skeleton():
+            for key in self.colkeys:
+                self.add_widget(Label(
+                    text=rd[key],
+                    font_name=self.charsheet.style.fontface,
+                    font_size=self.charsheet.style.fontsize,
+                    color=self.charsheet.style.textcolor.tup))
+
+    def iter_skeleton(self, branch=None, tick=None):
+        if branch is None:
+            branch = self.charsheet.closet.branch
+        if tick is None:
+            tick = self.charsheet.closet.tick
         for rd in self.skeleton.iterrows():
             if (
                     rd["branch"] == branch and
@@ -140,15 +97,11 @@ class CharSheetTable(CharSheetItem):
             celled.append(cell)
             yield Label(
                 cell,
-                self.style.fontface,
-                self.style.fontsize,
+                font_name=self.style.fontface,
+                font_size=self.style.fontsize,
                 color=self.style.textcolor.tup,
-                x=l,
-                y=t,
-                anchor_x='left',
-                anchor_y='top',
-                batch=batch,
-                group=group)
+                size_hint=(l, t),
+                valign='top')
             l += step
 
     def draw(self, batch, group, branch=None, tick=None):
@@ -175,10 +128,11 @@ class CharSheetTable(CharSheetItem):
 
 
 class CharSheetThingTable(CharSheetTable):
-    atrdic = {
-        "character_skel": lambda self:
-        self.character.thingdict}
     colkeys = ["dimension", "thing", "location"]
+
+    @property
+    def character_skel(self):
+        return self.charsheet.character.thingdict
 
     def get_branch_rd_iter(self, branch):
         if self.keys[0] is None:
@@ -213,7 +167,7 @@ class CharSheetThingTable(CharSheetTable):
                 rd2 = thing.locations[branch]
                 prev = None
                 r = None
-                for (tick_from, rd3) in rd2.iteritems():
+                for (tick_from, rd3) in rd2.items():
                     if tick_from > tick:
                         if prev is not None:
                             r = {
@@ -238,24 +192,27 @@ class CharSheetThingTable(CharSheetTable):
 
 
 class CharSheetPlaceTable(CharSheetTable):
-    atrdic = {
-        "character_skel": lambda self:
-        self.character.placedict}
     colkeys = ["dimension", "place"]
+
+    @property
+    def character_skel(self):
+        return self.charsheet.character.placedict
 
 
 class CharSheetPortalTable(CharSheetTable):
-    atrdic = {
-        "character_skel": lambda self:
-        self.character.portaldict}
     colkeys = ["dimension", "origin", "destination"]
+
+    @property
+    def character_skel(self):
+        return self.charsheet.character.portaldict
 
 
 class CharSheetStatTable(CharSheetTable):
-    atrdic = {
-        "character_skel": lambda self:
-        self.character.statdict}
     colkeys = ["stat", "value"]
+
+    @property
+    def character_skel(self):
+        return self.charsheet.character.statdict
 
     def get_branch_rd_iter(self, branch):
         if self.keys[0] is None:
@@ -286,10 +243,11 @@ class CharSheetStatTable(CharSheetTable):
 
 
 class CharSheetSkillTable(CharSheetTable):
-    atrdic = {
-        "character_skel": lambda self:
-        self.character.skilldict}
     colkeys = ["skill", "deck"]
+
+    @property
+    def character_skel(self):
+        return self.charsheet.character.skilldict
 
     def get_branch_rd_iter(self, branch):
         if self.keys[0] is None:
@@ -319,73 +277,41 @@ class CharSheetSkillTable(CharSheetTable):
             prev = rd
 
 
-class CharSheetCalendar(Calendar, CharSheetItem):
-    def __init__(self, charsheet, idx, cal_typ):
-        self.charsheet = charsheet
-        self.idx = idx
+class CharSheetCalendar(Calendar):
+    def __init__(self, charsheet, typ, *keys):
         Calendar.__init__(
-            self, charsheet, ROWS_SHOWN, MAX_COLS,
-            LEFT_BRANCH, SCROLL_FACTOR, self.charsheet.style,
-            cal_typ, *self.keys)
-
-    def __getattr__(self, attrn):
-        if attrn in Calendar.atrdic:
-            return Calendar.atrdic[attrn](self)
-        else:
-            return CharSheetItem.__getattr__(self, attrn)
+            self, charsheet, ROWS_SHOWN, MAX_COLS, LEFT_BRANCH,
+            TOP_TICK, SCROLL_FACTOR, typ, *keys)
 
 
 class CharSheetThingCalendar(CharSheetCalendar):
-    atrdic = {
-        "dimension": lambda self:
-        self.charsheet.closet.get_dimension(self.keys[0]),
-        "thing": lambda self:
-        self.charsheet.closet.get_thing(
-            self.keys[0], self.keys[1]),
-        "character_skel": lambda self:
-        self.charsheet.thingdict[self.keys[0]][self.keys[1]],
-        "col_width": lambda self:
-        self.width / MAX_COLS}
-
-    def __init__(self, charsheet, idx):
-        super(CharSheetThingCalendar, self).__init__(
-            charsheet, idx, CAL_TYPE["THING"])
-
-    def __eq__(self, other):
-        return (
-            self.charsheet is other.charsheet and
-            self.thing == other.thing and
-            self.dimension == other.dimension)
-
-    def __getattr__(self, attrn):
-        if attrn in CharSheetThingCalendar.atrdic:
-            return CharSheetThingCalendar.atrdic[attrn](self)
-        else:
-            return CharSheetCalendar.__getattr__(self, attrn)
+    def __init__(self, charsheet, *keys):
+        CharSheetCalendar.__init__(
+            self, charsheet, SHEET_ITEM_TYPE["THINGCAL"], *keys)
 
 
 class CharSheetPlaceCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, idx):
-        super(CharSheetPlaceCalendar, self).__init__(
-            charsheet, idx, CAL_TYPE["PLACE"])
+    def __init__(self, charsheet, *keys):
+        CharSheetCalendar.__init__(
+            self, charsheet, SHEET_ITEM_TYPE["PLACECAL"], *keys)
 
 
 class CharSheetPortalCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, idx):
-        super(CharSheetPortalCalendar, self).__init__(
-            charsheet, idx, CAL_TYPE["PORTAL"])
+    def __init__(self, charsheet, *keys):
+        CharSheetCalendar.__init__(
+            self, charsheet, SHEET_ITEM_TYPE["PORTALCAL"], *keys)
 
 
 class CharSheetStatCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, idx):
-        super(CharSheetStatCalendar, self).__init__(
-            charsheet, idx, CAL_TYPE["STAT"])
+    def __init__(self, charsheet, *keys):
+        CharSheetCalendar.__init__(
+            self, charsheet, SHEET_ITEM_TYPE["STATCAL"], *keys)
 
 
 class CharSheetSkillCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, idx):
-        super(CharSheetSkillCalendar, self).__init__(
-            charsheet, idx, CAL_TYPE["SKILL"])
+    def __init__(self, charsheet, *keys):
+        CharSheetCalendar.__init__(
+            self, charsheet, SHEET_ITEM_TYPE["SKILLCAL"], *keys)
 
 
 SHEET_ITEM_CLASS = {
@@ -402,27 +328,26 @@ SHEET_ITEM_CLASS = {
 
 
 class CharSheetBg(Rectangle):
+    pos = AliasProperty(
+        lambda self: self.charsheet.pos,
+        lambda self, v: None)
+
+    size = AliasProperty(
+        lambda self: self.charsheet.size,
+        lambda self, v: None)
+
     def __init__(self, cs):
         self.charsheet = cs
-
-    @property
-    def pos(self):
-        return (self.charsheet.window_left, self.charsheet.window_bot)
-
-    @property
-    def size(self):
-        return (self.charsheet.width, self.charsheet.height)
+        Rectangle.__init__(self)
 
 
-class CharSheet(BoxLayout):
-    __metaclass__ = SaveableMetaclass
+class CharSheet(BoxLayout, metaclass=SaveableWidgetMetaclass):
     demands = ["character"]
 
     tables = [
         (
             "charsheet",
-            {"window": "TEXT NOT NULL DEFAULT 'Main'",
-             "character": "TEXT NOT NULL",
+            {"character": "TEXT NOT NULL",
              "visible": "BOOLEAN NOT NULL DEFAULT 0",
              "interactive": "BOOLEAN NOT NULL DEFAULT 1",
              "left": "FLOAT NOT NULL DEFAULT 0.8",
@@ -430,23 +355,21 @@ class CharSheet(BoxLayout):
              "bot": "FLOAT NOT NULL DEFAULT 0.0",
              "top": "FLOAT NOT NULL DEFAULT 1.0",
              "style": "TEXT NOT NULL DEFAULT 'default_style'"},
-            ("window", "character"),
-            {"window": ("window", "name"),
-             "character": ("character", "name"),
+            ("character",),
+            {"character": ("character", "name"),
              "style": ("style", "name")},
             []),
         (
             "charsheet_item",
-            {"window": "TEXT NOT NULL DEFAULT 'Main'",
-             "character": "TEXT NOT NULL",
+            {"character": "TEXT NOT NULL",
              "idx": "INTEGER NOT NULL",
              "type": "INTEGER NOT NULL",
              "key0": "TEXT",
              "key1": "TEXT",
              "key2": "TEXT",
              "height": "INTEGER"},
-            ("window", "character", "idx"),
-            {"window, character": ("charsheet", "window, character")},
+            ("character", "idx"),
+            {"character": ("charsheet", "character")},
             ["CASE key1 WHEN NULL THEN type NOT IN ({0}) END".format(
                 ", ".join([str(SHEET_ITEM_TYPE[typ]) for typ in (
                     "THINGTAB", "THINGCAL",
@@ -459,56 +382,34 @@ class CharSheet(BoxLayout):
                      "THINGCAL", "PLACECAL", "PORTALCAL",
                      "STATCAL", "SKILLCAL")])),
              "idx>=0",
-             "idx<={}".format(max(SHEET_ITEM_TYPE.viewvalues()))])
+             "idx<={}".format(max(SHEET_ITEM_TYPE.values()))])
     ]
 
     rdfields = set(["visible", "interactive",
                     "left", "right", "bot", "top"])
 
-    atrdic = {
-        "closet": lambda self: self.window.closet,
-        "batch": lambda self: self.window.batch,
-        "group": lambda self: self.window.charsheet_group,
-        "window_left": lambda self: int(self.left * self.window.width),
-        "window_bot": lambda self: int(self.bot * self.window.height),
-        "window_top": lambda self: int(self.top * self.window.height),
-        "window_right": lambda self: int(self.right * self.window.width),
-        "width": lambda self: self.window_right - self.window_left,
-        "_rowdict": lambda self: self.closet.skeleton[
-            "charsheet"][self._window][self._character],
-        "window": lambda self: self.closet.get_window(self._window),
-        "character": lambda self: self.closet.get_character(self._character),
-        "style": lambda self: self.closet.get_style(self._rowdict["style"])}
-
-    def __init__(self, closet, window, character):
-        s = super(CharSheet, self)
-        s.__setattr__("closet", closet)
-        s.__setattr__("_window", window)
-        s.__setattr__("_character", character)
-        s.__setattr__("top_ticks", {})
-        s.__setattr__("offxs", {})
-        s.__setattr__("offys", {})
-        s.__setattr__("bg", CharSheetBg(self))
+    alignment = 'vertical'
 
     def __getattr__(self, attrn):
-        if attrn in self.rdfields:
-            return self._rowdict[attrn]
-        try:
-            return CharSheet.atrdic[attrn](self)
-        except KeyError:
-            raise AttributeError(
-                "CharSheet instance does not have and "
-                "cannot compute attribute {0}".format(
-                    attrn))
+        if attrn in CharSheet.rdfields:
+            return self.character.closet.skeleton[
+                "charsheet"][str(self.character)][attrn]
+        else:
+            return super().__getattr__(attrn)
 
     def __setattr__(self, attrn, val):
-        if attrn in self.rdfields:
-            self._rowdict[attrn] = val
+        if attrn in CharSheet.rdfields:
+            self.character.closet.skeleton[
+                "charsheet"][str(self.character)][attrn] = val
         else:
-            super(CharSheet, self).__setattr__(attrn, val)
+            super().__setattr__(attrn, val)
+
+    def __init__(self, character):
+        self.character = character
+        BoxLayout.__init__(self, orientation='vertical')
 
     def __iter__(self):
-        return self.values()
+        return list(self.values())
 
     def get_for_cal(self, cal, d, default):
         (k0, k1, k2) = cal.keys
@@ -547,39 +448,17 @@ class CharSheet(BoxLayout):
         self.set_for_cal(cal, self.offys, offy)
 
     def items(self):
-        skel = self.window.closet.skeleton[
+        skel = self.character.closet.skeleton[
             "charsheet_item"][str(self.window)][str(self.character)]
         i = 0
-        for rd in skel.itervalues():
+        for rd in skel.values():
             yield (i, SHEET_ITEM_CLASS[rd["type"]](
                 self, rd["idx"]))
             i += 1
 
     def values(self):
-        skel = self.window.closet.skeleton[
+        skel = self.character.closet.skeleton[
             "charsheet_item"][str(self.window)][str(self.character)]
-        for rd in skel.itervalues():
+        for rd in skel.values():
             yield SHEET_ITEM_CLASS[rd["type"]](
                 self, rd["idx"])
-
-    def item_window_top(self, it):
-        window_top = self.window_top
-        for item in self.values():
-            if item == it:
-                return window_top
-            else:
-                window_top -= item.height
-                window_top -= self.style.spacing
-
-    def hover(self, x, y):
-        for item in self:
-            hovered = item.hover(x, y)
-            if hovered is not None:
-                return hovered
-
-    def overlaps(self, x, y):
-        return (
-            self.window_left < x and
-            x < self.window_right and
-            self.window_bot < y and
-            y < self.window_top)

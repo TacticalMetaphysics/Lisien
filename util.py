@@ -1,14 +1,13 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
-import pyglet
-import ctypes
 from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
 from collections import deque, MutableMapping
+from kivy.graphics import Line
+from kivy.uix.widget import WidgetMetaclass
+from kivy.uix.label import Label
+from kivy.properties import AliasProperty
 
 logger = getLogger(__name__)
 
@@ -33,7 +32,7 @@ class SkelRowIter(object):
     def __init__(self, skel):
         self.skel = skel
         self.ptrs = deque([self.skel])
-        self.keyses = [self.skel.keys()]
+        self.keyses = [list(self.skel.keys())]
 
     def __len__(self):
         if hasattr(self, 'l'):
@@ -42,7 +41,7 @@ class SkelRowIter(object):
         h = SkelRowIter(self.skel)
         while True:
             try:
-                h.next()
+                next(h)
                 i += 1
             except StopIteration:
                 self.l = i
@@ -51,7 +50,7 @@ class SkelRowIter(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         while len(self.ptrs) > 0:
             try:
                 ptr = self.ptrs.pop()
@@ -69,7 +68,7 @@ class SkelRowIter(object):
                     self.ptrs.append(ptr)
                     self.keyses.append(keys)
                 self.ptrs.append(ptr[k])
-                self.keyses.append(ptr[k].keys())
+                self.keyses.append(list(ptr[k].keys()))
         raise StopIteration
 
 
@@ -85,7 +84,7 @@ class Skeleton(MutableMapping):
             content = content.content
         self.content = {}
         if isinstance(content, dict):
-            kitr = content.iteritems()
+            kitr = iter(content.items())
         else:
             kitr = ListItemIterator(content)
         for (k, v) in kitr:
@@ -176,7 +175,7 @@ class Skeleton(MutableMapping):
         if self.rowdict and self.content == other.content:
             self.content = {}
             return
-        for (k, v) in other.iteritems():
+        for (k, v) in other.items():
             if k not in self:
                 continue
             elif v == self[k]:
@@ -197,7 +196,7 @@ class Skeleton(MutableMapping):
 
     def keys(self):
         if isinstance(self.content, dict):
-            return self.content.keys()
+            return list(self.content.keys())
         else:
             return sorted(self.ikeys)
 
@@ -223,7 +222,7 @@ class Skeleton(MutableMapping):
             return Skeleton(r)
         else:
             r = {}
-            for (k, v) in self.content.iteritems():
+            for (k, v) in self.content.items():
                 r[k] = v.copy()
             return Skeleton(r)
 
@@ -233,13 +232,13 @@ class Skeleton(MutableMapping):
                             self.parent, self.listeners)
         else:
             r = {}
-            for (k, v) in self.content.iteritems():
+            for (k, v) in self.content.items():
                 r[k] = v.deepcopy()
             return Skeleton(r, self.name, self.parent,
                             self.listeners)
 
     def update(self, skellike):
-        for (k, v) in skellike.iteritems():
+        for (k, v) in skellike.items():
             if v.rowdict:
                 self[k] = v
                 continue
@@ -360,21 +359,21 @@ declared in the order they appear in the tables attribute.
         rowstrs = {}
         keynames = {}
         valnames = {}
-        for item in local_pkeys.iteritems():
+        for item in local_pkeys.items():
             (tablename, pkey) = item
             keynames[tablename] = sorted(pkey)
             keylen[tablename] = len(pkey)
             keyqms[tablename] = ", ".join(["?"] * keylen[tablename])
             keystrs[tablename] = "(" + keyqms[tablename] + ")"
-        for item in coldecls.iteritems():
+        for item in coldecls.items():
             (tablename, coldict) = item
             valnames[tablename] = sorted(
-                [key for key in coldict.keys()
+                [key for key in list(coldict.keys())
                  if key not in keynames[tablename]])
             rowlen[tablename] = len(coldict)
             rowqms[tablename] = ", ".join(["?"] * rowlen[tablename])
             rowstrs[tablename] = "(" + rowqms[tablename] + ")"
-        for tablename in coldecls.iterkeys():
+        for tablename in coldecls.keys():
             colnames[tablename] = keynames[tablename] + valnames[tablename]
         for tablename in tablenames:
             provides.add(tablename)
@@ -383,23 +382,23 @@ declared in the order they appear in the tables attribute.
             fkeys = foreignkeys[tablename]
             cks = ["CHECK(%s)" % ck for ck in checks[tablename]]
             pkeydecs = [keyname + " " + typ
-                        for (keyname, typ) in coldecl.iteritems()
+                        for (keyname, typ) in coldecl.items()
                         if keyname in pkey]
             valdecs = [valname + " " + typ
-                       for (valname, typ) in coldecl.iteritems()
+                       for (valname, typ) in coldecl.items()
                        if valname not in pkey]
             coldecs = sorted(pkeydecs) + sorted(valdecs)
             coldecstr = ", ".join(coldecs)
             pkeycolstr = ", ".join(pkey)
-            pkeys = [keyname for (keyname, typ) in coldecl.iteritems()
+            pkeys = [keyname for (keyname, typ) in coldecl.items()
                      if keyname in pkey]
             pkeynamestr = ", ".join(sorted(pkeys))
-            vals = [valname for (valname, typ) in coldecl.iteritems()
+            vals = [valname for (valname, typ) in coldecl.items()
                     if valname not in pkey]
             colnamestr[tablename] = ", ".join(sorted(pkeys) + sorted(vals))
             pkeystr = "PRIMARY KEY (%s)" % (pkeycolstr,)
             fkeystrs = []
-            for item in fkeys.iteritems():
+            for item in fkeys.items():
                 if len(item[1]) == 2:
                     fkeystrs.append(
                         "FOREIGN KEY (%s) REFERENCES %s(%s)" %
@@ -443,7 +442,7 @@ declared in the order they appear in the tables attribute.
             else:
                 itr = Skeleton(rowdicts).iterrows()
             if len(itr) == 0 or tabname not in tablenames:
-                raise EmptyTabdict
+                raise EmptySkeleton
             qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
                 tabname,
                 colnamestr[tabname],
@@ -460,9 +459,9 @@ declared in the order they appear in the tables attribute.
             try:
                 c.execute(*gen_sql_insert(rowdicts, tabname))
             except IntegrityError as ie:
-                print ie
-                print gen_sql_insert(rowdicts, tabname)
-            except EmptyTabdict:
+                print(ie)
+                print(gen_sql_insert(rowdicts, tabname))
+            except EmptySkeleton:
                 return
 
         def gen_sql_delete(keydicts, tabname):
@@ -546,7 +545,7 @@ declared in the order they appear in the tables attribute.
         @staticmethod
         def _select_skeleton(c, td):
             r = Skeleton({})
-            for (tabname, rdd) in td.iteritems():
+            for (tabname, rdd) in td.items():
                 if tabname not in primarykeys:
                     continue
                 if tabname not in r:
@@ -597,20 +596,20 @@ declared in the order they appear in the tables attribute.
 
         @staticmethod
         def _insert_skeleton(c, skeleton):
-            for (tabname, rds) in skeleton.iteritems():
+            for (tabname, rds) in skeleton.items():
                 if tabname in tablenames:
                     insert_rowdicts_table(c, rds, tabname)
 
         @staticmethod
         def _delete_skeleton(c, skeleton):
-            for (tabname, rds) in skeleton.iteritems():
+            for (tabname, rds) in skeleton.items():
                 if tabname in tablenames:
                     delete_keydicts_table(c, rds, tabname)
 
         @staticmethod
         def _detect_skeleton(c, skeleton):
             r = {}
-            for item in skeleton.iteritems():
+            for item in skeleton.items():
                 (tabname, rd) = item
                 if isinstance(rd, dict):
                     r[tabname] = detect_keydicts_table(c, [rd], tabname)
@@ -621,7 +620,7 @@ declared in the order they appear in the tables attribute.
         @staticmethod
         def _missing_skeleton(c, skeleton):
             r = {}
-            for item in skeleton.iteritems():
+            for item in skeleton.items():
                 (tabname, rd) = item
                 if isinstance(rd, dict):
                     r[tabname] = missing_keydicts_table(c, [rd], tabname)
@@ -670,6 +669,10 @@ declared in the order they appear in the tables attribute.
         clas = type.__new__(metaclass, clas, parents, atrdic)
         saveable_classes.append(clas)
         return clas
+
+
+class SaveableWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
+    pass
 
 
 def start_new_map(nope):
@@ -725,7 +728,7 @@ def keyify_dict(d, keytup):
 
 
 def dictify_row(row, colnames):
-    return dict(zip(colnames, row))
+    return dict(list(zip(colnames, row)))
 
 
 def deep_lookup(dic, keylst):
@@ -740,7 +743,7 @@ def deep_lookup(dic, keylst):
 def stringlike(o):
     """Return True if I can easily cast this into a string, False
 otherwise."""
-    return isinstance(o, str) or isinstance(o, unicode)
+    return isinstance(o, str) or isinstance(o, str)
 
 
 def place2idx(db, dimname, pl):
@@ -845,17 +848,6 @@ def wedge_offsets_slope(slope, taillen):
     return wedge_offsets_core(theta, opp_theta, taillen)
 
 
-def get_line_width():
-    see = ctypes.c_float()
-    pyglet.gl.glGetFloatv(pyglet.gl.GL_LINE_WIDTH, see)
-    return float(see.value)
-
-
-def set_line_width(w):
-    wcf = ctypes.c_float(w)
-    pyglet.gl.glLineWidth(wcf)
-
-
 def average(*args):
     n = len(args)
     return sum(args)/n
@@ -870,16 +862,16 @@ threesixty = pi * 2
 
 class BranchTicksIter:
     def __init__(self, d):
-        self.branchiter = d.iteritems()
+        self.branchiter = iter(d.items())
         self.branch = None
         self.tickfromiter = None
 
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         try:
-            (tick_from, vtup) = self.tickfromiter.next()
+            (tick_from, vtup) = next(self.tickfromiter)
             if isinstance(vtup, tuple):
                 tick_to = vtup[-1]
                 value = vtup[:-1]
@@ -887,14 +879,12 @@ class BranchTicksIter:
             else:
                 return (self.branch, tick_from, vtup)
         except (AttributeError, StopIteration):
-            (self.branch, tickfromdict) = self.branchiter.next()
-            self.tickfromiter = tickfromdict.iteritems()
-            return self.next()
+            (self.branch, tickfromdict) = next(self.branchiter)
+            self.tickfromiter = iter(tickfromdict.items())
+            return next(self)
 
 
 class TerminableImg:
-    __metaclass__ = SaveableMetaclass
-
     def get_img(self, branch=None, tick=None):
         if branch is None:
             branch = self.closet.branch
@@ -935,8 +925,6 @@ class TerminableImg:
 
 
 class TerminableInteractivity:
-    __metaclass__ = SaveableMetaclass
-
     def is_interactive(self, branch=None, tick=None):
         if branch is None:
             branch = self.closet.branch
@@ -974,56 +962,6 @@ class TerminableInteractivity:
             prev = tick_from
 
 
-class ViewportOrderedGroup(pyglet.graphics.OrderedGroup):
-    def __init__(self, order, parent, view):
-        super(ViewportOrderedGroup, self).__init__(order, parent)
-        self.view = view
-
-    def __getattr__(self, attrn):
-        oddtype = pyglet.gl.gl.GLint * 4
-        r = oddtype()
-        pyglet.gl.gl.glGetIntegerv(pyglet.gl.GL_VIEWPORT, r)
-        if attrn == "width":
-            return r[2]
-        elif attrn == "height":
-            return r[3]
-        else:
-            raise AttributeError(
-                "ViewportOrderedGroup has no attribute " + attrn)
-
-    def set_state(self):
-        tup = (
-            self.view.window_left,
-            self.view.window_bot,
-            self.view.width,
-            self.view.height)
-        pyglet.gl.glViewport(*tup)
-        pyglet.gl.glScissor(*tup)
-        pyglet.gl.glEnable(pyglet.gl.GL_SCISSOR_TEST)
-
-    def unset_state(self):
-        pyglet.gl.glViewport(
-            0,
-            0,
-            self.view.window.width,
-            self.view.window.height)
-        pyglet.gl.glDisable(pyglet.gl.GL_SCISSOR_TEST)
-
-
-class PatternHolder:
-    """Takes a style and makes pyglet.image.SolidColorImagePatterns out of
-its four colors, accessible through the attributes bg_active,
-bg_inactive, fg_active, and fg_inactive."""
-    def __init__(self, sty):
-        self.bg_inactive = (
-            pyglet.image.SolidColorImagePattern(sty.bg_inactive.tup))
-        self.bg_active = (
-            pyglet.image.SolidColorImagePattern(sty.bg_active.tup))
-        self.fg_inactive = (
-            pyglet.image.SolidColorImagePattern(sty.fg_inactive.tup))
-        self.fg_active = pyglet.image.SolidColorImagePattern(sty.fg_active.tup)
-
-
 class PortalException(Exception):
     """Exception raised when a Thing tried to move into or out of or along
 a Portal, and it made no sense."""
@@ -1043,10 +981,6 @@ Thing, and it made no sense.
 
 
 class LoadError(Exception):
-    pass
-
-
-class EmptyTabdict(Exception):
     pass
 
 
@@ -1075,8 +1009,8 @@ class ListItemIterator:
     def __len__(self):
         return len(self.l)
 
-    def next(self):
-        it = self.l_iter.next()
+    def __next__(self):
+        it = next(self.l_iter)
         i = self.i
         self.i += 1
         return (i, it)
@@ -1090,10 +1024,10 @@ class FilterIter:
     def __iter__(self):
         return self
 
-    def next(self):
-        r = self.real.next()
+    def __next__(self):
+        r = next(self.real)
         while r in self.do_not_return:
-            r = self.real.next()
+            r = next(self.real)
         return r
 
 
@@ -1119,32 +1053,30 @@ def next_val_iter(litter):
     try:
         if len(litter) <= 1:
             raise StopIteration
-        return litter[:-1] + [litter[-2].next().itervalues()]
+        return litter[:-1] + [iter(litter[-2].next().values())]
     except StopIteration:
         if len(litter) <= 1:
             raise StopIteration
         nvi = next_val_iter(litter[:-1])
-        return nvi + [nvi[-1].next().itervalues()]
+        return nvi + [iter(nvi[-1].next().values())]
 
 
 def skel_nth_generator(skel, n):
-    iters = [skel.itervalues()]
-    for i in xrange(0, n-1):
-        iters.append(iters[-1].next().itervalues())
+    iters = [iter(skel.values())]
+    for i in range(0, n-1):
+        iters.append(iter(iters[-1].__next__().values()))
     try:
-        yield iters[-1].next()
+        yield next(iters[-1])
     except StopIteration:
         if len(iters) <= 1:
             raise StopIteration
         iters = next_val_iter(iters)
-        yield iters[-1].next()
+        yield next(iters[-1])
 
 
-class Timestream(object):
+class Timestream(object, metaclass=SaveableMetaclass):
     # I think updating the start and end ticks of a branch using
     # listeners might be a good idea
-    __metaclass__ = SaveableMetaclass
-
     tables = [
         ("timestream",
          {"branch": "integer not null",
@@ -1174,8 +1106,14 @@ class Timestream(object):
     def __init__(self, closet):
         self.closet = closet
         self.skeleton = self.closet.skeleton
-        self.hi_branch = max(self.branches())
-        self.hi_tick = max(self.ticks())
+        try:
+            self.hi_branch = max(self.branches())
+        except ValueError:
+            self.hi_branch = 0
+        try:
+            self.hi_tick = max(self.ticks())
+        except ValueError:
+            self.hi_tick = 0
         for tab in self.listen_tables:
             self.skeleton[tab].set_listener = self.skel_set
 
@@ -1191,75 +1129,75 @@ class Timestream(object):
     def branchtable(self, table):
         n = self.tab_depth[table]
         if n == 1:
-            for d in self.skeleton[table].itervalues():
-                for k in d.iterkeys():
+            for d in self.skeleton[table].values():
+                for k in d.keys():
                     yield k
         else:
             for d in skel_nth_generator(self.skeleton[table], n):
-                for k in d.iterkeys():
+                for k in d.keys():
                     yield k
 
     def allbranches(self):
-        for (tabn, n) in self.tab_depth.iteritems():
+        for (tabn, n) in self.tab_depth.items():
             if n == 1:
-                for d in self.skeleton[tabn].itervalues():
-                    for k in d.iterkeys():
+                for d in self.skeleton[tabn].values():
+                    for k in d.keys():
                         yield k
             else:
                 for d in skel_nth_generator(self.skeleton[tabn], n):
-                    for k in d.iterkeys():
+                    for k in d.keys():
                         yield k
 
     def allticks(self):
-        for (tabn, n) in self.tab_depth.iteritems():
+        for (tabn, n) in self.tab_depth.items():
                 if n == 1:
-                    for d in self.skeleton[tabn].itervalues():
-                        for k in d.iterkeys():
+                    for d in self.skeleton[tabn].values():
+                        for k in d.keys():
                             yield k
                 else:
                     for d in skel_nth_generator(self.skeleton[tabn], n):
-                        for k in d.iterkeys():
+                        for k in d.keys():
                             yield k
 
     def branchticks(self, branch):
-        for (tabn, n) in self.tab_depth.iteritems():
+        for (tabn, n) in self.tab_depth.items():
             if n == 1:
-                for d in self.skeleton[tabn].itervalues():
-                    for k in d[branch].iterkeys():
+                for d in self.skeleton[tabn].values():
+                    for k in d[branch].keys():
                         yield k
             else:
                 n = self.tab_depth[tabn]
                 ptr = self.skeleton[tabn]
                 try:
-                    for i in xrange(0, n):
-                        ptr = ptr.itervalues().next()
+                    for i in range(0, n):
+                        ptr = next(iter(ptr.values()))
                 except StopIteration:
                     continue
-                for k in ptr[branch].iterkeys():
+                for k in ptr[branch].keys():
                     yield k
 
     def tabticks(self, table):
         n = self.tab_depth[table]
         if n == 1:
             for d in self.skeleton[table]:
-                for k in d.iterkeys():
+                for k in d.keys():
                     yield k
         else:
             for d in skel_nth_generator(self.skeleton[table], n):
-                for k in d.iterkeys():
+                for k in d.keys():
                     yield k
 
     def branchtabticks(self, branch, table):
         n = self.tab_depth[table]
         if n == 1:
-            for k in self.skeleton[table][branch].iterkeys():
+            for k in self.skeleton[table][branch].keys():
                 yield k
         else:
             ptr = self.skeleton[table]
-            for i in xrange(0, n):
-                ptr = ptr.itervalues().next()
+            for i in range(0, n):
+                ptr = next(iter(ptr.values()))
             if branch in ptr:
-                for k in ptr[branch].iterkeys():
+                for k in ptr[branch].keys():
                     yield k
 
     def ticks(self, branch=None, table=None):
@@ -1299,3 +1237,16 @@ class Timestream(object):
         for rd in self.skeleton["timestream"].iterrows():
             if rd["parent"] == branch:
                 yield rd["branch"]
+
+
+class EmptySkeleton(Exception):
+    pass
+
+
+def StringGetter(closet, string_name, binds):
+    def set_string(v):
+        closet.skeleton["strings"][string_name][closet.language] = v
+    return AliasProperty(
+        lambda: closet.get_text(string_name),
+        set_string,
+        bind=binds)

@@ -1,17 +1,13 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
+
+
+str = str
 from place import Place
 from thing import Thing
 from portal import Portal
-from spot import Spot
-from pawn import Pawn
-from arrow import Arrow
 from logging import getLogger
 from igraph import Graph
-from kivy.uix.scatter import Scatter
 
 
 logger = getLogger(__name__)
@@ -25,8 +21,8 @@ class PlaceIter:
     def __iter__(self):
         return self
 
-    def next(self):
-        return Place(self.dim, self.realit.next())
+    def __next__(self):
+        return Place(self.dim, next(self.realit))
 
 
 class PortIter:
@@ -36,8 +32,8 @@ class PortIter:
     def __iter__(self):
         return self
 
-    def next(self):
-        return self.realit.next()["portal"]
+    def __next__(self):
+        return next(self.realit)["portal"]
 
 
 """Class and loaders for dimensions--the top of the world hierarchy."""
@@ -57,7 +53,7 @@ characters."""
         "places": lambda self: PlaceIter(self),
         "placenames": lambda self: self.placenames(),
         "portals": lambda self: PortIter(self),
-        "things": lambda self: self.thingdict.itervalues()}
+        "things": lambda self: iter(self.thingdict.values())}
 
     def __init__(self, closet, name):
         """Return a dimension with the given name.
@@ -173,7 +169,7 @@ this dimension, and laid out nicely."""
         elif isinstance(v, Place):
             v = v.v
             i = v.i
-        elif isinstance(v, unicode) or isinstance(v, str):
+        elif isinstance(v, str) or isinstance(v, str):
             vname = str(v)
             vnames = self.graph.vs["name"]
             i = vnames.index(vname)
@@ -189,7 +185,7 @@ this dimension, and laid out nicely."""
         elif isinstance(e, Portal):
             e = e.e
             i = e.index
-        elif isinstance(e, unicode) or isinstance(e, str):
+        elif isinstance(e, str) or isinstance(e, str):
             if e[:6] == "Portal":
                 e = e[6:]
             if e[0] == "(":
@@ -202,32 +198,3 @@ this dimension, and laid out nicely."""
         else:
             i = e.index
         return (i, e)
-
-
-class Board(Scatter):
-    def __init__(self, dimension):
-        Scatter(self)
-        self.dimension = dimension
-        if (
-                "spot_coords" in self.closet.skeleton and
-                str(self.dimension) in self.dimension.closet.skeleton[
-                    "spot_coords"]):
-            for rd in self.dimension.closet.skeleton[
-                    "spot_coords"][str(self.dimension)][
-                    int(self)].iterrows():
-                place = self.dimension.get_place(rd["place"])
-                place.spot = Spot(self, place)
-                self.add_widget(place.spot)
-        if (
-                "pawn_img" in self.closet.skeleton and
-                str(self.dimension) in self.dimension.closet.skeleton[
-                    "pawn_img"]):
-            for rd in self.dimension.closet.skeleton[
-                    "pawn_img"][str(self.dimension)][
-                    int(self)].iterrows():
-                thing = self.dimension.get_thing(rd["thing"])
-                thing.pawn = Pawn(self, thing)
-                self.add_widget(thing.pawn)
-        for portal in self.dimension.portals:
-            portal.arrow = Arrow(self, portal)
-            self.add_widget(portal.arrow)

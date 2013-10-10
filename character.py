@@ -1,8 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
 from util import SaveableMetaclass, TimeParadox
 from collections import deque
 
@@ -10,10 +7,7 @@ from collections import deque
 """Things that should have character sheets."""
 
 
-__metaclass__ = SaveableMetaclass
-
-
-class Character:
+class Character(metaclass=SaveableMetaclass):
     """An incorporeal object connecting corporeal ones together across
 dimensions, indicating that they represent one thing and have that
 thing's attributes.
@@ -117,7 +111,6 @@ item's name, and the name of the attribute.
          [])]
 
     def __init__(self, closet, name):
-        assert(len(closet.skeleton['img']) > 1)
         self._name = name
         self.closet = closet
         self.update_handlers = set()

@@ -1,10 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
-from util import SaveableMetaclass, phi
+from util import SaveableMetaclass, SaveableWidgetMetaclass, phi
 from kivy.graphics import InstructionGroup, Rectangle
+from kivy.uix.widget import Widget
 from kivy.uix.image import Image
 from kivy.uix.label import Label
 
@@ -13,9 +11,7 @@ from kivy.uix.label import Label
 rectangles with letters and pictures on them."""
 
 
-class Card:
-    __metaclass__ = SaveableMetaclass
-
+class Card(object, metaclass=SaveableMetaclass):
     atrdic = {
         "_text": lambda self: self._rowdict["text"],
         "_display_name": lambda self: self._rowdict["display_name"],
@@ -128,7 +124,7 @@ class TextHolder:
         return group
 
 
-class CardWidget(Image):
+class CardWidget(Image, metaclass=SaveableWidgetMetaclass):
     atrdic = {
         "x": lambda self:
         self.hand.window_left + self.width * int(self),
@@ -283,18 +279,17 @@ class HandIterator:
     def __iter__(self):
         return self
 
-    def next(self):
-        effect = self.deckiter.next()
+    def __next__(self):
+        effect = next(self.deckiter)
         card = self.carddict[str(effect)]
         if not hasattr(card, 'widget'):
             card.widget = CardWidget(card, self.hand)
         return card.widget
 
 
-class Hand:
+class Hand(metaclass=SaveableMetaclass):
     """A view onto an EffectDeck that shows every card in it, in the same
 order."""
-    __metaclass__ = SaveableMetaclass
     tables = [
         ("hand",
          {"window": "text not null default 'Main'",

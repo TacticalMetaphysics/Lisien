@@ -1,8 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
 from util import (
     SaveableMetaclass,
     LocationException,
@@ -11,16 +8,12 @@ from util import (
 from re import match, compile
 from logging import getLogger
 
-
-__metaclass__ = SaveableMetaclass
-
-
 logger = getLogger(__name__)
 
 portex = compile("Portal\((.+)->(.+)\)")
 
 
-class Thing:
+class Thing(metaclass=SaveableMetaclass):
     """The sort of item that has a particular location at any given time.
 
 Every Thing has a Journey and a Schedule, but either may be empty.

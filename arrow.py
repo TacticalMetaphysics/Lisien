@@ -1,90 +1,58 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
+
+
+str = str
 from math import hypot, cos, sin
 from util import (
     wedge_offsets_rise_run,
     truncated_line,
     fortyfive)
 from kivy.graphics import Line, Color
-from kivy.graphics.instructions import InstructionGroup
 from kivy.uix.widget import Widget
+from kivy.properties import ObjectProperty
 
 
 class Arrow(Widget):
     margin = 20
     w = 10
-    atrdic = {
-        'ox': lambda self: self.orig.x,
-        'oy': lambda self: self.orig.y,
-        'dx': lambda self: self.dest.x,
-        'dy': lambda self: self.dest.y,
-        'rise': lambda self: self.dest.y - self.orig.y,
-        'run': lambda self: self.dest.x - self.orig.x,
-        'length': lambda self: {
-            True: self.board.get_edge_len(self.portal.e),
-            False: hypot(self.rise, self.run)
-            }["branch" in self.portal.e.attribute_names()],
-        'slope': lambda self: self.get_slope(),
-        'm': lambda self: self.get_slope(),
-        'left': lambda self: self.get_left(),
-        'right': lambda self: self.get_right(),
-        'bot': lambda self: self.get_bot(),
-        'bottom': lambda self: self.get_bot(),
-        'top': lambda self: self.get_top(),
-        'b': lambda self: self.get_b()
-        }
+    board = ObjectProperty()
+    portal = ObjectProperty()
 
-    def __init__(self, board, portal):
-        self.board = board
-        self.closet = self.board.closet
-        self.center_shrink = 0
-        if dest is None:
-            if hasattr(orig_or_port, 'orig'):
-                port = orig_or_port
-                self.orig = self.board.get_spot(port.orig)
-                self.dest = self.board.get_spot(port.dest)
-                self.portal = port
-            else:
-                e = orig_or_port
-                self.orig = self.board.get_spot(e.source)
-                self.dest = self.board.get_spot(e.target)
-            self.center_shrink = self.dest.r
-        else:
-            orig = orig_or_port
-            if hasattr(orig, 'v'):
-                self.orig = self.board.get_spot(orig)
-            elif isinstance(orig, tuple):
-                self.orig = DummySpot(*orig)
-            else:
-                self.orig = orig
-            if hasattr(dest, 'v'):
-                self.dest = self.board.get_spot(dest)
-                self.center_shrink = self.dest.r
-            elif isinstance(dest, tuple):
-                self.dest = DummySpot(*dest)
-            else:
-                self.dest = dest
+    def __init__(self, **kwargs):
+        self.board = kwargs["board"]
+        self.portal = kwargs["portal"]
+        self.orig.bind(pos=self.realign)
+        self.dest.bind(pos=self.realign)
+        Widget(self)
+        self.bg_color = Color(0.25, 0.25, 0.25)
+        self.fg_color = Color(1.0, 1.0, 1.0)
+        self.bg_line = Line(points=[0, 0] * 5, width=self.w)
+        self.fg_line = Line(points=[0, 0] * 5, width=self.w)
+        self.canvas.add(self.bg_color)
+        self.canvas.add(self.bg_line)
+        self.canvas.add(self.fg_color)
+        self.canvas.add(self.fg_line)
 
-    def __getattr__(self, attrn):
-        try:
-            return self.atrdic[attrn](self)
-        except IndexError:
-            raise AttributeError(
-                "Edge instance has no attribute {0}".format(attrn))
-
-    def reciprocate(self):
+    @property
+    def reciprocal(self):
         # Return the edge of the portal that connects the same two
         # places in the opposite direction, supposing it exists
         try:
-            port = self.portal.reciprocal
-            return port.arrows[int(self.board)]
+            return self.portal.reciprocal.arrow
         except KeyError:
             return None
 
-    def get_lines_instructions(self, offx=0, offy=0, group=None):
+    @property
+    def orig(self):
+        return self.portal.origin.spot
+
+    @property
+    def dest(self):
+        return self.portal.destination.spot
+
+
+    def realign(self, instance, value):
         if self.dest.y < self.orig.y:
             yco = -1
         else:
@@ -96,7 +64,7 @@ class Arrow(Widget):
         (leftx, boty, rightx, topy) = truncated_line(
             float(self.orig.x * xco), float(self.orig.y * yco),
             float(self.dest.x * xco), float(self.dest.y * yco),
-            self.center_shrink + 1)
+            self.dest.r + 1)
         taillen = float(self.viewport.arrowhead_size)
         rise = topy - boty
         run = rightx - leftx
@@ -119,23 +87,18 @@ class Arrow(Widget):
         y2 = int(topy - yoff2) * yco
         endx = int(rightx) * xco
         endy = int(topy) * yco
-        points = [self.orig.x + offx, self.orig.y + offy,
-                  endx + offx, endy + offy, x1 + offx, y1 + offy,
-                  endx + offx, endy + offy, x2 + offx, y2 + offy,
-                  endx + offx, endy + offy]
+        points = [self.orig.x, self.orig.y,
+                  endx, endy, x1, y1,
+                  endx, endy, x2, y2,
+                  endx, endy]
         if self.selected:
-            bgcolor = (255, 255, 0)
-            fgcolor = (0, 0, 0)
+            self.bg_color.rgb = (1.0, 1.0, 0.0)
+            self.fg_color.rgb = (0.0, 0.0, 0.0)
         else:
-            bgcolor = (64, 64, 64)
-            fgcolor = (255, 255, 255)
-        if group is None:
-            group = InstructionGroup()
-        group.add(Color(*bgcolor))
-        group.add(Line(points=points, width=self.w))
-        group.add(Color(*fgcolor))
-        group.add(Line(points=points, width=self.w/3))
-        return group
+            self.bg_color.rgb = (0.25, 0.25, 0.25)
+            self.fg_color.rgb = (1.0, 1.0, 1.0)
+        self.bg_line.points = points
+        self.fg_line.points = points
 
     def get_slope(self):
         ox = self.orig.x

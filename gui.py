@@ -1,8 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
+
+
+str = str
 import pyglet
 import logging
 from util import (
@@ -68,16 +68,16 @@ of the mouse."""
 
 class ViewportIter:
     def __init__(self, dimensiondict):
-        self.dimiter = dimensiondict.itervalues()
+        self.dimiter = iter(dimensiondict.values())
         self.boarditer = iter(self.dimiter.next().boards)
         self.viewiter = iter(self.boarditer.next().viewports)
 
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         try:
-            r = self.viewiter.next()
+            r = next(self.viewiter)
             if r is not None:
                 return r
         except StopIteration:
@@ -86,7 +86,7 @@ class ViewportIter:
             except StopIteration:
                 self.boarditer = iter(self.dimiter.next().boards)
                 self.viewiter = iter(self.boarditer.next().viewports)
-        return self.next()
+        return next(self)
 
 
 class ViewportIterX(object):
@@ -97,17 +97,17 @@ class ViewportIterX(object):
     def __iter__(self):
         return self
 
-    def next(self):
-        vp = self.vpiter.next()
+    def __next__(self):
+        vp = next(self.vpiter)
         while self.x < vp.window_left or vp.window_right < self.x:
-            vp = self.vpiter.next()
+            vp = next(self.vpiter)
         return vp
 
 
 class HandIterX(object):
     def __init__(self, gw, x):
         if hasattr(gw, 'handdict'):
-            self.realiter = gw.handdict.itervalues()
+            self.realiter = iter(gw.handdict.values())
         else:
             self.realiter = iter([])
         self.x = x
@@ -115,10 +115,10 @@ class HandIterX(object):
     def __iter__(self):
         return self
 
-    def next(self):
-        h = self.realiter.next()
+    def __next__(self):
+        h = next(self.realiter)
         while self.x < h.window_left or h.window_right < self.x:
-            h = self.realiter.next()
+            h = next(self.realiter)
         return h
 
 
@@ -130,7 +130,7 @@ class PickerIterX(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         if (
                 self.picker is None or
                 self.x < self.picker.window_left or
@@ -142,8 +142,7 @@ class PickerIterX(object):
             return p
 
 
-class GameWindow(pyglet.window.Window):
-    __metaclass__ = SaveableWindowMetaclass
+class GameWindow(pyglet.window.Window, metaclass=SaveableWindowMetaclass):
     tables = [
         ("window",
          {"name": "text not null default 'Main'",
@@ -158,21 +157,21 @@ class GameWindow(pyglet.window.Window):
 
     def get_hand_iter(self):
         if hasattr(self, 'handdict'):
-            return self.handdict.itervalues()
+            return iter(self.handdict.values())
         else:
             return []
 
     atrdic = {
         "arrow_width": lambda self: self._rowdict["arrow_width"],
         "main_menu_name": lambda self: self._rowdict["main_menu"],
-        "menus": lambda self: self.menudict.itervalues(),
+        "menus": lambda self: iter(self.menudict.values()),
         "hands": lambda self: self.get_hand_iter(),
         'dx': lambda self: sum(self.dx_hist),
         'dy': lambda self: sum(self.dy_hist),
         'arrow_girth': lambda self: self.arrow_width * 2,
         'timestream_changed': lambda self: self.rehash_timeline(),
         "viewports": lambda self: ViewportIter(self.dimensiondict),
-        "charsheets": lambda self: self.charsheetdict.itervalues()}
+        "charsheets": lambda self: iter(self.charsheetdict.values())}
 
     rowattrs = set(["min_width", "min_height",
                     "arrowhead_size", "arrow_width"])
@@ -257,11 +256,11 @@ class GameWindow(pyglet.window.Window):
             deckd = self.closet.get_effect_decks(effect_deck_names)
             self.closet.get_effects_in_decks(effect_deck_names)
             self.handdict = {}
-            for (name, deck) in deckd.iteritems():
+            for (name, deck) in deckd.items():
                 self.handdict[name] = Hand(self, deck)
         if hasattr(self, 'handdict'):
             self.carddict = self.closet.get_cards_in_hands(
-                self.handdict.keys())
+                list(self.handdict.keys()))
         for rd in self.closet.skeleton["charsheet"][str(self)].iterrows():
             charnames.add(rd["character"])
         self.closet.load_characters(charnames)
@@ -309,7 +308,7 @@ class GameWindow(pyglet.window.Window):
                     yield viewport
 
         def menu_item_iter_x(x):
-            for menu in self.menudict.itervalues():
+            for menu in self.menudict.values():
                 for item in menu.items:
                     if (
                             item.window_left < x and
