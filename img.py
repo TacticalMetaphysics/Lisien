@@ -8,7 +8,7 @@ from kivy.uix.image import Image
 """Container for images to be drawn, maybe."""
 
 
-class Img(object):
+class Tex(object):
     __metaclass__ = SaveableMetaclass
     """A pretty thin wrapper around a Pyglet image.
 
@@ -62,3 +62,8 @@ def load_rltile(path):
         b'\xff.', b'\x00.')
     badtex.blit_buffer(dat)
     return badtex
+
+
+def Img(closet, name):
+    tex = Tex(closet, name)
+    return Image(texture=tex.texture)

@@ -37,7 +37,7 @@ green, blue. Register in db.colordict.
         self.closet = closet
         self._name = name
         rd = self.closet.skeleton["color"][str(self)]
-        super(self, Color).__init__(rd["red"], rd["green"], rd["blue"])
+        super(Color, self).__init__(rd["red"], rd["green"], rd["blue"])
 
     def __str__(self):
         return self._name

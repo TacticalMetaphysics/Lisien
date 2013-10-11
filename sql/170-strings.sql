@@ -21,4 +21,6 @@ INSERT INTO strings (stringname, string) VALUES
 ('custthing', 'New thing...'),
 ('decorthing', 'New decoration...'),
 ('clothing', 'New clothing...'),
-('toolthing', 'New tool...');
+('toolthing', 'New tool...'),
+('branch', 'Branch'),
+('tick', 'Tick');

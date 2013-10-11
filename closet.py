@@ -36,8 +36,8 @@ from portal import Portal
 from thing import Thing
 from character import Character
 from charsheet import CharSheet
-from img import Img
-from menu import Menu, MainMenu, SubMenu
+from img import Tex, Img
+from menu import Menu
 
 
 logger = getLogger(__name__)
@@ -121,6 +121,7 @@ before RumorMill will work. For that, run mkdb.sh.
 given name.
 
         """
+        self.language = lang
         self.conn = connector
         self.cursor = self.conn.cursor()
         self.c = self.cursor
@@ -308,12 +309,19 @@ This is game-world time. It doesn't always go forwards.
 
     def get_text(self, strname):
         """Get the string of the given name in the language set at startup."""
-        if strname == "tick":
-            return str(self.tick)
-        elif strname == "branch":
-            return str(self.branch)
+        if strname is None:
+            return ""
+        elif strname[0] == "@":
+            if strname[1:] == "branch":
+                return str(self.branch)
+            elif strname[1:] == "tick":
+                return str(self.tick)
+            else:
+                assert(strname[1:] in self.skeleton["strings"])
+                return self.skeleton["strings"][
+                    strname[1:]][self.language]["string"]
         else:
-            return self.skeleton["strings"][strname][self.language]
+            return strname
 
     def mi_create_place(self, menuitem):
         return menuitem.window.create_place()
@@ -575,7 +583,7 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["img"][name] = {"name": name}
         self.skeleton.update(
-            Img._select_skeleton(
+            Tex._select_skeleton(
                 self.c, kd))
         r = {}
         for name in names:
@@ -692,12 +700,8 @@ This is game-world time. It doesn't always go forwards.
         self.skeleton.update(skel)
         r = {}
         for rd in skel.iterrows():
-            if rd["name"] == "Main":
-                self.load_menu_items("Main")
-                r["Main"] = MainMenu(self)
-            else:
-                self.load_menu_items(rd["name"])
-                r[rd["name"]] = SubMenu(self, rd["name"])
+            self.load_menu_items(rd["name"])
+            r[rd["name"]] = Menu(self, rd["name"])
         return r
 
     def load_menu(self, name):
