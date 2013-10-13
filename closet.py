@@ -556,7 +556,7 @@ This is game-world time. It doesn't always go forwards.
     def get_dimension(self, name):
         return self.get_dimensions([name])[name]
 
-    def load_board(self, name, w, h):
+    def load_board(self, name):
         self.skeleton.update(Board._select_skeleton(self.c, {
             "board": {"dimension": name}}))
         self.skeleton.update(Spot._select_skeleton(self.c, {
@@ -566,11 +566,11 @@ This is game-world time. It doesn't always go forwards.
         self.skeleton.update(Pawn._select_skeleton(self.c, {
             "pawn_img": {"dimension": name},
             "pawn_interactive": {"dimension": name}}))
-        return self.get_board(name, w, h)
+        return self.get_board(name)
 
-    def get_board(self, name, w, h):
+    def get_board(self, name):
         dim = self.get_dimension(name)
-        return Board(self, dim, size=(w, h), scroll_y=0.0)
+        return Board(self, dim)
 
     def get_place(self, dim, placen):
         if not isinstance(dim, Dimension):
