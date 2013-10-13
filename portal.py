@@ -25,25 +25,10 @@ class Portal(object):
         self.closet = closet
         self.dimension = dimension
         self.graph = self.dimension.graph
-        self.orig = origin
         self.origin = origin
-        self.dest = destination
         self.destination = destination
-        self.dimension.graph.add_edge(self.origi, self.desti, portal=self)
-
-    def __getattr__(self, attrn):
-        if attrn == "origi":
-            return self.orig.index
-        elif attrn == "desti":
-            return self.dest.index
-        elif attrn in ("e", "edge"):
-            return self.graph.es[self.graph.get_eid(self.origi, self.desti)]
-        elif attrn == "existence":
-            return self.closet.skeleton["portal"][
-                str(self.dimension)][str(self.orig)][str(self.dest)]
-        else:
-            raise AttributeError(
-                "Portal instance has no attribute named " + attrn)
+        self.dimension.graph.add_edge(
+            self.origin.index, self.destination.index, portal=self)
 
     def __repr__(self):
         return "Portal({0}->{1})".format(
@@ -55,6 +40,18 @@ class Portal(object):
     def __len__(self):
         # eventually this will represent something like actual physical length
         return 1
+
+    @property
+    def edge(self):
+        return self.dimension.graph.es[
+            self.dimension.graph.get_eid(
+                self.origin.index, self.destination.index)]
+
+    @property
+    def existence(self):
+        return self.closet.skeleton["portal"][
+            unicode(self.dimension)][unicode(self.origin)][
+            unicode(self.destination)]
 
     def admits(self, traveler):
         """Return True if I want to let the given thing enter me, False

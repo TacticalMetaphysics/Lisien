@@ -5,18 +5,8 @@ from kivy.core.image import ImageData
 from kivy.uix.image import Image
 
 
-"""Container for images to be drawn, maybe."""
-
-
 class Tex(object):
     __metaclass__ = SaveableMetaclass
-    """A pretty thin wrapper around a Pyglet image.
-
-Has savers and loaders that work with the LiSE database. The image
-itself isn't saved, though. It's loaded, but saving an Img just means
-saving the path.
-
-    """
     tables = [
         ("img",
          {"name": "text not null",
@@ -27,8 +17,6 @@ saving the path.
          [])]
 
     def __init__(self, closet, name):
-        """Return an Img, and register it with the imgdict of the database
-provided."""
         self.closet = closet
         self._name = name
         self.closet.imgdict[str(self)] = self
@@ -62,8 +50,3 @@ def load_rltile(path):
         b'\xff.', b'\x00.')
     badtex.blit_buffer(dat)
     return badtex
-
-
-def Img(closet, name):
-    tex = Tex(closet, name)
-    return Image(texture=tex.texture)

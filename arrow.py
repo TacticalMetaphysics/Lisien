@@ -8,21 +8,25 @@ from util import (
     fortyfive)
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
-from kivy.properties import ObjectProperty
+from kivy.properties import AliasProperty
 
 
 class Arrow(Widget):
     margin = 20
-    w = 10
-    board = ObjectProperty()
-    portal = ObjectProperty()
+    w = 1
+    orig = AliasProperty(
+        lambda self: self.get_orig(),
+        lambda self, v: None)
+    dest = AliasProperty(
+        lambda self: self.get_dest(),
+        lambda self, v: None)
 
-    def __init__(self, **kwargs):
-        self.board = kwargs["board"]
-        self.portal = kwargs["portal"]
+    def __init__(self, board, portal, **kwargs):
+        self.board = board
+        self.portal = portal
+        Widget.__init__(self, **kwargs)
         self.orig.bind(pos=self.realign)
         self.dest.bind(pos=self.realign)
-        Widget(self)
         self.bg_color = Color(0.25, 0.25, 0.25)
         self.fg_color = Color(1.0, 1.0, 1.0)
         self.bg_line = Line(points=[0, 0] * 5, width=self.w)
@@ -42,28 +46,33 @@ class Arrow(Widget):
             return None
 
     @property
+    def selected(self):
+        return self in self.board.selected
+
+    @property
     def orig(self):
-        return self.portal.origin.spot
+        return self.board.spotdict[unicode(self.portal.origin)]
 
     @property
     def dest(self):
-        return self.portal.destination.spot
-
+        return self.board.spotdict[unicode(self.portal.destination)]
 
     def realign(self, instance, value):
-        if self.dest.y < self.orig.y:
+        (ox, oy) = self.orig.get_coords()
+        (dx, dy) = self.dest.get_coords()
+        if dy < oy:
             yco = -1
         else:
             yco = 1
-        if self.dest.x < self.orig.x:
+        if dx < ox:
             xco = -1
         else:
             xco = 1
         (leftx, boty, rightx, topy) = truncated_line(
-            float(self.orig.x * xco), float(self.orig.y * yco),
-            float(self.dest.x * xco), float(self.dest.y * yco),
+            float(ox * xco), float(oy * yco),
+            float(dx * xco), float(dy * yco),
             self.dest.r + 1)
-        taillen = float(self.viewport.arrowhead_size)
+        taillen = float(self.board.arrowhead_size)
         rise = topy - boty
         run = rightx - leftx
         if rise == 0:
@@ -85,7 +94,7 @@ class Arrow(Widget):
         y2 = int(topy - yoff2) * yco
         endx = int(rightx) * xco
         endy = int(topy) * yco
-        points = [self.orig.x, self.orig.y,
+        points = [ox, oy,
                   endx, endy, x1, y1,
                   endx, endy, x2, y2,
                   endx, endy]

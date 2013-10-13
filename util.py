@@ -885,46 +885,6 @@ class BranchTicksIter:
             return next(self)
 
 
-class TerminableImg:
-    def get_img(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        if branch not in self.imagery:
-            return None
-        prev = None
-        for rd in self.imagery[branch].iterrows():
-            if rd["tick_from"] > tick:
-                break
-            else:
-                prev = rd
-        if prev is None or prev["img"] in ("", None):
-            return None
-        else:
-            return self.closet.get_img(prev["img"])
-
-    def new_branch_imagery(self, parent, branch, tick):
-        prev = None
-        started = False
-        for tick_from in self.imagery[parent]:
-            if tick_from >= tick:
-                rd2 = dict(self.imagery[parent][tick_from])
-                rd2["branch"] = branch
-                if branch not in self.imagery:
-                    self.imagery[branch] = {}
-                self.imagery[branch][rd2["tick_from"]] = rd2
-                if (
-                        not started and prev is not None and
-                        tick_from > tick and prev < tick):
-                    rd3 = dict(self.imagery[parent][prev])
-                    rd3["branch"] = branch
-                    rd3["tick_from"] = tick
-                    self.imagery[branch][rd3["tick_from"]] = rd3
-                started = True
-            prev = tick_from
-
-
 class TerminableInteractivity:
     def is_interactive(self, branch=None, tick=None):
         if branch is None:

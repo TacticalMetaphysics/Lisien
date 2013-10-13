@@ -36,7 +36,9 @@ from portal import Portal
 from thing import Thing
 from character import Character
 from charsheet import CharSheet
-from img import Tex, Img
+from img import Tex
+from kivy.uix.image import Image
+from kivy.core.image import ImageData
 from menu import Menu
 
 
@@ -146,6 +148,7 @@ given name.
         self.effectdict = {}
         self.effectdeckdict = {}
         self.imgdict = {}
+        self.texturedict = {}
         self.menudict = {}
         self.menuitemdict = {}
         self.styledict = {}
@@ -554,6 +557,8 @@ This is game-world time. It doesn't always go forwards.
         return self.get_dimensions([name])[name]
 
     def load_board(self, name):
+        self.skeleton.update(Board._select_skeleton(self.c, {
+            "board": {"dimension": name}}))
         self.skeleton.update(Spot._select_skeleton(self.c, {
             "spot_img": {"dimension": name},
             "spot_interactive": {"dimension": name},
@@ -587,7 +592,51 @@ This is game-world time. It doesn't always go forwards.
                 self.c, kd))
         r = {}
         for name in names:
-            r[name] = Img(self, name)
+            img = Image(source=self.skeleton["img"][name]["path"])
+            if self.skeleton["img"][name]["rltile"] != 0:
+                badtex = img.texture
+                imgd = ImageData(badtex.width, badtex.height,
+                                 badtex.colorfmt, badtex.pixels,
+                                 source=self.skeleton["img"][name]["path"])
+                imgd.data.replace(
+                    b'\xffGll', b'\x00Gll').replace(
+                        b'\xff.', b'\x00.')
+                img = Image(imgd, width=badtex.width, height=badtex.height)
+            else:
+                img.width = img.texture.width
+                img.height = img.texture.height
+            r[name] = img
+        return r
+
+    def load_textures(self, names):
+        kd = {"img": {}}
+        for name in names:
+            kd["img"][name] = {"name": name}
+        self.skeleton.update(
+            Tex._select_skeleton(
+                self.c, kd))
+        r = {}
+        for name in names:
+            if self.skeleton["img"][name]["rltile"] != 0:
+                rltex = Image(
+                    source=self.skeleton["img"][name]["path"],
+                    __no_builder=True).texture
+                imgd = ImageData(rltex.width, rltex.height,
+                                 rltex.colorfmt, rltex.pixels,
+                                 source=self.skeleton["img"][name]["path"])
+                fixed = ImageData(
+                    rltex.width, rltex.height,
+                    rltex.colorfmt, imgd.data.replace(
+                    '\xffGll', '\x00Gll').replace(
+                        '\xff.', '\x00.'),
+                    source=self.skeleton["img"][name]["path"])
+                rltex.blit_data(fixed)
+                r[name] = rltex
+            else:
+                r[name] = Image(
+                    source=self.skeleton["img"][name]["path"],
+                    __no_builder=True).texture
+        self.texturedict.update(r)
         return r
 
     def get_imgs(self, imgnames):
@@ -602,8 +651,23 @@ This is game-world time. It doesn't always go forwards.
             r.update(self.load_imgs(unloaded))
         return r
 
+    def get_textures(self, imgnames):
+        r = {}
+        unloaded = set()
+        for imgn in imgnames:
+            if imgn in self.texturedict:
+                r[imgn] = self.texturedict[imgn]
+            else:
+                unloaded.add(imgn)
+        if len(unloaded) > 0:
+            r.update(self.load_textures(unloaded))
+        return r
+
     def get_img(self, imgn):
         return self.get_imgs([imgn])[imgn]
+
+    def get_texture(self, imgn):
+        return self.get_textures([imgn])[imgn]
 
     def load_colors(self, names):
         kd = {"color": {}}

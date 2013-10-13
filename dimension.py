@@ -21,6 +21,9 @@ class PlaceIter:
     def __next__(self):
         return Place(self.dim, next(self.realit))
 
+    def next(self):
+        return self.__next__()
+
 
 class PortIter:
     def __init__(self, dim):
@@ -31,6 +34,9 @@ class PortIter:
 
     def __next__(self):
         return next(self.realit)["portal"]
+
+    def next(self):
+        return self.__next__()
 
 
 """Class and loaders for dimensions--the top of the world hierarchy."""
