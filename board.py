@@ -5,47 +5,57 @@ from util import SaveableWidgetMetaclass
 from pawn import Pawn
 from spot import Spot
 from arrow import Arrow
-from kivy.uix.scatter import Scatter
+from kivy.graphics import Rectangle
 from kivy.properties import AliasProperty
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.image import Image
 
 
 """Class for user's view on gameworld, and support functions."""
 
 
+class Wallpaper(Image):
+    norm_image_size = AliasProperty(
+        lambda self: self.size,
+        lambda self, v: None)
+    texture = AliasProperty(
+        lambda self:
+        self.board.closet.get_texture(self.board.closet.skeleton["board"][
+            unicode(self.board)]["wallpaper"]),
+        lambda self, v: None)
+    def __init__(self, board, **kwargs):
+        self.board = board
+        Image.__init__(self, size=self.texture.size, **kwargs)
 
 
-
-class Board(Scatter):
+class Board(ScrollView):
     __metaclass__ = SaveableWidgetMetaclass
     tables = [(
         "board",
         {"dimension": "text not null default 'Physical'",
          "wallpaper": "text not null default 'default_wallpaper'",
-         "left": "integer not null default 0",
-         "bot": "integer not null default 0"},
+         "x": "float not null default 0.0",
+         "y": "float not null default 0.0"},
         ("dimension",),
         {"wallpaper": ("img", "name")},
-        [])]
+        ["x>=0", "y>=0", "x<=1", "y<=1"])]
     arrow_width = 1.4
     arrowhead_size = 10
-    dxdy_hist_max = 10
-    wallpaper = AliasProperty(
-        lambda self: self.children[0],
-        lambda self, v: None)
-    
+    auto_bring_to_front = False
 
     def __init__(self, closet, dimension, **kwargs):
         self.closet = closet
         self.dimension = dimension
-        wallpaper = self.closet.get_img(
-            self.closet.skeleton["board"][str(self)]["wallpaper"])
         self.spotdict = {}
         self.pawndict = {}
+        self.arrowdict = {}
         self.selected = set()
-        Scatter.__init__(self)
-        self.add_widget(wallpaper)
-        wallpaper.add_widget(RelativeLayout(size=wallpaper.size))
+        ScrollView.__init__(self, **kwargs)
+        rd = self.closet.skeleton["board"][unicode(self)]
+        wall = Wallpaper(self, pos_hint={'x': rd['x'], 'y': rd['x']})
+        content = RelativeLayout(size=wall.size, size_hint=(None, None))
+        content.add_widget(wall)
         if (
                 "spot_coords" in self.closet.skeleton and
                 unicode(self.dimension) in self.dimension.closet.skeleton[
@@ -64,29 +74,24 @@ class Board(Scatter):
                 thing = self.dimension.get_thing(rd["thing"])
                 pawn = Pawn(self, thing)
                 self.pawndict[unicode(thing)] = pawn
+        self.re_up()
         for portal in self.dimension.portals:
             arrow = Arrow(self, portal)
-            self.wallpaper.children[0].add_widget(arrow)
+            self.arrowdict[unicode(portal)] = arrow
+            content.add_widget(arrow)
         for spot in self.spotdict.itervalues():
-            self.wallpaper.children[0].add_widget(spot)
+            content.add_widget(spot)
         for pawn in self.pawndict.itervalues():
-            self.wallpaper.children[0].add_widget(pawn)
-        self.move()
-
+            content.add_widget(pawn)
+        self.add_widget(content)
+    
     def __str__(self):
         return str(self.dimension)
 
-    def get_pos(self):
-        rd = self.closet.skeleton["board"][str(self)]
-        x = rd["left"]
-        y = rd["bot"]
-        return (x, y)
-
-    def set_pos(self, x, y):
-        rd = self.closet.skeleton["board"][str(self)]
-        rd["left"] = x
-        rd["bot"] = y
-
-    def move(self):
+    def re_up(self):
         for spot in self.spotdict.itervalues():
-            spot.move()
+            spot.re_up()
+        for pawn in self.pawndict.itervalues():
+            pawn.re_up()
+        for arrow in self.arrowdict.itervalues():
+            arrow.re_up()

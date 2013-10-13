@@ -556,7 +556,7 @@ This is game-world time. It doesn't always go forwards.
     def get_dimension(self, name):
         return self.get_dimensions([name])[name]
 
-    def load_board(self, name):
+    def load_board(self, name, w, h):
         self.skeleton.update(Board._select_skeleton(self.c, {
             "board": {"dimension": name}}))
         self.skeleton.update(Spot._select_skeleton(self.c, {
@@ -566,12 +566,11 @@ This is game-world time. It doesn't always go forwards.
         self.skeleton.update(Pawn._select_skeleton(self.c, {
             "pawn_img": {"dimension": name},
             "pawn_interactive": {"dimension": name}}))
-        return self.get_board(name)
+        return self.get_board(name, w, h)
 
-    def get_board(self, name):
+    def get_board(self, name, w, h):
         dim = self.get_dimension(name)
-        return Board(self, dim, pos_hint={'x': 0.2, 'y': 0.0},
-                     size_hint=(0.8, 1.0))
+        return Board(self, dim, size=(w, h), scroll_y=0.0)
 
     def get_place(self, dim, placen):
         if not isinstance(dim, Dimension):
@@ -582,31 +581,6 @@ This is game-world time. It doesn't always go forwards.
         if not isinstance(dim, Dimension):
             dim = self.get_dimension(dim)
         return dim.get_portal(str(origin), str(destination))
-
-    def load_imgs(self, names):
-        kd = {"img": {}}
-        for name in names:
-            kd["img"][name] = {"name": name}
-        self.skeleton.update(
-            Tex._select_skeleton(
-                self.c, kd))
-        r = {}
-        for name in names:
-            img = Image(source=self.skeleton["img"][name]["path"])
-            if self.skeleton["img"][name]["rltile"] != 0:
-                badtex = img.texture
-                imgd = ImageData(badtex.width, badtex.height,
-                                 badtex.colorfmt, badtex.pixels,
-                                 source=self.skeleton["img"][name]["path"])
-                imgd.data.replace(
-                    b'\xffGll', b'\x00Gll').replace(
-                        b'\xff.', b'\x00.')
-                img = Image(imgd, width=badtex.width, height=badtex.height)
-            else:
-                img.width = img.texture.width
-                img.height = img.texture.height
-            r[name] = img
-        return r
 
     def load_textures(self, names):
         kd = {"img": {}}
@@ -639,18 +613,6 @@ This is game-world time. It doesn't always go forwards.
         self.texturedict.update(r)
         return r
 
-    def get_imgs(self, imgnames):
-        r = {}
-        unloaded = set()
-        for imgn in imgnames:
-            if imgn in self.imgdict:
-                r[imgn] = self.imgdict[imgn]
-            else:
-                unloaded.add(imgn)
-        if len(unloaded) > 0:
-            r.update(self.load_imgs(unloaded))
-        return r
-
     def get_textures(self, imgnames):
         r = {}
         unloaded = set()
@@ -663,11 +625,17 @@ This is game-world time. It doesn't always go forwards.
             r.update(self.load_textures(unloaded))
         return r
 
-    def get_img(self, imgn):
-        return self.get_imgs([imgn])[imgn]
-
     def get_texture(self, imgn):
         return self.get_textures([imgn])[imgn]
+
+    def get_images(self, names):
+        r = {}
+        for (name, tex) in self.get_textures(names).iteritems():
+            r[name] = Image(texture=tex, size=tex.size)
+        return r
+
+    def get_image(self, name):
+        return self.get_images([name])[name]
 
     def load_colors(self, names):
         kd = {"color": {}}

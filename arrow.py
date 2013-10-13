@@ -14,23 +14,14 @@ from kivy.properties import AliasProperty
 class Arrow(Widget):
     margin = 20
     w = 1
-    orig = AliasProperty(
-        lambda self: self.get_orig(),
-        lambda self, v: None)
-    dest = AliasProperty(
-        lambda self: self.get_dest(),
-        lambda self, v: None)
-
     def __init__(self, board, portal, **kwargs):
         self.board = board
         self.portal = portal
         Widget.__init__(self, **kwargs)
-        self.orig.bind(pos=self.realign)
-        self.dest.bind(pos=self.realign)
         self.bg_color = Color(0.25, 0.25, 0.25)
         self.fg_color = Color(1.0, 1.0, 1.0)
-        self.bg_line = Line(points=[0, 0] * 5, width=self.w)
-        self.fg_line = Line(points=[0, 0] * 5, width=self.w)
+        self.bg_line = Line(points=self.get_points(), width=self.w * 1.4)
+        self.fg_line = Line(points=self.get_points(), width=self.w)
         self.canvas.add(self.bg_color)
         self.canvas.add(self.bg_line)
         self.canvas.add(self.fg_color)
@@ -57,7 +48,7 @@ class Arrow(Widget):
     def dest(self):
         return self.board.spotdict[unicode(self.portal.destination)]
 
-    def realign(self, instance, value):
+    def get_points(self):
         (ox, oy) = self.orig.get_coords()
         (dx, dy) = self.dest.get_coords()
         if dy < oy:
@@ -94,18 +85,10 @@ class Arrow(Widget):
         y2 = int(topy - yoff2) * yco
         endx = int(rightx) * xco
         endy = int(topy) * yco
-        points = [ox, oy,
-                  endx, endy, x1, y1,
-                  endx, endy, x2, y2,
-                  endx, endy]
-        if self.selected:
-            self.bg_color.rgb = (1.0, 1.0, 0.0)
-            self.fg_color.rgb = (0.0, 0.0, 0.0)
-        else:
-            self.bg_color.rgb = (0.25, 0.25, 0.25)
-            self.fg_color.rgb = (1.0, 1.0, 1.0)
-        self.bg_line.points = points
-        self.fg_line.points = points
+        return [ox, oy,
+                endx, endy, x1, y1,
+                endx, endy, x2, y2,
+                endx, endy]
 
     def get_slope(self):
         ox = self.orig.x
@@ -150,3 +133,8 @@ class Arrow(Widget):
         x_numerator = self.rise * self.ox
         y_numerator = denominator * self.oy
         return ((y_numerator - x_numerator), denominator)
+
+    def re_up(self):
+        points = self.get_points
+        self.bg_line.points = points
+        self.fg_line.points = points

@@ -32,7 +32,7 @@ class Portal(object):
 
     def __repr__(self):
         return "Portal({0}->{1})".format(
-            str(self.orig), str(self.dest))
+            str(self.origin), str(self.destination))
 
     def __int__(self):
         return self.e.index

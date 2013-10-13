@@ -17,15 +17,6 @@ logger = getLogger(__name__)
 class Pawn(Image, TerminableInteractivity):
     __metaclass__ = SaveableWidgetMetaclass
     """A token to represent something that moves about between places."""
-    width = AliasProperty(
-        lambda self: self.get_width(), lambda self, v: None)
-    height = AliasProperty(
-        lambda self: self.get_height(), lambda self, v: None)
-    size = AliasProperty(
-        lambda self: self.get_size(), lambda self, v: None,
-        bind=('texture',))
-    texture = AliasProperty(
-        lambda self: self.get_texture(), lambda self, v: None)
     tables = [
         ("pawn_img",
          {"dimension": "text not null default 'Physical'",
@@ -45,6 +36,10 @@ class Pawn(Image, TerminableInteractivity):
          ("dimension", "thing", "branch", "tick_from"),
          {"dimension, thing": ("thing_location", "dimension, name")},
          [])]
+    size = AliasProperty(
+        lambda self: self.get_texture().size, lambda self, v: None)
+    texture = AliasProperty(
+        lambda self: self.get_texture(), lambda self, v: None)
 
     def __init__(self, board, thing):
         """Return a pawn on the board for the given dimension, representing
@@ -56,7 +51,7 @@ interactive or not.
         self.thing = thing
         self.drag_offset_x = 0
         self.drag_offset_y = 0
-        Image.__init__(self, texture=self.get_texture(), pos=self.get_coords())
+        Image.__init__(self)
 
     def __str__(self):
         return str(self.thing)
@@ -74,9 +69,6 @@ interactive or not.
 
     def retex(self):
         self.texture = self.get_texture()
-
-    def move(self):
-        self.pos = self.get_coords()
 
     def set_img(self, img, branch=None, tick_from=None):
         if branch is None:
@@ -156,42 +148,24 @@ If it DOES have anything else to do, make the journey in another branch.
             self.window_left < x and x < self.window_right and
             self.window_bot < y and y < self.window_top)
 
-    def get_pos_hint(self):
+    def get_pos(self):
         loc = self.thing.location
         if loc is None:
             return None
-        if hasattr(loc, 'dest'):
-            # actually SpotWidgets
+        if hasattr(loc, 'destination'):
             origspot = self.board.spotdict[str(loc.orig)]
             destspot = self.board.spotdict[str(loc.dest)]
-            (ox, oy) = origspot.coords
-            (dx, dy) = destspot.coords
+            (ox, oy) = origspot.get_coords()
+            (dx, dy) = destspot.get_coords()
             prog = self.pawn.thing.get_progress()
             odx = dx - ox
             ody = dy - oy
-            return {'x': int(ox + odx * prog) + self.drag_offset_x,
-                    'y': int(oy + ody * prog) + self.drag_offset_y}
-        elif str(loc) in self.board.spotdict:
-            (x, y) = self.board.spotdict[str(loc)].pos
-            return {'x': x + self.drag_offset_x,
-                    'y': y + self.drag_offset_y}
-
-    def get_pos(self):
-        pos_hint = self.get_pos_hint()
-        return (pos_hint['x'], pos_hint['y'])
-
-    def get_size(self):
-        img = self.get_texture()
-        if img is None:
-            return (0, 0)
-        else:
-            return (img.width, img.height)
-
-    def get_width(self):
-        return self.get_size()[0]
-
-    def get_height(self):
-        return self.get_size()[0]
+            return (float(ox + odx * prog) + self.drag_offset_x - origspot.rx,
+                    float(oy + ody * prog) + self.drag_offset_y - origspot.ry)
+        elif unicode(loc) in self.board.spotdict:
+            locspot = self.board.spotdict[unicode(loc)]
+            (x, y) = locspot.get_coords()
+            return (x + locspot.rx, y + locspot.ry)
 
     def get_texture(self, branch=None, tick=None):
         if branch is None:
@@ -230,3 +204,6 @@ If it DOES have anything else to do, make the journey in another branch.
                     self.imagery[branch][rd3["tick_from"]] = rd3
                 started = True
             prev = tick_from
+
+    def re_up(self):
+        self.pos = self.get_pos()

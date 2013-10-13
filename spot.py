@@ -62,8 +62,8 @@ class Spot(Image, TerminableInteractivity):
     def __init__(self, board, place, **kwargs):
         self.board = board
         self.place = place
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
+        self.drag_offset_x = 0.0
+        self.drag_offset_y = 0.0
         Image.__init__(self)
 
     def __str__(self):
@@ -101,9 +101,6 @@ class Spot(Image, TerminableInteractivity):
         else:
             return ry
 
-    def move(self):
-        self.pos = self.get_pos()
-
     def get_width(self):
         img = self.get_texture()
         if img is None:
@@ -130,10 +127,7 @@ class Spot(Image, TerminableInteractivity):
         if cords is None:
             return (self.cheatx, self.cheaty)
         (x, y) = cords
-        r = (
-            float(x - self.rx + self.drag_offset_x),
-            float(y - self.ry + self.drag_offset_y))
-        print "spot {} at ({}, {})".format(self, *r)
+        r = (x - self.rx + self.drag_offset_x, y - self.ry + self.drag_offset_y)
         (self.cheatx, self.cheaty) = r
         return r
 
@@ -259,3 +253,6 @@ class Spot(Image, TerminableInteractivity):
                     self.imagery[branch][rd3["tick_from"]] = rd3
                 started = True
             prev = tick_from
+
+    def re_up(self):
+        self.pos = self.get_pos()

@@ -32,7 +32,7 @@ class MenuItem(Button):
         kwargs["size_hint_x"] = None
         Button.__init__(self, **kwargs)
         if img is not None:
-            self.add_widget(self.menu.closet.get_img(img))
+            self.add_widget(self.menu.closet.get_image(img))
 
 
 class Menu(BoxLayout):
