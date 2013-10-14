@@ -2,6 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableWidgetMetaclass, TerminableInteractivity
 from kivy.uix.image import Image
+from kivy.uix.scatter import Scatter
 from kivy.properties import AliasProperty
 from logging import getLogger
 
@@ -12,7 +13,21 @@ logger = getLogger(__name__)
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class Spot(Image, TerminableInteractivity):
+class SpotImg(Image):
+    pos = AliasProperty(
+        lambda self: self.spot.to_parent(self.spot.bbox[0]),
+        lambda self, v: None)
+    texture = AliasProperty(
+        lambda self: self.spot.get_texture(), lambda self, v: None)
+    size = AliasProperty(
+        lambda self: self.texture.size, lambda self, v: None)
+
+    def __init__(self, spot, **kwargs):
+        self.spot = spot
+        Image.__init__(self, **kwargs)
+
+
+class Spot(Scatter, TerminableInteractivity):
     __metaclass__ = SaveableWidgetMetaclass
     """The icon that represents a Place.
 
@@ -21,14 +36,6 @@ class Spot(Image, TerminableInteractivity):
     relative to its Board, not necessarily the window the Board is in.
 
     """
-    width = AliasProperty(
-        lambda self: self.get_width(), lambda self, v: None)
-    height = AliasProperty(
-        lambda self: self.get_height(), lambda self, v: None)
-    size = AliasProperty(
-        lambda self: self.get_size(), lambda self, v: None)
-    texture = AliasProperty(
-        lambda self: self.get_texture(), lambda self, v: None)
     tables = [
         ("spot_img",
          {"dimension": "text not null default 'Physical'",
@@ -58,13 +65,22 @@ class Spot(Image, TerminableInteractivity):
          ("dimension", "place", "branch", "tick_from"),
          {"dimension": ("board", "dimension")},
          [])]
+    do_rotation = False
+    do_scale = False
+    auto_bring_to_front = False
+    bbox = AliasProperty(
+        lambda self: (self.to_local(*self.get_coords()), self.size),
+        lambda self, v: None)
+    size = AliasProperty(
+        lambda self: self.get_texture().size,
+        lambda self, v: None)
 
     def __init__(self, board, place, **kwargs):
         self.board = board
         self.place = place
-        self.drag_offset_x = 0.0
-        self.drag_offset_y = 0.0
-        Image.__init__(self)
+        Scatter.__init__(self, **kwargs)
+        self.add_widget(SpotImg(self))
+        self.arrows = set()
 
     def __str__(self):
         return str(self.place)
@@ -86,11 +102,11 @@ class Spot(Image, TerminableInteractivity):
 
     @property
     def rx(self):
-        return self.width / 2
+        return self.children[0].texture.width / 2
 
     @property
     def ry(self):
-        return self.height / 2
+        return self.children[0].texture.height / 2
 
     @property
     def r(self):
@@ -100,36 +116,6 @@ class Spot(Image, TerminableInteractivity):
             return rx
         else:
             return ry
-
-    def get_width(self):
-        img = self.get_texture()
-        if img is None:
-            return 0.
-        else:
-            return float(img.width)
-
-    def get_height(self):
-        img = self.get_texture()
-        if img is None:
-            return 0.
-        else:
-            return float(img.height)
-
-    def get_size(self):
-        img = self.get_texture()
-        if img is None:
-            return [0., 0.]
-        else:
-            return [float(img.width), float(img.height)]
-
-    def get_pos(self):
-        cords = self.get_coords()
-        if cords is None:
-            return (self.cheatx, self.cheaty)
-        (x, y) = cords
-        r = (x - self.rx + self.drag_offset_x, y - self.ry + self.drag_offset_y)
-        (self.cheatx, self.cheaty) = r
-        return r
 
     def set_interactive(self, branch=None, tick_from=None):
         if branch is None:
@@ -166,8 +152,7 @@ class Spot(Image, TerminableInteractivity):
         for tick_from in self.coord_lst[branch]:
             if tick_from == tick:
                 rd = self.coord_lst[branch][tick_from]
-                return (rd["x"] + self.drag_offset_x,
-                        rd["y"] + self.drag_offset_y)
+                return (rd["x"], rd["y"])
             elif tick_from > tick:
                 break
             prev = tick_from
@@ -175,7 +160,7 @@ class Spot(Image, TerminableInteractivity):
             return None
         else:
             rd = self.coord_lst[branch][prev]
-            return (rd["x"] + self.drag_offset_x, rd["y"] + self.drag_offset_y)
+            return (rd["x"], rd["y"])
 
     def set_coords(self, x, y, branch=None, tick_from=None):
         if branch is None:
@@ -253,6 +238,3 @@ class Spot(Image, TerminableInteractivity):
                     self.imagery[branch][rd3["tick_from"]] = rd3
                 started = True
             prev = tick_from
-
-    def re_up(self):
-        self.pos = self.get_pos()

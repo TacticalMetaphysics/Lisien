@@ -5,7 +5,6 @@ from util import SaveableWidgetMetaclass
 from pawn import Pawn
 from spot import Spot
 from arrow import Arrow
-from kivy.graphics import Rectangle
 from kivy.properties import AliasProperty
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
@@ -21,8 +20,7 @@ class Wallpaper(Image):
         lambda self, v: None)
     texture = AliasProperty(
         lambda self:
-        self.board.closet.get_texture(self.board.closet.skeleton["board"][
-            unicode(self.board)]["wallpaper"]),
+        self.board.get_texture(),
         lambda self, v: None)
 
     def __init__(self, board, **kwargs):
@@ -50,7 +48,6 @@ class Board(ScrollView):
     scroll_y = AliasProperty(
         lambda self: self._get_scroll_y(),
         lambda self, v: self._set_scroll_y(v))
-    
 
     def __init__(self, closet, dimension, **kwargs):
         self.closet = closet
@@ -92,7 +89,7 @@ class Board(ScrollView):
         for pawn in self.pawndict.itervalues():
             content.add_widget(pawn)
         self.add_widget(content)
-    
+
     def __str__(self):
         return str(self.dimension)
 
@@ -109,9 +106,11 @@ class Board(ScrollView):
         self.closet.skeleton["board"][unicode(self)]["y"] = v
 
     def re_up(self):
-        for spot in self.spotdict.itervalues():
-            spot.re_up()
         for pawn in self.pawndict.itervalues():
             pawn.re_up()
         for arrow in self.arrowdict.itervalues():
             arrow.re_up()
+
+    def get_texture(self):
+        return self.closet.get_texture(self.closet.skeleton["board"][
+            unicode(self)]["wallpaper"])

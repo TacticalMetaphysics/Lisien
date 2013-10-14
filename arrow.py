@@ -8,12 +8,12 @@ from util import (
     fortyfive)
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
-from kivy.properties import AliasProperty
 
 
 class Arrow(Widget):
     margin = 20
-    w = 1
+    w = 1.0
+
     def __init__(self, board, portal, **kwargs):
         self.board = board
         self.portal = portal
@@ -26,6 +26,7 @@ class Arrow(Widget):
         self.canvas.add(self.bg_line)
         self.canvas.add(self.fg_color)
         self.canvas.add(self.fg_line)
+        self.orig.arrows.add(self)
 
     @property
     def reciprocal(self):
@@ -49,8 +50,8 @@ class Arrow(Widget):
         return self.board.spotdict[unicode(self.portal.destination)]
 
     def get_points(self):
-        (ox, oy) = self.orig.get_coords()
-        (dx, dy) = self.dest.get_coords()
+        (ox, oy) = self.orig.bbox[0]
+        (dx, dy) = self.dest.bbox[0]
         if dy < oy:
             yco = -1
         else:
@@ -134,7 +135,8 @@ class Arrow(Widget):
         y_numerator = denominator * self.oy
         return ((y_numerator - x_numerator), denominator)
 
-    def re_up(self):
-        points = self.get_points
+    def re_up(self, *args):
+        points = self.get_points()
+        print("Arrow re-up! Points {}".format(points))
         self.bg_line.points = points
         self.fg_line.points = points
