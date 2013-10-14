@@ -56,6 +56,6 @@ class Updater:
                 self.closet.update()
             self.tp -= 0.1
 
-LiSEApp(closet).run()
+LiSEApp(closet, 'Main', 'Physical').run()
 closet.save_game()
 closet.end_game()

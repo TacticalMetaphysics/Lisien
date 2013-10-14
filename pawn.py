@@ -4,7 +4,7 @@ from util import (
     SaveableWidgetMetaclass,
     TerminableInteractivity)
 from kivy.uix.image import Image
-from kivy.properties import AliasProperty, ObjectProperty
+from kivy.properties import AliasProperty
 from logging import getLogger
 
 
@@ -37,38 +37,38 @@ class Pawn(Image, TerminableInteractivity):
          {"dimension, thing": ("thing_location", "dimension, name")},
          [])]
     size = AliasProperty(
-        lambda self: self.get_texture().size, lambda self, v: None)
+        lambda self: self.get_texture().size, lambda self, v: None,
+        bind=('texture',))
     texture = AliasProperty(
-        lambda self: self.get_texture(), lambda self, v: None)
+        lambda self: self.get_texture(), lambda self, v: None,
+        bind=('imagery',))
+    imagery = AliasProperty(
+        lambda self: self.board.closet.skeleton[
+            "pawn_img"][unicode(self.board.dimension)][unicode(self)],
+        lambda self, v: None)
+    interactivity = AliasProperty(
+        lambda self: self.board.closet.skeleton[
+            "pawn_interactive"][unicode(self.board.dimension)][unicode(self)],
+        lambda self, v: None)
+    texture = AliasProperty(
+        lambda self: self.get_texture(),
+        lambda self, v: None,
+        bind=('imagery',))
 
-    def __init__(self, board, thing):
+    def __init__(self, **kwargs):
         """Return a pawn on the board for the given dimension, representing
 the given thing with the given image. It may be visible or not,
 interactive or not.
 
         """
-        self.board = board
-        self.thing = thing
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
+        self.board = kwargs["board"]
+        self.thing = kwargs["thing"]
         Image.__init__(self)
+        self.bind(imagery=self.imagery.touches)
+        self.bind(interactivity=self.interactivity.touches)
 
     def __str__(self):
         return str(self.thing)
-
-    @property
-    def imagery(self):
-        return self.board.closet.skeleton[
-            "pawn_img"][unicode(self.thing.dimension)][unicode(self.thing)]
-
-    @property
-    def interactivity(self):
-        return self.board.closet.skeleton[
-            "pawn_interactive"][unicode(self.thing.dimension)][
-            unicode(self.thing)]
-
-    def retex(self):
-        self.texture = self.get_texture()
 
     def set_img(self, img, branch=None, tick_from=None):
         if branch is None:
@@ -76,12 +76,11 @@ interactive or not.
         if tick_from is None:
             tick_from = self.board.closet.tick
         self.imagery[branch][tick_from] = {
-            "dimension": str(self.thing.dimension),
-            "thing": str(self.thing),
-            "board": str(self.board),
+            "dimension": unicode(self.thing.dimension),
+            "thing": unicode(self.thing),
             "branch": branch,
             "tick_from": tick_from,
-            "img": str(img)}
+            "img": unicode(img)}
 
     def set_interactive(self, branch=None, tick_from=None):
         if branch is None:
@@ -90,7 +89,6 @@ interactive or not.
             tick_from = self.board.closet.tick
         self.interactivity[branch][tick_from] = {
             "dimension": str(self.thing.dimension),
-            "board": int(self.board),
             "thing": str(self.thing),
             "branch": branch,
             "tick_from": tick_from}
@@ -204,6 +202,3 @@ If it DOES have anything else to do, make the journey in another branch.
                     self.imagery[branch][rd3["tick_from"]] = rd3
                 started = True
             prev = tick_from
-
-    def re_up(self):
-        self.pos = self.get_pos()

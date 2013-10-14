@@ -1,7 +1,6 @@
 ## This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableWidgetMetaclass, TerminableInteractivity
-from kivy.uix.image import Image
 from kivy.uix.scatter import Scatter
 from kivy.properties import AliasProperty
 from logging import getLogger
@@ -11,20 +10,6 @@ logger = getLogger(__name__)
 
 
 """Widgets to represent places. Pawns move around on top of these."""
-
-
-class SpotImg(Image):
-    pos = AliasProperty(
-        lambda self: self.spot.to_parent(self.spot.bbox[0]),
-        lambda self, v: None)
-    texture = AliasProperty(
-        lambda self: self.spot.get_texture(), lambda self, v: None)
-    size = AliasProperty(
-        lambda self: self.texture.size, lambda self, v: None)
-
-    def __init__(self, spot, **kwargs):
-        self.spot = spot
-        Image.__init__(self, **kwargs)
 
 
 class Spot(Scatter, TerminableInteractivity):
@@ -68,45 +53,45 @@ class Spot(Scatter, TerminableInteractivity):
     do_rotation = False
     do_scale = False
     auto_bring_to_front = False
-    bbox = AliasProperty(
-        lambda self: (self.to_local(*self.get_coords()), self.size),
+    coord_lst = AliasProperty(
+        lambda self: self.board.closet.skeleton["spot_coords"][
+            unicode(self.board.dimension)][unicode(self.place)],
         lambda self, v: None)
-    size = AliasProperty(
-        lambda self: self.get_texture().size,
+    interactivity = AliasProperty(
+        lambda self: self.board.closet.skeleton["spot_interactive"][
+            unicode(self.board.dimension)][unicode(self.place)],
         lambda self, v: None)
+    imagery = AliasProperty(
+        lambda self: self.board.closet.skeleton["spot_img"][
+            unicode(self.board.dimension)][unicode(self.place)],
+        lambda self, v: None)
+    texture = AliasProperty(
+        lambda self: self.get_texture(),
+        lambda self, v: None,
+        bind=('imagery',))
 
-    def __init__(self, board, place, **kwargs):
-        self.board = board
-        self.place = place
+    def __init__(self, **kwargs):
+        self.board = kwargs["board"]
+        self.place = kwargs["place"]
         Scatter.__init__(self, **kwargs)
-        self.add_widget(SpotImg(self))
+        self.bind(coord_lst=self.board.closet.skeleton["spot_coords"][
+            unicode(self.board.dimension)][unicode(kwargs["place"])].touches)
+        self.bind(interactivity=self.board.closet.skeleton["spot_interactive"][
+            unicode(self.board.dimension)][unicode(kwargs["place"])].touches)
+        self.bind(imagery=self.board.closet.skeleton["spot_img"][
+            unicode(self.board.dimension)][unicode(kwargs["place"])].touches)
         self.arrows = set()
 
     def __str__(self):
         return str(self.place)
 
     @property
-    def coord_lst(self):
-        return self.board.closet.skeleton["spot_coords"][
-            str(self.board)][str(self.place)]
-
-    @property
-    def interactivity(self):
-        return self.board.closet.skeleton["spot_interactive"][
-            str(self.board)][str(self.place)]
-
-    @property
-    def imagery(self):
-        return self.board.closet.skeleton["spot_img"][
-            str(self.board)][str(self.place)]
-
-    @property
     def rx(self):
-        return self.children[0].texture.width / 2
+        return self.texture.width / 2
 
     @property
     def ry(self):
-        return self.children[0].texture.height / 2
+        return self.texture.height / 2
 
     @property
     def r(self):

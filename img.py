@@ -1,12 +1,13 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass
+from util import SaveableWidgetMetaclass
 from kivy.core.image import ImageData
 from kivy.uix.image import Image
+from kivy.properties import AliasProperty
 
 
-class Tex(object):
-    __metaclass__ = SaveableMetaclass
+class LiSEImage(Image):
+    __metaclass__ = SaveableWidgetMetaclass
     tables = [
         ("img",
          {"name": "text not null",
@@ -15,27 +16,28 @@ class Tex(object):
          ("name",),
          {},
          [])]
+    rowdict = AliasProperty(
+        lambda self: self.closet.skeleton["img"][unicode(self)],
+        lambda self, v: None)
+    path = AliasProperty(
+        lambda self: self.rowdict["path"],
+        lambda self, v: None,
+        bind=('rowdict',))
+    rltile = AliasProperty(
+        lambda self: self.rowdict["rltile"],
+        lambda self, v: None,
+        bind=('rowdict',))    
 
-    def __init__(self, closet, name):
+    def __init__(self, closet, name, texture):
         self.closet = closet
-        self._name = name
-        self.closet.imgdict[str(self)] = self
-        self._rowdict = self.closet.skeleton["img"][str(self)]
-        if self.rltile:
-            self.texture = load_rltile(self.path)
-        else:
-            self.texture = Image(self.path, __no_builder=True).texture
+        self.name = name
+        Image.__init__(self, texture=texture)
+        self.bind(rowdict=self.closet.skeleton[
+            "img"][unicode(self)].touches)
+        self.closet.imgdict[unicode(self)] = self
 
     def __str__(self):
-        return self._name
-
-    @property
-    def path(self):
-        return self._rowdict["path"]
-
-    @property
-    def rltile(self):
-        return self._rowdict["path"]
+        return self.name
 
 
 def load_rltile(path):

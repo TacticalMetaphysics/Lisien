@@ -5,7 +5,8 @@ from logging import getLogger
 from sqlite3 import IntegrityError
 from collections import deque, MutableMapping
 from kivy.uix.widget import WidgetMetaclass
-from kivy.properties import AliasProperty
+from kivy.properties import NumericProperty
+from kivy.event import EventDispatcher
 
 logger = getLogger(__name__)
 
@@ -73,7 +74,8 @@ class SkelRowIter(object):
         return self.__next__()
 
 
-class Skeleton(MutableMapping):
+class Skeleton(MutableMapping, EventDispatcher):
+    touches = NumericProperty(0)
     def __init__(self, content, name="", parent=None,
                  set_listener=None, del_listener=None):
         self.rowdict = None
@@ -132,8 +134,7 @@ class Skeleton(MutableMapping):
             really_set(k, v)
         else:
             really_set(k, Skeleton(v, k, self))
-        if self.set_listener is not None:
-            self.listener((str(self),), k, v)
+        self.touches += 1
         if self.parent is not None:
             self.parent.on_child_set((str(self),), k, v)
 
@@ -143,8 +144,7 @@ class Skeleton(MutableMapping):
             del self.content[k]
         else:
             self.ikeys.remove(k)
-        if self.del_listener is not None:
-            self.listener((str(self),), k, todel)
+        self.touches += 1
         if self.parent is not None:
             self.parent.on_child_delete((str(self),), k, todel)
 
@@ -254,15 +254,13 @@ class Skeleton(MutableMapping):
 
     def on_child_set(self, childn, k, v):
         qn = (str(self),) + childn
-        if self.set_listener is not None:
-            self.set_listener(qn, k, v)
+        self.touches += 1
         if self.parent is not None:
             self.parent.on_child_set(qn, k, v)
 
     def on_child_delete(self, childn, k, v):
         qn = (str(self),) + childn
-        if self.del_listener is not None:
-            self.del_listener(qn, k, v)
+        self.touches += 1
         if self.parent is not None:
             self.parent.on_child_delete(qn, k, v)
 
@@ -1209,12 +1207,3 @@ class Timestream(object):
 
 class EmptySkeleton(Exception):
     pass
-
-
-def StringGetter(closet, string_name, binds):
-    def set_string(v):
-        closet.skeleton["strings"][string_name][closet.language] = v
-    return AliasProperty(
-        lambda: closet.get_text(string_name),
-        set_string,
-        bind=binds)

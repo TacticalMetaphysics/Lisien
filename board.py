@@ -5,7 +5,14 @@ from util import SaveableWidgetMetaclass
 from pawn import Pawn
 from spot import Spot
 from arrow import Arrow
-from kivy.properties import AliasProperty
+from kivy.properties import (
+    AliasProperty,
+    ReferenceListProperty,
+    DictProperty,
+    ObjectProperty,
+    NumericProperty,
+    StringProperty)
+from kivy.clock import Clock
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
@@ -15,17 +22,26 @@ from kivy.uix.image import Image
 
 
 class Wallpaper(Image):
+    texture = AliasProperty(
+        lambda self: self.board.get_texture(),
+        lambda self, v: None)
+    width = AliasProperty(
+        lambda self: self.texture.width,
+        lambda self, v: None,
+        bind=('texture',))
+    height = AliasProperty(
+        lambda self: self.texture.height,
+        lambda self, v: None,
+        bind=('texture',))
+    size = ReferenceListProperty(width, height)
     norm_image_size = AliasProperty(
         lambda self: self.size,
-        lambda self, v: None)
-    texture = AliasProperty(
-        lambda self:
-        self.board.get_texture(),
-        lambda self, v: None)
-
+        lambda self, v: None,
+        bind=('size',))
     def __init__(self, board, **kwargs):
         self.board = board
-        Image.__init__(self, size=self.texture.size, **kwargs)
+        Image.__init__(self, **kwargs)
+        self.bind(texture=self.board.rowdict)
 
 
 class Board(ScrollView):
@@ -42,24 +58,34 @@ class Board(ScrollView):
     arrow_width = 1.4
     arrowhead_size = 10
     auto_bring_to_front = False
-    scroll_x = AliasProperty(
-        lambda self: self._get_scroll_x(),
-        lambda self, v: self._set_scroll_x(v))
-    scroll_y = AliasProperty(
-        lambda self: self._get_scroll_y(),
-        lambda self, v: self._set_scroll_y(v))
+    spotdict = DictProperty({})
+    pawndict = DictProperty({})
+    arrowdict = DictProperty({})
+    closet = ObjectProperty()
+    dimension = ObjectProperty()
+    rowdict = AliasProperty(
+        lambda self: self.get_rowdict(),
+        lambda self, v: None)
 
-    def __init__(self, closet, dimension, **kwargs):
-        self.closet = closet
-        self.dimension = dimension
-        self.spotdict = {}
-        self.pawndict = {}
-        self.arrowdict = {}
+    def __init__(self, **kwargs):
         self.selected = set()
-        rd = self.closet.skeleton["board"][unicode(self)]
-        ScrollView.__init__(self, **kwargs)
-        wall = Wallpaper(self)
-        content = RelativeLayout(size=wall.size, size_hint=(None, None))
+        ScrollView.__init__(self, scroll_hint=(None, None), scroll_y=0.0, **kwargs)
+        Clock.schedule_once(self.populate, 0)
+
+    def get_texture(self):
+        if self.closet is not None and self.rowdict is not None:
+            return self.closet.get_texture(self.rowdict["wallpaper"])
+
+    def get_rowdict(self):
+        if self.dimension != None:
+            return self.closet.skeleton["board"][unicode(self.dimension)]
+
+    def populate(self, *args):
+        self.bind(rowdict=self.rowdict.touches)
+        self.size = self.get_texture().size
+        content = RelativeLayout(size=self.get_texture().size,
+                                 size_hint=(None, None))
+        wall = Wallpaper(self, size_hint=(None, None))
         content.add_widget(wall)
         if (
                 "spot_coords" in self.closet.skeleton and
@@ -68,7 +94,7 @@ class Board(ScrollView):
             for rd in self.dimension.closet.skeleton[
                     "spot_coords"][unicode(self.dimension)].iterrows():
                 place = self.dimension.get_place(rd["place"])
-                spot = Spot(self, place)
+                spot = Spot(board=self, place=place)
                 self.spotdict[unicode(place)] = spot
         if (
                 "pawn_img" in self.closet.skeleton and
@@ -77,40 +103,10 @@ class Board(ScrollView):
             for rd in self.dimension.closet.skeleton[
                     "pawn_img"][unicode(self.dimension)].iterrows():
                 thing = self.dimension.get_thing(rd["thing"])
-                pawn = Pawn(self, thing)
+                pawn = Pawn(board=self, thing=thing)
                 self.pawndict[unicode(thing)] = pawn
-        self.re_up()
         for portal in self.dimension.portals:
-            arrow = Arrow(self, portal)
+            arrow = Arrow(board=self, portal=portal)
             self.arrowdict[unicode(portal)] = arrow
             content.add_widget(arrow)
-        for spot in self.spotdict.itervalues():
-            content.add_widget(spot)
-        for pawn in self.pawndict.itervalues():
-            content.add_widget(pawn)
         self.add_widget(content)
-
-    def __str__(self):
-        return str(self.dimension)
-
-    def _get_scroll_x(self):
-        return self.closet.skeleton["board"][unicode(self)]["x"]
-
-    def _set_scroll_x(self, v):
-        self.closet.skeleton["board"][unicode(self)]["x"] = v
-
-    def _get_scroll_y(self):
-        return self.closet.skeleton["board"][unicode(self)]["y"]
-
-    def _set_scroll_y(self, v):
-        self.closet.skeleton["board"][unicode(self)]["y"] = v
-
-    def re_up(self):
-        for pawn in self.pawndict.itervalues():
-            pawn.re_up()
-        for arrow in self.arrowdict.itervalues():
-            arrow.re_up()
-
-    def get_texture(self):
-        return self.closet.get_texture(self.closet.skeleton["board"][
-            unicode(self)]["wallpaper"])

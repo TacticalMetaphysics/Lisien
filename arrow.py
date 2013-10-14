@@ -14,9 +14,9 @@ class Arrow(Widget):
     margin = 20
     w = 1.0
 
-    def __init__(self, board, portal, **kwargs):
-        self.board = board
-        self.portal = portal
+    def __init__(self, **kwargs):
+        self.board = kwargs["board"]
+        self.portal = kwargs["portal"]
         Widget.__init__(self, **kwargs)
         self.bg_color = Color(0.25, 0.25, 0.25)
         self.fg_color = Color(1.0, 1.0, 1.0)
