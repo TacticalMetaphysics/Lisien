@@ -2,7 +2,9 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableWidgetMetaclass
 from kivy.uix.image import Image
-from kivy.properties import AliasProperty, ObjectProperty, DictProperty
+from kivy.uix.scatter import ScatterPlane
+from kivy.properties import DictProperty
+from kivy.clock import Clock
 from logging import getLogger
 
 
@@ -12,7 +14,7 @@ logger = getLogger(__name__)
 """Widget representing things that move about from place to place."""
 
 
-class Pawn(Image):
+class Pawn(ScatterPlane):
     __metaclass__ = SaveableWidgetMetaclass
     """A token to represent something that moves about between places."""
     tables = [
@@ -34,7 +36,8 @@ class Pawn(Image):
          ("dimension", "thing", "branch", "tick_from"),
          {"dimension, thing": ("thing_location", "dimension, name")},
          [])]
-    rowdict = DictProperty()
+    imagery = DictProperty()
+    interactivity = DictProperty()
 
     def __init__(self, board, thing):
         """Return a pawn on the board for the given dimension, representing
@@ -46,20 +49,34 @@ interactive or not.
         self.thing = thing
         self.upd_imagery()
         self.upd_interactivity()
-        starttex = self.get_texture()
-        startpos = self.get_coords()
-        Image.__init__(self, texture=starttex, pos=startpos)
         dimn = unicode(self.board.dimension)
         thingn = unicode(self.thing)
         skel = self.board.closet.skeleton
         skel["pawn_img"][dimn][thingn].bind(touches=self.upd_imagery)
-        skel["pawn_interactive"][dimn][thingn].bind(touches=self.upd_interactivity)
-        self.board.closet.bind(branch=self.update)
-        self.board.closet.bind(tick=self.update)
-        
+        skel["pawn_interactive"][dimn][thingn].bind(
+            touches=self.upd_interactivity)
+        ScatterPlane.__init__(self)
+
+        img = Image()
+        self.collide_point = lambda x, y: img.collide_point(x, y)
+
+        def retex(*args):
+            img.texture = self.get_texture()
+            img.pos = self.get_coords()
+            img.size = self.get_size()
+
+        def startup(*args):
+            self.add_widget(img)
+            self.board.closet.bind(branch=retex, tick=retex)
+            retex()
+
+        Clock.schedule_once(startup, 0)
 
     def __str__(self):
         return str(self.thing)
+
+    def __unicode__(self):
+        return unicode(self.thing)
 
     def upd_imagery(self, *args):
         self.imagery = dict(self.board.closet.skeleton["pawn_img"][
@@ -69,10 +86,6 @@ interactive or not.
         self.interactivity = dict(self.board.closet.skeleton[
             "pawn_interactive"][unicode(self.board.dimension)][
             unicode(self.thing)])
-
-    def update(self, *args):
-        self.texture = self.get_texture()
-        self.pos = self.get_coords()
 
     def set_img(self, img, branch=None, tick_from=None):
         if branch is None:
@@ -183,6 +196,9 @@ If it DOES have anything else to do, make the journey in another branch.
             return None
         else:
             return self.board.closet.get_texture(prev["img"])
+
+    def get_size(self, branch=None, tick=None):
+        return self.get_texture(branch, tick).size
 
     def new_branch_imagery(self, parent, branch, tick):
         prev = None

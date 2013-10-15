@@ -36,33 +36,39 @@ too.
          {},
          [])]
     basic_speed = 0.1
+    @property
+    def locations(self):
+        return self.closet.skeleton["thing_location"][
+            unicode(self.dimension)][unicode(self)]
+
+    @property
+    def location(self):
+        return self.get_location()
+
+    @property
+    def speed(self):
+        return self.get_speed()
+
+    @property
+    def distance(self):
+        return self.get_distance()
+
+    @property
+    def progress(self):
+        return self.get_progress()
 
     def __init__(self, closet, dimension, name):
         self.closet = closet
         self.dimension = dimension
-        self._name = str(name)
+        self._name = unicode(name)
         self.new_branch_blank = False
         self.dimension.thingdict[name] = self
         self.branches_in = set()
 
-    def __getattr__(self, attrn):
-        if attrn == "locations":
-            return self.closet.skeleton["thing_location"][
-                str(self.dimension)][str(self)]
-        elif attrn == 'location':
-            return self.get_location()
-        elif attrn == 'speed':
-            return self.get_speed()
-        elif attrn == 'distance':
-            return self.get_distance()
-        elif attrn == 'progress':
-            return self.get_progress()
-        else:
-            raise AttributeError(
-                "Thing instance {0} has no attribute {1}".format(
-                    str(self), attrn))
-
     def __str__(self):
+        return str(self._name)
+
+    def __unicode__(self):
         return self._name
 
     def __contains__(self, that):

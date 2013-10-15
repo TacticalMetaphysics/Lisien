@@ -5,8 +5,7 @@ from util import SaveableWidgetMetaclass
 from pawn import Pawn
 from spot import Spot
 from arrow import Arrow
-from kivy.graphics import Rectangle
-from kivy.properties import AliasProperty, StringProperty, DictProperty
+from kivy.properties import AliasProperty, DictProperty
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
@@ -48,7 +47,6 @@ class Board(ScrollView):
     scroll_y = AliasProperty(
         lambda self: self._get_scroll_y(),
         lambda self, v: self._set_scroll_y(v))
-    
 
     def __init__(self, closet, dimension, **kwargs):
         self.closet = closet

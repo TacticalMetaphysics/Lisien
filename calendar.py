@@ -10,6 +10,8 @@ from kivy.graphics import (
 from kivy.properties import AliasProperty
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.boxlayout import BoxLayout
 
 
 """User's view on a given item's schedule.
@@ -32,18 +34,12 @@ CAL_TYPE = {
 
 
 class BCLine(Line):
-    points = AliasProperty(
-        lambda self: self.get_points(), lambda self, v: None)
-
     def __init__(self, bc):
         self.bc = bc
-        Line.__init__(self)
+        Line.__init__(self, points=self.get_points())
 
-    def get_points(self):
-        return self.bc.get_line_points()
-
-    def set_points(self, v):
-        self.bc.set_line_points(v)
+    def upd_points(self, *args):
+        self.points = self.bc.get_line_points()
 
 
 class BCWedge(Triangle):
@@ -52,38 +48,21 @@ class BCWedge(Triangle):
 
     def __init__(self, bc):
         self.bc = bc
-        Triangle.__init__(self)
-
-    def get_points(self):
-        return self.bc.get_wedge_points()
-
-    def set_points(self, v):
-        return self.bc.set_wedge_points(v)
+        Triangle.__init__(self, points=self.bc.get_wedge_points())
 
 
 class BranchConnector(Widget):
     wedge_height = 8
 
-    @property
-    def x(self):
-        """Return the x-coord of the *start* of the line, which is at the tick
-upon the parent column when the branch occurred."""
-        return (
-            self.column.parent.window_right -
-            self.column.parent.style.spacing)
-
-    @property
-    def y(self):
-        return (
-            self.column.calendar.tick_to_y(self.column.start_tick) +
-            self.column.calendar.offy)
-
     def __init__(self, column, color=(255, 0, 0)):
         self.column = column
         self.color = color
-        Widget.__init__(self)
-
-    def build(self):
+        Widget.__init__(
+            self,
+            x=self.column.parent.window_right -
+            self.column.parent.style.spacing,
+            y=self.column.calendar.tick_to_y(self.column.start_tick) +
+            self.column.calendar.offy)
         with self.canvas:
             Color(*self.color)
             BCLine(self)
@@ -100,29 +79,23 @@ upon the parent column when the branch occurred."""
         x1 = x0 + dx
         return [x0, y0, x1, y0, x1, y1, x2, y1, x2, y2]
 
-    def set_line_points(self, v):
-        print("Tried to set the line of BranchConnector {} to {}".format(self, v))
-
     def get_wedge_points(self):
         b = self.y
+        t = b + self.wedge_height
         c = self.column.left + self.column.width / 2
         rx = self.wedge_width / 2
         l = c - rx
         r = c + rx
         return [c, b, r, t, l, t]
 
-    def set_wedge_points(self, v):
-        print("Tried to set the wedge of BranchConnector {} to {}".format(self, v))
-
 
 class TLLine(Line):
-    points = AliasProperty(
-        lambda self: self.get_points(),
-        lambda self, v: self.set_points(v))
-
     def __init__(self, tl):
         self.tl = tl
-        Line.__init__(self)
+        Line.__init__(self, points=self.get_points())
+        self.tl.column.calendar.closet.bind(
+            branch=self.upd_points,
+            tick=self.upd_points)
 
     def get_points(self):
         column = self.tl.column
@@ -133,18 +106,17 @@ class TLLine(Line):
         b = c - self.tl.ry
         return [l, t, r, c, l, b]
 
-    def set_points(self, v):
-        print("Tried to set the points of TLLine {} to {}".format(self, v))
+    def upd_points(self, *args):
+        self.points = self.get_points()
 
 
 class TLWedge(Triangle):
-    points = AliasProperty(
-        lambda self: self.get_points(),
-        lambda self, v: self.set_points(v))
-
     def __init__(self, tl):
         self.tl = tl
-        Triangle.__init__(self)
+        Triangle.__init__(self, points=self.get_points())
+        self.tl.column.calendar.closet.bind(
+            branch=self.upd_points,
+            tick=self.upd_points)
 
     def get_points(self):
         column = self.tl.column
@@ -153,8 +125,8 @@ class TLWedge(Triangle):
         y = column.calendar.tick_to_y(column.calendar.charsheet.closet.tick)
         return [l, y, r, y]
 
-    def set_points(self, v):
-        print("Tried to set the points of TLWedge {} to {}".format(self, v))
+    def upd_points(self, *args):
+        self.points = self.get_points()
 
 
 class Timeline(Widget):
@@ -168,8 +140,6 @@ class Timeline(Widget):
         self.offx = 0
         self.offy = 0
         Widget.__init__(self)
-
-    def build(self):
         with self.canvas:
             Color(*self.color)
             TLLine(self)
@@ -333,16 +303,10 @@ class SkillCalendarColumn(CalendarColumn):
     pass
 
 
-class Calendar(Widget):
+class Calendar(RelativeLayout):
     top_tick = AliasProperty(
         lambda self: self.get_top_tick(),
         lambda self, v: self.charsheet.set_cal_top_tick(self, v))
-    offx = AliasProperty(
-        lambda self: self.charsheet.get_cal_offx(self),
-        lambda self, v: self.charsheet.set_cal_offx(self, v))
-    offy = AliasProperty(
-        lambda self: self.charsheet.get_cal_offy(self),
-        lambda self, v: self.charsheet.set_cal_offy(self, v))
 
     @property
     def col_width(self):
@@ -355,13 +319,6 @@ class Calendar(Widget):
         else:
             return w / branches
 
-    def get_top_tick(self):
-        r = self.charsheet.get_cal_top_tick(self)
-        if r is None:
-            return self.charsheet.closet.tick
-        else:
-            return r
-
     def __init__(
             self, charsheet, rows_shown, max_cols,
             left_branch, scroll_factor, typ, *keys):
@@ -370,6 +327,13 @@ class Calendar(Widget):
         self.left_branch = left_branch
         self.scroll_factor = scroll_factor
         self.change_type(typ, *keys)
+
+    def get_top_tick(self):
+        r = self.charsheet.get_cal_top_tick(self)
+        if r is None:
+            return self.charsheet.closet.tick
+        else:
+            return r
 
     def __iter__(self):
         if not hasattr(self, 'data'):
@@ -384,7 +348,7 @@ class Calendar(Widget):
             self.cal_type == other.cal_type and
             self.skel == other.skel)
 
-    def __ne__(self, othre):
+    def __ne__(self, other):
         return (
             self.charsheet is not other.charsheet or
             not hasattr(other, 'cal_type') or

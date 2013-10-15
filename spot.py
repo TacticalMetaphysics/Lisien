@@ -1,9 +1,8 @@
 ## This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableWidgetMetaclass
-from kivy.uix.widget import Widget
 from kivy.uix.image import Image
-from kivy.properties import AliasProperty, DictProperty, NumericProperty
+from kivy.properties import DictProperty, NumericProperty
 from kivy.uix.scatter import ScatterPlane
 from kivy.clock import Clock
 from logging import getLogger
@@ -56,20 +55,10 @@ class Spot(ScatterPlane):
     coords = DictProperty()
     imagery = DictProperty()
     interactivity = DictProperty()
-    branch = NumericProperty()
-    tick = NumericProperty()
 
     def __init__(self, board, place, **kwargs):
         self.board = board
         self.place = place
-        def upd_branch(*args):
-            self.branch = self.board.closet.branch
-        self.board.closet.bind(branch=upd_branch)
-        def upd_tick(*args):
-            self.tick = self.board.closet.tick
-        self.board.closet.bind(tick=upd_tick)
-        upd_branch()
-        upd_tick()
         self.upd_imagery()
         self.upd_interactivity()
         self.upd_coords()
@@ -77,36 +66,32 @@ class Spot(ScatterPlane):
         placen = unicode(self.place)
         skel = self.board.closet.skeleton
         skel["spot_coords"][dimn][placen].bind(touches=self.upd_coords)
-        skel["spot_interactive"][dimn][placen].bind(touches=self.upd_interactivity)
+        skel["spot_interactive"][dimn][placen].bind(
+            touches=self.upd_interactivity)
         skel["spot_img"][dimn][placen].bind(touches=self.upd_imagery)
 
-        ird = self.get_image_rd()
-        def imgrd():
-            try:
-                return skel["img"][ird["img"]]
-            except KeyError:
-                self.board.closet.get_texture(ird["img"])
-                return skel["img"][ird["img"]]
+        ScatterPlane.__init__(self)
 
         theguy = Image()
+        self.collide_point = lambda x, y: theguy.collide_point(x, y)
 
         def retex(*args):
             theguy.texture = self.get_texture()
             theguy.pos = self.get_pos()
             theguy.size = self.get_size()
 
-        ScatterPlane.__init__(self)
-        self.collide_point = lambda x, y: theguy.collide_point(x, y)
         def startup(*args):
             self.add_widget(theguy)
-            self.bind(branch=retex)
-            self.bind(tick=retex)
+            self.board.closet.bind(branch=retex, tick=retex)
             retex()
 
         Clock.schedule_once(startup, 0)
 
     def __str__(self):
         return str(self.place)
+
+    def __unicode__(self):
+        return unicode(self.place)
 
     def upd_coords(self, *args):
         self.coords = dict(self.board.closet.skeleton["spot_coords"][
