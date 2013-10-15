@@ -4,8 +4,8 @@ from util import SaveableWidgetMetaclass
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
-from kivy.clock import Clock
-from kivy.properties import AliasProperty, StringProperty, ObjectProperty
+from kivy.uix.image import Image
+from kivy.properties import AliasProperty, StringProperty
 import re
 from logging import getLogger
 
@@ -20,32 +20,30 @@ ON_CLICK_RE = re.compile("""([a-zA-Z0-9_]+)\((.*)\)""")
 
 
 class MenuItem(Button):
-    text = AliasProperty(
-        lambda self: self.menu.closet.get_text(self.rowdict["text"]),
-        lambda self, v: None)
-    rowdict = AliasProperty(
-        lambda self: self.get_rowdict(),
-        lambda self, v: None)
-    size_hint_x = ObjectProperty(None)
-
-    def __init__(self, menu, idx, **kwargs):
+    image_name = StringProperty()
+    def __init__(self, menu, text=None, img=None, closer=True, **kwargs):
         self.menu = menu
-        self.idx = idx
-        Button.__init__(self, **kwargs)
-        self.bind(rowdict=self.rowdict.touches)
-        self.bind(text=self.rowdict)
+        self.string_name = text
+        if self.string_name is not None:
+            starttext = self.menu.closet.get_text(self.string_name)
+            if self.string_name[0] == "@":
+                self.menu.closet.skeleton["strings"][self.string_name[1:]].bind(
+                    touches=self.upd_text)
+        else:
+            starttext = ''
+        self.closer = closer
+        Button.__init__(self, text=starttext, size_hint_x=None, **kwargs)
+        if img is not None:
+            self.image_name = img
+            icon = Image(
+                texture=self.menu.closet.get_texture(self.image_name))
+            def upd_icon(*args):
+                icon.texture = self.menu.closet.get_texture(self.image_name)
+            self.bind(image_name=upd_icon)
+            self.add_widget(icon)
 
-    def __int__(self):
-        return self.idx
-
-    def __str__(self):
-        return self.text
-
-    def get_rowdict(self):
-        if not isinstance(self.menu, Menu):
-            return None
-        return self.menu.closet.skeleton["menu_item"][
-            unicode(self.menu)][int(self)]
+    def upd_text(self, *args):
+        self.text = self.closet.get_text(self.string_name)
 
 
 class Menu(BoxLayout):
@@ -71,38 +69,16 @@ class Menu(BoxLayout):
          ('menu', 'idx'),
          {'menu': ('menu', 'name')},
          [])]
-    closet = ObjectProperty(None)
-    name = StringProperty('')
-    rowdict = AliasProperty(
-        lambda self: self.get_rowdict(),
-        lambda self, v: None)
-    style = AliasProperty(
-        lambda self: self.closet.get_style(self.rowdict["style"]),
-        lambda self, v: None,
-        bind=('rowdict',))
-    pos_hint = AliasProperty(
-        lambda self: {'x': self.rowdict['x'], 'y': self.rowdict['y']},
-        lambda self, v: None,
-        bind=('rowdict',))
-    size_hint = AliasProperty(
-        lambda self: (self.rowdict['w'], self.rowdict['h']),
-        lambda self, v: None,
-        bind=('rowdict',))
-    name = StringProperty('')
-
-    def __init__(self, **kwargs):
-        BoxLayout.__init__(self, **kwargs)
-        Clock.schedule_once(self.build, 0)
 
     def __str__(self):
         return self.name
 
-    def get_rowdict(self):
-        if self.name != '':
-            return self.closet.skeleton["menu"][self.name]
-
-    def build(self, *args):
-        self.bind(rowdict=self.rowdict.touches)
+    def __init__(self, closet, name, **kwargs):
+        self.closet = closet
+        self.name = name
+        kwargs["orientation"] = "vertical"
+        kwargs["spacing"] = 10
+        BoxLayout.__init__(self, **kwargs)
         for rd in self.closet.skeleton["menu_item"][unicode(self)].iterrows():
             it = MenuItem(self, rd["idx"])
             self.add_widget(it)
@@ -113,9 +89,12 @@ class Menu(BoxLayout):
                 argmatch = re.match(argre, argstr)
                 if argmatch is not None:
                     args = argmatch.groups()
-                    on_click = lambda: call(it, *args)
+                    def on_click(*args):
+                        call(it, *args)
                 else:
-                    on_click = lambda: call(it)
+                    def on_click(*args):
+                        call(it)
             else:
-                on_click = lambda: None
+                def on_click(*args):
+                    pass
             it.bind(on_release=on_click)

@@ -883,44 +883,6 @@ class BranchTicksIter:
             return next(self)
 
 
-class TerminableInteractivity:
-    def is_interactive(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        if branch not in self.interactivity:
-            return False
-        if (
-                branch in self.indefinite_interactivity and
-                tick >= self.indefinite_interactivity[branch]):
-            return True
-        for rd in self.interactivity.iterrows():
-            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
-                return True
-        return False
-
-    def new_branch_interactivity(self, parent, branch, tick):
-        prev = None
-        started = False
-        for tick_from in self.interactivity[parent]:
-            if tick_from >= tick:
-                rd2 = dict(self.interactivity[parent][tick_from])
-                rd2["branch"] = branch
-                if branch not in self.interactivity:
-                    self.interactivity[branch] = {}
-                self.interactivity[branch][rd2["tick_from"]] = rd2
-                if (
-                        not started and prev is not None and
-                        tick_from > tick and prev < tick):
-                    rd3 = dict(self.interactivity[parent][prev])
-                    rd3["branch"] = branch
-                    rd3["tick_from"] = tick
-                    self.interactivity[branch][rd3["tick_from"]] = rd3
-                started = True
-            prev = tick_from
-
-
 class PortalException(Exception):
     """Exception raised when a Thing tried to move into or out of or along
 a Portal, and it made no sense."""

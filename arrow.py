@@ -8,16 +8,25 @@ from util import (
     fortyfive)
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
+from kivy.properties import AliasProperty, DictProperty
 
 
 class Arrow(Widget):
     margin = 20
-    w = 1.0
-
-    def __init__(self, **kwargs):
-        self.board = kwargs["board"]
-        self.portal = kwargs["portal"]
+    w = 1
+    rowdict = DictProperty()
+    def __init__(self, board, portal, **kwargs):
+        self.board = board
+        self.portal = portal
+        self.upd_rowdict()
         Widget.__init__(self, **kwargs)
+        dimn = unicode(self.board.dimension)
+        orign = unicode(self.portal.origin)
+        destn = unicode(self.portal.destination)
+        self.board.spotdict[orign].bind(transform=self.realign)
+        self.board.spotdict[destn].bind(transform=self.realign)
+        self.board.closet.skeleton["portal"][dimn][orign][destn].bind(
+            touches=self.upd_rowdict)
         self.bg_color = Color(0.25, 0.25, 0.25)
         self.fg_color = Color(1.0, 1.0, 1.0)
         self.bg_line = Line(points=self.get_points(), width=self.w * 1.4)
@@ -49,9 +58,21 @@ class Arrow(Widget):
     def dest(self):
         return self.board.spotdict[unicode(self.portal.destination)]
 
+    def upd_rowdict(self, *args):
+        self.rowdict = self.board.closet.skeleton["portal"][
+            unicode(self.board.dimension)][unicode(self.portal.origin)][
+            unicode(self.portal.destination)]
+
     def get_points(self):
-        (ox, oy) = self.orig.bbox[0]
-        (dx, dy) = self.dest.bbox[0]
+        (ox, oy) = self.orig.to_parent(*self.orig.get_coords(), relative=True)
+        (dx, dy) = self.dest.to_parent(*self.dest.get_coords(), relative=True)
+        (dw, dh) = self.dest.get_size()
+        drx = dw / 2
+        dry = dh / 2
+        if drx > dry:
+            dr = drx
+        else:
+            dr = dry
         if dy < oy:
             yco = -1
         else:
@@ -63,7 +84,7 @@ class Arrow(Widget):
         (leftx, boty, rightx, topy) = truncated_line(
             float(ox * xco), float(oy * yco),
             float(dx * xco), float(dy * yco),
-            self.dest.r + 1)
+            dr + 1)
         taillen = float(self.board.arrowhead_size)
         rise = topy - boty
         run = rightx - leftx
@@ -80,12 +101,12 @@ class Arrow(Widget):
         else:
             (xoff1, yoff1, xoff2, yoff2) = wedge_offsets_rise_run(
                 rise, run, taillen)
-        x1 = int(rightx - xoff1) * xco
-        x2 = int(rightx - xoff2) * xco
-        y1 = int(topy - yoff1) * yco
-        y2 = int(topy - yoff2) * yco
-        endx = int(rightx) * xco
-        endy = int(topy) * yco
+        x1 = (rightx - xoff1) * xco
+        x2 = (rightx - xoff2) * xco
+        y1 = (topy - yoff1) * yco
+        y2 = (topy - yoff2) * yco
+        endx = rightx * xco
+        endy = topy * yco
         return [ox, oy,
                 endx, endy, x1, y1,
                 endx, endy, x2, y2,
@@ -135,8 +156,7 @@ class Arrow(Widget):
         y_numerator = denominator * self.oy
         return ((y_numerator - x_numerator), denominator)
 
-    def re_up(self, *args):
+    def realign(self, *args):
         points = self.get_points()
-        print("Arrow re-up! Points {}".format(points))
         self.bg_line.points = points
         self.fg_line.points = points

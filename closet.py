@@ -39,6 +39,8 @@ from charsheet import CharSheet
 from img import LiSEImage
 from kivy.uix.image import Image
 from kivy.core.image import ImageData
+from kivy.properties import NumericProperty
+from kivy.event import EventDispatcher
 from menu import Menu
 
 
@@ -85,7 +87,7 @@ PORTAL_NAME_RE = re.compile(
     "Portal\((.+)->(.+)\)")
 
 
-class Closet(object):
+class Closet(EventDispatcher):
     """This is where you should get all your LiSE objects from, generally.
 
 A RumorMill is a database connector that can load and generate LiSE
@@ -109,20 +111,24 @@ before RumorMill will work. For that, run mkdb.sh.
 
     atrdic = {
         "game": lambda self: self.skeleton["game"],
-        "branch": lambda self: self.game["front_branch"],
-        "front_branch": lambda self: self.game["front_branch"],
         "seed": lambda self: self.game["seed"],
-        "tick": lambda self: self.game["tick"],
         "dimensions": lambda self: iter(self.dimensiondict.values()),
         "characters": lambda self: iter(self.characterdict.values())}
+    branch = NumericProperty()
+    tick = NumericProperty()
 
     def __init__(self, connector, xfuncs={}, lang="eng",
                  front_dimension="Physical", front_board=0,
-                 front_branch=0, seed=0, tick=0):
+                 front_branch=0, seed=0, tick=0, **kwargs):
         """Return a database wrapper around the SQLite database file by the
 given name.
 
         """
+        EventDispatcher.__init__(self, **kwargs)
+        self.bind(branch=self.upd_branch)
+        self.bind(tick=self.upd_tick)
+        self.branch = front_branch
+        self.tick = tick
         self.language = lang
         self.conn = connector
         self.cursor = self.conn.cursor()
@@ -235,6 +241,12 @@ given name.
         self.c.close()
         self.conn.commit()
         self.conn.close()
+
+    def upd_branch(self, *args):
+        self.skeleton["game"]["front_branch"] = self.branch
+
+    def upd_tick(self, *args):
+        self.skeleton["game"]["tick"] = self.tick
 
     def insert_rowdicts_table(self, rowdict, clas, tablename):
         """Insert the given rowdicts into the table of the given name, as
@@ -593,8 +605,7 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             if self.skeleton["img"][name]["rltile"] != 0:
                 rltex = Image(
-                    source=self.skeleton["img"][name]["path"],
-                    __no_builder=True).texture
+                    source=self.skeleton["img"][name]["path"]).texture
                 imgd = ImageData(rltex.width, rltex.height,
                                  rltex.colorfmt, rltex.pixels,
                                  source=self.skeleton["img"][name]["path"])
@@ -608,8 +619,7 @@ This is game-world time. It doesn't always go forwards.
                 r[name] = rltex
             else:
                 r[name] = Image(
-                    source=self.skeleton["img"][name]["path"],
-                    __no_builder=True).texture
+                    source=self.skeleton["img"][name]["path"]).texture
         self.texturedict.update(r)
         return r
 
