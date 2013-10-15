@@ -150,6 +150,8 @@ wallpape.jpg is copyright Fantastic Maps (http://www.fantasticmaps.com/free-stuf
 
 igraph and python-igraph are freely available under the MIT license (http://opensource.org/licenses/MIT).
 
+Sans.ttf is really the font Sword, by molly. Freely available at http://geohand.tumblr.com/post/39769502703/im-getting-into-setting-up-a-system-to-talk-to
+
 The LiSE source files themselves are licensed under the terms of the GNU General Public License version 3. See the text of the license in the file gpl-3.0.txt
 
 Copyright (C) 2013 Zachary Spector. Email: zacharyspector@gmail.com
