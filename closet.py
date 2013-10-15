@@ -22,7 +22,7 @@ from pawn import Pawn
 from board import Board
 from card import Card
 from effect import Effect, EffectDeck
-from style import LiSEStyle, LiSEColor
+from style import Style, Color
 from util import (
     dictify_row,
     Skeleton,
@@ -36,7 +36,7 @@ from portal import Portal
 from thing import Thing
 from character import Character
 from charsheet import CharSheet
-from img import LiSEImage
+from img import Tex
 from kivy.uix.image import Image
 from kivy.core.image import ImageData
 from kivy.properties import NumericProperty
@@ -582,7 +582,7 @@ This is game-world time. It doesn't always go forwards.
 
     def get_board(self, name):
         dim = self.get_dimension(name)
-        return Board(closet=self, dimension=dim)
+        return Board(self, dim)
 
     def get_place(self, dim, placen):
         if not isinstance(dim, Dimension):
@@ -599,7 +599,7 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["img"][name] = {"name": name}
         self.skeleton.update(
-            LiSEImage._select_skeleton(
+            Tex._select_skeleton(
                 self.c, kd))
         r = {}
         for name in names:
@@ -652,10 +652,10 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["color"][name] = {"name": name}
         self.skeleton.update(
-            LiSEColor._select_skeleton(self.c, kd))
+            Color._select_skeleton(self.c, kd))
         r = {}
         for name in names:
-            r[name] = LiSEColor(self, name)
+            r[name] = Color(self, name)
             self.colordict[name] = r[name]
         return r
 
@@ -679,19 +679,16 @@ This is game-world time. It doesn't always go forwards.
         for name in stylenames:
             kd["style"][name] = {"name": name}
         self.skeleton.update(
-            LiSEStyle._select_skeleton(self.c, kd))
+            Style._select_skeleton(self.c, kd))
         colornames = set()
-        colorcols = set([
-            'bg_inactive', 'bg_active', 'fg_inactive', 'fg_active',
-            'textcolor'])
         for name in stylenames:
             rd = self.skeleton["style"][name]
-            for colorcol in colorcols:
+            for colorcol in Style.color_cols:
                 colornames.add(rd[colorcol])
         self.get_colors(colornames)
         r = {}
         for name in stylenames:
-            r[name] = LiSEStyle(self, name)
+            r[name] = Style(self, name)
         return r
 
     def get_styles(self, stylenames):
@@ -707,7 +704,7 @@ This is game-world time. It doesn't always go forwards.
         return r
 
     def get_style(self, name):
-        if isinstance(name, LiSEStyle):
+        if isinstance(name, Style):
             return name
         return self.get_styles([name])[name]
 
@@ -746,7 +743,7 @@ This is game-world time. It doesn't always go forwards.
         r = {}
         for rd in skel.iterrows():
             self.load_menu_items(rd["name"])
-            r[rd["name"]] = Menu(closet=self, name=rd["name"])
+            r[rd["name"]] = Menu(self, rd["name"])
         return r
 
     def load_menu(self, name):

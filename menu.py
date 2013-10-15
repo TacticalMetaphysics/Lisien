@@ -80,7 +80,7 @@ class Menu(BoxLayout):
         kwargs["spacing"] = 10
         BoxLayout.__init__(self, **kwargs)
         for rd in self.closet.skeleton["menu_item"][unicode(self)].iterrows():
-            it = MenuItem(self, rd["idx"])
+            it = MenuItem(self, rd["text"], rd["icon"], rd["closer"] == 1)
             self.add_widget(it)
             oc = re.match(ON_CLICK_RE, rd["on_click"])
             if oc is not None:
@@ -98,3 +98,11 @@ class Menu(BoxLayout):
                 def on_click(*args):
                     pass
             it.bind(on_release=on_click)
+
+    def get_pos_hint(self):
+        rd = self.closet.skeleton["menu"][unicode(self)]
+        return {'x': rd['x'], 'y': rd['y']}
+
+    def get_size_hint(self):
+        rd = self.closet.skeleton["menu"][unicode(self)]
+        return (rd['w'], rd['h'])

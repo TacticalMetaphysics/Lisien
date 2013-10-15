@@ -36,7 +36,7 @@ class Pawn(Image):
          [])]
     rowdict = DictProperty()
 
-    def __init__(self, **kwargs):
+    def __init__(self, board, thing):
         """Return a pawn on the board for the given dimension, representing
 the given thing with the given image. It may be visible or not,
 interactive or not.
@@ -80,11 +80,12 @@ interactive or not.
         if tick_from is None:
             tick_from = self.board.closet.tick
         self.imagery[branch][tick_from] = {
-            "dimension": unicode(self.thing.dimension),
-            "thing": unicode(self.thing),
+            "dimension": str(self.thing.dimension),
+            "thing": str(self.thing),
+            "board": str(self.board),
             "branch": branch,
             "tick_from": tick_from,
-            "img": unicode(img)}
+            "img": str(img)}
 
     def set_interactive(self, branch=None, tick_from=None):
         if branch is None:
@@ -93,6 +94,7 @@ interactive or not.
             tick_from = self.board.closet.tick
         self.interactivity[branch][tick_from] = {
             "dimension": str(self.thing.dimension),
+            "board": int(self.board),
             "thing": str(self.thing),
             "branch": branch,
             "tick_from": tick_from}

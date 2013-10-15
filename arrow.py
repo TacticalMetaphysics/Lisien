@@ -35,7 +35,6 @@ class Arrow(Widget):
         self.canvas.add(self.bg_line)
         self.canvas.add(self.fg_color)
         self.canvas.add(self.fg_line)
-        self.orig.arrows.add(self)
 
     @property
     def reciprocal(self):

@@ -50,7 +50,12 @@ class Board(ScrollView):
         lambda self, v: self._set_scroll_y(v))
     
 
-    def __init__(self, **kwargs):
+    def __init__(self, closet, dimension, **kwargs):
+        self.closet = closet
+        self.dimension = dimension
+        self.spotdict = {}
+        self.pawndict = {}
+        self.arrowdict = {}
         self.selected = set()
         self.upd_rowdict()
         self.closet.skeleton["board"][unicode(self.dimension)].bind(
@@ -66,7 +71,7 @@ class Board(ScrollView):
             for rd in self.dimension.closet.skeleton[
                     "spot_coords"][unicode(self.dimension)].iterrows():
                 place = self.dimension.get_place(rd["place"])
-                spot = Spot(board=self, place=place)
+                spot = Spot(self, place)
                 self.spotdict[unicode(place)] = spot
         if (
                 "pawn_img" in self.closet.skeleton and
@@ -75,12 +80,16 @@ class Board(ScrollView):
             for rd in self.dimension.closet.skeleton[
                     "pawn_img"][unicode(self.dimension)].iterrows():
                 thing = self.dimension.get_thing(rd["thing"])
-                pawn = Pawn(board=self, thing=thing)
+                pawn = Pawn(self, thing)
                 self.pawndict[unicode(thing)] = pawn
         for portal in self.dimension.portals:
-            arrow = Arrow(board=self, portal=portal)
+            arrow = Arrow(self, portal)
             self.arrowdict[unicode(portal)] = arrow
             content.add_widget(arrow)
+        for spot in self.spotdict.itervalues():
+            content.add_widget(spot)
+        for pawn in self.pawndict.itervalues():
+            content.add_widget(pawn)
         self.add_widget(content)
     
     def __str__(self):

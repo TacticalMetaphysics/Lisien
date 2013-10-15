@@ -2,15 +2,13 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass
 from kivy.graphics import Color
-from kivy.properties import StringProperty, AliasProperty
-from kivy.event import EventDispatcher
 
 
 """Simple data structures to hold style information for text and
 things that contain text."""
 
 
-class LiSEColor(object):
+class Color(Color):
     __metaclass__ = SaveableMetaclass
     """Red, green, blue, and alpha values.
 
@@ -37,37 +35,15 @@ green, blue. Register in db.colordict.
 
         """
         self.closet = closet
-        self.name = name
+        self._name = name
+        rd = self.closet.skeleton["color"][str(self)]
+        super(Color, self).__init__(rd["red"], rd["green"], rd["blue"])
 
     def __str__(self):
-        return self.name
-
-    @property
-    def rowdict(self):
-        return self.closet.skeleton["color"][self.name]
-
-    @property
-    def red(self):
-        return self.rowdict["red"]
-
-    @property
-    def green(self):
-        return self.rowdict["green"]
-
-    @property
-    def blue(self):
-        return self.rowdict["blue"]
-
-    @property
-    def tup(self):
-        return (self.red, self.green, self.blue)
-
-    @property
-    def kivy_color(self):
-        return Color(self.red, self.green, self.blue)
+        return self._name
 
 
-class LiSEStyle(EventDispatcher):
+class Style(object):
     __metaclass__ = SaveableMetaclass
     """A collection of cogent information for rendering text and things
 that contain text."""
@@ -89,42 +65,8 @@ that contain text."""
           "fg_inactive": ("color", "name"),
           "fg_active": ("color", "name")},
          [])]
-    name = StringProperty('')
-    rowdict = AliasProperty(
-        lambda self: self.closet.skeleton["style"][self.name],
-        lambda self, v: None)
-    bg_inactive = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["bg_inactive"]).kivy_color,
-        lambda self, v: None,
-        bind=('rowdict',))
-    bg_active = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["bg_active"]).kivy_color,
-        lambda self, v: None,
-        bind=('rowdict',))
-    fg_inactive = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["fg_inactive"]).kivy_color,
-        lambda self, v: None,
-        bind=('rowdict',))
-    fg_active = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["fg_active"]).kivy_color,
-        lambda self, v: None,
-        bind=('rowdict',))
-    textcolor = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["textcolor"]).kivy_color,
-        lambda self, v: None,
-        bind=('rowdict',))
-    fontface = AliasProperty(
-        lambda self: self.rowdict["fontface"],
-        lambda self, v: None,
-        bind=('rowdict',))
-    fontsize = AliasProperty(
-        lambda self: self.rowdict["fontsize"],
-        lambda self, v: None,
-        bind=('rowdict',))
-    spacing = AliasProperty(
-        lambda self: self.rowdict["spacing"],
-        lambda self, v: None,
-        bind=('rowdict',))
+    color_cols = ["textcolor", "bg_inactive", "bg_active",
+                  "fg_inactive", "fg_active"]
 
     def __init__(self, closet, name):
         """Return a style by the given name, with the given face, font size,
@@ -133,16 +75,28 @@ foreground and the background.
 
         """
         self.closet = closet
-        self.name = name
-        EventDispatcher.__init__(self)
-        self.bind(rowdict=self.rowdict.touches)
+        self._name = name
         self.closet.styledict[str(self)] = self
 
+    def __getattr__(self, attrn):
+        if attrn == "_rowdict":
+            return self.closet.skeleton["style"][str(self)]
+        elif attrn in self.color_cols:
+            return self.closet.get_color(self._rowdict[attrn])
+        elif attrn in (
+                "fontface",
+                "fontsize",
+                "spacing"):
+            return self._rowdict[attrn]
+        else:
+            raise AttributeError(
+                "Style instance has no such attribute: {0}".format(attrn))
+
     def __str__(self):
-        return self.name
+        return self._name
 
     def __eq__(self, other):
         """Check we're both Style instances and we have the same name"""
         return (
-            isinstance(other, LiSEStyle) and
+            isinstance(other, Style) and
             str(self) == str(other))
