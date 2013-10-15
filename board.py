@@ -6,7 +6,7 @@ from pawn import Pawn
 from spot import Spot
 from arrow import Arrow
 from kivy.graphics import Rectangle
-from kivy.properties import AliasProperty
+from kivy.properties import AliasProperty, StringProperty, DictProperty
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
@@ -16,18 +16,15 @@ from kivy.uix.image import Image
 
 
 class Wallpaper(Image):
-    norm_image_size = AliasProperty(
-        lambda self: self.size,
-        lambda self, v: None)
-    texture = AliasProperty(
-        lambda self:
-        self.board.closet.get_texture(self.board.closet.skeleton["board"][
-            unicode(self.board)]["wallpaper"]),
-        lambda self, v: None)
-
     def __init__(self, board, **kwargs):
         self.board = board
-        Image.__init__(self, size=self.texture.size, **kwargs)
+        starttex = self.board.get_texture()
+        Image.__init__(self, texture=starttex, size=starttex.size, **kwargs)
+        self.board.bind(rowdict=self.upd_texture)
+
+    def upd_texture(self, instance, value):
+        self.texture = self.board.get_texture()
+        self.size = self.texture.size
 
 
 class Board(ScrollView):
@@ -44,6 +41,7 @@ class Board(ScrollView):
     arrow_width = 1.4
     arrowhead_size = 10
     auto_bring_to_front = False
+    rowdict = DictProperty({})
     scroll_x = AliasProperty(
         lambda self: self._get_scroll_x(),
         lambda self, v: self._set_scroll_x(v))
@@ -59,9 +57,11 @@ class Board(ScrollView):
         self.pawndict = {}
         self.arrowdict = {}
         self.selected = set()
-        rd = self.closet.skeleton["board"][unicode(self)]
-        ScrollView.__init__(self, **kwargs)
+        self.upd_rowdict()
+        self.closet.skeleton["board"][unicode(self.dimension)].bind(
+            touches=self.upd_rowdict)
         wall = Wallpaper(self)
+        ScrollView.__init__(self, size=wall.size, **kwargs)
         content = RelativeLayout(size=wall.size, size_hint=(None, None))
         content.add_widget(wall)
         if (
@@ -82,7 +82,6 @@ class Board(ScrollView):
                 thing = self.dimension.get_thing(rd["thing"])
                 pawn = Pawn(self, thing)
                 self.pawndict[unicode(thing)] = pawn
-        self.re_up()
         for portal in self.dimension.portals:
             arrow = Arrow(self, portal)
             self.arrowdict[unicode(portal)] = arrow
@@ -108,10 +107,8 @@ class Board(ScrollView):
     def _set_scroll_y(self, v):
         self.closet.skeleton["board"][unicode(self)]["y"] = v
 
-    def re_up(self):
-        for spot in self.spotdict.itervalues():
-            spot.re_up()
-        for pawn in self.pawndict.itervalues():
-            pawn.re_up()
-        for arrow in self.arrowdict.itervalues():
-            arrow.re_up()
+    def upd_rowdict(self, *args):
+        self.rowdict = dict(self.closet.skeleton["board"][unicode(self)])
+
+    def get_texture(self):
+        return self.closet.get_texture(self.rowdict["wallpaper"])

@@ -4,7 +4,8 @@ from util import SaveableWidgetMetaclass
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
-from kivy.properties import AliasProperty
+from kivy.uix.image import Image
+from kivy.properties import AliasProperty, StringProperty
 import re
 from logging import getLogger
 
@@ -19,20 +20,30 @@ ON_CLICK_RE = re.compile("""([a-zA-Z0-9_]+)\((.*)\)""")
 
 
 class MenuItem(Button):
-    text = AliasProperty(
-        lambda self: self.menu.closet.get_text(self.string_name),
-        lambda self, v: None)
-    font_size = AliasProperty(
-        lambda self: self.menu.style.fontsize,
-        lambda self, v: None)
-
+    image_name = StringProperty()
     def __init__(self, menu, text=None, img=None, closer=True, **kwargs):
         self.menu = menu
         self.string_name = text
-        kwargs["size_hint_x"] = None
-        Button.__init__(self, **kwargs)
+        if self.string_name is not None:
+            starttext = self.menu.closet.get_text(self.string_name)
+            if self.string_name[0] == "@":
+                self.menu.closet.skeleton["strings"][self.string_name[1:]].bind(
+                    touches=self.upd_text)
+        else:
+            starttext = ''
+        self.closer = closer
+        Button.__init__(self, text=starttext, size_hint_x=None, **kwargs)
         if img is not None:
-            self.add_widget(self.menu.closet.get_image(img))
+            self.image_name = img
+            icon = Image(
+                texture=self.menu.closet.get_texture(self.image_name))
+            def upd_icon(*args):
+                icon.texture = self.menu.closet.get_texture(self.image_name)
+            self.bind(image_name=upd_icon)
+            self.add_widget(icon)
+
+    def upd_text(self, *args):
+        self.text = self.closet.get_text(self.string_name)
 
 
 class Menu(BoxLayout):
@@ -58,25 +69,15 @@ class Menu(BoxLayout):
          ('menu', 'idx'),
          {'menu': ('menu', 'name')},
          [])]
-    pos_hint = AliasProperty(
-        lambda self: self.get_pos_hint(),
-        lambda self, v: None)
-    size_hint = AliasProperty(
-        lambda self: self.get_size_hint(),
-        lambda self, v: None)
-    style = AliasProperty(
-        lambda self: self.closet.get_style(
-            self.closet.skeleton["menu"][unicode(self)]["style"]),
-        lambda self, v: None)
 
     def __str__(self):
-        return self._name
+        return self.name
 
     def __init__(self, closet, name, **kwargs):
+        self.closet = closet
+        self.name = name
         kwargs["orientation"] = "vertical"
         kwargs["spacing"] = 10
-        self.closet = closet
-        self._name = name
         BoxLayout.__init__(self, **kwargs)
         for rd in self.closet.skeleton["menu_item"][unicode(self)].iterrows():
             it = MenuItem(self, rd["text"], rd["icon"], rd["closer"] == 1)
@@ -88,11 +89,14 @@ class Menu(BoxLayout):
                 argmatch = re.match(argre, argstr)
                 if argmatch is not None:
                     args = argmatch.groups()
-                    on_click = lambda: call(it, *args)
+                    def on_click(*args):
+                        call(it, *args)
                 else:
-                    on_click = lambda: call(it)
+                    def on_click(*args):
+                        call(it)
             else:
-                on_click = lambda: None
+                def on_click(*args):
+                    pass
             it.bind(on_release=on_click)
 
     def get_pos_hint(self):

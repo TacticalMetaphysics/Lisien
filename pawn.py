@@ -1,10 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import (
-    SaveableWidgetMetaclass,
-    TerminableInteractivity)
+from util import SaveableWidgetMetaclass
 from kivy.uix.image import Image
-from kivy.properties import AliasProperty, ObjectProperty
+from kivy.properties import AliasProperty, ObjectProperty, DictProperty
 from logging import getLogger
 
 
@@ -14,7 +12,7 @@ logger = getLogger(__name__)
 """Widget representing things that move about from place to place."""
 
 
-class Pawn(Image, TerminableInteractivity):
+class Pawn(Image):
     __metaclass__ = SaveableWidgetMetaclass
     """A token to represent something that moves about between places."""
     tables = [
@@ -36,10 +34,7 @@ class Pawn(Image, TerminableInteractivity):
          ("dimension", "thing", "branch", "tick_from"),
          {"dimension, thing": ("thing_location", "dimension, name")},
          [])]
-    size = AliasProperty(
-        lambda self: self.get_texture().size, lambda self, v: None)
-    texture = AliasProperty(
-        lambda self: self.get_texture(), lambda self, v: None)
+    rowdict = DictProperty()
 
     def __init__(self, board, thing):
         """Return a pawn on the board for the given dimension, representing
@@ -49,26 +44,35 @@ interactive or not.
         """
         self.board = board
         self.thing = thing
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
-        Image.__init__(self)
+        self.upd_imagery()
+        self.upd_interactivity()
+        starttex = self.get_texture()
+        startpos = self.get_coords()
+        Image.__init__(self, texture=starttex, pos=startpos)
+        dimn = unicode(self.board.dimension)
+        thingn = unicode(self.thing)
+        skel = self.board.closet.skeleton
+        skel["pawn_img"][dimn][thingn].bind(touches=self.upd_imagery)
+        skel["pawn_interactive"][dimn][thingn].bind(touches=self.upd_interactivity)
+        self.board.closet.bind(branch=self.update)
+        self.board.closet.bind(tick=self.update)
+        
 
     def __str__(self):
         return str(self.thing)
 
-    @property
-    def imagery(self):
-        return self.board.closet.skeleton[
-            "pawn_img"][unicode(self.thing.dimension)][unicode(self.thing)]
+    def upd_imagery(self, *args):
+        self.imagery = dict(self.board.closet.skeleton["pawn_img"][
+            unicode(self.board.dimension)][unicode(self.thing)])
 
-    @property
-    def interactivity(self):
-        return self.board.closet.skeleton[
-            "pawn_interactive"][unicode(self.thing.dimension)][
-            unicode(self.thing)]
+    def upd_interactivity(self, *args):
+        self.interactivity = dict(self.board.closet.skeleton[
+            "pawn_interactive"][unicode(self.board.dimension)][
+            unicode(self.thing)])
 
-    def retex(self):
+    def update(self, *args):
         self.texture = self.get_texture()
+        self.pos = self.get_coords()
 
     def set_img(self, img, branch=None, tick_from=None):
         if branch is None:
@@ -143,11 +147,6 @@ If it DOES have anything else to do, make the journey in another branch.
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
-    def overlaps(self, x, y):
-        return (
-            self.window_left < x and x < self.window_right and
-            self.window_bot < y and y < self.window_top)
-
     def get_pos(self):
         loc = self.thing.location
         if loc is None:
@@ -188,22 +187,60 @@ If it DOES have anything else to do, make the journey in another branch.
     def new_branch_imagery(self, parent, branch, tick):
         prev = None
         started = False
-        for tick_from in self.imagery[parent]:
+        imagery = self.board.closet.skeleton["pawn_img"][
+            unicode(self.board.dimension)][unicode(self.place)]
+        for tick_from in imagery[parent]:
             if tick_from >= tick:
-                rd2 = dict(self.imagery[parent][tick_from])
+                rd2 = dict(imagery[parent][tick_from])
                 rd2["branch"] = branch
-                if branch not in self.imagery:
-                    self.imagery[branch] = {}
-                self.imagery[branch][rd2["tick_from"]] = rd2
+                if branch not in imagery:
+                    imagery[branch] = {}
+                imagery[branch][rd2["tick_from"]] = rd2
                 if (
                         not started and prev is not None and
                         tick_from > tick and prev < tick):
-                    rd3 = dict(self.imagery[parent][prev])
+                    rd3 = dict(imagery[parent][prev])
                     rd3["branch"] = branch
                     rd3["tick_from"] = tick
-                    self.imagery[branch][rd3["tick_from"]] = rd3
+                    imagery[branch][rd3["tick_from"]] = rd3
                 started = True
             prev = tick_from
+        self.upd_imagery()
 
-    def re_up(self):
-        self.pos = self.get_pos()
+    def is_interactive(self, branch=None, tick=None):
+        if branch is None:
+            branch = self.closet.branch
+        if tick is None:
+            tick = self.closet.tick
+        interactivity = self.closet.skeleton["pawn_interactive"][
+            unicode(self.board.dimension)][unicode(self.place)]
+        if branch not in interactivity:
+            return False
+        for rd in interactivity.iterrows():
+            if rd["tick_from"] <= tick and (
+                    rd["tick_to"] is None or tick <= rd["tick_to"]):
+                return True
+        return False
+
+    def new_branch_interactivity(self, parent, branch, tick):
+        prev = None
+        started = False
+        interactivity = self.closet.skeleton["pawn_interactive"][
+            unicode(self.board.dimension)][unicode(self.place)]
+        for tick_from in interactivity[parent]:
+            if tick_from >= tick:
+                rd2 = dict(interactivity[parent][tick_from])
+                rd2["branch"] = branch
+                if branch not in interactivity:
+                    interactivity[branch] = {}
+                interactivity[branch][rd2["tick_from"]] = rd2
+                if (
+                        not started and prev is not None and
+                        tick_from > tick and prev < tick):
+                    rd3 = dict(interactivity[parent][prev])
+                    rd3["branch"] = branch
+                    rd3["tick_from"] = tick
+                    interactivity[branch][rd3["tick_from"]] = rd3
+                started = True
+            prev = tick_from
+        self.upd_interactivity()

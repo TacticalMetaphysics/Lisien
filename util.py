@@ -5,7 +5,8 @@ from logging import getLogger
 from sqlite3 import IntegrityError
 from collections import deque, MutableMapping
 from kivy.uix.widget import WidgetMetaclass
-from kivy.properties import AliasProperty
+from kivy.properties import NumericProperty
+from kivy.event import EventDispatcher
 
 logger = getLogger(__name__)
 
@@ -73,7 +74,8 @@ class SkelRowIter(object):
         return self.__next__()
 
 
-class Skeleton(MutableMapping):
+class Skeleton(MutableMapping, EventDispatcher):
+    touches = NumericProperty(0)
     def __init__(self, content, name="", parent=None,
                  set_listener=None, del_listener=None):
         self.rowdict = None
@@ -132,8 +134,7 @@ class Skeleton(MutableMapping):
             really_set(k, v)
         else:
             really_set(k, Skeleton(v, k, self))
-        if self.set_listener is not None:
-            self.listener((str(self),), k, v)
+        self.touches += 1
         if self.parent is not None:
             self.parent.on_child_set((str(self),), k, v)
 
@@ -143,8 +144,7 @@ class Skeleton(MutableMapping):
             del self.content[k]
         else:
             self.ikeys.remove(k)
-        if self.del_listener is not None:
-            self.listener((str(self),), k, todel)
+        self.touches += 1
         if self.parent is not None:
             self.parent.on_child_delete((str(self),), k, todel)
 
@@ -254,15 +254,13 @@ class Skeleton(MutableMapping):
 
     def on_child_set(self, childn, k, v):
         qn = (str(self),) + childn
-        if self.set_listener is not None:
-            self.set_listener(qn, k, v)
+        self.touches += 1
         if self.parent is not None:
             self.parent.on_child_set(qn, k, v)
 
     def on_child_delete(self, childn, k, v):
         qn = (str(self),) + childn
-        if self.del_listener is not None:
-            self.del_listener(qn, k, v)
+        self.touches += 1
         if self.parent is not None:
             self.parent.on_child_delete(qn, k, v)
 
@@ -885,44 +883,6 @@ class BranchTicksIter:
             return next(self)
 
 
-class TerminableInteractivity:
-    def is_interactive(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        if branch not in self.interactivity:
-            return False
-        if (
-                branch in self.indefinite_interactivity and
-                tick >= self.indefinite_interactivity[branch]):
-            return True
-        for rd in self.interactivity.iterrows():
-            if rd["tick_from"] <= tick and tick <= rd["tick_to"]:
-                return True
-        return False
-
-    def new_branch_interactivity(self, parent, branch, tick):
-        prev = None
-        started = False
-        for tick_from in self.interactivity[parent]:
-            if tick_from >= tick:
-                rd2 = dict(self.interactivity[parent][tick_from])
-                rd2["branch"] = branch
-                if branch not in self.interactivity:
-                    self.interactivity[branch] = {}
-                self.interactivity[branch][rd2["tick_from"]] = rd2
-                if (
-                        not started and prev is not None and
-                        tick_from > tick and prev < tick):
-                    rd3 = dict(self.interactivity[parent][prev])
-                    rd3["branch"] = branch
-                    rd3["tick_from"] = tick
-                    self.interactivity[branch][rd3["tick_from"]] = rd3
-                started = True
-            prev = tick_from
-
-
 class PortalException(Exception):
     """Exception raised when a Thing tried to move into or out of or along
 a Portal, and it made no sense."""
@@ -1209,12 +1169,3 @@ class Timestream(object):
 
 class EmptySkeleton(Exception):
     pass
-
-
-def StringGetter(closet, string_name, binds):
-    def set_string(v):
-        closet.skeleton["strings"][string_name][closet.language] = v
-    return AliasProperty(
-        lambda: closet.get_text(string_name),
-        set_string,
-        bind=binds)
