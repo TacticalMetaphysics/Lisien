@@ -4,10 +4,11 @@ from logging import getLogger
 from util import SaveableWidgetMetaclass
 from calendar import Calendar
 from kivy.uix.label import Label
+from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.graphics import Rectangle
-from kivy.properties import AliasProperty
+from kivy.properties import AliasProperty, DictProperty
 
 
 logger = getLogger(__name__)
@@ -49,12 +50,10 @@ class CharSheetTable(GridLayout):
             return self.character_skel[
                 self.keys[0]][self.keys[1]][self.keys[2]]
 
-    def __init__(self, cs, skel, *keys):
+    def __init__(self, cs, *keys):
         self.charsheet = cs
         self.keys = keys
-        GridLayout.__init__(cols=len(self.colkeys))
-
-    def build(self):
+        GridLayout.__init__(self, cols=len(self.colkeys))
         for key in self.colkeys:
             self.add_widget(Label(
                 text=key,
@@ -71,9 +70,9 @@ class CharSheetTable(GridLayout):
 
     def iter_skeleton(self, branch=None, tick=None):
         if branch is None:
-            branch = self.charsheet.closet.branch
+            branch = self.charsheet.character.closet.branch
         if tick is None:
-            tick = self.charsheet.closet.tick
+            tick = self.charsheet.character.closet.tick
         for rd in self.skeleton.iterrows():
             if (
                     rd["branch"] == branch and
@@ -327,7 +326,7 @@ SHEET_ITEM_CLASS = {
     SHEET_ITEM_TYPE["SKILLCAL"]: CharSheetSkillCalendar}
 
 
-class CharSheetBg(Rectangle):
+class CharSheetBg(Widget):
     pos = AliasProperty(
         lambda self: self.charsheet.pos,
         lambda self, v: None)
@@ -338,7 +337,9 @@ class CharSheetBg(Rectangle):
 
     def __init__(self, cs):
         self.charsheet = cs
-        Rectangle.__init__(self)
+        Widget.__init__(self)
+        self.canvas.add(Rectangle(
+            pos=self.charsheet.pos, size=self.charsheet.size))
 
 
 class CharSheet(BoxLayout):
@@ -351,10 +352,10 @@ class CharSheet(BoxLayout):
             {"character": "TEXT NOT NULL",
              "visible": "BOOLEAN NOT NULL DEFAULT 0",
              "interactive": "BOOLEAN NOT NULL DEFAULT 1",
-             "left": "FLOAT NOT NULL DEFAULT 0.8",
-             "right": "FLOAT NOT NULL DEFAULT 1.0",
-             "bot": "FLOAT NOT NULL DEFAULT 0.0",
-             "top": "FLOAT NOT NULL DEFAULT 1.0",
+             "x_hint": "FLOAT NOT NULL DEFAULT 0.8",
+             "y_hint": "FLOAT NOT NULL DEFAULT 1.0",
+             "w_hint": "FLOAT NOT NULL DEFAULT 0.0",
+             "h_hint": "FLOAT NOT NULL DEFAULT 1.0",
              "style": "TEXT NOT NULL DEFAULT 'default_style'"},
             ("character",),
             {"character": ("character", "name"),
@@ -385,32 +386,45 @@ class CharSheet(BoxLayout):
              "idx>=0",
              "idx<={}".format(max(SHEET_ITEM_TYPE.values()))])
     ]
-
-    rdfields = set(["visible", "interactive",
-                    "left", "right", "bot", "top"])
-
-    alignment = 'vertical'
-
-    def __getattr__(self, attrn):
-        if attrn in CharSheet.rdfields:
-            return self.character.closet.skeleton[
-                "charsheet"][str(self.character)][attrn]
-        else:
-            return super().__getattr__(attrn)
-
-    def __setattr__(self, attrn, val):
-        if attrn in CharSheet.rdfields:
-            self.character.closet.skeleton[
-                "charsheet"][str(self.character)][attrn] = val
-        else:
-            BoxLayout.__setattr__(self, attrn, val)
+    rowdict = DictProperty()
+    style = AliasProperty(
+        lambda self: self.character.closet.get_style(
+            self.rowdict["style"]),
+        lambda self, v: None,
+        bind=('rowdict',))
 
     def __init__(self, character):
         self.character = character
-        BoxLayout.__init__(self, orientation='vertical')
+        rd = self.character.closet.skeleton[
+            "charsheet"][unicode(self.character)]
+
+        def upd_rd(*args):
+            self.rowdict = dict(rd)
+
+        upd_rd()
+        rd.bind(touches=upd_rd)
+
+        BoxLayout.__init__(self)
+        self.add_widget(CharSheetBg(self))
+        for widget in self:
+            self.add_widget(widget)
 
     def __iter__(self):
-        return list(self.values())
+        for rd in self.character.closet.skeleton[
+                "charsheet_item"][
+                unicode(self.character)].iterrows():
+            yield {
+                SHEET_ITEM_TYPE["THINGTAB"]: CharSheetThingTable,
+                SHEET_ITEM_TYPE["PLACETAB"]: CharSheetPlaceTable,
+                SHEET_ITEM_TYPE["PORTALTAB"]: CharSheetPortalTable,
+                SHEET_ITEM_TYPE["STATTAB"]: CharSheetStatTable,
+                SHEET_ITEM_TYPE["SKILLTAB"]: CharSheetSkillTable,
+                SHEET_ITEM_TYPE["THINGCAL"]: CharSheetThingCalendar,
+                SHEET_ITEM_TYPE["PLACECAL"]: CharSheetPlaceCalendar,
+                SHEET_ITEM_TYPE["PORTALCAL"]: CharSheetPortalCalendar,
+                SHEET_ITEM_TYPE["STATCAL"]: CharSheetStatCalendar,
+                SHEET_ITEM_TYPE["SKILLCAL"]: CharSheetSkillCalendar
+                }[rd["type"]](self, rd["key0"], rd["key1"], rd["key2"])
 
     def get_for_cal(self, cal, d, default):
         (k0, k1, k2) = cal.keys
@@ -435,31 +449,3 @@ class CharSheet(BoxLayout):
 
     def set_cal_top_tick(self, cal, tick):
         self.set_for_cal(cal, self.top_ticks, tick)
-
-    def get_cal_offx(self, cal):
-        return self.get_for_cal(cal, self.offxs, 0)
-
-    def set_cal_offx(self, cal, offx):
-        self.set_for_cal(cal, self.offxs, offx)
-
-    def get_cal_offy(self, cal):
-        return self.get_for_cal(cal, self.offys, 0)
-
-    def set_cal_offy(self, cal, offy):
-        self.set_for_cal(cal, self.offys, offy)
-
-    def items(self):
-        skel = self.character.closet.skeleton[
-            "charsheet_item"][str(self.window)][str(self.character)]
-        i = 0
-        for rd in skel.values():
-            yield (i, SHEET_ITEM_CLASS[rd["type"]](
-                self, rd["idx"]))
-            i += 1
-
-    def values(self):
-        skel = self.character.closet.skeleton[
-            "charsheet_item"][str(self.window)][str(self.character)]
-        for rd in skel.values():
-            yield SHEET_ITEM_CLASS[rd["type"]](
-                self, rd["idx"])
