@@ -36,7 +36,7 @@ from portal import Portal
 from thing import Thing
 from character import Character
 from charsheet import CharSheet
-from img import LiSEImage
+from img import Tex
 from kivy.uix.image import Image
 from kivy.core.image import ImageData
 from kivy.properties import NumericProperty
@@ -599,7 +599,7 @@ This is game-world time. It doesn't always go forwards.
         for name in names:
             kd["img"][name] = {"name": name}
         self.skeleton.update(
-            LiSEImage._select_skeleton(
+            Tex._select_skeleton(
                 self.c, kd))
         r = {}
         for name in names:

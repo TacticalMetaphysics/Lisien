@@ -94,23 +94,23 @@ that contain text."""
         lambda self: self.closet.skeleton["style"][self.name],
         lambda self, v: None)
     bg_inactive = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["bg_inactive"]).kivy_color,
+        lambda self: self.closet.get_color(self.rowdict["bg_inactive"]),
         lambda self, v: None,
         bind=('rowdict',))
     bg_active = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["bg_active"]).kivy_color,
+        lambda self: self.closet.get_color(self.rowdict["bg_active"]),
         lambda self, v: None,
         bind=('rowdict',))
     fg_inactive = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["fg_inactive"]).kivy_color,
+        lambda self: self.closet.get_color(self.rowdict["fg_inactive"]),
         lambda self, v: None,
         bind=('rowdict',))
     fg_active = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["fg_active"]).kivy_color,
+        lambda self: self.closet.get_color(self.rowdict["fg_active"]),
         lambda self, v: None,
         bind=('rowdict',))
     textcolor = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["textcolor"]).kivy_color,
+        lambda self: self.closet.get_color(self.rowdict["textcolor"]),
         lambda self, v: None,
         bind=('rowdict',))
     fontface = AliasProperty(
