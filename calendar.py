@@ -11,10 +11,11 @@ from kivy.graphics import (
 from kivy.properties import (
     AliasProperty,
     NumericProperty,
-    StringProperty)
+    StringProperty,
+    ObjectProperty)
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
-from kivy.uix.image import Image
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.relativelayout import RelativeLayout
 
 
@@ -150,91 +151,53 @@ class Timeline(Widget):
             TLWedge(self)
 
 
-class CCLabel(Label):
-    text = AliasProperty(
-        lambda self: self.cc.text,
-        lambda self, v: None)
-    color = AliasProperty(
-        lambda self: self.cc.column.calendar.charsheet.
-        style.textcolor.tup,
-        lambda self, v: None)
-    fontface = AliasProperty(
-        lambda self: self.cc.column.calendar.charsheet.style.fontface,
-        lambda self, v: None)
-    fontsize = AliasProperty(
-        lambda self: self.cc.column.calendar.charsheet.style.fontsize,
-        lambda self, v: None)
-
-    def __init__(self, cc, **kwargs):
-        self.cc = cc
-        Label.__init__(self, pos=(0, self.cc.y + self.cc.height), **kwargs)
-
-
-class CalendarCell(Image):
+class CalendarCell(Widget):
+    column = ObjectProperty()
     tick_from = NumericProperty()
     tick_to = NumericProperty(allownone=True)
-    text = StringProperty()
+    text = StringProperty('')
 
-    def __init__(self, column, tick_from, tick_to, text):
-        self.column = column
-        self.tick_from = tick_from
-        self.tick_to = tick_to
-        self.text = text
-        Image.__init__(self, pos=self.get_pos(), size=self.get_size())
+    def __init__(self, **kwargs):
+        Widget.__init__(self, **kwargs)
         style = self.column.calendar.charsheet.style
-        self.repos()
-        self.resize()
         with self.canvas:
-            Color(*style.bg_active.tup)
-            Rectangle(pos=self.pos, size=self.size, texture=self.texture)
-            Callback(self.repos)
-            Callback(self.resize)
-        self.add_widget(CCLabel(self))
+            Color(*style.bg_active.rgba)
+            Rectangle(pos=self.pos, size=self.size)
+        layout = BoxLayout(
+            size=self.size, pos=self.pos, orientation='vertical',
+            scale_hint={'x': None, 'y': self.height})
+        label = Label(
+            text=self.text,
+            pos_hint={'top': 1, 'x': 0},
+            valign='top',
+            color=style.textcolor.rgba,
+            font_name=style.fontface + '.ttf',
+            font_size=style.fontsize)
+        label.text_size = (None, label.height)
+        layout.add_widget(label)
+        self.add_widget(layout)
 
-    def repos(self, *args):
-        self.pos = self.get_pos()
-
-    def resize(self, *args):
-        self.size = self.get_size()
-
-    def get_label_top(self):
-        return self.column.calendar.tick_to_y(self.tick_from)
-
-    def get_pos(self):
-        branch = self.column.calendar.left_branch
-        th = self.column.calendar.tick_height
-        if branch is None:
-            branch = self.column.calendar.charsheet.closet.branch
+    def __len__(self):
         if self.tick_to is None:
-            y = 0
-        else:
-            y = self.column.calendar.tick_to_y(
-                self.tick_to) + th
-        return (0, y)
-
-    def get_size(self):
-        calendar = self.column.calendar
-        (cal_w, cal_h) = calendar.size_hint
-        w = self.column.width
-        tick_height = cal_h / calendar.rows_shown
-        if self.tick_to is not None:
-            h = (calendar.bot_tick - self.tick_to - 1) * tick_height
-            if h < 0:
-                h = 0
-        else:
-            h = self.tick_from * tick_height
-        return (w, h)
+            return 99999999
+        return self.tick_to - self.tick_from
 
 
 class CalendarColumn(RelativeLayout):
-    def __init__(self, calendar, branch):
-        self.calendar = calendar
-        self.branch = branch
-        RelativeLayout.__init__(self, pos=(self.get_x(), 0),
-                                size=self.get_size())
+    calendar = ObjectProperty()
+    branch = NumericProperty()
+
+    @property
+    def parent_branch_col(self):
+        return self.calendar.make_col(
+            self.calendar.charsheet.closet.skeleton[
+                "timestream"][self.branch]["parent"])
+
+    def __init__(self, **kwargs):
+        RelativeLayout.__init__(self, **kwargs)
         self.calendar.bind(
-            top_tick=self.reshape, left_branch=self.reshape,
-            col_width=self.reshape, tick_height=self.reshape)
+            top_tick=self._trigger_layout, left_branch=self._trigger_layout,
+            col_width=self._trigger_layout, rows_shown=self._trigger_layout)
         for cell in self:
             self.add_widget(cell)
 
@@ -250,39 +213,41 @@ class CalendarColumn(RelativeLayout):
     def __lt__(self, other):
         return int(self) < int(other)
 
-    def reshape(self, *args):
-        self.pos = (self.get_x(), 0)
-        self.size = self.get_size()
+    def do_layout(self, *largs):
+        for cell in self.children:
+            cell.y = cell.tick_from * self.calendar.tick_height
+            cell.height = len(cell) * self.calendar.tick_height
+        super(CalendarColumn, self).do_layout(*largs)
 
-    def get_x(self):
-        branch = self.calendar.left_branch
-        if branch is None:
-            branch = self.calendar.charsheet.closet.branch
-        return self.calendar.col_width * (self.branch - branch)
-
-    def get_size(self):
-        return (self.calendar.col_width, self.calendar.height)
-
-    @property
-    def parent_branch_col(self):
-        return self.calendar.make_col(
-            self.calendar.charsheet.closet.skeleton[
-                "timestream"][self.branch]["parent"])
+    def to_parent(self, x, y, relative=False):
+        if relative:
+            return (x + self.x, self.top - y)
+        return (x, y)
 
 
 class LocationCalendarColumn(CalendarColumn):
+    thing = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        kwargs["thing"] = kwargs["calendar"].charsheet.character.closet.get_thing(
+            kwargs["calendar"].keys[0], kwargs["calendar"].keys[1])
+        CalendarColumn.__init__(self, **kwargs)
+        
+
     def __iter__(self):
-        rowiter = self.calendar.thing.locations.iterrows()
+        rowiter = self.thing.locations.iterrows()
         prev = next(rowiter)
         style = self.calendar.charsheet.style
         for rd in rowiter:
             cc = CalendarCell(
-                self, prev["tick_from"], rd["tick_from"], prev["location"])
+                column=self, tick_from=prev["tick_from"],
+                tick_to=rd["tick_from"], text=prev["location"])
             (w, h) = cc.size
             if h > style.fontsize + style.spacing:
                 yield cc
         yield CalendarCell(
-            self, prev["tick_from"], None, prev["location"])
+            column=self, tick_from=prev["tick_from"],
+            tick_to=None, text=prev["location"])
 
 
 class PlaceCalendarColumn(CalendarColumn):
@@ -327,7 +292,7 @@ class Calendar(RelativeLayout):
         self.scroll_factor = scroll_factor
         self.change_type(typ, *keys)
         RelativeLayout.__init__(self)
-        self.charsheet.character.closet.bind(branch=self.upd_col_width)
+        self.charsheet.character.closet.bind(branch=self._trigger_layout)
         for widget in self:
             self.add_widget(widget)
 
@@ -355,6 +320,9 @@ class Calendar(RelativeLayout):
             not hasattr(other, 'cal_type') or
             other.cal_type != self.cal_type or
             self.skel != other.skel)
+
+    def _trigger_layout(self, *largs):
+        pass
 
     def upd_col_width(self):
         branches = self.charsheet.character.closet.timestream.max_branch() + 1
@@ -403,4 +371,4 @@ class Calendar(RelativeLayout):
             CAL_TYPE['PORTAL']: PortalCalendarColumn,
             CAL_TYPE['STAT']: StatCalendarColumn,
             CAL_TYPE['SKILL']: SkillCalendarColumn
-        }[self.cal_type](self, branch)
+        }[self.cal_type](calendar=self, branch=branch)

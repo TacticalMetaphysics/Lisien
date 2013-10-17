@@ -24,7 +24,8 @@ you that.
          {'name': 'text not null',
           'red': 'float not null',
           'green': 'float not null',
-          'blue': 'float not null'},
+          'blue': 'float not null',
+          'alpha': 'float not null default 1.0'},
          ("name",),
          {},
          ["red between 0.0 and 1.0",
@@ -59,12 +60,20 @@ green, blue. Register in db.colordict.
         return self.rowdict["blue"]
 
     @property
-    def tup(self):
+    def alpha(self):
+        return self.rowdict["alpha"]
+
+    @property
+    def rgb(self):
         return (self.red, self.green, self.blue)
 
     @property
+    def rgba(self):
+        return (self.red, self.green, self.blue, self.alpha)
+
+    @property
     def kivy_color(self):
-        return Color(self.red, self.green, self.blue)
+        return Color(self.red, self.green, self.blue, self.alpha)
 
 
 class LiSEStyle(EventDispatcher):

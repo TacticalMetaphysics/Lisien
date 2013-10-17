@@ -4,7 +4,6 @@ from util import SaveableWidgetMetaclass
 from kivy.uix.image import Image
 from kivy.properties import DictProperty, NumericProperty
 from kivy.uix.scatter import ScatterPlane
-from kivy.clock import Clock
 from logging import getLogger
 
 
@@ -80,12 +79,9 @@ class Spot(ScatterPlane):
             theguy.pos = self.get_pos()
             theguy.size = self.get_size()
 
-        def startup(*args):
-            self.add_widget(theguy)
-            self.board.closet.bind(branch=retex, tick=retex)
-            retex()
-
-        Clock.schedule_once(startup, 0)
+        self.add_widget(theguy)
+        self.board.closet.bind(branch=retex, tick=retex)
+        retex()
 
     def __str__(self):
         return str(self.place)

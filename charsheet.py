@@ -7,7 +7,7 @@ from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
-from kivy.graphics import Rectangle
+from kivy.graphics import Color, Rectangle
 from kivy.properties import AliasProperty, DictProperty
 
 
@@ -62,14 +62,14 @@ class CharSheetTable(GridLayout):
                 text=key,
                 font_name=self.charsheet.style.fontface + '.ttf',
                 font_size=self.charsheet.style.fontsize,
-                color=self.charsheet.style.textcolor.tup))
+                color=self.charsheet.style.textcolor.rgba))
         for rd in self.iter_skeleton():
             for key in self.colkeys:
                 self.add_widget(Label(
                     text=rd[key],
                     font_name=self.charsheet.style.fontface + '.ttf',
                     font_size=self.charsheet.style.fontsize,
-                    color=self.charsheet.style.textcolor.tup))
+                    color=self.charsheet.style.textcolor.rgba))
 
     def iter_skeleton(self, branch=None, tick=None):
         if branch is None:
@@ -91,42 +91,6 @@ class CharSheetTable(GridLayout):
             tick = self.closet.tick
         for rd in self.iter_skeleton(branch, tick):
             yield [rd[key] for key in self.colkeys]
-
-    def row_labels(self, row, l, t, batch, group):
-        step = self.width / len(row)
-        celled = []
-        for cell in row:
-            celled.append(cell)
-            yield Label(
-                cell,
-                font_name=self.style.fontface,
-                font_size=self.style.fontsize,
-                color=self.style.textcolor.tup,
-                size_hint=(l, t),
-                valign='top')
-            l += step
-
-    def draw(self, batch, group, branch=None, tick=None):
-        t = self.window_top - self.rowheight
-        l = self.window_left
-        for label in self.row_labels(
-                self.colkeys, l, t, batch, group):
-            yield label
-        for row in self.iterrows(branch, tick):
-            if t < self.window_bot + self.rowheight:
-                return
-            t -= self.rowheight
-            for label in self.row_labels(
-                    row, l, t, batch, group):
-                yield label
-
-    def hover(self, x, y):
-        if (
-                x > self.window_right and
-                x < self.window_left and
-                y > self.window_bot and
-                y < self.window_top):
-            return self
 
 
 class CharSheetThingTable(CharSheetTable):
@@ -439,7 +403,9 @@ class CharSheet(BoxLayout):
                       'y': 0.0},
             size_hint=(0.2, 1.0),
             spacing=10)
-#        self.add_widget(CharSheetBg(self))
+        with self.canvas:
+            Color(*self.style.bg_inactive.rgba)
+            Rectangle(pos=self.pos, size=self.size)
         for widget in self:
             self.add_widget(widget)
 
