@@ -8,7 +8,7 @@ from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.graphics import Color, Rectangle
-from kivy.properties import AliasProperty, DictProperty
+from kivy.properties import AliasProperty, DictProperty, ObjectProperty
 
 
 logger = getLogger(__name__)
@@ -378,6 +378,7 @@ class CharSheet(BoxLayout):
              "idx>=0",
              "idx<={}".format(max(SHEET_ITEM_TYPE.values()))])
     ]
+    character = ObjectProperty()
     rowdict = DictProperty()
     style = AliasProperty(
         lambda self: self.character.closet.get_style(
@@ -385,8 +386,15 @@ class CharSheet(BoxLayout):
         lambda self, v: None,
         bind=('rowdict',))
 
-    def __init__(self, character):
-        self.character = character
+    def __init__(self, **kwargs):
+        BoxLayout.__init__(
+            self,
+            orientation='vertical',
+            pos_hint={'x': 0.8,
+                      'y': 0.0},
+            size_hint=(0.2, 1.0),
+            spacing=10,
+            **kwargs)
         rd = self.character.closet.skeleton[
             "charsheet"][unicode(self.character)]
 
@@ -396,16 +404,14 @@ class CharSheet(BoxLayout):
         upd_rd()
         rd.bind(touches=upd_rd)
 
-        BoxLayout.__init__(
-            self,
-            orientation='vertical',
-            pos_hint={'x': 0.8,
-                      'y': 0.0},
-            size_hint=(0.2, 1.0),
-            spacing=10)
-        with self.canvas:
+        with self.canvas.before:
             Color(*self.style.bg_inactive.rgba)
-            Rectangle(pos=self.pos, size=self.size)
+            self.rect = Rectangle(pos=self.pos, size=self.size)
+
+        def _update_rect(*args):
+            self.rect.pos = self.pos
+            self.rect.size = self.size
+        self.bind(size=_update_rect, pos=_update_rect)
         for widget in self:
             self.add_widget(widget)
 

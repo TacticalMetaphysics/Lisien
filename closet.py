@@ -432,7 +432,7 @@ This is game-world time. It doesn't always go forwards.
                 "character": character}})
         self.skeleton.update(
             CharSheet._select_skeleton(self.c, skel))
-        return CharSheet(self.get_character(character))
+        return CharSheet(character=self.get_character(character))
 
     def load_characters(self, names):
         qtd = {
