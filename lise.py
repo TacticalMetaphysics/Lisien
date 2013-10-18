@@ -8,7 +8,7 @@ from os import remove
 from sqlite3 import connect, DatabaseError
 
 i = 0
-lang = "English"
+lang = "eng"
 dbfn = "default.sqlite"
 debugfn = ""
 DEBUG = False

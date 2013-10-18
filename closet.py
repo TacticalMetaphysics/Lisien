@@ -914,7 +914,7 @@ def mkdb(DB_NAME='default.sqlite'):
         " seed INTEGER DEFAULT 0);")
     c.execute(
         "CREATE TABLE strings (stringname TEXT NOT NULL, language TEXT NOT"
-        " NULL DEFAULT 'English', string TEXT NOT NULL, "
+        " NULL DEFAULT 'eng', string TEXT NOT NULL, "
         "PRIMARY KEY(stringname,  language));")
 
     done = set()
