@@ -1,14 +1,13 @@
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
+from kivy.properties import ObjectProperty, StringProperty
 
 
 class LiSEApp(App):
-    def __init__(self, closet, menu_name, dimension_name, character_name):
-        self.closet = closet
-        self.menu_name = menu_name
-        self.dimension_name = dimension_name
-        self.character_name = character_name
-        App.__init__(self)
+    closet = ObjectProperty()
+    menu_name = StringProperty()
+    dimension_name = StringProperty()
+    character_name = StringProperty()
 
     def build(self):
         menu = self.closet.load_menu(self.menu_name)

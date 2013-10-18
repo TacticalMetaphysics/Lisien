@@ -8,18 +8,19 @@ from util import (
     fortyfive)
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
-from kivy.properties import AliasProperty, DictProperty
+from kivy.properties import AliasProperty, DictProperty, ObjectProperty
 
 
 class Arrow(Widget):
     margin = 20
     w = 1
+    board = ObjectProperty()
+    portal = ObjectProperty()
     rowdict = DictProperty()
-    def __init__(self, board, portal, **kwargs):
-        self.board = board
-        self.portal = portal
-        self.upd_rowdict()
+
+    def __init__(self, **kwargs):
         Widget.__init__(self, **kwargs)
+        self.upd_rowdict()
         dimn = unicode(self.board.dimension)
         orign = unicode(self.portal.origin)
         destn = unicode(self.portal.destination)

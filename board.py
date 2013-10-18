@@ -81,7 +81,7 @@ class Board(ScrollView):
                 pawn = Pawn(self, thing)
                 self.pawndict[unicode(thing)] = pawn
         for portal in self.dimension.portals:
-            arrow = Arrow(self, portal)
+            arrow = Arrow(board=self, portal=portal)
             self.arrowdict[unicode(portal)] = arrow
             content.add_widget(arrow)
         for spot in self.spotdict.itervalues():
@@ -89,7 +89,7 @@ class Board(ScrollView):
         for pawn in self.pawndict.itervalues():
             content.add_widget(pawn)
         self.add_widget(content)
-    
+
     def __str__(self):
         return str(self.dimension)
 

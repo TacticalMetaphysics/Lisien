@@ -8,7 +8,11 @@ from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.graphics import Color, Rectangle
-from kivy.properties import AliasProperty, DictProperty, ObjectProperty
+from kivy.properties import (
+    AliasProperty,
+    DictProperty,
+    ObjectProperty,
+    ListProperty)
 
 
 logger = getLogger(__name__)
@@ -30,6 +34,9 @@ SHEET_ITEM_TYPE = {
     "PORTALCAL": 7,
     "STATCAL": 8,
     "SKILLCAL": 9}
+SHEET_TO_CAL_TYPE = dict(
+    [(SHEET_ITEM_TYPE[a], CAL_TYPE[a[:-3]]) for a in
+     ("THINGCAL", "PLACECAL", "PORTALCAL", "STATCAL", "SKILLCAL")])
 
 
 def generate_items(skel, keykey, valkey):
@@ -38,6 +45,9 @@ def generate_items(skel, keykey, valkey):
 
 
 class CharSheetTable(GridLayout):
+    charsheet = ObjectProperty()
+    keys = ListProperty()
+
     @property
     def skel(self):
         if self.keys[0] is None:
@@ -50,13 +60,13 @@ class CharSheetTable(GridLayout):
             return self.character_skel[
                 self.keys[0]][self.keys[1]][self.keys[2]]
 
-    def __init__(self, cs, *keys):
-        self.charsheet = cs
-        self.keys = keys
-        GridLayout.__init__(
-            self, cols=len(self.colkeys),
-            row_default_height=self.charsheet.style.fontsize+self.charsheet.style.spacing,
-            row_force_default=True)
+    def __init__(self, **kwargs):
+        GridLayout.__init__(self, **kwargs)
+        self.cols = len(self.colkeys)
+        self.row_default_height = (self.charsheet.style.fontsize
+                                   + self.charsheet.style.spacing)
+        self.row_force_default = True
+
         for key in self.colkeys:
             self.add_widget(Label(
                 text=key,
@@ -260,61 +270,14 @@ class CharSheetSkillTable(CharSheetTable):
 
 
 class CharSheetCalendar(Calendar):
-    def __init__(self, charsheet, typ, *keys):
+    charsheet = ObjectProperty()
+    keys = ListProperty()
+
+    def __init__(self, **kwargs):
         Calendar.__init__(
-            self, charsheet, ROWS_SHOWN, MAX_COLS, LEFT_BRANCH,
-            TOP_TICK, SCROLL_FACTOR, typ, *keys)
-
-
-class CharSheetThingCalendar(CharSheetCalendar):
-    @property
-    def thing(self):
-        for rd in self.charsheet.character.thingdict.iterrows():
-            r = self.charsheet.character.closet.get_thing(
-                rd["dimension"], rd["thing"])
-            break
-        return r
-
-    def __init__(self, charsheet, *keys):
-        CharSheetCalendar.__init__(
-            self, charsheet, CAL_TYPE["THING"], *keys)
-
-
-class CharSheetPlaceCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, *keys):
-        CharSheetCalendar.__init__(
-            self, charsheet, SHEET_ITEM_TYPE["PLACECAL"], *keys)
-
-
-class CharSheetPortalCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, *keys):
-        CharSheetCalendar.__init__(
-            self, charsheet, SHEET_ITEM_TYPE["PORTALCAL"], *keys)
-
-
-class CharSheetStatCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, *keys):
-        CharSheetCalendar.__init__(
-            self, charsheet, SHEET_ITEM_TYPE["STATCAL"], *keys)
-
-
-class CharSheetSkillCalendar(CharSheetCalendar):
-    def __init__(self, charsheet, *keys):
-        CharSheetCalendar.__init__(
-            self, charsheet, SHEET_ITEM_TYPE["SKILLCAL"], *keys)
-
-
-SHEET_ITEM_CLASS = {
-    SHEET_ITEM_TYPE["THINGTAB"]: CharSheetThingTable,
-    SHEET_ITEM_TYPE["PLACETAB"]: CharSheetPlaceTable,
-    SHEET_ITEM_TYPE["PORTALTAB"]: CharSheetPortalTable,
-    SHEET_ITEM_TYPE["STATTAB"]: CharSheetStatTable,
-    SHEET_ITEM_TYPE["SKILLTAB"]: CharSheetSkillTable,
-    SHEET_ITEM_TYPE["THINGCAL"]: CharSheetThingCalendar,
-    SHEET_ITEM_TYPE["PLACECAL"]: CharSheetPlaceCalendar,
-    SHEET_ITEM_TYPE["PORTALCAL"]: CharSheetPortalCalendar,
-    SHEET_ITEM_TYPE["STATCAL"]: CharSheetStatCalendar,
-    SHEET_ITEM_TYPE["SKILLCAL"]: CharSheetSkillCalendar}
+            self, rows_shown=ROWS_SHOWN, max_cols=MAX_COLS,
+            left_branch=LEFT_BRANCH, top_tick=TOP_TICK,
+            scroll_factor=SCROLL_FACTOR, **kwargs)
 
 
 class CharSheetBg(Widget):
@@ -419,15 +382,16 @@ class CharSheet(BoxLayout):
         for rd in self.character.closet.skeleton[
                 "charsheet_item"][
                 unicode(self.character)].iterrows():
-            yield {
+            tabs = {
                 SHEET_ITEM_TYPE["THINGTAB"]: CharSheetThingTable,
                 SHEET_ITEM_TYPE["PLACETAB"]: CharSheetPlaceTable,
                 SHEET_ITEM_TYPE["PORTALTAB"]: CharSheetPortalTable,
                 SHEET_ITEM_TYPE["STATTAB"]: CharSheetStatTable,
-                SHEET_ITEM_TYPE["SKILLTAB"]: CharSheetSkillTable,
-                SHEET_ITEM_TYPE["THINGCAL"]: CharSheetThingCalendar,
-                SHEET_ITEM_TYPE["PLACECAL"]: CharSheetPlaceCalendar,
-                SHEET_ITEM_TYPE["PORTALCAL"]: CharSheetPortalCalendar,
-                SHEET_ITEM_TYPE["STATCAL"]: CharSheetStatCalendar,
-                SHEET_ITEM_TYPE["SKILLCAL"]: CharSheetSkillCalendar
-                }[rd["type"]](self, rd["key0"], rd["key1"], rd["key2"])
+                SHEET_ITEM_TYPE["SKILLTAB"]: CharSheetSkillTable
+            }
+            keylst = [rd["key0"], rd["key1"], rd["key2"]]
+            if rd["type"] in tabs:
+                yield tabs[rd["type"]](charsheet=self, keys=keylst)
+            else:
+                yield CharSheetCalendar(charsheet=self, keys=keylst,
+                                        typ=SHEET_TO_CAL_TYPE[rd["type"]])

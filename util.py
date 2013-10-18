@@ -76,6 +76,7 @@ class SkelRowIter(object):
 
 class Skeleton(MutableMapping, EventDispatcher):
     touches = NumericProperty(0)
+
     def __init__(self, content, name="", parent=None,
                  set_listener=None, del_listener=None):
         self.rowdict = None

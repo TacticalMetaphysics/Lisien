@@ -1,15 +1,12 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from __future__ import print_function
-from logging import getLogger
 from kivy.graphics import (
-    Callback,
     Color,
     Triangle,
     Rectangle,
     Line)
 from kivy.properties import (
-    AliasProperty,
     NumericProperty,
     StringProperty,
     ObjectProperty)
@@ -27,9 +24,6 @@ between showing various schedules, or even show many in parallel.
 """
 
 
-logger = getLogger(__name__)
-
-
 CAL_TYPE = {
     "THING": 0,
     "PLACE": 1,
@@ -38,40 +32,19 @@ CAL_TYPE = {
     "SKILL": 4}
 
 
-class BCLine(Line):
-    def __init__(self, bc):
-        self.bc = bc
-        Line.__init__(self, points=self.bc.get_line_points())
-
-    def upd_points(self, *args):
-        self.points = self.bc.get_line_points()
-
-
-class BCWedge(Triangle):
-    points = AliasProperty(
-        lambda self: self.get_points(), lambda self, v: None)
-
-    def __init__(self, bc):
-        self.bc = bc
-        Triangle.__init__(self, points=self.bc.get_wedge_points())
-
-
 class BranchConnector(Widget):
     wedge_height = 8
 
-    def __init__(self, column, color=(255, 0, 0)):
-        self.column = column
-        self.color = color
-        Widget.__init__(
-            self,
-            x=self.column.parent_branch_col.window_right -
-            self.column.parent_branch_col.style.spacing,
-            y=self.column.calendar.tick_to_y(self.column.start_tick) +
-            self.column.calendar.offy)
+    def __init__(self, **kwargs):
+        Widget.__init__(self, **kwargs)
+        self.x = (self.column.parent_branch_col.window_right -
+                  self.column.parent_branch_col.style.spacing)
+        self.y = (self.column.calendar.tick_to_y(self.column.start_tick) +
+                  self.column.calendar.offy)
         with self.canvas:
             Color(*self.color)
-            BCLine(self)
-            BCWedge(self)
+            Line(points=self.get_line_points())
+            Triangle(points=self.get_wedge_points())
 
     def get_line_points(self):
         y0 = self.y
@@ -95,9 +68,9 @@ class BranchConnector(Widget):
 
 
 class TLLine(Line):
-    def __init__(self, tl):
-        self.tl = tl
-        Line.__init__(self, points=self.get_points())
+    def __init__(self, **kwargs):
+        Line.__init__(self, **kwargs)
+        self.points = self.get_points()
         self.tl.column.calendar.closet.bind(
             branch=self.upd_points,
             tick=self.upd_points)
@@ -107,8 +80,9 @@ class TLLine(Line):
         l = column.left
         r = l + self.tl.handle_width
         c = column.calendar.tick_to_y(column.calendar.charsheet.closet.tick)
-        t = c + self.tl.ry
-        b = c - self.tl.ry
+        ry = self.tl.height / 2
+        t = c + ry
+        b = c - ry
         return [l, t, r, c, l, b]
 
     def upd_points(self, *args):
@@ -116,9 +90,9 @@ class TLLine(Line):
 
 
 class TLWedge(Triangle):
-    def __init__(self, tl):
-        self.tl = tl
-        Triangle.__init__(self, points=self.get_points())
+    def __init__(self, **kwargs):
+        Triangle.__init__(self, **kwargs)
+        self.points = self.get_points()
         self.tl.column.calendar.closet.bind(
             branch=self.upd_points,
             tick=self.upd_points)
@@ -139,16 +113,15 @@ class Timeline(Widget):
     handle_height = 16
     color = (255, 0, 0)
 
-    def __init__(self, column):
-        self.column = column
-        self.ry = self.handle_height / 2
-        self.offx = 0
-        self.offy = 0
-        Widget.__init__(self)
+    def __init__(self, **kwargs):
+        Widget.__init__(self, **kwargs)
         with self.canvas:
             Color(*self.color)
             TLLine(self)
             TLWedge(self)
+
+    def _set_handle_height(self, v):
+        self.handle_height = v
 
 
 class CalendarCell(Widget):
@@ -217,7 +190,6 @@ class CalendarColumn(RelativeLayout):
         for cell in self.children:
             cell.y = cell.tick_from * self.calendar.tick_height
             cell.height = len(cell) * self.calendar.tick_height
-        super(CalendarColumn, self).do_layout(*largs)
 
     def to_parent(self, x, y, relative=False):
         if relative:
@@ -229,10 +201,10 @@ class LocationCalendarColumn(CalendarColumn):
     thing = ObjectProperty()
 
     def __init__(self, **kwargs):
-        kwargs["thing"] = kwargs["calendar"].charsheet.character.closet.get_thing(
+        thinget = kwargs["calendar"].charsheet.character.closet.get_thing
+        kwargs["thing"] = thinget(
             kwargs["calendar"].keys[0], kwargs["calendar"].keys[1])
         CalendarColumn.__init__(self, **kwargs)
-        
 
     def __iter__(self):
         rowiter = self.thing.locations.iterrows()
@@ -271,29 +243,21 @@ class Calendar(RelativeLayout):
     left_branch = NumericProperty(0)
     cal_type = NumericProperty(0)
     col_width = NumericProperty(0)
-    rows_shown = NumericProperty(0)
-    tick_height = AliasProperty(
-        lambda self: self.get_tick_height(),
-        lambda self, v: None,
-        bind=('rows_shown', 'height'))
-    bot_tick = AliasProperty(
-        lambda self: self.top_tick + self.rows_shown,
-        lambda self, v: None,
-        bind=('top_tick', 'rows_shown'))
+    rows_shown = NumericProperty(120)
+    tick_height = NumericProperty(0)
+    bot_tick = NumericProperty(0)
+    max_cols = NumericProperty(1)
+    scroll_factor = NumericProperty(4)
+    typ = NumericProperty(0)
 
-    def __init__(
-            self, charsheet, rows_shown, max_cols,
-            left_branch, top_tick, scroll_factor, typ, *keys):
-        self.charsheet = charsheet
-        self.rows_shown = rows_shown
-        self.max_cols = max_cols
-        self.top_tick = top_tick
-        self.left_branch = left_branch
-        self.scroll_factor = scroll_factor
-        self.change_type(typ, *keys)
-        RelativeLayout.__init__(self)
+    def __init__(self, **kwargs):
+        RelativeLayout.__init__(self, **kwargs)
+        self.tick_height = self.height / self.rows_shown
         self.charsheet.character.closet.bind(branch=self._trigger_layout)
+        self.change_type(self.typ, self.keys)
         for widget in self:
+            # TODO: In one of these widgets, there are properties
+            # stuck in an infinite loop. Fix.
             self.add_widget(widget)
 
     def __iter__(self):
@@ -321,9 +285,6 @@ class Calendar(RelativeLayout):
             other.cal_type != self.cal_type or
             self.skel != other.skel)
 
-    def _trigger_layout(self, *largs):
-        pass
-
     def upd_col_width(self):
         branches = self.charsheet.character.closet.timestream.max_branch() + 1
         (w, h) = self.size
@@ -337,7 +298,7 @@ class Calendar(RelativeLayout):
     def get_tick_height(self):
         return self.height / self.rows_shown
 
-    def change_type(self, cal_type, *keys):
+    def change_type(self, cal_type, keys):
         self.cal_type = cal_type
         dk = {
             CAL_TYPE["THING"]: "thing",
@@ -372,3 +333,9 @@ class Calendar(RelativeLayout):
             CAL_TYPE['STAT']: StatCalendarColumn,
             CAL_TYPE['SKILL']: SkillCalendarColumn
         }[self.cal_type](calendar=self, branch=branch)
+
+    def _get_keys(self):
+        return (self.key0, self.key1, self.key2)
+
+    def _set_keys(self, v):
+        (self.key0, self.key1, self.key2) = v
