@@ -1,41 +1,57 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from __future__ import print_function
-from math import cos, sin
+from math import cos, sin, hypot, atan
 from util import (
     wedge_offsets_rise_run,
     truncated_line,
     fortyfive)
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
-from kivy.properties import AliasProperty, DictProperty, ObjectProperty
+from kivy.properties import (
+    ObjectProperty)
+from kivy.clock import Clock
 
 
 class Arrow(Widget):
-    margin = 20
+    margin = 10
     w = 1
     board = ObjectProperty()
     portal = ObjectProperty()
-    rowdict = DictProperty()
 
     def __init__(self, **kwargs):
         Widget.__init__(self, **kwargs)
-        self.upd_rowdict()
-        dimn = unicode(self.board.dimension)
+        self.upd_pos_size()
         orign = unicode(self.portal.origin)
         destn = unicode(self.portal.destination)
-        self.board.spotdict[orign].bind(transform=self.realign)
-        self.board.spotdict[destn].bind(transform=self.realign)
-        self.board.closet.skeleton["portal"][dimn][orign][destn].bind(
-            touches=self.upd_rowdict)
+        self.board.spotdict[orign].bind(
+            pos=self.realign,
+            size=self.realign,
+            transform=self.realign)
+        self.board.spotdict[destn].bind(
+            pos=self.realign,
+            size=self.realign,
+            transform=self.realign)
         self.bg_color = Color(0.25, 0.25, 0.25)
         self.fg_color = Color(1.0, 1.0, 1.0)
-        self.bg_line = Line(points=self.get_points(), width=self.w * 1.4)
-        self.fg_line = Line(points=self.get_points(), width=self.w)
+        self.bg_line = Line(width=self.w * 1.4)
+        self.fg_line = Line(width=self.w)
         self.canvas.add(self.bg_color)
         self.canvas.add(self.bg_line)
         self.canvas.add(self.fg_color)
         self.canvas.add(self.fg_line)
+
+        def startup(*args):
+            self.parent.bind(pos=self.realign, size=self.realign)
+            self.realign()
+
+        Clock.schedule_once(startup, 0)
+
+    def __unicode__(self):
+        return unicode(self.portal)
+
+    def __str__(self):
+        return str(self.portal)
 
     @property
     def reciprocal(self):
@@ -46,29 +62,22 @@ class Arrow(Widget):
         except KeyError:
             return None
 
-    @property
-    def selected(self):
-        return self in self.board.selected
-
-    @property
-    def orig(self):
-        return self.board.spotdict[unicode(self.portal.origin)]
-
-    @property
-    def dest(self):
-        return self.board.spotdict[unicode(self.portal.destination)]
-
-    def upd_rowdict(self, *args):
-        self.rowdict = self.board.closet.skeleton["portal"][
-            unicode(self.board.dimension)][unicode(self.portal.origin)][
-            unicode(self.portal.destination)]
-
     def get_points(self):
-        (ox, oy) = self.orig.to_parent(*self.orig.get_coords(), relative=True)
-        (dx, dy) = self.dest.to_parent(*self.dest.get_coords(), relative=True)
-        (dw, dh) = self.dest.get_size()
+        orig = self.board.spotdict[unicode(self.portal.origin)]
+        dest = self.board.spotdict[unicode(self.portal.destination)]
+        (ox, oy) = orig.pos
+        (ow, oh) = orig.size
+        orx = ow / 2
+        ory = ow / 2
+        ox += orx
+        oy += ory
+        (dx, dy) = dest.pos
+        (dw, dh) = dest.size
         drx = dw / 2
         dry = dh / 2
+        dx += drx
+        dy += dry
+
         if drx > dry:
             dr = drx
         else:
@@ -107,56 +116,71 @@ class Arrow(Widget):
         y2 = (topy - yoff2) * yco
         endx = rightx * xco
         endy = topy * yco
-        return [ox, oy,
-                endx, endy, x1, y1,
-                endx, endy, x2, y2,
-                endx, endy]
+        r = [ox, oy,
+             endx, endy, x1, y1,
+             endx, endy, x2, y2,
+             endx, endy]
+        for coord in r:
+            assert(coord > 0.0)
+            assert(coord < 1000.0)
+        return r
 
     def get_slope(self):
-        ox = self.orig.x
-        oy = self.orig.y
-        dx = self.dest.x
-        dy = self.dest.y
+        orig = self.board.spotdict[unicode(self.portal.origin)]
+        dest = self.board.spotdict[unicode(self.portal.destination)]
+        ox = orig.x
+        oy = orig.y
+        dx = dest.x
+        dy = dest.y
         if oy == dy:
             return 0
         elif ox == dx:
             return None
         else:
-            return self.rise / self.run
-
-    def get_left(self):
-        if self.orig.x < self.dest.x:
-            return self.orig.x - self.margin
-        else:
-            return self.dest.x - self.margin
-
-    def get_right(self):
-        if self.orig.x < self.dest.x:
-            return self.dest.x + self.margin
-        else:
-            return self.orig.x + self.margin
-
-    def get_bot(self):
-        if self.orig.y < self.dest.y:
-            return self.orig.y - self.margin
-        else:
-            return self.dest.y - self.margin
-
-    def get_top(self):
-        if self.orig.y < self.dest.y:
-            return self.dest.y + self.margin
-        else:
-            return self.orig.y + self.margin
+            rise = dy - oy
+            run = dx - ox
+            return rise / run
 
     def get_b(self):
-        if self.m is None:
-            return None
-        denominator = self.run
-        x_numerator = self.rise * self.ox
-        y_numerator = denominator * self.oy
+        orig = self.board.spotdict[unicode(self.portal.origin)]
+        dest = self.board.spotdict[unicode(self.portal.destination)]
+        (ox, oy) = orig.pos
+        (dx, dy) = dest.pos
+        denominator = dx - ox
+        x_numerator = (dy - oy) * ox
+        y_numerator = denominator * oy
         return ((y_numerator - x_numerator), denominator)
 
     def realign(self, *args):
+        self.upd_pos_size()
         points = self.get_points()
         self.bg_line.points = points
         self.fg_line.points = points
+
+    def upd_pos_size(self, *args):
+        orig = self.board.spotdict[unicode(self.portal.origin)]
+        dest = self.board.spotdict[unicode(self.portal.destination)]
+        (ox, oy) = orig.pos
+        (dx, dy) = dest.pos
+        w = dx - ox
+        h = dy - oy
+        self.pos = (ox, oy)
+        self.size = (w, h)
+
+    def collide_point(self, x, y):
+        if not super(Arrow, self).collide_point(x, y):
+            return False
+        orig = self.board.spotdict[unicode(self.portal.origin)]
+        dest = self.board.spotdict[unicode(self.portal.destination)]
+        (ox, oy) = orig.pos
+        (dx, dy) = dest.pos
+        if ox == dx:
+            return abs(y - dy) <= self.w
+        elif oy == dy:
+            return abs(x - dx) <= self.w
+        else:
+            correct_angle_a = atan(dy / dx)
+            observed_angle_a = atan(y / x)
+            error_angle_a = abs(observed_angle_a - correct_angle_a)
+            error_seg_len = hypot(x, y)
+            return sin(error_angle_a) * error_seg_len <= self.margin
