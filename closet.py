@@ -37,11 +37,15 @@ from thing import Thing
 from character import Character
 from charsheet import CharSheet
 from img import Tex
+from menu import Menu
 from kivy.uix.image import Image
 from kivy.core.image import ImageData
-from kivy.properties import NumericProperty
+from kivy.properties import (
+    NumericProperty,
+    ObjectProperty,
+    DictProperty,
+    StringProperty)
 from kivy.event import EventDispatcher
-from menu import Menu
 
 
 logger = getLogger(__name__)
@@ -108,18 +112,40 @@ You need to create a SQLite database file with the appropriate schema
 before RumorMill will work. For that, run mkdb.sh.
 
     """
+    skeleton = ObjectProperty()
+    connector = ObjectProperty()
+    xfuncs = DictProperty({})
+    lang = StringProperty("eng")
+    dimension = StringProperty("Physical")
+    seed = NumericProperty(0)
+    branch = NumericProperty(0)
+    tick = NumericProperty(0)
 
-    atrdic = {
-        "game": lambda self: self.skeleton["game"],
-        "seed": lambda self: self.game["seed"],
-        "dimensions": lambda self: iter(self.dimensiondict.values()),
-        "characters": lambda self: iter(self.characterdict.values())}
-    branch = NumericProperty()
-    tick = NumericProperty()
+    boardhanddict = DictProperty({})
+    calendardict = DictProperty({})
+    colordict = DictProperty({})
+    dimensiondict = DictProperty({})
+    boarddict = DictProperty({})
+    effectdict = DictProperty({})
+    effectdeckdict = DictProperty({})
+    imgdict = DictProperty({})
+    texturedict = DictProperty({})
+    menudict = DictProperty({})
+    menuitemdict = DictProperty({})
+    styledict = DictProperty({})
+    tickdict = DictProperty({})
+    eventdict = DictProperty({})
+    characterdict = DictProperty({})
 
-    def __init__(self, connector, xfuncs={}, lang="eng",
-                 front_dimension="Physical", front_board=0,
-                 front_branch=0, seed=0, tick=0, **kwargs):
+    @property
+    def dimensions(self):
+        return self.dimensiondict.itervalues()
+
+    @property
+    def characters(self):
+        return self.characterdict.itervalues()
+
+    def __init__(self, **kwargs):
         """Return a database wrapper around the SQLite database file by the
 given name.
 
@@ -127,11 +153,7 @@ given name.
         EventDispatcher.__init__(self, **kwargs)
         self.bind(branch=self.upd_branch)
         self.bind(tick=self.upd_tick)
-        self.branch = front_branch
-        self.tick = tick
-        self.language = lang
-        self.conn = connector
-        self.cursor = self.conn.cursor()
+        self.cursor = self.connector.cursor()
         self.c = self.cursor
 
         # This dict is special. It contains all the game
@@ -139,30 +161,16 @@ given name.
         # capable of storing. All my objects are ultimately just
         # views on this thing.
         self.skeleton = empty_skel()
+        self.c.execute("SELECT seed, dimension, branch, tick FROM game")
+        self.skeleton.update(
+            Skeleton({"game": dictify_row(
+                self.c.fetchone(),
+                ("seed", "dimension", "branch", "tick"))}))
         # This is a copy of the skeleton as it existed at the time of
         # the last save. I'll be finding the differences between it
         # and the current skeleton in order to decide what to write to
         # disk.
-        self.old_skeleton = empty_skel()
-
-        self.windowdict = {}
-        self.boardhanddict = {}
-        self.calendardict = {}
-        self.carddict = {}
-        self.colordict = {}
-        self.dimensiondict = {}
-        self.effectdict = {}
-        self.effectdeckdict = {}
-        self.imgdict = {}
-        self.texturedict = {}
-        self.menudict = {}
-        self.menuitemdict = {}
-        self.styledict = {}
-        self.tickdict = {}
-        self.eventdict = {}
-        self.characterdict = {}
-        self.windowdict = {}
-        self.lang = lang
+        self.old_skeleton = self.skeleton.copy()
 
         self.game_speed = 1
         self.updating = False
@@ -175,7 +183,7 @@ given name.
             'play_speed':
             (self.play_speed, ONE_ARG_RE),
             'back_to_start':
-            (self.back_to_start, ""),
+            (self.back_to_start, ''),
             'one': placeholder,
             'two': placeholder,
             'noop': placeholder,
@@ -186,7 +194,7 @@ given name.
             'show_menu':
             (self.show_menu, ONE_ARG_RE),
             'make_generic_place':
-            (self.make_generic_place, ONE_ARG_RE),
+            (self.make_generic_place, ''),
             'increment_branch':
             (self.increment_branch, ONE_ARG_RE),
             'time_travel_inc_tick':
@@ -214,25 +222,6 @@ given name.
             (self.mi_create_thing, ONE_ARG_RE),
             'mi_create_portal':
             (self.mi_create_portal, ONE_ARG_RE)}
-        self.menu_cbs.update(xfuncs)
-        self.skeleton["game"] = {
-            "front_dimension": front_dimension,
-            "front_branch": front_branch,
-            "seed": seed,
-            "tick": tick}
-
-    def __getattr__(self, attrn):
-        try:
-            return Closet.atrdic[attrn](self)
-        except KeyError:
-            raise AttributeError(
-                "Closet doesn't have the attribute " + attrn)
-
-    def __setattr__(self, attrn, val):
-        if attrn in ("seed", "age"):
-            getattr(self, "game")[attrn] = val
-        else:
-            super(Closet, self).__setattr__(attrn, val)
 
     def __del__(self):
         """Try to write changes to disk before dying.
@@ -243,7 +232,7 @@ given name.
         self.conn.close()
 
     def upd_branch(self, *args):
-        self.skeleton["game"]["front_branch"] = self.branch
+        self.skeleton["game"]["branch"] = self.branch
 
     def upd_tick(self, *args):
         self.skeleton["game"]["tick"] = self.tick
@@ -313,15 +302,6 @@ For more information, consult SaveableMetaclass in util.py.
         menu.visible = True
         menu.tweaks += 1
 
-    def get_age(self):
-        """Get the number of ticks since the start of the game. Persists
-between sessions.
-
-This is game-world time. It doesn't always go forwards.
-
-        """
-        return self.game["age"]
-
     def get_text(self, strname):
         """Get the string of the given name in the language set at startup."""
         if strname is None:
@@ -334,7 +314,7 @@ This is game-world time. It doesn't always go forwards.
             else:
                 assert(strname[1:] in self.skeleton["strings"])
                 return self.skeleton["strings"][
-                    strname[1:]][self.language]["string"]
+                    strname[1:]][self.lang]["string"]
         else:
             return strname
 
@@ -379,12 +359,12 @@ This is game-world time. It doesn't always go forwards.
                     clas._insert_rowdicts_table(
                         self.c, to_save[tabname], tabname)
         self.c.execute("DELETE FROM game")
-        keys = list(self.game.keys())
+        keys = self.skeleton["game"].keys()
         self.c.execute(
             "INSERT INTO game ({0}) VALUES ({1})".format(
                 ", ".join(keys),
-                ", ".join(["?"] * len(self.game))),
-            tuple([self.game[k] for k in keys]))
+                ", ".join(["?"] * len(self.skeleton["game"]))),
+            [self.skeleton["game"][k] for k in keys])
         self.old_skeleton = self.skeleton.copy()
 
     def load_strings(self):
@@ -612,7 +592,7 @@ This is game-world time. It doesn't always go forwards.
                 fixed = ImageData(
                     rltex.width, rltex.height,
                     rltex.colorfmt, imgd.data.replace(
-                    '\xffGll', '\x00Gll').replace(
+                        '\xffGll', '\x00Gll').replace(
                         '\xff.', '\x00.'),
                     source=self.skeleton["img"][name]["path"])
                 rltex.blit_data(fixed)
@@ -803,9 +783,11 @@ This is game-world time. It doesn't always go forwards.
             return b
 
     def new_branch(self, parent, branch, tick):
-        for dimension in self.dimensions:
+        for dimension in self.dimensiondict.itervalues():
             dimension.new_branch(parent, branch, tick)
-        for character in self.characters:
+        for board in self.boarddict.itervalues():
+            board.new_branch(parent, branch, tick)
+        for character in self.characterdict.itervalues():
             character.new_branch(parent, branch, tick)
         self.skeleton["timestream"][branch] = {
             "branch": branch,
@@ -836,13 +818,14 @@ This is game-world time. It doesn't always go forwards.
         self.stop()
         self.time_travel(self.branch, 0)
 
-    def update(self, ts=None):
-        self.time_travel_inc_tick(ticks=self.game_speed)
+    def update(self, *args):
+        if self.updating:
+            self.time_travel_inc_tick(ticks=self.game_speed)
 
     def end_game(self):
         self.c.close()
-        self.conn.commit()
-        self.conn.close()
+        self.connector.commit()
+        self.connector.close()
 
     def checkpoint(self):
         self.old_skeleton = self.skeleton.copy()
@@ -908,8 +891,8 @@ def mkdb(DB_NAME='default.sqlite'):
 
     c.execute(
         "CREATE TABLE game"
-        " (front_dimension TEXT DEFAULT 'Physical', "
-        "front_branch INTEGER DEFAULT 0, "
+        " (dimension TEXT DEFAULT 'Physical', "
+        "branch INTEGER DEFAULT 0, "
         "tick INTEGER DEFAULT 0,"
         " seed INTEGER DEFAULT 0);")
     c.execute(
@@ -1004,16 +987,9 @@ def mkdb(DB_NAME='default.sqlite'):
     conn.commit()
 
 
-def load_closet(dbfn, lang="eng", xfuncs={}):
+def load_closet(dbfn, lang="eng"):
     conn = sqlite3.connect(dbfn)
-    c = conn.cursor()
-    c.execute(
-        "SELECT front_dimension, front_branch, seed, tick "
-        "FROM game")
-    row = c.fetchone()
-    c.close()
-    initargs = (conn, xfuncs, lang) + row
-    r = Closet(*initargs)
+    r = Closet(connector=conn, lang=lang)
     r.load_strings()
     r.load_timestream()
     return r

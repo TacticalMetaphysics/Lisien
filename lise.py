@@ -43,19 +43,6 @@ if DEBUG:
 
 closet = closet.load_closet(dbfn, lang)
 
-
-class Updater:
-    def __init__(self, closet):
-        self.tp = 0.0
-        self.closet = closet
-
-    def update(self, ts):
-        self.tp += ts
-        while self.tp >= 0.1:
-            if self.closet.updating:
-                self.closet.update()
-            self.tp -= 0.1
-
 LiSEApp(closet=closet, menu_name='Main',
         dimension_name='Physical',
         character_name='household').run()

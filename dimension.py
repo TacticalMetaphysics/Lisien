@@ -155,15 +155,10 @@ this dimension, and laid out nicely."""
         return thing
 
     def new_branch(self, parent, branch, tick):
-        i = 0
-        for thing in self.things:
+        for thing in self.thingdict.itervalues():
             thing.new_branch(parent, branch, tick)
-            i += 1
         for e in self.graph.es:
             e["portal"].new_branch(parent, branch, tick)
-        for board in self.boards:
-            if board is not None:
-                board.new_branch(parent, branch, tick)
 
     def sanitize_vert(self, v):
         if isinstance(v, int):
@@ -172,7 +167,7 @@ this dimension, and laid out nicely."""
         elif isinstance(v, Place):
             v = v.v
             i = v.i
-        elif isinstance(v, str) or isinstance(v, str):
+        elif isinstance(v, str) or isinstance(v, unicode):
             vname = str(v)
             vnames = self.graph.vs["name"]
             i = vnames.index(vname)

@@ -27,6 +27,30 @@ saveables = []
 saveable_classes = []
 
 
+class Touchy(object):
+    def on_touch_move(self, touch):
+        if self.dragging:
+            if not self.collide_point(touch.x, touch.y):
+                self.dragging = False
+
+    def on_touch_up(self, touch):
+        self.dragging = False
+
+
+def get_rd_during(skel, branch, tick):
+    if branch not in skel:
+        return None
+    prev = None
+    for tick_from in skel[branch]:
+        if tick_from == tick:
+            return skel[branch][tick_from]
+        elif tick_from > tick:
+            break
+        else:
+            prev = tick_from
+    return prev
+
+
 class SkelRowIter(object):
     def __init__(self, skel):
         self.skel = skel

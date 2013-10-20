@@ -1,9 +1,15 @@
 ## This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableWidgetMetaclass
+from util import (
+    SaveableWidgetMetaclass,
+    Touchy,
+    get_rd_during)
 from kivy.uix.image import Image
-from kivy.properties import DictProperty, NumericProperty
-from kivy.uix.scatter import ScatterPlane
+from kivy.properties import (
+    DictProperty,
+    ObjectProperty,
+    BooleanProperty)
+from kivy.uix.scatter import Scatter
 from logging import getLogger
 
 
@@ -13,7 +19,21 @@ logger = getLogger(__name__)
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class Spot(ScatterPlane):
+class SpotImage(Image):
+    spot = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        spot = kwargs["spot"]
+        kwargs["texture"] = spot.get_texture()
+        kwargs["size"] = kwargs["texture"].size
+        Image.__init__(self, **kwargs)
+        self.spot.bind(imagery=self.upd_tex)
+
+    def upd_tex(self, *args):
+        self.texture = self.spot.get_texture()
+
+
+class Spot(Scatter, Touchy):
     __metaclass__ = SaveableWidgetMetaclass
     """The icon that represents a Place.
 
@@ -51,55 +71,37 @@ class Spot(ScatterPlane):
          ("dimension", "place", "branch", "tick_from"),
          {"dimension": ("board", "dimension")},
          [])]
-    coords = DictProperty()
-    imagery = DictProperty()
-    interactivity = DictProperty()
+    place = ObjectProperty()
+    board = ObjectProperty()
+    coords = DictProperty({})
+    interactivity = DictProperty({})
+    imagery = DictProperty({})
+    dragging = BooleanProperty(False)
+    auto_bring_to_front = BooleanProperty(False)
 
-    def __init__(self, board, place, **kwargs):
-        self.board = board
-        self.place = place
-        self.upd_imagery()
-        self.upd_interactivity()
-        self.upd_coords()
-        dimn = unicode(self.board.dimension)
-        placen = unicode(self.place)
-        skel = self.board.closet.skeleton
-        skel["spot_coords"][dimn][placen].bind(touches=self.upd_coords)
-        skel["spot_interactive"][dimn][placen].bind(
-            touches=self.upd_interactivity)
-        skel["spot_img"][dimn][placen].bind(touches=self.upd_imagery)
+    def __init__(self, **kwargs):
+        kwargs["coords"] = dict(kwargs["board"].closet.skeleton["spot_coords"][
+            unicode(kwargs["board"])][unicode(kwargs["place"])])
+        kwargs["interactivity"] = dict(kwargs["board"].closet.skeleton[
+            "spot_interactive"][unicode(kwargs["board"])][
+            unicode(kwargs["place"])])
+        kwargs["imagery"] = dict(kwargs["board"].closet.skeleton["spot_img"][
+            unicode(kwargs["board"])][unicode(kwargs["place"])])
+        kwargs["size_hint"] = (None, None)
+        Scatter.__init__(self, **kwargs)
+        self.pos = self.get_pos()
+        self.size = self.get_texture().size
+        self.bind(size=self.chksize)
+        self.add_widget(SpotImage(spot=self, pos=(0, 0)))
 
-        ScatterPlane.__init__(self)
-
-        theguy = Image()
-        self.collide_point = lambda x, y: theguy.collide_point(x, y)
-
-        def retex(*args):
-            theguy.texture = self.get_texture()
-            theguy.pos = self.get_pos()
-            theguy.size = self.get_size()
-
-        self.add_widget(theguy)
-        self.board.closet.bind(branch=retex, tick=retex)
-        retex()
+    def chksize(self, *args):
+        assert(self.width < 1000)
 
     def __str__(self):
         return str(self.place)
 
     def __unicode__(self):
         return unicode(self.place)
-
-    def upd_coords(self, *args):
-        self.coords = dict(self.board.closet.skeleton["spot_coords"][
-            unicode(self.board)][unicode(self.place)])
-
-    def upd_interactivity(self, *args):
-        self.interactivity = dict(self.board.closet.skeleton["spot_interactive"][
-            unicode(self.board)][unicode(self.place)])
-
-    def upd_imagery(self, *args):
-        self.imagery = dict(self.board.closet.skeleton["spot_img"][
-            unicode(self.board)][unicode(self.place)])
 
     def get_width(self):
         img = self.get_texture()
@@ -123,16 +125,20 @@ class Spot(ScatterPlane):
             return [float(img.width), float(img.height)]
 
     def get_pos(self):
+        if self.board is None:
+            return (0, 0)
         cords = self.get_coords()
         if cords is None:
             return (self.cheatx, self.cheaty)
         (x, y) = cords
         (w, h) = self.get_size()
-        rx = w / 2
-        ry = h / 2
-        r = self.to_parent(x - rx, y - ry)
+        r = (x, y)
         (self.cheatx, self.cheaty) = r
         return r
+
+    def set_pos(self, v):
+        if self.board is not None:
+            self.set_coords(v[0], v[1])
 
     def set_interactive(self, branch=None, tick_from=None):
         if branch is None:
@@ -140,17 +146,24 @@ class Spot(ScatterPlane):
         if tick_from is None:
             tick_from = self.board.closet.tick
         assert branch in self.interactivity, "Make a new branch first"
-        self.interactivity[branch][tick_from] = {
+        self.board.closet.skeleton["spot_interactive"][
+            unicode(self.board)][unicode(self.place)][branch][tick_from] = {
             "dimension": unicode(self.board),
             "place": unicode(self.place),
             "branch": branch,
             "tick_from": tick_from}
+        self.upd_interactivity()
+
+    def upd_interactivity(self, *args):
+        self.interactivity = dict(
+            self.board.closet.skeleton["spot_interactive"][
+                unicode(self.board)][unicode(self.place)])
 
     def is_interactive(self, branch=None, tick=None):
         if branch is None:
-            branch = self.closet.branch
+            branch = self.board.closet.branch
         if tick is None:
-            tick = self.closet.tick
+            tick = self.board.closet.tick
         interactivity = self.closet.skeleton["spot_interactive"][
             unicode(self.board.dimension)][unicode(self.place)]
         if branch not in interactivity:
@@ -164,7 +177,7 @@ class Spot(ScatterPlane):
     def new_branch_interactivity(self, parent, branch, tick):
         prev = None
         started = False
-        interactivity = self.closet.skeleton["spot_interactive"][
+        interactivity = self.board.closet.skeleton["spot_interactive"][
             unicode(self.board.dimension)][unicode(self.place)]
         for tick_from in interactivity[parent]:
             if tick_from >= tick:
@@ -192,33 +205,30 @@ class Spot(ScatterPlane):
         imagery = self.board.closet.skeleton["spot_img"][
             unicode(self.board.dimension)][unicode(self.place)]
         assert branch in imagery, "Make a new branch first"
-        imagery[branch][tick_from]= {
-                "dimension": unicode(self.board),
-                "place": unicode(self.place),
-                "branch": branch,
-                "tick_from": tick_from,
-                "img": unicode(img)}
+        imagery[branch][tick_from] = {
+            "dimension": unicode(self.board),
+            "place": unicode(self.place),
+            "branch": branch,
+            "tick_from": tick_from,
+            "img": unicode(img)}
         self.upd_imagery()
 
-    def get_coords(self, branch=None, tick=None):
+    def upd_imagery(self, *args):
+        self.imagery = dict(self.board.closet.skeleton["spot_img"][
+            unicode(self.board)][unicode(self.place)])
+
+    def get_coord_rd(self, branch=None, tick=None):
         if branch is None:
             branch = self.board.closet.branch
         if tick is None:
             tick = self.board.closet.tick
-        prev = None
-        if branch not in self.coords:
-            return None
-        for tick_from in self.coords[branch]:
-            if tick_from == tick:
-                rd = self.coords[branch][tick_from]
-                return (rd["x"], rd["y"])
-            elif tick_from > tick:
-                break
-            prev = tick_from
-        if prev is None:
+        return get_rd_during(self.coords, branch, tick)
+
+    def get_coords(self, branch=None, tick=None):
+        rd = self.get_coord_rd(branch, tick)
+        if rd is None:
             return None
         else:
-            rd = self.coords[branch][prev]
             return (rd["x"], rd["y"])
 
     def set_coords(self, x, y, branch=None, tick_from=None):
@@ -226,7 +236,7 @@ class Spot(ScatterPlane):
             branch = self.board.closet.branch
         if tick_from is None:
             tick_from = self.board.closet.tick
-        coords = self.closet.skeleton["spot_coords"][
+        coords = self.board.closet.skeleton["spot_coords"][
             unicode(self.board)][unicode(self.place)]
         assert branch in coords, "Make a new branch first"
         coords[branch][tick_from] = {
@@ -238,10 +248,14 @@ class Spot(ScatterPlane):
             "y": y}
         self.upd_coords()
 
+    def upd_coords(self, *args):
+        self.coords = dict(self.board.closet.skeleton["spot_coords"][
+            unicode(self.board)][unicode(self.place)])
+
     def new_branch_coords(self, parent, branch, tick):
         prev = None
         started = False
-        coords = self.closet.skeleton["spot_coords"][
+        coords = self.board.closet.skeleton["spot_coords"][
             unicode(self.board)][unicode(self.place)]
         for tick_from in coords[parent]:
             if tick_from >= tick:
@@ -311,3 +325,6 @@ class Spot(ScatterPlane):
                 started = True
             prev = tick_from
         self.upd_imagery()
+
+    def on_drop(self):
+        pass

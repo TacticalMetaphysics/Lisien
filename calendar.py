@@ -333,9 +333,3 @@ class Calendar(RelativeLayout):
             CAL_TYPE['STAT']: StatCalendarColumn,
             CAL_TYPE['SKILL']: SkillCalendarColumn
         }[self.cal_type](calendar=self, branch=branch)
-
-    def _get_keys(self):
-        return (self.key0, self.key1, self.key2)
-
-    def _set_keys(self, v):
-        (self.key0, self.key1, self.key2) = v

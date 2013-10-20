@@ -5,7 +5,7 @@ from util import SaveableWidgetMetaclass
 from pawn import Pawn
 from spot import Spot
 from arrow import Arrow
-from kivy.properties import AliasProperty, DictProperty
+from kivy.properties import AliasProperty, DictProperty, ObjectProperty
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
@@ -15,9 +15,10 @@ from kivy.uix.image import Image
 
 
 class Wallpaper(Image):
-    def __init__(self, board, **kwargs):
-        self.board = board
-        starttex = self.board.get_texture()
+    board = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        starttex = kwargs["board"].get_texture()
         Image.__init__(self, texture=starttex, size=starttex.size, **kwargs)
         self.board.bind(rowdict=self.upd_texture)
 
@@ -40,6 +41,11 @@ class Board(ScrollView):
     arrow_width = 1.4
     arrowhead_size = 10
     auto_bring_to_front = False
+    closet = ObjectProperty()
+    dimension = ObjectProperty()
+    spotdict = DictProperty({})
+    pawndict = DictProperty({})
+    arrowdict = DictProperty({})
     rowdict = DictProperty({})
     scroll_x = AliasProperty(
         lambda self: self._get_scroll_x(),
@@ -48,19 +54,24 @@ class Board(ScrollView):
         lambda self: self._get_scroll_y(),
         lambda self, v: self._set_scroll_y(v))
 
-    def __init__(self, closet, dimension, **kwargs):
-        self.closet = closet
-        self.dimension = dimension
-        self.spotdict = {}
-        self.pawndict = {}
-        self.arrowdict = {}
-        self.selected = set()
+    def __init__(self, **kwargs):
+        if kwargs["dimension"].__class__ in (str, unicode):
+            kwargs["dimension"] = kwargs["closet"].get_dimension(
+                kwargs["dimension"])
+        walln = kwargs["closet"].skeleton["board"][unicode(
+            kwargs["dimension"])]["wallpaper"]
+        walltex = kwargs["closet"].get_texture(walln)
+        ScrollView.__init__(
+            self, size=walltex.size,
+            size_hint=(None, None), **kwargs)
+        self.last_touch = None
+        self.closet.boarddict[unicode(self.dimension)] = self
         self.upd_rowdict()
+        wall = Wallpaper(board=self)
         self.closet.skeleton["board"][unicode(self.dimension)].bind(
             touches=self.upd_rowdict)
-        wall = Wallpaper(self)
-        ScrollView.__init__(self, size=wall.size, **kwargs)
-        content = RelativeLayout(size=wall.size, size_hint=(None, None))
+        content = RelativeLayout()
+        self.add_widget(content)
         content.add_widget(wall)
         if (
                 "spot_coords" in self.closet.skeleton and
@@ -69,7 +80,7 @@ class Board(ScrollView):
             for rd in self.dimension.closet.skeleton[
                     "spot_coords"][unicode(self.dimension)].iterrows():
                 place = self.dimension.get_place(rd["place"])
-                spot = Spot(self, place)
+                spot = Spot(board=self, place=place)
                 self.spotdict[unicode(place)] = spot
         if (
                 "pawn_img" in self.closet.skeleton and
@@ -78,7 +89,7 @@ class Board(ScrollView):
             for rd in self.dimension.closet.skeleton[
                     "pawn_img"][unicode(self.dimension)].iterrows():
                 thing = self.dimension.get_thing(rd["thing"])
-                pawn = Pawn(self, thing)
+                pawn = Pawn(board=self, thing=thing)
                 self.pawndict[unicode(thing)] = pawn
         for portal in self.dimension.portals:
             arrow = Arrow(board=self, portal=portal)
@@ -88,7 +99,6 @@ class Board(ScrollView):
             content.add_widget(spot)
         for pawn in self.pawndict.itervalues():
             content.add_widget(pawn)
-        self.add_widget(content)
 
     def __str__(self):
         return str(self.dimension)
@@ -110,3 +120,46 @@ class Board(ScrollView):
 
     def get_texture(self):
         return self.closet.get_texture(self.rowdict["wallpaper"])
+
+    def new_branch(self, parent, branch, tick):
+        for spot in self.spotdict.itervalues():
+            spot.new_branch(parent, branch, tick)
+        for pawn in self.pawndict.itervalues():
+            pawn.new_branch(parent, branch, tick)
+
+    def on_touch_down(self, touch):
+        collidable_iters = [
+            self.pawndict.itervalues(),
+            self.spotdict.itervalues(),
+            self.arrowdict.itervalues()]
+        for it in collidable_iters:
+            for that in it:
+                if that.collide_point(touch.x, touch.y):
+                    that.dragging = True
+                    if isinstance(that, Spot):
+                        loc = that.place
+                        for thing in loc.get_contents():
+                            thingn = unicode(thing)
+                            if thingn in self.pawndict:
+                                pawn = self.pawndict[thingn]
+                                that.bind(
+                                    transform=pawn.extra_translate)
+        super(Board, self).on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        collidable_iters = [
+            self.pawndict.itervalues(),
+            self.spotdict.itervalues(),
+            self.arrowdict.itervalues()]
+        for it in collidable_iters:
+            for that in it:
+                if that.dragging:
+                    if isinstance(that, Spot):
+                        loc = that.place
+                        for thing in loc.get_contents():
+                            thingn = unicode(thing)
+                            if thingn in self.pawndict:
+                                pawn = self.pawndict[thingn]
+                                pawn.unbind(transform=pawn.extra_translate)
+                    that.dragging = False
+                    that.on_drop()

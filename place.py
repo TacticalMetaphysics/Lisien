@@ -44,6 +44,34 @@ thing located there.
     def __repr__(self):
         return "Place({0}.{1})".format(str(self.dimension), self.v["name"])
 
+    def get_contents(self, branch=None, tick=None):
+        if branch is None:
+            branch = self.dimension.closet.branch
+        if tick is None:
+            tick = self.dimension.closet.tick
+        r = set()
+        for thingn in self.dimension.closet.skeleton[
+                "thing_location"][unicode(self.dimension)]:
+            prev = None
+            for rd in self.dimension.closet.skeleton[
+                    "thing_location"][unicode(self.dimension)][
+                    thingn][branch].iterrows():
+                if rd["tick_from"] == tick:
+                    if rd["location"] == unicode(self):
+                        thing = self.dimension.get_thing(thingn)
+                        r.add(thing)
+                    break
+                elif rd["tick_from"] > tick:
+                    if (
+                            prev is not None and
+                            prev["location"] == unicode(self)):
+                        thing = self.dimension.get_thing(thingn)
+                        r.add(thing)
+                    break
+                else:
+                    prev = rd
+        return r
+
     def incident(self, mode=OUT):
         return self.dimension.graph.incident(int(self), mode)
 

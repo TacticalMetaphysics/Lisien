@@ -36,6 +36,7 @@ too.
          {},
          [])]
     basic_speed = 0.1
+
     @property
     def locations(self):
         return self.closet.skeleton["thing_location"][
@@ -221,8 +222,9 @@ other journey I may be on at the time."""
                 continue
             desti = self.dimension.graph.es[p[-1]].target
             if desti == int(destplace):
-                path = [e["portal"] for e in
-                        [self.dimension.graph.es[i] for i in p]]
+                path = [self.dimension.graph.es[i]["portal"] for i in p]
+#[e["portal"] for e in
+#                        [self.dimension.graph.es[i] for i in p]]
                 break
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
@@ -255,6 +257,7 @@ other journey I may be on at the time."""
             self.locations[branch].key_after(tick)
             raise TimeParadox
         except KeyError:
+            # This is a good thing.
             pass
         prevtick = tick + 1
         for port in path:
@@ -262,8 +265,6 @@ other journey I may be on at the time."""
             prevtick += self.get_ticks_thru(port)
             self.set_location(port.destination, branch, prevtick)
             prevtick += 1
-        destplace = path[-1].dest
-        self.set_location(destplace, int(branch), int(prevtick))
 
     def new_branch(self, parent, branch, tick):
         def gethibranch():

@@ -3,21 +3,24 @@
 from __future__ import print_function
 from math import cos, sin, hypot, atan
 from util import (
+    Touchy,
     wedge_offsets_rise_run,
     truncated_line,
     fortyfive)
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
 from kivy.properties import (
-    ObjectProperty)
+    ObjectProperty,
+    BooleanProperty)
 from kivy.clock import Clock
 
 
-class Arrow(Widget):
+class Arrow(Widget, Touchy):
     margin = 10
     w = 1
     board = ObjectProperty()
     portal = ObjectProperty()
+    dragging = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         Widget.__init__(self, **kwargs)
@@ -184,3 +187,6 @@ class Arrow(Widget):
             error_angle_a = abs(observed_angle_a - correct_angle_a)
             error_seg_len = hypot(x, y)
             return sin(error_angle_a) * error_seg_len <= self.margin
+
+    def on_drop(self):
+        pass

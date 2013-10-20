@@ -49,10 +49,17 @@ class MenuItem(RelativeLayout):
         if ocmatch is not None:
             (ocfn, ocargs) = ocmatch.groups()
             (on_click_fun, ARG_RE) = self.menu.closet.menu_cbs[ocfn]
-            on_click_args = match(ARG_RE, ocargs).groups()
+            ocargm = match(ARG_RE, ocargs)
+            if ocargm is not None:
+                on_click_args = ocargm.groups()
 
-            def on_click(*args):
-                on_click_fun(*on_click_args)
+                def on_click(*args):
+                    on_click_fun(self, *on_click_args)
+            else:
+
+                def on_click(*args):
+                    on_click_fun(self)
+
             but.bind(on_press=on_click)
 
         self.add_widget(but)
@@ -115,7 +122,8 @@ class Menu(BoxLayout):
             it = MenuItem(
                 menu=self,
                 string_name=rd["text"],
-                img_name=rd["icon"])
+                img_name=rd["icon"],
+                on_click=rd["on_click"])
             self.add_widget(it)
 
     def get_pos_hint(self):
