@@ -41,8 +41,23 @@ thing located there.
     def __str__(self):
         return self.v["name"]
 
+    def __unicode__(self):
+        return unicode(self.v["name"])
+
     def __repr__(self):
         return "Place({0}.{1})".format(str(self.dimension), self.v["name"])
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Place) and
+            self.dimension is other.dimension and
+            unicode(self) == unicode(other))
+
+    def __ne__(self, other):
+        return (
+            (not isinstance(other, Place)) or
+            (self.dimension is not other.dimension) or
+            unicode(self) != unicode(other))
 
     def get_contents(self, branch=None, tick=None):
         if branch is None:
