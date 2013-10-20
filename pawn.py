@@ -8,9 +8,7 @@ from kivy.uix.scatter import Scatter
 from kivy.properties import (
     DictProperty,
     ObjectProperty,
-    BooleanProperty,
-    AliasProperty)
-from kivy.graphics.transformation import Matrix
+    BooleanProperty)
 from logging import getLogger
 
 
@@ -87,6 +85,7 @@ interactive or not.
         self.old_tf = self.transform
         self.old_tf_i = self.transform_inv
 
+        self.board.closet.bind(branch=self.repos, tick=self.repos)
         dimn = unicode(self.board.dimension)
         thingn = unicode(self.thing)
         skel = self.board.closet.skeleton
@@ -193,7 +192,7 @@ If it DOES have anything else to do, make the journey in another branch.
             destspot = self.board.spotdict[unicode(loc.destination)]
             (ox, oy) = origspot.get_coords()
             (dx, dy) = destspot.get_coords()
-            prog = self.pawn.thing.get_progress()
+            prog = self.thing.get_progress()
             odx = dx - ox
             ody = dy - oy
             (x, y) = (float(ox + odx * prog),
@@ -296,12 +295,13 @@ If it DOES have anything else to do, make the journey in another branch.
 
     def on_drop(self):
         for spot in self.board.spotdict.itervalues():
-            if (
-                    self.collide_widget(spot) and
-                    self.thing.location is not spot.place):
-                print("{} journeys to {}".format(self, spot))
-                self.thing.journey_to(spot.place)
-                break
+            if self.collide_widget(spot):
+                myplace = self.thing.location
+                theirplace = spot.place
+                if myplace != theirplace:
+                    print("{} journeys to {}".format(self, spot))
+                    self.thing.journey_to(spot.place)
+                    break
         self.repos()
 
     def repos(self, *args):

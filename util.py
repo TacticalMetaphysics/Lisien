@@ -47,7 +47,7 @@ def get_rd_during(skel, branch, tick):
         elif tick_from > tick:
             break
         else:
-            prev = tick_from
+            prev = skel[branch][tick_from]
     return prev
 
 
