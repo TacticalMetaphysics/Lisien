@@ -18,11 +18,7 @@ from kivy.properties import (
 logger = getLogger(__name__)
 
 
-MAX_COLS = 3
-ROWS_SHOWN = 50
 SCROLL_FACTOR = 4
-TOP_TICK = 0
-LEFT_BRANCH = 0
 SHEET_ITEM_TYPE = {
     "THINGTAB": 0,
     "PLACETAB": 1,
@@ -60,32 +56,31 @@ class CharSheetTable(GridLayout):
             return self.character_skel[
                 self.keys[0]][self.keys[1]][self.keys[2]]
 
-    def __init__(self, **kwargs):
-        GridLayout.__init__(self, **kwargs)
+    def on_parent(self, *args):
         self.cols = len(self.colkeys)
-        self.row_default_height = (self.charsheet.style.fontsize
-                                   + self.charsheet.style.spacing)
+        self.row_default_height = (self.parent.style.fontsize
+                                   + self.parent.style.spacing)
         self.row_force_default = True
 
         for key in self.colkeys:
             self.add_widget(Label(
                 text=key,
-                font_name=self.charsheet.style.fontface + '.ttf',
-                font_size=self.charsheet.style.fontsize,
-                color=self.charsheet.style.textcolor.rgba))
+                font_name=self.parent.style.fontface + '.ttf',
+                font_size=self.parent.style.fontsize,
+                color=self.parent.style.textcolor.rgba))
         for rd in self.iter_skeleton():
             for key in self.colkeys:
                 self.add_widget(Label(
                     text=rd[key],
-                    font_name=self.charsheet.style.fontface + '.ttf',
-                    font_size=self.charsheet.style.fontsize,
-                    color=self.charsheet.style.textcolor.rgba))
+                    font_name=self.parent.style.fontface + '.ttf',
+                    font_size=self.parent.style.fontsize,
+                    color=self.parent.style.textcolor.rgba))
 
     def iter_skeleton(self, branch=None, tick=None):
         if branch is None:
-            branch = self.charsheet.character.closet.branch
+            branch = self.parent.character.closet.branch
         if tick is None:
-            tick = self.charsheet.character.closet.tick
+            tick = self.parent.character.closet.tick
         for rd in self.character_skel.iterrows():
             if (
                     rd["branch"] == branch and
@@ -108,33 +103,33 @@ class CharSheetThingTable(CharSheetTable):
 
     @property
     def character_skel(self):
-        return self.charsheet.character.thingdict
+        return self.parent.character.thingdict
 
     def get_branch_rd_iter(self, branch):
         if self.keys[0] is None:
-            for dimension in self.charsheet.character.thingdict:
-                for thing in self.charsheet.character.thingdict[dimension]:
-                    for rd in self.charsheet.character.thingdict[
+            for dimension in self.parent.character.thingdict:
+                for thing in self.parent.character.thingdict[dimension]:
+                    for rd in self.parent.character.thingdict[
                             dimension][thing][branch].iterrows():
                         yield rd
         elif self.keys[1] is None:
             dimension = self.keys[0]
-            for thing in self.charsheet.character.thingdict[dimension]:
-                for rd in self.charsheet.character.thingdict[
+            for thing in self.parent.character.thingdict[dimension]:
+                for rd in self.parent.character.thingdict[
                         dimension][thing][branch].iterrows():
                     yield rd
         else:
             dimension = self.keys[0]
             thing = self.keys[1]
-            for rd in self.charsheet.character.thingdict[
+            for rd in self.parent.character.thingdict[
                     dimension][thing][branch].iterrows():
                 yield rd
 
     def iter_skeleton(self, branch=None, tick=None):
         if branch is None:
-            branch = self.charsheet.character.closet.branch
+            branch = self.parent.character.closet.branch
         if tick is None:
-            tick = self.charsheet.character.closet.tick
+            tick = self.parent.character.closet.tick
         covered = set()
         for rd in self.get_branch_rd_iter(branch):
             if (rd["dimension"], rd["thing"]) in covered:
@@ -142,7 +137,7 @@ class CharSheetThingTable(CharSheetTable):
             if rd["tick_from"] <= tick and (
                     rd["tick_to"] is None or
                     rd["tick_to"] >= tick):
-                thing = self.charsheet.character.closet.get_thing(
+                thing = self.parent.character.closet.get_thing(
                     rd["dimension"], rd["thing"])
                 rd2 = thing.locations[branch]
                 prev = None
@@ -176,7 +171,7 @@ class CharSheetPlaceTable(CharSheetTable):
 
     @property
     def character_skel(self):
-        return self.charsheet.character.placedict
+        return self.parent.character.placedict
 
 
 class CharSheetPortalTable(CharSheetTable):
@@ -184,7 +179,7 @@ class CharSheetPortalTable(CharSheetTable):
 
     @property
     def character_skel(self):
-        return self.charsheet.character.portaldict
+        return self.parent.character.portaldict
 
 
 class CharSheetStatTable(CharSheetTable):
@@ -192,25 +187,25 @@ class CharSheetStatTable(CharSheetTable):
 
     @property
     def character_skel(self):
-        return self.charsheet.character.statdict
+        return self.parent.character.statdict
 
     def get_branch_rd_iter(self, branch):
         if self.keys[0] is None:
-            for stat in self.charsheet.character.statdict:
-                for rd in self.charsheet.character.statdict[
+            for stat in self.parent.character.statdict:
+                for rd in self.parent.character.statdict[
                         stat][branch].iterrows():
                     yield rd
         else:
             stat = self.keys[0]
-            for rd in self.charsheet.character.statdict[
+            for rd in self.parent.character.statdict[
                     stat][branch].iterrows():
                 yield rd
 
     def iter_skeleton(self, branch=None, tick=None):
         if branch is None:
-            branch = self.charsheet.character.closet.branch
+            branch = self.parent.character.closet.branch
         if tick is None:
-            tick = self.charsheet.character.closet.tick
+            tick = self.parent.character.closet.tick
         covered = set()
         prev = None
         for rd in self.get_branch_rd_iter(branch):
@@ -233,25 +228,25 @@ class CharSheetSkillTable(CharSheetTable):
 
     @property
     def character_skel(self):
-        return self.charsheet.character.skilldict
+        return self.parent.character.skilldict
 
     def get_branch_rd_iter(self, branch):
         if self.keys[0] is None:
-            for skill in self.charsheet.character.skilldict:
-                for rd in self.charsheet.character.skilldict[
+            for skill in self.parent.character.skilldict:
+                for rd in self.parent.character.skilldict[
                         skill][branch].iterrows():
                     yield rd
         else:
             skill = self.keys[0]
-            for rd in self.charsheet.character.skilldict[
+            for rd in self.parent.character.skilldict[
                     skill][branch].iterrows():
                 yield rd
 
     def iter_skeleton(self, branch=None, tick=None):
         if branch is None:
-            branch = self.charsheet.character.closet.branch
+            branch = self.parent.character.closet.branch
         if tick is None:
-            tick = self.charsheet.character.closet.tick
+            tick = self.parent.character.closet.tick
         covered = set()
         prev = None
         for rd in self.get_branch_rd_iter(branch):
@@ -269,32 +264,21 @@ class CharSheetSkillTable(CharSheetTable):
             prev = rd
 
 
-class CharSheetCalendar(Calendar):
-    charsheet = ObjectProperty()
-    keys = ListProperty()
-
-    def __init__(self, **kwargs):
-        Calendar.__init__(
-            self, rows_shown=ROWS_SHOWN, max_cols=MAX_COLS,
-            left_branch=LEFT_BRANCH, top_tick=TOP_TICK,
-            scroll_factor=SCROLL_FACTOR, **kwargs)
-
-
 class CharSheetBg(Widget):
     pos = AliasProperty(
-        lambda self: self.charsheet.pos,
+        lambda self: self.parent.pos,
         lambda self, v: None)
 
     size = AliasProperty(
-        lambda self: self.charsheet.size,
+        lambda self: self.parent.size,
         lambda self, v: None)
 
     def __init__(self, cs):
         self.charsheet = cs
         Widget.__init__(self)
         self.canvas.add(Rectangle(
-            pos_hint=self.charsheet.pos_hint,
-            size_hint=self.charsheet.size_hint))
+            pos_hint=self.parent.pos_hint,
+            size_hint=self.parent.size_hint))
 
 
 class CharSheet(BoxLayout):
@@ -348,6 +332,13 @@ class CharSheet(BoxLayout):
             self.rowdict["style"]),
         lambda self, v: None,
         bind=('rowdict',))
+    tabs = {
+        SHEET_ITEM_TYPE["THINGTAB"]: CharSheetThingTable,
+        SHEET_ITEM_TYPE["PLACETAB"]: CharSheetPlaceTable,
+        SHEET_ITEM_TYPE["PORTALTAB"]: CharSheetPortalTable,
+        SHEET_ITEM_TYPE["STATTAB"]: CharSheetStatTable,
+        SHEET_ITEM_TYPE["SKILLTAB"]: CharSheetSkillTable
+    }
 
     def __init__(self, **kwargs):
         BoxLayout.__init__(
@@ -358,6 +349,7 @@ class CharSheet(BoxLayout):
             size_hint=(0.2, 1.0),
             spacing=10,
             **kwargs)
+
         rd = self.character.closet.skeleton[
             "charsheet"][unicode(self.character)]
 
@@ -375,23 +367,16 @@ class CharSheet(BoxLayout):
             self.rect.pos = self.pos
             self.rect.size = self.size
         self.bind(size=_update_rect, pos=_update_rect)
-        for widget in self:
-            self.add_widget(widget)
-
-    def __iter__(self):
-        for rd in self.character.closet.skeleton[
-                "charsheet_item"][
+        for rd in self.character.closet.skeleton[u"charsheet_item"][
                 unicode(self.character)].iterrows():
-            tabs = {
-                SHEET_ITEM_TYPE["THINGTAB"]: CharSheetThingTable,
-                SHEET_ITEM_TYPE["PLACETAB"]: CharSheetPlaceTable,
-                SHEET_ITEM_TYPE["PORTALTAB"]: CharSheetPortalTable,
-                SHEET_ITEM_TYPE["STATTAB"]: CharSheetStatTable,
-                SHEET_ITEM_TYPE["SKILLTAB"]: CharSheetSkillTable
-            }
             keylst = [rd["key0"], rd["key1"], rd["key2"]]
-            if rd["type"] in tabs:
-                yield tabs[rd["type"]](charsheet=self, keys=keylst)
+            if rd["type"] in self.tabs:
+                self.add_widget(
+                    self.tabs[rd["type"]](
+                        keys=keylst))
             else:
-                yield CharSheetCalendar(charsheet=self, keys=keylst,
-                                        typ=SHEET_TO_CAL_TYPE[rd["type"]])
+                self.add_widget(
+                    Calendar(
+                        keys=keylst,
+                        typ=SHEET_TO_CAL_TYPE[rd["type"]],
+                        scroll_factor=SCROLL_FACTOR))
