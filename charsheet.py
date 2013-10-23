@@ -6,11 +6,10 @@ from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.graphics import (
     Color,
     Line,
-    Rectangle,
     Triangle)
 from kivy.properties import (
     AliasProperty,
@@ -20,6 +19,9 @@ from kivy.properties import (
     NumericProperty,
     ReferenceListProperty,
     StringProperty)
+from calendar import CalendarCell as CalCellBase
+from calendar import CalendarColumn as CalColBase
+from calendar import Calendar as CalBase
 
 
 logger = getLogger(__name__)
@@ -60,6 +62,111 @@ def get_calendar(item):
     return item
 
 
+class CalendarCell(CalCellBase):
+    def on_parent(self, *args):
+        print("Adding a calendar cell saying '{}' "
+              "from {} to {} to column {}".format(
+                  self.text, self.tick_from, self.tick_to, self.parent.branch))
+        super(CalendarCell, self).on_parent(*args)
+
+
+class CalendarColumn(CalColBase):
+    branch = NumericProperty()
+
+
+class ThingCalendarColumn(CalendarColumn):
+    def on_parent(self, *args):
+        calendar = get_calendar(self)
+        thing = calendar.referent
+        rditer = thing.locations[self.branch].iterrows()
+        prev = next(rditer)
+        for rd in rditer:
+            cc = CalendarCell(
+                tick_from=prev["tick_from"],
+                tick_to=rd["tick_from"],
+                text=prev["location"])
+            self.add_widget(cc)
+            prev = rd
+        # TODO make this extend itself
+        indefcc = CalendarCell(
+            tick_from=prev["tick_from"],
+            tick_to=calendar.max_tick,
+            text=prev["location"])
+        self.add_widget(indefcc)
+        super(CalendarColumn, self).on_parent(*args)
+
+
+class PlaceCalendarColumn(CalendarColumn):
+    pass
+
+
+class PortalCalendarColumn(CalendarColumn):
+    pass
+
+
+class StatCalendarColumn(CalendarColumn):
+    pass
+
+
+class SkillCalendarColumn(CalendarColumn):
+    pass
+
+
+class Calendar(CalBase):
+    cal_type = NumericProperty(0)
+    referent = ObjectProperty(allownone=True)
+    key0 = StringProperty()
+    key1 = StringProperty(allownone=True)
+    key2 = StringProperty(allownone=True)
+    keys = ReferenceListProperty(key0, key1, key2)
+    skel = DictProperty({})
+    cal_types = {
+        0: ThingCalendarColumn,
+        1: PlaceCalendarColumn,
+        2: PortalCalendarColumn,
+        3: StatCalendarColumn,
+        4: SkillCalendarColumn}
+
+    def __init__(self, **kwargs):
+        super(Calendar, self).__init__(size_hint=(1, None), **kwargs)
+
+    def on_parent(self, *args):
+        charsheet = get_charsheet(self)
+        character = charsheet.character
+        closet = character.closet
+        self.upd_skel()
+        if self.cal_type == 0:
+            self.referent = closet.get_thing(*self.keys[:-1])
+        elif self.cal_type == 1:
+            self.referent = closet.get_place(*self.keys[:-1])
+        elif self.cal_type == 2:
+            self.referent = closet.get_portal(*self.keys)
+        # TODO add branches at arbitrary times, not just on_parent
+        constructor = self.cal_types[self.cal_type]
+        for branch in self.skel:
+            self.add_widget(constructor(branch=branch))
+
+    def upd_skel(self, *args):
+        charsheet = get_charsheet(self)
+        character = charsheet.character
+        if self.cal_type == 0:
+            skel = character.thingdict
+        elif self.cal_type == 1:
+            skel = character.placedict
+        elif self.cal_type == 2:
+            skel = character.portaldict
+        elif self.cal_type == 3:
+            skel = character.statdict
+        elif self.cal_type == 4:
+            skel = character.skilldict
+        skel = skel[self.keys[0]]
+        if self.keys[1] is not None:
+            skel = skel[self.keys[1]]
+            if self.keys[2] is not None:
+                skel = skel[self.keys[2]]
+        self.skel = dict(skel)
+
+
 class BranchConnector(Widget):
     wedge_height = 8
 
@@ -92,270 +199,6 @@ class BranchConnector(Widget):
         l = c - rx
         r = c + rx
         return [c, b, r, t, l, t]
-
-
-class CalendarCell(RelativeLayout):
-    bg_color = ObjectProperty(allownone=True)
-    bg_rect = ObjectProperty(allownone=True)
-    tick_from = NumericProperty()
-    tick_to = NumericProperty(allownone=True)
-    text = StringProperty()
-
-    def __init__(self, **kwargs):
-        RelativeLayout.__init__(
-            self, size_hint=(None, None), **kwargs)
-        print("Creating calendar cell with tick_from={}, "
-              "tick_to={}, text={}".format(self.tick_from, self.tick_to,
-                                           self.text))
-
-    def on_parent(self, *args):
-        charsheet = get_charsheet(self)
-        style = charsheet.style
-        self.bg_color = Color(*style.bg_active.rgba)
-        self.canvas.before.add(self.bg_color)
-        self.bg_rect = Rectangle(
-            pos=self.pos,
-            size=self.size)
-        self.canvas.before.add(self.bg_rect)
-        self.add_widget(Label(
-            text=self.text,
-            pos=self.pos,
-            text_size=self.size,
-            valign='top'))
-
-    def do_layout(self, *args):
-        self.bg_rect.pos = self.pos
-        self.bg_rect.size = self.size
-        label = self.children[0]
-        label.pos = self.pos
-        label.text_size = self.size
-
-
-class CalendarColumn(RelativeLayout):
-    branch = NumericProperty()
-    tl_line = ObjectProperty(allownone=True)
-    tl_wedge = ObjectProperty(allownone=True)
-    tl_color = ObjectProperty(allownone=True)
-    tl_width = 16
-    tl_height = 8
-
-    @property
-    def parent_branch_col(self):
-        return self.parent.make_col(
-            self.parent.parent.closet.skeleton[
-                "timestream"][self.branch]["parent"])
-
-    def on_parent(self, *args):
-        charsheet = get_charsheet(self)
-        closet = charsheet.character.closet
-        self.do_layout()
-        (line_points, wedge_points) = self.get_tl_points(closet.tick)
-        if self.branch == closet.branch:
-            self.tl_color = Color(1.0, 0.0, 0.0, 1.0)
-        else:
-            self.tl_color = Color(1.0, 0.0, 0.0, 0.0)
-        self.canvas.after.add(self.tl_color)
-        self.tl_line = Line(points=line_points)
-        self.canvas.after.add(self.tl_line)
-        self.tl_wedge = Triangle(points=wedge_points)
-        self.canvas.after.add(self.tl_wedge)
-        closet.bind(branch=self.upd_tl, tick=self.upd_tl)
-
-    def __int__(self):
-        return self.branch
-
-    def __eq__(self, other):
-        return hasattr(other, 'branch') and int(self) == int(other)
-
-    def __gt__(self, other):
-        return int(self) > int(other)
-
-    def __lt__(self, other):
-        return int(self) < int(other)
-
-    def upd_tl(self, *args):
-        charsheet = get_charsheet(self)
-        (line_points, wedge_points) = self.get_tl_points(
-            charsheet.character.closet.tick)
-        self.tl_line.points = line_points
-        self.tl_wedge.points = wedge_points
-
-    def get_tl_points(self, tick):
-        (l, b) = self.to_parent(0, 0)
-        (r, t) = self.to_parent(*self.size)
-        try:
-            c = self.parent.tick_y(tick)
-        except ZeroDivisionError:
-            c = self.height
-        line_points = self.to_parent(l, c) + self.to_parent(r, c)
-        r = self.tl_width
-        ry = self.tl_height / 2
-        t = c + ry
-        b = c - ry
-        wedge_points = self.to_parent(l, t) + self.to_parent(
-            r, c) + self.to_parent(l, b)
-        return (line_points, wedge_points)
-
-    def do_layout(self, *args):
-        calendar = get_calendar(self)
-        charsheet = get_charsheet(self)
-        closet = charsheet.character.closet
-        tick_height = calendar.tick_height
-        for cell in self.children:
-            cell.pos = (0, calendar.tick_y(cell.tick_to))
-            if cell.tick_from > closet.get_hi_tick():
-                closet.set_hi_tick(cell.tick_from)
-            if (
-                    cell.tick_to is not None and
-                    cell.tick_to > closet.get_hi_tick()):
-                closet.set_hi_tick(cell.tick_to)
-            if cell.tick_to is None:
-                cell.size = (
-                    self.width, (closet.get_hi_tick() -
-                                 cell.tick_from) * tick_height)
-            else:
-                cell.size = (
-                    self.width, (cell.tick_to - cell.tick_from) * tick_height)
-            cell.do_layout()
-
-
-class LocationCalendarColumn(CalendarColumn):
-    thing = ObjectProperty()
-
-    def on_parent(self, *args):
-        charsheet = get_charsheet(self)
-        closet = charsheet.character.closet
-        self.thing = closet.get_thing(
-            self.parent.keys[0], self.parent.keys[1])
-        rowiter = self.thing.locations.iterrows()
-        prev = next(rowiter)
-        for rd in rowiter:
-            tick_from = prev["tick_from"]
-            if rd["tick_from"] is None:
-                tick_to = closet.get_hi_tick()
-            else:
-                tick_to = rd["tick_from"]
-                if tick_to > closet.get_hi_tick():
-                    closet.set_hi_tick(tick_to)
-            cc = CalendarCell(
-                tick_from=tick_from, tick_to=tick_to, text=prev["location"])
-            prev = rd
-        cc = CalendarCell(
-            tick_from=prev["tick_from"], tick_to=None, text=prev["location"])
-        self.add_widget(cc)
-        super(LocationCalendarColumn, self).on_parent(*args)
-
-
-class PlaceCalendarColumn(CalendarColumn):
-    pass
-
-
-class PortalCalendarColumn(CalendarColumn):
-    pass
-
-
-class StatCalendarColumn(CalendarColumn):
-    pass
-
-
-class SkillCalendarColumn(CalendarColumn):
-    pass
-
-
-class Calendar(BoxLayout):
-    cal_type = NumericProperty(0)
-    scroll_factor = NumericProperty(4)
-    tick_height = NumericProperty(10)
-    col_default_width = NumericProperty(110)
-    key0 = StringProperty()
-    key1 = StringProperty(allownone=True)
-    key2 = StringProperty(allownone=True)
-    keys = ReferenceListProperty(key0, key1, key2)
-
-    def __init__(self, **kwargs):
-        BoxLayout.__init__(
-            self,
-            orientation='horizontal',
-            height=200,
-            size_hint=(None, None),
-            **kwargs)
-
-    def __eq__(self, other):
-        return (
-            other is not None and
-            self.parent is other.parent and
-            hasattr(other, 'cal_type') and
-            self.cal_type == other.cal_type and
-            self.skel == other.skel)
-
-    def __ne__(self, other):
-        return (
-            other is None or
-            self.parent is not other.parent or
-            not hasattr(other, 'cal_type') or
-            other.cal_type != self.cal_type or
-            self.skel != other.skel)
-
-    def tick_y(self, tick):
-        charsheet = get_charsheet(self)
-        hi_tick = charsheet.character.closet.timestream.hi_tick
-        if tick is None:
-            tick = hi_tick
-        ticks_from_bot = hi_tick - tick
-        return ticks_from_bot * self.tick_height
-
-    def tick_y_hint(self, tick):
-        return self.tick_y(tick) / float(self.height)
-
-    def on_parent(self, *args):
-        self.change_type(self.cal_type, self.keys)
-        charsheet = get_charsheet(self)
-        closet = charsheet.character.closet
-        hi_branch = closet.timestream.hi_branch
-        if not hasattr(self, 'skel'):
-            return
-        else:
-            i = -1
-            while i < hi_branch:
-                i += 1
-                col = self.make_col(i)
-                self.add_widget(col)
-        print("Added a calendar with {} columns.".format(len(self.children)))
-        closet.timestream.bind(hi_branch=self.upd_width)
-        self.do_layout()
-
-    def upd_width(self, *args):
-        charsheet = get_charsheet(self)
-        branches = charsheet.character.closet.timestream.hi_branch + 1
-        self.width = (self.col_default_width + self.spacing) * branches
-
-    def change_type(self, cal_type, keys):
-        charsheet = get_charsheet(self)
-        self.cal_type = cal_type
-        dk = {
-            CAL_TYPE["THING"]: "thing",
-            CAL_TYPE["PLACE"]: "place",
-            CAL_TYPE["PORTAL"]: "portal",
-            CAL_TYPE["STAT"]: "stat",
-            CAL_TYPE["SKILL"]: "skill"}[cal_type]
-        self.skel = charsheet.character.get_item_history(dk, *keys)
-        self.keys = keys
-
-    def make_col(self, branch):
-        print("Making a calendar column for branch {}".format(branch))
-        col_clas = {
-            CAL_TYPE['THING']: LocationCalendarColumn,
-            CAL_TYPE['PLACE']: PlaceCalendarColumn,
-            CAL_TYPE['PORTAL']: PortalCalendarColumn,
-            CAL_TYPE['STAT']: StatCalendarColumn,
-            CAL_TYPE['SKILL']: SkillCalendarColumn
-        }[self.cal_type]
-        return col_clas(branch=branch, width=self.col_default_width)
-
-    def do_layout(self, *args):
-        for column in self.children:
-            column.do_layout()
-        super(Calendar, self).do_layout(*args)
 
 
 class CharSheetTable(GridLayout):
@@ -596,7 +439,7 @@ class CharSheetSkillTable(CharSheetTable):
             prev = rd
 
 
-class CharSheet(BoxLayout):
+class CharSheet(GridLayout):
     __metaclass__ = SaveableWidgetMetaclass
     demands = ["character"]
 
@@ -651,12 +494,11 @@ class CharSheet(BoxLayout):
     }
 
     def __init__(self, **kwargs):
-        BoxLayout.__init__(
+        GridLayout.__init__(
             self,
-            orientation='vertical',
-            pos_hint={'x': 0.7,
-                      'y': 0.0},
-            size_hint=(0.3, 1.0),
+            cols=1,
+            pos_hint={'x': 0.7, 'y': 0.0},
+            size_hint=(0.3, 1),
             spacing=10,
             **kwargs)
 
@@ -673,13 +515,14 @@ class CharSheet(BoxLayout):
         for rd in self.character.closet.skeleton[u"charsheet_item"][
                 unicode(self.character)].iterrows():
             keylst = [rd["key0"], rd["key1"], rd["key2"]]
+            print("Adding charsheet item for keys {}".format(keylst))
             if rd["type"] in self.tabs:
                 self.add_widget(
                     self.tabs[rd["type"]](
+                        size_hint=(None, None),
                         keys=keylst))
             else:
                 self.add_widget(
                     Calendar(
                         keys=keylst,
-                        typ=SHEET_TO_CAL_TYPE[rd["type"]],
-                        scroll_factor=SCROLL_FACTOR))
+                        cal_type=SHEET_TO_CAL_TYPE[rd["type"]]))

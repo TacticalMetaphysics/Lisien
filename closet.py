@@ -843,12 +843,6 @@ For more information, consult SaveableMetaclass in util.py.
         for rd in self.skeleton.iterrows():
             self.uptick_rd(rd)
 
-    def get_hi_tick(self):
-        return self.timestream.hi_tick
-
-    def set_hi_tick(self, tick):
-        self.timestream.hi_tick = tick
-
 
 def mkdb(DB_NAME='default.sqlite'):
     def isdir(p):
