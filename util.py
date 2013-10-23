@@ -1026,10 +1026,11 @@ def skel_nth_generator(skel, n):
         yield next(iters[-1])
 
 
-class Timestream(object):
+class Timestream(EventDispatcher):
     __metaclass__ = SaveableMetaclass
     # I think updating the start and end ticks of a branch using
     # listeners might be a good idea
+    hi_branch = NumericProperty(0)
     tables = [
         ("timestream",
          {"branch": "integer not null",
@@ -1058,7 +1059,6 @@ class Timestream(object):
 
     def __init__(self, closet):
         self.closet = closet
-        self.skeleton = self.closet.skeleton
         try:
             self.hi_branch = max(self.branches())
         except ValueError:
@@ -1068,7 +1068,7 @@ class Timestream(object):
         except ValueError:
             self.hi_tick = 0
         for tab in self.listen_tables:
-            self.skeleton[tab].set_listener = self.skel_set
+            self.closet.skeleton[tab].set_listener = self.skel_set
 
     def skel_set(self, qn, k, v):
         pass
@@ -1082,45 +1082,55 @@ class Timestream(object):
     def branchtable(self, table):
         n = self.tab_depth[table]
         if n == 1:
-            for d in self.skeleton[table].values():
+            for d in self.closet.skeleton[table].values():
                 for k in d.keys():
                     yield k
         else:
-            for d in skel_nth_generator(self.skeleton[table], n):
+            for d in skel_nth_generator(self.closet.skeleton[table], n):
                 for k in d.keys():
                     yield k
 
     def allbranches(self):
         for (tabn, n) in self.tab_depth.items():
             if n == 1:
-                for d in self.skeleton[tabn].values():
+                for d in self.closet.skeleton[tabn].values():
                     for k in d.keys():
                         yield k
             else:
-                for d in skel_nth_generator(self.skeleton[tabn], n):
-                    for k in d.keys():
-                        yield k
+                try:
+                    for d in skel_nth_generator(
+                            self.closet.skeleton[tabn], n):
+                        for k in d.keys():
+                            yield k
+                except TypeError:
+                    yield 0
+                    return
 
     def allticks(self):
         for (tabn, n) in self.tab_depth.items():
                 if n == 1:
-                    for d in self.skeleton[tabn].values():
+                    for d in self.closet.skeleton[tabn].values():
                         for k in d.keys():
                             yield k
                 else:
-                    for d in skel_nth_generator(self.skeleton[tabn], n):
-                        for k in d.keys():
-                            yield k
+                    try:
+                        for d in skel_nth_generator(
+                                self.closet.skeleton[tabn], n):
+                            for k in d.keys():
+                                yield k
+                    except TypeError:
+                        yield 0
+                        return
 
     def branchticks(self, branch):
         for (tabn, n) in self.tab_depth.items():
             if n == 1:
-                for d in self.skeleton[tabn].values():
+                for d in self.closet.skeleton[tabn].values():
                     for k in d[branch].keys():
                         yield k
             else:
                 n = self.tab_depth[tabn]
-                ptr = self.skeleton[tabn]
+                ptr = self.closet.skeleton[tabn]
                 try:
                     for i in range(0, n):
                         ptr = next(iter(ptr.values()))
@@ -1132,21 +1142,21 @@ class Timestream(object):
     def tabticks(self, table):
         n = self.tab_depth[table]
         if n == 1:
-            for d in self.skeleton[table]:
+            for d in self.closet.skeleton[table]:
                 for k in d.keys():
                     yield k
         else:
-            for d in skel_nth_generator(self.skeleton[table], n):
+            for d in skel_nth_generator(self.closet.skeleton[table], n):
                 for k in d.keys():
                     yield k
 
     def branchtabticks(self, branch, table):
         n = self.tab_depth[table]
         if n == 1:
-            for k in self.skeleton[table][branch].keys():
+            for k in self.closet.skeleton[table][branch].keys():
                 yield k
         else:
-            ptr = self.skeleton[table]
+            ptr = self.closet.skeleton[table]
             for i in range(0, n):
                 ptr = next(iter(ptr.values()))
             if branch in ptr:
@@ -1184,10 +1194,10 @@ class Timestream(object):
 
     def parent(self, branch):
         assert(branch > 0)
-        return self.skeleton["timestream"][branch]["parent"]
+        return self.closet.skeleton["timestream"][branch]["parent"]
 
     def children(self, branch):
-        for rd in self.skeleton["timestream"].iterrows():
+        for rd in self.closet.skeleton["timestream"].iterrows():
             if rd["parent"] == branch:
                 yield rd["branch"]
 

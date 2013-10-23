@@ -12,6 +12,7 @@ from kivy.properties import (
     ObjectProperty)
 from kivy.clock import Clock
 from kivy.app import App
+from closet import load_closet
 
 
 fontsize = 10
@@ -21,19 +22,13 @@ class CalendarCell(BoxLayout):
     bg_color = ObjectProperty(Color(1.0, 0.0, 0.0, 1.0))
     bg_rect = ObjectProperty(allownone=True)
     tick_from = NumericProperty()
-    tick_to = NumericProperty()
+    tick_to = NumericProperty(allownone=True)
     text = StringProperty()
 
     def __init__(self, **kwargs):
         BoxLayout.__init__(self, size_hint=(None, None), **kwargs)
 
     def on_parent(self, *args):
-        column = self.parent
-        if column.max_tick < self.tick_to:
-            column.max_tick = self.tick_to
-        self.bind(tick_to=column.upd_max_tick)
-
-    def calendared(self, *args):
         self.canvas.before.add(self.bg_color)
         self.bg_rect = Rectangle(
             pos=self.pos,
@@ -64,18 +59,12 @@ class CalendarCell(BoxLayout):
 
 
 class CalendarColumn(RelativeLayout):
+    branch = NumericProperty()
     tl_line = ObjectProperty(allownone=True)
     tl_wedge = ObjectProperty(allownone=True)
     tl_color = (0.0, 1.0, 0.0, 1.0)
     tl_width = 16
     tl_height = 8
-    max_tick = NumericProperty(0)
-
-    def __init__(self, **kwargs):
-        RelativeLayout.__init__(self, **kwargs)
-
-        for cell in kwargs["cells"]:
-            self.add_widget(cell)
 
     def on_parent(self, *args):
         (line_points, wedge_points) = self.get_tl_points(0)
@@ -85,16 +74,25 @@ class CalendarColumn(RelativeLayout):
         self.tl_wedge = Triangle(points=wedge_points)
         self.canvas.after.add(self.tl_wedge)
         calendar = self.parent
-        if self.max_tick > calendar.max_tick:
-            calendar.max_tick = self.max_tick
-        self.bind(max_tick=calendar.upd_max_tick)
-        for cell in self.children:
-            cell.calendared()
-        calendar.bind(tick=self.upd_tl)
+        it = calendar.closet.skeleton["thing_location"][
+            "Physical"]["mom"][self.branch].iterrows()
+        prev = next(it)
+        for rd in it:
+            cc = CalendarCell(
+                tick_from=prev["tick_from"],
+                tick_to=rd["tick_from"],
+                text=prev["location"])
+            self.add_widget(cc)
+        cc = CalendarCell(
+            tick_from=prev["tick_from"],
+            tick_to=None,
+            text=prev["location"])
+        self.add_widget(cc)
+        calendar.closet.bind(tick=self.upd_tl)
 
     def upd_tl(self, *args):
         calendar = self.parent
-        (line_points, wedge_points) = self.get_tl_points(calendar.tick)
+        (line_points, wedge_points) = self.get_tl_points(calendar.closet.tick)
         self.tl_line.points = line_points
         self.tl_wedge.points = wedge_points
 
@@ -114,58 +112,45 @@ class CalendarColumn(RelativeLayout):
             r, c) + self.to_parent(l, b)
         return (line_points, wedge_points)
 
-    def upd_max_tick(self, instance, value):
-        if value > self.max_tick:
-            self.max_tick = value
-
     def do_layout(self, *args):
-        tick_height = self.parent.height / self.parent.max_tick
         for cell in self.children:
             cell.y = self.parent.tick_y(cell.tick_to)
-            cell.size = (
-                self.width,
-                (cell.tick_to - cell.tick_from) * tick_height)
+            if cell.tick_to is None:
+                cell.size = (
+                    self.width, cell.tick_from * self.parent.tick_height)
+            else:
+                cell.size = (
+                    self.width,
+                    (cell.tick_to - cell.tick_from) * self.parent.tick_height)
 
 
 class Calendar(BoxLayout):
-    tick = NumericProperty(0)
-    max_tick = NumericProperty(0)
+    closet = ObjectProperty()
+    tick_height = 10
 
     def __init__(self, **kwargs):
         BoxLayout.__init__(
-            self, orientation='horizontal', spacing=10, **kwargs)
-        if "columns" in kwargs:
-            for column in kwargs["columns"]:
-                self.add_widget(column)
+            self, orientation='horizontal', **kwargs)
+        for branch in kwargs["branches"]:
+            self.add_widget(CalendarColumn(branch=branch))
 
     def tick_y(self, tick):
-        tick_height = self.height / self.max_tick
-        ticks_from_bot = self.max_tick - tick
-        return ticks_from_bot * tick_height
-
-    def upd_max_tick(self, instance, value):
-        if value > self.max_tick:
-            self.max_tick = value
+        # it seems like timestream still has hi_tick = 0 when there
+        # are other events after
+        if tick is None:
+            return 0
+        max_tick = self.closet.timestream.hi_tick
+        ticks_from_bot = max_tick - tick
+        return ticks_from_bot * self.tick_height
 
 
 class CalDemoApp(App):
     def build(self):
-        cells0 = [
-            CalendarCell(tick_from=0, tick_to=10, text="wake up"),
-            CalendarCell(tick_from=11, tick_to=20, text="go to school"),
-            CalendarCell(tick_from=30, tick_to=50, text="save the world")]
-        cells1 = [
-            CalendarCell(tick_from=0, tick_to=20, text="fall asleep"),
-            CalendarCell(tick_from=21, tick_to=50, text="dream randomly"),
-            CalendarCell(tick_from=51, tick_to=55, text="feel horrible")]
-        col0 = CalendarColumn(cells=cells0)
-        col1 = CalendarColumn(cells=cells1)
-        cal = Calendar(columns=[col0, col1])
-
-        def inc_tick(*args):
-            cal.tick += 1
-        Clock.schedule_interval(inc_tick, 1)
-        return cal
+        closet = load_closet('default.sqlite')
+        closet.load_board('Physical')
+        closet.load_charsheet('household')
+        Clock.schedule_interval(lambda dt: closet.time_travel_inc_tick(), 1)
+        return Calendar(size=(800, 600), closet=closet, branches=[0])
 
 
 CalDemoApp().run()

@@ -112,7 +112,6 @@ You need to create a SQLite database file with the appropriate schema
 before RumorMill will work. For that, run mkdb.sh.
 
     """
-    skeleton = ObjectProperty()
     connector = ObjectProperty()
     xfuncs = DictProperty({})
     lang = StringProperty("eng")
@@ -150,7 +149,8 @@ before RumorMill will work. For that, run mkdb.sh.
 given name.
 
         """
-        EventDispatcher.__init__(self, **kwargs)
+        EventDispatcher.__init__(
+            self, **kwargs)
         self.bind(branch=self.upd_branch)
         self.bind(tick=self.upd_tick)
         self.cursor = self.connector.cursor()
@@ -175,6 +175,7 @@ given name.
         self.game_speed = 1
         self.updating = False
 
+        self.timestream = Timestream(self)
         self.time_travel_history = []
 
         placeholder = (noop, ITEM_ARG_RE)
@@ -829,6 +830,24 @@ For more information, consult SaveableMetaclass in util.py.
 
     def checkpoint(self):
         self.old_skeleton = self.skeleton.copy()
+
+    def uptick_rd(self, rd):
+        if "branch" in rd and rd["branch"] > self.timestream.hi_branch:
+            self.timestream.hi_branch = rd["branch"]
+        if "tick_from" in rd and rd["tick_from"] > self.timestream.hi_tick:
+            self.timestream.hi_tick = rd["tick_from"]
+        if "tick_to" in rd and rd["tick_to"] > self.timestream.hi_tick:
+            self.timestream.hi_tick = rd["tick_to"]
+
+    def uptick_skel(self):
+        for rd in self.skeleton.iterrows():
+            self.uptick_rd(rd)
+
+    def get_hi_tick(self):
+        return self.timestream.hi_tick
+
+    def set_hi_tick(self, tick):
+        self.timestream.hi_tick = tick
 
 
 def mkdb(DB_NAME='default.sqlite'):

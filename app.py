@@ -11,6 +11,7 @@ class LiSEApp(App):
     character_name = StringProperty()
 
     def build(self):
+        self.closet.uptick_skel()
         self.updater = Clock.schedule_interval(self.closet.update, 0.1)
         menu = self.closet.load_menu(self.menu_name)
         board = self.closet.load_board(self.dimension_name)
