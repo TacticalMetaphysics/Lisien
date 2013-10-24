@@ -166,16 +166,11 @@ given name.
 
         self.c = self.connector.cursor()
 
-        if USE_KIVY:
-            from kivybits import KivySkeleton
-            self.skeleton = KivySkeleton(parent=self)
-        else:
-            self.skeleton = Skeleton(parent=self)
-
         # This dict is special. It contains all the game
         # data--represented only as those types which sqlite3 is
         # capable of storing. All my objects are ultimately just
         # views on this thing.
+        self.skeleton = Skeleton()
         for saveable in saveables:
             for tabn in saveable[3]:
                 self.skeleton[tabn] = {}

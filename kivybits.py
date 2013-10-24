@@ -62,18 +62,3 @@ def load_textures(cursor, skel, texturedict, names):
                 source=skel["img"][name]["path"]).texture
     texturedict.update(r)
     return r
-
-
-class KivySkeleton(EventDispatcher, Skeleton):
-    rowdict = BooleanProperty(allownone=True)
-    content = ObjectProperty(None, allownone=True)
-    name = ObjectProperty("", allownone=True)
-    parent = ObjectProperty(None, allownone=True)
-    tainted = BooleanProperty(False)
-
-    def __init__(self, *args, **kwargs):
-        EventDispatcher.__init__(self, **kwargs)
-        content = self.content
-        self.content = {}
-        if content is not None:
-            self._populate_content(content)
