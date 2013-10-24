@@ -25,27 +25,17 @@ from effect import Effect, EffectDeck
 from style import LiSEStyle, LiSEColor
 from util import (
     dictify_row,
-    Skeleton,
-    empty_skel,
     schemata,
     saveables,
     saveable_classes,
+    Skeleton,
     Timestream,
     TimestreamException)
 from portal import Portal
 from thing import Thing
 from character import Character
 from charsheet import CharSheet
-from img import Tex
 from menu import Menu
-from kivy.uix.image import Image
-from kivy.core.image import ImageData
-from kivy.properties import (
-    NumericProperty,
-    ObjectProperty,
-    DictProperty,
-    StringProperty)
-from kivy.event import EventDispatcher
 
 
 logger = getLogger(__name__)
@@ -91,7 +81,7 @@ PORTAL_NAME_RE = re.compile(
     "Portal\((.+)->(.+)\)")
 
 
-class Closet(EventDispatcher):
+class Closet(object):
     """This is where you should get all your LiSE objects from, generally.
 
 A RumorMill is a database connector that can load and generate LiSE
@@ -112,29 +102,24 @@ You need to create a SQLite database file with the appropriate schema
 before RumorMill will work. For that, run mkdb.sh.
 
     """
-    connector = ObjectProperty()
-    xfuncs = DictProperty({})
-    lang = StringProperty("eng")
-    dimension = StringProperty("Physical")
-    seed = NumericProperty(0)
-    branch = NumericProperty(0)
-    tick = NumericProperty(0)
-
-    boardhanddict = DictProperty({})
-    calendardict = DictProperty({})
-    colordict = DictProperty({})
-    dimensiondict = DictProperty({})
-    boarddict = DictProperty({})
-    effectdict = DictProperty({})
-    effectdeckdict = DictProperty({})
-    imgdict = DictProperty({})
-    texturedict = DictProperty({})
-    menudict = DictProperty({})
-    menuitemdict = DictProperty({})
-    styledict = DictProperty({})
-    tickdict = DictProperty({})
-    eventdict = DictProperty({})
-    characterdict = DictProperty({})
+    working_dicts = [
+        "boardhanddict",
+        "calendardict",
+        "colordict",
+        "dimensiondict",
+        "boarddict",
+        "dimensiondict",
+        "boarddict",
+        "effectdict",
+        "effectdeckdict",
+        "imgdict",
+        "texturedict",
+        "menudict",
+        "menuitemdict",
+        "styledict",
+        "tickdict",
+        "eventdict",
+        "characterdict"]
 
     @property
     def dimensions(self):
@@ -144,33 +129,86 @@ before RumorMill will work. For that, run mkdb.sh.
     def characters(self):
         return self.characterdict.itervalues()
 
-    def __init__(self, **kwargs):
+    @property
+    def dimension(self):
+        return self.skeleton["game"]["dimension"]
+
+    @property
+    def branch(self):
+        return self.skeleton["game"]["branch"]
+
+    @property
+    def tick(self):
+        return self.skeleton["game"]["tick"]
+
+    @property
+    def language(self):
+        return self.skeleton["game"]["language"]
+
+    def __setattr__(self, attrn, val):
+        if attrn in ("dimension", "branch", "tick", "language"):
+            self.closet["game"][attrn] = val
+            if hasattr(self, 'USE_KIVY'):
+                setattr(self.kivy_connector, attrn, val)
+        else:
+            super(Closet, self).__setattr__(attrn, val)
+
+    def __init__(self, connector, USE_KIVY=False, **kwargs):
         """Return a database wrapper around the SQLite database file by the
 given name.
 
         """
-        EventDispatcher.__init__(
-            self, **kwargs)
-        self.bind(branch=self.upd_branch)
-        self.bind(tick=self.upd_tick)
-        self.cursor = self.connector.cursor()
-        self.c = self.cursor
+        self.connector = connector
+        if "xfuncs" in kwargs:
+            self.xfuncs = kwargs["xfuncs"]
+        else:
+            self.xfuncs = {}
+
+        self.c = self.connector.cursor()
+
+        if USE_KIVY:
+            from kivybits import KivySkeleton
+            self.skeleton = KivySkeleton(parent=self)
+        else:
+            self.skeleton = Skeleton(parent=self)
 
         # This dict is special. It contains all the game
         # data--represented only as those types which sqlite3 is
         # capable of storing. All my objects are ultimately just
         # views on this thing.
-        self.skeleton = empty_skel()
-        self.c.execute("SELECT seed, dimension, branch, tick FROM game")
+        for saveable in saveables:
+            for tabn in saveable[3]:
+                self.skeleton[tabn] = {}
+        self.c.execute(
+            "SELECT language, seed, dimension, branch, tick FROM game")
         self.skeleton.update(
-            Skeleton({"game": dictify_row(
+            {"game": dictify_row(
                 self.c.fetchone(),
-                ("seed", "dimension", "branch", "tick"))}))
+                ("language", "seed", "dimension", "branch", "tick"))})
+        if "language" in kwargs:
+            self.skeleton["game"]["language"] = kwargs["language"]
         # This is a copy of the skeleton as it existed at the time of
         # the last save. I'll be finding the differences between it
         # and the current skeleton in order to decide what to write to
         # disk.
         self.old_skeleton = self.skeleton.copy()
+
+        if USE_KIVY:
+            from kivybits import load_textures
+            self.load_textures = lambda names: load_textures(
+                self.c, self.skeleton, self.texturedict, names)
+            from kivybits import KivyConnector
+            self.kivy_connector = KivyConnector(
+                language=self.language,
+                dimension=self.dimension,
+                branch=self.branch,
+                tick=self.tick)
+            self.USE_KIVY = True
+
+        self.timestream = Timestream(self, USE_KIVY=USE_KIVY)
+
+        for wd in self.working_dicts:
+            setattr(self, wd, dict())
 
         self.game_speed = 1
         self.updating = False
@@ -229,14 +267,8 @@ given name.
 
         """
         self.c.close()
-        self.conn.commit()
-        self.conn.close()
-
-    def upd_branch(self, *args):
-        self.skeleton["game"]["branch"] = self.branch
-
-    def upd_tick(self, *args):
-        self.skeleton["game"]["tick"] = self.tick
+        self.connector.commit()
+        self.connector.close()
 
     def insert_rowdicts_table(self, rowdict, clas, tablename):
         """Insert the given rowdicts into the table of the given name, as
@@ -315,7 +347,7 @@ For more information, consult SaveableMetaclass in util.py.
             else:
                 assert(strname[1:] in self.skeleton["strings"])
                 return self.skeleton["strings"][
-                    strname[1:]][self.lang]["string"]
+                    strname[1:]][self.language]["string"]
         else:
             return strname
 
@@ -406,13 +438,13 @@ For more information, consult SaveableMetaclass in util.py.
 
     def load_charsheet(self, character):
         character = str(character)
-        skel = Skeleton({
+        kd = {
             "charsheet": {
                 "character": character},
             "charsheet_item": {
-                "character": character}})
+                "character": character}}
         self.skeleton.update(
-            CharSheet._select_skeleton(self.c, skel))
+            CharSheet._select_skeleton(self.c, kd))
         return CharSheet(character=self.get_character(character))
 
     def load_characters(self, names):
@@ -515,8 +547,8 @@ For more information, consult SaveableMetaclass in util.py.
         # you want to selectively load the parts of it that the player
         # is interested in at the moment, the game world being too
         # large to practically load all at once.
-        kd = Skeleton({"portal": {},
-                       "thing_location": {}})
+        kd = {"portal": {},
+              "thing_location": {}}
         for name in names:
             kd["portal"][name] = {"dimension": name}
             kd["thing_location"][name] = {"dimension": name}
@@ -575,35 +607,6 @@ For more information, consult SaveableMetaclass in util.py.
             dim = self.get_dimension(dim)
         return dim.get_portal(str(origin), str(destination))
 
-    def load_textures(self, names):
-        kd = {"img": {}}
-        for name in names:
-            kd["img"][name] = {"name": name}
-        self.skeleton.update(
-            Tex._select_skeleton(
-                self.c, kd))
-        r = {}
-        for name in names:
-            if self.skeleton["img"][name]["rltile"] != 0:
-                rltex = Image(
-                    source=self.skeleton["img"][name]["path"]).texture
-                imgd = ImageData(rltex.width, rltex.height,
-                                 rltex.colorfmt, rltex.pixels,
-                                 source=self.skeleton["img"][name]["path"])
-                fixed = ImageData(
-                    rltex.width, rltex.height,
-                    rltex.colorfmt, imgd.data.replace(
-                        '\xffGll', '\x00Gll').replace(
-                        '\xff.', '\x00.'),
-                    source=self.skeleton["img"][name]["path"])
-                rltex.blit_data(fixed)
-                r[name] = rltex
-            else:
-                r[name] = Image(
-                    source=self.skeleton["img"][name]["path"]).texture
-        self.texturedict.update(r)
-        return r
-
     def get_textures(self, imgnames):
         r = {}
         unloaded = set()
@@ -618,15 +621,6 @@ For more information, consult SaveableMetaclass in util.py.
 
     def get_texture(self, imgn):
         return self.get_textures([imgn])[imgn]
-
-    def get_images(self, names):
-        r = {}
-        for (name, tex) in self.get_textures(names).iteritems():
-            r[name] = Image(texture=tex, size=tex.size)
-        return r
-
-    def get_image(self, name):
-        return self.get_images([name])[name]
 
     def load_colors(self, names):
         kd = {"color": {}}
@@ -704,7 +698,7 @@ For more information, consult SaveableMetaclass in util.py.
         return r
 
     def get_cards(self, names):
-        r = Skeleton({})
+        r = {}
         unhad = set()
         for name in names:
             if name in self.carddict:
@@ -719,7 +713,7 @@ For more information, consult SaveableMetaclass in util.py.
         return self.get_cards([name])[name]
 
     def load_menus(self, names):
-        kd = Skeleton({"menu": {}})
+        kd = {"menu": {}}
         for name in names:
             kd["menu"][name] = {"name": name}
         skel = Menu._select_skeleton(self.c, kd)
@@ -734,7 +728,7 @@ For more information, consult SaveableMetaclass in util.py.
         return self.load_menus([name])[name]
 
     def load_menu_items(self, menu):
-        kd = Skeleton({"menu_item": {"menu": menu}})
+        kd = {"menu_item": {"menu": menu}}
         skel = Menu._select_skeleton(self.c, kd)
         self.skeleton.update(skel)
 
@@ -904,7 +898,8 @@ def mkdb(DB_NAME='default.sqlite'):
 
     c.execute(
         "CREATE TABLE game"
-        " (dimension TEXT DEFAULT 'Physical', "
+        " (language TEXT DEFAULT 'eng',"
+        "dimension TEXT DEFAULT 'Physical', "
         "branch INTEGER DEFAULT 0, "
         "tick INTEGER DEFAULT 0,"
         " seed INTEGER DEFAULT 0);")
@@ -1000,9 +995,9 @@ def mkdb(DB_NAME='default.sqlite'):
     conn.commit()
 
 
-def load_closet(dbfn, lang="eng"):
+def load_closet(dbfn, lang="eng", kivy=False):
     conn = sqlite3.connect(dbfn)
-    r = Closet(connector=conn, lang=lang)
+    r = Closet(connector=conn, lang=lang, USE_KIVY=kivy)
     r.load_strings()
     r.load_timestream()
     return r

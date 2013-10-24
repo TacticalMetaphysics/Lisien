@@ -1,7 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from __future__ import print_function
-from util import SaveableWidgetMetaclass
+from kivybits import SaveableWidgetMetaclass
 from pawn import Pawn
 from spot import Spot
 from arrow import Arrow
@@ -67,11 +67,11 @@ class Board(ScrollView):
         self.last_touch = None
         self.closet.boarddict[unicode(self.dimension)] = self
         self.upd_rowdict()
-        wall = Wallpaper(board=self)
-        self.closet.skeleton["board"][unicode(self.dimension)].bind(
-            touches=self.upd_rowdict)
+        self.closet.skeleton["board"][unicode(
+            self.dimension)].listener = self.upd_rowdict
         content = RelativeLayout()
         self.add_widget(content)
+        wall = Wallpaper(board=self)
         content.add_widget(wall)
         if (
                 "spot_coords" in self.closet.skeleton and

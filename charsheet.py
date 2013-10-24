@@ -1,12 +1,10 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from logging import getLogger
-from util import SaveableWidgetMetaclass
+from kivybits import SaveableWidgetMetaclass
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.scrollview import ScrollView
 from kivy.graphics import (
     Color,
     Line,
@@ -71,7 +69,58 @@ class CalendarCell(CalCellBase):
 
 
 class CalendarColumn(CalColBase):
+    tl_line = ObjectProperty(allownone=True)
+    tl_wedge = ObjectProperty(allownone=True)
+    tl_color = ObjectProperty(allownone=True)
+    tl_width = 16
+    tl_height = 8
     branch = NumericProperty()
+    connector = ObjectProperty(allownone=True)
+
+    def on_parent(self, *args):
+        super(CalendarColumn, self).on_parent(*args)
+        charsheet = get_charsheet(self)
+        self.connector = charsheet.character.closet.kivy_connector
+        if self.connector.branch == self.branch:
+            self.tl_color = Color(1.0, 0.0, 0.0, 1.0)
+        else:
+            self.tl_color = Color(1.0, 0.0, 0.0, 0.0)
+        self.canvas.after.add(self.tl_color)
+        (line_points, wedge_points) = self.get_tl_points(self.connector.tick)
+        self.tl_line = Line(points=line_points)
+        self.canvas.after.add(self.tl_line)
+        self.tl_wedge = Triangle(points=wedge_points)
+        self.canvas.after.add(self.tl_wedge)
+        self.connector.bind(branch=self.upd_tl_color, tick=self.upd_tl)
+
+    def upd_tl_color(self, *args):
+        if self.connector.branch == self.branch:
+            self.tl_color.alpha = 1.0
+        else:
+            self.tl_color.alpha = 0.0
+
+    def upd_tl(self, *args):
+        if self.connector.branch != self.branch:
+            return
+        (line_points, wedge_points) = self.get_tl_points(self.connector.tick)
+        self.tl_line.points = line_points
+        self.tl_wedge.points = wedge_points
+
+    def get_tl_points(self, tick):
+        (l, b) = 0, 0
+        (r, t) = self.size
+        try:
+            c = self.parent.tick_y(tick)
+        except ZeroDivisionError:
+            c = self.height
+        line_points = self.to_parent(l, c) + self.to_parent(r, c)
+        r = self.tl_width
+        ry = self.tl_height / 2
+        t = c + ry
+        b = c - ry
+        wedge_points = self.to_parent(l, t) + self.to_parent(
+            r, c) + self.to_parent(l, b)
+        return (line_points, wedge_points)
 
 
 class ThingCalendarColumn(CalendarColumn):
@@ -128,7 +177,7 @@ class Calendar(CalBase):
         4: SkillCalendarColumn}
 
     def __init__(self, **kwargs):
-        super(Calendar, self).__init__(size_hint=(1, None), **kwargs)
+        super(Calendar, self).__init__(**kwargs)
 
     def on_parent(self, *args):
         charsheet = get_charsheet(self)
@@ -203,6 +252,7 @@ class BranchConnector(Widget):
 
 class CharSheetTable(GridLayout):
     keys = ListProperty()
+    charsheet = ObjectProperty(allownone=True)
 
     @property
     def skel(self):
@@ -217,32 +267,31 @@ class CharSheetTable(GridLayout):
                 self.keys[0]][self.keys[1]][self.keys[2]]
 
     def on_parent(self, *args):
-        charsheet = get_charsheet(self)
+        self.charsheet = get_charsheet(self)
         self.cols = len(self.colkeys)
-        self.row_default_height = (charsheet.style.fontsize
-                                   + charsheet.style.spacing)
+        self.row_default_height = (self.charsheet.style.fontsize
+                                   + self.charsheet.style.spacing)
         self.row_force_default = True
 
         for key in self.colkeys:
             self.add_widget(Label(
                 text=key,
-                font_name=charsheet.style.fontface + '.ttf',
-                font_size=charsheet.style.fontsize,
-                color=charsheet.style.textcolor.rgba))
+                font_name=self.charsheet.style.fontface + '.ttf',
+                font_size=self.charsheet.style.fontsize,
+                color=self.charsheet.style.textcolor.rgba))
         for rd in self.iter_skeleton():
             for key in self.colkeys:
                 self.add_widget(Label(
                     text=rd[key],
-                    font_name=charsheet.style.fontface + '.ttf',
-                    font_size=charsheet.style.fontsize,
-                    color=charsheet.style.textcolor.rgba))
+                    font_name=self.charsheet.style.fontface + '.ttf',
+                    font_size=self.charsheet.style.fontsize,
+                    color=self.charsheet.style.textcolor.rgba))
 
     def iter_skeleton(self, branch=None, tick=None):
-        charsheet = get_charsheet(self)
         if branch is None:
-            branch = charsheet.character.closet.branch
+            branch = self.charsheet.character.closet.branch
         if tick is None:
-            tick = charsheet.character.closet.tick
+            tick = self.charsheet.character.closet.tick
         for rd in self.character_skel.iterrows():
             if (
                     rd["branch"] == branch and
@@ -252,8 +301,7 @@ class CharSheetTable(GridLayout):
                 yield rd
 
     def iterrows(self, branch=None, tick=None):
-        charsheet = get_charsheet(self)
-        closet = charsheet.character.closet
+        closet = self.charsheet.character.closet
         if branch is None:
             branch = closet.branch
         if tick is None:
@@ -483,8 +531,7 @@ class CharSheet(GridLayout):
     style = AliasProperty(
         lambda self: self.character.closet.get_style(
             self.rowdict["style"]),
-        lambda self, v: None,
-        bind=('rowdict',))
+        lambda self, v: None)
     tabs = {
         SHEET_ITEM_TYPE["THINGTAB"]: CharSheetThingTable,
         SHEET_ITEM_TYPE["PLACETAB"]: CharSheetPlaceTable,
@@ -508,9 +555,8 @@ class CharSheet(GridLayout):
 
         def upd_rd(*args):
             self.rowdict = dict(rd)
-
         upd_rd()
-        rd.bind(touches=upd_rd)
+        rd.listener = upd_rd
 
         for rd in self.character.closet.skeleton[u"charsheet_item"][
                 unicode(self.character)].iterrows():

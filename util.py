@@ -4,9 +4,6 @@ from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
 from collections import deque, MutableMapping
-from kivy.uix.widget import WidgetMetaclass
-from kivy.properties import NumericProperty
-from kivy.event import EventDispatcher
 
 logger = getLogger(__name__)
 
@@ -25,16 +22,6 @@ tabclas = {}
 saveables = []
 
 saveable_classes = []
-
-
-class Touchy(object):
-    def on_touch_move(self, touch):
-        if self.dragging:
-            if not self.collide_point(touch.x, touch.y):
-                self.dragging = False
-
-    def on_touch_up(self, touch):
-        self.dragging = False
 
 
 def get_rd_during(skel, branch, tick):
@@ -98,33 +85,45 @@ class SkelRowIter(object):
         return self.__next__()
 
 
-class Skeleton(MutableMapping, EventDispatcher):
-    touches = NumericProperty(0)
-
-    def __init__(self, content, name="", parent=None,
-                 set_listener=None, del_listener=None):
+class Skeleton(MutableMapping):
+    def __init__(self, content=None, name="", parent=None):
         self.rowdict = None
+        self.listener = None
         self.name = name
         self.parent = parent
-        self.set_listener = set_listener
-        self.del_listener = del_listener
         if hasattr(content, 'content'):
-            content = content.content
+            self.content = content.content
         self.content = {}
+        self._populate_content(content)
+
+    def _populate_content(self, content):
+        if content is None:
+            return
         if isinstance(content, dict):
             kitr = content.iteritems()
+        elif isinstance(content, self.__class__):
+            if content.rowdict:
+                self.content = content.content
+                self.rowdict = True
+                return
+            else:
+                kitr = content.iteritems()
         else:
             kitr = ListItemIterator(content)
         for (k, v) in kitr:
-            if self.rowdict is None and v is not None:
-                self.rowdict = v.__class__ in (str, unicode, int, float)
-            elif self.rowdict is True:
-                assert(v.__class__ in (str, unicode, int, float, type(None)))
-            elif v is None:
+            if v is None and self.rowdict in (None, False):
                 continue
+            elif self.rowdict is None:
+                self.rowdict = v.__class__ in (str, unicode, int, float)
+            if self.rowdict is True:
+                assert(v.__class__ in (str, unicode, int, float, type(None)))
+                self[k] = v
+            elif hasattr(v, 'content'):
+                self[k] = self.__class__(
+                    content=v.content, name=k, parent=self)
             else:
-                assert(v.__class__ in (dict, list, Skeleton))
-            self[k] = v
+                self[k] = self.__class__(
+                    content=v, name=k, parent=self)
 
     def __contains__(self, k):
         if isinstance(self.content, dict):
@@ -137,41 +136,56 @@ class Skeleton(MutableMapping, EventDispatcher):
             raise KeyError("key not in skeleton: {}".format(k))
         return self.content[k]
 
-    def __setitem__(self, k, v):
-        def really_set(k, v):
-            if len(self.content) == 0:
-                if isinstance(k, int):
-                    self.ikeys = set()
-                    self.content = []
-                else:
-                    self.content = {}
+    def _really_set(self, k, v):
+        if len(self.content) == 0:
             if isinstance(k, int):
-                assert(isinstance(self.content, list))
-                while len(self.content) <= k:
-                    self.content.append(None)
-                self.content[k] = v
-                self.ikeys.add(k)
+                self.ikeys = set()
+                self.content = []
             else:
-                assert(isinstance(self.content, dict))
-                self.content[k] = v
-
-        if self.rowdict:
-            really_set(k, v)
+                self.content = {}
+        if isinstance(k, int):
+            assert(isinstance(self.content, list))
+            while len(self.content) <= k:
+                self.content.append(None)
+            self.content[k] = v
+            self.ikeys.add(k)
         else:
-            really_set(k, Skeleton(v, k, self))
-        self.touches += 1
-        if self.parent is not None:
-            self.parent.on_child_set((str(self),), k, v)
+            assert(isinstance(self.content, dict))
+            self.content[k] = v
+
+    def _skelly_set(self, k, v):
+        if v is None:
+            return self._really_set(k, None)
+        if isinstance(self.content, list):
+            if not hasattr(self, 'ikeys'):
+                self.ikeys = set()
+            self.ikeys.add(k)
+        self._really_set(k, self.__class__(content=v, name=k, parent=self))
+
+    def _maybe_set(self, k, v):
+        if self.rowdict or (isinstance(v, self.__class__) and v.rowdict):
+            self._really_set(k, v)
+        else:
+            self._skelly_set(k, v)
+
+    def __setitem__(self, k, v):
+        self._maybe_set(k, v)
+        if self.listener is not None:
+            listener = self.listener
+            self.listener = None
+            listener()
+            self.listener = listener
 
     def __delitem__(self, k):
-        todel = self.content[k]
         if isinstance(self.content, dict):
             del self.content[k]
         else:
             self.ikeys.remove(k)
-        self.touches += 1
-        if self.parent is not None:
-            self.parent.on_child_delete((str(self),), k, todel)
+        if self.listener is not None:
+            listener = self.listener
+            self.listener = None
+            listener()
+            self.listener = listener
 
     def __iter__(self):
         if isinstance(self.content, dict):
@@ -240,68 +254,58 @@ class Skeleton(MutableMapping, EventDispatcher):
 
     def copy(self):
         if self.rowdict:
-            return Skeleton(dict(self.content))
+            return self.__class__(content=dict(self.content))
         elif isinstance(self.content, list):
             r = {}
             for k in self.ikeys:
                 r[k] = self.content[k].copy()
-            return Skeleton(r)
+            return self.__class__(content=r)
         else:
             r = {}
             for (k, v) in self.content.items():
                 r[k] = v.copy()
-            return Skeleton(r)
+            return self.__class__(content=r)
 
     def deepcopy(self):
         if self.rowdict:
-            return Skeleton(self.content, self.name,
-                            self.parent, self.listeners)
+            return self.__class__(
+                content=self.content, name=self.name,
+                parent=self.parent)
         else:
             r = {}
             for (k, v) in self.content.items():
                 r[k] = v.deepcopy()
-            return Skeleton(r, self.name, self.parent,
-                            self.listeners)
+            return self.__class__(
+                content=r, name=self.name, parent=self.parent)
 
     def update(self, skellike):
-        for (k, v) in skellike.items():
-            if v.rowdict:
+        for (k, v) in skellike.iteritems():
+            if self.rowdict is None:
+                self.rowdict = v.__class__ in (
+                    str, unicode, int, float, type(None))
+            if self.rowdict:
                 self[k] = v
-                continue
-            v = Skeleton(v, k, self)
-            if k in self.content:
-                self.content[k].update(v)
             else:
-                self.content[k] = v
+                if hasattr(v, 'content'):
+                    v = v.content
+                if k in self.content:
+                    self[k].update(
+                        self.__class__(content=v, name=k, parent=self))
+                else:
+                    self[k] = self.__class__(
+                        content=v, name=k, parent=self)
 
     def iterrows(self):
         return SkelRowIter(self)
 
-    def on_child_set(self, childn, k, v):
-        qn = (str(self),) + childn
-        self.touches += 1
-        if self.parent is not None:
-            self.parent.on_child_set(qn, k, v)
-
-    def on_child_delete(self, childn, k, v):
-        qn = (str(self),) + childn
-        self.touches += 1
-        if self.parent is not None:
-            self.parent.on_child_delete(qn, k, v)
-
-
-def empty_skel():
-    tns = []
-    for saveable in saveables:
-        tns.extend(saveable[3])
-    r = Skeleton({})
-    for tn in tns:
-        r[tn] = {}
-    return r
+    def get_closet(self):
+        ptr = self.parent
+        while isinstance(ptr, self.__class__):
+            ptr = ptr.parent
+        return ptr
 
 
 class SaveableMetaclass(type):
-# TODO make savers use sets of RowDict objs, rather than lists of regular dicts
     """Sort of an object relational mapper.
 
 Classes with this metaclass need to be declared with an attribute
@@ -462,9 +466,9 @@ declared in the order they appear in the tables attribute.
 
         def gen_sql_insert(rowdicts, tabname):
             if tabname in rowdicts:
-                itr = Skeleton(rowdicts[tabname]).iterrows()
+                itr = Skeleton(content=rowdicts[tabname]).iterrows()
             else:
-                itr = Skeleton(rowdicts).iterrows()
+                itr = Skeleton(content=rowdicts).iterrows()
             if len(itr) == 0 or tabname not in tablenames:
                 raise EmptySkeleton
             qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
@@ -495,7 +499,7 @@ declared in the order they appear in the tables attribute.
                 return
             keys = []
             wheres = []
-            kitr = Skeleton(keydicts).iterrows()
+            kitr = Skeleton(content=keydicts).iterrows()
             if len(kitr) == 0 or tabname not in tablenames:
                 raise EmptySkeleton
             for keydict in kitr:
@@ -519,7 +523,7 @@ declared in the order they appear in the tables attribute.
 
         def gen_sql_select(keydicts, tabname):
             keys_in_use = set()
-            kitr = Skeleton(keydicts).iterrows()
+            kitr = Skeleton(content=keydicts).iterrows()
             for keyd in kitr:
                 for k in keyd:
                     keys_in_use.add(k)
@@ -538,7 +542,7 @@ declared in the order they appear in the tables attribute.
             keys = primarykeys[tabname]
             qrystr = gen_sql_select(keydicts, tabname)
             qrylst = []
-            kitr = Skeleton(keydicts).iterrows()
+            kitr = Skeleton(content=keydicts).iterrows()
             for keydict in kitr:
                 for key in keys:
                     if key in keydict:
@@ -550,7 +554,7 @@ declared in the order they appear in the tables attribute.
 
         @staticmethod
         def _select_table_all(c, tabname):
-            r = Skeleton({})
+            r = Skeleton()
             qrystr = "SELECT {0} FROM {1}".format(
                 colnamestr[tabname], tabname)
             c.execute(qrystr)
@@ -568,7 +572,7 @@ declared in the order they appear in the tables attribute.
 
         @staticmethod
         def _select_skeleton(c, td):
-            r = Skeleton({})
+            r = Skeleton()
             for (tabname, rdd) in td.items():
                 if tabname not in primarykeys:
                     continue
@@ -693,10 +697,6 @@ declared in the order they appear in the tables attribute.
         clas = type.__new__(metaclass, clas, parents, atrdic)
         saveable_classes.append(clas)
         return clas
-
-
-class SaveableWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
-    pass
 
 
 def start_new_map(nope):
@@ -1026,11 +1026,10 @@ def skel_nth_generator(skel, n):
         yield next(iters[-1])
 
 
-class Timestream(EventDispatcher):
+class Timestream(object):
     __metaclass__ = SaveableMetaclass
     # I think updating the start and end ticks of a branch using
     # listeners might be a good idea
-    hi_branch = NumericProperty(0)
     tables = [
         ("timestream",
          {"branch": "integer not null",
@@ -1057,21 +1056,19 @@ class Timestream(EventDispatcher):
         "spot_interactive": 3,
         "thing_location": 2}
 
-    def __init__(self, closet):
+    def __init__(self, closet, USE_KIVY=False):
         self.closet = closet
-        try:
-            self.hi_branch = max(self.branches())
-        except ValueError:
-            self.hi_branch = 0
-        try:
-            self.hi_tick = max(self.ticks())
-        except ValueError:
-            self.hi_tick = 0
-        for tab in self.listen_tables:
-            self.closet.skeleton[tab].set_listener = self.skel_set
+        self.hi_branch = self.closet.skeleton["game"]["branch"]
+        self.hi_tick = self.closet.skeleton["game"]["tick"]
+        if USE_KIVY:
+            self.closet.kivy_connector.hi_branch = self.hi_branch
+            self.closet.kivy_connector.hi_tick = self.hi_tick
+            self.USE_KIVY = True
 
-    def skel_set(self, qn, k, v):
-        pass
+    def __setattr__(self, attrn, val):
+        if hasattr(self, 'USE_KIVY') and attrn in ("hi_branch", "hi_tick"):
+            setattr(self.closet.kivy_connector, attrn, val)
+        super(Timestream, self).__setattr__(attrn, val)
 
     def branches(self, table=None):
         if table is None:

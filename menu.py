@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableWidgetMetaclass
+from kivybits import SaveableWidgetMetaclass
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.relativelayout import RelativeLayout
@@ -38,8 +38,7 @@ class MenuItem(RelativeLayout):
             starttext = self.menu.closet.get_text(self.string_name)
             if self.string_name[0] == "@":
                 self.menu.closet.skeleton["strings"][
-                    self.string_name[1:]].bind(
-                    touches=upd_text)
+                    self.string_name[1:]].listener = upd_text
         else:
             starttext = ''
 

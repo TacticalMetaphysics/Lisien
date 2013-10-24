@@ -3,8 +3,6 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.graphics import (
     Color,
-    Line,
-    Triangle,
     Rectangle)
 from kivy.properties import (
     NumericProperty,
@@ -61,51 +59,15 @@ class CalendarCell(BoxLayout):
 
 
 class CalendarColumn(RelativeLayout):
-    tl_line = ObjectProperty(allownone=True)
-    tl_wedge = ObjectProperty(allownone=True)
-    tl_color = (0.0, 1.0, 0.0, 1.0)
-    tl_width = 16
-    tl_height = 8
-
     def __init__(self, **kwargs):
-        RelativeLayout.__init__(self, **kwargs)
+        RelativeLayout.__init__(self, size_hint=(1, None), **kwargs)
         if "cells" in kwargs:
             for cell in kwargs["cells"]:
                 self.add_widget(cell)
 
     def on_parent(self, *args):
-        (line_points, wedge_points) = self.get_tl_points(0)
-        self.canvas.after.add(Color(*self.tl_color))
-        self.tl_line = Line(points=line_points)
-        self.canvas.after.add(self.tl_line)
-        self.tl_wedge = Triangle(points=wedge_points)
-        self.canvas.after.add(self.tl_wedge)
-        calendar = self.parent
         for cell in self.children:
             cell.calendared()
-        calendar.bind(tick=self.upd_tl)
-
-    def upd_tl(self, *args):
-        calendar = self.parent
-        (line_points, wedge_points) = self.get_tl_points(calendar.tick)
-        self.tl_line.points = line_points
-        self.tl_wedge.points = wedge_points
-
-    def get_tl_points(self, tick):
-        (l, b) = 0, 0
-        (r, t) = self.size
-        try:
-            c = self.parent.tick_y(tick)
-        except ZeroDivisionError:
-            c = self.height
-        line_points = self.to_parent(l, c) + self.to_parent(r, c)
-        r = self.tl_width
-        ry = self.tl_height / 2
-        t = c + ry
-        b = c - ry
-        wedge_points = self.to_parent(l, t) + self.to_parent(
-            r, c) + self.to_parent(l, b)
-        return (line_points, wedge_points)
 
     def do_layout(self, *args):
         myheight = 0

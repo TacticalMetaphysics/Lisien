@@ -3,10 +3,10 @@
 from __future__ import print_function
 from math import cos, sin, hypot, atan
 from util import (
-    Touchy,
     wedge_offsets_rise_run,
     truncated_line,
     fortyfive)
+from kivybits import Touchy
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
 from kivy.properties import (

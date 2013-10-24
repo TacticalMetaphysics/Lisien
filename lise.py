@@ -41,7 +41,7 @@ if DEBUG:
     logger = logging.getLogger()
 
 
-closet = closet.load_closet(dbfn, lang)
+closet = closet.load_closet(dbfn, lang, kivy=True)
 
 LiSEApp(closet=closet, menu_name='Main',
         dimension_name='Physical',

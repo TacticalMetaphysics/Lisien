@@ -1,9 +1,10 @@
 ## This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
-    SaveableWidgetMetaclass,
-    Touchy,
     get_rd_during)
+from kivybits import (
+    SaveableWidgetMetaclass,
+    Touchy)
 from kivy.uix.image import Image
 from kivy.properties import (
     DictProperty,

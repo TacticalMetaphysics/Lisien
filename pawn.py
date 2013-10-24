@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import (
+from kivybits import (
     SaveableWidgetMetaclass,
     Touchy)
 from kivy.uix.image import Image
@@ -85,13 +85,14 @@ interactive or not.
         self.old_tf = self.transform
         self.old_tf_i = self.transform_inv
 
-        self.board.closet.bind(branch=self.repos, tick=self.repos)
+        self.board.closet.kivy_connector.bind(
+            branch=self.repos, tick=self.repos)
         dimn = unicode(self.board.dimension)
         thingn = unicode(self.thing)
         skel = self.board.closet.skeleton
-        skel["pawn_img"][dimn][thingn].bind(touches=self.upd_imagery)
-        skel["pawn_interactive"][dimn][thingn].bind(
-            touches=self.upd_interactivity)
+        skel["pawn_img"][dimn][thingn].listener = self.upd_imagery
+        skel["pawn_interactive"][dimn][
+            thingn].listener = self.upd_interactivity
 
         self.add_widget(PawnImage(pawn=self, pos=(0, 0)))
 
