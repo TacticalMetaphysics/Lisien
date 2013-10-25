@@ -77,7 +77,10 @@ class SkelRowIter(object):
                 if len(keys) > 0:
                     self.ptrs.append(ptr)
                     self.keyses.append(keys)
-                self.ptrs.append(ptr[k])
+                try:
+                    self.ptrs.append(ptr[k])
+                except IndexError:
+                    break
                 self.keyses.append(list(ptr[k].keys()))
         raise StopIteration
 
@@ -173,8 +176,16 @@ class Skeleton(MutableMapping):
         if self.listener is not None:
             listener = self.listener
             self.listener = None
-            listener()
+            listener(self, k, v)
+            if hasattr(self.parent, 'on_child_set'):
+                self.parent.on_child_set(self, k, v)
             self.listener = listener
+
+    def on_child_set(self, child, k, v):
+        if self.listener is not None:
+            self.listener(child, k, v)
+        if hasattr(self.parent, 'on_child_set'):
+            self.parent.on_child_set(child, k, v)
 
     def __delitem__(self, k):
         if isinstance(self.content, dict):
@@ -184,8 +195,17 @@ class Skeleton(MutableMapping):
         if self.listener is not None:
             listener = self.listener
             self.listener = None
-            listener()
+            listener(self, k)
+            if hasattr(self.parent, 'on_child_del'):
+                self.parent.on_child_del(self, k)
             self.listener = listener
+
+
+    def on_child_del(self, child, k):
+        if self.listener is not None:
+            self.listener(child, k)
+        if hasattr(self.parent, 'on_child_del'):
+            self.parent.on_child_del(child, k)
 
     def __iter__(self):
         if isinstance(self.content, dict):
@@ -1056,17 +1076,16 @@ class Timestream(object):
         "spot_interactive": 3,
         "thing_location": 2}
 
-    def __init__(self, closet, USE_KIVY=False):
+    def __init__(self, closet):
         self.closet = closet
-        self.hi_branch = self.closet.skeleton["game"]["branch"]
-        self.hi_tick = self.closet.skeleton["game"]["tick"]
-        if USE_KIVY:
-            self.closet.kivy_connector.hi_branch = self.hi_branch
-            self.closet.kivy_connector.hi_tick = self.hi_tick
-            self.USE_KIVY = True
+        self.hi_branch = 0
+        self.hi_tick = 0
 
     def __setattr__(self, attrn, val):
-        if hasattr(self, 'USE_KIVY') and attrn in ("hi_branch", "hi_tick"):
+        if (
+                hasattr(self, 'closet') and
+                hasattr(self.closet, 'USE_KIVY') and
+                attrn in ("hi_branch", "hi_tick")):
             setattr(self.closet.kivy_connector, attrn, val)
         super(Timestream, self).__setattr__(attrn, val)
 
@@ -1188,6 +1207,12 @@ class Timestream(object):
             return min(self.ticks(branch, table))
         except (KeyError, ValueError):
             return None
+
+    def uptick(self, tick):
+        self.hi_tick = max((tick, self.hi_tick))
+
+    def upbranch(self, branch):
+        self.hi_branch = max((branch, self.hi_branch))
 
     def parent(self, branch):
         assert(branch > 0)

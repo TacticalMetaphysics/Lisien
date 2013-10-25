@@ -147,7 +147,7 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def __setattr__(self, attrn, val):
         if attrn in ("dimension", "branch", "tick", "language"):
-            self.closet["game"][attrn] = val
+            self.skeleton["game"][attrn] = val
             if hasattr(self, 'USE_KIVY'):
                 setattr(self.kivy_connector, attrn, val)
         else:
@@ -200,7 +200,7 @@ given name.
                 tick=self.tick)
             self.USE_KIVY = True
 
-        self.timestream = Timestream(self, USE_KIVY=USE_KIVY)
+        self.timestream = Timestream(self)
 
         for wd in self.working_dicts:
             setattr(self, wd, dict())
@@ -759,6 +759,10 @@ For more information, consult SaveableMetaclass in util.py.
         if tick < mintick:
             tick = mintick
         self.time_travel_history.append((self.branch, self.tick))
+        if tick > self.timestream.hi_tick:
+            self.timestream.hi_tick = tick
+            if hasattr(self, 'USE_KIVY'):
+                self.kivy_connector.hi_tick = tick
         self.branch = branch
         self.tick = tick
 
@@ -782,8 +786,6 @@ For more information, consult SaveableMetaclass in util.py.
         self.skeleton["timestream"][branch] = {
             "branch": branch,
             "parent": parent}
-        assert(branch == self.timestream.hi_branch + 1)
-        self.timestream.hi_branch = branch
 
     def time_travel_inc_tick(self, ticks=1):
         self.time_travel(self.branch, self.tick+ticks)
@@ -825,8 +827,12 @@ For more information, consult SaveableMetaclass in util.py.
             self.timestream.hi_branch = rd["branch"]
         if "tick_from" in rd and rd["tick_from"] > self.timestream.hi_tick:
             self.timestream.hi_tick = rd["tick_from"]
+            if hasattr(self, 'USE_KIVY'):
+                self.kivy_connector.hi_tick = rd["tick_from"]
         if "tick_to" in rd and rd["tick_to"] > self.timestream.hi_tick:
             self.timestream.hi_tick = rd["tick_to"]
+            if hasattr(self, 'USE_KIVY'):
+                self.kivy_connector.hi_tick = rd["tick_to"]
 
     def uptick_skel(self):
         for rd in self.skeleton.iterrows():

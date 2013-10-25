@@ -5,6 +5,7 @@ from kivybits import SaveableWidgetMetaclass
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.graphics import (
     Color,
     Line,
@@ -17,9 +18,9 @@ from kivy.properties import (
     NumericProperty,
     ReferenceListProperty,
     StringProperty)
-from calendar import CalendarCell as CalCellBase
 from calendar import CalendarColumn as CalColBase
 from calendar import Calendar as CalBase
+from uuid import uuid1 as uuid
 
 
 logger = getLogger(__name__)
@@ -60,89 +61,119 @@ def get_calendar(item):
     return item
 
 
-class CalendarCell(CalCellBase):
-    def on_parent(self, *args):
-        print("Adding a calendar cell saying '{}' "
-              "from {} to {} to column {}".format(
-                  self.text, self.tick_from, self.tick_to, self.parent.branch))
-        super(CalendarCell, self).on_parent(*args)
-
-
 class CalendarColumn(CalColBase):
-    tl_line = ObjectProperty(allownone=True)
-    tl_wedge = ObjectProperty(allownone=True)
-    tl_color = ObjectProperty(allownone=True)
+    tl_line = ObjectProperty(None, allownone=True)
+    tl_wedge = ObjectProperty(None, allownone=True)
+    tl_color = ObjectProperty(None, allownone=True)
     tl_width = 16
     tl_height = 8
     branch = NumericProperty()
-    connector = ObjectProperty(allownone=True)
 
-    def on_parent(self, *args):
-        super(CalendarColumn, self).on_parent(*args)
+    def on_parent(self, instance, value):
+        super(CalendarColumn, self).on_parent(instance, value)
         charsheet = get_charsheet(self)
-        self.connector = charsheet.character.closet.kivy_connector
-        if self.connector.branch == self.branch:
+        connector = charsheet.character.closet.kivy_connector
+        if connector.branch == self.branch:
             self.tl_color = Color(1.0, 0.0, 0.0, 1.0)
         else:
             self.tl_color = Color(1.0, 0.0, 0.0, 0.0)
         self.canvas.after.add(self.tl_color)
-        (line_points, wedge_points) = self.get_tl_points(self.connector.tick)
+        (line_points, wedge_points) = self.get_tl_points(connector.tick)
         self.tl_line = Line(points=line_points)
         self.canvas.after.add(self.tl_line)
         self.tl_wedge = Triangle(points=wedge_points)
         self.canvas.after.add(self.tl_wedge)
-        self.connector.bind(branch=self.upd_tl_color, tick=self.upd_tl)
+        connector.bind(branch=self.upd_tl_color, tick=self.upd_tl)
+        self.update()
 
     def upd_tl_color(self, *args):
-        if self.connector.branch == self.branch:
-            self.tl_color.alpha = 1.0
+        if self.parent is None:
+            return
+        charsheet = get_charsheet(self)
+        connector = charsheet.character.closet.kivy_connector
+        if connector.branch == self.branch:
+            self.tl_color.a = 1.0
         else:
-            self.tl_color.alpha = 0.0
+            self.tl_color.a = 0.0
 
     def upd_tl(self, *args):
-        if self.connector.branch != self.branch:
+        if self.parent is None:
             return
-        (line_points, wedge_points) = self.get_tl_points(self.connector.tick)
+        charsheet = get_charsheet(self)
+        connector = charsheet.character.closet.kivy_connector
+        if connector.branch != self.branch:
+            return
+        (line_points, wedge_points) = self.get_tl_points(connector.tick)
         self.tl_line.points = line_points
         self.tl_wedge.points = wedge_points
 
     def get_tl_points(self, tick):
         (l, b) = 0, 0
         (r, t) = self.size
+        calendar = self.parent
         try:
-            c = self.parent.tick_y(tick)
+            c = calendar.tick_y(tick)
         except ZeroDivisionError:
             c = self.height
-        line_points = self.to_parent(l, c) + self.to_parent(r, c)
+        line_points = (l, c, r, c)
         r = self.tl_width
         ry = self.tl_height / 2
         t = c + ry
         b = c - ry
-        wedge_points = self.to_parent(l, t) + self.to_parent(
-            r, c) + self.to_parent(l, b)
+        wedge_points = (l, t, r, c, l, b)
         return (line_points, wedge_points)
 
 
 class ThingCalendarColumn(CalendarColumn):
     def on_parent(self, *args):
-        calendar = get_calendar(self)
+        super(ThingCalendarColumn, self).on_parent(*args)
+        charsheet = get_charsheet(self)
+        skeleton = charsheet.character.closet.skeleton
+        dimension = unicode(get_calendar(self).referent.dimension)
+        thing = unicode(get_calendar(self).referent)
+        skeleton["thing_location"][dimension][thing][
+            self.branch].listener = self.update
+
+    def update(self, *args):
+        if not hasattr(self, 'cells'):
+            self.cells = {}
+        calendar = self.parent
         thing = calendar.referent
+        if self.branch not in thing.locations:
+            return
         rditer = thing.locations[self.branch].iterrows()
-        prev = next(rditer)
+        try:
+            prev = next(rditer)
+        except StopIteration:
+            return
+        done_for = set()
         for rd in rditer:
-            cc = CalendarCell(
-                tick_from=prev["tick_from"],
-                tick_to=rd["tick_from"],
-                text=prev["location"])
-            self.add_widget(cc)
+            if 'uuid' not in rd or rd['uuid'] not in self.cells:
+                rd['uuid'] = unicode(uuid())
+                cc = self.add_cell(
+                    prev["location"], prev["tick_from"], rd["tick_from"])
+                self.cells[rd['uuid']] = cc
+            else:
+                cc = self.cells[rd['uuid']]
+                cc.text = prev['location']
+                cc.tick_from = prev['tick_from']
+                cc.tick_to = rd['tick_from']
+            done_for.add(rd['uuid'])
             prev = rd
-        # TODO make this extend itself
-        indefcc = CalendarCell(
-            tick_from=prev["tick_from"],
-            tick_to=calendar.max_tick,
-            text=prev["location"])
-        self.add_widget(indefcc)
-        super(CalendarColumn, self).on_parent(*args)
+        if None in self.cells:
+            indefcc = self.cells[None]
+            indefcc.text = prev["location"]
+            indefcc.tick_from = prev["tick_from"]
+        else:
+            indefcc = self.add_cell(prev["location"], prev["tick_from"])
+            self.cells[None] = indefcc
+        for cell in self.children:
+            assert(cell in self.cells.viewvalues())
+            cell.calendared()
+        undone = set(self.cells.viewkeys()) - done_for - set([None])
+        for ccid in undone:
+            self.remove_widget(self.cells[ccid])
+            del self.cells[ccid]
 
 
 class PlaceCalendarColumn(CalendarColumn):
@@ -162,58 +193,95 @@ class SkillCalendarColumn(CalendarColumn):
 
 
 class Calendar(CalBase):
+    width = AliasProperty(
+        lambda self: self.get_width(), lambda self, v: None)
+    height = AliasProperty(
+        lambda self: self.get_height(), lambda self, v: None)
+    size = ReferenceListProperty(width, height)
+    lookahead = NumericProperty(100)
     cal_type = NumericProperty(0)
-    referent = ObjectProperty(allownone=True)
+    col_width = NumericProperty(100)
+    referent = ObjectProperty(None)
     key0 = StringProperty()
     key1 = StringProperty(allownone=True)
     key2 = StringProperty(allownone=True)
     keys = ReferenceListProperty(key0, key1, key2)
-    skel = DictProperty({})
+    columns = DictProperty({})
     cal_types = {
         0: ThingCalendarColumn,
         1: PlaceCalendarColumn,
         2: PortalCalendarColumn,
         3: StatCalendarColumn,
         4: SkillCalendarColumn}
+    connector = ObjectProperty(None)
 
     def __init__(self, **kwargs):
-        super(Calendar, self).__init__(**kwargs)
+        super(Calendar, self).__init__(size_hint_y=None, **kwargs)
 
-    def on_parent(self, *args):
+    def on_parent(self, instance, value):
+        if value is None:
+            if self.connector is not None:
+                self.connector.unbind(hi_branch=self.update,
+                                      hi_tick=self.update)
+            return
         charsheet = get_charsheet(self)
         character = charsheet.character
         closet = character.closet
-        self.upd_skel()
+        if self.connector is None:
+            self.connector = character.closet.kivy_connector
         if self.cal_type == 0:
             self.referent = closet.get_thing(*self.keys[:-1])
+            self.referent.locations.listener = self.ticky_layout
         elif self.cal_type == 1:
             self.referent = closet.get_place(*self.keys[:-1])
         elif self.cal_type == 2:
             self.referent = closet.get_portal(*self.keys)
-        # TODO add branches at arbitrary times, not just on_parent
+
+        self.skel.listener = self.update
+
+        self.update()
+
+    def update(self, *args):
         constructor = self.cal_types[self.cal_type]
         for branch in self.skel:
-            self.add_widget(constructor(branch=branch))
+            if branch not in self.columns:
+                col = constructor(branch=branch, width=self.col_width)
+                self.add_widget(col)
+                self.columns[branch] = col
+            self.columns[branch].update()
 
-    def upd_skel(self, *args):
+    def ticky_layout(self, *args):
+        charsheet = get_charsheet(self)
+        connector = charsheet.character.closet.kivy_connector
+        self.max_tick = max((
+            self.max_tick + self.lookahead,
+            connector.hi_tick))
+        self.update()
+
+    @property
+    def skel(self):
         charsheet = get_charsheet(self)
         character = charsheet.character
         if self.cal_type == 0:
-            skel = character.thingdict
+            return self.referent.locations
         elif self.cal_type == 1:
-            skel = character.placedict
+            return character.placedict
         elif self.cal_type == 2:
-            skel = character.portaldict
+            return character.portaldict
         elif self.cal_type == 3:
-            skel = character.statdict
+            return character.statdict
         elif self.cal_type == 4:
-            skel = character.skilldict
-        skel = skel[self.keys[0]]
-        if self.keys[1] is not None:
-            skel = skel[self.keys[1]]
-            if self.keys[2] is not None:
-                skel = skel[self.keys[2]]
-        self.skel = dict(skel)
+            return character.skilldict
+
+    def get_height(self):
+        return self.max_tick * self.tick_height
+
+    def get_width(self):
+        return (self.col_width + self.spacing) * len(self.children)
+
+    def get_max_col_tick(self):
+        return max((self.max_tick, self.height / self.tick_height,
+                    self.min_ticks))
 
 
 class BranchConnector(Widget):
@@ -549,7 +617,6 @@ class CharSheet(GridLayout):
             spacing=10,
             **kwargs)
 
-    def on_parent(self, *args):
         rd = self.character.closet.skeleton[
             "charsheet"][unicode(self.character)]
 
@@ -568,7 +635,19 @@ class CharSheet(GridLayout):
                         size_hint=(None, None),
                         keys=keylst))
             else:
-                self.add_widget(
-                    Calendar(
-                        keys=keylst,
-                        cal_type=SHEET_TO_CAL_TYPE[rd["type"]]))
+                view = ScrollView()
+                cal = Calendar(
+                    bg_color=self.style.bg_active.rgba,
+                    text_color=self.style.textcolor.rgba,
+                    font_name=self.style.fontface + '.ttf',
+                    font_size=self.style.fontsize,
+                    keys=keylst,
+                    cal_type=SHEET_TO_CAL_TYPE[rd["type"]])
+                self.add_widget(view)
+                view.add_widget(cal)
+
+    def do_layout(self, *args):
+        super(CharSheet, self).do_layout(*args)
+        for child in self.children:
+            if isinstance(child, ScrollView):
+                child.children[0].do_layout()

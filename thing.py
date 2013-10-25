@@ -147,6 +147,8 @@ else to do.
             "branch": branch,
             "tick_from": tick,
             "location": str(loc)}
+        self.closet.timestream.upbranch(branch)
+        self.closet.timestream.uptick(tick)
 
     def get_speed(self, branch=None, tick=None):
         lo = self.get_location(branch, tick)

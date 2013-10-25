@@ -1,9 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import SaveableMetaclass
-from kivy.graphics import Color
-from kivy.properties import StringProperty, AliasProperty
-from kivy.event import EventDispatcher
 
 
 """Simple data structures to hold style information for text and
@@ -71,12 +68,8 @@ green, blue. Register in db.colordict.
     def rgba(self):
         return (self.red, self.green, self.blue, self.alpha)
 
-    @property
-    def kivy_color(self):
-        return Color(self.red, self.green, self.blue, self.alpha)
 
-
-class LiSEStyle(EventDispatcher):
+class LiSEStyle(object):
     __metaclass__ = SaveableMetaclass
     """A collection of cogent information for rendering text and things
 that contain text."""
@@ -98,42 +91,42 @@ that contain text."""
           "fg_inactive": ("color", "name"),
           "fg_active": ("color", "name")},
          [])]
-    name = StringProperty('')
-    rowdict = AliasProperty(
-        lambda self: self.closet.skeleton["style"][self.name],
-        lambda self, v: None)
-    bg_inactive = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["bg_inactive"]),
-        lambda self, v: None,
-        bind=('rowdict',))
-    bg_active = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["bg_active"]),
-        lambda self, v: None,
-        bind=('rowdict',))
-    fg_inactive = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["fg_inactive"]),
-        lambda self, v: None,
-        bind=('rowdict',))
-    fg_active = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["fg_active"]),
-        lambda self, v: None,
-        bind=('rowdict',))
-    textcolor = AliasProperty(
-        lambda self: self.closet.get_color(self.rowdict["textcolor"]),
-        lambda self, v: None,
-        bind=('rowdict',))
-    fontface = AliasProperty(
-        lambda self: self.rowdict["fontface"],
-        lambda self, v: None,
-        bind=('rowdict',))
-    fontsize = AliasProperty(
-        lambda self: self.rowdict["fontsize"],
-        lambda self, v: None,
-        bind=('rowdict',))
-    spacing = AliasProperty(
-        lambda self: self.rowdict["spacing"],
-        lambda self, v: None,
-        bind=('rowdict',))
+
+    @property
+    def rowdict(self):
+        return self.closet.skeleton["style"][self.name]
+
+    @property
+    def bg_inactive(self):
+        return self.closet.get_color(self.rowdict["bg_inactive"])
+
+    @property
+    def bg_active(self):
+        return self.closet.get_color(self.rowdict["bg_active"])
+
+    @property
+    def fg_inactive(self):
+        return self.closet.get_color(self.rowdict["fg_inactive"])
+
+    @property
+    def fg_active(self):
+        return self.closet.get_color(self.rowdict["fg_active"])
+
+    @property
+    def textcolor(self):
+        return self.closet.get_color(self.rowdict["textcolor"])
+
+    @property
+    def fontface(self):
+        return self.rowdict["fontface"]
+
+    @property
+    def fontsize(self):
+        return self.rowdict["fontsize"]
+
+    @property
+    def spacing(self):
+        return self.rowdict["spacing"]
 
     def __init__(self, closet, name):
         """Return a style by the given name, with the given face, font size,
@@ -143,8 +136,6 @@ foreground and the background.
         """
         self.closet = closet
         self.name = name
-        EventDispatcher.__init__(self)
-        self.bind(rowdict=self.rowdict.touches)
         self.closet.styledict[str(self)] = self
 
     def __str__(self):

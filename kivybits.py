@@ -1,13 +1,11 @@
 from kivy.uix.image import Image
 from kivy.core.image import ImageData
 from kivy.properties import (
-    ObjectProperty,
     NumericProperty,
-    BooleanProperty,
     StringProperty)
 from kivy.event import EventDispatcher
 from img import Tex
-from util import Skeleton, SaveableMetaclass
+from util import SaveableMetaclass
 from kivy.uix.widget import WidgetMetaclass
 
 
@@ -18,6 +16,10 @@ class KivyConnector(EventDispatcher):
     tick = NumericProperty()
     hi_branch = NumericProperty()
     hi_tick = NumericProperty()
+
+    def __setattr__(self, attrn, val):
+        print("In KivyConnector, setting {} to {}".format(attrn, val))
+        super(KivyConnector, self).__setattr__(attrn, val)
 
 
 class Touchy(object):

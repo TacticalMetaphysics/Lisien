@@ -70,6 +70,10 @@ otherwise."""
             "branch": branch,
             "tick_from": tick_from,
             "tick_to": tick_to}
+        self.closet.timestream.upbranch(branch)
+        self.closet.timestream.uptick(tick_from)
+        if tick_to is not None:
+            self.closet.timestream.uptick(tick_to)
 
     def new_branch(self, parent, branch, tick):
         prev = None
