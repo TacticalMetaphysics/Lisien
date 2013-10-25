@@ -11,7 +11,6 @@ from kivy.properties import (
     NumericProperty,
     StringProperty,
     ObjectProperty)
-from kivy.clock import Clock
 
 
 fontsize = 10
@@ -172,10 +171,10 @@ class Calendar(BoxLayout):
         ticks_from_bot = self.max_tick - tick
         return ticks_from_bot * self.tick_height
 
+    def get_max_col_tick(self):
+        return max((self.max_tick, self.min_ticks))
+
     def do_layout(self, *args):
         super(Calendar, self).do_layout(*args)
         for child in self.children:
             child.do_layout(*args)
-
-    def get_max_col_tick(self):
-        return max((self.max_tick, self.min_ticks))

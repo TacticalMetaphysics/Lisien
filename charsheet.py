@@ -20,7 +20,6 @@ from kivy.properties import (
     StringProperty)
 from calendar import CalendarColumn as CalColBase
 from calendar import Calendar as CalBase
-from uuid import uuid1 as uuid
 
 
 logger = getLogger(__name__)
@@ -84,7 +83,7 @@ class CalendarColumn(CalColBase):
         self.tl_wedge = Triangle(points=wedge_points)
         self.canvas.after.add(self.tl_wedge)
         connector.bind(branch=self.upd_tl_color, tick=self.upd_tl)
-        self.update()
+        value.skel.listener[self.branch] = self.update
 
     def upd_tl_color(self, *args):
         if self.parent is None:
@@ -125,16 +124,8 @@ class CalendarColumn(CalColBase):
 
 
 class ThingCalendarColumn(CalendarColumn):
-    def on_parent(self, *args):
-        super(ThingCalendarColumn, self).on_parent(*args)
-        charsheet = get_charsheet(self)
-        skeleton = charsheet.character.closet.skeleton
-        dimension = unicode(get_calendar(self).referent.dimension)
-        thing = unicode(get_calendar(self).referent)
-        skeleton["thing_location"][dimension][thing][
-            self.branch].listener = self.update
-
     def update(self, *args):
+        print("updating cells in ThingCalendarColumn for branch {}".format(self.branch))
         if not hasattr(self, 'cells'):
             self.cells = {}
         calendar = self.parent
@@ -148,17 +139,16 @@ class ThingCalendarColumn(CalendarColumn):
             return
         done_for = set()
         for rd in rditer:
-            if 'uuid' not in rd or rd['uuid'] not in self.cells:
-                rd['uuid'] = unicode(uuid())
+            if id(rd) not in self.cells:
                 cc = self.add_cell(
                     prev["location"], prev["tick_from"], rd["tick_from"])
-                self.cells[rd['uuid']] = cc
+                self.cells[id(rd)] = cc
             else:
-                cc = self.cells[rd['uuid']]
+                cc = self.cells[id(rd)]
                 cc.text = prev['location']
                 cc.tick_from = prev['tick_from']
                 cc.tick_to = rd['tick_from']
-            done_for.add(rd['uuid'])
+            done_for.add(id(rd))
             prev = rd
         if None in self.cells:
             indefcc = self.cells[None]
@@ -231,32 +221,26 @@ class Calendar(CalBase):
             self.connector = character.closet.kivy_connector
         if self.cal_type == 0:
             self.referent = closet.get_thing(*self.keys[:-1])
-            self.referent.locations.listener = self.ticky_layout
         elif self.cal_type == 1:
             self.referent = closet.get_place(*self.keys[:-1])
         elif self.cal_type == 2:
             self.referent = closet.get_portal(*self.keys)
 
-        self.skel.listener = self.update
-
-        self.update()
-
-    def update(self, *args):
-        constructor = self.cal_types[self.cal_type]
-        for branch in self.skel:
-            if branch not in self.columns:
-                col = constructor(branch=branch, width=self.col_width)
-                self.add_widget(col)
-                self.columns[branch] = col
-            self.columns[branch].update()
-
-    def ticky_layout(self, *args):
+    def do_layout(self, *args):
+        print("laying out calendar")
         charsheet = get_charsheet(self)
         connector = charsheet.character.closet.kivy_connector
         self.max_tick = max((
             self.max_tick + self.lookahead,
             connector.hi_tick))
-        self.update()
+        constructor = self.cal_types[self.cal_type]
+        for branch in self.skel:
+            if branch not in self.columns:
+                print("making column for branch {}".format(branch))
+                col = constructor(branch=branch, width=self.col_width)
+                self.add_widget(col)
+                self.columns[branch] = col
+        super(Calendar, self).do_layout(*args)
 
     @property
     def skel(self):
