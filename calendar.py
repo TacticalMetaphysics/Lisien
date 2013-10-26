@@ -2,30 +2,35 @@ from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stencilview import StencilView
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.gridlayout import GridLayout
 from kivy.graphics import (
     Color,
     Rectangle,
     Callback)
 from kivy.properties import (
+    ListProperty,
     BooleanProperty,
     NumericProperty,
     StringProperty,
     ObjectProperty)
 
 
-fontsize = 10
+def get_column(what):
+    while not isinstance(what, Column):
+        what = what.parent
+    return what
 
 
-def sane_colors(**kwargs):
-    for colorstr in ("bg_color",):
-        if colorstr in kwargs:
-            if not isinstance(kwargs[colorstr], Color):
-                kwargs[colorstr] = Color(*kwargs[colorstr])
+def get_calendar(what):
+    while not isinstance(what, Calendar):
+        what = what.parent
+    return what
 
 
-class CalendarCell(StencilView):
-    bg_color = ObjectProperty(None, allownone=True)
-    text_color = ObjectProperty(None, allownone=True)
+class Cell(StencilView):
+    bg_color = ListProperty(None, allownone=True)
+    text_color = ListProperty(None, allownone=True)
     font_name = StringProperty(None, allownone=True)
     font_size = NumericProperty(None, allownone=True)
     bg_rect = ObjectProperty(allownone=True)
@@ -35,18 +40,17 @@ class CalendarCell(StencilView):
     calendaredness = BooleanProperty(False)
 
     def __init__(self, **kwargs):
-        sane_colors(**kwargs)
         StencilView.__init__(
             self,
-            size_hint_y=None,
+            size_hint=(1, None),
             **kwargs)
 
     def calendared(self, *args):
         if self.calendaredness:
             return
         self.calendaredness = True
-        column = self.parent
-        calendar = column.parent
+        column = get_column(self)
+        calendar = get_calendar(column)
         if (
                 self.tick_from > calendar.max_tick):
             calendar.max_tick = self.tick_from
@@ -55,19 +59,19 @@ class CalendarCell(StencilView):
                 self.tick_to > calendar.max_tick):
             calendar.max_tick = self.tick_to
         color = calendar.bg_color
-        if column.bg_color is not None:
+        if column.bg_color != []:
             color = column.bg_color
-        if self.bg_color is not None:
+        if self.bg_color != []:
             color = self.bg_color
         box = BoxLayout(
             pos=self.pos,
             size=self.size)
 
         box.canvas.before.add(Color(*color))
-        self.bg_rect = Rectangle(
+        box.bg_rect = Rectangle(
             pos=self.pos,
             size=self.size)
-        box.canvas.before.add(self.bg_rect)
+        box.canvas.before.add(box.bg_rect)
 
         text_color = calendar.text_color
         if column.text_color is not None:
@@ -84,41 +88,52 @@ class CalendarCell(StencilView):
             font_size = column.font_size
         if self.font_size is not None:
             font_size = self.font_size
-        label = Label(
-            text=self.text,
-            valign='top',
-            text_size=self.size,
-            color=text_color,
-            font_name=font_name,
-            font_size=font_size)
+        label_kwargs = {
+            'text': self.text,
+            'valign': 'top',
+            'text_size': self.size}
+        if text_color is not None:
+            label_kwargs['text_color'] = text_color
+        if font_name is not None:
+            label_kwargs['font_name'] = font_name
+        if font_size is not None:
+            label_kwargs['font_size'] = font_size
+        label = Label(**label_kwargs)
         box.add_widget(label)
 
         def rearrange(*args):
             box.pos = self.pos
             box.size = self.size
-            self.bg_rect.pos = box.pos
-            self.bg_rect.size = box.size
+            box.bg_rect.pos = box.pos
+            box.bg_rect.size = box.size
             label.text_size = self.size
-        with self.canvas:
+        with box.canvas:
             self.cb = Callback(rearrange)
 
         self.add_widget(box)
 
 
-class CalendarColumn(RelativeLayout):
-    bg_color = ObjectProperty(None, allownone=True)
-    text_color = ObjectProperty(None, allownone=True)
+class Column(RelativeLayout):
+    bg_color = ListProperty(None, allownone=True)
+    text_color = ListProperty(None, allownone=True)
     font_size = NumericProperty(None, allownone=True)
     font_name = StringProperty(None, allownone=True)
+    calendar = ObjectProperty(allownone=True)
+    tick_from = NumericProperty(None)
+    tick_height = NumericProperty(10)
+    spacing = NumericProperty(10)
 
     def __init__(self, **kwargs):
-        RelativeLayout.__init__(self, **kwargs)
-        if "cells" in kwargs:
-            for cell in kwargs["cells"]:
-                self.add_widget(cell)
+        super(Column, self).__init__(
+            size_hint=(1, None), **kwargs)
 
     def add_cell(self, text, tick_from, tick_to=None):
-        cc = CalendarCell(
+        if (
+                self.tick_from is None or
+                len(self.children) == 0 or
+                tick_from < self.tick_from):
+            self.tick_from = tick_from
+        cc = Cell(
             tick_from=tick_from,
             tick_to=tick_to,
             text=text)
@@ -127,31 +142,32 @@ class CalendarColumn(RelativeLayout):
 
     def on_parent(self, instance, value):
         if value is not None:
+            assert(isinstance(value, Calendar))
+            self.calendar = value
             for cell in self.children:
                 cell.calendared()
 
     def do_layout(self, *args):
-        calendar = self.parent
-        if calendar is None:
-            return
-        tick_height = calendar.tick_height
-        half_spacing = calendar.spacing / 2
+        half_spacing = self.tick_height / 2
         for cell in self.children:
             if cell.tick_to is not None:
                 tick_to = cell.tick_to
             else:
-                tick_to = calendar.get_max_col_tick()
-            cell.y = calendar.tick_y(tick_to) + half_spacing
-            cell.size = (
-                self.width,
-                ((tick_to - cell.tick_from) * tick_height) - half_spacing)
-            cell.cb.ask_update()
-        super(CalendarColumn, self).do_layout(*args)
+                tick_to = self.calendar.get_max_col_tick()
+            cell.y = self.tick_y(tick_to) + half_spacing
+            cell.height = ((tick_to - cell.tick_from) * self.tick_height
+                           - half_spacing)
+        super(Column, self).do_layout(*args)
+
+    def tick_y(self, tick):
+        ticks_from_top = tick - self.tick_from
+        pix_from_top = ticks_from_top * self.tick_height
+        return self.height - pix_from_top
 
 
-class Calendar(BoxLayout):
-    bg_color = ObjectProperty(Color(1.0, 0.0, 0.0, 1.0))
-    text_color = ObjectProperty(None, allownone=True)
+class Calendar(GridLayout):
+    bg_color = ListProperty([1.0, 0.0, 0.0, 1.0], allownone=True)
+    text_color = ListProperty([1.0, 1.0, 1.0, 1.0], allownone=True)
     font_size = NumericProperty(None, allownone=True)
     font_name = StringProperty(None, allownone=True)
     tick = NumericProperty(0)
@@ -160,12 +176,15 @@ class Calendar(BoxLayout):
     tick_height = NumericProperty(10)
 
     def __init__(self, **kwargs):
-        sane_colors(**kwargs)
-        BoxLayout.__init__(
-            self, orientation='horizontal', spacing=10, **kwargs)
-        if "columns" in kwargs:
-            for column in kwargs["columns"]:
-                self.add_widget(column)
+        if "col_default_width" not in kwargs:
+            kwargs["col_default_width"] = 100
+        if "spacing" not in kwargs:
+            kwargs["spacing"] = [10, 0]
+        super(Calendar, self).__init__(
+            rows=1,
+            col_force_default=True,
+            size_hint=(None, None),
+            **kwargs)
 
     def tick_y(self, tick):
         ticks_from_bot = self.max_tick - tick
@@ -177,4 +196,4 @@ class Calendar(BoxLayout):
     def do_layout(self, *args):
         super(Calendar, self).do_layout(*args)
         for child in self.children:
-            child.do_layout(*args)
+            child.do_layout()
