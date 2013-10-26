@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from closet import mkdb
+import closet
 from sys import argv
 
 """Make an empty database of LiSE's schema. By default it will be
@@ -9,7 +9,8 @@ called default.sqlite and include the RLTiles (in folder
 in their sort order, after the schema is defined.
 
 """
+closet.USE_KIVY = False
 if argv[-1][-2:] != "py":
-    mkdb(argv[-1])
+    closet.mkdb(argv[-1])
 else:
-    mkdb()
+    closet.mkdb()

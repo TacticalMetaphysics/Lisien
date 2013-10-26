@@ -6,6 +6,7 @@ from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.graphics import (
     Color,
     Line,
@@ -18,8 +19,7 @@ from kivy.properties import (
     NumericProperty,
     ReferenceListProperty,
     StringProperty)
-from calendar import CalendarColumn as CalColBase
-from calendar import Calendar as CalBase
+import calendar
 from uuid import uuid1 as uuid
 
 
@@ -61,7 +61,7 @@ def get_calendar(item):
     return item
 
 
-class CalendarColumn(CalColBase):
+class CalendarColumn(calendar.Column):
     tl_line = ObjectProperty(None, allownone=True)
     tl_wedge = ObjectProperty(None, allownone=True)
     tl_color = ObjectProperty(None, allownone=True)
@@ -84,7 +84,7 @@ class CalendarColumn(CalColBase):
         self.tl_wedge = Triangle(points=wedge_points)
         self.canvas.after.add(self.tl_wedge)
         connector.bind(branch=self.upd_tl_color, tick=self.upd_tl)
-        self.update()
+        value.skel[self.branch].listener = self._trigger_layout
 
     def upd_tl_color(self, *args):
         if self.parent is None:
@@ -122,6 +122,10 @@ class CalendarColumn(CalColBase):
         b = c - ry
         wedge_points = (l, t, r, c, l, b)
         return (line_points, wedge_points)
+
+    def do_layout(self, *args):
+        self.update()
+        super(CalendarColumn, self).do_layout(*args)
 
 
 class ThingCalendarColumn(CalendarColumn):
@@ -192,15 +196,9 @@ class SkillCalendarColumn(CalendarColumn):
     pass
 
 
-class Calendar(CalBase):
-    width = AliasProperty(
-        lambda self: self.get_width(), lambda self, v: None)
-    height = AliasProperty(
-        lambda self: self.get_height(), lambda self, v: None)
-    size = ReferenceListProperty(width, height)
+class Calendar(calendar.Calendar):
     lookahead = NumericProperty(100)
     cal_type = NumericProperty(0)
-    col_width = NumericProperty(100)
     referent = ObjectProperty(None)
     key0 = StringProperty()
     key1 = StringProperty(allownone=True)
@@ -236,16 +234,14 @@ class Calendar(CalBase):
             self.referent = closet.get_place(*self.keys[:-1])
         elif self.cal_type == 2:
             self.referent = closet.get_portal(*self.keys)
-
-        self.skel.listener = self.update
-
+        closet.kivy_connector.bind(branch=self.update)
         self.update()
 
     def update(self, *args):
         constructor = self.cal_types[self.cal_type]
         for branch in self.skel:
             if branch not in self.columns:
-                col = constructor(branch=branch, width=self.col_width)
+                col = constructor(branch=branch)
                 self.add_widget(col)
                 self.columns[branch] = col
             self.columns[branch].update()
@@ -272,12 +268,6 @@ class Calendar(CalBase):
             return character.statdict
         elif self.cal_type == 4:
             return character.skilldict
-
-    def get_height(self):
-        return self.max_tick * self.tick_height
-
-    def get_width(self):
-        return (self.col_width + self.spacing) * len(self.children)
 
     def get_max_col_tick(self):
         return max((self.max_tick, self.height / self.tick_height,
@@ -643,11 +633,22 @@ class CharSheet(GridLayout):
                     font_size=self.style.fontsize,
                     keys=keylst,
                     cal_type=SHEET_TO_CAL_TYPE[rd["type"]])
+                cal.bind(minimum_height=cal.setter('height'))
+                cal.bind(minimum_width=cal.setter('width'))
                 self.add_widget(view)
                 view.add_widget(cal)
 
     def do_layout(self, *args):
-        super(CharSheet, self).do_layout(*args)
+        print("Laying out Charsheet with children:")
         for child in self.children:
+            print("{} size_hint={} size={} pos_hint={} pos={}".format(
+                child, child.size_hint, child.size, child.pos_hint,
+                child.pos))
             if isinstance(child, ScrollView):
-                child.children[0].do_layout()
+                print("with its own children:")
+                for grandchild in child.children:
+                    print("{} size_hint={} size={} pos_hint={} pos={}".format(
+                        grandchild, grandchild.size_hint,
+                        grandchild.size, grandchild.pos_hint,
+                        grandchild.pos))
+        super(CharSheet, self).do_layout(*args)
