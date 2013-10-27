@@ -2,7 +2,6 @@ from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stencilview import StencilView
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.graphics import (
     Color,
@@ -10,7 +9,9 @@ from kivy.graphics import (
     Callback)
 from kivy.properties import (
     ListProperty,
+    ReferenceListProperty,
     BooleanProperty,
+    BoundedNumericProperty,
     NumericProperty,
     StringProperty,
     ObjectProperty)
@@ -29,8 +30,16 @@ def get_calendar(what):
 
 
 class Cell(StencilView):
-    bg_color = ListProperty(None, allownone=True)
-    text_color = ListProperty(None, allownone=True)
+    bg_r = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    bg_g = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    bg_b = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    bg_a = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    bg_color = ReferenceListProperty(bg_r, bg_g, bg_b, bg_a)
+    text_r = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    text_g = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    text_b = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    text_a = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    text_color = ReferenceListProperty(bg_r, bg_g, bg_b, bg_a)
     font_name = StringProperty(None, allownone=True)
     font_size = NumericProperty(None, allownone=True)
     bg_rect = ObjectProperty(allownone=True)
@@ -59,9 +68,9 @@ class Cell(StencilView):
                 self.tick_to > calendar.max_tick):
             calendar.max_tick = self.tick_to
         color = calendar.bg_color
-        if column.bg_color != []:
+        if column.bg_color != [None, None, None, None]:
             color = column.bg_color
-        if self.bg_color != []:
+        if self.bg_color != [None, None, None, None]:
             color = self.bg_color
         box = BoxLayout(
             pos=self.pos,
@@ -74,9 +83,9 @@ class Cell(StencilView):
         box.canvas.before.add(box.bg_rect)
 
         text_color = calendar.text_color
-        if column.text_color is not None:
+        if column.text_color != (None, None, None, None):
             text_color = column.text_color
-        if self.text_color is not None:
+        if self.text_color != (None, None, None, None):
             text_color = self.text_color
         font_name = calendar.font_name
         if column.font_name is not None:
@@ -92,7 +101,7 @@ class Cell(StencilView):
             'text': self.text,
             'valign': 'top',
             'text_size': self.size}
-        if text_color is not None:
+        if text_color != (None, None, None, None):
             label_kwargs['text_color'] = text_color
         if font_name is not None:
             label_kwargs['font_name'] = font_name
@@ -114,8 +123,16 @@ class Cell(StencilView):
 
 
 class Column(RelativeLayout):
-    bg_color = ListProperty(None, allownone=True)
-    text_color = ListProperty(None, allownone=True)
+    bg_r = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    bg_g = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    bg_b = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    bg_a = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    bg_color = ReferenceListProperty(bg_r, bg_g, bg_b, bg_a)
+    text_r = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    text_g = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    text_b = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    text_a = BoundedNumericProperty(None, min=0.0, max=1.0, allownone=True)
+    text_color = ReferenceListProperty(bg_r, bg_g, bg_b, bg_a)
     font_size = NumericProperty(None, allownone=True)
     font_name = StringProperty(None, allownone=True)
     calendar = ObjectProperty(allownone=True)
@@ -166,8 +183,16 @@ class Column(RelativeLayout):
 
 
 class Calendar(GridLayout):
-    bg_color = ListProperty([1.0, 0.0, 0.0, 1.0], allownone=True)
-    text_color = ListProperty([1.0, 1.0, 1.0, 1.0], allownone=True)
+    bg_r = BoundedNumericProperty(1.0, min=0.0, max=1.0, allownone=True)
+    bg_g = BoundedNumericProperty(0.0, min=0.0, max=1.0, allownone=True)
+    bg_b = BoundedNumericProperty(0.0, min=0.0, max=1.0, allownone=True)
+    bg_a = BoundedNumericProperty(1.0, min=0.0, max=1.0, allownone=True)
+    bg_color = ReferenceListProperty(bg_r, bg_g, bg_b, bg_a)
+    text_r = BoundedNumericProperty(1.0, min=0.0, max=1.0, allownone=True)
+    text_g = BoundedNumericProperty(1.0, min=0.0, max=1.0, allownone=True)
+    text_b = BoundedNumericProperty(1.0, min=0.0, max=1.0, allownone=True)
+    text_a = BoundedNumericProperty(1.0, min=0.0, max=1.0, allownone=True)
+    text_color = ReferenceListProperty(bg_r, bg_g, bg_b, bg_a)
     font_size = NumericProperty(None, allownone=True)
     font_name = StringProperty(None, allownone=True)
     tick = NumericProperty(0)
