@@ -6,6 +6,7 @@ from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.graphics import (
     Color,
     Line,
@@ -13,10 +14,13 @@ from kivy.graphics import (
 from kivy.properties import (
     AliasProperty,
     DictProperty,
+    BooleanProperty,
     ObjectProperty,
     NumericProperty,
+    BoundedNumericProperty,
     ReferenceListProperty,
     StringProperty)
+from kivy.clock import Clock
 import calendar
 
 
@@ -63,7 +67,6 @@ class CalendarColumn(calendar.Column):
 
     def on_parent(self, instance, value):
         super(CalendarColumn, self).on_parent(instance, value)
-        charsheet = get_charsheet(self)
         value.skel[self.branch].listener = self._trigger_layout
 
     def do_layout(self, *args):
@@ -145,19 +148,11 @@ class Calendar(calendar.Calendar):
         3: StatCalendarColumn,
         4: SkillCalendarColumn}
     connector = ObjectProperty(None)
-    tl_width = 16
-    tl_height = 8
 
     def __init__(self, **kwargs):
         super(Calendar, self).__init__(size_hint_y=None, **kwargs)
 
-    def on_parent(self, instance, value):
-        if value is None:
-            if self.connector is not None:
-                self.connector.unbind(hi_branch=self.update,
-                                      hi_tick=self.update)
-                self.connector = None
-            return
+    def on_parent(self, *args):
         charsheet = get_charsheet(self)
         character = charsheet.character
         closet = character.closet
@@ -165,38 +160,32 @@ class Calendar(calendar.Calendar):
         for key in self.keys:
             if key not in (None, ''):
                 ks.append(key)
-        if self.connector is None:
-            self.connector = character.closet.kivy_connector
-        (line_points, wedge_points) = self.get_tl_points(
-            self.connector.branch, self.connector.tick)
-        self.tl_line = Line(points=line_points)
-        self.tl_wedge = Triangle(points=wedge_points)
-        self.tl_color = Color(1.0, 0.0, 0.0, 1.0)
-        self.canvas.after.add(self.tl_color)
-        self.canvas.after.add(self.tl_line)
-        self.canvas.after.add(self.tl_wedge)
+        self.connector = character.closet.kivy_connector
+        self.connector.bind(
+            branch=self.parent.tl_repos, tick=self.parent.tl_repos)
         if self.cal_type == 0:
             self.referent = closet.get_thing(*ks)
         elif self.cal_type == 1:
             self.referent = closet.get_place(*ks)
         elif self.cal_type == 2:
             self.referent = closet.get_portal(*ks)
-        closet.kivy_connector.bind(branch=self.update, tick=self.uptick)
+        self.skel.listener = self.update
         self.update()
 
-    def uptick(self, *args):
-        (self.tl_line.points, self.tl_wedge.points) = self.get_tl_points(
-            self.connector.branch, self.connector.tick)
-
     def update(self, *args):
-        self.uptick(*args)
         constructor = self.cal_types[self.cal_type]
         for branch in self.skel:
             if branch not in self.columns:
                 col = constructor(branch=branch)
                 self.add_widget(col)
                 self.columns[branch] = col
+        self._trigger_layout()
+
+    def do_layout(self, *args):
         super(Calendar, self).do_layout(*args)
+        if not self.parent.tl_init:
+            self.parent.tl_repos()
+            self.parent.tl_init = True
 
     @property
     def skel(self):
@@ -217,21 +206,51 @@ class Calendar(calendar.Calendar):
         return max((self.max_tick, self.height / self.tick_height,
                     self.min_ticks))
 
-    def get_tl_points(self, branch, tick):
-        l = self.x + (self.col_default_width + self.spacing[0]) * branch
-        b = 0
-        (r, t) = self.size
-        try:
-            c = self.tick_y(tick)
-        except ZeroDivisionError:
-            c = self.height
-        line_points = (l, c, r, c)
-        r = self.tl_width
-        ry = self.tl_height / 2
-        t = c + ry
-        b = c - ry
-        wedge_points = (l, t, r, c, l, b)
-        return (line_points, wedge_points)
+
+class CalendarRL(RelativeLayout):
+    calendar = ObjectProperty()
+    tl_drag = BooleanProperty(False)
+    tl_init = BooleanProperty(False)
+
+    def __init__(self, **kwargs):
+        super(CalendarRL, self).__init__(size_hint=(None, None), **kwargs)
+        self.calendar.bind(
+            minimum_width=self.setter('width'),
+            minimum_height=self.setter('height'))
+
+    def on_parent(self, *args):
+        self.add_widget(self.calendar)
+
+    def get_line_points(self, x, y):
+        return (x, y, x+self.calendar.col_default_width, y)
+
+    def get_wedge_points(self, x, y):
+        t = y + 8
+        b = y - 8
+        return (x, t, x+16, y, x, b)
+
+    def get_tl_pos(self, branch, tick):
+        column = self.calendar.children[branch]
+        x = column.x
+        y = column.tick_y(tick)
+        return (x, y)
+
+    def tl_repos(self, *args):
+        branch = self.calendar.connector.branch
+        tick = self.calendar.connector.tick
+        (x, y) = self.get_tl_pos(branch, tick)
+        self.canvas.after.clear()
+        with self.canvas.after:
+            Color(1.0, 0.0, 0.0, 1.0)
+            Line(points=self.get_line_points(x, y))
+            Triangle(points=self.get_wedge_points(x, y))
+
+
+class CalendarView(ScrollView):
+    calendar = ObjectProperty()
+
+    def on_parent(self, *args):
+        self.add_widget(CalendarRL(calendar=self.calendar))
 
 
 class BranchConnector(Widget):
@@ -587,15 +606,10 @@ class CharSheet(GridLayout):
                         size_hint=(None, None),
                         keys=keylst))
             else:
-                view = ScrollView()
-                cal = Calendar(
+                self.add_widget(CalendarView(calendar=Calendar(
                     bg_color=self.style.bg_active.rgba,
                     text_color=self.style.textcolor.rgba,
                     font_name=self.style.fontface + '.ttf',
                     font_size=self.style.fontsize,
                     keys=keylst,
-                    cal_type=SHEET_TO_CAL_TYPE[rd["type"]])
-                cal.bind(minimum_height=cal.setter('height'))
-                cal.bind(minimum_width=cal.setter('width'))
-                self.add_widget(view)
-                view.add_widget(cal)
+                    cal_type=SHEET_TO_CAL_TYPE[rd["type"]])))
