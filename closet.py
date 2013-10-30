@@ -21,7 +21,6 @@ from spot import Spot
 from pawn import Pawn
 from board import Board
 from card import Card
-from effect import Effect, EffectDeck
 from style import LiSEStyle, LiSEColor
 from util import (
     dictify_row,
@@ -36,6 +35,7 @@ from thing import Thing
 from character import Character
 from charsheet import CharSheet
 from menu import Menu
+from event import Implicator
 
 
 logger = getLogger(__name__)
@@ -355,12 +355,6 @@ For more information, consult SaveableMetaclass in util.py.
     def mi_create_portal(self, menuitem):
         return menuitem.window.create_portal()
 
-    def get_card_base(self, name):
-        """Return the CardBase named thus, loading it first if necessary."""
-        if name not in self.carddict:
-            self.load_card(name)
-        return self.carddict[name]
-
     def make_igraph_graph(self, name):
         self.graphdict[name] = igraph.Graph(directed=True)
 
@@ -481,60 +475,23 @@ For more information, consult SaveableMetaclass in util.py.
     def get_thing(self, dimn, thingn):
         return self.get_dimension(dimn).get_thing(thingn)
 
-    def load_effects(self, names):
-        r = {}
-        kd = {"effect": {}}
-        for name in names:
-            kd["effect"][name] = {"name": name}
-        self.skeleton.update(
-            Effect._select_skeleton(self.c, kd))
-        need_chars = set()
-        for name in names:
-            rd = self.skeleton["effect"][name]
-            need_chars.add(rd["character"])
-        self.get_characters(need_chars)
-        for name in names:
-            r[name] = Effect(self, name)
-
     def get_effects(self, names):
-        if len(names) == 0:
-            return {}
         r = {}
-        unloaded = set()
         for name in names:
-            if name in self.effectdict:
-                r[name] = self.effectdict[name]
-            else:
-                unloaded.add(name)
-        if len(unloaded) > 0:
-            r.update(self.load_effects(unloaded))
+            r[name] = Implicator.make_effect(name)
         return r
 
-    def load_effect_decks(self, names):
+    def get_effect(self, name):
+        return self.get_effects([name])[name]
+
+    def get_causes(self, names):
         r = {}
-        kd = {
-            "effect_deck": {},
-            "effect_deck_link": {}}
         for name in names:
-            kd["effect_deck"][name] = {"name": name}
-            kd["effect_deck_link"][name] = {"deck": name}
-        self.skeleton.update(
-            EffectDeck._select_skeleton(self.c, kd))
-        for name in names:
-            r[name] = EffectDeck(self, name)
+            r[name] = Implicator.make_cause(name)
         return r
 
-    def get_effect_decks(self, names):
-        r = {}
-        unloaded = set()
-        for name in names:
-            if name in self.effectdeckdict:
-                r[name] = self.effectdeckdict[name]
-            else:
-                unloaded.add(name)
-        if len(unloaded) > 0:
-            r.update(self.load_effect_decks(unloaded))
-        return r
+    def get_cause(self, cause):
+        return self.get_causes([cause])[cause]
 
     def load_dimensions(self, names):
         # I think it might eventually *make sense* to load the same
@@ -726,19 +683,6 @@ For more information, consult SaveableMetaclass in util.py.
         kd = {"menu_item": {"menu": menu}}
         skel = Menu._select_skeleton(self.c, kd)
         self.skeleton.update(skel)
-
-    def get_effects_in_decks(self, decks):
-        effds = self.get_effect_decks(decks)
-        effects = set()
-        for effd in effds.values():
-            for rd in effd._card_links:
-                effects.add(rd["effect"])
-        return self.get_effects(effects)
-
-    def get_cards_in_hands(self, hands):
-        effects = self.get_effects_in_decks(hands)
-        return self.get_cards([
-            str(effect) for effect in effects.values()])
 
     def load_timestream(self):
         self.skeleton.update(
