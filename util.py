@@ -4,7 +4,7 @@ from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
 from collections import deque, MutableMapping
-from re import match
+from re import match, findall
 
 logger = getLogger(__name__)
 
@@ -1233,22 +1233,33 @@ class EmptySkeleton(Exception):
 
 class Fabulator(object):
     """Construct objects (or call functions, as you please) as described
-by strings loaded in from the database.
+by strings loaded in from the database. exec()-free.
 
     """
-    fabbers = {}
-
-    def __init__(self, xfabs):
-        self.fabbers.update(xfabs)
+    def __init__(self, fabs):
+        """Supply a dictionary full of callables, keyed by the names you want
+to use for them."""
+        self.fabbers = fabs
 
     def __call__(self, s):
-        """Parse the string into something I can make an object from. Then
+        """Parse the string into something I can make a callable from. Then
 make it, using the classes in self.fabbers."""
-        name = s.split("(")[0]
-        (rex, fabber) = self.fabbers[name]
-        args_raw = match(rex, s).groups()
-        args_cooked = []
-        for arg in args_raw:
-            for arg_split in arg.split(", "):
-                args_cooked.append(arg_split)
-        return fabber(*args_cooked)
+        (outer, inner) = match("(.+)\((.+)\)", s).groups()
+        return self.call_recursively(outer, inner)
+
+    def call_recursively(self, outer, inner):
+        fun = self.fabbers[outer]
+        # pretty sure parentheses are meaningless inside []
+        m = findall("(.+)\((.+)\)[,)] *", inner)
+        if len(m) == 0:
+            return fun(*inner.split(",").strip(" "))
+        elif len(m) == 1:
+            (infun, inarg) = m[0]
+            infun = self.fabbers[infun]
+            inargs = inarg.split(",").strip(" ")
+            return fun(infun(*inargs))
+        else:
+            # This doesn't allow any mixing of function-call arguments
+            # with text arguments at the same level. Not optimal.
+            return fun(*[self.call_recursively(infun, inarg)
+                         for (infun, inarg) in m])

@@ -31,7 +31,7 @@ too.
           "thing": "text not null",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
-          "location": "text not null"},
+          "location": "text"},
          ("dimension", "thing", "branch", "tick_from"),
          {},
          [])]

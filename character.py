@@ -38,6 +38,7 @@ item's name, and the name of the attribute.
         "SELECT character FROM character_things UNION "
         "SELECT character FROM character_places UNION "
         "SELECT character FROM character_portals UNION "
+        "SELECT character FROM character_subcharacters UNION"
         "SELECT character FROM character_skills UNION "
         "SELECT character FROM character_stats"]
     demands = ["thing_location", "portal", "spot_coords"]
@@ -76,12 +77,21 @@ item's name, and the name of the attribute.
          {"dimension, origin, destination":
           ("portal", "dimension, origin, destination")},
          []),
+        ("character_subcharacters",
+         {"outer_character": "text not null",
+          "inner_character": "text not null",
+          "branch": "integer not null default 0",
+          "tick_from": "integer not null default 0",
+          "tick_to": "integer default 0"},
+         ("outer_character", "inner_character", "branch", "tick_from"),
+         {},
+         []),
         ("character_skills",
          {"character": "text not null",
           "skill": "text not null",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
-          "deck": "text"},
+          "tick_to": "integer default null"},
          ("character", "skill", "branch", "tick_from"),
          {},
          []),
@@ -102,32 +112,38 @@ item's name, and the name of the attribute.
         td = self.closet.skeleton
         if "character_things" not in td:
             td["character_things"] = {}
-        if str(self) not in td["character_things"]:
-            td["character_things"][str(self)] = {}
-        self.thingdict = td["character_things"][str(self)]
+        if name not in td["character_things"]:
+            td["character_things"][name] = {}
+        self.thingdict = td["character_things"][name]
         if "character_stats" not in td:
             td["character_stats"] = {}
-        if str(self) not in td["character_stats"]:
-            td["character_stats"][str(self)] = {}
-        self.statdict = td["character_stats"][str(self)]
+        if name not in td["character_stats"]:
+            td["character_stats"][name] = {}
+        self.statdict = td["character_stats"][name]
         if "character_skills" not in td:
             td["character_skills"] = {}
-        if str(self) not in td["character_skills"]:
-            td["character_skills"][str(self)] = {}
-        self.skilldict = td["character_skills"][str(self)]
+        if name not in td["character_skills"]:
+            td["character_skills"][name] = {}
+        self.skilldict = td["character_skills"][name]
         if "character_portals" not in td:
             td["character_portals"] = {}
-        if str(self) not in td["character_portals"]:
-            td["character_portals"][str(self)] = {}
-        self.portaldict = td["character_portals"][str(self)]
+        if name not in td["character_portals"]:
+            td["character_portals"][name] = {}
+        self.portaldict = td["character_portals"][name]
         if "character_places" not in td:
             td["character_places"] = {}
-        if str(self) not in td["character_places"]:
-            td["character_places"][str(self)] = {}
-        self.placedict = td["character_places"][str(self)]
+        if name not in td["character_places"]:
+            td["character_places"][name] = {}
+        self.placedict = td["character_places"][name]
+        if name not in td["character_subcharacters"]:
+            td["character_subcharacters"][name] = {}
+        self.subchardict = td["character_subcharacters"][name]
 
     def __str__(self):
-        return self._name
+        return str(self._name)
+
+    def __unicode__(self):
+        return unicode(self._name)
 
     def get_item_history(self, mydict, *keys):
         if mydict == "thing":
@@ -396,46 +412,6 @@ item's name, and the name of the attribute.
 
     def remove_stat(self, name, branch=None, tick=None):
         self.add_stat(name, None, branch, tick)
-
-    def get_skill_rd_triad(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        r = deque([], 3)
-        for rd in self.skilldict[name].iterrows():
-            r.append(rd)
-            if rd["tick_from"] > tick:
-                break
-        return tuple(r)
-
-    def has_skill(self, name, branch=None, tick=None):
-        rds = self.get_skill_rd_triad(name, branch, tick)
-        return None not in (rds[1], rds[1]["deck"])
-
-    def add_skill_by_rd(self, rd):
-        if self.has_skill(rd["skill"], rd["branch"], rd["tick_from"]):
-            raise TimeParadox("I already have that then")
-        if rd["skill"] not in self.skilldict:
-            self.skilldict[rd["skill"]] = []
-        if rd["branch"] not in self.skilldict[rd["skill"]]:
-            self.skilldict[rd["skill"]][rd["branch"]] = []
-        self.skilldict[rd["skill"]][rd["branch"]][rd["tick_from"]] = rd
-
-    def add_skill(self, name, deck, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        self.add_skill_by_rd({
-            "character": str(self),
-            "skill": name,
-            "deck": deck,
-            "branch": branch,
-            "tick_from": tick})
-
-    def remove_skill(self, name, branch=None, tick=None):
-        self.add_skill(name, None, branch, tick)
 
     def thing_skel_branch_iter(self, branch, dimension=None, thing=None):
         if dimension is None:
