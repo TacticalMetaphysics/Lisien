@@ -1,179 +1,151 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-"""Containers for EffectDecks that have beginnings, middles, and ends.
-
-Events, in LiSE, resemble events in programming generally insofar as
-you register listeners in the form of EffectDecks, and the listeners
-get called when the event is fired. Events here actually have *three*
-EffectDecks registered, one each for the moment the event starts, the
-moment it ends, and the various ticks in between.
-
-Events get passed to the effect decks, which may or may not use them
-for anything in particular.
-
-"""
-from util import SaveableMetaclass
-import logging
+from util import SaveableMetaclass, Fabulator, tabclas
 
 
-logger = logging.getLogger(__name__)
+class Cause(object):
+    """Listen to the world, and fire an event on a specified condition.
 
+In fact it is Implicator that fires the event. I only test whether a
+particular precondition for that event holds true.
 
-class SenselessEvent(Exception):
-    """Exception raised when trying to fire events that can't happen
-anywhere ever."""
-    pass
-
-
-class ImpossibleEvent(Exception):
-    """Exception raised when trying to fire events that can't happen given
-the present circumstances."""
-    pass
-
-
-class IrrelevantEvent(Exception):
-    """Exception raised when trying to fire events that could happen if
-they hadn't already, or if some other event hadn't already done the
-same thing."""
-    pass
-
-
-class ImpracticalEvent(Exception):
-    """Exception raised when trying to fire events that could happen, but
-are bad ideas. They may be allowed to pass anyway if the characters
-involved *insist*."""
-    pass
-
-
-__metaclass__ = SaveableMetaclass
-
-
-class Event:
-    """A class for things that happen over time, having a beginning, a
-middle, and an end.
-
-Events are composed of three EffectDecks, called 'commence,'
-'proceed,' and 'conclude.' Events are scheduled with a tick-from
-and a tick-to. commence will be fired on tick-from; conclude on
-tick-to; and proceed on every tick between them, non-inclusive.
+A Cause must have a method called test, which returns True when the
+Cause is triggered. It may also have a method called validate, which
+returns True when the Cause *may* be triggered--but the validate
+method does not receive a Character to check.
 
     """
-    tables = [
-        ("event",
-         {"name": "text not null",
-          "text": "text not null",
-          "commence": "text",
-          "proceed": "text",
-          "conclude": "text"},
-         ("name",),
-         {"commence": ("effect_deck", "name"),
-          "proceed": ("effect_deck", "name"),
-          "conclude": ("effect_deck", "name")},
-         []),
-        ("scheduled_event",
-         {"event": "text not null",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null",
-          "tick_to": "integer not null"},
-         ("event", "branch", "tick_from"),
-         {"event": ("event", "name")},
-         [])]
+    def __init__(self):
+        if not callable(self):
+            raise TypeError(
+                "Cause is not callable. Does it have a test() method?")
 
-    def __init__(self, db, name,
-                 text, commence_effects,
-                 proceed_effects, conclude_effects):
-        """Return an Event with the given name, text, and ongoing-status, and
-the three given effect decks. Register with db.eventdict.
+    def __call__(self, character, branch, tick, validate=True):
+        if validate and not self.validate(branch, tick):
+            return False
+        r = self.test(character, branch, tick)
+        if not isinstance(r, bool):
+            raise TypeError(
+                "test returned non-Boolean")
+        return r
+
+    def validate(self, branch, tick):
+        return True
+
+
+class CompoundCause(Cause):
+    """Combine many causes into one. Trigger only when they all pass."""
+    def __init__(self, causes):
+        self.causes = causes
+
+    def test(self, character, branch, tick):
+        for cause in self.causes:
+            if not cause(character, branch, tick):
+                return False
+        return True
+
+
+class Event(object):
+    """Information about something happening in the world, when the
+effects are yet unknown.
+
+This kind of event only happens in the simulated world. It has no
+concept of, eg., user input.
+
+    """
+    def __init__(self, cause, branch, tick):
+        if type(self) is Event:
+            raise TypeError(
+                "Event should not be instantiated. Subclass it.")
+        self.cause = cause
+        self.branch = branch
+        self.tick = tick
+
+
+class Effect(object):
+    """Respond to an Event fired by Implicator in response to a Cause.
+
+An Effect does its thing in its do() method, which will receive a
+Character, along with the current branch and tick. It must be
+stateless, with no side effects. Instead, it describes a change to the
+world using a tuple. Each Effect may only have one change.
+
+    """
+
+    def __call__(self, event):
+        r = self.do(event.character, event.branch, event.tick)
+        if not isinstance(r, tuple):
+            raise TypeError(
+                "do returned non-tuple")
+        return r
+
+
+class ChangeException(Exception):
+    """Generic exception for something gone wrong with a Change."""
+    pass
+
+
+class Change(object):
+    """A change to a single value in the world state."""
+    def __init__(self, val, *keys):
+        """The given value will be put into the place in the Skeleton
+specified in the remaining arguments. The keys are in the order
+they'll be looked up in the skeleton--table name first, field name
+last.
 
         """
-        self.name = name
-        self._text = text
-        self.commence_effects = commence_effects
-        self.proceed_effects = proceed_effects
-        self.conclude_effects = conclude_effects
-        self.occurrences = {}
-        self.db = db
+        global tabclas
+        self.clas = tabclas[keys[0]]
+        for fn in keys:
+            if fn not in self.clas.colnames[keys[0]]:
+                raise ChangeException(
+                    "That table doesn't have that field.")
+        self.keys = keys
+        self.value = val
 
-    def __getattr__(self, attrn):
-        if attrn == "text":
-            if self._text[0] == "@":
-                return self.db.get_text[self._text[1:]]
-            else:
-                return self._text
-        else:
-            raise AttributeError("Event has no such attribute")
 
-    def __repr__(self):
-        if hasattr(self, 'start') and hasattr(self, 'length'):
-            return "{0}[{1}->{2}]".format(
-                str(self),
-                self.start,
-                self.end)
+class Implicator(object):
+    """An event handler for only those events that happen in the
+game-world.
 
-    def __len__(self):
-        return self.end - self.start
+Implicator is used to decide what Effects ought to be applied to the
+world, given that a particular combination of Causes is active.
 
-    def schedule(self, branch, tick_from, tick_to):
-        if branch not in self.occurrences:
-            self.occurrences[branch] = {}
-        self.occurrences[tick_from] = tick_to
+    """
+    __metaclass__ = SaveableMetaclass
+    tables = [
+        ("cause_event",
+         {"cause": "text not null",
+          "event": "text not null"},
+         ("cause", "event"),
+         {},
+         []),
+        ("event_effect",
+         {"event": "text not null",
+          "effect": "text not null"},
+         ("event", "effect"),
+         {},
+         [])]
+    make_cause = Fabulator(
+        {"CompoundCause": ("CompoundCause\((.+?)\)", CompoundCause)})
 
-    def is_happening(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.db.branch
-        if tick is None:
-            tick = self.db.tick
-        if branch not in self.occurrences:
-            return False
-        for (tick_from, tick_to) in self.occurrences.items():
-            if tick_from <= tick and tick <= tick_to:
-                return True
-        return False
+    def __init__(self, closet):
+        self.closet = closet
 
-    def is_commencing(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.db.branch
-        if tick is None:
-            tick = self.db.tick
-        if branch not in self.occurrences:
-            return False
-        return tick in self.occurrences[branch]
+    def iter_cause_event(self):
+        """Generate the causes and effects, like dict.iteritems()."""
+        for (causen, effectn) in self.closet.skeleton["cause_event"]:
+            yield (
+                self.closet.get_cause(causen),
+                self.closet.get_effect(effectn))
 
-    def is_proceeding(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.db.branch
-        if tick is None:
-            tick = self.db.tick
-        if branch not in self.occurrences:
-            return False
-        for (tick_from, tick_to) in self.occurrences[branch].items():
-            if tick_from < tick and tick < tick_to:
-                return True
-        return False
-
-    def is_concluding(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.db.branch
-        if tick is None:
-            tick = self.db.tick
-        if branch not in self.occurrences:
-            return False
-        return tick in list(self.occurrences[branch].values())
-
-    def commence(self, reset=True, branch=None, tick=None):
-        """Perform all commence effects."""
-        if self.commence_effects is not None:
-            self.commence_effects.do(
-                self, reset, branch, tick)
-
-    def proceed(self, reset=True, branch=None, tick=None):
-        """Perform all proceed effects."""
-        if self.proceed_effects is not None:
-            self.proceed_effects.do(
-                self, reset, branch, tick)
-
-    def conclude(self, reset=True, branch=None, tick=None):
-        """Perform all conclude effects."""
-        if self.conclude_effects is not None:
-            self.conclude_effects.do(
-                self, reset, branch, tick)
+    def poll(self, branch, tick):
+        """Collect and return all the changes to be made to the world at the
+given game-time."""
+        r = []
+        for (cause, event) in self.iter_cause_event():
+            if cause.validate(branch, tick):
+                for character in self.closet.characters:
+                    if cause(character, branch, tick, validate=False):
+                        r.append(self.event_effect[event](event))
+        return r
