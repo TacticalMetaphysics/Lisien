@@ -957,6 +957,8 @@ def mkdb(DB_NAME='default.sqlite'):
         except sqlite3.OperationalError as e:
             print("OperationalError during postlude from {0}:".format(tn))
             print(e)
+            import pdb
+            pdb.set_trace()
             saveables.append(
                 (demands, provides, prelude, tablenames, postlude))
             continue

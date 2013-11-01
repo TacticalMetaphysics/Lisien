@@ -38,7 +38,8 @@ item's name, and the name of the attribute.
         "SELECT character FROM character_things UNION "
         "SELECT character FROM character_places UNION "
         "SELECT character FROM character_portals UNION "
-        "SELECT character FROM character_subcharacters UNION"
+        "SELECT inner_character FROM character_subcharacters UNION "
+        "SELECT outer_character FROM character_subcharacters UNION "
         "SELECT character FROM character_skills UNION "
         "SELECT character FROM character_stats"]
     demands = ["thing_location", "portal", "spot_coords"]
