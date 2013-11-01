@@ -54,7 +54,6 @@ class Cell(RelativeLayout):
         else:
             kwargs["tick_to"] = kwargs["calendar"].get_max_col_tick()
         super(Cell, self).__init__(
-            size_hint=(1, None),
             **kwargs)
 
 

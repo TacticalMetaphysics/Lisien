@@ -149,8 +149,6 @@ before RumorMill will work. For that, run mkdb.sh.
     def __setattr__(self, attrn, val):
         if attrn in ("dimension", "branch", "tick", "language"):
             self.skeleton["game"][attrn] = val
-            if hasattr(self, 'USE_KIVY'):
-                setattr(self.kivy_connector, attrn, val)
         else:
             super(Closet, self).__setattr__(attrn, val)
 
@@ -748,6 +746,9 @@ For more information, consult SaveableMetaclass in util.py.
                 self.kivy_connector.hi_tick = tick
         self.branch = branch
         self.tick = tick
+        if hasattr(self, 'USE_KIVY'):
+            self.kivy_connector.branch = branch
+            self.kivy_connector.tick = tick
 
     def increment_branch(self, branches=1):
         b = self.branch + int(branches)
@@ -774,6 +775,7 @@ For more information, consult SaveableMetaclass in util.py.
         self.time_travel(self.branch, self.tick+ticks)
 
     def time_travel_inc_branch(self, branches=1):
+        self.increment_branch(branches)
         self.time_travel(self.branch+branches, self.tick)
 
     def go(self, nope=None):
