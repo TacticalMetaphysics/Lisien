@@ -1,22 +1,24 @@
-<Cell>:
-	size_hint_x: 1
-	x: 0
-	y: self.get_y()
-	height: self.get_height()
+<ColorBox>:
 	canvas:
 		Color:
-			rgba: self.bg_color
+			rgba: self.color
 		Rectangle:
 			pos: self.pos
 			size: self.size
-	BoxLayout:
+<Cell>:
+	size_hint: (1, None)
+	x: 0
+	y: self.calendar.tick_y(self.tick_to) + 5
+	height: self.calendar.ticks_height(self.tick_from, self.tick_to) - 5
+	ColorBox:
+		color: root.bg_color
 		Label:
 			text: root.text
 			color: root.text_color
 			font_name: root.font_name
 			font_size: root.font_size
-			text_size: self.text_size
-			pos_hint: {'x': 0, 'top': 1}
+			text_size: self.size
+			pos_hint: {'x': 0, 'y': 0}
 			valign: "top"
 
 <Calendar>:
