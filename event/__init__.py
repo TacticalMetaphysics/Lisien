@@ -141,13 +141,19 @@ encapsulate."""
         return type(name, (Event,), {'priority': priority})
 
     def poll_char(self, character, branch, tick):
-        """Collect and return all the changes to be made to the character at the
-given game-time."""
+        """Collect and return all the changes to be made to the character at
+the given game-time.
+
+        """
         evs = []
         for cause in self.cause_event:
             if cause.validate_time(branch, tick):
                 evs.append(self.cause_event[cause](
                     self, cause, character, branch, tick))
         evs.sort()
+        changes = []
         for event in evs:
-            if event.cause.test(character, branch, tick)
+            if event.cause.test(character, branch, tick):
+                eff = self.event_effect[event]
+                changes.append(eff(event))
+        return changes
