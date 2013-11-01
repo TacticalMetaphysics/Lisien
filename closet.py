@@ -232,11 +232,12 @@ given name.
             'increment_branch':
             (self.increment_branch, ONE_ARG_RE),
             'time_travel_inc_tick':
-            (lambda mi, ticks: self.time_travel_inc_tick(ticks), ONE_ARG_RE),
+            (lambda mi, ticks:
+             self.time_travel_inc_tick(int(ticks)), ONE_ARG_RE),
             'time_travel':
             (self.time_travel_menu_item, TWO_ARG_RE),
             'time_travel_inc_branch':
-            (lambda mi, branches: self.time_travel_inc_branch(branches),
+            (lambda mi, branches: self.time_travel_inc_branch(int(branches)),
              ONE_ARG_RE),
             'go':
             (self.go, ""),

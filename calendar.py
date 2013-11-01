@@ -103,6 +103,7 @@ class Cell(StencilView):
             'text_size': self.size}
         if text_color != (None, None, None, None):
             label_kwargs['text_color'] = text_color
+        label_kwargs['text_color'] = (1.0, 1.0, 1.0, 1.0)
         if font_name is not None:
             label_kwargs['font_name'] = font_name
         if font_size is not None:
