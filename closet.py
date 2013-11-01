@@ -27,6 +27,7 @@ from util import (
     schemata,
     saveables,
     saveable_classes,
+    Fabulator,
     Skeleton,
     Timestream,
     TimestreamException)
@@ -92,11 +93,11 @@ There are some special facilities here for the convenience of
 particular LiSE objects: Things look up their location here; Items
 (including Things) look up their contents here; and Effects look up
 their functions here. That means you need to register functions here
-when you want Effects to be able to trigger them. To do that, put your
-functions in a dictionary keyed with the strings LiSE should use to
-refer to your functions, and pass that dictionary to the RumorMill
-method xfunc(). You may also pass such a dictionary to the
-constructor, just after the name of the database file.
+when you want Effects to use them. Supply callback
+functions for Effects in a list in the keyword argument "effect_cbs".
+
+Supply boolean callback functions for Causes and the like in the
+keyword argument "test_cbs".
 
 You need to create a SQLite database file with the appropriate schema
 before RumorMill will work. For that, run mkdb.sh.
@@ -159,10 +160,6 @@ given name.
 
         """
         self.connector = connector
-        if "xfuncs" in kwargs:
-            self.xfuncs = kwargs["xfuncs"]
-        else:
-            self.xfuncs = {}
 
         self.c = self.connector.cursor()
 
@@ -212,7 +209,42 @@ given name.
         self.time_travel_history = []
 
         placeholder = (noop, ITEM_ARG_RE)
-        self.effect_cbs = {}
+        if "effect_cbs" in kwargs:
+            effect_cb_fabdict = dict(
+                [(
+                    cls.__name__, self.constructorate(cls))
+                 for cls in kwargs["effect_cbs"]])
+        else:
+            effect_cb_fabdict = {}
+        self.get_effect_cb = Fabulator(effect_cb_fabdict)
+        if "test_cbs" in kwargs:
+            test_cb_fabdict = dict(
+                [(
+                    cls.__name__, self.constructorate(cls))
+                 for cls in kwargs["test_cbs"]])
+        else:
+            test_cb_fabdict = {}
+        self.get_test_cb = Fabulator(test_cb_fabdict)
+        if "effect_cb_makers" in kwargs:
+            effect_cb_maker_fabdict = dict(
+                [(
+                    maker.__name__, self.constructorate(maker))
+                 for maker in kwargs["effect_makers"]])
+        else:
+            effect_cb_maker_fabdict = {}
+        for (name, cb) in effect_cb_fabdict.iteritems():
+            effect_cb_maker_fabdict[name] = lambda: cb
+        self.make_effect_cb = Fabulator(effect_cb_maker_fabdict)
+        if "test_cb_makers" in kwargs:
+            test_cb_maker_fabdict = dict(
+                [(
+                    maker.__name__, self.constructorate(maker))
+                 for maker in kwargs["test_cb_makers"]])
+        else:
+            test_cb_maker_fabdict = {}
+        for (name, cb) in test_cb_fabdict.iteritems():
+            test_cb_maker_fabdict[name] = lambda: cb
+        self.make_test_cb = Fabulator(test_cb_maker_fabdict)
         self.menu_cbs = {
             'play_speed':
             (self.play_speed, ONE_ARG_RE),
@@ -265,6 +297,12 @@ given name.
         self.c.close()
         self.connector.commit()
         self.connector.close()
+
+    def constructorate(self, cls):
+
+        def construct(*args):
+            return cls(self, *args)
+        return construct
 
     def insert_rowdicts_table(self, rowdict, clas, tablename):
         """Insert the given rowdicts into the table of the given name, as
