@@ -1,0 +1,47 @@
+<Cell>:
+	size_hint_x: 1
+	x: 0
+	y: self.get_y()
+	height: self.get_height()
+	canvas:
+		Color:
+			rgba: self.bg_color
+		Rectangle:
+			pos: self.pos
+			size: self.size
+	BoxLayout:
+		Label:
+			text: root.text
+			color: root.text_color
+			font_name: root.font_name
+			font_size: root.font_size
+			text_size: self.text_size
+			pos_hint: {'x': 0, 'top': 1}
+			valign: "top"
+
+<Calendar>:
+	col_default_width: 100
+	spacing: [10, 0]
+	rows: 1
+	col_force_default: True
+	size_hint: (None, None)
+	height: self.get_max_col_tick() * self.tick_height
+<CharSheet>:
+	cols: 1
+	pos_hint: {'x': 0.7, 'y': 0.0}
+	size_hint: (0.3, 1)
+	spacing: 10
+<CalendarRL>
+	size_hint: (None, None)
+	size: self.calendar.size
+<Timeline>
+	#:import get_charsheet charsheet.get_charsheet
+	connector: get_charsheet(self.calendar).character.closet.kivy_connector
+	pos: self.get_pos(self.connector.branch, self.connector.tick)
+	canvas:
+		Color:
+			rgba: 1, 0, 0, 1
+		Line:
+			points: self.get_line_points(*self.pos)
+		Triangle:
+			points: self.get_wedge_points(*self.pos)

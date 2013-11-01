@@ -17,10 +17,8 @@ from kivy.properties import (
     BooleanProperty,
     ObjectProperty,
     NumericProperty,
-    BoundedNumericProperty,
     ReferenceListProperty,
     StringProperty)
-from kivy.clock import Clock
 import calendar
 
 
@@ -66,10 +64,12 @@ class CalendarColumn(calendar.Column):
     branch = NumericProperty()
 
     def on_parent(self, instance, value):
-        super(CalendarColumn, self).on_parent(instance, value)
         value.skel[self.branch].listener = self._trigger_layout
+        self._trigger_layout()
 
     def do_layout(self, *args):
+        if self.parent is None:
+            return
         self.update()
         super(CalendarColumn, self).do_layout(*args)
 
@@ -109,7 +109,6 @@ class ThingCalendarColumn(CalendarColumn):
             self.cells[None] = indefcc
         for cell in self.children:
             assert(cell in self.cells.viewvalues())
-            cell.calendared()
         undone = set(self.cells.viewkeys()) - done_for - set([None])
         for ccid in undone:
             self.remove_widget(self.cells[ccid])
@@ -147,7 +146,6 @@ class Calendar(calendar.Calendar):
         2: PortalCalendarColumn,
         3: StatCalendarColumn,
         4: SkillCalendarColumn}
-    connector = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         super(Calendar, self).__init__(size_hint_y=None, **kwargs)
@@ -160,9 +158,6 @@ class Calendar(calendar.Calendar):
         for key in self.keys:
             if key not in (None, ''):
                 ks.append(key)
-        self.connector = character.closet.kivy_connector
-        self.connector.bind(
-            branch=self.parent.tl_repos, tick=self.parent.tl_repos)
         if self.cal_type == 0:
             self.referent = closet.get_thing(*ks)
         elif self.cal_type == 1:
@@ -180,12 +175,6 @@ class Calendar(calendar.Calendar):
                 self.add_widget(col)
                 self.columns[branch] = col
         self._trigger_layout()
-
-    def do_layout(self, *args):
-        super(Calendar, self).do_layout(*args)
-        if not self.parent.tl_init:
-            self.parent.tl_repos()
-            self.parent.tl_init = True
 
     @property
     def skel(self):
@@ -207,19 +196,20 @@ class Calendar(calendar.Calendar):
                     self.min_ticks))
 
 
-class CalendarRL(RelativeLayout):
+class Timeline(Widget):
     calendar = ObjectProperty()
-    tl_drag = BooleanProperty(False)
-    tl_init = BooleanProperty(False)
 
-    def __init__(self, **kwargs):
-        super(CalendarRL, self).__init__(size_hint=(None, None), **kwargs)
-        self.calendar.bind(
-            minimum_width=self.setter('width'),
-            minimum_height=self.setter('height'))
-
-    def on_parent(self, *args):
-        self.add_widget(self.calendar)
+    def get_pos(self, branch, tick):
+        column = self.calendar.columns[branch]
+        x = column.x
+        if tick is None:
+            y = column.y
+        elif tick == 0:
+            y = self.calendar.top
+        else:
+            y = self.calendar.tick_y(tick)
+        print("timeline's new coords are {} {}".format(x, y))
+        return (x, y)
 
     def get_line_points(self, x, y):
         return (x, y, x+self.calendar.col_default_width, y)
@@ -229,21 +219,28 @@ class CalendarRL(RelativeLayout):
         b = y - 8
         return (x, t, x+16, y, x, b)
 
+
+class CalendarRL(RelativeLayout):
+    calendar = ObjectProperty()
+    timeline = ObjectProperty(None)
+    tl_drag = BooleanProperty(False)
+    tl_init = BooleanProperty(False)
+
+    def on_parent(self, *args):
+        self.add_widget(self.calendar)
+        self.timeline = Timeline(calendar=self.calendar)
+        self.add_widget(self.timeline)
+
     def get_tl_pos(self, branch, tick):
         column = self.calendar.children[branch]
         x = column.x
-        y = column.tick_y(tick)
+        if tick is None:
+            y = column.y
+        elif tick == 0:
+            y = self.calendar.top
+        else:
+            y = self.calendar.tick_y(tick)
         return (x, y)
-
-    def tl_repos(self, *args):
-        branch = self.calendar.connector.branch
-        tick = self.calendar.connector.tick
-        (x, y) = self.get_tl_pos(branch, tick)
-        self.canvas.after.clear()
-        with self.canvas.after:
-            Color(1.0, 0.0, 0.0, 1.0)
-            Line(points=self.get_line_points(x, y))
-            Triangle(points=self.get_wedge_points(x, y))
 
 
 class CalendarView(ScrollView):
@@ -580,15 +577,7 @@ class CharSheet(GridLayout):
         SHEET_ITEM_TYPE["SKILLTAB"]: CharSheetSkillTable
     }
 
-    def __init__(self, **kwargs):
-        GridLayout.__init__(
-            self,
-            cols=1,
-            pos_hint={'x': 0.7, 'y': 0.0},
-            size_hint=(0.3, 1),
-            spacing=10,
-            **kwargs)
-
+    def on_parent(self, i, v):
         rd = self.character.closet.skeleton[
             "charsheet"][unicode(self.character)]
 
