@@ -17,8 +17,10 @@ from kivy.properties import (
     BooleanProperty,
     ObjectProperty,
     NumericProperty,
+    BoundedNumericProperty,
     ReferenceListProperty,
     StringProperty)
+from kivy.clock import Clock
 import calendar
 
 
@@ -228,7 +230,7 @@ class CalendarRL(RelativeLayout):
         return (x, t, x+16, y, x, b)
 
     def get_tl_pos(self, branch, tick):
-        column = self.calendar.children[-branch]
+        column = self.calendar.children[branch]
         x = column.x
         y = column.tick_y(tick)
         return (x, y)

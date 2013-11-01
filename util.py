@@ -4,6 +4,7 @@ from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
 from collections import deque, MutableMapping
+from re import match
 
 logger = getLogger(__name__)
 
@@ -200,7 +201,6 @@ class Skeleton(MutableMapping):
                 self.parent.on_child_del(self, k)
             self.listener = listener
 
-
     def on_child_del(self, child, k):
         if self.listener is not None:
             self.listener(child, k)
@@ -360,6 +360,7 @@ declared in the order they appear in the tables attribute.
     """
     def __new__(metaclass, clas, parents, attrs):
         global schemata
+        global tabclas
         tablenames = []
         foreignkeys = {}
         coldecls = {}
@@ -424,6 +425,8 @@ declared in the order they appear in the tables attribute.
         for tablename in coldecls.keys():
             colnames[tablename] = keynames[tablename] + valnames[tablename]
         for tablename in tablenames:
+            assert(tablename not in tabclas)
+            tabclas[tablename] = clas
             provides.add(tablename)
             coldecl = coldecls[tablename]
             pkey = primarykeys[tablename]
@@ -1226,3 +1229,26 @@ class Timestream(object):
 
 class EmptySkeleton(Exception):
     pass
+
+
+class Fabulator(object):
+    """Construct objects (or call functions, as you please) as described
+by strings loaded in from the database.
+
+    """
+    fabbers = {}
+
+    def __init__(self, xfabs):
+        self.fabbers.update(xfabs)
+
+    def __call__(self, s):
+        """Parse the string into something I can make an object from. Then
+make it, using the classes in self.fabbers."""
+        name = s.split("(")[0]
+        (rex, fabber) = self.fabbers[name]
+        args_raw = match(rex, s).groups()
+        args_cooked = []
+        for arg in args_raw:
+            for arg_split in arg.split(", "):
+                args_cooked.append(arg_split)
+        return fabber(*args_cooked)
