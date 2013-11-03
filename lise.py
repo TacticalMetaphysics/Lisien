@@ -41,6 +41,13 @@ if DEBUG:
     logger = logging.getLogger()
 
 
+try:
+    open(dbfn, 'r')
+    conn = connect(dbfn)
+except IOError:
+    conn = closet.mkdb(dbfn)
+
+
 closet = closet.load_closet(dbfn, lang, kivy=True)
 
 LiSEApp(closet=closet, menu_name='Main',

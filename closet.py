@@ -479,7 +479,8 @@ For more information, consult SaveableMetaclass in util.py.
             "character_places": {},
             "character_portals": {},
             "character_stats": {},
-            "character_skills": {}}
+            "character_skills": {},
+            "character_subcharacters": {}}
         for name in names:
             for tabn in qtd.keys():
                 qtd[tabn][name] = {"character": name}
@@ -825,6 +826,18 @@ For more information, consult SaveableMetaclass in util.py.
 
 
 def mkdb(DB_NAME='default.sqlite'):
+    import spot
+    import pawn
+    import board
+    import card
+    import style
+    import dimension
+    import thing
+    import portal
+    import character
+    import menu
+    import event
+
     def isdir(p):
         try:
             os.chdir(p)
@@ -979,8 +992,8 @@ def mkdb(DB_NAME='default.sqlite'):
     print("indexing the RLTiles")
     ins_rltiles(c, 'rltiles')
 
-    c.close()
     conn.commit()
+    return conn
 
 
 def load_closet(dbfn, lang="eng", kivy=False):
