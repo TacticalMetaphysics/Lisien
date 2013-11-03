@@ -3,11 +3,12 @@
 from logging import getLogger
 from kivybits import SaveableWidgetMetaclass
 from kivy.uix.label import Label
-from kivy.uix.stencilview import StencilView
 from kivy.uix.layout import Layout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.widget import Widget
 from kivy.properties import (
     AliasProperty,
     DictProperty,
@@ -82,6 +83,11 @@ class Cell(RelativeLayout):
             **kwargs)
 
 
+class Timeline(Widget):
+    connector = ObjectProperty()
+    col_width = NumericProperty()
+
+
 class Calendar(Layout):
     cal_type = NumericProperty()
     bg_color = ListProperty()
@@ -96,7 +102,7 @@ class Calendar(Layout):
     spacing_x = NumericProperty(5)
     spacing_y = NumericProperty(5)
     branches_wide = NumericProperty(2)
-    col_width = NumericProperty(100)
+    col_width = NumericProperty()
     tick_height = NumericProperty(10)
     xmov = NumericProperty(0)
     ymov = NumericProperty(0)
@@ -106,22 +112,16 @@ class Calendar(Layout):
     skel = ObjectProperty(None)
     force_refresh = BooleanProperty(False)
 
-    def __init__(self, **kwargs):
-        super(Calendar, self).__init__(**kwargs)
-        self.refresh_and_layout()
-        self.bind(size=lambda i, v: self._trigger_layout(),
-                  pos=lambda i, v: self._trigger_layout())
-
     def on_parent(self, i, v):
-        charsheet = get_charsheet(v)
-        character = charsheet.character
+        character = v.character
         closet = character.closet
         skeleton = closet.skeleton
         ks = []
-        for key in self.keys:
+        for key in v.keys:
             if key is None:
                 break
             ks.append(key)
+        self.keys = ks
         if self.cal_type == 0:
             (dimension, thing) = ks
             self.referent = closet.get_thing(dimension, thing)
@@ -141,9 +141,11 @@ class Calendar(Layout):
             skill = ks[0]
             self.skel = character.skilldict[skill]
         self.skel.listener = self.refresh_and_layout
+        self.refresh_and_layout()
+        self.bind(size=lambda i, v: self._trigger_layout(),
+                  pos=lambda i, v: self._trigger_layout())
 
     def refresh_and_layout(self, *args):
-        print("refreshing and laying-out")
         self.force_refresh = True
         self._trigger_layout()
 
@@ -183,7 +185,6 @@ class Calendar(Layout):
         for branch in xrange(minbranch, maxbranch):
             if branch not in self.skel:
                 continue
-            print("checking showable in branch {}".format(branch))
             to_cover[branch] = set()
             content[branch] = {}
             rowiter = self.skel[branch].iterrows()
@@ -208,8 +209,6 @@ class Calendar(Layout):
                     to_cover[branch].add(id(prev))
                     content[branch][id(prev)] = (
                         text, prev["tick_from"], rd["tick_from"])
-                else:
-                    break
                 prev = rd
             # The last cell is infinitely long
             if prev["tick_from"] < maxtick:
@@ -255,7 +254,6 @@ class Calendar(Layout):
                     rowid=rowid)
                 self.add_widget(cell)
                 n += 1
-            print("added {} cells for branch {}".format(n, branch))
 
     def do_layout(self, *largs):
         if self.parent is None:
@@ -275,7 +273,6 @@ class Calendar(Layout):
             self.force_refresh = False
         for child in self.children:
             x = self.branch_x(child.branch)
-            print("branch={} x={}".format(child.branch, x))
             y = self.tick_y(child.tick_to)
             height = self.tick_y(child.tick_from) - y
             hs = self.spacing_y
@@ -285,7 +282,6 @@ class Calendar(Layout):
 
     def on_touch_down(self, touch):
         if self.collide_point(touch.x, touch.y):
-            print("dragging")
             self.dragging = True
 
     def on_touch_up(self, touch):
@@ -626,14 +622,25 @@ class CharSheet(GridLayout):
                         size_hint=(None, None),
                         keys=keylst))
             else:
-                self.add_widget(get_cal(
-                    SHEET_TO_CAL_TYPE[rd["type"]],
-                    keylst,
-                    self.style.bg_active.rgba,
-                    self.style.textcolor.rgba,
-                    self.style.fontface + '.ttf',
-                    self.style.fontsize))
+                self.add_widget(CalendarView(
+                    character=self.character,
+                    cal_type=SHEET_TO_CAL_TYPE[rd["type"]],
+                    keys=keylst,
+                    bg_color=self.style.bg_active.rgba,
+                    text_color=self.style.textcolor.rgba,
+                    font_name=self.style.fontface + '.ttf',
+                    font_size=self.style.fontsize))
 
 
 class CharSheetView(RelativeLayout):
+    character = ObjectProperty()
+
+
+class CalendarView(RelativeLayout):
+    cal_type = NumericProperty()
+    keys = ListProperty()
+    bg_color = ListProperty()
+    text_color = ListProperty()
+    font_name = StringProperty()
+    font_size = NumericProperty()
     character = ObjectProperty()

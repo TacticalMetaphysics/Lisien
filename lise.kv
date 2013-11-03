@@ -18,17 +18,27 @@
         text_size: self.size
         pos_hint: {'x': 0, 'y': 0}
         valign: "top"
-<Timeline>:
-    #:import get_charsheet charsheet.get_charsheet
-    connector: get_charsheet(self.calendar).character.closet.kivy_connector
-    pos: self.get_pos(self.connector.branch, self.connector.tick)
-    canvas:
-        Color:
-            rgba: 1, 0, 0, 1
-        Line:
-            points: self.get_line_points(*self.pos)
-        Triangle:
-            points: self.get_wedge_points(*self.pos)
+<CalendarView>:
+    Calendar:
+        id: cal
+        cal_type: root.cal_type
+        keys: root.keys
+        bg_color: root.bg_color
+        text_color: root.text_color
+        font_name: root.font_name
+        font_size: root.font_size
+        col_width: 100
+    Timeline:
+        connector: root.character.closet.kivy_connector
+        x: (self.connector.branch - cal.branch) * cal.col_width + cal.xmov
+        y: cal.ymov + cal.top - (self.connector.tick - cal.tick) * cal.tick_height
+        canvas:
+            Color:
+                rgba: 1, 0, 0, 1
+            Line:
+                points: (self.x, self.y, self.x+cal.col_width, self.y)
+            Triangle:
+                points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
 <CharSheet>:
     cols: 1
     spacing: 10
