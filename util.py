@@ -178,9 +178,9 @@ class Skeleton(MutableMapping):
             listener = self.listener
             self.listener = None
             listener(self, k, v)
-            if hasattr(self.parent, 'on_child_set'):
-                self.parent.on_child_set(self, k, v)
             self.listener = listener
+        if hasattr(self.parent, 'on_child_set'):
+            self.parent.on_child_set(self, k, v)
 
     def on_child_set(self, child, k, v):
         if self.listener is not None:

@@ -34,7 +34,7 @@ from util import (
 from portal import Portal
 from thing import Thing
 from character import Character
-from charsheet import CharSheet
+from charsheet import CharSheet, CharSheetView
 from menu import Menu
 from event import Implicator
 
@@ -471,7 +471,7 @@ For more information, consult SaveableMetaclass in util.py.
                 "character": character}}
         self.skeleton.update(
             CharSheet._select_skeleton(self.c, kd))
-        return CharSheet(character=self.get_character(character))
+        return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
         qtd = {

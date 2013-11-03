@@ -133,8 +133,6 @@ indefinitely--that is, until I have anything else to do. With tick_to,
 I'll stay in this location until then, even if I DO have something
 else to do.
         """
-        def gethibranch():
-            return self.dimension.closet.timestream.hi_branch
         if branch is None:
             branch = self.closet.branch
         if tick is None:

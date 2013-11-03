@@ -3,23 +3,20 @@
 from logging import getLogger
 from kivybits import SaveableWidgetMetaclass
 from kivy.uix.label import Label
-from kivy.uix.widget import Widget
+from kivy.uix.stencilview import StencilView
+from kivy.uix.layout import Layout
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.graphics import (
-    Color,
-    Line,
-    Triangle)
+from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import (
     AliasProperty,
     DictProperty,
-    BooleanProperty,
     ObjectProperty,
     NumericProperty,
+    ListProperty,
     ReferenceListProperty,
-    StringProperty)
-import calendar
+    StringProperty,
+    BooleanProperty)
 
 
 logger = getLogger(__name__)
@@ -60,228 +57,258 @@ def get_calendar(item):
     return item
 
 
-class CalendarColumn(calendar.Column):
+class ColorBox(BoxLayout):
+    color = ListProperty()
+
+
+class Cell(RelativeLayout):
+    bg_color = ListProperty(None)
+    text_color = ListProperty(None)
+    font_name = StringProperty(None, allownone=True)
+    font_size = NumericProperty(None, allownone=True)
     branch = NumericProperty()
-
-    def on_parent(self, instance, value):
-        value.skel[self.branch].listener = self._trigger_layout
-        self._trigger_layout()
-
-    def do_layout(self, *args):
-        if self.parent is None:
-            return
-        self.update()
-        super(CalendarColumn, self).do_layout(*args)
-
-
-class ThingCalendarColumn(CalendarColumn):
-    def update(self, *args):
-        if not hasattr(self, 'cells'):
-            self.cells = {}
-        calendar = self.parent
-        thing = calendar.referent
-        if self.branch not in thing.locations:
-            return
-        rditer = thing.locations[self.branch].iterrows()
-        try:
-            prev = next(rditer)
-        except StopIteration:
-            return
-        done_for = set()
-        for rd in rditer:
-            if id(rd) not in self.cells:
-                cc = self.add_cell(
-                    prev["location"], prev["tick_from"], rd["tick_from"])
-                self.cells[id(rd)] = cc
-            else:
-                cc = self.cells[id(rd)]
-                cc.text = prev['location']
-                cc.tick_from = prev['tick_from']
-                cc.tick_to = rd['tick_from']
-            done_for.add(id(rd))
-            prev = rd
-        if None in self.cells:
-            indefcc = self.cells[None]
-            indefcc.text = prev["location"]
-            indefcc.tick_from = prev["tick_from"]
-        else:
-            indefcc = self.add_cell(prev["location"], prev["tick_from"])
-            self.cells[None] = indefcc
-        for cell in self.children:
-            assert(cell in self.cells.viewvalues())
-        undone = set(self.cells.viewkeys()) - done_for - set([None])
-        for ccid in undone:
-            self.remove_widget(self.cells[ccid])
-            del self.cells[ccid]
-
-
-class PlaceCalendarColumn(CalendarColumn):
-    pass
-
-
-class PortalCalendarColumn(CalendarColumn):
-    pass
-
-
-class StatCalendarColumn(CalendarColumn):
-    pass
-
-
-class SkillCalendarColumn(CalendarColumn):
-    pass
-
-
-class Calendar(calendar.Calendar):
-    lookahead = NumericProperty(100)
-    cal_type = NumericProperty(0)
-    referent = ObjectProperty(None)
-    key0 = StringProperty()
-    key1 = StringProperty(None, allownone=True)
-    key2 = StringProperty(None, allownone=True)
-    keys = ReferenceListProperty(key0, key1, key2)
-    columns = DictProperty({})
-    cal_types = {
-        0: ThingCalendarColumn,
-        1: PlaceCalendarColumn,
-        2: PortalCalendarColumn,
-        3: StatCalendarColumn,
-        4: SkillCalendarColumn}
+    tick_from = NumericProperty()
+    tick_to = NumericProperty(None, allownone=True)
+    text = StringProperty()
+    calendar = ObjectProperty()
+    rowid = NumericProperty()
 
     def __init__(self, **kwargs):
-        super(Calendar, self).__init__(size_hint_y=None, **kwargs)
+        calendar = kwargs["calendar"]
+        for kwarg in ["bg_color", "text_color", "font_name", "font_size"]:
+            if kwarg not in kwargs:
+                kwargs[kwarg] = getattr(calendar, kwarg)
+        super(Cell, self).__init__(
+            **kwargs)
 
-    def on_parent(self, *args):
-        charsheet = get_charsheet(self)
+
+class Calendar(Layout):
+    cal_type = NumericProperty()
+    bg_color = ListProperty()
+    text_color = ListProperty()
+    font_name = StringProperty()
+    font_size = NumericProperty()
+    branch = NumericProperty(0)
+    tick = NumericProperty(0)
+    ticks_tall = NumericProperty(100)
+    ticks_offscreen = NumericProperty(0)
+    branches_offscreen = NumericProperty(2)
+    spacing_x = NumericProperty(5)
+    spacing_y = NumericProperty(5)
+    branches_wide = NumericProperty(2)
+    col_width = NumericProperty(100)
+    tick_height = NumericProperty(10)
+    xmov = NumericProperty(0)
+    ymov = NumericProperty(0)
+    dragging = BooleanProperty(False)
+    keys = ListProperty()
+    referent = ObjectProperty(None)
+    skel = ObjectProperty(None)
+    force_refresh = BooleanProperty(False)
+
+    def __init__(self, **kwargs):
+        super(Calendar, self).__init__(**kwargs)
+        self.refresh_and_layout()
+        self.bind(size=lambda i, v: self._trigger_layout(),
+                  pos=lambda i, v: self._trigger_layout())
+
+    def on_parent(self, i, v):
+        charsheet = get_charsheet(v)
         character = charsheet.character
         closet = character.closet
+        skeleton = closet.skeleton
         ks = []
         for key in self.keys:
-            if key not in (None, ''):
-                ks.append(key)
+            if key is None:
+                break
+            ks.append(key)
         if self.cal_type == 0:
-            self.referent = closet.get_thing(*ks)
+            (dimension, thing) = ks
+            self.referent = closet.get_thing(dimension, thing)
+            self.skel = skeleton["thing_location"][dimension][thing]
         elif self.cal_type == 1:
-            self.referent = closet.get_place(*ks)
+            (dimension, place) = ks
+            self.referent = closet.get_place(dimension, place)
+            self.skel = character.placedict[dimension][place]
         elif self.cal_type == 2:
-            self.referent = closet.get_portal(*ks)
-        self.skel.listener = self.update
-        self.update()
+            (dimension, orig, dest) = ks
+            self.referent = closet.get_portal(dimension, orig, dest)
+            self.skel = character.portaldict[dimension][orig][dest]
+        elif self.cal_type == 3:
+            stat = ks[0]
+            self.skel = character.statdict[stat]
+        elif self.cal_type == 4:
+            skill = ks[0]
+            self.skel = character.skilldict[skill]
+        self.skel.listener = self.refresh_and_layout
 
-    def update(self, *args):
-        constructor = self.cal_types[self.cal_type]
-        for branch in self.skel:
-            if branch not in self.columns:
-                col = constructor(branch=branch)
-                self.add_widget(col)
-                self.columns[branch] = col
+    def refresh_and_layout(self, *args):
+        print("refreshing and laying-out")
+        self.force_refresh = True
         self._trigger_layout()
 
-    @property
-    def skel(self):
-        charsheet = get_charsheet(self)
-        character = charsheet.character
-        if self.cal_type == 0:
-            return self.referent.locations
-        elif self.cal_type == 1:
-            return character.placedict
-        elif self.cal_type == 2:
-            return character.portaldict
-        elif self.cal_type == 3:
-            return character.statdict
-        elif self.cal_type == 4:
-            return character.skilldict
+    def branch_x(self, b):
+        b -= self.branch
+        return self.x + self.xmov + b * self.col_width
 
-    def get_max_col_tick(self):
-        return max((self.max_tick, self.height / self.tick_height,
-                    self.min_ticks))
-
-
-class Timeline(Widget):
-    calendar = ObjectProperty()
-
-    def get_pos(self, branch, tick):
-        column = self.calendar.columns[branch]
-        x = column.x
-        if tick is None:
-            y = column.y
-        elif tick == 0:
-            y = self.calendar.top
+    def tick_y(self, t):
+        if t is None:
+            return self.y
         else:
-            y = self.calendar.tick_y(tick)
-        print("timeline's new coords are {} {}".format(x, y))
-        return (x, y)
+            t -= self.tick
+            return self.y + self.ymov + self.height - self.tick_height * t
 
-    def get_line_points(self, x, y):
-        return (x, y, x+self.calendar.col_default_width, y)
+    def refresh(self):
+        minbranch = int(self.branch - self.branches_offscreen)
+        maxbranch = int(
+            self.branch + self.branches_wide + self.branches_offscreen)
+        mintick = int(self.tick - self.ticks_offscreen)
+        maxtick = int(self.tick + self.ticks_tall + self.ticks_offscreen)
+        # I contain Cells.
+        #
+        # I should contain those that are visible, or nearly so.
+        #
+        # Remove those that are neither.
+        for child in self.children:
+            if (
+                    child.branch < minbranch or
+                    maxbranch < child.branch or
+                    maxtick < child.tick_from or
+                    (child.tick_to is not None and
+                     child.tick_to < mintick)):
+                self.remove_widget(child)
+        # Find cells to show
+        to_cover = {}
+        content = {}
+        for branch in xrange(minbranch, maxbranch):
+            if branch not in self.skel:
+                continue
+            print("checking showable in branch {}".format(branch))
+            to_cover[branch] = set()
+            content[branch] = {}
+            rowiter = self.skel[branch].iterrows()
+            prev = next(rowiter)
+            for rd in rowiter:
+                if (
+                        prev["tick_from"] < maxtick and
+                        rd["tick_from"] > mintick):
+                    # I'll be showing this cell. Choose text for it
+                    # based on my type.
+                    if self.cal_type == 0:
+                        text = prev["location"]
+                    elif self.cal_type == 1:
+                        text = prev["place"]
+                    elif self.cal_type == 2:
+                        text = "{}->{}".format(
+                            prev["origin"], prev["destination"])
+                    elif self.cal_type == 3:
+                        text = prev["value"]
+                    else:
+                        text = ""
+                    to_cover[branch].add(id(prev))
+                    content[branch][id(prev)] = (
+                        text, prev["tick_from"], rd["tick_from"])
+                else:
+                    break
+                prev = rd
+            # The last cell is infinitely long
+            if prev["tick_from"] < maxtick:
+                if self.cal_type == 0:
+                    text = prev["location"]
+                elif self.cal_type == 1:
+                    text = prev["place"]
+                elif self.cal_type == 2:
+                    text = "{}->{}".format(
+                        prev["origin"], prev["destination"])
+                elif self.cal_type == 3:
+                    text = prev["value"]
+                else:
+                    text = ""
+                to_cover[branch].add(id(prev))
+                content[branch][id(prev)] = (
+                    text, prev["tick_from"], None)
+        # I might already be showing some of these, though.
+        #
+        # Which ones don't I show?
+        uncovered = {}
+        covered = {}
+        for child in self.children:
+            if child.branch not in covered:
+                covered[child.branch] = set()
+            covered[child.branch].add(child.rowid)
+        for (branch, coverage) in to_cover.iteritems():
+            if branch not in covered:
+                uncovered[branch] = coverage
+            else:
+                uncovered[branch] = coverage - covered[branch]
+        # Construct cells for just the rowdicts that I'm not showing already
+        for (branch, rowids) in uncovered.iteritems():
+            n = 0
+            for rowid in rowids:
+                (text, tick_from, tick_to) = content[branch][rowid]
+                cell = Cell(
+                    calendar=self,
+                    branch=branch,
+                    text=text,
+                    tick_from=tick_from,
+                    tick_to=tick_to,
+                    rowid=rowid)
+                self.add_widget(cell)
+                n += 1
+            print("added {} cells for branch {}".format(n, branch))
 
-    def get_wedge_points(self, x, y):
-        t = y + 8
-        b = y - 8
-        return (x, t, x+16, y, x, b)
+    def do_layout(self, *largs):
+        if self.parent is None:
+            return
+        branchwidth = self.col_width
+        d_branch = int(self.xmov / branchwidth)
+        tickheight = self.tick_height
+        d_tick = int(self.ymov / tickheight)
+        if abs(d_branch) >= 1 or abs(d_tick) >= 1:
+            self.branch -= d_branch
+            self.xmov -= d_branch * (branchwidth + self.spacing_y)
+            self.tick += d_tick
+            self.ymov -= d_tick * tickheight
+            self.refresh()
+        elif self.force_refresh:
+            self.refresh()
+            self.force_refresh = False
+        for child in self.children:
+            x = self.branch_x(child.branch)
+            print("branch={} x={}".format(child.branch, x))
+            y = self.tick_y(child.tick_to)
+            height = self.tick_y(child.tick_from) - y
+            hs = self.spacing_y
+            ws = self.spacing_x
+            child.pos = (x + ws, y + hs)
+            child.size = (branchwidth - ws, height - hs)
+
+    def on_touch_down(self, touch):
+        if self.collide_point(touch.x, touch.y):
+            print("dragging")
+            self.dragging = True
+
+    def on_touch_up(self, touch):
+        self.dragging = False
+        self.xmov = 0
+        self.ymov = 0
+        self._trigger_layout()
+
+    def on_touch_move(self, touch):
+        if self.dragging:
+            self.xmov += touch.dx
+            self.ymov += touch.dy
+            self._trigger_layout()
 
 
-class CalendarRL(RelativeLayout):
-    calendar = ObjectProperty()
-    timeline = ObjectProperty(None)
-    tl_drag = BooleanProperty(False)
-    tl_init = BooleanProperty(False)
-
-    def on_parent(self, *args):
-        self.add_widget(self.calendar)
-        self.timeline = Timeline(calendar=self.calendar)
-        self.add_widget(self.timeline)
-
-    def get_tl_pos(self, branch, tick):
-        column = self.calendar.children[branch]
-        x = column.x
-        if tick is None:
-            y = column.y
-        elif tick == 0:
-            y = self.calendar.top
-        else:
-            y = self.calendar.tick_y(tick)
-        return (x, y)
-
-
-class CalendarView(ScrollView):
-    calendar = ObjectProperty()
-
-    def on_parent(self, *args):
-        self.add_widget(CalendarRL(calendar=self.calendar))
-
-
-class BranchConnector(Widget):
-    wedge_height = 8
-
-    def on_parent(self, *args):
-        self.x = (self.parent.parent_branch_col.window_right -
-                  self.parent.parent_branch_col.style.spacing)
-        self.y = (self.parent.calendar.tick_to_y(self.column.start_tick) +
-                  self.parent.calendar.offy)
-        with self.canvas:
-            Color(*self.color)
-            Line(points=self.get_line_points())
-            Triangle(points=self.get_wedge_points())
-
-    def get_line_points(self):
-        y0 = self.y
-        y2 = y0
-        y1 = y0 + self.wedge_height
-        x0 = self.x
-        # x1 gotta be half way between x0 and the center of my column
-        x2 = self.column.left + self.column.width / 2
-        dx = x2 - x0
-        x1 = x0 + dx
-        return [x0, y0, x1, y0, x1, y1, x2, y1, x2, y2]
-
-    def get_wedge_points(self):
-        b = self.y
-        t = b + self.wedge_height
-        c = self.column.left + self.column.width / 2
-        rx = self.wedge_width / 2
-        l = c - rx
-        r = c + rx
-        return [c, b, r, t, l, t]
+def get_cal(cal_type, keys, bg_color, text_color, font_name, font_size):
+    return Calendar(
+        cal_type=cal_type,
+        keys=keys,
+        bg_color=bg_color,
+        text_color=text_color,
+        font_name=font_name,
+        font_size=font_size)
 
 
 class CharSheetTable(GridLayout):
@@ -564,7 +591,7 @@ class CharSheet(GridLayout):
              "idx<={}".format(max(SHEET_ITEM_TYPE.values()))])
     ]
     character = ObjectProperty()
-    rowdict = DictProperty()
+    rowdict = DictProperty({})
     style = AliasProperty(
         lambda self: self.character.closet.get_style(
             self.rowdict["style"]),
@@ -578,6 +605,10 @@ class CharSheet(GridLayout):
     }
 
     def on_parent(self, i, v):
+        parent = v
+        while not hasattr(parent, 'character'):
+            parent = parent.parent
+        self.character = parent.character
         rd = self.character.closet.skeleton[
             "charsheet"][unicode(self.character)]
 
@@ -595,10 +626,14 @@ class CharSheet(GridLayout):
                         size_hint=(None, None),
                         keys=keylst))
             else:
-                self.add_widget(CalendarView(calendar=Calendar(
-                    bg_color=self.style.bg_active.rgba,
-                    text_color=self.style.textcolor.rgba,
-                    font_name=self.style.fontface + '.ttf',
-                    font_size=self.style.fontsize,
-                    keys=keylst,
-                    cal_type=SHEET_TO_CAL_TYPE[rd["type"]])))
+                self.add_widget(get_cal(
+                    SHEET_TO_CAL_TYPE[rd["type"]],
+                    keylst,
+                    self.style.bg_active.rgba,
+                    self.style.textcolor.rgba,
+                    self.style.fontface + '.ttf',
+                    self.style.fontsize))
+
+
+class CharSheetView(RelativeLayout):
+    character = ObjectProperty()
