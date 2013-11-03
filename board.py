@@ -14,19 +14,6 @@ from kivy.uix.image import Image
 """Class for user's view on gameworld, and support functions."""
 
 
-class Wallpaper(Image):
-    board = ObjectProperty()
-
-    def __init__(self, **kwargs):
-        starttex = kwargs["board"].get_texture()
-        Image.__init__(self, texture=starttex, size=starttex.size, **kwargs)
-        self.board.bind(rowdict=self.upd_texture)
-
-    def upd_texture(self, instance, value):
-        self.texture = self.board.get_texture()
-        self.size = self.texture.size
-
-
 class Board(ScrollView):
     __metaclass__ = SaveableWidgetMetaclass
     tables = [(
@@ -47,32 +34,21 @@ class Board(ScrollView):
     pawndict = DictProperty({})
     arrowdict = DictProperty({})
     rowdict = DictProperty({})
-    scroll_x = AliasProperty(
-        lambda self: self._get_scroll_x(),
-        lambda self, v: self._set_scroll_x(v))
-    scroll_y = AliasProperty(
-        lambda self: self._get_scroll_y(),
-        lambda self, v: self._set_scroll_y(v))
 
     def __init__(self, **kwargs):
         if kwargs["dimension"].__class__ in (str, unicode):
             kwargs["dimension"] = kwargs["closet"].get_dimension(
                 kwargs["dimension"])
-        walln = kwargs["closet"].skeleton["board"][unicode(
-            kwargs["dimension"])]["wallpaper"]
-        walltex = kwargs["closet"].get_texture(walln)
-        ScrollView.__init__(
-            self, size=walltex.size,
-            size_hint=(None, None), **kwargs)
+        ScrollView.__init__(self, scroll_y=0, **kwargs)
         self.last_touch = None
         self.closet.boarddict[unicode(self.dimension)] = self
         self.upd_rowdict()
         self.closet.skeleton["board"][unicode(
             self.dimension)].listener = self.upd_rowdict
-        content = RelativeLayout()
+        tex = self.get_texture()
+        content = RelativeLayout(size_hint=(None, None), size=tex.size)
+        content.add_widget(Image(pos=(0, 0), texture=tex, size=tex.size))
         self.add_widget(content)
-        wall = Wallpaper(board=self)
-        content.add_widget(wall)
         if (
                 "spot_coords" in self.closet.skeleton and
                 unicode(self.dimension) in self.dimension.closet.skeleton[
@@ -103,18 +79,6 @@ class Board(ScrollView):
     def __str__(self):
         return str(self.dimension)
 
-    def _get_scroll_x(self):
-        return self.closet.skeleton["board"][unicode(self)]["x"]
-
-    def _set_scroll_x(self, v):
-        self.closet.skeleton["board"][unicode(self)]["x"] = v
-
-    def _get_scroll_y(self):
-        return self.closet.skeleton["board"][unicode(self)]["y"]
-
-    def _set_scroll_y(self, v):
-        self.closet.skeleton["board"][unicode(self)]["y"] = v
-
     def upd_rowdict(self, *args):
         self.rowdict = dict(self.closet.skeleton["board"][unicode(self)])
 
@@ -127,7 +91,8 @@ class Board(ScrollView):
         for pawn in self.pawndict.itervalues():
             pawn.new_branch(parent, branch, tick)
 
-    def on_touch_down(self, touch):
+    def _touch_down(self, touch):
+        print("collided: {}@({},{})".format(self, touch.x, touch.y))
         collidable_iters = [
             self.pawndict.itervalues(),
             self.spotdict.itervalues(),
@@ -135,6 +100,7 @@ class Board(ScrollView):
         for it in collidable_iters:
             for that in it:
                 if that.collide_point(touch.x, touch.y):
+                    print("collided: {}".format(that))
                     that.dragging = True
                     if isinstance(that, Spot):
                         loc = that.place
@@ -144,9 +110,8 @@ class Board(ScrollView):
                                 pawn = self.pawndict[thingn]
                                 that.bind(
                                     transform=pawn.extra_translate)
-        super(Board, self).on_touch_down(touch)
 
-    def on_touch_up(self, touch):
+    def _touch_up(self, touch):
         collidable_iters = [
             self.pawndict.itervalues(),
             self.spotdict.itervalues(),

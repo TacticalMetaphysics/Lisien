@@ -5,7 +5,11 @@ from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
-from kivy.properties import StringProperty, ObjectProperty, AliasProperty
+from kivy.properties import (
+    StringProperty,
+    ObjectProperty,
+    AliasProperty,
+    BooleanProperty)
 from re import match, compile
 from logging import getLogger
 
@@ -24,6 +28,7 @@ class MenuItem(RelativeLayout):
     img_name = StringProperty(allownone=True)
     string_name = StringProperty(allownone=True)
     on_click = StringProperty('')
+    touched = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         RelativeLayout.__init__(self, **kwargs)
@@ -59,7 +64,7 @@ class MenuItem(RelativeLayout):
                 def on_click(*args):
                     on_click_fun(self)
 
-            but.bind(on_press=on_click)
+            self.onclick = on_click
 
         self.add_widget(but)
 
@@ -76,6 +81,26 @@ class MenuItem(RelativeLayout):
                 icon.texture = self.menu.closet.get_texture(self.img_name)
             self.bind(img_name=upd_icon)
             self.add_widget(icon)
+
+    @property
+    def button(self):
+        childiter = iter(self.children)
+        button = next(childiter)
+        while not isinstance(button, Button):
+            button = next(childiter)
+        return button
+
+    def _touch_down(self, x, y, dx, dy):
+        self.button.state = 'down'
+
+    def on_touch_move(self, touch):
+        if not self.collide_point(touch.x, touch.y):
+            self.button.state = 'normal'
+
+    def _touch_up(self, x, y, dx, dy):
+        if self.button.state == 'down':
+            self.onclick()
+        self.button.state = 'normal'
 
 
 class Menu(BoxLayout):
@@ -132,3 +157,14 @@ class Menu(BoxLayout):
     def get_size_hint(self):
         rd = self.closet.skeleton["menu"][unicode(self)]
         return (rd['w'], rd['h'])
+
+    def _touch_down(self, touch):
+        (x, y) = self.to_local(touch.x, touch.y)
+        for child in self.children:
+            if child.collide_point(x, y):
+                return child._touch_down(x, y, touch.dx, touch.dy)
+
+    def _touch_up(self, touch):
+        (x, y) = self.to_local(touch.x, touch.y)
+        for child in self.children:
+            child._touch_up(x, y, touch.dx, touch.dy)

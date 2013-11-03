@@ -43,10 +43,12 @@
     cols: 1
     spacing: 10
 <CharSheetView>:
+    pos_hint: {'x': 0.7, 'y': 0}
+    size_hint: (0.3, 1)
     StencilView:
         id: view
-        pos_hint: {'x': 0.7, 'y': 0.0}
-        size_hint: (0.3, 1)
+        pos: self.pos
+        size: self.size
         CharSheet:
             pos: view.pos
             size: view.size

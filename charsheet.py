@@ -7,13 +7,13 @@ from kivy.uix.layout import Layout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.widget import Widget
 from kivy.properties import (
     AliasProperty,
     DictProperty,
     ObjectProperty,
     NumericProperty,
+    BoundedNumericProperty,
     ListProperty,
     ReferenceListProperty,
     StringProperty,
@@ -95,7 +95,7 @@ class Calendar(Layout):
     font_name = StringProperty()
     font_size = NumericProperty()
     branch = NumericProperty(0)
-    tick = NumericProperty(0)
+    tick = BoundedNumericProperty(0, min=0)
     ticks_tall = NumericProperty(100)
     ticks_offscreen = NumericProperty(0)
     branches_offscreen = NumericProperty(2)
@@ -105,7 +105,9 @@ class Calendar(Layout):
     col_width = NumericProperty()
     tick_height = NumericProperty(10)
     xmov = NumericProperty(0)
+    xcess = NumericProperty(0)
     ymov = NumericProperty(0)
+    ycess = NumericProperty(0)
     dragging = BooleanProperty(False)
     keys = ListProperty()
     referent = ObjectProperty(None)
@@ -209,6 +211,8 @@ class Calendar(Layout):
                     to_cover[branch].add(id(prev))
                     content[branch][id(prev)] = (
                         text, prev["tick_from"], rd["tick_from"])
+                if rd["tick_from"] > maxtick:
+                    break
                 prev = rd
             # The last cell is infinitely long
             if prev["tick_from"] < maxtick:
@@ -259,13 +263,21 @@ class Calendar(Layout):
         if self.parent is None:
             return
         branchwidth = self.col_width
+        print(self.xmov)
         d_branch = int(self.xmov / branchwidth)
         tickheight = self.tick_height
         d_tick = int(self.ymov / tickheight)
         if abs(d_branch) >= 1 or abs(d_tick) >= 1:
-            self.branch -= d_branch
+            print("navigating branch+{} tick+{}".format(d_branch, d_tick))
+            try:
+                self.branch -= d_branch
+            except ValueError:
+                self.branch = 0
             self.xmov -= d_branch * (branchwidth + self.spacing_y)
-            self.tick += d_tick
+            try:
+                self.tick += d_tick
+            except ValueError:
+                self.tick = 0
             self.ymov -= d_tick * tickheight
             self.refresh()
         elif self.force_refresh:
@@ -280,20 +292,39 @@ class Calendar(Layout):
             child.pos = (x + ws, y + hs)
             child.size = (branchwidth - ws, height - hs)
 
-    def on_touch_down(self, touch):
-        if self.collide_point(touch.x, touch.y):
-            self.dragging = True
+    def _touch_down(self, x, y, dx, dy):
+        self.dragging = True
 
-    def on_touch_up(self, touch):
+    def _touch_up(self, x, y, dx, dy):
         self.dragging = False
         self.xmov = 0
+        self.xcess = 0
         self.ymov = 0
+        self.ycess = 0
         self._trigger_layout()
 
     def on_touch_move(self, touch):
         if self.dragging:
-            self.xmov += touch.dx
-            self.ymov += touch.dy
+            if self.xcess == 0:
+                nuxmov = self.xmov + touch.dx
+                if not (self.branch == 0 and nuxmov < 0):
+                    self.xmov = nuxmov
+                else:
+                    self.xcess += touch.dx
+            else:
+                self.xcess += touch.dx
+                if self.xcess > 0:
+                    self.xcess = 0
+            if self.ycess == 0:
+                nuymov = self.ymov + touch.dy
+                if not (self.tick == 0 and nuymov < 0):
+                    self.ymov = nuymov
+                else:
+                    self.ycess += touch.dy
+            else:
+                self.ycess += touch.dy
+                if self.ycess > 0:
+                    self.ycess = 0
             self._trigger_layout()
 
 
@@ -631,9 +662,34 @@ class CharSheet(GridLayout):
                     font_name=self.style.fontface + '.ttf',
                     font_size=self.style.fontsize))
 
+    def _touch_down(self, (x, y), dx, dy):
+        for child in self.children:
+            if child.collide_point(x, y):
+                print("{} collides {},{}".format(child, x, y))
+                child._touch_down(x, y, dx, dy)
+
+    def _touch_up(self, (x, y), dx, dy):
+        for child in self.children:
+            if hasattr(child, '_touch_up'):
+                child._touch_up(x, y, dx, dy)
+
 
 class CharSheetView(RelativeLayout):
     character = ObjectProperty()
+
+    def _touch_down(self, touch):
+        stencil = self.children[0]
+        charsheet = stencil.children[0]
+        charsheet._touch_down(
+            self.to_local(touch.x, touch.y),
+            touch.dx, touch.dy)
+
+    def _touch_up(self, touch):
+        stencil = self.children[0]
+        charsheet = stencil.children[0]
+        charsheet._touch_up(
+            self.to_local(touch.x, touch.y),
+            touch.dx, touch.dy)
 
 
 class CalendarView(RelativeLayout):
@@ -644,3 +700,13 @@ class CalendarView(RelativeLayout):
     font_name = StringProperty()
     font_size = NumericProperty()
     character = ObjectProperty()
+
+    def _touch_down(self, x, y, dx, dy):
+        for child in self.children:
+            if hasattr(child, '_touch_down'):
+                child._touch_down(x, y, dx, dy)
+
+    def _touch_up(self, x, y, dx, dy):
+        for child in self.children:
+            if hasattr(child, '_touch_up'):
+                child._touch_up(x, y, dx, dy)
