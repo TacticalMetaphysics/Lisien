@@ -14,7 +14,11 @@ import re
 import os
 import igraph
 
-from dimension import Dimension
+from model.dimension import Dimension
+from model.portal import Portal
+from model.thing import Thing
+from model.character import Character
+from model.event import Implicator
 from gui.spot import Spot
 from gui.pawn import Pawn
 from gui.board import Board
@@ -31,10 +35,6 @@ from util import (
     Skeleton,
     Timestream,
     TimestreamException)
-from portal import Portal
-from thing import Thing
-from character import Character
-from event import Implicator
 
 
 def noop(*args, **kwargs):
