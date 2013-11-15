@@ -969,7 +969,7 @@ def mkdb(DB_NAME='default.sqlite'):
     os.chdir(oldhome)
 
     print("indexing the RLTiles")
-    ins_rltiles(c, 'rltiles')
+    ins_rltiles(c, 'assets/rltiles')
 
     conn.commit()
     return conn

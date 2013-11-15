@@ -41,14 +41,14 @@ class Table(GridLayout):
         for key in self.colkeys:
             self.add_widget(Label(
                 text=key,
-                font_name=self.charsheet.style.fontface + '.ttf',
+                font_name=self.charsheet.style.fontface,
                 font_size=self.charsheet.style.fontsize,
                 color=self.charsheet.style.textcolor.rgba))
         for rd in self.iter_skeleton():
             for key in self.colkeys:
                 self.add_widget(Label(
                     text=rd[key],
-                    font_name=self.charsheet.style.fontface + '.ttf',
+                    font_name=self.charsheet.style.fontface,
                     font_size=self.charsheet.style.fontsize,
                     color=self.charsheet.style.textcolor.rgba))
 

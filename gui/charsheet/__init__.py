@@ -115,7 +115,7 @@ class CharSheet(GridLayout):
                     keys=keylst,
                     bg_color=self.style.bg_active.rgba,
                     text_color=self.style.textcolor.rgba,
-                    font_name=self.style.fontface + '.ttf',
+                    font_name=self.style.fontface,
                     font_size=self.style.fontsize))
 
     def _touch_down(self, (x, y), dx, dy):
