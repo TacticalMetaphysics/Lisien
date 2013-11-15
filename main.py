@@ -1,15 +1,14 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-import logging
 import closet
 from app import LiSEApp
 from sys import argv
-from os import remove
 from sqlite3 import connect, DatabaseError
 
 i = 0
 lang = "eng"
-dbfn = "default.sqlite"
+defdbfn = "default.sqlite"
+dbfn = ""
 debugfn = ""
 DEBUG = False
 for arg in argv:
@@ -27,18 +26,12 @@ for arg in argv:
             connect(arg).cursor().execute("SELECT * FROM game;")
             dbfn = arg
         except DatabaseError:
-            print("Couldn't connect to the database named {0}.".format(arg))
+            print("Couldn't connect to the database named \"{0}\". "
+                  "Defaulting to \"{1}\".".format(arg, defdbfn))
+            dbfn = defdbfn
     i += 1
-if DEBUG:
-    if debugfn == "":
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        try:
-            remove(debugfn)
-        except OSError:
-            pass
-        logging.basicConfig(level=logging.DEBUG, filename=debugfn)
-    logger = logging.getLogger()
+if dbfn == "":
+    dbfn = defdbfn
 
 
 try:

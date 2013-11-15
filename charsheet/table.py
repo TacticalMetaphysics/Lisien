@@ -1,7 +1,16 @@
+from kivy.properties import (
+    ObjectProperty,
+    ReferenceListProperty,
+    StringProperty)
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.label import Label
+
+
 def get_charsheet(item):
     while item.__class__ != 'CharSheet':
         item = item.parent
     return item
+
 
 class Table(GridLayout):
     key0 = StringProperty()

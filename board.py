@@ -5,7 +5,7 @@ from kivybits import SaveableWidgetMetaclass
 from pawn import Pawn
 from spot import Spot
 from arrow import Arrow
-from kivy.properties import AliasProperty, DictProperty, ObjectProperty
+from kivy.properties import DictProperty, ObjectProperty
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
@@ -92,7 +92,6 @@ class Board(ScrollView):
             pawn.new_branch(parent, branch, tick)
 
     def _touch_down(self, touch):
-        print("collided: {}@({},{})".format(self, touch.x, touch.y))
         collidable_iters = [
             self.pawndict.itervalues(),
             self.spotdict.itervalues(),
@@ -100,7 +99,6 @@ class Board(ScrollView):
         for it in collidable_iters:
             for that in it:
                 if that.collide_point(touch.x, touch.y):
-                    print("collided: {}".format(that))
                     that.dragging = True
                     if isinstance(that, Spot):
                         loc = that.place

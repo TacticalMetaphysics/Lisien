@@ -9,7 +9,6 @@ This module does not contain the code used to generate
 SQL. That's in util.py, the class SaveableMetaclass.
 
 """
-from __future__ import print_function
 import sqlite3
 import re
 import os

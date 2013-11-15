@@ -20,10 +20,20 @@ CAL_TYPE = {
 
 
 class ColorBox(BoxLayout):
+    """A BoxLayout with a background of a particular color.
+
+In lise.kv this is filled with a label."""
     color = ListProperty()
 
 
 class Cell(RelativeLayout):
+    """A box to represent an event on the calendar.
+
+It needs a branch, tick_from, tick_to, text, and a calendar to belong
+to. It may be styled differently than the calendar, but will default
+to the calendar's style.
+
+    """
     bg_color = ListProperty(None)
     text_color = ListProperty(None)
     font_name = StringProperty(None, allownone=True)
@@ -45,11 +55,32 @@ class Cell(RelativeLayout):
 
 
 class Timeline(Widget):
+    """A line drawn atop one of the columns of the calendar, representing
+the present moment.
+
+It may be dragged about to achieve time travel. It needs a
+KivyConnector so it can tell when to update.
+
+    """
     connector = ObjectProperty()
     col_width = NumericProperty()
 
 
 class Calendar(Layout):
+    """A gridlike layout of cells representing events throughout every
+branch of the timestream.
+
+It will fill itself in based on what it finds in the Skeleton under
+the given keys. Only the events that can be seen at the moment, and a
+few just out of view, will be instantiated.
+
+It may be scrolled by dragging. It will snap to some particular branch
+and tick when dropped.
+
+A timeline will be drawn on top of it, but that is not instantiated
+here. Look in CalendarView below.
+
+    """
     cal_type = NumericProperty()
     bg_color = ListProperty()
     text_color = ListProperty()
@@ -285,3 +316,29 @@ class Calendar(Layout):
                 if self.ycess > 0:
                     self.ycess = 0
             self._trigger_layout()
+
+
+class CalendarView(RelativeLayout):
+    """A view that instantiates a Calendar and clips it where it should
+not be seen.
+
+This is the only way Calendar should be instantiated. Requires a Character.
+
+    """
+    cal_type = NumericProperty()
+    keys = ListProperty()
+    bg_color = ListProperty()
+    text_color = ListProperty()
+    font_name = StringProperty()
+    font_size = NumericProperty()
+    character = ObjectProperty()
+
+    def _touch_down(self, x, y, dx, dy):
+        for child in self.children:
+            if hasattr(child, '_touch_down'):
+                child._touch_down(x, y, dx, dy)
+
+    def _touch_up(self, x, y, dx, dy):
+        for child in self.children:
+            if hasattr(child, '_touch_up'):
+                child._touch_up(x, y, dx, dy)
