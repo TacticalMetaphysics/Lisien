@@ -5,7 +5,10 @@ from kivybits import SaveableWidgetMetaclass
 from pawn import Pawn
 from spot import Spot
 from arrow import Arrow
-from kivy.properties import DictProperty, ObjectProperty
+from kivy.properties import (
+    DictProperty,
+    NumericProperty,
+    ObjectProperty)
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
@@ -34,6 +37,11 @@ class Board(ScrollView):
     pawndict = DictProperty({})
     arrowdict = DictProperty({})
     rowdict = DictProperty({})
+    offx = NumericProperty(0)
+    offy = NumericProperty(0)
+    wallwidth = NumericProperty(0)
+    wallheight = NumericProperty(0)
+    dragging = ObjectProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
         if kwargs["dimension"].__class__ in (str, unicode):
@@ -46,6 +54,7 @@ class Board(ScrollView):
         self.closet.skeleton["board"][unicode(
             self.dimension)].listener = self.upd_rowdict
         tex = self.get_texture()
+        (self.wallwidth, self.wallheight) = tex.size
         content = RelativeLayout(size_hint=(None, None), size=tex.size)
         content.add_widget(Image(pos=(0, 0), texture=tex, size=tex.size))
         self.add_widget(content)
@@ -99,30 +108,41 @@ class Board(ScrollView):
         for it in collidable_iters:
             for that in it:
                 if that.collide_point(touch.x, touch.y):
-                    that.dragging = True
+                    self.dragging = that
                     if isinstance(that, Spot):
                         loc = that.place
                         for thing in loc.get_contents():
                             thingn = unicode(thing)
-                            if thingn in self.pawndict:
+                            try:
                                 pawn = self.pawndict[thingn]
                                 that.bind(
                                     transform=pawn.extra_translate)
+                            except KeyError:
+                                pass
+                    return
+
+    def on_touch_move(self, touch):
+        if self.dragging is not None:
+            if self.dragging is self:
+                super(Board, self).on_touch_move(touch)
+                return
+            self.dragging.x += touch.dx
+            self.dragging.y += touch.dy
 
     def _touch_up(self, touch):
-        collidable_iters = [
-            self.pawndict.itervalues(),
-            self.spotdict.itervalues(),
-            self.arrowdict.itervalues()]
-        for it in collidable_iters:
-            for that in it:
-                if that.dragging:
-                    if isinstance(that, Spot):
-                        loc = that.place
-                        for thing in loc.get_contents():
-                            thingn = unicode(thing)
-                            if thingn in self.pawndict:
-                                pawn = self.pawndict[thingn]
-                                pawn.unbind(transform=pawn.extra_translate)
-                    that.dragging = False
-                    that.on_drop()
+        if self.dragging is not None:
+            if self.dragging is self:
+                super(Board, self).on_touch_up(touch)
+                self.dragging = None
+                return
+            elif isinstance(self.dragging, Spot):
+                loc = self.dragging.place
+                for thing in loc.get_contents():
+                    thingn = unicode(thing)
+                    try:
+                        pawn = self.pawndict[thingn]
+                        pawn.unbind(transform=pawn.extra_translate)
+                    except KeyError:
+                        pass
+            self.dragging.on_drop()
+            self.dragging = None

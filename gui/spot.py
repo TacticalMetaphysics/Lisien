@@ -77,7 +77,6 @@ class Spot(Scatter, Touchy):
     coords = DictProperty({})
     interactivity = DictProperty({})
     imagery = DictProperty({})
-    dragging = BooleanProperty(False)
     auto_bring_to_front = BooleanProperty(False)
 
     def __init__(self, **kwargs):
@@ -103,6 +102,10 @@ class Spot(Scatter, Touchy):
 
     def __unicode__(self):
         return unicode(self.place)
+
+    @property
+    def dragging(self):
+        return self is self.board.dragging
 
     def get_width(self):
         img = self.get_texture()
@@ -328,4 +331,4 @@ class Spot(Scatter, Touchy):
         self.upd_imagery()
 
     def on_drop(self):
-        pass
+        self.set_coords(self.x, self.y)
