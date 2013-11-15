@@ -1,7 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 import closet
-from app import LiSEApp
+from gui.app import LiSEApp
 from sys import argv
 from sqlite3 import connect, DatabaseError
 
