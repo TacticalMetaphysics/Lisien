@@ -14,13 +14,14 @@ import re
 import os
 import igraph
 
-from logging import getLogger
 from dimension import Dimension
-from spot import Spot
-from pawn import Pawn
-from board import Board
-from card import Card
-from style import LiSEStyle, LiSEColor
+from gui.spot import Spot
+from gui.pawn import Pawn
+from gui.board import Board
+from gui.card import Card
+from gui.style import LiSEStyle, LiSEColor
+from gui.charsheet import CharSheet, CharSheetView
+from gui.menu import Menu
 from util import (
     dictify_row,
     schemata,
@@ -33,12 +34,7 @@ from util import (
 from portal import Portal
 from thing import Thing
 from character import Character
-from charsheet import CharSheet, CharSheetView
-from menu import Menu
 from event import Implicator
-
-
-logger = getLogger(__name__)
 
 
 def noop(*args, **kwargs):
@@ -183,10 +179,10 @@ given name.
         self.old_skeleton = self.skeleton.copy()
 
         if USE_KIVY:
-            from kivybits import load_textures
+            from gui.kivybits import load_textures
             self.load_textures = lambda names: load_textures(
                 self.c, self.skeleton, self.texturedict, names)
-            from kivybits import KivyConnector
+            from gui.kivybits import KivyConnector
             self.kivy_connector = KivyConnector(
                 language=self.language,
                 dimension=self.dimension,
@@ -402,10 +398,6 @@ For more information, consult SaveableMetaclass in util.py.
     def save_game(self):
         to_save = self.skeleton - self.old_skeleton
         to_delete = self.old_skeleton - self.skeleton
-        logger.debug(
-            "Saving the skeleton:\n%s", repr(to_save))
-        logger.debug(
-            "Deleting the skeleton:\n%s", repr(to_delete))
         for clas in saveable_classes:
             for tabname in clas.tablenames:
                 if tabname in to_delete:
@@ -825,18 +817,6 @@ For more information, consult SaveableMetaclass in util.py.
 
 
 def mkdb(DB_NAME='default.sqlite'):
-    import spot
-    import pawn
-    import board
-    import card
-    import style
-    import dimension
-    import thing
-    import portal
-    import character
-    import menu
-    import event
-
     def isdir(p):
         try:
             os.chdir(p)

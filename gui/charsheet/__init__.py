@@ -3,13 +3,13 @@
 from calendar import (
     CAL_TYPE,
     CalendarView)
+from gui.kivybits import SaveableWidgetMetaclass
 from table import (
     ThingTable,
     PlaceTable,
     PortalTable,
     StatTable,
     SkillTable)
-from kivybits import SaveableWidgetMetaclass
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.properties import (
