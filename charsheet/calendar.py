@@ -1,0 +1,287 @@
+from kivy.properties import (
+    BooleanProperty,
+    BoundedNumericProperty,
+    ListProperty,
+    NumericProperty,
+    ObjectProperty,
+    StringProperty)
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.layout import Layout
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.widget import Widget
+
+SCROLL_FACTOR = 4
+CAL_TYPE = {
+    "THING": 0,
+    "PLACE": 1,
+    "PORTAL": 2,
+    "STAT": 3,
+    "SKILL": 4}
+
+
+class ColorBox(BoxLayout):
+    color = ListProperty()
+
+
+class Cell(RelativeLayout):
+    bg_color = ListProperty(None)
+    text_color = ListProperty(None)
+    font_name = StringProperty(None, allownone=True)
+    font_size = NumericProperty(None, allownone=True)
+    branch = NumericProperty()
+    tick_from = NumericProperty()
+    tick_to = NumericProperty(None, allownone=True)
+    text = StringProperty()
+    calendar = ObjectProperty()
+    rowid = NumericProperty()
+
+    def __init__(self, **kwargs):
+        calendar = kwargs["calendar"]
+        for kwarg in ["bg_color", "text_color", "font_name", "font_size"]:
+            if kwarg not in kwargs:
+                kwargs[kwarg] = getattr(calendar, kwarg)
+        super(Cell, self).__init__(
+            **kwargs)
+
+
+class Timeline(Widget):
+    connector = ObjectProperty()
+    col_width = NumericProperty()
+
+
+class Calendar(Layout):
+    cal_type = NumericProperty()
+    bg_color = ListProperty()
+    text_color = ListProperty()
+    font_name = StringProperty()
+    font_size = NumericProperty()
+    branch = NumericProperty(0)
+    tick = BoundedNumericProperty(0, min=0)
+    ticks_tall = NumericProperty(100)
+    ticks_offscreen = NumericProperty(0)
+    branches_offscreen = NumericProperty(2)
+    spacing_x = NumericProperty(5)
+    spacing_y = NumericProperty(5)
+    branches_wide = NumericProperty(2)
+    col_width = NumericProperty()
+    tick_height = NumericProperty(10)
+    xmov = NumericProperty(0)
+    xcess = NumericProperty(0)
+    ymov = NumericProperty(0)
+    ycess = NumericProperty(0)
+    dragging = BooleanProperty(False)
+    keys = ListProperty()
+    referent = ObjectProperty(None)
+    skel = ObjectProperty(None)
+    force_refresh = BooleanProperty(False)
+
+    def on_parent(self, i, v):
+        character = v.character
+        closet = character.closet
+        skeleton = closet.skeleton
+        ks = []
+        for key in v.keys:
+            if key is None:
+                break
+            ks.append(key)
+        self.keys = ks
+        if self.cal_type == 0:
+            (dimension, thing) = ks
+            self.referent = closet.get_thing(dimension, thing)
+            self.skel = skeleton["thing_location"][dimension][thing]
+        elif self.cal_type == 1:
+            (dimension, place) = ks
+            self.referent = closet.get_place(dimension, place)
+            self.skel = character.placedict[dimension][place]
+        elif self.cal_type == 2:
+            (dimension, orig, dest) = ks
+            self.referent = closet.get_portal(dimension, orig, dest)
+            self.skel = character.portaldict[dimension][orig][dest]
+        elif self.cal_type == 3:
+            stat = ks[0]
+            self.skel = character.statdict[stat]
+        elif self.cal_type == 4:
+            skill = ks[0]
+            self.skel = character.skilldict[skill]
+        self.skel.listener = self.refresh_and_layout
+        self.refresh_and_layout()
+        self.bind(size=lambda i, v: self._trigger_layout(),
+                  pos=lambda i, v: self._trigger_layout())
+
+    def refresh_and_layout(self, *args):
+        self.force_refresh = True
+        self._trigger_layout()
+
+    def branch_x(self, b):
+        b -= self.branch
+        return self.x + self.xmov + b * self.col_width
+
+    def tick_y(self, t):
+        if t is None:
+            return self.y
+        else:
+            t -= self.tick
+            return self.y + self.ymov + self.height - self.tick_height * t
+
+    def refresh(self):
+        minbranch = int(self.branch - self.branches_offscreen)
+        maxbranch = int(
+            self.branch + self.branches_wide + self.branches_offscreen)
+        mintick = int(self.tick - self.ticks_offscreen)
+        maxtick = int(self.tick + self.ticks_tall + self.ticks_offscreen)
+        # I contain Cells.
+        #
+        # I should contain those that are visible, or nearly so.
+        #
+        # Remove those that are neither.
+        for child in self.children:
+            if (
+                    child.branch < minbranch or
+                    maxbranch < child.branch or
+                    maxtick < child.tick_from or
+                    (child.tick_to is not None and
+                     child.tick_to < mintick)):
+                self.remove_widget(child)
+        # Find cells to show
+        to_cover = {}
+        content = {}
+        for branch in xrange(minbranch, maxbranch):
+            if branch not in self.skel:
+                continue
+            to_cover[branch] = set()
+            content[branch] = {}
+            rowiter = self.skel[branch].iterrows()
+            prev = next(rowiter)
+            for rd in rowiter:
+                if (
+                        prev["tick_from"] < maxtick and
+                        rd["tick_from"] > mintick):
+                    # I'll be showing this cell. Choose text for it
+                    # based on my type.
+                    if self.cal_type == 0:
+                        text = prev["location"]
+                    elif self.cal_type == 1:
+                        text = prev["place"]
+                    elif self.cal_type == 2:
+                        text = "{}->{}".format(
+                            prev["origin"], prev["destination"])
+                    elif self.cal_type == 3:
+                        text = prev["value"]
+                    else:
+                        text = ""
+                    to_cover[branch].add(id(prev))
+                    content[branch][id(prev)] = (
+                        text, prev["tick_from"], rd["tick_from"])
+                if rd["tick_from"] > maxtick:
+                    break
+                prev = rd
+            # The last cell is infinitely long
+            if prev["tick_from"] < maxtick:
+                if self.cal_type == 0:
+                    text = prev["location"]
+                elif self.cal_type == 1:
+                    text = prev["place"]
+                elif self.cal_type == 2:
+                    text = "{}->{}".format(
+                        prev["origin"], prev["destination"])
+                elif self.cal_type == 3:
+                    text = prev["value"]
+                else:
+                    text = ""
+                to_cover[branch].add(id(prev))
+                content[branch][id(prev)] = (
+                    text, prev["tick_from"], None)
+        # I might already be showing some of these, though.
+        #
+        # Which ones don't I show?
+        uncovered = {}
+        covered = {}
+        for child in self.children:
+            if child.branch not in covered:
+                covered[child.branch] = set()
+            covered[child.branch].add(child.rowid)
+        for (branch, coverage) in to_cover.iteritems():
+            if branch not in covered:
+                uncovered[branch] = coverage
+            else:
+                uncovered[branch] = coverage - covered[branch]
+        # Construct cells for just the rowdicts that I'm not showing already
+        for (branch, rowids) in uncovered.iteritems():
+            n = 0
+            for rowid in rowids:
+                (text, tick_from, tick_to) = content[branch][rowid]
+                cell = Cell(
+                    calendar=self,
+                    branch=branch,
+                    text=text,
+                    tick_from=tick_from,
+                    tick_to=tick_to,
+                    rowid=rowid)
+                self.add_widget(cell)
+                n += 1
+
+    def do_layout(self, *largs):
+        if self.parent is None:
+            return
+        branchwidth = self.col_width
+        d_branch = int(self.xmov / branchwidth)
+        tickheight = self.tick_height
+        d_tick = int(self.ymov / tickheight)
+        if abs(d_branch) >= 1 or abs(d_tick) >= 1:
+            try:
+                self.branch -= d_branch
+            except ValueError:
+                self.branch = 0
+            self.xmov -= d_branch * (branchwidth + self.spacing_y)
+            try:
+                self.tick += d_tick
+            except ValueError:
+                self.tick = 0
+            self.ymov -= d_tick * tickheight
+            self.refresh()
+        elif self.force_refresh:
+            self.refresh()
+            self.force_refresh = False
+        for child in self.children:
+            x = self.branch_x(child.branch)
+            y = self.tick_y(child.tick_to)
+            height = self.tick_y(child.tick_from) - y
+            hs = self.spacing_y
+            ws = self.spacing_x
+            child.pos = (x + ws, y + hs)
+            child.size = (branchwidth - ws, height - hs)
+
+    def _touch_down(self, x, y, dx, dy):
+        self.dragging = True
+
+    def _touch_up(self, x, y, dx, dy):
+        self.dragging = False
+        self.xmov = 0
+        self.xcess = 0
+        self.ymov = 0
+        self.ycess = 0
+        self._trigger_layout()
+
+    def on_touch_move(self, touch):
+        if self.dragging:
+            if self.xcess == 0:
+                nuxmov = self.xmov + touch.dx
+                if not (self.branch == 0 and nuxmov < 0):
+                    self.xmov = nuxmov
+                else:
+                    self.xcess += touch.dx
+            else:
+                self.xcess += touch.dx
+                if self.xcess > 0:
+                    self.xcess = 0
+            if self.ycess == 0:
+                nuymov = self.ymov + touch.dy
+                if not (self.tick == 0 and nuymov < 0):
+                    self.ymov = nuymov
+                else:
+                    self.ycess += touch.dy
+            else:
+                self.ycess += touch.dy
+                if self.ycess > 0:
+                    self.ycess = 0
+            self._trigger_layout()
