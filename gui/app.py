@@ -16,19 +16,11 @@ class LiSELayout(FloatLayout):
 
     def on_touch_down(self, touch):
         if self.menu.collide_point(touch.x, touch.y):
-            self.menu._touch_down(touch)
+            touch.grab(self.menu)
         elif self.charsheet.collide_point(touch.x, touch.y):
-            self.charsheet._touch_down(touch)
+            touch.grab(self.charsheet)
         else:
-            self.board._touch_down(touch)
-
-    def on_touch_up(self, touch):
-        if self.menu.collide_point(touch.x, touch.y):
-            self.menu._touch_up(touch)
-        elif self.charsheet.collide_point(touch.x, touch.y):
-            self.charsheet._touch_up(touch)
-        else:
-            self.board._touch_up(touch)
+            touch.grab(self.board)
 
 
 class LiSEApp(App):

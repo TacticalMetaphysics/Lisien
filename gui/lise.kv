@@ -52,3 +52,11 @@
         CharSheet:
             pos: view.pos
             size: view.size
+<EditButton>:
+    pos_hint: {'right': 1, 'top': 1}
+<MenuItem>:
+    Button:
+        font_name: root.style.fontface
+        font_size: root.style.fontsize
+        text: root.menu.closet.get_text(root.string_name)
+        on_press: root.onclick

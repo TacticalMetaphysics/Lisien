@@ -37,4 +37,11 @@ bg_inactive, bg_active, fg_inactive, fg_active) VALUES
      'solarized-base3',
      'solarized-base02',
      'solarized-base01',
-     'solarized-base1');
+     'solarized-base1'),
+    ('solid_symbols',
+     'assets/Entypo.ttf', 40, 6,
+     'transparent',
+     'transparent',
+     'transparent',
+     'transparent',
+     'black');

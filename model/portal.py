@@ -19,7 +19,7 @@ class Portal(object):
           "tick_to": "integer default null"},
          ("dimension", "origin", "destination", "branch", "tick_from"),
          {},
-         [])]
+         ["origin not like '%->%'", "destination not like '%->%'"])]
 
     def __init__(self, closet, dimension, origin, destination):
         self.closet = closet
@@ -32,7 +32,7 @@ class Portal(object):
 
     def __repr__(self):
         return "Portal({0}->{1})".format(
-            str(self.origin), str(self.destination))
+            self.origin, self.destination)
 
     def __int__(self):
         return self.e.index

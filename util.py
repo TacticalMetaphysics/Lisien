@@ -4,7 +4,7 @@ from math import sqrt, hypot, atan, pi, sin, cos
 from logging import getLogger
 from sqlite3 import IntegrityError
 from collections import deque, MutableMapping
-from re import match, findall
+from re import match, compile, findall
 
 logger = getLogger(__name__)
 
@@ -23,6 +23,13 @@ tabclas = {}
 saveables = []
 
 saveable_classes = []
+
+
+thingex = compile("Thing\((.+?)\)")
+
+placex = compile("Place\((.+?)\)")
+
+portex = compile("Portal\((.+?)->(.+?)\)")
 
 
 def get_rd_during(skel, branch, tick):

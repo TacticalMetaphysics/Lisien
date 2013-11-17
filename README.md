@@ -140,17 +140,17 @@ OpenSimulator.
 
 # Requirements
 
-* python 2.7
-* igraph 0.6.5
-* python-igraph 0.6.5
-* pyglet 1.1
+* [Python 2.7](http://python.org/download/releases/2.7.6/)
+* [igraph 0.6.5](http://igraph.sourceforge.net/download.html)
+* [python-igraph 0.6.5](http://python.org/pypi/python-igraph)
+* [Kivy 1.7.2](http://kivy.org/#download)
 
-# License
-wallpape.jpg is copyright Fantastic Maps (http://www.fantasticmaps.com/free-stuff/), freely available under Creative Commons BY-NC-SA (https://creativecommons.org/licenses/by-nc-sa/3.0/).
+# License Information
+wallpape.jpg is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stuff/), freely available under the terms of [Creative Commons BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 
-igraph and python-igraph are freely available under the MIT license (http://opensource.org/licenses/MIT).
+igraph and python-igraph are freely available under the [MIT license](http://opensource.org/licenses/MIT).
 
-Sans.ttf is really the font Sword, by molly. Freely available at http://geohand.tumblr.com/post/39769502703/im-getting-into-setting-up-a-system-to-talk-to
+The icons are [Entypo](http://entypo.com/), in the file Entypo.ttf, freely available at under the terms of [Creative Commons BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/).
 
 The LiSE source files themselves are licensed under the terms of the GNU General Public License version 3. See the text of the license in the file gpl-3.0.txt
 

@@ -4,13 +4,14 @@ from util import (
     SaveableMetaclass,
     LocationException,
     TimeParadox,
-    JourneyException)
-from re import match, compile
+    JourneyException,
+    thingex,
+    placex,
+    portex)
+from re import match
 from logging import getLogger
 
 logger = getLogger(__name__)
-
-portex = compile("Portal\((.+)->(.+)\)")
 
 
 class Thing(object):
@@ -64,13 +65,15 @@ too.
         self._name = unicode(name)
         self.new_branch_blank = False
         self.dimension.thingdict[name] = self
-        self.branches_in = set()
 
     def __str__(self):
         return str(self._name)
 
     def __unicode__(self):
-        return self._name
+        return unicode(self._name)
+
+    def __repr__(self):
+        return "Thing({})".format(self)
 
     def __contains__(self, that):
         return that.location is self
@@ -99,13 +102,16 @@ tick in the given branch."""
             return None
         if rd is None or rd["location"] is None:
             return None
+        m = match(thingex, rd["location"])
+        if m is not None:
+            return self.dimension.get_thing(*m.groups())
+        m = match(placex, rd["location"])
+        if m is not None:
+            return self.dimension.get_place(*m.groups())
         m = match(portex, rd["location"])
         if m is not None:
             return self.dimension.get_portal(*m.groups())
-        elif rd["location"] in self.dimension.thingdict:
-            return self.dimension.thingdict[rd["location"]]
-        else:
-            return self.dimension.get_place(rd["location"])
+        return None
 
     def get_location_rd(self, branch=None, tick=None):
         if branch is None:
@@ -119,6 +125,9 @@ tick in the given branch."""
         return self.locations[branch][tick]
 
     def exists(self, branch=None, tick=None):
+        """Have I got a location?
+
+If not, I'm nowhere, and therefore don't exist."""
         try:
             rd = self.get_location_rd(branch, tick)
         except KeyError:
@@ -128,10 +137,6 @@ tick in the given branch."""
     def set_location(self, loc, branch=None, tick=None):
         """Declare that I'm in the given Place, Portal, or Thing.
 
-With no tick_to argument, I'll stay in this location
-indefinitely--that is, until I have anything else to do. With tick_to,
-I'll stay in this location until then, even if I DO have something
-else to do.
         """
         if branch is None:
             branch = self.closet.branch
@@ -140,11 +145,11 @@ else to do.
         if branch not in self.locations:
             self.locations[branch] = {}
         self.locations[branch][tick] = {
-            "dimension": str(self.dimension),
-            "thing": str(self),
+            "dimension": unicode(self.dimension),
+            "thing": unicode(self),
             "branch": branch,
             "tick_from": tick,
-            "location": str(loc)}
+            "location": repr(loc)}
         self.closet.timestream.upbranch(branch)
         self.closet.timestream.uptick(tick)
 

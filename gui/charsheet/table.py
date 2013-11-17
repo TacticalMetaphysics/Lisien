@@ -1,7 +1,11 @@
 from kivy.properties import (
+    BooleanProperty,
     ObjectProperty,
     ReferenceListProperty,
     StringProperty)
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.image import Image
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 
@@ -250,3 +254,16 @@ class SkillTable(Table):
                 prev = None
                 yield r
             prev = rd
+
+
+class TableView(RelativeLayout):
+    table = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        super(TableView, self).__init__(**kwargs)
+        self.edit_button = ToggleButton(pos_hint={'right': 1, 'top': 1})
+        closet = self.table.charsheet.character.closet
+        tex = closet.get_texture('edit')
+        self.edit_button.add_widget(Image(texture=tex, size=tex.size))
+        self.add_widget(self.edit_button)
+        self.add_widget(self.table)

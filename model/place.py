@@ -13,9 +13,8 @@ thing located there.
     """
     def __init__(self, dimension, v):
         assert(isinstance(v, Vertex))
-        if v["name"] == "Physical.Portal(myroom->livingroom)":
-            import pdb
-            pdb.set_trace()
+        if "->" in v["name"]:
+            raise ValueError("String \"->\" is not allowed in Place names")
         self.dimension = dimension
         self.closet = self.dimension.closet
         self.v = v
@@ -45,7 +44,7 @@ thing located there.
         return unicode(self.v["name"])
 
     def __repr__(self):
-        return "Place({0}.{1})".format(str(self.dimension), self.v["name"])
+        return "Place({})".format(self)
 
     def __eq__(self, other):
         return (
