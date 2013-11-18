@@ -19,10 +19,11 @@ from model.portal import Portal
 from model.thing import Thing
 from model.character import Character
 from model.event import Implicator
-from gui.spot import Spot
-from gui.pawn import Pawn
-from gui.board import Board
-from gui.card import Card
+from gui.board import (
+    Board,
+    Spot,
+    Card,
+    Pawn)
 from gui.style import LiSEStyle, LiSEColor
 from gui.charsheet import CharSheet, CharSheetView
 from gui.menu import Menu

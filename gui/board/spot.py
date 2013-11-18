@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     get_rd_during)
-from kivybits import SaveableWidgetMetaclass
+from gui.kivybits import SaveableWidgetMetaclass
 from kivy.uix.image import Image
 from kivy.properties import (
     DictProperty,
@@ -328,7 +328,9 @@ class Spot(Scatter):
         if touch.grab_current is self:
             self.x += touch.dx
             self.y += touch.dy
+            return True
 
     def on_touch_up(self, touch):
         if touch.grab_current is self:
             self.set_coords(self.x, self.y)
+            return True

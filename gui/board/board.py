@@ -1,10 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from __future__ import print_function
-from kivybits import SaveableWidgetMetaclass
-from pawn import Pawn
-from spot import Spot
-from arrow import Arrow
+from gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
     DictProperty,
     NumericProperty,
@@ -12,7 +9,10 @@ from kivy.properties import (
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
-
+from spot import Spot
+from arrow import Arrow
+from card import Card
+from pawn import Pawn
 
 """Class for user's view on gameworld, and support functions."""
 
@@ -87,6 +87,12 @@ class Board(ScrollView):
 
     def __str__(self):
         return str(self.dimension)
+
+    def __unicode__(self):
+        return unicode(self.dimension)
+
+    def __repr__(self):
+        return "Board({})".format(self)
 
     def upd_rowdict(self, *args):
         self.rowdict = dict(self.closet.skeleton["board"][unicode(self)])

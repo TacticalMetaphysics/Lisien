@@ -8,15 +8,14 @@
             pos: self.pos
             size: self.size
 <Cell>:
-    id: cell
     size_hint: (None, None)
     ColorBox:
-        color: cell.bg_color
+        color: root.bg_color
     Label:
-        text: cell.text
-        color: cell.text_color
-        font_name: cell.font_name
-        font_size: cell.font_size
+        text: root.text
+        color: root.text_color
+        font_name: root.font_name
+        font_size: root.font_size
         text_size: self.size
         pos_hint: {'x': 0, 'y': 0}
         valign: "top"
@@ -31,9 +30,8 @@
         font_size: root.font_size
         col_width: 100
     Timeline:
-        connector: root.character.closet.kivy_connector
-        x: (self.connector.branch - cal.branch) * cal.col_width + cal.xmov
-        y: cal.ymov + cal.top - (self.connector.tick - cal.tick) * cal.tick_height
+        x: (root.connector.branch - cal.branch) * cal.col_width + cal.xmov
+        y: cal.ymov + cal.top - (root.connector.tick - cal.tick) * cal.tick_height
         canvas:
             Color:
                 rgba: 1, 0, 0, 1
@@ -41,18 +39,15 @@
                 points: (self.x, self.y, self.x+cal.col_width, self.y)
             Triangle:
                 points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
-<CharSheet>:
-    cols: 1
-    spacing: 10
 <CharSheetView>:
     pos_hint: {'x': 0.7, 'y': 0}
     size_hint: (0.3, 1)
     StencilView:
         id: view
-        pos: self.pos
-        size: self.size
         CharSheet:
             pos: view.pos
             size: view.size
+            cols: 1
+            spacing: 10
 <EditButton>:
     pos_hint: {'x': 0, 'top': 1}

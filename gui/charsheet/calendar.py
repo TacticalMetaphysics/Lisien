@@ -333,12 +333,6 @@ This is the only way Calendar should be instantiated. Requires a Character.
     font_size = NumericProperty()
     character = ObjectProperty()
 
-    def _touch_down(self, x, y, dx, dy):
-        for child in self.children:
-            if hasattr(child, '_touch_down'):
-                child._touch_down(x, y, dx, dy)
-
-    def _touch_up(self, x, y, dx, dy):
-        for child in self.children:
-            if hasattr(child, '_touch_up'):
-                child._touch_up(x, y, dx, dy)
+    @property
+    def connector(self):
+        return self.character.closet.kivy_connector
