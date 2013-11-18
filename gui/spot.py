@@ -2,9 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
     get_rd_during)
-from kivybits import (
-    SaveableWidgetMetaclass,
-    Touchy)
+from kivybits import SaveableWidgetMetaclass
 from kivy.uix.image import Image
 from kivy.properties import (
     DictProperty,
@@ -34,7 +32,7 @@ class SpotImage(Image):
         self.texture = self.spot.get_texture()
 
 
-class Spot(Scatter, Touchy):
+class Spot(Scatter):
     __metaclass__ = SaveableWidgetMetaclass
     """The icon that represents a Place.
 
@@ -102,10 +100,6 @@ class Spot(Scatter, Touchy):
 
     def __unicode__(self):
         return unicode(self.place)
-
-    @property
-    def dragging(self):
-        return self is self.board.dragging
 
     def get_width(self):
         img = self.get_texture()
@@ -330,5 +324,11 @@ class Spot(Scatter, Touchy):
             prev = tick_from
         self.upd_imagery()
 
-    def on_drop(self):
-        self.set_coords(self.x, self.y)
+    def on_touch_move(self, touch):
+        if touch.grab_current is self:
+            self.x += touch.dx
+            self.y += touch.dy
+
+    def on_touch_up(self, touch):
+        if touch.grab_current is self:
+            self.set_coords(self.x, self.y)

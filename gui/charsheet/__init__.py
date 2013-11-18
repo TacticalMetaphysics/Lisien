@@ -106,6 +106,7 @@ class CharSheet(GridLayout):
             if rd["type"] in self.tabs:
                 self.add_widget(
                     self.tabs[rd["type"]](
+                        charsheet=self,
                         size_hint=(None, None),
                         keys=keylst))
             else:
@@ -118,30 +119,22 @@ class CharSheet(GridLayout):
                     font_name=self.style.fontface,
                     font_size=self.style.fontsize))
 
-    def _touch_down(self, (x, y), dx, dy):
-        for child in self.children:
-            if child.collide_point(x, y):
-                child._touch_down(x, y, dx, dy)
-
-    def _touch_up(self, (x, y), dx, dy):
-        for child in self.children:
-            if hasattr(child, '_touch_up'):
-                child._touch_up(x, y, dx, dy)
-
 
 class CharSheetView(RelativeLayout):
     character = ObjectProperty()
 
-    def _touch_down(self, touch):
-        stencil = self.children[0]
-        charsheet = stencil.children[0]
-        charsheet._touch_down(
-            self.to_local(touch.x, touch.y),
-            touch.dx, touch.dy)
+    @property
+    def sheet(self):
+        sheet = self.children[0]
+        while not isinstance(sheet, CharSheet):
+            sheet = sheet.children[0]
+        return sheet
 
-    def _touch_up(self, touch):
-        stencil = self.children[0]
-        charsheet = stencil.children[0]
-        charsheet._touch_up(
-            self.to_local(touch.x, touch.y),
-            touch.dx, touch.dy)
+    def on_touch_down(self, touch):
+        return self.sheet.on_touch_down(touch)
+
+    def on_touch_move(self, touch):
+        return self.sheet.on_touch_move(touch)
+
+    def on_touch_up(self, touch):
+        return self.sheet.on_touch_up(touch)

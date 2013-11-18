@@ -1,8 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from kivybits import (
-    SaveableWidgetMetaclass,
-    Touchy)
+from kivybits import SaveableWidgetMetaclass
 from kivy.uix.image import Image
 from kivy.uix.scatter import Scatter
 from kivy.properties import (
@@ -32,7 +30,7 @@ class PawnImage(Image):
         self.texture = self.pawn.get_texture()
 
 
-class Pawn(Scatter, Touchy):
+class Pawn(Scatter):
     __metaclass__ = SaveableWidgetMetaclass
     """A token to represent something that moves about between places."""
     tables = [
@@ -294,7 +292,15 @@ If it DOES have anything else to do, make the journey in another branch.
             prev = tick_from
         self.upd_interactivity()
 
-    def on_drop(self):
+    def on_touch_move(self, touch):
+        if touch.grab_current is not self:
+            return
+        self.x += touch.dx
+        self.y += touch.dy
+
+    def on_touch_up(self, touch):
+        if touch.grab_current is not self:
+            return
         for spot in self.board.spotdict.itervalues():
             if self.collide_widget(spot):
                 myplace = self.thing.location
@@ -304,6 +310,7 @@ If it DOES have anything else to do, make the journey in another branch.
                     self.thing.journey_to(spot.place)
                     break
         self.repos()
+        return True
 
     def repos(self, *args):
         self.transform.identity()

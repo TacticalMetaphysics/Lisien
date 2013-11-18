@@ -1,13 +1,13 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from kivybits import SaveableWidgetMetaclass
+from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.relativelayout import RelativeLayout
 from kivy.properties import (
+    AliasProperty,
     StringProperty,
     ObjectProperty,
-    AliasProperty,
-    BooleanProperty)
+    ListProperty)
 from re import match, compile
 from logging import getLogger
 
@@ -21,38 +21,12 @@ logger = getLogger(__name__)
 ON_CLICK_RE = compile("""([a-zA-Z0-9_]+)\((.*)\)""")
 
 
-class MenuItem(RelativeLayout):
-    menu = ObjectProperty()
-    string_name = StringProperty(allownone=True)
-    on_click = StringProperty('')
-    symbolic = BooleanProperty()
-    touched = BooleanProperty(False)
+class MenuButton(Button):
+    oncl = ObjectProperty()
+    fargs = ListProperty()
 
-    def __init__(self, **kwargs):
-        RelativeLayout.__init__(self, **kwargs)
-        ocmatch = match(ON_CLICK_RE, self.on_click)
-        if ocmatch is not None:
-            (ocfn, ocargs) = ocmatch.groups()
-            (on_click_fun, ARG_RE) = self.menu.closet.menu_cbs[ocfn]
-            ocargm = match(ARG_RE, ocargs)
-            if ocargm is not None:
-                on_click_args = ocargm.groups()
-
-                def on_click(*args):
-                    on_click_fun(self, *on_click_args)
-            else:
-
-                def on_click(*args):
-                    on_click_fun(self)
-
-            self.onclick = on_click
-
-    @property
-    def style(self):
-        if self.symbolic:
-            return self.menu.symbol_style
-        else:
-            return self.menu.text_style
+    def on_press(self):
+        self.oncl(self, *self.fargs)
 
 
 class Menu(BoxLayout):
@@ -100,13 +74,30 @@ class Menu(BoxLayout):
         self.symbol_style = kwargs["closet"].get_style(
             kwargs["closet"].skeleton["menu"][kwargs["name"]]["symbol_style"])
         BoxLayout.__init__(self, **kwargs)
+
         for rd in self.closet.skeleton["menu_item"][unicode(self)].iterrows():
-            it = MenuItem(
-                menu=self,
-                string_name=rd["text"],
-                on_click=rd["on_click"],
-                symbolic=rd["symbolic"])
-            self.add_widget(it)
+            if rd["symbolic"] == 1:
+                style = self.symbol_style
+            else:
+                style = self.text_style
+            text = self.closet.get_text(rd["text"])
+            ocmatch = match(ON_CLICK_RE, rd["on_click"])
+            if ocmatch is not None:
+                (ocfn, ocargs) = ocmatch.groups()
+                (on_click_fun, ARG_RE) = self.closet.menu_cbs[ocfn]
+                ocargm = match(ARG_RE, ocargs)
+                if ocargm is None:
+                    fargs = []
+                else:
+                    fargs = list(ocargm.groups())
+
+                it = MenuButton(
+                    font_name=style.fontface,
+                    font_size=style.fontsize,
+                    oncl=on_click_fun,
+                    fargs=fargs,
+                    text=text)
+                self.add_widget(it)
 
     def get_pos_hint(self):
         rd = self.closet.skeleton["menu"][unicode(self)]

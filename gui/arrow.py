@@ -6,7 +6,6 @@ from util import (
     wedge_offsets_rise_run,
     truncated_line,
     fortyfive)
-from kivybits import Touchy
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
 from kivy.properties import (
@@ -15,7 +14,7 @@ from kivy.properties import (
 from kivy.clock import Clock
 
 
-class Arrow(Widget, Touchy):
+class Arrow(Widget):
     margin = 10
     w = 1
     board = ObjectProperty()

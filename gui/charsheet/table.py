@@ -1,5 +1,4 @@
 from kivy.properties import (
-    BooleanProperty,
     ObjectProperty,
     ReferenceListProperty,
     StringProperty)
@@ -10,18 +9,12 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 
 
-def get_charsheet(item):
-    while item.__class__ != 'CharSheet':
-        item = item.parent
-    return item
-
-
 class Table(GridLayout):
     key0 = StringProperty()
     key1 = StringProperty(None, allownone=True)
     key2 = StringProperty(None, allownone=True)
     keys = ReferenceListProperty(key0, key1, key2)
-    charsheet = ObjectProperty(allownone=True)
+    charsheet = ObjectProperty()
 
     @property
     def skel(self):
@@ -36,7 +29,6 @@ class Table(GridLayout):
                 self.keys[0]][self.keys[1]][self.keys[2]]
 
     def on_parent(self, *args):
-        self.charsheet = get_charsheet(self)
         self.cols = len(self.colkeys)
         self.row_default_height = (self.charsheet.style.fontsize
                                    + self.charsheet.style.spacing)
@@ -84,36 +76,35 @@ class ThingTable(Table):
 
     @property
     def character_skel(self):
-        charsheet = get_charsheet(self)
-        return charsheet.character.thingdict
+        return self.charsheet.character.thingdict
 
     def get_branch_rd_iter(self, branch):
-        charsheet = get_charsheet(self)
+        thingdict = self.charsheet.character.thingdict
         if self.keys[0] is None:
-            for dimension in charsheet.character.thingdict:
-                for thing in charsheet.character.thingdict[dimension]:
-                    for rd in charsheet.character.thingdict[
-                            dimension][thing][branch].iterrows():
+            for dimension in thingdict:
+                for thing in thingdict[dimension]:
+                    for rd in thingdict[dimension][thing][
+                            branch].iterrows():
                         yield rd
         elif self.keys[1] is None:
             dimension = self.keys[0]
-            for thing in charsheet.character.thingdict[dimension]:
-                for rd in charsheet.character.thingdict[
+            for thing in thingdict[dimension]:
+                for rd in thingdict[
                         dimension][thing][branch].iterrows():
                     yield rd
         else:
             dimension = self.keys[0]
             thing = self.keys[1]
-            for rd in charsheet.character.thingdict[
+            for rd in thingdict[
                     dimension][thing][branch].iterrows():
                 yield rd
 
     def iter_skeleton(self, branch=None, tick=None):
-        charsheet = get_charsheet(self)
+        closet = self.charsheet.character.closet
         if branch is None:
-            branch = charsheet.character.closet.branch
+            branch = closet.branch
         if tick is None:
-            tick = charsheet.character.closet.tick
+            tick = closet.tick
         covered = set()
         for rd in self.get_branch_rd_iter(branch):
             if (rd["dimension"], rd["thing"]) in covered:
@@ -121,7 +112,7 @@ class ThingTable(Table):
             if rd["tick_from"] <= tick and (
                     rd["tick_to"] is None or
                     rd["tick_to"] >= tick):
-                thing = charsheet.character.closet.get_thing(
+                thing = closet.get_thing(
                     rd["dimension"], rd["thing"])
                 rd2 = thing.locations[branch]
                 prev = None
@@ -155,8 +146,7 @@ class PlaceTable(Table):
 
     @property
     def character_skel(self):
-        charsheet = get_charsheet(self)
-        return charsheet.character.placedict
+        return self.charsheet.character.placedict
 
 
 class PortalTable(Table):
@@ -164,8 +154,7 @@ class PortalTable(Table):
 
     @property
     def character_skel(self):
-        charsheet = get_charsheet(self)
-        return charsheet.character.portaldict
+        return self.charsheet.character.portaldict
 
 
 class StatTable(Table):
@@ -173,28 +162,27 @@ class StatTable(Table):
 
     @property
     def character_skel(self):
-        charsheet = get_charsheet(self)
-        return charsheet.character.statdict
+        return self.charsheet.character.statdict
 
     def get_branch_rd_iter(self, branch):
-        charsheet = get_charsheet(self)
+        statdict = self.charsheet.character.statdict
         if self.keys[0] is None:
-            for stat in charsheet.character.statdict:
-                for rd in charsheet.character.statdict[
+            for stat in statdict:
+                for rd in statdict[
                         stat][branch].iterrows():
                     yield rd
         else:
             stat = self.keys[0]
-            for rd in charsheet.character.statdict[
+            for rd in statdict[
                     stat][branch].iterrows():
                 yield rd
 
     def iter_skeleton(self, branch=None, tick=None):
-        charsheet = get_charsheet(self)
+        closet = self.charsheet.character.closet
         if branch is None:
-            branch = charsheet.character.closet.branch
+            branch = closet.branch
         if tick is None:
-            tick = charsheet.character.closet.tick
+            tick = closet.tick
         covered = set()
         prev = None
         for rd in self.get_branch_rd_iter(branch):
@@ -217,28 +205,27 @@ class SkillTable(Table):
 
     @property
     def character_skel(self):
-        charsheet = get_charsheet(self)
-        return charsheet.character.skilldict
+        return self.charsheet.character.skilldict
 
     def get_branch_rd_iter(self, branch):
-        charsheet = get_charsheet(self)
+        skilldict = self.charsheet.character.skilldict
         if self.keys[0] is None:
-            for skill in charsheet.character.skilldict:
-                for rd in charsheet.character.skilldict[
+            for skill in skilldict:
+                for rd in skilldict[
                         skill][branch].iterrows():
                     yield rd
         else:
             skill = self.keys[0]
-            for rd in charsheet.character.skilldict[
+            for rd in skilldict[
                     skill][branch].iterrows():
                 yield rd
 
     def iter_skeleton(self, branch=None, tick=None):
-        charsheet = get_charsheet(self)
+        closet = self.charsheet.character.closet
         if branch is None:
-            branch = charsheet.character.closet.branch
+            branch = closet.branch
         if tick is None:
-            tick = charsheet.character.closet.tick
+            tick = closet.tick
         covered = set()
         prev = None
         for rd in self.get_branch_rd_iter(branch):
@@ -261,9 +248,9 @@ class TableView(RelativeLayout):
 
     def __init__(self, **kwargs):
         super(TableView, self).__init__(**kwargs)
-        self.edit_button = ToggleButton(pos_hint={'right': 1, 'top': 1})
         closet = self.table.charsheet.character.closet
-        tex = closet.get_texture('edit')
-        self.edit_button.add_widget(Image(texture=tex, size=tex.size))
+        self.edit_button = ToggleButton(
+            pos_hint={'x': 0, 'top': 1},
+            text=closet.get_text('edit'))
         self.add_widget(self.edit_button)
         self.add_widget(self.table)

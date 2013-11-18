@@ -17,20 +17,6 @@ class KivyConnector(EventDispatcher):
     hi_branch = NumericProperty()
     hi_tick = NumericProperty()
 
-    def __setattr__(self, attrn, val):
-        print("In KivyConnector, setting {} to {}".format(attrn, val))
-        super(KivyConnector, self).__setattr__(attrn, val)
-
-
-class Touchy(object):
-    def on_touch_move(self, touch):
-        if self.dragging:
-            if not self.collide_point(touch.x, touch.y):
-                self.dragging = False
-
-    def on_touch_up(self, touch):
-        self.dragging = False
-
 
 class SaveableWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
     pass

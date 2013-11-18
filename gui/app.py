@@ -15,12 +15,12 @@ class LiSELayout(FloatLayout):
             self.add_widget(wid)
 
     def on_touch_down(self, touch):
-        if self.menu.collide_point(touch.x, touch.y):
-            touch.grab(self.menu)
-        elif self.charsheet.collide_point(touch.x, touch.y):
-            touch.grab(self.charsheet)
+        if self.menu.on_touch_down(touch):
+            return True
+        elif self.charsheet.on_touch_down(touch):
+            return True
         else:
-            touch.grab(self.board)
+            return self.board.on_touch_down(touch)
 
 
 class LiSEApp(App):
