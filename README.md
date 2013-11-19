@@ -10,6 +10,8 @@ Existing games that LiSE seeks to imitate include:
 
 * The Sims
 * Kudos
+* Redshirt
+* Animal Crossing
 * Monster Rancher
 * Dwarf Fortress
 
@@ -74,21 +76,18 @@ represent physical objects, such as people.
 Actually, the engine distinguishes people from their bodies--more on
 that later.
 
-Potential changes to the state of the game world are "effects," which
-look like trading cards. These could be given elaborate artwork of the
-kind found in Magic: the Gathering and other such games. Players may
-be given the option to play these "cards" from their "hand," but that
-usually won't result in an immediate change to the game
-world--instead, the effects will be assembled into an "event" that
-gets scheduled in one of the game's many calendars. The player may be
-allowed to reschedule the event by dragging it around in much the way
-you do in a Personal Information Management app. Developers can do
-this whenever they want, of course.
+There is an event handler for the purpose of managing changes to the
+world that occur at particular game-times. It watches particular parts
+of the world for particular states to trigger an event, and resolves
+the event into a set of changes to the world. The triggers, event
+types, and changes are all wired together following rules stored in
+the database. This is similar to the concept of "reactions" that Dwarf
+Fortress uses.
 
-The distinction between a player and a developer is a matter of
-launching the game engine with or without the developer's option. If you
-don't want players to modify your game, this may not be the engine for
-you.
+One possible trigger for an event is that the player chose to trigger
+it. The usual ways of doing this are by dragging their character to a
+new place, thus triggering a movement event, or playing a card from
+their hand. Cards may represent anything the player can do.
 
 Having scheduled a variety of events, the player starts time. Much as
 in The Sims, they can pause whenever they want, and they can decide
@@ -98,6 +97,15 @@ started, and whenever a random choice is needed, the same seed is used
 to make it. This makes it possible to try several approaches to a
 given situation and see how *all of them* will turn out. It is also
 convenient for debugging those random events.
+
+Events may be triggered by other events, as well. The triggered event
+does not need to take place at the same time as the triggering event,
+and indeed may take place in the past--events can rewrite history. For
+a mundane example: when a movement event is triggered, and discovers
+that the character to be moved is not where it is to be moved *from*,
+it triggers a pathfinding event that will in turn trigger various
+movement events at various times, resulting in the character moving to
+the intended destination in a series of steps.
 
 Events with many possible outcomes are constructed from many effects,
 resulting in an "outcome deck". When the event comes to pass, a given
