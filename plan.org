@@ -4,9 +4,46 @@
 * interface
 ** place places (w. spots)
 ** place things (w. pawns)
-** properties windows
+** character shets
 *** Link items to characters and vice versa.
 *** Little nested list demonstrating containment hierarchy.
+    You can move things around in it, resulting in teleportation.
+*** Stat tables
+    Editable, sometimes--press a button to unlock it and labels turn
+    into inputs. Press again and they turn back.
+*** Calendars
+    Click an event once to highlight it. Drag it around to reschedule
+    it--this will result in resizing the events on either end, and
+    possibly switching the orders around.
+
+    In case of movement it doesn't really make sense to reorder it, so
+    it should refuse to move to where it makes another movement event
+    impossible.
+
+    When highlit a handle for resizing appears at each end. For
+    tablet's sake I think these should be *outside* the event proper.
+
+    Doubletap an event to bring up a detail view. Includes all the
+    participants, the causes, event, and effects. You can't reassign
+    those *here* but may click through to the event builder.
+** build events
+*** How to get here?
+    You can click through from an event on the calendar, or there's a
+    menu item for it
+*** How to pick the widgets herein?
+    Similar to a file selector but these aren't files... each gets
+    only one record in the database, which can participate in lots of
+    relations.
+*** causes
+    They get a card and an "outie"
+*** events
+    They don't get proper cards, just boxes for their names--because,
+    you see, players never see them. Also they need to be resized in a
+    way the others just don't.
+
+    Each starts with one "innie" and grows another when the last is filled in.
+*** effects
+    They get a card and an "innie"
 ** the hand
 *** arrange cards manually or automatically
 *** push cards aside to provide a drop zone

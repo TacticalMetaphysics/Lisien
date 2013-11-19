@@ -640,7 +640,7 @@ For more information, consult SaveableMetaclass in util.py.
         colornames = set()
         colorcols = set([
             'bg_inactive', 'bg_active', 'fg_inactive', 'fg_active',
-            'textcolor'])
+            'text_inactive', 'text_active'])
         for name in stylenames:
             rd = self.skeleton["style"][name]
             for colorcol in colorcols:

@@ -1,7 +1,7 @@
 -- This file is part of LiSE, a framework for life simulation games.
 -- Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 INSERT INTO style
-(name, fontface, fontsize, spacing, textcolor,
+(name, fontface, fontsize, spacing, text_inactive,
 bg_inactive, bg_active, fg_inactive, fg_active) VALUES
     ('BigDark',
      'DroidSans', 20, 6,

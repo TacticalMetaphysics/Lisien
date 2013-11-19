@@ -1,20 +1,180 @@
 from kivy.properties import (
+    NumericProperty,
+    ListProperty,
     ObjectProperty,
-    ReferenceListProperty,
     StringProperty)
-from kivy.uix.togglebutton import ToggleButton
-from kivy.uix.image import Image
-from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
+from itemview import ItemView
+
+
+def iter_skeleton(self, branch=None, tick=None):
+    if branch is None:
+        branch = self.character.closet.branch
+    if tick is None:
+        tick = self.character.closet.tick
+    for rd in self.character_skel.iterrows():
+        if (
+                rd["branch"] == branch and
+                rd["tick_from"] <= tick and (
+                    rd["tick_to"] is None or
+                    rd["tick_to"] >= tick)):
+            yield rd
+
+
+def get_branch_rd_iter_thing(self, branch):
+    thingdict = self.character.thingdict
+    if self.keys[0] is None:
+        for dimension in thingdict:
+            for thing in thingdict[dimension]:
+                for rd in thingdict[dimension][thing][
+                        branch].iterrows():
+                    yield rd
+    elif self.keys[1] is None:
+        dimension = self.keys[0]
+        for thing in thingdict[dimension]:
+            for rd in thingdict[
+                    dimension][thing][branch].iterrows():
+                yield rd
+    else:
+        dimension = self.keys[0]
+        thing = self.keys[1]
+        for rd in thingdict[
+                dimension][thing][branch].iterrows():
+            yield rd
+
+
+def iter_skeleton_thing(self, branch=None, tick=None):
+    closet = self.character.closet
+    if branch is None:
+        branch = closet.branch
+    if tick is None:
+        tick = closet.tick
+    covered = set()
+    for rd in get_branch_rd_iter_thing(self, branch):
+        if (rd["dimension"], rd["thing"]) in covered:
+            continue
+        if rd["tick_from"] <= tick and (
+                rd["tick_to"] is None or
+                rd["tick_to"] >= tick):
+            thing = closet.get_thing(
+                rd["dimension"], rd["thing"])
+            rd2 = thing.locations[branch]
+            prev = None
+            r = None
+            for (tick_from, rd3) in rd2.items():
+                if tick_from > tick:
+                    if prev is not None:
+                        r = {
+                            "dimension": rd["dimension"],
+                            "thing": rd["thing"],
+                            "location": prev["location"]}
+                    break
+                prev = rd3
+            if r is None:
+                if prev is None:
+                    r = {
+                        "dimension": rd["dimension"],
+                        "thing": rd["thing"],
+                        "location": "nowhere"}
+                else:
+                    r = {
+                        "dimension": rd["dimension"],
+                        "thing": rd["thing"],
+                        "location": prev["location"]}
+            covered.add((rd["dimension"], rd["thing"]))
+            yield r
+
+
+def get_branch_rd_iter_stat(self, branch):
+    statdict = self.character.statdict
+    if self.keys[0] is None:
+        for stat in statdict:
+            for rd in statdict[
+                    stat][branch].iterrows():
+                yield rd
+    else:
+        stat = self.keys[0]
+        for rd in statdict[
+                stat][branch].iterrows():
+            yield rd
+
+
+def iter_skeleton_stat(self, branch=None, tick=None):
+    closet = self.character.closet
+    if branch is None:
+        branch = closet.branch
+    if tick is None:
+        tick = closet.tick
+    covered = set()
+    prev = None
+    for rd in get_branch_rd_iter_stat(self, branch):
+        if rd["stat"] in covered:
+            continue
+        elif rd["tick_from"] == tick:
+            covered.add(rd["stat"])
+            prev = None
+            yield rd
+        elif rd["tick_from"] > tick:
+            covered.add(rd["stat"])
+            r = prev
+            prev = None
+            yield r
+        prev = rd
+
+
+def get_branch_rd_iter_skill(self, branch):
+    skilldict = self.character.skilldict
+    if self.keys[0] is None:
+        for skill in skilldict:
+            for rd in skilldict[
+                    skill][branch].iterrows():
+                yield rd
+    else:
+        skill = self.keys[0]
+        for rd in skilldict[
+                skill][branch].iterrows():
+            yield rd
+
+
+def iter_skeleton_skill(self, branch=None, tick=None):
+    closet = self.character.closet
+    if branch is None:
+        branch = closet.branch
+    if tick is None:
+        tick = closet.tick
+    covered = set()
+    prev = None
+    for rd in get_branch_rd_iter_skill(self, branch):
+        if rd["skill"] in covered:
+            continue
+        elif rd["tick_from"] == tick:
+            covered.add(rd["skill"])
+            prev = None
+            yield rd
+        elif rd["tick_from"] > tick:
+            covered.add(rd["skill"])
+            r = prev
+            prev = None
+            yield r
+        prev = rd
 
 
 class Table(GridLayout):
-    key0 = StringProperty()
-    key1 = StringProperty(None, allownone=True)
-    key2 = StringProperty(None, allownone=True)
-    keys = ReferenceListProperty(key0, key1, key2)
-    charsheet = ObjectProperty()
+    keys = ListProperty()
+    character = ObjectProperty()
+    bg_color_inactive = ListProperty()
+    text_color_inactive = ListProperty()
+    font_name = StringProperty()
+    font_size = NumericProperty()
+    colkeys = ListProperty()
+    skeliter = ObjectProperty()
+    charatt = StringProperty()
+    completedness = NumericProperty(0)
+
+    @property
+    def character_skel(self):
+        getattr(self.character, self.charatt)
 
     @property
     def skel(self):
@@ -28,41 +188,49 @@ class Table(GridLayout):
             return self.character_skel[
                 self.keys[0]][self.keys[1]][self.keys[2]]
 
-    def on_parent(self, *args):
-        self.cols = len(self.colkeys)
-        self.row_default_height = (self.charsheet.style.fontsize
-                                   + self.charsheet.style.spacing)
-        self.row_force_default = True
+    def iter_skeleton(self):
+        return self.skeliter(self, self.character.closet.branch)
 
+    def on_completedness(self, i, v):
+        if v == 5:
+            self.completed()
+
+    def on_text_color_inactive(self, *args):
+        self.completedness += 1
+
+    def on_bg_color_inactive(self, *args):
+        self.completedness += 1
+
+    def on_colkeys(self, *args):
+        self.completedness += 1
+
+    def on_font_name(self, *args):
+        self.completedness += 1
+
+    def on_font_size(self, *args):
+        self.completedness += 1
+
+    def completed(self):
+        for att in [
+                self.text_color_inactive, self.bg_color_inactive,
+                self.colkeys, self.font_name, self.font_size]:
+            assert att not in (None, [])
         for key in self.colkeys:
             self.add_widget(Label(
                 text=key,
-                font_name=self.charsheet.style.fontface,
-                font_size=self.charsheet.style.fontsize,
-                color=self.charsheet.style.textcolor.rgba))
+                font_name=self.font_name,
+                font_size=self.font_size,
+                color=self.text_color_inactive))
         for rd in self.iter_skeleton():
             for key in self.colkeys:
                 self.add_widget(Label(
                     text=rd[key],
-                    font_name=self.charsheet.style.fontface,
-                    font_size=self.charsheet.style.fontsize,
-                    color=self.charsheet.style.textcolor.rgba))
-
-    def iter_skeleton(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.charsheet.character.closet.branch
-        if tick is None:
-            tick = self.charsheet.character.closet.tick
-        for rd in self.character_skel.iterrows():
-            if (
-                    rd["branch"] == branch and
-                    rd["tick_from"] <= tick and (
-                    rd["tick_to"] is None or
-                    rd["tick_to"] >= tick)):
-                yield rd
+                    font_name=self.font_name,
+                    font_size=self.font_size,
+                    color=self.text_color_inactive))
 
     def iterrows(self, branch=None, tick=None):
-        closet = self.charsheet.character.closet
+        closet = self.character.closet
         if branch is None:
             branch = closet.branch
         if tick is None:
@@ -71,186 +239,26 @@ class Table(GridLayout):
             yield [rd[key] for key in self.colkeys]
 
 
-class ThingTable(Table):
-    colkeys = ["dimension", "thing", "location"]
+class TableView(ItemView):
+    colkeys = ListProperty()
+    chartab = StringProperty()
+    colkey_dict = {
+        0: ["dimension", "thing", "location"],
+        1: ["dimension", "place"],
+        2: ["dimension", "origin", "destination"],
+        3: ["stat", "value"],
+        4: ["skill", "deck"]}
 
-    @property
-    def character_skel(self):
-        return self.charsheet.character.thingdict
+    chartab_dict = {
+        0: 'thingdict',
+        1: 'placedict',
+        2: 'portaldict',
+        3: 'statdict',
+        4: 'skilldict'}
 
-    def get_branch_rd_iter(self, branch):
-        thingdict = self.charsheet.character.thingdict
-        if self.keys[0] is None:
-            for dimension in thingdict:
-                for thing in thingdict[dimension]:
-                    for rd in thingdict[dimension][thing][
-                            branch].iterrows():
-                        yield rd
-        elif self.keys[1] is None:
-            dimension = self.keys[0]
-            for thing in thingdict[dimension]:
-                for rd in thingdict[
-                        dimension][thing][branch].iterrows():
-                    yield rd
-        else:
-            dimension = self.keys[0]
-            thing = self.keys[1]
-            for rd in thingdict[
-                    dimension][thing][branch].iterrows():
-                yield rd
-
-    def iter_skeleton(self, branch=None, tick=None):
-        closet = self.charsheet.character.closet
-        if branch is None:
-            branch = closet.branch
-        if tick is None:
-            tick = closet.tick
-        covered = set()
-        for rd in self.get_branch_rd_iter(branch):
-            if (rd["dimension"], rd["thing"]) in covered:
-                continue
-            if rd["tick_from"] <= tick and (
-                    rd["tick_to"] is None or
-                    rd["tick_to"] >= tick):
-                thing = closet.get_thing(
-                    rd["dimension"], rd["thing"])
-                rd2 = thing.locations[branch]
-                prev = None
-                r = None
-                for (tick_from, rd3) in rd2.items():
-                    if tick_from > tick:
-                        if prev is not None:
-                            r = {
-                                "dimension": rd["dimension"],
-                                "thing": rd["thing"],
-                                "location": prev["location"]}
-                        break
-                    prev = rd3
-                if r is None:
-                    if prev is None:
-                        r = {
-                            "dimension": rd["dimension"],
-                            "thing": rd["thing"],
-                            "location": "nowhere"}
-                    else:
-                        r = {
-                            "dimension": rd["dimension"],
-                            "thing": rd["thing"],
-                            "location": prev["location"]}
-                covered.add((rd["dimension"], rd["thing"]))
-                yield r
-
-
-class PlaceTable(Table):
-    colkeys = ["dimension", "place"]
-
-    @property
-    def character_skel(self):
-        return self.charsheet.character.placedict
-
-
-class PortalTable(Table):
-    colkeys = ["dimension", "origin", "destination"]
-
-    @property
-    def character_skel(self):
-        return self.charsheet.character.portaldict
-
-
-class StatTable(Table):
-    colkeys = ["stat", "value"]
-
-    @property
-    def character_skel(self):
-        return self.charsheet.character.statdict
-
-    def get_branch_rd_iter(self, branch):
-        statdict = self.charsheet.character.statdict
-        if self.keys[0] is None:
-            for stat in statdict:
-                for rd in statdict[
-                        stat][branch].iterrows():
-                    yield rd
-        else:
-            stat = self.keys[0]
-            for rd in statdict[
-                    stat][branch].iterrows():
-                yield rd
-
-    def iter_skeleton(self, branch=None, tick=None):
-        closet = self.charsheet.character.closet
-        if branch is None:
-            branch = closet.branch
-        if tick is None:
-            tick = closet.tick
-        covered = set()
-        prev = None
-        for rd in self.get_branch_rd_iter(branch):
-            if rd["stat"] in covered:
-                continue
-            elif rd["tick_from"] == tick:
-                covered.add(rd["stat"])
-                prev = None
-                yield rd
-            elif rd["tick_from"] > tick:
-                covered.add(rd["stat"])
-                r = prev
-                prev = None
-                yield r
-            prev = rd
-
-
-class SkillTable(Table):
-    colkeys = ["skill", "deck"]
-
-    @property
-    def character_skel(self):
-        return self.charsheet.character.skilldict
-
-    def get_branch_rd_iter(self, branch):
-        skilldict = self.charsheet.character.skilldict
-        if self.keys[0] is None:
-            for skill in skilldict:
-                for rd in skilldict[
-                        skill][branch].iterrows():
-                    yield rd
-        else:
-            skill = self.keys[0]
-            for rd in skilldict[
-                    skill][branch].iterrows():
-                yield rd
-
-    def iter_skeleton(self, branch=None, tick=None):
-        closet = self.charsheet.character.closet
-        if branch is None:
-            branch = closet.branch
-        if tick is None:
-            tick = closet.tick
-        covered = set()
-        prev = None
-        for rd in self.get_branch_rd_iter(branch):
-            if rd["skill"] in covered:
-                continue
-            elif rd["tick_from"] == tick:
-                covered.add(rd["skill"])
-                prev = None
-                yield rd
-            elif rd["tick_from"] > tick:
-                covered.add(rd["skill"])
-                r = prev
-                prev = None
-                yield r
-            prev = rd
-
-
-class TableView(RelativeLayout):
-    table = ObjectProperty()
-
-    def __init__(self, **kwargs):
-        super(TableView, self).__init__(**kwargs)
-        closet = self.table.charsheet.character.closet
-        self.edit_button = ToggleButton(
-            pos_hint={'x': 0, 'top': 1},
-            text=closet.get_text('edit'))
-        self.add_widget(self.edit_button)
-        self.add_widget(self.table)
+    iterskel_dict = {
+        0: iter_skeleton_thing,
+        1: iter_skeleton,
+        2: iter_skeleton,
+        3: iter_skeleton_stat,
+        4: iter_skeleton_skill}

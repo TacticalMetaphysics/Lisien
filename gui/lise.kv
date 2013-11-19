@@ -10,25 +10,27 @@
 <Cell>:
     size_hint: (None, None)
     ColorBox:
-        color: root.bg_color
+        color: root.bg_color_active if root.active else root.bg_color_inactive
     Label:
         text: root.text
-        color: root.text_color
+        color: root.text_color_active if root.active else root.text_color_inactive
         font_name: root.font_name
         font_size: root.font_size
-        text_size: self.size
+        text_size: root.size
         pos_hint: {'x': 0, 'y': 0}
         valign: "top"
 <CalendarView>:
     Calendar:
         id: cal
-        cal_type: root.cal_type
+        cal_type: root.item_type - 5
+        col_width: 100
         keys: root.keys
-        bg_color: root.bg_color
-        text_color: root.text_color
         font_name: root.font_name
         font_size: root.font_size
-        col_width: 100
+        bg_color_inactive: root.bg_color_inactive
+        bg_color_active: root.bg_color_active
+        text_color_inactive: root.text_color_inactive
+        text_color_active: root.text_color_active
     Timeline:
         x: (root.connector.branch - cal.branch) * cal.col_width + cal.xmov
         y: cal.ymov + cal.top - (root.connector.tick - cal.tick) * cal.tick_height
@@ -39,6 +41,21 @@
                 points: (self.x, self.y, self.x+cal.col_width, self.y)
             Triangle:
                 points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
+<TableView>:
+    Table:
+        item_type: root.item_type
+        charatt: root.chartab_dict[self.item_type]
+        keys: root.keys
+        text_color_inactive: root.text_color_inactive
+        colkeys: root.colkey_dict[self.item_type]
+        cols: len(self.colkeys)
+        character: root.character
+        skeliter: root.iterskel_dict[self.item_type]
+        font_name: root.font_name
+        font_size: root.font_size
+        row_default_height: root.font_size + self.spacing[1]
+        row_force_default: True
+        bg_color_inactive: root.bg_color_inactive
 <CharSheetView>:
     pos_hint: {'x': 0.7, 'y': 0}
     size_hint: (0.3, 1)

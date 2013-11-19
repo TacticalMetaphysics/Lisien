@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from kivy.properties import (
     BooleanProperty,
     BoundedNumericProperty,
@@ -7,8 +9,9 @@ from kivy.properties import (
     StringProperty)
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.layout import Layout
-from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
+from kivy.uix.relativelayout import RelativeLayout
+from itemview import ItemView
 
 SCROLL_FACTOR = 4
 CAL_TYPE = {
@@ -34,8 +37,10 @@ to. It may be styled differently than the calendar, but will default
 to the calendar's style.
 
     """
-    bg_color = ListProperty(None)
-    text_color = ListProperty(None)
+    bg_color_inactive = ListProperty(None)
+    text_color_inactive = ListProperty(None)
+    bg_color_active = ListProperty(None)
+    text_color_active = ListProperty(None)
     font_name = StringProperty(None, allownone=True)
     font_size = NumericProperty(None, allownone=True)
     branch = NumericProperty()
@@ -44,10 +49,15 @@ to the calendar's style.
     text = StringProperty()
     calendar = ObjectProperty()
     rowid = NumericProperty()
+    active = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         calendar = kwargs["calendar"]
-        for kwarg in ["bg_color", "text_color", "font_name", "font_size"]:
+        for kwarg in ["bg_color_inactive",
+                      "bg_color_active",
+                      "text_color_inactive",
+                      "text_color_active",
+                      "font_name", "font_size"]:
             if kwarg not in kwargs:
                 kwargs[kwarg] = getattr(calendar, kwarg)
         super(Cell, self).__init__(
@@ -82,8 +92,6 @@ here. Look in CalendarView below.
 
     """
     cal_type = NumericProperty()
-    bg_color = ListProperty()
-    text_color = ListProperty()
     font_name = StringProperty()
     font_size = NumericProperty()
     branch = NumericProperty(0)
@@ -101,10 +109,13 @@ here. Look in CalendarView below.
     ymov = NumericProperty(0)
     ycess = NumericProperty(0)
     dragging = BooleanProperty(False)
-    keys = ListProperty()
     referent = ObjectProperty(None)
     skel = ObjectProperty(None)
     force_refresh = BooleanProperty(False)
+    bg_color_inactive = ListProperty()
+    bg_color_active = ListProperty()
+    text_color_inactive = ListProperty()
+    text_color_active = ListProperty()
 
     def on_parent(self, i, v):
         character = v.character
@@ -115,7 +126,6 @@ here. Look in CalendarView below.
             if key is None:
                 break
             ks.append(key)
-        self.keys = ks
         if self.cal_type == 0:
             (dimension, thing) = ks
             self.referent = closet.get_thing(dimension, thing)
@@ -318,21 +328,11 @@ here. Look in CalendarView below.
             self._trigger_layout()
 
 
-class CalendarView(RelativeLayout):
+class CalendarView(ItemView):
     """A view that instantiates a Calendar and clips it where it should
 not be seen.
 
 This is the only way Calendar should be instantiated. Requires a Character.
 
     """
-    cal_type = NumericProperty()
-    keys = ListProperty()
-    bg_color = ListProperty()
-    text_color = ListProperty()
-    font_name = StringProperty()
-    font_size = NumericProperty()
-    character = ObjectProperty()
-
-    @property
-    def connector(self):
-        return self.character.closet.kivy_connector
+    pass

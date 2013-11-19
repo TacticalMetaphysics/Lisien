@@ -117,7 +117,7 @@ class TextHolder:
                             size=()))
         group.add(Label(
             text=self.card.text,
-            color=self.style.textcolor.tup,
+            color=self.style.text_active.tup,
             font_name=self.style.fontface,
             font_size=self.style.fontsize,
             text_size=(w, h),
