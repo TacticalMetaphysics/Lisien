@@ -118,6 +118,19 @@ class CharSheet(GridLayout):
                     font_name=self.style.fontface,
                     font_size=self.style.fontsize))
 
+    def on_touch_down(self, touch):
+        for child in self.children:
+            if child.on_touch_down(touch):
+                return True
+
+    def on_touch_move(self, touch):
+        for child in self.children:
+            child.on_touch_move(touch)
+
+    def on_touch_up(self, touch):
+        for child in self.children:
+            child.on_touch_up(touch)
+
 
 class CharSheetView(RelativeLayout):
     character = ObjectProperty()
@@ -129,11 +142,5 @@ class CharSheetView(RelativeLayout):
             sheet = sheet.children[0]
         return sheet
 
-    def on_touch_down(self, touch):
-        return self.sheet.on_touch_down(touch)
-
-    def on_touch_move(self, touch):
-        return self.sheet.on_touch_move(touch)
-
-    def on_touch_up(self, touch):
-        return self.sheet.on_touch_up(touch)
+    def collide_point(self, x, y):
+        return super(CharSheetView, self).collide_point(*self.to_local(x, y))

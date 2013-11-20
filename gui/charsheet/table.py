@@ -211,10 +211,6 @@ class Table(GridLayout):
         self.completedness += 1
 
     def completed(self):
-        for att in [
-                self.text_color_inactive, self.bg_color_inactive,
-                self.colkeys, self.font_name, self.font_size]:
-            assert att not in (None, [])
         for key in self.colkeys:
             self.add_widget(Label(
                 text=key,

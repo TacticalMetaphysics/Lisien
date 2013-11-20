@@ -19,6 +19,14 @@
         text_size: root.size
         pos_hint: {'x': 0, 'y': 0}
         valign: "top"
+<ItemView>:
+    EditButton:
+        font_name: 'assets/Entypo.ttf'
+        font_size: 30
+        size: (32, 32)
+        size_hint: (None, None)
+        pos_hint: {'x': 0, 'y': 0}
+        text: root.character.closet.get_text('@edit')
 <CalendarView>:
     Calendar:
         id: cal
