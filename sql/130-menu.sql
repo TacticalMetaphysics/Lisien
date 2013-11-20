@@ -23,8 +23,8 @@ INSERT INTO menu_item (idx, menu, closer, on_click, text) VALUES
 (15, 'Main', 0, 'noop()', 'Tick:'),
 (16, 'Main', 0, 'noop()', '@tick');
 INSERT INTO menu_item (idx, menu, on_click, text, symbolic) VALUES
-(5, 'Main', 'play_speed(1)', '@play', 1),
-(6, 'Main', 'stop()', '@pause', 1),
+(5, 'Main', 'stop()', '@pause', 1),
+(6, 'Main', 'play_speed(1)', '@forward', 1),
 (7, 'Main', 'play_speed(-1)', '@reverse', 1),
 (8, 'Main', 'back_to_start()', '@beginning', 1),
 (9, 'Main', 'time_travel_inc_tick(1)', '@stepforward', 1),

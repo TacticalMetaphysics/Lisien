@@ -780,9 +780,9 @@ For more information, consult SaveableMetaclass in util.py.
     def set_speed(self, newspeed):
         self.game_speed = newspeed
 
-    def play_speed(self, mi, gamespeed):
-        self.set_speed(int(gamespeed))
-        self.go()
+    def play_speed(self, mi, n):
+        self.game_speed = int(n)
+        self.updating = True
 
     def back_to_start(self, nope):
         self.stop()
