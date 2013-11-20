@@ -29,3 +29,16 @@ class ItemView(RelativeLayout):
     @property
     def connector(self):
         return self.character.closet.kivy_connector
+
+    def add_widget(self, w):
+        # make sure the EditButton stays on top
+        edbut = None
+        if not isinstance(w, EditButton):
+            for child in self.children:
+                if isinstance(child, EditButton):
+                    edbut = child
+                    self.remove_widget(edbut)
+                    break
+        super(ItemView, self).add_widget(w)
+        if edbut is not None:
+            self.add_widget(edbut)

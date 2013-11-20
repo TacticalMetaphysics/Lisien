@@ -118,6 +118,8 @@ here. Look in CalendarView below.
     text_color_active = ListProperty()
 
     def on_parent(self, i, v):
+        if v is None:
+            return
         character = v.character
         closet = character.closet
         skeleton = closet.skeleton
