@@ -5,6 +5,7 @@ from util import (
 from gui.kivybits import SaveableWidgetMetaclass
 from kivy.uix.image import Image
 from kivy.properties import (
+    NumericProperty,
     DictProperty,
     ObjectProperty,
     BooleanProperty)
@@ -16,20 +17,6 @@ logger = getLogger(__name__)
 
 
 """Widgets to represent places. Pawns move around on top of these."""
-
-
-class SpotImage(Image):
-    spot = ObjectProperty()
-
-    def __init__(self, **kwargs):
-        spot = kwargs["spot"]
-        kwargs["texture"] = spot.get_texture()
-        kwargs["size"] = kwargs["texture"].size
-        Image.__init__(self, **kwargs)
-        self.spot.bind(imagery=self.upd_tex)
-
-    def upd_tex(self, *args):
-        self.texture = self.spot.get_texture()
 
 
 class Spot(Scatter):
@@ -72,28 +59,12 @@ class Spot(Scatter):
          [])]
     place = ObjectProperty()
     board = ObjectProperty()
-    coords = DictProperty({})
-    interactivity = DictProperty({})
-    imagery = DictProperty({})
+    coords = ObjectProperty()
+    interactivity = ObjectProperty()
+    imagery = ObjectProperty()
     auto_bring_to_front = BooleanProperty(False)
-
-    def __init__(self, **kwargs):
-        kwargs["coords"] = dict(kwargs["board"].closet.skeleton["spot_coords"][
-            unicode(kwargs["board"])][unicode(kwargs["place"])])
-        kwargs["interactivity"] = dict(kwargs["board"].closet.skeleton[
-            "spot_interactive"][unicode(kwargs["board"])][
-            unicode(kwargs["place"])])
-        kwargs["imagery"] = dict(kwargs["board"].closet.skeleton["spot_img"][
-            unicode(kwargs["board"])][unicode(kwargs["place"])])
-        kwargs["size_hint"] = (None, None)
-        Scatter.__init__(self, **kwargs)
-        self.pos = self.get_pos()
-        self.size = self.get_texture().size
-        self.bind(size=self.chksize)
-        self.add_widget(SpotImage(spot=self, pos=(0, 0)))
-
-    def chksize(self, *args):
-        assert(self.width < 1000)
+    completedness = NumericProperty(0)
+    tex = ObjectProperty(None)
 
     def __str__(self):
         return str(self.place)
@@ -101,10 +72,33 @@ class Spot(Scatter):
     def __unicode__(self):
         return unicode(self.place)
 
+    def on_interactivity(self, i, v):
+        self.completedness += 1
+
+    def on_imagery(self, i, v):
+        self.completedness += 1
+
+    def on_coords(self, i, v):
+        self.completedness += 1
+        v.listeners.append(self.repos)
+        self.repos()
+
+    def on_completedness(self, i, v):
+        if v == 3:
+            self.imagery.listeners.append(self.retex)
+
+    def retex(self, *args):
+        self.tex = self.get_texture()
+
+    def on_tex(self, i, v):
+        if v is None:
+            return
+        self.size = v.size
+
     def get_width(self):
         img = self.get_texture()
         if img is None:
-            return 0.
+            return 0
         else:
             return float(img.width)
 
@@ -129,10 +123,12 @@ class Spot(Scatter):
         if cords is None:
             return (self.cheatx, self.cheaty)
         (x, y) = cords
-        (w, h) = self.get_size()
         r = (x, y)
         (self.cheatx, self.cheaty) = r
         return r
+
+    def repos(self, *args):
+        self.pos = self.get_pos()
 
     def set_pos(self, v):
         if self.board is not None:

@@ -68,13 +68,15 @@ class Arrow(Widget):
         orig = self.board.spotdict[unicode(self.portal.origin)]
         dest = self.board.spotdict[unicode(self.portal.destination)]
         (ox, oy) = orig.pos
-        (ow, oh) = orig.size
+        # orig.size is SUPPOSED to be the same as orig.tex.size but
+        # sometimes it isn't, because threading
+        (ow, oh) = orig.tex.size
         orx = ow / 2
         ory = ow / 2
         ox += orx
         oy += ory
         (dx, dy) = dest.pos
-        (dw, dh) = dest.size
+        (dw, dh) = dest.tex.size
         drx = dw / 2
         dry = dh / 2
         dx += drx

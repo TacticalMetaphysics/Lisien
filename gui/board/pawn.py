@@ -4,7 +4,6 @@ from gui.kivybits import SaveableWidgetMetaclass
 from kivy.uix.image import Image
 from kivy.uix.scatter import Scatter
 from kivy.properties import (
-    AliasProperty,
     DictProperty,
     ObjectProperty,
     BooleanProperty)
@@ -15,20 +14,6 @@ logger = getLogger(__name__)
 
 
 """Widget representing things that move about from place to place."""
-
-
-class PawnImage(Image):
-    pawn = ObjectProperty()
-
-    def __init__(self, **kwargs):
-        pawn = kwargs["pawn"]
-        kwargs["texture"] = pawn.get_texture()
-        kwargs["size"] = kwargs["texture"].size
-        Image.__init__(self, **kwargs)
-        self.pawn.bind(imagery=self.upd_tex)
-
-    def upd_tex(self, *args):
-        self.texture = self.pawn.get_texture()
 
 
 class Pawn(Scatter):
@@ -53,15 +38,14 @@ class Pawn(Scatter):
          ("dimension", "thing", "branch", "tick_from"),
          {"dimension, thing": ("thing_location", "dimension, name")},
          [])]
-    imagery = DictProperty()
-    interactivity = DictProperty()
+    imagery = ObjectProperty()
+    interactivity = ObjectProperty()
     board = ObjectProperty()
     thing = ObjectProperty()
-    thing_rd = DictProperty({})
     old_tf = ObjectProperty()
     old_tf_i = ObjectProperty()
     dragging = BooleanProperty(False)
-    auto_bring_to_front = BooleanProperty(False)
+    tex = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         """Return a pawn on the board for the given dimension, representing
@@ -96,7 +80,6 @@ interactive or not.
         skel["pawn_interactive"][dimn][
             thingn].listeners.append(self.upd_interactivity)
 
-        self.add_widget(PawnImage(pawn=self, pos=(0, 0)))
         self.repos()
 
     def __str__(self):
@@ -104,6 +87,11 @@ interactive or not.
 
     def __unicode__(self):
         return unicode(self.thing)
+
+    def on_tex(self, i, v):
+        if v is None:
+            return
+        self.size = v.size
 
     def upd_imagery(self, *args):
         self.imagery = dict(self.board.closet.skeleton["pawn_img"][
