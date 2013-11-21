@@ -1,19 +1,34 @@
 from kivy.properties import (
+    BooleanProperty,
     NumericProperty,
     ListProperty,
     ObjectProperty,
     StringProperty)
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.label import Label
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.textinput import TextInput
 from itemview import ItemView
 
 
-def iter_skeleton(self, branch=None, tick=None):
+def character_bone(self, keys, character_skel):
+    if keys[0] is None:
+        return character_skel
+    elif keys[1] is None:
+        return character_skel[keys[0]]
+    elif keys[2] is None:
+        return character_skel[keys[0]][keys[1]]
+    else:
+        return character_skel[
+            keys[0]][keys[1]][keys[2]]
+
+
+def iter_skeleton(keys, char, skel, branch=None, tick=None):
+    closet = char.closet
     if branch is None:
-        branch = self.character.closet.branch
+        branch = closet.branch
     if tick is None:
-        tick = self.character.closet.tick
-    for rd in self.character_skel.iterrows():
+        tick = closet.tick
+    for rd in skel.iterrows():
         if (
                 rd["branch"] == branch and
                 rd["tick_from"] <= tick and (
@@ -22,36 +37,43 @@ def iter_skeleton(self, branch=None, tick=None):
             yield rd
 
 
-def get_branch_rd_iter_thing(self, branch):
-    thingdict = self.character.thingdict
-    if self.keys[0] is None:
+def mk_iter_skeleton(keys, char, skel):
+    def inner_iter_skeleton(branch=None, tick=None):
+        for it in iter_skeleton(keys, char, skel, branch, tick):
+            yield it
+    return inner_iter_skeleton
+
+
+def get_branch_rd_iter_thing(keys, character, branch):
+    thingdict = character.thingdict
+    if keys[0] is None:
         for dimension in thingdict:
             for thing in thingdict[dimension]:
                 for rd in thingdict[dimension][thing][
                         branch].iterrows():
                     yield rd
-    elif self.keys[1] is None:
-        dimension = self.keys[0]
+    elif keys[1] is None:
+        dimension = keys[0]
         for thing in thingdict[dimension]:
             for rd in thingdict[
                     dimension][thing][branch].iterrows():
                 yield rd
     else:
-        dimension = self.keys[0]
-        thing = self.keys[1]
+        dimension = keys[0]
+        thing = keys[1]
         for rd in thingdict[
                 dimension][thing][branch].iterrows():
             yield rd
 
 
-def iter_skeleton_thing(self, branch=None, tick=None):
-    closet = self.character.closet
+def iter_skeleton_thing(keys, char, skel, branch=None, tick=None):
+    closet = char.closet
     if branch is None:
         branch = closet.branch
     if tick is None:
         tick = closet.tick
     covered = set()
-    for rd in get_branch_rd_iter_thing(self, branch):
+    for rd in get_branch_rd_iter_thing(keys, char, branch):
         if (rd["dimension"], rd["thing"]) in covered:
             continue
         if rd["tick_from"] <= tick and (
@@ -86,29 +108,36 @@ def iter_skeleton_thing(self, branch=None, tick=None):
             yield r
 
 
-def get_branch_rd_iter_stat(self, branch):
-    statdict = self.character.statdict
-    if self.keys[0] is None:
+def mk_iter_skeleton_thing(keys, char, skel):
+    def inner_iter_skeleton_thing(branch=None, tick=None):
+        for it in iter_skeleton_thing(keys, char, skel, branch, tick):
+            yield it
+    return inner_iter_skeleton_thing
+
+
+def get_branch_rd_iter_stat(keys, skel, branch):
+    statdict = skel
+    if keys[0] is None:
         for stat in statdict:
             for rd in statdict[
                     stat][branch].iterrows():
                 yield rd
     else:
-        stat = self.keys[0]
+        stat = keys[0]
         for rd in statdict[
                 stat][branch].iterrows():
             yield rd
 
 
-def iter_skeleton_stat(self, branch=None, tick=None):
-    closet = self.character.closet
+def iter_skeleton_stat(keys, char, skel, branch=None, tick=None):
+    closet = char.closet
     if branch is None:
         branch = closet.branch
     if tick is None:
         tick = closet.tick
     covered = set()
     prev = None
-    for rd in get_branch_rd_iter_stat(self, branch):
+    for rd in get_branch_rd_iter_stat(keys, skel, branch):
         if rd["stat"] in covered:
             continue
         elif rd["tick_from"] == tick:
@@ -123,29 +152,36 @@ def iter_skeleton_stat(self, branch=None, tick=None):
         prev = rd
 
 
-def get_branch_rd_iter_skill(self, branch):
-    skilldict = self.character.skilldict
-    if self.keys[0] is None:
+def mk_iter_skeleton_stat(keys, char, skel):
+    def inner_iter_skeleton_stat(branch=None, tick=None):
+        for it in iter_skeleton_stat(keys, char, skel, branch, tick):
+            yield it
+    return inner_iter_skeleton_stat
+
+
+def get_branch_rd_iter_skill(keys, skel, branch):
+    skilldict = skel
+    if keys[0] is None:
         for skill in skilldict:
             for rd in skilldict[
                     skill][branch].iterrows():
                 yield rd
     else:
-        skill = self.keys[0]
+        skill = keys[0]
         for rd in skilldict[
                 skill][branch].iterrows():
             yield rd
 
 
-def iter_skeleton_skill(self, branch=None, tick=None):
-    closet = self.character.closet
+def iter_skeleton_skill(keys, char, skel, branch=None, tick=None):
+    closet = char.closet
     if branch is None:
         branch = closet.branch
     if tick is None:
         tick = closet.tick
     covered = set()
     prev = None
-    for rd in get_branch_rd_iter_skill(self, branch):
+    for rd in get_branch_rd_iter_skill(keys, skel, branch):
         if rd["skill"] in covered:
             continue
         elif rd["tick_from"] == tick:
@@ -160,39 +196,45 @@ def iter_skeleton_skill(self, branch=None, tick=None):
         prev = rd
 
 
+def mk_iter_skeleton_skill(keys, char, skel):
+    def inner_iter_skeleton_skill(branch=None, tick=None):
+        for it in iter_skeleton_skill(keys, char, skel, branch, tick):
+            yield it
+    return inner_iter_skeleton_skill
+
+
+class TableTextInput(TextInput):
+    table = ObjectProperty()
+
+
+class TableHeader(BoxLayout):
+    table = ObjectProperty()
+    text = StringProperty()
+
+
 class Table(GridLayout):
-    keys = ListProperty()
-    character = ObjectProperty()
+    bg_color_active = ListProperty()
     bg_color_inactive = ListProperty()
+    fg_color_active = ListProperty()
+    fg_color_inactive = ListProperty()
+    text_color_active = ListProperty()
     text_color_inactive = ListProperty()
     font_name = StringProperty()
     font_size = NumericProperty()
-    colkeys = ListProperty()
-    skeliter = ObjectProperty()
-    charatt = StringProperty()
     completedness = NumericProperty(0)
+    content_children = ListProperty()
+    editing = BooleanProperty()
+    colkeys = ListProperty()
+    skel = ObjectProperty()
+    iter_skeleton = ObjectProperty()
 
-    @property
-    def character_skel(self):
-        getattr(self.character, self.charatt)
-
-    @property
-    def skel(self):
-        if self.keys[0] is None:
-            return self.character_skel
-        elif self.keys[1] is None:
-            return self.character_skel[self.keys[0]]
-        elif self.keys[2] is None:
-            return self.character_skel[self.keys[0]][self.keys[1]]
-        else:
-            return self.character_skel[
-                self.keys[0]][self.keys[1]][self.keys[2]]
-
-    def iter_skeleton(self):
-        return self.skeliter(self, self.character.closet.branch)
+    def toggle_inputs(self, i, v):
+        for child in self.children:
+            if hasattr(child, 'disabled'):
+                child.disabled = not v
 
     def on_completedness(self, i, v):
-        if v == 5:
+        if v == 4:
             self.completed()
 
     def on_text_color_inactive(self, *args):
@@ -204,26 +246,24 @@ class Table(GridLayout):
     def on_colkeys(self, *args):
         self.completedness += 1
 
-    def on_font_name(self, *args):
-        self.completedness += 1
-
-    def on_font_size(self, *args):
+    def on_iter_skeleton(self, *args):
         self.completedness += 1
 
     def completed(self):
         for key in self.colkeys:
-            self.add_widget(Label(
-                text=key,
-                font_name=self.font_name,
-                font_size=self.font_size,
-                color=self.text_color_inactive))
+            self.add_widget(TableHeader(
+                table=self,
+                text=key))
+
         for rd in self.iter_skeleton():
             for key in self.colkeys:
-                self.add_widget(Label(
-                    text=rd[key],
-                    font_name=self.font_name,
-                    font_size=self.font_size,
-                    color=self.text_color_inactive))
+                child = TableTextInput(
+                    table=self,
+                    text=rd[key])
+                self.add_widget(child)
+
+    def on_children(self, i, v):
+        print v
 
     def iterrows(self, branch=None, tick=None):
         closet = self.character.closet
@@ -236,8 +276,7 @@ class Table(GridLayout):
 
 
 class TableView(ItemView):
-    colkeys = ListProperty()
-    chartab = StringProperty()
+    character_skel = ObjectProperty()
     colkey_dict = {
         0: ["dimension", "thing", "location"],
         1: ["dimension", "place"],
@@ -253,8 +292,8 @@ class TableView(ItemView):
         4: 'skilldict'}
 
     iterskel_dict = {
-        0: iter_skeleton_thing,
-        1: iter_skeleton,
-        2: iter_skeleton,
-        3: iter_skeleton_stat,
-        4: iter_skeleton_skill}
+        0: mk_iter_skeleton_thing,
+        1: mk_iter_skeleton,
+        2: mk_iter_skeleton,
+        3: mk_iter_skeleton_stat,
+        4: mk_iter_skeleton_skill}

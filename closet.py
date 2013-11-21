@@ -244,8 +244,6 @@ given name.
             (self.play_speed, ONE_ARG_RE),
             'back_to_start':
             (self.back_to_start, ''),
-            'one': placeholder,
-            'two': placeholder,
             'noop': placeholder,
             'toggle_menu':
             (self.toggle_menu, ONE_ARG_RE),

@@ -3,10 +3,10 @@
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.properties import (
+    BooleanProperty,
     ListProperty,
     NumericProperty,
-    ObjectProperty,
-    StringProperty
+    ObjectProperty
 )
 
 
@@ -16,19 +16,11 @@ class EditButton(ToggleButton):
 
 
 class ItemView(RelativeLayout):
+    character = ObjectProperty()
     item_type = NumericProperty()
     keys = ListProperty()
-    bg_color_inactive = ListProperty()
-    text_color_inactive = ListProperty()
-    bg_color_active = ListProperty()
-    text_color_active = ListProperty()
-    font_name = StringProperty()
-    font_size = NumericProperty()
-    character = ObjectProperty()
-
-    @property
-    def connector(self):
-        return self.character.closet.kivy_connector
+    style = ObjectProperty()
+    editing = BooleanProperty(False)
 
     def add_widget(self, w):
         # make sure the EditButton stays on top

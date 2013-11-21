@@ -19,29 +19,31 @@
         text_size: root.size
         pos_hint: {'x': 0, 'y': 0}
         valign: "top"
-<ItemView>:
-    EditButton:
-        font_name: 'assets/Entypo.ttf'
-        font_size: 30
-        size: (16,16)
-        size_hint: (None, None)
-        pos_hint: {'right': 1, 'top': 1}
-        text: root.character.closet.get_text('@edit')
+<EditButton>:
+    font_name: 'assets/Entypo.ttf'
+    font_size: 30
+    size: (16, 16)
+    size_hint: (None, None)
+    text: self.parent.character.closet.get_text('@edit') if self.parent else ''
 <CalendarView>:
+    editing: edbut.state == 'down'
+    EditButton:
+        pos_hint: {'right': 1, 'top': 1}
+        id: edbut
     Calendar:
         id: cal
         cal_type: root.item_type - 5
         col_width: 100
         keys: root.keys
-        font_name: root.font_name
-        font_size: root.font_size
-        bg_color_inactive: root.bg_color_inactive
-        bg_color_active: root.bg_color_active
-        text_color_inactive: root.text_color_inactive
-        text_color_active: root.text_color_active
+        font_name: root.style.fontface
+        font_size: root.style.fontsize
+        bg_color_inactive: root.style.bg_inactive.rgba
+        bg_color_active: root.style.bg_active.rgba
+        text_color_inactive: root.style.text_inactive.rgba
+        text_color_active: root.style.text_active.rgba
     Timeline:
-        x: (root.connector.branch - cal.branch) * cal.col_width + cal.xmov
-        y: cal.ymov + cal.top - (root.connector.tick - cal.tick) * cal.tick_height
+        x: (root.character.closet.kivy_connector.branch - cal.branch) * cal.col_width + cal.xmov
+        y: cal.ymov + cal.top - (root.character.closet.kivy_connector.tick - cal.tick) * cal.tick_height
         canvas:
             Color:
                 rgba: 1, 0, 0, 1
@@ -49,27 +51,67 @@
                 points: (self.x, self.y, self.x+cal.col_width, self.y)
             Triangle:
                 points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
+<TableHeader>:
+    size_hint_y: None
+    size_hint_x: None
+    height: self.table.font_size
+    width: lb.width
+    canvas:
+        Color:
+            rgba: root.table.bg_color_inactive
+        Rectangle:
+            pos: root.pos
+            size: root.size
+    Label:
+        id: lb
+        font_name: root.table.font_name
+        font_size: root.height
+        size: self.texture_size
+        bold: True
+        color: root.table.text_color_active
+        text: root.text
+<TableTextInput>:
+    foreground_color: self.table.text_color_active
+    disabled_foreground_color: self.table.text_color_inactive
+    background_color: self.table.bg_color_active
+    disabled_background_color: self.table.bg_color_inactive
+    background_normal: ''
+    background_active: ''
+    background_disabled_normal: ''
+    background_disabled_active: ''
+    border: [0, 0, 0, 0]
+    padding: [0, 0, 0, 0]
+    disabled: not self.table.editing
 <TableView>:
+    character_skel: getattr(self.character, self.chartab_dict[self.item_type])
+    editing: edbut.state == 'down'
+    EditButton:
+        id: edbut
+        pos_hint: {'right': 1, 'top': 1}
     Table:
-        item_type: root.item_type
-        charatt: root.chartab_dict[self.item_type]
-        keys: root.keys
-        text_color_inactive: root.text_color_inactive
-        colkeys: root.colkey_dict[self.item_type]
+        #:import bone gui.charsheet.table.character_bone
+        skel: bone(self, root.keys, root.character_skel)
+        bg_color_active: root.style.bg_active.rgba
+        bg_color_inactive: root.style.bg_inactive.rgba
+        fg_color_active: root.style.fg_active.rgba
+        fg_color_inactive: root.style.fg_inactive.rgba
+        text_color_active: root.style.text_active.rgba
+        text_color_inactive: root.style.text_inactive.rgba
+        padding: [0, 0, edbut.width, 0]
+        spacing: [5, 2]
+        font_name: root.style.fontface
+        font_size: root.style.fontsize
+        colkeys: root.colkey_dict[root.item_type]
         cols: len(self.colkeys)
-        character: root.character
-        skeliter: root.iterskel_dict[self.item_type]
-        font_name: root.font_name
-        font_size: root.font_size
-        row_default_height: root.font_size + self.spacing[1]
-        row_force_default: True
-        bg_color_inactive: root.bg_color_inactive
+        iter_skeleton: root.iterskel_dict[root.item_type](root.keys, root.character, self.skel)
+        editing: root.editing
 <CharSheetView>:
     pos_hint: {'x': 0.7, 'y': 0}
     size_hint: (0.3, 1)
     StencilView:
         id: view
         CharSheet:
+            character: root.character
             pos: view.pos
             size: view.size
             cols: 1

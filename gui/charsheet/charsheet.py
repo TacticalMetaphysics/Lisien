@@ -9,7 +9,7 @@ from table import (
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.properties import (
-    AliasProperty,
+    NumericProperty,
     DictProperty,
     ObjectProperty)
 
@@ -69,54 +69,36 @@ class CharSheet(GridLayout):
              "idx>=0",
              "idx<={}".format(max(SHEET_ITEM_TYPE.values()))])
     ]
-    character = ObjectProperty()
     rowdict = DictProperty({})
-    style = AliasProperty(
-        lambda self: self.character.closet.get_style(
-            self.rowdict["style"]),
-        lambda self, v: None)
+    style = ObjectProperty()
+    completedness = NumericProperty()
 
-    def on_parent(self, i, v):
-        parent = v
-        while not hasattr(parent, 'character'):
-            parent = parent.parent
-        self.character = parent.character
-        rd = self.character.closet.skeleton[
-            "charsheet"][unicode(self.character)]
+    def on_parent(self, i, parent):
+        character = parent.parent.character
+        rd = character.closet.skeleton["charsheet"][unicode(character)]
 
-        def upd_rd(*args):
-            self.rowdict = dict(rd)
-        upd_rd()
+        def upd_rd():
+            self.rowdict = rd
         rd.listener = upd_rd
-
-        for rd in self.character.closet.skeleton[u"charsheet_item"][
-                unicode(self.character)].iterrows():
+        upd_rd()
+        for rd in character.closet.skeleton[u"charsheet_item"][
+                unicode(character)].iterrows():
             keylst = [rd["key0"], rd["key1"], rd["key2"]]
             if rd["type"] < 5:
                 self.add_widget(
                     TableView(
+                        character=character,
+                        style=character.closet.get_style(self.rowdict["style"]),
                         item_type=rd["type"],
-                        character=self.character,
-                        keys=keylst,
-                        bg_color_inactive=self.style.fg_inactive.rgba,
-                        text_color_inactive=self.style.text_inactive.rgba,
-                        bg_color_active=self.style.fg_active.rgba,
-                        text_color_active=self.style.text_active.rgba,
-                        font_name=self.style.fontface,
-                        font_size=self.style.fontsize))
+                        keys=keylst))
             else:
                 # from the charsheet's perspective, the calendar's
                 # background is the foreground.
                 self.add_widget(CalendarView(
-                    character=self.character,
+                    character=character,
+                    style=character.closet.get_style(self.rowdict["style"]),
                     item_type=rd["type"],
-                    keys=keylst,
-                    bg_color_inactive=self.style.fg_inactive.rgba,
-                    text_color_inactive=self.style.text_inactive.rgba,
-                    bg_color_active=self.style.fg_active.rgba,
-                    text_color_active=self.style.text_active.rgba,
-                    font_name=self.style.fontface,
-                    font_size=self.style.fontsize))
+                    keys=keylst))
 
     def on_touch_down(self, touch):
         for child in self.children:
@@ -134,13 +116,6 @@ class CharSheet(GridLayout):
 
 class CharSheetView(RelativeLayout):
     character = ObjectProperty()
-
-    @property
-    def sheet(self):
-        sheet = self.children[0]
-        while not isinstance(sheet, CharSheet):
-            sheet = sheet.children[0]
-        return sheet
 
     def collide_point(self, x, y):
         return super(CharSheetView, self).collide_point(*self.to_local(x, y))
