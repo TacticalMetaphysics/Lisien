@@ -99,7 +99,7 @@ class SkelRowIter(object):
 class Skeleton(MutableMapping):
     def __init__(self, content=None, name="", parent=None):
         self.rowdict = None
-        self.listener = None
+        self.listeners = []
         self.name = name
         self.parent = parent
         if hasattr(content, 'content'):
@@ -181,17 +181,14 @@ class Skeleton(MutableMapping):
 
     def __setitem__(self, k, v):
         self._maybe_set(k, v)
-        if self.listener is not None:
-            listener = self.listener
-            self.listener = None
+        for listener in self.listeners:
             listener(self, k, v)
-            self.listener = listener
         if hasattr(self.parent, 'on_child_set'):
             self.parent.on_child_set(self, k, v)
 
     def on_child_set(self, child, k, v):
-        if self.listener is not None:
-            self.listener(child, k, v)
+        for listener in self.listeners:
+            listener(child, k, v)
         if hasattr(self.parent, 'on_child_set'):
             self.parent.on_child_set(child, k, v)
 
@@ -200,17 +197,14 @@ class Skeleton(MutableMapping):
             del self.content[k]
         else:
             self.ikeys.remove(k)
-        if self.listener is not None:
-            listener = self.listener
-            self.listener = None
+        for listener in self.listeners:
             listener(self, k)
-            if hasattr(self.parent, 'on_child_del'):
-                self.parent.on_child_del(self, k)
-            self.listener = listener
+        if hasattr(self.parent, 'on_child_del'):
+            self.parent.on_child_del(self, k)
 
     def on_child_del(self, child, k):
-        if self.listener is not None:
-            self.listener(child, k)
+        for listener in self.listeners:
+            listener(child, k)
         if hasattr(self.parent, 'on_child_del'):
             self.parent.on_child_del(child, k)
 

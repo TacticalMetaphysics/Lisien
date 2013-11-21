@@ -79,7 +79,7 @@ class CharSheet(GridLayout):
 
         def upd_rd():
             self.rowdict = rd
-        rd.listener = upd_rd
+        rd.listeners.append(upd_rd)
         upd_rd()
         for rd in character.closet.skeleton[u"charsheet_item"][
                 unicode(character)].iterrows():

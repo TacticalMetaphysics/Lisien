@@ -4,6 +4,7 @@ from gui.kivybits import SaveableWidgetMetaclass
 from kivy.uix.image import Image
 from kivy.uix.scatter import Scatter
 from kivy.properties import (
+    AliasProperty,
     DictProperty,
     ObjectProperty,
     BooleanProperty)
@@ -56,6 +57,7 @@ class Pawn(Scatter):
     interactivity = DictProperty()
     board = ObjectProperty()
     thing = ObjectProperty()
+    thing_rd = DictProperty({})
     old_tf = ObjectProperty()
     old_tf_i = ObjectProperty()
     dragging = BooleanProperty(False)
@@ -71,12 +73,14 @@ interactive or not.
         kwargs["imagery"] = dict(kwargs["board"].closet.skeleton["pawn_img"][
             unicode(kwargs["board"])][unicode(kwargs["thing"])])
         kwargs["interactivity"] = dict(
-            kwargs["board"].closet.skeleton["pawn_interactive"][
+            kwargs["board"].closet.skeleton[u"pawn_interactive"][
                 unicode(kwargs["board"])][unicode(kwargs["thing"])])
         Scatter.__init__(
             self, do_rotation=False, do_scale=False, **kwargs)
-        self.pos = self.get_pos()
-        self.size = self.get_size()
+
+        thing_rd = self.board.closet.skeleton[u"thing_location"][
+            unicode(self.board)][unicode(self.thing)]
+        thing_rd.listeners.append(self.repos)
 
         (rx, ry) = self.radii
         self.transform.translate(rx, ry, 0)
@@ -88,11 +92,12 @@ interactive or not.
         dimn = unicode(self.board.dimension)
         thingn = unicode(self.thing)
         skel = self.board.closet.skeleton
-        skel["pawn_img"][dimn][thingn].listener = self.upd_imagery
+        skel["pawn_img"][dimn][thingn].listeners.append(self.upd_imagery)
         skel["pawn_interactive"][dimn][
-            thingn].listener = self.upd_interactivity
+            thingn].listeners.append(self.upd_interactivity)
 
         self.add_widget(PawnImage(pawn=self, pos=(0, 0)))
+        self.repos()
 
     def __str__(self):
         return str(self.thing)
@@ -182,10 +187,9 @@ If it DOES have anything else to do, make the journey in another branch.
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
-    def get_pos(self):
-        loc = self.thing.location
+    def get_pos_from_loc(self, loc):
         if loc is None:
-            return None
+            return (0, 0)
         if hasattr(loc, 'destination'):
             origspot = self.board.spotdict[unicode(loc.origin)]
             destspot = self.board.spotdict[unicode(loc.destination)]
@@ -314,7 +318,7 @@ If it DOES have anything else to do, make the journey in another branch.
 
     def repos(self, *args):
         self.transform.identity()
-        self.pos = self.get_pos()
+        self.pos = self.get_pos_from_loc(self.thing.location)
         (rx, ry) = self.radii
         self.transform.translate(rx, ry, 0)
 

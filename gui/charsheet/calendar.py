@@ -146,7 +146,7 @@ here. Look in CalendarView below.
         elif self.cal_type == 4:
             skill = ks[0]
             self.skel = character.skilldict[skill]
-        self.skel.listener = self.refresh_and_layout
+        self.skel.listeners.append(self.refresh_and_layout)
         self.refresh_and_layout()
         self.bind(size=lambda i, v: self._trigger_layout(),
                   pos=lambda i, v: self._trigger_layout())
