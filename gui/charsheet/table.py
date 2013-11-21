@@ -8,6 +8,8 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 from itemview import ItemView
+from util import placex, portex
+from re import match
 
 
 def character_bone(self, keys, character_skel):
@@ -205,6 +207,48 @@ def mk_iter_skeleton_skill(keys, char, skel):
 
 class TableTextInput(TextInput):
     table = ObjectProperty()
+    rd = ObjectProperty()
+    key = StringProperty()
+
+    def on_text_validate(self):
+        ittyp = self.table.parent.item_type
+        character = self.table.parent.character
+        colkeys = self.table.parent.colkey_dict[ittyp][:-1]
+        save = False
+        if self.key in colkeys:
+            pass
+        elif ittyp == 0:
+            skel = character.closet.skeleton["thing_location"][
+                self.rd["dimension"]][self.rd["thing"]]
+            m = match(placex, self.text)
+            if m is not None:
+                save = True
+            else:
+                m = match(portex, self.text)
+                if m is not None:
+                    save = True
+        elif ittyp == 1:
+            return
+        elif ittyp == 2:
+            return
+        elif ittyp == 3:
+            return
+        elif ittyp == 4:
+            skel = character.closet.skeleton["character_stats"][
+                unicode(self.character)][self.rd["stat"]]
+            # there'll be type checking eventually I guess
+            save = True
+        else:
+            skel = character.closet.skeleton["character_skills"][
+                unicode(self.character)][self.rd["skill"]]
+            # and check that the Cause exists
+            save = True
+        branch = character.closet.branch
+        tick = character.closet.tick
+        if save:
+            skel[branch][tick][self.key] = type(self.rd[self.key])(self.text)
+        else:
+            self.text = skel[branch][tick][self.key]
 
 
 class TableHeader(BoxLayout):
@@ -259,11 +303,10 @@ class Table(GridLayout):
             for key in self.colkeys:
                 child = TableTextInput(
                     table=self,
-                    text=rd[key])
+                    key=key,
+                    rd=rd)
+                print("Assigned rd {} to {}".format(rd, child))
                 self.add_widget(child)
-
-    def on_children(self, i, v):
-        print v
 
     def iterrows(self, branch=None, tick=None):
         closet = self.character.closet
@@ -284,7 +327,7 @@ class TableView(ItemView):
         3: ["stat", "value"],
         4: ["skill", "deck"]}
 
-    chartab_dict = {
+    chardictd = {
         0: 'thingdict',
         1: 'placedict',
         2: 'portaldict',

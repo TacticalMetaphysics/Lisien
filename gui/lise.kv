@@ -81,9 +81,11 @@
     background_disabled_active: ''
     border: [0, 0, 0, 0]
     padding: [0, 0, 0, 0]
+    multiline: False
     disabled: not self.table.editing
+    text: self.rd[self.key]
 <TableView>:
-    character_skel: getattr(self.character, self.chartab_dict[self.item_type])
+    character_skel: getattr(self.character, self.chardictd[self.item_type])
     editing: edbut.state == 'down'
     EditButton:
         id: edbut
