@@ -69,35 +69,30 @@ class CharSheet(GridLayout):
              "idx>=0",
              "idx<={}".format(max(SHEET_ITEM_TYPE.values()))])
     ]
-    rowdict = DictProperty({})
+    bone = ObjectProperty()
     style = ObjectProperty()
     completedness = NumericProperty()
 
     def on_parent(self, i, parent):
         character = parent.parent.character
-        rd = character.closet.skeleton["charsheet"][unicode(character)]
-
-        def upd_rd():
-            self.rowdict = rd
-        rd.listeners.append(upd_rd)
-        upd_rd()
-        for rd in character.closet.skeleton[u"charsheet_item"][
+        self.bone = character.closet.skeleton["charsheet"][unicode(character)]
+        for bone in character.closet.skeleton[u"charsheet_item"][
                 unicode(character)].iterrows():
-            keylst = [rd["key0"], rd["key1"], rd["key2"]]
-            if rd["type"] < 5:
+            keylst = [bone["key0"], bone["key1"], bone["key2"]]
+            if bone["type"] < 5:
                 self.add_widget(
                     TableView(
                         character=character,
-                        style=character.closet.get_style(self.rowdict["style"]),
-                        item_type=rd["type"],
+                        style=character.closet.get_style(self.bone["style"]),
+                        item_type=bone["type"],
                         keys=keylst))
             else:
                 # from the charsheet's perspective, the calendar's
                 # background is the foreground.
                 self.add_widget(CalendarView(
                     character=character,
-                    style=character.closet.get_style(self.rowdict["style"]),
-                    item_type=rd["type"],
+                    style=character.closet.get_style(self.bone["style"]),
+                    item_type=bone["type"],
                     keys=keylst))
 
     def on_touch_down(self, touch):

@@ -248,7 +248,7 @@ here. Look in CalendarView below.
                 uncovered[branch] = coverage
             else:
                 uncovered[branch] = coverage - covered[branch]
-        # Construct cells for just the rowdicts that I'm not showing already
+        # Construct cells for just the bones that I'm not showing already
         for (branch, rowids) in uncovered.iteritems():
             n = 0
             for rowid in rowids:

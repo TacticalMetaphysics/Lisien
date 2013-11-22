@@ -13,14 +13,6 @@ rectangles with letters and pictures on them."""
 
 class Card(object):
     __metaclass__ = SaveableMetaclass
-    atrdic = {
-        "_text": lambda self: self._rowdict["text"],
-        "_display_name": lambda self: self._rowdict["display_name"],
-        "image": lambda self: self.closet.get_img(self._rowdict["image"]),
-        "img": lambda self: self.image,
-        "text": lambda self: self.gett(),
-        "display_name": lambda self: self.getd()}
-
     tables = [
         (
             "card",
@@ -39,32 +31,36 @@ class Card(object):
         self.closet = closet
         self.effect = effect
         self.closet.carddict[str(self)] = self
-        self._rowdict = self.closet.skeleton["card"][str(self.effect)]
-
-    def __getattr__(self, attrn):
-        try:
-            return self.atrdic[attrn](self)
-        except KeyError:
-            raise AttributeError("Card has no attribute {0}".format(attrn))
+        self._bone = self.closet.skeleton["card"][str(self.effect)]
 
     def __str__(self):
         return str(self.effect)
 
-    def gett(self):
-        if self._text is None:
-            return ''
-        elif self._text[0] == '@':
-            return self.closet.get_text(self._text[1:])
-        else:
-            return self._text
+    @property
+    def _text(self):
+        return self._bone["text"]
 
-    def getd(self):
+    @property
+    def _display_name(self):
+        return self._bone["display_name"]
+
+    @property
+    def display_name(self):
         if self._display_name is None:
             return ''
         elif self._display_name[0] == '@':
             return self.closet.get_text(self._display_name[1:])
         else:
             return self._display_name
+
+    @property
+    def text(self):
+        if self._text is None:
+            return ''
+        elif self._text[0] == '@':
+            return self.closet.get_text(self._text[1:])
+        else:
+            return self._text
 
 
 class TextHolder:
@@ -322,14 +318,14 @@ order."""
         return HandIterator(self, self.window.carddict)
 
     def __getattr__(self, attrn):
-        if attrn == "_rowdict":
+        if attrn == "_bone":
             return self.closet.skeleton[str(self.window)][str(self.deck)]
         elif attrn in (
                 "left_prop", "right_prop", "top_prop",
                 "bot_prop", "visible", "interactive"):
-            return self._rowdict[attrn]
+            return self._bone[attrn]
         elif attrn == "style":
-            return self.closet.get_style(self._rowdict["style"])
+            return self.closet.get_style(self._bone["style"])
         elif attrn == "board":
             return self.window.board
         elif attrn == "hovered":

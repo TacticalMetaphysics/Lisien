@@ -1,12 +1,18 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from math import sqrt, hypot, atan, pi, sin, cos
-from logging import getLogger
 from sqlite3 import IntegrityError
 from collections import deque, MutableMapping
 from re import match, compile, findall
 
-logger = getLogger(__name__)
+
+"""Common utility functions and data structures.
+
+The most important are Skeleton, a mapping used to store and maintain
+all game data; and SaveableMetaclass, which generates
+SQL from metadata declared as class atttributes.
+
+"""
 
 phi = (1.0 + sqrt(5))/2.0
 
@@ -33,28 +39,39 @@ portex = compile("Portal\((.+?)->(.+?)\)")
 
 
 def get_rd_during(skel, branch, tick):
+    """Convenience function for looking up the current effective value of
+something in a Skeleton.
+
+    The current effective value is the latest one that took effect at
+    or prior to the present tick.
+
+    """
     if branch not in skel:
         return None
-    prev = None
-    for tick_from in skel[branch]:
-        if tick_from == tick:
-            return skel[branch][tick_from]
-        elif tick_from > tick:
-            break
-        else:
-            prev = skel[branch][tick_from]
-    return prev
+    ikeys = set(skel[branch].ikeys)
+    tick_from = 0
+    test_tick = ikeys.pop()
+    while tick_from != tick and len(ikeys) > 0:
+        if tick_from < test_tick < tick:
+            tick_from = test_tick
+        test_tick = ikeys.pop()
+    try:
+        return skel[branch][tick_from]
+    except KeyError:
+        return None
 
 
 class SkelRowIter(object):
+    """A depth-first traversal over a Skeleton, although no deeper than
+the dictionaries representing database records."""
     def __init__(self, skel):
+        """Initialize a deque to hold pointers, and a list of lists of keys."""
         self.skel = skel
         self.ptrs = deque([self.skel])
         self.keyses = [list(self.skel.keys())]
 
     def __len__(self):
-        if hasattr(self, 'l'):
-            return self.l
+        """Copy myself and iterate over that to get the length."""
         i = 0
         h = SkelRowIter(self.skel)
         while True:
@@ -62,20 +79,23 @@ class SkelRowIter(object):
                 next(h)
                 i += 1
             except StopIteration:
-                self.l = i
                 return i
 
     def __iter__(self):
+        """I am an iterator."""
         return self
 
     def __next__(self):
+        """Look up and return the next leaf, if I have the key for it. If the
+next key doesn't point to a leaf, dig to the next level inward and
+collect keys from there."""
         while len(self.ptrs) > 0:
             try:
                 ptr = self.ptrs.pop()
                 keys = self.keyses.pop()
             except IndexError:
                 raise StopIteration
-            if ptr.rowdict:
+            if ptr.bone:
                 return ptr
             else:
                 try:
@@ -93,12 +113,29 @@ class SkelRowIter(object):
         raise StopIteration
 
     def next(self):
+        """Python2/3 compatibility"""
         return self.__next__()
 
 
 class Skeleton(MutableMapping):
+    """A tree structure similar to a database.
+
+When all my keys are integers, iteration over my children will proceed
+in the order of those integers.
+
+The + and - operators are interpreted in a way similar to set union
+and set difference.
+
+There's a limited sort of event handler triggered by __setitem__ and
+__delitem__. Append listeners to self.listeners.
+
+    """
     def __init__(self, content=None, name="", parent=None):
-        self.rowdict = None
+        """Technically all of the arguments are optional but you should really
+specify them whenever it's reasonably sensible to do so. content is a
+mapping to crib from, parent is who to propagate events to, and name
+is mostly for printing."""
+        self.bone = None
         self.listeners = []
         self.name = name
         self.parent = parent
@@ -113,20 +150,20 @@ class Skeleton(MutableMapping):
         if isinstance(content, dict):
             kitr = content.iteritems()
         elif isinstance(content, self.__class__):
-            if content.rowdict:
+            if content.bone:
                 self.content = content.content
-                self.rowdict = True
+                self.bone = True
                 return
             else:
                 kitr = content.iteritems()
         else:
             kitr = ListItemIterator(content)
         for (k, v) in kitr:
-            if v is None and self.rowdict in (None, False):
+            if v is None and self.bone in (None, False):
                 continue
-            elif self.rowdict is None:
-                self.rowdict = v.__class__ in (str, unicode, int, float)
-            if self.rowdict is True:
+            elif self.bone is None:
+                self.bone = v.__class__ in (str, unicode, int, float)
+            if self.bone is True:
                 assert(v.__class__ in (str, unicode, int, float, type(None)))
                 self[k] = v
             elif hasattr(v, 'content'):
@@ -174,7 +211,7 @@ class Skeleton(MutableMapping):
         self._really_set(k, self.__class__(content=v, name=k, parent=self))
 
     def _maybe_set(self, k, v):
-        if self.rowdict or (isinstance(v, self.__class__) and v.rowdict):
+        if self.bone or (isinstance(v, self.__class__) and v.bone):
             self._really_set(k, v)
         else:
             self._skelly_set(k, v)
@@ -233,7 +270,7 @@ class Skeleton(MutableMapping):
         return selfie
 
     def __isub__(self, other):
-        if self.rowdict and self.content == other.content:
+        if self.bone and self.content == other.content:
             self.content = {}
             return
         for (k, v) in other.items():
@@ -241,7 +278,7 @@ class Skeleton(MutableMapping):
                 continue
             elif v == self[k]:
                 del self[k]
-            elif self[k].rowdict:
+            elif self[k].bone:
                 continue
             else:
                 self[k] -= v
@@ -274,7 +311,7 @@ class Skeleton(MutableMapping):
         return min(posterior)
 
     def copy(self):
-        if self.rowdict:
+        if self.bone:
             return self.__class__(content=dict(self.content))
         elif isinstance(self.content, list):
             r = {}
@@ -288,7 +325,7 @@ class Skeleton(MutableMapping):
             return self.__class__(content=r)
 
     def deepcopy(self):
-        if self.rowdict:
+        if self.bone:
             return self.__class__(
                 content=self.content, name=self.name,
                 parent=self.parent)
@@ -301,10 +338,10 @@ class Skeleton(MutableMapping):
 
     def update(self, skellike):
         for (k, v) in skellike.iteritems():
-            if self.rowdict is None:
-                self.rowdict = v.__class__ in (
+            if self.bone is None:
+                self.bone = v.__class__ in (
                     str, unicode, int, float, type(None))
-            if self.rowdict:
+            if self.bone:
                 self[k] = v
             else:
                 if hasattr(v, 'content'):
@@ -488,11 +525,11 @@ declared in the order they appear in the tables attribute.
         saveables.append(
             (demands, provides, prelude, tablenames, postlude))
 
-        def gen_sql_insert(rowdicts, tabname):
-            if tabname in rowdicts:
-                itr = Skeleton(content=rowdicts[tabname]).iterrows()
+        def gen_sql_insert(bones, tabname):
+            if tabname in bones:
+                itr = Skeleton(content=bones[tabname]).iterrows()
             else:
-                itr = Skeleton(content=rowdicts).iterrows()
+                itr = Skeleton(content=bones).iterrows()
             if len(itr) == 0 or tabname not in tablenames:
                 raise EmptySkeleton
             qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
@@ -505,14 +542,14 @@ declared in the order they appear in the tables attribute.
             return (qrystr, tuple(qrylst))
 
         @staticmethod
-        def insert_rowdicts_table(c, rowdicts, tabname):
-            if len(rowdicts) == 0:
+        def insert_bones_table(c, bones, tabname):
+            if len(bones) == 0:
                 return []
             try:
-                c.execute(*gen_sql_insert(rowdicts, tabname))
+                c.execute(*gen_sql_insert(bones, tabname))
             except IntegrityError as ie:
                 print(ie)
-                print(gen_sql_insert(rowdicts, tabname))
+                print(gen_sql_insert(bones, tabname))
             except EmptySkeleton:
                 return
 
@@ -650,7 +687,7 @@ declared in the order they appear in the tables attribute.
         def _insert_skeleton(c, skeleton):
             for (tabname, rds) in skeleton.items():
                 if tabname in tablenames:
-                    insert_rowdicts_table(c, rds, tabname)
+                    insert_bones_table(c, rds, tabname)
 
         @staticmethod
         def _delete_skeleton(c, skeleton):
@@ -696,7 +733,7 @@ declared in the order they appear in the tables attribute.
             '_delete_skeleton': _delete_skeleton,
             '_detect_skeleton': _detect_skeleton,
             '_missing_skeleton': _missing_skeleton,
-            '_insert_rowdicts_table': insert_rowdicts_table,
+            '_insert_bones_table': insert_bones_table,
             '_delete_keydicts_table': delete_keydicts_table,
             '_gen_sql_insert': gen_sql_insert,
             '_gen_sql_delete': gen_sql_delete,

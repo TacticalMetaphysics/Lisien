@@ -36,7 +36,7 @@ class Board(ScrollView):
     spotdict = DictProperty({})
     pawndict = DictProperty({})
     arrowdict = DictProperty({})
-    rowdict = DictProperty({})
+    bone = DictProperty({})
     offx = NumericProperty(0)
     offy = NumericProperty(0)
     wallwidth = NumericProperty(0)
@@ -50,9 +50,9 @@ class Board(ScrollView):
         ScrollView.__init__(self, scroll_y=0, **kwargs)
         self.last_touch = None
         self.closet.boarddict[unicode(self.dimension)] = self
-        self.upd_rowdict()
+        self.upd_bone()
         self.closet.skeleton["board"][unicode(
-            self.dimension)].listener = self.upd_rowdict
+            self.dimension)].listener = self.upd_bone
         tex = self.get_texture()
         (self.wallwidth, self.wallheight) = tex.size
         content = RelativeLayout(size_hint=(None, None), size=tex.size)
@@ -94,11 +94,11 @@ class Board(ScrollView):
     def __repr__(self):
         return "Board({})".format(self)
 
-    def upd_rowdict(self, *args):
-        self.rowdict = dict(self.closet.skeleton["board"][unicode(self)])
+    def upd_bone(self, *args):
+        self.bone = dict(self.closet.skeleton["board"][unicode(self)])
 
     def get_texture(self):
-        return self.closet.get_texture(self.rowdict["wallpaper"])
+        return self.closet.get_texture(self.bone["wallpaper"])
 
     def new_branch(self, parent, branch, tick):
         for spot in self.spotdict.itervalues():

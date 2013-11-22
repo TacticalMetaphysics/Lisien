@@ -70,24 +70,24 @@ green, blue. Register in db.colordict.
         return self.name
 
     @property
-    def rowdict(self):
+    def bone(self):
         return self.closet.skeleton["color"][self.name]
 
     @property
     def red(self):
-        return self.rowdict["red"]
+        return self.bone["red"]
 
     @property
     def green(self):
-        return self.rowdict["green"]
+        return self.bone["green"]
 
     @property
     def blue(self):
-        return self.rowdict["blue"]
+        return self.bone["blue"]
 
     @property
     def alpha(self):
-        return self.rowdict["alpha"]
+        return self.bone["alpha"]
 
     @property
     def rgb(self):
@@ -137,44 +137,44 @@ that contain text."""
          ["fontsize>0", "spacing>0"])]
 
     @property
-    def rowdict(self):
+    def bone(self):
         return self.closet.skeleton["style"][self.name]
 
     @property
     def bg_inactive(self):
-        return self.closet.get_color(self.rowdict["bg_inactive"])
+        return self.closet.get_color(self.bone["bg_inactive"])
 
     @property
     def bg_active(self):
-        return self.closet.get_color(self.rowdict["bg_active"])
+        return self.closet.get_color(self.bone["bg_active"])
 
     @property
     def fg_inactive(self):
-        return self.closet.get_color(self.rowdict["fg_inactive"])
+        return self.closet.get_color(self.bone["fg_inactive"])
 
     @property
     def fg_active(self):
-        return self.closet.get_color(self.rowdict["fg_active"])
+        return self.closet.get_color(self.bone["fg_active"])
 
     @property
     def text_inactive(self):
-        return self.closet.get_color(self.rowdict["text_inactive"])
+        return self.closet.get_color(self.bone["text_inactive"])
 
     @property
     def text_active(self):
-        return self.closet.get_color(self.rowdict["text_active"])
+        return self.closet.get_color(self.bone["text_active"])
 
     @property
     def fontface(self):
-        return self.rowdict["fontface"]
+        return self.bone["fontface"]
 
     @property
     def fontsize(self):
-        return self.rowdict["fontsize"]
+        return self.bone["fontsize"]
 
     @property
     def spacing(self):
-        return self.rowdict["spacing"]
+        return self.bone["spacing"]
 
     def __init__(self, closet, name):
         """Return a style by the given name, with the given face, font size,

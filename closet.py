@@ -296,15 +296,15 @@ given name.
             return cls(self, *args)
         return construct
 
-    def insert_rowdicts_table(self, rowdict, clas, tablename):
-        """Insert the given rowdicts into the table of the given name, as
+    def insert_bones_table(self, bone, clas, tablename):
+        """Insert the given bones into the table of the given name, as
 defined by the given class.
 
 For more information, consult SaveableMetaclass in util.py.
 
         """
-        if rowdict != []:
-            clas.dbop['insert'](self, rowdict, tablename)
+        if bone != []:
+            clas.dbop['insert'](self, bone, tablename)
 
     def delete_keydicts_table(self, keydict, clas, tablename):
         """Delete the records identified by the keydicts from the given table,
@@ -405,7 +405,7 @@ For more information, consult SaveableMetaclass in util.py.
                 if tabname in to_save:
                     clas._delete_keydicts_table(
                         self.c, to_save[tabname], tabname)
-                    clas._insert_rowdicts_table(
+                    clas._insert_bones_table(
                         self.c, to_save[tabname], tabname)
         self.c.execute("DELETE FROM game")
         keys = self.skeleton["game"].keys()
