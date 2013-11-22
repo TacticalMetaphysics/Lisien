@@ -204,11 +204,11 @@ is mostly for printing."""
     def _skelly_set(self, k, v):
         if v is None:
             return self._really_set(k, None)
+        self._really_set(k, self.__class__(content=v, name=k, parent=self))
         if isinstance(self.content, list):
             if not hasattr(self, 'ikeys'):
                 self.ikeys = set()
             self.ikeys.add(k)
-        self._really_set(k, self.__class__(content=v, name=k, parent=self))
 
     def _maybe_set(self, k, v):
         if self.bone or (isinstance(v, self.__class__) and v.bone):
@@ -299,16 +299,56 @@ is mostly for printing."""
             return sorted(self.ikeys)
 
     def key_before(self, k):
-        anterior = [j for j in self.ikeys if j < k]
-        if anterior == []:
-            raise KeyError("There is nothing before {0}".format(k))
-        return max(anterior)
+        if hasattr(self, 'ikeys'):
+            ikeys = set(self.ikeys)
+            afore = None
+            while len(ikeys) > 0 and afore != k - 1:
+                ik = ikeys.pop()
+                if ik < k:
+                    if afore is None or ik > afore:
+                        afore = ik
+            return afore
+        return max([(j for j in self.content.keys() if j < k)])
+
+    def key_or_key_before(self, k):
+        if hasattr(self, 'ikeys'):
+            if k in self.ikeys:
+                return k
+            else:
+                return self.key_before(k)
+        if k in self.content:
+            return k
+        else:
+            return self.key_before(k)
+
+    def bone_at_or_before(self, k):
+        return self[self.key_or_key_before(k)]
 
     def key_after(self, k):
-        posterior = [j for j in self.ikeys if j > k]
-        if posterior == []:
-            raise KeyError("There is nothing after {0}".format(k))
-        return min(posterior)
+        if hasattr(self, 'ikeys'):
+            ikeys = set(self.ikeys)
+            aft = None
+            while len(ikeys) > 0 and aft != k + 1:
+                ik = ikeys.pop()
+                if (aft is None and ik > k) or (
+                        k < ik < aft):
+                    aft = ik
+            return aft
+        return min([(j for j in self.content.keys() if j > k)])
+
+    def key_or_key_after(self, k):
+        if hasattr(self, 'ikeys'):
+            if k in self.ikeys:
+                return k
+            else:
+                return self.key_after(k)
+        if k in self.content:
+            return k
+        else:
+            return self.key_after(k)
+
+    def bone_at_or_after(self, k):
+        return self[self.key_or_key_after(k)]
 
     def copy(self):
         if self.bone:

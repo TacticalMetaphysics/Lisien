@@ -100,6 +100,10 @@ class Board(ScrollView):
     def get_texture(self):
         return self.closet.get_texture(self.bone["wallpaper"])
 
+    def get_spot(self, loc):
+        if unicode(loc) not in self.spotdict:
+            self.spotdict[unicode(loc)] = Spot(board=self, place=loc)
+
     def new_branch(self, parent, branch, tick):
         for spot in self.spotdict.itervalues():
             spot.new_branch(parent, branch, tick)

@@ -97,7 +97,7 @@ LocationException."""
         """Return my current location by default, or where I was at the given
 tick in the given branch."""
         try:
-            rd = self.get_location_rd(branch, tick)
+            rd = self.get_location_bone(branch, tick)
         except KeyError:
             return None
         if rd is None or rd["location"] is None:
@@ -113,23 +113,21 @@ tick in the given branch."""
             return self.dimension.get_portal(*m.groups())
         return None
 
-    def get_location_rd(self, branch=None, tick=None):
+    def get_location_bone(self, branch=None, tick=None):
         if branch is None:
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
         if branch not in self.locations:
             return None
-        if tick not in self.locations[branch]:
-            tick = self.locations[branch].key_before(tick)
-        return self.locations[branch][tick]
+        return self.locations[branch].bone_at_or_before(tick)
 
     def exists(self, branch=None, tick=None):
         """Have I got a location?
 
 If not, I'm nowhere, and therefore don't exist."""
         try:
-            rd = self.get_location_rd(branch, tick)
+            rd = self.get_location_bone(branch, tick)
         except KeyError:
             return False
         return None not in (rd, rd["location"])
@@ -185,15 +183,18 @@ passed through.
 If I'm not in a Portal, raise LocationException.
 
         """
+        if str(self.location)[:6] != "Portal":
+            raise LocationException("Not in portal")
         if branch is None:
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
         if branch not in self.locations:
             raise LocationException("I am nowhere in that branch")
-        t1 = self.get_location_rd(branch, tick)["tick_from"]
-        t2 = min([tick_from for tick_from in self.locations[branch]
-                  if tick_from > tick])
+        # this is when I entered the portal
+        t1 = self.get_location_bone(branch, tick)["tick_from"]
+        # this is when I will enter the destination
+        t2 = self.locations[branch].key_after(tick)
         duration = float(t2 - t1)
         passed = float(tick - t1)
         return passed / duration
@@ -259,10 +260,10 @@ other journey I may be on at the time."""
         # only acceptable if I'm currently in the last place I'll be
         # in this branch
         try:
-            self.locations[branch].key_after(tick)
-            raise TimeParadox
+            if self.locations[branch].key_after(tick) is not None:
+                raise TimeParadox
         except KeyError:
-            # This is a good thing.
+            # This just means the branch isn't there yet. Don't worry.
             pass
         prevtick = tick + 1
         for port in path:

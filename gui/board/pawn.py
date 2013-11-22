@@ -325,9 +325,13 @@ If it DOES have anything else to do, make the journey in another branch.
     @property
     def radii(self):
         loc = self.thing.location
-        if hasattr(loc, 'destination'):
-            locspot = self.board.spotdict[unicode(loc.origin)]
+        if loc is None:
+            return (self.width / 2, self.height / 2)
+        elif hasattr(loc, 'destination'):
+            locspot = self.board.get_spot(loc.origin)
         else:
-            locspot = self.board.spotdict[unicode(loc)]
+            locspot = self.board.get_spot(loc)
+        if locspot is None:
+            return (self.width / 2, self.height / 2)
         (lw, lh) = locspot.size
         return (lw / 2, lh / 2)

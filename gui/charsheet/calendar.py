@@ -11,7 +11,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.layout import Layout
 from kivy.uix.widget import Widget
 from kivy.uix.relativelayout import RelativeLayout
-from itemview import ItemView
+from itemlayout import ItemLayout
 
 SCROLL_FACTOR = 4
 CAL_TYPE = {
@@ -92,6 +92,8 @@ here. Look in CalendarView below.
 
     """
     cal_type = NumericProperty()
+    character = ObjectProperty()
+    keys = ListProperty()
     font_name = StringProperty()
     font_size = NumericProperty()
     branch = NumericProperty(0)
@@ -116,15 +118,24 @@ here. Look in CalendarView below.
     bg_color_active = ListProperty()
     text_color_inactive = ListProperty()
     text_color_active = ListProperty()
+    completedness = NumericProperty()
 
-    def on_parent(self, i, v):
-        if v is None:
-            return
-        character = v.character
+    def on_character(self, i, v):
+        self.completedness += 1
+
+    def on_keys(self, i, v):
+        self.completedness += 1
+
+    def on_completedness(self, i, v):
+        if v == 2:
+            self.completed()
+
+    def completed(self):
+        character = self.character
         closet = character.closet
         skeleton = closet.skeleton
         ks = []
-        for key in v.keys:
+        for key in self.keys:
             if key is None:
                 break
             ks.append(key)
@@ -152,6 +163,7 @@ here. Look in CalendarView below.
                   pos=lambda i, v: self._trigger_layout())
 
     def refresh_and_layout(self, *args):
+        self.clear_widgets()
         self.force_refresh = True
         self._trigger_layout()
 
@@ -330,11 +342,5 @@ here. Look in CalendarView below.
             self._trigger_layout()
 
 
-class CalendarView(ItemView):
-    """A view that instantiates a Calendar and clips it where it should
-not be seen.
-
-This is the only way Calendar should be instantiated. Requires a Character.
-
-    """
+class CalendarLayout(RelativeLayout, ItemLayout):
     pass

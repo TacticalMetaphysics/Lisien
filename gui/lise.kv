@@ -39,32 +39,34 @@
         text_size: root.size
         pos_hint: {'x': 0, 'y': 0}
         valign: "top"
-<CalendarView>:
-    id: view
-    Calendar:
-        id: cal
-        cal_type: root.item_type - 5
-        col_width: self.width / self.branches_wide - self.spacing_x
-        keys: root.keys
-        font_name: root.style.fontface
-        font_size: root.style.fontsize
-        bg_color_inactive: root.style.bg_inactive.rgba
-        bg_color_active: root.style.bg_active.rgba
-        text_color_inactive: root.style.text_inactive.rgba
-        text_color_active: root.style.text_active.rgba
-        editing: root.edbut.state == 'down' if root.edbut else False
-        size: view.size
-        pos: view.pos
-    Timeline:
-        x: cal.x + (root.character.closet.kivy_connector.branch - cal.branch) * cal.col_width + cal.xmov
-        y: cal.ymov + cal.top - (root.character.closet.kivy_connector.tick - cal.tick) * cal.tick_height
-        canvas:
-            Color:
-                rgba: 1, 0, 0, 1
-            Line:
-                points: (self.x, self.y, self.x+cal.col_width, self.y)
-            Triangle:
-                points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
+<CalendarLayout>:
+    StencilView:
+        Calendar:
+            id: cal
+            character: root.character
+            keys: root.keys
+            cal_type: root.item_type - 5
+            col_width: self.width / self.branches_wide - self.spacing_x
+            keys: root.keys
+            font_name: root.style.fontface
+            font_size: root.style.fontsize
+            bg_color_inactive: root.style.bg_inactive.rgba
+            bg_color_active: root.style.bg_active.rgba
+            text_color_inactive: root.style.text_inactive.rgba
+            text_color_active: root.style.text_active.rgba
+            editing: root.edbut.state == 'down' if root.edbut else False
+            size: root.size
+            pos: (0, 0)
+        Timeline:
+            x: (root.character.closet.kivy_connector.branch - cal.branch) * cal.col_width + cal.xmov + cal.x
+            y: cal.ymov + cal.top - (root.character.closet.kivy_connector.tick - cal.tick) * cal.tick_height + cal.y
+            canvas:
+                Color:
+                    rgba: 1, 0, 0, 1
+                Line:
+                    points: (self.x, self.y, self.x+cal.col_width, self.y)
+                Triangle:
+                    points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
 <TableHeader>:
     canvas:
         Color:
@@ -93,34 +95,32 @@
     padding: [0, 0, 0, 0]
     multiline: False
     text: self.rd[self.key]
-<TableView>:
-    id: view
+<TableLayout>:
     character_skel: getattr(self.character, self.chardictd[self.item_type])
-    Table:
-        #:import bone gui.charsheet.table.character_bone
-        id: tab
-        skel: bone(self, root.keys, root.character_skel)
-        bg_color_active: root.style.bg_active.rgba
-        bg_color_inactive: root.style.bg_inactive.rgba
-        fg_color_active: root.style.fg_active.rgba
-        fg_color_inactive: root.style.fg_inactive.rgba
-        text_color_active: root.style.text_active.rgba
-        text_color_inactive: root.style.text_inactive.rgba
-        padding: [0, 0, 0, 0]
-        spacing: [5, 2]
-        font_name: root.style.fontface
-        font_size: root.style.fontsize
-        colkeys: root.colkey_dict[root.item_type]
-        cols: len(self.colkeys)
-        iter_skeleton: root.iterskel_dict[root.item_type](root.keys, root.character, self.skel)
-        editing: root.edbut.state == 'down' if root.edbut else False
-        size: view.size
-        pos: view.pos
+    StencilView:
+        Table:
+            #:import bone gui.charsheet.table.character_bone
+            id: tab
+            skel: bone(self, root.keys, root.character_skel)
+            bg_color_active: root.style.bg_active.rgba
+            bg_color_inactive: root.style.bg_inactive.rgba
+            fg_color_active: root.style.fg_active.rgba
+            fg_color_inactive: root.style.fg_inactive.rgba
+            text_color_active: root.style.text_active.rgba
+            text_color_inactive: root.style.text_inactive.rgba
+            padding: [0, 0, 0, 0]
+            spacing: [5, 2]
+            font_name: root.style.fontface
+            font_size: root.style.fontsize
+            colkeys: root.colkey_dict[root.item_type]
+            cols: len(self.colkeys)
+            iter_skeleton: root.iterskel_dict[root.item_type](root.keys, root.character, self.skel)
+            editing: root.edbut.state == 'down' if root.edbut else False
+            size: root.size
+            pos: (0, 0)
 <PawnImage>:
-    size_hint: (None, None)
     texture: self.character.closet.get_texture(self.character.closet.get_present_bone(self.character.closet.skeleton[u"pawn_img"][self.keys[0]][self.keys[1]])[u"img"])
 <SpotImage>:
-    size_hint: (None, None)
     texture: self.character.closet.get_texture(self.character.closet.get_present_bone(self.character.closet.skeleton[u"spot_img"][self.keys[0]][self.keys[1]])[u"img"])
 <EditButton>:
     font_name: 'assets/Entypo.ttf'

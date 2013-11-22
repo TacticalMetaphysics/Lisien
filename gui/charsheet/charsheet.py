@@ -2,10 +2,9 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from calendar import (
     CAL_TYPE,
-    CalendarView)
+    CalendarLayout)
 from gui.kivybits import SaveableWidgetMetaclass
-from table import (
-    TableView)
+from table import TableLayout
 from kivy.uix.image import Image
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.togglebutton import ToggleButton
@@ -38,16 +37,22 @@ class EditButton(ToggleButton):
         return super(EditButton, self).collide_point(*self.to_local(x, y))
 
 
-class PawnImage(Image):
+class CharSheetImage(Image):
     character = ObjectProperty()
     keys = ListProperty()
     edbut = ObjectProperty()
 
+    def __init__(self, **kwargs):
+        super(CharSheetImage, self).__init__(**kwargs)
+        self.size = self.texture.size
 
-class SpotImage(Image):
-    character = ObjectProperty()
-    keys = ListProperty()
-    edbut = ObjectProperty()
+
+class PawnImage(CharSheetImage):
+    pass
+
+
+class SpotImage(CharSheetImage):
+    pass
 
 
 class CharSheet(GridLayout):
@@ -91,19 +96,18 @@ class CharSheet(GridLayout):
     def on_parent(self, i, parent):
         character = self.character
         self.bone = character.closet.skeleton["charsheet"][unicode(character)]
+        i = 0
         for bone in character.closet.skeleton[u"charsheet_item"][
                 unicode(character)].iterbones():
             keylst = [bone["key0"], bone["key1"], bone["key2"]]
             if bone["type"] < 5:
-                w = TableView(
+                w = TableLayout(
                     character=character,
                     style=character.closet.get_style(self.bone["style"]),
                     item_type=bone["type"],
                     keys=keylst)
             elif bone["type"] < 10:
-                # from the charsheet's perspective, the calendar's
-                # background is the foreground.
-                w = CalendarView(
+                w = CalendarLayout(
                     character=character,
                     style=character.closet.get_style(self.bone["style"]),
                     item_type=bone["type"],
@@ -121,6 +125,8 @@ class CharSheet(GridLayout):
             w.edbut = eb
             self.add_widget(w)
             self.add_widget(eb)
+            self.rows_minimum[i] = w.height
+            i += 1
 
     def on_touch_down(self, touch):
         for child in self.children:

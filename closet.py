@@ -728,6 +728,9 @@ For more information, consult SaveableMetaclass in util.py.
             self.new_branch(self.branch, branch, tick)
         # will need to take other games-stuff into account than the
         # thing_location
+        if tick < 0:
+            tick = 0
+            self.updating = False
         mintick = self.timestream.min_tick(branch, "thing_location")
         if tick < mintick:
             tick = mintick

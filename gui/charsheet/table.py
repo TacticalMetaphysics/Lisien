@@ -7,9 +7,10 @@ from kivy.properties import (
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
-from itemview import ItemView
+from kivy.uix.relativelayout import RelativeLayout
 from util import placex, portex
 from re import match
+from itemlayout import ItemLayout
 
 
 def character_bone(self, keys, character_skel):
@@ -331,7 +332,7 @@ class Table(GridLayout):
                 return True
 
 
-class TableView(ItemView):
+class TableLayout(RelativeLayout, ItemLayout):
     character_skel = ObjectProperty()
     colkey_dict = {
         0: ["dimension", "thing", "location"],
