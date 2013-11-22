@@ -30,7 +30,7 @@ def iter_skeleton(keys, char, skel, branch=None, tick=None):
         branch = closet.branch
     if tick is None:
         tick = closet.tick
-    for rd in skel.iterrows():
+    for rd in skel.iterbones():
         if (
                 rd["branch"] == branch and
                 rd["tick_from"] <= tick and (
@@ -52,19 +52,19 @@ def get_branch_rd_iter_thing(keys, character, branch):
         for dimension in thingdict:
             for thing in thingdict[dimension]:
                 for rd in thingdict[dimension][thing][
-                        branch].iterrows():
+                        branch].iterbones():
                     yield rd
     elif keys[1] is None:
         dimension = keys[0]
         for thing in thingdict[dimension]:
             for rd in thingdict[
-                    dimension][thing][branch].iterrows():
+                    dimension][thing][branch].iterbones():
                 yield rd
     else:
         dimension = keys[0]
         thing = keys[1]
         for rd in thingdict[
-                dimension][thing][branch].iterrows():
+                dimension][thing][branch].iterbones():
             yield rd
 
 
@@ -122,12 +122,12 @@ def get_branch_rd_iter_stat(keys, skel, branch):
     if keys[0] is None:
         for stat in statdict:
             for rd in statdict[
-                    stat][branch].iterrows():
+                    stat][branch].iterbones():
                 yield rd
     else:
         stat = keys[0]
         for rd in statdict[
-                stat][branch].iterrows():
+                stat][branch].iterbones():
             yield rd
 
 
@@ -166,12 +166,12 @@ def get_branch_rd_iter_skill(keys, skel, branch):
     if keys[0] is None:
         for skill in skilldict:
             for rd in skilldict[
-                    skill][branch].iterrows():
+                    skill][branch].iterbones():
                 yield rd
     else:
         skill = keys[0]
         for rd in skilldict[
-                skill][branch].iterrows():
+                skill][branch].iterbones():
             yield rd
 
 
@@ -305,10 +305,9 @@ class Table(GridLayout):
                     table=self,
                     key=key,
                     rd=rd)
-                print("Assigned rd {} to {}".format(rd, child))
                 self.add_widget(child)
 
-    def iterrows(self, branch=None, tick=None):
+    def iterbones(self, branch=None, tick=None):
         closet = self.character.closet
         if branch is None:
             branch = closet.branch

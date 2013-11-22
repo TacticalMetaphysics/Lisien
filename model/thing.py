@@ -286,7 +286,7 @@ other journey I may be on at the time."""
         prev = None
         started = False
         i = 0
-        for rd in self.locations[parent].iterrows():
+        for rd in self.locations[parent].iterbones():
             i += 1
             if rd["tick_from"] >= tick:
                 rd2 = dict(rd)
@@ -305,7 +305,7 @@ other journey I may be on at the time."""
     def branch_loc_rds(self, branch=None):
         if branch is None:
             branch = self.closet.branch
-        r = [dict(rd) for rd in self.locations[branch].iterrows()]
+        r = [dict(rd) for rd in self.locations[branch].iterbones()]
         return r
 
     def restore_loc_rds(self, rds):

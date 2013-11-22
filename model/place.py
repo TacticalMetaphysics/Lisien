@@ -69,7 +69,7 @@ thing located there.
             prev = None
             for rd in self.dimension.closet.skeleton[
                     "thing_location"][unicode(self.dimension)][
-                    thingn][branch].iterrows():
+                    thingn][branch].iterbones():
                 if rd["tick_from"] == tick:
                     if rd["location"] == unicode(self):
                         thing = self.dimension.get_thing(thingn)

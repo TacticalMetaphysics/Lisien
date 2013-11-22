@@ -79,11 +79,11 @@ keyed with their names.
             self.closet.skeleton["thing_location"] = {}
         if str(self) not in self.closet.skeleton["thing_location"]:
             self.closet.skeleton["thing_location"][str(self)] = {}
-        for rd in self.closet.skeleton["portal"][str(self)].iterrows():
+        for rd in self.closet.skeleton["portal"][str(self)].iterbones():
             orig = self.get_place(rd["origin"])
             dest = self.get_place(rd["destination"])
             Portal(self.closet, self, orig, dest)
-        for rd in self.closet.skeleton["thing_location"][str(self)].iterrows():
+        for rd in self.closet.skeleton["thing_location"][str(self)].iterbones():
             if rd["thing"] not in self.thingdict:
                 self.thingdict[rd["thing"]] = Thing(
                     self.closet, self, rd["thing"])

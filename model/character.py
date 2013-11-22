@@ -186,9 +186,9 @@ item's name, and the name of the attribute.
                  branch not in self.thingdict[dimension][thing])):
             return False
         if branch is None:
-            rditer = self.thingdict[dimension][thing].iterrows()
+            rditer = self.thingdict[dimension][thing].iterbones()
         else:
-            rditer = self.thingdict[dimension][thing][branch].iterrows()
+            rditer = self.thingdict[dimension][thing][branch].iterbones()
         for rd in rditer:
             if rd["tick_from"] <= tick:
                 if rd["tick_to"] is None or rd["tick_to"] <= tick:
@@ -235,9 +235,9 @@ item's name, and the name of the attribute.
                  branch not in self.placedict[dimension][place])):
             return False
         if branch is None:
-            rditer = self.placedict[dimension][place].iterrows()
+            rditer = self.placedict[dimension][place].iterbones()
         else:
-            rditer = self.placedict[dimension][place][branch].iterrows()
+            rditer = self.placedict[dimension][place][branch].iterbones()
         for rd in rditer:
             if rd["tick_from"] <= tick:
                 if rd["tick_to"] is None or rd["tick_to"] <= tick:
@@ -298,10 +298,10 @@ item's name, and the name of the attribute.
                  self.portaldict[dimension][origin][destination])):
             return False
         if branch is None:
-            rditer = self.portaldict[dimension][origin][destination].iterrows()
+            rditer = self.portaldict[dimension][origin][destination].iterbones()
         else:
             rditer = self.portaldict[dimension][origin][destination][
-                branch].iterrows()
+                branch].iterbones()
         for rd in rditer:
             if rd["tick_from"] >= tick:
                 if rd["tick_to"] is None or rd["tick_to"] <= tick:
@@ -369,7 +369,7 @@ item's name, and the name of the attribute.
         if tick is None:
             tick = self.closet.tick
         r = deque([], 3)
-        for rd in self.statdict[branch][tick].iterrows():
+        for rd in self.statdict[branch][tick].iterbones():
             if rd["stat"] == name and value in (
                     "ANY_VALUE", rd["value"]):
                 r.append(rd)
@@ -426,7 +426,7 @@ item's name, and the name of the attribute.
                         branch, dimension, thing):
                     yield rd
         else:
-            for rd in self.thingdict[dimension][thing][branch].iterrows():
+            for rd in self.thingdict[dimension][thing][branch].iterbones():
                 yield rd
 
     def place_skel_branch_iter(self, branch, dimension=None, place=None):
@@ -441,7 +441,7 @@ item's name, and the name of the attribute.
                         branch, dimension, place):
                     yield rd
         else:
-            for rd in self.placedict[dimension][place][branch].iterrows():
+            for rd in self.placedict[dimension][place][branch].iterbones():
                 yield rd
 
     def portal_skel_branch_iter(
@@ -464,27 +464,27 @@ item's name, and the name of the attribute.
                     yield rd
         else:
             for rd in self.portaldict[
-                    dimension][origin][destination][branch].iterrows():
+                    dimension][origin][destination][branch].iterbones():
                 yield rd
 
     def stat_skel_branch_iter(
             self, branch, stat=None):
         if stat is None:
             for stat in self.statdict:
-                for rd in self.statdict[stat][branch].iterrows():
+                for rd in self.statdict[stat][branch].iterbones():
                     yield rd
         else:
-            for rd in self.statdict[stat][branch].iterrows():
+            for rd in self.statdict[stat][branch].iterbones():
                 yield rd
 
     def skill_skel_branch_iter(
             self, branch, skill=None):
         if skill is None:
             for skill in self.skilldict:
-                for rd in self.skilldict[skill][branch].iterrows():
+                for rd in self.skilldict[skill][branch].iterbones():
                     yield rd
         else:
-            for rd in self.skilldict[skill][branch].iterrows():
+            for rd in self.skilldict[skill][branch].iterbones():
                 yield rd
 
     def new_branch(self, parent, branch, tick):

@@ -193,7 +193,7 @@ here. Look in CalendarView below.
                 continue
             to_cover[branch] = set()
             content[branch] = {}
-            rowiter = self.skel[branch].iterrows()
+            rowiter = self.skel[branch].iterbones()
             prev = next(rowiter)
             for rd in rowiter:
                 if (

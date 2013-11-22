@@ -673,7 +673,7 @@ For more information, consult SaveableMetaclass in util.py.
             kd["card"][name] = {"effect": name}
         td = Card._select_skeleton(self.c, kd)
         r = {}
-        for rd in td.iterrows():
+        for rd in td.iterbones():
             r[rd["effect"]] = Card(self, effectdict[rd["effect"]], td)
         return r
 
@@ -699,7 +699,7 @@ For more information, consult SaveableMetaclass in util.py.
         skel = Menu._select_skeleton(self.c, kd)
         self.skeleton.update(skel)
         r = {}
-        for rd in skel.iterrows():
+        for rd in skel.iterbones():
             self.load_menu_items(rd["name"])
             r[rd["name"]] = Menu(closet=self, name=rd["name"])
         return r
@@ -811,7 +811,7 @@ For more information, consult SaveableMetaclass in util.py.
                 self.kivy_connector.hi_tick = rd["tick_to"]
 
     def uptick_skel(self):
-        for rd in self.skeleton.iterrows():
+        for rd in self.skeleton.iterbones():
             self.uptick_rd(rd)
 
 

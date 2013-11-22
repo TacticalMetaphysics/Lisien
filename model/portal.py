@@ -78,7 +78,7 @@ otherwise."""
     def new_branch(self, parent, branch, tick):
         prev = None
         started = False
-        for rd in self.existence[parent].iterrows():
+        for rd in self.existence[parent].iterbones():
             if rd["tick_from"] >= tick:
                 rd2 = dict(rd)
                 rd2["branch"] = branch

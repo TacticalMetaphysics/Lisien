@@ -353,7 +353,7 @@ is mostly for printing."""
                     self[k] = self.__class__(
                         content=v, name=k, parent=self)
 
-    def iterrows(self):
+    def iterbones(self):
         return SkelRowIter(self)
 
     def get_closet(self):
@@ -527,9 +527,9 @@ declared in the order they appear in the tables attribute.
 
         def gen_sql_insert(bones, tabname):
             if tabname in bones:
-                itr = Skeleton(content=bones[tabname]).iterrows()
+                itr = Skeleton(content=bones[tabname]).iterbones()
             else:
-                itr = Skeleton(content=bones).iterrows()
+                itr = Skeleton(content=bones).iterbones()
             if len(itr) == 0 or tabname not in tablenames:
                 raise EmptySkeleton
             qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
@@ -560,7 +560,7 @@ declared in the order they appear in the tables attribute.
                 return
             keys = []
             wheres = []
-            kitr = Skeleton(content=keydicts).iterrows()
+            kitr = Skeleton(content=keydicts).iterbones()
             if len(kitr) == 0 or tabname not in tablenames:
                 raise EmptySkeleton
             for keydict in kitr:
@@ -584,7 +584,7 @@ declared in the order they appear in the tables attribute.
 
         def gen_sql_select(keydicts, tabname):
             keys_in_use = set()
-            kitr = Skeleton(content=keydicts).iterrows()
+            kitr = Skeleton(content=keydicts).iterbones()
             for keyd in kitr:
                 for k in keyd:
                     keys_in_use.add(k)
@@ -603,7 +603,7 @@ declared in the order they appear in the tables attribute.
             keys = primarykeys[tabname]
             qrystr = gen_sql_select(keydicts, tabname)
             qrylst = []
-            kitr = Skeleton(content=keydicts).iterrows()
+            kitr = Skeleton(content=keydicts).iterbones()
             for keydict in kitr:
                 for key in keys:
                     if key in keydict:
@@ -1260,7 +1260,7 @@ class Timestream(object):
         return self.closet.skeleton["timestream"][branch]["parent"]
 
     def children(self, branch):
-        for rd in self.closet.skeleton["timestream"].iterrows():
+        for rd in self.closet.skeleton["timestream"].iterbones():
             if rd["parent"] == branch:
                 yield rd["branch"]
 

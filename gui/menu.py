@@ -75,7 +75,7 @@ class Menu(BoxLayout):
             kwargs["closet"].skeleton["menu"][kwargs["name"]]["symbol_style"])
         BoxLayout.__init__(self, **kwargs)
 
-        for rd in self.closet.skeleton["menu_item"][unicode(self)].iterrows():
+        for rd in self.closet.skeleton["menu_item"][unicode(self)].iterbones():
             if rd["symbolic"] == 1:
                 style = self.symbol_style
             else:

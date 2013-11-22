@@ -77,7 +77,7 @@ class CharSheet(GridLayout):
         character = parent.parent.character
         self.bone = character.closet.skeleton["charsheet"][unicode(character)]
         for bone in character.closet.skeleton[u"charsheet_item"][
-                unicode(character)].iterrows():
+                unicode(character)].iterbones():
             keylst = [bone["key0"], bone["key1"], bone["key2"]]
             if bone["type"] < 5:
                 self.add_widget(

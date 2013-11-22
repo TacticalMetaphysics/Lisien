@@ -202,7 +202,7 @@ If it DOES have anything else to do, make the journey in another branch.
         if branch not in self.imagery:
             return None
         prev = None
-        for rd in self.imagery[branch].iterrows():
+        for rd in self.imagery[branch].iterbones():
             if rd["tick_from"] > tick:
                 break
             else:
@@ -255,7 +255,7 @@ If it DOES have anything else to do, make the journey in another branch.
             unicode(self.board.dimension)][unicode(self.thing)]
         if branch not in interactivity:
             return False
-        for rd in interactivity.iterrows():
+        for rd in interactivity.iterbones():
             if rd["tick_from"] <= tick and (
                     rd["tick_to"] is None or tick <= rd["tick_to"]):
                 return True
