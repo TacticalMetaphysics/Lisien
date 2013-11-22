@@ -306,10 +306,12 @@ here. Look in CalendarView below.
             child.pos = (x + ws, y + hs)
             child.size = (branchwidth - ws, height - hs)
 
-    def _touch_down(self, x, y, dx, dy):
-        self.dragging = True
+    def on_touch_down(self, touch):
+        if self.collide_point(touch.x, touch.y):
+            touch.grab(self)
+            return True
 
-    def _touch_up(self, x, y, dx, dy):
+    def on_touch_up(self, touch):
         self.dragging = False
         self.xmov = 0
         self.xcess = 0
@@ -318,7 +320,7 @@ here. Look in CalendarView below.
         self._trigger_layout()
 
     def on_touch_move(self, touch):
-        if self.dragging:
+        if touch.grab_current is self:
             if self.xcess == 0:
                 nuxmov = self.xmov + touch.dx
                 if not (self.branch == 0 and nuxmov < 0):
