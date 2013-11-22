@@ -22,6 +22,9 @@ class LiSELayout(FloatLayout):
         else:
             return self.board.on_touch_down(touch)
 
+    def do_layout(self, *args):
+        super(LiSELayout, self).do_layout(*args)
+
 
 class LiSEApp(App):
     closet = ObjectProperty()

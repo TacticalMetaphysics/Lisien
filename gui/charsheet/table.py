@@ -250,6 +250,12 @@ class TableTextInput(TextInput):
         else:
             self.text = skel[branch][tick][self.key]
 
+    def on_touch_down(self, touch):
+        if self.collide_point(touch.x, touch.y):
+            touch.grab(self)
+            super(TableTextInput, self).on_touch_down(touch)
+            return True
+
 
 class TableHeader(BoxLayout):
     table = ObjectProperty()
@@ -266,6 +272,7 @@ class Table(GridLayout):
     font_name = StringProperty()
     font_size = NumericProperty()
     completedness = NumericProperty(0)
+    headers = ListProperty()
     content_children = ListProperty()
     editing = BooleanProperty()
     colkeys = ListProperty()
@@ -295,9 +302,11 @@ class Table(GridLayout):
 
     def completed(self):
         for key in self.colkeys:
-            self.add_widget(TableHeader(
+            head = TableHeader(
                 table=self,
-                text=key))
+                text=key)
+            self.headers.append(head)
+            self.add_widget(head)
 
         for rd in self.iter_skeleton():
             for key in self.colkeys:
@@ -315,6 +324,11 @@ class Table(GridLayout):
             tick = closet.tick
         for rd in self.iter_skeleton(branch, tick):
             yield [rd[key] for key in self.colkeys]
+
+    def on_touch_down(self, touch):
+        for child in self.children:
+            if child.on_touch_down(touch):
+                return True
 
 
 class TableView(ItemView):

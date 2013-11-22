@@ -25,13 +25,14 @@ from gui.board import (
     Card,
     Pawn)
 from gui.style import LiSEStyle, LiSEColor
-from gui.charsheet import CharSheet, CharSheetView
+from gui.charsheet import CharSheet
 from gui.menu import Menu
 from util import (
     dictify_row,
     schemata,
     saveables,
     saveable_classes,
+    get_bone_during,
     Fabulator,
     Skeleton,
     Timestream,
@@ -461,7 +462,7 @@ For more information, consult SaveableMetaclass in util.py.
                 "character": character}}
         self.skeleton.update(
             CharSheet._select_skeleton(self.c, kd))
-        return CharSheetView(character=self.get_character(character))
+        return CharSheet(character=self.get_character(character))
 
     def load_characters(self, names):
         qtd = {
@@ -814,6 +815,9 @@ For more information, consult SaveableMetaclass in util.py.
         for rd in self.skeleton.iterbones():
             self.uptick_rd(rd)
 
+    def get_present_bone(self, skel):
+        return get_bone_during(skel, self.branch, self.tick)
+
 
 def mkdb(DB_NAME='default.sqlite'):
     def isdir(p):
@@ -847,7 +851,7 @@ def mkdb(DB_NAME='default.sqlite'):
     def ins_rltiles(curs, dirname):
         here = os.getcwd()
         directories = os.path.abspath(dirname).split("/")
-        home = "/".join(directories[:-1]) + "/"
+        home = "/".join(directories[:-len(dirname.split("/"))]) + "/"
         dirs = allsubdirs(dirname)
         for dir in dirs:
             for bmp in os.listdir(dir):

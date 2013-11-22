@@ -6,11 +6,12 @@ from calendar import (
 from gui.kivybits import SaveableWidgetMetaclass
 from table import (
     TableView)
+from kivy.uix.image import Image
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.togglebutton import ToggleButton
 from kivy.properties import (
+    ListProperty,
     NumericProperty,
-    DictProperty,
     ObjectProperty)
 
 
@@ -24,16 +25,34 @@ SHEET_ITEM_TYPE = {
     "PLACECAL": 6,
     "PORTALCAL": 7,
     "STATCAL": 8,
-    "SKILLCAL": 9}
+    "SKILLCAL": 9,
+    "THINGIMAGE": 10,
+    "PLACEIMAGE": 11}
 SHEET_TO_CAL_TYPE = dict(
     [(SHEET_ITEM_TYPE[a], CAL_TYPE[a[:-3]]) for a in
      ("THINGCAL", "PLACECAL", "PORTALCAL", "STATCAL", "SKILLCAL")])
 
 
+class EditButton(ToggleButton):
+    def collide_point(self, x, y):
+        return super(EditButton, self).collide_point(*self.to_local(x, y))
+
+
+class PawnImage(Image):
+    character = ObjectProperty()
+    keys = ListProperty()
+    edbut = ObjectProperty()
+
+
+class SpotImage(Image):
+    character = ObjectProperty()
+    keys = ListProperty()
+    edbut = ObjectProperty()
+
+
 class CharSheet(GridLayout):
     __metaclass__ = SaveableWidgetMetaclass
     demands = ["character"]
-
     tables = [
         (
             "charsheet",
@@ -59,41 +78,49 @@ class CharSheet(GridLayout):
              "key2": "TEXT"},
             ("character", "idx"),
             {"character": ("charsheet", "character")},
-            ["CASE key1 WHEN NULL THEN type NOT IN ({0}) END".format(
-                ", ".join([str(SHEET_ITEM_TYPE[typ]) for typ in (
-                    "THINGTAB", "THINGCAL",
-                    "PLACETAB", "PLACECAL",
-                    "PORTALTAB", "PORTALCAL")])),
-             "CASE key2 WHEN NULL THEN type<>{0} END".format(
-                 str(SHEET_ITEM_TYPE["PORTALTAB"])),
+            ["CASE key2 WHEN NULL THEN type<>{0} END".format(
+                str(SHEET_ITEM_TYPE["PORTALTAB"])),
              "idx>=0",
              "idx<={}".format(max(SHEET_ITEM_TYPE.values()))])
     ]
+    character = ObjectProperty()
     bone = ObjectProperty()
     style = ObjectProperty()
     completedness = NumericProperty()
 
     def on_parent(self, i, parent):
-        character = parent.parent.character
+        character = self.character
         self.bone = character.closet.skeleton["charsheet"][unicode(character)]
         for bone in character.closet.skeleton[u"charsheet_item"][
                 unicode(character)].iterbones():
             keylst = [bone["key0"], bone["key1"], bone["key2"]]
             if bone["type"] < 5:
-                self.add_widget(
-                    TableView(
-                        character=character,
-                        style=character.closet.get_style(self.bone["style"]),
-                        item_type=bone["type"],
-                        keys=keylst))
-            else:
-                # from the charsheet's perspective, the calendar's
-                # background is the foreground.
-                self.add_widget(CalendarView(
+                w = TableView(
                     character=character,
                     style=character.closet.get_style(self.bone["style"]),
                     item_type=bone["type"],
-                    keys=keylst))
+                    keys=keylst)
+            elif bone["type"] < 10:
+                # from the charsheet's perspective, the calendar's
+                # background is the foreground.
+                w = CalendarView(
+                    character=character,
+                    style=character.closet.get_style(self.bone["style"]),
+                    item_type=bone["type"],
+                    keys=keylst)
+            elif bone["type"] == 10:
+                w = PawnImage(
+                    character=character,
+                    keys=keylst)
+            elif bone["type"] == 11:
+                w = SpotImage(
+                    character=character,
+                    keys=keylst)
+            eb = EditButton(
+                text=character.closet.get_text('@edit'))
+            w.edbut = eb
+            self.add_widget(w)
+            self.add_widget(eb)
 
     def on_touch_down(self, touch):
         for child in self.children:
@@ -107,10 +134,3 @@ class CharSheet(GridLayout):
     def on_touch_up(self, touch):
         for child in self.children:
             child.on_touch_up(touch)
-
-
-class CharSheetView(RelativeLayout):
-    character = ObjectProperty()
-
-    def collide_point(self, x, y):
-        return super(CharSheetView, self).collide_point(*self.to_local(x, y))

@@ -38,7 +38,7 @@ placex = compile("Place\((.+?)\)")
 portex = compile("Portal\((.+?)->(.+?)\)")
 
 
-def get_rd_during(skel, branch, tick):
+def get_bone_during(skel, branch, tick):
     """Convenience function for looking up the current effective value of
 something in a Skeleton.
 

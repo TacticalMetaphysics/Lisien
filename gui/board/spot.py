@@ -1,7 +1,7 @@
 ## This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from util import (
-    get_rd_during)
+    get_bone_during)
 from gui.kivybits import SaveableWidgetMetaclass
 from kivy.uix.image import Image
 from kivy.properties import (
@@ -216,7 +216,7 @@ class Spot(Scatter):
             branch = self.board.closet.branch
         if tick is None:
             tick = self.board.closet.tick
-        return get_rd_during(self.coords, branch, tick)
+        return get_bone_during(self.coords, branch, tick)
 
     def get_coords(self, branch=None, tick=None):
         rd = self.get_coord_rd(branch, tick)
