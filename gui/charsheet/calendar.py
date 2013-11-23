@@ -102,9 +102,9 @@ here. Look in CalendarView below.
     ticks_tall = NumericProperty(100)
     ticks_offscreen = NumericProperty(0)
     branches_offscreen = NumericProperty(2)
-    spacing_x = NumericProperty(5)
-    spacing_y = NumericProperty(5)
-    branches_wide = NumericProperty(2)
+    spacing_x = NumericProperty()
+    spacing_y = NumericProperty()
+    branches_wide = NumericProperty()
     col_width = NumericProperty()
     tick_height = NumericProperty()
     xmov = NumericProperty(0)
@@ -376,3 +376,4 @@ tick. If so, adjust my branch and tick to fit."""
 class CalendarLayout(RelativeLayout, ItemLayout):
     """Really just a RelativeLayout with some Kivy properties to handle
 the parameters of a Calendar."""
+    pass

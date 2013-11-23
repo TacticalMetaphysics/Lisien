@@ -88,43 +88,41 @@
         text: root.text
 <TableTextInput>:
     foreground_color: self.table.text_color_active
-    disabled_foreground_color: self.table.text_color_inactive
-    background_color: self.table.bg_color_active
-    disabled_background_color: self.table.bg_color_inactive
+    foreground_color_disabled: self.table.text_color_inactive
+    background_color: self.table.fg_color_inactive if self.disabled else self.table.fg_color_active
+    background_disabled_active: ''
+    background_disabled_normal: ''
     background_normal: ''
     background_active: ''
-    background_disabled_normal: ''
-    background_disabled_active: ''
     border: [0, 0, 0, 0]
-    padding: [0, 0, 0, 0]
     multiline: False
     text: self.rd[self.key]
     font_name: self.table.font_name
     font_size: self.table.font_size
     height: self.table.font_size
+    disabled: self.table.edbut.state == 'normal'
 <TableLayout>:
     character_skel: getattr(self.character, self.chardictd[self.item_type])
     size: tab.size
-    StencilView:
-        Table:
-            #:import bone gui.charsheet.table.character_bone
-            id: tab
-            skel: bone(self, root.keys, root.character_skel)
-            bg_color_active: root.style.bg_active.rgba
-            bg_color_inactive: root.style.bg_inactive.rgba
-            fg_color_active: root.style.fg_active.rgba
-            fg_color_inactive: root.style.fg_inactive.rgba
-            text_color_active: root.style.text_active.rgba
-            text_color_inactive: root.style.text_inactive.rgba
-            padding: [0, 0, 0, 0]
-            spacing: [5, 2]
-            font_name: root.style.fontface
-            font_size: root.style.fontsize
-            colkeys: root.colkey_dict[root.item_type]
-            cols: len(self.colkeys)
-            iter_skeleton: root.iterskel_dict[root.item_type](root.keys, root.character, self.skel)
-            editing: root.edbut.state == 'down' if root.edbut else False
-            pos: (0, 0)
+    Table:
+        #:import bone gui.charsheet.table.character_bone
+        id: tab
+        edbut: root.edbut
+        skel: bone(self, root.keys, root.character_skel)
+        bg_color_active: root.style.bg_active.rgba
+        bg_color_inactive: root.style.bg_inactive.rgba
+        fg_color_active: root.style.fg_active.rgba
+        fg_color_inactive: root.style.fg_inactive.rgba
+        text_color_active: root.style.text_active.rgba
+        text_color_inactive: root.style.text_inactive.rgba
+        padding: [0, 0, 0, 0]
+        spacing: [5, 2]
+        font_name: root.style.fontface
+        font_size: root.style.fontsize
+        colkeys: root.colkey_dict[root.item_type]
+        cols: len(self.colkeys)
+        iter_skeleton: root.iterskel_dict[root.item_type](root.keys, root.character, self.skel)
+        pos: root.pos
 <PawnImage>:
     texture: self.character.closet.get_texture(self.character.closet.get_present_bone(self.character.closet.skeleton[u"pawn_img"][self.keys[0]][self.keys[1]])[u"img"])
 <SpotImage>:

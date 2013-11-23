@@ -1,29 +1,41 @@
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
-from kivy.properties import ObjectProperty, StringProperty
+from kivy.properties import ObjectProperty, ListProperty, StringProperty
 from kivy.clock import Clock
 
 
 class LiSELayout(FloatLayout):
-    menu = ObjectProperty()
+    """A very tiny master layout that contains one board and some menus
+and charsheets.
+
+Mostly they can do what they like. Only one of them may grab a touch
+event though: priority goes first to menus, then to charsheets, then
+to the board.
+
+    """
+    menus = ListProperty()
     board = ObjectProperty()
-    charsheet = ObjectProperty()
+    charsheets = ListProperty()
 
     def __init__(self, **kwargs):
+        """Add board first, then menus and charsheets."""
         super(LiSELayout, self).__init__(**kwargs)
-        for wid in [self.board, self.menu, self.charsheet]:
-            self.add_widget(wid)
+        self.add_widget(self.board)
+        for menu in self.menus:
+            self.add_widget(menu)
+        for charsheet in self.charsheets:
+            self.add_widget(charsheet)
 
     def on_touch_down(self, touch):
-        if self.menu.on_touch_down(touch):
-            return True
-        elif self.charsheet.on_touch_down(touch):
-            return True
-        else:
-            return self.board.on_touch_down(touch)
-
-    def do_layout(self, *args):
-        super(LiSELayout, self).do_layout(*args)
+        """Poll menus, then charsheets, then the board. Once someone handles
+the touch event, return."""
+        for menu in self.menus:
+            if menu.on_touch_down(touch):
+                return
+        for charsheet in self.charsheets:
+            if charsheet.on_touch_down(touch):
+                return
+        self.board.on_touch_down(touch)
 
 
 class LiSEApp(App):
@@ -38,5 +50,5 @@ class LiSEApp(App):
         menu = self.closet.load_menu(self.menu_name)
         board = self.closet.load_board(self.dimension_name)
         charsheet = self.closet.load_charsheet(self.character_name)
-        layout = LiSELayout(menu=menu, board=board, charsheet=charsheet)
+        layout = LiSELayout(menus=[menu], board=board, charsheets=[charsheet])
         return layout

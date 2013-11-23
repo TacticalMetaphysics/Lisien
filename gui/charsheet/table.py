@@ -1,5 +1,4 @@
 from kivy.properties import (
-    BooleanProperty,
     NumericProperty,
     ListProperty,
     ObjectProperty,
@@ -7,7 +6,11 @@ from kivy.properties import (
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
-from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.stencilview import StencilView
+from kivy.graphics import (
+    Callback,
+    Color,
+    Rectangle)
 from util import placex, portex, get_bone_during
 from re import match
 from itemlayout import ItemLayout
@@ -234,15 +237,10 @@ class Table(GridLayout):
     completedness = NumericProperty(0)
     headers = ListProperty()
     content_children = ListProperty()
-    editing = BooleanProperty()
     colkeys = ListProperty()
     skel = ObjectProperty()
     iter_skeleton = ObjectProperty()
-
-    def toggle_inputs(self, i, v):
-        for child in self.children:
-            if hasattr(child, 'disabled'):
-                child.disabled = not v
+    edbut = ObjectProperty()
 
     def on_completedness(self, i, v):
         if v == 4:
@@ -297,8 +295,9 @@ class Table(GridLayout):
                 return True
 
 
-class TableLayout(RelativeLayout, ItemLayout):
+class TableLayout(ItemLayout, StencilView):
     character_skel = ObjectProperty()
+    edbut = ObjectProperty()
     colkey_dict = {
         0: ["dimension", "thing", "location"],
         1: ["dimension", "place"],
@@ -319,3 +318,4 @@ class TableLayout(RelativeLayout, ItemLayout):
         2: mk_iter_skeleton,
         3: mk_iter_skeleton_stat,
         4: mk_iter_skeleton_skill}
+
