@@ -8,12 +8,15 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.relativelayout import RelativeLayout
-from util import placex, portex
+from util import placex, portex, get_bone_during
 from re import match
 from itemlayout import ItemLayout
 
 
 def character_bone(self, keys, character_skel):
+    """Look up the keys in the skel.
+
+It's supposed to be one of the skels that a Character keeps its members in."""
     if keys[0] is None:
         return character_skel
     elif keys[1] is None:
@@ -26,6 +29,14 @@ def character_bone(self, keys, character_skel):
 
 
 def iter_skeleton(keys, char, skel, branch=None, tick=None):
+    """Iterate over the bones in only the subset of the skeleton that
+pertains to the keys.
+
+You need to pass a character to this thing, even though it only uses
+the closet in that character, because the other iterators need the
+whole character, and I need a consistent API here.
+
+    """
     closet = char.closet
     if branch is None:
         branch = closet.branch
@@ -41,95 +52,72 @@ def iter_skeleton(keys, char, skel, branch=None, tick=None):
 
 
 def mk_iter_skeleton(keys, char, skel):
+    """Make a function that makes a boneiter over the skeleton for the
+item specified by the keys.
+
+    """
     def inner_iter_skeleton(branch=None, tick=None):
         for it in iter_skeleton(keys, char, skel, branch, tick):
             yield it
     return inner_iter_skeleton
 
 
-def get_branch_rd_iter_thing(keys, character, branch):
+def get_branch_bone_iter_thing(keys, character, branch, tick):
+    """Generate strings representing the locations of all Things in the
+character that match the keys."""
     thingdict = character.thingdict
+    skeleton = character.closet.skeleton
+    bone_during_thing = lambda dimension, thing: get_bone_during(
+        skeleton["thing_location"][dimension][thing],
+        branch, tick)
+
     if keys[0] is None:
         for dimension in thingdict:
             for thing in thingdict[dimension]:
-                for rd in thingdict[dimension][thing][
-                        branch].iterbones():
-                    yield rd
+                yield bone_during_thing(dimension, thing)
     elif keys[1] is None:
         dimension = keys[0]
         for thing in thingdict[dimension]:
-            for rd in thingdict[
-                    dimension][thing][branch].iterbones():
-                yield rd
+            yield bone_during_thing(dimension, thing)
+
     else:
         dimension = keys[0]
         thing = keys[1]
-        for rd in thingdict[
-                dimension][thing][branch].iterbones():
-            yield rd
+        yield bone_during_thing(dimension, thing)
 
 
 def iter_skeleton_thing(keys, char, skel, branch=None, tick=None):
+    """Get the locations of the things in the character matching the keys,
+and yield dicts representing rows in a table of locations."""
     closet = char.closet
     if branch is None:
         branch = closet.branch
     if tick is None:
         tick = closet.tick
-    covered = set()
-    for rd in get_branch_rd_iter_thing(keys, char, branch):
-        if (rd["dimension"], rd["thing"]) in covered:
-            continue
-        if rd["tick_from"] <= tick and (
-                rd["tick_to"] is None or
-                rd["tick_to"] >= tick):
-            thing = closet.get_thing(
-                rd["dimension"], rd["thing"])
-            rd2 = thing.locations[branch]
-            prev = None
-            r = None
-            for (tick_from, rd3) in rd2.items():
-                if tick_from > tick:
-                    if prev is not None:
-                        r = {
-                            "dimension": rd["dimension"],
-                            "thing": rd["thing"],
-                            "location": prev["location"]}
-                    break
-                prev = rd3
-            if r is None:
-                if prev is None:
-                    r = {
-                        "dimension": rd["dimension"],
-                        "thing": rd["thing"],
-                        "location": "nowhere"}
-                else:
-                    r = {
-                        "dimension": rd["dimension"],
-                        "thing": rd["thing"],
-                        "location": prev["location"]}
-            covered.add((rd["dimension"], rd["thing"]))
-            yield r
+    for bone in get_branch_bone_iter_thing(keys, char, branch, tick):
+        yield {"dimension": bone["dimension"],
+               "thing": bone["thing"],
+               "location": bone["location"]}
 
 
 def mk_iter_skeleton_thing(keys, char, skel):
+    """Make a generator for the bones of the thing specified."""
     def inner_iter_skeleton_thing(branch=None, tick=None):
         for it in iter_skeleton_thing(keys, char, skel, branch, tick):
             yield it
     return inner_iter_skeleton_thing
 
 
-def get_branch_rd_iter_stat(keys, skel, branch):
+def get_branch_bone_iter_stat(keys, skel, branch, tick):
+    """Generate the bones for the generator of values for the stat
+identified in the keys."""
     statdict = skel
     if keys[0] is None:
         for stat in statdict:
-            for rd in statdict[
-                    stat][branch].iterbones():
-                yield rd
+            yield get_bone_during(statdict[stat], branch, tick)
     else:
         stat = keys[0]
-        for rd in statdict[
-                stat][branch].iterbones():
-            yield rd
+        yield get_bone_during(statdict[stat], branch, tick)
 
 
 def iter_skeleton_stat(keys, char, skel, branch=None, tick=None):
@@ -138,21 +126,9 @@ def iter_skeleton_stat(keys, char, skel, branch=None, tick=None):
         branch = closet.branch
     if tick is None:
         tick = closet.tick
-    covered = set()
-    prev = None
-    for rd in get_branch_rd_iter_stat(keys, skel, branch):
-        if rd["stat"] in covered:
-            continue
-        elif rd["tick_from"] == tick:
-            covered.add(rd["stat"])
-            prev = None
-            yield rd
-        elif rd["tick_from"] > tick:
-            covered.add(rd["stat"])
-            r = prev
-            prev = None
-            yield r
-        prev = rd
+    for bone in get_branch_bone_iter_stat(keys, skel, branch, tick):
+        yield {"stat": bone["stat"],
+               "value": bone["value"]}
 
 
 def mk_iter_skeleton_stat(keys, char, skel):
@@ -162,18 +138,14 @@ def mk_iter_skeleton_stat(keys, char, skel):
     return inner_iter_skeleton_stat
 
 
-def get_branch_rd_iter_skill(keys, skel, branch):
+def get_branch_bone_iter_skill(keys, skel, branch, tick):
     skilldict = skel
     if keys[0] is None:
         for skill in skilldict:
-            for rd in skilldict[
-                    skill][branch].iterbones():
-                yield rd
+            yield get_bone_during(skilldict[skill], branch, tick)
     else:
         skill = keys[0]
-        for rd in skilldict[
-                skill][branch].iterbones():
-            yield rd
+        yield get_bone_during(skilldict[skill], branch, tick)
 
 
 def iter_skeleton_skill(keys, char, skel, branch=None, tick=None):
@@ -182,21 +154,8 @@ def iter_skeleton_skill(keys, char, skel, branch=None, tick=None):
         branch = closet.branch
     if tick is None:
         tick = closet.tick
-    covered = set()
-    prev = None
-    for rd in get_branch_rd_iter_skill(keys, skel, branch):
-        if rd["skill"] in covered:
-            continue
-        elif rd["tick_from"] == tick:
-            covered.add(rd["skill"])
-            prev = None
-            yield rd
-        elif rd["tick_from"] > tick:
-            covered.add(rd["skill"])
-            r = prev
-            prev = None
-            yield r
-        prev = rd
+    for bone in get_branch_bone_iter_skill(keys, skel, branch, tick):
+        yield {"skill": bone["skill"]}
 
 
 def mk_iter_skeleton_skill(keys, char, skel):
@@ -302,12 +261,16 @@ class Table(GridLayout):
         self.completedness += 1
 
     def completed(self):
+        width = 0
         for key in self.colkeys:
             head = TableHeader(
                 table=self,
                 text=key)
             self.headers.append(head)
             self.add_widget(head)
+            width += head.width + self.spacing[0]
+        self.width = width
+        height = head.height
 
         for rd in self.iter_skeleton():
             for key in self.colkeys:
@@ -316,6 +279,8 @@ class Table(GridLayout):
                     key=key,
                     rd=rd)
                 self.add_widget(child)
+                height += child.height + self.spacing[1]
+        self.height = height
 
     def iterbones(self, branch=None, tick=None):
         closet = self.character.closet

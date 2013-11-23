@@ -25,7 +25,7 @@ from gui.board import (
     Card,
     Pawn)
 from gui.style import LiSEStyle, LiSEColor
-from gui.charsheet import CharSheet
+from gui.charsheet import CharSheet, CharSheetView
 from gui.menu import Menu
 from util import (
     dictify_row,
@@ -462,7 +462,7 @@ For more information, consult SaveableMetaclass in util.py.
                 "character": character}}
         self.skeleton.update(
             CharSheet._select_skeleton(self.c, kd))
-        return CharSheet(character=self.get_character(character))
+        return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
         qtd = {

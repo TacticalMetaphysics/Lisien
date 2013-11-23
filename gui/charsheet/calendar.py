@@ -11,6 +11,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.layout import Layout
 from kivy.uix.widget import Widget
 from kivy.uix.relativelayout import RelativeLayout
+from kivy.clock import Clock
 from itemlayout import ItemLayout
 
 SCROLL_FACTOR = 4
@@ -105,12 +106,11 @@ here. Look in CalendarView below.
     spacing_y = NumericProperty(5)
     branches_wide = NumericProperty(2)
     col_width = NumericProperty()
-    tick_height = NumericProperty(10)
+    tick_height = NumericProperty()
     xmov = NumericProperty(0)
     xcess = NumericProperty(0)
     ymov = NumericProperty(0)
     ycess = NumericProperty(0)
-    dragging = BooleanProperty(False)
     referent = ObjectProperty(None)
     skel = ObjectProperty(None)
     force_refresh = BooleanProperty(False)
@@ -121,16 +121,27 @@ here. Look in CalendarView below.
     completedness = NumericProperty()
 
     def on_character(self, i, v):
+        """Count toward completion"""
         self.completedness += 1
 
     def on_keys(self, i, v):
+        """Count toward completion"""
         self.completedness += 1
 
     def on_completedness(self, i, v):
+        """When I have everything I need to fetch everything I'm missing, call
+self.completed().
+
+        """
         if v == 2:
             self.completed()
 
     def completed(self):
+        """Collect my referent--the object I am about--and my skel--the
+portion of the great Skeleton that pertains to my referent. Arrange to
+be notified whenever I need to lay myself out again.
+
+        """
         character = self.character
         closet = character.closet
         skeleton = closet.skeleton
@@ -139,39 +150,47 @@ here. Look in CalendarView below.
             if key is None:
                 break
             ks.append(key)
-        if self.cal_type == 0:
+        if self.cal_type == 5:
+            print ks
             (dimension, thing) = ks
             self.referent = closet.get_thing(dimension, thing)
             self.skel = skeleton["thing_location"][dimension][thing]
-        elif self.cal_type == 1:
+        elif self.cal_type == 6:
             (dimension, place) = ks
             self.referent = closet.get_place(dimension, place)
             self.skel = character.placedict[dimension][place]
-        elif self.cal_type == 2:
+        elif self.cal_type == 7:
             (dimension, orig, dest) = ks
             self.referent = closet.get_portal(dimension, orig, dest)
             self.skel = character.portaldict[dimension][orig][dest]
-        elif self.cal_type == 3:
+        elif self.cal_type == 8:
             stat = ks[0]
             self.skel = character.statdict[stat]
-        elif self.cal_type == 4:
+        elif self.cal_type == 9:
             skill = ks[0]
             self.skel = character.skilldict[skill]
+        print "calendar for {} completed".format(self.referent)
         self.skel.listeners.append(self.refresh_and_layout)
-        self.refresh_and_layout()
         self.bind(size=lambda i, v: self._trigger_layout(),
                   pos=lambda i, v: self._trigger_layout())
+        Clock.schedule_once(self.refresh_and_layout, 0)
 
     def refresh_and_layout(self, *args):
+        """Get rid of my current widgets and make new ones."""
         self.clear_widgets()
         self.force_refresh = True
         self._trigger_layout()
 
     def branch_x(self, b):
+        """Where does the column representing that branch have its left
+edge?"""
         b -= self.branch
         return self.x + self.xmov + b * self.col_width
 
     def tick_y(self, t):
+        """Where upon me does the given tick appear?
+
+That's where you'd draw the timeline for it."""
         if t is None:
             return self.y
         else:
@@ -179,6 +198,8 @@ here. Look in CalendarView below.
             return self.y + self.ymov + self.height - self.tick_height * t
 
     def refresh(self):
+        """Generate cells that are missing. Remove cells that cannot be
+seen."""
         minbranch = int(self.branch - self.branches_offscreen)
         maxbranch = int(
             self.branch + self.branches_wide + self.branches_offscreen)
@@ -213,14 +234,14 @@ here. Look in CalendarView below.
                         rd["tick_from"] > mintick):
                     # I'll be showing this cell. Choose text for it
                     # based on my type.
-                    if self.cal_type == 0:
+                    if self.cal_type == 5:
                         text = prev["location"]
-                    elif self.cal_type == 1:
+                    elif self.cal_type == 6:
                         text = prev["place"]
-                    elif self.cal_type == 2:
+                    elif self.cal_type == 7:
                         text = "{}->{}".format(
                             prev["origin"], prev["destination"])
-                    elif self.cal_type == 3:
+                    elif self.cal_type == 8:
                         text = prev["value"]
                     else:
                         text = ""
@@ -232,14 +253,14 @@ here. Look in CalendarView below.
                 prev = rd
             # The last cell is infinitely long
             if prev["tick_from"] < maxtick:
-                if self.cal_type == 0:
+                if self.cal_type == 5:
                     text = prev["location"]
-                elif self.cal_type == 1:
+                elif self.cal_type == 6:
                     text = prev["place"]
-                elif self.cal_type == 2:
+                elif self.cal_type == 7:
                     text = "{}->{}".format(
                         prev["origin"], prev["destination"])
-                elif self.cal_type == 3:
+                elif self.cal_type == 8:
                     text = prev["value"]
                 else:
                     text = ""
@@ -276,6 +297,9 @@ here. Look in CalendarView below.
                 n += 1
 
     def do_layout(self, *largs):
+        """Arrange all the cells into columns sorted by branch, and stack them
+as appropriate to their start and end times. Adjust for scrolling as
+necessary."""
         if self.parent is None:
             return
         branchwidth = self.col_width
@@ -307,12 +331,14 @@ here. Look in CalendarView below.
             child.size = (branchwidth - ws, height - hs)
 
     def on_touch_down(self, touch):
+        """Catch the touch if it hits me."""
         if self.collide_point(touch.x, touch.y):
             touch.grab(self)
             return True
 
     def on_touch_up(self, touch):
-        self.dragging = False
+        """Snap to the nearest branch and tick."""
+        touch.grab_current = None
         self.xmov = 0
         self.xcess = 0
         self.ymov = 0
@@ -320,6 +346,9 @@ here. Look in CalendarView below.
         self._trigger_layout()
 
     def on_touch_move(self, touch):
+        """If I'm being dragged, trigger a layout, but first check to see if
+I've been dragged far enough that I'm no longer at the same branch and
+tick. If so, adjust my branch and tick to fit."""
         if touch.grab_current is self:
             if self.xcess == 0:
                 nuxmov = self.xmov + touch.dx
@@ -345,4 +374,5 @@ here. Look in CalendarView below.
 
 
 class CalendarLayout(RelativeLayout, ItemLayout):
-    pass
+    """Really just a RelativeLayout with some Kivy properties to handle
+the parameters of a Calendar."""

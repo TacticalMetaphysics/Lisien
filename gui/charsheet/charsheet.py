@@ -5,12 +5,12 @@ from calendar import (
     CalendarLayout)
 from gui.kivybits import SaveableWidgetMetaclass
 from table import TableLayout
-from kivy.uix.image import Image
+from kivy.uix.image import Image as KivyImage
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.togglebutton import ToggleButton
 from kivy.properties import (
     ListProperty,
-    NumericProperty,
     ObjectProperty)
 
 
@@ -37,25 +37,35 @@ class EditButton(ToggleButton):
         return super(EditButton, self).collide_point(*self.to_local(x, y))
 
 
-class CharSheetImage(Image):
+class Image(KivyImage):
     character = ObjectProperty()
     keys = ListProperty()
     edbut = ObjectProperty()
 
     def __init__(self, **kwargs):
-        super(CharSheetImage, self).__init__(**kwargs)
+        super(Image, self).__init__(**kwargs)
         self.size = self.texture.size
 
 
-class PawnImage(CharSheetImage):
+class PawnImage(Image):
     pass
 
 
-class SpotImage(CharSheetImage):
+class SpotImage(Image):
     pass
 
 
 class CharSheet(GridLayout):
+    """A display of some or all of the information making up a Character.
+
+A CharSheet is a layout of vertically stacked widgets that are not
+usable outside of a CharSheet. Those widgets are instances or
+subclasses of Table, Calendar, or Image. In developer mode, each
+widget has a toggle next to it that will enable editing the data
+therein. The new data will be applied at the current branch and
+tick.
+
+    """
     __metaclass__ = SaveableWidgetMetaclass
     demands = ["character"]
     tables = [
@@ -91,12 +101,22 @@ class CharSheet(GridLayout):
     character = ObjectProperty()
     bone = ObjectProperty()
     style = ObjectProperty()
-    completedness = NumericProperty()
 
-    def on_parent(self, i, parent):
-        character = self.character
+    def on_character(self, i, character):
+        """Iterate over the bones under my name, and add widgets appropriate
+to each of them.
+
+Each widget gets kwargs character, style, item_type, and
+keys. item_type is an integer, defined in SHEET_ITEM_TYPE,
+representing both the widget class and the way it looks up its
+data. keys identify a particular entity whose data will be displayed,
+but they never include branch or tick--CharSheet will only display
+things appropriate to the present, whenever that may be.
+
+        """
         self.bone = character.closet.skeleton["charsheet"][unicode(character)]
         i = 0
+        height = 0
         for bone in character.closet.skeleton[u"charsheet_item"][
                 unicode(character)].iterbones():
             keylst = [bone["key0"], bone["key1"], bone["key2"]]
@@ -121,22 +141,38 @@ class CharSheet(GridLayout):
                     character=character,
                     keys=keylst)
             eb = EditButton(
-                text=character.closet.get_text('@edit'))
+                text=character.closet.get_text('@edit'),
+                group=unicode(self.character))
             w.edbut = eb
             self.add_widget(w)
             self.add_widget(eb)
             self.rows_minimum[i] = w.height
+            height += w.height + self.spacing[1]
             i += 1
+        self.height = height
 
     def on_touch_down(self, touch):
+        """If one of my children catches the touch, nobody else ought to, so
+return True in that case."""
         for child in self.children:
             if child.on_touch_down(touch):
                 return True
 
     def on_touch_move(self, touch):
+        """Dispatch this touch to all my children."""
         for child in self.children:
             child.on_touch_move(touch)
 
     def on_touch_up(self, touch):
+        """Dispatch this touch to all my children."""
         for child in self.children:
             child.on_touch_up(touch)
+
+
+class CharSheetView(ScrollView):
+    character = ObjectProperty()
+
+    def on_touch_down(self, touch):
+        super(CharSheetView, self).on_touch_down(touch)
+        if self._touch:
+            return True

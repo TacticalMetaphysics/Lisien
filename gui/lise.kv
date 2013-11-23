@@ -40,14 +40,18 @@
         pos_hint: {'x': 0, 'y': 0}
         valign: "top"
 <CalendarLayout>:
+    size: cal.size
     StencilView:
         Calendar:
             id: cal
             character: root.character
+            cal_type: root.item_type
             keys: root.keys
-            cal_type: root.item_type - 5
-            col_width: self.width / self.branches_wide - self.spacing_x
-            keys: root.keys
+            col_width: 100
+            branches_wide: 2
+            tick_height: 2
+            spacing_x: 5
+            spacing_y: 5
             font_name: root.style.fontface
             font_size: root.style.fontsize
             bg_color_inactive: root.style.bg_inactive.rgba
@@ -55,8 +59,8 @@
             text_color_inactive: root.style.text_inactive.rgba
             text_color_active: root.style.text_active.rgba
             editing: root.edbut.state == 'down' if root.edbut else False
-            size: root.size
-            pos: (0, 0)
+            width: self.branches_wide * (self.col_width + self.spacing_x)
+            height: self.tick_height * self.ticks_tall
         Timeline:
             x: (root.character.closet.kivy_connector.branch - cal.branch) * cal.col_width + cal.xmov + cal.x
             y: cal.ymov + cal.top - (root.character.closet.kivy_connector.tick - cal.tick) * cal.tick_height + cal.y
@@ -95,8 +99,12 @@
     padding: [0, 0, 0, 0]
     multiline: False
     text: self.rd[self.key]
+    font_name: self.table.font_name
+    font_size: self.table.font_size
+    height: self.table.font_size
 <TableLayout>:
     character_skel: getattr(self.character, self.chardictd[self.item_type])
+    size: tab.size
     StencilView:
         Table:
             #:import bone gui.charsheet.table.character_bone
@@ -116,7 +124,6 @@
             cols: len(self.colkeys)
             iter_skeleton: root.iterskel_dict[root.item_type](root.keys, root.character, self.skel)
             editing: root.edbut.state == 'down' if root.edbut else False
-            size: root.size
             pos: (0, 0)
 <PawnImage>:
     texture: self.character.closet.get_texture(self.character.closet.get_present_bone(self.character.closet.skeleton[u"pawn_img"][self.keys[0]][self.keys[1]])[u"img"])
@@ -126,9 +133,14 @@
     font_name: 'assets/Entypo.ttf'
     font_size: 32
     size_hint_x: 0.2
-<CharSheet>:
+<CharSheetView>:
     pos_hint: {'right': 1, 'y': 0}
     size_hint: (0.5, 1)
-    cols: 2
-    spacing: 10
-    cols_minimum: {0: self.width - 42, 1: 32}
+    scroll_type: 'bars'
+    CharSheet:
+        size_hint: (None, None)
+        width: root.width
+        character: root.character
+        cols: 2
+        spacing: 10
+        cols_minimum: {0: self.width - 42, 1: 32}
