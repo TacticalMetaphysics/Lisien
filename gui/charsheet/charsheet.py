@@ -47,14 +47,6 @@ class Image(KivyImage):
         self.size = self.texture.size
 
 
-class PawnImage(Image):
-    pass
-
-
-class SpotImage(Image):
-    pass
-
-
 class CharSheet(GridLayout):
     """A display of some or all of the information making up a Character.
 
@@ -135,16 +127,6 @@ things appropriate to the present, whenever that may be.
                     character=character,
                     style=character.closet.get_style(self.bone["style"]),
                     item_type=bone["type"],
-                    keys=keylst,
-                    edbut=eb)
-            elif bone["type"] == 10:
-                w = PawnImage(
-                    character=character,
-                    keys=keylst,
-                    edbut=eb)
-            elif bone["type"] == 11:
-                w = SpotImage(
-                    character=character,
                     keys=keylst,
                     edbut=eb)
             self.add_widget(w)
