@@ -103,6 +103,12 @@ class Board(ScrollView):
     def get_spot(self, loc):
         if unicode(loc) not in self.spotdict:
             self.spotdict[unicode(loc)] = Spot(board=self, place=loc)
+        return self.spotdict[unicode(loc)]
+
+    def get_arrow(self, loc):
+        if unicode(loc) not in self.arrowdict:
+            self.arrowdict[unicode(loc)] = Arrow(board=self, portal=loc)
+        return self.arrowdict[unicode(loc)]
 
     def new_branch(self, parent, branch, tick):
         for spot in self.spotdict.itervalues():

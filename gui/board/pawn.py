@@ -47,8 +47,9 @@ class Pawn(Scatter):
     thing = ObjectProperty()
     old_tf = ObjectProperty()
     old_tf_i = ObjectProperty()
+    on_top_of = ObjectProperty(None)
     textures = ListProperty()
-    radii = (-30, -24)
+    radii = (4, 16)
 
     def __init__(self, **kwargs):
         super(Pawn, self).__init__(**kwargs)
@@ -71,8 +72,9 @@ class Pawn(Scatter):
         skel = self.board.closet.skeleton
 
         skel["pawn_img"][dimn][thingn].listeners.append(self.upd_imagery)
-
         self.upd_imagery()
+
+        skel["thing_location"][dimn][thingn].listeners.append(self.repos)
         self.repos()
 
     def __str__(self):
@@ -171,11 +173,11 @@ If it DOES have anything else to do, make the journey in another branch.
             ody = dy - oy
             (x, y) = (float(ox + odx * prog),
                       float(oy + ody * prog))
-            return (x, y)
+            return (x + self.radii[0], y + self.radii[1])
         elif unicode(loc) in self.board.spotdict:
             locspot = self.board.spotdict[unicode(loc)]
             (x, y) = locspot.get_coords()
-            return (x, y)
+            return (x + self.radii[0], y + self.radii[1])
 
     def get_img_rd(self, branch=None, tick=None):
         if branch is None:
@@ -288,10 +290,18 @@ If it DOES have anything else to do, make the journey in another branch.
         return True
 
     def repos(self, *args):
+        where_was_i = self.on_top_of
+        if unicode(self.thing.location)[:6] == 'Portal':
+            where_am_i = self.board.get_spot(self.thing.location.origin)
+        else:
+            where_am_i = self.board.get_spot(self.thing.location)
+        self.old_tf = self.transform
+        self.old_tf_i = self.transform_inv
+        if where_was_i is not None:
+            where_was_i.unbind(transform=self.extra_translate)
+        where_am_i.bind(transform=self.extra_translate)
         self.transform.identity()
         self.pos = self.get_pos_from_loc(self.thing.location)
-        (rx, ry) = self.radii
-        self.transform.translate(rx, ry, 0)
 
     def extra_translate(self, a, t):
         self.transform.identity()
