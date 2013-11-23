@@ -2,17 +2,20 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from gui.kivybits import SaveableWidgetMetaclass
 from kivy.uix.scatter import Scatter
+from kivy.uix.image import Image
 from kivy.properties import (
-    DictProperty,
-    ObjectProperty,
-    BooleanProperty)
-from logging import getLogger
-
-
-logger = getLogger(__name__)
+    ListProperty,
+    NumericProperty,
+    ObjectProperty)
+from util import get_bone_during
 
 
 """Widget representing things that move about from place to place."""
+
+
+class PawnImage(Image):
+    pawn = ObjectProperty()
+    layer = NumericProperty()
 
 
 class Pawn(Scatter):
@@ -22,10 +25,11 @@ class Pawn(Scatter):
         ("pawn_img",
          {"dimension": "text not null default 'Physical'",
           "thing": "text not null",
+          "layer": "integer not null default 0",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
           "img": "text not null default 'default_pawn'"},
-         ("dimension", "thing", "branch", "tick_from"),
+         ("dimension", "thing", "layer", "branch", "tick_from"),
          {"dimension, thing": ("thing_location", "dimension, name"),
           "img": ("img", "name")},
          []),
@@ -43,25 +47,14 @@ class Pawn(Scatter):
     thing = ObjectProperty()
     old_tf = ObjectProperty()
     old_tf_i = ObjectProperty()
-    dragging = BooleanProperty(False)
-    tex = ObjectProperty(None)
+    textures = ListProperty()
+    radii = (-30, -24)
 
     def __init__(self, **kwargs):
-        """Return a pawn on the board for the given dimension, representing
-the given thing with the given image. It may be visible or not,
-interactive or not.
+        super(Pawn, self).__init__(**kwargs)
+        closet = self.board.closet
 
-        """
-        kwargs["size_hint"] = (None, None)
-        kwargs["imagery"] = dict(kwargs["board"].closet.skeleton["pawn_img"][
-            unicode(kwargs["board"])][unicode(kwargs["thing"])])
-        kwargs["interactivity"] = dict(
-            kwargs["board"].closet.skeleton[u"pawn_interactive"][
-                unicode(kwargs["board"])][unicode(kwargs["thing"])])
-        Scatter.__init__(
-            self, do_rotation=False, do_scale=False, **kwargs)
-
-        thing_rd = self.board.closet.skeleton[u"thing_location"][
+        thing_rd = closet.skeleton[u"thing_location"][
             unicode(self.board)][unicode(self.thing)]
         thing_rd.listeners.append(self.repos)
 
@@ -72,13 +65,14 @@ interactive or not.
 
         self.board.closet.kivy_connector.bind(
             branch=self.repos, tick=self.repos)
+
         dimn = unicode(self.board.dimension)
         thingn = unicode(self.thing)
         skel = self.board.closet.skeleton
-        skel["pawn_img"][dimn][thingn].listeners.append(self.upd_imagery)
-        skel["pawn_interactive"][dimn][
-            thingn].listeners.append(self.upd_interactivity)
 
+        skel["pawn_img"][dimn][thingn].listeners.append(self.upd_imagery)
+
+        self.upd_imagery()
         self.repos()
 
     def __str__(self):
@@ -93,26 +87,16 @@ interactive or not.
         self.size = v.size
 
     def upd_imagery(self, *args):
-        self.imagery = dict(self.board.closet.skeleton["pawn_img"][
-            unicode(self.board.dimension)][unicode(self.thing)])
-
-    def upd_interactivity(self, *args):
-        self.interactivity = dict(self.board.closet.skeleton[
-            "pawn_interactive"][unicode(self.board.dimension)][
-            unicode(self.thing)])
-
-    def set_img(self, img, branch=None, tick_from=None):
-        if branch is None:
-            branch = self.board.closet.branch
-        if tick_from is None:
-            tick_from = self.board.closet.tick
-        self.imagery[branch][tick_from] = {
-            "dimension": str(self.thing.dimension),
-            "thing": str(self.thing),
-            "board": str(self.board),
-            "branch": branch,
-            "tick_from": tick_from,
-            "img": str(img)}
+        closet = self.board.closet
+        branch = closet.branch
+        tick = closet.tick
+        for layer in self.imagery:
+            bone = get_bone_during(self.imagery[layer], branch, tick)
+            while len(self.textures) <= layer:
+                self.textures.append(None)
+            self.textures[layer] = closet.get_texture(bone["img"])
+            if len(self.children) <= layer:
+                self.add_widget(PawnImage(pawn=self, layer=layer))
 
     def set_interactive(self, branch=None, tick_from=None):
         if branch is None:
@@ -321,17 +305,3 @@ If it DOES have anything else to do, make the journey in another branch.
         return (
             x > x0 and x1 > x and
             y > y0 and y1 > y)
-
-    @property
-    def radii(self):
-        loc = self.thing.location
-        if loc is None:
-            return (self.width / 2, self.height / 2)
-        elif hasattr(loc, 'destination'):
-            locspot = self.board.get_spot(loc.origin)
-        else:
-            locspot = self.board.get_spot(loc)
-        if locspot is None:
-            return (self.width / 2, self.height / 2)
-        (lw, lh) = locspot.size
-        return (lw / 2, lh / 2)
