@@ -42,7 +42,6 @@
         valign: "top"
 <CalendarLayout>:
     size: cal.size
-    col_width: cal.col_width
     StencilView:
         Calendar:
             id: cal
@@ -72,7 +71,7 @@
                 Color:
                     rgba: 1, 0, 0, 1
                 Line:
-                    points: (self.x, self.y, self.x+root.col_width, self.y)
+                    points: (self.x, self.y, self.x+cal.col_width, self.y)
                 Triangle:
                     points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
 <TableHeader>:

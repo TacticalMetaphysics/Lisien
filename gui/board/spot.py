@@ -262,7 +262,6 @@ class Spot(Scatter):
                     coords[branch][rd3["tick_from"]] = rd3
                 started = True
             prev = tick_from
-        self.upd_coords()
 
     def new_branch(self, parent, branch, tick):
         self.new_branch_imagery(parent, branch, tick)

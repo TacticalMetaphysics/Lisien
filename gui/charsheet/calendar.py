@@ -408,4 +408,4 @@ tick. If so, adjust my branch and tick to fit."""
 class CalendarLayout(RelativeLayout, ItemLayout):
     """Really just a RelativeLayout with some Kivy properties to handle
 the parameters of a Calendar."""
-    col_width = NumericProperty()
+    pass

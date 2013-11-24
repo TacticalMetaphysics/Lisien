@@ -101,11 +101,15 @@ class Board(ScrollView):
         return self.closet.get_texture(self.bone["wallpaper"])
 
     def get_spot(self, loc):
+        if loc is None:
+            return None
         if unicode(loc) not in self.spotdict:
             self.spotdict[unicode(loc)] = Spot(board=self, place=loc)
         return self.spotdict[unicode(loc)]
 
     def get_arrow(self, loc):
+        if loc is None:
+            return None
         if unicode(loc) not in self.arrowdict:
             self.arrowdict[unicode(loc)] = Arrow(board=self, portal=loc)
         return self.arrowdict[unicode(loc)]

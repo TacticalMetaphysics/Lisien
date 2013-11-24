@@ -72,7 +72,10 @@ underneath a Pawn."""
             ref = self.board.get_spot(loc.origin)
         else:
             ref = self.board.get_spot(loc)
-        (x, y) = ref.size
+        try:
+            (x, y) = self.sizecheat = ref.size
+        except AttributeError:
+            (x, y) = self.sizecheat
         return (x / 4, y / 2)
 
     def __init__(self, **kwargs):
@@ -216,22 +219,23 @@ If it DOES have anything else to do, make the journey in another branch.
         started = False
         imagery = self.board.closet.skeleton["pawn_img"][
             unicode(self.board.dimension)][unicode(self.thing)]
-        for tick_from in imagery[parent]:
-            if tick_from >= tick:
-                rd2 = dict(imagery[parent][tick_from])
-                rd2["branch"] = branch
-                if branch not in imagery:
-                    imagery[branch] = {}
-                imagery[branch][rd2["tick_from"]] = rd2
-                if (
-                        not started and prev is not None and
-                        tick_from > tick and prev < tick):
-                    rd3 = dict(imagery[parent][prev])
-                    rd3["branch"] = branch
-                    rd3["tick_from"] = tick
-                    imagery[branch][rd3["tick_from"]] = rd3
-                started = True
-            prev = tick_from
+        for layer in imagery:
+            for tick_from in imagery[layer][parent]:
+                if tick_from >= tick:
+                    rd2 = dict(imagery[layer][parent][tick_from])
+                    rd2["branch"] = branch
+                    if branch not in imagery[layer]:
+                        imagery[layer][branch] = {}
+                    imagery[layer][branch][rd2["tick_from"]] = rd2
+                    if (
+                            not started and prev is not None and
+                            tick_from > tick and prev < tick):
+                        rd3 = dict(imagery[layer][parent][prev])
+                        rd3["branch"] = branch
+                        rd3["tick_from"] = tick
+                        imagery[layer][branch][rd3["tick_from"]] = rd3
+                        started = True
+                    prev = tick_from
         self.upd_imagery()
 
     def is_interactive(self, branch=None, tick=None):
@@ -270,7 +274,6 @@ If it DOES have anything else to do, make the journey in another branch.
                     interactivity[branch][rd3["tick_from"]] = rd3
                 started = True
             prev = tick_from
-        self.upd_interactivity()
 
     def on_touch_up(self, touch):
         if touch.grab_current is not self:
@@ -287,6 +290,8 @@ If it DOES have anything else to do, make the journey in another branch.
         return True
 
     def repos(self, *args):
+        if self.thing.location is None:
+            return
         if self.where_upon is not None:
             if hasattr(self.where_upon, 'portal'):
                 for place in (self.where_upon.portal.origin,
