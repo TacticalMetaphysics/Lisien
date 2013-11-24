@@ -46,7 +46,7 @@ will update its position appropriately.
          ("dimension", "thing", "layer", "branch", "tick_from"),
          {"dimension, thing": ("thing_location", "dimension, name"),
           "img": ("img", "name")},
-         ["layer>=0", "branch>=0", "tick>=0"]),
+         ["layer>=0", "branch>=0", "tick_from>=0"]),
         ("pawn_interactive",
          {"dimension": "text not null default 'Physical'",
           "thing": "text not null",

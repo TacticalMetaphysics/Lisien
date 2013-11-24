@@ -189,9 +189,12 @@ given name.
         self.old_skeleton = self.skeleton.copy()
 
         if USE_KIVY:
-            from gui.kivybits import load_textures
+            from gui.kivybits import load_textures, ins_texture
             self.load_textures = lambda names: load_textures(
                 self.c, self.skeleton, self.texturedict, names)
+            self.ins_texture = lambda path, name: ins_texture(
+                self.skeleton, self.texturedict,
+                path, name, ('rltiles' in path))
             self.USE_KIVY = True
 
         self.timestream = Timestream(self)
@@ -283,7 +286,9 @@ given name.
             'mi_create_thing':
             (self.mi_create_thing, ONE_ARG_RE),
             'mi_create_portal':
-            (self.mi_create_portal, ONE_ARG_RE)}
+            (self.mi_create_portal, ONE_ARG_RE),
+            'mi_show_popup':
+            (self.mi_show_popup, ONE_ARG_RE)}
 
     def __del__(self):
         """Try to write changes to disk before dying.
@@ -829,6 +834,10 @@ For more information, consult SaveableMetaclass in util.py.
     def get_present_bone(self, skel):
         return get_bone_during(skel, self.branch, self.tick)
 
+    def mi_show_popup(self, mi, name):
+        assert(name == 'load_pic')
+        root = mi.get_root_window().children[0]
+        return root.show_pic_loader()
 
 def mkdb(DB_NAME='default.sqlite'):
     def isdir(p):

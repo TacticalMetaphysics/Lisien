@@ -1,7 +1,9 @@
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.popup import Popup
 from kivy.properties import ObjectProperty, ListProperty, StringProperty
 from kivy.clock import Clock
+import os
 
 
 class LiSELayout(FloatLayout):
@@ -14,8 +16,8 @@ to the board.
 
     """
     menus = ListProperty()
-    board = ObjectProperty()
     charsheets = ListProperty()
+    board = ObjectProperty()
 
     def __init__(self, **kwargs):
         """Add board first, then menus and charsheets."""
@@ -37,6 +39,31 @@ the touch event, return."""
                 return
         self.board.on_touch_down(touch)
 
+    def dismiss_popup(self):
+        self._popup.dismiss()
+
+    def show_pic_loader(self):
+        content = LoadImgDialog(
+            load=self.ins_tex,
+            cancel=self.dismiss_popup)
+        self._popup = Popup(title="Select an image file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+
+    def ins_tex(self, path, filename):
+        self.board.closet.ins_texture(os.path.join(path, filename[0]), filename[0])
+        self.dismiss_popup()
+
+
+class LoadImgDialog(FloatLayout):
+    load = ObjectProperty()
+    cancel = ObjectProperty()
+
+
+from kivy.factory import Factory
+Factory.register('LiSELayout', cls=LiSELayout)
+Factory.register('LoadImgDialog', cls=LoadImgDialog)
+
 
 class LiSEApp(App):
     closet = ObjectProperty()
@@ -50,5 +77,4 @@ class LiSEApp(App):
         menu = self.closet.load_menu(self.menu_name)
         board = self.closet.load_board(self.dimension_name)
         charsheet = self.closet.load_charsheet(self.character_name)
-        layout = LiSELayout(menus=[menu], board=board, charsheets=[charsheet])
-        return layout
+        return LiSELayout(menus=[menu], board=board, charsheets=[charsheet])

@@ -162,9 +162,9 @@ is mostly for printing."""
             if v is None and self.bone in (None, False):
                 continue
             elif self.bone is None:
-                self.bone = v.__class__ in (str, unicode, int, float)
+                self.bone = v.__class__ in (str, unicode, int, float, bool)
             if self.bone is True:
-                assert(v.__class__ in (str, unicode, int, float, type(None)))
+                assert(v.__class__ in (str, unicode, int, float, bool, type(None)))
                 self[k] = v
             elif hasattr(v, 'content'):
                 self[k] = self.__class__(
