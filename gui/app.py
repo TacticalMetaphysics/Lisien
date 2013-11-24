@@ -28,6 +28,11 @@ to the board.
         for charsheet in self.charsheets:
             self.add_widget(charsheet)
 
+    def on_parent(self, i, v):
+        if v is None:
+            return
+        v.size = (1024, 768)
+
     def on_touch_down(self, touch):
         """Poll menus, then charsheets, then the board. Once someone handles
 the touch event, return."""

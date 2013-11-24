@@ -80,7 +80,6 @@ class Menu(BoxLayout):
                 style = self.symbol_style
             else:
                 style = self.text_style
-            text = self.closet.get_text(rd["text"])
             ocmatch = match(ON_CLICK_RE, rd["on_click"])
             if ocmatch is not None:
                 (ocfn, ocargs) = ocmatch.groups()
@@ -96,7 +95,11 @@ class Menu(BoxLayout):
                     font_size=style.fontsize,
                     oncl=on_click_fun,
                     fargs=fargs,
-                    text=text)
+                    text=self.closet.get_text(rd["text"]))
+
+                def retext(*args):
+                    it.text = self.closet.get_text(rd["text"])
+                self.closet.register_text_listener(rd["text"], retext)
                 self.add_widget(it)
 
     def get_pos_hint(self):

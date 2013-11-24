@@ -839,6 +839,14 @@ For more information, consult SaveableMetaclass in util.py.
         root = mi.get_root_window().children[0]
         return root.show_pic_loader()
 
+    def register_text_listener(self, stringn, listener):
+        if stringn == "@branch":
+            self.branch_listeners.append(listener)
+        elif stringn == "@tick":
+            self.tick_listeners.append(listener)
+        if stringn[0] == "@" and stringn[1:] in self.skeleton["strings"]:
+            self.skeleton["strings"][stringn[1:]].listeners.append(listener)
+
 def mkdb(DB_NAME='default.sqlite'):
     def isdir(p):
         try:
