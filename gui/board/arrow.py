@@ -43,11 +43,9 @@ class Arrow(Widget):
         self.canvas.add(self.fg_color)
         self.canvas.add(self.fg_line)
 
-        def startup(*args):
-            self.parent.bind(pos=self.realign, size=self.realign)
-            self.realign()
-
-        Clock.schedule_once(startup, 0)
+    def on_parent(self, i, v):
+        v.bind(pos=self.realign, size=self.realign)
+        self.realign()
 
     def __unicode__(self):
         return unicode(self.portal)

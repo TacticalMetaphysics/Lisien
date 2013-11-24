@@ -62,7 +62,6 @@ class Spot(Scatter):
     coords = ObjectProperty()
     interactivity = ObjectProperty()
     imagery = ObjectProperty()
-    auto_bring_to_front = BooleanProperty(False)
     completedness = NumericProperty(0)
     tex = ObjectProperty(None)
 
@@ -123,12 +122,14 @@ class Spot(Scatter):
         if cords is None:
             return (self.cheatx, self.cheaty)
         (x, y) = cords
-        r = (x, y)
-        (self.cheatx, self.cheaty) = r
+        r = (self.cheatx, self.cheaty) = (x, y)
         return r
 
     def repos(self, *args):
+        oldtf = self.transform
+        self.transform.identity()
         self.pos = self.get_pos()
+        self.apply_transform(oldtf)
 
     def set_pos(self, v):
         if self.board is not None:
@@ -230,21 +231,15 @@ class Spot(Scatter):
             branch = self.board.closet.branch
         if tick_from is None:
             tick_from = self.board.closet.tick
-        coords = self.board.closet.skeleton["spot_coords"][
-            unicode(self.board)][unicode(self.place)]
-        assert branch in coords, "Make a new branch first"
-        coords[branch][tick_from] = {
+        self.board.closet.skeleton["spot_coords"][
+            unicode(self.board)][unicode(self.place)][
+            branch][tick_from] = {
             "dimension": unicode(self.board),
             "place": unicode(self.place),
             "branch": branch,
             "tick_from": tick_from,
             "x": x,
             "y": y}
-        self.upd_coords()
-
-    def upd_coords(self, *args):
-        self.coords = dict(self.board.closet.skeleton["spot_coords"][
-            unicode(self.board)][unicode(self.place)])
 
     def new_branch_coords(self, parent, branch, tick):
         prev = None
@@ -320,13 +315,7 @@ class Spot(Scatter):
             prev = tick_from
         self.upd_imagery()
 
-    def on_touch_move(self, touch):
-        if touch.grab_current is self:
-            self.x += touch.dx
-            self.y += touch.dy
-            return True
-
     def on_touch_up(self, touch):
+        super(Spot, self).on_touch_up(touch)
         if touch.grab_current is self:
-            self.set_coords(self.x, self.y)
-            return True
+            self.set_coords(*self.pos)

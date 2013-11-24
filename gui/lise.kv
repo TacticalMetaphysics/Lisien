@@ -3,6 +3,7 @@
     size_hint: (None, None)
     size: self.textures[0].size if len(self.textures) > 0 else (0, 0)
     do_rotation: False
+    do_scale: False
     interactivity: self.board.closet.skeleton[u"pawn_interactive"][unicode(self.board)][unicode(self.thing)]
     imagery: self.board.closet.skeleton[u"pawn_img"][unicode(self.board)][unicode(self.thing)]
 <PawnImage>:
@@ -14,6 +15,7 @@
     interactivity: self.board.closet.skeleton[u"spot_interactive"][unicode(self.board)][unicode(self.place)]
     imagery: self.board.closet.skeleton[u"spot_img"][unicode(self.board)][unicode(self.place)]
     tex: self.get_texture()
+    do_scale: False
     Image:
         id: img
         texture: root.tex

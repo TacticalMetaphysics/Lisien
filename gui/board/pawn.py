@@ -45,11 +45,9 @@ class Pawn(Scatter):
     interactivity = ObjectProperty()
     board = ObjectProperty()
     thing = ObjectProperty()
-    old_tf = ObjectProperty()
-    old_tf_i = ObjectProperty()
-    on_top_of = ObjectProperty(None)
     textures = ListProperty()
     radii = (4, 16)
+    where_upon = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         super(Pawn, self).__init__(**kwargs)
@@ -269,12 +267,6 @@ If it DOES have anything else to do, make the journey in another branch.
             prev = tick_from
         self.upd_interactivity()
 
-    def on_touch_move(self, touch):
-        if touch.grab_current is not self:
-            return
-        self.x += touch.dx
-        self.y += touch.dy
-
     def on_touch_up(self, touch):
         if touch.grab_current is not self:
             return
@@ -290,24 +282,49 @@ If it DOES have anything else to do, make the journey in another branch.
         return True
 
     def repos(self, *args):
-        where_was_i = self.on_top_of
-        if unicode(self.thing.location)[:6] == 'Portal':
-            where_am_i = self.board.get_spot(self.thing.location.origin)
+        if self.where_upon is not None:
+            if hasattr(self.where_upon, 'portal'):
+                for place in (self.where_upon.portal.origin,
+                              self.where_upon.portal.destination):
+                    self.board.get_spot(place).unbind(
+                        transform=self.transform_on_arrow)
+            else:
+                self.board.get_spot(self.where_upon).unbind(
+                    transform=self.transform_on_spot)
+        if hasattr(self.thing.location, 'origin'):
+            self.where_upon = self.board.get_arrow(self.thing.location)
+            for place in (self.where_upon.portal.origin,
+                          self.where_upon.portal.destination):
+                self.board.get_spot(place).bind(
+                    transform=self.transform_on_arrow)
+            ospot = self.board.get_spot(self.thing.location.origin)
+            self.pos = ospot.pos
+            self.transform_on_arrow(ospot, ospot.transform)
         else:
-            where_am_i = self.board.get_spot(self.thing.location)
-        self.old_tf = self.transform
-        self.old_tf_i = self.transform_inv
-        if where_was_i is not None:
-            where_was_i.unbind(transform=self.extra_translate)
-        where_am_i.bind(transform=self.extra_translate)
-        self.transform.identity()
-        self.pos = self.get_pos_from_loc(self.thing.location)
+            self.where_upon = self.board.get_spot(self.thing.location)
+            self.where_upon.bind(transform=self.transform_on_spot)
+            self.pos = self.where_upon.pos
+            self.transform_on_spot(self.where_upon, self.where_upon.transform)
 
-    def extra_translate(self, a, t):
+    def transform_on_spot(self, i, v):
+        """Presently, I am located atop the spot. I want to be located a bit
+up and to the side, so you can reach the spot below me."""
         self.transform.identity()
-        self.apply_transform(t)
-        (rx, ry) = self.radii
-        self.transform.translate(rx, ry, 0)
+        self.apply_transform(v)
+        self.transform.translate(self.radii[0], self.radii[1], 0)
+
+    def transform_on_arrow(self, i, v):
+        """I am located some ways along the arrow. Work out how far on each
+axis and transform so I appear there."""
+        origspot = self.board.get_spot(self.where_upon.portal.origin)
+        destspot = self.board.get_spot(self.where_upon.portal.destination)
+        progress = self.thing.get_progress()
+        (orig_x, orig_y) = self.where_upon.pos
+        xtrans = (destspot.x - origspot.x) * progress + self.radii[0]
+        ytrans = (destspot.y - origspot.y) * progress + self.radii[1]
+        self.transform.identity()
+        self.apply_transform(v)
+        self.transform.translate(xtrans, ytrans, 0)
 
     def collide_point(self, x, y):
         (x0, y0) = self.to_parent(0, 0)
