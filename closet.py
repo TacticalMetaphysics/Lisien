@@ -121,31 +121,36 @@ before RumorMill will work. For that, run mkdb.sh.
 
     @property
     def dimensions(self):
+        """Iterate over all dimensions."""
         return self.dimensiondict.itervalues()
 
     @property
     def characters(self):
+        """Iterate over all characters."""
         return self.characterdict.itervalues()
 
     @property
-    def dimension(self):
-        return self.skeleton["game"]["dimension"]
-
-    @property
     def branch(self):
+        """Return the branch of time currently being simulated."""
         return self.skeleton["game"]["branch"]
 
     @property
     def tick(self):
+        """Return the tick of time currently being simulated."""
         return self.skeleton["game"]["tick"]
 
     @property
     def language(self):
+        """Return the language selected for the game."""
         return self.skeleton["game"]["language"]
 
     def __setattr__(self, attrn, val):
-        if attrn in ("dimension", "branch", "tick", "language"):
-            self.skeleton["game"][attrn] = val
+        if attrn == "branch":
+            self.upd_branch(val)
+        elif attrn == "tick":
+            self.upd_tick(val)
+        elif attrn == "language":
+            self.upd_lang(val)
         else:
             super(Closet, self).__setattr__(attrn, val)
 
@@ -154,6 +159,9 @@ before RumorMill will work. For that, run mkdb.sh.
 given name.
 
         """
+        self.branch_listeners = []
+        self.tick_listeners = []
+        self.lang_listeners = []
         self.connector = connector
 
         self.c = self.connector.cursor()
@@ -184,12 +192,6 @@ given name.
             from gui.kivybits import load_textures
             self.load_textures = lambda names: load_textures(
                 self.c, self.skeleton, self.texturedict, names)
-            from gui.kivybits import KivyConnector
-            self.kivy_connector = KivyConnector(
-                language=self.language,
-                dimension=self.dimension,
-                branch=self.branch,
-                tick=self.tick)
             self.USE_KIVY = True
 
         self.timestream = Timestream(self)
@@ -290,6 +292,21 @@ given name.
         self.c.close()
         self.connector.commit()
         self.connector.close()
+
+    def upd_branch(self, b):
+        for listener in self.branch_listeners:
+            listener(self, b)
+        self.skeleton["game"]["branch"] = b
+
+    def upd_tick(self, t):
+        for listener in self.tick_listeners:
+            listener(self, t)
+        self.skeleton["game"]["tick"] = t
+
+    def upd_lang(self, l):
+        for listener in self.lang_listeners:
+            listener(self, l)
+        self.skeleton["game"]["language"] = l
 
     def constructorate(self, cls):
 
@@ -737,13 +754,8 @@ For more information, consult SaveableMetaclass in util.py.
         self.time_travel_history.append((self.branch, self.tick))
         if tick > self.timestream.hi_tick:
             self.timestream.hi_tick = tick
-            if hasattr(self, 'USE_KIVY'):
-                self.kivy_connector.hi_tick = tick
         self.branch = branch
         self.tick = tick
-        if hasattr(self, 'USE_KIVY'):
-            self.kivy_connector.branch = branch
-            self.kivy_connector.tick = tick
 
     def increment_branch(self, branches=1):
         b = self.branch + int(branches)
@@ -807,12 +819,8 @@ For more information, consult SaveableMetaclass in util.py.
             self.timestream.hi_branch = rd["branch"]
         if "tick_from" in rd and rd["tick_from"] > self.timestream.hi_tick:
             self.timestream.hi_tick = rd["tick_from"]
-            if hasattr(self, 'USE_KIVY'):
-                self.kivy_connector.hi_tick = rd["tick_from"]
         if "tick_to" in rd and rd["tick_to"] > self.timestream.hi_tick:
             self.timestream.hi_tick = rd["tick_to"]
-            if hasattr(self, 'USE_KIVY'):
-                self.kivy_connector.hi_tick = rd["tick_to"]
 
     def uptick_skel(self):
         for rd in self.skeleton.iterbones():

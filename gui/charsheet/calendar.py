@@ -23,6 +23,16 @@ CAL_TYPE = {
     "SKILL": 4}
 
 
+def get_timeline_x(calendar, branch):
+    return ((branch - calendar.branch) * calendar.col_width
+            + calendar.xmov + calendar.x)
+
+
+def get_timeline_y(calendar, tick):
+    return calendar.ymov + calendar.top + calendar.y - (
+        tick - calendar.tick) * calendar.tick_height
+
+
 class ColorBox(BoxLayout):
     """A BoxLayout with a background of a particular color.
 
@@ -73,8 +83,17 @@ It may be dragged about to achieve time travel. It needs a
 KivyConnector so it can tell when to update.
 
     """
-    connector = ObjectProperty()
     col_width = NumericProperty()
+
+    def upd_branch(self, calendar, branch):
+        self.x = get_timeline_x(calendar, branch)
+
+    def upd_tick(self, calendar, tick):
+        self.y = get_timeline_y(calendar, tick)
+
+    def upd_time(self, calendar, branch, tick):
+        self.upd_branch(calendar, branch)
+        self.upd_tick(calendar, tick)
 
 
 class Calendar(Layout):
@@ -119,6 +138,7 @@ here. Look in CalendarView below.
     text_color_inactive = ListProperty()
     text_color_active = ListProperty()
     completedness = NumericProperty()
+    timeline = ObjectProperty()
 
     def on_character(self, i, v):
         """Count toward completion"""
@@ -128,12 +148,16 @@ here. Look in CalendarView below.
         """Count toward completion"""
         self.completedness += 1
 
+    def on_timeline(self, i, v):
+        """Count toward completion"""
+        self.completedness += 1
+
     def on_completedness(self, i, v):
         """When I have everything I need to fetch everything I'm missing, call
 self.completed().
 
         """
-        if v == 2:
+        if v == 3:
             self.completed()
 
     def completed(self):
@@ -144,6 +168,15 @@ be notified whenever I need to lay myself out again.
         """
         character = self.character
         closet = character.closet
+        closet.branch_listeners.append(
+            lambda closet, branch: self.timeline.upd_branch(self, branch))
+        closet.tick_listeners.append(
+            lambda closet, tick: self.timeline.upd_tick(self, tick))
+        self.bind(size=lambda i, v: self.timeline.upd_time(
+            self, closet.branch, closet.tick))
+        self.bind(pos=lambda i, v: self.timeline.upd_time(
+            self, closet.branch, closet.tick))
+        self.timeline.upd_time(self, closet.branch, closet.tick)
         skeleton = closet.skeleton
         ks = []
         for key in self.keys:
@@ -169,7 +202,6 @@ be notified whenever I need to lay myself out again.
         elif self.cal_type == 9:
             skill = ks[0]
             self.skel = character.skilldict[skill]
-        print "calendar for {} completed".format(self.referent)
         self.skel.listeners.append(self.refresh_and_layout)
         self.bind(size=lambda i, v: self._trigger_layout(),
                   pos=lambda i, v: self._trigger_layout())
@@ -376,4 +408,4 @@ tick. If so, adjust my branch and tick to fit."""
 class CalendarLayout(RelativeLayout, ItemLayout):
     """Really just a RelativeLayout with some Kivy properties to handle
 the parameters of a Calendar."""
-    pass
+    col_width = NumericProperty()

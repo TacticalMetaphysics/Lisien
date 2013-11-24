@@ -1159,16 +1159,28 @@ class Timestream(object):
 
     def __init__(self, closet):
         self.closet = closet
+        self.hi_branch_listeners = []
+        self.hi_tick_listeners = []
         self.hi_branch = 0
         self.hi_tick = 0
 
     def __setattr__(self, attrn, val):
-        if (
-                hasattr(self, 'closet') and
-                hasattr(self.closet, 'USE_KIVY') and
-                attrn in ("hi_branch", "hi_tick")):
-            setattr(self.closet.kivy_connector, attrn, val)
-        super(Timestream, self).__setattr__(attrn, val)
+        if attrn == "hi_branch":
+            self.set_hi_branch(val)
+        elif attrn == "hi_tick":
+            self.set_hi_tick(val)
+        else:
+            super(Timestream, self).__setattr__(attrn, val)
+
+    def set_hi_branch(self, b):
+        for listener in self.hi_branch_listeners:
+            listener(self, b)
+        super(Timestream, self).__setattr__("hi_branch", b)
+
+    def set_hi_tick(self, t):
+        for listener in self.hi_tick_listeners:
+            listener(self, t)
+        super(Timestream, self).__setattr__("hi_tick", t)
 
     def branches(self, table=None):
         if table is None:

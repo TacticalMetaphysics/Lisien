@@ -20,7 +20,21 @@ class PawnImage(Image):
 
 class Pawn(Scatter):
     __metaclass__ = SaveableWidgetMetaclass
-    """A token to represent something that moves about between places."""
+    """A token to represent something that moves about between places.
+
+Pawns are graphical widgets made of one or more textures layered atop
+one another. The textures are assumed to be 32x32 pixels.
+
+Pawns represent Things in those cases where a Thing is located
+directly in a Place or a Portal. The corresponding Pawn will appear
+atop the Place's Spot or the Portal's Arrow.
+
+If a Pawn is currently interactive, it may be dragged to a new Spot,
+which has the effect of ordering its Thing to travel there. This takes
+some amount of game time. Whenever the game-time changes, the Pawn
+will update its position appropriately.
+
+    """
     tables = [
         ("pawn_img",
          {"dimension": "text not null default 'Physical'",
@@ -32,7 +46,7 @@ class Pawn(Scatter):
          ("dimension", "thing", "layer", "branch", "tick_from"),
          {"dimension, thing": ("thing_location", "dimension, name"),
           "img": ("img", "name")},
-         []),
+         ["layer>=0", "branch>=0", "tick>=0"]),
         ("pawn_interactive",
          {"dimension": "text not null default 'Physical'",
           "thing": "text not null",
@@ -46,24 +60,34 @@ class Pawn(Scatter):
     board = ObjectProperty()
     thing = ObjectProperty()
     textures = ListProperty()
-    radii = (4, 16)
     where_upon = ObjectProperty(None)
 
+    @property
+    def radii(self):
+        """Return x and y offsets that will put this Pawn at a slightly
+different point on a Spot, so that it's easy to grab the Spot
+underneath a Pawn."""
+        loc = self.thing.location
+        if hasattr(loc, 'origin'):
+            ref = self.board.get_spot(loc.origin)
+        else:
+            ref = self.board.get_spot(loc)
+        (x, y) = ref.size
+        return (x / 4, y / 2)
+
     def __init__(self, **kwargs):
+        """Arrange to update my textures and my position whenever the relevant
+data change.
+
+The relevant data are
+
+* The branch and tick, being the two measures of game-time.
+* The imagery in the table pawn_img
+* The location data for the Thing I represent, in the table thing_location"""
         super(Pawn, self).__init__(**kwargs)
-        closet = self.board.closet
 
-        thing_rd = closet.skeleton[u"thing_location"][
-            unicode(self.board)][unicode(self.thing)]
-        thing_rd.listeners.append(self.repos)
-
-        (rx, ry) = self.radii
-        self.transform.translate(rx, ry, 0)
-        self.old_tf = self.transform
-        self.old_tf_i = self.transform_inv
-
-        self.board.closet.kivy_connector.bind(
-            branch=self.repos, tick=self.repos)
+        self.board.closet.branch_listeners.append(self.repos)
+        self.board.closet.tick_listeners.append(self.repos)
 
         dimn = unicode(self.board.dimension)
         thingn = unicode(self.thing)
@@ -157,25 +181,6 @@ If it DOES have anything else to do, make the journey in another branch.
             self.thing.journey_to(spotto.place)
         self.drag_offset_x = 0
         self.drag_offset_y = 0
-
-    def get_pos_from_loc(self, loc):
-        if loc is None:
-            return (0, 0)
-        if hasattr(loc, 'destination'):
-            origspot = self.board.spotdict[unicode(loc.origin)]
-            destspot = self.board.spotdict[unicode(loc.destination)]
-            (ox, oy) = origspot.get_coords()
-            (dx, dy) = destspot.get_coords()
-            prog = self.thing.get_progress()
-            odx = dx - ox
-            ody = dy - oy
-            (x, y) = (float(ox + odx * prog),
-                      float(oy + ody * prog))
-            return (x + self.radii[0], y + self.radii[1])
-        elif unicode(loc) in self.board.spotdict:
-            locspot = self.board.spotdict[unicode(loc)]
-            (x, y) = locspot.get_coords()
-            return (x + self.radii[0], y + self.radii[1])
 
     def get_img_rd(self, branch=None, tick=None):
         if branch is None:

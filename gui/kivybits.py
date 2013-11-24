@@ -3,19 +3,9 @@ from kivy.core.image import ImageData
 from kivy.properties import (
     NumericProperty,
     StringProperty)
-from kivy.event import EventDispatcher
 from img import Tex
 from util import SaveableMetaclass
 from kivy.uix.widget import WidgetMetaclass
-
-
-class KivyConnector(EventDispatcher):
-    language = StringProperty()
-    dimension = StringProperty()
-    branch = NumericProperty()
-    tick = NumericProperty()
-    hi_branch = NumericProperty()
-    hi_tick = NumericProperty()
 
 
 class SaveableWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):

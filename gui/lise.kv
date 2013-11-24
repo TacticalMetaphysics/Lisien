@@ -42,9 +42,11 @@
         valign: "top"
 <CalendarLayout>:
     size: cal.size
+    col_width: cal.col_width
     StencilView:
         Calendar:
             id: cal
+            timeline: tl
             character: root.character
             cal_type: root.item_type
             keys: root.keys
@@ -62,14 +64,15 @@
             editing: root.edbut.state == 'down' if root.edbut else False
             width: self.branches_wide * (self.col_width + self.spacing_x)
             height: self.tick_height * self.ticks_tall
+            on_branch: tl.upd_branch
+            on_tick: tl.upd_tick
         Timeline:
-            x: (root.character.closet.kivy_connector.branch - cal.branch) * cal.col_width + cal.xmov + cal.x
-            y: cal.ymov + cal.top - (root.character.closet.kivy_connector.tick - cal.tick) * cal.tick_height + cal.y
+            id: tl
             canvas:
                 Color:
                     rgba: 1, 0, 0, 1
                 Line:
-                    points: (self.x, self.y, self.x+cal.col_width, self.y)
+                    points: (self.x, self.y, self.x+root.col_width, self.y)
                 Triangle:
                     points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
 <TableHeader>:
