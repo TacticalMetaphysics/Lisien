@@ -853,8 +853,8 @@ def mkdb(DB_NAME='default.sqlite'):
 
     def ins_rltiles(curs, dirname):
         here = os.getcwd()
-        directories = os.path.abspath(dirname).split("/")
-        home = "/".join(directories[:-len(dirname.split("/"))]) + "/"
+        directories = os.path.abspath(dirname).split(os.sep)
+        home = os.sep.join(directories[:-len(dirname.split(os.sep))]) + os.sep
         dirs = allsubdirs(dirname)
         for dir in dirs:
             for bmp in os.listdir(dir):
@@ -862,9 +862,9 @@ def mkdb(DB_NAME='default.sqlite'):
                     continue
                 qrystr = """insert or replace into img
     (name, path, rltile) values (?, ?, ?)"""
-                bmpr = bmp.replace('.bmp', '')
                 dirr = dir.replace(home, '') + bmp
-                curs.execute(qrystr, (bmpr, dirr, True))
+                name = dirr.replace(dirname, '')[1:]
+                curs.execute(qrystr, (name, dirr, True))
         os.chdir(here)
 
     try:
