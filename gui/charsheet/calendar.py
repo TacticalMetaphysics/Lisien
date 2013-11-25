@@ -172,11 +172,15 @@ be notified whenever I need to lay myself out again.
             lambda closet, branch: self.timeline.upd_branch(self, branch))
         closet.tick_listeners.append(
             lambda closet, tick: self.timeline.upd_tick(self, tick))
-        self.bind(size=lambda i, v: self.timeline.upd_time(
-            self, closet.branch, closet.tick))
-        self.bind(pos=lambda i, v: self.timeline.upd_time(
-            self, closet.branch, closet.tick))
-        self.timeline.upd_time(self, closet.branch, closet.tick)
+        self.bind(
+            size=lambda i, v: self.timeline.upd_time(
+                self, closet.branch, closet.tick),
+            pos=lambda i, v: self.timeline.upd_time(
+                self, closet.branch, closet.tick),
+            xmov=lambda i, v: self.timeline.upd_branch(self, closet.branch),
+            ymov=lambda i, v: self.timeline.upd_tick(self, closet.tick))
+        self.timeline.upd_time(
+            self, closet.branch, closet.tick)
         skeleton = closet.skeleton
         ks = []
         for key in self.keys:

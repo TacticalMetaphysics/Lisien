@@ -13,8 +13,6 @@ thing located there.
     """
     def __init__(self, dimension, v):
         assert(isinstance(v, Vertex))
-        if "->" in v["name"]:
-            raise ValueError("String \"->\" is not allowed in Place names")
         self.dimension = dimension
         self.closet = self.dimension.closet
         self.v = v

@@ -103,6 +103,9 @@ class Board(ScrollView):
     def get_spot(self, loc):
         if loc is None:
             return None
+        if not hasattr(loc, 'v'):
+            # I think this isn't always raising when I expect it to
+            raise TypeError("Spots should only be made for Places")
         if unicode(loc) not in self.spotdict:
             self.spotdict[unicode(loc)] = Spot(board=self, place=loc)
         return self.spotdict[unicode(loc)]
@@ -110,6 +113,8 @@ class Board(ScrollView):
     def get_arrow(self, loc):
         if loc is None:
             return None
+        if not hasattr(loc, 'origin'):
+            raise TypeError("Arrows should only be made for Portals")
         if unicode(loc) not in self.arrowdict:
             self.arrowdict[unicode(loc)] = Arrow(board=self, portal=loc)
         return self.arrowdict[unicode(loc)]
@@ -119,3 +124,9 @@ class Board(ScrollView):
             spot.new_branch(parent, branch, tick)
         for pawn in self.pawndict.itervalues():
             pawn.new_branch(parent, branch, tick)
+
+    def on_touch_down(self, touch):
+        for preemptor in ("charsheet", "menu"):
+            if preemptor in touch.ud:
+                return
+        return super(Board, self).on_touch_down(touch)

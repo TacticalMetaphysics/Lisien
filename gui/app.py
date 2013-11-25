@@ -28,21 +28,30 @@ to the board.
         for charsheet in self.charsheets:
             self.add_widget(charsheet)
 
-    def on_parent(self, i, v):
-        if v is None:
-            return
-        v.size = (1024, 768)
+    def dismiss_popup(self):
+        self._popup.dismiss()
 
-    def on_touch_down(self, touch):
-        """Poll menus, then charsheets, then the board. Once someone handles
-the touch event, return."""
-        for menu in self.menus:
-            if menu.on_touch_down(touch):
-                return
-        for charsheet in self.charsheets:
-            if charsheet.on_touch_down(touch):
-                return
-        self.board.on_touch_down(touch)
+    def show_pic_loader(self):
+        content = LoadImgDialog(
+            load=self.ins_tex,
+            cancel=self.dismiss_popup)
+        self._popup = Popup(title="Select an image file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+
+    def ins_tex(self, path, filename):
+        self.board.closet.ins_texture(os.path.join(path, filename[0]), filename[0])
+        self.dismiss_popup()
+
+
+class LoadImgDialog(FloatLayout):
+    load = ObjectProperty()
+    cancel = ObjectProperty()
+
+
+from kivy.factory import Factory
+Factory.register('LiSELayout', cls=LiSELayout)
+Factory.register('LoadImgDialog', cls=LoadImgDialog)
 
     def dismiss_popup(self):
         self._popup.dismiss()

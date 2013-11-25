@@ -290,6 +290,9 @@ If it DOES have anything else to do, make the journey in another branch.
         return True
 
     def repos(self, *args):
+        if '->' in unicode(self.thing.location):
+            from model.portal import Portal
+            assert(isinstance(self.thing.location, Portal))
         if self.thing.location is None:
             return
         if self.where_upon is not None:
@@ -299,8 +302,9 @@ If it DOES have anything else to do, make the journey in another branch.
                     self.board.get_spot(place).unbind(
                         transform=self.transform_on_arrow)
             else:
-                self.board.get_spot(self.where_upon).unbind(
+                self.where_upon.unbind(
                     transform=self.transform_on_spot)
+        print("relocating to {} of class {}".format(self.thing.location, self.thing.location.__class__))
         if hasattr(self.thing.location, 'origin'):
             self.where_upon = self.board.get_arrow(self.thing.location)
             for place in (self.where_upon.portal.origin,

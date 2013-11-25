@@ -183,13 +183,25 @@ class TableTextInput(TextInput):
         elif ittyp == 0:
             skel = character.closet.skeleton["thing_location"][
                 self.rd["dimension"]][self.rd["thing"]]
-            m = match(placex, self.text)
-            if m is not None:
-                save = True
-            else:
-                m = match(portex, self.text)
-                if m is not None:
+            dimension = character.closet.get_dimension(self.rd["dimension"])
+            if "->" in self.text:
+                (orign, destn) = self.text.split("->")
+                origin = character.closet.get_place(
+                    self.rd["dimension"], orign)
+                destination = character.closet.get_place(
+                    self.rd["dimension"], destn)
+                ovid = origin.v.index
+                dvid = destination.v.index
+                try:
+                    eid = dimension.graph.get_eid(ovid, dvid)
+                    portal = dimension.graph.es[eid]["portal"]
+                    self.text = unicode(portal)
                     save = True
+                except Exception as e:
+                    print e
+                    pass
+            elif self.text in dimension.graph.vs["name"]:
+                save = True
         elif ittyp == 1:
             return
         elif ittyp == 2:
@@ -219,6 +231,10 @@ class TableTextInput(TextInput):
             super(TableTextInput, self).on_touch_down(touch)
             return True
 
+    def edbut_listener(self, i, v):
+        if v == 'normal':
+            self.focus = False
+
 
 class TableHeader(BoxLayout):
     table = ObjectProperty()
@@ -241,6 +257,7 @@ class Table(GridLayout):
     skel = ObjectProperty()
     iter_skeleton = ObjectProperty()
     edbut = ObjectProperty()
+    xmov = NumericProperty()
 
     def on_completedness(self, i, v):
         if v == 4:
@@ -259,16 +276,12 @@ class Table(GridLayout):
         self.completedness += 1
 
     def completed(self):
-        width = 0
         for key in self.colkeys:
             head = TableHeader(
                 table=self,
                 text=key)
             self.headers.append(head)
             self.add_widget(head)
-            width += head.width + self.spacing[0]
-        self.width = width
-        height = head.height
 
         for rd in self.iter_skeleton():
             for key in self.colkeys:
@@ -277,8 +290,7 @@ class Table(GridLayout):
                     key=key,
                     rd=rd)
                 self.add_widget(child)
-                height += child.height + self.spacing[1]
-        self.height = height
+                self.edbut.extra_listeners.append(child.edbut_listener)
 
     def iterbones(self, branch=None, tick=None):
         closet = self.character.closet
@@ -291,8 +303,20 @@ class Table(GridLayout):
 
     def on_touch_down(self, touch):
         for child in self.children:
-            if child.on_touch_down(touch):
+            if not child.disabled and child.on_touch_down(touch):
                 return True
+        touch.grab(self)
+        return True
+
+    def on_touch_move(self, touch):
+        if touch.grab_current is not self:
+            return
+        self.xmov += touch.dx
+        return True
+
+    def on_touch_up(self, touch):
+        self.xmov = 0
+        return super(Table, self).on_touch_up(touch)
 
 
 class TableLayout(ItemLayout, StencilView):
@@ -318,4 +342,3 @@ class TableLayout(ItemLayout, StencilView):
         2: mk_iter_skeleton,
         3: mk_iter_skeleton_stat,
         4: mk_iter_skeleton_skill}
-
