@@ -158,6 +158,11 @@ class CharSheetView(ScrollView):
     character = ObjectProperty()
 
     def on_touch_down(self, touch):
-        super(CharSheetView, self).on_touch_down(touch)
-        if self._touch:
+        if super(CharSheetView, self).on_touch_down(touch):
+            touch.ud["charsheet"] = self.children[0]
             return True
+
+    def on_touch_up(self, touch):
+        if "charsheet" in touch.ud:
+            del touch.ud["charsheet"]
+        return super(CharSheetView, self).on_touch_up(touch)

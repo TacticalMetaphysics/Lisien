@@ -102,16 +102,16 @@ tick in the given branch."""
             return None
         if rd is None or rd["location"] is None:
             return None
-        m = match(thingex, rd["location"])
-        if m is not None:
-            return self.dimension.get_thing(*m.groups())
-        m = match(placex, rd["location"])
-        if m is not None:
-            return self.dimension.get_place(*m.groups())
-        m = match(portex, rd["location"])
-        if m is not None:
-            return self.dimension.get_portal(*m.groups())
-        return None
+        if rd["location"] in self.dimension.graph.vs["name"]:
+            return self.dimension.get_place(rd["location"])
+        try:
+            (orign, destn) = rd["location"].split("->")
+            oi = self.dimension.graph.vs.find(orign).index
+            di = self.dimension.graph.vs.find(destn).index
+            eid = self.dimension.graph.get_eid(oi, di)
+            return self.dimension.graph.es[eid]["portal"]
+        except Exception as e:
+            return self.dimension.get_thing(rd["location"])
 
     def get_location_bone(self, branch=None, tick=None):
         if branch is None:
@@ -147,7 +147,7 @@ If not, I'm nowhere, and therefore don't exist."""
             "thing": unicode(self),
             "branch": branch,
             "tick_from": tick,
-            "location": repr(loc)}
+            "location": unicode(loc)}
         self.closet.timestream.upbranch(branch)
         self.closet.timestream.uptick(tick)
 
@@ -180,11 +180,7 @@ Presupposes that I'm in a portal.
         """Return a float representing the proportion of the portal I have
 passed through.
 
-If I'm not in a Portal, raise LocationException.
-
         """
-        if str(self.location)[:6] != "Portal":
-            raise LocationException("Not in portal")
         if branch is None:
             branch = self.closet.branch
         if tick is None:
@@ -195,6 +191,13 @@ If I'm not in a Portal, raise LocationException.
         t1 = self.get_location_bone(branch, tick)["tick_from"]
         # this is when I will enter the destination
         t2 = self.locations[branch].key_after(tick)
+        if t2 is None:
+            # I entered the portal without scheduling when to leave.
+            # This should never happen *in play* but I guess a
+            # developer might put me in the portal before scheduling
+            # my time to leave it.  Return 0.5 so that I appear
+            # halfway thru the portal, therefore, clearly "in" it.
+            return 0.5
         duration = float(t2 - t1)
         passed = float(tick - t1)
         return passed / duration

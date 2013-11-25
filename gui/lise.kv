@@ -103,13 +103,14 @@
     font_name: self.table.font_name
     font_size: self.table.font_size
     height: self.table.font_size
+    size_hint_x: 1
     disabled: self.table.edbut.state == 'normal'
 <TableLayout>:
     character_skel: getattr(self.character, self.chardictd[self.item_type])
-    size: tab.size
     Table:
         #:import bone gui.charsheet.table.character_bone
         id: tab
+        col_default_width: 75
         edbut: root.edbut
         skel: bone(self, root.keys, root.character_skel)
         bg_color_active: root.style.bg_active.rgba
@@ -125,7 +126,8 @@
         colkeys: root.colkey_dict[root.item_type]
         cols: len(self.colkeys)
         iter_skeleton: root.iterskel_dict[root.item_type](root.keys, root.character, self.skel)
-        pos: root.pos
+        x: root.x + self.xmov
+        y: root.y
 <EditButton>:
     font_name: 'assets/Entypo.ttf'
     font_size: 32
@@ -135,8 +137,8 @@
     size_hint: (0.5, 1)
     scroll_type: 'bars'
     CharSheet:
-        size_hint: (None, None)
-        width: root.width
+        size_hint: (1, None)
+        width: root.width if root.height >= self.height else root.width - root.bar_width
         character: root.character
         cols: 2
         spacing: 10

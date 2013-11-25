@@ -30,6 +30,12 @@ class Portal(object):
         self.dimension.graph.add_edge(
             self.origin.index, self.destination.index, portal=self)
 
+    def __str__(self):
+        return "{}->{}".format(str(self.origin), str(self.destination))
+
+    def __unicode__(self):
+        return u"{}->{}".format(unicode(self.origin), unicode(self.destination))
+
     def __repr__(self):
         return "Portal({0}->{1})".format(
             self.origin, self.destination)
