@@ -104,6 +104,7 @@ class Board(ScrollView):
         if loc is None:
             return None
         if not hasattr(loc, 'v'):
+            # I think this isn't always raising when I expect it to
             raise TypeError("Spots should only be made for Places")
         if unicode(loc) not in self.spotdict:
             self.spotdict[unicode(loc)] = Spot(board=self, place=loc)

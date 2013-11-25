@@ -231,16 +231,9 @@ class TableTextInput(TextInput):
             super(TableTextInput, self).on_touch_down(touch)
             return True
 
-    def on_disabled(self, i, v):
-        if v:
+    def edbut_listener(self, i, v):
+        if v == 'normal':
             self.focus = False
-        super(TableTextInput, self).on_disabled(i, v)
-
-    def on_focus(self, i, v):
-        if not v:
-            self.on_text_validate()
-        else:
-            super(TableTextInput, self).on_focus(i, v)
 
 
 class TableHeader(BoxLayout):
@@ -297,6 +290,7 @@ class Table(GridLayout):
                     key=key,
                     rd=rd)
                 self.add_widget(child)
+                self.edbut.extra_listeners.append(child.edbut_listener)
 
     def iterbones(self, branch=None, tick=None):
         closet = self.character.closet

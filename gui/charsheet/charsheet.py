@@ -33,8 +33,14 @@ SHEET_TO_CAL_TYPE = dict(
 
 
 class EditButton(ToggleButton):
+    extra_listeners = ListProperty([])
+
     def collide_point(self, x, y):
         return super(EditButton, self).collide_point(*self.to_local(x, y))
+
+    def on_state(self, i, v):
+        for listener in self.extra_listeners:
+            listener(i, v)
 
 
 class Image(KivyImage):
