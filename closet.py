@@ -404,7 +404,7 @@ For more information, consult SaveableMetaclass in util.py.
         return menuitem.window.create_place()
 
     def mi_create_thing(self, menuitem):
-        return menuitem.window.create_thing()
+        menuitem.parent.parent.show_pic_loader()
 
     def mi_create_portal(self, menuitem):
         return menuitem.window.create_portal()

@@ -184,24 +184,27 @@ class TableTextInput(TextInput):
             skel = character.closet.skeleton["thing_location"][
                 self.rd["dimension"]][self.rd["thing"]]
             dimension = character.closet.get_dimension(self.rd["dimension"])
+            thing = character.closet.get_thing(
+                self.rd["dimension"], self.rd["thing"])
             if "->" in self.text:
                 (orign, destn) = self.text.split("->")
-                origin = character.closet.get_place(
-                    self.rd["dimension"], orign)
-                destination = character.closet.get_place(
-                    self.rd["dimension"], destn)
-                ovid = origin.v.index
-                dvid = destination.v.index
+                ovid = dimension.graph.vs.find(name=orign)
+                dvid = dimension.graph.vs.find(name=destn)
                 try:
                     eid = dimension.graph.get_eid(ovid, dvid)
                     portal = dimension.graph.es[eid]["portal"]
-                    self.text = unicode(portal)
+                    thing.set_location(portal)
                     save = True
                 except Exception as e:
                     print e
                     pass
-            elif self.text in dimension.graph.vs["name"]:
-                save = True
+            else:
+                try:
+                    v = dimension.graph.vs.find(name=self.text)
+                    thing.set_location(v["place"])
+                    save = True
+                except ValueError:
+                    pass
         elif ittyp == 1:
             return
         elif ittyp == 2:
@@ -218,11 +221,9 @@ class TableTextInput(TextInput):
                 unicode(self.character)][self.rd["skill"]]
             # and check that the Cause exists
             save = True
-        branch = character.closet.branch
-        tick = character.closet.tick
-        if save:
-            skel[branch][tick][self.key] = type(self.rd[self.key])(self.text)
-        else:
+        if not save:
+            branch = character.closet.branch
+            tick = skel[branch].key_or_key_before(character.closet.tick)
             self.text = skel[branch][tick][self.key]
 
     def on_touch_down(self, touch):

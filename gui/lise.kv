@@ -1,3 +1,15 @@
+<Swatch>:
+    BoxLayout:
+        orientation: 'vertical'
+        Image:
+            texture: root.display_texture
+        Label:
+            text: root.display_text
+            color: root.color
+            disabled_color: root.disabled_color
+            font_name: root.font_name
+            font_size: root.font_size
+            disabled: root.state == 'normal'
 <LoadImgDialog>:
     BoxLayout:
         size: root.size

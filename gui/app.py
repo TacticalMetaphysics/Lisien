@@ -3,7 +3,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
 from kivy.properties import ObjectProperty, ListProperty, StringProperty
 from kivy.clock import Clock
-import os
+from swatchbox import SwatchBox
 
 
 class LiSELayout(FloatLayout):
@@ -32,40 +32,15 @@ to the board.
         self._popup.dismiss()
 
     def show_pic_loader(self):
-        content = LoadImgDialog(
-            load=self.ins_tex,
-            cancel=self.dismiss_popup)
-        self._popup = Popup(title="Select an image file", content=content,
+        content = SwatchBox(
+            texdict=self.board.closet.texturedict,
+            style=self.board.closet.get_style('default_style'),
+            cols=5)
+        self._popup = Popup(title="Select some images", content=content,
                             size_hint=(0.9, 0.9))
         self._popup.open()
 
     def ins_tex(self, path, filename):
-        self.board.closet.ins_texture(os.path.join(path, filename[0]), filename[0])
-        self.dismiss_popup()
-
-
-class LoadImgDialog(FloatLayout):
-    load = ObjectProperty()
-    cancel = ObjectProperty()
-
-
-from kivy.factory import Factory
-Factory.register('LiSELayout', cls=LiSELayout)
-Factory.register('LoadImgDialog', cls=LoadImgDialog)
-
-    def dismiss_popup(self):
-        self._popup.dismiss()
-
-    def show_pic_loader(self):
-        content = LoadImgDialog(
-            load=self.ins_tex,
-            cancel=self.dismiss_popup)
-        self._popup = Popup(title="Select an image file", content=content,
-                            size_hint=(0.9, 0.9))
-        self._popup.open()
-
-    def ins_tex(self, path, filename):
-        self.board.closet.ins_texture(os.path.join(path, filename[0]), filename[0])
         self.dismiss_popup()
 
 

@@ -15,6 +15,7 @@ thing located there.
         assert(isinstance(v, Vertex))
         self.dimension = dimension
         self.closet = self.dimension.closet
+        v["place"] = self
         self.v = v
 
     def __getattr__(self, attrn):

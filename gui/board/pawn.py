@@ -304,7 +304,6 @@ If it DOES have anything else to do, make the journey in another branch.
             else:
                 self.where_upon.unbind(
                     transform=self.transform_on_spot)
-        print("relocating to {} of class {}".format(self.thing.location, self.thing.location.__class__))
         if hasattr(self.thing.location, 'origin'):
             self.where_upon = self.board.get_arrow(self.thing.location)
             for place in (self.where_upon.portal.origin,
@@ -325,7 +324,8 @@ If it DOES have anything else to do, make the journey in another branch.
 up and to the side, so you can reach the spot below me."""
         self.transform.identity()
         self.apply_transform(v)
-        self.transform.translate(self.radii[0], self.radii[1], 0)
+        (rx, ry) = self.radii
+        self.transform.translate(rx, ry, 0)
 
     def transform_on_arrow(self, i, v):
         """I am located some ways along the arrow. Work out how far on each
@@ -339,10 +339,3 @@ axis and transform so I appear there."""
         self.transform.identity()
         self.apply_transform(v)
         self.transform.translate(xtrans, ytrans, 0)
-
-    def collide_point(self, x, y):
-        (x0, y0) = self.to_parent(0, 0)
-        (x1, y1) = self.to_parent(*self.size)
-        return (
-            x > x0 and x1 > x and
-            y > y0 and y1 > y)
