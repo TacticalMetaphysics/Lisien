@@ -315,6 +315,6 @@ class Spot(Scatter):
         self.upd_imagery()
 
     def on_touch_up(self, touch):
-        super(Spot, self).on_touch_up(touch)
         if touch.grab_current is self:
             self.set_coords(*self.pos)
+        super(Spot, self).on_touch_up(touch)
