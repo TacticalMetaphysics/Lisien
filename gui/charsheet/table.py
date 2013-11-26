@@ -193,6 +193,11 @@ class TableTextInput(TextInput):
             skel = closet.skeleton[u"thing_location"][
                 self.bone["dimension"]][self.bone["thing"]][
                 branch]
+            # Sometimes I get called during the creation of a new
+            # branch, before the new branch has anything in it. Wait
+            # it out.
+            if len(skel) == 0:
+                return
             tick_from = skel.key_or_key_before(tick)
             self.text = skel[tick_from]["location"]
         elif ittyp == 1:

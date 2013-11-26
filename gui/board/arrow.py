@@ -68,13 +68,19 @@ class Arrow(Widget):
         (ox, oy) = orig.pos
         # orig.size is SUPPOSED to be the same as orig.tex.size but
         # sometimes it isn't, because threading
-        (ow, oh) = orig.tex.size
+        try:
+            (ow, oh) = orig.tex.size
+        except AttributeError:
+            (ow, oh) = (0, 0)
         orx = ow / 2
         ory = ow / 2
         ox += orx
         oy += ory
         (dx, dy) = dest.pos
-        (dw, dh) = dest.tex.size
+        try:
+            (dw, dh) = dest.tex.size
+        except AttributeError:
+            (dw, dh) = (0, 0)
         drx = dw / 2
         dry = dh / 2
         dx += drx

@@ -474,6 +474,7 @@ declared in the order they appear in the tables attribute.
             primarykeys[name] = pkey
             foreignkeys[name] = fkeys
             checks[name] = cks
+        tablenames = tuple(tablenames)
         inserts = {}
         deletes = {}
         detects = {}
@@ -593,34 +594,31 @@ declared in the order they appear in the tables attribute.
             except EmptySkeleton:
                 return
 
-        def gen_sql_delete(keydicts, tabname):
+        def gen_sql_delete(keydict, tabname):
             try:
                 keyns = keynames[tabname]
             except KeyError:
                 return
             keys = []
-            wheres = []
-            kitr = Skeleton(content=keydicts).iterbones()
-            if len(kitr) == 0 or tabname not in tablenames:
+            if tabname not in tablenames:
                 raise EmptySkeleton
-            for keydict in kitr:
-                checks = []
-                for keyn in keyns:
-                    checks.append(keyn + "=?")
-                    keys.append(keydict[keyn])
-                wheres.append("(" + " AND ".join(checks) + ")")
-            wherestr = " OR ".join(wheres)
-            qrystr = "DELETE FROM {0} WHERE {1}".format(tabname, wherestr)
+            checks = []
+            for keyn in keyns:
+                checks.append(keyn + "=?")
+                keys.append(keydict[keyn])
+            where = "(" + " AND ".join(checks) + ")"
+            qrystr = "DELETE FROM {0} WHERE {1}".format(tabname, where)
             return (qrystr, tuple(keys))
 
         @staticmethod
         def delete_keydicts_table(c, keydicts, tabname):
             if len(keydicts) == 0:
                 return
-            try:
-                c.execute(*gen_sql_delete(keydicts, tabname))
-            except EmptySkeleton:
-                return
+            for keybone in keydicts.iterbones():
+                try:
+                    c.execute(*gen_sql_delete(keybone, tabname))
+                except EmptySkeleton:
+                    return
 
         def gen_sql_select(keydicts, tabname):
             keys_in_use = set()

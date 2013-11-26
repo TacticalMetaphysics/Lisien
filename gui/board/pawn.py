@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from gui.kivybits import SaveableWidgetMetaclass
+from kivy.clock import Clock
 from kivy.uix.scatter import Scatter
 from kivy.uix.image import Image
 from kivy.properties import (
@@ -119,6 +120,11 @@ The relevant data are
         tick = closet.tick
         for layer in self.imagery:
             bone = get_bone_during(self.imagery[layer], branch, tick)
+            if bone is None:
+                # Imagery apparently not really ready yet.
+                # Come back later.
+                Clock.schedule_once(self.upd_imagery, 0)
+                return
             while len(self.textures) <= layer:
                 self.textures.append(None)
             self.textures[layer] = closet.get_texture(bone["img"])

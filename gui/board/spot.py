@@ -64,6 +64,8 @@ class Spot(Scatter):
     imagery = ObjectProperty()
     completedness = NumericProperty(0)
     tex = ObjectProperty(None)
+    cheatx = NumericProperty(0)
+    cheaty = NumericProperty(0)
 
     def __str__(self):
         return str(self.place)
@@ -80,11 +82,11 @@ class Spot(Scatter):
     def on_coords(self, i, v):
         self.completedness += 1
         v.listeners.append(self.repos)
-        self.repos()
 
     def on_completedness(self, i, v):
         if v == 3:
             self.imagery.listeners.append(self.retex)
+            self.repos()
 
     def retex(self, *args):
         self.tex = self.get_texture()

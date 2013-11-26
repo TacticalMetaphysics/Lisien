@@ -394,7 +394,7 @@ tick. If so, adjust my branch and tick to fit."""
                     self.xcess += touch.dx
             else:
                 self.xcess += touch.dx
-                if self.xcess > 0:
+                if self.xcess < 0:
                     self.xcess = 0
             if self.ycess == 0:
                 nuymov = self.ymov + touch.dy

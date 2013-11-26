@@ -428,6 +428,7 @@ For more information, consult SaveableMetaclass in util.py.
         to_save = self.skeleton - self.old_skeleton
         to_delete = self.old_skeleton - self.skeleton
         for clas in saveable_classes:
+            assert(len(clas.tablenames) > 0)
             for tabname in clas.tablenames:
                 if tabname in to_delete:
                     clas._delete_keydicts_table(
@@ -965,8 +966,9 @@ def mkdb(DB_NAME='default.sqlite'):
                 (demands, provides, prelude, tablenames, postlude))
             continue
         breakout = False
-        while tablenames != []:
-            tn = tablenames.pop(0)
+        tables_todo = list(tablenames)
+        while tables_todo != []:
+            tn = tables_todo.pop(0)
             try:
                 c.execute(schemata[tn])
                 done.add(tn)
