@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from math import sqrt, hypot, atan, pi, sin, cos
 from sqlite3 import IntegrityError
-from collections import deque, MutableMapping
+from collections import deque, namedtuple, MutableMapping
 from re import match, compile, findall
 
 
@@ -474,7 +474,6 @@ declared in the order they appear in the tables attribute.
             primarykeys[name] = pkey
             foreignkeys[name] = fkeys
             checks[name] = cks
-        tablenames = tuple(tablenames)
         inserts = {}
         deletes = {}
         detects = {}
@@ -564,7 +563,11 @@ declared in the order they appear in the tables attribute.
             missings[tablename] = missing_stmt_start
             schemata[tablename] = create_stmt
         saveables.append(
-            (demands, provides, prelude, tablenames, postlude))
+            (tuple(demands),
+             tuple(provides),
+             tuple(prelude),
+             tuple(tablenames),
+             tuple(postlude)))
 
         def gen_sql_insert(bones, tabname):
             if tabname in bones:
@@ -777,20 +780,32 @@ declared in the order they appear in the tables attribute.
             '_gen_sql_delete': gen_sql_delete,
             '_gen_sql_detect': gen_sql_detect,
             '_gen_sql_missing': gen_sql_missing,
-            'colnames': colnames,
-            'colnamestr': colnamestr,
+            'colnames': namedtuple(
+                clas + '_colnames',
+                colnames.keys())._make(
+                    colnamestr.itervalues()),
+            'colnamestr': namedtuple(
+                clas + '_colnamestr',
+                colnamestr.keys())._make(
+                    colnamestr.itervalues()),
             'colnstr': colnamestr[tablenames[0]],
-            'keynames': keynames,
-            'valnames': valnames,
-            'keyns': keynames[tablenames[0]],
-            'valns': valnames[tablenames[0]],
-            'colns': colnames[tablenames[0]],
+            'keynames': namedtuple(
+                clas + '_keynames',
+                keynames.keys())._make(
+                    keynames.itervalues()),
+            'valnames': namedtuple(
+                clas + '_valnames',
+                valnames.keys())._make(
+                    valnames.itervalues()),
+            'keyns': tuple(keynames[tablenames[0]]),
+            'valns': tuple(valnames[tablenames[0]]),
+            'colns': tuple(colnames[tablenames[0]]),
             'keylen': keylen,
             'rowlen': rowlen,
             'keyqms': keyqms,
             'rowqms': rowqms,
             'maintab': tablenames[0],
-            'tablenames': tablenames}
+            'tablenames': tuple(tablenames)}
         atrdic.update(attrs)
 
         clas = type.__new__(metaclass, clas, parents, atrdic)
