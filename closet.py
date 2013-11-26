@@ -28,7 +28,8 @@ from gui.style import LiSEStyle, LiSEColor
 from gui.charsheet import CharSheet, CharSheetView
 from gui.menu import Menu
 from util import (
-    dictify_row,
+    row2bone,
+    Bone,
     schemata,
     saveables,
     saveable_classes,
@@ -77,6 +78,16 @@ MAKE_THING_ARG_RE = re.compile(
     "(.+)\.(.+)@(.+)")
 PORTAL_NAME_RE = re.compile(
     "Portal\((.+)->(.+)\)")
+
+
+game_bone = Bone.subclass(
+    'game_bone',
+    ("language", "seed", "dimension", "branch", "tick"))
+
+
+string_bone = Bone.subclass(
+    'string_bone',
+    ("stringname", "language", "string"))
 
 
 class Closet(object):
@@ -171,16 +182,16 @@ given name.
         # data--represented only as those types which sqlite3 is
         # capable of storing. All my objects are ultimately just
         # views on this thing.
-        self.skeleton = Skeleton()
+        self.skeleton = Skeleton({})
         for saveable in saveables:
             for tabn in saveable[3]:
                 self.skeleton[tabn] = {}
         self.c.execute(
             "SELECT language, seed, dimension, branch, tick FROM game")
         self.skeleton.update(
-            {"game": dictify_row(
+            {"game": row2bone(
                 self.c.fetchone(),
-                ("language", "seed", "dimension", "branch", "tick"))})
+                game_bone)})
         if "language" in kwargs:
             self.skeleton["game"]["language"] = kwargs["language"]
         # This is a copy of the skeleton as it existed at the time of
@@ -452,11 +463,11 @@ For more information, consult SaveableMetaclass in util.py.
         if "strings" not in self.skeleton:
             self.skeleton["strings"] = {}
         for row in self.c:
-            rowd = dictify_row(row, ("stringname", "language", "string"))
-            if rowd["stringname"] not in self.skeleton["strings"]:
-                self.skeleton["strings"][rowd["stringname"]] = {}
+            bone = row2bone(row, string_bone)
+            if bone.stringname not in self.skeleton["strings"]:
+                self.skeleton["strings"][bone.stringname] = {}
             self.skeleton["strings"][
-                rowd["stringname"]][rowd["language"]] = rowd
+                bone.stringname][bone.language] = bone
 
     def make_generic_place(self, dimension):
         placen = "generic_place_{0}".format(len(dimension.graph.vs))
@@ -485,26 +496,27 @@ For more information, consult SaveableMetaclass in util.py.
 
     def load_charsheet(self, character):
         character = str(character)
-        kd = {
-            "charsheet": {
-                "character": character},
-            "charsheet_item": {
-                "character": character}}
+        bd = {
+            "charsheet": [
+                CharSheet.bonetypes.charsheet(character=character)],
+            "charsheet_item": [
+                CharSheet.bonetypes.charsheet_item(character=character)]}
         self.skeleton.update(
-            CharSheet._select_skeleton(self.c, kd))
+            CharSheet._select_skeleton(self.c, bd))
         return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
-        qtd = {
-            "character_things": {},
-            "character_places": {},
-            "character_portals": {},
-            "character_stats": {},
-            "character_skills": {},
-            "character_subcharacters": {}}
-        for name in names:
-            for tabn in qtd.keys():
-                qtd[tabn][name] = {"character": name}
+        qtd = {}
+        tabns = ("character_things",
+                 "character_places",
+                 "character_portals",
+                 "character_stats",
+                 "character_skills",
+                 "character_subcharacters")
+        for tabn in tabns:
+            qtd[tabn] = [
+                getattr(Character.bonetypes, tabn)(name=n)
+                for n in names]
         self.skeleton.update(
             Character._select_skeleton(self.c, qtd))
         r = {}
@@ -558,13 +570,11 @@ For more information, consult SaveableMetaclass in util.py.
         # you want to selectively load the parts of it that the player
         # is interested in at the moment, the game world being too
         # large to practically load all at once.
-        kd = {"portal": {},
-              "thing_location": {}}
-        for name in names:
-            kd["portal"][name] = {"dimension": name}
-            kd["thing_location"][name] = {"dimension": name}
-        dimtd = Portal._select_skeleton(self.c, kd)
-        dimtd.update(Thing._select_skeleton(self.c, kd))
+        dimtd = Portal._select_skeleton(self.c, {
+            "portal": [Portal.bonetype(dimension=n) for n in names]})
+        dimtd.update(Thing._select_skeleton(self.c, {
+            "thing_location": [
+                Thing.bonetype(dimension=n) for n in names]}))
         self.skeleton.update(dimtd)
         r = {}
         for name in names:
@@ -594,14 +604,16 @@ For more information, consult SaveableMetaclass in util.py.
 
     def load_board(self, name):
         self.skeleton.update(Board._select_skeleton(self.c, {
-            "board": {"dimension": name}}))
+            "board": [Board.bonetype(dimension=name)]}))
         self.skeleton.update(Spot._select_skeleton(self.c, {
-            "spot_img": {"dimension": name},
-            "spot_interactive": {"dimension": name},
-            "spot_coords": {"dimension": name}}))
+            "spot_img": [Spot.bonetypes.spot_img(dimension=name)],
+            "spot_interactive": [Spot.bonetypes.spot_interactive(
+                dimension=name)],
+            "spot_coords": [Spot.bonetypes.spot_coords(dimension=name)]}))
         self.skeleton.update(Pawn._select_skeleton(self.c, {
-            "pawn_img": {"dimension": name},
-            "pawn_interactive": {"dimension": name}}))
+            "pawn_img": [Pawn.bonetypes.pawn_img(dimension=name)],
+            "pawn_interactive": [
+                Pawn.bonetypes.pawn_interactive(dimension=name)]}))
         return self.get_board(name)
 
     def get_board(self, name):
@@ -634,11 +646,9 @@ For more information, consult SaveableMetaclass in util.py.
         return self.get_textures([imgn])[imgn]
 
     def load_colors(self, names):
-        kd = {"color": {}}
-        for name in names:
-            kd["color"][name] = {"name": name}
+        bd = {"color": [LiSEColor.bonetype(name=n) for n in names]}
         self.skeleton.update(
-            LiSEColor._select_skeleton(self.c, kd))
+            LiSEColor._select_skeleton(self.c, bd))
         r = {}
         for name in names:
             r[name] = LiSEColor(self, name)
@@ -661,11 +671,10 @@ For more information, consult SaveableMetaclass in util.py.
         return self.get_colors([name])[name]
 
     def load_styles(self, stylenames):
-        kd = {"style": {}}
-        for name in stylenames:
-            kd["style"][name] = {"name": name}
+        bd = {"style": [LiSEStyle.bonetypes.style(name=n)
+                        for n in stylenames]}
         self.skeleton.update(
-            LiSEStyle._select_skeleton(self.c, kd))
+            LiSEStyle._select_skeleton(self.c, bd))
         colornames = set()
         colorcols = set([
             'bg_inactive', 'bg_active', 'fg_inactive', 'fg_active',
@@ -699,13 +708,11 @@ For more information, consult SaveableMetaclass in util.py.
 
     def load_cards(self, names):
         effectdict = self.get_effects(names)
-        kd = {"card": {}}
-        for name in names:
-            kd["card"][name] = {"effect": name}
-        td = Card._select_skeleton(self.c, kd)
+        bd = {"card": [Card.bonetype(name=n) for n in names]}
+        td = Card._select_skeleton(self.c, bd)
         r = {}
-        for rd in td.iterbones():
-            r[rd["effect"]] = Card(self, effectdict[rd["effect"]], td)
+        for bone in td.iterbones():
+            r[rd["effect"]] = Card(self, effectdict[bone.effect], td)
         return r
 
     def get_cards(self, names):
@@ -724,23 +731,25 @@ For more information, consult SaveableMetaclass in util.py.
         return self.get_cards([name])[name]
 
     def load_menus(self, names):
-        kd = {"menu": {}}
-        for name in names:
-            kd["menu"][name] = {"name": name}
-        skel = Menu._select_skeleton(self.c, kd)
+        skel = Menu._select_skeleton(self.c, {"menu": [Menu.bonetypes.menu(name=n) for n in names]})
+        self.skeleton.update(LiSEStyle._select_skeleton(
+            self.c, {"style": [
+                LiSEStyle.bonetype(name=n) for n in
+                [bone.text_style for bone in skel.iterbones()] +
+                [bone.symbol_style for bone in skel.iterbones()]]}))
         self.skeleton.update(skel)
         r = {}
-        for rd in skel.iterbones():
-            self.load_menu_items(rd["name"])
-            r[rd["name"]] = Menu(closet=self, name=rd["name"])
+        for bone in skel.iterbones():
+            self.load_menu_items(bone.name)
+            r[bone.name] = Menu(closet=self, name=bone.name)
         return r
 
     def load_menu(self, name):
         return self.load_menus([name])[name]
 
     def load_menu_items(self, menu):
-        kd = {"menu_item": {"menu": menu}}
-        skel = Menu._select_skeleton(self.c, kd)
+        bd = {"menu_item": [Menu.bonetypes.menu_item(menu=menu)]}
+        skel = Menu._select_skeleton(self.c, bd)
         self.skeleton.update(skel)
 
     def load_timestream(self):
@@ -827,17 +836,17 @@ For more information, consult SaveableMetaclass in util.py.
     def checkpoint(self):
         self.old_skeleton = self.skeleton.copy()
 
-    def uptick_rd(self, rd):
-        if "branch" in rd and rd["branch"] > self.timestream.hi_branch:
-            self.timestream.hi_branch = rd["branch"]
-        if "tick_from" in rd and rd["tick_from"] > self.timestream.hi_tick:
-            self.timestream.hi_tick = rd["tick_from"]
-        if "tick_to" in rd and rd["tick_to"] > self.timestream.hi_tick:
-            self.timestream.hi_tick = rd["tick_to"]
+    def uptick_bone(self, bone):
+        if hasattr(bone, "branch") and bone.branch > self.timestream.hi_branch:
+            self.timestream.hi_branch = bone.branch
+        if hasattr(bone, "tick_from") and bone.tick_from > self.timestream.hi_tick:
+            self.timestream.hi_tick = bone.tick_from
+        if hasattr(bone, "tick_to") and bone.tick_to > self.timestream.hi_tick:
+            self.timestream.hi_tick = bone.tick_to
 
     def uptick_skel(self):
-        for rd in self.skeleton.iterbones():
-            self.uptick_rd(rd)
+        for bone in self.skeleton.iterbones():
+            self.uptick_bone(bone)
 
     def get_present_bone(self, skel):
         return get_bone_during(skel, self.branch, self.tick)
@@ -940,30 +949,31 @@ def mkdb(DB_NAME='default.sqlite'):
                 break
         if breakout:
             continue
-        while prelude != []:
-            pre = prelude.pop()
+        prelude_todo = list(prelude)
+        while prelude_todo != []:
+            pre = prelude_todo.pop()
             if isinstance(pre, tuple):
                 c.execute(*pre)
             else:
                 c.execute(pre)
-        if tablenames == []:
-            while postlude != []:
-                post = postlude.pop()
+        if len(tablenames) == 0:
+            for post in postlude:
                 if isinstance(post, tuple):
                     c.execute(*post)
                 else:
                     c.execute(post)
             continue
+        prelude_todo = list(prelude)
         try:
-            while prelude != []:
-                pre = prelude.pop()
+            while prelude_todo != []:
+                pre = prelude_todo.pop()
                 if isinstance(pre, tuple):
                     c.execute(*pre)
                 else:
                     c.execute(pre)
         except sqlite3.OperationalError as e:
             saveables.append(
-                (demands, provides, prelude, tablenames, postlude))
+                (demands, provides, prelude_todo, tablenames, postlude))
             continue
         breakout = False
         tables_todo = list(tablenames)
@@ -979,11 +989,12 @@ def mkdb(DB_NAME='default.sqlite'):
                 break
         if breakout:
             saveables.append(
-                (demands, provides, prelude, tablenames, postlude))
+                (demands, provides, prelude_todo, tables_todo, postlude))
             continue
+        postlude_todo = list(postlude)
         try:
-            while postlude != []:
-                post = postlude.pop()
+            while postlude_todo != []:
+                post = postlude_todo.pop()
                 if isinstance(post, tuple):
                     c.execute(*post)
                 else:
@@ -994,7 +1005,7 @@ def mkdb(DB_NAME='default.sqlite'):
             import pdb
             pdb.set_trace()
             saveables.append(
-                (demands, provides, prelude, tablenames, postlude))
+                (demands, provides, prelude_todo, tables_todo, postlude_todo))
             continue
         done.update(provides)
 

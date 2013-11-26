@@ -45,12 +45,12 @@ whole character, and I need a consistent API here.
         branch = closet.branch
     if tick is None:
         tick = closet.tick
-    for rd in skel.iterbones():
+    for bone in skel.iterbones():
         if (
-                rd["branch"] == branch and
-                rd["tick_from"] <= tick and (
-                    rd["tick_to"] is None or
-                    rd["tick_to"] >= tick)):
+                bone.branch == branch and
+                bone.tick_from <= tick and (
+                    bone.tick_to is None or
+                    bone.tick_to >= tick)):
             yield rd
 
 
@@ -299,13 +299,13 @@ class Table(GridLayout):
     headers = ListProperty()
     content_children = ListProperty()
     colkeys = ListProperty()
-    skel = ObjectProperty()
+    skel = ObjectProperty(None)
     iter_skeleton = ObjectProperty()
     edbut = ObjectProperty()
     xmov = NumericProperty()
 
     def on_completedness(self, i, v):
-        if v == 5:
+        if v == 6:
             self.complete()
 
     def on_text_color_inactive(self, *args):
@@ -321,6 +321,9 @@ class Table(GridLayout):
         self.completedness += 1
 
     def on_parent(self, *args):
+        self.completedness += 1
+
+    def on_character_skel(self, *args):
         self.completedness += 1
 
     def capitate(self):
@@ -344,6 +347,7 @@ class Table(GridLayout):
                     child.time_listener)
 
     def complete(self):
+        self.skel = character_bone(self, self.parent.keys, self.character_skel)
         self.capitate()
         self.corpitate()
 

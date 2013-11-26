@@ -262,47 +262,47 @@ seen."""
                 continue
             to_cover[branch] = set()
             content[branch] = {}
-            rowiter = self.skel[branch].iterbones()
-            prev = next(rowiter)
-            for rd in rowiter:
+            boneiter = self.skel[branch].iterbones()
+            prev = next(boneiter)
+            for bone in boneiter:
                 if (
-                        prev["tick_from"] < maxtick and
-                        rd["tick_from"] > mintick):
+                        prev.tick_from < maxtick and
+                        rd.tick_from > mintick):
                     # I'll be showing this cell. Choose text for it
                     # based on my type.
                     if self.cal_type == 5:
-                        text = prev["location"]
+                        text = prev.location
                     elif self.cal_type == 6:
-                        text = prev["place"]
+                        text = prev.place
                     elif self.cal_type == 7:
                         text = "{}->{}".format(
-                            prev["origin"], prev["destination"])
+                            prev.origin, prev.destination)
                     elif self.cal_type == 8:
-                        text = prev["value"]
+                        text = prev.value
                     else:
                         text = ""
                     to_cover[branch].add(id(prev))
                     content[branch][id(prev)] = (
-                        text, prev["tick_from"], rd["tick_from"])
-                if rd["tick_from"] > maxtick:
+                        text, prev.tick_from, bone.tick_from)
+                if bone.tick_from > maxtick:
                     break
                 prev = rd
             # The last cell is infinitely long
-            if prev["tick_from"] < maxtick:
+            if prev.tick_from < maxtick:
                 if self.cal_type == 5:
-                    text = prev["location"]
+                    text = prev.location
                 elif self.cal_type == 6:
-                    text = prev["place"]
+                    text = prev.place
                 elif self.cal_type == 7:
                     text = "{}->{}".format(
-                        prev["origin"], prev["destination"])
+                        prev.origin, prev.destination)
                 elif self.cal_type == 8:
-                    text = prev["value"]
+                    text = prev.value
                 else:
                     text = ""
                 to_cover[branch].add(id(prev))
                 content[branch][id(prev)] = (
-                    text, prev["tick_from"], None)
+                    text, prev.tick_from, None)
         # I might already be showing some of these, though.
         #
         # Which ones don't I show?

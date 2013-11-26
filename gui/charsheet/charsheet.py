@@ -112,27 +112,27 @@ but they never include branch or tick--CharSheet will only display
 things appropriate to the present, whenever that may be.
 
         """
-        self.bone = character.closet.skeleton[u"charsheet"][unicode(character)]
+        self.bone = character.closet.skeleton[u"charsheet"][unicode(character)].content
         i = 0
         height = 0
         for bone in character.closet.skeleton[u"charsheet_item"][
                 unicode(character)].iterbones():
-            keylst = [bone["key0"], bone["key1"], bone["key2"]]
+            keylst = [bone.key0, bone.key1, bone.key2]
             eb = EditButton(
                 text=character.closet.get_text('@edit'),
                 group=unicode(self.character))
-            if bone["type"] < 5:
+            if bone.type < 5:
                 w = TableLayout(
                     character=character,
-                    style=character.closet.get_style(self.bone["style"]),
-                    item_type=bone["type"],
+                    style=character.closet.get_style(self.bone.style),
+                    item_type=bone.type,
                     keys=keylst,
                     edbut=eb)
-            elif bone["type"] < 10:
+            elif bone.type < 10:
                 w = CalendarLayout(
                     character=character,
-                    style=character.closet.get_style(self.bone["style"]),
-                    item_type=bone["type"],
+                    style=character.closet.get_style(self.bone.style),
+                    item_type=bone.type,
                     keys=keylst,
                     edbut=eb)
             self.add_widget(w)

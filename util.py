@@ -2,7 +2,11 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from math import sqrt, hypot, atan, pi, sin, cos
 from sqlite3 import IntegrityError
-from collections import deque, namedtuple, MutableMapping
+from collections import (
+    deque,
+    MutableMapping,
+    OrderedDict)
+from operator import itemgetter
 from re import match, compile, findall
 
 
@@ -59,6 +63,75 @@ something in a Skeleton.
         return skel[branch][tick_from]
     except KeyError:
         return None
+
+
+class BoneMetaclass(type):
+    def __new__(metaclass, clas, parents, attrs):
+        def __new__(_cls, *args, **kwargs):
+            """Create new instance of {}""".format(clas)
+            if len(args) > 0:
+                return tuple.__new__(_cls, args)
+            values = []
+            for fieldn in _cls._fields:
+                if fieldn in kwargs:
+                    values.append(kwargs[fieldn])
+                else:
+                    values.append(None)
+            return tuple.__new__(_cls, tuple(values))
+
+        # in collections module, this has the annotation @classmethod
+        def _make(cls, iterable):
+            """Make a new {} object from a sequence or iterable""".format(
+                clas)
+            return tuple.__new__(cls, iterable)
+
+        def __repr__(self):
+            """Return a nicely formatted representation string"""
+            return "{}({})".format(clas, ", ".join(
+                ["{}={}".format(field, getattr(self, field))
+                 for field in self._fields]))
+
+        def _asdict(self):
+            """Return a new OrderedDict which maps field names to their values"""
+            return OrderedDict(zip(self._fields, self))
+
+        def _replace(self, **kwds):
+            """Return a new {} object replacing specified fields with new
+values""".format(clas)
+            result = self._make(map(kwds.pop, self._fields, self))
+            if kwds:
+                raise ValueError("Got unexpected field names: {}".format(
+                    kwds.keys()))
+            return result
+
+        def __getnewargs__(self):
+            """Return self as a plain tuple. Used by copy and pickle."""
+            return tuple(self)
+
+        atts = {"__new__": __new__,
+                "_make": _make,
+                "__repr__": __repr__,
+                "_asdict": _asdict,
+                "_replace": _replace,
+                "__getnewargs__": __getnewargs__,
+                "__dict__": property(_asdict)}
+        atts.update(attrs)
+        i = 0
+        if "_fields" in atts:
+            for field in atts["_fields"]:
+                atts[field] = property(
+                    itemgetter(i),
+                    doc="Alias for field number {}".format(i))
+                i += 1
+        return type.__new__(metaclass, clas, parents, atts)
+
+
+class Bone(tuple):
+    __metaclass__ = BoneMetaclass
+
+    @classmethod
+    def subclass(clas, name, fields):
+        return type(name, (clas,), {'_fields': fields})
 
 
 class SkelRowIter(object):
@@ -130,42 +203,38 @@ There's a limited sort of event handler triggered by __setitem__ and
 __delitem__. Append listeners to self.listeners.
 
     """
-    def __init__(self, content=None, name="", parent=None):
+    @property
+    def bone(self):
+        return issubclass(self.content.__class__, Bone)
+
+    def __init__(self, content, name="", parent=None):
         """Technically all of the arguments are optional but you should really
 specify them whenever it's reasonably sensible to do so. content is a
 mapping to crib from, parent is who to propagate events to, and name
 is mostly for printing."""
-        self.bone = None
         self.listeners = []
+        self.ikeys = set([])
         self.name = name
         self.parent = parent
-        if hasattr(content, 'content'):
-            self.content = content.content
-        self.content = {}
-        self._populate_content(content)
+        if issubclass(content.__class__, Bone):
+            self.content = content
+        else:
+            self.content = {}
+            self._populate_content(content)
 
     def _populate_content(self, content):
         if content is None:
             return
+        assert(not issubclass(content.__class__, Bone))
         if isinstance(content, dict):
             kitr = content.iteritems()
         elif isinstance(content, self.__class__):
-            if content.bone:
-                self.content = content.content
-                self.bone = True
-                return
-            else:
-                kitr = content.iteritems()
+            kitr = content.iteritems()
         else:
             kitr = ListItemIterator(content)
         for (k, v) in kitr:
             if v is None and self.bone in (None, False):
                 continue
-            elif self.bone is None:
-                self.bone = v.__class__ in (str, unicode, int, float, bool)
-            if self.bone is True:
-                assert(v.__class__ in (str, unicode, int, float, bool, type(None)))
-                self[k] = v
             elif hasattr(v, 'content'):
                 self[k] = self.__class__(
                     content=v.content, name=k, parent=self)
@@ -176,48 +245,37 @@ is mostly for printing."""
     def __contains__(self, k):
         if isinstance(self.content, dict):
             return k in self.content
+        elif self.bone:
+            return hasattr(self.content, k)
         else:
             return k in self.ikeys
 
     def __getitem__(self, k):
-        if isinstance(self.content, list) and k not in self.ikeys:
+        if self.bone:
+            return getattr(self.content, k)
+        elif isinstance(self.content, list) and k not in self.ikeys:
             raise KeyError("key not in skeleton: {}".format(k))
         return self.content[k]
 
-    def _really_set(self, k, v):
+    def __setitem__(self, k, v):
         if len(self.content) == 0:
+            self.ikeys = set([])
             if isinstance(k, int):
-                self.ikeys = set()
                 self.content = []
-            else:
-                self.content = {}
+        elif self.bone:
+            fields = self.content._fields
+            values = [getattr(self.content, field) for field in fields]
+            self.content = self.content.__class__(*values)
+            return
+
         if isinstance(k, int):
-            assert(isinstance(self.content, list))
             while len(self.content) <= k:
                 self.content.append(None)
-            self.content[k] = v
             self.ikeys.add(k)
+        if isinstance(v, self.__class__):
+            self.content[k] = self.__class__(v.content, name=k, parent=self)
         else:
-            assert(isinstance(self.content, dict))
-            self.content[k] = v
-
-    def _skelly_set(self, k, v):
-        if v is None:
-            return self._really_set(k, None)
-        self._really_set(k, self.__class__(content=v, name=k, parent=self))
-        if isinstance(self.content, list):
-            if not hasattr(self, 'ikeys'):
-                self.ikeys = set()
-            self.ikeys.add(k)
-
-    def _maybe_set(self, k, v):
-        if self.bone or (isinstance(v, self.__class__) and v.bone):
-            self._really_set(k, v)
-        else:
-            self._skelly_set(k, v)
-
-    def __setitem__(self, k, v):
-        self._maybe_set(k, v)
+            self.content[k] = self.__class__(v, name=k, parent=self)
         for listener in self.listeners:
             listener(self, k, v)
         if hasattr(self.parent, 'on_child_set'):
@@ -271,7 +329,7 @@ is mostly for printing."""
 
     def __isub__(self, other):
         if self.bone and self.content == other.content:
-            self.content = {}
+            self.content = type(self.bone)()
             return
         for (k, v) in other.items():
             if k not in self:
@@ -294,7 +352,9 @@ is mostly for printing."""
 
     def keys(self):
         if isinstance(self.content, dict):
-            return list(self.content.keys())
+            return self.content.keys()
+        elif self.bone:
+            return list(self.content._fields)
         else:
             return sorted(self.ikeys)
 
@@ -321,8 +381,8 @@ is mostly for printing."""
         else:
             return self.key_before(k)
 
-    def bone_at_or_before(self, k):
-        return self[self.key_or_key_before(k)]
+    def value_during(self, k):
+        return self[self.key_or_key_before(k)].content
 
     def key_after(self, k):
         if hasattr(self, 'ikeys'):
@@ -352,7 +412,7 @@ is mostly for printing."""
 
     def copy(self):
         if self.bone:
-            return self.__class__(content=dict(self.content))
+            return self.__class__(content=self.content)
         elif isinstance(self.content, list):
             r = {}
             for k in self.ikeys:
@@ -378,14 +438,15 @@ is mostly for printing."""
 
     def update(self, skellike):
         for (k, v) in skellike.iteritems():
-            if self.bone is None:
-                self.bone = v.__class__ in (
-                    str, unicode, int, float, type(None))
             if self.bone:
                 self[k] = v
+            elif isinstance(v, self.__class__):
+                if k in self.content:
+                    self[k].update(
+                        self.__class__(content=v.content, name=k, parent=self))
+                else:
+                    self[k] = self.__class__(content=v.content, name=k, parent=self)
             else:
-                if hasattr(v, 'content'):
-                    v = v.content
                 if k in self.content:
                     self[k].update(
                         self.__class__(content=v, name=k, parent=self))
@@ -394,7 +455,16 @@ is mostly for printing."""
                         content=v, name=k, parent=self)
 
     def iterbones(self):
-        return SkelRowIter(self)
+        if self.bone:
+            yield self.content
+        elif isinstance(self.content, dict):
+            for contained in self.content.itervalues():
+                for bone in contained.iterbones():
+                    yield bone
+        else:
+            for i in sorted(self.ikeys):
+                for bone in self.content[i].iterbones():
+                    yield bone
 
     def get_closet(self):
         ptr = self.parent
@@ -486,6 +556,7 @@ declared in the order they appear in the tables attribute.
         rowstrs = {}
         keynames = {}
         valnames = {}
+        bonetypes = {}
         for item in local_pkeys.items():
             (tablename, pkey) = item
             keynames[tablename] = sorted(pkey)
@@ -504,6 +575,10 @@ declared in the order they appear in the tables attribute.
             colnames[tablename] = keynames[tablename] + valnames[tablename]
         for tablename in tablenames:
             assert(tablename not in tabclas)
+            bonetypes[tablename] = type(
+                tablename + '_bone',
+                (Bone,),
+                {'_fields': colnames[tablename]})
             tabclas[tablename] = clas
             provides.add(tablename)
             coldecl = coldecls[tablename]
@@ -570,25 +645,22 @@ declared in the order they appear in the tables attribute.
              tuple(postlude)))
 
         def gen_sql_insert(bones, tabname):
-            if tabname in bones:
-                itr = Skeleton(content=bones[tabname]).iterbones()
-            else:
-                itr = Skeleton(content=bones).iterbones()
-            if len(itr) == 0 or tabname not in tablenames:
-                raise EmptySkeleton
+            if len(bones) == 0 or tabname not in tablenames:
+                raise ValueError("No data to insert.")
             qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
                 tabname,
                 colnamestr[tabname],
-                ", ".join([rowstrs[tabname]] * len(itr)))
+                ", ".join([rowstrs[tabname]] * len(bones)))
             qrylst = []
-            for rd in itr:
-                qrylst.extend([rd[coln] for coln in colnames[tabname]])
+            for bone in bones:
+                qrylst.extend([getattr(bone, coln) for coln in
+                               colnames[tabname]])
             return (qrystr, tuple(qrylst))
 
         @staticmethod
         def insert_bones_table(c, bones, tabname):
             if len(bones) == 0:
-                return []
+                raise ValueError("No data to insert.")
             try:
                 c.execute(*gen_sql_insert(bones, tabname))
             except IntegrityError as ie:
@@ -597,7 +669,7 @@ declared in the order they appear in the tables attribute.
             except EmptySkeleton:
                 return
 
-        def gen_sql_delete(keydict, tabname):
+        def gen_sql_delete(keybone, tabname):
             try:
                 keyns = keynames[tabname]
             except KeyError:
@@ -608,47 +680,45 @@ declared in the order they appear in the tables attribute.
             checks = []
             for keyn in keyns:
                 checks.append(keyn + "=?")
-                keys.append(keydict[keyn])
+                keys.append(getattr(keybone, keyn))
             where = "(" + " AND ".join(checks) + ")"
             qrystr = "DELETE FROM {0} WHERE {1}".format(tabname, where)
             return (qrystr, tuple(keys))
 
         @staticmethod
-        def delete_keydicts_table(c, keydicts, tabname):
-            if len(keydicts) == 0:
+        def delete_keybones_table(c, keybones, tabname):
+            if len(keybones) == 0:
                 return
-            for keybone in keydicts.iterbones():
+            for keybone in keybones:
                 try:
                     c.execute(*gen_sql_delete(keybone, tabname))
                 except EmptySkeleton:
                     return
 
-        def gen_sql_select(keydicts, tabname):
-            keys_in_use = set()
-            kitr = Skeleton(content=keydicts).iterbones()
-            for keyd in kitr:
-                for k in keyd:
-                    keys_in_use.add(k)
-            keys = [key for key in primarykeys[tabname] if key in keys_in_use]
+        def gen_sql_select(keybones, tabname):
+            keys = set()
+            for bone in keybones:
+                for k in primarykeys[tabname]:
+                    if getattr(bone, k) is not None:
+                        keys.add(k)
             andstr = "({0})".format(
                 " AND ".join(
                     ["{0}=?".format(key) for key in keys]
                 ))
-            ands = [andstr] * len(kitr)
+            ands = [andstr] * len(keybones)
             colstr = colnamestr[tabname]
             orstr = " OR ".join(ands)
             return "SELECT {0} FROM {1} WHERE {2}".format(
                 colstr, tabname, orstr)
 
-        def select_keydicts_table(c, keydicts, tabname):
+        def select_keybones_table(c, keybones, tabname):
             keys = primarykeys[tabname]
-            qrystr = gen_sql_select(keydicts, tabname)
+            qrystr = gen_sql_select(keybones, tabname)
             qrylst = []
-            kitr = Skeleton(content=keydicts).iterbones()
-            for keydict in kitr:
+            for bone in keybones:
                 for key in keys:
-                    if key in keydict:
-                        qrylst.append(keydict[key])
+                    if getattr(bone, key) is not None:
+                        qrylst.append(getattr(bone, key))
             if len(qrylst) == 0:
                 return []
             c.execute(qrystr, tuple(qrylst))
@@ -656,52 +726,74 @@ declared in the order they appear in the tables attribute.
 
         @staticmethod
         def _select_table_all(c, tabname):
-            r = Skeleton()
+            r = Skeleton({})
             qrystr = "SELECT {0} FROM {1}".format(
                 colnamestr[tabname], tabname)
             c.execute(qrystr)
             for row in c.fetchall():
-                rd = dictify_row(row, colnames[tabname])
+                bone = row2bone(row, getattr(bonetypes, tabname))
                 ptr = r
-                lptr = r
+                oldptr = None
                 for key in primarykeys[tabname]:
-                    if rd[key] not in ptr:
-                        ptr[rd[key]] = {}
-                    lptr = ptr
-                    ptr = ptr[rd[key]]
-                lptr[rd[key]] = rd
+                    if getattr(bone, key) not in ptr:
+                        ptr[getattr(bone, key)] = {}
+                    oldptr = ptr
+                    ptr = ptr[getattr(bone, key)]
+                oldptr[getattr(bone, key)] = bone
+                # rd = dictify_row(row, colnames[tabname])
+                # ptr = r
+                # lptr = r
+                # for key in primarykeys[tabname]:
+                #     if rd[key] not in ptr:
+                #         ptr[rd[key]] = {}
+                #     lptr = ptr
+                #     ptr = ptr[rd[key]]
+                # lptr[rd[key]] = rd
             return Skeleton({tabname: r})
 
         @staticmethod
         def _select_skeleton(c, td):
-            r = Skeleton()
-            for (tabname, rdd) in td.items():
+            r = Skeleton({})
+            for (tabname, bones) in td.items():
                 if tabname not in primarykeys:
                     continue
                 if tabname not in r:
                     r[tabname] = {}
-                for row in select_keydicts_table(c, rdd, tabname):
-                    rd = dictify_row(row, colnames[tabname])
+                for row in select_keybones_table(c, bones, tabname):
+                    bone = row2bone(row, getattr(bonetypes, tabname))
                     ptr = r[tabname]
-                    keys = list(primarykeys[tabname])
                     oldptr = None
-                    while keys != []:
-                        key = keys.pop(0)
-                        if rd[key] not in ptr:
-                            ptr[rd[key]] = {}
+                    for key in primarykeys[tabname]:
+                        if getattr(bone, key) not in ptr:
+                            ptr[getattr(bone, key)] = {}
                         oldptr = ptr
-                        ptr = ptr[rd[key]]
-                    oldptr[rd[key]] = rd
+                        ptr = ptr[getattr(bone, key)]
+                    oldptr[getattr(bone, key)] = bone
+                    # rd = dictify_row(row, colnames[tabname])
+                    # ptr = r[tabname]
+                    # keys = list(primarykeys[tabname])
+                    # oldptr = None
+                    # while keys != []:
+                    #     key = keys.pop(0)
+                    #     if rd[key] not in ptr:
+                    #         ptr[rd[key]] = {}
+                    #     oldptr = ptr
+                    #     ptr = ptr[rd[key]]
+                    # oldptr[rd[key]] = rd
             return r
 
-        def gen_sql_detect(keydicts, tabname):
+        def gen_sql_detect(bonedict, tabname):
             keystr = keystrs[tabname]
-            qrystr = detects[tabname] + ", ".join([keystr] * len(keydicts))
+            qrystr = detects[tabname] + ", ".join([keystr] * len(bonedict))
             qrylst = []
-            for keydict in iter(keydicts):
-                for col in keynames[tabname]:
-                    if col in keydict:
-                        qrylst.append(keydict[col])
+            for bone in bonedict:
+                if not isinstance(bone, bonetypes[tabname]):
+                    raise TypeError(
+                        "{} is the wrong bone type for {}".format(
+                            type(bone), tabname))
+                for field in keynames[tabname]:
+                    if field in bonetypes[tabname]._fields:
+                        qrylst.append(getattr(bone, field))
             qrytup = tuple(qrylst)
             return (qrystr, qrytup)
 
@@ -732,9 +824,10 @@ declared in the order they appear in the tables attribute.
 
         @staticmethod
         def _delete_skeleton(c, skeleton):
-            for (tabname, rds) in skeleton.items():
+            for (tabname, records) in skeleton.items():
                 if tabname in tablenames:
-                    delete_keydicts_table(c, rds, tabname)
+                    bones = [bone for bone in records.iterbones()]
+                    delete_keybones_table(c, bones, tabname)
 
         @staticmethod
         def _detect_skeleton(c, skeleton):
@@ -767,6 +860,9 @@ declared in the order they appear in the tables attribute.
                     r[tabn][keyn] = tabd[tabn][keyn]
             return r
 
+        bonetypes = Bone.subclass(
+                clas + '_bonetypes',
+                tablenames)(**bonetypes)
         atrdic = {
             '_select_skeleton': _select_skeleton,
             '_select_table_all': _select_table_all,
@@ -775,28 +871,26 @@ declared in the order they appear in the tables attribute.
             '_detect_skeleton': _detect_skeleton,
             '_missing_skeleton': _missing_skeleton,
             '_insert_bones_table': insert_bones_table,
-            '_delete_keydicts_table': delete_keydicts_table,
+            '_delete_keybones_table': delete_keybones_table,
             '_gen_sql_insert': gen_sql_insert,
             '_gen_sql_delete': gen_sql_delete,
             '_gen_sql_detect': gen_sql_detect,
             '_gen_sql_missing': gen_sql_missing,
-            'colnames': namedtuple(
-                clas + '_colnames',
-                colnames.keys())._make(
-                    colnamestr.itervalues()),
-            'colnamestr': namedtuple(
+            'colnames': Bone.subclass(
+                clas + '_colnames', 
+                tablenames)(**colnames),
+            'colnamestr': Bone.subclass(
                 clas + '_colnamestr',
-                colnamestr.keys())._make(
-                    colnamestr.itervalues()),
+                tablenames)(**colnamestr),
             'colnstr': colnamestr[tablenames[0]],
-            'keynames': namedtuple(
+            'keynames': Bone.subclass(
                 clas + '_keynames',
-                keynames.keys())._make(
-                    keynames.itervalues()),
-            'valnames': namedtuple(
+                tablenames)(**dict(
+                    [(k, tuple(v)) for (k, v) in keynames.iteritems()])),
+            'valnames': Bone.subclass(
                 clas + '_valnames',
-                valnames.keys())._make(
-                    valnames.itervalues()),
+                tablenames)(**dict(
+                    [(k, tuple(v)) for (k, v) in valnames.iteritems()])),
             'keyns': tuple(keynames[tablenames[0]]),
             'valns': tuple(valnames[tablenames[0]]),
             'colns': tuple(colnames[tablenames[0]]),
@@ -805,7 +899,9 @@ declared in the order they appear in the tables attribute.
             'keyqms': keyqms,
             'rowqms': rowqms,
             'maintab': tablenames[0],
-            'tablenames': tuple(tablenames)}
+            'tablenames': tuple(tablenames),
+            'bonetypes': bonetypes,
+            'bonetype': bonetypes[0]}
         atrdic.update(attrs)
 
         clas = type.__new__(metaclass, clas, parents, atrdic)
@@ -867,6 +963,10 @@ def keyify_dict(d, keytup):
 
 def dictify_row(row, colnames):
     return dict(list(zip(colnames, row)))
+
+
+def row2bone(row, bonetype):
+    return bonetype(**dict(zip(bonetype._fields, row)))
 
 
 def deep_lookup(dic, keylst):
@@ -1325,9 +1425,9 @@ class Timestream(object):
         return self.closet.skeleton["timestream"][branch]["parent"]
 
     def children(self, branch):
-        for rd in self.closet.skeleton["timestream"].iterbones():
-            if rd["parent"] == branch:
-                yield rd["branch"]
+        for bone in self.closet.skeleton["timestream"].iterbones():
+            if bone.parent == branch:
+                yield bone.branch
 
 
 class EmptySkeleton(Exception):

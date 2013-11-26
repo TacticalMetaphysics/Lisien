@@ -44,12 +44,9 @@ def ins_texture(skel, texturedict, path, texn=None, rltile=False):
         
 
 def load_textures(cursor, skel, texturedict, names):
-    kd = {"img": {}}
-    for name in names:
-        kd["img"][name] = {"name": name}
     skel.update(
         Tex._select_skeleton(
-            cursor, kd))
+            cursor, {"img": [Tex.bonetype(name=n) for n in names]}))
     r = {}
     for name in names:
         if skel["img"][name]["rltile"] != 0:
