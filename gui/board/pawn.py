@@ -287,6 +287,7 @@ If it DOES have anything else to do, make the journey in another branch.
                     self.thing.journey_to(spot.place)
                     break
         self.repos()
+        super(Pawn, self).on_touch_up(touch)
         return True
 
     def repos(self, *args):
