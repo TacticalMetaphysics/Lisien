@@ -1,0 +1,173 @@
+<Swatch>:
+    BoxLayout:
+        orientation: 'vertical'
+        Image:
+            texture: root.display_texture
+        Label:
+            text: root.display_text
+            color: root.color
+            disabled_color: root.disabled_color
+            font_name: root.font_name
+            font_size: root.font_size
+            disabled: root.state == 'normal'
+<LoadImgDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+            Button:
+                text: "Load"
+                on_release: root.load(filechooser.path, filechooser.selection)
+<Pawn>:
+    auto_bring_to_front: False
+    size_hint: (None, None)
+    size: self.textures[0].size if len(self.textures) > 0 else (0, 0)
+    do_rotation: False
+    do_scale: False
+    interactivity: self.board.closet.skeleton[u"pawn_interactive"][unicode(self.board)][unicode(self.thing)]
+    imagery: self.board.closet.skeleton[u"pawn_img"][unicode(self.board)][unicode(self.thing)]
+<PawnImage>:
+    texture: self.pawn.textures[self.layer]
+    size: self.pawn.size
+<Spot>:
+    size_hint: (None, None)
+    coords: self.board.closet.skeleton[u"spot_coords"][unicode(self.board)][unicode(self.place)]
+    interactivity: self.board.closet.skeleton[u"spot_interactive"][unicode(self.board)][unicode(self.place)]
+    imagery: self.board.closet.skeleton[u"spot_img"][unicode(self.board)][unicode(self.place)]
+    tex: self.get_texture()
+    do_scale: False
+    Image:
+        id: img
+        texture: root.tex
+        size: root.size
+        pos: (0, 0)
+<ColorBox>:
+    canvas:
+        Color:
+            rgba: self.color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+<Cell>:
+    size_hint: (None, None)
+    ColorBox:
+        color: root.bg_color_active if root.active else root.bg_color_inactive
+    Label:
+        text: root.text
+        color: root.text_color_active if root.active else root.text_color_inactive
+        font_name: root.font_name
+        font_size: root.font_size
+        text_size: root.size
+        pos_hint: {'x': 0, 'y': 0}
+        valign: "top"
+<CalendarLayout>:
+    size: cal.size
+    StencilView:
+        Calendar:
+            id: cal
+            timeline: tl
+            character: root.character
+            cal_type: root.item_type
+            keys: root.keys
+            col_width: 100
+            branches_wide: 2
+            tick_height: 2
+            spacing_x: 5
+            spacing_y: 5
+            font_name: root.style.fontface
+            font_size: root.style.fontsize
+            bg_color_inactive: root.style.bg_inactive.rgba
+            bg_color_active: root.style.bg_active.rgba
+            text_color_inactive: root.style.text_inactive.rgba
+            text_color_active: root.style.text_active.rgba
+            editing: root.edbut.state == 'down' if root.edbut else False
+            width: self.branches_wide * (self.col_width + self.spacing_x)
+            height: self.tick_height * self.ticks_tall
+            on_branch: tl.upd_branch
+            on_tick: tl.upd_tick
+        Timeline:
+            id: tl
+            canvas:
+                Color:
+                    rgba: 1, 0, 0, 1
+                Line:
+                    points: (self.x, self.y, self.x+cal.col_width, self.y)
+                Triangle:
+                    points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
+<TableHeader>:
+    canvas:
+        Color:
+            rgba: root.table.bg_color_inactive
+        Rectangle:
+            pos: root.pos
+            size: root.size
+    Label:
+        id: lb
+        font_name: root.table.font_name
+        font_size: root.table.font_size
+        size: self.texture_size
+        bold: True
+        color: root.table.text_color_active
+        text: root.text
+<TableTextInput>:
+    foreground_color: self.table.text_color_active
+    foreground_color_disabled: self.table.text_color_inactive
+    background_color: self.table.fg_color_inactive if self.disabled else self.table.fg_color_active
+    background_disabled_active: ''
+    background_disabled_normal: ''
+    background_normal: ''
+    background_active: ''
+    border: [0, 0, 0, 0]
+    multiline: False
+    text: self.bone[self.key]
+    font_name: self.table.font_name
+    font_size: self.table.font_size
+    height: self.table.font_size
+    size_hint_x: 1
+    disabled: self.table.edbut.state == 'normal'
+<TableLayout>:
+    character_skel: getattr(self.character, self.chardictd[self.item_type])
+    Table:
+        #:import bone gui.charsheet.table.character_bone
+        id: tab
+        col_default_width: 75
+        edbut: root.edbut
+        skel: bone(self, root.keys, root.character_skel)
+        bg_color_active: root.style.bg_active.rgba
+        bg_color_inactive: root.style.bg_inactive.rgba
+        fg_color_active: root.style.fg_active.rgba
+        fg_color_inactive: root.style.fg_inactive.rgba
+        text_color_active: root.style.text_active.rgba
+        text_color_inactive: root.style.text_inactive.rgba
+        padding: [0, 0, 0, 0]
+        spacing: [5, 2]
+        font_name: root.style.fontface
+        font_size: root.style.fontsize
+        colkeys: root.colkey_dict[root.item_type]
+        cols: len(self.colkeys)
+        iter_skeleton: root.iterskel_dict[root.item_type](root.keys, root.character, self.skel)
+        x: root.x + self.xmov
+        y: root.y
+<EditButton>:
+    font_name: 'assets/Entypo.ttf'
+    font_size: 32
+    size_hint_x: 0.2
+<CharSheetView>:
+    pos_hint: {'right': 1, 'y': 0}
+    size_hint: (0.35, 1)
+    scroll_type: 'bars'
+    CharSheet:
+        size_hint: (1, None)
+        width: root.width if root.height >= self.height else root.width - root.bar_width
+        character: root.character
+        cols: 2
+        spacing: 10
+        cols_minimum: {0: self.width - 42, 1: 32}

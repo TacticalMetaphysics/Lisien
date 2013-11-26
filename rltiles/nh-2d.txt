@@ -1,6 +1,0 @@
-%width 30
-%name nh32
-%back nh-dngn/floor_of_a_room
-%include nh-mon.txt
-%include nh-item.txt
-%include nh-dngn.txt

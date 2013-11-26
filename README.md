@@ -10,6 +10,8 @@ Existing games that LiSE seeks to imitate include:
 
 * The Sims
 * Kudos
+* Redshirt
+* Animal Crossing
 * Monster Rancher
 * Dwarf Fortress
 
@@ -74,21 +76,18 @@ represent physical objects, such as people.
 Actually, the engine distinguishes people from their bodies--more on
 that later.
 
-Potential changes to the state of the game world are "effects," which
-look like trading cards. These could be given elaborate artwork of the
-kind found in Magic: the Gathering and other such games. Players may
-be given the option to play these "cards" from their "hand," but that
-usually won't result in an immediate change to the game
-world--instead, the effects will be assembled into an "event" that
-gets scheduled in one of the game's many calendars. The player may be
-allowed to reschedule the event by dragging it around in much the way
-you do in a Personal Information Management app. Developers can do
-this whenever they want, of course.
+There is an event handler for the purpose of managing changes to the
+world that occur at particular game-times. It watches particular parts
+of the world for particular states to trigger an event, and resolves
+the event into a set of changes to the world. The triggers, event
+types, and changes are all wired together following rules stored in
+the database. This is similar to the concept of "reactions" that Dwarf
+Fortress uses.
 
-The distinction between a player and a developer is a matter of
-launching the game engine with or without the developer's option. If you
-don't want players to modify your game, this may not be the engine for
-you.
+One possible trigger for an event is that the player chose to trigger
+it. The usual ways of doing this are by dragging their character to a
+new place, thus triggering a movement event, or playing a card from
+their hand. Cards may represent anything the player can do.
 
 Having scheduled a variety of events, the player starts time. Much as
 in The Sims, they can pause whenever they want, and they can decide
@@ -99,16 +98,14 @@ to make it. This makes it possible to try several approaches to a
 given situation and see how *all of them* will turn out. It is also
 convenient for debugging those random events.
 
-Events with many possible outcomes are constructed from many effects,
-resulting in an "outcome deck". When the event comes to pass, a given
-number of effects are drawn from the deck, and are applied to the
-world in the order they are drawn. Developers can decide whether a
-given event should be drawn randomly or in FIFO or LIFO order. Events
-constructed by players use the order the developer chose for the
-player. Outcome decks from events already resolved may be kept around
-and used again. They may also be rebuilt into their original state,
-resulting in behavior similar to the roll of the die, or generated on
-the fly by whatever algorithm you'd care to write.
+Events may be triggered by other events, as well. The triggered event
+does not need to take place at the same time as the triggering event,
+and indeed may take place in the past--events can rewrite history. For
+a mundane example: when a movement event is triggered, and discovers
+that the character to be moved is not where it is to be moved *from*,
+it triggers a pathfinding event that will in turn trigger various
+movement events at various times, resulting in the character moving to
+the intended destination in a series of steps.
 
 Most games will have more than one board in them. Events on all of
 these can happen at the same time. Generally, only one of those boards
@@ -126,7 +123,7 @@ several such boards will be provided.
 
 Various places, things, and portals could represent the same person
 for the purposes of different game mechanics. They are grouped
-together in a "character," along with whatever other information the
+together in a "Character," along with whatever other information the
 game needs to have about the person. It's similar to the character
 sheets that are used in tabletop roleplaying games. The information in
 a character may be used to resolve the effects of any given event, and
@@ -140,15 +137,17 @@ OpenSimulator.
 
 # Requirements
 
-* python 2.7
-* igraph 0.6.5
-* python-igraph 0.6.5
-* pyglet 1.1
+* [Python 2.7](http://python.org/download/releases/2.7.6/)
+* [igraph 0.6.5](http://igraph.sourceforge.net/download.html)
+* [python-igraph 0.6.5](http://python.org/pypi/python-igraph)
+* [Kivy 1.8](http://github.com/kivy/kivy)
 
-# License
-wallpape.jpg is copyright Fantastic Maps (http://www.fantasticmaps.com/free-stuff/), freely available under Creative Commons BY-NC-SA (https://creativecommons.org/licenses/by-nc-sa/3.0/).
+# License Information
+wallpape.jpg is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stuff/), freely available under the terms of [Creative Commons BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 
-igraph and python-igraph are freely available under the MIT license (http://opensource.org/licenses/MIT).
+igraph and python-igraph are freely available under the [MIT license](http://opensource.org/licenses/MIT).
+
+The icons are [Entypo](http://entypo.com/), in the file Entypo.ttf, freely available at under the terms of [Creative Commons BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/).
 
 The LiSE source files themselves are licensed under the terms of the GNU General Public License version 3. See the text of the license in the file gpl-3.0.txt
 

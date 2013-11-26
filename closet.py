@@ -1,8 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import unicode_literals
-ascii = str
-str = unicode
 """The database backend, with dictionaries of loaded objects.
 
 This is a caching database connector. There are dictionaries for all
@@ -17,32 +14,29 @@ import re
 import os
 import igraph
 
-from logging import getLogger
-from dimension import Dimension
-from spot import Spot
-from pawn import Pawn
-from board import Board, BoardViewport
-from card import Card
-from effect import Effect, EffectDeck
-from img import Img
-from style import Style, Color
-from gui import GameWindow
+from model.dimension import Dimension
+from model.portal import Portal
+from model.thing import Thing
+from model.character import Character
+from model.event import Implicator
+from gui.board import (
+    Board,
+    Spot,
+    Card,
+    Pawn)
+from gui.style import LiSEStyle, LiSEColor
+from gui.charsheet import CharSheet, CharSheetView
+from gui.menu import Menu
 from util import (
     dictify_row,
-    Skeleton,
-    empty_skel,
     schemata,
     saveables,
     saveable_classes,
+    get_bone_during,
+    Fabulator,
+    Skeleton,
     Timestream,
     TimestreamException)
-from portal import Portal
-from thing import Thing
-from character import Character
-from charsheet import CharSheet
-
-
-logger = getLogger(__name__)
 
 
 def noop(*args, **kwargs):
@@ -63,8 +57,8 @@ class ListItemIterator:
     def __len__(self):
         return len(self.l)
 
-    def next(self):
-        it = self.l_iter.next()
+    def __next__(self):
+        it = next(self.l_iter)
         i = self.i
         self.i += 1
         return (i, it)
@@ -96,83 +90,167 @@ There are some special facilities here for the convenience of
 particular LiSE objects: Things look up their location here; Items
 (including Things) look up their contents here; and Effects look up
 their functions here. That means you need to register functions here
-when you want Effects to be able to trigger them. To do that, put your
-functions in a dictionary keyed with the strings LiSE should use to
-refer to your functions, and pass that dictionary to the RumorMill
-method xfunc(). You may also pass such a dictionary to the
-constructor, just after the name of the database file.
+when you want Effects to use them. Supply callback
+functions for Effects in a list in the keyword argument "effect_cbs".
+
+Supply boolean callback functions for Causes and the like in the
+keyword argument "test_cbs".
 
 You need to create a SQLite database file with the appropriate schema
 before RumorMill will work. For that, run mkdb.sh.
 
     """
+    working_dicts = [
+        "boardhanddict",
+        "calendardict",
+        "colordict",
+        "dimensiondict",
+        "boarddict",
+        "dimensiondict",
+        "boarddict",
+        "effectdict",
+        "effectdeckdict",
+        "imgdict",
+        "texturedict",
+        "menudict",
+        "menuitemdict",
+        "styledict",
+        "tickdict",
+        "eventdict",
+        "characterdict"]
 
-    atrdic = {
-        "game": lambda self: self.skeleton["game"],
-        "board": lambda self: self.game["front_board"],
-        "front_board": lambda self: self.game["front_board"],
-        "branch": lambda self: self.game["front_branch"],
-        "front_branch": lambda self: self.game["front_branch"],
-        "seed": lambda self: self.game["seed"],
-        "tick": lambda self: self.game["tick"],
-        "dimensions": lambda self: self.dimensiondict.itervalues(),
-        "characters": lambda self: self.characterdict.itervalues()}
+    @property
+    def dimensions(self):
+        """Iterate over all dimensions."""
+        return self.dimensiondict.itervalues()
 
-    def __init__(self, connector, xfuncs={}, lang="eng",
-                 front_dimension="Physical", front_board=0,
-                 front_branch=0, seed=0, tick=0):
+    @property
+    def characters(self):
+        """Iterate over all characters."""
+        return self.characterdict.itervalues()
+
+    @property
+    def branch(self):
+        """Return the branch of time currently being simulated."""
+        return self.skeleton["game"]["branch"]
+
+    @property
+    def tick(self):
+        """Return the tick of time currently being simulated."""
+        return self.skeleton["game"]["tick"]
+
+    @property
+    def language(self):
+        """Return the language selected for the game."""
+        return self.skeleton["game"]["language"]
+
+    def __setattr__(self, attrn, val):
+        if attrn == "branch":
+            self.upd_branch(val)
+        elif attrn == "tick":
+            self.upd_tick(val)
+        elif attrn == "language":
+            self.upd_lang(val)
+        else:
+            super(Closet, self).__setattr__(attrn, val)
+
+    def __init__(self, connector, USE_KIVY=False, **kwargs):
         """Return a database wrapper around the SQLite database file by the
 given name.
 
         """
-        self.conn = connector
-        self.cursor = self.conn.cursor()
-        self.c = self.cursor
+        self.branch_listeners = []
+        self.tick_listeners = []
+        self.time_listeners = []
+        self.lang_listeners = []
+        self.connector = connector
+
+        self.c = self.connector.cursor()
 
         # This dict is special. It contains all the game
         # data--represented only as those types which sqlite3 is
         # capable of storing. All my objects are ultimately just
         # views on this thing.
-        self.skeleton = empty_skel()
+        self.skeleton = Skeleton()
+        for saveable in saveables:
+            for tabn in saveable[3]:
+                self.skeleton[tabn] = {}
+        self.c.execute(
+            "SELECT language, seed, dimension, branch, tick FROM game")
+        self.skeleton.update(
+            {"game": dictify_row(
+                self.c.fetchone(),
+                ("language", "seed", "dimension", "branch", "tick"))})
+        if "language" in kwargs:
+            self.skeleton["game"]["language"] = kwargs["language"]
         # This is a copy of the skeleton as it existed at the time of
         # the last save. I'll be finding the differences between it
         # and the current skeleton in order to decide what to write to
         # disk.
-        self.old_skeleton = empty_skel()
+        self.old_skeleton = self.skeleton.copy()
 
-        self.windowdict = {}
-        self.boardhanddict = {}
-        self.calendardict = {}
-        self.carddict = {}
-        self.colordict = {}
-        self.dimensiondict = {}
-        self.effectdict = {}
-        self.effectdeckdict = {}
-        self.imgdict = {}
-        self.menudict = {}
-        self.menuitemdict = {}
-        self.stringdict = {}
-        self.styledict = {}
-        self.tickdict = {}
-        self.eventdict = {}
-        self.characterdict = {}
-        self.windowdict = {}
-        self.lang = lang
+        if USE_KIVY:
+            from gui.kivybits import load_textures, ins_texture
+            self.load_textures = lambda names: load_textures(
+                self.c, self.skeleton, self.texturedict, names)
+            self.ins_texture = lambda path, name: ins_texture(
+                self.skeleton, self.texturedict,
+                path, name, ('rltiles' in path))
+            self.USE_KIVY = True
+
+        self.timestream = Timestream(self)
+
+        for wd in self.working_dicts:
+            setattr(self, wd, dict())
 
         self.game_speed = 1
         self.updating = False
 
+        self.timestream = Timestream(self)
         self.time_travel_history = []
 
         placeholder = (noop, ITEM_ARG_RE)
-        self.effect_cbs = {}
+        if "effect_cbs" in kwargs:
+            effect_cb_fabdict = dict(
+                [(
+                    cls.__name__, self.constructorate(cls))
+                 for cls in kwargs["effect_cbs"]])
+        else:
+            effect_cb_fabdict = {}
+        self.get_effect_cb = Fabulator(effect_cb_fabdict)
+        if "test_cbs" in kwargs:
+            test_cb_fabdict = dict(
+                [(
+                    cls.__name__, self.constructorate(cls))
+                 for cls in kwargs["test_cbs"]])
+        else:
+            test_cb_fabdict = {}
+        self.get_test_cb = Fabulator(test_cb_fabdict)
+        if "effect_cb_makers" in kwargs:
+            effect_cb_maker_fabdict = dict(
+                [(
+                    maker.__name__, self.constructorate(maker))
+                 for maker in kwargs["effect_makers"]])
+        else:
+            effect_cb_maker_fabdict = {}
+        for (name, cb) in effect_cb_fabdict.iteritems():
+            effect_cb_maker_fabdict[name] = lambda: cb
+        self.make_effect_cb = Fabulator(effect_cb_maker_fabdict)
+        if "test_cb_makers" in kwargs:
+            test_cb_maker_fabdict = dict(
+                [(
+                    maker.__name__, self.constructorate(maker))
+                 for maker in kwargs["test_cb_makers"]])
+        else:
+            test_cb_maker_fabdict = {}
+        for (name, cb) in test_cb_fabdict.iteritems():
+            test_cb_maker_fabdict[name] = lambda: cb
+        self.make_test_cb = Fabulator(test_cb_maker_fabdict)
         self.menu_cbs = {
             'play_speed':
             (self.play_speed, ONE_ARG_RE),
             'back_to_start':
-            (self.back_to_start, ""),
-            'one': placeholder,
-            'two': placeholder,
+            (self.back_to_start, ''),
             'noop': placeholder,
             'toggle_menu':
             (self.toggle_menu, ONE_ARG_RE),
@@ -181,15 +259,16 @@ given name.
             'show_menu':
             (self.show_menu, ONE_ARG_RE),
             'make_generic_place':
-            (self.make_generic_place, ONE_ARG_RE),
+            (self.make_generic_place, ''),
             'increment_branch':
             (self.increment_branch, ONE_ARG_RE),
             'time_travel_inc_tick':
-            (lambda mi, ticks: self.time_travel_inc_tick(ticks), ONE_ARG_RE),
+            (lambda mi, ticks:
+             self.time_travel_inc_tick(int(ticks)), ONE_ARG_RE),
             'time_travel':
             (self.time_travel_menu_item, TWO_ARG_RE),
             'time_travel_inc_branch':
-            (lambda mi, branches: self.time_travel_inc_branch(branches),
+            (lambda mi, branches: self.time_travel_inc_branch(int(branches)),
              ONE_ARG_RE),
             'go':
             (self.go, ""),
@@ -208,47 +287,54 @@ given name.
             'mi_create_thing':
             (self.mi_create_thing, ONE_ARG_RE),
             'mi_create_portal':
-            (self.mi_create_portal, ONE_ARG_RE)}
-        self.menu_cbs.update(xfuncs)
-        self.skeleton["game"] = {
-            "front_dimension": front_dimension,
-            "front_board": front_board,
-            "front_branch": front_branch,
-            "seed": seed,
-            "tick": tick}
-        fd = self.load_dimension(front_dimension)
-        self.load_board(fd, front_board)
-
-    def __getattr__(self, attrn):
-        try:
-            return Closet.atrdic[attrn](self)
-        except KeyError:
-            raise AttributeError(
-                "Closet doesn't have the attribute " + attrn)
-
-    def __setattr__(self, attrn, val):
-        if attrn in ("front_board", "seed", "age"):
-            getattr(self, "game")[attrn] = val
-        else:
-            super(Closet, self).__setattr__(attrn, val)
+            (self.mi_create_portal, ONE_ARG_RE),
+            'mi_show_popup':
+            (self.mi_show_popup, ONE_ARG_RE)}
 
     def __del__(self):
         """Try to write changes to disk before dying.
 
         """
         self.c.close()
-        self.conn.commit()
-        self.conn.close()
+        self.connector.commit()
+        self.connector.close()
 
-    def insert_rowdicts_table(self, rowdict, clas, tablename):
-        """Insert the given rowdicts into the table of the given name, as
+    def upd_branch(self, b):
+        for listener in self.branch_listeners:
+            listener(self, b)
+        self.upd_time(b, self.tick)
+        self.skeleton["game"]["branch"] = b
+
+    def upd_tick(self, t):
+        for listener in self.tick_listeners:
+            listener(self, t)
+        self.upd_time(self.branch, t)
+        self.skeleton["game"]["tick"] = t
+
+    def upd_time(self, b, t):
+        for listener in self.time_listeners:
+            listener(self, b, t)
+
+    def upd_lang(self, l):
+        for listener in self.lang_listeners:
+            listener(self, l)
+        self.skeleton["game"]["language"] = l
+
+    def constructorate(self, cls):
+
+        def construct(*args):
+            return cls(self, *args)
+        return construct
+
+    def insert_bones_table(self, bone, clas, tablename):
+        """Insert the given bones into the table of the given name, as
 defined by the given class.
 
 For more information, consult SaveableMetaclass in util.py.
 
         """
-        if rowdict != []:
-            clas.dbop['insert'](self, rowdict, tablename)
+        if bone != []:
+            clas.dbop['insert'](self, bone, tablename)
 
     def delete_keydicts_table(self, keydict, clas, tablename):
         """Delete the records identified by the keydicts from the given table,
@@ -305,38 +391,30 @@ For more information, consult SaveableMetaclass in util.py.
         menu.visible = True
         menu.tweaks += 1
 
-    def get_age(self):
-        """Get the number of ticks since the start of the game. Persists
-between sessions.
-
-This is game-world time. It doesn't always go forwards.
-
-        """
-        return self.game["age"]
-
     def get_text(self, strname):
         """Get the string of the given name in the language set at startup."""
-        if strname == "tick":
-            return str(self.tick)
-        elif strname == "branch":
-            return str(self.branch)
+        if strname is None:
+            return ""
+        elif strname[0] == "@":
+            if strname[1:] == "branch":
+                return str(self.branch)
+            elif strname[1:] == "tick":
+                return str(self.tick)
+            else:
+                assert(strname[1:] in self.skeleton["strings"])
+                return self.skeleton["strings"][
+                    strname[1:]][self.language]["string"]
         else:
-            return self.stringdict[strname][self.lang]
+            return strname
 
     def mi_create_place(self, menuitem):
         return menuitem.window.create_place()
 
     def mi_create_thing(self, menuitem):
-        return menuitem.window.create_thing()
+        menuitem.parent.parent.show_pic_loader()
 
     def mi_create_portal(self, menuitem):
         return menuitem.window.create_portal()
-
-    def get_card_base(self, name):
-        """Return the CardBase named thus, loading it first if necessary."""
-        if name not in self.carddict:
-            self.load_card(name)
-        return self.carddict[name]
 
     def make_igraph_graph(self, name):
         self.graphdict[name] = igraph.Graph(directed=True)
@@ -349,11 +427,8 @@ This is game-world time. It doesn't always go forwards.
     def save_game(self):
         to_save = self.skeleton - self.old_skeleton
         to_delete = self.old_skeleton - self.skeleton
-        logger.debug(
-            "Saving the skeleton:\n%s", repr(to_save))
-        logger.debug(
-            "Deleting the skeleton:\n%s", repr(to_delete))
         for clas in saveable_classes:
+            assert(len(clas.tablenames) > 0)
             for tabname in clas.tablenames:
                 if tabname in to_delete:
                     clas._delete_keydicts_table(
@@ -361,263 +436,27 @@ This is game-world time. It doesn't always go forwards.
                 if tabname in to_save:
                     clas._delete_keydicts_table(
                         self.c, to_save[tabname], tabname)
-                    clas._insert_rowdicts_table(
+                    clas._insert_bones_table(
                         self.c, to_save[tabname], tabname)
         self.c.execute("DELETE FROM game")
-        keys = self.game.keys()
+        keys = self.skeleton["game"].keys()
         self.c.execute(
             "INSERT INTO game ({0}) VALUES ({1})".format(
                 ", ".join(keys),
-                ", ".join(["?"] * len(self.game))),
-            tuple([self.game[k] for k in keys]))
+                ", ".join(["?"] * len(self.skeleton["game"]))),
+            [self.skeleton["game"][k] for k in keys])
         self.old_skeleton = self.skeleton.copy()
-
-    # TODO: For all these schedule functions, handle the case where I
-    # try to schedule something for a time outside of the given
-    # branch. These functions may not be the most appropriate *place*
-    # to handle that.
-
-    def schedule_something(
-            self, scheddict, dictkeytup,
-            val=None, branch=None, tick_from=None, tick_to=None):
-        if branch is None:
-            branch = self.branch
-        if tick_from is None:
-            tick_from = self.tick
-        ptr = scheddict
-        for key in dictkeytup + (branch,):
-            if key not in ptr:
-                ptr[key] = {}
-            ptr = ptr[key]
-        if val is None:
-            ptr[tick_from] = tick_to
-        else:
-            ptr[tick_from] = (val, tick_to)
-
-    def schedule_event(self, ev, branch=None, tick_from=None, tick_to=None):
-        if not hasattr(ev, 'schedule'):
-            ev.schedule = {}
-        if branch not in ev.schedule:
-            ev.schedule[branch] = {}
-        ev.schedule[branch][tick_from] = tick_to
-
-    def event_is_commencing(self, ev, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-
-    def event_is_concluding(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return False
-        for prevstart in self.event_scheduled[name][branch]:
-            if (
-                    prevstart < tick and
-                    self.event_scheduled[
-                        name][branch][prevstart] == tick):
-                return True
-        return False
-
-    def event_is_proceeding(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return False
-        for prevstart in self.event_scheduled[name][branch]:
-            if (
-                    prevstart < tick and
-                    self.event_scheduled[
-                        name][branch][prevstart] > tick):
-                return True
-        return False
-
-    def event_is_starting_or_proceeding(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return False
-        for prevstart in self.event_scheduled[name][branch]:
-            if prevstart == tick:
-                return True
-            elif (
-                    prevstart < tick and
-                    self.event_scheduled[
-                        name][branch][prevstart] > tick):
-                return True
-        return False
-
-    def event_is_proceeding_or_concluding(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return False
-        for prevstart in self.event_scheduled[name][branch]:
-            if prevstart < tick:
-                if self.event_scheduled[name][branch][prevstart] >= tick:
-                    return True
-        return False
-
-    def event_is_happening(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return False
-        for prevstart in self.event_scheduled[name][branch]:
-            if prevstart == tick:
-                return True
-            elif prevstart < tick:
-                if self.event_scheduled[name][branch][prevstart] >= tick:
-                    return True
-        return False
-
-    def get_event_start(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return None
-        for (tick_from, tick_to) in (
-                self.event_scheduled[name][branch].iteritems()):
-            if tick_from <= tick and tick <= tick_to:
-                return tick_from
-        return None
-
-    def get_event_end(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        if (
-                name not in self.event_scheduled or
-                branch not in self.event_scheduled[name]):
-            return None
-        for (tick_from, tick_to) in (
-                self.event_scheduled[name][branch].iteritems()):
-            if tick_from <= tick and tick <= tick_to:
-                return tick_to
-        return None
-
-    def schedule_effect_deck(self, name, cards,
-                             branch=None, tick_from=None, tick_to=None):
-        self.schedule_something(
-            self.effect_deck_scheduled,
-            (name,), cards, branch, tick_from, tick_to)
-
-    def get_effect_deck_card_names(self, name, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        for (commencement, (cards, conclusion)) in self.effect_deck_scheduled[
-                name][branch].iteritems():
-            if commencement <= tick and conclusion >= tick:
-                return cards
-        return None
-
-    def schedule_char_att(self, char_s, att_s, val,
-                          branch=None, tick_from=None, tick_to=None):
-        self.schedule_something(
-            self.char_att_scheduled,
-            (char_s, att_s), val, branch, tick_from, tick_to)
-
-    def get_char_att_val(self, char_s, att_s, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        for (commencement, (value, conclusion)) in self.char_att_scheduled[
-                char_s][att_s][branch].iteritems():
-            if commencement <= tick and conclusion >= tick:
-                return value
-        return None
-
-    def schedule_char_skill(self, char_s, skill_s, effect_deck_s,
-                            branch=None, tick_from=None, tick_to=None):
-        self.schedule_something(
-            self.char_skill_scheduled, (char_s, skill_s), effect_deck_s,
-            branch, tick_from, tick_to)
-
-    def get_char_skill_deck_name(
-            self, char_s, skill_s, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        for (commencement, (deck, conclusion)) in self.char_skill_scheduled[
-                char_s][skill_s][branch].iteritems():
-            if commencement <= tick and conclusion >= tick:
-                return deck
-        return ''
-
-    def schedule_char_item(self, char_s, dimension_s, item_s,
-                           branch=None, tick_from=None, tick_to=None):
-        self.schedule_something(
-            self.char_item_scheduled, (char_s, dimension_s, item_s),
-            None, branch, tick_from, tick_to)
-
-    def character_is_item(self, char_s, dimension_s, item_s,
-                          branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        for (commencement, conclusion) in (
-                self.char_item_scheduled[
-                    char_s][dimension_s][item_s][branch]):
-            if commencement <= tick and conclusion >= tick:
-                return True
-        return False
-
-    def schedule_hand_card(self, hand_s, card_s, card_n,
-                           branch=None, tick_from=None, tick_to=None):
-        self.schedule_something(
-            self.hand_card_scheduled, (hand_s, card_s), card_n,
-            branch, tick_from, tick_to)
-
-    def card_copies_in_hand(self, hand_s, card_s, branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        for (commencement, (n, conclusion)) in self.hand_card_scheduled[
-                hand_s][card_s][branch].iteritems():
-            if commencement <= tick and conclusion >= tick:
-                return n
-        return 0
 
     def load_strings(self):
         self.c.execute("SELECT stringname, language, string FROM strings")
+        if "strings" not in self.skeleton:
+            self.skeleton["strings"] = {}
         for row in self.c:
             rowd = dictify_row(row, ("stringname", "language", "string"))
-            if rowd["stringname"] not in self.stringdict:
-                self.stringdict[rowd["stringname"]] = {}
-            self.stringdict[rowd[
-                "stringname"]][rowd["language"]] = rowd["string"]
+            if rowd["stringname"] not in self.skeleton["strings"]:
+                self.skeleton["strings"][rowd["stringname"]] = {}
+            self.skeleton["strings"][
+                rowd["stringname"]][rowd["language"]] = rowd
 
     def make_generic_place(self, dimension):
         placen = "generic_place_{0}".format(len(dimension.graph.vs))
@@ -644,27 +483,27 @@ This is game-world time. It doesn't always go forwards.
     def make_portal(self, orig, dest):
         return orig.dimension.make_portal(orig, dest)
 
-    def load_charsheet(self, window, character):
-        window = str(window)
+    def load_charsheet(self, character):
         character = str(character)
-        skel = Skeleton({
+        kd = {
             "charsheet": {
-                "window": window,
                 "character": character},
             "charsheet_item": {
-                "window": window,
-                "character": character}})
+                "character": character}}
         self.skeleton.update(
-            CharSheet._select_skeleton(self.c, skel))
-        return CharSheet(self, window, character)
+            CharSheet._select_skeleton(self.c, kd))
+        return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
         qtd = {
             "character_things": {},
+            "character_places": {},
+            "character_portals": {},
             "character_stats": {},
-            "character_skills": {}}
+            "character_skills": {},
+            "character_subcharacters": {}}
         for name in names:
-            for tabn in qtd.iterkeys():
+            for tabn in qtd.keys():
                 qtd[tabn][name] = {"character": name}
         self.skeleton.update(
             Character._select_skeleton(self.c, qtd))
@@ -695,60 +534,23 @@ This is game-world time. It doesn't always go forwards.
     def get_thing(self, dimn, thingn):
         return self.get_dimension(dimn).get_thing(thingn)
 
-    def load_effects(self, names):
-        r = {}
-        kd = {"effect": {}}
-        for name in names:
-            kd["effect"][name] = {"name": name}
-        self.skeleton.update(
-            Effect._select_skeleton(self.c, kd))
-        need_chars = set()
-        for name in names:
-            rd = self.skeleton["effect"][name]
-            need_chars.add(rd["character"])
-        self.get_characters(need_chars)
-        for name in names:
-            r[name] = Effect(self, name)
-
     def get_effects(self, names):
-        if len(names) == 0:
-            return {}
         r = {}
-        unloaded = set()
         for name in names:
-            if name in self.effectdict:
-                r[name] = self.effectdict[name]
-            else:
-                unloaded.add(name)
-        if len(unloaded) > 0:
-            r.update(self.load_effects(unloaded))
+            r[name] = Implicator.make_effect(name)
         return r
 
-    def load_effect_decks(self, names):
+    def get_effect(self, name):
+        return self.get_effects([name])[name]
+
+    def get_causes(self, names):
         r = {}
-        kd = {
-            "effect_deck": {},
-            "effect_deck_link": {}}
         for name in names:
-            kd["effect_deck"][name] = {"name": name}
-            kd["effect_deck_link"][name] = {"deck": name}
-        self.skeleton.update(
-            EffectDeck._select_skeleton(self.c, kd))
-        for name in names:
-            r[name] = EffectDeck(self, name)
+            r[name] = Implicator.make_cause(name)
         return r
 
-    def get_effect_decks(self, names):
-        r = {}
-        unloaded = set()
-        for name in names:
-            if name in self.effectdeckdict:
-                r[name] = self.effectdeckdict[name]
-            else:
-                unloaded.add(name)
-        if len(unloaded) > 0:
-            r.update(self.load_effect_decks(unloaded))
-        return r
+    def get_cause(self, cause):
+        return self.get_causes([cause])[cause]
 
     def load_dimensions(self, names):
         # I think it might eventually *make sense* to load the same
@@ -756,8 +558,8 @@ This is game-world time. It doesn't always go forwards.
         # you want to selectively load the parts of it that the player
         # is interested in at the moment, the game world being too
         # large to practically load all at once.
-        kd = Skeleton({"portal": {},
-                       "thing_location": {}})
+        kd = {"portal": {},
+              "thing_location": {}}
         for name in names:
             kd["portal"][name] = {"dimension": name}
             kd["thing_location"][name] = {"dimension": name}
@@ -772,7 +574,10 @@ This is game-world time. It doesn't always go forwards.
     def load_dimension(self, name):
         return self.load_dimensions([name])[name]
 
-    def get_dimensions(self, names):
+    def get_dimensions(self, names=None):
+        if names is None:
+            self.c.execute("SELECT name FROM dimension")
+            names = [row[0] for row in self.c.fetchall()]
         r = {}
         unhad = set()
         for name in names:
@@ -787,6 +592,22 @@ This is game-world time. It doesn't always go forwards.
     def get_dimension(self, name):
         return self.get_dimensions([name])[name]
 
+    def load_board(self, name):
+        self.skeleton.update(Board._select_skeleton(self.c, {
+            "board": {"dimension": name}}))
+        self.skeleton.update(Spot._select_skeleton(self.c, {
+            "spot_img": {"dimension": name},
+            "spot_interactive": {"dimension": name},
+            "spot_coords": {"dimension": name}}))
+        self.skeleton.update(Pawn._select_skeleton(self.c, {
+            "pawn_img": {"dimension": name},
+            "pawn_interactive": {"dimension": name}}))
+        return self.get_board(name)
+
+    def get_board(self, name):
+        dim = self.get_dimension(name)
+        return Board(closet=self, dimension=dim)
+
     def get_place(self, dim, placen):
         if not isinstance(dim, Dimension):
             dim = self.get_dimension(dim)
@@ -797,96 +618,30 @@ This is game-world time. It doesn't always go forwards.
             dim = self.get_dimension(dim)
         return dim.get_portal(str(origin), str(destination))
 
-    def get_board(self, dim, i):
-        if not isinstance(dim, Dimension):
-            dim = self.get_dimension(dim)
-        if len(dim.boards) <= i or dim.boards[i] is None:
-            return self.load_board(dim, i)
-        else:
-            return dim.boards[i]
-
-    def load_board(self, dim, i):
-        dimn = str(dim)
-        if not isinstance(dim, Dimension):
-            dim = self.get_dimension(dimn)
-        self.skeleton.update(
-            Board._select_skeleton(
-                self.c,
-                {"board":
-                 {"dimension": dimn,
-                  "idx": i}}))
-        for character in self.characterdict.itervalues():
-            for 
-        return Board(self, dim, i)
-
-    def load_viewport(self, win, dim, board, viewi):
-        winn = str(win)
-        dimn = str(dim)
-        boardi = int(board)
-        if not isinstance(win, GameWindow):
-            win = self.get_window(winn)
-        if not isinstance(dim, Dimension):
-            dim = self.get_dimension(dimn)
-        if not isinstance(board, Board):
-            board = self.get_board(dim, boardi)
-        kd = {"board_viewport":
-              {"window": winn,
-               "dimension": dimn,
-               "board": boardi,
-               "idx": viewi}}
-        self.skeleton.update(
-            BoardViewport._select_skeleton(self.c, kd))
-        return BoardViewport(
-            self, win, dim, board, viewi)
-
-    def get_viewport(self, win, dim, boardidx, viewi):
-        if isinstance(boardidx, Board):
-            board = boardidx
-        else:
-            board = self.get_board(dim, boardidx)
-        if (
-                len(board.views) > viewi and
-                board.views[viewi] is not None):
-            return board.views[viewi]
-        else:
-            return self.load_viewport(win, dim, board, viewi)
-
-    def load_imgs(self, names):
-        kd = {"img": {}}
-        for name in names:
-            kd["img"][name] = {"name": name}
-        self.skeleton.update(
-            Img._select_skeleton(
-                self.c, kd))
-        r = {}
-        for name in names:
-            r[name] = Img(self, name)
-        return r
-
-    def get_imgs(self, imgnames):
+    def get_textures(self, imgnames):
         r = {}
         unloaded = set()
         for imgn in imgnames:
-            if imgn in self.imgdict:
-                r[imgn] = self.imgdict[imgn]
+            if imgn in self.texturedict:
+                r[imgn] = self.texturedict[imgn]
             else:
                 unloaded.add(imgn)
         if len(unloaded) > 0:
-            r.update(self.load_imgs(unloaded))
+            r.update(self.load_textures(unloaded))
         return r
 
-    def get_img(self, imgn):
-        return self.get_imgs([imgn])[imgn]
+    def get_texture(self, imgn):
+        return self.get_textures([imgn])[imgn]
 
     def load_colors(self, names):
         kd = {"color": {}}
         for name in names:
             kd["color"][name] = {"name": name}
         self.skeleton.update(
-            Color._select_skeleton(self.c, kd))
+            LiSEColor._select_skeleton(self.c, kd))
         r = {}
         for name in names:
-            r[name] = Color(self, name)
+            r[name] = LiSEColor(self, name)
             self.colordict[name] = r[name]
         return r
 
@@ -910,16 +665,19 @@ This is game-world time. It doesn't always go forwards.
         for name in stylenames:
             kd["style"][name] = {"name": name}
         self.skeleton.update(
-            Style._select_skeleton(self.c, kd))
+            LiSEStyle._select_skeleton(self.c, kd))
         colornames = set()
+        colorcols = set([
+            'bg_inactive', 'bg_active', 'fg_inactive', 'fg_active',
+            'text_inactive', 'text_active'])
         for name in stylenames:
             rd = self.skeleton["style"][name]
-            for colorcol in Style.color_cols:
+            for colorcol in colorcols:
                 colornames.add(rd[colorcol])
         self.get_colors(colornames)
         r = {}
         for name in stylenames:
-            r[name] = Style(self, name)
+            r[name] = LiSEStyle(self, name)
         return r
 
     def get_styles(self, stylenames):
@@ -935,49 +693,9 @@ This is game-world time. It doesn't always go forwards.
         return r
 
     def get_style(self, name):
-        if isinstance(name, Style):
+        if isinstance(name, LiSEStyle):
             return name
         return self.get_styles([name])[name]
-
-    def load_windows(self, names, checkpoint=False):
-        kd = {
-            "window": {},
-            "board_viewport": {},
-            "menu": {},
-            "hand": {},
-            "menu_item": {},
-            "charsheet": {}}
-        for name in names:
-            kd["window"][name] = {"name": name}
-            for col in kd.iterkeys():
-                if col == "window":
-                    continue
-                kd[col][name] = {"window": name}
-        td = GameWindow._select_skeleton(self.c, kd)
-        self.skeleton.update(td)
-        self.old_skeleton.update(td)
-        r = {}
-        for name in names:
-            r[name] = GameWindow(self, name, checkpoint)
-        return r
-
-    def load_window(self, name, checkpoint=False):
-        return self.load_windows([name], checkpoint)[name]
-
-    def get_windows(self, names, checkpoint=False):
-        r = {}
-        unhad = set()
-        for name in iter(names):
-            if name in self.windowdict:
-                r[name] = self.windowdict[name]
-            else:
-                unhad.add(name)
-        if len(unhad) > 0:
-            r.update(self.load_windows(unhad, checkpoint))
-        return r
-
-    def get_window(self, name, checkpoint=False):
-        return self.get_windows([name], checkpoint)[name]
 
     def load_cards(self, names):
         effectdict = self.get_effects(names)
@@ -986,12 +704,12 @@ This is game-world time. It doesn't always go forwards.
             kd["card"][name] = {"effect": name}
         td = Card._select_skeleton(self.c, kd)
         r = {}
-        for rd in td.iterrows():
+        for rd in td.iterbones():
             r[rd["effect"]] = Card(self, effectdict[rd["effect"]], td)
         return r
 
     def get_cards(self, names):
-        r = Skeleton({})
+        r = {}
         unhad = set()
         for name in names:
             if name in self.carddict:
@@ -1005,18 +723,25 @@ This is game-world time. It doesn't always go forwards.
     def get_card(self, name):
         return self.get_cards([name])[name]
 
-    def get_effects_in_decks(self, decks):
-        effds = self.get_effect_decks(decks)
-        effects = set()
-        for effd in effds.itervalues():
-            for rd in effd._card_links:
-                effects.add(rd["effect"])
-        return self.get_effects(effects)
+    def load_menus(self, names):
+        kd = {"menu": {}}
+        for name in names:
+            kd["menu"][name] = {"name": name}
+        skel = Menu._select_skeleton(self.c, kd)
+        self.skeleton.update(skel)
+        r = {}
+        for rd in skel.iterbones():
+            self.load_menu_items(rd["name"])
+            r[rd["name"]] = Menu(closet=self, name=rd["name"])
+        return r
 
-    def get_cards_in_hands(self, hands):
-        effects = self.get_effects_in_decks(hands)
-        return self.get_cards([
-            str(effect) for effect in effects.itervalues()])
+    def load_menu(self, name):
+        return self.load_menus([name])[name]
+
+    def load_menu_items(self, menu):
+        kd = {"menu_item": {"menu": menu}}
+        skel = Menu._select_skeleton(self.c, kd)
+        self.skeleton.update(skel)
 
     def load_timestream(self):
         self.skeleton.update(
@@ -1033,10 +758,15 @@ This is game-world time. It doesn't always go forwards.
             self.new_branch(self.branch, branch, tick)
         # will need to take other games-stuff into account than the
         # thing_location
+        if tick < 0:
+            tick = 0
+            self.updating = False
         mintick = self.timestream.min_tick(branch, "thing_location")
         if tick < mintick:
             tick = mintick
         self.time_travel_history.append((self.branch, self.tick))
+        if tick > self.timestream.hi_tick:
+            self.timestream.hi_tick = tick
         self.branch = branch
         self.tick = tick
 
@@ -1051,20 +781,21 @@ This is game-world time. It doesn't always go forwards.
             return b
 
     def new_branch(self, parent, branch, tick):
-        for dimension in self.dimensions:
+        for dimension in self.dimensiondict.itervalues():
             dimension.new_branch(parent, branch, tick)
-        for character in self.characters:
+        for board in self.boarddict.itervalues():
+            board.new_branch(parent, branch, tick)
+        for character in self.characterdict.itervalues():
             character.new_branch(parent, branch, tick)
         self.skeleton["timestream"][branch] = {
             "branch": branch,
             "parent": parent}
-        assert(branch == self.timestream.hi_branch + 1)
-        self.timestream.hi_branch = branch
 
     def time_travel_inc_tick(self, ticks=1):
         self.time_travel(self.branch, self.tick+ticks)
 
     def time_travel_inc_branch(self, branches=1):
+        self.increment_branch(branches)
         self.time_travel(self.branch+branches, self.tick)
 
     def go(self, nope=None):
@@ -1076,25 +807,53 @@ This is game-world time. It doesn't always go forwards.
     def set_speed(self, newspeed):
         self.game_speed = newspeed
 
-    def play_speed(self, mi, gamespeed):
-        self.set_speed(int(gamespeed))
-        self.go()
+    def play_speed(self, mi, n):
+        self.game_speed = int(n)
+        self.updating = True
 
     def back_to_start(self, nope):
         self.stop()
         self.time_travel(self.branch, 0)
 
-    def update(self, ts=None):
-        self.time_travel_inc_tick(ticks=self.game_speed)
+    def update(self, *args):
+        if self.updating:
+            self.time_travel_inc_tick(ticks=self.game_speed)
 
     def end_game(self):
         self.c.close()
-        self.conn.commit()
-        self.conn.close()
+        self.connector.commit()
+        self.connector.close()
 
     def checkpoint(self):
         self.old_skeleton = self.skeleton.copy()
 
+    def uptick_rd(self, rd):
+        if "branch" in rd and rd["branch"] > self.timestream.hi_branch:
+            self.timestream.hi_branch = rd["branch"]
+        if "tick_from" in rd and rd["tick_from"] > self.timestream.hi_tick:
+            self.timestream.hi_tick = rd["tick_from"]
+        if "tick_to" in rd and rd["tick_to"] > self.timestream.hi_tick:
+            self.timestream.hi_tick = rd["tick_to"]
+
+    def uptick_skel(self):
+        for rd in self.skeleton.iterbones():
+            self.uptick_rd(rd)
+
+    def get_present_bone(self, skel):
+        return get_bone_during(skel, self.branch, self.tick)
+
+    def mi_show_popup(self, mi, name):
+        assert(name == 'load_pic')
+        root = mi.get_root_window().children[0]
+        return root.show_pic_loader()
+
+    def register_text_listener(self, stringn, listener):
+        if stringn == "@branch":
+            self.branch_listeners.append(listener)
+        elif stringn == "@tick":
+            self.tick_listeners.append(listener)
+        if stringn[0] == "@" and stringn[1:] in self.skeleton["strings"]:
+            self.skeleton["strings"][stringn[1:]].listeners.append(listener)
 
 def mkdb(DB_NAME='default.sqlite'):
     def isdir(p):
@@ -1127,8 +886,8 @@ def mkdb(DB_NAME='default.sqlite'):
 
     def ins_rltiles(curs, dirname):
         here = os.getcwd()
-        directories = os.path.abspath(dirname).split("/")
-        home = "/".join(directories[:-1]) + "/"
+        directories = os.path.abspath(dirname).split(os.sep)
+        home = os.sep.join(directories[:-len(dirname.split(os.sep))]) + os.sep
         dirs = allsubdirs(dirname)
         for dir in dirs:
             for bmp in os.listdir(dir):
@@ -1136,9 +895,9 @@ def mkdb(DB_NAME='default.sqlite'):
                     continue
                 qrystr = """insert or replace into img
     (name, path, rltile) values (?, ?, ?)"""
-                bmpr = bmp.replace('.bmp', '')
                 dirr = dir.replace(home, '') + bmp
-                curs.execute(qrystr, (bmpr, dirr, True))
+                name = dirr.replace(dirname, '')[1:]
+                curs.execute(qrystr, (name, dirr, True))
         os.chdir(here)
 
     try:
@@ -1156,23 +915,21 @@ def mkdb(DB_NAME='default.sqlite'):
 
     c.execute(
         "CREATE TABLE game"
-        " (front_dimension TEXT DEFAULT 'Physical', "
-        "front_board INTEGER DEFAULT 0, "
-        "front_branch INTEGER DEFAULT 0, "
+        " (language TEXT DEFAULT 'eng',"
+        "dimension TEXT DEFAULT 'Physical', "
+        "branch INTEGER DEFAULT 0, "
         "tick INTEGER DEFAULT 0,"
         " seed INTEGER DEFAULT 0);")
     c.execute(
         "CREATE TABLE strings (stringname TEXT NOT NULL, language TEXT NOT"
-        " NULL DEFAULT 'English', string TEXT NOT NULL, "
+        " NULL DEFAULT 'eng', string TEXT NOT NULL, "
         "PRIMARY KEY(stringname,  language));")
 
     done = set()
     while saveables != []:
         (demands, provides, prelude,
          tablenames, postlude) = saveables.pop(0)
-        print tablenames
-        if 'character_things' in tablenames:
-            pass
+        print(tablenames)
         breakout = False
         for demand in iter(demands):
             if demand not in done:
@@ -1183,13 +940,13 @@ def mkdb(DB_NAME='default.sqlite'):
                 break
         if breakout:
             continue
+        while prelude != []:
+            pre = prelude.pop()
+            if isinstance(pre, tuple):
+                c.execute(*pre)
+            else:
+                c.execute(pre)
         if tablenames == []:
-            while prelude != []:
-                pre = prelude.pop()
-                if isinstance(pre, tuple):
-                    c.execute(*pre)
-                else:
-                    c.execute(pre)
             while postlude != []:
                 post = postlude.pop()
                 if isinstance(post, tuple):
@@ -1209,16 +966,15 @@ def mkdb(DB_NAME='default.sqlite'):
                 (demands, provides, prelude, tablenames, postlude))
             continue
         breakout = False
-        while tablenames != []:
-            tn = tablenames.pop(0)
-            if tn == "calendar":
-                pass
+        tables_todo = list(tablenames)
+        while tables_todo != []:
+            tn = tables_todo.pop(0)
             try:
                 c.execute(schemata[tn])
                 done.add(tn)
             except sqlite3.OperationalError as e:
-                print "OperationalError while creating table {0}:".format(tn)
-                print e
+                print("OperationalError while creating table {0}:".format(tn))
+                print(e)
                 breakout = True
                 break
         if breakout:
@@ -1233,8 +989,10 @@ def mkdb(DB_NAME='default.sqlite'):
                 else:
                     c.execute(post)
         except sqlite3.OperationalError as e:
-            print "OperationalError during postlude from {0}:".format(tn)
-            print e
+            print("OperationalError during postlude from {0}:".format(tn))
+            print(e)
+            import pdb
+            pdb.set_trace()
             saveables.append(
                 (demands, provides, prelude, tablenames, postlude))
             continue
@@ -1245,28 +1003,21 @@ def mkdb(DB_NAME='default.sqlite'):
     initfiles = sorted(os.listdir('.'))
     for initfile in initfiles:
         if initfile[-3:] == "sql":  # weed out automatic backups and so forth
-            print "reading SQL from file " + initfile
+            print("reading SQL from file " + initfile)
             read_sql(initfile)
 
     os.chdir(oldhome)
 
-    print "indexing the RLTiles"
-    ins_rltiles(c, 'rltiles')
+    print("indexing the RLTiles")
+    ins_rltiles(c, 'assets/rltiles')
 
-    c.close()
     conn.commit()
+    return conn
 
 
-def load_closet(dbfn, lang="eng", xfuncs={}):
+def load_closet(dbfn, lang="eng", kivy=False):
     conn = sqlite3.connect(dbfn)
-    c = conn.cursor()
-    c.execute(
-        "SELECT front_dimension, front_board, front_branch, seed, tick "
-        "FROM game")
-    row = c.fetchone()
-    c.close()
-    initargs = (conn, xfuncs, lang) + row
-    r = Closet(*initargs)
+    r = Closet(connector=conn, lang=lang, USE_KIVY=kivy)
     r.load_strings()
     r.load_timestream()
     return r

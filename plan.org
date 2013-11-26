@@ -1,214 +1,49 @@
 * database
-** [9/9]place
-*** DONE knowplace
-*** DONE haveplace
-*** DONE mkplace
-*** DONE updplace
-*** DONE writeplace
-*** DONE saveplace
-*** DONE loadplace
-*** DONE getplace
-*** DONE delplace
-** [9/9] thing
-*** DONE knowthing
-*** DONE havething
-*** DONE mkthing
-*** DONE updthing
-*** DONE writething
-*** DONE savething
-*** DONE loadthing
-*** DONE getthing
-*** DONE delthing
-** [10/10] portal
-*** DONE knowportal
-*** DONE haveportal
-*** DONE mkportal
-*** DONE updportal
-*** DONE writeportal
-*** DONE saveportal
-*** DONE loadportal
-*** DONE getportal
-*** DONE delportal
-*** DONE cullportals
-    The partial key is a place name. Delete portals originating here that aren't in the list.
-
-    keeps are strictly the NAMES of portals.
-** [10/10] containment
-*** DONE knowcontainment
-*** DONE havecontainment
-*** DONE mkcontainment
-*** DONE updcontainment
-*** DONE writecontainment
-*** DONE savecontainment
-*** DONE loadcontainment
-*** DONE getcontainment
-*** DONE delcontainment
-*** DONE cullcontainment
-** [9/9] spot
-*** DONE knowspot
-*** DONE havespot
-*** DONE mkspot
-*** DONE updspot
-*** DONE writespot
-*** DONE savespot
-*** DONE loadspot
-*** DONE getspot
-*** DONE delspot
-** [8/8] attribute
-*** DONE knowattribute
-*** DONE mkattribute
-*** DONE updattribute
-*** DONE writeattribute
-*** DONE saveattribute
-*** DONE loadattribute
-*** DONE getattribute
-*** DONE delattribute
-** [11/11] attribution
-*** DONE knowattribution
-*** DONE mkattribution
-*** DONE updattribution
-*** DONE writeattribution
-*** DONE saveattributionson
-    It doesn't make sense to have a plain "save attribution" because attribution objects do not exist.
-*** DONE loadattribution
-*** DONE loadattributionson
-*** DONE getattribution
-*** DONE getattributionson
-*** DONE delattribution
-*** DONE cullattribution
-** [7/7] permitted
-*** DONE knowpermitted
-*** DONE havepermitted
-    I suppose this would take an AttrCheck as its argument.
-*** DONE mkpermitted
-*** DONE writepermitted
-*** DONE loadpermitted
-*** DONE getpermitted
-*** DONE delpermitted
-** [9/9] img
-*** DONE knowimg
-*** DONE haveimg
-*** DONE mkimg
-*** DONE updimg
-*** DONE writeimg
-*** DONE loadimg
-*** DONE getimg
-*** DONE delimg
-*** DONE cullimgs
-    In this case there's no partial key, you just delete those images that aren't loaded.
-** [8/8] canvas
-*** DONE knowcanvas
-*** DONE havecanvas
-*** DONE mkcanvas
-*** DONE updcanvas
-*** DONE writecanvas
-*** DONE loadcanvas
-*** DONE getcanvas
-*** DONE delcanvas
-** [9/9] pawn
-*** DONE knowpawn
-*** DONE havepawn
-*** DONE mkpawn
-*** DONE updpawn
-*** DONE writepawn
-*** DONE loadpawn
-*** DONE getpawn
-*** DONE delpawn
-*** DONE cullpawns
-** [8/8] color
-*** DONE knowcolor
-*** DONE havecolor
-*** DONE mkcolor
-*** DONE updcolor
-*** DONE writecolor
-*** DONE loadcolor
-*** DONE getcolor
-*** DONE delcolor
-** [8/8] style
-*** DONE knowstyle
-*** DONE havestyle
-*** DONE mkstyle
-*** DONE updstyle
-*** DONE writestyle
-*** DONE loadstyle
-*** DONE getstyle
-*** DONE delstyle
-** [8/8] menu
-*** DONE knowmenu
-*** DONE havemenu
-*** DONE mkmenu
-*** DONE updmenu
-*** DONE writemenu
-*** DONE loadmenu
-*** DONE getmenu
-*** DONE delmenu
-** [11/11] menuitem
-*** DONE knowmenuitem
-*** DONE havemenuitem
-    I need to put the key for the menuitem on the menuitem python
-    object itself, which means i'll have to change it should i ever
-    reorder the menus... or else I could just disallow updating
-    menuitems... or store the new index as well? Bah...
-
-    Yeah you know what I'll just not have any way to move a menu item
-    around after creation, it's not that hard to make a new one.
-*** DONE mkmenuitem
-*** DONE updmenuitem
-*** DONE writemenuitem
-*** DONE loadmenuitem
-*** DONE loadmenuitemsin
-    Load all menu items that are in a given menu. This may be called as a part of loadmenu.
-*** DONE getmenuitem
-*** DONE getmenuitemsin
-*** DONE delmenuitem
-*** DONE delmenuitemsin
 ** DONE change loaders so they can handle the case where you try to load something that doesn't exist
-** TODO schema changes
-*** both Spots and Pawns are contained in Canvases
-*** Spots are also contained in SpotGraphs
-*** How do I store those all in the database?
-*** Do I even need SpotGraphs? What are they for?
-** World database schema
-   Since questions of data model seem to distract me a lot, I'll decide on some basics before going forward with any kind of interaction design.
-
-   The model given here doesn't necessarily represent what's saved in the save files, nor what's used in the program during play. Perhaps this will "merely" be a transitional form that the game world occupies in between loading the save and beginning play.
-
-   It would be kind of cool, though, if I could query the world using SQL.
-*** Top level: Timeline
-    Each record in the timeline represents something that changed in the game world. I don't want to call these "events" because that term's taken by lower-level concerns like the input handler. I'll call them "tocks".
-**** Time
-     Counted in ticks from game-start. The length of wall-time that a tick represents may vary from game to game. That information will have to go into some kind of header.
-**** Order
-     A counter that increments for every tock in a given tick. It resets to zero when the next tick occurs.
-**** Place
-     n-to-n related to Places in the World Map. Places can contain Items and Trails. Trails can represent any option that a traveling entity such as a character can use for traveling somewhere.
-**** Items
-     n-to-n related to Things that occupy Places. Each item related to a given tock was somehow taken into account in the process of determining and resolving the tock's effects on the game world. This includes the things changed, the instigators (if any), the tools used (if any), and possibly a bunch of stuff that doesn't actually make a difference, but could have done so, in principle.
-
-     Items should be given in the same order that they were passed to the function that was used to determine the results of the Action. As such, the table describing the n-to-n relation to Things will need an ordinal integer as the primary key, rather than using the things-related as the primary key, as would be expected.
-**** Action
-     n-to-1 related to an Action, which describes the process used to decide what to change. Actions are in turn 1-to-n related to functions, and include whatever data I need to decide which of those functions is needed to resolve a particular Action, given the Things involved, and the order that the Things are given in.
-**** Change
-     A link to an entry in a journal that represents the before and after states of the world model.
-
-     I'll have to look into journal design, or else choose an appropriate premade journal.
+** schema changes
 * interface
 ** place places (w. spots)
 ** place things (w. pawns)
-** properties windows
+** character shets
 *** Link items to characters and vice versa.
 *** Little nested list demonstrating containment hierarchy.
-*** Implicit definition of character attributes.
-    Set an att to a value and that value gets permitted.
+    You can move things around in it, resulting in teleportation.
+*** Stat tables
+    Editable, sometimes--press a button to unlock it and labels turn
+    into inputs. Press again and they turn back.
+*** Calendars
+    Click an event once to highlight it. Drag it around to reschedule
+    it--this will result in resizing the events on either end, and
+    possibly switching the orders around.
 
-    In the case of numerical values, there's interpolation. It would
-    be weird to permit values 0 and 2 but not 1, so assume.
+    In case of movement it doesn't really make sense to reorder it, so
+    it should refuse to move to where it makes another movement event
+    impossible.
 
-    There'll be an explicit definition window anyway, and using that
-    but once overrides the implicit definition forever.
+    When highlit a handle for resizing appears at each end. For
+    tablet's sake I think these should be *outside* the event proper.
 
-    This feature isn't very Pythonic. Is that bad? Should this thing
-    be Pythonic?
+    Doubletap an event to bring up a detail view. Includes all the
+    participants, the causes, event, and effects. You can't reassign
+    those *here* but may click through to the event builder.
+** build events
+*** How to get here?
+    You can click through from an event on the calendar, or there's a
+    menu item for it
+*** How to pick the widgets herein?
+    Similar to a file selector but these aren't files... each gets
+    only one record in the database, which can participate in lots of
+    relations.
+*** causes
+    They get a card and an "outie"
+*** events
+    They don't get proper cards, just boxes for their names--because,
+    you see, players never see them. Also they need to be resized in a
+    way the others just don't.
+
+    Each starts with one "innie" and grows another when the last is filled in.
+*** effects
+    They get a card and an "innie"
 ** the hand
 *** arrange cards manually or automatically
 *** push cards aside to provide a drop zone
@@ -262,38 +97,6 @@
 ****** These conditions may be thresholds that the need-states can pass
 ****** They may be world-states that the NPC is intimately concerned with, eg. a physician getting a call about a patient that they must immediately operate upon
 ****** The NPC should pretty much always wake up and pay attention whenever the player character interacts with them directly.
-** User interface
-*** Pyglet
-**** Vertices, draggable
-***** Appearance
-Vertices should not all look the same. They represent places, some of which will be more important than others, and should thus be larger on the screen.
-
-I should be able to use any graphic for a vertex. It should be PNG format, with transparency.
-
-Various tokens may appear on top of a vertex. Normally that means they go in the topright corner. How many? The tokens and the graphic can be changed at any time, perhaps animated.
-
-Certain tokens go in the center. Normally they represent characters.
-***** Interaction
-The vertices are draggable in God Mode, and perhaps otherwise too--in which case their movement must be restricted so that edges that do not cross now, won't cross ever.
-**** Edges, moving with their endpoints
-**** Subscreens
-Little windows with no title bars or anything. They appear when needed and disappear when you click somewhere else.
-***** Character Overview
-***** Social Inventory
-Mostly this will look like the friends display from Kudos 2, although I'd like to let the player see more without clicking.
-***** Carried Inventory
-***** Status Effect Inventory
-***** Statistic Inventory ("Character Sheet")
-***** Event Inventory
-***** God Mode Inventory
-Presents all the things you drag and drop onto the map when you're editing it. Not accessible during normal play.
-***** Place Inventory
-Includes portals and characters, which should be set apart from other stuff somehow.
-***** Quest Log
-Mechanically, "quests" are much the same as in western computer RPGs. However they will frequently be procedurally generated rather than scripted.
-***** Need Inventory
-Actually, significantly similar to the quest log, but with more persistence. The sort of "quest" that you need to do over and over again, like driving to work.
-Maybe I should just have this as a pane within the Quest Log.
 ** Programming interface
 * Extra features
 ** Stolen from Kudos 2
@@ -305,15 +108,35 @@ But not restricted to stuff you've "unlocked," just stuff you *know
 about* and which your character considers sensible.
 
 Actually this should just be a sorting priority for the action inventory.
+** Stolen from Redshirt
+*** the *navigable* social web display
+*** feeds of character activities
+**** per character
+**** per location
+**** text mode
+     Calendar mode also. Redshirt doesn't have that!
+** Stolen from Dwarf Fortress
 * Gameplay cycle
-Depending on how many characters you control, and how far each will obey your instructions, it might be an rpg or a time/resource mgmt sim. In either case you collect resource and skill so you can learn of new opportunities to get more resource and skill. The middle-term objectives, possibly "missions," mostly involve raising some stat to some threshold, whether it's money, exp, or coolness. Any time a stat has an effect on the world, it will also (sometimes only) modify other stats that the player should be concerned with.
+Depending on how many characters you control, and how far each will
+obey your instructions, it might be an rpg or a time/resource mgmt
+sim. In either case you collect resource and skill so you can learn of
+new opportunities to get more resource and skill. The middle-term
+objectives, possibly "missions," mostly involve raising some stat to
+some threshold, whether it's money, exp, or coolness. Any time a stat
+has an effect on the world, it will also (sometimes only) modify other
+stats that the player should be concerned with.
 
-Sometimes you're actually trying to instantiate some new entity into the world, for which you need to sacrifice some other entity, or one of its stats. This makes a compelling kind of objective because creation has similar effects on the world model to exploration, yet is under player control. I'll pay special attention to enabling strange and unusual crafting systems. Like maybe you can craft entire cities. Abstraction is wonderful for that kind of thing.
-
+Sometimes you're actually trying to instantiate some new entity into
+the world, for which you need to sacrifice some other entity, or one
+of its stats. This makes a compelling kind of objective because
+creation has similar effects on the world model to exploration, yet is
+under player control. I'll pay special attention to enabling strange
+and unusual crafting systems. Like maybe you can craft entire
+cities. Abstraction is wonderful for that kind of thing.
 
 * Time model
 ** Branch
-   A branch is a sequence of predetermined ticks. Branches are indexed
+   A branch is a sequence of ticks. Branches are indexed
    like lists, with the index assigned as the branch is
    created--there's no need for branches created later on to be
    "later" in the time model than any other branch.
@@ -343,13 +166,5 @@ Sometimes you're actually trying to instantiate some new entity into the world, 
    You might say that ticks "contain" effects from many branches, but
    not really. Ticks and branches are more like axes on a Cartesian
    plane: you use the two of them together to identify when you want
-   something. But ticks are spaced regularly, where branches may be
-   more or less densely packed depending on how much randomness is
-   going on.
-** Effect
-   Effects are instantaneous changes to the state of the world. Each
-   effect does one thing and only one thing.
-** Event
-   A collection of effects (perhaps as few as zero) which are together
-   regarded as taking some length of time, which has a beginning,
-   middle, and end.
+   something.
+
