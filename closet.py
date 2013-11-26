@@ -161,6 +161,7 @@ given name.
         """
         self.branch_listeners = []
         self.tick_listeners = []
+        self.time_listeners = []
         self.lang_listeners = []
         self.connector = connector
 
@@ -301,12 +302,18 @@ given name.
     def upd_branch(self, b):
         for listener in self.branch_listeners:
             listener(self, b)
+        self.upd_time(b, self.tick)
         self.skeleton["game"]["branch"] = b
 
     def upd_tick(self, t):
         for listener in self.tick_listeners:
             listener(self, t)
+        self.upd_time(self.branch, t)
         self.skeleton["game"]["tick"] = t
+
+    def upd_time(self, b, t):
+        for listener in self.time_listeners:
+            listener(self, b, t)
 
     def upd_lang(self, l):
         for listener in self.lang_listeners:

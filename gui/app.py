@@ -32,10 +32,11 @@ to the board.
         self._popup.dismiss()
 
     def show_pic_loader(self):
-        content = SwatchBox(
+        content = FloatLayout()
+        content.add_widget(SwatchBox(
             texdict=self.board.closet.texturedict,
             style=self.board.closet.get_style('default_style'),
-            cols=5)
+            cols=5))
         self._popup = Popup(title="Select some images", content=content,
                             size_hint=(0.9, 0.9))
         self._popup.open()

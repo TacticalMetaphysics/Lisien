@@ -335,8 +335,9 @@ axis and transform so I appear there."""
         destspot = self.board.get_spot(self.where_upon.portal.destination)
         progress = self.thing.get_progress()
         (orig_x, orig_y) = self.where_upon.pos
-        xtrans = (destspot.x - origspot.x) * progress + self.radii[0]
-        ytrans = (destspot.y - origspot.y) * progress + self.radii[1]
+        (rx, ry) = self.radii
+        xtrans = (destspot.x - origspot.x) * progress + rx
+        ytrans = (destspot.y - origspot.y) * progress + ry
         self.transform.identity()
         self.apply_transform(v)
         self.transform.translate(xtrans, ytrans, 0)

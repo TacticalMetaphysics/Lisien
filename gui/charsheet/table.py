@@ -98,9 +98,7 @@ and yield dicts representing rows in a table of locations."""
     if tick is None:
         tick = closet.tick
     for bone in get_branch_bone_iter_thing(keys, char, branch, tick):
-        yield {"dimension": bone["dimension"],
-               "thing": bone["thing"],
-               "location": bone["location"]}
+        yield bone
 
 
 def mk_iter_skeleton_thing(keys, char, skel):
@@ -170,8 +168,49 @@ def mk_iter_skeleton_skill(keys, char, skel):
 
 class TableTextInput(TextInput):
     table = ObjectProperty()
-    rd = ObjectProperty()
+    bone = ObjectProperty(None)
     key = StringProperty()
+    finality = NumericProperty(0)
+
+    def on_bone(self, i, v):
+        if v is None:
+            return
+        if self.bone is not None and self.bone_listener in self.bone.listeners:
+            self.bone.listeners.remove(self.bone_listener)
+        v.listeners.append(self.bone_listener)
+
+    def bone_listener(self, skel, k, v):
+        if k == u"location":
+            self.text = unicode(v)
+
+    def time_listener(self, closet, branch, tick):
+        ittyp = self.table.parent.item_type
+        character = self.table.parent.character
+        colkeys = self.table.parent.colkey_dict[ittyp][:-1]
+        if self.key in colkeys:
+            pass
+        elif ittyp == 0:
+            skel = closet.skeleton[u"thing_location"][
+                self.bone["dimension"]][self.bone["thing"]][
+                branch]
+            tick_from = skel.key_or_key_before(tick)
+            self.text = skel[tick_from]["location"]
+        elif ittyp == 1:
+            pass
+        elif ittyp == 2:
+            pass
+        elif ittyp == 3:
+            pass
+        elif ittyp == 4:
+            self.text = unicode(
+                closet.skeleton["character_stats"][
+                    unicode(character)][self.bone["stat"]][
+                    branch][tick])
+        else:
+            self.text = unicode(
+                closet.skeleton["character_skills"][
+                    unicode(character)][self.bone["stat"]][
+                    branch][tick])
 
     def on_text_validate(self):
         ittyp = self.table.parent.item_type
@@ -182,10 +221,10 @@ class TableTextInput(TextInput):
             pass
         elif ittyp == 0:
             skel = character.closet.skeleton["thing_location"][
-                self.rd["dimension"]][self.rd["thing"]]
-            dimension = character.closet.get_dimension(self.rd["dimension"])
+                self.bone["dimension"]][self.bone["thing"]]
+            dimension = character.closet.get_dimension(self.bone["dimension"])
             thing = character.closet.get_thing(
-                self.rd["dimension"], self.rd["thing"])
+                self.bone["dimension"], self.bone["thing"])
             if "->" in self.text:
                 (orign, destn) = self.text.split("->")
                 ovid = dimension.graph.vs.find(name=orign)
@@ -213,12 +252,12 @@ class TableTextInput(TextInput):
             return
         elif ittyp == 4:
             skel = character.closet.skeleton["character_stats"][
-                unicode(self.character)][self.rd["stat"]]
+                unicode(character)][self.bone["stat"]]
             # there'll be type checking eventually I guess
             save = True
         else:
             skel = character.closet.skeleton["character_skills"][
-                unicode(self.character)][self.rd["skill"]]
+                unicode(character)][self.bone["skill"]]
             # and check that the Cause exists
             save = True
         if not save:
@@ -261,8 +300,8 @@ class Table(GridLayout):
     xmov = NumericProperty()
 
     def on_completedness(self, i, v):
-        if v == 4:
-            self.completed()
+        if v == 5:
+            self.complete()
 
     def on_text_color_inactive(self, *args):
         self.completedness += 1
@@ -276,7 +315,10 @@ class Table(GridLayout):
     def on_iter_skeleton(self, *args):
         self.completedness += 1
 
-    def completed(self):
+    def on_parent(self, *args):
+        self.completedness += 1
+
+    def capitate(self):
         for key in self.colkeys:
             head = TableHeader(
                 table=self,
@@ -284,14 +326,21 @@ class Table(GridLayout):
             self.headers.append(head)
             self.add_widget(head)
 
-        for rd in self.iter_skeleton():
+    def corpitate(self):
+        for bone in self.iter_skeleton():
             for key in self.colkeys:
                 child = TableTextInput(
                     table=self,
                     key=key,
-                    rd=rd)
+                    bone=bone)
                 self.add_widget(child)
                 self.edbut.extra_listeners.append(child.edbut_listener)
+                self.parent.character.closet.time_listeners.append(
+                    child.time_listener)
+
+    def complete(self):
+        self.capitate()
+        self.corpitate()
 
     def iterbones(self, branch=None, tick=None):
         closet = self.character.closet
@@ -299,8 +348,8 @@ class Table(GridLayout):
             branch = closet.branch
         if tick is None:
             tick = closet.tick
-        for rd in self.iter_skeleton(branch, tick):
-            yield [rd[key] for key in self.colkeys]
+        for bone in self.iter_skeleton(branch, tick):
+            yield [bone[key] for key in self.colkeys]
 
     def on_touch_down(self, touch):
         for child in self.children:
@@ -343,3 +392,6 @@ class TableLayout(ItemLayout, StencilView):
         2: mk_iter_skeleton,
         3: mk_iter_skeleton_stat,
         4: mk_iter_skeleton_skill}
+
+    def __init__(self, **kwargs):
+        super(TableLayout, self).__init__(**kwargs)
