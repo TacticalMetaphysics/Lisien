@@ -79,14 +79,14 @@ keyed with their names.
             self.closet.skeleton["thing_location"] = {}
         if str(self) not in self.closet.skeleton["thing_location"]:
             self.closet.skeleton["thing_location"][str(self)] = {}
-        for rd in self.closet.skeleton["portal"][str(self)].iterbones():
-            orig = self.get_place(rd["origin"])
-            dest = self.get_place(rd["destination"])
+        for bone in self.closet.skeleton["portal"][str(self)].iterbones():
+            orig = self.get_place(bone.origin)
+            dest = self.get_place(bone.destination)
             Portal(self.closet, self, orig, dest)
-        for rd in self.closet.skeleton["thing_location"][str(self)].iterbones():
-            if rd["thing"] not in self.thingdict:
-                self.thingdict[rd["thing"]] = Thing(
-                    self.closet, self, rd["thing"])
+        for bone in self.closet.skeleton["thing_location"][str(self)].iterbones():
+            if bone.thing not in self.thingdict:
+                self.thingdict[bone.thing] = Thing(
+                    self.closet, self, bone.thing)
         self.closet.dimensiondict[str(self)] = self
 
     def __hash__(self):

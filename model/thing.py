@@ -97,21 +97,21 @@ LocationException."""
         """Return my current location by default, or where I was at the given
 tick in the given branch."""
         try:
-            rd = self.get_location_bone(branch, tick)
+            bone = self.get_location_bone(branch, tick)
         except KeyError:
             return None
-        if rd is None or rd["location"] is None:
+        if bone is None or bone.location is None:
             return None
-        if rd["location"] in self.dimension.graph.vs["name"]:
-            return self.dimension.get_place(rd["location"])
+        if bone.location in self.dimension.graph.vs["name"]:
+            return self.dimension.get_place(bone.location)
         try:
-            (orign, destn) = rd["location"].split("->")
+            (orign, destn) = bone.location.split("->")
             oi = self.dimension.graph.vs.find(orign).index
             di = self.dimension.graph.vs.find(destn).index
             eid = self.dimension.graph.get_eid(oi, di)
             return self.dimension.graph.es[eid]["portal"]
         except Exception as e:
-            return self.dimension.get_thing(rd["location"])
+            return self.dimension.get_thing(bone.location)
 
     def get_location_bone(self, branch=None, tick=None):
         if branch is None:
@@ -120,7 +120,7 @@ tick in the given branch."""
             tick = self.closet.tick
         if branch not in self.locations:
             return None
-        return self.locations[branch].bone_at_or_before(tick)
+        return self.locations[branch].value_during(tick)
 
     def exists(self, branch=None, tick=None):
         """Have I got a location?

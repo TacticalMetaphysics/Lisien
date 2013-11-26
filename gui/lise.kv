@@ -140,7 +140,6 @@
         id: tab
         col_default_width: 75
         edbut: root.edbut
-        skel: bone(self, root.keys, root.character_skel)
         bg_color_active: root.style.bg_active.rgba
         bg_color_inactive: root.style.bg_inactive.rgba
         fg_color_active: root.style.fg_active.rgba
@@ -171,3 +170,8 @@
         cols: 2
         spacing: 10
         cols_minimum: {0: self.width - 42, 1: 32}
+<Menu>:
+    orientation: 'vertical'
+    spacing: 10
+    text_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)]["text_style"])
+    symbol_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)]["text_style"])

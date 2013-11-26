@@ -191,31 +191,25 @@ If it DOES have anything else to do, make the journey in another branch.
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
-    def get_img_rd(self, branch=None, tick=None):
+    def get_img_bone(self, branch=None, tick=None):
         if branch is None:
             branch = self.board.closet.branch
         if tick is None:
             tick = self.board.closet.tick
         if branch not in self.imagery:
             return None
-        prev = None
-        for rd in self.imagery[branch].iterbones():
-            if rd["tick_from"] > tick:
-                break
-            else:
-                prev = rd
-        if prev is None or prev["img"] in ("", None):
+        r = self.imagery[branch].value_during(tick)
+        if r is None or r.img in ("", None):
             return None
-        else:
-            return prev
+        return r
 
     def get_img_source(self, branch=None, tick=None):
-        name = self.get_img_rd(branch, tick)["img"]
+        name = self.get_img_bone(branch, tick).img
         return self.board.closet.skeleton["img"][name]["path"]
 
     def get_texture(self, branch=None, tick=None):
-        rd = self.get_img_rd(branch, tick)
-        return self.board.closet.get_texture(rd["img"])
+        name = self.get_img_bone(branch, tick).img
+        return self.board.closet.get_texture(name)
 
     def get_size(self, branch=None, tick=None):
         return self.get_texture(branch, tick).size

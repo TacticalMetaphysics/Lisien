@@ -166,11 +166,8 @@ class Spot(Scatter):
             unicode(self.board.dimension)][unicode(self.place)]
         if branch not in interactivity:
             return False
-        for rd in interactivity.iterbones():
-            if rd["tick_from"] <= tick and (
-                    rd["tick_to"] is None or tick <= rd["tick_to"]):
-                return True
-        return False
+        r = interactivity.value_during(tick)
+        return (r.tick_to is None or tick <= r.tick_to)
 
     def new_branch_interactivity(self, parent, branch, tick):
         prev = None
@@ -179,18 +176,16 @@ class Spot(Scatter):
             unicode(self.board.dimension)][unicode(self.place)]
         for tick_from in interactivity[parent]:
             if tick_from >= tick:
-                rd2 = dict(interactivity[parent][tick_from])
-                rd2["branch"] = branch
+                b2 = interactivity[parent][tick_from].replace(branch=branch)
                 if branch not in interactivity:
                     interactivity[branch] = {}
-                interactivity[branch][rd2["tick_from"]] = rd2
+                interactivity[branch][b2.tick_from] = b2
                 if (
                         not started and prev is not None and
                         tick_from > tick and prev < tick):
-                    rd3 = dict(interactivity[parent][prev])
-                    rd3["branch"] = branch
-                    rd3["tick_from"] = tick
-                    interactivity[branch][rd3["tick_from"]] = rd3
+                    b3 = interactivity[parent][prev].replace(
+                        branch=branch, tick_from=tick)
+                    interactivity[branch][b3.tick_from] = b3
                 started = True
             prev = tick_from
         self.upd_interactivity()
@@ -203,31 +198,27 @@ class Spot(Scatter):
         imagery = self.board.closet.skeleton["spot_img"][
             unicode(self.board.dimension)][unicode(self.place)]
         assert branch in imagery, "Make a new branch first"
-        imagery[branch][tick_from] = {
-            "dimension": unicode(self.board),
-            "place": unicode(self.place),
-            "branch": branch,
-            "tick_from": tick_from,
-            "img": unicode(img)}
+        imagery[branch][tick_from] = self.bonetypes["spot_img"](
+            dimension=unicode(self.board),
+            place=unicode(self.place),
+            branch=branch,
+            tick_from=tick_from,
+            img=unicode(img))
         self.upd_imagery()
 
-    def upd_imagery(self, *args):
-        self.imagery = dict(self.board.closet.skeleton["spot_img"][
-            unicode(self.board)][unicode(self.place)])
-
-    def get_coord_rd(self, branch=None, tick=None):
+    def get_coord_bone(self, branch=None, tick=None):
         if branch is None:
             branch = self.board.closet.branch
         if tick is None:
             tick = self.board.closet.tick
-        return get_bone_during(self.coords, branch, tick)
+        return self.coords[branch].value_during(tick)
 
     def get_coords(self, branch=None, tick=None):
-        rd = self.get_coord_rd(branch, tick)
-        if rd is None:
+        bone = self.get_coord_bone(branch, tick)
+        if bone is None:
             return None
         else:
-            return (rd["x"], rd["y"])
+            return (bone.x, bone.y)
 
     def set_coords(self, x, y, branch=None, tick_from=None):
         if branch is None:
@@ -236,13 +227,13 @@ class Spot(Scatter):
             tick_from = self.board.closet.tick
         self.board.closet.skeleton["spot_coords"][
             unicode(self.board)][unicode(self.place)][
-            branch][tick_from] = {
-            "dimension": unicode(self.board),
-            "place": unicode(self.place),
-            "branch": branch,
-            "tick_from": tick_from,
-            "x": x,
-            "y": y}
+            branch][tick_from] = self.bonetypes["spot_coords"](
+                dimension=unicode(self.board),
+                place=unicode(self.place),
+                branch=branch,
+                tick_from=tick_from,
+                x=x,
+                y=y)
 
     def new_branch_coords(self, parent, branch, tick):
         prev = None
@@ -251,18 +242,17 @@ class Spot(Scatter):
             unicode(self.board)][unicode(self.place)]
         for tick_from in coords[parent]:
             if tick_from >= tick:
-                rd2 = dict(coords[parent][tick_from])
-                rd2["branch"] = branch
+                b2 = coords[parent][tick_from]._replace(branch=branch)
                 if branch not in coords:
                     coords[branch] = {}
-                coords[branch][rd2["tick_from"]] = rd2
+                coords[branch][b2["tick_from"]] = b2
                 if (
                         not started and prev is not None and
                         tick_from > tick and prev < tick):
-                    rd3 = dict(coords[branch][prev])
-                    rd3["branch"] = branch
-                    rd3["tick_from"] = tick
-                    coords[branch][rd3["tick_from"]] = rd3
+                    b3 = coords[branch][prev].replace(
+                        branch=branch,
+                        tick_from=tick)
+                    coords[branch][b3.tick_from] = b3
                 started = True
             prev = tick_from
 
@@ -271,28 +261,22 @@ class Spot(Scatter):
         self.new_branch_interactivity(parent, branch, tick)
         self.new_branch_coords(parent, branch, tick)
 
-    def get_image_rd(self, branch=None, tick=None):
+    def get_image_bone(self, branch=None, tick=None):
         if branch is None:
             branch = self.board.closet.branch
         if tick is None:
             tick = self.board.closet.tick
         if branch not in self.imagery:
             return None
-        prev = None
-        for rd in self.imagery[branch].iterbones():
-            if rd["tick_from"] > tick:
-                break
-            else:
-                prev = rd
-        if prev is None or prev["img"] in ("", None):
+        r = self.imagery[branch].value_during(tick)
+        if r.img in ("", None):
             return None
-        else:
-            return prev
+        return r
 
     def get_texture(self, branch=None, tick=None):
-        tn = self.get_image_rd(branch, tick)
+        tn = self.get_image_bone(branch, tick)
         if tn is not None:
-            return self.board.closet.get_texture(tn["img"])
+            return self.board.closet.get_texture(tn.img)
 
     def new_branch_imagery(self, parent, branch, tick):
         prev = None
@@ -301,18 +285,17 @@ class Spot(Scatter):
             unicode(self.board.dimension)][unicode(self.place)]
         for tick_from in imagery[parent]:
             if tick_from >= tick:
-                rd2 = dict(imagery[parent][tick_from])
-                rd2["branch"] = branch
+                b2 = imagery[parent][tick_from].replace(branch=branch)
                 if branch not in imagery:
                     imagery[branch] = {}
-                imagery[branch][rd2["tick_from"]] = rd2
+                imagery[branch][b2.tick_from] = b2
                 if (
                         not started and prev is not None and
                         tick_from > tick and prev < tick):
-                    rd3 = dict(imagery[parent][prev])
-                    rd3["branch"] = branch
-                    rd3["tick_from"] = tick
-                    imagery[branch][rd3["tick_from"]] = rd3
+                    b3 = imagery[parent][prev].replace(
+                        branch=branch,
+                        tick_from=tick)
+                    imagery[branch][b3.tick_from] = b3
                 started = True
             prev = tick_from
         self.upd_imagery()

@@ -188,44 +188,49 @@ item's name, and the name of the attribute.
                  branch not in self.thingdict[dimension][thing])):
             return False
         if branch is None:
-            rditer = self.thingdict[dimension][thing].iterbones()
+            for branch in self.thingdict[dimension][thing]:
+                try:
+                    return self.thingdict[dimension][thing][
+                        branch].value_during(tick)
+                except KeyError:
+                    continue
+            return None
         else:
-            rditer = self.thingdict[dimension][thing][branch].iterbones()
-        for rd in rditer:
-            if rd["tick_from"] <= tick:
-                if rd["tick_to"] is None or rd["tick_to"] <= tick:
-                    return True
-        return False
+            try:
+                return self.thingdict[dimension][thing][
+                    branch].value_during(tick)
+            except KeyError:
+                return None
 
-    def add_thing_by_rd(self, rd):
+    def add_thing_by_bone(self, bone):
         if self.has_thing_by_key(
-                rd["dimension"], rd["thing"],
-                rd["branch"], rd["tick_from"]):
+                bone.dimension, bone.thing,
+                bone.branch, bone.tick_from):
             raise TimeParadox("I already have that then")
-        if rd["dimension"] not in self.thingdict:
-            self.thingdict[rd["dimension"]] = {}
-        if rd["thing"] not in self.thingdict[rd["dimension"]]:
-            self.thingdict[rd["dimension"]][rd["thing"]] = {}
-        if rd["branch"] not in self.thingdict[rd["dimension"]][rd["thing"]]:
-            self.thingdict[rd["dimension"]][rd["thing"]][rd["branch"]] = {}
+        if bone.dimension not in self.thingdict:
+            self.thingdict[bone.dimension] = {}
+        if bone.thing not in self.thingdict[bone.dimension]:
+            self.thingdict[bone.dimension][bone.thing] = {}
+        if bone.branch not in self.thingdict[bone.dimension][bone.thing]:
+            self.thingdict[bone.dimension][bone.thing][bone.branch] = {}
         self.thingdict[
-            rd["dimension"]][rd["thing"]][rd["branch"]][rd["tick_from"]] = rd
+            bone.dimension][bone.thing][bone.branch][bone.tick_from] = rd
 
     def add_thing_by_key(self, dimension, thing, branch=None, tick=None):
         if branch is None:
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        self.add_thing_by_rd({
-            "character": str(self),
-            "dimension": str(dimension),
-            "thing": str(thing),
-            "branch": branch,
-            "tick_from": tick})
+        self.add_thing_by_bone(self.bonetypes["character_thing"](
+            character=unicode(self),
+            dimension=unicode(dimension),
+            thing=unicode(thing),
+            branch=branch,
+            tick_from=tick))
 
     def add_thing(self, thing, branch=None, tick_from=None, tick_to=None):
         self.add_thing_by_key(
-            str(thing.dimension), str(thing), branch, tick_from, tick_to)
+            unicode(thing.dimension), unicode(thing), branch, tick_from, tick_to)
 
     def has_place_by_key(self, dimension, place, branch=None, tick=None):
         if tick is None:
@@ -237,39 +242,43 @@ item's name, and the name of the attribute.
                  branch not in self.placedict[dimension][place])):
             return False
         if branch is None:
-            rditer = self.placedict[dimension][place].iterbones()
+            for branch in self.placedict[dimension][place]:
+                try:
+                    return self.placedict[dimension][place][branch].value_during(tick) is not None
+                except KeyError:
+                    continue
+            return False
         else:
-            rditer = self.placedict[dimension][place][branch].iterbones()
-        for rd in rditer:
-            if rd["tick_from"] <= tick:
-                if rd["tick_to"] is None or rd["tick_to"] <= tick:
-                    return True
-        return False
+            try:
+                return self.placedict[dimension][place][branch].value_during(tick) is not None
+            except KeyError:
+                return False
 
     def has_place(self, place, branch=None, tick=None):
         return self.has_place_by_key(
-            str(place.dimension), str(place), branch, tick)
+            unicode(place.dimension), unicode(place), branch, tick)
 
-    def add_place_by_rd(self, rd):
+    def add_place_by_bone(self, bone):
         if self.has_place_by_key(
-                rd["dimension"], rd["place"],
-                rd["branch"], rd["tick_from"]):
+                bone.dimension, bone.place,
+                bone.branch, bone.tick_from):
             raise TimeParadox(
                 "Tried to assign Place to Character when "
                 "it was already assigned there")
-        if rd["dimension"] not in self.placedict:
-            self.placedict[rd["dimension"]] = {}
-        if rd["place"] not in self.placedict[rd["dimension"]]:
-            self.placedict[rd["dimension"]][rd["place"]] = {}
-        if rd["branch"] not in self.placedict[rd["dimension"]][rd["place"]]:
-            self.placedict[rd["dimension"]][rd["place"]][rd["branch"]] = {}
+        if bone.dimension not in self.placedict:
+            self.placedict[bone.dimension] = {}
+        if bone.place not in self.placedict[bone.dimension]:
+            self.placedict[bone.dimension][bone.place] = {}
+        if bone.branch not in self.placedict[bone.dimension][bone.place]:
+            self.placedict[bone.dimension][bone.place][bone.branch] = {}
         self.placedict[
-            rd["dimension"]][rd["place"]][rd["branch"]][rd["tick_from"]] = {
-            "character": str(self),
-            "dimension": rd["dimension"],
-            "place": rd["place"],
-            "branch": rd["branch"],
-            "tick_from": rd["tick_from"]}
+            bone.dimension][bone.place][bone.branch][
+                bone.tick_from] = self.bonetypes["character_place"](
+                    character=unicode(self),
+                    dimension=bone.dimension,
+                    place=bone.place,
+                    branch=bone.branch,
+                    tick_from=bone.tick_from)
 
     def add_place_by_key(self, dimension, place,
                          branch=None, tick=None):
@@ -310,26 +319,26 @@ item's name, and the name of the attribute.
                     return True
         return False
 
-    def add_portal_by_rd(self, rd):
+    def add_portal_by_bone(self, bone):
         if self.has_portal_by_key(
-                rd["dimension"], rd["origin"], rd["destination"],
-                rd["branch"], rd["tick_from"]):
+                bone.dimension, bone.origin, bone.destination,
+                bone.branch, bone.tick_from):
             raise TimeParadox("I already have that then")
-        if rd["dimension"] not in self.portaldict:
-            self.portaldict[rd["dimension"]] = {}
-        if rd["origin"] not in self.portaldict[rd["dimension"]]:
-            self.portaldict[rd["dimension"]][rd["origin"]] = {}
-        if rd["destination"] not in self.portaldict[
-                rd["dimension"]][rd["origin"]]:
-            self.portaldict[rd["dimension"]][
-                rd["origin"]][rd["destination"]] = []
-        if rd["branch"] not in self.portaldict[
-                rd["dimension"]][rd["origin"]][rd["destination"]]:
-            self.portaldict[rd["dimension"]][
-                rd["origin"]][rd["destination"]][rd["branch"]] = []
-        self.portaldict[rd["dimension"]][
-            rd["origin"]][rd["destination"]][
-            rd["branch"]][rd["tick_from"]] = rd
+        if bone.dimension not in self.portaldict:
+            self.portaldict[bone.dimension] = {}
+        if bone.origin not in self.portaldict[bone.dimension]:
+            self.portaldict[bone.dimension][bone.origin] = {}
+        if bone.destination not in self.portaldict[
+                bone.dimension][bone.origin]:
+            self.portaldict[bone.dimension][
+                bone.origin][bone.destination] = []
+        if bone.branch not in self.portaldict[
+                bone.dimension][bone.origin][bone.destination]:
+            self.portaldict[bone.dimension][
+                bone.origin][bone.destination][bone.branch] = []
+        self.portaldict[bone.dimension][
+            bone.origin][bone.destination][
+            bone.branch][bone.tick_from] = rd
 
     def _portal_by_key(self, dimension, origin, destination, extant,
                        branch=None, tick=None):
@@ -337,14 +346,14 @@ item's name, and the name of the attribute.
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        self.add_portal_by_rd({
-            "character": str(self),
-            "dimension": dimension,
-            "origin": origin,
-            "destination": destination,
-            "branch": branch,
-            "tick_from": tick,
-            "extant": extant})
+        self.add_portal_by_bone(self.bonetypes["character_portal"](
+            character=str(self),
+            dimension=dimension,
+            origin=origin,
+            destination=destination,
+            branch=branch,
+            tick_from=tick,
+            extant=extant))
 
     def add_portal_by_key(self, dimension, origin, destination,
                           branch=None, tick=None):
@@ -364,57 +373,6 @@ item's name, and the name of the attribute.
         self.remove_portal_by_key(
             str(portal.dimension), str(portal.origin),
             str(portal.destination), branch, tick)
-
-    def get_stat_rd_triad(self, name, value, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        r = deque([], 3)
-        for rd in self.statdict[branch][tick].iterbones():
-            if rd["stat"] == name and value in (
-                    "ANY_VALUE", rd["value"]):
-                r.append(rd)
-            if tick is not None and rd["tick_from"] > tick:
-                break
-        return tuple(r)
-
-    def has_stat_with_value(self, name, value,
-                            branch=None, tick=None):
-        rds = self.get_stat_rd_triad(name, value, branch, tick)
-        return rds[1] is not None and rds[1]["value"] == value
-
-    def get_stat_value(self, name, branch=None, tick=None):
-        rds = self.get_stat_rd_triad(name, None, branch, tick)
-        return rds[1]["value"]
-
-    def has_stat(self, name, branch=None, tick=None):
-        rds = self.get_stat_rd_triad(name, "ANY_VALUE", branch, tick)
-        return rds[1] is not None
-
-    def add_stat_by_rd(self, rd):
-        if self.has_stat(rd["stat"], rd["branch"], rd["tick_from"]):
-            raise TimeParadox("I already have that then")
-        if rd["stat"] not in self.statdict:
-            self.statdict[rd["stat"]] = []
-        if rd["branch"] not in self.statdict[rd["stat"]]:
-            self.statdict[rd["stat"]] = []
-        self.statdict[rd["stat"]][rd["branch"]][rd["tick_from"]] = rd
-
-    def add_stat(self, name, value, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        self.add_stat_by_rd({
-            "character": str(self),
-            "stat": name,
-            "value": value,
-            "branch": branch,
-            "tick_from": tick})
-
-    def remove_stat(self, name, branch=None, tick=None):
-        self.add_stat(name, None, branch, tick)
 
     def thing_skel_branch_iter(self, branch, dimension=None, thing=None):
         if dimension is None:

@@ -7,7 +7,8 @@ from kivy.properties import (
     AliasProperty,
     StringProperty,
     ObjectProperty,
-    ListProperty)
+    ListProperty,
+    NumericProperty)
 from re import match, compile
 from logging import getLogger
 
@@ -62,25 +63,33 @@ class Menu(BoxLayout):
     size_hint = AliasProperty(
         lambda self: self.get_size_hint(),
         lambda self, v: None)
+    text_style = ObjectProperty()
+    symbol_style = ObjectProperty()
+    completedness = NumericProperty(0)
 
-    def __str__(self):
+    def __unicode__(self):
         return self.name
 
-    def __init__(self, **kwargs):
-        kwargs["orientation"] = "vertical"
-        kwargs["spacing"] = 10
-        self.text_style = kwargs["closet"].get_style(
-            kwargs["closet"].skeleton["menu"][kwargs["name"]]["text_style"])
-        self.symbol_style = kwargs["closet"].get_style(
-            kwargs["closet"].skeleton["menu"][kwargs["name"]]["symbol_style"])
-        BoxLayout.__init__(self, **kwargs)
+    def __str__(self):
+        return str(self.name)
 
-        for rd in self.closet.skeleton["menu_item"][unicode(self)].iterbones():
-            if rd["symbolic"] == 1:
+    def on_text_style(self, i, v):
+        self.completedness += 1
+
+    def on_symbol_style(self, i, v):
+        self.completedness += 1
+
+    def on_completedness(self, i, v):
+        if v == 2:
+            self.finalize()
+
+    def finalize(self):
+        for bone in self.closet.skeleton["menu_item"][unicode(self)].iterbones():
+            if bone.symbolic:
                 style = self.symbol_style
             else:
                 style = self.text_style
-            ocmatch = match(ON_CLICK_RE, rd["on_click"])
+            ocmatch = match(ON_CLICK_RE, bone.on_click)
             if ocmatch is not None:
                 (ocfn, ocargs) = ocmatch.groups()
                 (on_click_fun, ARG_RE) = self.closet.menu_cbs[ocfn]
@@ -95,11 +104,11 @@ class Menu(BoxLayout):
                     font_size=style.fontsize,
                     oncl=on_click_fun,
                     fargs=fargs,
-                    text=self.closet.get_text(rd["text"]))
+                    text=self.closet.get_text(bone.text))
 
                 def retext(*args):
-                    it.text = self.closet.get_text(rd["text"])
-                self.closet.register_text_listener(rd["text"], retext)
+                    it.text = self.closet.get_text(bone.text)
+                self.closet.register_text_listener(bone.text, retext)
                 self.add_widget(it)
 
     def get_pos_hint(self):

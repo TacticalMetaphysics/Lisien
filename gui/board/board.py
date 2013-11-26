@@ -62,18 +62,18 @@ class Board(ScrollView):
                 "spot_coords" in self.closet.skeleton and
                 unicode(self.dimension) in self.dimension.closet.skeleton[
                     "spot_coords"]):
-            for rd in self.dimension.closet.skeleton[
+            for bone in self.dimension.closet.skeleton[
                     "spot_coords"][unicode(self.dimension)].iterbones():
-                place = self.dimension.get_place(rd["place"])
+                place = self.dimension.get_place(bone.place)
                 spot = Spot(board=self, place=place)
                 self.spotdict[unicode(place)] = spot
         if (
                 "pawn_img" in self.closet.skeleton and
                 unicode(self.dimension) in self.dimension.closet.skeleton[
                     "pawn_img"]):
-            for rd in self.dimension.closet.skeleton[
+            for bone in self.dimension.closet.skeleton[
                     "pawn_img"][unicode(self.dimension)].iterbones():
-                thing = self.dimension.get_thing(rd["thing"])
+                thing = self.dimension.get_thing(bone.thing)
                 pawn = Pawn(board=self, thing=thing)
                 self.pawndict[unicode(thing)] = pawn
         for portal in self.dimension.portals:
