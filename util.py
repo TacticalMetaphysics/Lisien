@@ -83,10 +83,9 @@ class BoneMetaclass(type):
                 if fieldn in kwargs:
                     if kwargs[fieldn] is None:
                         values.append(_cls._defaults[fieldn])
+                        continue
                     elif type(kwargs[fieldn]) is not _cls._types[fieldn]:
-                        raise TypeError(
-                            "Wrong type for field {} (need {})".format(
-                                fieldn, repr(_cls._types[fieldn])))
+                        kwargs[fieldn] = _cls._types[fieldn](kwargs[fieldn])
                     values.append(kwargs[fieldn])
                 else:
                     values.append(_cls._defaults[fieldn])
@@ -147,10 +146,11 @@ values""".format(clas)
 
 class Bone(tuple):
     __metaclass__ = BoneMetaclass
+    _field_decls = {}
 
     @classmethod
-    def subclass(clas, name, fields):
-        return type(name, (clas,), {'_field_decls': fields})
+    def subclass(cls, name, decls):
+        return type(name, (cls,), {"_field_decls": decls})
 
 
 class Skeleton(MutableMapping):
@@ -543,8 +543,11 @@ declared in the order they appear in the tables attribute.
                     "bool": bool,
                     "boolean": bool,
                     "float": float}[typename]
-                default_str = cooked[cooked.index("default") + 1]
-                default = coltypes[tablename][fieldname](default_str)
+                try:
+                    default_str = cooked[cooked.index("default") + 1]
+                    default = coltypes[tablename][fieldname](default_str)
+                except ValueError:
+                    default = None
                 coldefaults[tablename][fieldname] = default
             valnames[tablename] = sorted(
                 [key for key in list(coldict.keys())
@@ -556,12 +559,13 @@ declared in the order they appear in the tables attribute.
             colnames[tablename] = keynames[tablename] + valnames[tablename]
         for tablename in tablenames:
             assert(tablename not in tabclas)
-            bonetypes[tablename] = Bone.subclass(
+            bonetypes[tablename] = type(
                 tablename + "_bone",
-                [(colname,
+                (Bone,),
+                {"_field_decls": [(colname,
                   coltypes[tablename][colname],
                   coldefaults[tablename][colname])
-                 for colname in colnames[tablename]])
+                for colname in colnames[tablename]]})
             tabclas[tablename] = clas
             provides.add(tablename)
             coldecl = coldecls[tablename]
@@ -857,9 +861,11 @@ declared in the order they appear in the tables attribute.
                     r[tabn][keyn] = tabd[tabn][keyn]
             return r
 
-        bonetypes = Bone.subclass(
-                clas + '_bonetypes',
-                tablenames)(**bonetypes)
+        bonetypes = type(clas + '_bonetypes',
+                         (Bone,),
+                         {'_field_decls': [
+                             (tabn, type(bonetypes[tabn]), bonetypes[tabn])
+                             for tabn in tablenames]})()
         atrdic = {
             '_select_skeleton': _select_skeleton,
             '_select_table_all': _select_table_all,
@@ -873,21 +879,26 @@ declared in the order they appear in the tables attribute.
             '_gen_sql_delete': gen_sql_delete,
             '_gen_sql_detect': gen_sql_detect,
             '_gen_sql_missing': gen_sql_missing,
-            'colnames': Bone.subclass(
-                clas + '_colnames', 
-                tablenames)(**colnames),
-            'colnamestr': Bone.subclass(
+            'colnames': type(
+                clas + '_colnames',
+                (Bone,),
+                {'_field_decls': [
+                    (tabn, tuple, tuple(colnames[tabn]))
+                    for tabn in tablenames]})(),
+            'colnamestr': type(
                 clas + '_colnamestr',
-                tablenames)(**colnamestr),
+                (Bone,),
+                {'_field_decls': [
+                    (tabn, unicode, unicode(colnamestr[tabn]))]})(),
             'colnstr': colnamestr[tablenames[0]],
             'keynames': Bone.subclass(
                 clas + '_keynames',
-                tablenames)(**dict(
-                    [(k, tuple(v)) for (k, v) in keynames.iteritems()])),
+                [(tabn, tuple, tuple(keynames[tabn]))
+                 for tabn in tablenames])(),
             'valnames': Bone.subclass(
                 clas + '_valnames',
-                tablenames)(**dict(
-                    [(k, tuple(v)) for (k, v) in valnames.iteritems()])),
+                [(tabn, tuple, tuple(valnames[tabn]))
+                 for tabn in tablenames])(),
             'keyns': tuple(keynames[tablenames[0]]),
             'valns': tuple(valnames[tablenames[0]]),
             'colns': tuple(colnames[tablenames[0]]),
