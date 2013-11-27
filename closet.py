@@ -146,9 +146,6 @@ before RumorMill will work. For that, run mkdb.sh.
         return self.characterdict.itervalues()
 
     def __getattribute__(self, attrn):
-        if attrn == "tick":
-            import inspect
-            print inspect.stack()[1]
         try:
             skeleton = super(Closet, self).__getattribute__("skeleton")
             bone = skeleton["game"][0]
@@ -622,9 +619,11 @@ For more information, consult SaveableMetaclass in util.py.
                 dimension=name)],
             "spot_coords": [Spot.bonetypes.spot_coords(dimension=name)]}))
         self.skeleton.update(Pawn._select_skeleton(self.c, {
-            "pawn_img": [Pawn.bonetypes.pawn_img(dimension=name)],
+            "pawn_img": [Pawn.bonetypes.pawn_img(dimension=name, layer=None)],
             "pawn_interactive": [
-                Pawn.bonetypes.pawn_interactive(dimension=name)]}))
+                Pawn.bonetypes.pawn_interactive(
+                    dimension=name,
+                    layer=None)]}))
         return self.get_board(name)
 
     def get_board(self, name):
