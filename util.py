@@ -81,9 +81,15 @@ class BoneMetaclass(type):
             values = []
             for fieldn in _cls._fields:
                 if fieldn in kwargs:
+                    if kwargs[fieldn] is None:
+                        values.append(_cls._defaults[fieldn])
+                    elif type(kwargs[fieldn]) is not _cls._types[fieldn]:
+                        raise TypeError(
+                            "Wrong type for field {} (need {})".format(
+                                fieldn, repr(_cls._types[fieldn])))
                     values.append(kwargs[fieldn])
                 else:
-                    values.append(None)
+                    values.append(_cls._defaults[fieldn])
             return tuple.__new__(_cls, tuple(values))
 
         @classmethod
@@ -121,14 +127,20 @@ values""".format(clas)
                 "_asdict": _asdict,
                 "_replace": _replace,
                 "__getnewargs__": __getnewargs__,
-                "__dict__": property(_asdict)}
+                "__dict__": property(_asdict),
+                "_fields": [],
+                "_types": {},
+                "_defaults": {}}
         atts.update(attrs)
         i = 0
         if "_fields" in atts:
-            for field in atts["_fields"]:
-                atts[field] = property(
+            for (field_name, field_type, default) in atts["_field_decls"]:
+                atts["_fields"].append(field_name)
+                atts[field_name] = property(
                     itemgetter(i),
                     doc="Alias for field number {}".format(i))
+                atts["_types"][field_name] = field_type
+                atts["_defaults"][field_name] = default
                 i += 1
         return type.__new__(metaclass, clas, parents, atts)
 
@@ -138,7 +150,7 @@ class Bone(tuple):
 
     @classmethod
     def subclass(clas, name, fields):
-        return type(name, (clas,), {'_fields': fields})
+        return type(name, (clas,), {'_field_decls': fields})
 
 
 class Skeleton(MutableMapping):
@@ -508,6 +520,8 @@ declared in the order they appear in the tables attribute.
         rowstrs = {}
         keynames = {}
         valnames = {}
+        coltypes = {}
+        coldefaults = {}
         bonetypes = {}
         for item in local_pkeys.items():
             (tablename, pkey) = item
@@ -517,6 +531,21 @@ declared in the order they appear in the tables attribute.
             keystrs[tablename] = "(" + keyqms[tablename] + ")"
         for item in coldecls.items():
             (tablename, coldict) = item
+            coltypes[tablename] = {}
+            coldefaults[tablename] = {}
+            for (fieldname, decl) in coldict.iteritems():
+                cooked = decl.lower().split(" ")
+                typename = cooked[0]
+                coltypes[tablename][fieldname] = {
+                    "text": unicode,
+                    "int": int,
+                    "integer": int,
+                    "bool": bool,
+                    "boolean": bool,
+                    "float": float}[typename]
+                default_str = cooked[cooked.index("default") + 1]
+                default = coltypes[tablename][fieldname](default_str)
+                coldefaults[tablename][fieldname] = default
             valnames[tablename] = sorted(
                 [key for key in list(coldict.keys())
                  if key not in keynames[tablename]])
@@ -527,10 +556,12 @@ declared in the order they appear in the tables attribute.
             colnames[tablename] = keynames[tablename] + valnames[tablename]
         for tablename in tablenames:
             assert(tablename not in tabclas)
-            bonetypes[tablename] = type(
-                tablename + '_bone',
-                (Bone,),
-                {'_fields': colnames[tablename]})
+            bonetypes[tablename] = Bone.subclass(
+                tablename + "_bone",
+                [(colname,
+                  coltypes[tablename][colname],
+                  coldefaults[tablename][colname])
+                 for colname in colnames[tablename]])
             tabclas[tablename] = clas
             provides.add(tablename)
             coldecl = coldecls[tablename]
