@@ -290,21 +290,18 @@ other journey I may be on at the time."""
         prev = None
         started = False
         i = 0
-        for rd in self.locations[parent].iterbones():
+        for bone in self.locations[parent].iterbones():
             i += 1
-            if rd["tick_from"] >= tick:
-                rd2 = dict(rd)
-                rd2["branch"] = branch
-                self.locations[branch][rd2["tick_from"]] = rd2
+            if bone.tick_from >= tick:
+                bone2 = bone._replace(branch=branch)
+                self.locations[branch][bone2.tick_from] = bone2
                 if (
                         not started and prev is not None and
-                        rd["tick_from"] > tick and prev["tick_from"] < tick):
-                    rd3 = dict(prev)
-                    rd3["branch"] = branch
-                    rd3["tick_from"] = tick
-                    self.locations[branch][rd3["tick_from"]] = rd3
+                        bone.tick_from > tick and prev.tick_from < tick):
+                    bone3 = prev._replace(branch=branch, tick_from=tick)
+                    self.locations[branch][bone3.tick_from] = bone3
                 started = True
-            prev = rd
+            prev = bone
 
     def branch_loc_bones_gen(self, branch=None):
         if branch is None:

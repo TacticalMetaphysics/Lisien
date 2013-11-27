@@ -222,18 +222,17 @@ If it DOES have anything else to do, make the journey in another branch.
         for layer in imagery:
             for tick_from in imagery[layer][parent]:
                 if tick_from >= tick:
-                    rd2 = dict(imagery[layer][parent][tick_from])
-                    rd2["branch"] = branch
+                    bone2 = imagery[layer][parent][tick_from].content._replace(
+                        branch=branch)
                     if branch not in imagery[layer]:
                         imagery[layer][branch] = {}
-                    imagery[layer][branch][rd2["tick_from"]] = rd2
+                    imagery[layer][branch][bone2.tick_from] = bone2
                     if (
                             not started and prev is not None and
                             tick_from > tick and prev < tick):
-                        rd3 = dict(imagery[layer][parent][prev])
-                        rd3["branch"] = branch
-                        rd3["tick_from"] = tick
-                        imagery[layer][branch][rd3["tick_from"]] = rd3
+                        bone3 = imagery[layer][parent][prev].content._replace(
+                            branch=branch, tick_from=tick_from)
+                        imagery[layer][branch][bone3.tick_from] = bone3
                         started = True
                     prev = tick_from
         self.upd_imagery()
@@ -260,18 +259,17 @@ If it DOES have anything else to do, make the journey in another branch.
             unicode(self.board.dimension)][unicode(self.thing)]
         for tick_from in interactivity[parent]:
             if tick_from >= tick:
-                rd2 = dict(interactivity[parent][tick_from])
-                rd2["branch"] = branch
+                bone2 = interactivity[parent][tick_from].content._replace(
+                    branch=branch)
                 if branch not in interactivity:
                     interactivity[branch] = {}
-                interactivity[branch][rd2["tick_from"]] = rd2
+                interactivity[branch][bone2.tick_from] = bone2
                 if (
                         not started and prev is not None and
                         tick_from > tick and prev < tick):
-                    rd3 = dict(interactivity[parent][prev])
-                    rd3["branch"] = branch
-                    rd3["tick_from"] = tick
-                    interactivity[branch][rd3["tick_from"]] = rd3
+                    rd3 = interactivity[parent][prev].content._replace(
+                        branch=branch, tick_from=tick)
+                    interactivity[branch][rd3.tick_from] = rd3
                 started = True
             prev = tick_from
 

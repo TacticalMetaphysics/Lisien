@@ -79,7 +79,7 @@ class BoneMetaclass(type):
                     values.append(None)
             return tuple.__new__(_cls, tuple(values))
 
-        # in collections module, this has the annotation @classmethod
+        @classmethod
         def _make(cls, iterable):
             """Make a new {} object from a sequence or iterable""".format(
                 clas)
@@ -263,9 +263,7 @@ is mostly for printing."""
             if isinstance(k, int):
                 self.content = []
         elif self.bone:
-            fields = self.content._fields
-            values = [getattr(self.content, field) for field in fields]
-            self.content = self.content.__class__(*values)
+            self.content = self.content._replace(**{k: v})
             return
 
         if isinstance(k, int):
