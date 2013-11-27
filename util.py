@@ -8,6 +8,7 @@ from collections import (
     OrderedDict)
 from operator import itemgetter
 from re import match, compile, findall
+import struct
 
 
 """Common utility functions and data structures.
@@ -95,6 +96,42 @@ class BoneMetaclass(type):
                 clas)
             return tuple.__new__(cls, iterable)
 
+        @classmethod
+        def getfmt(cls):
+            fmt = bytearray('@')
+            for (field_name, field_type, default) in cls._field_decls:
+                if field_type in (unicode, str):
+                    fmt.extend('50s')
+                elif field_type is int:
+                    fmt.append('l')
+                elif field_type is float:
+                    fmt.append('d')
+                else:
+                    raise TypeError("Trying to make a format string; don't understand the type {}".format(field_type))
+            return str(fmt)
+
+        @property
+        def packed(self):
+            """Return a string of data packed according to self.format."""
+            args = [self.getfmt()]
+            for datum in self:
+                if isinstance(datum, unicode):
+                    args.append(str(datum))
+                else:
+                    args.append(datum)
+            return struct.pack(*args)
+
+        @classmethod
+        def _unpack(cls, data):
+            """Return a new instance of this Bone class using the packed data in
+the string."""
+            r = cls(*struct.unpack(cls.getfmt(), data))
+            denulled = {}
+            for field in r._fields:
+                if isinstance(getattr(r, field), str):
+                    denulled[field] = getattr(r, field).replace('\x00', '')
+            return r._replace(**denulled)
+
         def __repr__(self):
             """Return a nicely formatted representation string"""
             return "{}({})".format(clas, ", ".join(
@@ -127,7 +164,10 @@ values""".format(clas)
                 "__dict__": property(_asdict),
                 "_fields": [],
                 "_types": {},
-                "_defaults": {}}
+                "_defaults": {},
+                "getfmt": getfmt,
+                "packed": packed,
+                "_unpack": _unpack}
         atts.update(attrs)
         i = 0
         if "_fields" in atts:

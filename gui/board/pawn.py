@@ -109,9 +109,6 @@ The relevant data are
     def __unicode__(self):
         return unicode(self.thing)
 
-    def on_pos(self, i, v):
-        print "{}@{}".format(i, v)
-
     def on_tex(self, i, v):
         if v is None:
             return
