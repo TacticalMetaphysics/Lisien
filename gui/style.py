@@ -75,19 +75,19 @@ green, blue. Register in db.colordict.
 
     @property
     def red(self):
-        return self.bone["red"]
+        return self.bone.red
 
     @property
     def green(self):
-        return self.bone["green"]
+        return self.bone.green
 
     @property
     def blue(self):
-        return self.bone["blue"]
+        return self.bone.blue
 
     @property
     def alpha(self):
-        return self.bone["alpha"]
+        return self.bone.alpha
 
     @property
     def rgb(self):
@@ -136,45 +136,18 @@ that contain text."""
           "fg_active": ("color", "name")},
          ["fontsize>0", "spacing>0"])]
 
-    @property
-    def bone(self):
-        return self.closet.skeleton["style"][self.name]
-
-    @property
-    def bg_inactive(self):
-        return self.closet.get_color(self.bone["bg_inactive"])
-
-    @property
-    def bg_active(self):
-        return self.closet.get_color(self.bone["bg_active"])
-
-    @property
-    def fg_inactive(self):
-        return self.closet.get_color(self.bone["fg_inactive"])
-
-    @property
-    def fg_active(self):
-        return self.closet.get_color(self.bone["fg_active"])
-
-    @property
-    def text_inactive(self):
-        return self.closet.get_color(self.bone["text_inactive"])
-
-    @property
-    def text_active(self):
-        return self.closet.get_color(self.bone["text_active"])
-
-    @property
-    def fontface(self):
-        return self.bone["fontface"]
-
-    @property
-    def fontsize(self):
-        return self.bone["fontsize"]
-
-    @property
-    def spacing(self):
-        return self.bone["spacing"]
+    def __getattribute__(self, attrn):
+        closet = super(LiSEStyle, self).__getattribute__("closet")
+        name = super(LiSEStyle, self).__getattribute__("name")
+        bone = closet.skeleton["style"][name]
+        if attrn in ("text_inactive", "text_active",
+                     "bg_inactive", "bg_active",
+                     "fg_inactive", "fg_active"):
+            return closet.get_color(getattr(bone, attrn))
+        elif attrn in bone._fields:
+            return getattr(bone, attrn)
+        else:
+            return super(LiSEStyle, self).__getattribute__(attrn)
 
     def __init__(self, closet, name):
         """Return a style by the given name, with the given face, font size,

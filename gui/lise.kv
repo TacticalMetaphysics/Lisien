@@ -127,7 +127,7 @@
     background_active: ''
     border: [0, 0, 0, 0]
     multiline: False
-    text: self.bone[self.key]
+    text: getattr(self.bone, self.key)
     font_name: self.table.font_name
     font_size: self.table.font_size
     height: self.table.font_size
@@ -173,5 +173,5 @@
 <Menu>:
     orientation: 'vertical'
     spacing: 10
-    text_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)]["text_style"])
-    symbol_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)]["symbol_style"])
+    text_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)].text_style)
+    symbol_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)].symbol_style)

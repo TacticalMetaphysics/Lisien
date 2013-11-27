@@ -36,7 +36,7 @@ class Board(ScrollView):
     spotdict = DictProperty({})
     pawndict = DictProperty({})
     arrowdict = DictProperty({})
-    bone = DictProperty({})
+    bone = ObjectProperty()
     offx = NumericProperty(0)
     offy = NumericProperty(0)
     wallwidth = NumericProperty(0)
@@ -95,10 +95,10 @@ class Board(ScrollView):
         return "Board({})".format(self)
 
     def upd_bone(self, *args):
-        self.bone = dict(self.closet.skeleton["board"][unicode(self)])
+        self.bone = self.closet.skeleton["board"][unicode(self)]
 
     def get_texture(self):
-        return self.closet.get_texture(self.bone["wallpaper"])
+        return self.closet.get_texture(self.bone.wallpaper)
 
     def get_spot(self, loc):
         if loc is None:

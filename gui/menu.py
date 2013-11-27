@@ -113,8 +113,8 @@ class Menu(BoxLayout):
 
     def get_pos_hint(self):
         rd = self.closet.skeleton["menu"][unicode(self)]
-        return {'x': rd['x'], 'y': rd['y']}
+        return {'x': rd.x, 'y': rd.y}
 
     def get_size_hint(self):
         rd = self.closet.skeleton["menu"][unicode(self)]
-        return (rd['w'], rd['h'])
+        return (rd.w, rd.h)

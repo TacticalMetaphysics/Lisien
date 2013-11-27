@@ -127,7 +127,7 @@ The relevant data are
                 return
             while len(self.textures) <= layer:
                 self.textures.append(None)
-            self.textures[layer] = closet.get_texture(bone["img"])
+            self.textures[layer] = closet.get_texture(bone.img)
             if len(self.children) <= layer:
                 self.add_widget(PawnImage(pawn=self, layer=layer))
 
@@ -222,7 +222,7 @@ If it DOES have anything else to do, make the journey in another branch.
         for layer in imagery:
             for tick_from in imagery[layer][parent]:
                 if tick_from >= tick:
-                    bone2 = imagery[layer][parent][tick_from].content._replace(
+                    bone2 = imagery[layer][parent][tick_from]._replace(
                         branch=branch)
                     if branch not in imagery[layer]:
                         imagery[layer][branch] = {}
@@ -230,7 +230,7 @@ If it DOES have anything else to do, make the journey in another branch.
                     if (
                             not started and prev is not None and
                             tick_from > tick and prev < tick):
-                        bone3 = imagery[layer][parent][prev].content._replace(
+                        bone3 = imagery[layer][parent][prev]._replace(
                             branch=branch, tick_from=tick_from)
                         imagery[layer][branch][bone3.tick_from] = bone3
                         started = True
@@ -259,7 +259,7 @@ If it DOES have anything else to do, make the journey in another branch.
             unicode(self.board.dimension)][unicode(self.thing)]
         for tick_from in interactivity[parent]:
             if tick_from >= tick:
-                bone2 = interactivity[parent][tick_from].content._replace(
+                bone2 = interactivity[parent][tick_from]._replace(
                     branch=branch)
                 if branch not in interactivity:
                     interactivity[branch] = {}
@@ -267,7 +267,7 @@ If it DOES have anything else to do, make the journey in another branch.
                 if (
                         not started and prev is not None and
                         tick_from > tick and prev < tick):
-                    rd3 = interactivity[parent][prev].content._replace(
+                    rd3 = interactivity[parent][prev]._replace(
                         branch=branch, tick_from=tick)
                     interactivity[branch][rd3.tick_from] = rd3
                 started = True

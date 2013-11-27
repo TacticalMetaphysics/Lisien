@@ -49,11 +49,11 @@ def load_textures(cursor, skel, texturedict, names):
             cursor, {"img": [Tex.bonetype(name=n) for n in names]}))
     r = {}
     for name in names:
-        if skel["img"][name]["rltile"] != 0:
-            rltex = load_rltile(skel["img"][name]["path"])
+        if skel["img"][name].rltile != 0:
+            rltex = load_rltile(skel["img"][name].path)
             r[name] = rltex
         else:
             r[name] = Image(
-                source=skel["img"][name]["path"]).texture
+                source=skel["img"][name].path).texture
     texturedict.update(r)
     return r

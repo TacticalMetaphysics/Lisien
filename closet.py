@@ -140,20 +140,16 @@ before RumorMill will work. For that, run mkdb.sh.
         """Iterate over all characters."""
         return self.characterdict.itervalues()
 
-    @property
-    def branch(self):
-        """Return the branch of time currently being simulated."""
-        return self.skeleton["game"]["branch"]
-
-    @property
-    def tick(self):
-        """Return the tick of time currently being simulated."""
-        return self.skeleton["game"]["tick"]
-
-    @property
-    def language(self):
-        """Return the language selected for the game."""
-        return self.skeleton["game"]["language"]
+    def __getattribute__(self, attrn):
+        try:
+            skeleton = super(Closet, self).__getattribute__("skeleton")
+            bone = skeleton["game"][0]
+            if attrn in bone._fields:
+                return getattr(bone, attrn)
+            else:
+                return super(Closet, self).__getattribute__(attrn)
+        except (KeyError, AttributeError):
+            return super(Closet, self).__getattribute__(attrn)
 
     def __setattr__(self, attrn, val):
         if attrn == "branch":
@@ -189,9 +185,9 @@ given name.
         self.c.execute(
             "SELECT language, seed, dimension, branch, tick FROM game")
         self.skeleton.update(
-            {"game": row2bone(
+            {"game": [row2bone(
                 self.c.fetchone(),
-                game_bone)})
+                game_bone)]})
         if "language" in kwargs:
             self.skeleton["game"]["language"] = kwargs["language"]
         # This is a copy of the skeleton as it existed at the time of
@@ -414,7 +410,7 @@ For more information, consult SaveableMetaclass in util.py.
             else:
                 assert(strname[1:] in self.skeleton["strings"])
                 return self.skeleton["strings"][
-                    strname[1:]][self.language]["string"]
+                    strname[1:]][self.language].string
         else:
             return strname
 
@@ -453,13 +449,13 @@ For more information, consult SaveableMetaclass in util.py.
                     except ValueError:
                         pass
         self.c.execute("DELETE FROM game")
-        keys = self.skeleton["game"].keys()
+        fields = self.skeleton["game"][0]._fields
         qrystr = "INSERT INTO game ({0}) VALUES ({1})".format(
-                ", ".join(keys),
-                ", ".join(["?"] * len(self.skeleton["game"].content._fields)))
+                ", ".join(fields),
+                ", ".join(["?"] * len(fields)))
         self.c.execute(
             qrystr,
-            [self.skeleton["game"][k] for k in keys])
+            [getattr(self.skeleton["game"][0], k) for k in fields])
         self.old_skeleton = self.skeleton.copy()
 
     def load_strings(self):
@@ -684,9 +680,9 @@ For more information, consult SaveableMetaclass in util.py.
             'bg_inactive', 'bg_active', 'fg_inactive', 'fg_active',
             'text_inactive', 'text_active'])
         for name in stylenames:
-            rd = self.skeleton["style"][name]
+            bone = self.skeleton["style"][name]
             for colorcol in colorcols:
-                colornames.add(rd[colorcol])
+                colornames.add(getattr(bone, colorcol))
         self.get_colors(colornames)
         r = {}
         for name in stylenames:

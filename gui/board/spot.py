@@ -177,7 +177,7 @@ class Spot(Scatter):
         for tick_from in interactivity[parent]:
             if tick_from >= tick:
                 b2 = interactivity[parent][tick_from
-                ].content._replace(branch=branch)
+                ]._replace(branch=branch)
                 if branch not in interactivity:
                     interactivity[branch] = {}
                 interactivity[branch][b2.tick_from] = b2
@@ -243,7 +243,7 @@ class Spot(Scatter):
             unicode(self.board)][unicode(self.place)]
         for tick_from in coords[parent]:
             if tick_from >= tick:
-                b2 = coords[parent][tick_from].content._replace(branch=branch)
+                b2 = coords[parent][tick_from]._replace(branch=branch)
                 if branch not in coords:
                     coords[branch] = {}
                 coords[branch][b2.tick_from] = b2
@@ -286,7 +286,7 @@ class Spot(Scatter):
             unicode(self.board.dimension)][unicode(self.place)]
         for tick_from in imagery[parent]:
             if tick_from >= tick:
-                b2 = imagery[parent][tick_from].content._replace(branch=branch)
+                b2 = imagery[parent][tick_from]._replace(branch=branch)
                 if branch not in imagery:
                     imagery[branch] = {}
                 imagery[branch][b2.tick_from] = b2

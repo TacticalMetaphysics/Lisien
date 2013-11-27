@@ -133,6 +133,14 @@ class Bone(tuple):
     def subclass(clas, name, fields):
         return type(name, (clas,), {'_fields': fields})
 
+    def __getattribute__(self, attrn):
+        if (
+                "color_bone" in type(self).__name__ and
+                attrn == "copy"):
+            from inspect import stack
+            print stack()[1]
+        return super(Bone, self).__getattribute__(attrn)
+
 
 class SkelRowIter(object):
     """A depth-first traversal over a Skeleton, although no deeper than
@@ -203,10 +211,6 @@ There's a limited sort of event handler triggered by __setitem__ and
 __delitem__. Append listeners to self.listeners.
 
     """
-    @property
-    def bone(self):
-        return issubclass(self.content.__class__, Bone)
-
     def __init__(self, content, name="", parent=None):
         """Technically all of the arguments are optional but you should really
 specify them whenever it's reasonably sensible to do so. content is a
@@ -216,11 +220,8 @@ is mostly for printing."""
         self.ikeys = set([])
         self.name = name
         self.parent = parent
-        if issubclass(content.__class__, Bone):
-            self.content = content
-        else:
-            self.content = {}
-            self._populate_content(content)
+        self.content = {}
+        self._populate_content(content)
 
     def _populate_content(self, content):
         if content is None:
@@ -233,11 +234,11 @@ is mostly for printing."""
         else:
             kitr = ListItemIterator(content)
         for (k, v) in kitr:
-            if v is None and self.bone in (None, False):
-                continue
-            elif hasattr(v, 'content'):
+            if hasattr(v, 'content'):
                 self[k] = self.__class__(
                     content=v.content, name=k, parent=self)
+            elif issubclass(v.__class__, Bone):
+                self[k] = v
             else:
                 self[k] = self.__class__(
                     content=v, name=k, parent=self)
@@ -245,15 +246,11 @@ is mostly for printing."""
     def __contains__(self, k):
         if isinstance(self.content, dict):
             return k in self.content
-        elif self.bone:
-            return hasattr(self.content, k)
         else:
             return k in self.ikeys
 
     def __getitem__(self, k):
-        if self.bone:
-            return getattr(self.content, k)
-        elif isinstance(self.content, list) and k not in self.ikeys:
+        if isinstance(self.content, list) and k not in self.ikeys:
             raise KeyError("key not in skeleton: {}".format(k))
         return self.content[k]
 
@@ -262,16 +259,14 @@ is mostly for printing."""
             self.ikeys = set([])
             if isinstance(k, int):
                 self.content = []
-        elif self.bone:
-            self.content = self.content._replace(**{k: v})
-            return
-
         if isinstance(k, int):
             while len(self.content) <= k:
                 self.content.append(None)
             self.ikeys.add(k)
         if isinstance(v, self.__class__):
             self.content[k] = self.__class__(v.content, name=k, parent=self)
+        elif issubclass(v.__class__, Bone):
+            self.content[k] = v
         else:
             self.content[k] = self.__class__(v, name=k, parent=self)
         for listener in self.listeners:
@@ -326,16 +321,11 @@ is mostly for printing."""
         return selfie
 
     def __isub__(self, other):
-        if self.bone and self.content == other.content:
-            self.content = type(self.bone)()
-            return
         for (k, v) in other.items():
             if k not in self:
                 continue
             elif v == self[k]:
                 del self[k]
-            elif self[k].bone:
-                continue
             else:
                 self[k] -= v
         return self
@@ -351,8 +341,6 @@ is mostly for printing."""
     def keys(self):
         if isinstance(self.content, dict):
             return self.content.keys()
-        elif self.bone:
-            return list(self.content._fields)
         else:
             return sorted(self.ikeys)
 
@@ -380,7 +368,7 @@ is mostly for printing."""
             return self.key_before(k)
 
     def value_during(self, k):
-        return self[self.key_or_key_before(k)].content
+        return self[self.key_or_key_before(k)]
 
     def key_after(self, k):
         if hasattr(self, 'ikeys'):
@@ -409,60 +397,62 @@ is mostly for printing."""
         return self[self.key_or_key_after(k)]
 
     def copy(self):
-        if self.bone:
-            return self.__class__(content=self.content)
-        elif isinstance(self.content, list):
+        if isinstance(self.content, list):
             r = {}
             for k in self.ikeys:
-                r[k] = self.content[k].copy()
+                if issubclass(self.content[k].__class__, Bone):
+                    r[k] = self.content[k]
+                else:
+                    r[k] = self.content[k].copy()
             return self.__class__(content=r)
         else:
             r = {}
             for (k, v) in self.content.items():
-                r[k] = v.copy()
+                if issubclass(v.__class__, Bone):
+                    r[k] = v
+                else:
+                    r[k] = v.copy()
             return self.__class__(content=r)
 
     def deepcopy(self):
-        if self.bone:
-            return self.__class__(
-                content=self.content, name=self.name,
-                parent=self.parent)
-        else:
-            r = {}
-            for (k, v) in self.content.items():
-                r[k] = v.deepcopy()
-            return self.__class__(
-                content=r, name=self.name, parent=self.parent)
+        r = {}
+        for (k, v) in self.content.items():
+            r[k] = v.deepcopy()
+        return self.__class__(
+            content=r, name=self.name, parent=self.parent)
 
     def update(self, skellike):
         for (k, v) in skellike.iteritems():
-            if self.bone:
+            if issubclass(v.__class__, Bone):
                 self[k] = v
             elif isinstance(v, self.__class__):
                 if k in self.content:
-                    self[k].update(
-                        self.__class__(content=v.content, name=k, parent=self))
+                    self[k].update(v)
                 else:
                     self[k] = self.__class__(content=v.content, name=k, parent=self)
             else:
                 if k in self.content:
-                    self[k].update(
-                        self.__class__(content=v, name=k, parent=self))
+                    self[k].update(v)
                 else:
+                    assert(v.__class__ in (dict, list))
                     self[k] = self.__class__(
                         content=v, name=k, parent=self)
 
     def iterbones(self):
-        if self.bone:
-            yield self.content
-        elif isinstance(self.content, dict):
+        if isinstance(self.content, dict):
             for contained in self.content.itervalues():
-                for bone in contained.iterbones():
-                    yield bone
+                if issubclass(contained.__class__, Bone):
+                    yield contained
+                else:
+                    for bone in contained.iterbones():
+                        yield bone
         else:
             for i in sorted(self.ikeys):
-                for bone in self.content[i].iterbones():
-                    yield bone
+                if issubclass(self.content[i].__class__, Bone):
+                    yield self.content[i]
+                else:
+                    for bone in self.content[i].iterbones():
+                        yield bone
 
     def get_closet(self):
         ptr = self.parent
