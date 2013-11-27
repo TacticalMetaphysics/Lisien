@@ -142,12 +142,12 @@ If not, I'm nowhere, and therefore don't exist."""
             tick = self.closet.tick
         if branch not in self.locations:
             self.locations[branch] = {}
-        self.locations[branch][tick] = {
-            "dimension": unicode(self.dimension),
-            "thing": unicode(self),
-            "branch": branch,
-            "tick_from": tick,
-            "location": unicode(loc)}
+        self.locations[branch][tick] = self.bonetypes.thing_location(
+            dimension=unicode(self.dimension),
+            thing=unicode(self),
+            branch=branch,
+            tick_from=tick,
+            location=unicode(loc))
         self.closet.timestream.upbranch(branch)
         self.closet.timestream.uptick(tick)
 
@@ -237,12 +237,12 @@ other journey I may be on at the time."""
                 break
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
-        locs = self.branch_loc_rds(branch)
+        locs = list(self.branch_loc_bones_gen(branch))
         try:
             self.follow_path(path, branch, tick)
         except TimeParadox:
             del self.locations[branch]
-            self.restore_loc_rds(locs)
+            self.restore_loc_bones(locs)
             self.new_branch_blank = True
             increment = 1
             while branch + increment in self.locations:
@@ -306,13 +306,13 @@ other journey I may be on at the time."""
                 started = True
             prev = rd
 
-    def branch_loc_rds(self, branch=None):
+    def branch_loc_bones_gen(self, branch=None):
         if branch is None:
             branch = self.closet.branch
-        r = [dict(rd) for rd in self.locations[branch].iterbones()]
-        return r
+        for bone in self.locations[branch].iterbones():
+            yield bone
 
-    def restore_loc_rds(self, rds):
+    def restore_loc_bones(self, bones):
         logger.debug("Restoring locations")
-        for rd in rds:
-            self.set_location(rd["location"], rd["branch"], rd["tick_from"])
+        for bone in bones:
+            self.set_location(bone.location, bone.branch, bone.tick_from)

@@ -267,7 +267,7 @@ seen."""
             for bone in boneiter:
                 if (
                         prev.tick_from < maxtick and
-                        rd.tick_from > mintick):
+                        bone.tick_from > mintick):
                     # I'll be showing this cell. Choose text for it
                     # based on my type.
                     if self.cal_type == 5:
@@ -286,7 +286,7 @@ seen."""
                         text, prev.tick_from, bone.tick_from)
                 if bone.tick_from > maxtick:
                     break
-                prev = rd
+                prev = bone
             # The last cell is infinitely long
             if prev.tick_from < maxtick:
                 if self.cal_type == 5:
