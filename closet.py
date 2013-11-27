@@ -800,9 +800,8 @@ For more information, consult SaveableMetaclass in util.py.
             board.new_branch(parent, branch, tick)
         for character in self.characterdict.itervalues():
             character.new_branch(parent, branch, tick)
-        self.skeleton["timestream"][branch] = {
-            "branch": branch,
-            "parent": parent}
+        self.skeleton["timestream"][branch] = Timestream.bonetype(
+            branch=branch, parent=parent)
 
     def time_travel_inc_tick(self, ticks=1):
         self.time_travel(self.branch, self.tick+ticks)

@@ -214,7 +214,7 @@ item's name, and the name of the attribute.
         if bone.branch not in self.thingdict[bone.dimension][bone.thing]:
             self.thingdict[bone.dimension][bone.thing][bone.branch] = {}
         self.thingdict[
-            bone.dimension][bone.thing][bone.branch][bone.tick_from] = rd
+            bone.dimension][bone.thing][bone.branch][bone.tick_from] = bone
 
     def add_thing_by_key(self, dimension, thing, branch=None, tick=None):
         if branch is None:
@@ -449,24 +449,21 @@ item's name, and the name of the attribute.
 
     def new_branch(self, parent, branch, tick):
         l = [
-            (self.add_thing_by_rd,
+            (self.add_thing_by_bone,
              self.thing_skel_branch_iter(parent))]
         for (assigner, iterator) in l:
             prev = None
             started = False
-            for rd in iterator:
-                if rd["tick_from"] >= tick:
-                    rd2 = dict(rd)
-                    rd2["branch"] = branch
-                    assigner(rd2)
+            for bone in iterator:
+                if bone.tick_from >= tick:
+                    bone2 = bone._replace(branch=branch)
+                    assigner(bone2)
                     # I have the feeling that this test is too much.
                     if (
                             not started and prev is not None and
-                            rd["tick_from"] > tick and
-                            prev["tick_from"] < tick):
-                        rd3 = dict(prev)
-                        rd3["branch"] = branch
-                        rd3["tick_from"] = tick
-                        assigner(rd3)
+                            bone.tick_from > tick and
+                            prev.tick_from < tick):
+                        bone3 = prev._replace(branch=branch, tick_from=tick)
+                        assigner(bone3)
                     started = True
-                prev = rd
+                prev = bone

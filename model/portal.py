@@ -84,19 +84,16 @@ otherwise."""
     def new_branch(self, parent, branch, tick):
         prev = None
         started = False
-        for rd in self.existence[parent].iterbones():
-            if rd["tick_from"] >= tick:
-                rd2 = dict(rd)
-                rd2["branch"] = branch
+        for bone in self.existence[parent].iterbones():
+            if bone.tick_from >= tick:
+                bone2 = bone._replace(branch=branch)
                 if branch not in self.existence:
                     self.existence[branch] = {}
-                self.existence[branch][rd2["tick_from"]] = rd2
+                self.existence[branch][bone2.tick_from] = bone2
                 if (
                         not started and prev is not None and
-                        rd["tick_from"] > tick and prev["tick_from"] < tick):
-                    rd3 = dict(prev)
-                    rd3["branch"] = branch
-                    rd3["tick_from"] = tick
-                    self.existence[branch][rd3["tick_from"]] = rd3
+                        bone2.tick_from > tick and prev.tick_from < tick):
+                    bone3 = prev._replace(branch=branch, tick_from=tick)
+                    self.existence[branch][bone3.tick_from] = bone3
                 started = True
-            prev = rd
+            prev = bone

@@ -176,7 +176,8 @@ class Spot(Scatter):
             unicode(self.board.dimension)][unicode(self.place)]
         for tick_from in interactivity[parent]:
             if tick_from >= tick:
-                b2 = interactivity[parent][tick_from].replace(branch=branch)
+                b2 = interactivity[parent][tick_from
+                ].content._replace(branch=branch)
                 if branch not in interactivity:
                     interactivity[branch] = {}
                 interactivity[branch][b2.tick_from] = b2
@@ -242,10 +243,10 @@ class Spot(Scatter):
             unicode(self.board)][unicode(self.place)]
         for tick_from in coords[parent]:
             if tick_from >= tick:
-                b2 = coords[parent][tick_from]._replace(branch=branch)
+                b2 = coords[parent][tick_from].content._replace(branch=branch)
                 if branch not in coords:
                     coords[branch] = {}
-                coords[branch][b2["tick_from"]] = b2
+                coords[branch][b2.tick_from] = b2
                 if (
                         not started and prev is not None and
                         tick_from > tick and prev < tick):
@@ -285,7 +286,7 @@ class Spot(Scatter):
             unicode(self.board.dimension)][unicode(self.place)]
         for tick_from in imagery[parent]:
             if tick_from >= tick:
-                b2 = imagery[parent][tick_from].replace(branch=branch)
+                b2 = imagery[parent][tick_from].content._replace(branch=branch)
                 if branch not in imagery:
                     imagery[branch] = {}
                 imagery[branch][b2.tick_from] = b2
@@ -298,7 +299,6 @@ class Spot(Scatter):
                     imagery[branch][b3.tick_from] = b3
                 started = True
             prev = tick_from
-        self.upd_imagery()
 
     def on_touch_up(self, touch):
         if touch.grab_current is self:
