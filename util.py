@@ -123,13 +123,16 @@ class BoneMetaclass(type):
 
         @classmethod
         def _unpack(cls, data):
-            """Return a new instance of this Bone class using the packed data in
-the string."""
+            """Return a new instance of this class using the packed data in the
+string.
+
+            """
             r = cls(*struct.unpack(cls.getfmt(), data))
             denulled = {}
             for field in r._fields:
                 if isinstance(getattr(r, field), str):
-                    denulled[field] = getattr(r, field).replace('\x00', '')
+                    denulled[field] = unicode(
+                        getattr(r, field)).replace('\x00', '')
             return r._replace(**denulled)
 
         def __repr__(self):
