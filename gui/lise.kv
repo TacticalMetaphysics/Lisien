@@ -134,10 +134,10 @@
     size_hint_x: 1
     disabled: self.table.edbut.state == 'normal'
 <TableLayout>:
-    character_skel: getattr(self.character, self.chardictd[self.item_type])
     Table:
         #:import bone gui.charsheet.table.character_bone
         id: tab
+        skel: bone(self, root.keys, getattr(root.character, root.chardictd[root.item_type]))
         col_default_width: 75
         edbut: root.edbut
         bg_color_active: root.style.bg_active.rgba
@@ -174,4 +174,4 @@
     orientation: 'vertical'
     spacing: 10
     text_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)]["text_style"])
-    symbol_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)]["text_style"])
+    symbol_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)]["symbol_style"])

@@ -515,7 +515,7 @@ For more information, consult SaveableMetaclass in util.py.
                  "character_subcharacters")
         for tabn in tabns:
             qtd[tabn] = [
-                getattr(Character.bonetypes, tabn)(name=n)
+                getattr(Character.bonetypes, tabn)(character=n)
                 for n in names]
         self.skeleton.update(
             Character._select_skeleton(self.c, qtd))

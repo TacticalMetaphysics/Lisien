@@ -2,7 +2,8 @@ from kivy.properties import (
     NumericProperty,
     ListProperty,
     ObjectProperty,
-    StringProperty)
+    StringProperty,
+    DictProperty)
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
@@ -305,7 +306,7 @@ class Table(GridLayout):
     xmov = NumericProperty()
 
     def on_completedness(self, i, v):
-        if v == 6:
+        if v == 5:
             self.complete()
 
     def on_text_color_inactive(self, *args):
@@ -321,9 +322,6 @@ class Table(GridLayout):
         self.completedness += 1
 
     def on_parent(self, *args):
-        self.completedness += 1
-
-    def on_character_skel(self, *args):
         self.completedness += 1
 
     def capitate(self):
@@ -347,7 +345,6 @@ class Table(GridLayout):
                     child.time_listener)
 
     def complete(self):
-        self.skel = character_bone(self, self.parent.keys, self.character_skel)
         self.capitate()
         self.corpitate()
 
@@ -379,7 +376,6 @@ class Table(GridLayout):
 
 
 class TableLayout(ItemLayout, StencilView):
-    character_skel = ObjectProperty()
     edbut = ObjectProperty()
     colkey_dict = {
         0: ["dimension", "thing", "location"],
@@ -401,6 +397,3 @@ class TableLayout(ItemLayout, StencilView):
         2: mk_iter_skeleton,
         3: mk_iter_skeleton_stat,
         4: mk_iter_skeleton_skill}
-
-    def __init__(self, **kwargs):
-        super(TableLayout, self).__init__(**kwargs)
