@@ -188,7 +188,6 @@ be notified whenever I need to lay myself out again.
                 break
             ks.append(key)
         if self.cal_type == 5:
-            print ks
             (dimension, thing) = ks
             self.referent = closet.get_thing(dimension, thing)
             self.skel = skeleton["thing_location"][dimension][thing]
