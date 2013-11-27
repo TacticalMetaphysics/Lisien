@@ -87,8 +87,6 @@ otherwise."""
         for bone in self.existence[parent].iterbones():
             if bone.tick_from >= tick:
                 bone2 = bone._replace(branch=branch)
-                if branch not in self.existence:
-                    self.existence[branch] = {}
                 self.existence[branch][bone2.tick_from] = bone2
                 if (
                         not started and prev is not None and

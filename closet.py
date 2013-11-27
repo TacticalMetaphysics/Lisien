@@ -178,10 +178,10 @@ given name.
         # data--represented only as those types which sqlite3 is
         # capable of storing. All my objects are ultimately just
         # views on this thing.
-        self.skeleton = Skeleton({})
+        self.skeleton = Skeleton()
         for saveable in saveables:
             for tabn in saveable[3]:
-                self.skeleton[tabn] = {}
+                self.skeleton[tabn] = None
         self.c.execute(
             "SELECT language, seed, dimension, branch, tick FROM game")
         self.skeleton.update(
@@ -189,7 +189,7 @@ given name.
                 self.c.fetchone(),
                 game_bone)]})
         if "language" in kwargs:
-            self.skeleton["game"]["language"] = kwargs["language"]
+            self.language = kwargs["language"]
         # This is a copy of the skeleton as it existed at the time of
         # the last save. I'll be finding the differences between it
         # and the current skeleton in order to decide what to write to
@@ -310,13 +310,15 @@ given name.
         for listener in self.branch_listeners:
             listener(self, b)
         self.upd_time(b, self.tick)
-        self.skeleton["game"]["branch"] = b
+        self.skeleton["game"][0] = self.skeleton["game"][0]._replace(
+            branch=b)
 
     def upd_tick(self, t):
         for listener in self.tick_listeners:
             listener(self, t)
         self.upd_time(self.branch, t)
-        self.skeleton["game"]["tick"] = t
+        self.skeleton["game"][0] = self.skeleton["game"][0]._replace(
+            tick=t)
 
     def upd_time(self, b, t):
         for listener in self.time_listeners:
@@ -325,7 +327,8 @@ given name.
     def upd_lang(self, l):
         for listener in self.lang_listeners:
             listener(self, l)
-        self.skeleton["game"]["language"] = l
+        self.skeleton["game"][0] = self.skeleton["game"][0]._replace(
+            lang=l)
 
     def constructorate(self, cls):
 
