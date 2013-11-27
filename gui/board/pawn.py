@@ -109,6 +109,9 @@ The relevant data are
     def __unicode__(self):
         return unicode(self.thing)
 
+    def on_pos(self, i, v):
+        print "{}@{}".format(i, v)
+
     def on_tex(self, i, v):
         if v is None:
             return
@@ -136,12 +139,13 @@ The relevant data are
             branch = self.board.closet.branch
         if tick_from is None:
             tick_from = self.board.closet.tick
-        self.interactivity[branch][tick_from] = {
-            "dimension": str(self.thing.dimension),
-            "board": int(self.board),
-            "thing": str(self.thing),
-            "branch": branch,
-            "tick_from": tick_from}
+        self.interactivity[branch][tick_from] = self.bonetypes[
+            "pawn_interactive"](
+            dimension=unicode(self.thing.dimension),
+            board=int(self.board),
+            thing=unicode(self.thing),
+            branch=branch,
+            tick_from=tick_from)
 
     def get_coords(self, branch=None, tick=None):
         loc = self.thing.get_location(branch, tick)

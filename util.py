@@ -81,10 +81,8 @@ class BoneMetaclass(type):
             values = []
             for fieldn in _cls._fields:
                 if fieldn in kwargs:
-                    if kwargs[fieldn] is None:
-                        values.append(_cls._defaults[fieldn])
-                        continue
-                    elif type(kwargs[fieldn]) is not _cls._types[fieldn]:
+                    if type(kwargs[fieldn]) not in (
+                            _cls._types[fieldn], type(None)):
                         kwargs[fieldn] = _cls._types[fieldn](kwargs[fieldn])
                     values.append(kwargs[fieldn])
                 else:
@@ -683,11 +681,11 @@ declared in the order they appear in the tables attribute.
                     return
 
         def gen_sql_select(keybones, tabname):
-            keys = set()
-            for bone in keybones:
-                for k in primarykeys[tabname]:
-                    if getattr(bone, k) is not None:
-                        keys.add(k)
+            # Assumes that all keybones have the same type.
+            keys = []
+            for k in primarykeys[tabname]:
+                if getattr(keybones[0], k) is not None:
+                    keys.append(k)
             andstr = "({0})".format(
                 " AND ".join(
                     ["{0}=?".format(key) for key in keys]
