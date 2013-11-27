@@ -112,7 +112,7 @@ but they never include branch or tick--CharSheet will only display
 things appropriate to the present, whenever that may be.
 
         """
-        self.bone = character.closet.skeleton[u"charsheet"][unicode(character)].content
+        self.bone = character.closet.skeleton[u"charsheet"][unicode(character)]
         i = 0
         height = 0
         for bone in character.closet.skeleton[u"charsheet_item"][

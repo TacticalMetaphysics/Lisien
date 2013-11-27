@@ -173,16 +173,9 @@ class TableTextInput(TextInput):
     key = StringProperty()
     finality = NumericProperty(0)
 
-    def on_bone(self, i, v):
-        if v is None:
-            return
-        if self.bone is not None and self.bone_listener in self.bone.listeners:
-            self.bone.listeners.remove(self.bone_listener)
-        v.listeners.append(self.bone_listener)
-
-    def bone_listener(self, skel, k, v):
-        if k == u"location":
-            self.text = unicode(v)
+    def skel_listener(self, skel, k, v):
+        if hasattr(v, '_fields') and 'location' in v._fields:
+            self.text = v.location
 
     def time_listener(self, closet, branch, tick):
         ittyp = self.table.parent.item_type
@@ -301,13 +294,16 @@ class Table(GridLayout):
     content_children = ListProperty()
     colkeys = ListProperty()
     skel = ObjectProperty(None)
-    iter_skeleton = ObjectProperty()
+    iter_skeleton = ObjectProperty(None)
     edbut = ObjectProperty()
     xmov = NumericProperty()
 
     def on_completedness(self, i, v):
         if v == 5:
             self.complete()
+
+    def on_iter_skeleton(self, i, v):
+        self.completedness += 1
 
     def on_text_color_inactive(self, *args):
         self.completedness += 1
@@ -316,9 +312,6 @@ class Table(GridLayout):
         self.completedness += 1
 
     def on_colkeys(self, *args):
-        self.completedness += 1
-
-    def on_iter_skeleton(self, *args):
         self.completedness += 1
 
     def on_parent(self, *args):
@@ -339,6 +332,7 @@ class Table(GridLayout):
                     table=self,
                     key=key,
                     bone=bone)
+                self.skel.listeners.append(child.skel_listener)
                 self.add_widget(child)
                 self.edbut.extra_listeners.append(child.edbut_listener)
                 self.parent.character.closet.time_listeners.append(
