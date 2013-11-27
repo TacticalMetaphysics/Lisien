@@ -67,6 +67,13 @@ something in a Skeleton.
 
 class BoneMetaclass(type):
     def __new__(metaclass, clas, parents, attrs):
+        # Presently there's no way to distinguish between "I have not
+        # decided what to put here" and "This database record has a
+        # null value in this field". I think the only cases where this
+        # presents trouble are if you want an update rather than an
+        # insert (updates aren't supported) or if you want to query
+        # for nulls in some field, which I suppose to be a strange
+        # enough case to ignore.
         def __new__(_cls, *args, **kwargs):
             """Create new instance of {}""".format(clas)
             if len(args) > 0:
@@ -133,70 +140,6 @@ class Bone(tuple):
     def subclass(clas, name, fields):
         return type(name, (clas,), {'_fields': fields})
 
-    def __getattribute__(self, attrn):
-        if (
-                "color_bone" in type(self).__name__ and
-                attrn == "copy"):
-            from inspect import stack
-            print stack()[1]
-        return super(Bone, self).__getattribute__(attrn)
-
-
-class SkelRowIter(object):
-    """A depth-first traversal over a Skeleton, although no deeper than
-the dictionaries representing database records."""
-    def __init__(self, skel):
-        """Initialize a deque to hold pointers, and a list of lists of keys."""
-        self.skel = skel
-        self.ptrs = deque([self.skel])
-        self.keyses = [list(self.skel.keys())]
-
-    def __len__(self):
-        """Copy myself and iterate over that to get the length."""
-        i = 0
-        h = SkelRowIter(self.skel)
-        while True:
-            try:
-                next(h)
-                i += 1
-            except StopIteration:
-                return i
-
-    def __iter__(self):
-        """I am an iterator."""
-        return self
-
-    def __next__(self):
-        """Look up and return the next leaf, if I have the key for it. If the
-next key doesn't point to a leaf, dig to the next level inward and
-collect keys from there."""
-        while len(self.ptrs) > 0:
-            try:
-                ptr = self.ptrs.pop()
-                keys = self.keyses.pop()
-            except IndexError:
-                raise StopIteration
-            if ptr.bone:
-                return ptr
-            else:
-                try:
-                    k = keys.pop(0)
-                except IndexError:
-                    continue
-                if len(keys) > 0:
-                    self.ptrs.append(ptr)
-                    self.keyses.append(keys)
-                try:
-                    self.ptrs.append(ptr[k])
-                except IndexError:
-                    break
-                self.keyses.append(list(ptr[k].keys()))
-        raise StopIteration
-
-    def next(self):
-        """Python2/3 compatibility"""
-        return self.__next__()
-
 
 class Skeleton(MutableMapping):
     """A tree structure similar to a database.
@@ -211,7 +154,7 @@ There's a limited sort of event handler triggered by __setitem__ and
 __delitem__. Append listeners to self.listeners.
 
     """
-    def __init__(self, content, name="", parent=None):
+    def __init__(self, content=None, name="", parent=None):
         """Technically all of the arguments are optional but you should really
 specify them whenever it's reasonably sensible to do so. content is a
 mapping to crib from, parent is who to propagate events to, and name
@@ -221,10 +164,11 @@ is mostly for printing."""
         self.name = name
         self.parent = parent
         self.content = {}
-        self._populate_content(content)
+        if content is not None:
+            self._populate_content(content)
 
     def _populate_content(self, content):
-        if content is None:
+        if content in (None, {}, []):
             return
         assert(not issubclass(content.__class__, Bone))
         if isinstance(content, dict):
@@ -235,9 +179,13 @@ is mostly for printing."""
             kitr = ListItemIterator(content)
         for (k, v) in kitr:
             if hasattr(v, 'content'):
-                self[k] = self.__class__(
-                    content=v.content, name=k, parent=self)
-            elif issubclass(v.__class__, Bone):
+                if len(v.content) == 0:
+                    self[k] = None
+                else:
+                    self[k] = v.copy()
+                    self[k].name = k
+                    self[k].parent = self
+            elif v is None or issubclass(v.__class__, Bone):
                 self[k] = v
             else:
                 self[k] = self.__class__(
@@ -255,6 +203,9 @@ is mostly for printing."""
         return self.content[k]
 
     def __setitem__(self, k, v):
+        if hasattr(self, 'bones_only'):
+            if v is not None and not issubclass(v.__class__, Bone):
+                raise TypeError("A Skeleton directly containing Bones can't directly contain anything else.")
         if len(self.content) == 0:
             self.ikeys = set([])
             if isinstance(k, int):
@@ -264,8 +215,11 @@ is mostly for printing."""
                 self.content.append(None)
             self.ikeys.add(k)
         if isinstance(v, self.__class__):
-            self.content[k] = self.__class__(v.content, name=k, parent=self)
+            v.name = k
+            v.parent = self
+            self.content[k] = v
         elif issubclass(v.__class__, Bone):
+            self.bones_only = True
             self.content[k] = v
         else:
             self.content[k] = self.__class__(v, name=k, parent=self)
@@ -326,8 +280,9 @@ is mostly for printing."""
                 continue
             elif v == self[k]:
                 del self[k]
-            else:
+            elif isinstance(self[k], Skeleton) and isinstance(v, Skeleton):
                 self[k] -= v
+            # otherwise, just keep it
         return self
 
     def __sub__(self, other):
@@ -400,18 +355,25 @@ is mostly for printing."""
         if isinstance(self.content, list):
             r = {}
             for k in self.ikeys:
-                if issubclass(self.content[k].__class__, Bone):
-                    r[k] = self.content[k]
-                else:
+                if isinstance(self.content[k], self.__class__):
                     r[k] = self.content[k].copy()
+                else:
+                    r[k] = self.content[k]
             return self.__class__(content=r)
         else:
             r = {}
             for (k, v) in self.content.items():
-                if issubclass(v.__class__, Bone):
+                if isinstance(v, self.__class__):
+                    if len(v.content) == 0:
+                        r[k] = None
+                    else:
+                        r[k] = v.copy()
+                        r[k].parent = self
+                        r[k].name = k
+                elif v is None or issubclass(v.__class__, Bone):
                     r[k] = v
                 else:
-                    r[k] = v.copy()
+                    assert(False)
             return self.__class__(content=r)
 
     def deepcopy(self):
@@ -429,7 +391,9 @@ is mostly for printing."""
                 if k in self.content:
                     self[k].update(v)
                 else:
-                    self[k] = self.__class__(content=v.content, name=k, parent=self)
+                    self[k] = v.copy()
+                    self[k].parent = self
+                    self[k].name = k
             else:
                 if k in self.content:
                     self[k].update(v)
@@ -722,12 +686,19 @@ declared in the order they appear in the tables attribute.
                 bone = row2bone(row, getattr(bonetypes, tabname))
                 ptr = r
                 oldptr = None
+                unset = True
                 for key in primarykeys[tabname]:
                     if getattr(bone, key) not in ptr:
-                        ptr[getattr(bone, key)] = {}
+                        try:
+                            ptr[getattr(bone, key)] = Skeleton()
+                        except TypeError:
+                            ptr[getattr(bone, key)] = bone
+                            unset = False
+                            break
                     oldptr = ptr
                     ptr = ptr[getattr(bone, key)]
-                oldptr[getattr(bone, key)] = bone
+                if unset:
+                    oldptr[getattr(bone, key)] = bone
                 # rd = dictify_row(row, colnames[tabname])
                 # ptr = r
                 # lptr = r
@@ -751,12 +722,19 @@ declared in the order they appear in the tables attribute.
                     bone = row2bone(row, getattr(bonetypes, tabname))
                     ptr = r[tabname]
                     oldptr = None
+                    unset = True
                     for key in primarykeys[tabname]:
                         if getattr(bone, key) not in ptr:
-                            ptr[getattr(bone, key)] = {}
+                            try:
+                                ptr[getattr(bone, key)] = {}
+                            except TypeError:
+                                ptr[getattr(bone, key)] = bone
+                                unset = False
+                                break
                         oldptr = ptr
                         ptr = ptr[getattr(bone, key)]
-                    oldptr[getattr(bone, key)] = bone
+                    if unset:
+                        oldptr[getattr(bone, key)] = bone
                     # rd = dictify_row(row, colnames[tabname])
                     # ptr = r[tabname]
                     # keys = list(primarykeys[tabname])

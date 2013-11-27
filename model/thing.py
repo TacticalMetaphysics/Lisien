@@ -140,8 +140,6 @@ If not, I'm nowhere, and therefore don't exist."""
             branch = self.closet.branch
         if tick is None:
             tick = self.closet.tick
-        if branch not in self.locations:
-            self.locations[branch] = {}
         self.locations[branch][tick] = self.bonetypes.thing_location(
             dimension=unicode(self.dimension),
             thing=unicode(self),
@@ -188,7 +186,7 @@ passed through.
         if branch not in self.locations:
             raise LocationException("I am nowhere in that branch")
         # this is when I entered the portal
-        t1 = self.get_location_bone(branch, tick)["tick_from"]
+        t1 = self.get_location_bone(branch, tick).tick_from
         # this is when I will enter the destination
         t2 = self.locations[branch].key_after(tick)
         if t2 is None:
@@ -278,8 +276,6 @@ other journey I may be on at the time."""
     def new_branch(self, parent, branch, tick):
         def gethibranch():
             return self.dimension.closet.timestream.hi_branch
-        if branch not in self.locations:
-            self.locations[branch] = {}
         if self.new_branch_blank:
             start_loc = self.get_location(parent, tick)
             if hasattr(start_loc, 'destination'):

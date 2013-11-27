@@ -185,15 +185,14 @@ class TableTextInput(TextInput):
             pass
         elif ittyp == 0:
             skel = closet.skeleton[u"thing_location"][
-                self.bone["dimension"]][self.bone["thing"]][
+                self.bone.dimension][self.bone.thing][
                 branch]
             # Sometimes I get called during the creation of a new
             # branch, before the new branch has anything in it. Wait
             # it out.
             if len(skel) == 0:
                 return
-            tick_from = skel.key_or_key_before(tick)
-            self.text = skel[tick_from]["location"]
+            self.text = skel.value_during(tick).location
         elif ittyp == 1:
             pass
         elif ittyp == 2:
