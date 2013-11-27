@@ -442,19 +442,23 @@ For more information, consult SaveableMetaclass in util.py.
             assert(len(clas.tablenames) > 0)
             for tabname in clas.tablenames:
                 if tabname in to_delete:
-                    clas._delete_keydicts_table(
-                        self.c, to_delete[tabname], tabname)
+                    clas._delete_keybones_table(
+                        self.c, to_delete[tabname].iterbones(), tabname)
                 if tabname in to_save:
-                    clas._delete_keydicts_table(
-                        self.c, to_save[tabname], tabname)
-                    clas._insert_bones_table(
-                        self.c, to_save[tabname], tabname)
+                    clas._delete_keybones_table(
+                        self.c, to_save[tabname].iterbones(), tabname)
+                    try:
+                        clas._insert_bones_table(
+                            self.c, to_save[tabname].iterbones(), tabname)
+                    except ValueError:
+                        pass
         self.c.execute("DELETE FROM game")
         keys = self.skeleton["game"].keys()
-        self.c.execute(
-            "INSERT INTO game ({0}) VALUES ({1})".format(
+        qrystr = "INSERT INTO game ({0}) VALUES ({1})".format(
                 ", ".join(keys),
-                ", ".join(["?"] * len(self.skeleton["game"]))),
+                ", ".join(["?"] * len(self.skeleton["game"].content._fields)))
+        self.c.execute(
+            qrystr,
             [self.skeleton["game"][k] for k in keys])
         self.old_skeleton = self.skeleton.copy()
 

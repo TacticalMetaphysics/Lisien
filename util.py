@@ -645,22 +645,24 @@ declared in the order they appear in the tables attribute.
              tuple(postlude)))
 
         def gen_sql_insert(bones, tabname):
-            if len(bones) == 0 or tabname not in tablenames:
+            varlst = []
+            qrylst = []
+            i = 0
+            for bone in bones:
+                varlst.append(rowstrs[tabname])
+                qrylst.extend([getattr(bone, coln) for coln in
+                               colnames[tabname]])
+                i += 1
+            if i == 0:
                 raise ValueError("No data to insert.")
             qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
                 tabname,
                 colnamestr[tabname],
-                ", ".join([rowstrs[tabname]] * len(bones)))
-            qrylst = []
-            for bone in bones:
-                qrylst.extend([getattr(bone, coln) for coln in
-                               colnames[tabname]])
+                ", ".join(varlst))            
             return (qrystr, tuple(qrylst))
 
         @staticmethod
         def insert_bones_table(c, bones, tabname):
-            if len(bones) == 0:
-                raise ValueError("No data to insert.")
             try:
                 c.execute(*gen_sql_insert(bones, tabname))
             except IntegrityError as ie:
@@ -687,8 +689,6 @@ declared in the order they appear in the tables attribute.
 
         @staticmethod
         def delete_keybones_table(c, keybones, tabname):
-            if len(keybones) == 0:
-                return
             for keybone in keybones:
                 try:
                     c.execute(*gen_sql_delete(keybone, tabname))
