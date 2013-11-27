@@ -82,12 +82,17 @@ PORTAL_NAME_RE = re.compile(
 
 game_bone = Bone.subclass(
     'game_bone',
-    ("language", "seed", "dimension", "branch", "tick"))
+    [("language", unicode, u"eng"),
+     ("seed", int, 0),
+     ("branch", int, 0),
+     ("tick", int, 0)])
 
 
 string_bone = Bone.subclass(
     'string_bone',
-    ("stringname", "language", "string"))
+    [("stringname", unicode, None),
+     ("language", unicode, u"eng"),
+     ("string", unicode, None)])
 
 
 class Closet(object):
@@ -141,6 +146,9 @@ before RumorMill will work. For that, run mkdb.sh.
         return self.characterdict.itervalues()
 
     def __getattribute__(self, attrn):
+        if attrn == "tick":
+            import inspect
+            print inspect.stack()[1]
         try:
             skeleton = super(Closet, self).__getattribute__("skeleton")
             bone = skeleton["game"][0]
@@ -183,7 +191,7 @@ given name.
             for tabn in saveable[3]:
                 self.skeleton[tabn] = None
         self.c.execute(
-            "SELECT language, seed, dimension, branch, tick FROM game")
+            "SELECT language, seed, branch, tick FROM game")
         self.skeleton.update(
             {"game": [row2bone(
                 self.c.fetchone(),
