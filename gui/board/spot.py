@@ -228,13 +228,13 @@ class Spot(Scatter):
             tick_from = self.board.closet.tick
         self.board.closet.skeleton["spot_coords"][
             unicode(self.board)][unicode(self.place)][
-            branch][tick_from] = self.bonetypes["spot_coords"](
-                dimension=unicode(self.board),
-                place=unicode(self.place),
-                branch=branch,
-                tick_from=tick_from,
-                x=x,
-                y=y)
+            branch][tick_from] = self.bonetypes.spot_coords(
+            dimension=unicode(self.board),
+            place=unicode(self.place),
+            branch=branch,
+            tick_from=tick_from,
+            x=x,
+            y=y)
 
     def new_branch_coords(self, parent, branch, tick):
         prev = None

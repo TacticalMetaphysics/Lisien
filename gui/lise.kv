@@ -2,13 +2,15 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 <Swatch>:
     text_size: (self.width, self.height * 0.9)
+    halign: 'center'
+    multiline: True
     BoxLayout:
         pos: root.pos
         size: root.size
         Image:
             texture: root.display_texture
             pos_hint: {'top': 0.9}
-            size_hint: (None, None)
+            size_hint: (0.9, 0.5)
 <LoadImgDialog>:
     BoxLayout:
         size: root.size
@@ -25,6 +27,29 @@
             Button:
                 text: "Load"
                 on_release: root.load(filechooser.path, filechooser.selection)
+<PickImgDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        SwatchBox:
+            id: imgchooser
+            texdict: root.closet.texturedict
+            style: root.closet.get_style('default_style')
+            cols: 5
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+            Button:
+                text: "Confirm"
+                on_release: root.set_imgs(imgchooser.gen_selection())
+<DummyPawn>:
+    size_hint: (None, None)
+    do_rotation: False
+    do_scale: False
 <Pawn>:
     auto_bring_to_front: False
     size_hint: (None, None)
@@ -174,3 +199,5 @@
     spacing: 10
     text_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)].text_style)
     symbol_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)].symbol_style)
+<CueCard>:
+    disabled: True

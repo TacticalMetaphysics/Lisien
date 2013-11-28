@@ -483,11 +483,18 @@ For more information, consult SaveableMetaclass in util.py.
         return dimension.get_place(placen)
 
     def make_generic_thing(self, dimension, location):
-        thingn = "generic_thing_{0}".format(len(dimension.thingdict))
-        dimension.make_thing(thingn)
-        th = dimension.get_thing(thingn)
-        th.set_location(location)
-        return th
+        if not isinstance(dimension, Dimension):
+            dimension = self.get_dimension(dimension)
+        thingn = u"generic_thing_{0}".format(len(dimension.thingdict))
+        for skel in (
+                self.skeleton[u"thing_location"],
+                self.skeleton[u"pawn_img"],
+                self.skeleton[u"pawn_interactive"]):
+            assert(thingn not in skel[unicode(dimension)])
+            skel[unicode(dimension)][thingn] = Skeleton()
+            skel[unicode(dimension)][thingn][self.branch] = Skeleton()
+        dimension.make_thing(thingn, location)
+        return dimension.get_thing(thingn)
 
     def make_spot(self, board, place, x, y):
         spot = Spot(board, place)
@@ -867,7 +874,7 @@ For more information, consult SaveableMetaclass in util.py.
     def mi_show_popup(self, mi, name):
         assert(name == 'load_pic')
         root = mi.get_root_window().children[0]
-        return root.show_pic_loader()
+        return root.show_pic_picker()
 
     def register_text_listener(self, stringn, listener):
         if stringn == "@branch":
