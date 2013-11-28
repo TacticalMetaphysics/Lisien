@@ -459,8 +459,8 @@ For more information, consult SaveableMetaclass in util.py.
         self.c.execute("DELETE FROM game")
         fields = self.skeleton["game"][0]._fields
         qrystr = "INSERT INTO game ({0}) VALUES ({1})".format(
-                ", ".join(fields),
-                ", ".join(["?"] * len(fields)))
+            ", ".join(fields),
+            ", ".join(["?"] * len(fields)))
         self.c.execute(
             qrystr,
             [getattr(self.skeleton["game"][0], k) for k in fields])
@@ -722,7 +722,7 @@ For more information, consult SaveableMetaclass in util.py.
         td = Card._select_skeleton(self.c, bd)
         r = {}
         for bone in td.iterbones():
-            r[rd["effect"]] = Card(self, effectdict[bone.effect], td)
+            r[bone.effect] = Card(self, effectdict[bone.effect], td)
         return r
 
     def get_cards(self, names):
@@ -741,7 +741,9 @@ For more information, consult SaveableMetaclass in util.py.
         return self.get_cards([name])[name]
 
     def load_menus(self, names):
-        skel = Menu._select_skeleton(self.c, {"menu": [Menu.bonetypes.menu(name=n) for n in names]})
+        skel = Menu._select_skeleton(
+            self.c,
+            {"menu": [Menu.bonetypes.menu(name=n) for n in names]})
         self.skeleton.update(LiSEStyle._select_skeleton(
             self.c, {"style": [
                 LiSEStyle.bonetype(name=n) for n in
@@ -848,7 +850,9 @@ For more information, consult SaveableMetaclass in util.py.
     def uptick_bone(self, bone):
         if hasattr(bone, "branch") and bone.branch > self.timestream.hi_branch:
             self.timestream.hi_branch = bone.branch
-        if hasattr(bone, "tick_from") and bone.tick_from > self.timestream.hi_tick:
+        if (
+                hasattr(bone, "tick_from") and
+                bone.tick_from > self.timestream.hi_tick):
             self.timestream.hi_tick = bone.tick_from
         if hasattr(bone, "tick_to") and bone.tick_to > self.timestream.hi_tick:
             self.timestream.hi_tick = bone.tick_to
@@ -872,6 +876,7 @@ For more information, consult SaveableMetaclass in util.py.
             self.tick_listeners.append(listener)
         if stringn[0] == "@" and stringn[1:] in self.skeleton["strings"]:
             self.skeleton["strings"][stringn[1:]].listeners.append(listener)
+
 
 def mkdb(DB_NAME='default.sqlite'):
     def isdir(p):

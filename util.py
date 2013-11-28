@@ -3,7 +3,6 @@
 from math import sqrt, hypot, atan, pi, sin, cos
 from sqlite3 import IntegrityError
 from collections import (
-    deque,
     MutableMapping,
     OrderedDict)
 from operator import itemgetter
@@ -107,7 +106,10 @@ class BoneMetaclass(type):
                 elif field_type is float:
                     fmt.append('d')
                 else:
-                    raise TypeError("Trying to make a format string; don't understand the type {}".format(field_type))
+                    raise TypeError(
+                        "Trying to make a format string; "
+                        "don't understand the type "
+                        "{}".format(field_type))
             return str(fmt)
 
         @property
@@ -142,7 +144,8 @@ string.
                  for field in self._fields]))
 
         def _asdict(self):
-            """Return a new OrderedDict which maps field names to their values"""
+            """Return a new OrderedDict which maps field names
+to their values"""
             return OrderedDict(zip(self._fields, self))
 
         def _replace(self, **kwds):
@@ -258,7 +261,9 @@ is mostly for printing."""
     def __setitem__(self, k, v):
         if hasattr(self, 'bones_only'):
             if v is not None and not issubclass(v.__class__, Bone):
-                raise TypeError("A Skeleton directly containing Bones can't directly contain anything else.")
+                raise TypeError(
+                    "A Skeleton directly containing Bones "
+                    "can't directly contain anything else.")
         if len(self.content) == 0:
             self.ikeys = set([])
             if isinstance(k, int):
@@ -603,10 +608,11 @@ declared in the order they appear in the tables attribute.
             bonetypes[tablename] = type(
                 tablename + "_bone",
                 (Bone,),
-                {"_field_decls": [(colname,
-                  coltypes[tablename][colname],
-                  coldefaults[tablename][colname])
-                for colname in colnames[tablename]]})
+                {"_field_decls": [
+                    (colname,
+                     coltypes[tablename][colname],
+                     coldefaults[tablename][colname])
+                    for colname in colnames[tablename]]})
             tabclas[tablename] = clas
             provides.add(tablename)
             coldecl = coldecls[tablename]
@@ -675,18 +681,18 @@ declared in the order they appear in the tables attribute.
         def gen_sql_insert(bones, tabname):
             varlst = []
             qrylst = []
-            i = 0
+            some_data = False
             for bone in bones:
                 varlst.append(rowstrs[tabname])
                 qrylst.extend([getattr(bone, coln) for coln in
                                colnames[tabname]])
-                i += 1
-            if i == 0:
+                some_data = True
+            if not some_data:
                 raise ValueError("No data to insert.")
             qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
                 tabname,
                 colnamestr[tabname],
-                ", ".join(varlst))            
+                ", ".join(varlst))
             return (qrystr, tuple(qrylst))
 
         @staticmethod

@@ -1,15 +1,14 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 <Swatch>:
+    text_size: (self.width, self.height * 0.9)
     BoxLayout:
-        orientation: 'vertical'
+        pos: root.pos
+        size: root.size
         Image:
             texture: root.display_texture
-        Label:
-            text: root.display_text
-            color: root.color
-            disabled_color: root.disabled_color
-            font_name: root.font_name
-            font_size: root.font_size
-            disabled: root.state == 'normal'
+            pos_hint: {'top': 0.9}
+            size_hint: (None, None)
 <LoadImgDialog>:
     BoxLayout:
         size: root.size
