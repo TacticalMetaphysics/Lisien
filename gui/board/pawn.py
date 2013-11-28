@@ -136,10 +136,9 @@ The relevant data are
             branch = self.board.closet.branch
         if tick_from is None:
             tick_from = self.board.closet.tick
-        self.interactivity[branch][tick_from] = self.bonetypes[
-            "pawn_interactive"](
+        self.interactivity[branch][
+            tick_from] = self.bonetypes.pawn_interactive(
             dimension=unicode(self.thing.dimension),
-            board=int(self.board),
             thing=unicode(self.thing),
             branch=branch,
             tick_from=tick_from)

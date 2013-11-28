@@ -46,17 +46,24 @@ class Dimension:
     """Container for a given view on the game world, sharing no things,
 places, or portals with any other dimension, but possibly sharing
 characters."""
+    @property
+    def places(self):
+        return PlaceIter(self)
+
+    @property
     def placenames(self):
         try:
             return self.graph.vs["name"]
         except KeyError:
             return []
 
-    atrdic = {
-        "places": lambda self: PlaceIter(self),
-        "placenames": lambda self: self.placenames(),
-        "portals": lambda self: PortIter(self),
-        "things": lambda self: iter(self.thingdict.values())}
+    @property
+    def portals(self):
+        return PortIter(self)
+
+    @property
+    def things(self):
+        return self.thingdict.itervalues()
 
     def __init__(self, closet, name):
         """Return a dimension with the given name.
@@ -71,23 +78,24 @@ keyed with their names.
         self.closet = closet
         self.thingdict = {}
         self.graph = Graph(directed=True)
-        if "portal" not in self.closet.skeleton:
-            self.closet.skeleton["portal"] = {}
-        if str(self) not in self.closet.skeleton["portal"]:
-            self.closet.skeleton["portal"][str(self)] = {}
-        if "thing_location" not in self.closet.skeleton:
-            self.closet.skeleton["thing_location"] = {}
-        if str(self) not in self.closet.skeleton["thing_location"]:
-            self.closet.skeleton["thing_location"][str(self)] = {}
-        for bone in self.closet.skeleton["portal"][str(self)].iterbones():
+        if u"portal" not in self.closet.skeleton:
+            self.closet.skeleton[u"portal"] = {}
+        if unicode(self) not in self.closet.skeleton[u"portal"]:
+            self.closet.skeleton[u"portal"][unicode(self)] = {}
+        if u"thing_location" not in self.closet.skeleton:
+            self.closet.skeleton[u"thing_location"] = {}
+        if unicode(self) not in self.closet.skeleton[u"thing_location"]:
+            self.closet.skeleton[u"thing_location"][unicode(self)] = {}
+        for bone in self.closet.skeleton[u"portal"][unicode(self)].iterbones():
             orig = self.get_place(bone.origin)
             dest = self.get_place(bone.destination)
             Portal(self.closet, self, orig, dest)
-        for bone in self.closet.skeleton["thing_location"][str(self)].iterbones():
+        for bone in self.closet.skeleton[
+                u"thing_location"][unicode(self)].iterbones():
             if bone.thing not in self.thingdict:
                 self.thingdict[bone.thing] = Thing(
                     self.closet, self, bone.thing)
-        self.closet.dimensiondict[str(self)] = self
+        self.closet.dimensiondict[unicode(self)] = self
 
     def __hash__(self):
         """Return the hash of this dimension's name, since the database
@@ -95,15 +103,10 @@ constrains it to be unique."""
         return hash(self.name)
 
     def __str__(self):
-        return self._name
+        return str(self._name)
 
-    def __getattr__(self, attrn):
-        try:
-            return self.atrdic[attrn](self)
-        except KeyError:
-            raise AttributeError(
-                "Dimension instance has no attribute named " +
-                attrn)
+    def __unicode__(self):
+        return unicode(self._name)
 
     def get_igraph_layout(self, layout_type):
         """Return a Graph layout, of the kind that igraph uses, representing
@@ -153,6 +156,11 @@ this dimension, and laid out nicely."""
 
     def get_thing(self, name):
         thing = self.thingdict[name]
+        return thing
+
+    def make_thing(self, name, location):
+        thing = Thing(self.closet, self, name)
+        thing.set_location(location)
         return thing
 
     def new_branch(self, parent, branch, tick):

@@ -18,6 +18,11 @@ class SwatchBox(GridLayout):
     style = ObjectProperty()
     finality = NumericProperty(0)
 
+    def gen_selection(self):
+        for child in self.children:
+            if child.state == 'down':
+                yield child
+
     def on_texdict(self, i, v):
         self.finality += 1
 

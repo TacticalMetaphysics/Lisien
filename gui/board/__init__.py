@@ -7,5 +7,4 @@ from board import (
     Arrow,
     Pawn)
 
-
 __all__ = [Board, Card, Spot, Pawn, Arrow]

@@ -41,7 +41,7 @@ class Board(ScrollView):
     offy = NumericProperty(0)
     wallwidth = NumericProperty(0)
     wallheight = NumericProperty(0)
-    dragging = ObjectProperty(None, allownone=True)
+    content = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         if kwargs["dimension"].__class__ in (str, unicode):
@@ -56,8 +56,9 @@ class Board(ScrollView):
         tex = self.get_texture()
         (self.wallwidth, self.wallheight) = tex.size
         content = RelativeLayout(size_hint=(None, None), size=tex.size)
+        self.content = content
         content.add_widget(Image(pos=(0, 0), texture=tex, size=tex.size))
-        self.add_widget(content)
+        super(Board, self).add_widget(content)
         if (
                 "spot_coords" in self.closet.skeleton and
                 unicode(self.dimension) in self.dimension.closet.skeleton[
@@ -93,6 +94,9 @@ class Board(ScrollView):
 
     def __repr__(self):
         return "Board({})".format(self)
+
+    def add_widget(self, w):
+        return self.content.add_widget(w)
 
     def upd_bone(self, *args):
         self.bone = self.closet.skeleton["board"][unicode(self)]
