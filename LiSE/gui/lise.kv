@@ -1,7 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 
-#: import solarized gui.style.solarized
+#: import solarized LiSE.gui.style.solarized
 <Swatch>:
     text_size: (self.width, self.height * 0.9)
     halign: 'center'
@@ -36,7 +36,7 @@
         orientation: "vertical"
         SwatchBox:
             id: imgchooser
-            texdict: root.closet.texturedict
+            texdict: root.texdict
             cols: 5
         BoxLayout:
             size_hint_y: None
@@ -145,7 +145,7 @@
     disabled: self.table.edbut.state == 'normal'
 <TableLayout>:
     Table:
-        #:import bone gui.charsheet.table.character_bone
+        #:import bone LiSE.gui.charsheet.table.character_bone
         id: tab
         skel: bone(self, root.keys, getattr(root.character, root.chardictd[root.item_type]))
         col_default_width: 75
@@ -162,7 +162,9 @@
     foreground_color: solarized["base01"]
     disabled_foreground_color: solarized["base00"]
 <EditButton>:
-    font_name: 'assets/Entypo.ttf'
+    #:import sep os.sep
+    #:import lisepath LiSE.closet.lisepath_global
+    font_name: sep.join([lisepath, "gui", "assets", "Entypo.ttf"])
     font_size: 32
     size_hint_x: 0.2
 <CharSheetView>:
@@ -183,7 +185,9 @@
     spacing: 10
     size_hint: (0.1, 1)
 <MenuButton>:
-    font_name: 'assets/Entypo.ttf' if self.symbolic else 'DroidSans'
+    #:import sep os.sep
+    #:import lisepath LiSE.closet.lisepath_global
+    font_name: sep.join([lisepath, "gui", "assets", "Entypo.ttf"]) if self.symbolic else 'DroidSans'
     font_size: 30 if self.symbolic else 20
 <CueCard>:
     disabled: True

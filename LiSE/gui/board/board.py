@@ -1,11 +1,12 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from __future__ import print_function
-from gui.kivybits import SaveableWidgetMetaclass
+from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
     DictProperty,
     NumericProperty,
-    ObjectProperty)
+    ObjectProperty,
+    StringProperty)
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
@@ -39,23 +40,38 @@ class Board(ScrollView):
     bone = ObjectProperty()
     offx = NumericProperty(0)
     offy = NumericProperty(0)
-    wallwidth = NumericProperty(0)
-    wallheight = NumericProperty(0)
     content = ObjectProperty(None)
+    completion = NumericProperty(0)
 
     def __init__(self, **kwargs):
         if kwargs["dimension"].__class__ in (str, unicode):
             kwargs["dimension"] = kwargs["closet"].get_dimension(
                 kwargs["dimension"])
         ScrollView.__init__(self, scroll_y=0, **kwargs)
+
+    def on_dimension(self, i, v):
+        self.completion += 1
+
+    def on_closet(self, i, v):
+        self.completion += 1
+
+    def on_parent(self, i, v):
+        self.completion += 1
+
+    def on_completion(self, i, v):
+        if v == 3:
+            self.finalize()
+
+    def finalize(self):
         self.last_touch = None
         self.closet.boarddict[unicode(self.dimension)] = self
         self.upd_bone()
         self.closet.skeleton["board"][unicode(
             self.dimension)].listener = self.upd_bone
-        tex = self.get_texture()
-        (self.wallwidth, self.wallheight) = tex.size
-        content = RelativeLayout(size_hint=(None, None), size=tex.size)
+        tex = self.closet.get_texture(self.bone.wallpaper)
+        content = RelativeLayout(
+            size_hint=(None, None),
+            size=tex.size)
         self.content = content
         content.add_widget(Image(pos=(0, 0), texture=tex, size=tex.size))
         super(Board, self).add_widget(content)

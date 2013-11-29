@@ -1,8 +1,9 @@
 from kivy.uix.image import Image
 from kivy.core.image import ImageData
 from img import Img
-from util import SaveableMetaclass
+from LiSE.util import SaveableMetaclass
 from kivy.uix.widget import WidgetMetaclass
+from os import sep
 
 
 class SaveableWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
@@ -25,23 +26,7 @@ def load_rltile(path):
     return rltex
 
 
-def ins_texture(skel, texturedict, path, texn=None, rltile=False):
-    if texn is None:
-        texn = path
-    if rltile:
-        tex = load_rltile(path)
-    else:
-        tex = Image(source=path).texture
-    texturedict[texn] = tex
-    bone = {
-        u"name": texn,
-        u"path": path,
-        u"rltile": rltile}
-    skel[u"img"][texn] = bone
-    return (tex, bone)
-
-
-def load_textures(cursor, skel, texturedict, names):
+def load_textures(cursor, skel, texturedict, names, prefix):
     skel.update(
         Img._select_skeleton(
             cursor, {

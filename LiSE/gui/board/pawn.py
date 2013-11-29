@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from gui.kivybits import SaveableWidgetMetaclass
+from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.clock import Clock
 from kivy.uix.scatter import Scatter
 from kivy.uix.image import Image
@@ -8,7 +8,7 @@ from kivy.properties import (
     ListProperty,
     NumericProperty,
     ObjectProperty)
-from util import get_bone_during
+from LiSE.util import get_bone_during
 
 
 """Widget representing things that move about from place to place."""

@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass
+from LiSE.util import SaveableMetaclass
 from logging import getLogger
 
 
@@ -34,7 +34,8 @@ class Portal(object):
         return "{}->{}".format(str(self.origin), str(self.destination))
 
     def __unicode__(self):
-        return u"{}->{}".format(unicode(self.origin), unicode(self.destination))
+        return u"{}->{}".format(
+            unicode(self.origin), unicode(self.destination))
 
     def __repr__(self):
         return "Portal({0}->{1})".format(

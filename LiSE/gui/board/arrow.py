@@ -2,7 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from __future__ import print_function
 from math import cos, sin, hypot, atan
-from util import (
+from LiSE.util import (
     wedge_offsets_rise_run,
     truncated_line,
     fortyfive)
@@ -11,7 +11,6 @@ from kivy.uix.widget import Widget
 from kivy.properties import (
     ObjectProperty,
     BooleanProperty)
-from kivy.clock import Clock
 
 
 class Arrow(Widget):

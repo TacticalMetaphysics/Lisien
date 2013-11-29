@@ -9,18 +9,18 @@ from kivy.properties import (
     ListProperty,
     StringProperty)
 from kivy.clock import Clock
-from kivy.factory import Factory
 from board import Pawn
-from swatchbox import SwatchBox
-from util import Skeleton
-
-
-Factory.register('SwatchBox', cls=SwatchBox)
+from LiSE.util import Skeleton
 
 
 class CueCard(TextInput):
     """Widget that looks like TextInput but doesn't take input and can't be
-clicked."""
+clicked.
+
+This is used to display feedback to the user when it's not serious
+enough to get a popup of its own.
+
+    """
     def on_touch_down(self, touch):
         return
 
@@ -144,7 +144,7 @@ used to build a Pawn later."""
         dialog = PickImgDialog(
             set_imgs=self.new_pawn_with_swatches,
             cancel=self.dismiss_popup,
-            closet=self.board.closet)
+            texdict=texdict)
         self._popups.append(Popup(
             title="Select some images",
             content=dialog,
@@ -159,15 +159,12 @@ class LoadImgDialog(FloatLayout):
 
 
 class PickImgDialog(FloatLayout):
-    """Dialog for associating imgs with something, perhaps a Pawn."""
-    closet = ObjectProperty()
+    """Dialog for associating imgs with something, perhaps a Pawn.
+
+In lise.kv this is given a SwatchBox with texdict=root.texdict."""
+    texdict = ObjectProperty()
     set_imgs = ObjectProperty()
     cancel = ObjectProperty()
-
-
-Factory.register('LiSELayout', cls=LiSELayout)
-Factory.register('LoadImgDialog', cls=LoadImgDialog)
-Factory.register('PickImgDialog', cls=PickImgDialog)
 
 
 class LiSEApp(App):

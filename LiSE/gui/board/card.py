@@ -1,7 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, phi
-from gui.kivybits import SaveableWidgetMetaclass
+from LiSE.util import SaveableMetaclass, phi
+from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.graphics import InstructionGroup, Rectangle
 from kivy.uix.image import Image
 from kivy.uix.label import Label

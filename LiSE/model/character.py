@@ -1,7 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass, TimeParadox
-from collections import deque
+from LiSE.util import SaveableMetaclass, TimeParadox
 
 
 """Things that should have character sheets."""
