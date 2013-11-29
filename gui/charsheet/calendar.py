@@ -44,16 +44,9 @@ class Cell(RelativeLayout):
     """A box to represent an event on the calendar.
 
 It needs a branch, tick_from, tick_to, text, and a calendar to belong
-to. It may be styled differently than the calendar, but will default
-to the calendar's style.
+to.
 
     """
-    bg_color_inactive = ListProperty(None)
-    text_color_inactive = ListProperty(None)
-    bg_color_active = ListProperty(None)
-    text_color_active = ListProperty(None)
-    font_name = StringProperty(None, allownone=True)
-    font_size = NumericProperty(None, allownone=True)
     branch = NumericProperty()
     tick_from = NumericProperty()
     tick_to = NumericProperty(None, allownone=True)
@@ -61,18 +54,6 @@ to the calendar's style.
     calendar = ObjectProperty()
     rowid = NumericProperty()
     active = BooleanProperty(False)
-
-    def __init__(self, **kwargs):
-        calendar = kwargs["calendar"]
-        for kwarg in ["bg_color_inactive",
-                      "bg_color_active",
-                      "text_color_inactive",
-                      "text_color_active",
-                      "font_name", "font_size"]:
-            if kwarg not in kwargs:
-                kwargs[kwarg] = getattr(calendar, kwarg)
-        super(Cell, self).__init__(
-            **kwargs)
 
 
 class Timeline(Widget):
@@ -133,10 +114,6 @@ here. Look in CalendarView below.
     referent = ObjectProperty(None)
     skel = ObjectProperty(None)
     force_refresh = BooleanProperty(False)
-    bg_color_inactive = ListProperty()
-    bg_color_active = ListProperty()
-    text_color_inactive = ListProperty()
-    text_color_active = ListProperty()
     completedness = NumericProperty()
     timeline = ObjectProperty()
 

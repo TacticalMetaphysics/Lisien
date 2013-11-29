@@ -1,15 +1,13 @@
 from kivy.uix.image import Image
 from kivy.core.image import ImageData
-from kivy.properties import (
-    NumericProperty,
-    StringProperty)
-from img import Tex
-from util import SaveableMetaclass, Skeleton
+from img import Img
+from util import SaveableMetaclass
 from kivy.uix.widget import WidgetMetaclass
 
 
 class SaveableWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
     pass
+
 
 def load_rltile(path):
     rltex = Image(
@@ -39,21 +37,23 @@ def ins_texture(skel, texturedict, path, texn=None, rltile=False):
         u"name": texn,
         u"path": path,
         u"rltile": rltile}
-    skel["img"][texn] = bone
+    skel[u"img"][texn] = bone
     return (tex, bone)
-        
+
 
 def load_textures(cursor, skel, texturedict, names):
     skel.update(
-        Tex._select_skeleton(
-            cursor, {"img": [Tex.bonetype(name=n) for n in names]}))
+        Img._select_skeleton(
+            cursor, {
+                u"img": [Img.bonetypes.img(name=n) for n in names],
+                u"img_tag": [Img.bonetypes.img_tag(img=n) for n in names]}))
     r = {}
     for name in names:
-        if skel["img"][name].rltile != 0:
-            rltex = load_rltile(skel["img"][name].path)
+        if skel[u"img"][name].rltile:
+            rltex = load_rltile(skel[u"img"][name].path)
             r[name] = rltex
         else:
             r[name] = Image(
-                source=skel["img"][name].path).texture
+                source=skel[u"img"][name].path).texture
     texturedict.update(r)
     return r

@@ -1,9 +1,5 @@
 -- This file is part of LiSE, a framework for life simulation games.
 -- Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-INSERT INTO menu (name, x, y, w, h, text_style) VALUES
-('Main', 0.0, 0.0, 0.1, 1.0, 'BigLight'),
-('Game', 0.1, 0.0, 0.1, 1.0, 'SmallLight'),
-('Editor', 0.1, 0.0, 0.1, 1.0, 'SmallLight');
 INSERT INTO menu_item (idx, menu, closer, on_click, text) VALUES
 (0, 'Game', 1, 'start_new_map()', '@new_map'),
 (1, 'Game', 1, 'open_map()', '@open_map'),
@@ -13,7 +9,7 @@ INSERT INTO menu_item (idx, menu, closer, on_click, text) VALUES
 (1, 'Editor', 1, 'editor_copy()', '@ed_copy'),
 (2, 'Editor', 1, 'editor_paste()', '@ed_paste'),
 (3, 'Editor', 1, 'editor_delete()', '@ed_delete'),
-(0, 'Main', 0, 'mi_show_popup(load_pic)', '@thing_menu'),
+(0, 'Main', 0, 'mi_show_popup(new_thing)', '@thing_menu'),
 (1, 'Main', 0, 'mi_create_place()', '@place_menu'),
 (2, 'Main', 0, 'mi_create_portal()', '@portal_menu'),
 (3, 'Main', 0, 'toggle_menu(Game)', '@game_menu'),

@@ -3,7 +3,7 @@
 from util import SaveableMetaclass
 
 
-class Tex(object):
+class Img(object):
     __metaclass__ = SaveableMetaclass
     tables = [
         ("img",
@@ -12,4 +12,10 @@ class Tex(object):
           "rltile": "boolean not null DEFAULT 0"},
          ("name",),
          {},
+         []),
+        ("img_tag",
+         {"img": "text not null",
+          "tag": "text not null"},
+         ("img", "tag"),
+         {"img": ("img", "name")},
          [])]

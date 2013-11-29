@@ -15,7 +15,6 @@ class Swatch(ToggleButton):
 
 class SwatchBox(GridLayout):
     texdict = ObjectProperty()
-    style = ObjectProperty()
     finality = NumericProperty(0)
 
     def gen_selection(self):
@@ -26,19 +25,14 @@ class SwatchBox(GridLayout):
     def on_texdict(self, i, v):
         self.finality += 1
 
-    def on_style(self, i, v):
-        self.finality += 1
-
     def on_parent(self, i, v):
         self.finality += 1
 
     def on_finality(self, i, v):
-        if v == 3:
+        if v == 2:
             self.finalize()
 
     def finalize(self):
         for (key, val) in self.texdict.iteritems():
             self.add_widget(Swatch(
-                text=key, display_texture=val,
-                font_name=self.style.fontface,
-                font_size=self.style.fontsize))
+                text=key, display_texture=val))
