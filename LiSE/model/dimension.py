@@ -3,11 +3,7 @@
 from place import Place
 from thing import Thing
 from portal import Portal
-from logging import getLogger
 from igraph import Graph
-
-
-logger = getLogger(__name__)
 
 
 class PlaceIter:

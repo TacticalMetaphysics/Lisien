@@ -10,13 +10,9 @@ from kivy.properties import (
     ListProperty,
     NumericProperty)
 from re import match, compile
-from logging import getLogger
 
 
 """Simple menu widgets"""
-
-
-logger = getLogger(__name__)
 
 
 ON_CLICK_RE = compile("""([a-zA-Z0-9_]+)\((.*)\)""")

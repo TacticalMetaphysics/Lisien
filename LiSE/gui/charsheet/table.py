@@ -1,3 +1,4 @@
+from LiSE.util import get_bone_during
 from kivy.properties import (
     NumericProperty,
     ListProperty,
@@ -7,7 +8,6 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.stencilview import StencilView
-from util import get_bone_during
 from itemlayout import ItemLayout
 
 

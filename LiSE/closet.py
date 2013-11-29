@@ -28,6 +28,7 @@ from gui.charsheet import CharSheet, CharSheetView
 from gui.menu import Menu
 from gui.img import Img  # must import in order to register with the
                          # ORM.
+import gui.style
 from util import (
     row2bone,
     Bone,
@@ -39,6 +40,9 @@ from util import (
     Skeleton,
     Timestream,
     TimestreamException)
+
+
+lisepath_global = ''
 
 
 def noop(*args, **kwargs):
@@ -176,16 +180,19 @@ before RumorMill will work. For that, run mkdb.sh.
         else:
             super(Closet, self).__setattr__(attrn, val)
 
-    def __init__(self, connector, USE_KIVY=False, **kwargs):
+    def __init__(self, connector, lisepath, USE_KIVY=False, **kwargs):
         """Return a database wrapper around the SQLite database file by the
 given name.
 
         """
+        global lisepath_global
         self.branch_listeners = []
         self.tick_listeners = []
         self.time_listeners = []
         self.lang_listeners = []
         self.connector = connector
+        self.lisepath = lisepath
+        lisepath_global = lisepath
 
         self.c = self.connector.cursor()
 
@@ -212,12 +219,9 @@ given name.
         self.old_skeleton = self.skeleton.copy()
 
         if USE_KIVY:
-            from gui.kivybits import load_textures, ins_texture
+            from gui.kivybits import load_textures
             self.load_textures = lambda names: load_textures(
-                self.c, self.skeleton, self.texturedict, names)
-            self.ins_texture = lambda path, name: ins_texture(
-                self.skeleton, self.texturedict,
-                path, name, ('rltiles' in path))
+                self.c, self.skeleton, self.texturedict, names, self.lisepath)
             self.USE_KIVY = True
 
         self.timestream = Timestream(self)
@@ -887,7 +891,7 @@ For more information, consult SaveableMetaclass in util.py.
             self.skeleton["strings"][stringn[1:]].listeners.append(listener)
 
 
-def mkdb(DB_NAME='default.sqlite'):
+def mkdb(DB_NAME='default.sqlite', lisepath='.'):
     def isdir(p):
         try:
             os.chdir(p)
@@ -916,21 +920,24 @@ def mkdb(DB_NAME='default.sqlite'):
             result = allsubdirs_core(indoing, indone)
         return iter(result)
 
+    def recurse_rltiles(d):
+        bmps = [d + os.sep + bmp
+                for bmp in os.listdir(d)
+                if bmp[0] != '.' and
+                bmp[-4:] == ".bmp"]
+        for subdir in os.listdir(d):
+            try:
+                bmps.extend(recurse_rltiles(d + os.sep + subdir))
+            except:
+                continue
+        return bmps
+
     def ins_rltiles(curs, dirname):
-        here = os.getcwd()
-        directories = os.path.abspath(dirname).split(os.sep)
-        home = os.sep.join(directories[:-len(dirname.split(os.sep))]) + os.sep
-        dirs = allsubdirs(dirname)
-        for dir in dirs:
-            for bmp in os.listdir(dir):
-                if bmp[-4:] != ".bmp":
-                    continue
-                qrystr = """insert or replace into img
-    (name, path, rltile) values (?, ?, ?)"""
-                dirr = dir.replace(home, '') + bmp
-                name = dirr.replace(dirname, '')[1:]
-                curs.execute(qrystr, (name, dirr, True))
-        os.chdir(here)
+        for bmp in recurse_rltiles(dirname):
+            qrystr = """insert or replace into img
+(name, path, rltile) values (?, ?, ?)"""
+            name = bmp.replace(dirname, '').strip(os.sep)
+            curs.execute(qrystr, (name, bmp, True))
 
     try:
         os.remove(DB_NAME)
@@ -1032,9 +1039,9 @@ def mkdb(DB_NAME='default.sqlite'):
             continue
         done.update(provides)
 
-    oldhome = os.getcwd()
-    os.chdir('sql')
-    initfiles = sorted(os.listdir('.'))
+    oldhome = os.path.abspath(os.getcwd())
+    os.chdir(lisepath + os.sep + 'sql')
+    initfiles = sorted(os.listdir(os.getcwd()))
     for initfile in initfiles:
         if initfile[-3:] == "sql":  # weed out automatic backups and so forth
             print("reading SQL from file " + initfile)
@@ -1043,15 +1050,15 @@ def mkdb(DB_NAME='default.sqlite'):
     os.chdir(oldhome)
 
     print("indexing the RLTiles")
-    ins_rltiles(c, 'assets/rltiles')
+    ins_rltiles(c, os.path.abspath(lisepath) + os.sep + 'gui' + os.sep + 'assets' + os.sep + 'rltiles')
 
     conn.commit()
     return conn
 
 
-def load_closet(dbfn, lang="eng", kivy=False):
+def load_closet(dbfn, lisepath, lang="eng", kivy=False):
     conn = sqlite3.connect(dbfn)
-    r = Closet(connector=conn, lang=lang, USE_KIVY=kivy)
+    r = Closet(connector=conn, lisepath=lisepath, lang=lang, USE_KIVY=kivy)
     r.load_strings()
     r.load_timestream()
     return r

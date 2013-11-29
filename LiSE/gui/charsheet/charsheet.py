@@ -3,8 +3,8 @@
 from calendar import (
     CAL_TYPE,
     CalendarLayout)
-from gui.kivybits import SaveableWidgetMetaclass
 from table import TableLayout
+from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.uix.image import Image as KivyImage
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView

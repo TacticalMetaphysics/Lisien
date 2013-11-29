@@ -1,17 +1,12 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import (
+from LiSE.util import (
     SaveableMetaclass,
     LocationException,
     TimeParadox,
     JourneyException,
-    thingex,
-    placex,
     portex)
 from re import match
-from logging import getLogger
-
-logger = getLogger(__name__)
 
 
 class Thing(object):
@@ -306,6 +301,5 @@ other journey I may be on at the time."""
             yield bone
 
     def restore_loc_bones(self, bones):
-        logger.debug("Restoring locations")
         for bone in bones:
             self.set_location(bone.location, bone.branch, bone.tick_from)

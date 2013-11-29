@@ -1,19 +1,10 @@
-## This file is part of LiSE, a framework for life simulation games.
+# This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import (
-    get_bone_during)
-from gui.kivybits import SaveableWidgetMetaclass
-from kivy.uix.image import Image
+from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
     NumericProperty,
-    DictProperty,
-    ObjectProperty,
-    BooleanProperty)
+    ObjectProperty)
 from kivy.uix.scatter import Scatter
-from logging import getLogger
-
-
-logger = getLogger(__name__)
 
 
 """Widgets to represent places. Pawns move around on top of these."""
@@ -176,8 +167,8 @@ class Spot(Scatter):
             unicode(self.board.dimension)][unicode(self.place)]
         for tick_from in interactivity[parent]:
             if tick_from >= tick:
-                b2 = interactivity[parent][tick_from
-                ]._replace(branch=branch)
+                b2 = interactivity[parent][
+                    tick_from]._replace(branch=branch)
                 if branch not in interactivity:
                     interactivity[branch] = {}
                 interactivity[branch][b2.tick_from] = b2
