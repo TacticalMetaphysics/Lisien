@@ -24,9 +24,10 @@ from gui.board import (
     Spot,
     Card,
     Pawn)
-from gui.style import LiSEStyle, LiSEColor
 from gui.charsheet import CharSheet, CharSheetView
 from gui.menu import Menu
+from gui.img import Img  # must import in order to register with the
+                         # ORM.
 from util import (
     row2bone,
     Bone,
@@ -46,16 +47,20 @@ def noop(*args, **kwargs):
 
 
 class ListItemIterator:
-    """Iterate over a list in a way that resembles dict.iteritems()"""
+    """Iterate over a list in a way that resembles dict.iteritems().
+
+Indices are considered as keys for this purpose."""
     def __init__(self, l):
         self.l = l
         self.l_iter = iter(l)
         self.i = 0
 
     def __iter__(self):
+        """I'm an iterator"""
         return self
 
     def __len__(self):
+        """Return length of underlying list"""
         return len(self.l)
 
     def __next__(self):
@@ -64,7 +69,12 @@ class ListItemIterator:
         self.i += 1
         return (i, it)
 
-
+###
+# These regexes serve to parse certain database records that represent
+# function calls.
+#
+# Mainly, that means menu items and Effects.
+###
 ONE_ARG_RE = re.compile("(.+)")
 TWO_ARG_RE = re.compile("(.+), ?(.+)")
 ITEM_ARG_RE = re.compile("(.+)\.(.+)")
@@ -748,28 +758,20 @@ For more information, consult SaveableMetaclass in util.py.
         return self.get_cards([name])[name]
 
     def load_menus(self, names):
-        skel = Menu._select_skeleton(
-            self.c,
-            {"menu": [Menu.bonetypes.menu(name=n) for n in names]})
-        self.skeleton.update(LiSEStyle._select_skeleton(
-            self.c, {"style": [
-                LiSEStyle.bonetype(name=n) for n in
-                [bone.text_style for bone in skel.iterbones()] +
-                [bone.symbol_style for bone in skel.iterbones()]]}))
-        self.skeleton.update(skel)
         r = {}
-        for bone in skel.iterbones():
-            self.load_menu_items(bone.name)
-            r[bone.name] = Menu(closet=self, name=bone.name)
+        for name in names:
+            r[name] = self.load_menu(name)
         return r
 
     def load_menu(self, name):
-        return self.load_menus([name])[name]
+        self.load_menu_items(name)
+        return Menu(closet=self, name=name)
 
     def load_menu_items(self, menu):
         bd = {"menu_item": [Menu.bonetypes.menu_item(menu=menu)]}
-        skel = Menu._select_skeleton(self.c, bd)
-        self.skeleton.update(skel)
+        r = Menu._select_skeleton(self.c, bd)
+        self.skeleton.update(r)
+        return r
 
     def load_timestream(self):
         self.skeleton.update(
@@ -872,9 +874,9 @@ For more information, consult SaveableMetaclass in util.py.
         return get_bone_during(skel, self.branch, self.tick)
 
     def mi_show_popup(self, mi, name):
-        assert(name == 'load_pic')
-        root = mi.get_root_window().children[0]
-        return root.show_pic_picker()
+        if name == 'new_thing':
+            root = mi.get_root_window().children[0]
+            return root.show_pawn_picker(self.texturedict)
 
     def register_text_listener(self, stringn, listener):
         if stringn == "@branch":

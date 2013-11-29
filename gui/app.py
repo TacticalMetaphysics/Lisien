@@ -98,10 +98,6 @@ class LiSELayout(FloatLayout):
     """A very tiny master layout that contains one board and some menus
 and charsheets.
 
-Mostly they can do what they like. Only one of them may grab a touch
-event though: priority goes first to menus, then to charsheets, then
-to the board.
-
     """
     menus = ListProperty()
     charsheets = ListProperty()
@@ -111,6 +107,7 @@ to the board.
     def __init__(self, **kwargs):
         """Add board first, then menus and charsheets."""
         super(LiSELayout, self).__init__(**kwargs)
+        self._popups = []
         self.add_widget(self.board)
         for menu in self.menus:
             self.add_widget(menu)
@@ -119,15 +116,20 @@ to the board.
         self.add_widget(self.prompt)
 
     def display_prompt(self, text):
+        """Put the text in the cue card"""
         self.prompt.text = text
 
     def dismiss_prompt(self):
+        """Blank out the cue card"""
         self.prompt.text = ''
 
     def dismiss_popup(self):
-        self._popup.dismiss()
+        """Destroy the latest popup"""
+        self._popups.pop().dismiss()
 
     def new_pawn_with_swatches(self, swatches):
+        """Given some iterable of Swatch widgets, make a dummy pawn, prompt
+the user to place it, and dismiss the popup."""
         self.display_prompt(self.board.closet.get_text("@putthing"))
         self.add_widget(DummyPawn(
             board=self.board,
@@ -136,29 +138,29 @@ to the board.
             pos=(self.width * 0.1, self.height * 0.9)))
         self.dismiss_popup()
 
-    def show_pic_picker(self):
+    def show_pawn_picker(self, texdict):
+        """Show a SwatchBox for the given texdict. The chosen Swatches will be
+used to build a Pawn later."""
         dialog = PickImgDialog(
             set_imgs=self.new_pawn_with_swatches,
             cancel=self.dismiss_popup,
             closet=self.board.closet)
-        self._popup = Popup(
+        self._popups.append(Popup(
             title="Select some images",
             content=dialog,
-            size_hint=(0.9, 0.9))
-        self._popup.open()
-
-    def ins_tex(self, path, filename):
-        self.dismiss_popup()
+            size_hint=(0.9, 0.9)))
+        self._popups[-1].open()
 
 
 class LoadImgDialog(FloatLayout):
+    """Dialog for adding img files to the database."""
     load = ObjectProperty()
     cancel = ObjectProperty()
 
 
 class PickImgDialog(FloatLayout):
+    """Dialog for associating imgs with something, perhaps a Pawn."""
     closet = ObjectProperty()
-    what_for = ObjectProperty(None)
     set_imgs = ObjectProperty()
     cancel = ObjectProperty()
 
@@ -180,9 +182,7 @@ class LiSEApp(App):
         menu = self.closet.load_menu(self.menu_name)
         board = self.closet.load_board(self.dimension_name)
         charsheet = self.closet.load_charsheet(self.character_name)
-        prompt = CueCard(pos_hint={'x': 0.1, 'top': 1},
-                         size=(400, 30),
-                         size_hint=(None, None))
+        prompt = CueCard()
         return LiSELayout(
             menus=[menu],
             board=board,

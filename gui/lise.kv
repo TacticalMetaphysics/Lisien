@@ -1,5 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+
+#: import solarized gui.style.solarized
 <Swatch>:
     text_size: (self.width, self.height * 0.9)
     halign: 'center'
@@ -35,7 +37,6 @@
         SwatchBox:
             id: imgchooser
             texdict: root.closet.texturedict
-            style: root.closet.get_style('default_style')
             cols: 5
         BoxLayout:
             size_hint_y: None
@@ -83,12 +84,10 @@
 <Cell>:
     size_hint: (None, None)
     ColorBox:
-        color: root.bg_color_active if root.active else root.bg_color_inactive
+        color: solarized["base2"]
     Label:
         text: root.text
-        color: root.text_color_active if root.active else root.text_color_inactive
-        font_name: root.font_name
-        font_size: root.font_size
+        color: solarized["base00"]
         text_size: root.size
         pos_hint: {'x': 0, 'y': 0}
         valign: "top"
@@ -106,12 +105,6 @@
             tick_height: 2
             spacing_x: 5
             spacing_y: 5
-            font_name: root.style.fontface
-            font_size: root.style.fontsize
-            bg_color_inactive: root.style.bg_inactive.rgba
-            bg_color_active: root.style.bg_active.rgba
-            text_color_inactive: root.style.text_inactive.rgba
-            text_color_active: root.style.text_active.rgba
             editing: root.edbut.state == 'down' if root.edbut else False
             width: self.branches_wide * (self.col_width + self.spacing_x)
             height: self.tick_height * self.ticks_tall
@@ -129,22 +122,17 @@
 <TableHeader>:
     canvas:
         Color:
-            rgba: root.table.bg_color_inactive
+            rgba: solarized["base02"]
         Rectangle:
             pos: root.pos
             size: root.size
     Label:
         id: lb
-        font_name: root.table.font_name
-        font_size: root.table.font_size
         size: self.texture_size
         bold: True
-        color: root.table.text_color_active
+        color: solarized["base00"]
         text: root.text
 <TableTextInput>:
-    foreground_color: self.table.text_color_active
-    foreground_color_disabled: self.table.text_color_inactive
-    background_color: self.table.fg_color_inactive if self.disabled else self.table.fg_color_active
     background_disabled_active: ''
     background_disabled_normal: ''
     background_normal: ''
@@ -152,9 +140,7 @@
     border: [0, 0, 0, 0]
     multiline: False
     text: getattr(self.bone, self.key)
-    font_name: self.table.font_name
-    font_size: self.table.font_size
-    height: self.table.font_size
+    height: self.font_size
     size_hint_x: 1
     disabled: self.table.edbut.state == 'normal'
 <TableLayout>:
@@ -164,40 +150,44 @@
         skel: bone(self, root.keys, getattr(root.character, root.chardictd[root.item_type]))
         col_default_width: 75
         edbut: root.edbut
-        bg_color_active: root.style.bg_active.rgba
-        bg_color_inactive: root.style.bg_inactive.rgba
-        fg_color_active: root.style.fg_active.rgba
-        fg_color_inactive: root.style.fg_inactive.rgba
-        text_color_active: root.style.text_active.rgba
-        text_color_inactive: root.style.text_inactive.rgba
         padding: [0, 0, 0, 0]
         spacing: [5, 2]
-        font_name: root.style.fontface
-        font_size: root.style.fontsize
         colkeys: root.colkey_dict[root.item_type]
         cols: len(self.colkeys)
         iter_skeleton: root.iterskel_dict[root.item_type](root.keys, root.character, self.skel)
         x: root.x + self.xmov
         y: root.y
+<TableTextInput>:
+    background_color: solarized["base3"]
+    foreground_color: solarized["base01"]
+    disabled_foreground_color: solarized["base00"]
 <EditButton>:
     font_name: 'assets/Entypo.ttf'
     font_size: 32
     size_hint_x: 0.2
 <CharSheetView>:
-    pos_hint: {'right': 1, 'y': 0}
-    size_hint: (0.35, 1)
+    pos_hint: {'x': self.character.closet.skeleton[u"charsheet"][unicode(self.character)].x_hint, 'y': self.character.closet.skeleton[u"charsheet"][unicode(self.character)].y_hint}
+    size_hint: (self.character.closet.skeleton[u"charsheet"][unicode(self.character)].w_hint, self.character.closet.skeleton[u"charsheet"][unicode(self.character)].h_hint)
     scroll_type: 'bars'
+    bar_side_y: 'left'
     CharSheet:
+        id: sheet
         size_hint: (1, None)
-        width: root.width if root.height >= self.height else root.width - root.bar_width
+        width: root.width
         character: root.character
         cols: 2
         spacing: 10
-        cols_minimum: {0: self.width - 42, 1: 32}
+        cols_minimum: {0: self.width - 32 - self.spacing[0], 1: 32}
 <Menu>:
     orientation: 'vertical'
     spacing: 10
-    text_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)].text_style)
-    symbol_style: self.closet.get_style(self.closet.skeleton["menu"][unicode(self)].symbol_style)
+    size_hint: (0.1, 1)
+<MenuButton>:
+    font_name: 'assets/Entypo.ttf' if self.symbolic else 'DroidSans'
+    font_size: 30 if self.symbolic else 20
 <CueCard>:
     disabled: True
+    pos_hint: {'x': 0.1, 'top': 1}
+    size_hint: (None, None)
+    size: (400, 26)
+    font_size: 20

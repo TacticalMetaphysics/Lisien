@@ -11,5 +11,4 @@ class ItemLayout(object):
     character = ObjectProperty()
     item_type = NumericProperty()
     keys = ListProperty()
-    style = ObjectProperty()
     edbut = ObjectProperty()

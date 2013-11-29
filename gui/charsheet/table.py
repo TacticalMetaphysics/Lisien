@@ -2,18 +2,12 @@ from kivy.properties import (
     NumericProperty,
     ListProperty,
     ObjectProperty,
-    StringProperty,
-    DictProperty)
+    StringProperty)
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.stencilview import StencilView
-from kivy.graphics import (
-    Callback,
-    Color,
-    Rectangle)
-from util import placex, portex, get_bone_during
-from re import match
+from util import get_bone_during
 from itemlayout import ItemLayout
 
 
@@ -52,7 +46,7 @@ whole character, and I need a consistent API here.
                 bone.tick_from <= tick and (
                     bone.tick_to is None or
                     bone.tick_to >= tick)):
-            yield rd
+            yield bone
 
 
 def mk_iter_skeleton(keys, char, skel):
@@ -280,14 +274,6 @@ class TableHeader(BoxLayout):
 
 
 class Table(GridLayout):
-    bg_color_active = ListProperty()
-    bg_color_inactive = ListProperty()
-    fg_color_active = ListProperty()
-    fg_color_inactive = ListProperty()
-    text_color_active = ListProperty()
-    text_color_inactive = ListProperty()
-    font_name = StringProperty()
-    font_size = NumericProperty()
     completedness = NumericProperty(0)
     headers = ListProperty()
     content_children = ListProperty()
@@ -298,16 +284,10 @@ class Table(GridLayout):
     xmov = NumericProperty()
 
     def on_completedness(self, i, v):
-        if v == 5:
+        if v == 3:
             self.complete()
 
     def on_iter_skeleton(self, i, v):
-        self.completedness += 1
-
-    def on_text_color_inactive(self, *args):
-        self.completedness += 1
-
-    def on_bg_color_inactive(self, *args):
         self.completedness += 1
 
     def on_colkeys(self, *args):

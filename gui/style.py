@@ -1,13 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from util import SaveableMetaclass
-
-
-"""Simple data structures to hold style information for text and
-things that contain text."""
-
-
-solarized_d = {
+"""Constants for use in kv files. Mostly colors."""
+solarized_hex = {
     'base03': (0x00, 0x2b, 0x36),
     'base02': (0x07, 0x36, 0x42),
     'base01': (0x58, 0x6e, 0x75),
@@ -24,146 +18,17 @@ solarized_d = {
     'blue': (0x26, 0x8b, 0xd2),
     'cyan': (0x2a, 0xa1, 0x98),
     'green': (0x85, 0x99, 0x00)}
+"""Color values for Solarized, a color scheme by Ethan Schoonover:
+http://ethanschoonover.com/solarized"""
 
 
 macks = float(0xff)
+"""The largest two-digit hexadecimal number, cast into float so that I
+can use it to relativize colors given in 0-255 rather than 0.0-1.0."""
 
 
-class LiSEColor(object):
-    __metaclass__ = SaveableMetaclass
-    """Red, green, blue, and alpha values.
-
-    This is just a container class for the (red, green, blue, alpha)
-tuples that Pyglet uses to identify colors. The tup attribute will get
-you that.
-
-    """
-    postlude = [
-        "INSERT INTO color (name, red, green, blue) VALUES " +
-        ", ".join(["('solarized-{}', {}, {}, {})".format(
-            n, r/macks, g/macks, b/macks)
-            for (n, (r, g, b)) in solarized_d.iteritems()]) +
-        ";"]
-    tables = [
-        ("color",
-         {'name': 'text not null',
-          'red': 'float not null',
-          'green': 'float not null',
-          'blue': 'float not null',
-          'alpha': 'float not null default 1.0'},
-         ("name",),
-         {},
-         ["red between 0.0 and 1.0",
-          "green between 0.0 and 1.0",
-          "blue between 0.0 and 1.0",
-          "alpha between 0.0 and 1.0"])]
-
-    def __init__(self, closet, name):
-        """Return a color with the given name, and the given values for red,
-green, blue. Register in db.colordict.
-
-        """
-        self.closet = closet
-        self.name = name
-
-    def __str__(self):
-        return self.name
-
-    @property
-    def bone(self):
-        return self.closet.skeleton["color"][self.name]
-
-    @property
-    def red(self):
-        return self.bone.red
-
-    @property
-    def green(self):
-        return self.bone.green
-
-    @property
-    def blue(self):
-        return self.bone.blue
-
-    @property
-    def alpha(self):
-        return self.bone.alpha
-
-    @property
-    def rgb(self):
-        return (self.red, self.green, self.blue)
-
-    @property
-    def rgba(self):
-        return (self.red, self.green, self.blue, self.alpha)
-
-
-postlude_template = (
-    "create trigger fill_{0}_after_{2} after {2} on style "
-    "when NEW.{0} is null begin "
-    "update style set {0}=NEW.{1} where name=NEW.name; end")
-
-
-class LiSEStyle(object):
-    __metaclass__ = SaveableMetaclass
-    """A collection of cogent information for rendering text and things
-that contain text."""
-    postlude = [
-        postlude_template.format(active, inactive, event)
-        for (active, inactive) in [
-            ("text_active", "text_inactive"),
-            ("bg_active", "bg_inactive"),
-            ("fg_active", "fg_inactive")]
-        for event in ["insert", "update"]]
-    tables = [
-        ("style",
-         {"name": "text not null",
-          "fontface": "text not null",
-          "fontsize": "integer not null",
-          "spacing": "integer default 6",
-          "text_inactive": "text not null",
-          "text_active": "text",
-          "bg_inactive": "text not null",
-          "bg_active": "text",
-          "fg_inactive": "text not null",
-          "fg_active": "text"},
-         ("name",),
-         {"text_inactive": ("color", "name"),
-          "text_active": ("color", "name"),
-          "bg_inactive": ("color", "name"),
-          "bg_active": ("color", "name"),
-          "fg_inactive": ("color", "name"),
-          "fg_active": ("color", "name")},
-         ["fontsize>0", "spacing>0"])]
-
-    def __getattribute__(self, attrn):
-        closet = super(LiSEStyle, self).__getattribute__("closet")
-        name = super(LiSEStyle, self).__getattribute__("name")
-        bone = closet.skeleton["style"][name]
-        if attrn in ("text_inactive", "text_active",
-                     "bg_inactive", "bg_active",
-                     "fg_inactive", "fg_active"):
-            return closet.get_color(getattr(bone, attrn))
-        elif attrn in bone._fields:
-            return getattr(bone, attrn)
-        else:
-            return super(LiSEStyle, self).__getattribute__(attrn)
-
-    def __init__(self, closet, name):
-        """Return a style by the given name, with the given face, font size,
-spacing, and four colors: active and inactive variants for each of the
-foreground and the background.
-
-        """
-        self.closet = closet
-        self.name = name
-        self.closet.styledict[str(self)] = self
-
-    def __str__(self):
-        return self.name
-
-    def __eq__(self, other):
-        """Check we're both Style instances and we have the same name"""
-        return (
-            isinstance(other, LiSEStyle) and
-            str(self) == str(other))
+solarized = dict([
+    (name, (r/macks, g/macks, b/macks, 1.0))
+    for (name, (r, g, b)) in solarized_hex.iteritems()])
+"""Color values for Solarized, a color scheme by Ethan Schoonover:
+http://ethanschoonover.com/solarized"""

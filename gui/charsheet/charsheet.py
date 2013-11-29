@@ -72,14 +72,12 @@ tick.
             {"character": "TEXT NOT NULL",
              "visible": "BOOLEAN NOT NULL DEFAULT 0",
              "interactive": "BOOLEAN NOT NULL DEFAULT 1",
-             "x_hint": "FLOAT NOT NULL DEFAULT 0.8",
+             "x_hint": "FLOAT NOT NULL DEFAULT 0.65",
              "y_hint": "FLOAT NOT NULL DEFAULT 0.0",
-             "w_hint": "FLOAT NOT NULL DEFAULT 0.2",
-             "h_hint": "FLOAT NOT NULL DEFAULT 1.0",
-             "style": "TEXT NOT NULL DEFAULT 'default_style'"},
+             "w_hint": "FLOAT NOT NULL DEFAULT 0.35",
+             "h_hint": "FLOAT NOT NULL DEFAULT 1.0"},
             ("character",),
-            {"character": ("character", "name"),
-             "style": ("style", "name")},
+            {"character": ("character", "name")},
             []),
         (
             "charsheet_item",
@@ -97,14 +95,12 @@ tick.
              "idx<={}".format(max(SHEET_ITEM_TYPE.values()))])
     ]
     character = ObjectProperty()
-    bone = ObjectProperty()
-    style = ObjectProperty()
 
     def on_character(self, i, character):
         """Iterate over the bones under my name, and add widgets appropriate
 to each of them.
 
-Each widget gets kwargs character, style, item_type, and
+Each widget gets kwargs character, item_type, and
 keys. item_type is an integer, defined in SHEET_ITEM_TYPE,
 representing both the widget class and the way it looks up its
 data. keys identify a particular entity whose data will be displayed,
@@ -112,7 +108,6 @@ but they never include branch or tick--CharSheet will only display
 things appropriate to the present, whenever that may be.
 
         """
-        self.bone = character.closet.skeleton[u"charsheet"][unicode(character)]
         i = 0
         height = 0
         for bone in character.closet.skeleton[u"charsheet_item"][
@@ -124,14 +119,12 @@ things appropriate to the present, whenever that may be.
             if bone.type < 5:
                 w = TableLayout(
                     character=character,
-                    style=character.closet.get_style(self.bone.style),
                     item_type=bone.type,
                     keys=keylst,
                     edbut=eb)
             elif bone.type < 10:
                 w = CalendarLayout(
                     character=character,
-                    style=character.closet.get_style(self.bone.style),
                     item_type=bone.type,
                     keys=keylst,
                     edbut=eb)
@@ -162,11 +155,6 @@ return True in that case."""
 
 class CharSheetView(ScrollView):
     character = ObjectProperty()
-
-    def on_touch_down(self, touch):
-        if super(CharSheetView, self).on_touch_down(touch):
-            touch.ud["charsheet"] = self.children[0]
-            return True
 
     def on_touch_up(self, touch):
         if "charsheet" in touch.ud:
