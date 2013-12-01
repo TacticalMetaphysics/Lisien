@@ -5,14 +5,12 @@ from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
     DictProperty,
     NumericProperty,
-    ObjectProperty,
-    StringProperty)
+    ObjectProperty)
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
 from spot import Spot
 from arrow import Arrow
-from card import Card
 from pawn import Pawn
 
 """Class for user's view on gameworld, and support functions."""

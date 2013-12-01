@@ -110,11 +110,16 @@ The relevant data are
         return unicode(self.thing)
 
     def on_tex(self, i, v):
+        """Set my size to match that of my texture, or to (0,0) if it is None."""
         if v is None:
-            return
+            self.size = (0, 0)
         self.size = v.size
 
     def upd_imagery(self, *args):
+        """Load all my textures, and keep them in the appropriate order in
+        ``self.textures``.
+
+        """
         closet = self.board.closet
         branch = closet.branch
         tick = closet.tick
@@ -131,7 +136,14 @@ The relevant data are
             if len(self.children) <= layer:
                 self.add_widget(PawnImage(pawn=self, layer=layer))
 
-    def set_interactive(self, branch=None, tick_from=None):
+    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
+        """Make it so the user may drag me.
+
+        With no arguments, the interactivity will start at the current
+        branch and tick, and continue indefinitely. You may specify a
+        branch and a time window, if you please.
+
+        """
         if branch is None:
             branch = self.board.closet.branch
         if tick_from is None:
@@ -141,9 +153,17 @@ The relevant data are
             dimension=unicode(self.thing.dimension),
             thing=unicode(self.thing),
             branch=branch,
-            tick_from=tick_from)
+            tick_from=tick_from,
+            tick_to=tick_to)
 
     def get_coords(self, branch=None, tick=None):
+        """Return my coordinates on the :class:`Board`.
+
+        You may specify the branch and tick to get the coordinates at that
+        point in time, or leave them ``None`` to get the value at the time the
+        user is presently viewing..
+
+        """
         loc = self.thing.get_location(branch, tick)
         if loc is None:
             return None
@@ -167,14 +187,16 @@ The relevant data are
             return spot.get_coords()
 
     def new_branch(self, parent, branch, tick):
+        """Copy records from the old branch to the new one, if they fit."""
         self.new_branch_imagery(parent, branch, tick)
         self.new_branch_interactivity(parent, branch, tick)
 
     def dropped(self, x, y, button, modifiers):
-        """When dropped on a spot, if my thing doesn't have anything else to
-do, make it journey there.
+        """When dropped on a spot, if my :class:`Thing` doesn't have anything
+        else to do, make it journey there.
 
-If it DOES have anything else to do, make the journey in another branch.
+        If it DOES have anything else to do, make the journey in
+        another branch.
 
         """
         spotto = None
@@ -191,30 +213,9 @@ If it DOES have anything else to do, make the journey in another branch.
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
-    def get_img_bone(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.board.closet.branch
-        if tick is None:
-            tick = self.board.closet.tick
-        if branch not in self.imagery:
-            return None
-        r = self.imagery[branch].value_during(tick)
-        if r is None or r.img in ("", None):
-            return None
-        return r
-
-    def get_img_source(self, branch=None, tick=None):
-        name = self.get_img_bone(branch, tick).img
-        return self.board.closet.skeleton["img"][name]["path"]
-
-    def get_texture(self, branch=None, tick=None):
-        name = self.get_img_bone(branch, tick).img
-        return self.board.closet.get_texture(name)
-
-    def get_size(self, branch=None, tick=None):
-        return self.get_texture(branch, tick).size
-
     def new_branch_imagery(self, parent, branch, tick):
+        """Update my part of the :class:`Skeleton` to have this new branch in
+        it. Where there is room, fill it with data from the parent branch."""
         prev = None
         started = False
         imagery = self.board.closet.skeleton["pawn_img"][
@@ -238,6 +239,13 @@ If it DOES have anything else to do, make the journey in another branch.
         self.upd_imagery()
 
     def is_interactive(self, branch=None, tick=None):
+        """Test for interactivity.
+
+        With no arguments, the test is performed for the time that the
+        user is viewing right now. Otherwise, it is performed for the
+        branch and tick given.
+
+        """
         if branch is None:
             branch = self.board.closet.branch
         if tick is None:
@@ -253,6 +261,7 @@ If it DOES have anything else to do, make the journey in another branch.
         return False
 
     def new_branch_interactivity(self, parent, branch, tick):
+        """Copy interactivity from the parent branch to the new one."""
         prev = None
         started = False
         interactivity = self.board.closet.skeleton["pawn_interactive"][
@@ -274,6 +283,10 @@ If it DOES have anything else to do, make the journey in another branch.
             prev = tick_from
 
     def on_touch_up(self, touch):
+        """Check if I've been dropped on top of a :class:`Spot`.  If so, my
+        :class:`Thing` should attempt to go there.
+
+        """
         if touch.grab_current is not self:
             return
         for spot in self.board.spotdict.itervalues():
@@ -289,6 +302,11 @@ If it DOES have anything else to do, make the journey in another branch.
         return True
 
     def repos(self, *args):
+        """Recalculate and reassign my position, based on the apparent
+        position of whatever widget I am located on--a :class:`Spot`
+        or an :class:`Arrow`.
+
+        """
         if '->' in unicode(self.thing.location):
             from model.portal import Portal
             assert(isinstance(self.thing.location, Portal))
@@ -319,16 +337,21 @@ If it DOES have anything else to do, make the journey in another branch.
             self.transform_on_spot(self.where_upon, self.where_upon.transform)
 
     def transform_on_spot(self, i, v):
-        """Presently, I am located atop the spot. I want to be located a bit
-up and to the side, so you can reach the spot below me."""
+        """Presently, I am located atop the :class:`Spot`. I want to be
+        located a bit up and to the side, so you can reach the :class:`Spot`
+        below me.
+
+        """
         self.transform.identity()
         self.apply_transform(v)
         (rx, ry) = self.radii
         self.transform.translate(rx, ry, 0)
 
     def transform_on_arrow(self, i, v):
-        """I am located some ways along the arrow. Work out how far on each
-axis and transform so I appear there."""
+        """I am located some ways along the :class:`Arrow`. Work out how far
+        on each axis and transform so I appear there.
+
+        """
         origspot = self.board.get_spot(self.where_upon.portal.origin)
         destspot = self.board.get_spot(self.where_upon.portal.destination)
         progress = self.thing.get_progress()

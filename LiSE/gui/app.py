@@ -1,16 +1,20 @@
+from os import sep
+
 from kivy.app import App
-from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.popup import Popup
-from kivy.uix.scatter import Scatter
-from kivy.uix.image import Image
-from kivy.uix.textinput import TextInput
+from kivy.clock import Clock
 from kivy.properties import (
     ObjectProperty,
     ListProperty,
     StringProperty)
-from kivy.clock import Clock
-from board import Pawn
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.image import Image
+from kivy.uix.popup import Popup
+from kivy.uix.scatter import Scatter
+from kivy.uix.textinput import TextInput
+
+from LiSE.gui.board import Pawn
 from LiSE.util import Skeleton
+from LiSE.closet import load_closet
 
 
 class CueCard(TextInput):
@@ -127,6 +131,11 @@ and charsheets.
         """Destroy the latest popup"""
         self._popups.pop().dismiss()
 
+    def new_spot_with_swatch(self, swatch):
+        """Given a Swatch widget, make a Spot with the graphic therein, and
+dismiss the popup."""
+        pass
+
     def new_pawn_with_swatches(self, swatches):
         """Given some iterable of Swatch widgets, make a dummy pawn, prompt
 the user to place it, and dismiss the popup."""
@@ -137,6 +146,9 @@ the user to place it, and dismiss the popup."""
             callback=self.dismiss_prompt,
             pos=(self.width * 0.1, self.height * 0.9)))
         self.dismiss_popup()
+
+    def show_spot_picker(self, texdict):
+        pass
 
     def show_pawn_picker(self, texdict):
         """Show a SwatchBox for the given texdict. The chosen Swatches will be
@@ -168,12 +180,18 @@ In lise.kv this is given a SwatchBox with texdict=root.texdict."""
 
 
 class LiSEApp(App):
-    closet = ObjectProperty()
+    closet = ObjectProperty(None)
+    dbfn = StringProperty(allownone=True)
+    lang = StringProperty()
+    lise_path = StringProperty()
     menu_name = StringProperty()
     dimension_name = StringProperty()
     character_name = StringProperty()
 
     def build(self):
+        if self.dbfn is None:
+            self.dbfn = self.user_data_dir + sep + "default.lise"
+        self.closet = load_closet(self.dbfn, self.lise_path, self.lang, True)
         self.closet.uptick_skel()
         self.updater = Clock.schedule_interval(self.closet.update, 0.1)
         menu = self.closet.load_menu(self.menu_name)

@@ -8,31 +8,51 @@ from LiSE.util import (
     fortyfive)
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
-from kivy.properties import (
-    ObjectProperty,
-    BooleanProperty)
+from kivy.properties import ObjectProperty
 
 
 class Arrow(Widget):
+    """A widget that points from one :class:`~LiSE.gui.board.Spot` to
+    another.
+
+    :class:`Arrow`s are the graphical representations of
+    :class:`~LiSE.model.Portal`s. They point from the :class:`Spot`
+    representing the :class:`Portal`'s origin, to the one representing
+    its destination.
+
+    """
     margin = 10
+    """When deciding whether a touch collides with me, how far away can
+    the touch get before I should consider it a miss?"""
     w = 1
+    """The width of the inner, brighter portion of the :class:`Arrow`. The
+    whole :class:`Arrow` will end up thicker."""
     board = ObjectProperty()
+    """The board on which I am displayed."""
     portal = ObjectProperty()
-    dragging = BooleanProperty(False)
+    """The portal that I represent."""
 
     def __init__(self, **kwargs):
+        """Bind some properties, and put the relevant instructions into the
+        canvas--but don't put any point data into the instructions
+        just yet. For that, wait until ``on_parent``, when we are
+        guaranteed to know the positions of our endpoints.
+
+        """
         Widget.__init__(self, **kwargs)
         self.upd_pos_size()
         orign = unicode(self.portal.origin)
         destn = unicode(self.portal.destination)
         self.board.spotdict[orign].bind(
-            pos=self.realign,
+            pos=self.setter('pos'),
             size=self.realign,
             transform=self.realign)
         self.board.spotdict[destn].bind(
-            pos=self.realign,
+            pos=self.upd_size,
             size=self.realign,
             transform=self.realign)
+        self.bind(pos=self.repoint)
+        self.bind(size=self.repoint)
         self.bg_color = Color(0.25, 0.25, 0.25)
         self.fg_color = Color(1.0, 1.0, 1.0)
         self.bg_line = Line(width=self.w * 1.4)
@@ -43,17 +63,28 @@ class Arrow(Widget):
         self.canvas.add(self.fg_line)
 
     def on_parent(self, i, v):
+        """Make sure to rearrange myself when I get a new ``pos`` or ``size``.
+
+        This only happens when I have a parent because otherwise I cannot
+        possibly have an origin or a destination."""
         v.bind(pos=self.realign, size=self.realign)
         self.realign()
 
     def __unicode__(self):
+        """Return Unicode name of my :class:`Portal`"""
         return unicode(self.portal)
 
     def __str__(self):
+        """Return string name of my :class:`Portal`"""
         return str(self.portal)
 
     @property
     def reciprocal(self):
+        """If it exists, return the edge of the :class:`Portal` that connects
+        the same two places that I do, but in the opposite
+        direction. Otherwise, return ``None``.
+
+        """
         # Return the edge of the portal that connects the same two
         # places in the opposite direction, supposing it exists
         try:
@@ -62,6 +93,7 @@ class Arrow(Widget):
             return None
 
     def get_points(self):
+        """Return the coordinates of the points that describe my shape."""
         orig = self.board.spotdict[unicode(self.portal.origin)]
         dest = self.board.spotdict[unicode(self.portal.destination)]
         (ox, oy) = orig.pos
@@ -133,6 +165,8 @@ class Arrow(Widget):
         return r
 
     def get_slope(self):
+        """Return a float of the increase in y divided by the increase in x,
+        both from left to right."""
         orig = self.board.spotdict[unicode(self.portal.origin)]
         dest = self.board.spotdict[unicode(self.portal.destination)]
         ox = orig.x
@@ -149,6 +183,12 @@ class Arrow(Widget):
             return rise / run
 
     def get_b(self):
+        """Return my Y-intercept.
+
+        I probably don't really hit the left edge of the window, but
+        this is where I would, if I were long enough.
+
+        """
         orig = self.board.spotdict[unicode(self.portal.origin)]
         dest = self.board.spotdict[unicode(self.portal.destination)]
         (ox, oy) = orig.pos
@@ -158,13 +198,38 @@ class Arrow(Widget):
         y_numerator = denominator * oy
         return ((y_numerator - x_numerator), denominator)
 
-    def realign(self, *args):
-        self.upd_pos_size()
+    def repoint(self, *args):
+        """Recalculate all my points and redraw."""
         points = self.get_points()
         self.bg_line.points = points
         self.fg_line.points = points
 
+    def realign(self, *args):
+        self.upd_pos_size()
+        self.repoint()
+
+    def upd_size(self, i, (x, y)):
+        """Set my size so that my upper right corner is at the point given.
+
+        This will, not infrequently, give me a negative size. Don't
+        think too hard about it.
+
+        """
+        self.width = x - self.x
+        self.height = y - self.y
+
     def upd_pos_size(self, *args):
+        """Update my ``pos`` and ``size`` based on the spots at my
+        origin and destination.
+
+        This is often necessary because :class:`Spot` is a subclass of
+        :class:`Scatter`, which implements high-performance
+        drag-and-drop behavior by not really moving the widget, but
+        doing a matrix transformation on its texture. This still makes
+        the ``pos`` appear with a new value when accessed here, but
+        might not trigger an update of variables bound to ``pos``.
+
+        """
         orig = self.board.spotdict[unicode(self.portal.origin)]
         dest = self.board.spotdict[unicode(self.portal.destination)]
         (ox, oy) = orig.pos
@@ -175,6 +240,10 @@ class Arrow(Widget):
         self.size = (w, h)
 
     def collide_point(self, x, y):
+        """Return True iff the point falls sufficiently close to my core line
+        segment to count as a hit.
+
+        """
         if not super(Arrow, self).collide_point(x, y):
             return False
         orig = self.board.spotdict[unicode(self.portal.origin)]
@@ -191,6 +260,3 @@ class Arrow(Widget):
             error_angle_a = abs(observed_angle_a - correct_angle_a)
             error_seg_len = hypot(x, y)
             return sin(error_angle_a) * error_seg_len <= self.margin
-
-    def on_drop(self):
-        pass

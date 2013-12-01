@@ -1,13 +1,13 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from math import sqrt, hypot, atan, pi, sin, cos
-from sqlite3 import IntegrityError
+import struct
 from collections import (
     MutableMapping,
     OrderedDict)
+from math import sqrt, hypot, atan, pi, sin, cos
 from operator import itemgetter
 from re import match, compile, findall
-import struct
+from sqlite3 import IntegrityError
 
 
 """Common utility functions and data structures.
@@ -19,16 +19,23 @@ SQL from metadata declared as class atttributes.
 """
 
 phi = (1.0 + sqrt(5))/2.0
+"""The golden ratio."""
 
 schemata = {}
+"""Map the name of each table to its schema."""
 
 colnames = {}
+"""Map the name of each table to the names of its fields, in a tuple."""
 
 colnamestr = {}
+"""Map the name of each table to the names of its fields, in a string."""
 
 primarykeys = {}
+"""Map the name of each table to the names of the fields in its
+primary key, in a tuple."""
 
 tabclas = {}
+"""Map the name of each table to the class it was declared in."""
 
 saveables = []
 
@@ -66,14 +73,20 @@ something in a Skeleton.
 
 
 class BoneMetaclass(type):
+    """Metaclass for the creation of "bones," which are named tuples with
+type checking and functions for easy conversion to structs."""
     def __new__(metaclass, clas, parents, attrs):
-        # Presently there's no way to distinguish between "I have not
-        # decided what to put here" and "This database record has a
-        # null value in this field". I think the only cases where this
-        # presents trouble are if you want an update rather than an
-        # insert (updates aren't supported) or if you want to query
-        # for nulls in some field, which I suppose to be a strange
-        # enough case to ignore.
+        """Create a new Bone class, based on the field declarations in the
+attribute _field_decls.
+
+_field_decls is a list of triples. In the triples, the first value is
+the field name, the second is its type (a type object), and the third
+is the default value.
+
+Regardless of the type of a field, all fields may be set to None. This
+is to make Bones usable in queries.
+
+        """
         def __new__(_cls, *args, **kwargs):
             """Create new instance of {}""".format(clas)
             if len(args) > 0:
@@ -97,6 +110,7 @@ class BoneMetaclass(type):
 
         @classmethod
         def getfmt(cls):
+            """Return a format string suitable for the creation of a struct."""
             fmt = bytearray('@')
             for (field_name, field_type, default) in cls._field_decls:
                 if field_type in (unicode, str):
@@ -224,6 +238,7 @@ is mostly for printing."""
             self._populate_content(content)
 
     def _populate_content(self, content):
+        """Fill myself with content."""
         if content in (None, {}, []):
             return
         assert(not issubclass(content.__class__, Bone))
@@ -248,6 +263,7 @@ is mostly for printing."""
                     content=v, name=k, parent=self)
 
     def __contains__(self, k):
+        """Check if I have the given key"""
         if isinstance(self.content, dict):
             return k in self.content
         else:

@@ -1,24 +1,23 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from re import match
+
 from LiSE.util import (
     SaveableMetaclass,
     LocationException,
     TimeParadox,
     JourneyException,
     portex)
-from re import match
 
 
 class Thing(object):
     __metaclass__ = SaveableMetaclass
     """The sort of item that has a particular location at any given time.
 
-Every Thing has a Journey and a Schedule, but either may be empty.
-
-Things can contain other Things and be contained by other Things. This
-is independent of where they are "located," which is always a
-Place. But any things that contain one another should share locations,
-too.
+If a Thing is in a Place, it is standing still. If it is in a Portal,
+it is moving through that Portal however fast it must in order to
+arrive at the other end when it is scheduled to. If it is in another
+Thing, then it is wherever that is, and moving the same.
 
     """
     tables = [
@@ -105,7 +104,7 @@ tick in the given branch."""
             di = self.dimension.graph.vs.find(destn).index
             eid = self.dimension.graph.get_eid(oi, di)
             return self.dimension.graph.es[eid]["portal"]
-        except Exception as e:
+        except Exception:
             return self.dimension.get_thing(bone.location)
 
     def get_location_bone(self, branch=None, tick=None):

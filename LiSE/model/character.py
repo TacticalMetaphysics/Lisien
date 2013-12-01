@@ -229,7 +229,8 @@ item's name, and the name of the attribute.
 
     def add_thing(self, thing, branch=None, tick_from=None, tick_to=None):
         self.add_thing_by_key(
-            unicode(thing.dimension), unicode(thing), branch, tick_from, tick_to)
+            unicode(thing.dimension), unicode(thing),
+            branch, tick_from, tick_to)
 
     def has_place_by_key(self, dimension, place, branch=None, tick=None):
         if tick is None:
@@ -243,13 +244,15 @@ item's name, and the name of the attribute.
         if branch is None:
             for branch in self.placedict[dimension][place]:
                 try:
-                    return self.placedict[dimension][place][branch].value_during(tick) is not None
+                    return self.placedict[dimension][
+                        place][branch].value_during(tick) is not None
                 except KeyError:
                     continue
             return False
         else:
             try:
-                return self.placedict[dimension][place][branch].value_during(tick) is not None
+                return self.placedict[dimension][
+                    place][branch].value_during(tick) is not None
             except KeyError:
                 return False
 
@@ -272,12 +275,12 @@ item's name, and the name of the attribute.
             self.placedict[bone.dimension][bone.place][bone.branch] = {}
         self.placedict[
             bone.dimension][bone.place][bone.branch][
-                bone.tick_from] = self.bonetypes["character_place"](
-                    character=unicode(self),
-                    dimension=bone.dimension,
-                    place=bone.place,
-                    branch=bone.branch,
-                    tick_from=bone.tick_from)
+            bone.tick_from] = self.bonetypes["character_place"](
+            character=unicode(self),
+            dimension=bone.dimension,
+            place=bone.place,
+            branch=bone.branch,
+            tick_from=bone.tick_from)
 
     def add_place_by_key(self, dimension, place,
                          branch=None, tick=None):
@@ -308,7 +311,8 @@ item's name, and the name of the attribute.
                  self.portaldict[dimension][origin][destination])):
             return False
         if branch is None:
-            rditer = self.portaldict[dimension][origin][destination].iterbones()
+            rditer = self.portaldict[dimension][
+                origin][destination].iterbones()
         else:
             rditer = self.portaldict[dimension][origin][destination][
                 branch].iterbones()
@@ -337,7 +341,7 @@ item's name, and the name of the attribute.
                 bone.origin][bone.destination][bone.branch] = []
         self.portaldict[bone.dimension][
             bone.origin][bone.destination][
-            bone.branch][bone.tick_from] = rd
+            bone.branch][bone.tick_from] = bone
 
     def _portal_by_key(self, dimension, origin, destination, extant,
                        branch=None, tick=None):

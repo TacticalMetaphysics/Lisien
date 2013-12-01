@@ -1,7 +1,7 @@
 ===============================
 The LiSE Cause and Effect Model
 ===============================
-:Info: Documentation for the cause-and-effect model in LiSE, a life simulator engine
+:Info: Documentation for the cause-and-effect model in LiSE, a development toolkit for life simulators
 :Copyright: 2013 by Zachary Spector. Available under the terms of the GNU Free Documentation License 1.3
 
 Purpose
@@ -58,13 +58,23 @@ Character.
 Facts about Characters
 ======================
 
-Changes to Characters need to be represented in one database record
-apiece. In the case where the name of the table to be changed begins
-with ``"character_"``, that's all there is to it, but that's only true
-when you're dealing with Stats. An Effect that changes a stat returns
-a 3-tuple of stat's name and its new value You can remove a stat from
-a character by setting it to None. Python recognizes a difference
-between not having a variable and having a variable containing None,
-but LiSE doesn't.
+An Effect that changes a stat returns a 3-tuple of the string
+"``character_stat``", stat's name and its new value. You can remove a
+stat from a character by setting it to None. Python recognizes a
+difference between not having a variable and having a variable
+containing None, but LiSE doesn't.
 
-Skills may be removed from Characters in the same way. You add new skills and alter existing ones by assigning Causes to them. These Causes will be called with this Character when it uses this skill. 
+Skills may be removed from Characters in the same way with the string
+"``character_skill``". You add a skill or alter an existing one by
+assigning a list of Causes to it. These Causes will be called with
+this Character when it uses this skill. Make sure the list contains
+actual Cause objects rather than, for instance, strings.
+
+Components may be added to or removed from Characters by the use of
+the strings "``character_thing``", "``character_place``", and
+"``character_portal``", according to the type of the component. Things
+and Places are triples in which the 1th item is the name of the
+dimension they are in, and the 2th item is the name of the Thing or
+Place proper. For "``character_portal``" you actually want a 4-tuple,
+where the 1th item is the dimension name, the 2th is the name of the
+Place whence the Portal originates, and the 3th is its destination.
