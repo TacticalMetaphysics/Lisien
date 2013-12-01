@@ -776,7 +776,7 @@ declared in the order they appear in the tables attribute.
 
         @staticmethod
         def _select_table_all(c, tabname):
-            r = Skeleton({})
+            r = Skeleton()
             qrystr = "SELECT {0} FROM {1}".format(
                 colnamestr[tabname], tabname)
             c.execute(qrystr)

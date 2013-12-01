@@ -9,7 +9,7 @@ INSERT INTO menu_item (idx, menu, closer, on_click, text) VALUES
 (1, 'Editor', 1, 'editor_copy()', '@ed_copy'),
 (2, 'Editor', 1, 'editor_paste()', '@ed_paste'),
 (3, 'Editor', 1, 'editor_delete()', '@ed_delete'),
-(0, 'Main', 0, 'mi_show_popup(new_thing)', '@thing_menu'),
+(0, 'Main', 0, 'mi_show_popup(new_thing(base, body))', '@thing_menu'),
 (1, 'Main', 0, 'mi_create_place()', '@place_menu'),
 (2, 'Main', 0, 'mi_create_portal()', '@portal_menu'),
 (3, 'Main', 0, 'toggle_menu(Game)', '@game_menu'),

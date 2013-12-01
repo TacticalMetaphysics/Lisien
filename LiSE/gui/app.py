@@ -11,10 +11,15 @@ from kivy.uix.image import Image
 from kivy.uix.popup import Popup
 from kivy.uix.scatter import Scatter
 from kivy.uix.textinput import TextInput
+from kivy.factory import Factory
 
 from LiSE.gui.board import Pawn
+from LiSE.gui.swatchbox import SwatchBox
 from LiSE.util import Skeleton
 from LiSE.closet import load_closet
+
+
+Factory.register('SwatchBox', cls=SwatchBox)
 
 
 class CueCard(TextInput):
@@ -150,13 +155,17 @@ the user to place it, and dismiss the popup."""
     def show_spot_picker(self, texdict):
         pass
 
-    def show_pawn_picker(self, texdict):
+    def show_pawn_picker(self, categories):
         """Show a SwatchBox for the given texdict. The chosen Swatches will be
 used to build a Pawn later."""
+        cattexlst = [
+            (cat, sorted(self.board.closet.textagdict[cat]))
+            for cat in categories]
         dialog = PickImgDialog(
             set_imgs=self.new_pawn_with_swatches,
-            cancel=self.dismiss_popup,
-            texdict=texdict)
+            cancel=self.dismiss_popup)
+        dialog.ids.picker.texdict = self.board.closet.texturedict
+        dialog.ids.picker.cattexlst = cattexlst
         self._popups.append(Popup(
             title="Select some images",
             content=dialog,
@@ -174,7 +183,6 @@ class PickImgDialog(FloatLayout):
     """Dialog for associating imgs with something, perhaps a Pawn.
 
 In lise.kv this is given a SwatchBox with texdict=root.texdict."""
-    texdict = ObjectProperty()
     set_imgs = ObjectProperty()
     cancel = ObjectProperty()
 
@@ -192,6 +200,7 @@ class LiSEApp(App):
         if self.dbfn is None:
             self.dbfn = self.user_data_dir + sep + "default.lise"
         self.closet = load_closet(self.dbfn, self.lise_path, self.lang, True)
+        self.closet.load_textures_tagged([u'hominid'])
         self.closet.uptick_skel()
         self.updater = Clock.schedule_interval(self.closet.update, 0.1)
         menu = self.closet.load_menu(self.menu_name)
