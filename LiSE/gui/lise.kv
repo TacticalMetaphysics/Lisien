@@ -35,9 +35,8 @@
         pos: root.pos
         orientation: "vertical"
         SwatchBox:
-            id: imgchooser
-            texdict: root.texdict
-            cols: 5
+            id: picker
+            cols: 1
         BoxLayout:
             size_hint_y: None
             height: 30
@@ -46,7 +45,7 @@
                 on_release: root.cancel()
             Button:
                 text: "Confirm"
-                on_release: root.set_imgs(imgchooser.gen_selection())
+                on_release: root.set_imgs(picker.gen_selection())
 <DummyPawn>:
     size_hint: (None, None)
     do_rotation: False

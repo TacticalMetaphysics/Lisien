@@ -86,6 +86,8 @@ MAKE_THING_ARG_RE = re.compile(
     "(.+)\.(.+)@(.+)")
 PORTAL_NAME_RE = re.compile(
     "Portal\((.+)->(.+)\)")
+NEW_THING_RE = re.compile(
+    "new_thing\((.+)+\)")
 
 
 game_bone = Bone.subclass(
@@ -136,6 +138,7 @@ before RumorMill will work. For that, run mkdb.sh.
         "effectdeckdict",
         "imgdict",
         "texturedict",
+        "textagdict",
         "menudict",
         "menuitemdict",
         "styledict",
@@ -210,16 +213,25 @@ given name.
         # disk.
         self.old_skeleton = self.skeleton.copy()
 
+        for wd in self.working_dicts:
+            setattr(self, wd, dict())
+
         if USE_KIVY:
-            from gui.kivybits import load_textures
+            from gui.kivybits import (
+                load_textures,
+                load_textures_tagged,
+                load_all_textures)
             self.load_textures = lambda names: load_textures(
-                self.c, self.skeleton, self.texturedict, names)
+                self.c, self.skeleton, self.texturedict,
+                self.textagdict, names)
+            self.load_all_textures = lambda: load_all_textures(
+                self.c, self.skeleton, self.texturedict, self.textagdict)
+            self.load_textures_tagged = lambda tags: load_textures_tagged(
+                self.c, self.skeleton, self.texturedict, self.textagdict,
+                tags)
             self.USE_KIVY = True
 
         self.timestream = Timestream(self)
-
-        for wd in self.working_dicts:
-            setattr(self, wd, dict())
 
         self.game_speed = 1
         self.updating = False
@@ -785,9 +797,11 @@ For more information, consult SaveableMetaclass in util.py.
         return get_bone_during(skel, self.branch, self.tick)
 
     def mi_show_popup(self, mi, name):
-        if name == 'new_thing':
+        new_thing_match = re.match(NEW_THING_RE, name)
+        if new_thing_match:
             root = mi.get_root_window().children[0]
-            return root.show_pawn_picker(self.texturedict)
+            return root.show_pawn_picker(
+                new_thing_match.groups()[0].split(", "))
 
     def register_text_listener(self, stringn, listener):
         if stringn == "@branch":
