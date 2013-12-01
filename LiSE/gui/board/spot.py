@@ -60,93 +60,67 @@ class Spot(Scatter):
     cheaty = NumericProperty(0)
 
     def __str__(self):
+        """Return the name of my :class:`Place`."""
         return str(self.place)
 
     def __unicode__(self):
+        """Return the name of my :class:`Place`."""
         return unicode(self.place)
 
     def on_interactivity(self, i, v):
+        """Count toward completion"""
         self.completedness += 1
 
     def on_imagery(self, i, v):
+        """Count toward completion"""
         self.completedness += 1
 
     def on_coords(self, i, v):
+        """Count toward completion"""
         self.completedness += 1
-        v.listeners.append(self.repos)
 
     def on_completedness(self, i, v):
+        """Trigger repos on completion, and arrange to retexture myself when
+        new records to do with textures are present"""
         if v == 3:
+            self.coords.listeners.append(self.repos)
             self.imagery.listeners.append(self.retex)
             self.repos()
 
     def retex(self, *args):
+        """Get a new texture."""
         self.tex = self.get_texture()
 
     def on_tex(self, i, v):
+        """Set my size to that of my texture if I have one, else (0, 0)."""
         if v is None:
-            return
+            self.size = (0, 0)
         self.size = v.size
 
-    def get_width(self):
-        img = self.get_texture()
-        if img is None:
-            return 0
-        else:
-            return float(img.width)
-
-    def get_height(self):
-        img = self.get_texture()
-        if img is None:
-            return 0.
-        else:
-            return float(img.height)
-
-    def get_size(self):
-        img = self.get_texture()
-        if img is None:
-            return [0., 0.]
-        else:
-            return [float(img.width), float(img.height)]
-
-    def get_pos(self):
-        if self.board is None:
-            return (0, 0)
-        cords = self.get_coords()
-        if cords is None:
-            return (self.cheatx, self.cheaty)
-        (x, y) = cords
-        r = (self.cheatx, self.cheaty) = (x, y)
-        return r
-
     def repos(self, *args):
+        """Update my pos to match the database. Keep respecting my transform
+        as I can."""
         oldtf = self.transform
         self.transform.identity()
-        self.pos = self.get_pos()
+        self.pos = self.get_coords()
         self.apply_transform(oldtf)
 
-    def set_pos(self, v):
-        if self.board is not None:
-            self.set_coords(v[0], v[1])
-
-    def set_interactive(self, branch=None, tick_from=None):
+    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
+        """Declare that I am interactive from the one time to the other."""
         if branch is None:
             branch = self.board.closet.branch
         if tick_from is None:
             tick_from = self.board.closet.tick
         assert branch in self.interactivity, "Make a new branch first"
         self.board.closet.skeleton["spot_interactive"][
-            unicode(self.board)][unicode(self.place)][branch][tick_from] = {
-            "dimension": unicode(self.board),
-            "place": unicode(self.place),
-            "branch": branch,
-            "tick_from": tick_from}
+            unicode(self.board)][unicode(self.place)][branch][
+            tick_from] = self.bonetype(
+            dimension=unicode(self.board),
+            place=unicode(self.place),
+            branch=branch,
+            tick_from=tick_from,
+            tick_to=tick_to)
         self.upd_interactivity()
-
-    def upd_interactivity(self, *args):
-        self.interactivity = dict(
-            self.board.closet.skeleton["spot_interactive"][
-                unicode(self.board)][unicode(self.place)])
 
     def is_interactive(self, branch=None, tick=None):
         if branch is None:

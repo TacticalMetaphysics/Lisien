@@ -9,26 +9,23 @@ This module does not contain the code used to generate
 SQL. That's in util.py, the class SaveableMetaclass.
 
 """
-import sqlite3
-import re
 import os
+import re
+import sqlite3
+
 import igraph
 
-from model.dimension import Dimension
-from model.portal import Portal
-from model.thing import Thing
-from model.character import Character
-from model.event import Implicator
 from gui.board import (
     Board,
     Spot,
-    Card,
     Pawn)
 from gui.charsheet import CharSheet, CharSheetView
 from gui.menu import Menu
-from gui.img import Img  # must import in order to register with the
-                         # ORM.
-import gui.style
+from model.character import Character
+from model.dimension import Dimension
+from model.event import Implicator
+from model.portal import Portal
+from model.thing import Thing
 from util import (
     row2bone,
     Bone,
@@ -40,9 +37,6 @@ from util import (
     Skeleton,
     Timestream,
     TimestreamException)
-
-
-lisepath_global = ''
 
 
 def noop(*args, **kwargs):
@@ -185,14 +179,12 @@ before RumorMill will work. For that, run mkdb.sh.
 given name.
 
         """
-        global lisepath_global
         self.branch_listeners = []
         self.tick_listeners = []
         self.time_listeners = []
         self.lang_listeners = []
         self.connector = connector
         self.lisepath = lisepath
-        lisepath_global = lisepath
 
         self.c = self.connector.cursor()
 
@@ -221,7 +213,7 @@ given name.
         if USE_KIVY:
             from gui.kivybits import load_textures
             self.load_textures = lambda names: load_textures(
-                self.c, self.skeleton, self.texturedict, names, self.lisepath)
+                self.c, self.skeleton, self.texturedict, names)
             self.USE_KIVY = True
 
         self.timestream = Timestream(self)
@@ -676,91 +668,6 @@ For more information, consult SaveableMetaclass in util.py.
     def get_texture(self, imgn):
         return self.get_textures([imgn])[imgn]
 
-    def load_colors(self, names):
-        bd = {"color": [LiSEColor.bonetype(name=n) for n in names]}
-        self.skeleton.update(
-            LiSEColor._select_skeleton(self.c, bd))
-        r = {}
-        for name in names:
-            r[name] = LiSEColor(self, name)
-            self.colordict[name] = r[name]
-        return r
-
-    def get_colors(self, colornames):
-        r = {}
-        unloaded = set()
-        for color in colornames:
-            if color in self.colordict:
-                r[color] = self.colordict[color]
-            else:
-                unloaded.add(color)
-        if len(unloaded) > 0:
-            r.update(self.load_colors(unloaded))
-        return r
-
-    def get_color(self, name):
-        return self.get_colors([name])[name]
-
-    def load_styles(self, stylenames):
-        bd = {"style": [LiSEStyle.bonetypes.style(name=n)
-                        for n in stylenames]}
-        self.skeleton.update(
-            LiSEStyle._select_skeleton(self.c, bd))
-        colornames = set()
-        colorcols = set([
-            'bg_inactive', 'bg_active', 'fg_inactive', 'fg_active',
-            'text_inactive', 'text_active'])
-        for name in stylenames:
-            bone = self.skeleton["style"][name]
-            for colorcol in colorcols:
-                colornames.add(getattr(bone, colorcol))
-        self.get_colors(colornames)
-        r = {}
-        for name in stylenames:
-            r[name] = LiSEStyle(self, name)
-        return r
-
-    def get_styles(self, stylenames):
-        r = {}
-        unloaded = set()
-        for style in stylenames:
-            if style in self.styledict:
-                r[style] = self.styledict[style]
-            else:
-                unloaded.add(style)
-        if len(unloaded) > 0:
-            r.update(self.load_styles(unloaded))
-        return r
-
-    def get_style(self, name):
-        if isinstance(name, LiSEStyle):
-            return name
-        return self.get_styles([name])[name]
-
-    def load_cards(self, names):
-        effectdict = self.get_effects(names)
-        bd = {"card": [Card.bonetype(name=n) for n in names]}
-        td = Card._select_skeleton(self.c, bd)
-        r = {}
-        for bone in td.iterbones():
-            r[bone.effect] = Card(self, effectdict[bone.effect], td)
-        return r
-
-    def get_cards(self, names):
-        r = {}
-        unhad = set()
-        for name in names:
-            if name in self.carddict:
-                r[name] = self.carddict[name]
-            else:
-                unhad.add(name)
-        if len(unhad) > 0:
-            r.update(self.load_cards(unhad))
-        return r
-
-    def get_card(self, name):
-        return self.get_cards([name])[name]
-
     def load_menus(self, names):
         r = {}
         for name in names:
@@ -891,36 +798,10 @@ For more information, consult SaveableMetaclass in util.py.
             self.skeleton["strings"][stringn[1:]].listeners.append(listener)
 
 
-def mkdb(DB_NAME='default.sqlite', lisepath='.'):
-    def isdir(p):
-        try:
-            os.chdir(p)
-            return True
-        except:
-            return False
-
-    def allsubdirs_core(doing, done):
-        if len(doing) == 0:
-            return done
-        here = doing.pop()
-        if isdir(here):
-            done.add(here + '/')
-            inside = (
-                [here + '/' + there for there in
-                 os.listdir(here) if there[0] != '.'])
-            doing.update(set(inside))
-
-    def allsubdirs(path):
-        inpath = os.path.realpath(path)
-        indoing = set()
-        indoing.add(inpath)
-        indone = set()
-        result = None
-        while result is None:
-            result = allsubdirs_core(indoing, indone)
-        return iter(result)
-
+def mkdb(DB_NAME, lisepath):
     def recurse_rltiles(d):
+        """Return a list of all bitmaps in the directory, and all levels of
+subdirectory therein."""
         bmps = [d + os.sep + bmp
                 for bmp in os.listdir(d)
                 if bmp[0] != '.' and
@@ -933,11 +814,28 @@ def mkdb(DB_NAME='default.sqlite', lisepath='.'):
         return bmps
 
     def ins_rltiles(curs, dirname):
+        """Recurse into the directory, and for each bitmap I find, add records
+        to the database describing it.
+
+        Also tag the bitmaps with the names of the folders they are
+        in, up to (but not including) the 'rltiles' folder.
+
+        """
         for bmp in recurse_rltiles(dirname):
-            qrystr = """insert or replace into img
-(name, path, rltile) values (?, ?, ?)"""
+            qrystr = "insert into img (name, path, rltile) values (?, ?, ?)"
             name = bmp.replace(dirname, '').strip(os.sep)
             curs.execute(qrystr, (name, bmp, True))
+            tags = name.split(os.sep)[:-1]
+            qrystr = "insert into img_tag (img, tag) values (?, ?)"
+            for tag in tags:
+                curs.execute(qrystr, (name, tag))
+
+    def read_sql(filen):
+        """Read all text from the file, and execute it as SQL commands."""
+        sqlfile = open(filen, "r")
+        sql = sqlfile.read()
+        sqlfile.close()
+        c.executescript(sql)
 
     try:
         os.remove(DB_NAME)
@@ -945,12 +843,6 @@ def mkdb(DB_NAME='default.sqlite', lisepath='.'):
         pass
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-
-    def read_sql(filen):
-        sqlfile = open(filen, "r")
-        sql = sqlfile.read()
-        sqlfile.close()
-        c.executescript(sql)
 
     c.execute(
         "CREATE TABLE game"
@@ -1050,13 +942,25 @@ def mkdb(DB_NAME='default.sqlite', lisepath='.'):
     os.chdir(oldhome)
 
     print("indexing the RLTiles")
-    ins_rltiles(c, os.path.abspath(lisepath) + os.sep + 'gui' + os.sep + 'assets' + os.sep + 'rltiles')
+    ins_rltiles(c, os.path.abspath(lisepath)
+                + os.sep + 'gui' + os.sep + 'assets'
+                + os.sep + 'rltiles')
 
     conn.commit()
     return conn
 
 
 def load_closet(dbfn, lisepath, lang="eng", kivy=False):
+    """Construct a ``Closet`` connected to the given database file. Use
+the LiSE library in the path given.
+
+If ``kivy`` == True, the closet will be able to load textures using
+Kivy's Image widget.
+
+Strings will be loaded for the language ``lang``. Use language codes
+from ISO 639-2.
+
+    """
     conn = sqlite3.connect(dbfn)
     r = Closet(connector=conn, lisepath=lisepath, lang=lang, USE_KIVY=kivy)
     r.load_strings()

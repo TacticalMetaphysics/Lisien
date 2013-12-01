@@ -1,2 +1,1 @@
-__all__ = ["arrow", "board", "card", "charsheet", "img", "kivybits",
-           "menu", "pawn", "spot", "style"]
+__all__ = ["board", "charsheet", "img", "kivybits", "menu"]

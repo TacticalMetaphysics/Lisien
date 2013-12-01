@@ -1,9 +1,10 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from place import Place
-from thing import Thing
-from portal import Portal
 from igraph import Graph
+
+from place import Place
+from portal import Portal
+from thing import Thing
 
 
 class PlaceIter:

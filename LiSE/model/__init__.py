@@ -1,8 +1,8 @@
-import character
-import dimension
-import event
-import place
-import portal
-import thing
+from character import Character
+from dimension import Dimension
+from event import Implicator
+from place import Place
+from portal import Portal
+from thing import Thing
 
-__all__ = ["character", "dimension", "event", "place", "portal", "thing"]
+__all__ = [Character, Dimension, Implicator, Place, Portal, Thing]

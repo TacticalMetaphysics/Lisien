@@ -163,8 +163,7 @@
     disabled_foreground_color: solarized["base00"]
 <EditButton>:
     #:import sep os.sep
-    #:import lisepath LiSE.closet.lisepath_global
-    font_name: sep.join([lisepath, "gui", "assets", "Entypo.ttf"])
+    font_name: sep.join([self.parent.character.closet.lisepath, "gui", "assets", "Entypo.ttf"]) if self.parent else ""
     font_size: 32
     size_hint_x: 0.2
 <CharSheetView>:
@@ -185,9 +184,6 @@
     spacing: 10
     size_hint: (0.1, 1)
 <MenuButton>:
-    #:import sep os.sep
-    #:import lisepath LiSE.closet.lisepath_global
-    font_name: sep.join([lisepath, "gui", "assets", "Entypo.ttf"]) if self.symbolic else 'DroidSans'
     font_size: 30 if self.symbolic else 20
 <CueCard>:
     disabled: True

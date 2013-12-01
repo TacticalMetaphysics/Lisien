@@ -1,16 +1,22 @@
-from kivy.uix.image import Image
 from kivy.core.image import ImageData
-from img import Img
-from LiSE.util import SaveableMetaclass
+from kivy.uix.image import Image
 from kivy.uix.widget import WidgetMetaclass
-from os import sep
+
+from LiSE.util import SaveableMetaclass
+from img import Img
 
 
 class SaveableWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
+    """A combination of :class:`~kivy.uix.widget.WidgetMetaclass`
+    and :class:`~LiSE.util.SaveableMetaclass`.
+
+    There is no additional functionality beyond what those metaclasses do."""
     pass
 
 
 def load_rltile(path):
+    """Load one of the RLTiles, turn its chroma-key into an alpha
+    channel, and return its texture."""
     rltex = Image(
         source=path).texture
     imgd = ImageData(rltex.width, rltex.height,
@@ -26,7 +32,9 @@ def load_rltile(path):
     return rltex
 
 
-def load_textures(cursor, skel, texturedict, names, prefix):
+def load_textures(cursor, skel, texturedict, names):
+    """Load all the textures in ``names``. Put their :class:`Bone`s in
+    ``skel``, and the textures themselves in ``texturedict``."""
     skel.update(
         Img._select_skeleton(
             cursor, {

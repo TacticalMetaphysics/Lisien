@@ -11,8 +11,7 @@ from os.path import abspath
 def lise():
     i = 0
     lang = "eng"
-    defdbfn = "default.sqlite"
-    dbfn = ""
+    dbfn = None
     debugfn = ""
     DEBUG = False
     for arg in argv:
@@ -32,11 +31,12 @@ def lise():
             except IOError:
                 exit("Couldn't write to the debug log file "
                      "\"{}\".".format(debugfn))
-        elif arg[-2:] != "py":
+        elif arg[-4:] == "lise":
             dbfn = arg
         i += 1
-    if dbfn == "":
-        dbfn = defdbfn
+
+    if dbfn is None:
+        dbfn = "default.lise"
 
     try:
         conn = connect(dbfn)
@@ -58,17 +58,14 @@ def lise():
     except IOError:
         closet.mkdb(dbfn, __path__[-1])
 
-    _closet = closet.load_closet(
-        dbfn=dbfn,
-        lisepath=abspath(__path__[-1]),
-        lang=lang,
-        kivy=True)
+    print("Starting LiSE with database {}, language {}, path {}".format(
+        dbfn, lang, __path__[-1]))
 
-    LiSEApp(closet=_closet, menu_name='Main',
+    LiSEApp(dbfn=dbfn, lang=lang,
+            lise_path=abspath(__path__[-1]),
+            menu_name='Main',
             dimension_name='Physical',
             character_name='household').run()
-    _closet.save_game()
-    _closet.end_game()
 
 
 if __name__ == '__main__':
