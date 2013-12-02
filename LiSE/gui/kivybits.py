@@ -1,6 +1,13 @@
 from kivy.core.image import ImageData
 from kivy.uix.image import Image
-from kivy.uix.widget import WidgetMetaclass
+from kivy.uix.widget import (
+    Widget,
+    WidgetMetaclass)
+from kivy.properties import (
+    NumericProperty,
+    ListProperty,
+    ObjectProperty)
+from kivy.clock import Clock
 
 from LiSE.util import SaveableMetaclass
 from img import Img
@@ -77,3 +84,83 @@ def load_all_textures(cursor, skel, texturedict, textagdict):
         if img not in textagdict:
             textagdict[tag] = set()
         textagdict[tag].add(img)
+
+
+class ImgPileImg(Image):
+    pile = ObjectProperty()
+    layer = NumericProperty()
+
+
+class ImgPile(Widget):
+    """Several images superimposed, and perhaps offset by differing amounts."""
+    textures = ListProperty([])
+    imgs = ListProperty([])
+    xoffs = ListProperty([])
+    yoffs = ListProperty([])
+    imagery = ObjectProperty()
+    closet = ObjectProperty()
+    completedness = NumericProperty(0)
+
+    def __init__(self, **kwargs):
+        self.imgs_needed = set()
+        super(ImgPile, self).__init__(**kwargs)
+
+    def collide_point(self, x, y):
+        (x, y) = self.to_widget(x, y)
+        for i in xrange(0, len(self.imagery)):
+            xoff = self.xoffs[i]
+            yoff = self.yoffs[i]
+            tex = self.textures[i]
+            (w, h) = tex.size
+            if (
+                    x > xoff and
+                    y > yoff and
+                    x < xoff + w and
+                    y < yoff + h):
+                return True
+        return False
+
+    def on_imagery(self, *args):
+        self.completedness += 1
+
+    def on_closet(self, *args):
+        self.completedness += 1
+
+    def on_completedness(self, i, v):
+        # I'm waiting not just for imagery and closet, but also
+        # imgs_ready, which is handled in kv
+        if v == 2:
+            self.upd_from_imagery()
+
+    def upd_from_imagery(self, *args):
+        stackh = 0
+        imagery = self.imagery
+        branch = self.closet.branch
+        tick = self.closet.tick
+        get_tex = self.closet.get_texture
+        h = 0
+        w = 0
+        for layer in imagery:
+            bone = imagery[layer][branch][tick]
+            tex = get_tex(bone.img)
+            (xw, xh) = (tex.width + bone.off_x,
+                        tex.height + bone.off_y + stackh)
+            if xw > w:
+                w = xw
+            if xh > h:
+                h = xh
+            imgbone = self.closet.skeleton[u"img"][bone.img]
+            for extensible in (self.textures, self.xoffs, self.yoffs):
+                while len(extensible) <= bone.layer:
+                    extensible.append(None)
+            self.textures[layer] = tex
+            self.xoffs[layer] = bone.off_x
+            self.yoffs[layer] = bone.off_y + stackh
+            stackh += imgbone.stacking_height
+        self.clear_widgets()
+        i = 0
+        for tex in self.textures:
+            self.add_widget(ImgPileImg(
+                pile=self, layer=i))
+            i += 1
+        self.size = (xw, xh)

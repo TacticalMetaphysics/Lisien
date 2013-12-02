@@ -52,21 +52,27 @@ class Menu(BoxLayout):
     completedness = NumericProperty(0)
 
     def __unicode__(self):
-        return self.name
+        """Return my name in unicode"""
+        return unicode(self.name)
 
     def __str__(self):
+        """Return my name in the default codec"""
         return str(self.name)
 
     def on_closet(self, i, v):
+        """Increment ``self.completedness``"""
         self.completedness += 1
 
     def on_name(self, i, v):
+        """Increment ``self.completedness``"""
         self.completedness += 1
 
     def on_parent(self, i, v):
+        """Increment ``self.completedness``"""
         self.completedness += 1
 
     def on_completedness(self, i, v):
+        """When ready, call ``self.finalize``"""
         if v == 3:
             self.finalize()
 

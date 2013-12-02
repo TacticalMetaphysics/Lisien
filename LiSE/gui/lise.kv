@@ -53,26 +53,30 @@
 <Pawn>:
     auto_bring_to_front: False
     size_hint: (None, None)
-    size: self.textures[0].size if len(self.textures) > 0 else (0, 0)
+    size: pile.size
     do_rotation: False
     do_scale: False
     interactivity: self.board.closet.skeleton[u"pawn_interactive"][unicode(self.board)][unicode(self.thing)]
-    imagery: self.board.closet.skeleton[u"pawn_img"][unicode(self.board)][unicode(self.thing)]
-<PawnImage>:
-    texture: self.pawn.textures[self.layer]
-    size: self.pawn.size
+    ImgPile:
+        id: pile
+        imagery: root.board.closet.skeleton[u"pawn_img"][unicode(root.board)][unicode(root.thing)]
+        closet: root.board.closet
+<ImgPileImg>:
+    texture: self.pile.textures[self.layer]
+    x: self.pile.xoffs[self.layer]
+    y: self.pile.yoffs[self.layer]
+    size: self.pile.textures[self.layer].size
 <Spot>:
     size_hint: (None, None)
+    size: pile.size
     coords: self.board.closet.skeleton[u"spot_coords"][unicode(self.board)][unicode(self.place)]
     interactivity: self.board.closet.skeleton[u"spot_interactive"][unicode(self.board)][unicode(self.place)]
-    imagery: self.board.closet.skeleton[u"spot_img"][unicode(self.board)][unicode(self.place)]
-    tex: self.get_texture()
     do_scale: False
-    Image:
-        id: img
-        texture: root.tex
-        size: root.size
-        pos: (0, 0)
+    auto_bring_to_front: False
+    ImgPile:
+        id: pile
+        imagery: root.board.closet.skeleton[u"spot_img"][unicode(root.board)][unicode(root.place)]
+        closet: root.board.closet
 <ColorBox>:
     canvas:
         Color:

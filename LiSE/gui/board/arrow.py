@@ -62,14 +62,6 @@ class Arrow(Widget):
         self.canvas.add(self.fg_color)
         self.canvas.add(self.fg_line)
 
-    def on_parent(self, i, v):
-        """Make sure to rearrange myself when I get a new ``pos`` or ``size``.
-
-        This only happens when I have a parent because otherwise I cannot
-        possibly have an origin or a destination."""
-        v.bind(pos=self.realign, size=self.realign)
-        self.realign()
-
     def __unicode__(self):
         """Return Unicode name of my :class:`Portal`"""
         return unicode(self.portal)
@@ -97,10 +89,8 @@ class Arrow(Widget):
         orig = self.board.spotdict[unicode(self.portal.origin)]
         dest = self.board.spotdict[unicode(self.portal.destination)]
         (ox, oy) = orig.pos
-        # orig.size is SUPPOSED to be the same as orig.tex.size but
-        # sometimes it isn't, because threading
         try:
-            (ow, oh) = orig.tex.size
+            (ow, oh) = orig.size
         except AttributeError:
             (ow, oh) = (0, 0)
         orx = ow / 2
@@ -109,7 +99,7 @@ class Arrow(Widget):
         oy += ory
         (dx, dy) = dest.pos
         try:
-            (dw, dh) = dest.tex.size
+            (dw, dh) = dest.size
         except AttributeError:
             (dw, dh) = (0, 0)
         drx = dw / 2
