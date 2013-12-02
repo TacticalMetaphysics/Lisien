@@ -1,10 +1,13 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.gui.kivybits import SaveableWidgetMetaclass
+from LiSE.gui.kivybits import (
+    SaveableWidgetMetaclass)
 from kivy.properties import (
+    BooleanProperty,
     NumericProperty,
     ObjectProperty)
 from kivy.uix.scatter import Scatter
+from kivy.clock import Clock
 
 
 """Widgets to represent places. Pawns move around on top of these."""
@@ -23,10 +26,14 @@ class Spot(Scatter):
         ("spot_img",
          {"dimension": "text not null default 'Physical'",
           "place": "text not null",
+          "layer": "integer not null default 0",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
-          "img": "text not null default 'default_spot'"},
-         ("dimension", "place", "branch", "tick_from"),
+          "img": "text not null default 'default_spot'",
+          "off_x": "integer not null default 0",
+          "off_y": "integer not null default 0",
+          "stacking_height": "integer not null default 0"},
+         ("dimension", "place", "layer", "branch", "tick_from"),
          {"dimension": ("board", "dimension"),
           "img": ("img", "name")},
          []),
@@ -53,9 +60,7 @@ class Spot(Scatter):
     board = ObjectProperty()
     coords = ObjectProperty()
     interactivity = ObjectProperty()
-    imagery = ObjectProperty()
     completedness = NumericProperty(0)
-    tex = ObjectProperty(None)
     cheatx = NumericProperty(0)
     cheaty = NumericProperty(0)
 
@@ -71,31 +76,16 @@ class Spot(Scatter):
         """Count toward completion"""
         self.completedness += 1
 
-    def on_imagery(self, i, v):
-        """Count toward completion"""
-        self.completedness += 1
-
     def on_coords(self, i, v):
         """Count toward completion"""
         self.completedness += 1
 
     def on_completedness(self, i, v):
-        """Trigger repos on completion, and arrange to retexture myself when
-        new records to do with textures are present"""
-        if v == 3:
-            self.coords.listeners.append(self.repos)
-            self.imagery.listeners.append(self.retex)
+        """If completed, trigger ``self.finalize``"""
+        if v == 2:
+            self.board.closet.branch_listeners.append(self.repos)
+            self.board.closet.tick_listeners.append(self.repos)
             self.repos()
-
-    def retex(self, *args):
-        """Get a new texture."""
-        self.tex = self.get_texture()
-
-    def on_tex(self, i, v):
-        """Set my size to that of my texture if I have one, else (0, 0)."""
-        if v is None:
-            self.size = (0, 0)
-        self.size = v.size
 
     def repos(self, *args):
         """Update my pos to match the database. Keep respecting my transform
@@ -123,6 +113,7 @@ class Spot(Scatter):
         self.upd_interactivity()
 
     def is_interactive(self, branch=None, tick=None):
+        """Am I interactive? Either now, or at the given point in sim-time."""
         if branch is None:
             branch = self.board.closet.branch
         if tick is None:
@@ -135,6 +126,10 @@ class Spot(Scatter):
         return (r.tick_to is None or tick <= r.tick_to)
 
     def new_branch_interactivity(self, parent, branch, tick):
+        """Copy interactivity from the parent branch to the child, starting
+        from the tick.
+
+        """
         prev = None
         started = False
         interactivity = self.board.closet.skeleton["spot_interactive"][
@@ -156,23 +151,30 @@ class Spot(Scatter):
             prev = tick_from
         self.upd_interactivity()
 
-    def set_img(self, img, branch=None, tick_from=None):
+    def set_img(self, img, layer, branch=None, tick_from=None):
         if branch is None:
             branch = self.board.closet.branch
         if tick_from is None:
             tick_from = self.board.closet.tick
         imagery = self.board.closet.skeleton["spot_img"][
             unicode(self.board.dimension)][unicode(self.place)]
-        assert branch in imagery, "Make a new branch first"
-        imagery[branch][tick_from] = self.bonetypes["spot_img"](
+        if layer not in imagery:
+            imagery[layer] = []
+        il = imagery[layer]
+        if branch not in il:
+            il[branch] = []
+        il[branch][tick_from] = self.bonetypes["spot_img"](
             dimension=unicode(self.board),
             place=unicode(self.place),
             branch=branch,
             tick_from=tick_from,
             img=unicode(img))
-        self.upd_imagery()
 
     def get_coord_bone(self, branch=None, tick=None):
+        """Get a bone for coordinates, either now, or at the given point in
+        time
+
+        """
         if branch is None:
             branch = self.board.closet.branch
         if tick is None:
@@ -180,6 +182,10 @@ class Spot(Scatter):
         return self.coords[branch].value_during(tick)
 
     def get_coords(self, branch=None, tick=None):
+        """Return a pair of coordinates for where I should be on my board,
+        either now, or at the given point in time.
+
+        """
         bone = self.get_coord_bone(branch, tick)
         if bone is None:
             return None
@@ -187,6 +193,12 @@ class Spot(Scatter):
             return (bone.x, bone.y)
 
     def set_coords(self, x, y, branch=None, tick_from=None):
+        """Set my coordinates on the :class:`Board`.
+
+        Optional arguments may be used to set my coordinates as of
+        some time other than "right now".
+
+        """
         if branch is None:
             branch = self.board.closet.branch
         if tick_from is None:
@@ -202,6 +214,10 @@ class Spot(Scatter):
             y=y)
 
     def new_branch_coords(self, parent, branch, tick):
+        """Copy coordinate data from the parent branch as of the given
+        tick.
+
+        """
         prev = None
         started = False
         coords = self.board.closet.skeleton["spot_coords"][
@@ -223,31 +239,37 @@ class Spot(Scatter):
             prev = tick_from
 
     def new_branch(self, parent, branch, tick):
+        """Copy all the stuff from the parent to the child branch as of the
+        given tick.
+
+        """
         self.new_branch_imagery(parent, branch, tick)
         self.new_branch_interactivity(parent, branch, tick)
         self.new_branch_coords(parent, branch, tick)
 
     def get_image_bone(self, branch=None, tick=None):
+        """Get a :class:`Bone` with imagery data."""
         if branch is None:
             branch = self.board.closet.branch
         if tick is None:
             tick = self.board.closet.tick
-        if branch not in self.imagery:
+        imagery = self.board.closet.skeleton[u"spot_img"][
+            unicode(self.board)][unicode(self.place)]
+        if branch not in imagery:
             return None
-        r = self.imagery[branch].value_during(tick)
+        r = imagery[branch].value_during(tick)
         if r.img in ("", None):
             return None
         return r
 
-    def get_texture(self, branch=None, tick=None):
-        tn = self.get_image_bone(branch, tick)
-        if tn is not None:
-            return self.board.closet.get_texture(tn.img)
-
     def new_branch_imagery(self, parent, branch, tick):
+        """Copy imagery data from the parent branch to the child, as of the
+        given tick.
+
+        """
         prev = None
         started = False
-        imagery = self.board.closet.skeleton["spot_img"][
+        imagery = self.board.closet.skeleton[u"spot_img"][
             unicode(self.board.dimension)][unicode(self.place)]
         for tick_from in imagery[parent]:
             if tick_from >= tick:
@@ -266,6 +288,11 @@ class Spot(Scatter):
             prev = tick_from
 
     def on_touch_up(self, touch):
+        """If this is the end of a drag, set my coordinates to wherever I've
+        been dragged to."""
         if touch.grab_current is self:
             self.set_coords(*self.pos)
         super(Spot, self).on_touch_up(touch)
+
+    def collide_point(self, x, y):
+        return self.ids.pile.collide_point(x, y)

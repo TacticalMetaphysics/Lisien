@@ -1,22 +1,16 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.gui.kivybits import SaveableWidgetMetaclass
+from LiSE.gui.kivybits import (
+    SaveableWidgetMetaclass,
+    ImgPile)
 from kivy.clock import Clock
 from kivy.uix.scatter import Scatter
-from kivy.uix.image import Image
 from kivy.properties import (
-    ListProperty,
-    NumericProperty,
+    BooleanProperty,
     ObjectProperty)
-from LiSE.util import get_bone_during
 
 
 """Widget representing things that move about from place to place."""
-
-
-class PawnImage(Image):
-    pawn = ObjectProperty()
-    layer = NumericProperty()
 
 
 class Pawn(Scatter):
@@ -43,7 +37,9 @@ will update its position appropriately.
           "layer": "integer not null default 0",
           "branch": "integer not null default 0",
           "tick_from": "integer not null default 0",
-          "img": "text not null default 'default_pawn'"},
+          "img": "text not null default 'default_pawn'",
+          "off_x": "integer not null default 4",
+          "off_y": "integer not null default 8"},
          ("dimension", "thing", "layer", "branch", "tick_from"),
          {"dimension, thing": ("thing_location", "dimension, name"),
           "img": ("img", "name")},
@@ -56,28 +52,10 @@ will update its position appropriately.
          ("dimension", "thing", "branch", "tick_from"),
          {"dimension, thing": ("thing_location", "dimension, name")},
          [])]
-    imagery = ObjectProperty()
     interactivity = ObjectProperty()
     board = ObjectProperty()
     thing = ObjectProperty()
-    textures = ListProperty()
     where_upon = ObjectProperty(None)
-
-    @property
-    def radii(self):
-        """Return x and y offsets that will put this Pawn at a slightly
-different point on a Spot, so that it's easy to grab the Spot
-underneath a Pawn."""
-        loc = self.thing.location
-        if hasattr(loc, 'origin'):
-            ref = self.board.get_spot(loc.origin)
-        else:
-            ref = self.board.get_spot(loc)
-        try:
-            (x, y) = self.sizecheat = ref.size
-        except AttributeError:
-            (x, y) = self.sizecheat
-        return (x / 4, y / 2)
 
     def __init__(self, **kwargs):
         """Arrange to update my textures and my position whenever the relevant
@@ -86,7 +64,6 @@ data change.
 The relevant data are
 
 * The branch and tick, being the two measures of game-time.
-* The imagery in the table pawn_img
 * The location data for the Thing I represent, in the table thing_location"""
         super(Pawn, self).__init__(**kwargs)
 
@@ -97,9 +74,6 @@ The relevant data are
         thingn = unicode(self.thing)
         skel = self.board.closet.skeleton
 
-        skel["pawn_img"][dimn][thingn].listeners.append(self.upd_imagery)
-        self.upd_imagery()
-
         skel["thing_location"][dimn][thingn].listeners.append(self.repos)
         self.repos()
 
@@ -108,53 +82,6 @@ The relevant data are
 
     def __unicode__(self):
         return unicode(self.thing)
-
-    def on_tex(self, i, v):
-        """Set my size to match that of my texture, or to (0,0) if it is None."""
-        if v is None:
-            self.size = (0, 0)
-        self.size = v.size
-
-    def upd_imagery(self, *args):
-        """Load all my textures, and keep them in the appropriate order in
-        ``self.textures``.
-
-        """
-        closet = self.board.closet
-        branch = closet.branch
-        tick = closet.tick
-        for layer in self.imagery:
-            bone = get_bone_during(self.imagery[layer], branch, tick)
-            if bone is None:
-                # Imagery apparently not really ready yet.
-                # Come back later.
-                Clock.schedule_once(self.upd_imagery, 0)
-                return
-            while len(self.textures) <= layer:
-                self.textures.append(None)
-            self.textures[layer] = closet.get_texture(bone.img)
-            if len(self.children) <= layer:
-                self.add_widget(PawnImage(pawn=self, layer=layer))
-
-    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
-        """Make it so the user may drag me.
-
-        With no arguments, the interactivity will start at the current
-        branch and tick, and continue indefinitely. You may specify a
-        branch and a time window, if you please.
-
-        """
-        if branch is None:
-            branch = self.board.closet.branch
-        if tick_from is None:
-            tick_from = self.board.closet.tick
-        self.interactivity[branch][
-            tick_from] = self.bonetypes.pawn_interactive(
-            dimension=unicode(self.thing.dimension),
-            thing=unicode(self.thing),
-            branch=branch,
-            tick_from=tick_from,
-            tick_to=tick_to)
 
     def get_coords(self, branch=None, tick=None):
         """Return my coordinates on the :class:`Board`.
@@ -236,7 +163,6 @@ The relevant data are
                         imagery[layer][branch][bone3.tick_from] = bone3
                         started = True
                     prev = tick_from
-        self.upd_imagery()
 
     def is_interactive(self, branch=None, tick=None):
         """Test for interactivity.
@@ -337,15 +263,9 @@ The relevant data are
             self.transform_on_spot(self.where_upon, self.where_upon.transform)
 
     def transform_on_spot(self, i, v):
-        """Presently, I am located atop the :class:`Spot`. I want to be
-        located a bit up and to the side, so you can reach the :class:`Spot`
-        below me.
-
-        """
+        """Appear upon the spot"""
         self.transform.identity()
         self.apply_transform(v)
-        (rx, ry) = self.radii
-        self.transform.translate(rx, ry, 0)
 
     def transform_on_arrow(self, i, v):
         """I am located some ways along the :class:`Arrow`. Work out how far
@@ -356,9 +276,11 @@ The relevant data are
         destspot = self.board.get_spot(self.where_upon.portal.destination)
         progress = self.thing.get_progress()
         (orig_x, orig_y) = self.where_upon.pos
-        (rx, ry) = self.radii
-        xtrans = (destspot.x - origspot.x) * progress + rx
-        ytrans = (destspot.y - origspot.y) * progress + ry
+        xtrans = (destspot.x - origspot.x) * progress
+        ytrans = (destspot.y - origspot.y) * progress
         self.transform.identity()
         self.apply_transform(v)
         self.transform.translate(xtrans, ytrans, 0)
+
+    def collide_point(self, x, y):
+        return self.ids.pile.collide_point(x, y)

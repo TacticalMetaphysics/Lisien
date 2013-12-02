@@ -46,12 +46,13 @@ class SwatchBox(ScrollView):
         self.finality += 1
 
     def on_finality(self, i, v):
+        """If final enough, finalize."""
         if v == 3:
             self.finalize()
 
     def finalize(self):
         """For each category in ``cattexdict``, construct a grid of grouped
-Swatches displaying the images therein."""
+        Swatches displaying the images therein."""
         root = GridLayout(cols=1, size_hint_y=None)
         self.add_widget(root)
         self.cat_layouts = []
@@ -72,7 +73,7 @@ Swatches displaying the images therein."""
                     text=imgname,
                     group=catname)
                 layout.add_widget(swatch)
-            root.rows_minimum[i] = 100 * (len(layout.children) / 5)
+            root.rows_minimum[i] = 100 * (len(layout.children) / layout.cols)
             i += 1
         rootheight = 0
         for v in root.rows_minimum.itervalues():

@@ -14,6 +14,7 @@ from kivy.uix.textinput import TextInput
 from kivy.factory import Factory
 
 from LiSE.gui.board import Pawn
+from LiSE.gui.board import Spot
 from LiSE.gui.swatchbox import SwatchBox
 from LiSE.util import Skeleton
 from LiSE.closet import load_closet
@@ -52,25 +53,32 @@ class DummyPawn(Scatter):
 This is meant to be used when the user is presently engaged with
 deciding where a Thing should be, when the Thing in question doesn't
 exist yet, but you know what it should look like."""
-    imgnames = ListProperty()
+    imgbones = ListProperty()
     board = ObjectProperty()
     callback = ObjectProperty()
 
     def __init__(self, **kwargs):
-        """Fill myself with Images taken from self.textures"""
+        """Collect images and show them"""
         super(DummyPawn, self).__init__(**kwargs)
-
-        sized = False
-        for imgn in self.imgnames:
-            tex = self.board.closet.get_texture(imgn)
-            if not sized:
-                self.size = tex.size
-                sized = True
-            self.add_widget(Image(texture=tex, size=self.size))
+        self.size = (0, 0)
+        stackh = 0
+        for bone in self.imgbones:
+            tex = self.board.closet.get_texture(bone.img)
+            if tex.width > self.width:
+                self.width = tex.width
+            if tex.height > self.height:
+                self.height = tex.height
+            img = Image(
+                texture=tex,
+                size=tex.size,
+                x=bone.off_x,
+                y=bone.off_y + stackh)
+            stackh += bone.stacking_height + bone.off_y
+            self.add_widget(img)
 
     def on_touch_up(self, touch):
-        """Create a real Pawn on top of the Spot that's been clicked, along
-with a Thing for it to represent. Then disappear."""
+        """Create a real Pawn on top of the Spot I am on top of, along
+        with a Thing for it to represent. Then disappear."""
         for spot in self.board.spotdict.itervalues():
             if self.collide_widget(spot):
                 dimn = unicode(spot.board)
@@ -136,10 +144,15 @@ and charsheets.
         """Destroy the latest popup"""
         self._popups.pop().dismiss()
 
-    def new_spot_with_swatch(self, swatch):
-        """Given a Swatch widget, make a Spot with the graphic therein, and
-dismiss the popup."""
-        pass
+    def new_spot_with_swatches(self, swatches):
+        self.display_prompt(self.board.closet.get_text("@putplace"))
+        Clock.schedule_once(self.dismiss_prompt, 5)
+        spot = Spot(
+            board=self.board,
+            place=self.board.closet.make_generic_place(self.board.dimension))
+        spot.set_coords(self.width * 0.1, self.height * 0.9)
+        self.add_widget(spot)
+        self.dismiss_popup()
 
     def new_pawn_with_swatches(self, swatches):
         """Given some iterable of Swatch widgets, make a dummy pawn, prompt
@@ -152,12 +165,30 @@ the user to place it, and dismiss the popup."""
             pos=(self.width * 0.1, self.height * 0.9)))
         self.dismiss_popup()
 
-    def show_spot_picker(self, texdict):
-        pass
+    def show_spot_picker(self, categories):
+        """Show a SwatchBox for the given tags. The chosen swatches will be
+        used to build a Spot later.
+
+        """
+        cattexlst = [
+            (cat, sorted(self.board.closet.textagdict[cat]))
+            for cat in categories]
+        dialog = PickImgDialog(
+            set_imgs=self.new_spot_with_swatches,
+            cancel=self.dismiss_popup)
+        dialog.ids.picker.texdict = self.board.closet.texturedict
+        dialog.ids.picker.cattexlst = cattexlst
+        self._popups.append(Popup(
+            title="Select graphics",
+            content=dialog,
+            size_hint=(0.9, 0.9)))
+        self._popups[-1].open()
 
     def show_pawn_picker(self, categories):
-        """Show a SwatchBox for the given texdict. The chosen Swatches will be
-used to build a Pawn later."""
+        """Show a SwatchBox for the given tags. The chosen Swatches will be
+        used to build a Pawn later.
+
+        """
         cattexlst = [
             (cat, sorted(self.board.closet.textagdict[cat]))
             for cat in categories]
