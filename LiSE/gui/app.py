@@ -13,11 +13,15 @@ from kivy.uix.scatter import Scatter
 from kivy.uix.textinput import TextInput
 from kivy.factory import Factory
 
+from sqlite3 import connect, DatabaseError
+
 from LiSE.gui.board import Pawn
 from LiSE.gui.board import Spot
 from LiSE.gui.swatchbox import SwatchBox
 from LiSE.util import Skeleton
-from LiSE.closet import load_closet
+from LiSE import (
+    __path__,
+    closet)
 
 
 Factory.register('SwatchBox', cls=SwatchBox)
@@ -136,21 +140,77 @@ and charsheets.
         """Put the text in the cue card"""
         self.prompt.text = text
 
-    def dismiss_prompt(self):
+    def dismiss_prompt(self, *args):
         """Blank out the cue card"""
         self.prompt.text = ''
 
-    def dismiss_popup(self):
+    def dismiss_popup(self, *args):
         """Destroy the latest popup"""
         self._popups.pop().dismiss()
 
     def new_spot_with_swatches(self, swatches):
         self.display_prompt(self.board.closet.get_text("@putplace"))
         Clock.schedule_once(self.dismiss_prompt, 5)
-        spot = Spot(
-            board=self.board,
-            place=self.board.closet.make_generic_place(self.board.dimension))
-        spot.set_coords(self.width * 0.1, self.height * 0.9)
+        place = self.board.closet.make_generic_place(self.board.dimension)
+        closet = self.board.closet
+        branch = closet.branch
+        tick = closet.tick
+        skeleton = closet.skeleton
+        dimn = unicode(self.board)
+        placen = unicode(place)
+        for tab in (u"spot_img", u"spot_interactive", u"spot_coords"):
+            if tab not in skeleton:
+                skeleton[tab] = {}
+            if dimn not in skeleton[tab]:
+                skeleton[tab][dimn] = {}
+            if placen not in skeleton[tab][dimn]:
+                skeleton[tab][dimn][placen] = []
+        if branch not in skeleton[u"spot_interactive"][dimn][placen]:
+            skeleton[u"spot_interactive"][dimn][placen][branch] = []
+        if branch not in skeleton[u"spot_coords"][dimn][placen]:
+            skeleton[u"spot_coords"][dimn][placen][branch] = []
+        i = 0
+        stackh = 0
+        for swatch in swatches:
+            img_bone = skeleton[u"img"][swatch.text]
+            if i not in skeleton[u"spot_img"][dimn][placen]:
+                skeleton[u"spot_img"][dimn][placen][i] = []
+            if branch not in skeleton[u"spot_img"][dimn][placen][i]:
+                skeleton[u"spot_img"][dimn][placen][i][branch] = []
+            skeleton[u"spot_img"][dimn][placen][i][branch][
+                tick] = Spot.bonetypes.spot_img(
+                dimension=dimn,
+                place=placen,
+                layer=i,
+                branch=branch,
+                tick_from=tick,
+                img=swatch.text,
+                off_x=0,
+                off_y=stackh)
+            stackh += img_bone.stacking_height
+            i += 1
+        skeleton[u"spot_interactive"][dimn][placen][branch][
+            tick] = Spot.bonetypes.spot_interactive(
+            dimension=dimn,
+            place=placen,
+            branch=branch,
+            tick_from=tick,
+            tick_to=None)
+        skeleton[u"spot_coords"][dimn][placen][branch][
+            tick] = Spot.bonetypes.spot_coords(
+            dimension=dimn,
+            place=placen,
+            branch=branch,
+            tick_from=tick,
+            x=min((
+                (0.1 * self.width) + self.board.scroll_x *
+                self.board.viewport_size[0],
+                self.board.viewport_size[0] - 32)),
+            y=min((
+                (0.9 * self.height) + self.board.scroll_y *
+                self.board.viewport_size[1],
+                self.board.viewport_size[1] - 32)))
+        spot = Spot(board=self.board, place=place)
         self.add_widget(spot)
         self.dismiss_popup()
 
@@ -171,12 +231,12 @@ the user to place it, and dismiss the popup."""
 
         """
         cattexlst = [
-            (cat, sorted(self.board.closet.textagdict[cat]))
+            (cat, sorted(self.board.closet.textagdict[cat.strip("!")]))
             for cat in categories]
         dialog = PickImgDialog(
             set_imgs=self.new_spot_with_swatches,
             cancel=self.dismiss_popup)
-        dialog.ids.picker.texdict = self.board.closet.texturedict
+        dialog.ids.picker.get_tex = self.board.closet.get_texture
         dialog.ids.picker.cattexlst = cattexlst
         self._popups.append(Popup(
             title="Select graphics",
@@ -228,10 +288,33 @@ class LiSEApp(App):
     character_name = StringProperty()
 
     def build(self):
+        """Make sure I can use the database, create the tables as needed, and
+        return the root widget."""
         if self.dbfn is None:
             self.dbfn = self.user_data_dir + sep + "default.lise"
-        self.closet = load_closet(self.dbfn, self.lise_path, self.lang, True)
-        self.closet.load_textures_tagged([u'hominid'])
+            print("No database specified; defaulting to {}".format(self.dbfn))
+        try:
+            conn = connect(self.dbfn)
+            i = 0
+            for stmt in conn.iterdump():
+                i += 1
+                if i > 3:
+                    break
+            if i < 3:
+                conn.close()
+                closet.mkdb(self.dbfn, __path__[-1])
+            else:
+                try:
+                    conn.cursor().execute("SELECT * FROM game;")
+                    conn.close()
+                except DatabaseError:
+                    exit("The database contains data that does not "
+                         "conform to the expected schema.")
+        except IOError:
+            closet.mkdb(self.dbfn, __path__[-1])
+        self.closet = closet.load_closet(
+            self.dbfn, self.lise_path, self.lang, True)
+        self.closet.load_img_metadata()
         self.closet.uptick_skel()
         self.updater = Clock.schedule_interval(self.closet.update, 0.1)
         menu = self.closet.load_menu(self.menu_name)
@@ -243,3 +326,11 @@ class LiSEApp(App):
             board=board,
             charsheets=[charsheet],
             prompt=prompt)
+
+    def on_pause(self):
+        self.closet.save()
+
+    def stop(self, *largs):
+        self.closet.save_game()
+        self.closet.end_game()
+        super(LiSEApp, self).stop(*largs)

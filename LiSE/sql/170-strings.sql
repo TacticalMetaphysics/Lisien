@@ -25,6 +25,7 @@ INSERT INTO strings (stringname, string) VALUES
 ('branch', 'Branch'),
 ('tick', 'Tick'),
 ('putthing', 'Drag this thing to where you want it.'),
+('putplace', 'Drag this place where you want it.'),
 ('play', '▶'),
 ('reverse', ''),
 ('forward', ''),

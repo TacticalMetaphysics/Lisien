@@ -66,6 +66,7 @@ The relevant data are
 * The branch and tick, being the two measures of game-time.
 * The location data for the Thing I represent, in the table thing_location"""
         super(Pawn, self).__init__(**kwargs)
+        self.board.pawndict[unicode(self.thing)] = self
 
         self.board.closet.branch_listeners.append(self.repos)
         self.board.closet.tick_listeners.append(self.repos)

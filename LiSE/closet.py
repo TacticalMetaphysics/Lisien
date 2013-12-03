@@ -21,6 +21,7 @@ from gui.board import (
     Pawn)
 from gui.charsheet import CharSheet, CharSheetView
 from gui.menu import Menu
+from gui.img import Img
 from model.character import Character
 from model.dimension import Dimension
 from model.event import Implicator
@@ -88,6 +89,8 @@ PORTAL_NAME_RE = re.compile(
     "Portal\((.+)->(.+)\)")
 NEW_THING_RE = re.compile(
     "new_thing\((.+)+\)")
+NEW_PLACE_RE = re.compile(
+    "new_place\((.+)\)")
 
 
 game_bone = Bone.subclass(
@@ -312,12 +315,8 @@ given name.
             'editor_copy': placeholder,
             'editor_paste': placeholder,
             'editor_delete': placeholder,
-            'mi_create_place':
-            (self.mi_create_place, ONE_ARG_RE),
-            'mi_create_thing':
-            (self.mi_create_thing, ONE_ARG_RE),
-            'mi_create_portal':
-            (self.mi_create_portal, ONE_ARG_RE),
+            'mi_connect_portal':
+            (self.mi_connect_portal, ""),
             'mi_show_popup':
             (self.mi_show_popup, ONE_ARG_RE)}
 
@@ -440,15 +439,6 @@ For more information, consult SaveableMetaclass in util.py.
         else:
             return strname
 
-    def mi_create_place(self, menuitem):
-        return menuitem.window.create_place()
-
-    def mi_create_thing(self, menuitem):
-        menuitem.parent.parent.show_pic_loader()
-
-    def mi_create_portal(self, menuitem):
-        return menuitem.window.create_portal()
-
     def make_igraph_graph(self, name):
         self.graphdict[name] = igraph.Graph(directed=True)
 
@@ -497,8 +487,7 @@ For more information, consult SaveableMetaclass in util.py.
 
     def make_generic_place(self, dimension):
         placen = "generic_place_{0}".format(len(dimension.graph.vs))
-        dimension.make_place(placen)
-        return dimension.get_place(placen)
+        return dimension.make_place(placen)
 
     def make_generic_thing(self, dimension, location):
         if not isinstance(dimension, Dimension):
@@ -802,6 +791,14 @@ For more information, consult SaveableMetaclass in util.py.
             root = mi.get_root_window().children[0]
             return root.show_pawn_picker(
                 new_thing_match.groups()[0].split(", "))
+        new_place_match = re.match(NEW_PLACE_RE, name)
+        if new_place_match:
+            root = mi.get_root_window().children[0]
+            return root.show_spot_picker(
+                new_place_match.groups()[0].split(", "))
+
+    def mi_connect_portal(self, mi):
+        pass
 
     def register_text_listener(self, stringn, listener):
         if stringn == "@branch":
@@ -810,6 +807,10 @@ For more information, consult SaveableMetaclass in util.py.
             self.tick_listeners.append(listener)
         if stringn[0] == "@" and stringn[1:] in self.skeleton["strings"]:
             self.skeleton["strings"][stringn[1:]].listeners.append(listener)
+
+    def load_img_metadata(self):
+        self.skeleton.update(Img._select_table_all(self.c, u"img_tag") +
+                             Img._select_table_all(self.c, u"img"))
 
 
 def mkdb(DB_NAME, lisepath):

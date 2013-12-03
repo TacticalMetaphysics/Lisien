@@ -694,30 +694,19 @@ declared in the order they appear in the tables attribute.
              tuple(tablenames),
              tuple(postlude)))
 
-        def gen_sql_insert(bones, tabname):
-            varlst = []
-            qrylst = []
-            some_data = False
-            for bone in bones:
-                varlst.append(rowstrs[tabname])
-                qrylst.extend([getattr(bone, coln) for coln in
-                               colnames[tabname]])
-                some_data = True
-            if not some_data:
-                raise ValueError("No data to insert.")
-            qrystr = "INSERT INTO {0} ({1}) VALUES {2}".format(
+        def gen_sql_insert(tabname):
+            return "INSERT INTO {0} ({1}) VALUES {2};".format(
                 tabname,
                 colnamestr[tabname],
-                ", ".join(varlst))
-            return (qrystr, tuple(qrylst))
+                rowstrs[tabname])
 
         @staticmethod
         def insert_bones_table(c, bones, tabname):
             try:
-                c.execute(*gen_sql_insert(bones, tabname))
+                c.executemany(gen_sql_insert(tabname), bones)
             except IntegrityError as ie:
                 print(ie)
-                print(gen_sql_insert(bones, tabname))
+                print(gen_sql_insert(tabname))
             except EmptySkeleton:
                 return
 

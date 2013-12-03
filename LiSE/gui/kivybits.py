@@ -7,7 +7,6 @@ from kivy.properties import (
     NumericProperty,
     ListProperty,
     ObjectProperty)
-from kivy.clock import Clock
 
 from LiSE.util import SaveableMetaclass
 from img import Img
@@ -81,6 +80,7 @@ def load_all_textures(cursor, skel, texturedict, textagdict):
             texturedict[bone.name] = Image(
                 source=bone.path).texture
     for (img, tag) in skel[u"img_tag"].iterbones():
+        print tag
         if img not in textagdict:
             textagdict[tag] = set()
         textagdict[tag].add(img)
@@ -127,8 +127,6 @@ class ImgPile(Widget):
         self.completedness += 1
 
     def on_completedness(self, i, v):
-        # I'm waiting not just for imagery and closet, but also
-        # imgs_ready, which is handled in kv
         if v == 2:
             self.upd_from_imagery()
 
