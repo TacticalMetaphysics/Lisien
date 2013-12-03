@@ -97,13 +97,31 @@ class ImgPile(Widget):
     imgs = ListProperty([])
     xoffs = ListProperty([])
     yoffs = ListProperty([])
-    imagery = ObjectProperty()
-    closet = ObjectProperty()
-    completedness = NumericProperty(0)
+    stackhs = ListProperty([])
 
-    def __init__(self, **kwargs):
-        self.imgs_needed = set()
-        super(ImgPile, self).__init__(**kwargs)
+    def append(self, tex, xoff=0, yoff=0, stackh=0):
+        i = len(self.textures)
+        self.textures.append(tex)
+        self.xoffs.append(xoff)
+        self.yoffs.append(yoff)
+        self.stackhs.append(stackh)
+        self.imgs.append(ImgPileImg(pile=self, layer=i))
+        self.add_widget(self.imgs[i])
+
+    def pop(self, i=-1):
+        r = (self.textures.pop(i),
+             self.imgs.pop(i),
+             self.xoffs.pop(i),
+             self.yoffs.pop(i),
+             self.stackhs.pop(i))
+        self.remove_widget(r[1])
+        return r
+
+
+class LayerImgPile(ImgPile):
+    imagery = ObjectProperty()
+    completedness = NumericProperty(0)
+    closet = ObjectProperty()
 
     def collide_point(self, x, y):
         (x, y) = self.to_widget(x, y)
@@ -122,43 +140,22 @@ class ImgPile(Widget):
 
     def on_imagery(self, *args):
         self.completedness += 1
+        print("imagery {}".format(self.completedness))
 
     def on_closet(self, *args):
         self.completedness += 1
+        print("closet {}".format(self.completedness))
 
     def on_completedness(self, i, v):
         if v == 2:
             self.upd_from_imagery()
 
     def upd_from_imagery(self, *args):
-        stackh = 0
-        imagery = self.imagery
         branch = self.closet.branch
         tick = self.closet.tick
-        get_tex = self.closet.get_texture
-        h = 0
-        w = 0
-        for layer in imagery:
-            bone = imagery[layer][branch][tick]
-            tex = get_tex(bone.img)
-            (xw, xh) = (tex.width + bone.off_x,
-                        tex.height + bone.off_y + stackh)
-            if xw > w:
-                w = xw
-            if xh > h:
-                h = xh
-            imgbone = self.closet.skeleton[u"img"][bone.img]
-            for extensible in (self.textures, self.xoffs, self.yoffs):
-                while len(extensible) <= bone.layer:
-                    extensible.append(None)
-            self.textures[layer] = tex
-            self.xoffs[layer] = bone.off_x
-            self.yoffs[layer] = bone.off_y + stackh
-            stackh += imgbone.stacking_height
         self.clear_widgets()
-        i = 0
-        for tex in self.textures:
-            self.add_widget(ImgPileImg(
-                pile=self, layer=i))
-            i += 1
-        self.size = (xw, xh)
+        for layer in self.imagery:
+            bone = self.imagery[layer][branch][tick]
+            imgbone = self.closet.skeleton[u"img"][bone.img]
+            tex = self.closet.get_texture(bone.img)
+            self.append(tex, bone.off_x, bone.off_y, imgbone.stacking_height)
