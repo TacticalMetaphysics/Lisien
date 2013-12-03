@@ -2,10 +2,11 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 
 #: import solarized LiSE.gui.style.solarized
-<Swatch>:
+<TogSwatch, FrobSwatch>:
     text_size: (self.width, self.height * 0.9)
     halign: 'center'
     multiline: True
+    on_press: self.box.selection.append
     BoxLayout:
         pos: root.pos
         size: root.size
@@ -57,15 +58,18 @@
     do_rotation: False
     do_scale: False
     interactivity: self.board.closet.skeleton[u"pawn_interactive"][unicode(self.board)][unicode(self.thing)]
-    ImgPile:
+    LayerImgPile:
         id: pile
-        imagery: root.board.closet.skeleton[u"pawn_img"][unicode(root.board)][unicode(root.thing)]
         closet: root.board.closet
+        imagery: root.board.closet.skeleton[u"pawn_img"][unicode(root.board)][unicode(root.thing)]
 <ImgPileImg>:
     texture: self.pile.textures[self.layer]
     x: self.pile.xoffs[self.layer]
-    y: self.pile.yoffs[self.layer]
+    y: self.pile.yoffs[self.layer] + sum(self.pile.stackhs[:self.layer])
     size: self.pile.textures[self.layer].size
+<ImgPile>:
+    width: max([self.textures[i].width + self.xoffs[i] for i in xrange(0, len(self.textures))]) if len(self.textures) > 0 else 0
+    height: max([self.textures[i].height + self.yoffs[i] + sum(self.stackhs[:i]) for i in xrange(0, len(self.textures))]) if len(self.textures) > 0 else 0
 <Spot>:
     size_hint: (None, None)
     size: pile.size
@@ -73,10 +77,10 @@
     interactivity: self.board.closet.skeleton[u"spot_interactive"][unicode(self.board)][unicode(self.place)]
     do_scale: False
     auto_bring_to_front: False
-    ImgPile:
+    LayerImgPile:
         id: pile
-        imagery: root.board.closet.skeleton[u"spot_img"][unicode(root.board)][unicode(root.place)]
         closet: root.board.closet
+        imagery: root.board.closet.skeleton[u"spot_img"][unicode(root.board)][unicode(root.place)]
 <ColorBox>:
     canvas:
         Color:

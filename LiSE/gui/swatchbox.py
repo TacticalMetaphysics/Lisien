@@ -3,6 +3,7 @@
 """A graphical selector for "swatches"."""
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.label import Label
 from kivy.properties import (
@@ -11,11 +12,19 @@ from kivy.properties import (
     ObjectProperty)
 
 
-class Swatch(ToggleButton):
+class TogSwatch(ToggleButton):
     """A :class:`ToggleButton` that contains both an :class:`Image` and
     some text."""
+    box = ObjectProperty()
+    """The :class:`SwatchBox` that I belong to."""
     display_texture = ObjectProperty()
     """The ``texture`` of the :class:`Image` to show."""
+
+
+class FrobSwatch(Button):
+    box = ObjectProperty()
+    """The :class:`SwatchBox` that I belong to."""
+    display_texture = ObjectProperty()
 
 
 class SwatchBox(ScrollView):
@@ -24,14 +33,7 @@ class SwatchBox(ScrollView):
     get_tex = ObjectProperty()
     cattexlst = ListProperty()
     finality = NumericProperty(0)
-
-    def gen_selection(self):
-        """Generator for all those :class:`Swatch` which are pressed
-        at the moment."""
-        for layout in self.cat_layouts:
-            for swatch in layout.children:
-                if swatch.state == 'down':
-                    yield swatch
+    selection = ListProperty([])
 
     def on_get_tex(self, i, v):
         """Increment finality counter."""
@@ -69,11 +71,18 @@ class SwatchBox(ScrollView):
             root.add_widget(layout)
             for imgname in imgnames:
                 if catname[0] == '!':
-                    swatch = Swatch(
+                    swatch = TogSwatch(
+                        box=self,
+                        display_texture=self.get_tex(imgname),
+                        text=imgname)
+                elif catname[0] == '?':
+                    swatch = FrobSwatch(
+                        box=self,
                         display_texture=self.get_tex(imgname),
                         text=imgname)
                 else:
-                    swatch = Swatch(
+                    swatch = TogSwatch(
+                        box=self,
                         display_texture=self.get_tex(imgname),
                         text=imgname,
                         group=catname)
