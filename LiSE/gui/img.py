@@ -72,7 +72,7 @@ class Img(object):
         + ", ".join([imgvalfmt.format(
             name,
             sep.join(
-                ["gui", "assets"] + path), rltile, stackh)
+                ["gui", "assets"] + path), rltile, stackh / 3)
             for (name, path, rltile, stackh) in imgrows]),
         "INSERT INTO img_tag (img, tag) VALUES "
         + ", ".join([tagvalfmt.format(img, tag)
@@ -82,10 +82,10 @@ class Img(object):
          {"name": "text not null",
           "path": "text not null",
           "rltile": "boolean not null DEFAULT 0",
-          "stacking_height": "integer not null default 0"},
+          "stacking_height": "float not null default 0.0"},
          ("name",),
          {},
-         ["stacking_height >= 0"]),
+         ["stacking_height >= 0.0"]),
         ("img_tag",
          {"img": "text not null",
           "tag": "text not null"},
