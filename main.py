@@ -4,7 +4,6 @@ from LiSE import __path__
 from LiSE import closet
 from LiSE.gui.app import LiSEApp
 from sys import argv
-from sqlite3 import connect, DatabaseError
 from os.path import abspath
 
 
@@ -34,29 +33,6 @@ def lise():
         elif arg[-4:] == "lise":
             dbfn = arg
         i += 1
-
-    if dbfn is None:
-        dbfn = "default.lise"
-
-    try:
-        conn = connect(dbfn)
-        i = 0
-        for stmt in conn.iterdump():
-            i += 1
-            if i > 3:
-                break
-        if i < 3:
-            conn.close()
-            closet.mkdb(dbfn, __path__[-1])
-        else:
-            try:
-                conn.cursor().execute("SELECT * FROM game;")
-                conn.close()
-            except DatabaseError:
-                exit("The database contains data that does not "
-                     "conform to the expected schema.")
-    except IOError:
-        closet.mkdb(dbfn, __path__[-1])
 
     print("Starting LiSE with database {}, language {}, path {}".format(
         dbfn, lang, __path__[-1]))

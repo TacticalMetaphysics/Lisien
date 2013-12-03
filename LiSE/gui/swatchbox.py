@@ -21,7 +21,7 @@ class Swatch(ToggleButton):
 class SwatchBox(ScrollView):
     """A collection of :class:`Swatch` used to select several
     graphics at once."""
-    texdict = ObjectProperty()
+    get_tex = ObjectProperty()
     cattexlst = ListProperty()
     finality = NumericProperty(0)
 
@@ -33,7 +33,7 @@ class SwatchBox(ScrollView):
                 if swatch.state == 'down':
                     yield swatch
 
-    def on_texdict(self, i, v):
+    def on_get_tex(self, i, v):
         """Increment finality counter."""
         self.finality += 1
 
@@ -58,7 +58,7 @@ class SwatchBox(ScrollView):
         self.cat_layouts = []
         i = 0
         for (catname, imgnames) in self.cattexlst:
-            l = Label(text=catname)
+            l = Label(text=catname.strip('!'))
             root.add_widget(l)
             root.rows_minimum[i] = l.font_size
             i += 1
@@ -68,10 +68,15 @@ class SwatchBox(ScrollView):
             self.cat_layouts.append(layout)
             root.add_widget(layout)
             for imgname in imgnames:
-                swatch = Swatch(
-                    display_texture=self.texdict[imgname],
-                    text=imgname,
-                    group=catname)
+                if catname[0] == '!':
+                    swatch = Swatch(
+                        display_texture=self.get_tex(imgname),
+                        text=imgname)
+                else:
+                    swatch = Swatch(
+                        display_texture=self.get_tex(imgname),
+                        text=imgname,
+                        group=catname)
                 layout.add_widget(swatch)
             root.rows_minimum[i] = 100 * (len(layout.children) / layout.cols)
             i += 1

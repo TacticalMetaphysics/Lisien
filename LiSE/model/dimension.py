@@ -133,7 +133,6 @@ this dimension, and laid out nicely."""
                 return self.make_place(iname)
 
     def make_place(self, name):
-        assert(name[:5] != "Place")
         i = len(self.graph.vs)
         self.graph.add_vertex(name=name)
         return Place(self, self.graph.vs[i])

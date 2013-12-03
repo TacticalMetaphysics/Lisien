@@ -40,6 +40,7 @@ class Arrow(Widget):
 
         """
         Widget.__init__(self, **kwargs)
+        self.board.arrowdict[unicode(self.portal)] = self
         self.upd_pos_size()
         orign = unicode(self.portal.origin)
         destn = unicode(self.portal.destination)

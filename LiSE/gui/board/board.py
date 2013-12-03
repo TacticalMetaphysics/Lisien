@@ -36,8 +36,6 @@ class Board(ScrollView):
     pawndict = DictProperty({})
     arrowdict = DictProperty({})
     bone = ObjectProperty()
-    offx = NumericProperty(0)
-    offy = NumericProperty(0)
     content = ObjectProperty(None)
     completion = NumericProperty(0)
 
@@ -81,7 +79,6 @@ class Board(ScrollView):
                     "spot_coords"][unicode(self.dimension)].iterbones():
                 place = self.dimension.get_place(bone.place)
                 spot = Spot(board=self, place=place)
-                self.spotdict[unicode(place)] = spot
         if (
                 "pawn_img" in self.closet.skeleton and
                 unicode(self.dimension) in self.dimension.closet.skeleton[
@@ -90,10 +87,8 @@ class Board(ScrollView):
                     "pawn_img"][unicode(self.dimension)].iterbones():
                 thing = self.dimension.get_thing(bone.thing)
                 pawn = Pawn(board=self, thing=thing)
-                self.pawndict[unicode(thing)] = pawn
         for portal in self.dimension.portals:
             arrow = Arrow(board=self, portal=portal)
-            self.arrowdict[unicode(portal)] = arrow
             content.add_widget(arrow)
         for spot in self.spotdict.itervalues():
             content.add_widget(spot)

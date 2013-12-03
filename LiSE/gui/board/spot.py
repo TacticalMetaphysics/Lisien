@@ -3,11 +3,9 @@
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass)
 from kivy.properties import (
-    BooleanProperty,
     NumericProperty,
     ObjectProperty)
 from kivy.uix.scatter import Scatter
-from kivy.clock import Clock
 
 
 """Widgets to represent places. Pawns move around on top of these."""
@@ -64,6 +62,10 @@ class Spot(Scatter):
     cheatx = NumericProperty(0)
     cheaty = NumericProperty(0)
 
+    def __init__(self, **kwargs):
+        super(Spot, self).__init__(**kwargs)
+        self.board.spotdict[unicode(self.place)] = self
+
     def __str__(self):
         """Return the name of my :class:`Place`."""
         return str(self.place)
@@ -71,6 +73,9 @@ class Spot(Scatter):
     def __unicode__(self):
         """Return the name of my :class:`Place`."""
         return unicode(self.place)
+
+    def on_board(self, i, v):
+        self.completedness += 1
 
     def on_interactivity(self, i, v):
         """Count toward completion"""
@@ -82,7 +87,7 @@ class Spot(Scatter):
 
     def on_completedness(self, i, v):
         """If completed, trigger ``self.finalize``"""
-        if v == 2:
+        if v == 3:
             self.board.closet.branch_listeners.append(self.repos)
             self.board.closet.tick_listeners.append(self.repos)
             self.repos()
@@ -181,12 +186,17 @@ class Spot(Scatter):
             tick = self.board.closet.tick
         return self.coords[branch].value_during(tick)
 
-    def get_coords(self, branch=None, tick=None):
+    def get_coords(self, branch=None, tick=None, default=None):
         """Return a pair of coordinates for where I should be on my board,
         either now, or at the given point in time.
 
         """
-        bone = self.get_coord_bone(branch, tick)
+        try:
+            bone = self.get_coord_bone(branch, tick)
+        except KeyError:
+            if default is not None:
+                self.set_coords(*default)
+                return default
         if bone is None:
             return None
         else:
@@ -247,21 +257,6 @@ class Spot(Scatter):
         self.new_branch_interactivity(parent, branch, tick)
         self.new_branch_coords(parent, branch, tick)
 
-    def get_image_bone(self, branch=None, tick=None):
-        """Get a :class:`Bone` with imagery data."""
-        if branch is None:
-            branch = self.board.closet.branch
-        if tick is None:
-            tick = self.board.closet.tick
-        imagery = self.board.closet.skeleton[u"spot_img"][
-            unicode(self.board)][unicode(self.place)]
-        if branch not in imagery:
-            return None
-        r = imagery[branch].value_during(tick)
-        if r.img in ("", None):
-            return None
-        return r
-
     def new_branch_imagery(self, parent, branch, tick):
         """Copy imagery data from the parent branch to the child, as of the
         given tick.
@@ -271,21 +266,23 @@ class Spot(Scatter):
         started = False
         imagery = self.board.closet.skeleton[u"spot_img"][
             unicode(self.board.dimension)][unicode(self.place)]
-        for tick_from in imagery[parent]:
-            if tick_from >= tick:
-                b2 = imagery[parent][tick_from]._replace(branch=branch)
-                if branch not in imagery:
-                    imagery[branch] = {}
-                imagery[branch][b2.tick_from] = b2
-                if (
-                        not started and prev is not None and
-                        tick_from > tick and prev < tick):
-                    b3 = imagery[parent][prev].replace(
-                        branch=branch,
-                        tick_from=tick)
-                    imagery[branch][b3.tick_from] = b3
-                started = True
-            prev = tick_from
+        for layer in imagery:
+            for tick_from in imagery[layer][parent]:
+                if tick_from >= tick:
+                    b2 = imagery[layer][parent][
+                        tick_from]._replace(branch=branch)
+                    if branch not in imagery[layer]:
+                        imagery[layer][branch] = {}
+                    imagery[layer][branch][b2.tick_from] = b2
+                    if (
+                            not started and prev is not None and
+                            tick_from > tick and prev < tick):
+                        b3 = imagery[layer][parent][prev].replace(
+                            branch=branch,
+                            tick_from=tick)
+                        imagery[layer][branch][b3.tick_from] = b3
+                    started = True
+                prev = tick_from
 
     def on_touch_up(self, touch):
         """If this is the end of a drag, set my coordinates to wherever I've

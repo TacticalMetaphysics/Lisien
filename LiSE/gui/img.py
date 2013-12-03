@@ -16,6 +16,11 @@ imgrows = [
     ('default_pawn', ['rltiles', 'hominid', 'unseen.bmp'], 1, 0),
     ('enter_shop', ['rltiles', 'enter_shop.bmp'], 1, 0),
     ('house', ['pixel-city', 'house.png'], 0, 0),
+    ('tile-flat', ['pixel-city', 'tile-flat.png'], 0, 5),
+    ('block', ['pixel-city', 'tile-block.png'], 0, 13),
+    ('bldg-brown', ['pixel-city', 'bldg-brown.png'], 0, 8),
+    ('bldg-orange', ['pixel-city', 'bldg-orange.png'], 0, 8),
+    ('bldg-red', ['pixel-city', 'bldg-red.png'], 0, 8),
     ('bldg-light', ['pixel-city', 'bldg-light.png'], 0, 5),
     ('bldg-lightest', ['pixel-city', 'bldg-lightest.png'], 0, 7),
     ('bldg-ground', ['pixel-city', 'bldg-ground.png'], 0, 6),
@@ -40,9 +45,13 @@ path given in the 1th format argument.
 
 """
 
-tagrows = [
-    ('enter_shop', 'spot'),
-    ('house', 'spot')]
+spot_imgs = ('bldg-dark', 'bldg-darker', 'bldg-darkest',
+             'bldg-light', 'bldg-lightest', 'bldg-brown',
+             'bldg-orange', 'bldg-red', 'bldg-ground',
+             'tile-flat', 'block', 'house')
+
+
+tagrows = [(img, 'spot') for img in spot_imgs]
 
 
 tagvalfmt = "('{}', '{}')"
