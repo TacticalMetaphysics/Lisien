@@ -156,6 +156,11 @@ return True in that case."""
 class CharSheetView(ScrollView):
     character = ObjectProperty()
 
+    def on_touch_down(self, touch):
+        if self.collide_point(touch.x, touch.y):
+            touch.ud["charsheet"] = self.children[0]
+        return super(CharSheetView, self).on_touch_down(touch)
+
     def on_touch_up(self, touch):
         if "charsheet" in touch.ud:
             del touch.ud["charsheet"]

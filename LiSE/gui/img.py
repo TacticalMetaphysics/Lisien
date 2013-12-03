@@ -67,6 +67,7 @@ class Img(object):
 
     """
     __metaclass__ = SaveableMetaclass
+    # I'm not sure why, but a pixel in Kivy is three in the .png
     postlude = [
         "INSERT INTO img (name, path, rltile, stacking_height) VALUES "
         + ", ".join([imgvalfmt.format(
