@@ -145,6 +145,8 @@ OpenSimulator.
 # License Information
 wallpape.jpg is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stuff/), freely available under the terms of [Creative Commons BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 
+LiSE currently has two graphics sets, the [RLTiles](http://rltiles.sourceforge.net/) and [Pixel City](http://opengameart.org/content/pixel-city), both available under [CC0](http://creativecommons.org/publicdomain/zero/1.0/), being in the public domain where it exists.
+
 igraph and python-igraph are freely available under the [MIT license](http://opensource.org/licenses/MIT).
 
 The icons are [Entypo](http://entypo.com/), in the file Entypo.ttf, freely available at under the terms of [Creative Commons BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/).
