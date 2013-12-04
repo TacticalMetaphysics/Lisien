@@ -152,6 +152,8 @@ and charsheets.
         self._popups.pop().dismiss()
 
     def new_spot_with_swatches(self, swatches):
+        if len(swatches) < 1:
+            return
         self.display_prompt(self.board.closet.get_text("@putplace"))
         Clock.schedule_once(self.dismiss_prompt, 5)
         place = self.board.closet.make_generic_place(self.board.dimension)

@@ -190,15 +190,14 @@ values""".format(clas)
                 "_unpack": _unpack}
         atts.update(attrs)
         i = 0
-        if "_fields" in atts:
-            for (field_name, field_type, default) in atts["_field_decls"]:
-                atts["_fields"].append(field_name)
-                atts[field_name] = property(
-                    itemgetter(i),
-                    doc="Alias for field number {}".format(i))
-                atts["_types"][field_name] = field_type
-                atts["_defaults"][field_name] = default
-                i += 1
+        for (field_name, field_type, default) in atts["_field_decls"]:
+            atts["_fields"].append(field_name)
+            atts[field_name] = property(
+                itemgetter(i),
+                doc="Alias for field number {}".format(i))
+            atts["_types"][field_name] = field_type
+            atts["_defaults"][field_name] = default
+            i += 1
         return type.__new__(metaclass, clas, parents, atts)
 
 

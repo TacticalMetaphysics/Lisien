@@ -16,7 +16,9 @@ whole_imgrows = [
     ('default_pawn', ['rltiles', 'hominid', 'unseen.bmp'], 1, 4, 8, 0)]
 
 
-whole_img_val_fmt = "('{0}', '" + abspath(__path__[-1]) + sep + "gui" + sep + "assets" + sep + "{1}', {2}, {3}, {4}, {5})"
+whole_img_val_fmt = (
+    "('{0}', '" + abspath(__path__[-1]) + sep + "gui" + sep +
+    "assets" + sep + "{1}', {2}, {3}, {4}, {5})")
 """A format string in which to insert values from `imgrows` to make
 their relative paths absolute.
 

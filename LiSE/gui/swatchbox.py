@@ -43,8 +43,7 @@ class FrobSwatch(Button):
     stackh = NumericProperty()
 
     def on_release(self):
-        if self not in self.box.selection:
-            self.box.selection.append(self)
+        self.box.selection.append(self)
 
 
 class SwatchBox(ScrollView):
@@ -74,17 +73,24 @@ class SwatchBox(ScrollView):
             self.finalize()
 
     def on_selection(self, i, v):
-        if len(v) > i.sellen:
+        lv = len(v)
+        if lv > i.sellen:
             self.pile.append(
                 v[-1].display_texture, v[-1].xoff,
                 v[-1].yoff, v[-1].stackh)
-        elif len(v) < i.sellen:
-            self.pile.pop()
-        i.sellen = len(v)
+        elif lv < i.sellen:
+            try:
+                self.pile.pop()
+            except IndexError:
+                pass
+        i.sellen = lv
 
     def undo(self, *args):
-        swatch = self.selection.pop()
-        swatch.state = 'normal'
+        try:
+            swatch = self.selection.pop()
+            swatch.state = 'normal'
+        except IndexError:
+            pass
 
     def finalize(self):
         """For each category in ``cattexlst``, construct a grid of grouped
