@@ -837,9 +837,10 @@ subdirectory therein."""
 
         """
         for bmp in recurse_rltiles(dirname):
-            qrystr = "insert into img (name, path, rltile) values (?, ?, ?)"
+            qrystr = "insert into img (name, path, rltile, " \
+                     "off_x, off_y) values (?, ?, ?, ?, ?)"
             name = bmp.replace(dirname, '').strip(os.sep)
-            curs.execute(qrystr, (name, bmp, True))
+            curs.execute(qrystr, (name, bmp, True, 4, 8))
             tags = name.split(os.sep)[:-1]
             qrystr = "insert into img_tag (img, tag) values (?, ?)"
             for tag in tags:

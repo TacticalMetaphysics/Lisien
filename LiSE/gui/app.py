@@ -1,8 +1,9 @@
-from os import sep
+from os import sep, remove
 
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
+    BooleanProperty,
     ObjectProperty,
     ListProperty,
     StringProperty)
@@ -10,7 +11,7 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import Image
 from kivy.uix.popup import Popup
 from kivy.uix.scatter import Scatter
-from kivy.uix.textinput import TextInput
+from kivy.uix.widget import Widget
 from kivy.factory import Factory
 
 from sqlite3 import connect, DatabaseError
@@ -27,7 +28,7 @@ from LiSE import (
 Factory.register('SwatchBox', cls=SwatchBox)
 
 
-class CueCard(TextInput):
+class CueCard(Widget):
     """Widget that looks like TextInput but doesn't take input and can't be
 clicked.
 
@@ -35,6 +36,8 @@ This is used to display feedback to the user when it's not serious
 enough to get a popup of its own.
 
     """
+    text = StringProperty()
+
     def on_touch_down(self, touch):
         return
 
@@ -170,9 +173,7 @@ and charsheets.
         if branch not in skeleton[u"spot_coords"][dimn][placen]:
             skeleton[u"spot_coords"][dimn][placen][branch] = []
         i = 0
-        stackh = 0
         for swatch in swatches:
-            img_bone = skeleton[u"img"][swatch.text]
             if i not in skeleton[u"spot_img"][dimn][placen]:
                 skeleton[u"spot_img"][dimn][placen][i] = []
             if branch not in skeleton[u"spot_img"][dimn][placen][i]:
@@ -186,8 +187,7 @@ and charsheets.
                 tick_from=tick,
                 img=swatch.text,
                 off_x=0,
-                off_y=stackh)
-            stackh += img_bone.stacking_height
+                off_y=0)
             i += 1
         skeleton[u"spot_interactive"][dimn][placen][branch][
             tick] = Spot.bonetypes.spot_interactive(
@@ -231,12 +231,12 @@ the user to place it, and dismiss the popup."""
 
         """
         cattexlst = [
-            (cat, sorted(self.board.closet.textagdict[cat.strip("!")]))
+            (cat, sorted(self.board.closet.textagdict[cat.strip("!?")]))
             for cat in categories]
         dialog = PickImgDialog(
             set_imgs=self.new_spot_with_swatches,
             cancel=self.dismiss_popup)
-        dialog.ids.picker.get_tex = self.board.closet.get_texture
+        dialog.ids.picker.closet = self.board.closet
         dialog.ids.picker.cattexlst = cattexlst
         self._popups.append(Popup(
             title="Select graphics",
@@ -255,7 +255,7 @@ the user to place it, and dismiss the popup."""
         dialog = PickImgDialog(
             set_imgs=self.new_pawn_with_swatches,
             cancel=self.dismiss_popup)
-        dialog.ids.picker.texdict = self.board.closet.texturedict
+        dialog.ids.picker.closet = self.board.closet
         dialog.ids.picker.cattexlst = cattexlst
         self._popups.append(Popup(
             title="Select some images",
@@ -286,6 +286,8 @@ class LiSEApp(App):
     menu_name = StringProperty()
     dimension_name = StringProperty()
     character_name = StringProperty()
+    debug = BooleanProperty(False)
+    logfile = StringProperty('')
 
     def build(self):
         """Make sure I can use the database, create the tables as needed, and
@@ -294,6 +296,9 @@ class LiSEApp(App):
             self.dbfn = self.user_data_dir + sep + "default.lise"
             print("No database specified; defaulting to {}".format(self.dbfn))
         try:
+            if self.debug:
+                # always want a fresh db for debug
+                remove(self.dbfn)
             conn = connect(self.dbfn)
             i = 0
             for stmt in conn.iterdump():

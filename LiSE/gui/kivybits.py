@@ -1,7 +1,7 @@
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.core.image import ImageData
 from kivy.uix.image import Image
 from kivy.uix.widget import (
-    Widget,
     WidgetMetaclass)
 from kivy.properties import (
     NumericProperty,
@@ -48,12 +48,20 @@ def load_textures(cursor, skel, texturedict, textagdict, names):
                 u"img_tag": [Img.bonetypes.img_tag(img=n) for n in names]}))
     r = {}
     for name in names:
-        if skel[u"img"][name].rltile:
-            rltex = load_rltile(skel[u"img"][name].path)
-            r[name] = rltex
+        bone = skel[u"img"][name]
+        if bone.rltile:
+            tex = load_rltile(skel[u"img"][name].path)
         else:
-            r[name] = Image(
+            tex = Image(
                 source=skel[u"img"][name].path).texture
+        w = bone.cut_w
+        h = bone.cut_h
+        if w is None:
+            w = tex.width - bone.cut_x
+        if h is None:
+            h = tex.height - bone.cut_y
+        r[name] = tex.get_region(
+            bone.cut_x, bone.cut_y, w, h)
     texturedict.update(r)
     for (img, tag) in skel[u"img_tag"].iterbones():
         if tag not in textagdict:
@@ -86,35 +94,27 @@ def load_all_textures(cursor, skel, texturedict, textagdict):
         textagdict[tag].add(img)
 
 
-class ImgPileImg(Image):
-    pile = ObjectProperty()
-    layer = NumericProperty()
-
-
-class ImgPile(Widget):
+class ImgPile(RelativeLayout):
     """Several images superimposed, and perhaps offset by differing amounts."""
-    textures = ListProperty([])
     imgs = ListProperty([])
-    xoffs = ListProperty([])
-    yoffs = ListProperty([])
     stackhs = ListProperty([])
 
     def append(self, tex, xoff=0, yoff=0, stackh=0):
-        i = len(self.textures)
-        self.textures.append(tex)
-        self.xoffs.append(xoff)
-        self.yoffs.append(yoff)
+        print("stackh={}".format(stackh))
+        pos = (xoff, yoff+sum(self.stackhs))
+        size = tex.size
+        print("Appending an image of size {} at pos {}".format(size, pos))
+        self.imgs.append(Image(
+            texture=tex,
+            pos=pos,
+            size=size))
+        self.add_widget(self.imgs[-1])
         self.stackhs.append(stackh)
-        self.imgs.append(ImgPileImg(pile=self, layer=i))
-        self.add_widget(self.imgs[i])
 
     def pop(self, i=-1):
-        r = (self.textures.pop(i),
-             self.imgs.pop(i),
-             self.xoffs.pop(i),
-             self.yoffs.pop(i),
-             self.stackhs.pop(i))
-        self.remove_widget(r[1])
+        self.stackhs.pop(i)
+        r = self.imgs.pop(i)
+        self.remove_widget(r)
         return r
 
 
@@ -126,25 +126,16 @@ class LayerImgPile(ImgPile):
     def collide_point(self, x, y):
         (x, y) = self.to_widget(x, y)
         for i in xrange(0, len(self.imagery)):
-            xoff = self.xoffs[i]
-            yoff = self.yoffs[i]
-            tex = self.textures[i]
-            (w, h) = tex.size
-            if (
-                    x > xoff and
-                    y > yoff and
-                    x < xoff + w and
-                    y < yoff + h):
+            img = self.imgs[i]
+            if img.collide_point(x, y):
                 return True
         return False
 
     def on_imagery(self, *args):
         self.completedness += 1
-        print("imagery {}".format(self.completedness))
 
     def on_closet(self, *args):
         self.completedness += 1
-        print("closet {}".format(self.completedness))
 
     def on_completedness(self, i, v):
         if v == 2:
@@ -158,4 +149,5 @@ class LayerImgPile(ImgPile):
             bone = self.imagery[layer][branch][tick]
             imgbone = self.closet.skeleton[u"img"][bone.img]
             tex = self.closet.get_texture(bone.img)
-            self.append(tex, bone.off_x, bone.off_y, imgbone.stacking_height)
+            self.append(tex, imgbone.off_x, imgbone.off_y,
+                        imgbone.stacking_height)

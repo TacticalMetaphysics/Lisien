@@ -1,45 +1,37 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from LiSE import __path__
-from LiSE import closet
 from LiSE.gui.app import LiSEApp
 from sys import argv
 from os.path import abspath
+from os import environ
 
 
 def lise():
-    i = 0
+    print(argv)
     lang = "eng"
     dbfn = None
-    debugfn = ""
-    DEBUG = False
-    for arg in argv:
-        if arg == "-l":
-            try:
-                lang = argv[i + 1]
-            except:
-                raise ValueError("Couldn't parse language")
-        elif arg == "-d":
-            DEBUG = True
-        elif DEBUG:
-            debugfn = arg
-            try:
-                df = open(debugfn, 'w')
-                df.write('--begin debug file for LiSE--\n')
-                df.close()
-            except IOError:
-                exit("Couldn't write to the debug log file "
-                     "\"{}\".".format(debugfn))
-        elif arg[-4:] == "lise":
-            dbfn = arg
-        i += 1
+    if "LISEDEBUG" in environ:
+        debugfn = environ['LISEDEBUG']
+        DEBUG = True
+    else:
+        debugfn = ""
+        DEBUG = False
+
+    if "LISELANG" in environ:
+        lang = environ["LISELANG"]
+    else:
+        lang = "eng"
+
+    if argv[-1][-4:] == "lise":
+        dbfn = argv[-1]
 
     print("Starting LiSE with database {}, language {}, path {}".format(
         dbfn, lang, __path__[-1]))
 
-    LiSEApp(dbfn=dbfn, lang=lang,
+    LiSEApp(dbfn=dbfn, lang=lang, debug=DEBUG,
             lise_path=abspath(__path__[-1]),
-            menu_name='Main',
+            logfile=debugfn, menu_name='Main',
             dimension_name='Physical',
             character_name='household').run()
 
