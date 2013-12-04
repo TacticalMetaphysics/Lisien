@@ -11,6 +11,8 @@ from kivy.properties import (
     NumericProperty,
     ObjectProperty)
 
+from LiSE.gui.kivybits import ImgPile
+
 
 class TogSwatch(ToggleButton):
     """A :class:`ToggleButton` that contains both an :class:`Image` and
@@ -19,23 +21,42 @@ class TogSwatch(ToggleButton):
     """The :class:`SwatchBox` that I belong to."""
     display_texture = ObjectProperty()
     """The ``texture`` of the :class:`Image` to show."""
+    xoff = NumericProperty()
+    yoff = NumericProperty()
+    stackh = NumericProperty()
+    """When showing a preview of stacked images, mine will be regarded as
+this tall."""
+
+    def on_state(self, i, v):
+        if v == 'down':
+            self.box.selection.append(self)
+        else:
+            self.box.selection.remove(self)
 
 
 class FrobSwatch(Button):
     box = ObjectProperty()
     """The :class:`SwatchBox` that I belong to."""
     display_texture = ObjectProperty()
+    xoff = NumericProperty()
+    yoff = NumericProperty()
+    stackh = NumericProperty()
+
+    def on_release(self):
+        if self not in self.box.selection:
+            self.box.selection.append(self)
 
 
 class SwatchBox(ScrollView):
     """A collection of :class:`Swatch` used to select several
     graphics at once."""
-    get_tex = ObjectProperty()
+    closet = ObjectProperty()
     cattexlst = ListProperty()
     finality = NumericProperty(0)
     selection = ListProperty([])
+    sellen = NumericProperty(0)
 
-    def on_get_tex(self, i, v):
+    def on_closet(self, i, v):
         """Increment finality counter."""
         self.finality += 1
 
@@ -52,15 +73,35 @@ class SwatchBox(ScrollView):
         if v == 3:
             self.finalize()
 
+    def on_selection(self, i, v):
+        if len(v) > i.sellen:
+            self.pile.append(
+                v[-1].display_texture, v[-1].xoff,
+                v[-1].yoff, v[-1].stackh)
+        elif len(v) < i.sellen:
+            self.pile.pop()
+        i.sellen = len(v)
+
+    def undo(self, *args):
+        swatch = self.selection.pop()
+        swatch.state = 'normal'
+
     def finalize(self):
-        """For each category in ``cattexdict``, construct a grid of grouped
+        """For each category in ``cattexlst``, construct a grid of grouped
         Swatches displaying the images therein."""
         root = GridLayout(cols=1, size_hint_y=None)
         self.add_widget(root)
+        head = GridLayout(cols=2, size_hint_y=None)
+        self.undo_button = Button(text="Undo", on_release=self.undo)
+        self.pile = ImgPile()
+        head.add_widget(self.pile)
+        head.add_widget(self.undo_button)
+        root.add_widget(head)
+        root.rows_minimum[0] = 100
         self.cat_layouts = []
-        i = 0
+        i = 1
         for (catname, imgnames) in self.cattexlst:
-            l = Label(text=catname.strip('!'))
+            l = Label(text=catname.strip('!?'))
             root.add_widget(l)
             root.rows_minimum[i] = l.font_size
             i += 1
@@ -70,22 +111,22 @@ class SwatchBox(ScrollView):
             self.cat_layouts.append(layout)
             root.add_widget(layout)
             for imgname in imgnames:
+                tex = self.closet.get_texture(imgname)
+                imgbone = self.closet.skeleton[u"img"][imgname]
+                kwargs = {
+                    'box': self,
+                    'display_texture': tex,
+                    'xoff': imgbone.off_x,
+                    'yoff': imgbone.off_y,
+                    'stackh': imgbone.stacking_height,
+                    'text': imgname}
                 if catname[0] == '!':
-                    swatch = TogSwatch(
-                        box=self,
-                        display_texture=self.get_tex(imgname),
-                        text=imgname)
+                    swatch = TogSwatch(**kwargs)
                 elif catname[0] == '?':
-                    swatch = FrobSwatch(
-                        box=self,
-                        display_texture=self.get_tex(imgname),
-                        text=imgname)
+                    swatch = FrobSwatch(**kwargs)
                 else:
-                    swatch = TogSwatch(
-                        box=self,
-                        display_texture=self.get_tex(imgname),
-                        text=imgname,
-                        group=catname)
+                    kwargs['group'] = catname
+                    swatch = TogSwatch(**kwargs)
                 layout.add_widget(swatch)
             root.rows_minimum[i] = 100 * (len(layout.children) / layout.cols)
             i += 1
