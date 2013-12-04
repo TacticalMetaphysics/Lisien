@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from array import array
 import struct
 from collections import (
     MutableMapping,
@@ -17,6 +18,11 @@ all game data; and SaveableMetaclass, which generates
 SQL from metadata declared as class atttributes.
 
 """
+
+packed_str_len = 128
+"""When packing a string field of a Bone into a struct, how long
+should the string be made? It will be padded or truncated as
+needed."""
 
 phi = (1.0 + sqrt(5))/2.0
 """The golden ratio."""
@@ -47,6 +53,12 @@ thingex = compile("Thing\((.+?)\)")
 placex = compile("Place\((.+?)\)")
 
 portex = compile("Portal\((.+?)->(.+?)\)")
+
+
+def gen_enough(v, n):
+    """Yield v, n times."""
+    for i in xrange(0, n):
+        yield v
 
 
 def get_bone_during(skel, branch, tick):
@@ -89,8 +101,6 @@ is to make Bones usable in queries.
         """
         def __new__(_cls, *args, **kwargs):
             """Create new instance of {}""".format(clas)
-            if len(args) > 0:
-                return tuple.__new__(_cls, args)
             values = []
             for fieldn in _cls._fields:
                 if fieldn in kwargs:
@@ -100,7 +110,16 @@ is to make Bones usable in queries.
                     values.append(kwargs[fieldn])
                 else:
                     values.append(_cls._defaults[fieldn])
-            return tuple.__new__(_cls, tuple(values))
+            r = tuple.__new__(_cls, tuple(values))
+            return r
+
+        @classmethod
+        def getfmt(cls):
+            return cls.structtyp.format
+
+        @classmethod
+        def getbytelen(cls):
+            return cls.structtyp.size
 
         @classmethod
         def _make(cls, iterable):
@@ -108,54 +127,108 @@ is to make Bones usable in queries.
                 clas)
             return tuple.__new__(cls, iterable)
 
-        @classmethod
-        def getfmt(cls):
-            """Return a format string suitable for the creation of a struct."""
-            fmt = bytearray('@')
-            for (field_name, field_type, default) in cls._field_decls:
-                if field_type in (unicode, str):
-                    fmt.extend('50s')
-                elif field_type is int:
-                    fmt.append('l')
-                elif field_type is float:
-                    fmt.append('d')
-                else:
-                    raise TypeError(
-                        "Trying to make a format string; "
-                        "don't understand the type "
-                        "{}".format(field_type))
-            return str(fmt)
-
         @property
         def packed(self):
             """Return a string of data packed according to self.format."""
-            args = [self.getfmt()]
+            args = []
             for datum in self:
                 if isinstance(datum, unicode):
                     args.append(str(datum))
                 else:
                     args.append(datum)
-            return struct.pack(*args)
+            return self.structtyp.pack(*args)
+
+        def _pack_into(self, arr, i):
+            """Put myself into logical position i of array arr.
+
+            Actual position is determined by multiplying i by my
+            record length.
+
+            """
+            size = self.structtyp.size
+            pos = i * size
+            args = [arr, pos]
+            for field in self._fields:
+                datum = getattr(self, field)
+                if isinstance(datum, unicode):
+                    args.append(str(datum))
+                elif datum is None:
+                    if self._defaults[field] is None:
+                        if self._types[field] in (str, unicode):
+                            args.append('\x00' * packed_str_len)
+                        else:
+                            args.append(0)
+                    else:
+                        args.append(self._defaults[field])
+                else:
+                    args.append(datum)
+            self.structtyp.pack_into(*args)
+
+        def denull(self):
+            """Fill myself with packed data from the string.
+
+            """
+            denulled = {}
+            for field in self._fields:
+                if isinstance(getattr(self, field), str):
+                    denulled[field] = unicode(
+                        getattr(self, field)).replace('\x00', '')
+            return self._replace(**denulled)
 
         @classmethod
         def _unpack(cls, data):
-            """Return a new instance of this class using the packed data in the
-string.
+            return cls(*cls.structtyp.unpack(data)).denull()
+
+        @classmethod
+        def _unpack_from(cls, i, arr):
+            """Return a new instance of {} using the data at the logical
+            position i in array arr.
+
+            i will be multiplied by my record length before unpacking.
 
             """
-            r = cls(*struct.unpack(cls.getfmt(), data))
-            denulled = {}
-            for field in r._fields:
-                if isinstance(getattr(r, field), str):
-                    denulled[field] = unicode(
-                        getattr(r, field)).replace('\x00', '')
-            return r._replace(**denulled)
+            bytelen = cls.structtyp.size
+            pos = i * bytelen
+            raw = zip(cls._fields, cls.structtyp.unpack_from(arr, pos))
+            cooked = {}
+            for (k, v) in raw:
+                if cls._types[k] in (str, unicode):
+                    if v[0] == '\x00':
+                        cooked[k] = None
+                    else:
+                        cooked[k] = v.strip('\x00')
+                else:
+                    cooked[k] = cls._types[k](v)
+            return cls(**cooked)
 
         def __repr__(self):
             """Return a nicely formatted representation string"""
             return "{}({})".format(clas, ", ".join(
                 ["{}={}".format(field, getattr(self, field))
                  for field in self._fields]))
+
+        @classmethod
+        def iter_array(cls, arr):
+            """Iterate over the array, making it look as if it's a mere list of
+            {}.
+
+            """.format(clas)
+            i = 0
+            l = len(arr)
+            while i < l:
+                raw = zip(cls._fields, cls.structtyp.unpack_from(arr, i))
+                # restore nulls where I actually want nulls
+                cooked = {}
+                for (k, v) in raw:
+                    if cls._types[k] in (str, unicode):
+                        if v[0] == '\x00':
+                            cooked[k] = None
+                        else:
+                            cooked[k] = v.strip('\x00')
+                    else:
+                        cooked[k] = cls._types[k](v)
+                yield cls(**cooked)
+                i += cls.size
 
         def _asdict(self):
             """Return a new OrderedDict which maps field names
@@ -186,9 +259,34 @@ values""".format(clas)
                 "_types": {},
                 "_defaults": {},
                 "getfmt": getfmt,
+                "getbytelen": getbytelen,
                 "packed": packed,
-                "_unpack": _unpack}
+                "_unpack": _unpack,
+                "_unpack_from": _unpack_from,
+                "_pack_into": _pack_into,
+                "iter_array": iter_array,
+                "denull": denull}
         atts.update(attrs)
+        if '_no_fmt' not in atts:
+            fmt = bytearray('@')
+            for (field_name, field_type, default) in atts["_field_decls"]:
+                if field_type in (unicode, str):
+                    fmt.extend('{}s'.format(packed_str_len))
+                elif field_type is int:
+                    fmt.append('l')
+                elif field_type is float:
+                    fmt.append('d')
+                elif field_type is bool:
+                    fmt.append('b')
+                else:
+                    raise TypeError(
+                        "Trying to make a format string; "
+                        "don't understand the type "
+                        "{}".format(field_type))
+            atts["structtyp"] = struct.Struct(str(fmt))
+            atts["format"] = atts["structtyp"].format
+            atts["size"] = atts["structtyp"].size
+
         i = 0
         for (field_name, field_type, default) in atts["_field_decls"]:
             atts["_fields"].append(field_name)
@@ -207,7 +305,14 @@ class Bone(tuple):
 
     @classmethod
     def subclass(cls, name, decls):
-        return type(name, (cls,), {"_field_decls": decls})
+        d = {"_field_decls": decls}
+        return type(name, (cls,), d)
+
+    @classmethod
+    def structless_subclass(cls, name, decls):
+        d = {"_field_decls": decls,
+             "_no_fmt": True}
+        return type(name, (cls,), d)
 
 
 class Skeleton(MutableMapping):
@@ -229,7 +334,6 @@ specify them whenever it's reasonably sensible to do so. content is a
 mapping to crib from, parent is who to propagate events to, and name
 is mostly for printing."""
         self.listeners = []
-        self.ikeys = set([])
         self.name = name
         self.parent = parent
         self.content = {}
@@ -240,10 +344,7 @@ is mostly for printing."""
         """Fill myself with content."""
         if content in (None, {}, []):
             return
-        assert(not issubclass(content.__class__, Bone))
-        if isinstance(content, dict):
-            kitr = content.iteritems()
-        elif isinstance(content, self.__class__):
+        if content.__class__ in (dict, self.__class__):
             kitr = content.iteritems()
         else:
             kitr = ListItemIterator(content)
@@ -269,30 +370,48 @@ is mostly for printing."""
             return k in self.ikeys
 
     def __getitem__(self, k):
-        if isinstance(self.content, list) and k not in self.ikeys:
-            raise KeyError("key not in skeleton: {}".format(k))
-        return self.content[k]
+        if isinstance(self.content, list):
+            if k not in self.ikeys:
+                raise KeyError("key not in skeleton: {}".format(k))
+            else:
+                return self.content[k]
+        elif isinstance(self.content, dict):
+            return self.content[k]
+        else:
+            # I'm full of Bones
+            return self.bonetype._unpack_from(k, self.content)
 
     def __setitem__(self, k, v):
-        if hasattr(self, 'bones_only'):
-            if v is not None and not issubclass(v.__class__, Bone):
-                raise TypeError(
-                    "A Skeleton directly containing Bones "
-                    "can't directly contain anything else.")
         if len(self.content) == 0:
-            self.ikeys = set([])
             if isinstance(k, int):
-                self.content = []
-        if isinstance(k, int):
+                self.ikeys = set([])
+                if issubclass(v.__class__, Bone):
+                    self.bonetype = type(v)
+                    self.content = array('c')
+                    self.content.extend(gen_enough(
+                        '\x00', k+1 * v.getbytelen()))
+                else:
+                    self.content = []
+        if isinstance(self.content, list):
             while len(self.content) <= k:
                 self.content.append(None)
+        if hasattr(self, 'ikeys'):
             self.ikeys.add(k)
-        if isinstance(v, self.__class__):
+        if hasattr(self, 'bonetype'):
+            if not isinstance(v, self.bonetype):
+                raise TypeError(
+                    "Skeletons that contain one Bone type may "
+                    "only contain that type.")
+            if len(self.content) <= k * v.size:
+                diff = (k+1) * v.size - len(self.content)
+                self.content.extend(gen_enough(
+                    '\x00', diff))
+            v._pack_into(self.content, k)
+        elif isinstance(v, self.__class__):
             v.name = k
             v.parent = self
             self.content[k] = v
         elif issubclass(v.__class__, Bone):
-            self.bones_only = True
             self.content[k] = v
         else:
             self.content[k] = self.__class__(v, name=k, parent=self)
@@ -336,6 +455,8 @@ is mostly for printing."""
             return len(self.ikeys)
 
     def __repr__(self):
+        if hasattr(self, 'bonetype'):
+            return repr(list(self.bonetype.iter_array(self.content)))
         return repr(self.content)
 
     def __iadd__(self, other):
@@ -425,7 +546,10 @@ is mostly for printing."""
         return self[self.key_or_key_after(k)]
 
     def copy(self):
-        if isinstance(self.content, list):
+        if hasattr(self, 'bonetype'):
+            r = [bone for bone in self.bonetype.iter_array(self.content)]
+            return self.__class__(content=r)
+        elif isinstance(self.content, list):
             r = {}
             for k in self.ikeys:
                 if isinstance(self.content[k], self.__class__):
@@ -476,7 +600,10 @@ is mostly for printing."""
                         content=v, name=k, parent=self)
 
     def iterbones(self):
-        if isinstance(self.content, dict):
+        if hasattr(self, 'bonetype'):
+            for bone in self.bonetype.iter_array(self.content):
+                yield bone
+        elif isinstance(self.content, dict):
             for contained in self.content.itervalues():
                 if issubclass(contained.__class__, Bone):
                     yield contained
@@ -485,17 +612,8 @@ is mostly for printing."""
                         yield bone
         else:
             for i in sorted(self.ikeys):
-                if issubclass(self.content[i].__class__, Bone):
-                    yield self.content[i]
-                else:
-                    for bone in self.content[i].iterbones():
-                        yield bone
-
-    def get_closet(self):
-        ptr = self.parent
-        while isinstance(ptr, self.__class__):
-            ptr = ptr.parent
-        return ptr
+                for bone in self.content[i].iterbones():
+                    yield bone
 
 
 class SaveableMetaclass(type):
@@ -620,14 +738,12 @@ declared in the order they appear in the tables attribute.
             colnames[tablename] = keynames[tablename] + valnames[tablename]
         for tablename in tablenames:
             assert(tablename not in tabclas)
-            bonetypes[tablename] = type(
+            bonetypes[tablename] = Bone.subclass(
                 tablename + "_bone",
-                (Bone,),
-                {"_field_decls": [
-                    (colname,
-                     coltypes[tablename][colname],
-                     coldefaults[tablename][colname])
-                    for colname in colnames[tablename]]})
+                [(colname,
+                  coltypes[tablename][colname],
+                  coldefaults[tablename][colname])
+                 for colname in colnames[tablename]])
             tabclas[tablename] = clas
             provides.add(tablename)
             coldecl = coldecls[tablename]
@@ -912,11 +1028,12 @@ declared in the order they appear in the tables attribute.
                     r[tabn][keyn] = tabd[tabn][keyn]
             return r
 
-        bonetypes = type(clas + '_bonetypes',
-                         (Bone,),
-                         {'_field_decls': [
-                             (tabn, type(bonetypes[tabn]), bonetypes[tabn])
-                             for tabn in tablenames]})()
+        bonetypes = Bone.structless_subclass(
+            clas + '_bonetypes',
+            [(tabn,
+              type(bonetypes[tabn]),
+              bonetypes[tabn])
+             for tabn in tablenames])(bonetypes)
         atrdic = {
             '_select_skeleton': _select_skeleton,
             '_select_table_all': _select_table_all,
@@ -930,23 +1047,19 @@ declared in the order they appear in the tables attribute.
             '_gen_sql_delete': gen_sql_delete,
             '_gen_sql_detect': gen_sql_detect,
             '_gen_sql_missing': gen_sql_missing,
-            'colnames': type(
+            'colnames': Bone.structless_subclass(
                 clas + '_colnames',
-                (Bone,),
-                {'_field_decls': [
-                    (tabn, tuple, tuple(colnames[tabn]))
-                    for tabn in tablenames]})(),
-            'colnamestr': type(
+                [(tabn, tuple, tuple(colnames[tabn]))
+                 for tabn in tablenames]),
+            'colnamestr': Bone.structless_subclass(
                 clas + '_colnamestr',
-                (Bone,),
-                {'_field_decls': [
-                    (tabn, unicode, unicode(colnamestr[tabn]))]})(),
+                [(tabn, unicode, unicode(colnamestr[tabn]))]),
             'colnstr': colnamestr[tablenames[0]],
-            'keynames': Bone.subclass(
+            'keynames': Bone.structless_subclass(
                 clas + '_keynames',
                 [(tabn, tuple, tuple(keynames[tabn]))
                  for tabn in tablenames])(),
-            'valnames': Bone.subclass(
+            'valnames': Bone.structless_subclass(
                 clas + '_valnames',
                 [(tabn, tuple, tuple(valnames[tabn]))
                  for tabn in tablenames])(),
