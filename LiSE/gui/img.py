@@ -11,14 +11,14 @@ from LiSE.util import SaveableMetaclass
 
 
 whole_imgrows = [
-    ('default_wallpaper', ['wallpape.jpg'], 0, 0, 0, 0),
-    ('default_spot', ['orb.png'], 0, 0, 0, 0),
-    ('default_pawn', ['rltiles', 'hominid', 'unseen.bmp'], 1, 4, 8, 0)]
+    ('default_wallpaper', ['wallpape.jpg'], 0),
+    ('default_spot', ['orb.png'], 0),
+    ('default_pawn', ['rltiles', 'hominid', 'unseen.bmp'], 1)]
 
 
 whole_img_val_fmt = (
     "('{0}', '" + abspath(__path__[-1]) + sep + "gui" + sep +
-    "assets" + sep + "{1}', {2}, {3}, {4}, {5})")
+    "assets" + sep + "{1}', {2})")
 """A format string in which to insert values from `imgrows` to make
 their relative paths absolute.
 
@@ -77,10 +77,8 @@ class Img(object):
         "INSERT INTO img (name, path, rltile, off_x, off_y, "
         "stacking_height) VALUES "
         + ", ".join(
-            [whole_img_val_fmt.format(
-                name, sep.join(path), rltile,
-                offx, offy, stackh)
-             for (name, path, rltile, offx, offy, stackh) in whole_imgrows]),
+            [whole_img_val_fmt.format(name, sep.join(path), rltile)
+             for (name, path, rltile) in whole_imgrows]),
         pixel_city_postlude,
         "INSERT INTO img_tag (img, tag) VALUES "
         + ", ".join(["('{}', 'spot')".format(spot) for spot in spot_imgs])]
