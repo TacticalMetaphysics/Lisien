@@ -503,16 +503,6 @@ For more information, consult SaveableMetaclass in util.py.
         dimension.make_thing(thingn, location)
         return dimension.get_thing(thingn)
 
-    def make_spot(self, board, place, x, y):
-        spot = Spot(board, place)
-        if not hasattr(place, 'spots'):
-            place.spots = []
-        while len(place.spots) <= int(board):
-            place.spots.append(None)
-        place.spots[int(board)] = spot
-        spot.set_img(self.imgdict['default_spot'])
-        spot.set_coords(x, y)
-
     def make_portal(self, orig, dest):
         return orig.dimension.make_portal(orig, dest)
 
@@ -628,7 +618,7 @@ For more information, consult SaveableMetaclass in util.py.
         self.skeleton.update(Board._select_skeleton(self.c, {
             "board": [Board.bonetype(dimension=name)]}))
         self.skeleton.update(Spot._select_skeleton(self.c, {
-            "spot_img": [Spot.bonetypes.spot_img(dimension=name)],
+            "spot_img": [Spot.bonetypes.spot_img(dimension=name, layer=None)],
             "spot_interactive": [Spot.bonetypes.spot_interactive(
                 dimension=name)],
             "spot_coords": [Spot.bonetypes.spot_coords(dimension=name)]}))
