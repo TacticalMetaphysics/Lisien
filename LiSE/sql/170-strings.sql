@@ -26,6 +26,8 @@ INSERT INTO strings (stringname, string) VALUES
 ('tick', 'Tick'),
 ('putthing', 'Drag this thing to where you want it.'),
 ('putplace', 'Drag this place where you want it.'),
+('putportalfrom', 'Where should the portal originate?'),
+('putportalto', 'Where does the portal lead?'),
 ('play', '▶'),
 ('reverse', ''),
 ('forward', ''),

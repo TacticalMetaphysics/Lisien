@@ -11,6 +11,55 @@ from kivy.uix.widget import Widget
 from kivy.properties import ObjectProperty
 
 
+def get_points(ox, orx, oy, ory, dx, drx, dy, dry, taillen):
+    ox += orx
+    oy += ory
+    dx += drx
+    dy += dry
+    if drx > dry:
+        dr = drx
+    else:
+        dr = dry
+    if dy < oy:
+        yco = -1
+    else:
+        yco = 1
+    if dx < ox:
+        xco = -1
+    else:
+        xco = 1
+    (leftx, boty, rightx, topy) = truncated_line(
+        float(ox * xco), float(oy * yco),
+        float(dx * xco), float(dy * yco),
+        dr + 1)
+    rise = topy - boty
+    run = rightx - leftx
+    if rise == 0:
+        xoff1 = cos(fortyfive) * taillen
+        yoff1 = xoff1
+        xoff2 = xoff1
+        yoff2 = -1 * yoff1
+    elif run == 0:
+        xoff1 = sin(fortyfive) * taillen
+        yoff1 = xoff1
+        xoff2 = -1 * xoff1
+        yoff2 = yoff1
+    else:
+        (xoff1, yoff1, xoff2, yoff2) = wedge_offsets_rise_run(
+            rise, run, taillen)
+    x1 = (rightx - xoff1) * xco
+    x2 = (rightx - xoff2) * xco
+    y1 = (topy - yoff1) * yco
+    y2 = (topy - yoff2) * yco
+    endx = rightx * xco
+    endy = topy * yco
+    r = [ox, oy,
+         endx, endy, x1, y1,
+         endx, endy, x2, y2,
+         endx, endy]
+    return r
+
+
 class Arrow(Widget):
     """A widget that points from one :class:`~LiSE.gui.board.Spot` to
     another.
@@ -94,10 +143,9 @@ class Arrow(Widget):
             (ow, oh) = orig.size
         except AttributeError:
             (ow, oh) = (0, 0)
+        taillen = float(self.board.arrowhead_size)
         orx = ow / 2
         ory = ow / 2
-        ox += orx
-        oy += ory
         (dx, dy) = dest.pos
         try:
             (dw, dh) = dest.size
@@ -105,55 +153,7 @@ class Arrow(Widget):
             (dw, dh) = (0, 0)
         drx = dw / 2
         dry = dh / 2
-        dx += drx
-        dy += dry
-
-        if drx > dry:
-            dr = drx
-        else:
-            dr = dry
-        if dy < oy:
-            yco = -1
-        else:
-            yco = 1
-        if dx < ox:
-            xco = -1
-        else:
-            xco = 1
-        (leftx, boty, rightx, topy) = truncated_line(
-            float(ox * xco), float(oy * yco),
-            float(dx * xco), float(dy * yco),
-            dr + 1)
-        taillen = float(self.board.arrowhead_size)
-        rise = topy - boty
-        run = rightx - leftx
-        if rise == 0:
-            xoff1 = cos(fortyfive) * taillen
-            yoff1 = xoff1
-            xoff2 = xoff1
-            yoff2 = -1 * yoff1
-        elif run == 0:
-            xoff1 = sin(fortyfive) * taillen
-            yoff1 = xoff1
-            xoff2 = -1 * xoff1
-            yoff2 = yoff1
-        else:
-            (xoff1, yoff1, xoff2, yoff2) = wedge_offsets_rise_run(
-                rise, run, taillen)
-        x1 = (rightx - xoff1) * xco
-        x2 = (rightx - xoff2) * xco
-        y1 = (topy - yoff1) * yco
-        y2 = (topy - yoff2) * yco
-        endx = rightx * xco
-        endy = topy * yco
-        r = [ox, oy,
-             endx, endy, x1, y1,
-             endx, endy, x2, y2,
-             endx, endy]
-        for coord in r:
-            assert(coord > 0.0)
-            assert(coord < 1000.0)
-        return r
+        return get_points(ox, orx, oy, ory, dx, drx, dy, dry, taillen)
 
     def get_slope(self):
         """Return a float of the increase in y divided by the increase in x,

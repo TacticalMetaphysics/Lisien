@@ -3,6 +3,7 @@ from os import sep, remove
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
+    BoundedNumericProperty,
     BooleanProperty,
     ObjectProperty,
     ListProperty,
@@ -18,7 +19,9 @@ from sqlite3 import connect, DatabaseError
 
 from LiSE.gui.board import Pawn
 from LiSE.gui.board import Spot
+from LiSE.gui.board import Arrow
 from LiSE.gui.swatchbox import SwatchBox
+from LiSE.model import Portal
 from LiSE.util import Skeleton
 from LiSE import (
     __path__,
@@ -127,6 +130,8 @@ and charsheets.
     charsheets = ListProperty()
     board = ObjectProperty()
     prompt = ObjectProperty()
+    portaling = BoundedNumericProperty(0, min=0, max=2)
+    touched = ObjectProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
         """Add board first, then menus and charsheets."""
@@ -138,6 +143,59 @@ and charsheets.
         for charsheet in self.charsheets:
             self.add_widget(charsheet)
         self.add_widget(self.prompt)
+
+    def on_touch_down(self, touch):
+        if self.portaling > 0:
+            for spot in self.board.spotdict.itervalues():
+                if spot.collide_point(touch.x, touch.y):
+                    self.touched = spot
+                    break
+        return (super(LiSELayout, self).on_touch_down(touch)
+                or self.touched is not None)
+
+    def on_touch_up(self, touch):
+        if self.touched is not None and self.touched.collide_point(
+                touch.x, touch.y):
+            if self.portaling == 1:
+                self.origspot = self.touched
+                self.portaling = 2
+                self.display_prompt(self.board.closet.get_text("@putportalto"))
+            elif self.portaling == 2:
+                destspot = self.touched
+                origspot = self.origspot
+                del self.origspot
+                origplace = origspot.place
+                destplace = destspot.place
+                skeleton = self.board.closet.skeleton[u"portal"][
+                    unicode(self.board)]
+                if unicode(origplace) not in skeleton:
+                    skeleton[unicode(origplace)] = {}
+                if unicode(destplace) not in skeleton[unicode(origplace)]:
+                    skeleton[unicode(origplace)][unicode(destplace)] = []
+                branch = self.board.closet.branch
+                tick = self.board.closet.tick
+                skel = skeleton[unicode(origplace)][unicode(destplace)]
+                if branch not in skel:
+                    skel[branch] = []
+                if tick not in skel[branch]:
+                    skel[branch][tick] = Portal.bonetype(
+                        dimension=unicode(self.board),
+                        origin=unicode(origplace),
+                        destination=unicode(destplace),
+                        branch=branch,
+                        tick_from=tick)
+                port = Portal(self.board.closet,
+                              self.board.dimension,
+                              origplace, destplace)
+                arrow = Arrow(board=self.board, portal=port)
+                self.board.arrowdict[unicode(port)] = arrow
+                self.board.content.remove_widget(origspot)
+                self.board.content.add_widget(arrow)
+                self.board.content.add_widget(origspot)
+                self.portaling = 0
+                self.touched = None
+                self.dismiss_prompt()
+        return super(LiSELayout, self).on_touch_up(touch)
 
     def display_prompt(self, text):
         """Put the text in the cue card"""
@@ -264,6 +322,15 @@ the user to place it, and dismiss the popup."""
             content=dialog,
             size_hint=(0.9, 0.9)))
         self._popups[-1].open()
+
+    def make_arrow(self, orig=None):
+        """Prompt user to click the origin for a new Portal. Then start
+drawing the Arrow for it and prompt user to click the
+destination. Then make the Portal and its Arrow.
+
+        """
+        self.display_prompt(self.board.closet.get_text("@putportalfrom"))
+        self.portaling = 1
 
 
 class LoadImgDialog(FloatLayout):

@@ -74,8 +74,7 @@ class Img(object):
     """
     __metaclass__ = SaveableMetaclass
     postlude = [
-        "INSERT INTO img (name, path, rltile, off_x, off_y, "
-        "stacking_height) VALUES "
+        "INSERT INTO img (name, path, rltile) VALUES"
         + ", ".join(
             [whole_img_val_fmt.format(name, sep.join(path), rltile)
              for (name, path, rltile) in whole_imgrows]),
