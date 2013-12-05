@@ -1,4 +1,4 @@
---This file is part of LiSE, a toolkit for life simulators.
+--This file is part of LiSE, a development toolkit for life simulators.
 --Copyright (C) Zachary Spector 2013
 UPDATE img SET stacking_height=8 WHERE name IN ('blind', 'brownstone', 'orange');
 UPDATE img SET stacking_height=12 WHERE name='block';

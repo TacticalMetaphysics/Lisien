@@ -788,7 +788,7 @@ For more information, consult SaveableMetaclass in util.py.
                 new_place_match.groups()[0].split(", "))
 
     def mi_connect_portal(self, mi):
-        pass
+        mi.get_root_window().children[0].make_arrow()
 
     def register_text_listener(self, stringn, listener):
         if stringn == "@branch":
