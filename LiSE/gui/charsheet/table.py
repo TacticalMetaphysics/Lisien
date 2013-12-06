@@ -1,4 +1,3 @@
-from LiSE.util import get_bone_during
 from kivy.properties import (
     NumericProperty,
     ListProperty,
@@ -65,9 +64,9 @@ def get_branch_bone_iter_thing(keys, character, branch, tick):
 character that match the keys."""
     thingdict = character.thingdict
     skeleton = character.closet.skeleton
-    bone_during_thing = lambda dimension, thing: get_bone_during(
-        skeleton["thing_location"][dimension][thing],
-        branch, tick)
+    bone_during_thing = lambda dimension, thing: (
+        skeleton[u"thing_location"][dimension][thing][
+            branch].value_during(tick))
 
     if keys[0] is None:
         for dimension in thingdict:
@@ -107,13 +106,12 @@ def mk_iter_skeleton_thing(keys, char, skel):
 def get_branch_bone_iter_stat(keys, skel, branch, tick):
     """Generate the bones for the generator of values for the stat
 identified in the keys."""
-    statdict = skel
     if keys[0] is None:
-        for stat in statdict:
-            yield get_bone_during(statdict[stat], branch, tick)
+        for stat in skel:
+            yield skel[stat][branch].value_during(tick)
     else:
         stat = keys[0]
-        yield get_bone_during(statdict[stat], branch, tick)
+        yield skel[stat][branch].value_during(tick)
 
 
 def iter_skeleton_stat(keys, char, skel, branch=None, tick=None):
@@ -135,13 +133,12 @@ def mk_iter_skeleton_stat(keys, char, skel):
 
 
 def get_branch_bone_iter_skill(keys, skel, branch, tick):
-    skilldict = skel
     if keys[0] is None:
-        for skill in skilldict:
-            yield get_bone_during(skilldict[skill], branch, tick)
+        for skill in skel:
+            yield skel[skill][branch].value_during(tick)
     else:
         skill = keys[0]
-        yield get_bone_during(skilldict[skill], branch, tick)
+        yield skel[skill][branch].value_during(tick)
 
 
 def iter_skeleton_skill(keys, char, skel, branch=None, tick=None):
