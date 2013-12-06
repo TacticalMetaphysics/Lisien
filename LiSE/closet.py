@@ -28,7 +28,6 @@ from model.event import Implicator
 from model.portal import Portal
 from model.thing import Thing
 from util import (
-    row2bone,
     Bone,
     schemata,
     saveables,
@@ -464,7 +463,7 @@ For more information, consult SaveableMetaclass in util.py.
                     except ValueError:
                         pass
         self.c.execute("DELETE FROM game")
-        fields = ["language", "dimension", "branch", "tick", "seed"]
+        fields = ["language", "branch", "tick", "seed"]
         qrystr = "INSERT INTO game ({0}) VALUES ({1})".format(
             ", ".join(fields),
             ", ".join(["?"] * len(fields)))
@@ -478,7 +477,7 @@ For more information, consult SaveableMetaclass in util.py.
         if "strings" not in self.skeleton:
             self.skeleton["strings"] = {}
         for row in self.c:
-            bone = row2bone(row, string_bone)
+            bone = string_bone(*row)
             if bone.stringname not in self.skeleton["strings"]:
                 self.skeleton["strings"][bone.stringname] = {}
             self.skeleton["strings"][

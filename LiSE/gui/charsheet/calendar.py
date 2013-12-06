@@ -55,6 +55,9 @@ to.
     rowid = NumericProperty()
     active = BooleanProperty(False)
 
+    def __init__(self, **kwargs):
+        super(Cell, self).__init__(**kwargs)
+
 
 class Timeline(Widget):
     """A line drawn atop one of the columns of the calendar, representing
@@ -131,7 +134,7 @@ here. Look in CalendarView below.
 
     def on_completedness(self, i, v):
         """When I have everything I need to fetch everything I'm missing, call
-self.completed().
+        self.completed().
 
         """
         if v == 3:
@@ -139,8 +142,9 @@ self.completed().
 
     def completed(self):
         """Collect my referent--the object I am about--and my skel--the
-portion of the great Skeleton that pertains to my referent. Arrange to
-be notified whenever I need to lay myself out again.
+        portion of the great Skeleton that pertains to my
+        referent. Arrange to be notified whenever I need to lay myself
+        out again.
 
         """
         character = self.character
@@ -277,6 +281,7 @@ seen."""
                 else:
                     text = ""
                 to_cover[branch].add(id(prev))
+                assert(text is not None)
                 content[branch][id(prev)] = (
                     text, prev.tick_from, None)
         # I might already be showing some of these, though.

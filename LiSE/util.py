@@ -77,8 +77,12 @@ class BoneMetaclass(type):
         pretty pointless if you could not leave the data unspecified.
 
         """
-        def __new__(_cls, **kwargs):
+        def __new__(_cls, *args, **kwargs):
             """Create new instance of {}""".format(clas)
+            if len(args) == len(_cls._fields):
+                return tuple.__new__(_cls, args)
+            elif len(args) > 0:
+                raise ValueError("Wrong number of values")
             values = []
             for fieldn in _cls._fields:
                 if fieldn in kwargs:
@@ -152,14 +156,15 @@ class BoneMetaclass(type):
                 if isinstance(getattr(self, field), str):
                     denulled[field] = unicode(
                         getattr(self, field)).strip('\x00')
+                    if denulled[field] == '':
+                        denulled[field] = None
             return self._replace(**denulled)
 
         @classmethod
         def _unpack(cls, data):
             """Return a new instance of {} with data from
             the buffer given.""".format(cls)
-            return cls(**dict(zip(
-                cls._fields, cls.structtyp.unpack(data)))).denull()
+            return cls(*cls.structtyp.unpack(data)).denull()
 
         @classmethod
         def _unpack_from(cls, i, arr):
@@ -171,46 +176,14 @@ class BoneMetaclass(type):
             """
             bytelen = cls.structtyp.size
             pos = i * bytelen
-            raw = zip(cls._fields, cls.structtyp.unpack_from(arr, pos))
-            cooked = {}
-            for (k, v) in raw:
-                if cls._types[k] in (str, unicode):
-                    if v[0] == '\x00':
-                        cooked[k] = None
-                    else:
-                        cooked[k] = v.strip('\x00')
-                else:
-                    cooked[k] = cls._types[k](v)
-            return cls(**cooked)
+            data = cls.structtyp.unpack_from(arr, pos)
+            return cls(*data).denull()
 
         def __repr__(self):
             """Return a nicely formatted representation string"""
             return "{}({})".format(clas, ", ".join(
                 ["{}={}".format(field, getattr(self, field))
                  for field in self._fields]))
-
-        @classmethod
-        def iter_array(cls, arr):
-            """Iterate over the array, making it look as if it's a mere list of
-            {}.
-
-            """.format(clas)
-            i = 0
-            l = len(arr)
-            while i < l:
-                raw = zip(cls._fields, cls.structtyp.unpack_from(arr, i))
-                # restore nulls where I actually want nulls
-                cooked = {}
-                for (k, v) in raw:
-                    if cls._types[k] in (str, unicode):
-                        if v[0] == '\x00':
-                            cooked[k] = None
-                        else:
-                            cooked[k] = v.strip('\x00')
-                    else:
-                        cooked[k] = cls._types[k](v)
-                yield cls(**cooked)
-                i += cls.size
 
         def _asdict(self):
             """Return a new OrderedDict which maps field names
@@ -246,7 +219,6 @@ class BoneMetaclass(type):
                 "_unpack": _unpack,
                 "_unpack_from": _unpack_from,
                 "_pack_into": _pack_into,
-                "iter_array": iter_array,
                 "denull": denull}
         atts.update(attrs)
         if '_no_fmt' not in atts:
@@ -294,9 +266,8 @@ class Bone(tuple):
     ``_field_decls``, a list of triples, each containing a field name,
     its type, and its default value.
 
-    Instances of :class:`Bone` need to be constructed with their data
-    passed as keyword arguments--positional arguments are not
-    supported. All, some, or none of the fields may be filled this
+    Instances of :class:`Bone` may be constructed with keyword
+    arguments. All, some, or none of the fields may be filled this
     way; those whose names are not used as keywords will be set to
     their default value. Setting a keyword argument to ``None``,
     explicitly, will always result in ``None`` occupying that field.
@@ -570,12 +541,15 @@ class Skeleton(MutableMapping):
             self.parent.on_child_set(self, k, v)
 
     def on_child_set(self, child, k, v):
+        """Call all my listeners with args (child, k, v)."""
         for listener in self.listeners:
             listener(child, k, v)
         if hasattr(self.parent, 'on_child_set'):
             self.parent.on_child_set(child, k, v)
 
     def __delitem__(self, k):
+        """If ``self.content`` is a :type:`dict`, delete the key in the usual
+        way. Otherwise, remove the key from ``self.ikeys``."""
         if isinstance(self.content, dict):
             del self.content[k]
         else:
@@ -586,38 +560,50 @@ class Skeleton(MutableMapping):
             self.parent.on_child_del(self, k)
 
     def on_child_del(self, child, k):
+        """Call all my listeners with args (child, k)."""
         for listener in self.listeners:
             listener(child, k)
         if hasattr(self.parent, 'on_child_del'):
             self.parent.on_child_del(child, k)
 
     def __iter__(self):
+        """Iterate over my keys--which, if ``self.content`` is not a
+        :type:`dict`, should be taken from ``self.ikeys`` and sorted first."""
         if isinstance(self.content, dict):
             return iter(self.content)
         else:
             return iter(sorted(self.ikeys))
 
     def __len__(self):
+        """Return the number of "live" data that I have. If ``self.content``
+        is not a :type:`dict`, that means the number of keys that
+        point to something meaningful.
+
+        """
         if isinstance(self.content, dict):
             return len(self.content)
         else:
             return len(self.ikeys)
 
     def __repr__(self):
-        if hasattr(self, 'bonetype'):
-            return repr(list(self.bonetype.iter_array(self.content)))
+        """If ``self.content`` is an :type:`array`, unpack the lot of
+        it for show. Otherwise just return ``repr(self.content)``."""
         return repr(self.content)
 
     def __iadd__(self, other):
+        """Wrapper for ``self.update`` that returns ``self``."""
         self.update(other)
         return self
 
     def __add__(self, other):
+        """Return a copy of ``self`` that's been updated with ``other``."""
         selfie = self.copy()
         selfie.update(other)
         return selfie
 
     def __isub__(self, other):
+        """Remove everything in me and my children that is in ``other``
+        or its children. Return myself."""
         for (k, v) in other.items():
             if k not in self:
                 continue
@@ -629,20 +615,30 @@ class Skeleton(MutableMapping):
         return self
 
     def __sub__(self, other):
+        """Return a copy of myself that's had anything matching anything in
+        ``other`` removed."""
         selfie = self.copy()
         selfie -= other
         return selfie
 
     def __str__(self):
+        """Return my name, stringly."""
         return str(self.name)
 
+    def __unicode__(self):
+        """Return my name, unicodely."""
+        return unicode(self.name)
+
     def keys(self):
+        """If I contain a :type:`dict`, use its keys, otherwise
+        ``self.ikeys``"""
         if isinstance(self.content, dict):
             return self.content.keys()
         else:
             return sorted(self.ikeys)
 
     def key_before(self, k):
+        """Return my largest key that is smaller than ``k``."""
         if hasattr(self, 'ikeys'):
             ikeys = set(self.ikeys)
             afore = None
@@ -655,6 +651,7 @@ class Skeleton(MutableMapping):
         return max([(j for j in self.content.keys() if j < k)])
 
     def key_or_key_before(self, k):
+        """Return my highest key less than or equal to ``k``."""
         if hasattr(self, 'ikeys'):
             if k in self.ikeys:
                 return k
@@ -666,9 +663,14 @@ class Skeleton(MutableMapping):
             return self.key_before(k)
 
     def value_during(self, k):
+        """Return my value at ``k``, or the most recent before ``k`` if I
+        don't have one exactly at ``k``.
+
+        """
         return self[self.key_or_key_before(k)]
 
     def key_after(self, k):
+        """Return my smallest key larger than ``k``."""
         if hasattr(self, 'ikeys'):
             ikeys = set(self.ikeys)
             aft = None
@@ -681,6 +683,8 @@ class Skeleton(MutableMapping):
         return min([(j for j in self.content.keys() if j > k)])
 
     def key_or_key_after(self, k):
+        """Return ``k`` if it's a key I have, or else my
+        smallest key larger than ``k``."""
         if hasattr(self, 'ikeys'):
             if k in self.ikeys:
                 return k
@@ -691,10 +695,9 @@ class Skeleton(MutableMapping):
         else:
             return self.key_after(k)
 
-    def bone_at_or_after(self, k):
-        return self[self.key_or_key_after(k)]
-
     def copy(self):
+        """Return a shallow copy of myself. Changes to the copy won't affect
+        *me* but will affect any mutable types *inside* me."""
         if isinstance(self.content, array):
             r = self.__class__()
             r.bonetype = self.bonetype
@@ -734,6 +737,8 @@ class Skeleton(MutableMapping):
             return self.__class__(content=r)
 
     def deepcopy(self):
+        """Return a new :class:`Skeleton` with all of my data in it, no matter
+        how many layers I have to recurse."""
         r = {}
         for (k, v) in self.content.items():
             r[k] = v.deepcopy()
@@ -741,6 +746,8 @@ class Skeleton(MutableMapping):
             content=r, name=self.name, parent=self.parent)
 
     def update(self, skellike):
+        """Make my content match that of ``skellike``, which may be a
+        :class:`Skeleton` or a :type:`dict`."""
         for (k, v) in skellike.iteritems():
             if issubclass(v.__class__, Bone):
                 self[k] = v
@@ -757,11 +764,23 @@ class Skeleton(MutableMapping):
                     self[k] = self.__class__(
                         content=v, name=k, parent=self)
 
-    def iterbones(self):
+    def itervalues(self):
         if isinstance(self.content, array):
-            for bone in self.bonetype.iter_array(self.content):
-                yield bone
-        elif isinstance(self.content, dict):
+            for i in sorted(self.ikeys):
+                yield self.bonetype._unpack_from(i, self.content)
+        else:
+            for v in super(Skeleton, self).itervalues():
+                yield v
+
+    def iterbones(self):
+        """Perform a depth-first traversal over all :class:`Bone` objects I
+        contain, however indirectly.
+
+        The traversal follows the order of integer keys,
+        where they are present.
+
+        """
+        if isinstance(self.content, dict):
             for contained in self.content.itervalues():
                 if issubclass(contained.__class__, Bone):
                     yield contained
@@ -874,6 +893,10 @@ class SaveableMetaclass(type):
 
     """
     def __new__(metaclass, clas, parents, attrs):
+        """Return a new class with all the accoutrements of
+        :class:`SaveableMetaclass`.
+
+        """
         global schemata
         global tabclas
         tablenames = []
@@ -993,7 +1016,6 @@ class SaveableMetaclass(type):
             pkeycolstr = ", ".join(pkey)
             pkeys = [keyname for (keyname, typ) in coldecl.items()
                      if keyname in pkey]
-            pkeynamestr = ", ".join(sorted(pkeys))
             vals = [valname for (valname, typ) in coldecl.items()
                     if valname not in pkey]
             colnamestr[tablename] = ", ".join(sorted(pkeys) + sorted(vals))
@@ -1036,6 +1058,8 @@ class SaveableMetaclass(type):
              tuple(postlude)))
 
         def gen_sql_insert(tabname):
+            """Return an SQL INSERT statement suitable for adding one row, with
+            all the fields filled in."""
             return "INSERT INTO {0} ({1}) VALUES {2};".format(
                 tabname,
                 colnamestr[tabname],
@@ -1043,22 +1067,24 @@ class SaveableMetaclass(type):
 
         @staticmethod
         def insert_bones_table(c, bones, tabname):
+            """Use the cursor ``c` to insert the bones into the table
+            ``tabname``."""
             try:
                 c.executemany(gen_sql_insert(tabname), bones)
             except IntegrityError as ie:
                 print(ie)
                 print(gen_sql_insert(tabname))
-            except EmptySkeleton:
-                return
 
         def gen_sql_delete(keybone, tabname):
+            """Return an SQL DELETE statement to get rid of the record
+            corresponding to ``keybone`` in table ``tabname``."""
             try:
                 keyns = keynames[tabname]
             except KeyError:
                 return
             keys = []
             if tabname not in tablenames:
-                raise EmptySkeleton
+                raise ValueError("Unknown table: {}".format(tabname))
             checks = []
             for keyn in keyns:
                 checks.append(keyn + "=?")
@@ -1069,13 +1095,18 @@ class SaveableMetaclass(type):
 
         @staticmethod
         def delete_keybones_table(c, keybones, tabname):
+            """Use the cursor ``c`` to delete the records matching the
+            bones from the table ``tabname``.
+
+            """
             for keybone in keybones:
-                try:
-                    c.execute(*gen_sql_delete(keybone, tabname))
-                except EmptySkeleton:
-                    return
+                c.execute(*gen_sql_delete(keybone, tabname))
 
         def gen_sql_select(keybones, tabname):
+            """Return an SQL SELECT statement to get the records
+            matching the bones from the table ``tabname``.
+
+            """
             # Assumes that all keybones have the same type.
             keys = []
             for k in primarykeys[tabname]:
@@ -1094,6 +1125,10 @@ class SaveableMetaclass(type):
                 colstr, tabname, orstr)
 
         def select_keybones_table(c, keybones, tabname):
+            """Return a list of records taken from the table ``tabname``,
+            through the cursor ``c``, matching the bones.
+
+            """
             keys = primarykeys[tabname]
             qrystr = gen_sql_select(keybones, tabname)
             qrylst = []
@@ -1107,15 +1142,22 @@ class SaveableMetaclass(type):
             return c.fetchall()
 
         @staticmethod
-        def _select_skeleton(c, td):
+        def _select_skeleton(c, skel):
+            """Return a new :class:`Skeleton` like ``skel``, but with the bones
+            filled in with live data. Requires a cursor ``c``.
+
+            ``skel`` needs to have table names for its keys. It may be a
+            :type:`dict` instead of a :class:`Skeleton`.
+
+            """
             r = Skeleton({})
-            for (tabname, bones) in td.items():
+            for (tabname, bones) in skel.items():
                 if tabname not in primarykeys:
                     continue
                 if tabname not in r:
                     r[tabname] = {}
                 for row in select_keybones_table(c, bones, tabname):
-                    bone = row2bone(row, getattr(bonetypes, tabname))
+                    bone = getattr(bonetypes, tabname)(*row)
                     ptr = r[tabname]
                     oldptr = None
                     unset = True
@@ -1136,12 +1178,21 @@ class SaveableMetaclass(type):
 
         @staticmethod
         def _insert_skeleton(c, skeleton):
+            """Use the cursor ``c`` to insert the bones in the
+            skeleton into the table given by the key.
+
+            """
             for (tabname, rds) in skeleton.items():
                 if tabname in tablenames:
                     insert_bones_table(c, rds, tabname)
 
         @staticmethod
         def _delete_skeleton(c, skeleton):
+            """Use the cursor ``c`` to delete records from the tables in
+            the skeleton's keys, when they match any of the bones in the
+            skeleton's values.
+
+            """
             for (tabname, records) in skeleton.items():
                 if tabname in tablenames:
                     bones = [bone for bone in records.iterbones()]
@@ -1153,6 +1204,10 @@ class SaveableMetaclass(type):
               type(bonetypes[tabn]),
               bonetypes[tabn])
              for tabn in tablenames])(**bonetypes)
+        """A :class:`Bone` filled with subclasses of :class:`Bone`, each
+        accessed by the name of the table it is for.
+
+        """
         atrdic = {
             '_select_skeleton': _select_skeleton,
             '_insert_skeleton': _insert_skeleton,
@@ -1195,102 +1250,14 @@ class SaveableMetaclass(type):
         return clas
 
 
-def start_new_map(nope):
-    pass
-
-
-def open_map(nope):
-    pass
-
-
-def save_map(nope):
-    pass
-
-
-def quit_map_editor(nope):
-    pass
-
-
-def editor_select(nope):
-    pass
-
-
-def editor_copy(nope):
-    pass
-
-
-def editor_paste(nope):
-    pass
-
-
-def editor_delete(nope):
-    pass
-
-
-def new_place(place_type):
-    pass
-
-
-def new_thing(thing_type):
-    pass
-
-
-funcs = [start_new_map, open_map, save_map, quit_map_editor, editor_select,
-         editor_copy, editor_paste, editor_delete, new_place, new_thing]
-
-
-def keyify_dict(d, keytup):
-    ptr = d
-    for key in keytup:
-        if key not in ptr:
-            ptr[key] = {}
-        ptr = ptr[key]
-
-
-def dictify_row(row, colnames):
-    return dict(list(zip(colnames, row)))
-
-
-def row2bone(row, bonetype):
-    return bonetype(**dict(zip(bonetype._fields, row)))
-
-
-def deep_lookup(dic, keylst):
-    key = keylst.pop()
-    ptr = dic
-    while keylst != []:
-        ptr = ptr[key]
-        key = keylst.pop()
-    return ptr[key]
-
-
-def stringlike(o):
-    """Return True if I can easily cast this into a string, False
-otherwise."""
-    return isinstance(o, str) or isinstance(o, str)
-
-
-def place2idx(db, dimname, pl):
-    if isinstance(pl, int):
-        return pl
-    elif hasattr(pl, '_index'):
-        return pl._index
-    elif stringlike(pl):
-        try:
-            return int(pl)
-        except ValueError:
-            return db.placedict[str(dimname)][pl].i
-    else:
-        raise ValueError("Can't convert that into a place-index")
-
-
-def line_len(ox, oy, dx, dy):
-    rise = dy - oy
-    run = dx - ox
-    return hypot(rise, run)
-
-
 def slope_theta_rise_run(rise, run):
+    """Return a radian value expressing the angle at the lower-left corner
+    of a triangle ``rise`` high, ``run`` wide.
+
+    If ``run`` is zero, but ``rise`` is positive, return pi / 2. If
+    ``run`` is zero, but ``rise`` is negative, return -pi / 2.
+
+    """
     try:
         return atan(rise/run)
     except ZeroDivisionError:
@@ -1301,12 +1268,18 @@ def slope_theta_rise_run(rise, run):
 
 
 def slope_theta(ox, oy, dx, dy):
+    """Get a radian value representing the angle formed at the corner (ox,
+    oy) of a triangle with a hypotenuse going from there to (dx,
+    dy).
+
+    """
     rise = dy - oy
     run = dx - ox
     return slope_theta_rise_run(rise, run)
 
 
 def opp_theta_rise_run(rise, run):
+    """Inverse of ``slope_theta_rise_run``"""
     try:
         return atan(run/rise)
     except ZeroDivisionError:
@@ -1317,12 +1290,17 @@ def opp_theta_rise_run(rise, run):
 
 
 def opp_theta(ox, oy, dx, dy):
+    """Inverse of ``slope_theta``"""
     rise = dy - oy
     run = dx - ox
     return opp_theta_rise_run(rise, run)
 
 
 def truncated_line(leftx, boty, rightx, topy, r, from_start=False):
+    """Return coordinates for two points, very much like the two points
+    supplied, but with the end of the line foreshortened by amount r.
+
+    """
     # presumes pointed up and right
     if r == 0:
         return (leftx, boty, rightx, topy)
@@ -1339,16 +1317,8 @@ def truncated_line(leftx, boty, rightx, topy, r, from_start=False):
     return (leftx, boty, rightx, topy)
 
 
-def extended_line(leftx, boty, rightx, topy, r):
-    return truncated_line(leftx, boty, rightx, topy, -1 * r)
-
-
-def trimmed_line(leftx, boty, rightx, topy, trim_start, trim_end):
-    et = truncated_line(leftx, boty, rightx, topy, trim_end)
-    return truncated_line(et[0], et[1], et[2], et[3], trim_start, True)
-
-
 def wedge_offsets_core(theta, opp_theta, taillen):
+    """Internal use"""
     top_theta = theta - fortyfive
     bot_theta = pi - fortyfive - opp_theta
     xoff1 = cos(top_theta) * taillen
@@ -1366,167 +1336,65 @@ def wedge_offsets_rise_run(rise, run, taillen):
     return wedge_offsets_core(theta, opp_theta, taillen)
 
 
-def wedge_offsets_slope(slope, taillen):
-    theta = atan(slope)
-    opp_theta = atan(1/slope)
-    return wedge_offsets_core(theta, opp_theta, taillen)
-
-
-def average(*args):
-    n = len(args)
-    return sum(args)/n
-
-
 ninety = pi / 2
+"""pi / 2"""
 
 fortyfive = pi / 4
-
-threesixty = pi * 2
-
-
-class BranchTicksIter:
-    def __init__(self, d):
-        self.branchiter = iter(d.items())
-        self.branch = None
-        self.tickfromiter = None
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        try:
-            (tick_from, vtup) = next(self.tickfromiter)
-            if isinstance(vtup, tuple):
-                tick_to = vtup[-1]
-                value = vtup[:-1]
-                return (self.branch, tick_from, tick_to) + value
-            else:
-                return (self.branch, tick_from, vtup)
-        except (AttributeError, StopIteration):
-            (self.branch, tickfromdict) = next(self.branchiter)
-            self.tickfromiter = iter(tickfromdict.items())
-            return next(self)
-
-
-class PortalException(Exception):
-    """Exception raised when a Thing tried to move into or out of or along
-a Portal, and it made no sense."""
-    pass
+"""pi / 4"""
 
 
 class LocationException(Exception):
-    pass
-
-
-class ContainmentException(Exception):
-    """Exception raised when a Thing tried to go into or out of another
-Thing, and it made no sense.
-
-    """
-    pass
-
-
-class LoadError(Exception):
+    """I don't know where I am."""
     pass
 
 
 class TimestreamException(Exception):
+    """Used for time travel related errors that are nothing to do with
+continuity."""
     pass
 
 
 class TimeParadox(Exception):
+    """I tried to record some fact at some time, and in so doing,
+    contradicted the historical record."""
     pass
 
 
 class JourneyException(Exception):
+    """There was a problem with pathfinding."""
     pass
 
 
 class ListItemIterator:
     """Iterate over a list in a way that resembles dict.iteritems()"""
     def __init__(self, l):
+        """Initialize for list l"""
         self.l = l
         self.l_iter = iter(l)
         self.i = 0
 
     def __iter__(self):
+        """I'm an iterator"""
         return self
 
     def __len__(self):
+        """Provide the length of the underlying list."""
         return len(self.l)
 
     def __next__(self):
+        """Return a tuple of the current index and its item in the list"""
         it = next(self.l_iter)
         i = self.i
         self.i += 1
         return (i, it)
 
     def next(self):
+        """Python 3 compatibility"""
         return self.__next__()
-
-
-class FilterIter:
-    def __init__(self, itr, do_not_return):
-        self.real = iter(itr)
-        self.do_not_return = do_not_return
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        r = next(self.real)
-        while r in self.do_not_return:
-            r = next(self.real)
-        return r
-
-    def next(self):
-        return self.__next__()
-
-
-class FirstOfTupleFilter:
-    def __init__(self, containable):
-        self.containable = containable
-
-    def __contains__(self, t):
-        return t[0] in self.containable
-
-
-class FakeCloset:
-    def __init__(self, skellike):
-        self.skeleton = Skeleton(skellike)
-        self.timestream = Timestream(self)
-
-
-class BranchError(Exception):
-    pass
-
-
-def next_val_iter(litter):
-    try:
-        if len(litter) <= 1:
-            raise StopIteration
-        return litter[:-1] + [iter(litter[-2].next().values())]
-    except StopIteration:
-        if len(litter) <= 1:
-            raise StopIteration
-        nvi = next_val_iter(litter[:-1])
-        return nvi + [iter(nvi[-1].next().values())]
-
-
-def skel_nth_generator(skel, n):
-    iters = [iter(skel.values())]
-    for i in range(0, n-1):
-        iters.append(iter(next(iters[-1]).values()))
-    try:
-        yield next(iters[-1])
-    except StopIteration:
-        if len(iters) <= 1:
-            raise StopIteration
-        iters = next_val_iter(iters)
-        yield next(iters[-1])
 
 
 class Timestream(object):
+    """Tracks the genealogy of the various branches of time."""
     __metaclass__ = SaveableMetaclass
     # I think updating the start and end ticks of a branch using
     # listeners might be a good idea
@@ -1538,23 +1406,6 @@ class Timestream(object):
          {"parent": ("timestream", "branch")},
          ["branch>=0", "parent=0 or parent<>branch"])
         ]
-
-    listen_tables = set([
-        "thing_location"])
-
-    tab_depth = {
-        "character_places": 3,
-        "character_portals": 4,
-        "character_things": 3,
-        "character_skills": 2,
-        "character_stats": 2,
-        "pawn_img": 3,
-        "pawn_interactive": 3,
-        "portal": 3,
-        "spot_coords": 3,
-        "spot_img": 3,
-        "spot_interactive": 3,
-        "thing_location": 2}
 
     def __init__(self, closet):
         self.closet = closet
@@ -1581,125 +1432,6 @@ class Timestream(object):
             listener(self, t)
         super(Timestream, self).__setattr__("hi_tick", t)
 
-    def branches(self, table=None):
-        if table is None:
-            return self.allbranches()
-        else:
-            return self.branchtable(table)
-
-    def branchtable(self, table):
-        n = self.tab_depth[table]
-        if n == 1:
-            for d in self.closet.skeleton[table].values():
-                for k in d.keys():
-                    yield k
-        else:
-            for d in skel_nth_generator(self.closet.skeleton[table], n):
-                for k in d.keys():
-                    yield k
-
-    def allbranches(self):
-        for (tabn, n) in self.tab_depth.items():
-            if n == 1:
-                for d in self.closet.skeleton[tabn].values():
-                    for k in d.keys():
-                        yield k
-            else:
-                try:
-                    for d in skel_nth_generator(
-                            self.closet.skeleton[tabn], n):
-                        for k in d.keys():
-                            yield k
-                except TypeError:
-                    yield 0
-                    return
-
-    def allticks(self):
-        for (tabn, n) in self.tab_depth.items():
-                if n == 1:
-                    for d in self.closet.skeleton[tabn].values():
-                        for k in d.keys():
-                            yield k
-                else:
-                    try:
-                        for d in skel_nth_generator(
-                                self.closet.skeleton[tabn], n):
-                            for k in d.keys():
-                                yield k
-                    except TypeError:
-                        yield 0
-                        return
-
-    def branchticks(self, branch):
-        for (tabn, n) in self.tab_depth.items():
-            if n == 1:
-                for d in self.closet.skeleton[tabn].values():
-                    for k in d[branch].keys():
-                        yield k
-            else:
-                n = self.tab_depth[tabn]
-                ptr = self.closet.skeleton[tabn]
-                try:
-                    for i in range(0, n):
-                        ptr = next(iter(ptr.values()))
-                except StopIteration:
-                    continue
-                for k in ptr[branch].keys():
-                    yield k
-
-    def tabticks(self, table):
-        n = self.tab_depth[table]
-        if n == 1:
-            for d in self.closet.skeleton[table]:
-                for k in d.keys():
-                    yield k
-        else:
-            for d in skel_nth_generator(self.closet.skeleton[table], n):
-                for k in d.keys():
-                    yield k
-
-    def branchtabticks(self, branch, table):
-        n = self.tab_depth[table]
-        if n == 1:
-            for k in self.closet.skeleton[table][branch].keys():
-                yield k
-        else:
-            ptr = self.closet.skeleton[table]
-            for i in range(0, n):
-                ptr = next(iter(ptr.values()))
-            if branch in ptr:
-                for k in ptr[branch].keys():
-                    yield k
-
-    def ticks(self, branch=None, table=None):
-        if branch is None and table is None:
-            return self.allticks()
-        elif table is None:
-            return self.branchticks(branch)
-        elif branch is None:
-            return self.tabticks(table)
-        else:
-            return self.branchtabticks(branch, table)
-
-    def max_branch(self, table=None):
-        r = max(self.branches(table))
-        return r
-
-    def min_branch(self, table=None):
-        return min(self.branches(table))
-
-    def max_tick(self, branch=None, table=None):
-        try:
-            return max(self.ticks(branch, table))
-        except (KeyError, ValueError):
-            return None
-
-    def min_tick(self, branch=None, table=None):
-        try:
-            return min(self.ticks(branch, table))
-        except (KeyError, ValueError):
-            return None
-
     def uptick(self, tick):
         self.hi_tick = max((tick, self.hi_tick))
 
@@ -1707,8 +1439,7 @@ class Timestream(object):
         self.hi_branch = max((branch, self.hi_branch))
 
     def parent(self, branch):
-        assert(branch > 0)
-        return self.closet.skeleton["timestream"][branch]["parent"]
+        return self.closet.skeleton["timestream"][branch].parent
 
     def children(self, branch):
         for bone in self.closet.skeleton["timestream"].iterbones():
@@ -1716,23 +1447,26 @@ class Timestream(object):
                 yield bone.branch
 
 
-class EmptySkeleton(Exception):
-    pass
-
-
 class Fabulator(object):
     """Construct objects (or call functions, as you please) as described
-by strings loaded in from the database. exec()-free.
+    by strings loaded in from the database.
+
+    This doesn't use exec(). You need to supply the functions when you
+    construct the Fabulator.
 
     """
     def __init__(self, fabs):
         """Supply a dictionary full of callables, keyed by the names you want
-to use for them."""
+        to use for them.
+
+        """
         self.fabbers = fabs
 
     def __call__(self, s):
         """Parse the string into something I can make a callable from. Then
-make it, using the classes in self.fabbers."""
+        make it, using the classes in self.fabbers.
+
+        """
         (outer, inner) = match("(.+)\((.+)\)", s).groups()
         return self.call_recursively(outer, inner)
 

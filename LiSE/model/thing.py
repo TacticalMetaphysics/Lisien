@@ -130,6 +130,7 @@ If not, I'm nowhere, and therefore don't exist."""
         """Declare that I'm in the given Place, Portal, or Thing.
 
         """
+        assert(loc is not None)
         if branch is None:
             branch = self.closet.branch
         if tick is None:
@@ -214,7 +215,6 @@ other journey I may be on at the time."""
         else:
             loc = oloc
             tick = otick
-        assert(tick is not None)
         ipath = self.dimension.graph.get_shortest_paths(
             loc, to=unicode(destplace), output=str("epath"))
         path = None
@@ -224,8 +224,6 @@ other journey I may be on at the time."""
             desti = self.dimension.graph.es[p[-1]].target
             if desti == int(destplace):
                 path = [self.dimension.graph.es[i]["portal"] for i in p]
-#[e["portal"] for e in
-#                        [self.dimension.graph.es[i] for i in p]]
                 break
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
