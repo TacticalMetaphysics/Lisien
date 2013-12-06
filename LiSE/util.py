@@ -19,6 +19,8 @@ SQL from metadata declared as class atttributes.
 
 """
 
+### Constants
+
 packed_str_len = 128
 """When packing a string field of a Bone into a struct, how long
 should the string be made? It will be padded or truncated as
@@ -26,6 +28,12 @@ needed."""
 
 phi = (1.0 + sqrt(5))/2.0
 """The golden ratio."""
+
+portex = compile("Portal\((.+?)->(.+?)\)")
+"""Regular expression to recognize portals by name"""
+
+### End constants
+### Begin metadata
 
 schemata = {}
 """Map the name of each table to its schema."""
@@ -44,62 +52,32 @@ tabclas = {}
 """Map the name of each table to the class it was declared in."""
 
 saveables = []
+"""Tuples of information about saveable classes. These may be used to
+apply the database schema."""
 
 saveable_classes = []
+"""Classes that use SaveableMetaclass"""
 
-
-thingex = compile("Thing\((.+?)\)")
-
-placex = compile("Place\((.+?)\)")
-
-portex = compile("Portal\((.+?)->(.+?)\)")
-
-
-def gen_enough(v, n):
-    """Yield v, n times."""
-    for i in xrange(0, n):
-        yield v
-
-
-def get_bone_during(skel, branch, tick):
-    """Convenience function for looking up the current effective value of
-something in a Skeleton.
-
-    The current effective value is the latest one that took effect at
-    or prior to the present tick.
-
-    """
-    if branch not in skel:
-        return None
-    ikeys = set(skel[branch].ikeys)
-    tick_from = 0
-    test_tick = ikeys.pop()
-    while tick_from != tick and len(ikeys) > 0:
-        if tick_from < test_tick < tick:
-            tick_from = test_tick
-        test_tick = ikeys.pop()
-    try:
-        return skel[branch][tick_from]
-    except KeyError:
-        return None
+### End metadata
 
 
 class BoneMetaclass(type):
-    """Metaclass for the creation of "bones," which are named tuples with
-type checking and functions for easy conversion to structs."""
+    """Metaclass for the creation of :class:`Bone` and its subclasses."""
+
     def __new__(metaclass, clas, parents, attrs):
         """Create a new Bone class, based on the field declarations in the
-attribute _field_decls.
+        attribute _field_decls.
 
-_field_decls is a list of triples. In the triples, the first value is
-the field name, the second is its type (a type object), and the third
-is the default value.
+        _field_decls is a list of triples. In the triples, the first
+        value is the field name, the second is its type (a type
+        object), and the third is the default value.
 
-Regardless of the type of a field, all fields may be set to None. This
-is to make Bones usable in queries.
+        Regardless of the type of a field, all fields may be set to
+        None. This is to make Bones usable in queries, which would be
+        pretty pointless if you could not leave the data unspecified.
 
         """
-        def __new__(_cls, *args, **kwargs):
+        def __new__(_cls, **kwargs):
             """Create new instance of {}""".format(clas)
             values = []
             for fieldn in _cls._fields:
@@ -165,24 +143,28 @@ is to make Bones usable in queries.
             self.structtyp.pack_into(*args)
 
         def denull(self):
-            """Fill myself with packed data from the string.
+            """Return a copy of myself with the nulls stripped out of
+            the strings.
 
             """
             denulled = {}
             for field in self._fields:
                 if isinstance(getattr(self, field), str):
                     denulled[field] = unicode(
-                        getattr(self, field)).replace('\x00', '')
+                        getattr(self, field)).strip('\x00')
             return self._replace(**denulled)
 
         @classmethod
         def _unpack(cls, data):
-            return cls(*cls.structtyp.unpack(data)).denull()
+            """Return a new instance of {} with data from
+            the buffer given.""".format(cls)
+            return cls(**dict(zip(
+                cls._fields, cls.structtyp.unpack(data)))).denull()
 
         @classmethod
         def _unpack_from(cls, i, arr):
             """Return a new instance of {} using the data at the logical
-            position i in array arr.
+            position ``i`` in array ``arr``.
 
             i will be multiplied by my record length before unpacking.
 
@@ -232,12 +214,12 @@ is to make Bones usable in queries.
 
         def _asdict(self):
             """Return a new OrderedDict which maps field names
-to their values"""
+            to their values"""
             return OrderedDict(zip(self._fields, self))
 
         def _replace(self, **kwds):
             """Return a new {} object replacing specified fields with new
-values""".format(clas)
+            values""".format(clas)
             result = self._make(map(kwds.pop, self._fields, self))
             if kwds:
                 raise ValueError("Got unexpected field names: {}".format(
@@ -300,43 +282,163 @@ values""".format(clas)
 
 
 class Bone(tuple):
+    """A named tuple with an odd interface, which can be packed into
+    an array.
+
+    :class:`Bone` is meant to represent records in a database,
+    including all the restrictions that come with the database
+    schema. It is used to cache these records, speeding up access.
+
+    Each subclass of :class:`Bone` has its own fields, each with a
+    particular type. These are declared in the class attribute
+    ``_field_decls``, a list of triples, each containing a field name,
+    its type, and its default value.
+
+    Instances of :class:`Bone` need to be constructed with their data
+    passed as keyword arguments--positional arguments are not
+    supported. All, some, or none of the fields may be filled this
+    way; those whose names are not used as keywords will be set to
+    their default value. Setting a keyword argument to ``None``,
+    explicitly, will always result in ``None`` occupying that field.
+
+    To pack a :class:`Bone` into an array, use
+    :method:`_pack_into`. This calls therelevant :module:`struct`
+    method, supplying a format string appropriate to the field types
+    specified at class creation. Retrieve the :class:`Bone` later
+    using :method:`unpack_from`.
+
+    :class:`Bone` should not be instantiated directly. Subclass it
+    instead. For convenience, the class method :method:`subclass` will
+    return an appropriate subclass. :method:`structless_subclass` will
+    do the same, but the subclass will not be packable into arrays.
+
+    """
     __metaclass__ = BoneMetaclass
-    _field_decls = {}
+    _field_decls = []
 
     @classmethod
     def subclass(cls, name, decls):
+        """Return a subclass of :class:`Bone` named ``name`` with field
+        declarations ``decls``.
+
+        Field declarations look like:
+
+        ``(field_name, field_type, default``
+
+        """
         d = {"_field_decls": decls}
         return type(name, (cls,), d)
 
     @classmethod
     def structless_subclass(cls, name, decls):
+        """Return a subclass of :class:`Bone` named ``name`` with field
+        declarations ``decls``. This subclass will not be packable
+        into arrays.
+
+        Field declarations look like:
+
+        ``(field_name, field_type, default``
+
+        """
         d = {"_field_decls": decls,
              "_no_fmt": True}
         return type(name, (cls,), d)
 
 
 class Skeleton(MutableMapping):
-    """A tree structure similar to a database.
+    """A tree structure whose leaves correspond directly to individual
+    database records.
 
-When all my keys are integers, iteration over my children will proceed
-in the order of those integers.
+    Skeleton is used to store a cache of some or all of the LiSE
+    database. It does not, itself, synchronize with the
+    database--Closet and SaveableMetaclass handle that--but it
+    supports union and difference operations, as though it were a
+    set. This makes it easy to decide which records to save.
 
-The + and - operators are interpreted in a way similar to set union
-and set difference.
+    Nearly everything in LiSE keeps its data in a single, enormous
+    Skeleton, which itself is kept in an instance of Closet. Whenever
+    you want a LiSE object, you should get it by calling some
+    appropriate method in the single instance of Closet used by that
+    instance of LiSE. The method will require keys for
+    arguments--these are the same keys you would use to look up a
+    record in one of the tables that the object refers to. The object
+    you get this way will not really contain any data apart from the
+    key and the Closet--whenever it needs to know something, it will
+    ask Closet about it, and Closet will look up the answer in
+    Skeleton, first loading it in from disc if necessary.
 
-There's a limited sort of event handler triggered by __setitem__ and
-__delitem__. Append listeners to self.listeners.
+    Apart from simplifying the process of saving, this approach also
+    makes LiSE's time travel work. The keys that identify LiSE objects
+    are only partial keys--they do not specify time. Every record in
+    the database and the Skeleton is also keyed by the time at which
+    that record was written--not "real" time, but simulated time,
+    measured in ticks that represent the smallest significant
+    time-span in your simulation. They are also keyed with a branch
+    number, indicating which of several alternate histories the record
+    is about. When you refer to properties of a LiSE object, you get
+    data from only one branch of one tick--the most recent data with
+    respect to the time the simulation is at, in the branch the
+    simulation is at, but ignoring any data whose tick is later than
+    the tick the simulation is at. The simulation's "present" branch
+    and tick are attributes of its Closet. The user may set them
+    arbitrarily, and thereby travel through time.
+
+    The "leaves" at the lowest level of a Skeleton are instances of
+    some subclass of :class:`Bone`. The API for :class:`Bone` is made
+    to resemble an ordinary Python object with properties full of
+    data, with type checking. Treat it that way; the only caveat is
+    that any :class:`Skeleton` with any type of :class:`Bone` in its
+    values cannot hold any other type. This helps with data integrity,
+    as the corresponding table in the database has that
+    :class:`Bone`'s fields and none other. It also allows for
+    optimization using :module:`array` and :module:`struct`. See the
+    documentation of :class:`Bone` for details.
+
+    Iteration over a :class:`Skeleton` is a bit unusual. The usual
+    iterators over mappings are available, but they will proceed in
+    ascending order of the keys if, and only if, the keys are
+    integers. Otherwise they are in the same order as a
+    dictionary. :class:`Skeleton` also provides the special generator
+    method :method:`iterbones`, which performs a depth-first
+    traversal, yielding only the :class:`Bone`s.
+
+    Several methods are made purely for the convenience of time
+    travel, particularly :method:`value_during`, which assumes that
+    the keys are ticks, and returns the :class:`Bone` of the latest
+    tick less than or equal to the present tick.
+
+    There is a primitive event handling infrastructure built into
+    :class:`Skeleton`. Functions in the list :attribute:`listeners`
+    will be called with the :class:`Skeleton` object, the key, and the
+    value of each assignment to the :class:`Skeleton`, or to any other
+    :class:`Skeleton` contained by that one, however
+    indirectly. Likewise with each deletion, though in that case, the
+    value is not supplied. This feature exists for the convenience of
+    the user interface code.
 
     """
     def __init__(self, content=None, name="", parent=None):
         """Technically all of the arguments are optional but you should really
-specify them whenever it's reasonably sensible to do so. content is a
-mapping to crib from, parent is who to propagate events to, and name
-is mostly for printing."""
+        specify them whenever it's reasonably sensible to do
+        so. ``content`` is a mapping to crib from, ``parent`` is who to
+        propagate events to, and ``name`` is mostly for printing.
+
+        """
         self.listeners = []
+        """Functions to call when something changes, either in my content, or
+        in that of some :class:`Skeleton` I contain, however indirectly.
+
+        """
         self.name = name
+        """A string for representing myself."""
         self.parent = parent
+        """Some other :class:`Skeleton` to propagate events to. Can be
+        ``None``.
+
+        """
         self.content = {}
+        """My data, a :type:`dict` by default. It may become a :type:`list` or
+        :type:`array` when its first key is assigned."""
         if content is not None:
             self._populate_content(content)
 
@@ -350,6 +452,9 @@ is mostly for printing."""
             kitr = ListItemIterator(content)
         for (k, v) in kitr:
             if hasattr(v, 'content'):
+                # It's a Skeleton.
+                # Add a copy of it, unless there's no data to copy,
+                # in which case don't bother.
                 if len(v.content) == 0:
                     self[k] = None
                 else:
@@ -370,6 +475,11 @@ is mostly for printing."""
             return k in self.ikeys
 
     def __getitem__(self, k):
+        """Get item from ``self.content``, which may be :type:`dict`,
+        :type:`list`, or :type:`array`. Unpack it in the latter
+        case.
+
+        """
         if isinstance(self.content, list):
             if k not in self.ikeys:
                 raise KeyError("key not in skeleton: {}".format(k))
@@ -382,36 +492,75 @@ is mostly for printing."""
             return self.bonetype._unpack_from(k, self.content)
 
     def __setitem__(self, k, v):
-        if len(self.content) == 0:
+        """Set item in ``self.content``, which may be :type:`dict`,
+        :type:`list`, or :type:`array`. Pack it in the latter case.
+
+        """
+        if len(self.content) <= 1:
+            # It's permissible to assign a Bone to a Skeleton with
+            # content already in, provided the Bone immediately
+            # overwrites it.
+            if issubclass(v.__class__, Bone):
+                self.bonetype = type(v)
+                """This is the subclass of :class:`Bone` that I contain.
+                Once set, only this ``bonetype`` may occupy
+                ``self.content``."""
             if isinstance(k, int):
-                self.ikeys = set([])
-                if issubclass(v.__class__, Bone):
-                    self.bonetype = type(v)
-                    self.content = array('c')
-                    self.content.extend(gen_enough(
-                        '\x00', k+1 * v.getbytelen()))
+                if not hasattr(self, 'ikeys'):
+                    self.ikeys = set([])
+                    """A set of indices in ``self.content`` that contain
+                    legitimate data. They will be treated like keys. Other
+                    indices are regarded as empty.
+
+                    """
+                if hasattr(self, 'bonetype'):
+                    if len(self.content) > 0:
+                        assert(len(self.content) == 1)
+                        if isinstance(self.content, dict):
+                            assert(next(self.content.iterkeys()) == 0)
+                            old = next(self.content.itervalues())
+                        else:
+                            old = self.content[0]
+                        self.content = array('c')
+                        if isinstance(old, self.bonetype):
+                            self.content.extend('\x00' * old.size)
+                            old._pack_into(self.content, 0)
+                elif len(self.content) > 0:
+                    assert(len(self.content) == 1)
+                    if isinstance(self.content, dict):
+                        assert(next(self.content.iterkeys()) == 0)
+                        old = next(self.content.itervalues())
+                    else:
+                        old = self.content[0]
+                    self.content = [old]
                 else:
                     self.content = []
-        if isinstance(self.content, list):
-            while len(self.content) <= k:
-                self.content.append(None)
-        if hasattr(self, 'ikeys'):
+        if hasattr(self, 'ikeys') and v is not None:
             self.ikeys.add(k)
         if hasattr(self, 'bonetype'):
             if not isinstance(v, self.bonetype):
                 raise TypeError(
                     "Skeletons that contain one Bone type may "
                     "only contain that type.")
-            if len(self.content) <= k * v.size:
+            if isinstance(self.content, array):
+                # Pad self.content with nulls until it's big enough.
                 diff = (k+1) * v.size - len(self.content)
-                self.content.extend(gen_enough(
-                    '\x00', diff))
-            v._pack_into(self.content, k)
+                if diff > 0:
+                    self.content.extend('\x00' * diff)
+        elif isinstance(self.content, list):
+            # Pad self.content with None until it's big enough.
+            diff = k + 1 - len(self.content)
+            if diff > 0:
+                self.content.extend([None] * diff)
+        ### actually set content to value
+        if issubclass(v.__class__, Bone):
+            if isinstance(self.content, array):
+                v._pack_into(self.content, k)
+            else:
+                self.content[k] = v
         elif isinstance(v, self.__class__):
             v.name = k
             v.parent = self
-            self.content[k] = v
-        elif issubclass(v.__class__, Bone):
             self.content[k] = v
         else:
             self.content[k] = self.__class__(v, name=k, parent=self)
@@ -546,8 +695,21 @@ is mostly for printing."""
         return self[self.key_or_key_after(k)]
 
     def copy(self):
-        if hasattr(self, 'bonetype'):
-            r = [bone for bone in self.bonetype.iter_array(self.content)]
+        if isinstance(self.content, array):
+            r = self.__class__()
+            r.bonetype = self.bonetype
+            r.name = self.name
+            r.content = self.content
+            r.ikeys = set(self.ikeys)
+            return r
+        elif hasattr(self, 'bonetype'):
+            r = {}
+            if isinstance(self.content, list):
+                for k in self.ikeys:
+                    r[k] = self.content[k]
+            else:
+                for (k, v) in self.content.iteritems():
+                    r[k] = v
             return self.__class__(content=r)
         elif isinstance(self.content, list):
             r = {}
@@ -569,8 +731,6 @@ is mostly for printing."""
                         r[k].name = k
                 elif v is None or issubclass(v.__class__, Bone):
                     r[k] = v
-                else:
-                    assert(False)
             return self.__class__(content=r)
 
     def deepcopy(self):
@@ -589,18 +749,16 @@ is mostly for printing."""
                     self[k].update(v)
                 else:
                     self[k] = v.copy()
-                    self[k].parent = self
-                    self[k].name = k
             else:
+                assert(v.__class__ in (dict, list))
                 if k in self.content:
                     self[k].update(v)
                 else:
-                    assert(v.__class__ in (dict, list))
                     self[k] = self.__class__(
                         content=v, name=k, parent=self)
 
     def iterbones(self):
-        if hasattr(self, 'bonetype'):
+        if isinstance(self.content, array):
             for bone in self.bonetype.iter_array(self.content):
                 yield bone
         elif isinstance(self.content, dict):
@@ -610,6 +768,9 @@ is mostly for printing."""
                 else:
                     for bone in contained.iterbones():
                         yield bone
+        elif hasattr(self, 'bonetype'):
+            for bone in self.itervalues():
+                yield bone
         else:
             for i in sorted(self.ikeys):
                 for bone in self.content[i].iterbones():
@@ -617,45 +778,115 @@ is mostly for printing."""
 
 
 class SaveableMetaclass(type):
-    """Sort of an object relational mapper.
+    """SQL strings and methods relevant to the tables a class is about.
 
-Classes with this metaclass need to be declared with an attribute
-called tables. This is a sequence of tuples. Each of the tuples is of
-length 5. Each describes a table that records what's in the class.
+    Table declarations
+    ==================
 
-The meaning of each tuple is thus:
+    Classes with this metaclass need to be declared with an attribute
+    called tables. This is a sequence of tuples. Each of the tuples is
+    of length 5. Each describes a table that records what's in the
+    class.
 
-(name, column_declarations, primary_key, foreign_keys, checks)
+    The meaning of each tuple is thus:
 
-name is the name of the table as sqlite3 will use it.
+    ``(name, column_declarations, primary_key, foreign_keys, checks)``
 
-column_declarations is a dictionary. The keys are field names, aka
-column names. Each value is the type for its field, perhaps including
-a clause like DEFAULT 0.
+    ``name`` is the name of the table as sqlite3 will use it.
 
-primary_key is an iterable over strings that are column names as
-declared in the previous argument. Together the columns so named form
-the primary key for this table.
+    ``column_declarations`` is a dictionary. The keys are field names, aka
+    column names. Each value is the type for its field, perhaps
+    including a clause like DEFAULT 0.
 
-foreign_keys is a dictionary. Each foreign key is a key here, and its
-value is a pair. The first element of the pair is the foreign table
-that the foreign key refers to. The second element is the field or
-fields in that table that the foreign key points to.
+    ``primary_key`` is an iterable over strings that are column names as
+    declared in the previous argument. Together the columns so named
+    form the primary key for this table.
 
-checks is an iterable over strings that will end up in a CHECK(...)
-clause in sqlite3.
+    ``foreign_keys`` is a dictionary. Each foreign key is a key here, and
+    its value is a pair. The first element of the pair is the foreign
+    table that the foreign key refers to. The second element is the
+    field or fields in that table that the foreign key points to.
 
-A class can have any number of such table-tuples. The tables will be
-declared in the order they appear in the tables attribute.
+    ``checks`` is an iterable over strings that will end up in a CHECK(...)
+    clause in sqlite3.
+
+    A class of :class:`SaveableMetaclass` can have any number of such
+    table-tuples. The tables will be declared in the order they appear
+    in the tables attribute.
+
+    Running queries
+    ===============
+
+    Classes in :class:`SaveableMetaclass` have methods to generate and
+    execute SQL, but as they are not themselves database connectors,
+    they require you to supply a cursor as the first argument. The
+    second argument should be a dictionary (or :class:`Skeleton`) in
+    which the keys are names of tables that the class knows about, and
+    the values are iterables full of the type of :class:`Bone` used
+    for that table. If you're selecting data from a table, the
+    :class:`Bone`s should be filled in with the keys you want, but
+    their other fields should be set to ``None``. You may need to do
+    this explicitly, if a field has some default value other than
+    ``None``.
+
+    To get the particular :class:`Bone` subclass for a given table of
+    a given class, access the ``bonetypes`` attribute of the
+    class. For instance, suppose there is a table named ``ham`` in a
+    class named ``Spam``, and you want to select the records with the
+    field ``eggs`` equal to 3, or ``beans`` equal to True:
+
+    ``Spam._select_skeleton(cursor, {u"ham":
+    [Spam.bonetypes.ham(eggs=3), Spam.bonetypes.ham(beans=True)]})``
+
+    This expression will return a :class:`Skeleton` with all the
+    results in. The outermost layer of the :class:`Skeleton` will be
+    keyed with the table names, in this case just "ham"; successive
+    layers are each keyed with one of the fields in the primary key of
+    the table.
+
+    The same :class:`Skeleton` may later be passed to
+    :method:`_insert_skeleton`, presumably with some of the data
+    changed.
+
+
+    Dependencies and Custom SQL
+    ===========================
+
+    The LiSE database schema uses a lot of foreign keys, which only
+    work if they refer to a table that exists. To make sure it does,
+    the class that uses a foreign key will have the names of the
+    tables it points to in a class attribute called ``demands``. The
+    tables demanded are looked up in other classes' attribute called
+    ``provides`` to ensure they've been taken care of. Both attributes
+    are :type:`set`s.``provides`` is generated automatically, but will
+    accept any additions you give it, which is occasionally necessary
+    when a class deals with SQL that is not generated in the usual
+    way.
+
+    If you want to do something with SQL that
+    :class:`SaveableMetaclass` does not do for you, put the SQL
+    statements you want executed in :type:`list` attributes on the
+    classes, called ``prelude`` and ``postlude``. All statements in
+    ``prelude`` will be executed prior to declaring the first table in
+    the class. All statements in ``postlude`` will be executed after
+    declaring the last table in the class. In both cases, they are
+    executed in the order of iteration, so use a sequence type.
 
     """
     def __new__(metaclass, clas, parents, attrs):
         global schemata
         global tabclas
         tablenames = []
+        "Names of tables declared in the ``tables`` attribute of ``clas``."
         foreignkeys = {}
+        """Keys: table names. Values: dictionaries with keys of table names
+        *linked to*, values of tuples of field names linked to."""
         coldecls = {}
+        """Unprocessed column declarations, the 1th item of a tuple in a
+        ``tables`` attribute."""
         checks = {}
+        """For each table, a list of Boolean expressions meant for a
+        CHECK(...) clause."""
         if 'tables' in attrs:
             tablist = attrs['tables']
         elif hasattr(clas, 'tables'):
@@ -679,6 +910,7 @@ declared in the order they appear in the tables attribute.
         else:
             demands = set()
         local_pkeys = {}
+        """Primary keys per-table, for this class only"""
         for tabtup in tablist:
             (name, decls, pkey, fkeys, cks) = tabtup
             tablenames.append(name)
@@ -688,9 +920,9 @@ declared in the order they appear in the tables attribute.
             foreignkeys[name] = fkeys
             checks[name] = cks
         inserts = {}
+        """The beginnings of SQL INSERT statements"""
         deletes = {}
-        detects = {}
-        missings = {}
+        """The beginnings of SQL DELETE statements"""
         keylen = {}
         rowlen = {}
         keyqms = {}
@@ -795,12 +1027,6 @@ declared in the order they appear in the tables attribute.
             delete_stmt_start = "DELETE FROM %s WHERE (%s) IN " % (
                 tablename, pkeycolstr)
             deletes[tablename] = delete_stmt_start
-            detect_stmt_start = "SELECT %s FROM %s WHERE (%s) IN " % (
-                colnamestr[tablename], tablename, pkeynamestr)
-            detects[tablename] = detect_stmt_start
-            missing_stmt_start = "SELECT %s FROM %s WHERE (%s) NOT IN " % (
-                colnamestr[tablename], tablename, pkeynamestr)
-            missings[tablename] = missing_stmt_start
             schemata[tablename] = create_stmt
         saveables.append(
             (tuple(demands),
@@ -855,12 +1081,14 @@ declared in the order they appear in the tables attribute.
             for k in primarykeys[tabname]:
                 if getattr(keybones[0], k) is not None:
                     keys.append(k)
-            andstr = "({0})".format(
+            andstr = "{0}".format(
                 " AND ".join(
                     ["{0}=?".format(key) for key in keys]
                 ))
-            ands = [andstr] * len(keybones)
             colstr = colnamestr[tabname]
+            if len(andstr) == 0:
+                return "SELECT {} FROM {}".format(colstr, tabname)
+            ands = ["(" + andstr + ")"] * len(keybones)
             orstr = " OR ".join(ands)
             return "SELECT {0} FROM {1} WHERE {2}".format(
                 colstr, tabname, orstr)
@@ -879,40 +1107,6 @@ declared in the order they appear in the tables attribute.
             return c.fetchall()
 
         @staticmethod
-        def _select_table_all(c, tabname):
-            r = Skeleton()
-            qrystr = "SELECT {0} FROM {1}".format(
-                colnamestr[tabname], tabname)
-            c.execute(qrystr)
-            for row in c.fetchall():
-                bone = row2bone(row, getattr(bonetypes, tabname))
-                ptr = r
-                oldptr = None
-                unset = True
-                for key in primarykeys[tabname]:
-                    if getattr(bone, key) not in ptr:
-                        try:
-                            ptr[getattr(bone, key)] = Skeleton()
-                        except TypeError:
-                            ptr[getattr(bone, key)] = bone
-                            unset = False
-                            break
-                    oldptr = ptr
-                    ptr = ptr[getattr(bone, key)]
-                if unset:
-                    oldptr[getattr(bone, key)] = bone
-                # rd = dictify_row(row, colnames[tabname])
-                # ptr = r
-                # lptr = r
-                # for key in primarykeys[tabname]:
-                #     if rd[key] not in ptr:
-                #         ptr[rd[key]] = {}
-                #     lptr = ptr
-                #     ptr = ptr[rd[key]]
-                # lptr[rd[key]] = rd
-            return Skeleton({tabname: r})
-
-        @staticmethod
         def _select_skeleton(c, td):
             r = Skeleton({})
             for (tabname, bones) in td.items():
@@ -929,6 +1123,7 @@ declared in the order they appear in the tables attribute.
                         if getattr(bone, key) not in ptr:
                             try:
                                 ptr[getattr(bone, key)] = {}
+                                assert(ptr[getattr(bone, key)] is not None)
                             except TypeError:
                                 ptr[getattr(bone, key)] = bone
                                 unset = False
@@ -937,52 +1132,7 @@ declared in the order they appear in the tables attribute.
                         ptr = ptr[getattr(bone, key)]
                     if unset:
                         oldptr[getattr(bone, key)] = bone
-                    # rd = dictify_row(row, colnames[tabname])
-                    # ptr = r[tabname]
-                    # keys = list(primarykeys[tabname])
-                    # oldptr = None
-                    # while keys != []:
-                    #     key = keys.pop(0)
-                    #     if rd[key] not in ptr:
-                    #         ptr[rd[key]] = {}
-                    #     oldptr = ptr
-                    #     ptr = ptr[rd[key]]
-                    # oldptr[rd[key]] = rd
             return r
-
-        def gen_sql_detect(bonedict, tabname):
-            keystr = keystrs[tabname]
-            qrystr = detects[tabname] + ", ".join([keystr] * len(bonedict))
-            qrylst = []
-            for bone in bonedict:
-                if not isinstance(bone, bonetypes[tabname]):
-                    raise TypeError(
-                        "{} is the wrong bone type for {}".format(
-                            type(bone), tabname))
-                for field in keynames[tabname]:
-                    if field in bonetypes[tabname]._fields:
-                        qrylst.append(getattr(bone, field))
-            qrytup = tuple(qrylst)
-            return (qrystr, qrytup)
-
-        def detect_keydicts_table(c, keydicts, tabname):
-            c.execute(*gen_sql_detect(keydicts, tabname))
-            return c.fetchall()
-
-        def gen_sql_missing(keydicts, tabname):
-            keystr = keystrs[tabname]
-            qrystr = missings[tabname] + ", ".join([keystr] * len(keydicts))
-            qrylst = []
-            for keydict in iter(keydicts):
-                for col in keynames[tabname]:
-                    if col in keydict:
-                        qrylst.append(keydict[col])
-            qrytup = tuple(qrylst)
-            return (qrystr, qrytup)
-
-        def missing_keydicts_table(c, keydicts, tabname):
-            c.execute(*gen_sql_missing(keydicts, tabname))
-            return c.fetchall()
 
         @staticmethod
         def _insert_skeleton(c, skeleton):
@@ -997,56 +1147,20 @@ declared in the order they appear in the tables attribute.
                     bones = [bone for bone in records.iterbones()]
                     delete_keybones_table(c, bones, tabname)
 
-        @staticmethod
-        def _detect_skeleton(c, skeleton):
-            r = {}
-            for item in skeleton.items():
-                (tabname, rd) = item
-                if isinstance(rd, dict):
-                    r[tabname] = detect_keydicts_table(c, [rd], tabname)
-                else:
-                    r[tabname] = detect_keydicts_table(c, rd, tabname)
-            return r
-
-        @staticmethod
-        def _missing_skeleton(c, skeleton):
-            r = {}
-            for item in skeleton.items():
-                (tabname, rd) = item
-                if isinstance(rd, dict):
-                    r[tabname] = missing_keydicts_table(c, [rd], tabname)
-                else:
-                    r[tabname] = missing_keydicts_table(c, rd, tabname)
-            return r
-
-        def get_keydict(self):
-            tabd = self.get_skeleton()
-            r = {}
-            for tabn in tablenames:
-                r[tabn] = {}
-                for keyn in keynames[tabn]:
-                    r[tabn][keyn] = tabd[tabn][keyn]
-            return r
-
         bonetypes = Bone.structless_subclass(
             clas + '_bonetypes',
             [(tabn,
               type(bonetypes[tabn]),
               bonetypes[tabn])
-             for tabn in tablenames])(bonetypes)
+             for tabn in tablenames])(**bonetypes)
         atrdic = {
             '_select_skeleton': _select_skeleton,
-            '_select_table_all': _select_table_all,
             '_insert_skeleton': _insert_skeleton,
             '_delete_skeleton': _delete_skeleton,
-            '_detect_skeleton': _detect_skeleton,
-            '_missing_skeleton': _missing_skeleton,
             '_insert_bones_table': insert_bones_table,
             '_delete_keybones_table': delete_keybones_table,
             '_gen_sql_insert': gen_sql_insert,
             '_gen_sql_delete': gen_sql_delete,
-            '_gen_sql_detect': gen_sql_detect,
-            '_gen_sql_missing': gen_sql_missing,
             'colnames': Bone.structless_subclass(
                 clas + '_colnames',
                 [(tabn, tuple, tuple(colnames[tabn]))
@@ -1420,7 +1534,7 @@ class Timestream(object):
         ("timestream",
          {"branch": "integer not null",
           "parent": "integer not null"},
-         ("branch",),
+         ("branch", "parent"),
          {"parent": ("timestream", "branch")},
          ["branch>=0", "parent=0 or parent<>branch"])
         ]

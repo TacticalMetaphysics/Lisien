@@ -147,7 +147,7 @@ class LayerImgPile(ImgPile):
         self.clear_widgets()
         for layer in self.imagery:
             bone = self.imagery[layer][branch][tick]
-            imgbone = self.closet.skeleton[u"img"][bone.img]
             tex = self.closet.get_texture(bone.img)
+            imgbone = self.closet.skeleton[u"img"][bone.img]
             self.append(tex, imgbone.off_x, imgbone.off_y,
                         imgbone.stacking_height)

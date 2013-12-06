@@ -33,7 +33,6 @@ from util import (
     schemata,
     saveables,
     saveable_classes,
-    get_bone_during,
     Fabulator,
     Skeleton,
     Timestream,
@@ -129,6 +128,11 @@ You need to create a SQLite database file with the appropriate schema
 before RumorMill will work. For that, run mkdb.sh.
 
     """
+    language = "eng"
+    seed = 0
+    branch = 0
+    tick = 0
+    skeleton = Skeleton()
     working_dicts = [
         "boardhanddict",
         "calendardict",
@@ -159,17 +163,6 @@ before RumorMill will work. For that, run mkdb.sh.
         """Iterate over all characters."""
         return self.characterdict.itervalues()
 
-    def __getattribute__(self, attrn):
-        try:
-            skeleton = super(Closet, self).__getattribute__("skeleton")
-            bone = skeleton["game"][0]
-            if attrn in bone._fields:
-                return getattr(bone, attrn)
-            else:
-                return super(Closet, self).__getattribute__(attrn)
-        except (KeyError, AttributeError):
-            return super(Closet, self).__getattribute__(attrn)
-
     def __setattr__(self, attrn, val):
         if attrn == "branch":
             self.upd_branch(val)
@@ -185,31 +178,27 @@ before RumorMill will work. For that, run mkdb.sh.
 given name.
 
         """
+        self.connector = connector
+        self.c = self.connector.cursor()
+        self.c.execute(
+            "SELECT language, seed, branch, tick FROM game")
+        self.lang_listeners = []
         self.branch_listeners = []
         self.tick_listeners = []
         self.time_listeners = []
-        self.lang_listeners = []
-        self.connector = connector
-        self.lisepath = lisepath
+        (self.language, self.seed, self.branch, self.tick) = self.c.fetchone()
+        if "language" in kwargs:
+            self.language = kwargs["language"]
 
-        self.c = self.connector.cursor()
+        self.lisepath = lisepath
 
         # This dict is special. It contains all the game
         # data--represented only as those types which sqlite3 is
         # capable of storing. All my objects are ultimately just
         # views on this thing.
-        self.skeleton = Skeleton()
         for saveable in saveables:
             for tabn in saveable[3]:
                 self.skeleton[tabn] = None
-        self.c.execute(
-            "SELECT language, seed, branch, tick FROM game")
-        self.skeleton.update(
-            {"game": [row2bone(
-                self.c.fetchone(),
-                game_bone)]})
-        if "language" in kwargs:
-            self.language = kwargs["language"]
         # This is a copy of the skeleton as it existed at the time of
         # the last save. I'll be finding the differences between it
         # and the current skeleton in order to decide what to write to
@@ -328,19 +317,30 @@ given name.
         self.connector.commit()
         self.connector.close()
 
+    def select_class_all(self, cls):
+        """Return a Skeleton with all records for all tables defined in the
+        class."""
+        td = {}
+        for tabn in cls.tablenames:
+            bonetype = getattr(cls.bonetypes, tabn)
+            d = {}
+            for field in bonetype._fields:
+                d[field] = None
+            bone = bonetype(**d)
+            td[tabn] = [bone]
+        return cls._select_skeleton(self.c, td)
+
     def upd_branch(self, b):
         for listener in self.branch_listeners:
             listener(self, b)
         self.upd_time(b, self.tick)
-        self.skeleton["game"][0] = self.skeleton["game"][0]._replace(
-            branch=b)
+        super(Closet, self).__setattr__('branch', b)
 
     def upd_tick(self, t):
         for listener in self.tick_listeners:
             listener(self, t)
         self.upd_time(self.branch, t)
-        self.skeleton["game"][0] = self.skeleton["game"][0]._replace(
-            tick=t)
+        super(Closet, self).__setattr__('tick', t)
 
     def upd_time(self, b, t):
         for listener in self.time_listeners:
@@ -349,8 +349,7 @@ given name.
     def upd_lang(self, l):
         for listener in self.lang_listeners:
             listener(self, l)
-        self.skeleton["game"][0] = self.skeleton["game"][0]._replace(
-            lang=l)
+        super(Closet, self).__setattr__('language', l)
 
     def constructorate(self, cls):
 
@@ -465,13 +464,13 @@ For more information, consult SaveableMetaclass in util.py.
                     except ValueError:
                         pass
         self.c.execute("DELETE FROM game")
-        fields = self.skeleton["game"][0]._fields
+        fields = ["language", "dimension", "branch", "tick", "seed"]
         qrystr = "INSERT INTO game ({0}) VALUES ({1})".format(
             ", ".join(fields),
             ", ".join(["?"] * len(fields)))
         self.c.execute(
             qrystr,
-            [getattr(self.skeleton["game"][0], k) for k in fields])
+            [getattr(self, k) for k in fields])
         self.old_skeleton = self.skeleton.copy()
 
     def load_strings(self):
@@ -676,8 +675,7 @@ For more information, consult SaveableMetaclass in util.py.
         return r
 
     def load_timestream(self):
-        self.skeleton.update(
-            Timestream._select_table_all(self.c, 'timestream'))
+        self.skeleton.update(self.select_class_all(Timestream))
         self.timestream = Timestream(self)
 
     def time_travel_menu_item(self, mi, branch, tick):
@@ -773,7 +771,7 @@ For more information, consult SaveableMetaclass in util.py.
             self.uptick_bone(bone)
 
     def get_present_bone(self, skel):
-        return get_bone_during(skel, self.branch, self.tick)
+        return skel[self.branch].value_during(self.tick)
 
     def mi_show_popup(self, mi, name):
         new_thing_match = re.match(NEW_THING_RE, name)
@@ -799,8 +797,7 @@ For more information, consult SaveableMetaclass in util.py.
             self.skeleton["strings"][stringn[1:]].listeners.append(listener)
 
     def load_img_metadata(self):
-        self.skeleton.update(Img._select_table_all(self.c, u"img_tag") +
-                             Img._select_table_all(self.c, u"img"))
+        self.skeleton.update(self.select_class_all(Img))
 
 
 def mkdb(DB_NAME, lisepath):

@@ -1,12 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from LiSE.gui.kivybits import (
-    SaveableWidgetMetaclass,
-    ImgPile)
-from kivy.clock import Clock
+    SaveableWidgetMetaclass)
 from kivy.uix.scatter import Scatter
 from kivy.properties import (
-    BooleanProperty,
     ObjectProperty)
 
 
