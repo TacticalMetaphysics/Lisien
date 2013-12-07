@@ -229,9 +229,6 @@ The relevant data are
         or an :class:`Arrow`.
 
         """
-        if '->' in unicode(self.thing.location):
-            from model.portal import Portal
-            assert(isinstance(self.thing.location, Portal))
         if self.thing.location is None:
             return
         if self.where_upon is not None:

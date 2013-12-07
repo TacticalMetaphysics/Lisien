@@ -1397,7 +1397,7 @@ class ListItemIterator:
         return (i, it)
 
     def next(self):
-        """Python 3 compatibility"""
+        """Return a tuple of the current index and its item in the list"""
         return self.__next__()
 
 
@@ -1438,6 +1438,50 @@ class Timestream(object):
             for listener in self.hi_tick_listeners:
                 listener(self, val)
         super(Timestream, self).__setattr__(attrn, val)
+
+    def max_tick(self, branch=None, table=None):
+        """Return the highest recorded tick in the given branch, or every
+        branch if none given.
+
+        With optional argument table, consider only records in that table.
+
+        """
+        highest = 0
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if branch is None or (
+                    hasattr(bone, 'branch') and bone.branch == branch):
+                for attrn in ('tick_from', 'tick_to', 'tick'):
+                    if hasattr(bone, attrn):
+                        tick = getattr(bone, attrn)
+                        if tick is not None and tick > highest:
+                            highest = tick
+        return highest
+
+    def min_tick(self, branch=None, table=None):
+        """Return the lowest recorded tick in the given branch, or every
+        branch if none given.
+
+        With optional argument table, consider only records in that table.
+
+        """
+        lowest = None
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if branch is None or (
+                    hasattr(bone, 'branch') and bone.branch == branch):
+                for attrn in ('tick_from', 'tick'):
+                    if hasattr(bone, attrn):
+                        tick = getattr(bone, attrn)
+                        if tick is not None and (
+                                lowest is None or
+                                tick < lowest):
+                            lowest = tick
+        return lowest
 
     def uptick(self, tick):
         """Set ``self.hi_tick`` to ``tick`` if the present value is lower."""

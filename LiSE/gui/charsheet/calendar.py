@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from kivy.clock import Clock
 from kivy.properties import (
     BooleanProperty,
     BoundedNumericProperty,
@@ -9,10 +10,11 @@ from kivy.properties import (
     StringProperty)
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.layout import Layout
-from kivy.uix.widget import Widget
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.clock import Clock
+from kivy.uix.widget import Widget
+
 from itemlayout import ItemLayout
+
 
 SCROLL_FACTOR = 4
 CAL_TYPE = {
@@ -47,27 +49,20 @@ It needs a branch, tick_from, tick_to, text, and a calendar to belong
 to.
 
     """
+    active = BooleanProperty(False)
     branch = NumericProperty()
-    tick_from = NumericProperty()
-    tick_to = NumericProperty(None, allownone=True)
-    text = StringProperty()
     calendar = ObjectProperty()
     rowid = NumericProperty()
-    active = BooleanProperty(False)
-
-    def __init__(self, **kwargs):
-        super(Cell, self).__init__(**kwargs)
+    text = StringProperty()
+    tick_from = NumericProperty()
+    tick_to = NumericProperty(None, allownone=True)
 
 
 class Timeline(Widget):
     """A line drawn atop one of the columns of the calendar, representing
-the present moment.
-
-It may be dragged about to achieve time travel. It needs a
-KivyConnector so it can tell when to update.
+    the present moment.
 
     """
-    col_width = NumericProperty()
 
     def upd_branch(self, calendar, branch):
         self.x = get_timeline_x(calendar, branch)
@@ -95,30 +90,30 @@ A timeline will be drawn on top of it, but that is not instantiated
 here. Look in CalendarView below.
 
     """
+    branch = NumericProperty(0)
+    branches_offscreen = NumericProperty(2)
+    branches_wide = NumericProperty()
     cal_type = NumericProperty()
     character = ObjectProperty()
-    keys = ListProperty()
+    col_width = NumericProperty()
+    completedness = NumericProperty()
     font_name = StringProperty()
     font_size = NumericProperty()
-    branch = NumericProperty(0)
-    tick = BoundedNumericProperty(0, min=0)
-    ticks_tall = NumericProperty(100)
-    ticks_offscreen = NumericProperty(0)
-    branches_offscreen = NumericProperty(2)
-    spacing_x = NumericProperty()
-    spacing_y = NumericProperty()
-    branches_wide = NumericProperty()
-    col_width = NumericProperty()
-    tick_height = NumericProperty()
-    xmov = NumericProperty(0)
-    xcess = NumericProperty(0)
-    ymov = NumericProperty(0)
-    ycess = NumericProperty(0)
+    force_refresh = BooleanProperty(False)
+    keys = ListProperty()
     referent = ObjectProperty(None)
     skel = ObjectProperty(None)
-    force_refresh = BooleanProperty(False)
-    completedness = NumericProperty()
+    spacing_x = NumericProperty()
+    spacing_y = NumericProperty()
+    tick = BoundedNumericProperty(0, min=0)
+    tick_height = NumericProperty()
+    ticks_tall = NumericProperty(100)
+    ticks_offscreen = NumericProperty(0)
     timeline = ObjectProperty()
+    xcess = NumericProperty(0)
+    xmov = NumericProperty(0)
+    ycess = NumericProperty(0)
+    ymov = NumericProperty(0)
 
     def on_character(self, i, v):
         """Count toward completion"""
