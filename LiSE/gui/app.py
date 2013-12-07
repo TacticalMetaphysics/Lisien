@@ -394,6 +394,7 @@ class LiSEApp(App):
         menu = self.closet.load_menu(self.menu_name)
         board = self.closet.load_board(self.dimension_name)
         charsheet = self.closet.load_charsheet(self.character_name)
+        self.closet.old_skeleton = self.closet.skeleton.copy()
         prompt = CueCard()
         return LiSELayout(
             menus=[menu],

@@ -198,11 +198,6 @@ given name.
         for saveable in saveables:
             for tabn in saveable[3]:
                 self.skeleton[tabn] = None
-        # This is a copy of the skeleton as it existed at the time of
-        # the last save. I'll be finding the differences between it
-        # and the current skeleton in order to decide what to write to
-        # disk.
-        self.old_skeleton = self.skeleton.copy()
 
         for wd in self.working_dicts:
             setattr(self, wd, dict())
@@ -581,10 +576,13 @@ For more information, consult SaveableMetaclass in util.py.
         # is interested in at the moment, the game world being too
         # large to practically load all at once.
         dimtd = Portal._select_skeleton(self.c, {
-            "portal": [Portal.bonetype(dimension=n) for n in names]})
+            "portal": [Portal.bonetype(
+                dimension=n, branch=None, tick_from=None)
+                for n in names]})
         dimtd.update(Thing._select_skeleton(self.c, {
             "thing_location": [
-                Thing.bonetype(dimension=n) for n in names]}))
+                Thing.bonetype(dimension=n, branch=None, tick_from=None)
+                for n in names]}))
         self.skeleton.update(dimtd)
         r = {}
         for name in names:
