@@ -588,6 +588,8 @@ class Skeleton(MutableMapping):
     def __repr__(self):
         """If ``self.content`` is an :type:`array`, unpack the lot of
         it for show. Otherwise just return ``repr(self.content)``."""
+        if isinstance(self.content, array):
+            return repr([bone for bone in self.itervalues()])
         return repr(self.content)
 
     def __iadd__(self, other):
