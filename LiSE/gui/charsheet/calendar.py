@@ -52,7 +52,6 @@ to.
     active = BooleanProperty(False)
     branch = NumericProperty()
     calendar = ObjectProperty()
-    rowid = NumericProperty()
     text = StringProperty()
     tick_from = NumericProperty()
     tick_to = NumericProperty(None, allownone=True)
@@ -216,35 +215,16 @@ seen."""
             self.branch + self.branches_wide + self.branches_offscreen)
         mintick = int(self.tick - self.ticks_offscreen)
         maxtick = int(self.tick + self.ticks_tall + self.ticks_offscreen)
-        # I contain Cells.
-        #
-        # I should contain those that are visible, or nearly so.
-        #
-        # Remove those that are neither.
-        for child in self.children:
-            if (
-                    child.branch < minbranch or
-                    maxbranch < child.branch or
-                    maxtick < child.tick_from or
-                    (child.tick_to is not None and
-                     child.tick_to < mintick)):
-                self.remove_widget(child)
-        # Find cells to show
-        to_cover = {}
-        content = {}
+        self.clear_widgets()
         for branch in xrange(minbranch, maxbranch):
             if branch not in self.skel:
                 continue
-            to_cover[branch] = set()
-            content[branch] = {}
             boneiter = self.skel[branch].iterbones()
             prev = next(boneiter)
             for bone in boneiter:
                 if (
                         prev.tick_from < maxtick and
                         bone.tick_from > mintick):
-                    # I'll be showing this cell. Choose text for it
-                    # based on my type.
                     if self.cal_type == 5:
                         text = prev.location
                     elif self.cal_type == 6:
@@ -256,9 +236,12 @@ seen."""
                         text = prev.value
                     else:
                         text = ""
-                    to_cover[branch].add(id(prev))
-                    content[branch][id(prev)] = (
-                        text, prev.tick_from, bone.tick_from)
+                    self.add_widget(Cell(
+                        calendar=self,
+                        branch=branch,
+                        text=text,
+                        tick_from=prev.tick_from,
+                        tick_to=bone.tick_from))
                 if bone.tick_from > maxtick:
                     break
                 prev = bone
@@ -275,38 +258,13 @@ seen."""
                     text = prev.value
                 else:
                     text = ""
-                to_cover[branch].add(id(prev))
                 assert(text is not None)
-                content[branch][id(prev)] = (
-                    text, prev.tick_from, None)
-        # I might already be showing some of these, though.
-        #
-        # Which ones don't I show?
-        uncovered = {}
-        covered = {}
-        for child in self.children:
-            if child.branch not in covered:
-                covered[child.branch] = set()
-            covered[child.branch].add(child.rowid)
-        for (branch, coverage) in to_cover.iteritems():
-            if branch not in covered:
-                uncovered[branch] = coverage
-            else:
-                uncovered[branch] = coverage - covered[branch]
-        # Construct cells for just the bones that I'm not showing already
-        for (branch, rowids) in uncovered.iteritems():
-            n = 0
-            for rowid in rowids:
-                (text, tick_from, tick_to) = content[branch][rowid]
-                cell = Cell(
+                self.add_widget(Cell(
                     calendar=self,
                     branch=branch,
                     text=text,
-                    tick_from=tick_from,
-                    tick_to=tick_to,
-                    rowid=rowid)
-                self.add_widget(cell)
-                n += 1
+                    tick_from=prev.tick_from,
+                    tick_to=None))
 
     def do_layout(self, *largs):
         """Arrange all the cells into columns sorted by branch, and stack them
