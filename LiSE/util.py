@@ -1330,6 +1330,14 @@ def wedge_offsets_core(theta, opp_theta, taillen):
 
 
 def wedge_offsets_rise_run(rise, run, taillen):
+    """Given a line segment's rise, run, and length, return two new
+    points--with respect to the *end* of the line segment--that are good
+    for making an arrowhead with.
+
+    The arrowhead is a triangle formed from these points and the point at
+    the end of the line segment.
+
+    """
     # theta is the slope of a line bisecting the ninety degree wedge.
     theta = slope_theta_rise_run(rise, run)
     opp_theta = opp_theta_rise_run(rise, run)
@@ -1394,7 +1402,10 @@ class ListItemIterator:
 
 
 class Timestream(object):
-    """Tracks the genealogy of the various branches of time."""
+    """Tracks the genealogy of the various branches of time.
+
+
+    Branches of time each have one parent; branch zero is its own parent."""
     __metaclass__ = SaveableMetaclass
     # I think updating the start and end ticks of a branch using
     # listeners might be a good idea
@@ -1408,6 +1419,10 @@ class Timestream(object):
         ]
 
     def __init__(self, closet):
+        """Initialize hi_branch and hi_tick to 0, and their listeners to
+        empty.
+
+        """
         self.closet = closet
         self.hi_branch_listeners = []
         self.hi_tick_listeners = []
@@ -1415,33 +1430,30 @@ class Timestream(object):
         self.hi_tick = 0
 
     def __setattr__(self, attrn, val):
+        """Trigger the listeners as needed"""
         if attrn == "hi_branch":
-            self.set_hi_branch(val)
+            for listener in self.hi_branch_listeners:
+                listener(self, val)
         elif attrn == "hi_tick":
-            self.set_hi_tick(val)
-        else:
-            super(Timestream, self).__setattr__(attrn, val)
-
-    def set_hi_branch(self, b):
-        for listener in self.hi_branch_listeners:
-            listener(self, b)
-        super(Timestream, self).__setattr__("hi_branch", b)
-
-    def set_hi_tick(self, t):
-        for listener in self.hi_tick_listeners:
-            listener(self, t)
-        super(Timestream, self).__setattr__("hi_tick", t)
+            for listener in self.hi_tick_listeners:
+                listener(self, val)
+        super(Timestream, self).__setattr__(attrn, val)
 
     def uptick(self, tick):
+        """Set ``self.hi_tick`` to ``tick`` if the present value is lower."""
         self.hi_tick = max((tick, self.hi_tick))
 
     def upbranch(self, branch):
+        """Set ``self.hi_branch`` to ``branch`` if the present value is
+        lower."""
         self.hi_branch = max((branch, self.hi_branch))
 
     def parent(self, branch):
+        """Return the parent of the branch"""
         return self.closet.skeleton["timestream"][branch].parent
 
     def children(self, branch):
+        """Generate all children of the branch"""
         for bone in self.closet.skeleton["timestream"].iterbones():
             if bone.parent == branch:
                 yield bone.branch
