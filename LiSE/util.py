@@ -1439,6 +1439,39 @@ class Timestream(object):
                 listener(self, val)
         super(Timestream, self).__setattr__(attrn, val)
 
+    def min_branch(self, table=None):
+        """Return the lowest known branch.
+
+        With optional argument ``table``, consider only records in
+        that table.
+
+        """
+        lowest = None
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if hasattr(bone, 'branch') and (
+                    lowest is None or bone.branch < lowest):
+                lowest = bone.branch
+        return lowest
+
+    def max_branch(self, table=None):
+        """Return the highest known branch.
+
+        With optional argument ``table``, consider only records in
+        that table.
+
+        """
+        highest = 0
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if hasattr(bone, 'branch') and bone.branch > highest:
+                highest = bone.branch
+        return highest
+
     def max_tick(self, branch=None, table=None):
         """Return the highest recorded tick in the given branch, or every
         branch if none given.

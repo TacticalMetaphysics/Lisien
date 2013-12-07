@@ -7,6 +7,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.stencilview import StencilView
+from kivy.clock import Clock
 from itemlayout import ItemLayout
 
 
@@ -178,12 +179,8 @@ class TableTextInput(TextInput):
             skel = closet.skeleton[u"thing_location"][
                 self.bone.dimension][self.bone.thing][
                 branch]
-            # Sometimes I get called during the creation of a new
-            # branch, before the new branch has anything in it. Wait
-            # it out.
-            if len(skel) == 0:
-                return
             self.text = skel.value_during(tick).location
+            self.do_cursor_movement('cursor_home')
         elif ittyp == 1:
             pass
         elif ittyp == 2:
