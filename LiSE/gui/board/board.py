@@ -32,12 +32,13 @@ class Board(ScrollView):
     auto_bring_to_front = False
     closet = ObjectProperty()
     dimension = ObjectProperty()
-    spotdict = DictProperty({})
-    pawndict = DictProperty({})
-    arrowdict = DictProperty({})
     bone = ObjectProperty()
     content = ObjectProperty(None)
     completion = NumericProperty(0)
+
+    spotdict = DictProperty({})
+    pawndict = DictProperty({})
+    arrowdict = DictProperty({})
 
     def __init__(self, **kwargs):
         if kwargs["dimension"].__class__ in (str, unicode):
@@ -68,7 +69,6 @@ class Board(ScrollView):
         content = RelativeLayout(
             size_hint=(None, None),
             size=tex.size)
-        self.content = content
         content.add_widget(Image(pos=(0, 0), texture=tex, size=tex.size))
         super(Board, self).add_widget(content)
         if (
@@ -106,7 +106,7 @@ class Board(ScrollView):
         return "Board({})".format(self)
 
     def add_widget(self, w):
-        return self.content.add_widget(w)
+        return self.children[0].add_widget(w)
 
     def upd_bone(self, *args):
         self.bone = self.closet.skeleton["board"][unicode(self)]

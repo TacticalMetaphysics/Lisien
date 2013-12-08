@@ -287,6 +287,18 @@ class Bone(tuple):
     __metaclass__ = BoneMetaclass
     _field_decls = []
 
+    def __init__(self, *args, **kwargs):
+        """Refuse to initialize :class:`Bone` directly.
+
+        Please use the class method :method:`subclass` (or
+        :method:`structless_subclass` for weird data) to make your
+        own.
+
+        """
+        if self.__class__ is Bone:
+            raise NotImplementedError("Bone is an abstract class.")
+        super(Bone, self).__init__(*args, **kwargs)
+
     @classmethod
     def subclass(cls, name, decls):
         """Return a subclass of :class:`Bone` named ``name`` with field
@@ -294,7 +306,19 @@ class Bone(tuple):
 
         Field declarations look like:
 
-        ``(field_name, field_type, default``
+        ``(field_name, field_type, default)``
+
+        field_name is a string; it will be the name of a property of the class.
+
+        field_type is a type object. It should be one of the types
+        supported by the :module:`struct` module, or you will get
+        errors. You can still use ``structless_subclass`` if you need
+        weird types; you just won't be able to keep your bones in
+        arrays.
+
+        ``default`` is the default value of the field, for when you
+        construct a bone with keyword arguments that do not include
+        this field.
 
         """
         d = {"_field_decls": decls}
@@ -308,7 +332,16 @@ class Bone(tuple):
 
         Field declarations look like:
 
-        ``(field_name, field_type, default``
+        ``(field_name, field_type, default)``
+
+        field_name is a string; it will be the name of a property of the class.
+
+        field_type is a type object. The values of this field must
+        match it, except that any field may be ``None``.
+
+        ``default`` is the default value of the field, for when you
+        construct a bone with keyword arguments that do not include
+        this field.
 
         """
         d = {"_field_decls": decls,
@@ -1559,9 +1592,10 @@ class Fabulator(object):
 
         """
         (outer, inner) = match("(.+)\((.+)\)", s).groups()
-        return self.call_recursively(outer, inner)
+        return self._call_recursively(outer, inner)
 
-    def call_recursively(self, outer, inner):
+    def _call_recursively(self, outer, inner):
+        """Internal use"""
         fun = self.fabbers[outer]
         # pretty sure parentheses are meaningless inside []
         m = findall("(.+)\((.+)\)[,)] *", inner)
@@ -1575,5 +1609,5 @@ class Fabulator(object):
         else:
             # This doesn't allow any mixing of function-call arguments
             # with text arguments at the same level. Not optimal.
-            return fun(*[self.call_recursively(infun, inarg)
+            return fun(*[self._call_recursively(infun, inarg)
                          for (infun, inarg) in m])
