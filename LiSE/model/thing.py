@@ -3,68 +3,75 @@
 from re import match
 
 from LiSE.util import (
-    SaveableMetaclass,
-    LocationException,
     TimeParadox,
     JourneyException,
     portex)
 
+from container import Container
 
-class Thing(object):
-    __metaclass__ = SaveableMetaclass
+
+class Thing(Container):
     """The sort of item that has a particular location at any given time.
 
-If a Thing is in a Place, it is standing still. If it is in a Portal,
-it is moving through that Portal however fast it must in order to
-arrive at the other end when it is scheduled to. If it is in another
-Thing, then it is wherever that is, and moving the same.
+    If a Thing is in a Place, it is standing still. If it is in a
+    Portal, it is moving through that Portal however fast it must in
+    order to arrive at the other end when it is scheduled to. If it is
+    in another Thing, then it is wherever that is, and moving the
+    same.
 
     """
+    # dimension is now the name of the character that the *place* is in
     tables = [
-        ("thing_location",
-         {"dimension": "text not null default 'Physical'",
-          "thing": "text not null",
+        ("thing",
+         {"character": "text not null",
+          "name": "text not null",
           "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
+          "tick": "integer not null default 0",
+          "host": "text",
           "location": "text"},
-         ("dimension", "thing", "branch", "tick_from"),
-         {},
+         ("character", "name", "branch", "tick"),
+         {"host, location": ("place", "character, name")},
+         []),
+        ("thing_facade",
+         {"observer": "text not null",
+          "observed": "text not null",
+          "name": "text not null",
+          "branch": "integer not null default 0",
+          "tick": "integer not null default 0",
+          "host": "text",
+          "location": "text"},
+         ("observer", "observed", "name", "branch", "tick"),
+         {"host, location": ("place", "character, name")},
          [])]
-    basic_speed = 0.1
+    """Things exist in particular places--but what exactly it *means* for
+    a thing to be in a place will vary by context. Each of those
+    contexts gets a "host," which is another character. Things are
+    *in* their host, but are *part of* their character.
 
-    @property
-    def locations(self):
-        return self.closet.skeleton["thing_location"][
-            unicode(self.dimension)][unicode(self)]
+    Each thing has only one record in the table ``thing``, but may
+    have several records in the table ``thing_facade``. The record in
+    ``thing`` is regarded as the true one for the purpose of resolving
+    the outcomes of events, but when characters make decisions, they
+    can only use the information from ``thing_facade``. This permits
+    you to hide information and lie to the player.
 
-    @property
-    def location(self):
-        return self.get_location()
+    There are various methods here to get information on a thing's
+    status. Called with no arguments, they return the truth at the
+    present time. During simulation, they are always called with at
+    least the argument ``observer``, and will therefore respond with
+    the way the observer *understands* them.
 
-    @property
-    def speed(self):
-        return self.get_speed()
-
-    @property
-    def distance(self):
-        return self.get_distance()
-
-    @property
-    def progress(self):
-        return self.get_progress()
-
-    def __init__(self, closet, dimension, name):
-        self.closet = closet
-        self.dimension = dimension
-        self._name = unicode(name)
+    """
+    def __init__(self, character, name):
+        self.character = character
+        self.name = name
         self.new_branch_blank = False
-        self.dimension.thingdict[name] = self
 
     def __str__(self):
-        return str(self._name)
+        return str(self.name)
 
     def __unicode__(self):
-        return unicode(self._name)
+        return unicode(self.name)
 
     def __repr__(self):
         return "Thing({})".format(self)
@@ -72,118 +79,57 @@ Thing, then it is wherever that is, and moving the same.
     def __contains__(self, that):
         return that.location is self
 
-    def assert_can_enter(self, it):
-        """If I can't enter the given location, raise a LocationException.
+    def get_bone(self, observer=None, branch=None, tick=None):
+        if observer is None:
+            return self.character.get_thing_bone(self.name, branch, tick)
+        else:
+            facade = self.character.get_facade(observer)
+            return facade.get_thing_bone(branch, tick)
 
-Assume that the given location has no objections."""
-        pass
+    def get_location(self, locn, observer=None, branch=None, tick=None):
+        # Get the host character, to look up my location in.
+        #
+        # As the host is the character under observation, use its
+        # facade, rather than my character's facade.
+        my_bone = self.get_bone(None, branch, tick)
+        host = self.character.closet.get_character(my_bone.host)
+        if observer is None:
+            getster = host
+        else:
+            getster = host.get_facade(observer)
+        bone = getster.get_bone(locn)
+        return getster.get_whatever(bone)
 
-    def assert_can_leave_location(self):
-        """If I can't leave the location I'm currently in, raise a
-LocationException."""
-        pass
-
-    def assert_can_contain(self, it):
-        """If I can't contain the given item, raise a ContainmentException."""
-        pass
-
-    def get_location(self, branch=None, tick=None):
-        """Return my current location by default, or where I was at the given
-tick in the given branch."""
-        try:
-            bone = self.get_location_bone(branch, tick)
-        except KeyError:
-            return None
-        if bone is None or bone.location is None:
-            return None
-        if bone.location in self.dimension.graph.vs["name"]:
-            return self.dimension.get_place(bone.location)
-        try:
-            (orign, destn) = bone.location.split("->")
-            oi = self.dimension.graph.vs.find(orign).index
-            di = self.dimension.graph.vs.find(destn).index
-            eid = self.dimension.graph.get_eid(oi, di)
-            return self.dimension.graph.es[eid]["portal"]
-        except Exception:
-            return self.dimension.get_thing(bone.location)
-
-    def get_location_bone(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        if branch not in self.locations:
-            return None
-        return self.locations[branch].value_during(tick)
-
-    def exists(self, branch=None, tick=None):
-        """Have I got a location?
-
-If not, I'm nowhere, and therefore don't exist."""
-        try:
-            rd = self.get_location_bone(branch, tick)
-        except KeyError:
-            return False
-        return None not in (rd, rd["location"])
-
-    def set_location(self, loc, branch=None, tick=None):
-        """Declare that I'm in the given Place, Portal, or Thing.
-
-        """
-        assert(loc is not None)
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        self.locations[branch][tick] = self.bonetypes.thing_location(
-            dimension=unicode(self.dimension),
-            thing=unicode(self),
-            branch=branch,
-            tick_from=tick,
-            location=unicode(loc))
-        self.closet.timestream.upbranch(branch)
-        self.closet.timestream.uptick(tick)
+    def get_locations(self, observer=None, branch=None):
+        if observer is None:
+            return self.character.get_thing_locations(self.name, branch)
+        else:
+            facade = self.character.get_facade(observer)
+            return facade.get_thing_locations(self.name, branch)
 
     def get_speed(self, branch=None, tick=None):
-        lo = self.get_location(branch, tick)
-        ticks = self.get_ticks_thru(lo)
-        return float(len(lo)) / float(ticks)
+        lo = self.get_bone(branch, tick).location
+        ticks = self.get_ticks_thru(lo, branch, tick)
+        return float(lo.weight) / float(ticks)
 
-    def get_ticks_thru(self, po):
+    def get_ticks_thru(
+            self, portal, observer=None, branch=None, tick=None):
         """How many ticks would it take to get through that portal?"""
-        # basic_speed should really be looked up in a character, this
-        # is really a placeholder
-        return int(len(po) / self.basic_speed)
+        if observer is None:
+            observer = self.character
+        portal_bone = portal.get_bone(observer, branch, tick)
+        return int(portal_bone.weight / 0.1)
 
-    def determined_ticks_thru(self, po):
-        """Can I assume that it will always take *the same* number of ticks to
-get through that portal?"""
-        return True
-
-    def get_distance(self, branch=None, tick=None):
-        """Return a float representing the number of spans across the portal
-I've gone.
-
-Presupposes that I'm in a portal.
-
-        """
-        return NotImplemented
-
-    def get_progress(self, branch=None, tick=None):
+    def get_progress(self, observer=None, branch=None, tick=None):
         """Return a float representing the proportion of the portal I have
 passed through.
 
         """
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
-        if branch not in self.locations:
-            raise LocationException("I am nowhere in that branch")
+        bone = self.get_bone(observer, branch, tick)
         # this is when I entered the portal
-        t1 = self.get_location_bone(branch, tick).tick_from
+        t1 = bone.tick_from
         # this is when I will enter the destination
-        t2 = self.locations[branch].key_after(tick)
+        t2 = self.get_locations(branch).key_after(tick)
         if t2 is None:
             # I entered the portal without scheduling when to leave.
             # This should never happen *in play* but I guess a
@@ -195,35 +141,35 @@ passed through.
         passed = float(tick - t1)
         return passed / duration
 
-    def journey_to(self, destplace, branch=None, tick=None):
+    def journey_to(self, destplace, host='Physical', branch=None, tick=None):
         """Schedule myself to travel to the given place, interrupting whatever
 other journey I may be on at the time."""
         # TODO if I overwrite my extant travel schedule, overwrite
         # *everything* after the start of this new stuff. Right now,
         # anywhere I'm scheduled to be in a tick after the end of the
         # new journey, I'll still be there. It makes no sense.
-        if branch is None:
-            branch = self.closet.branch
-        if tick is None:
-            tick = self.closet.tick
         oloc = str(self.get_location(branch, tick))
         otick = tick
         m = match(portex, oloc)
         if m is not None:
             loc = m.groups()[0]
-            tick = self.locations[branch].key_after(otick)
+            tick = self.get_locations(branch).key_after(otick)
         else:
             loc = oloc
             tick = otick
-        ipath = self.dimension.graph.get_shortest_paths(
+        # It would be weird to use some other character's
+        # understanding of the map.
+        host = self.character.closet.get_character(host)
+        facade = host.get_facade(self.character)
+        ipath = facade.graph.get_shortest_paths(
             loc, to=unicode(destplace), output=str("epath"))
         path = None
         for p in ipath:
             if p == []:
                 continue
-            desti = self.dimension.graph.es[p[-1]].target
+            desti = facade.graph.es[p[-1]].target
             if desti == int(destplace):
-                path = [self.dimension.graph.es[i]["portal"] for i in p]
+                path = [facade.graph.es[i]["portal"] for i in p]
                 break
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
@@ -231,38 +177,40 @@ other journey I may be on at the time."""
         try:
             self.follow_path(path, branch, tick)
         except TimeParadox:
-            del self.locations[branch]
-            self.restore_loc_bones(locs)
+            self.restore_loc_bones(branch, locs)
             self.new_branch_blank = True
             increment = 1
             while branch + increment in self.locations:
                 increment += 1
-            self.closet.time_travel_inc_branch(branches=increment)
+            self.character.closet.time_travel_inc_branch(branches=increment)
             self.new_branch_blank = False
-            branch = self.closet.branch
             m = match(portex, oloc)
             if m is not None:
                 loc = m.groups()[0]
-                tick = self.locations[branch].key_after(otick)
+                tick = self.get_locations().key_after(otick)
             else:
                 loc = oloc
                 tick = otick
-            self.follow_path(path, branch, tick)
+            self.follow_path(path, None, tick)
 
     def follow_path(self, path, branch, tick):
         # only acceptable if I'm currently in the last place I'll be
         # in this branch
         try:
-            if self.locations[branch].key_after(tick) is not None:
+            if self.get_locations(observer=None, branch=branch).key_after(
+                    tick) is not None:
                 raise TimeParadox
         except KeyError:
             # This just means the branch isn't there yet. Don't worry.
             pass
         prevtick = tick + 1
         for port in path:
-            self.set_location(port, branch, prevtick)
-            prevtick += self.get_ticks_thru(port)
-            self.set_location(port.destination, branch, prevtick)
+            self.set_location(port, observer=None,
+                              branch=branch, tick=prevtick)
+            prevtick += self.get_ticks_thru(
+                port, observer=None, branch=branch, tick=prevtick)
+            self.set_location(port.destination, observer=None,
+                              branch=branch, tick=prevtick)
             prevtick += 1
 
     def new_branch(self, parent, branch, tick):
@@ -278,25 +226,24 @@ other journey I may be on at the time."""
         prev = None
         started = False
         i = 0
-        for bone in self.locations[parent].iterbones():
+        for bone in self.get_locations(parent).iterbones():
             i += 1
             if bone.tick_from >= tick:
                 bone2 = bone._replace(branch=branch)
-                self.locations[branch][bone2.tick_from] = bone2
+                self.get_locations(branch)[bone2.tick_from] = bone2
                 if (
                         not started and prev is not None and
                         bone.tick_from > tick and prev.tick_from < tick):
                     bone3 = prev._replace(branch=branch, tick_from=tick)
-                    self.locations[branch][bone3.tick_from] = bone3
+                    self.get_locations(branch)[bone3.tick_from] = bone3
                 started = True
             prev = bone
 
     def branch_loc_bones_gen(self, branch=None):
-        if branch is None:
-            branch = self.closet.branch
-        for bone in self.locations[branch].iterbones():
+        for bone in self.get_locations(branch).iterbones():
             yield bone
 
-    def restore_loc_bones(self, bones):
+    def restore_loc_bones(self, branch, bones):
+        self.character.del_thing_locations(branch)
         for bone in bones:
             self.set_location(bone.location, bone.branch, bone.tick_from)

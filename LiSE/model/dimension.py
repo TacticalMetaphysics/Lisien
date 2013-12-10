@@ -1,39 +1,11 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from igraph import Graph
+from igraph._igraph import InternalError as IgraphError
 
-from place import Place
-from portal import Portal
-from thing import Thing
+from re import match
 
-
-class PlaceIter:
-    def __init__(self, dim):
-        self.dim = dim
-        self.realit = iter(dim.graph.vs)
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return Place(self.dim, next(self.realit))
-
-    def next(self):
-        return self.__next__()
-
-
-class PortIter:
-    def __init__(self, dim):
-        self.realit = iter(dim.graph.es)
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return next(self.realit)["portal"]
-
-    def next(self):
-        return self.__next__()
+from LiSE.util import portex
 
 
 """Class and loaders for dimensions--the top of the world hierarchy."""
@@ -42,27 +14,8 @@ class PortIter:
 class Dimension:
     """Container for a given view on the game world, sharing no things,
 places, or portals with any other dimension, but possibly sharing
-characters."""
-    @property
-    def places(self):
-        return PlaceIter(self)
-
-    @property
-    def placenames(self):
-        try:
-            return self.graph.vs["name"]
-        except KeyError:
-            return []
-
-    @property
-    def portals(self):
-        return PortIter(self)
-
-    @property
-    def things(self):
-        return self.thingdict.itervalues()
-
-    def __init__(self, closet, name):
+facades."""
+    def __init__(self, facade, label):
         """Return a dimension with the given name.
 
 Probably useless unless, once you're sure you've put all your places,
@@ -71,133 +24,113 @@ method. Thereafter, it will have dictionaries of all those items,
 keyed with their names.
 
         """
-        self._name = name
-        self.closet = closet
-        self.thingdict = {}
-        self.graph = Graph(directed=True)
-        if u"portal" not in self.closet.skeleton:
-            self.closet.skeleton[u"portal"] = {}
-        if unicode(self) not in self.closet.skeleton[u"portal"]:
-            self.closet.skeleton[u"portal"][unicode(self)] = {}
-        if u"thing_location" not in self.closet.skeleton:
-            self.closet.skeleton[u"thing_location"] = {}
-        if unicode(self) not in self.closet.skeleton[u"thing_location"]:
-            self.closet.skeleton[u"thing_location"][unicode(self)] = {}
-        for bone in self.closet.skeleton[u"portal"][unicode(self)].iterbones():
-            orig = self.get_place(bone.origin)
-            dest = self.get_place(bone.destination)
-            Portal(self.closet, self, orig, dest)
-        for bone in self.closet.skeleton[
-                u"thing_location"][unicode(self)].iterbones():
-            if bone.thing not in self.thingdict:
-                self.thingdict[bone.thing] = Thing(
-                    self.closet, self, bone.thing)
-        self.closet.dimensiondict[unicode(self)] = self
-
-    def __hash__(self):
-        """Return the hash of this dimension's name, since the database
-constrains it to be unique."""
-        return hash(self.name)
+        self.facade = facade
+        self.label = label
+        self.remake_graph()
+        self.closet.dimension_d[unicode(self)] = self
 
     def __str__(self):
-        return str(self._name)
+        return str(self.label)
 
     def __unicode__(self):
-        return unicode(self._name)
+        return unicode(self.label)
+
+    def add_place_bone(self, bone):
+        """Add a vertex for this bone, if I don't have one already. Otherwise
+        update it.
+
+        """
+        diff = bone.idx + 1 - len(self.graph.vs)
+        if diff > 0:
+            self.graph.add_vertices(diff)
+        self.graph.vs[bone.idx]["bone"] = bone
+        self.graph.vs[bone.idx]["name"] = bone.label
+
+    def add_portal_bone(self, bone):
+        """Add an edge for this bone, if I don't have one already. Otherwise
+        update it.
+
+        """
+        if (
+                bone.origin in self.graph.vs["name"] and
+                bone.destination in self.graph.vs["name"]):
+            extant = self.graph.es.select(_within=[
+                bone.origin, bone.destination])
+            if len(extant) > 0:
+                try:
+                    e = extant.find(name=bone.label)
+                    e["bone"] = bone
+                    return
+                except IgraphError:
+                    pass
+        self.graph.add_edge(
+            bone.origin,
+            bone.destination,
+            bone=bone,
+            name=bone.label)
+
+    def get_location(self, label):
+        try:
+            return self.graph.vs.find(name=label)["place"]
+        except IgraphError:
+            try:
+                m = match(portex, label)
+                (origin, destination) = m.groups()
+                oi = self.graph.vs["name"].index(origin)
+                di = self.graph.vs["name"].index(destination)
+                ei = self.graph.get_eid(oi, di)
+                return self.graph.es[ei]["portal"]
+            except (IgraphError, IndexError):
+                return self.get_thing(label)
+
+    def populate_graph(self, branch=None, tick=None):
+        """Add a Vertex for each Place, and an Edge for each Portal--or, if
+        there is one already, update the existing one with the most
+        recent information.
+
+        The Places and Portals that exist at the present diegetic time
+        will be used, unless you specify some other time in the
+        optional parameters ``branch`` and ``tick``.
+
+        """
+        for place_bone in self.facade.iter_place_bones(branch, tick):
+            self.add_place_bone(place_bone)
+        for portal_bone in self.facade.iter_portal_bones(branch, tick):
+            self.add_portal_bone(portal_bone)
+
+    def remake_graph(self, branch=None, tick=None):
+        """Throw out the old graph and make a new one."""
+        self.graph = Graph(directed=True)
+        self.populate_graph(branch, tick)
+
+    def update_graph(self, branch=None, tick=None):
+        """Delete vertices and edges for Places and Portals that do not
+        presently exist. Then populate.
+
+        """
+        dead_vs = []
+        for v in self.graph.vs:
+            try:
+                place_bone = self.facade.get_place_bone(
+                    v["name"], branch, tick)
+                v["bone"] = place_bone
+            except KeyError:
+                # This place doesn't exist anymore; neither should its vertex.
+                dead_vs.append(v.index)
+        self.graph.delete_vertices(dead_vs)
+        dead_es = []
+        for e in self.graph.es:
+            try:
+                portal_bone = self.facade.get_portal_bone(
+                    e["name"], branch, tick)
+                e["bone"] = portal_bone
+            except KeyError:
+                # This portal doesn't exist anymore; neither should its edge.
+                dead_es.append(e.index)
+        self.graph.delete_edges(dead_es)
+        self.populate_graph(branch, tick)
 
     def get_igraph_layout(self, layout_type):
         """Return a Graph layout, of the kind that igraph uses, representing
 this dimension, and laid out nicely."""
         return self.graph.layout(layout=layout_type)
-
-    def have_place(self, name):
-        if len(self.graph.vs) == 0:
-            return False
-        return name in self.graph.vs["name"]
-
-    def get_place(self, iname):
-        try:
-            vnames = self.graph.vs["name"]
-            if not isinstance(iname, int):
-                name = iname
-                i = vnames.index(iname)
-            else:
-                i = iname
-                name = vnames[i]
-            v = self.graph.vs[i]
-            return Place(self, v)
-        except (IndexError, KeyError, ValueError):
-            try:
-                return self.make_place(name)
-            except UnboundLocalError:
-                return self.make_place(iname)
-
-    def make_place(self, name):
-        i = len(self.graph.vs)
-        self.graph.add_vertex(name=name)
-        return Place(self, self.graph.vs[i])
-
-    def have_portal(self, orig, dest):
-        (origi, orig) = self.sanitize_vert(orig)
-        (desti, dest) = self.sanitize_vert(dest)
-        lgv = len(self.graph.vs)
-        if origi >= lgv or desti >= lgv:
-            return False
-        return self.graph[origi, desti] > 0
-
-    def get_portal(self, orig, dest):
-        (origi, orig) = self.sanitize_vert(orig)
-        (desti, dest) = self.sanitize_vert(dest)
-        return self.graph.es[self.graph.get_eid(origi, desti)]["portal"]
-
-    def get_thing(self, name):
-        thing = self.thingdict[name]
-        return thing
-
-    def make_thing(self, name, location):
-        thing = Thing(self.closet, self, name)
-        thing.set_location(location)
-        return thing
-
-    def new_branch(self, parent, branch, tick):
-        for thing in self.thingdict.itervalues():
-            thing.new_branch(parent, branch, tick)
-        for e in self.graph.es:
-            e["portal"].new_branch(parent, branch, tick)
-
-    def sanitize_vert(self, v):
-        if isinstance(v, int):
-            i = v
-            v = self.graph.vs[i]
-        elif isinstance(v, Place):
-            v = v.v
-            i = v.i
-        elif isinstance(v, str) or isinstance(v, unicode):
-            vname = str(v)
-            vnames = self.graph.vs["name"]
-            i = vnames.index(vname)
-            v = self.graph.vs[i]
-        else:
-            i = v.index
-        return (i, v)
-
-    def sanitize_edge(self, e):
-        if isinstance(e, int):
-            i = e
-            e = self.graph.es[i]
-        elif isinstance(e, Portal):
-            e = e.e
-            i = e.index
-        elif isinstance(e, str) or isinstance(e, str):
-            if e[:6] == "Portal":
-                e = e[6:]
-            if e[0] == "(":
-                e = e[1:]
-            if e[-1] == ")":
-                e = e[:-1]
-            (orign, destn) = e.split("->")
-            i = self.graph.get_eid(orign, destn)
-            e = self.graph.es[i]
-        else:
-            i = e.index
-        return (i, e)
