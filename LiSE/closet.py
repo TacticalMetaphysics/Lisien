@@ -6,7 +6,7 @@ This is a caching database connector. There are dictionaries for all
 objects that can be loaded from the database.
 
 This module does not contain the code used to generate
-SQL. That's in util.py, the class SaveableMetaclass.
+SQL. That's in :class:`~LiSE.util.SaveableMetaclass`.
 
 """
 import os
@@ -22,20 +22,20 @@ from gui.board import (
 from gui.charsheet import CharSheet, CharSheetView
 from gui.menu import Menu
 from gui.img import Img
-from model.character import Character
-from model.dimension import Dimension
+from model import (
+    Character,
+    Dimension,
+    Portal,
+    Timestream,
+    Thing)
 from model.event import Implicator
-from model.portal import Portal
-from model.thing import Thing
 from util import (
     Bone,
     schemata,
     saveables,
     saveable_classes,
     Fabulator,
-    Skeleton,
-    Timestream,
-    TimestreamException)
+    Skeleton)
 
 
 def noop(*args, **kwargs):
@@ -89,6 +89,8 @@ NEW_THING_RE = re.compile(
     "new_thing\((.+)+\)")
 NEW_PLACE_RE = re.compile(
     "new_place\((.+)\)")
+CHARACTER_RE = re.compile(
+    "character\((.+)\)")
 
 
 game_bone = Bone.subclass(
@@ -133,34 +135,24 @@ before RumorMill will work. For that, run mkdb.sh.
     tick = 0
     skeleton = Skeleton()
     working_dicts = [
-        "boardhanddict",
-        "calendardict",
-        "colordict",
-        "dimensiondict",
-        "boarddict",
-        "dimensiondict",
-        "boarddict",
-        "effectdict",
-        "effectdeckdict",
-        "imgdict",
-        "texturedict",
-        "textagdict",
-        "menudict",
-        "menuitemdict",
-        "styledict",
-        "tickdict",
-        "eventdict",
-        "characterdict"]
-
-    @property
-    def dimensions(self):
-        """Iterate over all dimensions."""
-        return self.dimensiondict.itervalues()
-
-    @property
-    def characters(self):
-        """Iterate over all characters."""
-        return self.characterdict.itervalues()
+        "boardhand_d",
+        "calendar_d",
+        "color_d",
+        "dimension_d",
+        "board_d",
+        "dimension_d",
+        "board_d",
+        "effect_d",
+        "effectdeck_d",
+        "img_d",
+        "texture_d",
+        "textag_d",
+        "menu_d",
+        "menuitem_d",
+        "style_d",
+        "tick_d",
+        "event_d",
+        "character_d"]
 
     def __setattr__(self, attrn, val):
         if attrn == "branch":
@@ -546,6 +538,8 @@ For more information, consult SaveableMetaclass in util.py.
         return r
 
     def get_character(self, name):
+        if isinstance(name, Character):
+            return name
         return self.get_characters([str(name)])[str(name)]
 
     def get_thing(self, dimn, thingn):
@@ -631,14 +625,10 @@ For more information, consult SaveableMetaclass in util.py.
         return Board(closet=self, dimension=dim)
 
     def get_place(self, dim, placen):
-        if not isinstance(dim, Dimension):
-            dim = self.get_dimension(dim)
-        return dim.get_place(placen)
+        return self.get_dimension(dim).get_place(placen)
 
     def get_portal(self, dim, origin, destination):
-        if not isinstance(dim, Dimension):
-            dim = self.get_dimension(dim)
-        return dim.get_portal(str(origin), str(destination))
+        return self.get_dimension(dim).get_portal(origin, destination)
 
     def get_textures(self, imgnames):
         r = {}
@@ -679,8 +669,8 @@ For more information, consult SaveableMetaclass in util.py.
         return self.time_travel(branch, tick)
 
     def time_travel(self, branch, tick):
-        if branch > self.timestream.hi_branch + 1:
-            raise TimestreamException("Tried to travel too high a branch")
+        assert branch <= self.timestream.hi_branch + 1, (
+            "Tried to travel to too high a branch")
         if branch == self.timestream.hi_branch + 1:
             self.new_branch(self.branch, branch, tick)
         # will need to take other games-stuff into account than the
@@ -771,16 +761,20 @@ For more information, consult SaveableMetaclass in util.py.
         return skel[self.branch].value_during(self.tick)
 
     def mi_show_popup(self, mi, name):
+        root = mi.get_root_window().children[0]
         new_thing_match = re.match(NEW_THING_RE, name)
         if new_thing_match:
-            root = mi.get_root_window().children[0]
             return root.show_pawn_picker(
                 new_thing_match.groups()[0].split(", "))
         new_place_match = re.match(NEW_PLACE_RE, name)
         if new_place_match:
-            root = mi.get_root_window().children[0]
             return root.show_spot_picker(
                 new_place_match.groups()[0].split(", "))
+        character_match = re.match(CHARACTER_RE, name)
+        if character_match:
+            argstr = character_match.groups()[0]
+            if len(argstr) == 0:
+                return root.show_charsheet_maker()
 
     def mi_connect_portal(self, mi):
         mi.get_root_window().children[0].make_arrow()
@@ -854,7 +848,7 @@ subdirectory therein."""
     c.execute(
         "CREATE TABLE strings (stringname TEXT NOT NULL, language TEXT NOT"
         " NULL DEFAULT 'eng', string TEXT NOT NULL, "
-        "PRIMARY KEY(stringname,  language));")
+        "PRIMARY KEY(stringname,  language)) WITHOUT ROWID;")
 
     done = set()
     while saveables != []:
