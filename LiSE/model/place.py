@@ -10,36 +10,53 @@ class Place(Container):
     and where portals can lead. A place's name must be unique within
     its character.
 
-    Places have no other distinguishing characteristics. They are made
-    distinct by putting stuff in them. To find out what is here, use
-    the methods ``get_contents`` and ``get_portals``.
+    Unlike things and portals, places can't be hosted by characters
+    other than the one they are part of. When something is "hosted" in
+    a character, that means it's in a place that's in the
+    character--always.
 
-    Places exist only in characters, and not in facades. But when
-    somebody looks into a place, what they see there depends entirely
-    on the facade.
+    You don't need to create a bone for each and every place you
+    use--link to it with a portal, or put a thing there, and it will
+    exist. Place bones are only for when a place needs stats.
 
     """
-    tables = [
-        ("place",
-         {"character": "text not null",
-          "name": "text not null",
-          "branch": "integer not null default 0",
-          "tick": "integer not null default 0"},
-         ("character", "name", "branch", "tick"),
-         {},
-         [])]
+    tables = {
+        "place_stat": {
+            "columns": {
+                "character": "text not null",
+                "name": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "character", "name", "key", "branch", "tick")},
+        "place_stat_facade": {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "name": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "observer", "observed", "name", "key", "branch", "tick"),
+            "foreign_keys": {
+                "observer, observed, name": (
+                    "place_stat", "observer, observed, name")}}}
 
     def __init__(self, character, name):
+        """Initialize a place in a character by a name"""
         self.character = character
         self.name = name
 
     def __contains__(self, that):
+        """Is that here?"""
         return self.contains(that)
 
-    def get_bone(self, branch=None, tick=None):
-        return self.character.get_place_bone(branch, tick)
-
     def _iter_portals_bones(self, observer=None, branch=None, tick=None):
+        """Iterate over the bones of portals that lead out from me"""
         if observer is None:
             for bone in self.character.iter_portal_bones(branch, tick):
                 if (
@@ -53,6 +70,8 @@ class Place(Container):
                 yield bone
 
     def iter_portals(self, observer=None, branch=None, tick=None):
+        """Iterate over all those portals which lead from this place to
+        elsewhere."""
         if observer is None:
             getter = self.character.get_portal
         else:
@@ -62,6 +81,7 @@ class Place(Container):
             yield getter(bone.name)
 
     def get_portals(self, observer=None, branch=None, tick=None):
+        """Get a set of names of portals leading out from here."""
         if observer is None:
             getter = self.character.get_portal
         else:

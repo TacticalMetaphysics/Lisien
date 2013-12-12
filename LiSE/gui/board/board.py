@@ -13,10 +13,9 @@ from spot import Spot
 from arrow import Arrow
 from pawn import Pawn
 
-"""Class for user's view on gameworld, and support functions."""
-
 
 class Board(ScrollView):
+    """A graphical view onto a character, resembling a game board."""
     __metaclass__ = SaveableWidgetMetaclass
     tables = [(
         "board",
@@ -30,9 +29,9 @@ class Board(ScrollView):
     arrow_width = 1.4
     arrowhead_size = 10
     auto_bring_to_front = False
-    closet = ObjectProperty()
-    dimension = ObjectProperty()
-    bone = ObjectProperty()
+    character = ObjectProperty()
+    observer = ObjectProperty()
+    bone = ObjectProperty(None, allownone=True)
     content = ObjectProperty(None)
     completion = NumericProperty(0)
 
@@ -40,31 +39,21 @@ class Board(ScrollView):
     pawndict = DictProperty({})
     arrowdict = DictProperty({})
 
-    def __init__(self, **kwargs):
-        if kwargs["dimension"].__class__ in (str, unicode):
-            kwargs["dimension"] = kwargs["closet"].get_dimension(
-                kwargs["dimension"])
-        ScrollView.__init__(self, scroll_y=0, **kwargs)
-
-    def on_dimension(self, i, v):
-        self.completion += 1
-
-    def on_closet(self, i, v):
+    def on_character(self, i, v):
         self.completion += 1
 
     def on_parent(self, i, v):
         self.completion += 1
 
     def on_completion(self, i, v):
-        if v == 3:
+        if v == 2:
             self.finalize()
 
     def finalize(self):
-        self.last_touch = None
         self.closet.boarddict[unicode(self.dimension)] = self
         self.upd_bone()
         self.closet.skeleton["board"][unicode(
-            self.dimension)].listener = self.upd_bone
+            self.character)].listener = self.upd_bone
         tex = self.closet.get_texture(self.bone.wallpaper)
         content = RelativeLayout(
             size_hint=(None, None),
