@@ -6,6 +6,7 @@ from igraph._igraph import InternalError as IgraphError
 from re import match
 
 from LiSE.util import (
+    KnowledgeException,
     SaveableMetaclass,
     portex)
 from LiSE.model import (
@@ -76,16 +77,16 @@ class Character(object):
     """
 
     provides = ["character"]
-    tables = [
-        ("stat",
-         {"character": "text not null",
-          "name": "text not null",
-          "branch": "integer not null default 0",
-          "tick": "integer not null default 0",
-          "stat": "text"},
-         ("character", "name", "branch", "tick"),
-         {},
-         [])]
+    tables = {
+        "character_stat": {
+            "columns": {
+                "character": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "character", "key", "branch", "tick")}}
 
     def __init__(self, closet, name, knows_self=True,
                  self_omitters=[], self_liars=[]):
@@ -124,6 +125,14 @@ class Character(object):
         and thereby exist in the physical world without necessarily
         being a part of it.
 
+        Note that it is possible for something to be part of more than
+        one character at a time. This is desirable for when, eg., six
+        adventurers band together to form a party, which looks a lot
+        more intimidating as a group than any of its individual
+        members. The party in that instance would be a new chanacter
+        containing all the same things as the six who make it up, and
+        it would have its own intimidation stat, among others.
+
         """
         self.closet = closet
         self.name = name
@@ -147,13 +156,13 @@ class Character(object):
             try:
                 self.get_place_bone(
                     v["name"], branch, tick)
-            except KeyError:
+            except (KeyError, KnowledgeException):
                 self.graph.delete_vertex(v.index)
         for e in self.graph.es:
             try:
                 self.get_portal_bone(
                     e["name"], branch, tick)
-            except KeyError:
+            except (KeyError, KnowledgeException):
                 self.graph.delete_edge(e.index)
         for v in self.iter_place_bones(branch, tick):
             self.graph.add_vertex(name=v.name, place=Place(self, v.name))
@@ -478,18 +487,17 @@ class Facade(Character):
     __metaclass__ = SaveableMetaclass
     demands = ["character"]
     provides = ["facade"]
-    tables = [
-        ("stat_facade",
-         {"observer": "text not null",
-          "observed": "text not null",
-          "label": "text not null",
-          "branch": "integer not null default 0",
-          "tick": "integer not null default 0",
-          "name": "text",
-          "stat": "text"},
-         ("character", "facade", "label", "branch", "tick"),
-         {"character, label": ("character_label", "character, label")},
-         [])]
+    tables = {
+        "character_stat_facade": {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "observer", "observed", "key", "branch", "tick")}}
 
     def __init__(self, observer, observed, omitters=[], liars=[]):
         """Construct a facade for how the observer sees the observed.
@@ -536,129 +544,248 @@ class Facade(Character):
         skel[bone.observer][bone.observed][bone.label][
             bone.branch][bone.tick] = bone
 
-    def tact(self, bone):
-        """Raise KeyError if the bone triggers an omitter. Otherwise return
-        it."""
+    def evade(self, bone):
+        """Raise KnowledgeException if the bone triggers an omitter. Otherwise
+        return it.
+
+        """
         for omitter in self.omitters:
             if omitter(bone):
-                raise KeyError("Found bone {}, but omitted due to {}".format(
-                    bone, omitter))
+                raise KnowledgeException(
+                    "Found bone {}, but omitted due to {}".format(
+                        bone, omitter))
         return bone
 
-    def spin(self, bone):
+    def deceive(self, bone):
         """Allow my liars to mutilate the bone however they please before
         returning it."""
         for liar in self.liars:
             bone = liar(bone)
         return bone
 
-    def deceive(self, bone):
+    def distort(self, bone):
         """Let my omitters and liars at the bone, and return it if it
-        survives."""
-        return self.spin(self.tact(bone))
+        survives. May raise KnowledgeException."""
+        return self.deceive(self.evade(bone))
 
     # override
     def get_whatever(self, bone):
-        return self.deceive({
+        """Return a thing or a portal, depending on the type of the bone."""
+        return self.distort({
             Thing.bonetypes.thing_facade: self.get_thing,
             Portal.bonetypes.portal_facade: self.get_portal}[
             type(bone)](bone.name))
 
+    def set_bone(self, bone):
+        """Set the given bone in this facade. Only bone types relevant to the
+        facade tables are permitted.
+
+        Bones set here reflect the way an item in my ``observed``
+        seems when viewed by my ``observer``. They will be used in
+        favor of the data from my ``observed``, unless their values
+        are null, in which case the true data prevails.
+
+        """
+        if isinstance(bone, Thing.bonetypes.thing_facade):
+            self.set_thing_bone(bone)
+        elif isinstance(bone, Portal.bonetypes.portal_facade):
+            self.set_portal_bone(bone)
+        else:
+            raise TypeError(
+                "Only bones for the facade tables are supported.")
+
     ### Thing
 
-    def iter_thing_facade_bones(self, bone):
-        """Take a thing_bone and yield the corresponding thing_facade_bones in
-        this facade right here."""
-        skel = self.closet.skeleton[u"thing_facade"][
-            unicode(self.observer)][unicode(self.observed)]
-        for inbone in self._iter_thing_skel_bones(
-                skel, bone.branch, bone.tick):
-            try:
-                inbone = self.deceive(inbone)
-            except KeyError:
-                continue
-            if inbone.name == bone.name and inbone.host == bone.host:
-                yield inbone
-
     # override
-    def get_thing_bone(self, label, branch, tick):
+    def get_real_thing_bone(self, label, branch, tick):
+        """Return a thing bone specific to this one facade.
+
+        This method does not distort the bone. It never returns a bone
+        from my ``observed`` character.
+
+        """
         (branch, tick) = self.sanetime(branch, tick)
         skel = self.closet.skeleton[u"thing_facade"][
             unicode(self.observer)][unicode(self.observed)][
             label]
-        return self.deceive(self._get_thing_skel_bone(skel, branch, tick))
+        return self._get_thing_skel_bone(skel, branch, tick)
+
+    def get_thing_bone(self, name, branch, tick):
+        """Return a thing bone, possibly from this facade, possibly from its
+        ``observed`` character, and possibly distorted by ``liars``.
+
+        In case the named thing is in the ``observed`` character, but
+        is not apparent to the ``observer``, raise KnowledgeException.
+
+        """
+        try:
+            bone = self.get_real_thing_bone(name, branch, tick)
+        except KeyError:
+            bone = self.observed.get_thing_bone(name, branch, tick)
+        return self.distort(bone)
 
     # override
     def iter_thing_bones(self, branch=None, tick=None):
+        """Iterate over all bones for all things at the given time.
+
+        Beware, this yields bones with null values too. Just because
+        you get a bone, doesn't mean there's a thing for it at the
+        moment.
+
+        """
         skel = self.closet.skeleton[u"thing_facade"][
             unicode(self.observer)][unicode(self.observed)]
+        accounted = set()
         for bone in self._iter_thing_skel_bones(skel, branch, tick):
             try:
-                yield self.deceive(bone)
-            except KeyError:
-                continue
+                yield self.distort(bone)
+            except KnowledgeException:
+                pass
+            accounted.add(bone.name)
+        for bone in super(Facade, self).iter_thing_bones(branch, tick):
+            if bone.name not in accounted:
+                yield bone
 
     # override
     def get_thing_locations(self, thing, branch=None):
+        """Get the part of the skeleton that shows the history of where the
+        thing has been in the given branch, if specified; otherwise
+        the current branch.
+
+        """
         skel = self.closet.skeleton[u"thing_facade"][
             unicode(self.observer)][unicode(self.observed)][thing]
-        return self.deceive(self._get_thing_skel_locations(skel, branch))
+        return self._get_thing_skel_locations(skel, branch)
 
     # override
     def set_thing_bone(self, bone):
-        skel = self.closet.skeleton[u"thing_facade"]
+        """Save the bone in the appropriate part of the skeleton. Raise
+        ValueError if it is not a bone for this facade.
+
+        """
+        if not isinstance(bone, Thing.bonetypes.thing_facade):
+            raise TypeError("Wrong bone type for this method")
+        if bone.observer != unicode(self.observer):
+            raise ValueError("Bone isn't observed by the correct character")
+        if bone.observed != unicode(self.observed):
+            raise ValueError("Bone isn't for the character under observation")
+        skel = self.closet.skeleton[u"thing_facade"][
+            unicode(self.observer)][unicode(self.observed)][bone.name]
         self.skelset(skel, bone)
 
     # override
-    def get_place_bone(self, label, branch=None, tick=None):
-        """Return a bone describing a place in the observer's opinion."""
-        skel = self.closet.skeleton[u"place_facade"][
-            unicode(self.observer)][unicode(self.observed)][label]
-        return self.deceive(self._get_place_skel_bone(skel, branch, tick))
-
-    # override
-    def iter_place_contents(self, label, branch=None, tick=None):
+    def iter_place_contents(self, name, branch=None, tick=None):
+        """Iterate over the bones for all the things that are located in the
+        given place."""
+        # incase of passing a Place object and not a string
+        label = unicode(name)
         skel = self.closet.skeleton[u"thing_facade"][
             unicode(self.observer)]
+        accounted = set()
         for bone in self._iter_place_skel_contents(skel, label, branch, tick):
             try:
-                yield self.deceive(bone)
-            except KeyError:
-                continue
+                yield self.distort(bone)
+            except KnowledgeException:
+                pass
+            accounted.add(bone.name)
+        for bone in super(Facade, self).iter_place_contents(
+                label, branch, tick):
+            if bone.name not in accounted:
+                try:
+                    yield self.distort(bone)
+                except KnowledgeException:
+                    pass
 
-    # override
-    def set_place_bone(self, bone):
-        skel = self.closet.skeleton[u"place_facade"]
-        self._set_place_skel_bone(skel, bone)
+    def get_real_portal_bone(self, label, branch=None, tick=None):
+        """Return a portal bone specific to this facade.
 
-    # override
-    def get_portal_bone(self, label, branch=None, tick=None):
+        This method does not distort the bone. It never returns bones
+        from my ``observed`` character.
+
+        """
         skel = self.closet.skeleton[u"portal_facade"][
             unicode(self.observer)][unicode(self.observed)][label]
-        return self.deceive(self._get_portal_skel_bone(skel, branch, tick))
+        return self._get_portal_skel_bone(skel, branch, tick)
+
+    # override
+    def get_portal_bone(self, name, branch=None, tick=None):
+        """Return a portal bone, possibly specific to this facade, possibly
+        from its ``observed`` character, and possibly distorted by its
+        ``liars``.
+
+        If the portal exists in the ``observed`` character, but is not
+        apparent to the ``observer``, raise KnowledgeException.
+
+        """
+        try:
+            bone = self.get_real_portal_bone(name, branch, tick)
+        except KeyError:
+            bone = self.observed.get_portal_bone(name, branch, tick)
+        return self.distort(bone)
 
     # override
     def iter_hosted_portal_bones(self, branch=None, tick=None):
+        """Iterate first over the portal bones that this facade has its own
+        records about, and then over those the underlying character
+        knows about, but only if its name was not somehow accounted
+        for by this facade.
+
+        The ``distort`` method accounts for a name by
+        - returning a bone for it
+        - raising a KnowledgeException
+
+        """
         skel = self.closet.skeleton[u"portal_facade"]
+        accounted = set()
         for bone in self._iter_hosted_portal_bones_skel(skel, branch, tick):
             try:
-                yield self.deceive(bone)
-            except KeyError:
-                continue
+                yield self.distort(bone)
+            except KnowledgeException:
+                pass
+            accounted.add(bone.name)
+        for bone in super(Facade, self).iter_hosted_portal_bones(branch, tick):
+            if bone.name not in accounted:
+                try:
+                    yield self.distort(bone)
+                except KnowledgeException:
+                    pass
 
     # override
     def set_portal_bone(self, bone):
-        skel = self.closet.skeleton[u"portal_facade"]
+        """Save the bone in the appropriate part of the skeleton. Raise
+        ValueError if it's not a bone for this facade."""
+        if not isinstance(bone, Portal.bonetypes.portal_facade):
+            raise TypeError("Wrong bone type for this method")
+        if bone.observer != unicode(self.observer):
+            raise ValueError("Bone isn't observed by the correct character")
+        if bone.observed != unicode(self.observed):
+            raise ValueError("Bone isn't for the character under observation")
+        skel = self.closet.skeleton[u"portal_facade"][
+            unicode(self.observer)][unicode(self.observed)][bone.name]
         self._set_portal_skel_bone(skel, bone)
 
     # override
-    def get_stat_bone(self, label, branch=None, tick=None):
+    def get_stat_bone(self, name, branch=None, tick=None):
+        """Return a bone for the stat by the given name at the current time,
+        or the given branch and tick if specified.
+
+        """
         skel = self.observed.closet.skeleton[u"stat_facade"][
             unicode(self.observer)][unicode(self.observed)][
-            label]
-        return self.deceive(self._get_stat_skel_bone(skel, branch, tick))
+            name]
+        return self._get_stat_skel_bone(skel, branch, tick)
 
     # override
     def set_stat_bone(self, bone):
+        """Save the bone in the appropriate part of the skeleton. Raise
+        ValueError if it's not a bone for this facade.
+
+        """
+        if not isinstance(bone, self.bonetypes.stat_facade):
+            raise TypeError("Wrong bone type for this method")
+        if bone.observer != unicode(self.observer):
+            raise ValueError("Bone isn't observed by the correct character")
+        if bone.observed != unicode(self.observed):
+            raise ValueError("Bone isn't for the character under observation")
         skel = self.closet.skeleton[u"stat_facade"]
         self.skelset(skel, bone)

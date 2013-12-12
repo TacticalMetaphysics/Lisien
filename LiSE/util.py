@@ -946,9 +946,7 @@ class SaveableMetaclass(type):
         """For each table, a list of Boolean expressions meant for a
         CHECK(...) clause."""
         if 'tables' in attrs:
-            tablist = attrs['tables']
-        elif hasattr(clas, 'tables'):
-            tablist = clas.tables
+            tabdicts = attrs['tables']
         else:
             return type.__new__(metaclass, clas, parents, attrs)
         if 'prelude' in attrs:
@@ -969,14 +967,13 @@ class SaveableMetaclass(type):
             demands = set()
         local_pkeys = {}
         """Primary keys per-table, for this class only"""
-        for tabtup in tablist:
-            (name, decls, pkey, fkeys, cks) = tabtup
+        for (name, tabdict) in tabdicts.iteritems():
             tablenames.append(name)
-            coldecls[name] = decls
-            local_pkeys[name] = pkey
-            primarykeys[name] = pkey
-            foreignkeys[name] = fkeys
-            checks[name] = cks
+            coldecls[name] = tabdict["columns"]
+            local_pkeys[name] = tabdict["primary_key"]
+            primarykeys[name] = tabdict["primary_key"]
+            foreignkeys[name] = tabdict["foreign_keys"]
+            checks[name] = tabdict["checks"]
         inserts = {}
         """The beginnings of SQL INSERT statements"""
         deletes = {}
@@ -1003,6 +1000,22 @@ class SaveableMetaclass(type):
             coltypes[tablename] = {}
             coldefaults[tablename] = {}
             for (fieldname, decl) in coldict.iteritems():
+                if fieldname == "branch":
+                    foreignkeys[tablename][fieldname] = (
+                        "timestream", "branch")
+                    checks[tablename].append("branch>=0")
+                elif fieldname == "tick":
+                    foreignkeys[tablename][fieldname] = (
+                        "timestream", "tick")
+                    # A special constraint to make sure that events do
+                    # not occur before the start of time
+                    checks[tablename].extend([
+                        "tick>=0",
+                        "NOT EXISTS ("
+                        "SELECT * FROM {0} JOIN timestream ON"
+                        "{0}.branch=timestream.branch WHERE "
+                        "{0}.tick<timestream.tick)".format(
+                            tablename)])
                 cooked = decl.lower().split(" ")
                 typename = cooked[0]
                 coltypes[tablename][fieldname] = {
@@ -1386,11 +1399,6 @@ fortyfive = pi / 4
 """pi / 4"""
 
 
-class LocationException(Exception):
-    """I don't know where I am."""
-    pass
-
-
 class TimestreamException(Exception):
     """Used for time travel related errors that are nothing to do with
 continuity."""
@@ -1405,6 +1413,18 @@ class TimeParadox(Exception):
 
 class JourneyException(Exception):
     """There was a problem with pathfinding."""
+    pass
+
+
+class KnowledgeException(Exception):
+    """I tried to access some information that I was not permitted access to.
+
+    Should be treated like KeyError most of the time. For the purposes
+    of the simulation, not having information is the same as
+    information not existing. But there may be circumstances where
+    they differ for programming purposes.
+
+    """
     pass
 
 

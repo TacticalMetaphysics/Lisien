@@ -20,29 +20,59 @@ class Thing(Container):
     same.
 
     """
-    # dimension is now the name of the character that the *place* is in
-    tables = [
-        ("thing",
-         {"character": "text not null",
-          "name": "text not null",
-          "branch": "integer not null default 0",
-          "tick": "integer not null default 0",
-          "host": "text",
-          "location": "text"},
-         ("character", "name", "branch", "tick"),
-         {"host, location": ("place", "character, name")},
-         []),
-        ("thing_facade",
-         {"observer": "text not null",
-          "observed": "text not null",
-          "name": "text not null",
-          "branch": "integer not null default 0",
-          "tick": "integer not null default 0",
-          "host": "text",
-          "location": "text"},
-         ("observer", "observed", "name", "branch", "tick"),
-         {"host, location": ("place", "character, name")},
-         [])]
+    tables = {
+        "thing": {
+            "columns": {
+                "character": "text not null",
+                "host": "text not null",
+                "name": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "location": "text"},
+            "primary_key": (
+                "character", "host", "name", "branch", "tick")},
+        "thing_stat": {
+            "columns": {
+                "character": "text not null",
+                "host": "text not null",
+                "name": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "character", "host", "name", "key", "branch", "tick"),
+            "foreign_keys": {
+                "character, host, name": (
+                    "thing", "character, host, name")}},
+        "thing_facade": {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "host": "text not null",
+                "name": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "location": "text"},
+            "primary_key": (
+                "observer", "observed", "host", "name", "branch", "tick")},
+        "thing_stat_facade": {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "host": "text not null",
+                "name": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "observer", "observed", "host", "name",
+                "key", "branch", "tick"),
+            "foreign_keys": {
+                "observer, observed, host, name": (
+                    "thing_facade",
+                    "observer, observed, host, name")}}}
     """Things exist in particular places--but what exactly it *means* for
     a thing to be in a place will vary by context. Each of those
     contexts gets a "host," which is another character. Things are
@@ -80,25 +110,32 @@ class Thing(Container):
         return that.location is self
 
     def get_bone(self, observer=None, branch=None, tick=None):
+        """Return a bone describing my status.
+
+        With optional argument ``observer``, the bone will be munged
+        by a facade, possibly resulting in a deliberately misleading
+        KeyError.
+
+        """
         if observer is None:
             return self.character.get_thing_bone(self.name, branch, tick)
         else:
             facade = self.character.get_facade(observer)
             return facade.get_thing_bone(branch, tick)
 
-    def get_location(self, locn, observer=None, branch=None, tick=None):
-        # Get the host character, to look up my location in.
-        #
-        # As the host is the character under observation, use its
-        # facade, rather than my character's facade.
-        my_bone = self.get_bone(None, branch, tick)
-        host = self.character.closet.get_character(my_bone.host)
+    def get_location(self, observer=None, branch=None, tick=None):
+        """Return the thing, place, or portal I am in.
+
+        With optional argument ``observer``, return the thing, place,
+        or portal I *seem* to be in.
+
+        """
+        bone = self.get_bone(observer, branch, tick)
         if observer is None:
-            getster = host
+            return self.character.get_place(bone.location)
         else:
-            getster = host.get_facade(observer)
-        bone = getster.get_bone(locn)
-        return getster.get_whatever(bone)
+            facade = self.character.get_facade(observer)
+            return facade.get_place(bone.location)
 
     def get_locations(self, observer=None, branch=None):
         if observer is None:
@@ -107,9 +144,9 @@ class Thing(Container):
             facade = self.character.get_facade(observer)
             return facade.get_thing_locations(self.name, branch)
 
-    def get_speed(self, branch=None, tick=None):
-        lo = self.get_bone(branch, tick).location
-        ticks = self.get_ticks_thru(lo, branch, tick)
+    def get_speed(self, observer=None, branch=None, tick=None):
+        lo = self.get_location(observer, branch, tick)
+        ticks = self.get_ticks_thru(lo, observer, branch, tick)
         return float(lo.weight) / float(ticks)
 
     def get_ticks_thru(
@@ -122,14 +159,14 @@ class Thing(Container):
 
     def get_progress(self, observer=None, branch=None, tick=None):
         """Return a float representing the proportion of the portal I have
-passed through.
+        passed through.
 
         """
         bone = self.get_bone(observer, branch, tick)
         # this is when I entered the portal
         t1 = bone.tick_from
         # this is when I will enter the destination
-        t2 = self.get_locations(branch).key_after(tick)
+        t2 = self.get_locations(observer, branch).key_after(tick)
         if t2 is None:
             # I entered the portal without scheduling when to leave.
             # This should never happen *in play* but I guess a
@@ -142,23 +179,19 @@ passed through.
         return passed / duration
 
     def journey_to(self, destplace, host='Physical', branch=None, tick=None):
-        """Schedule myself to travel to the given place, interrupting whatever
-other journey I may be on at the time."""
-        # TODO if I overwrite my extant travel schedule, overwrite
-        # *everything* after the start of this new stuff. Right now,
-        # anywhere I'm scheduled to be in a tick after the end of the
-        # new journey, I'll still be there. It makes no sense.
-        oloc = str(self.get_location(branch, tick))
+        """Schedule myself to travel somewhere."""
+        oloc = str(self.get_location(None, branch, tick))
         otick = tick
         m = match(portex, oloc)
         if m is not None:
             loc = m.groups()[0]
-            tick = self.get_locations(branch).key_after(otick)
+            tick = self.get_locations(None, branch).key_after(otick)
         else:
             loc = oloc
             tick = otick
-        # It would be weird to use some other character's
-        # understanding of the map.
+        # Get a shortest path based on my understanding of the graph,
+        # which may not match reality.  It would be weird to use some
+        # other character's understanding.
         host = self.character.closet.get_character(host)
         facade = host.get_facade(self.character)
         ipath = facade.graph.get_shortest_paths(
@@ -174,6 +207,8 @@ other journey I may be on at the time."""
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
         locs = list(self.branch_loc_bones_gen(branch))
+        # Attempt to follow the path based on how the graph is
+        # actually laid out.
         try:
             self.follow_path(path, branch, tick)
         except TimeParadox:
@@ -193,9 +228,18 @@ other journey I may be on at the time."""
                 tick = otick
             self.follow_path(path, None, tick)
 
-    def follow_path(self, path, branch, tick):
-        # only acceptable if I'm currently in the last place I'll be
-        # in this branch
+    def follow_path(self, host, path, branch, tick):
+        """Presupposing I'm in the given host, follow the path by scheduling
+        myself to be located in the appropriate place or portal at the
+        appropriate time.
+
+        Optional arguments ``branch`` and ``tick`` give the start
+        time. If unspecified, the current diegetic time is used.
+
+        Raises ``TimeParadox`` if I would contradict any locations
+        already scheduled.
+
+        """
         try:
             if self.get_locations(observer=None, branch=branch).key_after(
                     tick) is not None:
@@ -203,19 +247,29 @@ other journey I may be on at the time."""
         except KeyError:
             # This just means the branch isn't there yet. Don't worry.
             pass
+        bone = self.get_bone(None, branch, tick)
+        assert bone.host == unicode(host), (
+            "Can't follow path in different host")
         prevtick = tick + 1
         for port in path:
-            self.set_location(port, observer=None,
-                              branch=branch, tick=prevtick)
+            bone = bone._replace(
+                location=port.name,
+                tick=prevtick)
+            host.set_thing_bone(bone)
             prevtick += self.get_ticks_thru(
                 port, observer=None, branch=branch, tick=prevtick)
-            self.set_location(port.destination, observer=None,
-                              branch=branch, tick=prevtick)
+            bone = bone._replace(
+                location=unicode(port.destination),
+                tick=prevtick)
+            host.set_thing_bone(bone)
             prevtick += 1
 
     def new_branch(self, parent, branch, tick):
-        def gethibranch():
-            return self.dimension.closet.timestream.hi_branch
+        """There's a new branch off of the parent branch, and it starts at the
+        given tick, so I'll copy any locations I'm in *after* that, in
+        the parent branch, to the child.
+
+        """
         if self.new_branch_blank:
             start_loc = self.get_location(parent, tick)
             if hasattr(start_loc, 'destination'):
@@ -240,10 +294,18 @@ other journey I may be on at the time."""
             prev = bone
 
     def branch_loc_bones_gen(self, branch=None):
+        """Iterate over all the location bones in the given branch, defaulting
+        to the current branch.
+
+        """
         for bone in self.get_locations(branch).iterbones():
             yield bone
 
     def restore_loc_bones(self, branch, bones):
+        """Delete all my location data in the given branch, and then set
+        location data from the bones.
+
+        """
         self.character.del_thing_locations(branch)
         for bone in bones:
-            self.set_location(bone.location, bone.branch, bone.tick_from)
+            self.character.set_thing_bone(bone)

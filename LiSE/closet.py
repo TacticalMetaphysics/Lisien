@@ -542,9 +542,6 @@ For more information, consult SaveableMetaclass in util.py.
             return name
         return self.get_characters([str(name)])[str(name)]
 
-    def get_thing(self, dimn, thingn):
-        return self.get_dimension(dimn).get_thing(thingn)
-
     def get_effects(self, names):
         r = {}
         for name in names:
@@ -621,14 +618,17 @@ For more information, consult SaveableMetaclass in util.py.
         return self.get_board(name)
 
     def get_board(self, name):
-        dim = self.get_dimension(name)
-        return Board(closet=self, dimension=dim)
+        char = self.get_character(name)
+        return Board(character=char)
 
-    def get_place(self, dim, placen):
-        return self.get_dimension(dim).get_place(placen)
+    def get_place(self, char, placen):
+        return self.get_character(char).get_place(placen)
 
-    def get_portal(self, dim, origin, destination):
-        return self.get_dimension(dim).get_portal(origin, destination)
+    def get_portal(self, char, name):
+        return self.get_character(char).get_portal(name)
+
+    def get_thing(self, char, name):
+        return self.get_character(char).get_thing(name)
 
     def get_textures(self, imgnames):
         r = {}
