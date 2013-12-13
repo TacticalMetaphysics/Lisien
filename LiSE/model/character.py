@@ -135,7 +135,9 @@ class Character(object):
         """
         self.closet = closet
         self.name = name
-        self.thing_d = {}
+        self.thing_d = dict([
+            (thingn, Thing(self, thingn)) for thingn in
+            self.closet.skeleton["thing"][unicode(self)]])
         self.facade_d = {}
         if knows_self:
             self.facade_d[unicode(self)] = Facade(
@@ -184,7 +186,7 @@ class Character(object):
             raise ValueError("Every facade must have an observer.")
         if unicode(observer) not in self.facade_d:
             self.facade_d[unicode(observer)] = Facade(
-                observer, observed=self, honest=self.truthful)
+                observer, observed=self)
         return self.facade_d[unicode(observer)]
 
     def sanetime(self, branch, tick):
@@ -241,7 +243,7 @@ class Character(object):
 
     def _get_thing_skel_bone(self, skel, branch, tick):
         (branch, tick) = self.sanetime(branch, tick)
-        return skelget(self.closet.tl, skel, branch, tick)
+        return skelget(self.closet.timestream, skel, branch, tick)
 
     def get_thing_bone(self, name, branch=None, tick=None):
         """Return a bone describing a thing's location at some particular
@@ -395,6 +397,23 @@ class Character(object):
         skel = self.closet.skeleton[u"portal"]
         for bone in self._iter_hosted_portal_bones_skel(skel, branch, tick):
             yield bone
+
+    def _iter_hosted_thing_bones_skel(self, skel, branch=None, tick=None):
+        for character in skel:
+            for name in skel[character]:
+                bone = skel[character][name]
+                if bone.host == unicode(self):
+                    yield bone
+
+    def iter_hosted_thing_bones(self, branch=None, tick=None):
+        skel = self.closet.skeleton[u"thing"]
+        for bone in self._iter_hosted_thing_bones_skel(skel, branch, tick):
+            yield bone
+
+    def iter_hosted_thing_loc_bones(self, branch=None, tick=None):
+        skel = self.closet.skeleton[u"thing_loc"]
+        for bone in self.iter_hosted_thing_bones(branch, tick):
+            yield skel[bone.character][bone.name][branch].value_during(tick)
 
     def _portal_init_skel_branch_label(self, skel, name, parent, branch, tick):
         prev = None
@@ -598,6 +617,12 @@ class Facade(Character):
         self.closet.facade_d[unicode(self.observer)][
             unicode(self.observed)] = self
 
+    def __str__(self):
+        return str(self.observed)
+
+    def __unicode__(self):
+        return unicode(self.observed)
+
     @staticmethod
     def skelset(skel, bone):
         """Put ``bone`` into ``skel``, nested according to the database
@@ -714,6 +739,12 @@ class Facade(Character):
         for bone in super(Facade, self).iter_thing_bones(branch, tick):
             if bone.name not in accounted:
                 yield bone
+
+    # override
+    def iter_hosted_thing_bones(self, branch=None, tick=None):
+        skel = self.closet.skeleton[u"thing_facade"]
+        for bone in self._iter_hosted_thing_bones_skel(skel, branch, tick):
+            yield bone
 
     # override
     def get_thing_locations(self, thing, branch=None):

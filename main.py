@@ -33,7 +33,9 @@ def lise():
             lise_path=abspath(__path__[-1]),
             logfile=debugfn, menu_name='Main',
             observer_name='Objective',
-            observed_name='Physical').run()
+            observed_names=['household'],
+            board_char_name='Physical',
+            charsheet_name='household').run()
 
 
 if __name__ == '__main__':

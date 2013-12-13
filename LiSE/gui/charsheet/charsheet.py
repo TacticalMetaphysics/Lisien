@@ -175,3 +175,6 @@ class CharSheetView(ScrollView):
         if "charsheet" in touch.ud:
             del touch.ud["charsheet"]
         return super(CharSheetView, self).on_touch_up(touch)
+
+    def on_character(self, *args):
+        pass
