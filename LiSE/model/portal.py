@@ -4,60 +4,69 @@ from container import Container
 
 
 class Portal(Container):
-    tables = {
-        "portal": {
+    tables = [
+        ("portal", {
             "columns": {
-                "character": "text not null",
-                "host": "text not null",
+                "character": "text not null default 'Physical'",
+                "name": "text not null",
+                "host": "text not null default 'Physical'"},
+            "primary_key": (
+                "character", "name")}),
+        ("portal_loc", {
+            "columns": {
+                "character": "text not null default 'Physical'",
                 "name": "text not null",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
                 "origin": "text",
                 "destination": "text"},
             "primary_key": (
-                "character", "host", "name", "branch", "tick")},
-        "portal_stat": {
-            "columns": {
-                "character": "text not null",
-                "host": "text not null",
-                "name": "text not null",
-                "key": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "value": "text"},
-            "primary_key": (
-                "character", "host", "name", "key", "branch", "tick"),
+                "character", "name", "branch", "tick"),
             "foreign_keys": {
-                "character, host, name": (
-                    "portal", "character, host, name")}},
-        "portal_facade": {
+                "character, name": (
+                    "portal", "character, name")}}),
+        ("portal_stat", {
             "columns": {
-                "observer": "text not null",
-                "observed": "text not null",
-                "host": "text not null",
-                "name": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "origin": "text",
-                "destination": "text"},
-            "primary_key": (
-                "observer", "observed", "host", "name", "branch", "tick")},
-        "portal_stat_facade": {
-            "columns": {
-                "observer": "text not null",
-                "observed": "text not null",
-                "host": "text not null",
+                "character": "text not null default 'Physical'",
                 "name": "text not null",
                 "key": "text not null",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
                 "value": "text"},
             "primary_key": (
-                "observer", "observed", "host", "name",
+                "character", "name", "key", "branch", "tick"),
+            "foreign_keys": {
+                "character, name": (
+                    "portal", "character, name")}}),
+        ("portal_loc_facade", {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "name": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "origin": "text",
+                "destination": "text"},
+            "primary_key": (
+                "observer", "observed", "name", "branch", "tick"),
+            "foreign_keys": {
+                "observed, name": (
+                    "portal", "character, name")}}),
+        ("portal_stat_facade", {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "name": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "observer", "observed", "name",
                 "key", "branch", "tick"),
             "foreign_keys": {
-                "observer, observed, host, name": (
-                    "portal_facade", "observer, observed, host, name")}}}
+                "observed, name": (
+                    "portal", "character, name")}})]
 
     def __init__(self, character, name):
         self.character = character

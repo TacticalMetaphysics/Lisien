@@ -20,59 +20,67 @@ class Thing(Container):
     same.
 
     """
-    tables = {
-        "thing": {
+    demands = ["portal"]
+    tables = [
+        ("thing", {
             "columns": {
-                "character": "text not null",
-                "host": "text not null",
+                "character": "text not null default 'Physical'",
+                "name": "text not null",
+                "host": "text not null default 'Physical'"},
+            "primary_key": ("character", "name")}),
+        ("thing_loc", {
+            "columns": {
+                "character": "text not null default 'Physical'",
                 "name": "text not null",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
                 "location": "text"},
             "primary_key": (
-                "character", "host", "name", "branch", "tick")},
-        "thing_stat": {
-            "columns": {
-                "character": "text not null",
-                "host": "text not null",
-                "name": "text not null",
-                "key": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "value": "text"},
-            "primary_key": (
-                "character", "host", "name", "key", "branch", "tick"),
+                "character", "name", "branch", "tick"),
             "foreign_keys": {
-                "character, host, name": (
-                    "thing", "character, host, name")}},
-        "thing_facade": {
+                "character, name": (
+                    "thing", "character, name")}}),
+        ("thing_stat", {
             "columns": {
-                "observer": "text not null",
-                "observed": "text not null",
-                "host": "text not null",
-                "name": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "location": "text"},
-            "primary_key": (
-                "observer", "observed", "host", "name", "branch", "tick")},
-        "thing_stat_facade": {
-            "columns": {
-                "observer": "text not null",
-                "observed": "text not null",
-                "host": "text not null",
+                "character": "text not null",
                 "name": "text not null",
                 "key": "text not null",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
                 "value": "text"},
             "primary_key": (
-                "observer", "observed", "host", "name",
+                "character", "name", "key", "branch", "tick"),
+            "foreign_keys": {
+                "character, name": (
+                    "thing", "character, name")}}),
+        ("thing_loc_facade", {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "name": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "location": "text"},
+            "primary_key": (
+                "observer", "observed", "name", "branch", "tick"),
+            "foreign_keys": {
+                "observed, name": (
+                    "thing", "character, name")}}),
+        ("thing_stat_facade", {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "name": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "observer", "observed", "name",
                 "key", "branch", "tick"),
             "foreign_keys": {
-                "observer, observed, host, name": (
-                    "thing_facade",
-                    "observer, observed, host, name")}}}
+                "observed, name": (
+                    "thing", "character, name")}})]
     """Things exist in particular places--but what exactly it *means* for
     a thing to be in a place will vary by context. Each of those
     contexts gets a "host," which is another character. Things are
@@ -92,6 +100,7 @@ class Thing(Container):
     the way the observer *understands* them.
 
     """
+
     def __init__(self, character, name):
         self.character = character
         self.name = name

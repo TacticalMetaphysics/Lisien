@@ -27,20 +27,26 @@ some amount of game time. Whenever the game-time changes, the Pawn
 will update its position appropriately.
 
     """
+    demands = ["img", "thing", "board"]
     tables = [
-        ("pawn",
-         {"observer": "text default null",
-          "observed": "text default null",
-          "host": "text not null",
-          "thing": "text not null",
-          "branch": "integer not null default 0",
-          "tick": "integer not null default 0",
-          "img": "text not null default 'default_pawn'",
-          "interactive": "boolean default 1"},
-         ("observer", "observed", "host", "thing", "branch", "tick"),
-         {"observed, host, thing": ("thing", "character, host, name"),
-          "img": ("img", "name")},
-         [])]
+        ("pawn", {
+            "columns": {
+                "observer": "text default null",
+                "observed": "text default null",
+                "host": "text not null",
+                "thing": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "img": "text not null default 'default_pawn'",
+                "interactive": "boolean default 1"},
+            "primary_key": (
+                "observer", "observed", "host", "thing", "branch", "tick"),
+            "foreign_keys": {
+                "observer, observed, host": (
+                    "board", "observer, observed, host"),
+                "observed, host, thing": (
+                    "thing", "character, host, name"),
+                "img": ("img", "name")}})]
     board = ObjectProperty()
     thing = ObjectProperty()
     where_upon = ObjectProperty(None)

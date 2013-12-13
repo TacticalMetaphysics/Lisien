@@ -71,33 +71,39 @@ tick.
     __metaclass__ = SaveableWidgetMetaclass
     demands = ["character"]
     tables = [
-        (
-            "charsheet",
-            {"character": "TEXT NOT NULL",
-             "visible": "BOOLEAN NOT NULL DEFAULT 0",
-             "interactive": "BOOLEAN NOT NULL DEFAULT 1",
-             "x_hint": "FLOAT NOT NULL DEFAULT 0.65",
-             "y_hint": "FLOAT NOT NULL DEFAULT 0.0",
-             "w_hint": "FLOAT NOT NULL DEFAULT 0.35",
-             "h_hint": "FLOAT NOT NULL DEFAULT 1.0"},
-            ("character",),
-            {"character": ("character", "name")},
-            []),
-        (
-            "charsheet_item",
-            {"character": "TEXT NOT NULL",
-             "idx": "INTEGER NOT NULL",
-             "type": "INTEGER NOT NULL",
-             "key0": "TEXT",
-             "key1": "TEXT",
-             "key2": "TEXT"},
-            ("character", "idx"),
-            {"character": ("charsheet", "character")},
-            ["CASE key2 WHEN NULL THEN type<>{0} END".format(
-                str(SHEET_ITEM_TYPE["PORTALTAB"])),
-             "idx>=0",
-             "idx<={}".format(max(SHEET_ITEM_TYPE.values()))])
-    ]
+        ("charsheet",
+         {"columns":
+          {"character": "TEXT NOT NULL",
+           "visible": "BOOLEAN NOT NULL DEFAULT 0",
+           "interactive": "BOOLEAN NOT NULL DEFAULT 1",
+           "x_hint": "FLOAT NOT NULL DEFAULT 0.65",
+           "y_hint": "FLOAT NOT NULL DEFAULT 0.0",
+           "w_hint": "FLOAT NOT NULL DEFAULT 0.35",
+           "h_hint": "FLOAT NOT NULL DEFAULT 1.0"},
+          "primary_key":
+          ("character",),
+          "foreign_keys":
+          {"character": ("character", "name")}}),
+        ("charsheet_item",
+         {"columns":
+          {"character": "TEXT NOT NULL",
+           "idx": "INTEGER NOT NULL",
+           "type": "INTEGER NOT NULL",
+           "key0": "TEXT",
+           "key1": "TEXT",
+           "key2": "TEXT"},
+          "primary_key":
+          ("character", "idx"),
+          "foreign_keys":
+          {"character": ("charsheet", "character")},
+          "checks":
+          ["CASE key2 WHEN NULL THEN type<>{0} END".format(
+              str(SHEET_ITEM_TYPE["PORTALTAB"])),
+           "idx>=0",
+           "idx<={}".format(max(SHEET_ITEM_TYPE.values()))
+           ]
+          }
+         )]
     character = ObjectProperty()
 
     def on_character(self, i, character):

@@ -32,8 +32,8 @@ def lise():
     LiSEApp(dbfn=dbfn, lang=lang, debug=DEBUG,
             lise_path=abspath(__path__[-1]),
             logfile=debugfn, menu_name='Main',
-            dimension_name='Physical',
-            character_name='household').run()
+            observer_name='Objective',
+            observed_name='Physical').run()
 
 
 if __name__ == '__main__':

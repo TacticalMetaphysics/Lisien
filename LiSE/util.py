@@ -967,13 +967,19 @@ class SaveableMetaclass(type):
             demands = set()
         local_pkeys = {}
         """Primary keys per-table, for this class only"""
-        for (name, tabdict) in tabdicts.iteritems():
+        for (name, tabdict) in tabdicts:
             tablenames.append(name)
             coldecls[name] = tabdict["columns"]
             local_pkeys[name] = tabdict["primary_key"]
             primarykeys[name] = tabdict["primary_key"]
-            foreignkeys[name] = tabdict["foreign_keys"]
-            checks[name] = tabdict["checks"]
+            if "foreign_keys" in tabdict:
+                foreignkeys[name] = tabdict["foreign_keys"]
+            else:
+                foreignkeys[name] = {}
+            if "checks" in tabdict:
+                checks[name] = tabdict["checks"]
+            else:
+                checks[name] = []
         inserts = {}
         """The beginnings of SQL INSERT statements"""
         deletes = {}
@@ -1007,16 +1013,7 @@ class SaveableMetaclass(type):
                 elif fieldname == "tick":
                     foreignkeys[tablename][fieldname] = (
                         "timestream", "tick")
-                    # A special constraint to make sure that events do
-                    # not occur before the start of time
-                    checks[tablename].extend([
-                        "tick>=0",
-                        "NOT EXISTS ("
-                        "SELECT * FROM {0} JOIN timestream ON"
-                        "{0}.branch=timestream.branch WHERE "
-                        "{0}.tick<timestream.tick)".format(
-                            tablename)])
-                cooked = decl.lower().split(" ")
+                cooked = decl.split(" ")
                 typename = cooked[0]
                 coltypes[tablename][fieldname] = {
                     "text": unicode,
@@ -1024,7 +1021,7 @@ class SaveableMetaclass(type):
                     "integer": int,
                     "bool": bool,
                     "boolean": bool,
-                    "float": float}[typename]
+                    "float": float}[typename.lower()]
                 try:
                     default_str = cooked[cooked.index("default") + 1]
                     default = coltypes[tablename][fieldname](default_str)

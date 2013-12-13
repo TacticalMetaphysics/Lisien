@@ -83,22 +83,26 @@ class Img(object):
         + ", ".join(["('{}', 'spot')".format(spot) for spot in spot_imgs])]
     tables = [
         ("img",
-         {"name": "text not null",
-          "path": "text not null",
-          "rltile": "boolean not null DEFAULT 0",
-          "cut_x": "integer not null default 0",
-          "cut_y": "integer not null default 0",
-          "cut_w": "integer default null",
-          "cut_h": "integer default null",
-          "off_x": "integer not null default 0",
-          "off_y": "integer not null default 0",
-          "stacking_height": "integer not null default 0"},
-         ("name",),
-         {},
-         ["stacking_height >= 0.0"]),
+         {"columns":
+          {"name": "text not null",
+           "path": "text not null",
+           "rltile": "boolean not null DEFAULT 0",
+           "cut_x": "integer not null default 0",
+           "cut_y": "integer not null default 0",
+           "cut_w": "integer default null",
+           "cut_h": "integer default null",
+           "off_x": "integer not null default 0",
+           "off_y": "integer not null default 0",
+           "stacking_height": "integer not null default 0"},
+          "primary_key":
+          ("name",),
+          "checks":
+          ["stacking_height >= 0.0"]}),
         ("img_tag",
-         {"img": "text not null",
-          "tag": "text not null"},
-         ("img", "tag"),
-         {"img": ("img", "name")},
-         [])]
+         {"columns":
+          {"img": "text not null",
+           "tag": "text not null"},
+          "primary_key":
+          ("img", "tag"),
+          "foreign_keys":
+          {"img": ("img", "name")}})]
