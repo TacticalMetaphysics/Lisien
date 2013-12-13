@@ -25,6 +25,7 @@ from gui.img import Img
 from model import (
     Character,
     Dimension,
+    Place,
     Portal,
     Timestream,
     Thing)
@@ -148,7 +149,8 @@ before RumorMill will work. For that, run mkdb.sh.
         "menuitem_d",
         "style_d",
         "event_d",
-        "character_d"]
+        "character_d",
+        "facade_d"]
 
     def __setattr__(self, attrn, val):
         if attrn == "branch":
@@ -488,7 +490,7 @@ For more information, consult SaveableMetaclass in util.py.
         return orig.dimension.make_portal(orig, dest)
 
     def load_charsheet(self, character):
-        character = str(character)
+        character = unicode(character)
         bd = {
             "charsheet": [
                 CharSheet.bonetypes.charsheet(character=character)],
@@ -499,19 +501,50 @@ For more information, consult SaveableMetaclass in util.py.
         return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
-        qtd = {}
-        tabns = ("character_things",
-                 "character_places",
-                 "character_portals",
-                 "character_stats",
-                 "character_skills",
-                 "character_subcharacters")
-        for tabn in tabns:
-            qtd[tabn] = [
-                getattr(Character.bonetypes, tabn)(character=n)
-                for n in names]
         self.skeleton.update(
-            Character._select_skeleton(self.c, qtd))
+            Character._select_skeleton(self.c, {
+                "character_stat": [
+                    Character.bonetypes.character_stat(
+                        character=name, key=None, branch=None, tick=None)
+                    for name in names]}))
+        self.skeleton.update(
+            Portal._select_skeleton(self.c, {
+                "portal": [
+                    Portal.bonetypes.portal(
+                        character=name, name=None, host=None)
+                    for name in names],
+                "portal_loc": [
+                    Portal.bonetypes.portal_loc(
+                        character=name, name=None, branch=None, tick=None,
+                        origin=None, destination=None)
+                    for name in names],
+                "portal_stat": [
+                    Portal.bonetypes.portal_stat(
+                        character=name, name=None, key=None,
+                        branch=None, tick=None)
+                    for name in names]}))
+        self.skeleton.update(
+            Thing._select_skeleton(self.c, {
+                "thing": [
+                    Thing.bonetypes.thing(
+                        character=name, name=None, host=None)
+                    for name in names],
+                "thing_loc": [
+                    Thing.bonetypes.thing_loc(
+                        character=name, name=None, branch=None, tick=None)
+                    for name in names],
+                "thing_stat": [
+                    Thing.bonetypes.thing_stat(
+                        character=name, name=None, key=None,
+                        branch=None, tick=None)
+                    for name in names]}))
+        self.skeleton.update(
+            Place._select_skeleton(self.c, {
+                "place_stat": [
+                    Place.bonetypes.place_stat(
+                        character=name, name=None, key=None,
+                        branch=None, tick=None)
+                    for name in names]}))
         r = {}
         for name in names:
             char = Character(self, name)

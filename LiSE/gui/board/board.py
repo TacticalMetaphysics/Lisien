@@ -66,36 +66,29 @@ class Board(ScrollView):
             size=tex.size)
         content.add_widget(Image(pos=(0, 0), texture=tex, size=tex.size))
         super(Board, self).add_widget(content)
-        if (
-                "spot_coords" in self.closet.skeleton and
-                unicode(self.dimension) in self.dimension.closet.skeleton[
-                    "spot_coords"]):
-            for bone in self.dimension.closet.skeleton[
-                    "spot_coords"][unicode(self.dimension)].iterbones():
-                place = self.dimension.get_place(bone.place)
-                spot = Spot(board=self, place=place)
-        if (
-                "pawn_img" in self.closet.skeleton and
-                unicode(self.dimension) in self.dimension.closet.skeleton[
-                    "pawn_img"]):
-            for bone in self.dimension.closet.skeleton[
-                    "pawn_img"][unicode(self.dimension)].iterbones():
-                thing = self.dimension.get_thing(bone.thing)
-                pawn = Pawn(board=self, thing=thing)
-        for portal in self.dimension.portals:
-            arrow = Arrow(board=self, portal=portal)
-            self.arrowdict[unicode(portal)] = arrow
-            content.add_widget(arrow)
+        for bone in self.facade.closet.skeleton[u"spot"][
+                unicode(self.facade)].iterbones():
+            place = self.facade.get_place(bone.place)
+            self.spotdict[bone.place] = Spot(board=self, place=place)
+        for bone in self.facade.closet.skeleton[u"pawn"][
+                unicode(self.facade)].iterbones():
+            thing = self.facade.get_thing(bone.thing)
+            self.pawndict[bone.thing] = Pawn(board=self, thing=thing)
+        for bone in self.facade.closet.skeleton[u"portal"][
+                unicode(self.facade)].iterbones():
+            portal = self.facade.get_portal(bone.name)
+            self.arrowdict[bone.name] = Arrow(board=self, portal=portal)
+            content.add_widget(self.arrowdict[bone.name])
         for spot in self.spotdict.itervalues():
             content.add_widget(spot)
         for pawn in self.pawndict.itervalues():
             content.add_widget(pawn)
 
     def __str__(self):
-        return str(self.dimension)
+        return str(self.facade)
 
     def __unicode__(self):
-        return unicode(self.dimension)
+        return unicode(self.facade)
 
     def __repr__(self):
         return "Board({})".format(self)

@@ -163,23 +163,22 @@ here. Look in CalendarView below.
                 break
             ks.append(key)
         if self.cal_type == 5:
-            (dimension, thing) = ks
-            self.referent = closet.get_thing(dimension, thing)
-            self.skel = skeleton["thing_location"][dimension][thing]
+            thing = ks[0]
+            self.referent = closet.get_thing(self.character, thing)
+            self.skel = skeleton["thing_loc"][
+                unicode(self.character)][thing]
         elif self.cal_type == 6:
-            (dimension, place) = ks
-            self.referent = closet.get_place(dimension, place)
-            self.skel = character.placedict[dimension][place]
+            place = ks[0]
+            self.referent = closet.get_place(self.character, place)
         elif self.cal_type == 7:
-            (dimension, orig, dest) = ks
-            self.referent = closet.get_portal(dimension, orig, dest)
-            self.skel = character.portaldict[dimension][orig][dest]
+            portal = ks[0]
+            self.referent = closet.get_portal(self.character, portal)
+            self.skel = skeleton["portal_loc"][
+                unicode(self.character)][portal]
         elif self.cal_type == 8:
             stat = ks[0]
-            self.skel = character.statdict[stat]
-        elif self.cal_type == 9:
-            skill = ks[0]
-            self.skel = character.skilldict[skill]
+            self.skel = skeleton["character_stat"][
+                unicode(self.character)][stat]
         self.skel.listeners.append(self.refresh_and_layout)
         self.bind(size=lambda i, v: self._trigger_layout(),
                   pos=lambda i, v: self._trigger_layout())
