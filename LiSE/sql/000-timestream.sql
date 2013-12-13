@@ -1,1 +1,1 @@
-INSERT INTO timestream VALUES (0, 0);
+INSERT INTO timestream (branch, parent) VALUES (0, 0);

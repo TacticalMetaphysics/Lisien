@@ -16,23 +16,23 @@ world, given that a particular combination of Causes is active.
     __metaclass__ = SaveableMetaclass
     tables = [
         ("cause_event",
-         {"cause": "text not null",
-          "event": "text not null"},
-         ("cause", "event"),
-         {},
-         []),
+         {"columns":
+          {"cause": "text not null",
+           "event": "text not null"},
+          "primary_key":
+          ("cause", "event")}),
         ("event_effect",
-         {"event": "text not null",
-          "effect": "text not null"},
-         ("event", "effect"),
-         {},
-         []),
+         {"columns":
+          {"event": "text not null",
+           "effect": "text not null"},
+          "primary_key":
+          ("event", "effect")}),
         ("event",
-         {"name": "text not null",
-          "priority": "integer not null default 0"},
-         ("name",),
-         {},
-         [])]
+         {"columns":
+          {"name": "text not null",
+           "priority": "integer not null default 0"},
+          "primary_key":
+          ("name",)})]
 
     def __init__(self, closet):
         """Remember the closet, and construct Fabulators for Cause and

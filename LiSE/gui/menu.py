@@ -37,16 +37,16 @@ class Menu(BoxLayout):
     """A stack of buttons that call functions assigned in the database."""
     __metaclass__ = SaveableWidgetMetaclass
     tables = [
-        ('menu_item',
-         {'menu': 'text not null',
-          'idx': 'integer not null',
-          'text': 'text',
-          'on_click': 'text not null',
-          'closer': 'boolean not null default 1',
-          'symbolic': 'boolean not null default 0'},
-         ('menu', 'idx'),
-         {},
-         [])]
+        ('menu_item', {
+            "columns":
+            {'menu': 'text not null',
+             'idx': 'integer not null',
+             'text': 'text',
+             'on_click': 'text not null',
+             'closer': 'boolean not null default 1',
+             'symbolic': 'boolean not null default 0'},
+            "primary_key":
+            ('menu', 'idx')})]
     closet = ObjectProperty()
     name = StringProperty()
     completedness = NumericProperty(0)

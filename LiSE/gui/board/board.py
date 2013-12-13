@@ -15,22 +15,28 @@ from pawn import Pawn
 
 
 class Board(ScrollView):
-    """A graphical view onto a character, resembling a game board."""
+    """A graphical view onto a facade, resembling a game board."""
     __metaclass__ = SaveableWidgetMetaclass
-    tables = [(
-        "board",
-        {"dimension": "text not null default 'Physical'",
-         "wallpaper": "text not null default 'default_wallpaper'",
-         "x": "float not null default 0.0",
-         "y": "float not null default 0.0"},
-        ("dimension",),
-        {"wallpaper": ("img", "name")},
-        ["x>=0", "y>=0", "x<=1", "y<=1"])]
-    arrow_width = 1.4
-    arrowhead_size = 10
-    auto_bring_to_front = False
-    character = ObjectProperty()
-    observer = ObjectProperty()
+    tables = [
+        ("board", {
+            "columns": {
+                "observer": "text not null default 'Omniscient'",
+                "observed": "text not null default 'Physical'",
+                "host": "text not null default 'Physical'",
+                "wallpaper": "text not null default 'default_wallpaper'",
+                "x": "float not null default 0.0",
+                "y": "float not null default 0.0",
+                "arrow_width": "float not null default 1.4",
+                "arrowhead_size": "integer not null default 10",
+                "arrow_bg": "text not null default 'black'",
+                "arrow_fg": "text not null default 'white'"},
+            "primary_key": ("observer", "observed"),
+            "foreign_keys": {
+                "arrow_bg": ("color", "name"),
+                "arrow_fg": ("color", "name")},
+            "checks": ("x>=0", "y>=0", "x<=1", "y<=1",
+                       "arrow_width>0", "arrowhead_size>0")})]
+    facade = ObjectProperty()
     bone = ObjectProperty(None, allownone=True)
     content = ObjectProperty(None)
     completion = NumericProperty(0)
@@ -39,7 +45,7 @@ class Board(ScrollView):
     pawndict = DictProperty({})
     arrowdict = DictProperty({})
 
-    def on_character(self, i, v):
+    def on_facade(self, i, v):
         self.completion += 1
 
     def on_parent(self, i, v):

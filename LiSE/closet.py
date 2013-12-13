@@ -137,20 +137,16 @@ before RumorMill will work. For that, run mkdb.sh.
     working_dicts = [
         "boardhand_d",
         "calendar_d",
+        "cause_d",
         "color_d",
-        "dimension_d",
-        "board_d",
-        "dimension_d",
         "board_d",
         "effect_d",
-        "effectdeck_d",
         "img_d",
         "texture_d",
         "textag_d",
         "menu_d",
         "menuitem_d",
         "style_d",
-        "tick_d",
         "event_d",
         "character_d"]
 
@@ -200,12 +196,12 @@ given name.
                 load_textures_tagged,
                 load_all_textures)
             self.load_textures = lambda names: load_textures(
-                self.c, self.skeleton, self.texturedict,
-                self.textagdict, names)
+                self.c, self.skeleton, self.texture_d,
+                self.textag_d, names)
             self.load_all_textures = lambda: load_all_textures(
-                self.c, self.skeleton, self.texturedict, self.textagdict)
+                self.c, self.skeleton, self.texture_d, self.textag_d)
             self.load_textures_tagged = lambda tags: load_textures_tagged(
-                self.c, self.skeleton, self.texturedict, self.textagdict,
+                self.c, self.skeleton, self.texture_d, self.textag_d,
                 tags)
             self.USE_KIVY = True
 
@@ -520,7 +516,7 @@ For more information, consult SaveableMetaclass in util.py.
         for name in names:
             char = Character(self, name)
             r[name] = char
-            self.characterdict[name] = char
+            self.character_d[name] = char
         return r
 
     def get_characters(self, names):
@@ -529,8 +525,8 @@ For more information, consult SaveableMetaclass in util.py.
         for name in names:
             if isinstance(name, Character):
                 r[str(name)] = name
-            elif name in self.characterdict:
-                r[name] = self.characterdict[name]
+            elif name in self.character_d:
+                r[name] = self.character_d[name]
             else:
                 unhad.add(name)
         if len(unhad) > 0:
@@ -560,66 +556,25 @@ For more information, consult SaveableMetaclass in util.py.
     def get_cause(self, cause):
         return self.get_causes([cause])[cause]
 
-    def load_dimensions(self, names):
-        # I think it might eventually *make sense* to load the same
-        # dimension more than once without unloading it first. Perhaps
-        # you want to selectively load the parts of it that the player
-        # is interested in at the moment, the game world being too
-        # large to practically load all at once.
-        dimtd = Portal._select_skeleton(self.c, {
-            "portal": [Portal.bonetype(
-                dimension=n, branch=None, tick_from=None)
-                for n in names]})
-        dimtd.update(Thing._select_skeleton(self.c, {
-            "thing_location": [
-                Thing.bonetype(dimension=n, branch=None, tick_from=None)
-                for n in names]}))
-        self.skeleton.update(dimtd)
-        r = {}
-        for name in names:
-            r[name] = Dimension(self, name)
-        return r
-
-    def load_dimension(self, name):
-        return self.load_dimensions([name])[name]
-
-    def get_dimensions(self, names=None):
-        if names is None:
-            self.c.execute("SELECT name FROM dimension")
-            names = [row[0] for row in self.c.fetchall()]
-        r = {}
-        unhad = set()
-        for name in names:
-            if name in self.dimensiondict:
-                r[name] = self.dimensiondict[name]
-            else:
-                unhad.add(name)
-        if len(unhad) > 0:
-            r.update(self.load_dimensions(unhad))
-        return r
-
-    def get_dimension(self, name):
-        return self.get_dimensions([name])[name]
-
-    def load_board(self, name):
+    def load_board(self, observer, observed):
+        observer = unicode(observer)
+        observed = unicode(observed)
         self.skeleton.update(Board._select_skeleton(self.c, {
-            "board": [Board.bonetype(dimension=name)]}))
+            "board": [Board.bonetype(observer=observer, observed=observed)]}))
         self.skeleton.update(Spot._select_skeleton(self.c, {
-            "spot_img": [Spot.bonetypes.spot_img(dimension=name, layer=None)],
-            "spot_interactive": [Spot.bonetypes.spot_interactive(
-                dimension=name)],
-            "spot_coords": [Spot.bonetypes.spot_coords(dimension=name)]}))
+            "spot": [Spot.bonetypes.spot(
+                observer=observer, observed=observed, layer=None)]}))
         self.skeleton.update(Pawn._select_skeleton(self.c, {
-            "pawn_img": [Pawn.bonetypes.pawn_img(dimension=name, layer=None)],
-            "pawn_interactive": [
-                Pawn.bonetypes.pawn_interactive(
-                    dimension=name,
-                    layer=None)]}))
-        return self.get_board(name)
+            "pawn": [Pawn.bonetypes.pawn(
+                observer=observer, observed=observed, layer=None)]}))
+        return self.get_board(observer, observed)
 
-    def get_board(self, name):
-        char = self.get_character(name)
-        return Board(character=char)
+    def get_board(self, observer, observed):
+        observer = unicode(observer)
+        observed = unicode(observed)
+        char = self.get_character(observed)
+        facade = char.get_facade(observer)
+        return Board(facade=facade)
 
     def get_place(self, char, placen):
         return self.get_character(char).get_place(placen)
@@ -634,8 +589,8 @@ For more information, consult SaveableMetaclass in util.py.
         r = {}
         unloaded = set()
         for imgn in imgnames:
-            if imgn in self.texturedict:
-                r[imgn] = self.texturedict[imgn]
+            if imgn in self.texture_d:
+                r[imgn] = self.texture_d[imgn]
             else:
                 unloaded.add(imgn)
         if len(unloaded) > 0:
@@ -698,14 +653,12 @@ For more information, consult SaveableMetaclass in util.py.
             return b
 
     def new_branch(self, parent, branch, tick):
-        for dimension in self.dimensiondict.itervalues():
-            dimension.new_branch(parent, branch, tick)
-        for board in self.boarddict.itervalues():
-            board.new_branch(parent, branch, tick)
-        for character in self.characterdict.itervalues():
+        for character in self.character_d.itervalues():
             character.new_branch(parent, branch, tick)
+        for board in self.board_d.itervalues():
+            board.new_branch(parent, branch, tick)
         self.skeleton["timestream"][branch] = Timestream.bonetype(
-            branch=branch, parent=parent)
+            branch=branch, parent=parent, tick=tick)
 
     def time_travel_inc_tick(self, ticks=1):
         self.time_travel(self.branch, self.tick+ticks)
@@ -848,7 +801,7 @@ subdirectory therein."""
     c.execute(
         "CREATE TABLE strings (stringname TEXT NOT NULL, language TEXT NOT"
         " NULL DEFAULT 'eng', string TEXT NOT NULL, "
-        "PRIMARY KEY(stringname,  language)) WITHOUT ROWID;")
+        "PRIMARY KEY(stringname,  language));")
 
     done = set()
     while saveables != []:
@@ -895,14 +848,8 @@ subdirectory therein."""
         tables_todo = list(tablenames)
         while tables_todo != []:
             tn = tables_todo.pop(0)
-            try:
-                c.execute(schemata[tn])
-                done.add(tn)
-            except sqlite3.OperationalError as e:
-                print("OperationalError while creating table {0}:".format(tn))
-                print(e)
-                breakout = True
-                break
+            c.execute(schemata[tn])
+            done.add(tn)
         if breakout:
             saveables.append(
                 (demands, provides, prelude_todo, tables_todo, postlude))

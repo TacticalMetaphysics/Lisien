@@ -20,37 +20,66 @@ class Spot(Scatter):
     relative to its Board, not necessarily the window the Board is in.
 
     """
+    demands = ["img", "board"]
+    provides = ["place"]
+    postlude = [
+        """CREATE VIEW place AS
+SELECT thing.host AS host, thing_loc.location AS place
+FROM thing JOIN thing_loc ON
+thing.character=thing_loc.character AND
+thing.name=thing_loc.name
+UNION
+SELECT portal.host AS host, portal_loc.origin AS place
+FROM portal JOIN portal_loc ON
+portal.character=portal_loc.character AND
+portal.name=portal_loc.name
+UNION
+SELECT portal.host AS host, portal_loc.destination AS place
+FROM portal JOIN portal_loc ON
+portal.character=portal_loc.character AND
+portal.name=portal_loc.name
+UNION
+SELECT spot.host AS host, spot.place AS place FROM spot
+WHERE observer='Omniscient';""",
+        """CREATE VIEW place_facade AS
+SELECT thing.host AS host, thing_loc_facade.location AS place
+FROM thing JOIN thing_loc_facade ON
+thing.character=thing_loc_facade.observed AND
+thing.name=thing_loc_facade.name
+UNION
+SELECT portal.host AS host, portal_loc_facade.origin AS place
+FROM portal JOIN portal_loc_facade ON
+portal.character=portal_loc_facade.observed AND
+portal.name=portal_loc_facade.name
+UNION
+SELECT portal.host AS host, portal_loc_facade.destination AS place
+FROM portal JOIN portal_loc_facade ON
+portal.character=portal_loc_facade.observed AND
+portal.name=portal_loc_facade.name
+UNION
+SELECT spot.host AS host, spot.place AS place
+FROM spot WHERE observer<>'Omniscient';"""]
+# TODO: query tool for places in facades that do not *currently*
+# correspond to any place in any character
     tables = [
-        ("spot_img",
-         {"dimension": "text not null default 'Physical'",
-          "place": "text not null",
-          "layer": "integer not null default 0",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
-          "img": "text not null default 'default_spot'"},
-         ("dimension", "place", "layer", "branch", "tick_from"),
-         {"dimension": ("board", "dimension"),
-          "img": ("img", "name")},
-         []),
-        ("spot_interactive",
-         {"dimension": "text not null default 'Physical'",
-          "place": "text not null",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
-          "tick_to": "integer default null"},
-         ("dimension", "place", "branch", "tick_from"),
-         {"dimension": ("board", "dimension")},
-         []),
-        ("spot_coords",
-         {"dimension": "text not null default 'Physical'",
-          "place": "text not null",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
-          "x": "integer not null default 50",
-          "y": "integer not null default 50"},
-         ("dimension", "place", "branch", "tick_from"),
-         {"dimension": ("board", "dimension")},
-         [])]
+        ("spot", {
+            "columns": {
+                "observer": "text not null default 'Omniscient'",
+                "host": "text not null default 'Physical'",
+                "place": "text not null",
+                "layer": "integer not null default 0",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "img": "text not null default 'default_spot'",
+                "interactive": "boolean default 1",
+                "x": "integer not null",
+                "y": "integer not null"},
+            "primary_key": (
+                "observer", "host", "place",
+                "layer", "branch", "tick"),
+            "foreign_keys": {
+                "observer, host": ("board", "observer, observed"),
+                "img": ("img", "name")}})]
     place = ObjectProperty()
     board = ObjectProperty()
     coords = ObjectProperty()

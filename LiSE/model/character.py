@@ -9,10 +9,9 @@ from LiSE.util import (
     KnowledgeException,
     SaveableMetaclass,
     portex)
-from LiSE.model import (
-    Thing,
-    Place,
-    Portal)
+from thing import Thing
+from place import Place
+from portal import Portal
 
 
 """Things that should have character sheets."""
@@ -75,10 +74,10 @@ class Character(object):
     case.
 
     """
-
+    demands = ["thing"]
     provides = ["character"]
-    tables = {
-        "character_stat": {
+    tables = [
+        ("character_stat", {
             "columns": {
                 "character": "text not null",
                 "key": "text not null",
@@ -86,7 +85,7 @@ class Character(object):
                 "tick": "integer not null default 0",
                 "value": "text"},
             "primary_key": (
-                "character", "key", "branch", "tick")}}
+                "character", "key", "branch", "tick")})]
 
     def __init__(self, closet, name, knows_self=True,
                  self_omitters=[], self_liars=[]):
@@ -471,6 +470,70 @@ class Character(object):
         self.skelset(skel, bone)
 
 
+class Omitter(object):
+    __metaclass__ = SaveableMetaclass
+    demands = ["facade"]
+    tables = [
+        ("omitter", {
+            "columns": {
+                "list": "text not null",
+                "i": "integer not null",
+                "name": "text not null"},
+            "primary_key": ("list", "i"),
+            "foreign_keys": {
+                "list": ("facade", "omitter_list")},
+            "checks": ["i>=0"]})]
+    functions = {
+        "true": lambda bone: True,
+        "false": lambda bone: False}
+
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, bone):
+        r = self.functions[self.name](bone)
+        if not isinstance(r, bool):
+            raise TypeError(
+                "Omitters must return ``bool`` values.")
+        return r
+
+    @classmethod
+    def register_function(cls, name, fun):
+        cls.functions[name] = fun
+
+
+class Liar(object):
+    __metaclass__ = SaveableMetaclass
+    demands = ["facade"]
+    tables = [
+        ("liar", {
+            "columns": {
+                "list": "text not null",
+                "i": "integer not null",
+                "name": "text not null"},
+            "primary_key": ("list", "i"),
+            "foreign_keys": {
+                "list": ("facade", "liar_list")},
+            "checks": ["i>=0"]})]
+    functions = {
+        "noop": lambda bone: bone}
+
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, bone):
+        typ = type(bone)
+        r = self.functions[self.name](bone)
+        if not isinstance(r, typ):
+            raise TypeError(
+                "Liars must return the same bone type they take.")
+        return r
+
+    @classmethod
+    def register_function(cls, name, fun):
+        cls.functions[name] = fun
+
+
 class Facade(Character):
     """A view onto a :class:`Character`.
 
@@ -486,9 +549,15 @@ class Facade(Character):
     """
     __metaclass__ = SaveableMetaclass
     demands = ["character"]
-    provides = ["facade"]
-    tables = {
-        "character_stat_facade": {
+    tables = [
+        ("facade", {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "omitter_list": "text default null",
+                "liar_list": "text default null"},
+            "primary_key": ("observer", "observed")}),
+        ("character_stat_facade", {
             "columns": {
                 "observer": "text not null",
                 "observed": "text not null",
@@ -497,7 +566,7 @@ class Facade(Character):
                 "tick": "integer not null default 0",
                 "value": "text"},
             "primary_key": (
-                "observer", "observed", "key", "branch", "tick")}}
+                "observer", "observed", "key", "branch", "tick")})]
 
     def __init__(self, observer, observed, omitters=[], liars=[]):
         """Construct a facade for how the observer sees the observed.

@@ -20,8 +20,8 @@ class Place(Container):
     exist. Place bones are only for when a place needs stats.
 
     """
-    tables = {
-        "place_stat": {
+    tables = [
+        ("place_stat", {
             "columns": {
                 "character": "text not null",
                 "name": "text not null",
@@ -30,8 +30,8 @@ class Place(Container):
                 "tick": "integer not null default 0",
                 "value": "text"},
             "primary_key": (
-                "character", "name", "key", "branch", "tick")},
-        "place_stat_facade": {
+                "character", "name", "key", "branch", "tick")}),
+        ("place_stat_facade", {
             "columns": {
                 "observer": "text not null",
                 "observed": "text not null",
@@ -41,10 +41,7 @@ class Place(Container):
                 "tick": "integer not null default 0",
                 "value": "text"},
             "primary_key": (
-                "observer", "observed", "name", "key", "branch", "tick"),
-            "foreign_keys": {
-                "observer, observed, name": (
-                    "place_stat", "observer, observed, name")}}}
+                "observer", "observed", "name", "key", "branch", "tick")})]
 
     def __init__(self, character, name):
         """Initialize a place in a character by a name"""
