@@ -140,7 +140,7 @@ OpenSimulator.
 * [Python 2.7](http://python.org/download/releases/2.7.6/)
 * [igraph 0.6.5](http://igraph.sourceforge.net/download.html)
 * [python-igraph 0.6.5](http://python.org/pypi/python-igraph)
-* [Kivy 1.8](http://github.com/kivy/kivy)
+* [Kivy 1.8.1](http://github.com/kivy/kivy) -- this hasn't been released yet, so is included as a submodule
 
 # License Information
 wallpape.jpg is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stuff/), freely available under the terms of [Creative Commons BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).

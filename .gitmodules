@@ -1,3 +1,6 @@
 [submodule "igraph"]
 	path = igraph
 	url = https://github.com/igraph/igraph.git
+[submodule "kivy"]
+	path = kivy
+	url = git@github.com:LogicalDash/kivy.git
