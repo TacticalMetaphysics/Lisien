@@ -222,8 +222,8 @@ seen."""
             prev = next(boneiter)
             for bone in boneiter:
                 if (
-                        prev.tick_from < maxtick and
-                        bone.tick_from > mintick):
+                        prev.tick < maxtick and
+                        bone.tick > mintick):
                     if self.cal_type == 5:
                         text = prev.location
                     elif self.cal_type == 6:
@@ -239,13 +239,13 @@ seen."""
                         calendar=self,
                         branch=branch,
                         text=text,
-                        tick_from=prev.tick_from,
-                        tick_to=bone.tick_from))
-                if bone.tick_from > maxtick:
+                        tick_from=prev.tick,
+                        tick_to=bone.tick))
+                if bone.tick > maxtick:
                     break
                 prev = bone
             # The last cell is infinitely long
-            if prev.tick_from < maxtick:
+            if prev.tick < maxtick:
                 if self.cal_type == 5:
                     text = prev.location
                 elif self.cal_type == 6:
@@ -262,7 +262,7 @@ seen."""
                     calendar=self,
                     branch=branch,
                     text=text,
-                    tick_from=prev.tick_from,
+                    tick_from=prev.tick,
                     tick_to=None))
 
     def do_layout(self, *largs):

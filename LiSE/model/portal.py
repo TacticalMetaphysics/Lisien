@@ -68,6 +68,22 @@ class Portal(Container):
                 "observed, name": (
                     "portal", "character, name")}})]
 
+    @property
+    def bone(self):
+        return self.get_bone()
+
+    @property
+    def loc_bone(self):
+        return self.get_loc_bone()
+
+    @property
+    def origin(self):
+        return self.get_origin()
+
+    @property
+    def destination(self):
+        return self.get_destination()
+
     def __init__(self, character, name):
         self.character = character
         self.name = name
@@ -79,13 +95,36 @@ class Portal(Container):
         return unicode(self.name)
 
     def __repr__(self):
-        bone = self.bone
+        bone = self.loc_bone
         return "{2}({0}->{1})".format(
             bone.origin, bone.destination, self.name)
 
-    def get_bone(self, observer=None, branch=None, tick=None):
+    def get_bone(self, observer=None):
         if observer is None:
-            return self.character.get_portal_bone(self.name, branch, tick)
+            return self.character.get_portal_bone(self.name)
         else:
             facade = self.character.get_facade(observer)
-            return facade.get_portal_bone(self.name, branch, tick)
+            return facade.get_portal_bone(self.name)
+
+    def get_loc_bone(self, observer=None, branch=None, tick=None):
+        if observer is None:
+            return self.character.get_portal_loc_bone(
+                self.name, branch, tick)
+        else:
+            facade = self.character.get_facade(observer)
+            return facade.get_portal_loc_bone(
+                self.name, branch, tick)
+
+    def get_origin(self, observer=None, branch=None, tick=None):
+        bone = self.get_loc_bone(observer, branch, tick)
+        try:
+            return self.character.get_place(bone.origin)
+        except KeyError:
+            return self.character.get_thing(bone.origin)
+
+    def get_destination(self, observer=None, branch=None, tick=None):
+        bone = self.get_loc_bone(observer, branch, tick)
+        try:
+            return self.character.get_place(bone.destination)
+        except KeyError:
+            return self.character.get_thing(bone.destination)

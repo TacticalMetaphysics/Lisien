@@ -17,6 +17,7 @@ from pawn import Pawn
 class Board(ScrollView):
     """A graphical view onto a facade, resembling a game board."""
     __metaclass__ = SaveableWidgetMetaclass
+    demands = ["thing", "img"]
     tables = [
         ("board", {
             "columns": {
@@ -30,14 +31,14 @@ class Board(ScrollView):
                 "arrowhead_size": "integer not null default 10",
                 "arrow_bg": "text not null default 'black'",
                 "arrow_fg": "text not null default 'white'"},
-            "primary_key": ("observer", "observed"),
+            "primary_key": ("observer", "observed", "host"),
             "foreign_keys": {
                 "arrow_bg": ("color", "name"),
                 "arrow_fg": ("color", "name")},
             "checks": ("x>=0", "y>=0", "x<=1", "y<=1",
                        "arrow_width>0", "arrowhead_size>0")})]
     facade = ObjectProperty()
-    bone = ObjectProperty(None, allownone=True)
+    host = ObjectProperty()
     content = ObjectProperty(None)
     completion = NumericProperty(0)
 
@@ -45,40 +46,94 @@ class Board(ScrollView):
     pawndict = DictProperty({})
     arrowdict = DictProperty({})
 
+    @property
+    def bone(self):
+        return self.facade.closet.skeleton[u"board"][
+            unicode(self.facade.observer)][
+            unicode(self.facade.observed)][
+            unicode(self.host)]
+
+    @property
+    def arrow_width(self):
+        return self.bone.arrow_width
+
+    @property
+    def arrowhead_size(self):
+        return self.bone.arrowhead_size
+
+    def skelset(self, skel, namefield, bone):
+        if bone.observer not in skel:
+            skel[bone.observer] = {}
+        if 'observed' in bone._fields:
+            if bone.observed not in skel[
+                    bone.observer]:
+                skel[bone.observer][bone.observed] = {}
+            if bone.host not in skel[bone.observer][bone.observed]:
+                skel[bone.observer][bone.observed][bone.host] = {}
+            skel = skel[bone.observer][bone.observed][bone.host]
+        else:
+            if bone.host not in skel[bone.observer]:
+                skel[bone.observer][bone.host] = {}
+            skel = skel[bone.observer][bone.host]
+        if getattr(bone, namefield) not in skel:
+            skel[getattr(bone, namefield)] = []
+        if 'layer' in bone._fields:
+            if bone.layer not in skel[getattr(bone, namefield)]:
+                skel[getattr(bone, namefield)][bone.layer] = []
+            skel = skel[getattr(bone, namefield)][bone.layer]
+        else:
+            skel = skel[getattr(bone, namefield)]
+        if bone.branch not in skel:
+            skel[bone.branch] = []
+        skel[bone.branch][bone.tick] = bone
+
     def on_facade(self, i, v):
+        self.completion += 1
+
+    def on_host(self, i, v):
         self.completion += 1
 
     def on_parent(self, i, v):
         self.completion += 1
 
     def on_completion(self, i, v):
-        if v == 2:
+        if v == 3:
             self.finalize()
 
     def finalize(self):
-        self.closet.boarddict[unicode(self.dimension)] = self
-        self.upd_bone()
-        self.closet.skeleton["board"][unicode(
-            self.character)].listener = self.upd_bone
-        tex = self.closet.get_texture(self.bone.wallpaper)
+        obsrvr = unicode(self.facade.observer)
+        obsrvd = unicode(self.facade.observed)
+        host = unicode(self.host)
+        if obsrvr not in self.facade.closet.board_d:
+            self.facade.closet.board_d[obsrvr] = {}
+        if obsrvd not in self.facade.closet.board_d[obsrvr]:
+            self.facade.closet.board_d[obsrvr][obsrvd] = {}
+        self.facade.closet.board_d[obsrvr][obsrvd][host] = self
+        tex = self.facade.closet.get_texture(self.bone.wallpaper)
         content = RelativeLayout(
             size_hint=(None, None),
             size=tex.size)
         content.add_widget(Image(pos=(0, 0), texture=tex, size=tex.size))
         super(Board, self).add_widget(content)
-        for bone in self.facade.closet.skeleton[u"spot"][
-                unicode(self.facade)].iterbones():
-            place = self.facade.get_place(bone.place)
-            self.spotdict[bone.place] = Spot(board=self, place=place)
-        for bone in self.facade.closet.skeleton[u"pawn"][
-                unicode(self.facade)].iterbones():
-            thing = self.facade.get_thing(bone.thing)
-            self.pawndict[bone.thing] = Pawn(board=self, thing=thing)
-        for bone in self.facade.closet.skeleton[u"portal"][
-                unicode(self.facade)].iterbones():
-            portal = self.facade.get_portal(bone.name)
-            self.arrowdict[bone.name] = Arrow(board=self, portal=portal)
-            content.add_widget(self.arrowdict[bone.name])
+        # Regardless of what the facade *shows*, create spots, pawns,
+        # and portals for everything in the host, just in case I need
+        # to show them.
+        for bone in self.facade.closet.skeleton[u"spot"].iterbones():
+            if bone.host == host and bone.place not in self.spotdict:
+                char = self.facade.closet.get_character(bone.host)
+                place = char.get_place(bone.place)
+                self.spotdict[bone.place] = Spot(board=self, place=place)
+        for bone in self.facade.closet.skeleton[u"pawn"].iterbones():
+            if bone.host == host and bone.thing not in self.pawndict:
+                char = self.facade.closet.get_character(bone.character)
+                thing = char.get_thing(bone.thing)
+                self.pawndict[bone.thing] = Pawn(board=self, thing=thing)
+        for bone in self.facade.closet.skeleton[u"portal"].iterbones():
+            if bone.host == host and bone.name not in self.arrowdict:
+                char = self.facade.closet.get_character(bone.character)
+                port = char.get_portal(bone.name)
+                self.arrowdict[bone.name] = Arrow(board=self, portal=port)
+                content.add_widget(self.arrowdict[bone.name])
         for spot in self.spotdict.itervalues():
             content.add_widget(spot)
         for pawn in self.pawndict.itervalues():
@@ -96,11 +151,8 @@ class Board(ScrollView):
     def add_widget(self, w):
         return self.children[0].add_widget(w)
 
-    def upd_bone(self, *args):
-        self.bone = self.closet.skeleton["board"][unicode(self)]
-
     def get_texture(self):
-        return self.closet.get_texture(self.bone.wallpaper)
+        return self.facade.closet.get_texture(self.bone.wallpaper)
 
     def get_spot(self, loc):
         if loc is None:

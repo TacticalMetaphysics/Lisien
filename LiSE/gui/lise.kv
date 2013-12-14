@@ -67,14 +67,12 @@
 <Spot>:
     size_hint: (None, None)
     size: pile.size
-    coords: self.board.closet.skeleton[u"spot_coords"][unicode(self.board)][unicode(self.place)]
-    interactivity: self.board.closet.skeleton[u"spot_interactive"][unicode(self.board)][unicode(self.place)]
     do_scale: False
     auto_bring_to_front: False
     LayerImgPile:
         id: pile
-        closet: root.board.closet
-        imagery: root.board.closet.skeleton[u"spot_img"][unicode(root.board)][unicode(root.place)]
+        closet: root.board.facade.closet
+        imagery: root.board.facade.closet.skeleton[u"spot"][unicode(root.board.facade.observer)][unicode(root.board.host)][unicode(root.place)]
 <ColorBox>:
     canvas:
         Color:

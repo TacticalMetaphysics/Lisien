@@ -52,6 +52,12 @@ class Place(Container):
         """Is that here?"""
         return self.contains(that)
 
+    def __str__(self):
+        return str(self.name)
+
+    def __unicode__(self):
+        return unicode(self.name)
+
     def _iter_portals_bones(self, observer=None, branch=None, tick=None):
         """Iterate over the bones of portals that lead out from me"""
         if observer is None:
