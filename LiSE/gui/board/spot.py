@@ -20,45 +20,53 @@ class Spot(Scatter):
     relative to its Board, not necessarily the window the Board is in.
 
     """
-    demands = ["img", "board"]
+    demands = ["board"]
     provides = ["place"]
     postlude = [
-        """CREATE VIEW place AS
-SELECT thing.host AS host, thing_loc.location AS place
-FROM thing JOIN thing_loc ON
-thing.character=thing_loc.character AND
-thing.name=thing_loc.name
-UNION
-SELECT portal.host AS host, portal_loc.origin AS place
-FROM portal JOIN portal_loc ON
-portal.character=portal_loc.character AND
-portal.name=portal_loc.name
-UNION
-SELECT portal.host AS host, portal_loc.destination AS place
-FROM portal JOIN portal_loc ON
-portal.character=portal_loc.character AND
-portal.name=portal_loc.name
-UNION
-SELECT spot.host AS host, spot.place AS place FROM spot
-WHERE observer='Omniscient';""",
-        """CREATE VIEW place_facade AS
-SELECT thing.host AS host, thing_loc_facade.location AS place
-FROM thing JOIN thing_loc_facade ON
-thing.character=thing_loc_facade.observed AND
-thing.name=thing_loc_facade.name
-UNION
-SELECT portal.host AS host, portal_loc_facade.origin AS place
-FROM portal JOIN portal_loc_facade ON
-portal.character=portal_loc_facade.observed AND
-portal.name=portal_loc_facade.name
-UNION
-SELECT portal.host AS host, portal_loc_facade.destination AS place
-FROM portal JOIN portal_loc_facade ON
-portal.character=portal_loc_facade.observed AND
-portal.name=portal_loc_facade.name
-UNION
-SELECT spot.host AS host, spot.place AS place
-FROM spot WHERE observer<>'Omniscient';"""]
+        "CREATE VIEW place AS "
+        "SELECT thing.host AS host, thing_loc.location AS place, "
+        "thing_loc.branch AS branch, thing_loc.tick AS tick "
+        "FROM thing JOIN thing_loc ON "
+        "thing.character=thing_loc.character AND "
+        "thing.name=thing_loc.name "
+        "UNION "
+        "SELECT portal.host AS host, portal_loc.origin AS place, "
+        "portal_loc.branch AS branch, portal_loc.tick AS tick "
+        "FROM portal JOIN portal_loc ON "
+        "portal.character=portal_loc.character AND "
+        "portal.name=portal_loc.name "
+        "UNION "
+        "SELECT portal.host AS host, portal_loc.destination AS place, "
+        "portal_loc.branch AS branch, portal_loc.tick AS tick "
+        "FROM portal JOIN portal_loc ON "
+        "portal.character=portal_loc.character AND "
+        "portal.name=portal_loc.name "
+        "UNION "
+        "SELECT spot.host AS host, spot.place AS place, "
+        "spot.branch AS branch, spot.tick AS tick FROM spot "
+        "WHERE observer='Omniscient';",
+        "CREATE VIEW place_facade AS "
+        "SELECT thing.host AS host, thing_loc_facade.location AS place, "
+        "thing_loc_facade.branch AS branch, thing_loc_facade.tick AS tick "
+        "FROM thing JOIN thing_loc_facade ON "
+        "thing.character=thing_loc_facade.observed AND "
+        "thing.name=thing_loc_facade.name "
+        "UNION "
+        "SELECT portal.host AS host, portal_loc_facade.origin AS place, "
+        "portal_loc_facade.branch AS branch, portal_loc_facade.tick AS tick "
+        "FROM portal JOIN portal_loc_facade ON "
+        "portal.character=portal_loc_facade.observed AND "
+        "portal.name=portal_loc_facade.name "
+        "UNION "
+        "SELECT portal.host AS host, portal_loc_facade.destination AS place, "
+        "portal_loc_facade.branch AS branch, portal_loc_facade.tick AS tick "
+        "FROM portal JOIN portal_loc_facade ON "
+        "portal.character=portal_loc_facade.observed AND "
+        "portal.name=portal_loc_facade.name "
+        "UNION "
+        "SELECT spot.host AS host, spot.place AS place, "
+        "spot.branch AS branch, spot.tick AS tick "
+        "FROM spot WHERE observer<>'Omniscient';"]
 # TODO: query tool for places in facades that do not *currently*
 # correspond to any place in any character
     tables = [
@@ -70,20 +78,30 @@ FROM spot WHERE observer<>'Omniscient';"""]
                 "layer": "integer not null default 0",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
-                "img": "text not null default 'default_spot'",
-                "interactive": "boolean default 1",
-                "x": "integer not null",
-                "y": "integer not null"},
+                "img": "text default 'default_spot'",
+                "interactive": "boolean default 1"},
             "primary_key": (
                 "observer", "host", "place",
                 "layer", "branch", "tick"),
             "foreign_keys": {
                 "observer, host": ("board", "observer, observed"),
-                "img": ("img", "name")}})]
+                "img": ("img", "name")}}),
+        ("spot_coords", {
+            "columns": {
+                "observer": "text not null default 'Omniscient'",
+                "host": "text not null default 'Physical'",
+                "place": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "x": "integer not null",
+                "y": "integer not null"},
+            "primary_key": (
+                "observer", "host", "place", "branch", "tick"),
+            "foreign_keys": {
+                "observer, host, place": (
+                    "spot", "observer, host, place")}})]
     place = ObjectProperty()
     board = ObjectProperty()
-    coords = ObjectProperty()
-    interactivity = ObjectProperty()
     completedness = NumericProperty(0)
     cheatx = NumericProperty(0)
     cheaty = NumericProperty(0)
@@ -101,22 +119,9 @@ FROM spot WHERE observer<>'Omniscient';"""]
         return unicode(self.place)
 
     def on_board(self, i, v):
-        self.completedness += 1
-
-    def on_interactivity(self, i, v):
-        """Count toward completion"""
-        self.completedness += 1
-
-    def on_coords(self, i, v):
-        """Count toward completion"""
-        self.completedness += 1
-
-    def on_completedness(self, i, v):
-        """If completed, trigger ``self.finalize``"""
-        if v == 3:
-            self.board.closet.branch_listeners.append(self.repos)
-            self.board.closet.tick_listeners.append(self.repos)
-            self.repos()
+        self.board.facade.closet.branch_listeners.append(self.repos)
+        self.board.facade.closet.tick_listeners.append(self.repos)
+        self.repos()
 
     def repos(self, *args):
         """Update my pos to match the database. Keep respecting my transform
@@ -126,68 +131,12 @@ FROM spot WHERE observer<>'Omniscient';"""]
         self.pos = self.get_coords()
         self.apply_transform(oldtf)
 
-    def set_interactive(self, branch=None, tick_from=None, tick_to=None):
-        """Declare that I am interactive from the one time to the other."""
-        if branch is None:
-            branch = self.board.closet.branch
-        if tick_from is None:
-            tick_from = self.board.closet.tick
-        assert branch in self.interactivity, "Make a new branch first"
-        self.board.closet.skeleton["spot_interactive"][
-            unicode(self.board)][unicode(self.place)][branch][
-            tick_from] = self.bonetype(
-            dimension=unicode(self.board),
-            place=unicode(self.place),
-            branch=branch,
-            tick_from=tick_from,
-            tick_to=tick_to)
-        self.upd_interactivity()
-
-    def is_interactive(self, branch=None, tick=None):
-        """Am I interactive? Either now, or at the given point in sim-time."""
-        if branch is None:
-            branch = self.board.closet.branch
-        if tick is None:
-            tick = self.board.closet.tick
-        interactivity = self.closet.skeleton["spot_interactive"][
-            unicode(self.board.dimension)][unicode(self.place)]
-        if branch not in interactivity:
-            return False
-        r = interactivity.value_during(tick)
-        return (r.tick_to is None or tick <= r.tick_to)
-
-    def new_branch_interactivity(self, parent, branch, tick):
-        """Copy interactivity from the parent branch to the child, starting
-        from the tick.
-
-        """
-        prev = None
-        started = False
-        interactivity = self.board.closet.skeleton["spot_interactive"][
-            unicode(self.board.dimension)][unicode(self.place)]
-        for tick_from in interactivity[parent]:
-            if tick_from >= tick:
-                b2 = interactivity[parent][
-                    tick_from]._replace(branch=branch)
-                if branch not in interactivity:
-                    interactivity[branch] = {}
-                interactivity[branch][b2.tick_from] = b2
-                if (
-                        not started and prev is not None and
-                        tick_from > tick and prev < tick):
-                    b3 = interactivity[parent][prev].replace(
-                        branch=branch, tick_from=tick)
-                    interactivity[branch][b3.tick_from] = b3
-                started = True
-            prev = tick_from
-        self.upd_interactivity()
-
     def set_img(self, img, layer, branch=None, tick_from=None):
         if branch is None:
-            branch = self.board.closet.branch
+            branch = self.board.facade.closet.branch
         if tick_from is None:
-            tick_from = self.board.closet.tick
-        imagery = self.board.closet.skeleton["spot_img"][
+            tick_from = self.board.facade.closet.tick
+        imagery = self.board.facade.closet.skeleton["spot_img"][
             unicode(self.board.dimension)][unicode(self.place)]
         if layer not in imagery:
             imagery[layer] = []
@@ -201,16 +150,34 @@ FROM spot WHERE observer<>'Omniscient';"""]
             tick_from=tick_from,
             img=unicode(img))
 
-    def get_coord_bone(self, branch=None, tick=None):
-        """Get a bone for coordinates, either now, or at the given point in
-        time
+    def sanetime(self, branch, tick):
+        return self.board.facade.sanetime(branch, tick)
 
-        """
-        if branch is None:
-            branch = self.board.closet.branch
-        if tick is None:
-            tick = self.board.closet.tick
-        return self.coords[branch].value_during(tick)
+    def get_bone(self, layer=0, branch=None, tick=None):
+        (branch, tick) = self.sanetime(branch, tick)
+        return self.board.facade.closet.skeleton[u"spot"][
+            unicode(self.board.facade.observer)][
+            unicode(self.board.host)][
+            unicode(self.place)][layer][branch].value_during(tick)
+
+    def set_bone(self, bone):
+        self.board.skelset(
+            self.board.facade.closet.skeleton[u"spot"],
+            "place",
+            bone)
+
+    def get_coord_bone(self, branch=None, tick=None):
+        (branch, tick) = self.sanetime(branch, tick)
+        return self.board.facade.closet.skeleton[u"spot_coords"][
+            unicode(self.board.facade.observer)][
+            unicode(self.board.host)][unicode(self.place)][
+            branch].value_during(tick)
+
+    def set_coord_bone(self, bone):
+        self.board.skelset(
+            self.board.facade.closet.skeleton[u"spot_coords"],
+            "place",
+            bone)
 
     def get_coords(self, branch=None, tick=None, default=None):
         """Return a pair of coordinates for where I should be on my board,
@@ -228,87 +195,41 @@ FROM spot WHERE observer<>'Omniscient';"""]
         else:
             return (bone.x, bone.y)
 
-    def set_coords(self, x, y, branch=None, tick_from=None):
+    def set_coords(self, x, y, branch=None, tick=None):
         """Set my coordinates on the :class:`Board`.
 
         Optional arguments may be used to set my coordinates as of
         some time other than "right now".
 
         """
-        if branch is None:
-            branch = self.board.closet.branch
-        if tick_from is None:
-            tick_from = self.board.closet.tick
-        self.board.closet.skeleton["spot_coords"][
-            unicode(self.board)][unicode(self.place)][
-            branch][tick_from] = self.bonetypes.spot_coords(
-            dimension=unicode(self.board),
-            place=unicode(self.place),
-            branch=branch,
-            tick_from=tick_from,
-            x=x,
-            y=y)
+        (branch, tick) = self.sanetime(branch, tick)
+        bone = self.get_coord_bone(branch, tick)
+        self.set_coord_bone(bone._replace(
+            x=x, y=y,
+            branch=branch, tick=tick))
 
-    def new_branch_coords(self, parent, branch, tick):
-        """Copy coordinate data from the parent branch as of the given
-        tick.
-
-        """
-        prev = None
-        started = False
-        coords = self.board.closet.skeleton["spot_coords"][
-            unicode(self.board)][unicode(self.place)]
-        for tick_from in coords[parent]:
-            if tick_from >= tick:
-                b2 = coords[parent][tick_from]._replace(branch=branch)
-                if branch not in coords:
-                    coords[branch] = {}
-                coords[branch][b2.tick_from] = b2
-                if (
-                        not started and prev is not None and
-                        tick_from > tick and prev < tick):
-                    b3 = coords[branch][prev].replace(
-                        branch=branch,
-                        tick_from=tick)
-                    coords[branch][b3.tick_from] = b3
-                started = True
-            prev = tick_from
-
-    def new_branch(self, parent, branch, tick):
+    def new_branch(self, parent, branch=None, tick=None):
         """Copy all the stuff from the parent to the child branch as of the
         given tick.
 
         """
-        self.new_branch_imagery(parent, branch, tick)
-        self.new_branch_interactivity(parent, branch, tick)
-        self.new_branch_coords(parent, branch, tick)
-
-    def new_branch_imagery(self, parent, branch, tick):
-        """Copy imagery data from the parent branch to the child, as of the
-        given tick.
-
-        """
+        (branch, tick) = self.sanetime(branch, tick)
         prev = None
         started = False
-        imagery = self.board.closet.skeleton[u"spot_img"][
-            unicode(self.board.dimension)][unicode(self.place)]
-        for layer in imagery:
-            for tick_from in imagery[layer][parent]:
-                if tick_from >= tick:
-                    b2 = imagery[layer][parent][
-                        tick_from]._replace(branch=branch)
-                    if branch not in imagery[layer]:
-                        imagery[layer][branch] = {}
-                    imagery[layer][branch][b2.tick_from] = b2
+        for skel in (self.skel[parent], self.coords[parent]):
+            for bone in skel.iterbones():
+                if bone.tick >= tick:
+                    b2 = bone._replace(branch=branch)
+                    self.set_bone(b2)
                     if (
                             not started and prev is not None and
-                            tick_from > tick and prev < tick):
-                        b3 = imagery[layer][parent][prev].replace(
+                            bone.tick > tick and prev.tick < tick):
+                        b3 = prev._replace(
                             branch=branch,
-                            tick_from=tick)
-                        imagery[layer][branch][b3.tick_from] = b3
+                            tick=tick)
+                        self.set_bone(b3)
                     started = True
-                prev = tick_from
+                    prev = bone
 
     def on_touch_up(self, touch):
         """If this is the end of a drag, set my coordinates to wherever I've

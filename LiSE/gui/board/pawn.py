@@ -27,7 +27,7 @@ some amount of game time. Whenever the game-time changes, the Pawn
 will update its position appropriately.
 
     """
-    demands = ["img", "thing", "board"]
+    demands = ["board"]
     tables = [
         ("pawn", {
             "columns": {

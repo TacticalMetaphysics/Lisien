@@ -354,8 +354,8 @@ class LiSEApp(App):
     lise_path = StringProperty()
     menu_name = StringProperty()
     observer_name = StringProperty()
-    observed_names = ListProperty()
-    board_char_name = StringProperty()
+    observed_name = StringProperty()
+    host_name = StringProperty()
     charsheet_name = StringProperty()
     debug = BooleanProperty(False)
     logfile = StringProperty('')
@@ -393,14 +393,19 @@ class LiSEApp(App):
         self.closet.load_img_metadata()
         self.closet.uptick_skel()
         self.updater = Clock.schedule_interval(self.closet.update, 0.1)
-        self.closet.load_characters(self.observed_names)
+        self.closet.load_characters([
+            self.observer_name,
+            self.observed_name,
+            self.host_name,
+            self.charsheet_name])
         menu = self.closet.load_menu(self.menu_name)
         board = self.closet.load_board(
             self.observer_name,
-            self.board_char_name)
+            self.observed_name,
+            self.host_name)
         charsheet = self.closet.load_charsheet(self.charsheet_name)
-        self.closet.old_skeleton = self.closet.skeleton.copy()
         prompt = CueCard()
+        Clock.schedule_once(lambda dt: self.closet.checkpoint(), 0)
         return LiSELayout(
             menus=[menu],
             board=board,

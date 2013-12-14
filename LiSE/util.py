@@ -349,6 +349,11 @@ class Bone(tuple):
         return type(name, (cls,), d)
 
 
+class PlaceBone(Bone):
+    _field_decls = [("host", unicode, None), ("place", unicode, None),
+                    ("branch", int, 0), ("tick", int, 0)]
+
+
 class Skeleton(MutableMapping):
     """A tree structure whose leaves correspond directly to individual
     database records.
@@ -639,7 +644,7 @@ class Skeleton(MutableMapping):
     def __isub__(self, other):
         """Remove everything in me and my children that is in ``other``
         or its children. Return myself."""
-        for (k, v) in other.items():
+        for (k, v) in other.iteritems():
             if k not in self:
                 continue
             elif v == self[k]:
@@ -775,8 +780,12 @@ class Skeleton(MutableMapping):
         """Return a new :class:`Skeleton` with all of my data in it, no matter
         how many layers I have to recurse."""
         r = {}
-        for (k, v) in self.content.items():
-            r[k] = v.deepcopy()
+        for (k, v) in self.iteritems():
+            if hasattr(v, 'deepcopy'):
+                r[k] = v.deepcopy()
+            else:
+                assert(issubclass(v.__class__, Bone))
+                r[k] = v
         return self.__class__(
             content=r, name=self.name, parent=self.parent)
 
@@ -1010,9 +1019,6 @@ class SaveableMetaclass(type):
                     foreignkeys[tablename][fieldname] = (
                         "timestream", "branch")
                     checks[tablename].append("branch>=0")
-                elif fieldname == "tick":
-                    foreignkeys[tablename][fieldname] = (
-                        "timestream", "tick")
                 cooked = decl.split(" ")
                 typename = cooked[0]
                 coltypes[tablename][fieldname] = {

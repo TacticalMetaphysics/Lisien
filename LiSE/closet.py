@@ -32,6 +32,7 @@ from model import (
 from model.event import Implicator
 from util import (
     Bone,
+    PlaceBone,
     schemata,
     saveables,
     saveable_classes,
@@ -455,7 +456,7 @@ For more information, consult SaveableMetaclass in util.py.
         self.c.execute(
             qrystr,
             [getattr(self, k) for k in fields])
-        self.old_skeleton = self.skeleton.copy()
+        self.checkpoint()
 
     def load_strings(self):
         self.c.execute("SELECT stringname, language, string FROM strings")
@@ -589,25 +590,31 @@ For more information, consult SaveableMetaclass in util.py.
     def get_cause(self, cause):
         return self.get_causes([cause])[cause]
 
-    def load_board(self, observer, observed):
+    def load_board(self, observer, observed, host):
         observer = unicode(observer)
         observed = unicode(observed)
         self.skeleton.update(Board._select_skeleton(self.c, {
-            "board": [Board.bonetype(observer=observer, observed=observed)]}))
+            "board": [Board.bonetype(
+                observer=observer, observed=observed, host=host)]}))
         self.skeleton.update(Spot._select_skeleton(self.c, {
             "spot": [Spot.bonetypes.spot(
-                observer=observer, observed=observed, layer=None)]}))
+                observer=None, observed=None, host=host, layer=None,
+                branch=None, tick=None)],
+            "spot_coords": [Spot.bonetypes.spot_coords(
+                observer=None, observed=None, host=host,
+                branch=None, tick=None)]}))
         self.skeleton.update(Pawn._select_skeleton(self.c, {
             "pawn": [Pawn.bonetypes.pawn(
-                observer=observer, observed=observed, layer=None)]}))
-        return self.get_board(observer, observed)
+                observer=None, observed=None, host=host,
+                layer=None, branch=None, tick=None)]}))
+        return self.get_board(observer, observed, host)
 
-    def get_board(self, observer, observed):
-        observer = unicode(observer)
-        observed = unicode(observed)
-        char = self.get_character(observed)
-        facade = char.get_facade(observer)
-        return Board(facade=facade)
+    def get_board(self, observer, observed, host):
+        observer = self.get_character(observer)
+        observed = self.get_character(observed)
+        host = self.get_character(host)
+        facade = observed.get_facade(observer)
+        return Board(facade=facade, host=host)
 
     def get_place(self, char, placen):
         return self.get_character(char).get_place(placen)
@@ -727,7 +734,7 @@ For more information, consult SaveableMetaclass in util.py.
         self.connector.close()
 
     def checkpoint(self):
-        self.old_skeleton = self.skeleton.copy()
+        self.old_skeleton = self.skeleton.deepcopy()
 
     def uptick_bone(self, bone):
         if hasattr(bone, "branch") and bone.branch > self.timestream.hi_branch:
@@ -775,6 +782,25 @@ For more information, consult SaveableMetaclass in util.py.
 
     def load_img_metadata(self):
         self.skeleton.update(self.select_class_all(Img))
+
+    def query_place(self):
+        """Query the 'place' view, resulting in an up-to-date record of what
+        places exist in the gameworld as it exists in the
+        database. Expensive.
+
+        """
+        self.c.execute("SELECT host, place, branch, tick FROM place;")
+        if u"place" not in self.skeleton:
+            self.skeleton[u"place"] = {}
+        for (host, place, branch, tick) in self.c:
+            if host not in self.skeleton[u"place"]:
+                self.skeleton[u"place"][host] = {}
+            if place not in self.skeleton[u"place"][host]:
+                self.skeleton[u"place"][host][place] = []
+            if branch not in self.skeleton[u"place"][host][place]:
+                self.skeleton[u"place"][host][place][branch] = []
+            self.skeleton[u"place"][host][place][branch][tick] = PlaceBone(
+                host=host, place=place, branch=branch, tick=tick)
 
 
 def mkdb(DB_NAME, lisepath):

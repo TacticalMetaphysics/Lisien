@@ -32,9 +32,9 @@ def lise():
     LiSEApp(dbfn=dbfn, lang=lang, debug=DEBUG,
             lise_path=abspath(__path__[-1]),
             logfile=debugfn, menu_name='Main',
-            observer_name='Objective',
-            observed_names=['household'],
-            board_char_name='Physical',
+            observer_name='Omniscient',
+            observed_name='Physical',
+            host_name='Physical',
             charsheet_name='household').run()
 
 
