@@ -194,7 +194,6 @@ class Thing(Container):
 
     def journey_to(self, destplace, branch=None, tick=None):
         """Schedule myself to travel somewhere."""
-        destplace = unicode(destplace)
         if destplace == unicode(self.get_location(branch, tick)):
             # Nothing to do
             return
