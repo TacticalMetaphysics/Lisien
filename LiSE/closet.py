@@ -13,8 +13,6 @@ import os
 import re
 import sqlite3
 
-import igraph
-
 from gui.board import (
     Board,
     Spot,
@@ -24,7 +22,7 @@ from gui.menu import Menu
 from gui.img import Img
 from model import (
     Character,
-    Dimension,
+    Facade,
     Place,
     Portal,
     Timestream,
@@ -36,7 +34,6 @@ from util import (
     schemata,
     saveables,
     saveable_classes,
-    Fabulator,
     Skeleton)
 
 
@@ -147,6 +144,7 @@ before RumorMill will work. For that, run mkdb.sh.
         """
         self.connector = connector
         self.skeleton = Skeleton()
+
         self.c = self.connector.cursor()
         self.c.execute(
             "SELECT language, seed, branch, tick FROM game")
@@ -160,13 +158,26 @@ before RumorMill will work. For that, run mkdb.sh.
 
         self.lisepath = lisepath
 
-        # This dict is special. It contains all the game
-        # data--represented only as those types which sqlite3 is
-        # capable of storing. All my objects are ultimately just
-        # views on this thing.
+        def on_bone_set(parent, child, k, v):
+            if hasattr(child, 'bonetype'):
+                bonetype = child.bonetype
+                if hasattr(parent, 'child_bonetype'):
+                    assert bonetype is parent.child_bonetype,\
+                        "Bad bonetype"
+                else:
+                    parent.child_bonetype = bonetype
+
+        def mk_on_tab_set(tabskel):
+            def on_tab_set(parent, child, k, v):
+                if parent is tabskel:
+                    child.listeners.append(on_bone_set)
+            return on_tab_set
+
         for saveable in saveables:
             for tabn in saveable[3]:
-                self.skeleton[tabn] = None
+                self.skeleton[tabn] = []
+                self.skeleton[tabn].listeners.append(
+                    mk_on_tab_set(self.skeleton[tabn]))
 
         for wd in self.working_dicts:
             setattr(self, wd, dict())
@@ -702,6 +713,38 @@ before RumorMill will work. For that, run mkdb.sh.
                 self.skeleton[u"place"][host][place][branch] = []
             self.skeleton[u"place"][host][place][branch][tick] = PlaceBone(
                 host=host, place=place, branch=branch, tick=tick)
+
+    def set_bone(self, bone):
+        """Take a bone of arbitrary type and put it in the right place in the
+        skeleton."""
+        if isinstance(bone, Thing.bonetypes.thing):
+            if bone.character not in self.skeleton[u"thing"]:
+                self.skeleton[u"thing"][bone.character] = {}
+            self.skeleton[u"thing"][bone.character][bone.name] = bone
+        elif isinstance(bone, Thing.bonetypes.thing_loc):
+            Character.skelset(self.skeleton[u"thing_loc"], bone)
+        elif isinstance(bone, Thing.bonetypes.thing_stat):
+            Character.skelset(self.skeleton[u"thing_loc"], bone)
+        elif isinstance(bone, Thing.bonetypes.thing_loc_facade):
+            Facade.skelset(self.skeleton[u"thing_loc_facade"], bone)
+        elif isinstance(bone, Thing.bonetypes.thing_stat_facade):
+            Facade.skelset(self.skeleton[u"thing_stat_facade"], bone)
+        elif isinstance(bone, Portal.bonetypes.portal):
+            if bone.character not in self.skeleton[u"portal"]:
+                self.skeleton[u"portal"][bone.character] = {}
+            self.skeleton[u"portal"][bone.character][bone.name] = bone
+        elif isinstance(bone, Portal.bonetypes.portal_loc):
+            Character.skelset(self.skeleton[u"portal_loc"], bone)
+        elif isinstance(bone, Portal.bonetypes.portal_stat):
+            Character.skelset(self.skeleton[u"portal_stat"], bone)
+        elif isinstance(bone, Portal.bonetypes.portal_loc_facade):
+            Facade.skelset(self.skeleton[u"portal_loc_facade"], bone)
+        elif isinstance(bone, Portal.bonetypes.portal_stat_facade):
+            Facade.skelset(self.skeleton[u"portal_stat_facade"], bone)
+        elif isinstance(bone, Place.bonetypes.place_stat):
+            Character.skelset(self.skeleton[u"place_stat"], bone)
+        elif isinstance(bone, Place.bonetypes.place_stat_facade):
+            Facade.skelset(self.skeleton[u"place_stat_facade"], bone)
 
 
 def mkdb(DB_NAME, lisepath):

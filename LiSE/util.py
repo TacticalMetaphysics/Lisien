@@ -574,14 +574,14 @@ class Skeleton(MutableMapping):
         else:
             self.content[k] = self.__class__(v, name=k, parent=self)
         for listener in self.listeners:
-            listener(self, k, v)
+            listener(self.parent, self, k, v)
         if hasattr(self.parent, 'on_child_set'):
             self.parent.on_child_set(self, k, v)
 
     def on_child_set(self, child, k, v):
         """Call all my listeners with args (child, k, v)."""
         for listener in self.listeners:
-            listener(child, k, v)
+            listener(self, child, k, v)
         if hasattr(self.parent, 'on_child_set'):
             self.parent.on_child_set(child, k, v)
 
@@ -593,14 +593,14 @@ class Skeleton(MutableMapping):
         else:
             self.ikeys.remove(k)
         for listener in self.listeners:
-            listener(self, k)
+            listener(self.parent, self, k)
         if hasattr(self.parent, 'on_child_del'):
             self.parent.on_child_del(self, k)
 
     def on_child_del(self, child, k):
         """Call all my listeners with args (child, k)."""
         for listener in self.listeners:
-            listener(child, k)
+            listener(self, child, k)
         if hasattr(self.parent, 'on_child_del'):
             self.parent.on_child_del(child, k)
 
