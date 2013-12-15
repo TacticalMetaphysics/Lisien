@@ -322,6 +322,7 @@ class Character(object):
             return v["place"]
         except (KeyError, ValueError):
             place = Place(self, bone.location)
+            place.upd_skel_from_bone(bone)
             self.graph.add_vertex(name=bone.location, place=place)
             return place
 
