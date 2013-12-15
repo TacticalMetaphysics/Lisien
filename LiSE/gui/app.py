@@ -8,6 +8,9 @@ from kivy.properties import (
     ObjectProperty,
     ListProperty,
     StringProperty)
+
+from kivy.graphics import Line, Color
+
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import Image
 from kivy.uix.popup import Popup
@@ -17,11 +20,12 @@ from kivy.factory import Factory
 
 from sqlite3 import connect, DatabaseError
 
-from LiSE.gui.board import Pawn
-from LiSE.gui.board import Spot
-from LiSE.gui.board import Arrow
+from LiSE.gui.board import (
+    Pawn,
+    Spot,
+    Arrow)
+from LiSE.gui.board.arrow import get_points
 from LiSE.gui.swatchbox import SwatchBox
-from LiSE.model import Portal
 from LiSE.util import Skeleton
 from LiSE import (
     __path__,
@@ -121,6 +125,18 @@ exist yet, but you know what it should look like."""
                 return True
 
 
+class DummySpot(Scatter):
+    def hit_spots(self, origspot, board):
+        (ow, oh) = origspot.size
+        (dx, dy) = self.pos
+        x = dx + ow / 2
+        y = dy + oh / 2
+        for spot in board.spotdict.itervalues():
+            if spot.collide_point(x, y):
+                yield spot
+                return
+
+
 class LiSELayout(FloatLayout):
     """A very tiny master layout that contains one board and some menus
 and charsheets.
@@ -132,6 +148,7 @@ and charsheets.
     prompt = ObjectProperty()
     portaling = BoundedNumericProperty(0, min=0, max=2)
     touched = ObjectProperty(None, allownone=True)
+    dummyspot = ObjectProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
         """Add board first, then menus and charsheets."""
@@ -150,51 +167,68 @@ and charsheets.
                 if spot.collide_point(touch.x, touch.y):
                     self.touched = spot
                     break
-        return (super(LiSELayout, self).on_touch_down(touch)
-                or self.touched is not None)
+        if self.touched is not None:
+            return True
+        return super(LiSELayout, self).on_touch_down(touch)
 
     def on_touch_up(self, touch):
+        clost = self.board.facade.closet
         if self.touched is not None and self.touched.collide_point(
                 touch.x, touch.y):
             if self.portaling == 1:
                 self.origspot = self.touched
+                (x, y) = self.board.to_local(*self.origspot.pos)
+                self.dummyspot = DummySpot(size=self.origspot.size)
+                self.add_widget(self.dummyspot)
+                self.dummyarrow = Widget(pos=(0, 0))
+                self.board.children[0].add_widget(self.dummyarrow)
+
+                def draw_arrow(*args):
+                    (ox, oy) = self.board.to_parent(
+                        *self.origspot.parent.to_local(
+                            *self.origspot.pos))
+                    (dx, dy) = self.dummyspot.pos
+                    print("({}, {})({}, {})".format(ox, oy, dx, dy))
+                    (ow, oh) = self.origspot.size
+                    orx = ow / 2
+                    ory = oh / 2
+                    dx += orx
+                    dy += ory
+                    points = get_points(ox, orx, oy, ory, dx, 0, dy, 0, 10)
+                    self.dummyarrow.canvas.clear()
+                    with self.dummyarrow.canvas:
+                        Color(0.25, 0.25, 0.25)
+                        Line(width=1.4, points=points)
+                        Color(1, 1, 1)
+                        Line(width=1, points=points)
+
+                self.dummyspot.bind(pos=draw_arrow)
+                self.dummyspot.pos = (x+64, y+64)
                 self.portaling = 2
-                self.display_prompt(self.board.closet.get_text("@putportalto"))
+                self.display_prompt(clost.get_text("@putportalto"))
             elif self.portaling == 2:
-                destspot = self.touched
-                origspot = self.origspot
-                del self.origspot
-                origplace = origspot.place
-                destplace = destspot.place
-                skeleton = self.board.closet.skeleton[u"portal"][
-                    unicode(self.board)]
-                if unicode(origplace) not in skeleton:
-                    skeleton[unicode(origplace)] = {}
-                if unicode(destplace) not in skeleton[unicode(origplace)]:
-                    skeleton[unicode(origplace)][unicode(destplace)] = []
-                branch = self.board.closet.branch
-                tick = self.board.closet.tick
-                skel = skeleton[unicode(origplace)][unicode(destplace)]
-                if branch not in skel:
-                    skel[branch] = []
-                if tick not in skel[branch]:
-                    skel[branch][tick] = Portal.bonetype(
-                        dimension=unicode(self.board),
-                        origin=unicode(origplace),
-                        destination=unicode(destplace),
-                        branch=branch,
-                        tick_from=tick)
-                port = Portal(self.board.closet,
-                              self.board.dimension,
-                              origplace, destplace)
-                arrow = Arrow(board=self.board, portal=port)
-                self.board.arrowdict[unicode(port)] = arrow
-                self.board.content.remove_widget(origspot)
-                self.board.content.add_widget(arrow)
-                self.board.content.add_widget(origspot)
-                self.portaling = 0
-                self.touched = None
-                self.dismiss_prompt()
+                for destspot in self.dummyspot.hit_spots(
+                        self.origspot, self.board):
+                    origplace = self.origspot.place
+                    destplace = destspot.place
+                    portal = self.board.facade.observed.make_portal(
+                        origplace, destplace, host=self.board.host)
+                    if unicode(portal.destination) not in self.board.spotdict:
+                        self.board.spotdict[
+                            unicode(portal.destination)] = Spot(
+                            board=self.board, place=portal.destination)
+                    arrow = Arrow(
+                        board=self.board, portal=portal)
+                    self.board.arrowdict[unicode(portal)] = arrow
+                    self.remove_widget(self.dummyspot)
+                    self.board.children[0].remove_widget(self.dummyarrow)
+                    self.board.children[0].remove_widget(self.origspot)
+                    self.board.children[0].add_widget(arrow)
+                    self.board.children[0].add_widget(self.origspot)
+                    self.portaling = 0
+                    self.touched = None
+                    self.dummyspot = None
+                    self.dismiss_prompt()
         return super(LiSELayout, self).on_touch_up(touch)
 
     def display_prompt(self, text):
@@ -210,58 +244,35 @@ and charsheets.
         self._popups.pop().dismiss()
 
     def new_spot_with_swatches(self, swatches):
+        clost = self.board.facade.closet
         if len(swatches) < 1:
             return
-        self.display_prompt(self.board.closet.get_text("@putplace"))
+        self.display_prompt(clost.get_text("@putplace"))
         Clock.schedule_once(self.dismiss_prompt, 5)
-        place = self.board.closet.make_generic_place(self.board.dimension)
-        closet = self.board.closet
-        branch = closet.branch
-        tick = closet.tick
-        skeleton = closet.skeleton
-        dimn = unicode(self.board)
+        place = clost.make_generic_place(self.board.host)
+        branch = clost.branch
+        tick = clost.tick
+        obsrvr = unicode(self.board.facade.observer)
+        host = unicode(self.board.host)
         placen = unicode(place)
-        for tab in (u"spot_img", u"spot_interactive", u"spot_coords"):
-            if tab not in skeleton:
-                skeleton[tab] = {}
-            if dimn not in skeleton[tab]:
-                skeleton[tab][dimn] = {}
-            if placen not in skeleton[tab][dimn]:
-                skeleton[tab][dimn][placen] = []
-        if branch not in skeleton[u"spot_interactive"][dimn][placen]:
-            skeleton[u"spot_interactive"][dimn][placen][branch] = []
-        if branch not in skeleton[u"spot_coords"][dimn][placen]:
-            skeleton[u"spot_coords"][dimn][placen][branch] = []
         i = 0
         for swatch in swatches:
-            if i not in skeleton[u"spot_img"][dimn][placen]:
-                skeleton[u"spot_img"][dimn][placen][i] = []
-            if branch not in skeleton[u"spot_img"][dimn][placen][i]:
-                skeleton[u"spot_img"][dimn][placen][i][branch] = []
-            skeleton[u"spot_img"][dimn][placen][i][branch][
-                tick] = Spot.bonetypes.spot_img(
-                dimension=dimn,
+            bone = Spot.bonetype(
+                observer=obsrvr,
+                host=host,
                 place=placen,
                 layer=i,
                 branch=branch,
-                tick_from=tick,
-                img=swatch.text,
-                off_x=0,
-                off_y=0)
+                tick=tick,
+                img=swatch.text)
+            clost.set_bone(bone)
             i += 1
-        skeleton[u"spot_interactive"][dimn][placen][branch][
-            tick] = Spot.bonetypes.spot_interactive(
-            dimension=dimn,
-            place=placen,
+        coord_bone = Spot.bonetypes.spot_coords(
+            observer=obsrvr,
+            host=host,
+            place=place,
             branch=branch,
-            tick_from=tick,
-            tick_to=None)
-        skeleton[u"spot_coords"][dimn][placen][branch][
-            tick] = Spot.bonetypes.spot_coords(
-            dimension=dimn,
-            place=placen,
-            branch=branch,
-            tick_from=tick,
+            tick=tick,
             x=min((
                 (0.1 * self.width) + self.board.scroll_x *
                 self.board.viewport_size[0],
@@ -270,6 +281,7 @@ and charsheets.
                 (0.9 * self.height) + self.board.scroll_y *
                 self.board.viewport_size[1],
                 self.board.viewport_size[1] - 32)))
+        clost.set_bone(coord_bone)
         spot = Spot(board=self.board, place=place)
         self.add_widget(spot)
         self.dismiss_popup()
@@ -290,13 +302,14 @@ the user to place it, and dismiss the popup."""
         used to build a Spot later.
 
         """
+        clost = self.board.facade.closet
         cattexlst = [
-            (cat, sorted(self.board.closet.textagdict[cat.strip("!?")]))
+            (cat, sorted(clost.textagdict[cat.strip("!?")]))
             for cat in categories]
         dialog = PickImgDialog(
             set_imgs=self.new_spot_with_swatches,
             cancel=self.dismiss_popup)
-        dialog.ids.picker.closet = self.board.closet
+        dialog.ids.picker.closet = clost
         dialog.ids.picker.cattexlst = cattexlst
         self._popups.append(Popup(
             title="Select graphics",
@@ -309,13 +322,14 @@ the user to place it, and dismiss the popup."""
         used to build a Pawn later.
 
         """
+        clost = self.board.facade.closet
         cattexlst = [
-            (cat, sorted(self.board.closet.textagdict[cat]))
+            (cat, sorted(clost.textagdict[cat]))
             for cat in categories]
         dialog = PickImgDialog(
             set_imgs=self.new_pawn_with_swatches,
             cancel=self.dismiss_popup)
-        dialog.ids.picker.closet = self.board.closet
+        dialog.ids.picker.closet = clost
         dialog.ids.picker.cattexlst = cattexlst
         self._popups.append(Popup(
             title="Select some images",
@@ -329,7 +343,8 @@ drawing the Arrow for it and prompt user to click the
 destination. Then make the Portal and its Arrow.
 
         """
-        self.display_prompt(self.board.closet.get_text("@putportalfrom"))
+        clost = self.board.facade.closet
+        self.display_prompt(clost.get_text("@putportalfrom"))
         self.portaling = 1
 
 
@@ -419,3 +434,4 @@ class LiSEApp(App):
         self.closet.save_game()
         self.closet.end_game()
         super(LiSEApp, self).stop(*largs)
+3

@@ -40,7 +40,6 @@ class Board(ScrollView):
                        "arrow_width>0", "arrowhead_size>0")})]
     facade = ObjectProperty()
     host = ObjectProperty()
-    content = ObjectProperty(None)
     completion = NumericProperty(0)
 
     def _set_bone(self, bone):
