@@ -194,15 +194,14 @@ class Thing(Container):
 
     def journey_to(self, destplace, branch=None, tick=None):
         """Schedule myself to travel somewhere."""
-        if destplace == unicode(self.get_location(branch, tick)):
+        if unicode(destplace) == unicode(self.get_location(branch, tick)):
             # Nothing to do
             return
         (branch, tick) = self.character.sanetime(branch, tick)
-        oloc = str(self.get_location(None, branch, tick))
+        oloc = self.get_location(None, branch, tick)
         otick = tick
-        m = match(portex, oloc)
-        if m is not None:
-            loc = m.groups()[0]
+        if "Portal" in oloc.__class__.__name__:
+            loc = unicode(oloc.destination)
             tick = self.get_locations(None, branch).key_after(otick)
         else:
             loc = oloc

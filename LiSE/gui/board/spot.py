@@ -234,12 +234,5 @@ class Spot(Scatter):
                     started = True
                     prev = bone
 
-    def on_touch_up(self, touch):
-        """If this is the end of a drag, set my coordinates to wherever I've
-        been dragged to."""
-        if touch.grab_current is self:
-            self.set_coords(*self.pos)
-        super(Spot, self).on_touch_up(touch)
-
     def collide_point(self, x, y):
         return self.ids.pile.collide_point(x, y)
