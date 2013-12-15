@@ -299,12 +299,12 @@ class Character(object):
         skel = self.closet.skeleton[u"thing_loc"][unicode(self)][name]
         return self._get_thing_skel_locations(skel, branch)
 
-    def get_thing_location(self, labl, branch, tick):
+    def get_thing_location(self, name, branch, tick):
         (branch, tick) = self.sanetime(branch, tick)
-        bone = self.get_thing_locations(labl, branch).value_during(tick)
+        bone = self.get_thing_locations(name, branch).value_during(tick)
         if bone is None:
             return None
-        corebone = self.get_thing_bone(labl, branch, tick)
+        corebone = self.get_thing_bone(name, branch, tick)
         host = self.closet.get_character(corebone.host)
         # suppose the location is a portal, and therefore has a
         # "real" bone
@@ -314,7 +314,7 @@ class Character(object):
                 return char.get_portal(bone.location)
         # I guess not. Maybe it's a thing?
         if bone.location in host.thing_d:
-            return host.thing_d[labl]
+            return host.thing_d[name]
         # Nope, must be a place
         # Ensure it has a vertex
         try:
@@ -325,12 +325,6 @@ class Character(object):
             place.upd_skel_from_bone(bone)
             self.graph.add_vertex(name=bone.location, place=place)
             return place
-
-    def set_thing_bone(self, bone):
-        skel = self.closet.skeleton[u"thing"]
-        if unicode(self) not in skel:
-            skel[unicode(self)] = {}
-        skel[unicode(self)][bone.name] = bone
 
     def set_thing_loc_bone(self, bone):
         skel = self.closet.skeleton[u"thing_loc"]
@@ -394,6 +388,33 @@ class Character(object):
     def get_portal(self, name):
         e = self.graph.es.find(name=name)
         return e["portal"]
+
+    def make_portal(self, origin, destination, host=None, name=None,
+                    branch=None, tick=None):
+        (branch, tick) = self.sanetime(branch, tick)
+        origin = unicode(origin)
+        destination = unicode(destination)
+        if host is None:
+            host = self
+        host = unicode(host)
+        if name is None:
+            name = "{}->{}".format(origin, destination)
+        bone = Portal.bonetypes.portal(
+            character=unicode(self),
+            name=name,
+            host=host)
+        self.closet.set_bone(bone)
+        bigbone = Portal.bonetypes.portal_loc(
+            character=unicode(self),
+            name=name,
+            branch=branch,
+            tick=tick,
+            origin=origin,
+            destination=destination)
+        self.closet.set_bone(bigbone)
+        p = Portal(self, name)
+        self.graph.add_vertex(name=name, portal=p)
+        return p
 
     def _get_portal_skel_bone(self, skel, branch, tick):
         (branch, tick) = self.sanetime(branch, tick)
