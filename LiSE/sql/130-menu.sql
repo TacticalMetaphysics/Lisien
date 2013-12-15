@@ -13,7 +13,7 @@ INSERT INTO menu_item (idx, menu, closer, on_click, text) VALUES
 (1, 'Main', 0, 'mi_show_popup(new_place(?spot))', '@place_menu'),
 (2, 'Main', 0, 'mi_connect_portal()', '@portal_menu'),
 (3, 'Main', 0, 'mi_show_popup(character())', '@game_menu'),
-(4, 'Main', 0, 'toggle_menu(Editor)', '@editor_menu'),
+(4, 'Main', 0, 'noop()', '@editor_menu'),
 (13, 'Main', 0, 'noop()', 'Branch:'),
 (14, 'Main', 0, 'noop()', '@branch'),
 (15, 'Main', 0, 'noop()', 'Tick:'),

@@ -186,14 +186,14 @@ class Spot(Scatter):
         """
         try:
             bone = self.get_coord_bone(branch, tick)
+            if bone is None:
+                return None
+            else:
+                return (bone.x, bone.y)
         except KeyError:
             if default is not None:
                 self.set_coords(*default)
                 return default
-        if bone is None:
-            return None
-        else:
-            return (bone.x, bone.y)
 
     def set_coords(self, x, y, branch=None, tick=None):
         """Set my coordinates on the :class:`Board`.

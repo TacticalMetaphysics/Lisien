@@ -43,6 +43,10 @@ class Place(Container):
             "primary_key": (
                 "observer", "observed", "name", "key", "branch", "tick")})]
 
+    @property
+    def v(self):
+        return self.character.graph.vs.find(name=self.name)
+
     def __init__(self, character, name):
         """Initialize a place in a character by a name"""
         self.character = character

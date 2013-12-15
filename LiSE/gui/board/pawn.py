@@ -31,16 +31,18 @@ will update its position appropriately.
     tables = [
         ("pawn", {
             "columns": {
-                "observer": "text default null",
-                "observed": "text default null",
-                "host": "text not null",
+                "observer": "text not null default 'Omniscient'",
+                "observed": "text not null default 'Physical'",
+                "host": "text not null default 'Physical'",
                 "thing": "text not null",
+                "layer": "integer not null default 0",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
                 "img": "text not null default 'default_pawn'",
                 "interactive": "boolean default 1"},
             "primary_key": (
-                "observer", "observed", "host", "thing", "branch", "tick"),
+                "observer", "observed", "host", "thing",
+                "layer", "branch", "tick"),
             "foreign_keys": {
                 "observer, observed, host": (
                     "board", "observer, observed, host"),
@@ -62,14 +64,13 @@ The relevant data are
         super(Pawn, self).__init__(**kwargs)
         self.board.pawndict[unicode(self.thing)] = self
 
-        self.board.closet.branch_listeners.append(self.repos)
-        self.board.closet.tick_listeners.append(self.repos)
+        self.board.facade.closet.branch_listeners.append(self.repos)
+        self.board.facade.closet.tick_listeners.append(self.repos)
 
-        dimn = unicode(self.board.dimension)
-        thingn = unicode(self.thing)
-        skel = self.board.closet.skeleton
+        skel = self.board.facade.closet.skeleton
 
-        skel["thing_location"][dimn][thingn].listeners.append(self.repos)
+        skel["thing_loc"][unicode(self.thing.character)][
+            unicode(self.thing)].listeners.append(self.repos)
         self.repos()
 
     def __str__(self):

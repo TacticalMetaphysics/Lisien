@@ -45,29 +45,6 @@ def noop(*args, **kwargs):
     pass
 
 
-class ListItemIterator:
-    """Iterate over a list in a way that resembles dict.iteritems().
-
-Indices are considered as keys for this purpose."""
-    def __init__(self, l):
-        self.l = l
-        self.l_iter = iter(l)
-        self.i = 0
-
-    def __iter__(self):
-        """I'm an iterator"""
-        return self
-
-    def __len__(self):
-        """Return length of underlying list"""
-        return len(self.l)
-
-    def __next__(self):
-        it = next(self.l_iter)
-        i = self.i
-        self.i += 1
-        return (i, it)
-
 ###
 # These regexes serve to parse certain database records that represent
 # function calls.
@@ -131,11 +108,6 @@ You need to create a SQLite database file with the appropriate schema
 before RumorMill will work. For that, run mkdb.sh.
 
     """
-    language = "eng"
-    seed = 0
-    branch = 0
-    tick = 0
-    skeleton = Skeleton()
     working_dicts = [
         "boardhand_d",
         "calendar_d",
@@ -152,23 +124,29 @@ before RumorMill will work. For that, run mkdb.sh.
         "event_d",
         "character_d",
         "facade_d"]
+    """The names of dictionaries where I keep objects after
+    instantiation.
+
+    """
 
     def __setattr__(self, attrn, val):
-        if attrn == "branch":
+        if attrn == "branch" and hasattr(self, 'branch'):
             self.upd_branch(val)
-        elif attrn == "tick":
+        elif attrn == "tick" and hasattr(self, 'tick'):
             self.upd_tick(val)
-        elif attrn == "language":
+        elif attrn == "language" and hasattr(self, 'language'):
             self.upd_lang(val)
         else:
             super(Closet, self).__setattr__(attrn, val)
 
     def __init__(self, connector, lisepath, USE_KIVY=False, **kwargs):
-        """Return a database wrapper around the SQLite database file by the
-given name.
+        """Initialize a Closet for the given connector and path.
+
+        With USE_KIVY, I will use the kivybits module to load images.
 
         """
         self.connector = connector
+        self.skeleton = Skeleton()
         self.c = self.connector.cursor()
         self.c.execute(
             "SELECT language, seed, branch, tick FROM game")
@@ -209,62 +187,16 @@ given name.
             self.USE_KIVY = True
 
         self.timestream = Timestream(self)
-
+        self.time_travel_history = []
         self.game_speed = 1
         self.updating = False
-
-        self.timestream = Timestream(self)
-        self.time_travel_history = []
-
         placeholder = (noop, ITEM_ARG_RE)
-        if "effect_cbs" in kwargs:
-            effect_cb_fabdict = dict(
-                [(
-                    cls.__name__, self.constructorate(cls))
-                 for cls in kwargs["effect_cbs"]])
-        else:
-            effect_cb_fabdict = {}
-        self.get_effect_cb = Fabulator(effect_cb_fabdict)
-        if "test_cbs" in kwargs:
-            test_cb_fabdict = dict(
-                [(
-                    cls.__name__, self.constructorate(cls))
-                 for cls in kwargs["test_cbs"]])
-        else:
-            test_cb_fabdict = {}
-        self.get_test_cb = Fabulator(test_cb_fabdict)
-        if "effect_cb_makers" in kwargs:
-            effect_cb_maker_fabdict = dict(
-                [(
-                    maker.__name__, self.constructorate(maker))
-                 for maker in kwargs["effect_makers"]])
-        else:
-            effect_cb_maker_fabdict = {}
-        for (name, cb) in effect_cb_fabdict.iteritems():
-            effect_cb_maker_fabdict[name] = lambda: cb
-        self.make_effect_cb = Fabulator(effect_cb_maker_fabdict)
-        if "test_cb_makers" in kwargs:
-            test_cb_maker_fabdict = dict(
-                [(
-                    maker.__name__, self.constructorate(maker))
-                 for maker in kwargs["test_cb_makers"]])
-        else:
-            test_cb_maker_fabdict = {}
-        for (name, cb) in test_cb_fabdict.iteritems():
-            test_cb_maker_fabdict[name] = lambda: cb
-        self.make_test_cb = Fabulator(test_cb_maker_fabdict)
         self.menu_cbs = {
             'play_speed':
             (self.play_speed, ONE_ARG_RE),
             'back_to_start':
             (self.back_to_start, ''),
             'noop': placeholder,
-            'toggle_menu':
-            (self.toggle_menu, ONE_ARG_RE),
-            'hide_menu':
-            (self.hide_menu, ONE_ARG_RE),
-            'show_menu':
-            (self.show_menu, ONE_ARG_RE),
             'make_generic_place':
             (self.make_generic_place, ''),
             'increment_branch':
@@ -316,96 +248,29 @@ given name.
         return cls._select_skeleton(self.c, td)
 
     def upd_branch(self, b):
+        """Set the active branch, alerting any branch_listeners"""
         for listener in self.branch_listeners:
             listener(self, b)
         self.upd_time(b, self.tick)
         super(Closet, self).__setattr__('branch', b)
 
     def upd_tick(self, t):
+        """Set the current tick, alerting any tick_listeners"""
         for listener in self.tick_listeners:
             listener(self, t)
         self.upd_time(self.branch, t)
         super(Closet, self).__setattr__('tick', t)
 
     def upd_time(self, b, t):
+        """Set the current branch and tick, alerting any time_listeners"""
         for listener in self.time_listeners:
             listener(self, b, t)
 
     def upd_lang(self, l):
+        """Set the current language, alerting any lang_listeners"""
         for listener in self.lang_listeners:
             listener(self, l)
         super(Closet, self).__setattr__('language', l)
-
-    def constructorate(self, cls):
-
-        def construct(*args):
-            return cls(self, *args)
-        return construct
-
-    def insert_bones_table(self, bone, clas, tablename):
-        """Insert the given bones into the table of the given name, as
-defined by the given class.
-
-For more information, consult SaveableMetaclass in util.py.
-
-        """
-        if bone != []:
-            clas.dbop['insert'](self, bone, tablename)
-
-    def delete_keydicts_table(self, keydict, clas, tablename):
-        """Delete the records identified by the keydicts from the given table,
-as defined by the given class.
-
-For more information, consult SaveableMetaclass in util.py.
-
-        """
-        if keydict != []:
-            clas.dbop['delete'](self, keydict, tablename)
-
-    def detect_keydicts_table(self, keydict, clas, tablename):
-        """Return the rows in the given table, as defined by the given class,
-matching the given keydicts.
-
-For more information, consult SaveableMetaclass in util.py.
-
-        """
-        if keydict != []:
-            return clas.dbop['detect'](self, keydict, tablename)
-        else:
-            return []
-
-    def missing_keydicts_table(self, keydict, clas, tablename):
-        """Return rows in the given table, as defined by the given class,
-*not* matching any of the given keydicts.
-
-For more information, consult SaveableMetaclass in util.py.
-
-        """
-        if keydict != []:
-            return clas.dbop['missing'](self, keydict, tablename)
-        else:
-            return []
-
-    def toggle_menu(self, menuitem, menuname,
-                    effect=None, deck=None, event=None):
-        window = menuitem.menu.window
-        menu = window.menus_by_name[menuname]
-        menu.visible = not menu.visible
-        menu.tweaks += 1
-
-    def hide_menu(self, menuitem, menuname,
-                  effect=None, deck=None, event=None):
-        window = menuitem.menu.window
-        menu = window.menus_by_name[menuname]
-        menu.visible = False
-        menu.tweaks += 1
-
-    def show_menu(self, menuitem, menuname,
-                  effect=None, deck=None, event=None):
-        window = menuitem.menu.window
-        menu = window.menus_by_name[menuname]
-        menu.visible = True
-        menu.tweaks += 1
 
     def get_text(self, strname):
         """Get the string of the given name in the language set at startup."""
@@ -423,15 +288,8 @@ For more information, consult SaveableMetaclass in util.py.
         else:
             return strname
 
-    def make_igraph_graph(self, name):
-        self.graphdict[name] = igraph.Graph(directed=True)
-
-    def get_igraph_graph(self, name):
-        if name not in self.graphdict:
-            self.make_igraph_graph(name)
-        return self.graphdict[name]
-
     def save_game(self):
+        """Save all pending changes to disc."""
         to_save = self.skeleton - self.old_skeleton
         to_delete = self.old_skeleton - self.skeleton
         for clas in saveable_classes:
@@ -459,6 +317,7 @@ For more information, consult SaveableMetaclass in util.py.
         self.checkpoint()
 
     def load_strings(self):
+        """Load all strings available."""
         self.c.execute("SELECT stringname, language, string FROM strings")
         if "strings" not in self.skeleton:
             self.skeleton["strings"] = {}
@@ -469,29 +328,47 @@ For more information, consult SaveableMetaclass in util.py.
             self.skeleton["strings"][
                 bone.stringname][bone.language] = bone
 
-    def make_generic_place(self, dimension):
-        placen = "generic_place_{0}".format(len(dimension.graph.vs))
-        return dimension.make_place(placen)
+    def make_generic_place(self, character):
+        """Make a place hosted by the given character, and give it a boring
+        name.
 
-    def make_generic_thing(self, dimension, location):
-        if not isinstance(dimension, Dimension):
-            dimension = self.get_dimension(dimension)
-        thingn = u"generic_thing_{0}".format(len(dimension.thingdict))
-        for skel in (
-                self.skeleton[u"thing_location"],
-                self.skeleton[u"pawn_img"],
-                self.skeleton[u"pawn_interactive"]):
-            assert(thingn not in skel[unicode(dimension)])
-            skel[unicode(dimension)][thingn] = Skeleton()
-            skel[unicode(dimension)][thingn][self.branch] = Skeleton()
-        dimension.make_thing(thingn, location)
-        return dimension.get_thing(thingn)
+        """
+        character = self.get_character(character)
+        placen = "generic_place_{0}".format(len(character.graph.vs))
+        return character.make_place(placen)
 
-    def make_portal(self, orig, dest):
-        return orig.dimension.make_portal(orig, dest)
+    def make_generic_thing(self, character, host, location,
+                           branch=None, tick=None):
+        if branch is None:
+            branch = self.branch
+        if tick is None:
+            tick = self.tick
+        character = self.get_character(character)
+        charn = unicode(character)
+        hostn = unicode(host)
+        locn = unicode(location)
+        if charn not in self.skeleton[u"thing"]:
+            self.skeleton[u"thing"][charn] = {}
+        thingn = len(self.skeleton[u"thing"][charn])
+        self.skeleton[u"thing"][charn][thingn] = Thing.bonetypes.thing(
+            character=charn, name=thingn, host=hostn)
+        if charn not in self.skeleton[u"thing_loc"]:
+            self.skeleton[u"thing_loc"][charn] = {}
+        if thingn not in self.skeleton[u"thing_loc"][charn]:
+            self.skeleton[u"thing_loc"][charn][thingn] = []
+        if branch not in self.skeleton[u"thing_loc"][charn][thingn]:
+            self.skeleton[u"thing_loc"][charn][thingn][branch] = []
+        self.skeleton[u"thing_loc"][charn][thingn][branch][
+            tick] = Thing.bonetypes.thing_loc(
+            character=charn, name=thingn, branch=branch, tick=tick,
+            location=locn)
+        return character.get_thing(thingn)
 
     def load_charsheet(self, character):
-        character = unicode(character)
+        """Return a CharSheetView displaying the CharSheet for the character
+        specified, perhaps loading it if necessary."""
+        # if the character is not loaded yet, make it so
+        character = unicode(self.get_character(character))
         bd = {
             "charsheet": [
                 CharSheet.bonetypes.charsheet(character=character)],
@@ -502,6 +379,7 @@ For more information, consult SaveableMetaclass in util.py.
         return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
+        """Load all the named characters and return them in a dict."""
         self.skeleton.update(
             Character._select_skeleton(self.c, {
                 "character_stat": [
@@ -554,6 +432,7 @@ For more information, consult SaveableMetaclass in util.py.
         return r
 
     def get_characters(self, names):
+        """Return the named characters in a dict. Load them as needed."""
         r = {}
         unhad = set()
         for name in names:
@@ -568,29 +447,45 @@ For more information, consult SaveableMetaclass in util.py.
         return r
 
     def get_character(self, name):
+        """Return the named character. Load it if needed.
+
+        When supplied with a Character object, this will simply return
+        it, so you may use it to *ensure* that an object is a
+        Character.
+
+        """
         if isinstance(name, Character):
             return name
         return self.get_characters([str(name)])[str(name)]
 
     def get_effects(self, names):
+        """Return the named effects in a dict"""
         r = {}
         for name in names:
             r[name] = Implicator.make_effect(name)
         return r
 
     def get_effect(self, name):
+        """Return the named effect in a dict"""
         return self.get_effects([name])[name]
 
     def get_causes(self, names):
+        """Return the named causes in a dict"""
         r = {}
         for name in names:
             r[name] = Implicator.make_cause(name)
         return r
 
     def get_cause(self, cause):
+        """Return the named cause in a dict"""
         return self.get_causes([cause])[cause]
 
     def load_board(self, observer, observed, host):
+        """Load and return a graphical board widget displaying the contents of
+        the host that are parts of the observed character, as seen by
+        the observer character.
+
+        """
         observer = unicode(observer)
         observed = unicode(observed)
         self.skeleton.update(Board._select_skeleton(self.c, {
@@ -610,6 +505,11 @@ For more information, consult SaveableMetaclass in util.py.
         return self.get_board(observer, observed, host)
 
     def get_board(self, observer, observed, host):
+        """Return a graphical board widget displaying the contents of the host
+        that are parts of the observed character, as seen by the
+        observer character. Load it if needed.
+
+        """
         observer = self.get_character(observer)
         observed = self.get_character(observed)
         host = self.get_character(host)
@@ -673,7 +573,8 @@ For more information, consult SaveableMetaclass in util.py.
         if tick < 0:
             tick = 0
             self.updating = False
-        mintick = self.timestream.min_tick(branch, "thing_location")
+        # make it more general
+        mintick = self.timestream.min_tick(branch, "thing_loc")
         if tick < mintick:
             tick = mintick
         self.time_travel_history.append((self.branch, self.tick))

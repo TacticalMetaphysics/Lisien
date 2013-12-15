@@ -101,6 +101,10 @@ class Thing(Container):
 
     """
 
+    @property
+    def location(self):
+        return self.get_location()
+
     def __init__(self, character, name):
         self.character = character
         self.name = name
@@ -139,12 +143,11 @@ class Thing(Container):
         or portal I *seem* to be in.
 
         """
-        bone = self.get_bone(observer, branch, tick)
         if observer is None:
-            return self.character.get_place(bone.location)
+            return self.character.get_thing_location(self.name, branch, tick)
         else:
             facade = self.character.get_facade(observer)
-            return facade.get_place(bone.location)
+            return facade.get_thing_location(self.name, branch, tick)
 
     def get_locations(self, observer=None, branch=None):
         if observer is None:
@@ -163,17 +166,19 @@ class Thing(Container):
         """How many ticks would it take to get through that portal?"""
         if observer is None:
             observer = self.character
-        portal_bone = portal.get_bone(observer, branch, tick)
-        return int(portal_bone.weight / 0.1)
+        # placeholder
+        portal_weight = 1
+        return int(portal_weight / 0.1)
 
     def get_progress(self, observer=None, branch=None, tick=None):
         """Return a float representing the proportion of the portal I have
         passed through.
 
         """
-        bone = self.get_bone(observer, branch, tick)
+        (branch, tick) = self.character.sanetime(branch, tick)
+        bone = self.get_locations(observer, branch).value_during(tick)
         # this is when I entered the portal
-        t1 = bone.tick_from
+        t1 = bone.tick
         # this is when I will enter the destination
         t2 = self.get_locations(observer, branch).key_after(tick)
         if t2 is None:
@@ -187,8 +192,9 @@ class Thing(Container):
         passed = float(tick - t1)
         return passed / duration
 
-    def journey_to(self, destplace, host='Physical', branch=None, tick=None):
+    def journey_to(self, destplace, branch=None, tick=None):
         """Schedule myself to travel somewhere."""
+        (branch, tick) = self.character.sanetime(branch, tick)
         oloc = str(self.get_location(None, branch, tick))
         otick = tick
         m = match(portex, oloc)
@@ -201,8 +207,9 @@ class Thing(Container):
         # Get a shortest path based on my understanding of the graph,
         # which may not match reality.  It would be weird to use some
         # other character's understanding.
-        host = self.character.closet.get_character(host)
+        host = self.character.closet.get_character(self.get_bone().host)
         facade = host.get_facade(self.character)
+        facade.update(branch, tick)
         ipath = facade.graph.get_shortest_paths(
             loc, to=unicode(destplace), output=str("epath"))
         path = None
@@ -210,7 +217,7 @@ class Thing(Container):
             if p == []:
                 continue
             desti = facade.graph.es[p[-1]].target
-            if desti == int(destplace):
+            if desti == destplace.v.index:
                 path = [facade.graph.es[i]["portal"] for i in p]
                 break
         if path is None:
@@ -235,9 +242,9 @@ class Thing(Container):
             else:
                 loc = oloc
                 tick = otick
-            self.follow_path(path, None, tick)
+            self.follow_path(path, self.character.closet.branch, tick)
 
-    def follow_path(self, host, path, branch, tick):
+    def follow_path(self, path, branch, tick):
         """Presupposing I'm in the given host, follow the path by scheduling
         myself to be located in the appropriate place or portal at the
         appropriate time.
@@ -256,15 +263,15 @@ class Thing(Container):
         except KeyError:
             # This just means the branch isn't there yet. Don't worry.
             pass
-        bone = self.get_bone(None, branch, tick)
-        assert bone.host == unicode(host), (
-            "Can't follow path in different host")
+        host = self.character.closet.get_character(self.get_bone().host)
+        bone = self.character.get_thing_locations(
+            self.name, branch).value_during(tick)
         prevtick = tick + 1
         for port in path:
             bone = bone._replace(
                 location=port.name,
                 tick=prevtick)
-            host.set_thing_bone(bone)
+            self.character.set_thing_loc_bone(bone)
             prevtick += self.get_ticks_thru(
                 port, observer=None, branch=branch, tick=prevtick)
             bone = bone._replace(
@@ -291,14 +298,14 @@ class Thing(Container):
         i = 0
         for bone in self.get_locations(parent).iterbones():
             i += 1
-            if bone.tick_from >= tick:
+            if bone.tick >= tick:
                 bone2 = bone._replace(branch=branch)
-                self.get_locations(branch)[bone2.tick_from] = bone2
+                self.get_locations(branch)[bone2.tick] = bone2
                 if (
                         not started and prev is not None and
-                        bone.tick_from > tick and prev.tick_from < tick):
-                    bone3 = prev._replace(branch=branch, tick_from=tick)
-                    self.get_locations(branch)[bone3.tick_from] = bone3
+                        bone.tick > tick and prev.tick < tick):
+                    bone3 = prev._replace(branch=branch, tick=tick)
+                    self.get_locations(branch)[bone3.tick] = bone3
                 started = True
             prev = bone
 

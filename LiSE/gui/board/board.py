@@ -3,6 +3,7 @@
 from __future__ import print_function
 from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
+    AliasProperty,
     DictProperty,
     NumericProperty,
     ObjectProperty)
@@ -41,6 +42,27 @@ class Board(ScrollView):
     host = ObjectProperty()
     content = ObjectProperty(None)
     completion = NumericProperty(0)
+
+    def _set_bone(self, bone):
+        self.facade.closet.skeleton[u"board"][
+            unicode(self.facade.observer)][
+            unicode(self.facade.observed)][
+            unicode(self.host)] = bone
+
+    def _set_x(self, x):
+        bone = self.bone._replace(x=x)
+        self._set_bone(bone)
+
+    def _set_y(self, y):
+        bone = self.bone._replace(y=y)
+        self._set_bone(bone)
+
+    scroll_x = AliasProperty(
+        lambda self: self.bone.x,
+        _set_x)
+    scroll_y = AliasProperty(
+        lambda self: self.bone.y,
+        _set_y)
 
     spotdict = DictProperty({})
     pawndict = DictProperty({})
@@ -125,8 +147,11 @@ class Board(ScrollView):
                 self.spotdict[bone.place] = Spot(board=self, place=place)
         for bone in self.facade.closet.skeleton[u"pawn"].iterbones():
             if bone.host == host and bone.thing not in self.pawndict:
-                char = self.facade.closet.get_character(bone.character)
-                thing = char.get_thing(bone.thing)
+                char = self.facade.closet.get_character(bone.observed)
+                try:
+                    thing = char.get_thing(bone.thing)
+                except KeyError:
+                    thing = char.make_thing(bone.thing)
                 self.pawndict[bone.thing] = Pawn(board=self, thing=thing)
         for bone in self.facade.closet.skeleton[u"portal"].iterbones():
             if bone.host == host and bone.name not in self.arrowdict:

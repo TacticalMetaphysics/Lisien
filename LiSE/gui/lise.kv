@@ -56,11 +56,10 @@
     size: pile.size
     do_rotation: False
     do_scale: False
-    interactivity: self.board.closet.skeleton[u"pawn_interactive"][unicode(self.board)][unicode(self.thing)]
     LayerImgPile:
         id: pile
-        closet: root.board.closet
-        imagery: root.board.closet.skeleton[u"pawn_img"][unicode(root.board)][unicode(root.thing)]
+        closet: root.board.facade.closet
+        imagery: self.closet.skeleton[u"pawn"][unicode(root.board.facade.observer)][unicode(root.thing.character)][unicode(root.board.host)][unicode(root.thing)]
 <ImgPile>:
     width: max([img.right for img in self.imgs]) if len(self.imgs) > 0 else 0
     height: max([img.top for img in self.imgs]) if len(self.imgs) > 0 else 0
