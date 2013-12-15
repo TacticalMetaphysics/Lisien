@@ -745,6 +745,15 @@ before RumorMill will work. For that, run mkdb.sh.
             Character.skelset(self.skeleton[u"place_stat"], bone)
         elif isinstance(bone, Place.bonetypes.place_stat_facade):
             Facade.skelset(self.skeleton[u"place_stat_facade"], bone)
+        elif isinstance(bone, PlaceBone):
+            if bone.host not in self.skeleton[u"place"]:
+                self.skeleton[u"place"][bone.host] = {}
+            if bone.place not in self.skeleton[u"place"][bone.host]:
+                self.skeleton[u"place"][bone.host][bone.place] = []
+            skel = self.skeleton[u"place"][bone.host][bone.place]
+            if bone.branch not in skel:
+                skel[bone.branch] = []
+            skel[bone.branch][bone.tick] = bone
 
 
 def mkdb(DB_NAME, lisepath):
