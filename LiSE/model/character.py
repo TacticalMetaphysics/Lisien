@@ -154,6 +154,18 @@ class Character(object):
     def __unicode__(self):
         return unicode(self.name)
 
+    @staticmethod
+    def skelset(skel, bone):
+        """Put ``bone`` into ``skel``, nested according to the database
+        schema."""
+        if bone.character not in skel:
+            skel[bone.character] = {}
+        if bone.name not in skel[bone.character]:
+            skel[bone.character][bone.name] = []
+        if bone.branch not in skel[bone.character][bone.name]:
+            skel[bone.character][bone.name][bone.branch] = []
+        skel[bone.character][bone.name][bone.branch][bone.tick] = bone
+
     def update(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
         for v in self.graph.vs:
@@ -196,18 +208,6 @@ class Character(object):
         if tick is None:
             tick = self.closet.tick
         return (branch, tick)
-
-    @staticmethod
-    def skelset(skel, bone):
-        """Put ``bone`` into ``skel``, nested according to the database
-        schema."""
-        if bone.character not in skel:
-            skel[bone.character] = {}
-        if bone.name not in skel[bone.character]:
-            skel[bone.character][bone.name] = []
-        if bone.branch not in skel[bone.character][bone.name]:
-            skel[bone.character][bone.name][bone.branch] = []
-        skel[bone.character][bone.name][bone.branch][bone.tick] = bone
 
     def get_bone(self, name):
         """Try to get the bone for the named item without knowing what type it
@@ -660,12 +660,12 @@ class Facade(Character):
             skel[bone.observer] = {}
         if bone.observed not in skel[bone.observer]:
             skel[bone.observer][bone.observed] = {}
-        if bone.label not in skel[bone.observer][bone.observed]:
-            skel[bone.observer][bone.observed][bone.label] = []
-        if bone.branch not in skel[bone.observer][bone.observed][bone.label]:
-            skel[bone.observer][bone.observed][bone.label][bone.branch] = []
-        skel[bone.observer][bone.observed][bone.label][
-            bone.branch][bone.tick] = bone
+        if bone.name not in skel[bone.observer][bone.observed]:
+            skel[bone.observer][bone.observed][bone.name] = []
+        skel = skel[bone.observed][bone.observed][bone.name]
+        if bone.branch not in skel:
+            skel[bone.branch] = []
+        skel[bone.branch][bone.tick] = bone
 
     def evade(self, bone):
         """Raise KnowledgeException if the bone triggers an omitter. Otherwise

@@ -271,13 +271,13 @@ class Thing(Container):
             bone = bone._replace(
                 location=port.name,
                 tick=prevtick)
-            self.character.set_thing_loc_bone(bone)
+            host.closet.set_bone(bone)
             prevtick += self.get_ticks_thru(
                 port, observer=None, branch=branch, tick=prevtick)
             bone = bone._replace(
                 location=unicode(port.destination),
                 tick=prevtick)
-            host.set_thing_bone(bone)
+            host.closet.set_bone(bone)
             prevtick += 1
 
     def new_branch(self, parent, branch, tick):
