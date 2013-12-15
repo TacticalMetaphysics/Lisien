@@ -755,6 +755,32 @@ before RumorMill will work. For that, run mkdb.sh.
                 skel[bone.branch] = []
             skel[bone.branch][bone.tick] = bone
 
+    def place_exists(self, character, name, branch=None, tick=None):
+        """Check whether a place by the given name exists.
+
+        May check only in the given branch, if provided. With optional
+        argument ``tick``, check if there is a place *at* or *before*
+        that tick in that branch.
+
+        Assumes that place data in the 'place' skeleton is current.
+
+        """
+        charn = unicode(character)
+        if tick is not None:
+            if branch is None:
+                raise ValueError("With tick, need branch")
+            return (charn in self.skeleton['place'] and
+                    name in self.skeleton['place'][charn] and
+                    branch in self.skeleton['place'][charn][name] and
+                    self.skeleton['place'][charn][name][
+                        branch].key_or_key_before(tick) is not None)
+        elif branch is not None:
+            return (charn in self.skeleton['place'] and
+                    name in self.skeleton['place'][charn] and
+                    branch in self.skeleton['place'][charn][name])
+        return (charn in self.skeleton['place'] and
+                name in self.skeleton['place'][charn])
+
 
 def mkdb(DB_NAME, lisepath):
     def recurse_rltiles(d):

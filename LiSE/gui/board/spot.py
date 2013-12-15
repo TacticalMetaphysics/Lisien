@@ -31,7 +31,7 @@ class Spot(Scatter):
         "thing.character=thing_loc.character AND "
         "thing.name=thing_loc.name "
         "WHERE thing_loc.location NOT IN "
-        "(SELECT name FROM portal UNION SELECT name FROM thing)"
+        "(SELECT name FROM portal UNION SELECT name FROM thing) "
         "UNION "
         "SELECT portal.host AS host, portal_loc.origin AS place, "
         "portal_loc.branch AS branch, portal_loc.tick AS tick "
