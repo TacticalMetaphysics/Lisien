@@ -186,18 +186,24 @@ and charsheets.
                         atop.append(pawn)
                 self.board.children[0].remove_widget(self.origspot)
                 for pawn in atop:
-                    self.remove_widget(pawn)
+                    self.board.children[0].remove_widget(pawn)
                 self.board.children[0].add_widget(self.dummyarrow)
                 self.board.children[0].add_widget(self.origspot)
                 for pawn in atop:
-                    self.add_widget(pawn)
+                    self.board.children[0].add_widget(pawn)
                 self.add_widget(self.dummyspot)
                 self.dummyspot.bind(pos=self.draw_arrow)
                 self.display_prompt(clost.get_text("@putportalto"))
                 self.portaling = 2
             else:
                 self.portaling = 0
+                self.dummyspot.unbind(pos=self.draw_arrow)
+                self.dummyarrow.canvas.clear()
+                self.remove_widget(self.dummyspot)
+                self.board.children[0].remove_widget(self.dummyarrow)
                 self.dismiss_prompt()
+                self.dummyspot = None
+                self.dummyarrow = None
         else:
             assert(self.portaling == 0)
         return super(LiSELayout, self).on_touch_down(touch)
@@ -206,8 +212,9 @@ and charsheets.
         if self.portaling == 2:
             self.portaling = 0
             self.dummyspot.unbind(pos=self.draw_arrow)
+            self.dummyarrow.canvas.clear()
             self.remove_widget(self.dummyspot)
-            self.remove_widget(self.dummyarrow)
+            self.board.children[0].remove_widget(self.dummyarrow)
             self.dismiss_prompt()
             destspot = None
             for spot in self.board.spotdict.itervalues():
@@ -236,6 +243,8 @@ and charsheets.
             self.board.children[0].add_widget(self.origspot)
             for pawn in atop:
                 self.board.children[0].add_widget(pawn)
+            self.dummyspot = None
+            self.dummyarrow = None
         else:
             return super(LiSELayout, self).on_touch_up(touch)
 
@@ -402,18 +411,12 @@ class LiSEApp(App):
             if i < 3:
                 conn.close()
                 closet.mkdb(self.dbfn, __path__[-1])
-            else:
-                try:
-                    conn.cursor().execute("SELECT * FROM game;")
-                    conn.close()
-                except DatabaseError:
-                    exit("The database contains data that does not "
-                         "conform to the expected schema.")
         except IOError:
             closet.mkdb(self.dbfn, __path__[-1])
         self.closet = closet.load_closet(
             self.dbfn, self.lise_path, self.lang, True)
         self.closet.load_img_metadata()
+        self.closet.load_textures_tagged(['base', 'body'])
         self.closet.uptick_skel()
         self.updater = Clock.schedule_interval(self.closet.update, 0.1)
         self.closet.load_characters([
@@ -442,4 +445,3 @@ class LiSEApp(App):
         self.closet.save_game()
         self.closet.end_game()
         super(LiSEApp, self).stop(*largs)
-3
