@@ -14,7 +14,7 @@ from kivy.graphics import Line, Color
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import Image
 from kivy.uix.popup import Popup
-from kivy.uix.scatter import Scatter
+from kivy.uix.scatter import Scatter, ScatterPlane
 from kivy.uix.widget import Widget
 from kivy.factory import Factory
 
@@ -161,8 +161,6 @@ and charsheets.
         (ow, oh) = self.origspot.size
         orx = ow / 2
         ory = oh / 2
-        dx += orx
-        dy += ory
         points = get_points(ox, orx, oy, ory, dx, 0, dy, 0, 10)
         self.dummyarrow.canvas.clear()
         with self.dummyarrow.canvas:
@@ -179,7 +177,8 @@ and charsheets.
                     self.origspot = spot
                     break
             if hasattr(self, 'origspot'):
-                self.dummyspot = Scatter(pos=(touch.x, touch.y))
+                self.dummyspot = ScatterPlane(
+                    pos=(touch.x, touch.y), size=(1, 1))
                 self.dummyarrow = TouchlessWidget(pos=(0, 0))
                 atop = []
                 for pawn in self.board.pawndict.itervalues():
@@ -194,17 +193,14 @@ and charsheets.
                     self.add_widget(pawn)
                 self.add_widget(self.dummyspot)
                 self.dummyspot.bind(pos=self.draw_arrow)
-                self.dummyspot.pos = (touch.x, touch.y)
                 self.display_prompt(clost.get_text("@putportalto"))
                 self.portaling = 2
-                touch.grab_current = self.dummyspot
             else:
                 self.portaling = 0
                 self.dismiss_prompt()
-            return True
         else:
             assert(self.portaling == 0)
-            return super(LiSELayout, self).on_touch_down(touch)
+        return super(LiSELayout, self).on_touch_down(touch)
 
     def on_touch_up(self, touch):
         if self.portaling == 2:
