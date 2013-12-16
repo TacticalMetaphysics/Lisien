@@ -236,3 +236,8 @@ class Spot(Scatter):
 
     def collide_point(self, x, y):
         return self.ids.pile.collide_point(x, y)
+
+    def on_touch_down(self, touch):
+        if self.collide_point(touch.x, touch.y):
+            touch.ud['spot'] = self
+        return super(Spot, self).on_touch_down(touch)

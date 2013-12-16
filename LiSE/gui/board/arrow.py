@@ -227,8 +227,20 @@ class Arrow(Widget):
         (dx, dy) = dest.pos
         w = dx - ox
         h = dy - oy
-        self.pos = (ox, oy)
-        self.size = (w, h)
+        if w < 0:
+            if h < 0:
+                self.pos = (dx, dy)
+                self.size = (-w, -h)
+            else:
+                self.pos = (ox, dy)
+                self.size = (-w, h)
+        else:
+            if h < 0:
+                self.pos = (dx, oy)
+                self.size = (w, -h)
+            else:
+                self.pos = (ox, oy)
+                self.size = (w, h)
 
     def collide_point(self, x, y):
         """Return True iff the point falls sufficiently close to my core line
