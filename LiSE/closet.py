@@ -29,6 +29,9 @@ from model import (
     Thing)
 from model.event import Implicator
 from util import (
+    SaveableMetaclass,
+    int2pytype,
+    pytype2int,
     Bone,
     PlaceBone,
     schemata,
@@ -69,21 +72,6 @@ CHARACTER_RE = re.compile(
     "character\((.+)\)")
 
 
-game_bone = Bone.subclass(
-    'game_bone',
-    [("language", unicode, u"eng"),
-     ("seed", int, 0),
-     ("branch", int, 0),
-     ("tick", int, 0)])
-
-
-string_bone = Bone.subclass(
-    'string_bone',
-    [("stringname", unicode, None),
-     ("language", unicode, u"eng"),
-     ("string", unicode, None)])
-
-
 class Closet(object):
     """This is where you should get all your LiSE objects from, generally.
 
@@ -105,6 +93,24 @@ You need to create a SQLite database file with the appropriate schema
 before RumorMill will work. For that, run mkdb.sh.
 
     """
+    __metaclass__ = SaveableMetaclass
+    tables = [
+        ("globals", {
+            "columns": {
+                "key": "text not null",
+                "type": "integer not null default 3",
+                "value": "text"},
+            "primary_key": ("key",),
+            "checks": ["type in ({})".format(", ".join([
+                str(typ) for typ in int2pytype]))]
+        }),
+        ("strings", {
+            "columns": {
+                "stringname": "text not null",
+                "language": "text not null default 'eng'",
+                "string": "text not null"},
+            "primary_key": ("stringname", "language")})]
+    globs = ("branch", "tick", "observer", "observed", "host")
     working_dicts = [
         "boardhand_d",
         "calendar_d",
@@ -146,19 +152,22 @@ before RumorMill will work. For that, run mkdb.sh.
         self.skeleton = Skeleton()
 
         self.c = self.connector.cursor()
-        self.c.execute(
-            "SELECT language, seed, branch, tick FROM game")
         self.lang_listeners = []
         self.branch_listeners = []
         self.tick_listeners = []
         self.time_listeners = []
-        (self.language, self.seed, self.branch, self.tick) = self.c.fetchone()
         if "language" in kwargs:
             self.language = kwargs["language"]
+        else:
+            self.language = self.get_global("language")
+        
+        for glob in self.globs:
+            setattr(self, glob, self.get_global(glob))
 
         self.lisepath = lisepath
 
         def on_bone_set(parent, child, k, v):
+            """Debugging aid"""
             if hasattr(child, 'bonetype'):
                 bonetype = child.bonetype
                 if hasattr(parent, 'child_bonetype'):
@@ -168,6 +177,7 @@ before RumorMill will work. For that, run mkdb.sh.
                     parent.child_bonetype = bonetype
 
         def mk_on_tab_set(tabskel):
+            """Debugging aid"""
             def on_tab_set(parent, child, k, v):
                 if parent is tabskel:
                     child.listeners.append(on_bone_set)
@@ -283,6 +293,17 @@ before RumorMill will work. For that, run mkdb.sh.
             listener(self, l)
         super(Closet, self).__setattr__('language', l)
 
+    def get_global(self, key):
+        self.c.execute("SELECT type, value FROM globals WHERE key=?;", (key,))
+        (typ_i, val_s) = self.c.fetchone()
+        return int2pytype[typ_i](val_s)
+
+    def set_global(self, key, value):
+        self.c.execute("DELETE FROM globals WHERE key=?;", (key,))
+        self.c.execute(
+            "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
+            (key, pytype2int[type(value)], unicode(value)))
+
     def get_text(self, strname):
         """Get the string of the given name in the language set at startup."""
         if strname is None:
@@ -293,16 +314,24 @@ before RumorMill will work. For that, run mkdb.sh.
             elif strname[1:] == "tick":
                 return str(self.tick)
             else:
-                assert(strname[1:] in self.skeleton["strings"])
-                return self.skeleton["strings"][
+                if strname[1:] not in self.skeleton[u"strings"]:
+                    self.skeleton.update(self._select_skeleton(
+                        self.c, {"strings": [self.bonetypes.strings(
+                            stringname=strname[1:], language=self.language)]}))
+                return self.skeleton[u"strings"][
                     strname[1:]][self.language].string
         else:
             return strname
 
     def save_game(self):
         """Save all pending changes to disc."""
+        # save globals first
+        for glob in self.globs:
+            self.set_global(glob, getattr(self, glob))
+        # find out what's changed since last checkpoint
         to_save = self.skeleton - self.old_skeleton
         to_delete = self.old_skeleton - self.skeleton
+        # save each class in turn
         for clas in saveable_classes:
             assert(len(clas.tablenames) > 0)
             for tabname in clas.tablenames:
@@ -317,27 +346,14 @@ before RumorMill will work. For that, run mkdb.sh.
                             self.c, to_save[tabname].iterbones(), tabname)
                     except ValueError:
                         pass
-        self.c.execute("DELETE FROM game")
-        fields = ["language", "branch", "tick", "seed"]
-        qrystr = "INSERT INTO game ({0}) VALUES ({1})".format(
-            ", ".join(fields),
-            ", ".join(["?"] * len(fields)))
-        self.c.execute(
-            qrystr,
-            [getattr(self, k) for k in fields])
+        # remember how things are now
         self.checkpoint()
 
     def load_strings(self):
         """Load all strings available."""
-        self.c.execute("SELECT stringname, language, string FROM strings")
-        if "strings" not in self.skeleton:
-            self.skeleton["strings"] = {}
-        for row in self.c:
-            bone = string_bone(*row)
-            if bone.stringname not in self.skeleton["strings"]:
-                self.skeleton["strings"][bone.stringname] = {}
-            self.skeleton["strings"][
-                bone.stringname][bone.language] = bone
+        self.skeleton.update(self._select_skeleton(self.c, {
+            "strings": [self.bonetypes.strings(
+                stringname=None, language=None)]}))
 
     def make_generic_place(self, character):
         """Make a place hosted by the given character, and give it a boring
@@ -828,18 +844,6 @@ subdirectory therein."""
         pass
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-
-    c.execute(
-        "CREATE TABLE game"
-        " (language TEXT DEFAULT 'eng',"
-        "dimension TEXT DEFAULT 'Physical', "
-        "branch INTEGER DEFAULT 0, "
-        "tick INTEGER DEFAULT 0,"
-        " seed INTEGER DEFAULT 0);")
-    c.execute(
-        "CREATE TABLE strings (stringname TEXT NOT NULL, language TEXT NOT"
-        " NULL DEFAULT 'eng', string TEXT NOT NULL, "
-        "PRIMARY KEY(stringname,  language));")
 
     done = set()
     while saveables != []:

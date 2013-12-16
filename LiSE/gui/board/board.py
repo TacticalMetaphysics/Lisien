@@ -207,11 +207,11 @@ class Board(ScrollView):
         for preemptor in ("charsheet", "menu"):
             if preemptor in touch.ud:
                 return
-        if hasattr(self.parent, 'dummyspot'):
+        if self.parent.dummyspot is not None:
             self.parent.dummyspot.pos = (touch.x, touch.y)
         return super(Board, self).on_touch_down(touch)
 
     def on_touch_move(self, touch):
-        if hasattr(self.parent, 'dummyspot'):
+        if self.parent.dummyspot is not None:
             self.parent.dummyspot.pos = (touch.x, touch.y)
         return super(Board, self).on_touch_move(touch)

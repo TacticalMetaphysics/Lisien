@@ -21,8 +21,19 @@ SQL from metadata declared as class atttributes.
 
 ### Constants
 
+int2pytype = {
+    0: bool,
+    1: int,
+    2: float,
+    3: unicode}
+"""Arbitrary numerical codes for inbuilt Python types"""
+
+pytype2int = dict([
+    (value, key) for (key, value) in int2pytype.iteritems()
+])
+
 packed_str_len = 128
-"""When packing a string field of a Bone into a struct, how long
+"""When packing a string field of a bone into an array, how long
 should the string be made? It will be padded or truncated as
 needed."""
 
