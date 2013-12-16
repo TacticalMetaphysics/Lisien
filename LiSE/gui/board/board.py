@@ -208,10 +208,10 @@ class Board(ScrollView):
             if preemptor in touch.ud:
                 return
         if hasattr(self.parent, 'dummyspot'):
-            touch.grab_current = self.parent.dummyspot
+            self.parent.dummyspot.pos = (touch.x, touch.y)
         return super(Board, self).on_touch_down(touch)
 
     def on_touch_move(self, touch):
         if hasattr(self.parent, 'dummyspot'):
-            touch.grab_current = self.parent.dummyspot
+            self.parent.dummyspot.pos = (touch.x, touch.y)
         return super(Board, self).on_touch_move(touch)
