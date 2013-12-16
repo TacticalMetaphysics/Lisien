@@ -7,7 +7,6 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.stencilview import StencilView
-from kivy.clock import Clock
 from itemlayout import ItemLayout
 
 
@@ -24,29 +23,6 @@ It's supposed to be one of the skels that a Character keeps its members in."""
     else:
         return character_skel[
             keys[0]][keys[1]][keys[2]]
-
-
-def iter_skeleton(keys, char, skel, branch=None, tick=None):
-    """Iterate over the bones in only the subset of the skeleton that
-pertains to the keys.
-
-You need to pass a character to this thing, even though it only uses
-the closet in that character, because the other iterators need the
-whole character, and I need a consistent API here.
-
-    """
-    closet = char.closet
-    if branch is None:
-        branch = closet.branch
-    if tick is None:
-        tick = closet.tick
-    for bone in skel.iterbones():
-        if (
-                bone.branch == branch and
-                bone.tick_from <= tick and (
-                    bone.tick_to is None or
-                    bone.tick_to >= tick)):
-            yield bone
 
 
 def mk_iter_skeleton(keys, char, skel):
@@ -352,10 +328,9 @@ class TableLayout(ItemLayout, StencilView):
         4: ["skill", "deck"]}
 
     chardictd = {
-        0: 'thingdict',
-        1: 'placedict',
-        2: 'portaldict',
-        3: 'statdict',
+        0: 'thing_loc_skel',
+        2: 'portal_loc_skel',
+        3: 'chara_stat_skel',
         4: 'skilldict'}
 
     iterskel_dict = {

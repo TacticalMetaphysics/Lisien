@@ -1,21 +1,42 @@
 -- This file is part of LiSE, a framework for life simulation games.
 -- Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-INSERT INTO portal (origin, destination) VALUES
-('myroom', 'guestroom'),
-        ('myroom', 'mybathroom'),
-        ('myroom', 'diningoffice'),
-        ('myroom', 'livingroom'),
-        ('guestroom', 'diningoffice'),
-        ('guestroom', 'livingroom'),
-        ('guestroom', 'mybathroom'),
-        ('livingroom', 'diningoffice'),
-        ('diningoffice', 'kitchen'),
-        ('livingroom', 'longhall'),
-        ('longhall', 'momsbathroom'),
-        ('longhall', 'momsroom');
-INSERT INTO portal (destination, origin) SELECT origin, destination FROM portal;
-INSERT INTO portal (origin, destination) VALUES
-('guestroom', 'outside'),
-         ('diningoffice', 'outside'),
-         ('momsroom', 'outside'),
-         ('myroom', 'outside');
+INSERT INTO portal (name) VALUES
+       ('zack_room->longhall'),
+       ('longhall->zack_room'),
+       ('longhall->zack_bathroom'),
+       ('zack_bathroom->longhall'),
+       ('longhall->guestroom'),
+       ('guestroom->longhall'),
+       ('longhall->livingroom'),
+       ('livingroom->longhall'),
+       ('longhall->diningoffice'),
+       ('diningoffice->longhall'),
+       ('gail_room->longhall'),
+       ('longhall->gail_room'),
+       ('longhall->gail_bathroom'),
+       ('gail_bathroom->longhall'),
+       ('diningoffice->kitchen'),
+       ('kitchen->diningoffice'),
+       ('livingroom->balcony'),
+       ('balcony->livingroom'),
+       ('diningoffice->apt_hall');
+INSERT INTO portal_loc (name, origin, destination) VALUES
+       ('zack_room->longhall', 'zack_room', 'longhall'),
+       ('longhall->zack_room', 'longhall', 'zack_room'),
+       ('longhall->zack_bathroom', 'longhall', 'zack_bathroom'),
+       ('zack_bathroom->longhall', 'zack_bathroom', 'longhall'),
+       ('longhall->guestroom', 'longhall', 'guestroom'),
+       ('guestroom->longhall', 'guestroom', 'longhall'),
+       ('longhall->livingroom', 'longhall', 'livingroom'),
+       ('livingroom->longhall', 'livingroom', 'longhall'),
+       ('longhall->diningoffice', 'longhall', 'diningoffice'),
+       ('diningoffice->longhall', 'diningoffice', 'longhall'),
+       ('gail_room->longhall', 'gail_room', 'longhall'),
+       ('longhall->gail_room', 'longhall', 'gail_room'),
+       ('longhall->gail_bathroom', 'longhall', 'gail_bathroom'),
+       ('gail_bathroom->longhall', 'gail_bathroom', 'longhall'),
+       ('diningoffice->kitchen', 'diningoffice', 'kitchen'),
+       ('kitchen->diningoffice', 'kitchen', 'diningoffice'),
+       ('livingroom->balcony', 'livingroom', 'balcony'),
+       ('balcony->livingroom', 'balcony', 'livingroom'),
+       ('diningoffice->apt_hall', 'diningoffice', 'apt_hall');

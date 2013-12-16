@@ -56,25 +56,22 @@
     size: pile.size
     do_rotation: False
     do_scale: False
-    interactivity: self.board.closet.skeleton[u"pawn_interactive"][unicode(self.board)][unicode(self.thing)]
     LayerImgPile:
         id: pile
-        closet: root.board.closet
-        imagery: root.board.closet.skeleton[u"pawn_img"][unicode(root.board)][unicode(root.thing)]
+        closet: root.board.facade.closet
+        imagery: self.closet.skeleton[u"pawn"][unicode(root.board.facade.observer)][unicode(root.thing.character)][unicode(root.board.host)][unicode(root.thing)]
 <ImgPile>:
     width: max([img.right for img in self.imgs]) if len(self.imgs) > 0 else 0
     height: max([img.top for img in self.imgs]) if len(self.imgs) > 0 else 0
 <Spot>:
     size_hint: (None, None)
     size: pile.size
-    coords: self.board.closet.skeleton[u"spot_coords"][unicode(self.board)][unicode(self.place)]
-    interactivity: self.board.closet.skeleton[u"spot_interactive"][unicode(self.board)][unicode(self.place)]
     do_scale: False
     auto_bring_to_front: False
     LayerImgPile:
         id: pile
-        closet: root.board.closet
-        imagery: root.board.closet.skeleton[u"spot_img"][unicode(root.board)][unicode(root.place)]
+        closet: root.board.facade.closet
+        imagery: root.board.facade.closet.skeleton[u"spot"][unicode(root.board.facade.observer)][unicode(root.board.host)][unicode(root.place)]
 <ColorBox>:
     canvas:
         Color:
@@ -148,14 +145,13 @@
     Table:
         #:import bone LiSE.gui.charsheet.table.character_bone
         id: tab
-        skel: bone(self, root.keys, getattr(root.character, root.chardictd[root.item_type]))
         col_default_width: 75
         edbut: root.edbut
         padding: [0, 0, 0, 0]
         spacing: [5, 2]
         colkeys: root.colkey_dict[root.item_type]
         cols: len(self.colkeys)
-        iter_skeleton: root.iterskel_dict[root.item_type](root.keys, root.character, self.skel)
+        iter_skeleton: root.character.iter_hosted_thing_loc_bones
         x: root.x + self.xmov
         y: root.y
 <TableTextInput>:
@@ -204,4 +200,5 @@
                 pos: l.pos
                 size: l.size
 <Board>:
-    scroll_timeout: 100
+    scroll_timeout: 75
+    auto_bring_to_front: False

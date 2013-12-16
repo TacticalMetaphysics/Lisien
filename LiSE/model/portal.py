@@ -1,98 +1,130 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.util import SaveableMetaclass
-from logging import getLogger
+from container import Container
 
 
-logger = getLogger(__name__)
-
-
-class Portal(object):
-    __metaclass__ = SaveableMetaclass
+class Portal(Container):
     tables = [
-        ("portal",
-         {"dimension": "text not null DEFAULT 'Physical'",
-          "origin": "text not null",
-          "destination": "text not null",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
-          "tick_to": "integer default null"},
-         ("dimension", "origin", "destination", "branch", "tick_from"),
-         {},
-         ["origin not like '%->%'", "destination not like '%->%'"])]
+        ("portal", {
+            "columns": {
+                "character": "text not null default 'Physical'",
+                "name": "text not null",
+                "host": "text not null default 'Physical'"},
+            "primary_key": (
+                "character", "name")}),
+        ("portal_loc", {
+            "columns": {
+                "character": "text not null default 'Physical'",
+                "name": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "origin": "text",
+                "destination": "text"},
+            "primary_key": (
+                "character", "name", "branch", "tick"),
+            "foreign_keys": {
+                "character, name": (
+                    "portal", "character, name")}}),
+        ("portal_stat", {
+            "columns": {
+                "character": "text not null default 'Physical'",
+                "name": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "character", "name", "key", "branch", "tick"),
+            "foreign_keys": {
+                "character, name": (
+                    "portal", "character, name")}}),
+        ("portal_loc_facade", {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "name": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "origin": "text",
+                "destination": "text"},
+            "primary_key": (
+                "observer", "observed", "name", "branch", "tick"),
+            "foreign_keys": {
+                "observed, name": (
+                    "portal", "character, name")}}),
+        ("portal_stat_facade", {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "name": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "observer", "observed", "name",
+                "key", "branch", "tick"),
+            "foreign_keys": {
+                "observed, name": (
+                    "portal", "character, name")}})]
 
-    def __init__(self, closet, dimension, origin, destination):
-        self.closet = closet
-        self.dimension = dimension
-        self.graph = self.dimension.graph
-        self.origin = origin
-        self.destination = destination
-        self.dimension.graph.add_edge(
-            self.origin.index, self.destination.index, portal=self)
+    @property
+    def bone(self):
+        return self.get_bone()
+
+    @property
+    def loc_bone(self):
+        return self.get_loc_bone()
+
+    @property
+    def origin(self):
+        return self.get_origin()
+
+    @property
+    def destination(self):
+        return self.get_destination()
+
+    def __init__(self, character, name):
+        self.character = character
+        self.name = name
 
     def __str__(self):
-        return "{}->{}".format(str(self.origin), str(self.destination))
+        return str(self.name)
 
     def __unicode__(self):
-        return u"{}->{}".format(
-            unicode(self.origin), unicode(self.destination))
+        return unicode(self.name)
 
     def __repr__(self):
-        return "Portal({0}->{1})".format(
-            self.origin, self.destination)
+        bone = self.loc_bone
+        return "{2}({0}->{1})".format(
+            bone.origin, bone.destination, self.name)
 
-    def __int__(self):
-        return self.e.index
+    def get_bone(self, observer=None):
+        if observer is None:
+            return self.character.get_portal_bone(self.name)
+        else:
+            facade = self.character.get_facade(observer)
+            return facade.get_portal_bone(self.name)
 
-    def __len__(self):
-        # eventually this will represent something like actual physical length
-        return 1
+    def get_loc_bone(self, observer=None, branch=None, tick=None):
+        if observer is None:
+            return self.character.get_portal_loc_bone(
+                self.name, branch, tick)
+        else:
+            facade = self.character.get_facade(observer)
+            return facade.get_portal_loc_bone(
+                self.name, branch, tick)
 
-    @property
-    def edge(self):
-        return self.dimension.graph.es[
-            self.dimension.graph.get_eid(
-                self.origin.index, self.destination.index)]
+    def get_origin(self, observer=None, branch=None, tick=None):
+        bone = self.get_loc_bone(observer, branch, tick)
+        try:
+            return self.character.get_place(bone.origin)
+        except KeyError:
+            return self.character.get_thing(bone.origin)
 
-    @property
-    def existence(self):
-        return self.closet.skeleton["portal"][
-            unicode(self.dimension)][unicode(self.origin)][
-            unicode(self.destination)]
-
-    def admits(self, traveler):
-        """Return True if I want to let the given thing enter me, False
-otherwise."""
-        return True
-
-    def set_existence(self, branch=None, tick_from=None, tick_to=None):
-        if branch is None:
-            branch = self.closet.branch
-        if tick_from is None:
-            tick_from = self.closet.tick
-        self.existence[branch][tick_from] = {
-            "dimension": str(self.dimension),
-            "origin": str(self.origin),
-            "destination": str(self.destination),
-            "branch": branch,
-            "tick_from": tick_from,
-            "tick_to": tick_to}
-        self.closet.timestream.upbranch(branch)
-        self.closet.timestream.uptick(tick_from)
-        if tick_to is not None:
-            self.closet.timestream.uptick(tick_to)
-
-    def new_branch(self, parent, branch, tick):
-        prev = None
-        started = False
-        for bone in self.existence[parent].iterbones():
-            if bone.tick_from >= tick:
-                bone2 = bone._replace(branch=branch)
-                self.existence[branch][bone2.tick_from] = bone2
-                if (
-                        not started and prev is not None and
-                        bone2.tick_from > tick and prev.tick_from < tick):
-                    bone3 = prev._replace(branch=branch, tick_from=tick)
-                    self.existence[branch][bone3.tick_from] = bone3
-                started = True
-            prev = bone
+    def get_destination(self, observer=None, branch=None, tick=None):
+        bone = self.get_loc_bone(observer, branch, tick)
+        try:
+            return self.character.get_place(bone.destination)
+        except KeyError:
+            return self.character.get_thing(bone.destination)

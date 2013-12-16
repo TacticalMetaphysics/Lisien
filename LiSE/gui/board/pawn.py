@@ -27,27 +27,28 @@ some amount of game time. Whenever the game-time changes, the Pawn
 will update its position appropriately.
 
     """
+    demands = ["board"]
     tables = [
-        ("pawn_img",
-         {"dimension": "text not null default 'Physical'",
-          "thing": "text not null",
-          "layer": "integer not null default 0",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0",
-          "img": "text not null default 'default_pawn'"},
-         ("dimension", "thing", "layer", "branch", "tick_from"),
-         {"dimension, thing": ("thing_location", "dimension, name"),
-          "img": ("img", "name")},
-         ["layer>=0", "branch>=0", "tick_from>=0"]),
-        ("pawn_interactive",
-         {"dimension": "text not null default 'Physical'",
-          "thing": "text not null",
-          "branch": "integer not null default 0",
-          "tick_from": "integer not null default 0"},
-         ("dimension", "thing", "branch", "tick_from"),
-         {"dimension, thing": ("thing_location", "dimension, name")},
-         [])]
-    interactivity = ObjectProperty()
+        ("pawn", {
+            "columns": {
+                "observer": "text not null default 'Omniscient'",
+                "observed": "text not null default 'Physical'",
+                "host": "text not null default 'Physical'",
+                "thing": "text not null",
+                "layer": "integer not null default 0",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "img": "text not null default 'default_pawn'",
+                "interactive": "boolean default 1"},
+            "primary_key": (
+                "observer", "observed", "host", "thing",
+                "layer", "branch", "tick"),
+            "foreign_keys": {
+                "observer, observed, host": (
+                    "board", "observer, observed, host"),
+                "observed, host, thing": (
+                    "thing", "character, host, name"),
+                "img": ("img", "name")}})]
     board = ObjectProperty()
     thing = ObjectProperty()
     where_upon = ObjectProperty(None)
@@ -63,14 +64,13 @@ The relevant data are
         super(Pawn, self).__init__(**kwargs)
         self.board.pawndict[unicode(self.thing)] = self
 
-        self.board.closet.branch_listeners.append(self.repos)
-        self.board.closet.tick_listeners.append(self.repos)
+        self.board.facade.closet.branch_listeners.append(self.repos)
+        self.board.facade.closet.tick_listeners.append(self.repos)
 
-        dimn = unicode(self.board.dimension)
-        thingn = unicode(self.thing)
-        skel = self.board.closet.skeleton
+        skel = self.board.facade.closet.skeleton
 
-        skel["thing_location"][dimn][thingn].listeners.append(self.repos)
+        skel["thing_loc"][unicode(self.thing.character)][
+            unicode(self.thing)].listeners.append(self.repos)
         self.repos()
 
     def __str__(self):
@@ -110,33 +110,6 @@ The relevant data are
             return spot.get_coords()
 
     def new_branch(self, parent, branch, tick):
-        """Copy records from the old branch to the new one, if they fit."""
-        self.new_branch_imagery(parent, branch, tick)
-        self.new_branch_interactivity(parent, branch, tick)
-
-    def dropped(self, x, y, button, modifiers):
-        """When dropped on a spot, if my :class:`Thing` doesn't have anything
-        else to do, make it journey there.
-
-        If it DOES have anything else to do, make the journey in
-        another branch.
-
-        """
-        spotto = None
-        for spot in self.board.spots:
-            if (
-                    self.window_left < spot.x and
-                    spot.x < self.window_right and
-                    self.window_bot < spot.y and
-                    spot.y < self.window_top):
-                spotto = spot
-                break
-        if spotto is not None:
-            self.thing.journey_to(spotto.place)
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
-
-    def new_branch_imagery(self, parent, branch, tick):
         """Update my part of the :class:`Skeleton` to have this new branch in
         it. Where there is room, fill it with data from the parent branch."""
         prev = None
@@ -160,49 +133,27 @@ The relevant data are
                         started = True
                     prev = tick_from
 
-    def is_interactive(self, branch=None, tick=None):
-        """Test for interactivity.
+    def dropped(self, x, y, button, modifiers):
+        """When dropped on a spot, if my :class:`Thing` doesn't have anything
+        else to do, make it journey there.
 
-        With no arguments, the test is performed for the time that the
-        user is viewing right now. Otherwise, it is performed for the
-        branch and tick given.
+        If it DOES have anything else to do, make the journey in
+        another branch.
 
         """
-        if branch is None:
-            branch = self.board.closet.branch
-        if tick is None:
-            tick = self.board.closet.tick
-        interactivity = self.board.closet.skeleton["pawn_interactive"][
-            unicode(self.board.dimension)][unicode(self.thing)]
-        if branch not in interactivity:
-            return False
-        for rd in interactivity.iterbones():
-            if rd["tick_from"] <= tick and (
-                    rd["tick_to"] is None or tick <= rd["tick_to"]):
-                return True
-        return False
-
-    def new_branch_interactivity(self, parent, branch, tick):
-        """Copy interactivity from the parent branch to the new one."""
-        prev = None
-        started = False
-        interactivity = self.board.closet.skeleton["pawn_interactive"][
-            unicode(self.board.dimension)][unicode(self.thing)]
-        for tick_from in interactivity[parent]:
-            if tick_from >= tick:
-                bone2 = interactivity[parent][tick_from]._replace(
-                    branch=branch)
-                if branch not in interactivity:
-                    interactivity[branch] = {}
-                interactivity[branch][bone2.tick_from] = bone2
-                if (
-                        not started and prev is not None and
-                        tick_from > tick and prev < tick):
-                    rd3 = interactivity[parent][prev]._replace(
-                        branch=branch, tick_from=tick)
-                    interactivity[branch][rd3.tick_from] = rd3
-                started = True
-            prev = tick_from
+        spotto = None
+        for spot in self.board.spots:
+            if (
+                    self.window_left < spot.x and
+                    spot.x < self.window_right and
+                    self.window_bot < spot.y and
+                    spot.y < self.window_top):
+                spotto = spot
+                break
+        if spotto is not None:
+            self.thing.journey_to(spotto.place)
+        self.drag_offset_x = 0
+        self.drag_offset_y = 0
 
     def on_touch_up(self, touch):
         """Check if I've been dropped on top of a :class:`Spot`.  If so, my

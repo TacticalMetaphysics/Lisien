@@ -1,96 +1,130 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from igraph import Vertex, OUT
+from container import Container
+from LiSE.util import PlaceBone
 
 
-class Place:
+class Place(Container):
     """Where you go when you have to be someplace.
 
-Places have no database records of their own. They are considered to
-exist so long as there's a portal from there, a portal to there, or a
-thing located there.
+    Places are vertices in a character's graph where things can go,
+    and where portals can lead. A place's name must be unique within
+    its character.
+
+    Unlike things and portals, places can't be hosted by characters
+    other than the one they are part of. When something is "hosted" in
+    a character, that means it's in a place that's in the
+    character--always.
+
+    You don't need to create a bone for each and every place you
+    use--link to it with a portal, or put a thing there, and it will
+    exist. Place bones are only for when a place needs stats.
 
     """
-    def __init__(self, dimension, v):
-        assert(isinstance(v, Vertex))
-        self.dimension = dimension
-        self.closet = self.dimension.closet
-        v["place"] = self
-        self.v = v
+    tables = [
+        ("place_stat", {
+            "columns": {
+                "character": "text not null",
+                "name": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "character", "name", "key", "branch", "tick")}),
+        ("place_stat_facade", {
+            "columns": {
+                "observer": "text not null",
+                "observed": "text not null",
+                "name": "text not null",
+                "key": "text not null",
+                "branch": "integer not null default 0",
+                "tick": "integer not null default 0",
+                "value": "text"},
+            "primary_key": (
+                "observer", "observed", "name", "key", "branch", "tick")})]
 
-    def __getattr__(self, attrn):
-        if attrn in self.v.attribute_names():
-            return self.v[attrn]
-        elif attrn == "index":
-            return self.v.index
-        else:
-            raise AttributeError(
-                "Place instance has no attribute named " + attrn)
+    @property
+    def v(self):
+        return self.character.graph.vs.find(name=self.name)
+
+    def __init__(self, character, name):
+        """Initialize a place in a character by a name"""
+        self.character = character
+        self.name = name
 
     def __contains__(self, that):
-        try:
-            return that.location.v is self.v
-        except AttributeError:
-            return False
-
-    def __int__(self):
-        return self.v.index
+        """Is that here?"""
+        return self.contains(that)
 
     def __str__(self):
-        return self.v["name"]
+        return str(self.name)
 
     def __unicode__(self):
-        return unicode(self.v["name"])
+        return unicode(self.name)
 
-    def __repr__(self):
-        return "Place({})".format(self)
+    def _iter_portals_bones(self, observer=None, branch=None, tick=None):
+        """Iterate over the bones of portals that lead out from me"""
+        if observer is None:
+            for bone in self.character.iter_portal_bones(branch, tick):
+                if (
+                        bone.host == unicode(self.character) and
+                        bone.location == self.name):
+                    yield bone
+            return
+        facade = self.character.get_facade(observer)
+        for bone in facade.iter_hosted_portal_bones(branch, tick):
+            if bone.origin == self.name:
+                yield bone
 
-    def __eq__(self, other):
-        return (
-            isinstance(other, Place) and
-            self.dimension is other.dimension and
-            unicode(self) == unicode(other))
+    def iter_portals(self, observer=None, branch=None, tick=None):
+        """Iterate over all those portals which lead from this place to
+        elsewhere."""
+        if observer is None:
+            getter = self.character.get_portal
+        else:
+            facade = self.character.get_facade(observer)
+            getter = facade.get_portal
+        for bone in self._iter_portals_bones(observer, branch, tick):
+            yield getter(bone.name)
 
-    def __ne__(self, other):
-        return (
-            (not isinstance(other, Place)) or
-            (self.dimension is not other.dimension) or
-            unicode(self) != unicode(other))
+    def get_portals(self, observer=None, branch=None, tick=None):
+        """Get a set of names of portals leading out from here."""
+        if observer is None:
+            getter = self.character.get_portal
+        else:
+            facade = self.character.get_facade(observer)
+            getter = facade.get_portal
+        return set([
+            getter(bone.name) for bone in
+            self._iter_portals_bones(observer, branch, tick)])
 
-    def get_contents(self, branch=None, tick=None):
-        if branch is None:
-            branch = self.dimension.closet.branch
-        if tick is None:
-            tick = self.dimension.closet.tick
-        r = set()
-        for thingn in self.dimension.closet.skeleton[
-                "thing_location"][unicode(self.dimension)]:
-            prev = None
-            for rd in self.dimension.closet.skeleton[
-                    "thing_location"][unicode(self.dimension)][
-                    thingn][branch].iterbones():
-                if rd["tick_from"] == tick:
-                    if rd["location"] == unicode(self):
-                        thing = self.dimension.get_thing(thingn)
-                        r.add(thing)
-                    break
-                elif rd["tick_from"] > tick:
-                    if (
-                            prev is not None and
-                            prev["location"] == unicode(self)):
-                        thing = self.dimension.get_thing(thingn)
-                        r.add(thing)
-                    break
-                else:
-                    prev = rd
-        return r
-
-    def incident(self, mode=OUT):
-        return self.dimension.graph.incident(int(self), mode)
-
-    def display_name(self, branch=None, tick=None):
-        # Stub.
-        #
-        # TODO: Look up a display name in a table or dictionary,
-        # perhaps using get_text
-        return self.v["name"]
+    def upd_skel_from_bone(self, bone):
+        """Update the 'place' skeleton so that it contains the place(s)
+        referred to in the bone."""
+        if hasattr(bone, 'origin'):
+            pobone = self.character.closet.skeleton[u"portal"][
+                bone.character][bone.name]
+            host = pobone.host
+            for name in (bone.origin, bone.destination):
+                if not self.character.closet.place_exists(
+                        host, name, bone.branch, bone.tick):
+                    self.character.closet.set_bone(PlaceBone(
+                        character=host, place=name,
+                        branch=bone.branch, tick=bone.tick))
+            return
+        elif hasattr(bone, 'place'):
+            if not self.character.closet.place_exists(
+                    bone.character, bone.place, bone.branch, bone.tick):
+                self.character.closet.set_bone(PlaceBone(
+                    character=bone.character, place=bone.place,
+                    branch=bone.branch, tick=bone.tick))
+        elif hasattr(bone, 'location'):
+            thbone = self.character.closet.skeleton[u"thing"][
+                bone.character][bone.name]
+            host = thbone.host
+            if not self.character.closet.place_exists(
+                    host, bone.location, bone.branch, bone.tick):
+                self.character.closet.set_bone(PlaceBone(
+                    character=host, place=bone.location,
+                    branch=bone.branch, tick=bone.tick))

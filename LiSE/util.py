@@ -349,6 +349,11 @@ class Bone(tuple):
         return type(name, (cls,), d)
 
 
+class PlaceBone(Bone):
+    _field_decls = [("host", unicode, None), ("place", unicode, None),
+                    ("branch", int, 0), ("tick", int, 0)]
+
+
 class Skeleton(MutableMapping):
     """A tree structure whose leaves correspond directly to individual
     database records.
@@ -569,14 +574,14 @@ class Skeleton(MutableMapping):
         else:
             self.content[k] = self.__class__(v, name=k, parent=self)
         for listener in self.listeners:
-            listener(self, k, v)
+            listener(self.parent, self, k, v)
         if hasattr(self.parent, 'on_child_set'):
             self.parent.on_child_set(self, k, v)
 
     def on_child_set(self, child, k, v):
         """Call all my listeners with args (child, k, v)."""
         for listener in self.listeners:
-            listener(child, k, v)
+            listener(self, child, k, v)
         if hasattr(self.parent, 'on_child_set'):
             self.parent.on_child_set(child, k, v)
 
@@ -588,14 +593,14 @@ class Skeleton(MutableMapping):
         else:
             self.ikeys.remove(k)
         for listener in self.listeners:
-            listener(self, k)
+            listener(self.parent, self, k)
         if hasattr(self.parent, 'on_child_del'):
             self.parent.on_child_del(self, k)
 
     def on_child_del(self, child, k):
         """Call all my listeners with args (child, k)."""
         for listener in self.listeners:
-            listener(child, k)
+            listener(self, child, k)
         if hasattr(self.parent, 'on_child_del'):
             self.parent.on_child_del(child, k)
 
@@ -639,7 +644,7 @@ class Skeleton(MutableMapping):
     def __isub__(self, other):
         """Remove everything in me and my children that is in ``other``
         or its children. Return myself."""
-        for (k, v) in other.items():
+        for (k, v) in other.iteritems():
             if k not in self:
                 continue
             elif v == self[k]:
@@ -775,8 +780,12 @@ class Skeleton(MutableMapping):
         """Return a new :class:`Skeleton` with all of my data in it, no matter
         how many layers I have to recurse."""
         r = {}
-        for (k, v) in self.content.items():
-            r[k] = v.deepcopy()
+        for (k, v) in self.iteritems():
+            if hasattr(v, 'deepcopy'):
+                r[k] = v.deepcopy()
+            else:
+                assert(issubclass(v.__class__, Bone))
+                r[k] = v
         return self.__class__(
             content=r, name=self.name, parent=self.parent)
 
@@ -946,9 +955,7 @@ class SaveableMetaclass(type):
         """For each table, a list of Boolean expressions meant for a
         CHECK(...) clause."""
         if 'tables' in attrs:
-            tablist = attrs['tables']
-        elif hasattr(clas, 'tables'):
-            tablist = clas.tables
+            tabdicts = attrs['tables']
         else:
             return type.__new__(metaclass, clas, parents, attrs)
         if 'prelude' in attrs:
@@ -969,14 +976,19 @@ class SaveableMetaclass(type):
             demands = set()
         local_pkeys = {}
         """Primary keys per-table, for this class only"""
-        for tabtup in tablist:
-            (name, decls, pkey, fkeys, cks) = tabtup
+        for (name, tabdict) in tabdicts:
             tablenames.append(name)
-            coldecls[name] = decls
-            local_pkeys[name] = pkey
-            primarykeys[name] = pkey
-            foreignkeys[name] = fkeys
-            checks[name] = cks
+            coldecls[name] = tabdict["columns"]
+            local_pkeys[name] = tabdict["primary_key"]
+            primarykeys[name] = tabdict["primary_key"]
+            if "foreign_keys" in tabdict:
+                foreignkeys[name] = tabdict["foreign_keys"]
+            else:
+                foreignkeys[name] = {}
+            if "checks" in tabdict:
+                checks[name] = tabdict["checks"]
+            else:
+                checks[name] = []
         inserts = {}
         """The beginnings of SQL INSERT statements"""
         deletes = {}
@@ -1003,7 +1015,11 @@ class SaveableMetaclass(type):
             coltypes[tablename] = {}
             coldefaults[tablename] = {}
             for (fieldname, decl) in coldict.iteritems():
-                cooked = decl.lower().split(" ")
+                if fieldname == "branch":
+                    foreignkeys[tablename][fieldname] = (
+                        "timestream", "branch")
+                    checks[tablename].append("branch>=0")
+                cooked = decl.split(" ")
                 typename = cooked[0]
                 coltypes[tablename][fieldname] = {
                     "text": unicode,
@@ -1011,7 +1027,7 @@ class SaveableMetaclass(type):
                     "integer": int,
                     "bool": bool,
                     "boolean": bool,
-                    "float": float}[typename]
+                    "float": float}[typename.lower()]
                 try:
                     default_str = cooked[cooked.index("default") + 1]
                     default = coltypes[tablename][fieldname](default_str)
@@ -1077,7 +1093,7 @@ class SaveableMetaclass(type):
             if len(cks) > 0:
                 table_decl_data.append(chkstr)
             table_decl = ", ".join(table_decl_data)
-            create_stmt = "CREATE TABLE %s (%s);" % (tablename, table_decl)
+            create_stmt = "CREATE TABLE %s (%s)" % (tablename, table_decl)
             insert_stmt_start = ("INSERT INTO " + tablename +
                                  " ({0}) VALUES {1};")
             inserts[tablename] = insert_stmt_start
@@ -1386,11 +1402,6 @@ fortyfive = pi / 4
 """pi / 4"""
 
 
-class LocationException(Exception):
-    """I don't know where I am."""
-    pass
-
-
 class TimestreamException(Exception):
     """Used for time travel related errors that are nothing to do with
 continuity."""
@@ -1405,6 +1416,18 @@ class TimeParadox(Exception):
 
 class JourneyException(Exception):
     """There was a problem with pathfinding."""
+    pass
+
+
+class KnowledgeException(Exception):
+    """I tried to access some information that I was not permitted access to.
+
+    Should be treated like KeyError most of the time. For the purposes
+    of the simulation, not having information is the same as
+    information not existing. But there may be circumstances where
+    they differ for programming purposes.
+
+    """
     pass
 
 
@@ -1434,141 +1457,6 @@ class ListItemIterator:
     def next(self):
         """Return a tuple of the current index and its item in the list"""
         return self.__next__()
-
-
-class Timestream(object):
-    """Tracks the genealogy of the various branches of time.
-
-
-    Branches of time each have one parent; branch zero is its own parent."""
-    __metaclass__ = SaveableMetaclass
-    # I think updating the start and end ticks of a branch using
-    # listeners might be a good idea
-    tables = [
-        ("timestream",
-         {"branch": "integer not null",
-          "parent": "integer not null"},
-         ("branch", "parent"),
-         {"parent": ("timestream", "branch")},
-         ["branch>=0", "parent=0 or parent<>branch"])
-        ]
-
-    def __init__(self, closet):
-        """Initialize hi_branch and hi_tick to 0, and their listeners to
-        empty.
-
-        """
-        self.closet = closet
-        self.hi_branch_listeners = []
-        self.hi_tick_listeners = []
-        self.hi_branch = 0
-        self.hi_tick = 0
-
-    def __setattr__(self, attrn, val):
-        """Trigger the listeners as needed"""
-        if attrn == "hi_branch":
-            for listener in self.hi_branch_listeners:
-                listener(self, val)
-        elif attrn == "hi_tick":
-            for listener in self.hi_tick_listeners:
-                listener(self, val)
-        super(Timestream, self).__setattr__(attrn, val)
-
-    def min_branch(self, table=None):
-        """Return the lowest known branch.
-
-        With optional argument ``table``, consider only records in
-        that table.
-
-        """
-        lowest = None
-        skel = self.closet.skeleton
-        if table is not None:
-            skel = skel[table]
-        for bone in skel.iterbones():
-            if hasattr(bone, 'branch') and (
-                    lowest is None or bone.branch < lowest):
-                lowest = bone.branch
-        return lowest
-
-    def max_branch(self, table=None):
-        """Return the highest known branch.
-
-        With optional argument ``table``, consider only records in
-        that table.
-
-        """
-        highest = 0
-        skel = self.closet.skeleton
-        if table is not None:
-            skel = skel[table]
-        for bone in skel.iterbones():
-            if hasattr(bone, 'branch') and bone.branch > highest:
-                highest = bone.branch
-        return highest
-
-    def max_tick(self, branch=None, table=None):
-        """Return the highest recorded tick in the given branch, or every
-        branch if none given.
-
-        With optional argument table, consider only records in that table.
-
-        """
-        highest = 0
-        skel = self.closet.skeleton
-        if table is not None:
-            skel = skel[table]
-        for bone in skel.iterbones():
-            if branch is None or (
-                    hasattr(bone, 'branch') and bone.branch == branch):
-                for attrn in ('tick_from', 'tick_to', 'tick'):
-                    if hasattr(bone, attrn):
-                        tick = getattr(bone, attrn)
-                        if tick is not None and tick > highest:
-                            highest = tick
-        return highest
-
-    def min_tick(self, branch=None, table=None):
-        """Return the lowest recorded tick in the given branch, or every
-        branch if none given.
-
-        With optional argument table, consider only records in that table.
-
-        """
-        lowest = None
-        skel = self.closet.skeleton
-        if table is not None:
-            skel = skel[table]
-        for bone in skel.iterbones():
-            if branch is None or (
-                    hasattr(bone, 'branch') and bone.branch == branch):
-                for attrn in ('tick_from', 'tick'):
-                    if hasattr(bone, attrn):
-                        tick = getattr(bone, attrn)
-                        if tick is not None and (
-                                lowest is None or
-                                tick < lowest):
-                            lowest = tick
-        return lowest
-
-    def uptick(self, tick):
-        """Set ``self.hi_tick`` to ``tick`` if the present value is lower."""
-        self.hi_tick = max((tick, self.hi_tick))
-
-    def upbranch(self, branch):
-        """Set ``self.hi_branch`` to ``branch`` if the present value is
-        lower."""
-        self.hi_branch = max((branch, self.hi_branch))
-
-    def parent(self, branch):
-        """Return the parent of the branch"""
-        return self.closet.skeleton["timestream"][branch].parent
-
-    def children(self, branch):
-        """Generate all children of the branch"""
-        for bone in self.closet.skeleton["timestream"].iterbones():
-            if bone.parent == branch:
-                yield bone.branch
 
 
 class Fabulator(object):
