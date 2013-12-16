@@ -150,74 +150,98 @@ and charsheets.
             self.add_widget(charsheet)
         self.add_widget(self.prompt)
 
-    def on_touch_up(self, touch):
+    def draw_arrow(self, *args):
+        # Sometimes this gets triggered, *just before* getting
+        # unbound, and ends up running one last time *just after*
+        # self.dummyspot = None
+        if self.dummyspot is None:
+            return
+        (ox, oy) = self.origspot.pos
+        (dx, dy) = self.dummyspot.pos
+        (ow, oh) = self.origspot.size
+        orx = ow / 2
+        ory = oh / 2
+        dx += orx
+        dy += ory
+        points = get_points(ox, orx, oy, ory, dx, 0, dy, 0, 10)
+        self.dummyarrow.canvas.clear()
+        with self.dummyarrow.canvas:
+            Color(0.25, 0.25, 0.25)
+            Line(width=1.4, points=points)
+            Color(1, 1, 1)
+            Line(width=1, points=points)
+
+    def on_touch_down(self, touch):
         clost = self.board.facade.closet
-
-        def draw_arrow(*args):
-            # Sometimes this gets triggered, *just before* getting
-            # unbound, and ends up running one last time *just after*
-            # self.dummyspot = None
-            if self.dummyspot is None:
-                return
-            (ox, oy) = self.origspot.pos
-            (dx, dy) = self.dummyspot.pos
-            (ow, oh) = self.origspot.size
-            orx = ow / 2
-            ory = oh / 2
-            dx += orx
-            dy += ory
-            points = get_points(ox, orx, oy, ory, dx, 0, dy, 0, 10)
-            self.dummyarrow.canvas.clear()
-            with self.dummyarrow.canvas:
-                Color(0.25, 0.25, 0.25)
-                Line(width=1.4, points=points)
-                Color(1, 1, 1)
-                Line(width=1, points=points)
-
-        if 'spot' in touch.ud and touch.ud['spot'].collide_point(
-                touch.x, touch.y) and self.portaling == 1:
-            self.origspot = touch.ud['spot']
-            self.dummyspot = Scatter(size=self.origspot.size)
-            self.dummyarrow = TouchlessWidget(pos=(0, 0))
-            self.board.children[0].add_widget(self.dummyarrow)
-            self.board.children[0].add_widget(self.dummyspot)
-
-            self.dummyspot.bind(pos=draw_arrow)
-            (x, y) = self.board.to_local(*self.origspot.pos)
-            self.dummyspot.pos = (x+64, y+64)
-            self.portaling = 2
-            self.display_prompt(clost.get_text("@putportalto"))
-        elif self.portaling == 2:
-            # Scatter sometimes resizes itself without warning.
-            # This caused problems with collilsion detection.
+        if self.portaling == 1:
             for spot in self.board.spotdict.itervalues():
                 if spot.collide_point(touch.x, touch.y):
-                    self.portaling = 0
+                    self.origspot = spot
                     break
-            if self.portaling == 2:
+            if hasattr(self, 'origspot'):
+                self.dummyspot = Scatter(pos=(touch.x, touch.y))
+                self.dummyarrow = TouchlessWidget(pos=(0, 0))
+                atop = []
+                for pawn in self.board.pawndict.itervalues():
+                    if pawn.where_upon is self.origspot:
+                        atop.append(pawn)
+                self.board.children[0].remove_widget(self.origspot)
+                for pawn in atop:
+                    self.remove_widget(pawn)
+                self.board.children[0].add_widget(self.dummyarrow)
+                self.board.children[0].add_widget(self.origspot)
+                for pawn in atop:
+                    self.add_widget(pawn)
+                self.add_widget(self.dummyspot)
+                self.dummyspot.bind(pos=self.draw_arrow)
+                self.dummyspot.pos = (touch.x, touch.y)
+                self.display_prompt(clost.get_text("@putportalto"))
+                self.portaling = 2
+                touch.grab_current = self.dummyspot
+            else:
+                self.portaling = 0
+                self.dismiss_prompt()
+            return True
+        else:
+            assert(self.portaling == 0)
+            return super(LiSELayout, self).on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        if self.portaling == 2:
+            self.portaling = 0
+            self.dummyspot.unbind(pos=self.draw_arrow)
+            self.remove_widget(self.dummyspot)
+            self.remove_widget(self.dummyarrow)
+            self.dismiss_prompt()
+            destspot = None
+            for spot in self.board.spotdict.itervalues():
+                if spot.collide_point(touch.x, touch.y):
+                    destspot = spot
+                    break
+            if destspot is None:
+                self.dummyarrow.canvas.clear()
+                self.dismiss_prompt()
                 return True
             origplace = self.origspot.place
-            destplace = spot.place
+            destplace = destspot.place
             portal = self.board.facade.observed.make_portal(
                 origplace, destplace, host=self.board.host)
-            if unicode(portal.destination) not in self.board.spotdict:
-                self.board.spotdict[
-                    unicode(portal.destination)] = Spot(
-                    board=self.board, place=portal.destination)
             arrow = Arrow(
                 board=self.board, portal=portal)
             self.board.arrowdict[unicode(portal)] = arrow
-            self.dummyspot.unbind(pos=draw_arrow)
-            self.remove_widget(self.dummyspot)
-            self.dummyspot = None
-            self.board.children[0].remove_widget(self.dummyarrow)
+            atop = []
+            for pawn in self.board.pawndict.itervalues():
+                if pawn.where_upon is self.origspot:
+                    atop.append(pawn)
             self.board.children[0].remove_widget(self.origspot)
+            for pawn in atop:
+                self.board.children[0].remove_widget(pawn)
             self.board.children[0].add_widget(arrow)
             self.board.children[0].add_widget(self.origspot)
-            self.portaling = 0
-            self.dismiss_prompt()
-        self.touched = None
-        return True
+            for pawn in atop:
+                self.board.children[0].add_widget(pawn)
+        else:
+            return super(LiSELayout, self).on_touch_up(touch)
 
     def display_prompt(self, text):
         """Put the text in the cue card"""
