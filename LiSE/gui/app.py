@@ -18,7 +18,7 @@ from kivy.uix.scatter import Scatter, ScatterPlane
 from kivy.uix.widget import Widget
 from kivy.factory import Factory
 
-from sqlite3 import connect, DatabaseError
+from sqlite3 import connect
 
 from LiSE.gui.board import (
     Pawn,
@@ -79,7 +79,7 @@ exist yet, but you know what it should look like."""
         self.size = (0, 0)
         stackh = 0
         for bone in self.imgbones:
-            tex = self.board.closet.get_texture(bone.img)
+            tex = self.board.facade.closet.get_texture(bone.img)
             if tex.width > self.width:
                 self.width = tex.width
             if tex.height > self.height:
@@ -99,7 +99,7 @@ exist yet, but you know what it should look like."""
             if self.collide_widget(spot):
                 dimn = unicode(spot.board)
                 placen = unicode(spot.place)
-                th = self.board.closet.make_generic_thing(
+                th = self.board.facade.closet.make_generic_thing(
                     dimn, placen)
                 thingn = unicode(th)
                 branch = spot.board.closet.branch
@@ -306,7 +306,7 @@ and charsheets.
     def new_pawn_with_swatches(self, swatches):
         """Given some iterable of Swatch widgets, make a dummy pawn, prompt
 the user to place it, and dismiss the popup."""
-        self.display_prompt(self.board.closet.get_text("@putthing"))
+        self.display_prompt(self.board.facade.closet.get_text("@putthing"))
         self.add_widget(DummyPawn(
             board=self.board,
             imgnames=[swatch.text for swatch in swatches],
@@ -321,7 +321,7 @@ the user to place it, and dismiss the popup."""
         """
         clost = self.board.facade.closet
         cattexlst = [
-            (cat, sorted(clost.textagdict[cat.strip("!?")]))
+            (cat, sorted(clost.textag_d[cat.strip("!?")]))
             for cat in categories]
         dialog = PickImgDialog(
             set_imgs=self.new_spot_with_swatches,
@@ -341,7 +341,7 @@ the user to place it, and dismiss the popup."""
         """
         clost = self.board.facade.closet
         cattexlst = [
-            (cat, sorted(clost.textagdict[cat]))
+            (cat, sorted(clost.textag_d[cat]))
             for cat in categories]
         dialog = PickImgDialog(
             set_imgs=self.new_pawn_with_swatches,
