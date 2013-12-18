@@ -88,22 +88,40 @@ def load_all_textures(cursor, skel, texturedict, textagdict):
             texturedict[bone.name] = Image(
                 source=bone.path).texture
     for (img, tag) in skel[u"img_tag"].iterbones():
-        print tag
         if img not in textagdict:
             textagdict[tag] = set()
         textagdict[tag].add(img)
 
 
-class ImgPile(RelativeLayout):
-    """Several images superimposed, and perhaps offset by differing amounts."""
+class TexPile(RelativeLayout):
+    """Several images superimposed, and perhaps offset by differing amounts.
+
+    Presents a list-like API. Append textures (not Images) to it,
+    possibly specifying offsets on the x and y axes, and perhaps a
+    stacking height, which will be added to the y offset of textures
+    appended thereafter.
+
+    """
     imgs = ListProperty([])
     stackhs = ListProperty([])
 
+    def __getitem__(self, i):
+        return self.imgs[i]
+
+    def __setitem__(self, i, tex, xoff=0, yoff=0, stackh=0):
+        self.imgs[i] = Image(
+            texture=tex,
+            pos=(xoff, yoff+sum(self.stackhs[:i])),
+            size=tex.size)
+        self.stackhs[i] = stackh
+
+    def __delitem__(self, i):
+        del self.imgs[i]
+        del self.stackhs[i]
+
     def append(self, tex, xoff=0, yoff=0, stackh=0):
-        print("stackh={}".format(stackh))
         pos = (xoff, yoff+sum(self.stackhs))
         size = tex.size
-        print("Appending an image of size {} at pos {}".format(size, pos))
         self.imgs.append(Image(
             texture=tex,
             pos=pos,
@@ -118,7 +136,7 @@ class ImgPile(RelativeLayout):
         return r
 
 
-class LayerImgPile(ImgPile):
+class LayerTexPile(TexPile):
     imagery = ObjectProperty()
     completedness = NumericProperty(0)
     closet = ObjectProperty()

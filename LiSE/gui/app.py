@@ -25,6 +25,7 @@ from LiSE.gui.board import (
     Spot,
     Arrow)
 from LiSE.gui.board.arrow import get_points
+from LiSE.gui.kivybits import TexPile
 from LiSE.gui.swatchbox import SwatchBox
 from LiSE.util import Skeleton
 from LiSE import (
@@ -76,50 +77,46 @@ exist yet, but you know what it should look like."""
     def __init__(self, **kwargs):
         """Collect images and show them"""
         super(DummyPawn, self).__init__(**kwargs)
-        self.size = (0, 0)
-        stackh = 0
+        self.pile = TexPile()
+        clost = self.board.facade.closet
         for bone in self.imgbones:
-            tex = self.board.facade.closet.get_texture(bone.img)
-            if tex.width > self.width:
-                self.width = tex.width
-            if tex.height > self.height:
-                self.height = tex.height
-            img = Image(
-                texture=tex,
-                size=tex.size,
-                x=bone.off_x,
-                y=bone.off_y + stackh)
-            stackh += bone.stacking_height + bone.off_y
-            self.add_widget(img)
+            self.pile.append(
+                clost.get_texture(bone.name),
+                xoff=bone.off_x,
+                yoff=bone.off_y,
+                stackh=bone.stacking_height)
+        self.add_widget(self.pile)
 
     def on_touch_up(self, touch):
         """Create a real Pawn on top of the Spot I am on top of, along
         with a Thing for it to represent. Then disappear."""
+        clost = self.board.facade.closet
         for spot in self.board.spotdict.itervalues():
             if self.collide_widget(spot):
-                dimn = unicode(spot.board)
+                obsrvr = unicode(self.board.facade.observer)
+                obsrvd = unicode(self.board.facade.observed)
+                hostn = unicode(self.board.host)
                 placen = unicode(spot.place)
-                th = self.board.facade.closet.make_generic_thing(
-                    dimn, placen)
+                th = clost.make_generic_thing(
+                    self.board.facade.observed,
+                    self.board.host,
+                    placen)
                 thingn = unicode(th)
-                branch = spot.board.closet.branch
-                tick = spot.board.closet.tick
-                skel = spot.board.closet.skeleton[u"pawn_img"]
-                if dimn not in skel:
-                    skel[dimn] = Skeleton()
-                skel[dimn][thingn] = Skeleton()
-                for layer in xrange(0, len(self.imgnames)):
-                    skel[dimn][thingn][layer] = Skeleton()
-                    ptr = skel[dimn][thingn][layer][branch] = Skeleton()
-                    ptr[tick] = Pawn.bonetypes.pawn_img(
-                        dimension=dimn,
+                branch = clost.branch
+                tick = clost.tick
+                for layer in xrange(0, len(self.imgbones)):
+                    pawnbone = Pawn.bonetype(
+                        observer=obsrvr,
+                        observed=obsrvd,
+                        host=hostn,
                         thing=thingn,
                         layer=layer,
                         branch=branch,
                         tick=tick,
-                        img=self.imgnames[layer])
+                        img=self.imgbones[layer].name)
+                    # default to being interactive
+                    clost.set_bone(pawnbone)
                 pawn = Pawn(board=self.board, thing=th)
-                pawn.set_interactive()
                 self.board.pawndict[thingn] = pawn
                 self.board.add_widget(pawn)
                 self.clear_widgets()
@@ -306,12 +303,17 @@ and charsheets.
     def new_pawn_with_swatches(self, swatches):
         """Given some iterable of Swatch widgets, make a dummy pawn, prompt
 the user to place it, and dismiss the popup."""
-        self.display_prompt(self.board.facade.closet.get_text("@putthing"))
-        self.add_widget(DummyPawn(
+        clost = self.board.facade.closet
+        self.display_prompt(clost.get_text("@putthing"))
+        (w, h) = self.get_root_window().size
+        dummy = DummyPawn(
             board=self.board,
-            imgnames=[swatch.text for swatch in swatches],
-            callback=self.dismiss_prompt,
-            pos=(self.width * 0.1, self.height * 0.9)))
+            imgbones=[
+                clost.skeleton[u'img'][swatch.text]
+                for swatch in swatches],
+            callback=self.dismiss_prompt)
+        self.add_widget(dummy)
+        dummy.pos = (w*0.1, h*0.9)
         self.dismiss_popup()
 
     def show_spot_picker(self, categories):

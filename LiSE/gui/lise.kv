@@ -56,11 +56,11 @@
     size: pile.size
     do_rotation: False
     do_scale: False
-    LayerImgPile:
+    LayerTexPile:
         id: pile
         closet: root.board.facade.closet
         imagery: self.closet.skeleton[u"pawn"][unicode(root.board.facade.observer)][unicode(root.thing.character)][unicode(root.board.host)][unicode(root.thing)]
-<ImgPile>:
+<TexPile>:
     width: max([img.right for img in self.imgs]) if len(self.imgs) > 0 else 0
     height: max([img.top for img in self.imgs]) if len(self.imgs) > 0 else 0
 <Spot>:
@@ -68,7 +68,7 @@
     size: pile.size
     do_scale: False
     auto_bring_to_front: False
-    LayerImgPile:
+    LayerTexPile:
         id: pile
         closet: root.board.facade.closet
         imagery: root.board.facade.closet.skeleton[u"spot"][unicode(root.board.facade.observer)][unicode(root.board.host)][unicode(root.place)]
@@ -200,5 +200,4 @@
                 pos: l.pos
                 size: l.size
 <Board>:
-    scroll_timeout: 75
     auto_bring_to_front: False

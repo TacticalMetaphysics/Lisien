@@ -11,7 +11,7 @@ from kivy.properties import (
     NumericProperty,
     ObjectProperty)
 
-from LiSE.gui.kivybits import ImgPile
+from LiSE.gui.kivybits import TexPile
 
 
 class TogSwatch(ToggleButton):
@@ -99,7 +99,7 @@ class SwatchBox(ScrollView):
         self.add_widget(root)
         head = GridLayout(cols=2, size_hint_y=None)
         self.undo_button = Button(text="Undo", on_release=self.undo)
-        self.pile = ImgPile()
+        self.pile = TexPile()
         head.add_widget(self.pile)
         head.add_widget(self.undo_button)
         root.add_widget(head)

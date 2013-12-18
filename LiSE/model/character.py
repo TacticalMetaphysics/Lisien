@@ -155,16 +155,17 @@ class Character(object):
         return unicode(self.name)
 
     @staticmethod
-    def skelset(skel, bone):
+    def skelset(skel, bone, name_field='name'):
         """Put ``bone`` into ``skel``, nested according to the database
         schema."""
+        name = getattr(bone, name_field)
         if bone.character not in skel:
             skel[bone.character] = {}
-        if bone.name not in skel[bone.character]:
-            skel[bone.character][bone.name] = []
-        if bone.branch not in skel[bone.character][bone.name]:
-            skel[bone.character][bone.name][bone.branch] = []
-        skel[bone.character][bone.name][bone.branch][bone.tick] = bone
+        if name not in skel[bone.character]:
+            skel[bone.character][name] = []
+        if bone.branch not in skel[bone.character][name]:
+            skel[bone.character][name][bone.branch] = []
+        skel[bone.character][name][bone.branch][bone.tick] = bone
 
     def update(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
@@ -675,16 +676,17 @@ class Facade(Character):
         return unicode(self.observed)
 
     @staticmethod
-    def skelset(skel, bone):
+    def skelset(skel, bone, name_field='name'):
         """Put ``bone`` into ``skel``, nested according to the database
         schema."""
+        name = getattr(bone, name_field)
         if bone.observer not in skel:
             skel[bone.observer] = {}
         if bone.observed not in skel[bone.observer]:
             skel[bone.observer][bone.observed] = {}
-        if bone.name not in skel[bone.observer][bone.observed]:
-            skel[bone.observer][bone.observed][bone.name] = []
-        skel = skel[bone.observed][bone.observed][bone.name]
+        if name not in skel[bone.observer][bone.observed]:
+            skel[bone.observer][bone.observed][name] = []
+        skel = skel[bone.observed][bone.observed][name]
         if bone.branch not in skel:
             skel[bone.branch] = []
         skel[bone.branch][bone.tick] = bone

@@ -376,20 +376,21 @@ before RumorMill will work. For that, run mkdb.sh.
         locn = unicode(location)
         if charn not in self.skeleton[u"thing"]:
             self.skeleton[u"thing"][charn] = {}
-        thingn = len(self.skeleton[u"thing"][charn])
-        self.skeleton[u"thing"][charn][thingn] = Thing.bonetypes.thing(
-            character=charn, name=thingn, host=hostn)
-        if charn not in self.skeleton[u"thing_loc"]:
-            self.skeleton[u"thing_loc"][charn] = {}
-        if thingn not in self.skeleton[u"thing_loc"][charn]:
-            self.skeleton[u"thing_loc"][charn][thingn] = []
-        if branch not in self.skeleton[u"thing_loc"][charn][thingn]:
-            self.skeleton[u"thing_loc"][charn][thingn][branch] = []
-        self.skeleton[u"thing_loc"][charn][thingn][branch][
-            tick] = Thing.bonetypes.thing_loc(
-            character=charn, name=thingn, branch=branch, tick=tick,
+        thingn = u"generic_thing_{}".format(
+            len(self.skeleton[u"thing"][charn]))
+        thing_core_bone = Thing.bonetypes.thing(
+            character=charn,
+            name=thingn,
+            host=hostn)
+        self.set_bone(thing_core_bone)
+        thing_loc_bone = Thing.bonetypes.thing_loc(
+            character=charn,
+            name=thingn,
+            branch=branch,
+            tick=tick,
             location=locn)
-        return character.get_thing(thingn)
+        self.set_bone(thing_loc_bone)
+        return character.make_thing(thingn)
 
     def load_charsheet(self, character):
         """Return a CharSheetView displaying the CharSheet for the character
@@ -770,6 +771,24 @@ before RumorMill will work. For that, run mkdb.sh.
             if bone.branch not in skel:
                 skel[bone.branch] = []
             skel[bone.branch][bone.tick] = bone
+        elif isinstance(bone, Pawn.bonetype):
+            skel = self.skeleton[u"pawn"]
+            if bone.observer not in skel:
+                skel[bone.observer] = {}
+            if bone.observed not in skel[bone.observer]:
+                skel[bone.observer][bone.observed] = {}
+            if bone.host not in skel[bone.observer][bone.observed]:
+                skel[bone.observer][bone.observed][bone.host] = {}
+            skel = skel[bone.observer][bone.observed][bone.host]
+            if bone.thing not in skel:
+                skel[bone.thing] = []
+            if bone.layer not in skel[bone.thing]:
+                skel[bone.thing][bone.layer] = []
+            if bone.branch not in skel[bone.thing][bone.layer]:
+                skel[bone.thing][bone.layer][bone.branch] = []
+            skel[bone.thing][bone.layer][bone.branch][bone.tick] = bone
+        else:
+            raise TypeError("Don't know how to set that bonetype")
 
     def place_exists(self, character, name, branch=None, tick=None):
         """Check whether a place by the given name exists.
