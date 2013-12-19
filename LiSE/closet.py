@@ -734,10 +734,16 @@ before RumorMill will work. For that, run mkdb.sh.
     def set_bone(self, bone):
         """Take a bone of arbitrary type and put it in the right place in the
         skeleton."""
+        def init_keys(skel, keylst):
+            for key in keylst:
+                if key not in skel:
+                    skel[key] = {}
+                skel = skel[key]
+            return skel
+
         if isinstance(bone, Thing.bonetypes.thing):
-            if bone.character not in self.skeleton[u"thing"]:
-                self.skeleton[u"thing"][bone.character] = {}
-            self.skeleton[u"thing"][bone.character][bone.name] = bone
+            skel = init_keys(self.skeleton[u"thing"], [bone.character])
+            skel[bone.name] = bone
         elif isinstance(bone, Thing.bonetypes.thing_loc):
             Character.skelset(self.skeleton[u"thing_loc"], bone)
         elif isinstance(bone, Thing.bonetypes.thing_stat):
@@ -747,9 +753,8 @@ before RumorMill will work. For that, run mkdb.sh.
         elif isinstance(bone, Thing.bonetypes.thing_stat_facade):
             Facade.skelset(self.skeleton[u"thing_stat_facade"], bone)
         elif isinstance(bone, Portal.bonetypes.portal):
-            if bone.character not in self.skeleton[u"portal"]:
-                self.skeleton[u"portal"][bone.character] = {}
-            self.skeleton[u"portal"][bone.character][bone.name] = bone
+            skel = init_keys(self.skeleton, [bone.character])
+            skel[bone.name] = bone
         elif isinstance(bone, Portal.bonetypes.portal_loc):
             Character.skelset(self.skeleton[u"portal_loc"], bone)
         elif isinstance(bone, Portal.bonetypes.portal_stat):
@@ -763,39 +768,50 @@ before RumorMill will work. For that, run mkdb.sh.
         elif isinstance(bone, Place.bonetypes.place_stat_facade):
             Facade.skelset(self.skeleton[u"place_stat_facade"], bone)
         elif isinstance(bone, PlaceBone):
-            if bone.host not in self.skeleton[u"place"]:
-                self.skeleton[u"place"][bone.host] = {}
-            if bone.place not in self.skeleton[u"place"][bone.host]:
-                self.skeleton[u"place"][bone.host][bone.place] = []
-            skel = self.skeleton[u"place"][bone.host][bone.place]
-            if bone.branch not in skel:
-                skel[bone.branch] = []
-            skel[bone.branch][bone.tick] = bone
+            skel = init_keys(self.skeleton[u"place"], [
+                bone.host, bone.place, bone.branch])
+            skel[bone.tick] = bone
         elif isinstance(bone, Pawn.bonetype):
-            skel = self.skeleton[u"pawn"]
-            if bone.observer not in skel:
-                skel[bone.observer] = {}
-            if bone.observed not in skel[bone.observer]:
-                skel[bone.observer][bone.observed] = {}
-            if bone.host not in skel[bone.observer][bone.observed]:
-                skel[bone.observer][bone.observed][bone.host] = {}
-            skel = skel[bone.observer][bone.observed][bone.host]
-            if bone.thing not in skel:
-                skel[bone.thing] = []
-            if bone.layer not in skel[bone.thing]:
-                skel[bone.thing][bone.layer] = []
-            if bone.branch not in skel[bone.thing][bone.layer]:
-                skel[bone.thing][bone.layer][bone.branch] = []
-            skel[bone.thing][bone.layer][bone.branch][bone.tick] = bone
+            skel = init_keys(self.skeleton[u"pawn"], [
+                bone.observer, bone.observed, bone.host, bone.branch])
+            skel[bone.tick] = bone
+        elif isinstance(bone, Spot.bonetypes.spot):
+            skel = init_keys(self.skeleton[u"spot"], [
+                bone.observer, bone.host, bone.place, bone.layer,
+                bone.branch])
+            skel[bone.tick] = bone
+        elif isinstance(bone, Spot.bonetypes.spot_coords):
+            skel = init_keys(self.skeleton[u"spot_coords"], [
+                bone.observer, bone.host, bone.place, bone.branch])
+            skel[bone.tick] = bone
+        elif isinstance(bone, Board.bonetype):
+            skel = init_keys(self.skeleton[u"board"], [
+                bone.observer, bone.observed])
+            skel[bone.host] = bone
+        elif isinstance(bone, CharSheet.bonetype):
+            self.skeleton[u"charsheet"][bone.character] = bone
+        elif isinstance(bone, Character.bonetypes.character_stat):
+            skel = init_keys(self.skeleton[u"character_stat"], [
+                bone.character, bone.key, bone.branch])
+            skel[bone.tick] = bone
+        elif isinstance(bone, Facade.bonetypes.facade):
+            skel = init_keys(self.skeleton[u"facade"], [
+                bone.observer])
+            skel[bone.observed] = bone
+        elif isinstance(bone, Facade.bonetypes.character_stat_facade):
+            skel = init_keys(self.skeleton[u"character_stat_facade"], [
+                bone.observer, bone.observed, bone.key, bone.branch])
+            skel[bone.tick] = bone
         else:
             raise TypeError("Don't know how to set that bonetype")
 
     def place_exists(self, character, name, branch=None, tick=None):
-        """Check whether a place by the given name exists.
+        """Check whether a place by the given name exists in the given
+        character.
 
-        May check only in the given branch, if provided. With optional
-        argument ``tick``, check if there is a place *at* or *before*
-        that tick in that branch.
+        Check only in the given branch, if provided. With additional
+        optional argument ``tick``, check if there is a place *at* or
+        *before* that tick in that branch.
 
         Assumes that place data in the 'place' skeleton is current.
 

@@ -67,6 +67,11 @@ class Board(ScrollView):
     pawndict = DictProperty({})
     arrowdict = DictProperty({})
 
+    def on_spotdict(self, i, v):
+        for vv in v.itervalues():
+            if vv.parent not in (None, self):
+                pass
+
     @property
     def bone(self):
         return self.facade.closet.skeleton[u"board"][
@@ -207,6 +212,14 @@ class Board(ScrollView):
         for preemptor in ("charsheet", "menu"):
             if preemptor in touch.ud:
                 return
+        if not self._touch:
+            for pawn in self.pawndict.itervalues():
+                if pawn.collide_point(touch.x, touch.y):
+                    self._touch = touch
+        if not self._touch:
+            for spot in self.spotdict.itervalues():
+                if spot.collide_point(touch.x, touch.y):
+                    self._touch = touch
         if self.parent.dummyspot is not None:
             self.parent.dummyspot.pos = (touch.x, touch.y)
         return super(Board, self).on_touch_down(touch)

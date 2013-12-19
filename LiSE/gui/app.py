@@ -134,6 +134,7 @@ and charsheets.
     board = ObjectProperty()
     prompt = ObjectProperty()
     portaling = BoundedNumericProperty(0, min=0, max=2)
+    origspot = ObjectProperty(None, allownone=True)
     dummyspot = ObjectProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
@@ -166,6 +167,10 @@ and charsheets.
             Color(1, 1, 1)
             Line(width=1, points=points)
 
+    def on_origspot(self, i, v):
+        if v is not None:
+            assert(v not in self.children)
+
     def on_touch_down(self, touch):
         clost = self.board.facade.closet
         if self.portaling == 1:
@@ -173,7 +178,8 @@ and charsheets.
                 if spot.collide_point(touch.x, touch.y):
                     self.origspot = spot
                     break
-            if hasattr(self, 'origspot'):
+            if self.origspot is not None:
+                assert(self.origspot not in self.children)
                 self.dummyspot = ScatterPlane(
                     pos=(touch.x, touch.y), size=(1, 1))
                 self.dummyarrow = TouchlessWidget(pos=(0, 0))
@@ -199,6 +205,7 @@ and charsheets.
                 self.remove_widget(self.dummyspot)
                 self.board.children[0].remove_widget(self.dummyarrow)
                 self.dismiss_prompt()
+                self.origspot = None
                 self.dummyspot = None
                 self.dummyarrow = None
         else:
@@ -297,7 +304,7 @@ and charsheets.
                 self.board.viewport_size[1] - 32)))
         clost.set_bone(coord_bone)
         spot = Spot(board=self.board, place=place)
-        self.add_widget(spot)
+        self.board.add_widget(spot)
         self.dismiss_popup()
 
     def new_pawn_with_swatches(self, swatches):
