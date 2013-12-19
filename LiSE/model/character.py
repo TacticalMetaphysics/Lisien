@@ -337,6 +337,13 @@ class Character(object):
         v = self.graph.vs.find(name=name)
         return v["place"]
 
+    def make_place(self, name):
+        place = Place(self, name)
+        self.graph.add_vertex(
+            name=name,
+            place=place)
+        return place
+
     def _get_place_skel_bone(self, skel, branch, tick):
         (branch, tick) = self.sanetime(branch, tick)
         return skelget(self.closet.timeline, skel, branch, tick)
