@@ -129,9 +129,12 @@ class Spot(Scatter):
     def repos(self, *args):
         """Update my pos to match the database. Keep respecting my transform
         as I can."""
+        coords = self.get_coords()
+        if coords is None:
+            return
         oldtf = self.transform
         self.transform.identity()
-        self.pos = self.get_coords()
+        self.pos = coords
         self.apply_transform(oldtf)
 
     def set_img(self, img, layer, branch=None, tick_from=None):

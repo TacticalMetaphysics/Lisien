@@ -41,11 +41,13 @@ def load_rltile(path):
 def load_textures(cursor, skel, texturedict, textagdict, names):
     """Load all the textures in ``names``. Put their :class:`Bone`s in
     ``skel``, and the textures themselves in ``texturedict``."""
-    skel.update(
-        Img._select_skeleton(
-            cursor, {
-                u"img": [Img.bonetypes.img(name=n) for n in names],
-                u"img_tag": [Img.bonetypes.img_tag(img=n) for n in names]}))
+    nulimg = Img.bonetypes["img"](
+        *[None for field in Img.bonetypes["img"]._fields])
+    qd = {
+        u"img": [nulimg._replace(name=n) for n in names],
+        u"img_tag": [Img.bonetypes["img_tag"](img=n) for n in names]}
+    res = Img._select_skeleton(cursor, qd)
+    skel.update(res)
     r = {}
     for name in names:
         bone = skel[u"img"][name]
@@ -72,7 +74,7 @@ def load_textures(cursor, skel, texturedict, textagdict, names):
 
 def load_textures_tagged(cursor, skel, texturedict, textagdict, tags):
     tagskel = Img._select_skeleton(
-        cursor, {u"img_tag": [Img.bonetypes.img_tag(tag=t) for t in tags]})
+        cursor, {u"img_tag": [Img.bonetypes["img_tag"](tag=t) for t in tags]})
     skel.update(tagskel)
     imgs = set([bone.img for bone in tagskel.iterbones()])
     return load_textures(cursor, skel, texturedict, textagdict, imgs)

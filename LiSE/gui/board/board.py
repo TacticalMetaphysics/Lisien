@@ -216,10 +216,12 @@ class Board(ScrollView):
             for pawn in self.pawndict.itervalues():
                 if pawn.collide_point(touch.x, touch.y):
                     self._touch = touch
+                    break
         if not self._touch:
             for spot in self.spotdict.itervalues():
                 if spot.collide_point(touch.x, touch.y):
                     self._touch = touch
+                    break
         if self.parent.dummyspot is not None:
             self.parent.dummyspot.pos = (touch.x, touch.y)
         return super(Board, self).on_touch_down(touch)

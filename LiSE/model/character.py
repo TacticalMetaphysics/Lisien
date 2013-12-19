@@ -154,19 +154,6 @@ class Character(object):
     def __unicode__(self):
         return unicode(self.name)
 
-    @staticmethod
-    def skelset(skel, bone, name_field='name'):
-        """Put ``bone`` into ``skel``, nested according to the database
-        schema."""
-        name = getattr(bone, name_field)
-        if bone.character not in skel:
-            skel[bone.character] = {}
-        if name not in skel[bone.character]:
-            skel[bone.character][name] = []
-        if bone.branch not in skel[bone.character][name]:
-            skel[bone.character][name][bone.branch] = []
-        skel[bone.character][name][bone.branch][bone.tick] = bone
-
     def update(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
         for v in self.graph.vs:
@@ -248,7 +235,7 @@ class Character(object):
         (branch, tick) = self.sanetime(branch, tick)
         return skelget(self.closet.timestream, skel, branch, tick)
 
-    def get_thing_bone(self, name, branch=None, tick=None):
+    def get_thing_bone(self, name):
         """Return a bone describing a thing's location at some particular
         time."""
         return self.closet.skeleton[u"thing"][unicode(self)][name]
@@ -305,7 +292,7 @@ class Character(object):
         bone = self.get_thing_locations(name, branch).value_during(tick)
         if bone is None:
             return None
-        corebone = self.get_thing_bone(name, branch, tick)
+        corebone = self.get_thing_bone(name)
         host = self.closet.get_character(corebone.host)
         # suppose the location is a portal, and therefore has a
         # "real" bone
@@ -326,10 +313,6 @@ class Character(object):
             place.upd_skel_from_bone(bone)
             self.graph.add_vertex(name=bone.location, place=place)
             return place
-
-    def set_thing_loc_bone(self, bone):
-        skel = self.closet.skeleton[u"thing_loc"]
-        self.skelset(skel, bone)
 
     ### Place
 
@@ -381,16 +364,6 @@ class Character(object):
         return set([bone for bone in self.iter_place_contents(
             name, branch, tick)])
 
-    def _set_place_skel_bone(self, skel, bone):
-        if bone.name not in self.graph.vs["name"]:
-            self.graph.add_vertex(
-                name=bone.name)
-        self.skelset(skel, bone)
-
-    def set_place_bone(self, bone):
-        skel = self.closet.skeleton[u"place"]
-        self._set_place_skel_bone(skel, bone)
-
     ### Portal
 
     def get_portal(self, name):
@@ -407,12 +380,12 @@ class Character(object):
         host = unicode(host)
         if name is None:
             name = "{}->{}".format(origin, destination)
-        bone = Portal.bonetypes.portal(
+        bone = Portal.bonetypes["portal"](
             character=unicode(self),
             name=name,
             host=host)
         self.closet.set_bone(bone)
-        bigbone = Portal.bonetypes.portal_loc(
+        bigbone = Portal.bonetypes["portal_loc"](
             character=unicode(self),
             name=name,
             branch=branch,
@@ -501,28 +474,6 @@ class Character(object):
         skel = self.closet.skeleton[u"portal"][unicode(self)]
         self._portal_init_skel_branch(skel, parent, branch, tick)
 
-    def _set_portal_skel_bone(self, skel, bone):
-        self.skelset(skel, bone)
-        if bone.origin not in self.graph.vs["name"]:
-            self.set_place_idx(
-                bone.origin, len(self.graph.vs),
-                bone.branch, bone.tick)
-        if bone.destination not in self.graph.vs["name"]:
-            self.set_place_idx(
-                bone.destination, len(self.graph.vs),
-                bone.branch, bone.tick)
-        if bone.label not in self.graph.es["name"]:
-            oi = self.graph.vs["name"][bone.origin]
-            di = self.graph.vs["name"][bone.destination]
-            self.graph.add_edge(
-                oi, di,
-                name=bone.label,
-                bone=lambda branch, tick: self.get_portal_bone(branch, tick))
-
-    def set_portal_bone(self, bone):
-        skel = self.closet.skeleton[u"portal"]
-        self._set_portal_skel_bone(skel, bone)
-
     ### Stat
 
     def _get_stat_skel_bone(self, skel, branch, tick):
@@ -542,10 +493,6 @@ class Character(object):
         skel = self.closet.skeleton[u"stat"][unicode(self)]
         for bone in self._iter_stat_skel_bones(skel, branch, tick):
             yield bone
-
-    def set_stat_bone(self, bone):
-        skel = self.closet.skeleton[u"stat"]
-        self.skelset(skel, bone)
 
 
 class Omitter(object):
@@ -682,22 +629,6 @@ class Facade(Character):
     def __unicode__(self):
         return unicode(self.observed)
 
-    @staticmethod
-    def skelset(skel, bone, name_field='name'):
-        """Put ``bone`` into ``skel``, nested according to the database
-        schema."""
-        name = getattr(bone, name_field)
-        if bone.observer not in skel:
-            skel[bone.observer] = {}
-        if bone.observed not in skel[bone.observer]:
-            skel[bone.observer][bone.observed] = {}
-        if name not in skel[bone.observer][bone.observed]:
-            skel[bone.observer][bone.observed][name] = []
-        skel = skel[bone.observed][bone.observed][name]
-        if bone.branch not in skel:
-            skel[bone.branch] = []
-        skel[bone.branch][bone.tick] = bone
-
     def evade(self, bone):
         """Raise KnowledgeException if the bone triggers an omitter. Otherwise
         return it.
@@ -729,24 +660,6 @@ class Facade(Character):
             Thing.bonetypes.thing_facade: self.get_thing,
             Portal.bonetypes.portal_facade: self.get_portal}[
             type(bone)](bone.name))
-
-    def set_bone(self, bone):
-        """Set the given bone in this facade. Only bone types relevant to the
-        facade tables are permitted.
-
-        Bones set here reflect the way an item in my ``observed``
-        seems when viewed by my ``observer``. They will be used in
-        favor of the data from my ``observed``, unless their values
-        are null, in which case the true data prevails.
-
-        """
-        if isinstance(bone, Thing.bonetypes.thing_facade):
-            self.set_thing_bone(bone)
-        elif isinstance(bone, Portal.bonetypes.portal_facade):
-            self.set_portal_bone(bone)
-        else:
-            raise TypeError(
-                "Only bones for the facade tables are supported.")
 
     ### Thing
 
@@ -829,22 +742,6 @@ class Facade(Character):
                 skel[bone.branch] = []
             skel[bone.branch][bone.tick] = self.distort(bone)
         return skel
-
-    # override
-    def set_thing_bone(self, bone):
-        """Save the bone in the appropriate part of the skeleton. Raise
-        ValueError if it is not a bone for this facade.
-
-        """
-        if not isinstance(bone, Thing.bonetypes.thing_facade):
-            raise TypeError("Wrong bone type for this method")
-        if bone.observer != unicode(self.observer):
-            raise ValueError("Bone isn't observed by the correct character")
-        if bone.observed != unicode(self.observed):
-            raise ValueError("Bone isn't for the character under observation")
-        skel = self.closet.skeleton[u"thing_facade"][
-            unicode(self.observer)][unicode(self.observed)][bone.name]
-        self.skelset(skel, bone)
 
     def iter_place_bones(self, branch=None, tick=None):
         for bone in self.observed.iter_place_bones(branch, tick):
@@ -943,20 +840,6 @@ class Facade(Character):
                     pass
 
     # override
-    def set_portal_bone(self, bone):
-        """Save the bone in the appropriate part of the skeleton. Raise
-        ValueError if it's not a bone for this facade."""
-        if not isinstance(bone, Portal.bonetypes.portal_facade):
-            raise TypeError("Wrong bone type for this method")
-        if bone.observer != unicode(self.observer):
-            raise ValueError("Bone isn't observed by the correct character")
-        if bone.observed != unicode(self.observed):
-            raise ValueError("Bone isn't for the character under observation")
-        skel = self.closet.skeleton[u"portal_facade"][
-            unicode(self.observer)][unicode(self.observed)][bone.name]
-        self._set_portal_skel_bone(skel, bone)
-
-    # override
     def get_stat_bone(self, name, branch=None, tick=None):
         """Return a bone for the stat by the given name at the current time,
         or the given branch and tick if specified.
@@ -966,18 +849,3 @@ class Facade(Character):
             unicode(self.observer)][unicode(self.observed)][
             name]
         return self._get_stat_skel_bone(skel, branch, tick)
-
-    # override
-    def set_stat_bone(self, bone):
-        """Save the bone in the appropriate part of the skeleton. Raise
-        ValueError if it's not a bone for this facade.
-
-        """
-        if not isinstance(bone, self.bonetypes.stat_facade):
-            raise TypeError("Wrong bone type for this method")
-        if bone.observer != unicode(self.observer):
-            raise ValueError("Bone isn't observed by the correct character")
-        if bone.observed != unicode(self.observed):
-            raise ValueError("Bone isn't for the character under observation")
-        skel = self.closet.skeleton[u"stat_facade"]
-        self.skelset(skel, bone)

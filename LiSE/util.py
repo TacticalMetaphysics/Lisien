@@ -172,6 +172,13 @@ class BoneMetaclass(type):
             return self._replace(**denulled)
 
         @classmethod
+        def _null(cls):
+            """Return an instance of {} with all fields set to
+            None.""".format(cls.__name__)
+            aargh = [None] * len(cls._fields)
+            return cls(*aargh)
+
+        @classmethod
         def _unpack(cls, data):
             """Return a new instance of {} with data from
             the buffer given.""".format(cls)
@@ -224,6 +231,8 @@ class BoneMetaclass(type):
                 "_fields": [],
                 "_types": {},
                 "_defaults": {},
+                "_name": clas,
+                "_null": _null,
                 "getfmt": getfmt,
                 "getbytelen": getbytelen,
                 "packed": packed,
@@ -537,7 +546,7 @@ class Skeleton(MutableMapping):
                     if len(self.content) > 0:
                         assert(len(self.content) == 1)
                         if isinstance(self.content, dict):
-                            assert(next(self.content.iterkeys()) == 0)
+#                            assert(next(self.content.iterkeys()) == 0)
                             old = next(self.content.itervalues())
                         else:
                             old = self.content[0]
@@ -1017,7 +1026,7 @@ class SaveableMetaclass(type):
         bonetypes = {}
         for item in local_pkeys.items():
             (tablename, pkey) = item
-            keynames[tablename] = sorted(pkey)
+            keynames[tablename] = list(pkey)
             keylen[tablename] = len(pkey)
             keyqms[tablename] = ", ".join(["?"] * keylen[tablename])
             keystrs[tablename] = "(" + keyqms[tablename] + ")"
@@ -1045,9 +1054,8 @@ class SaveableMetaclass(type):
                 except ValueError:
                     default = None
                 coldefaults[tablename][fieldname] = default
-            valnames[tablename] = sorted(
-                [key for key in list(coldict.keys())
-                 if key not in keynames[tablename]])
+            valnames[tablename] = list(set(coldict.keys()) -
+                                       set(keynames[tablename]))
             rowlen[tablename] = len(coldict)
             rowqms[tablename] = ", ".join(["?"] * rowlen[tablename])
             rowstrs[tablename] = "(" + rowqms[tablename] + ")"
@@ -1056,7 +1064,7 @@ class SaveableMetaclass(type):
         for tablename in tablenames:
             assert(tablename not in tabclas)
             bonetypes[tablename] = Bone.subclass(
-                tablename + "_bone",
+                tablename,
                 [(colname,
                   coltypes[tablename][colname],
                   coldefaults[tablename][colname])
@@ -1067,13 +1075,8 @@ class SaveableMetaclass(type):
             pkey = primarykeys[tablename]
             fkeys = foreignkeys[tablename]
             cks = ["CHECK(%s)" % ck for ck in checks[tablename]]
-            pkeydecs = [keyname + " " + typ
-                        for (keyname, typ) in coldecl.items()
-                        if keyname in pkey]
-            valdecs = [valname + " " + typ
-                       for (valname, typ) in coldecl.items()
-                       if valname not in pkey]
-            coldecs = sorted(pkeydecs) + sorted(valdecs)
+            coldecs = [coln + " " + coldecl[coln]
+                       for coln in colnames[tablename]]
             coldecstr = ", ".join(coldecs)
             pkeycolstr = ", ".join(pkey)
             pkeys = [keyname for (keyname, typ) in coldecl.items()
@@ -1170,32 +1173,26 @@ class SaveableMetaclass(type):
 
             """
             # Assumes that all keybones have the same type.
-            keys = []
-            for k in primarykeys[tabname]:
-                if getattr(keybones[0], k) is not None:
-                    keys.append(k)
-            andstr = "{0}".format(
-                " AND ".join(
-                    ["{0}=?".format(key) for key in keys]
-                ))
-            colstr = colnamestr[tabname]
-            if len(andstr) == 0:
-                return "SELECT {} FROM {}".format(colstr, tabname)
-            ands = ["(" + andstr + ")"] * len(keybones)
-            orstr = " OR ".join(ands)
-            return "SELECT {0} FROM {1} WHERE {2}".format(
-                colstr, tabname, orstr)
+            together = []
+            for bone in keybones:
+                apart = []
+                for field in bone._fields:
+                    if getattr(bone, field) is not None:
+                        apart.append("{}=?".format(field))
+                together.append("({})".format(" AND ".join(apart)))
+            orstr = " OR ".join(together)
+            return "SELECT {0} FROM {1} WHERE {2};".format(
+                ", ".join(keybones[0]._fields), tabname, orstr)
 
         def select_keybones_table(c, keybones, tabname):
             """Return a list of records taken from the table ``tabname``,
             through the cursor ``c``, matching the bones.
 
             """
-            keys = primarykeys[tabname]
             qrystr = gen_sql_select(keybones, tabname)
             qrylst = []
             for bone in keybones:
-                for key in keys:
+                for key in bone._fields:
                     if getattr(bone, key) is not None:
                         qrylst.append(getattr(bone, key))
             if len(qrylst) == 0:
@@ -1214,16 +1211,14 @@ class SaveableMetaclass(type):
             """
             r = Skeleton({})
             for (tabname, bones) in skel.items():
-                if tabname not in primarykeys:
-                    continue
                 if tabname not in r:
                     r[tabname] = {}
                 for row in select_keybones_table(c, bones, tabname):
-                    bone = getattr(bonetypes, tabname)(*row)
+                    bone = bonetypes[tabname](*row)
                     ptr = r[tabname]
                     oldptr = None
                     unset = True
-                    for key in primarykeys[tabname]:
+                    for key in bone.cls.keynames[bone._name]:
                         if getattr(bone, key) not in ptr:
                             try:
                                 ptr[getattr(bone, key)] = {}
@@ -1260,16 +1255,6 @@ class SaveableMetaclass(type):
                     bones = [bone for bone in records.iterbones()]
                     delete_keybones_table(c, bones, tabname)
 
-        bonetypes = Bone.structless_subclass(
-            clas + '_bonetypes',
-            [(tabn,
-              type(bonetypes[tabn]),
-              bonetypes[tabn])
-             for tabn in tablenames])(**bonetypes)
-        """A :class:`Bone` filled with subclasses of :class:`Bone`, each
-        accessed by the name of the table it is for.
-
-        """
         atrdic = {
             '_select_skeleton': _select_skeleton,
             '_insert_skeleton': _insert_skeleton,
@@ -1278,22 +1263,15 @@ class SaveableMetaclass(type):
             '_delete_keybones_table': delete_keybones_table,
             '_gen_sql_insert': gen_sql_insert,
             '_gen_sql_delete': gen_sql_delete,
-            'colnames': Bone.structless_subclass(
-                clas + '_colnames',
-                [(tabn, tuple, tuple(colnames[tabn]))
-                 for tabn in tablenames]),
-            'colnamestr': Bone.structless_subclass(
-                clas + '_colnamestr',
-                [(tabn, unicode, unicode(colnamestr[tabn]))]),
+            'colnames': dict([
+                (tabn, tuple(colnames[tabn])) for tabn in tablenames]),
+            'colnamestr': dict([
+                (tabn, unicode(colnamestr[tabn])) for tabn in tablenames]),
             'colnstr': colnamestr[tablenames[0]],
-            'keynames': Bone.structless_subclass(
-                clas + '_keynames',
-                [(tabn, tuple, tuple(keynames[tabn]))
-                 for tabn in tablenames])(),
-            'valnames': Bone.structless_subclass(
-                clas + '_valnames',
-                [(tabn, tuple, tuple(valnames[tabn]))
-                 for tabn in tablenames])(),
+            'keynames': dict([
+                (tabn, tuple(keynames[tabn])) for tabn in tablenames]),
+            'valnames': dict([
+                (tabn, tuple(valnames[tabn])) for tabn in tablenames]),
             'keyns': tuple(keynames[tablenames[0]]),
             'valns': tuple(valnames[tablenames[0]]),
             'colns': tuple(colnames[tablenames[0]]),
@@ -1304,11 +1282,13 @@ class SaveableMetaclass(type):
             'maintab': tablenames[0],
             'tablenames': tuple(tablenames),
             'bonetypes': bonetypes,
-            'bonetype': bonetypes[0]}
+            'bonetype': bonetypes[tablenames[0]]}
         atrdic.update(attrs)
 
         clas = type.__new__(metaclass, clas, parents, atrdic)
         saveable_classes.append(clas)
+        for bonetype in bonetypes.itervalues():
+            bonetype.cls = clas
         return clas
 
 

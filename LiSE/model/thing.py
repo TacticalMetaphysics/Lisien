@@ -105,6 +105,11 @@ class Thing(Container):
     def location(self):
         return self.get_location()
 
+    @property
+    def host(self):
+        hostn = self.character.get_thing_bone(self.name).host
+        return self.character.closet.get_character(hostn)
+
     def __init__(self, character, name):
         self.character = character
         self.name = name
@@ -131,7 +136,7 @@ class Thing(Container):
 
         """
         if observer is None:
-            return self.character.get_thing_bone(self.name, branch, tick)
+            return self.character.get_thing_bone(self.name)
         else:
             facade = self.character.get_facade(observer)
             return facade.get_thing_bone(branch, tick)

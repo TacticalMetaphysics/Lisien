@@ -12,7 +12,6 @@ from kivy.properties import (
 from kivy.graphics import Line, Color
 
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.image import Image
 from kivy.uix.popup import Popup
 from kivy.uix.scatter import Scatter, ScatterPlane
 from kivy.uix.widget import Widget
@@ -27,7 +26,6 @@ from LiSE.gui.board import (
 from LiSE.gui.board.arrow import get_points
 from LiSE.gui.kivybits import TexPile
 from LiSE.gui.swatchbox import SwatchBox
-from LiSE.util import Skeleton
 from LiSE import (
     __path__,
     closet)
@@ -288,7 +286,7 @@ and charsheets.
                 img=swatch.text)
             clost.set_bone(bone)
             i += 1
-        coord_bone = Spot.bonetypes.spot_coords(
+        coord_bone = Spot.bonetypes["spot_coords"](
             observer=obsrvr,
             host=host,
             place=place,
