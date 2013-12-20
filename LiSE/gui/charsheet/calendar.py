@@ -144,9 +144,9 @@ here. Look in CalendarView below.
         character = self.character
         closet = character.closet
         closet.branch_listeners.append(
-            lambda closet, branch: self.timeline.upd_branch(self, branch))
+            lambda branch: self.timeline.upd_branch(self, branch))
         closet.tick_listeners.append(
-            lambda closet, tick: self.timeline.upd_tick(self, tick))
+            lambda tick: self.timeline.upd_tick(self, tick))
         self.bind(
             size=lambda i, v: self.timeline.upd_time(
                 self, closet.branch, closet.tick),

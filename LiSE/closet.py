@@ -149,7 +149,7 @@ before RumorMill will work. For that, run mkdb.sh.
 
         """
         self.connector = connector
-        self.skeleton = Skeleton()
+        self.skeleton = Skeleton({"place": {}})
 
         self.c = self.connector.cursor()
         self.lang_listeners = []
@@ -160,7 +160,7 @@ before RumorMill will work. For that, run mkdb.sh.
             self.language = kwargs["language"]
         else:
             self.language = self.get_global("language")
-        
+
         for glob in self.globs:
             setattr(self, glob, self.get_global(glob))
 
@@ -268,21 +268,21 @@ before RumorMill will work. For that, run mkdb.sh.
     def upd_branch(self, b):
         """Set the active branch, alerting any branch_listeners"""
         for listener in self.branch_listeners:
-            listener(self, b)
+            listener(b)
         self.upd_time(b, self.tick)
         super(Closet, self).__setattr__('branch', b)
 
     def upd_tick(self, t):
         """Set the current tick, alerting any tick_listeners"""
         for listener in self.tick_listeners:
-            listener(self, t)
+            listener(t)
         self.upd_time(self.branch, t)
         super(Closet, self).__setattr__('tick', t)
 
     def upd_time(self, b, t):
         """Set the current branch and tick, alerting any time_listeners"""
         for listener in self.time_listeners:
-            listener(self, b, t)
+            listener(b, t)
 
     def upd_lang(self, l):
         """Set the current language, alerting any lang_listeners"""
@@ -408,14 +408,12 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def load_characters(self, names):
         """Load all the named characters and return them in a dict."""
-        self.skeleton.update(
-            Character._select_skeleton(self.c, {
-                "character_stat": [
-                    Character.bonetypes["character_stat"]._null()._replace(
-                        character=name)
-                    for name in names]}))
-        self.skeleton.update(
-            Portal._select_skeleton(self.c, {
+        charstats = Character._select_skeleton(self.c, {
+            "character_stat": [
+                Character.bonetypes["character_stat"]._null()._replace(
+                    character=name)
+                for name in names]})
+        portalstuff = Portal._select_skeleton(self.c, {
                 "portal": [
                     Portal.bonetypes["portal"]._null()._replace(character=name)
                     for name in names],
@@ -426,27 +424,27 @@ before RumorMill will work. For that, run mkdb.sh.
                 "portal_stat": [
                     Portal.bonetypes["portal_stat"]._null()._replace(
                         character=name)
-                    for name in names]}))
-        self.skeleton.update(
-            Thing._select_skeleton(self.c, {
-                "thing": [
-                    Thing.bonetypes["thing"]._null()._replace(
-                        character=name)
-                    for name in names],
-                "thing_loc": [
-                    Thing.bonetypes["thing_loc"]._null()._replace(
-                        character=name)
-                    for name in names],
-                "thing_stat": [
-                    Thing.bonetypes["thing_stat"]._null()._replace(
-                        character=name)
-                    for name in names]}))
-        self.skeleton.update(
-            Place._select_skeleton(self.c, {
-                "place_stat": [
-                    Place.bonetypes["place_stat"]._null()._replace(
-                        character=name)
-                    for name in names]}))
+                    for name in names]})
+        thingstuff = Thing._select_skeleton(self.c, {
+            "thing": [
+                Thing.bonetypes["thing"]._null()._replace(
+                    character=name)
+                for name in names],
+            "thing_loc": [
+                Thing.bonetypes["thing_loc"]._null()._replace(
+                    character=name)
+                for name in names],
+            "thing_stat": [
+                Thing.bonetypes["thing_stat"]._null()._replace(
+                    character=name)
+                for name in names]})
+        placestuff = Place._select_skeleton(self.c, {
+            "place_stat": [
+                Place.bonetypes["place_stat"]._null()._replace(
+                    character=name)
+                for name in names]})
+        for stuff in (charstats, portalstuff, thingstuff, placestuff):
+            self.skeleton.update(stuff)
         r = {}
         for name in names:
             char = Character(self, name)
@@ -739,6 +737,18 @@ before RumorMill will work. For that, run mkdb.sh.
                 skel = skel[key]
             return skel
 
+        def have_place_bone(host, place, branch, tick):
+            try:
+                return self.skeleton[u"place"][host][place][
+                    branch].value_during(tick) is not None
+            except KeyError:
+                return False
+
+        def set_place_maybe(host, place, branch, tick):
+            if not have_place_bone(host, place, branch, tick):
+                self.set_bone(PlaceBone(
+                    host=host, place=place, branch=branch, tick=tick))
+
         if isinstance(bone, PlaceBone):
             skel = init_keys(
                 self.skeleton[u"place"],
@@ -746,38 +756,33 @@ before RumorMill will work. For that, run mkdb.sh.
             skel[bone.tick] = bone
             return
 
+        # Some bones implicitly declare a new place
+        if isinstance(bone, Thing.bonetypes[u"thing_loc"]):
+            core = self.skeleton[u"thing"][bone.character][bone.name]
+            set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
+        elif isinstance(bone, Thing.bonetypes[u"thing_loc_facade"]):
+            core = self.skeleton[u"thing"][bone.observed][bone.name]
+            set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
+        elif isinstance(bone, Portal.bonetypes[u"portal_loc"]):
+            core = self.skeleton[u"portal"][bone.character][bone.name]
+            for loc in (bone.origin, bone.destination):
+                set_place_maybe(core.host, loc, bone.branch, bone.tick)
+        elif isinstance(bone, Portal.bonetypes[u"portal_stat_facade"]):
+            core = self.skeleton[u"portal"][bone.observed][bone.name]
+            for loc in (bone.origin, bone.destination):
+                set_place_maybe(core.host, loc, bone.branch, bone.tick)
+        elif isinstance(bone, Place.bonetypes[u"place_stat"]):
+            set_place_maybe(bone.host, bone.name, bone.branch, bone.tick)
+        elif isinstance(bone, Spot.bonetypes[u"spot"]):
+            set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
+        elif isinstance(bone, Spot.bonetypes[u"spot_coords"]):
+            set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
+
         keynames = bone.cls.keynames[bone._name]
         keys = [getattr(bone, keyn) for keyn in keynames[:-1]]
         skel = init_keys(self.skeleton[bone._name], keys)
         final_key = getattr(bone, keynames[-1])
         skel[final_key] = bone
-
-    def place_exists(self, character, name, branch=None, tick=None):
-        """Check whether a place by the given name exists in the given
-        character.
-
-        Check only in the given branch, if provided. With additional
-        optional argument ``tick``, check if there is a place *at* or
-        *before* that tick in that branch.
-
-        Assumes that place data in the 'place' skeleton is current.
-
-        """
-        charn = unicode(character)
-        if tick is not None:
-            if branch is None:
-                raise ValueError("With tick, need branch")
-            return (charn in self.skeleton['place'] and
-                    name in self.skeleton['place'][charn] and
-                    branch in self.skeleton['place'][charn][name] and
-                    self.skeleton['place'][charn][name][
-                        branch].key_or_key_before(tick) is not None)
-        elif branch is not None:
-            return (charn in self.skeleton['place'] and
-                    name in self.skeleton['place'][charn] and
-                    branch in self.skeleton['place'][charn][name])
-        return (charn in self.skeleton['place'] and
-                name in self.skeleton['place'][charn])
 
 
 def mkdb(DB_NAME, lisepath):

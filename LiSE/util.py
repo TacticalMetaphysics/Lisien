@@ -510,10 +510,7 @@ class Skeleton(MutableMapping):
 
         """
         if isinstance(self.content, list):
-            if k not in self.ikeys:
-                raise KeyError("key not in skeleton: {}".format(k))
-            else:
-                return self.content[k]
+            return self.content[k]
         elif isinstance(self.content, dict):
             return self.content[k]
         else:
@@ -536,7 +533,7 @@ class Skeleton(MutableMapping):
                 ``self.content``."""
             if isinstance(k, int):
                 if not hasattr(self, 'ikeys'):
-                    self.ikeys = set([])
+                    self.ikeys = []
                     """A set of indices in ``self.content`` that contain
                     legitimate data. They will be treated like keys. Other
                     indices are regarded as empty.
@@ -565,7 +562,19 @@ class Skeleton(MutableMapping):
                 else:
                     self.content = []
         if hasattr(self, 'ikeys') and v is not None:
-            self.ikeys.add(k)
+            if len(self.ikeys) == 0:
+                self.ikeys = [k]
+            else:
+                i = 0
+                end = True
+                for ik in self.ikeys:
+                    if ik > k:
+                        self.ikeys.insert(i, k)
+                        end = False
+                        break
+                    i += 1
+                if end:
+                    self.ikeys.append(k)
         if hasattr(self, 'bonetype'):
             if not isinstance(v, self.bonetype):
                 raise TypeError(
@@ -630,7 +639,7 @@ class Skeleton(MutableMapping):
         if isinstance(self.content, dict):
             return iter(self.content)
         else:
-            return iter(sorted(self.ikeys))
+            return iter(self.ikeys)
 
     def __len__(self):
         """Return the number of "live" data that I have. If ``self.content``
@@ -695,20 +704,20 @@ class Skeleton(MutableMapping):
         if isinstance(self.content, dict):
             return self.content.keys()
         else:
-            return sorted(self.ikeys)
+            return self.ikeys
 
     def key_before(self, k):
         """Return my largest key that is smaller than ``k``."""
         if hasattr(self, 'ikeys'):
-            ikeys = set(self.ikeys)
-            afore = None
-            while len(ikeys) > 0 and afore != k - 1:
-                ik = ikeys.pop()
-                if ik < k:
-                    if afore is None or ik > afore:
-                        afore = ik
-            return afore
-        return max([(j for j in self.content.keys() if j < k)])
+            if k in self.ikeys:
+                iki = self.ikeys.index(k)
+                if iki == 0:
+                    return None
+                else:
+                    return self.ikeys[iki-1]
+            else:
+                return max([j for j in self.ikeys if j < k])
+        return max([j for j in self.content.keys() if j < k])
 
     def key_or_key_before(self, k):
         """Return my highest key less than or equal to ``k``."""
@@ -727,20 +736,23 @@ class Skeleton(MutableMapping):
         don't have one exactly at ``k``.
 
         """
-        return self[self.key_or_key_before(k)]
+        try:
+            return self[self.key_or_key_before(k)]
+        except ValueError:
+            return None
 
     def key_after(self, k):
         """Return my smallest key larger than ``k``."""
         if hasattr(self, 'ikeys'):
-            ikeys = set(self.ikeys)
-            aft = None
-            while len(ikeys) > 0 and aft != k + 1:
-                ik = ikeys.pop()
-                if (aft is None and ik > k) or (
-                        k < ik < aft):
-                    aft = ik
-            return aft
-        return min([(j for j in self.content.keys() if j > k)])
+            if k in self.ikeys:
+                iki = self.ikeys.index(k)
+                if iki == len(self.ikeys) - 1:
+                    return None
+                else:
+                    return self.ikeys[iki + 1]
+            else:
+                return min([j for j in self.ikeys if j > k])
+        return min([j for j in self.content.keys() if j > k])
 
     def key_or_key_after(self, k):
         """Return ``k`` if it's a key I have, or else my
@@ -763,7 +775,7 @@ class Skeleton(MutableMapping):
             r.bonetype = self.bonetype
             r.name = self.name
             r.content = self.content
-            r.ikeys = set(self.ikeys)
+            r.ikeys = list(self.ikeys)
             return r
         elif hasattr(self, 'bonetype'):
             r = {}
@@ -819,7 +831,7 @@ class Skeleton(MutableMapping):
                 if k in self.content:
                     self[k].update(v)
                 else:
-                    self[k] = v.copy()
+                    self[k] = v.deepcopy()
             else:
                 assert(v.__class__ in (dict, list))
                 if k in self.content:
@@ -830,7 +842,7 @@ class Skeleton(MutableMapping):
 
     def itervalues(self):
         if isinstance(self.content, array):
-            for i in sorted(self.ikeys):
+            for i in self.ikeys:
                 yield self.bonetype._unpack_from(i, self.content)
         else:
             for v in super(Skeleton, self).itervalues():
@@ -855,7 +867,7 @@ class Skeleton(MutableMapping):
             for bone in self.itervalues():
                 yield bone
         else:
-            for i in sorted(self.ikeys):
+            for i in self.ikeys:
                 for bone in self.content[i].iterbones():
                     yield bone
 
@@ -1079,11 +1091,7 @@ class SaveableMetaclass(type):
                        for coln in colnames[tablename]]
             coldecstr = ", ".join(coldecs)
             pkeycolstr = ", ".join(pkey)
-            pkeys = [keyname for (keyname, typ) in coldecl.items()
-                     if keyname in pkey]
-            vals = [valname for (valname, typ) in coldecl.items()
-                    if valname not in pkey]
-            colnamestr[tablename] = ", ".join(sorted(pkeys) + sorted(vals))
+            colnamestr[tablename] = ", ".join(colnames[tablename])
             pkeystr = "PRIMARY KEY (%s)" % (pkeycolstr,)
             fkeystrs = []
             for item in fkeys.items():
@@ -1216,21 +1224,12 @@ class SaveableMetaclass(type):
                 for row in select_keybones_table(c, bones, tabname):
                     bone = bonetypes[tabname](*row)
                     ptr = r[tabname]
-                    oldptr = None
-                    unset = True
-                    for key in bone.cls.keynames[bone._name]:
+                    for key in bone.cls.keynames[bone._name][:-1]:
                         if getattr(bone, key) not in ptr:
-                            try:
-                                ptr[getattr(bone, key)] = {}
-                                assert(ptr[getattr(bone, key)] is not None)
-                            except TypeError:
-                                ptr[getattr(bone, key)] = bone
-                                unset = False
-                                break
-                        oldptr = ptr
+                            ptr[getattr(bone, key)] = {}
                         ptr = ptr[getattr(bone, key)]
-                    if unset:
-                        oldptr[getattr(bone, key)] = bone
+                    finkey = bone.cls.keynames[bone._name][-1]
+                    ptr[getattr(bone, finkey)] = bone
             return r
 
         @staticmethod

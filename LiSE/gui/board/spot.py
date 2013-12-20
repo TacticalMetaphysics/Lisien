@@ -122,20 +122,17 @@ class Spot(Scatter):
         return unicode(self.place)
 
     def on_board(self, i, v):
-        self.board.facade.closet.branch_listeners.append(self.repos)
-        self.board.facade.closet.tick_listeners.append(self.repos)
+        if v is None:
+            return
+        v.facade.closet.branch_listeners.append(self.repos)
+        v.facade.closet.tick_listeners.append(self.repos)
         self.repos()
 
     def repos(self, *args):
         """Update my pos to match the database. Keep respecting my transform
         as I can."""
         coords = self.get_coords()
-        if coords is None:
-            return
-        oldtf = self.transform
-        self.transform.identity()
         self.pos = coords
-        self.apply_transform(oldtf)
 
     def set_img(self, img, layer, branch=None, tick_from=None):
         if branch is None:
@@ -239,3 +236,8 @@ class Spot(Scatter):
 
     def collide_point(self, x, y):
         return self.ids.pile.collide_point(x, y)
+
+    def on_touch_up(self, touch):
+        if touch.grab_current is self:
+            self.set_coords(*self.pos)
+        return super(Spot, self).on_touch_up(touch)
