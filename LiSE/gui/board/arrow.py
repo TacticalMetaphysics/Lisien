@@ -302,10 +302,6 @@ class Arrow(Widget):
             x = ox + w * progress
             y = oy + h * progress
             pawn.pos = (x, y)
-            print("os.transform={} ds.transform={} pawn.transform={}".format(
-                os.transform, ds.transform, pawn.transform))
-            print("os.pos={} ds.pos={} pawn.pos={}".format(
-                os.pos, ds.pos, pawn.pos))
 
     def on_pawns_here(self, i, v):
         (branch, tick) = self.board.host.sanetime(None, None)
