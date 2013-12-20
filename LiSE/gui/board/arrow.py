@@ -82,10 +82,10 @@ class Arrow(Widget):
     """The board on which I am displayed."""
     portal = ObjectProperty()
     """The portal that I represent."""
-    pawns_here = ListProperty([])
     """Pawns that are part-way through me. Each needs to present a
     'progress' property to let me know how far through me they ought to be
     repositioned."""
+    pawns_here = ListProperty([])
 
     def __init__(self, **kwargs):
         """Bind some properties, and put the relevant instructions into the
@@ -283,9 +283,12 @@ class Arrow(Widget):
                 self.board.facade.observer, branch)
             bone = locations.value_during(tick)
             t1 = bone.tick
-            t2 = locations.key_after(tick)
+            try:
+                t2 = locations.key_after(tick)
+            except ValueError:
+                continue
             if t2 is None:
-                progress = 1.0
+                continue
             else:
                 duration = float(t2 - t1)
                 passed = float(tick - t1)
@@ -296,8 +299,14 @@ class Arrow(Widget):
             (dx, dy) = ds.pos
             w = dx - ox
             h = dy - oy
-            x = w * progress
-            y = h * progress
-            pawn.pos = (ox, oy)
-            pawn.transform.identity()
-            pawn.transform.translate(x, y, 0)
+            x = ox + w * progress
+            y = oy + h * progress
+            pawn.pos = (x, y)
+            print("os.transform={} ds.transform={} pawn.transform={}".format(
+                os.transform, ds.transform, pawn.transform))
+            print("os.pos={} ds.pos={} pawn.pos={}".format(
+                os.pos, ds.pos, pawn.pos))
+
+    def on_pawns_here(self, i, v):
+        (branch, tick) = self.board.host.sanetime(None, None)
+        self.repawn(branch, tick)

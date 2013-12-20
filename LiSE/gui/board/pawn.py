@@ -77,18 +77,11 @@ The relevant data are
 
     def on_board(self, i, v):
         v.facade.closet.register_time_listener(self.repos)
-
-    def on_pos(self, i, v):
-        for child in i.children:
-            child.pos = v
-
-    def on_x(self, i, v):
-        for child in i.children:
-            child.x = v
-
-    def on_y(self, i, v):
-        for child in i.children:
-            child.y = v
+        try:
+            whereami = v.arrowdict[unicode(self.thing.location)]
+        except KeyError:
+            whereami = v.spotdict[unicode(self.thing.location)]
+        whereami.pawns_here.append(self)
 
     def get_loc_bone(self, branch=None, tick=None):
         return self.thing.get_bone(branch, tick)
@@ -165,7 +158,6 @@ The relevant data are
                 myplace = self.thing.location
                 theirplace = spot.place
                 if myplace != theirplace:
-                    print("{} journeys to {}".format(self, spot))
                     self.thing.journey_to(spot.place)
                     break
         branch = self.board.facade.closet.branch
