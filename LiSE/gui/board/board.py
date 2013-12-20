@@ -127,6 +127,8 @@ class Board(ScrollView):
             self.finalize()
 
     def finalize(self):
+        branch = self.facade.closet.branch
+        tick = self.facade.closet.tick
         obsrvr = unicode(self.facade.observer)
         obsrvd = unicode(self.facade.observed)
         host = unicode(self.host)
@@ -160,7 +162,14 @@ class Board(ScrollView):
         for bone in self.facade.closet.skeleton[u"portal"].iterbones():
             if bone.host == host and bone.name not in self.arrowdict:
                 char = self.facade.closet.get_character(bone.character)
-                port = char.get_portal(bone.name)
+                try:
+                    port = char.get_portal(bone.name)
+                except KeyError:
+                    boen = char.closet.skeleton[u"portal_loc"][
+                        unicode(char)][bone.name][branch].value_during(tick)
+                    port = char.make_portal(
+                        boen.origin, boen.destination, bone.host,
+                        bone.name, boen.branch, boen.tick)
                 self.arrowdict[bone.name] = Arrow(board=self, portal=port)
                 content.add_widget(self.arrowdict[bone.name])
         for spot in self.spotdict.itervalues():

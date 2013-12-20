@@ -64,20 +64,19 @@ The relevant data are
         super(Pawn, self).__init__(**kwargs)
         self.board.pawndict[unicode(self.thing)] = self
 
-        self.board.facade.closet.branch_listeners.append(self.repos)
-        self.board.facade.closet.tick_listeners.append(self.repos)
-
         skel = self.board.facade.closet.skeleton
 
         skel["thing_loc"][unicode(self.thing.character)][
-            unicode(self.thing)].listeners.append(self.repos)
-        self.repos()
+            unicode(self.thing)].listeners.append(self.reposskel)
 
     def __str__(self):
         return str(self.thing)
 
     def __unicode__(self):
         return unicode(self.thing)
+
+    def on_board(self, i, v):
+        v.facade.closet.time_listeners.append(self.repos)
 
     def get_coords(self, branch=None, tick=None):
         """Return my coordinates on the :class:`Board`.
@@ -108,6 +107,9 @@ The relevant data are
         elif unicode(loc) in self.board.spotdict:
             spot = self.board.spotdict[unicode(loc)]
             return spot.get_coords()
+
+    def loc_bone(self, branch=None, tick=None):
+        return self.thing.get_bone(branch, tick)
 
     def new_branch(self, parent, branch, tick):
         """Update my part of the :class:`Skeleton` to have this new branch in
@@ -170,61 +172,70 @@ The relevant data are
                     print("{} journeys to {}".format(self, spot))
                     self.thing.journey_to(spot.place)
                     break
-        self.repos()
+        branch = self.board.facade.closet.branch
+        tick = self.board.facade.closet.tick
+        self.repos(branch, tick)
         super(Pawn, self).on_touch_up(touch)
         return True
 
-    def repos(self, *args):
+    def reposskel(self, *args):
+        self.repos(*self.board.host.sanetime(None, None))
+
+    def repos(self, b, t):
         """Recalculate and reassign my position, based on the apparent
         position of whatever widget I am located on--a :class:`Spot`
         or an :class:`Arrow`.
 
         """
-        if self.thing.location is None:
+        thingloc = self.thing.get_location(self.board.facade.observer, b, t)
+        if thingloc is None:
             return
         if self.where_upon is not None:
-            if hasattr(self.where_upon, 'portal'):
-                for place in (self.where_upon.portal.origin,
-                              self.where_upon.portal.destination):
-                    self.board.get_spot(place).unbind(
-                        transform=self.transform_on_arrow)
+            if hasattr(self.where_upon, 'origin'):
+                origspot = self.board.spotdict[
+                    self.where_upon.portal.origin.name]
+                destspot = self.board.spotdict[
+                    self.where_upon.portal.destination.name]
+                origspot.unbind(pos=self.pos_on_origin)
+                destspot.unbind(pos=self.pos_on_destination)
             else:
-                self.where_upon.unbind(
-                    transform=self.transform_on_spot)
-        if hasattr(self.thing.location, 'origin'):
-            self.where_upon = self.board.get_arrow(self.thing.location)
-            for place in (self.where_upon.portal.origin,
-                          self.where_upon.portal.destination):
-                self.board.get_spot(place).bind(
-                    transform=self.transform_on_arrow)
-            ospot = self.board.get_spot(self.thing.location.origin)
-            self.pos = ospot.pos
-            self.transform_on_arrow(ospot, ospot.transform)
+                self.where_upon.unbind(pos=self.setter('pos'))
+        try:
+            self.where_upon = self.board.arrowdict[unicode(thingloc)]
+        except KeyError:
+            self.where_upon = self.board.spotdict[unicode(thingloc)]
+        if hasattr(self.where_upon, 'portal'):
+            origspot = self.board.spotdict[
+                self.where_upon.portal.origin.name]
+            destspot = self.board.spotdict[
+                self.where_upon.portal.destination.name]
+            origspot.bind(pos=self.pos_on_arrow)
+            destspot.bind(pos=self.pos_on_arrow)
+            self.origpos = origspot.pos
+            self.destpos = destspot.pos
+            self.pos_on_arrow()
         else:
-            self.where_upon = self.board.get_spot(self.thing.location)
-            self.where_upon.bind(transform=self.transform_on_spot)
-            self.pos = self.where_upon.pos
-            self.transform_on_spot(self.where_upon, self.where_upon.transform)
+            self.where_upon.bind(pos=self.pos_on_spot)
+            self.pos_on_spot(self.where_upon, self.where_upon.pos)
 
-    def transform_on_spot(self, i, v):
-        """Appear upon the spot"""
-        self.transform.identity()
-        self.apply_transform(v)
+    def pos_on_spot(self, i, v):
+        i.transform.identity()
+        i.transform.translate(v[0], v[1], 0)
 
-    def transform_on_arrow(self, i, v):
-        """I am located some ways along the :class:`Arrow`. Work out how far
-        on each axis and transform so I appear there.
-
-        """
-        origspot = self.board.get_spot(self.where_upon.portal.origin)
-        destspot = self.board.get_spot(self.where_upon.portal.destination)
+    def pos_on_arrow(self, *args):
+        origspot = self.board.spotdict[
+            self.where_upon.portal.origin.name]
+        destspot = self.board.spotdict[
+            self.where_upon.portal.destination.name]
+        (ox, oy) = origspot.pos
+        (dx, dy) = destspot.pos
         progress = self.thing.get_progress()
-        (orig_x, orig_y) = self.where_upon.pos
-        xtrans = (destspot.x - origspot.x) * progress
-        ytrans = (destspot.y - origspot.y) * progress
+        progx = dx - ox
+        progy = dy - oy
+        x = ox + progx * progress
+        y = oy + progy * progress
         self.transform.identity()
-        self.apply_transform(v)
-        self.transform.translate(xtrans, ytrans, 0)
+        self.transform.translate(x, y, 0)
 
     def collide_point(self, x, y):
         return self.ids.pile.collide_point(x, y)

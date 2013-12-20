@@ -98,33 +98,3 @@ class Place(Container):
         return set([
             getter(bone.name) for bone in
             self._iter_portals_bones(observer, branch, tick)])
-
-    def upd_skel_from_bone(self, bone):
-        """Update the 'place' skeleton so that it contains the place(s)
-        referred to in the bone."""
-        if hasattr(bone, 'origin'):
-            pobone = self.character.closet.skeleton[u"portal"][
-                bone.character][bone.name]
-            host = pobone.host
-            for name in (bone.origin, bone.destination):
-                if not self.character.closet.place_exists(
-                        host, name, bone.branch, bone.tick):
-                    self.character.closet.set_bone(PlaceBone(
-                        character=host, place=name,
-                        branch=bone.branch, tick=bone.tick))
-            return
-        elif hasattr(bone, 'place'):
-            if not self.character.closet.place_exists(
-                    bone.character, bone.place, bone.branch, bone.tick):
-                self.character.closet.set_bone(PlaceBone(
-                    character=bone.character, place=bone.place,
-                    branch=bone.branch, tick=bone.tick))
-        elif hasattr(bone, 'location'):
-            thbone = self.character.closet.skeleton[u"thing"][
-                bone.character][bone.name]
-            host = thbone.host
-            if not self.character.closet.place_exists(
-                    host, bone.location, bone.branch, bone.tick):
-                self.character.closet.set_bone(PlaceBone(
-                    character=host, place=bone.location,
-                    branch=bone.branch, tick=bone.tick))

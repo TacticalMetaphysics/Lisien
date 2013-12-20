@@ -218,7 +218,7 @@ class Thing(Container):
         facade = host.get_facade(self.character)
         facade.update(branch, tick)
         ipath = facade.graph.get_shortest_paths(
-            loc, to=unicode(destplace), output=str("epath"))
+            unicode(loc), to=unicode(destplace), output=str("epath"))
         path = None
         for p in ipath:
             if p == []:

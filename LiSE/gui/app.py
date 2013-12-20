@@ -171,6 +171,15 @@ and charsheets.
 
     def on_touch_down(self, touch):
         clost = self.board.facade.closet
+        # menus appear above the board. you can't portal on them. so
+        # interpret touches there as cancelling the portaling action.
+        for menu in self.menus:
+            if menu.collide_point(touch.x, touch.y):
+                return super(LiSELayout, self).on_touch_down(touch)
+        # same comment for charsheets
+        for charsheet in self.charsheets:
+            if charsheet.collide_point(touch.x, touch.y):
+                return super(LiSELayout, self).on_touch_down(touch)
         if self.portaling == 1:
             for spot in self.board.spotdict.itervalues():
                 if spot.collide_point(touch.x, touch.y):
