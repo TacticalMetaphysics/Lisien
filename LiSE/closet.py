@@ -267,17 +267,17 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def upd_branch(self, b):
         """Set the active branch, alerting any branch_listeners"""
+        super(Closet, self).__setattr__('branch', b)
+        self.upd_time(b, self.tick)
         for listener in self.branch_listeners:
             listener(b)
-        self.upd_time(b, self.tick)
-        super(Closet, self).__setattr__('branch', b)
 
     def upd_tick(self, t):
         """Set the current tick, alerting any tick_listeners"""
+        super(Closet, self).__setattr__('tick', t)
+        self.upd_time(self.branch, t)
         for listener in self.tick_listeners:
             listener(t)
-        self.upd_time(self.branch, t)
-        super(Closet, self).__setattr__('tick', t)
 
     def upd_time(self, b, t):
         """Set the current branch and tick, alerting any time_listeners"""

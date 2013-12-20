@@ -151,14 +151,6 @@ class Board(ScrollView):
                 char = self.facade.closet.get_character(bone.host)
                 place = char.get_place(bone.place)
                 self.spotdict[bone.place] = Spot(board=self, place=place)
-        for bone in self.facade.closet.skeleton[u"pawn"].iterbones():
-            if bone.host == host and bone.thing not in self.pawndict:
-                char = self.facade.closet.get_character(bone.observed)
-                try:
-                    thing = char.get_thing(bone.thing)
-                except KeyError:
-                    thing = char.make_thing(bone.thing)
-                self.pawndict[bone.thing] = Pawn(board=self, thing=thing)
         for bone in self.facade.closet.skeleton[u"portal"].iterbones():
             if bone.host == host and bone.name not in self.arrowdict:
                 char = self.facade.closet.get_character(bone.character)
@@ -172,6 +164,14 @@ class Board(ScrollView):
                         bone.name, boen.branch, boen.tick)
                 self.arrowdict[bone.name] = Arrow(board=self, portal=port)
                 content.add_widget(self.arrowdict[bone.name])
+        for bone in self.facade.closet.skeleton[u"pawn"].iterbones():
+            if bone.host == host and bone.thing not in self.pawndict:
+                char = self.facade.closet.get_character(bone.observed)
+                try:
+                    thing = char.get_thing(bone.thing)
+                except KeyError:
+                    thing = char.make_thing(bone.thing)
+                self.pawndict[bone.thing] = Pawn(board=self, thing=thing)
         for spot in self.spotdict.itervalues():
             content.add_widget(spot)
         for pawn in self.pawndict.itervalues():

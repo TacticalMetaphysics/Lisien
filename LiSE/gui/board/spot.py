@@ -131,21 +131,17 @@ class Spot(Scatter):
 
     def on_pos(self, i, v):
         for pawn in i.pawns_here:
-            pawn.pos = i.to_parent(0, 0)
-            pawn.transform.identity()
-            pawn.apply_transform(v.transform)
+            pawn.pos = self.pos
 
     def on_pawns_here(self, i, v):
         for pawn in v:
-            pawn.pos = i.to_parent(0, 0)
-            pawn.transform.identity()
-            pawn.apply_transform(v.transform)
+            pawn.pos = self.pos
 
     def repos(self, *args):
         """Update my pos to match the database. Keep respecting my transform
         as I can."""
-        coords = self.get_coords()
-        self.pos = coords
+        (x, y) = self.get_coords()
+        self.pos = (x, y)
 
     def set_img(self, img, layer, branch=None, tick_from=None):
         if branch is None:
