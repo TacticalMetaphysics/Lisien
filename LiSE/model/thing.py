@@ -262,7 +262,7 @@ class Thing(Container):
             if self.get_locations(observer=None, branch=branch).key_after(
                     tick) is not None:
                 raise TimeParadox
-        except KeyError:
+        except ValueError:
             # This just means the branch isn't there yet. Don't worry.
             pass
         host = self.character.closet.get_character(self.get_bone().host)
@@ -324,6 +324,6 @@ class Thing(Container):
         location data from the bones.
 
         """
-        self.character.del_thing_locations(branch)
+        self.character.del_thing_locations(self.name, branch)
         for bone in bones:
             self.character.set_thing_bone(bone)

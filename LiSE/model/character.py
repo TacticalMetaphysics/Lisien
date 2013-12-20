@@ -298,6 +298,13 @@ class Character(object):
         skel = self.closet.skeleton[u"thing_loc"][unicode(self)][name]
         return self._get_thing_skel_locations(skel, branch)
 
+    def del_thing_locations(self, name, branch=None):
+        if branch is None:
+            del self.closet.skeleton[u"thing_loc"][unicode(self)][name]
+        else:
+            del self.closet.skeleton[u"thing_loc"][unicode(self)][name][
+                branch]
+
     def get_thing_location(self, name, branch, tick):
         (branch, tick) = self.sanetime(branch, tick)
         bone = self.get_thing_locations(name, branch).value_during(tick)
@@ -339,7 +346,7 @@ class Character(object):
 
     def _get_place_skel_bone(self, skel, branch, tick):
         (branch, tick) = self.sanetime(branch, tick)
-        return skelget(self.closet.timeline, skel, branch, tick)
+        return skelget(self.closet.timestreams, skel, branch, tick)
 
     def get_place_bone(self, name, branch=None, tick=None):
         skel = self.closet.skeleton[u"place"][unicode(self)][name]
