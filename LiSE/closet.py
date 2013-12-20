@@ -699,6 +699,15 @@ before RumorMill will work. For that, run mkdb.sh.
         if stringn[0] == "@" and stringn[1:] in self.skeleton["strings"]:
             self.skeleton["strings"][stringn[1:]].listeners.append(listener)
 
+    def register_time_listener(self, listener):
+        self.time_listeners.append(listener)
+
+    def register_branch_listener(self, listener):
+        self.branch_listeners.append(listener)
+
+    def register_tick_listener(self, listener):
+        self.tick_listeners.append(listener)
+
     def load_img_metadata(self):
         self.skeleton.update(self.select_class_all(Img))
 

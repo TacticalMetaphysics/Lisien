@@ -284,7 +284,7 @@ class Table(GridLayout):
                 self.skel.listeners.append(child.skel_listener)
                 self.add_widget(child)
                 self.edbut.extra_listeners.append(child.edbut_listener)
-                self.parent.character.closet.time_listeners.append(
+                self.parent.character.closet.register_time_listener(
                     child.time_listener)
 
     def complete(self):
