@@ -8,7 +8,9 @@ from LiSE.util import (
     fortyfive)
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
-from kivy.properties import ObjectProperty
+from kivy.properties import (
+    ObjectProperty,
+    ListProperty)
 
 
 def get_points(ox, orx, oy, ory, dx, drx, dy, dry, taillen):
@@ -80,6 +82,10 @@ class Arrow(Widget):
     """The board on which I am displayed."""
     portal = ObjectProperty()
     """The portal that I represent."""
+    pawns_here = ListProperty([])
+    """Pawns that are part-way through me. Each needs to present a
+    'progress' property to let me know how far through me they ought to be
+    repositioned."""
 
     def __init__(self, **kwargs):
         """Bind some properties, and put the relevant instructions into the
@@ -101,6 +107,7 @@ class Arrow(Widget):
             pos=self.upd_size,
             size=self.realign,
             transform=self.realign)
+        self.board.host.closet.register_time_listener(self.repawn)
         self.bind(pos=self.repoint)
         self.bind(size=self.repoint)
         self.bg_color = Color(0.25, 0.25, 0.25)
@@ -190,10 +197,16 @@ class Arrow(Widget):
         return ((y_numerator - x_numerator), denominator)
 
     def repoint(self, *args):
-        """Recalculate all my points and redraw."""
+        """Recalculate all my points and redraw. Reposition any pawns on
+        me."""
         points = self.get_points()
         self.bg_line.points = points
         self.fg_line.points = points
+        origspot = self.board.spotdict[self.portal.origin.name]
+        destspot = self.board.spotdict[self.portal.destination.name]
+        (ox, oy) = origspot.pos
+        (dx, dy) = destspot.pos
+        (branch, tick) = self.board.host.sanetime(None, None)
 
     def realign(self, *args):
         self.upd_pos_size()
@@ -263,3 +276,28 @@ class Arrow(Widget):
             error_angle_a = abs(observed_angle_a - correct_angle_a)
             error_seg_len = hypot(x, y)
             return sin(error_angle_a) * error_seg_len <= self.margin
+
+    def repawn(self, branch, tick):
+        for pawn in self.pawns_here:
+            locations = pawn.thing.get_locations(
+                self.board.facade.observer, branch)
+            bone = locations.value_during(tick)
+            t1 = bone.tick
+            t2 = locations.key_after(tick)
+            if t2 is None:
+                progress = 1.0
+            else:
+                duration = float(t2 - t1)
+                passed = float(tick - t1)
+                progress = passed / duration
+            os = self.board.spotdict[unicode(self.portal.origin)]
+            ds = self.board.spotdict[unicode(self.portal.destination)]
+            (ox, oy) = os.pos
+            (dx, dy) = ds.pos
+            w = dx - ox
+            h = dy - oy
+            x = w * progress
+            y = h * progress
+            pawn.pos = (ox, oy)
+            pawn.transform.identity()
+            pawn.transform.translate(x, y, 0)

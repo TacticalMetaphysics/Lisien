@@ -76,47 +76,43 @@ The relevant data are
         return unicode(self.thing)
 
     def on_board(self, i, v):
-        v.facade.closet.time_listeners.append(self.repos)
+        v.facade.closet.register_time_listener(self.repos)
 
-    def get_coords(self, branch=None, tick=None):
-        """Return my coordinates on the :class:`Board`.
+    def on_pos(self, i, v):
+        for child in i.children:
+            child.pos = v
 
-        You may specify the branch and tick to get the coordinates at that
-        point in time, or leave them ``None`` to get the value at the time the
-        user is presently viewing..
+    def on_x(self, i, v):
+        for child in i.children:
+            child.x = v
 
-        """
-        loc = self.thing.get_location(branch, tick)
-        if loc is None:
-            return None
-        if hasattr(loc, 'destination'):
-            origspot = self.board.spotdict[unicode(loc.origin)]
-            destspot = self.board.spotdict[unicode(loc.destination)]
-            oc = origspot.get_coords(branch, tick)
-            dc = destspot.get_coords(branch, tick)
-            if None in (oc, dc):
-                return self.cheat_coords
-            (ox, oy) = oc
-            (dx, dy) = dc
-            prog = self.thing.get_progress(branch, tick)
-            odx = dx - ox
-            ody = dy - oy
-            self.cheat_coords = (int(ox + odx * prog),
-                                 int(oy + ody * prog))
-            return self.cheat_coords
-        elif unicode(loc) in self.board.spotdict:
-            spot = self.board.spotdict[unicode(loc)]
-            return spot.get_coords()
+    def on_y(self, i, v):
+        for child in i.children:
+            child.y = v
 
-    def loc_bone(self, branch=None, tick=None):
+    def get_loc_bone(self, branch=None, tick=None):
         return self.thing.get_bone(branch, tick)
+
+    def get_pawn_bone(self, layer=0, branch=None, tick=None):
+        (branch, tick) = self.board.host.sanetime(branch, tick)
+        return self.board.host.closet.skeleton[u"pawn"][
+            unicode(self.board.facade.observer)][
+            unicode(self.thing.character)][
+            unicode(self.thing.host)][
+            unicode(self.thing)][
+            layer][branch].value_during(tick)
+
+    def get_img_bone(self, layer=0, branch=None, tick=None):
+        (branch, tick) = self.board.host.sanetime(branch, tick)
+        pawnbone = self.get_pawn_bone(layer, branch, tick)
+        return self.board.host.closet.skeleton[u"img"][pawnbone.img]
 
     def new_branch(self, parent, branch, tick):
         """Update my part of the :class:`Skeleton` to have this new branch in
         it. Where there is room, fill it with data from the parent branch."""
         prev = None
         started = False
-        imagery = self.board.closet.skeleton["pawn_img"][
+        imagery = self.board.host.closet.skeleton[u"pawn"][
             unicode(self.board.dimension)][unicode(self.thing)]
         for layer in imagery:
             for tick_from in imagery[layer][parent]:
@@ -190,52 +186,14 @@ The relevant data are
         thingloc = self.thing.get_location(self.board.facade.observer, b, t)
         if thingloc is None:
             return
-        if self.where_upon is not None:
-            if hasattr(self.where_upon, 'origin'):
-                origspot = self.board.spotdict[
-                    self.where_upon.portal.origin.name]
-                destspot = self.board.spotdict[
-                    self.where_upon.portal.destination.name]
-                origspot.unbind(pos=self.pos_on_origin)
-                destspot.unbind(pos=self.pos_on_destination)
-            else:
-                self.where_upon.unbind(pos=self.setter('pos'))
         try:
-            self.where_upon = self.board.arrowdict[unicode(thingloc)]
+            new_where_upon = self.board.arrowdict[unicode(thingloc)]
         except KeyError:
-            self.where_upon = self.board.spotdict[unicode(thingloc)]
-        if hasattr(self.where_upon, 'portal'):
-            origspot = self.board.spotdict[
-                self.where_upon.portal.origin.name]
-            destspot = self.board.spotdict[
-                self.where_upon.portal.destination.name]
-            origspot.bind(pos=self.pos_on_arrow)
-            destspot.bind(pos=self.pos_on_arrow)
-            self.origpos = origspot.pos
-            self.destpos = destspot.pos
-            self.pos_on_arrow()
-        else:
-            self.where_upon.bind(pos=self.pos_on_spot)
-            self.pos_on_spot(self.where_upon, self.where_upon.pos)
-
-    def pos_on_spot(self, i, v):
-        i.transform.identity()
-        i.transform.translate(v[0], v[1], 0)
-
-    def pos_on_arrow(self, *args):
-        origspot = self.board.spotdict[
-            self.where_upon.portal.origin.name]
-        destspot = self.board.spotdict[
-            self.where_upon.portal.destination.name]
-        (ox, oy) = origspot.pos
-        (dx, dy) = destspot.pos
-        progress = self.thing.get_progress()
-        progx = dx - ox
-        progy = dy - oy
-        x = ox + progx * progress
-        y = oy + progy * progress
-        self.transform.identity()
-        self.transform.translate(x, y, 0)
+            new_where_upon = self.board.spotdict[unicode(thingloc)]
+        if self.where_upon is not None:
+            self.where_upon.pawns_here.remove(self)
+        self.where_upon = new_where_upon
+        self.where_upon.pawns_here.append(self)
 
     def collide_point(self, x, y):
         return self.ids.pile.collide_point(x, y)

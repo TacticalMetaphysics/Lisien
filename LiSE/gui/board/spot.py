@@ -3,6 +3,7 @@
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass)
 from kivy.properties import (
+    ListProperty,
     NumericProperty,
     ObjectProperty)
 from kivy.uix.scatter import Scatter
@@ -108,6 +109,7 @@ class Spot(Scatter):
     completedness = NumericProperty(0)
     cheatx = NumericProperty(0)
     cheaty = NumericProperty(0)
+    pawns_here = ListProperty([])
 
     def __init__(self, **kwargs):
         super(Spot, self).__init__(**kwargs)
@@ -124,9 +126,20 @@ class Spot(Scatter):
     def on_board(self, i, v):
         if v is None:
             return
-        v.facade.closet.branch_listeners.append(self.repos)
-        v.facade.closet.tick_listeners.append(self.repos)
+        v.facade.closet.register_time_listener(self.repos)
         self.repos()
+
+    def on_pos(self, i, v):
+        for pawn in i.pawns_here:
+            pawn.pos = i.to_parent(0, 0)
+            pawn.transform.identity()
+            pawn.apply_transform(v.transform)
+
+    def on_pawns_here(self, i, v):
+        for pawn in v:
+            pawn.pos = i.to_parent(0, 0)
+            pawn.transform.identity()
+            pawn.apply_transform(v.transform)
 
     def repos(self, *args):
         """Update my pos to match the database. Keep respecting my transform

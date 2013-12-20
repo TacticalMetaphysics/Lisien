@@ -52,6 +52,7 @@ class Place(Container):
         """Initialize a place in a character by a name"""
         self.character = character
         self.name = name
+        self.character.graph.add_vertex(name=self.name, place=self)
 
     def __contains__(self, that):
         """Is that here?"""

@@ -187,12 +187,7 @@ class Thing(Container):
         # this is when I will enter the destination
         t2 = self.get_locations(observer, branch).key_after(tick)
         if t2 is None:
-            # I entered the portal without scheduling when to leave.
-            # This should never happen *in play* but I guess a
-            # developer might put me in the portal before scheduling
-            # my time to leave it.  Return 0.5 so that I appear
-            # halfway thru the portal, therefore, clearly "in" it.
-            return 0.5
+            return None
         duration = float(t2 - t1)
         passed = float(tick - t1)
         return passed / duration

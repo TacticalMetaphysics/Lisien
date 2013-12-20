@@ -168,8 +168,11 @@ class Character(object):
                     e["name"], branch, tick)
             except (KeyError, KnowledgeException):
                 self.graph.delete_edge(e.index)
-        for v in self.iter_place_bones(branch, tick):
-            self.graph.add_vertex(name=v.place, place=Place(self, v.place))
+        for placebone in self.iter_place_bones(branch, tick):
+            if (
+                    "name" not in self.graph.vs.attributes() or
+                    placebone.place not in self.graph.vs["name"]):
+                Place(self, placebone.place)
         for e in self.iter_hosted_portal_loc_bones(branch, tick):
             bone = self.closet.skeleton[u"portal_loc"][
                 unicode(self)][e.name][branch].value_during(tick)
