@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from container import Container
+from LiSE.util import upbranch
 
 
 class Portal(Container):
@@ -128,3 +129,10 @@ class Portal(Container):
             return self.character.get_place(bone.destination)
         except KeyError:
             return self.character.get_thing(bone.destination)
+
+    def new_branch(self, parent, branch, tick):
+        skel = self.character.closet.skeleton[u"portal_loc"][
+            unicode(self.character)][unicode(self)][parent]
+        for bone in upbranch(
+                self.character.closet, skel.iterbones(), branch, tick):
+            yield bone

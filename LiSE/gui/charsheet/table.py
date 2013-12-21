@@ -281,7 +281,7 @@ class Table(GridLayout):
                     table=self,
                     key=key,
                     bone=bone)
-                self.skel.listeners.append(child.skel_listener)
+                self.skel.register_set_listener(child.skel_listener)
                 self.add_widget(child)
                 self.edbut.extra_listeners.append(child.edbut_listener)
                 self.parent.character.closet.register_time_listener(

@@ -3,6 +3,8 @@
 from igraph import Graph
 
 from LiSE.util import (
+    selectif,
+    upbranch,
     KnowledgeException,
     SaveableMetaclass,
     Skeleton)
@@ -168,7 +170,7 @@ class Character(object):
                     e["name"], branch, tick)
             except (KeyError, KnowledgeException):
                 self.graph.delete_edge(e.index)
-        for placebone in self.iter_place_bones(branch, tick):
+        for placebone in self.iter_place_bones(None, branch, tick):
             if (
                     "name" not in self.graph.vs.attributes() or
                     placebone.place not in self.graph.vs["name"]):
@@ -256,6 +258,51 @@ class Character(object):
         for name in skel:
             yield skelget(self.closet.tl, skel, branch, tick)
 
+    def iter_things(self, branch=None, tick=None):
+        """Iterate over things that have been defined for this character,
+        possibly creating them. If a time is given, the iteration will
+        be restricted to things that exist then.
+
+        """
+        try:
+            skel = self.closet.skeleton[u"thing_loc"][unicode(self)]
+            leks = self.closet.skeleton[u"thing"][unicode(self)]
+        except KeyError:
+            return
+        if branch is None and tick is None:
+            boneiter = leks.iterbones()
+        elif branch is None:
+            def bitter():
+                for thingn in skel:
+                    for branch in skel[thingn]:
+                        if skel[thingn][branch].key_or_key_before(
+                                tick) is None:
+                            continue
+                        yield leks[thingn]
+            boneiter = bitter()
+        elif tick is None:
+            def bitter():
+                for thingn in skel:
+                    if branch in skel[thingn]:
+                        yield leks[thingn]
+            boneiter = bitter()
+        else:
+            def bitter():
+                for thingn in skel:
+                    if branch in skel[thingn]:
+                        if skel[thingn][branch].key_or_key_before(
+                                tick) is None:
+                            continue
+                        yield leks[thingn]
+            boneiter = bitter()
+        for bone in boneiter:
+            try:
+                r = self.get_thing(bone.name)
+            except KeyError:
+                r = self.make_thing(bone.name)
+            assert(r is not None)
+            yield r
+
     def iter_thing_bones(self, branch=None, tick=None):
         """Iterate over all things present in this character at the time
         specified, or the present time if not specified."""
@@ -263,40 +310,30 @@ class Character(object):
         for bone in self._iter_thing_skel_bones(skel, branch, tick):
             yield bone
 
-    def _iter_thing_loc_bones_skel(self, skel, thing=None, branch=None):
-        """Iterate over location bones, perhaps for only one thing, perhaps
-        for a particular branch."""
-        if thing is not None:
-            thingit = iter([unicode(thing)])
-        else:
-            thingit = skel.iterkeys()
-        for thingn in thingit:
-            if branch is None:
-                branchit = skel[thingn].iterkeys()
-            else:
-                branchit = iter([branch])
-            for branchi in branchit:
-                for bone in skel[thingn][branchi].iterbones():
-                    yield bone
-
     def iter_thing_loc_bones(self, thing=None, branch=None):
         skel = self.closet.skeleton[u"thing_loc"][unicode(self)]
-        for bone in self._iter_thing_loc_bones_skel(skel, thing, branch):
-            yield bone
+        for thing_skel in selectif(skel, unicode(thing)):
+            for branch_skel in selectif(thing_skel, branch):
+                for bone in branch_skel.iterbones():
+                    yield bone
 
-    def _get_thing_skel_locations(self, skel, branch):
-        if branch is None:
-            branch = self.closet.branch
-        while branch != 0:
-            try:
-                return skel[branch]
-            except KeyError:
-                branch = self.closet.timeline.parent(branch)
-        return skel[0]
+    def iter_thing_stat_bones(self, thing=None, stat=None, branch=None):
+        try:
+            skel = self.closet.skeleton[u"thing_stat"][unicode(self)]
+        except KeyError:
+            return
+        for thing_skel in selectif(skel, unicode(thing)):
+            for stat_skel in selectif(thing_skel, stat):
+                for branch_skel in selectif(stat_skel, branch):
+                    for bone in branch_skel.iterbones():
+                        yield bone
 
     def get_thing_locations(self, name, branch=None):
-        skel = self.closet.skeleton[u"thing_loc"][unicode(self)][name]
-        return self._get_thing_skel_locations(skel, branch)
+        r = self.closet.skeleton[u"thing_loc"][unicode(self)][name]
+        if branch is None:
+            return r
+        else:
+            return r[branch]
 
     def del_thing_locations(self, name, branch=None):
         if branch is None:
@@ -331,6 +368,22 @@ class Character(object):
             self.graph.add_vertex(name=bone.location, place=place)
             return place
 
+    def iter_hosted_thing_bones(self):
+        skel = self.closet.skeleton[u"thing"]
+        for bone in skel.iterbones():
+            if bone.host == self.name:
+                yield bone
+
+    def iter_hosted_thing_loc_bones(self, branch=None, tick=None):
+        for thib in self.iter_hosted_thing_bones():
+            skel = self.closet.skeleton[u"thing_loc"][thib.character]
+            for branchskel in selectif(skel, branch):
+                if tick is None:
+                    for bone in branchskel.iterbones():
+                        yield bone
+                else:
+                    yield branchskel.value_during(tick)
+
     ### Place
 
     def get_place(self, name):
@@ -344,38 +397,50 @@ class Character(object):
             place=place)
         return place
 
-    def _get_place_skel_bone(self, skel, branch, tick):
-        (branch, tick) = self.sanetime(branch, tick)
-        return skelget(self.closet.timestreams, skel, branch, tick)
+    def iter_places(self):
+        for bone in self.closet.skeleton[u"place"].itervalues():
+            try:
+                yield self.get_place(bone.name)
+            except KeyError:
+                yield self.make_place(bone.name)
 
     def get_place_bone(self, name, branch=None, tick=None):
-        skel = self.closet.skeleton[u"place"][unicode(self)][name]
-        return self._get_place_skel_bone(skel, branch, tick)
-
-    def iter_place_bones(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
+        return skelget(
+            self.closet.timestream,
+            self.closet.skeleton[u"place"][unicode(self)][name],
+            branch,
+            tick)
+
+    def iter_place_bones(self, name=None, branch=None, tick=None):
         self.closet.query_place()
         try:
             skel = self.closet.skeleton[u"place"][unicode(self)]
         except KeyError:
             return
-        for place in skel.iterbones():
-            yield place
+        for nameskel in selectif(skel, name):
+            for branchskel in selectif(nameskel, branch):
+                if tick is None:
+                    for bone in branchskel.itervalues():
+                        yield bone
+                else:
+                    yield branchskel.value_during(tick)
 
-    def _iter_place_skel_contents(self, skel, name, branch, tick):
-        (branch, tick) = self.sanetime(branch, tick)
-        for naem in skel:
-            try:
-                bone = skel[naem][branch].value_during(tick)
-            except KeyError:
-                continue
-            if bone.location == name:
+    def iter_place_contents_bones(self, name, branch=None, tick=None):
+        skel = self.closet.skeleton[u"thing_location"]
+
+        def yield_if_here(bone):
+            if bone.host == unicode(self) and bone.location == name:
                 yield bone
 
-    def iter_place_contents(self, name, branch=None, tick=None):
-        skel = self.closet.skeleton[u"thing"]
-        for bone in self._iter_place_skel_contents(skel, name, branch, tick):
-            yield bone
+        for charskel in skel.itervalues():
+            for thingskel in charskel.itervalues():
+                for branchskel in selectif(thingskel, branch):
+                    if tick is None:
+                        for bone in branchskel.iterbones():
+                            yield_if_here(bone)
+                    else:
+                        yield_if_here(branchskel.value_during(tick))
 
     def get_place_contents(self, name, branch=None, tick=None):
         return set([bone for bone in self.iter_place_contents(
@@ -387,36 +452,71 @@ class Character(object):
         e = self.graph.es.find(name=name)
         return e["portal"]
 
-    def make_portal(self, origin, destination, host=None, name=None,
-                    branch=None, tick=None):
-        (branch, tick) = self.sanetime(branch, tick)
-        origin = unicode(origin)
-        destination = unicode(destination)
+    def make_portal(self, name=None, origin=None, destination=None,
+                    host=None, branch=None, tick=None):
+        if name is None:
+            if None in (origin, destination):
+                raise ValueError(
+                    "Need either a name referring to a portal record, "
+                    "or an origin and a destination")
+            name = "{}->{}".format(origin, destination)
+        if origin is None and destination is None and host is None:
+            return self.make_portal_simple(name, branch, tick)
         if host is None:
             host = self
-        host = unicode(host)
-        if name is None:
-            name = "{}->{}".format(origin, destination)
-        bone = Portal.bonetypes["portal"](
-            character=unicode(self),
-            name=name,
-            host=host)
-        self.closet.set_bone(bone)
-        bigbone = Portal.bonetypes["portal_loc"](
-            character=unicode(self),
-            name=name,
-            branch=branch,
-            tick=tick,
-            origin=origin,
-            destination=destination)
-        self.closet.set_bone(bigbone)
-        p = Portal(self, name)
-        self.graph.add_vertex(name=name, portal=p)
-        return p
-
-    def _get_portal_skel_bone(self, skel, branch, tick):
         (branch, tick) = self.sanetime(branch, tick)
-        return skelget(self.closet.timestream, skel, branch, tick)
+        littlebone = Portal.bonetypes["portal"](
+            name=unicode(name),
+            character=unicode(self),
+            host=unicode(host))
+        bigbone = Portal.bonetypes["portal_loc"](
+            name=unicode(name),
+            character=unicode(self),
+            origin=unicode(origin),
+            destination=unicode(destination),
+            branch=int(branch),
+            tick=int(tick))
+        self.closet.set_bone(littlebone)
+        self.closet.set_bone(bigbone)
+        return self.make_portal_simple(name, branch, tick)
+
+    def make_portal_simple(self, name, branch=None, tick=None):
+        (branch, tick) = self.sanetime(branch, tick)
+        bone = self.closet.skeleton[u"portal"][unicode(self)][name]
+        host = self.closet.get_character(bone.host)
+        bigbone = self.closet.skeleton[u"portal_loc"][unicode(self)][
+            unicode(host)][branch].value_during(tick)
+        port = Portal(self, name)
+        host.graph.add_edge(
+            bigbone.origin, bigbone.destination,
+            name=name, portal=port)
+        return port
+
+    def iter_portal_loc_bones(self, name=None, branch=None, tick=None):
+        try:
+            skel = self.closet.skeleton[u"portal_loc"][unicode(self)]
+        except KeyError:
+            return
+
+        for nameskel in selectif(skel, name):
+            for branchskel in selectif(nameskel, branch):
+                if tick is None:
+                    for bone in branchskel.iterbones():
+                        yield bone
+                else:
+                    yield branchskel.value_during(tick)
+
+    def iter_hosted_portal_loc_bones(self, branch=None, tick=None):
+        for portalbone in self.closet.skeleton[u"portal"].iterbones():
+            if portalbone.host == self.name:
+                skel = self.closet.skeleton[u"portal_loc"][
+                    portalbone.character][portalbone.name]
+                for branchskel in selectif(skel, branch):
+                    if tick is None:
+                        for bone in branchskel.iterbones():
+                            yield bone
+                    else:
+                        yield branchskel.value_during(tick)
 
     def get_portal_bone(self, name):
         return self.closet.skeleton[u"portal"][unicode(self)][name]
@@ -426,82 +526,18 @@ class Character(object):
         return self.closet.skeleton[u"portal_loc"][unicode(self)][
             name][branch].value_during(tick)
 
-    def _iter_portal_skel_bones(self, skel, branch, tick):
-        for label in skel:
-            yield self._get_portal_skel_bone(skel, label, branch, tick)
-
-    def iter_portal_bones(self, branch=None, tick=None):
+    def iter_portal_bones(self):
         skel = self.closet.skeleton[u"portal"][unicode(self)]
-        for bone in self._iter_portal_skel_bones(skel, branch, tick):
+        for bone in skel.iterbones():
             yield bone
 
-    def _iter_hosted_portal_bones_skel(self, skel):
-        for character in skel:
-            for name in skel[character]:
-                bone = skel[character][name]
-                if bone.host == unicode(self):
-                    yield bone
-
-    def iter_hosted_portal_bones(self):
-        skel = self.closet.skeleton[u"portal"]
-        for bone in self._iter_hosted_portal_bones_skel(skel):
-            yield bone
-
-    def iter_hosted_portal_loc_bones(self, branch=None, tick=None):
-        (branch, tick) = self.sanetime(branch, tick)
-        for portal_bone in self.iter_hosted_portal_bones():
-            try:
-                y = self.closet.skeleton[u"portal_loc"][
-                    portal_bone.character][portal_bone.name][
-                    branch].value_during(tick)
-                if y is not None:
-                    yield y
-            except KeyError:
-                continue
-
-    def _iter_hosted_thing_bones_skel(self, skel, branch=None, tick=None):
-        for character in skel:
-            for name in skel[character]:
-                bone = skel[character][name]
-                if bone.host == unicode(self):
-                    yield bone
-
-    def iter_hosted_thing_bones(self, branch=None, tick=None):
-        skel = self.closet.skeleton[u"thing"]
-        for bone in self._iter_hosted_thing_bones_skel(skel, branch, tick):
-            yield bone
-
-    def iter_hosted_thing_loc_bones(self, branch=None, tick=None):
-        skel = self.closet.skeleton[u"thing_loc"]
-        for bone in self.iter_hosted_thing_bones(branch, tick):
-            yield skel[bone.character][bone.name][branch].value_during(tick)
-
-    def _portal_init_skel_branch_label(self, skel, name, parent, branch, tick):
-        prev = None
-        started = False
-        for bone in skel[parent].iterbones():
-            if bone.tick >= tick:
-                bone2 = bone._replace(branch=branch)
-                skel[branch][bone2.tick] = bone2
-                if (
-                        not started and prev is not None and
-                        bone2.tick > tick and prev.tick < tick):
-                    bone3 = prev._replace(branch=branch, tick=tick)
-                    skel[branch][bone3.tick] = bone3
-                started = True
-            prev = bone
-
-    def portal_init_branch_label(self, name, parent, branch, tick):
-        skel = self.closet.skeleton[u"portal"][unicode(self)][name]
-        self._portal_init_skel_branch_label(skel, name, parent, branch, tick)
-
-    def _portal_init_skel_branch(self, skel, parent, branch, tick):
-        for name in skel:
-            self.portal_init_skel_label(skel, name, parent, branch, tick)
-
-    def portal_init_branch(self, parent, branch, tick):
-        skel = self.closet.skeleton[u"portal"][unicode(self)]
-        self._portal_init_skel_branch(skel, parent, branch, tick)
+    def iter_portals(self, branch=None, tick=None):
+        accounted = set()
+        for bone in self.iter_portal_loc_bones(
+                name=None, branch=branch, tick=tick):
+            if bone.name not in accounted:
+                yield self.get_portal(bone.name)
+                accounted.add(bone.name)
 
     ### Stat
 
@@ -513,14 +549,52 @@ class Character(object):
         skel = self.closet.skeleton[u"stat"][unicode(self)][name]
         return self._get_stat_skel_bone(skel, branch, tick)
 
-    def _iter_stat_skel_bones(self, skel, branch, tick):
-        (branch, tick) = self.sanetime(branch, tick)
-        for label in skel:
-            yield self.get_stat_bone(label, branch, tick)
-
-    def iter_stat_bones(self, branch=None, tick=None):
+    def iter_stat_bones(self, name=None, branch=None, tick=None):
         skel = self.closet.skeleton[u"stat"][unicode(self)]
-        for bone in self._iter_stat_skel_bones(skel, branch, tick):
+
+        def statnames(leks):
+            if name is not None:
+                yield leks[name]
+            else:
+                for n in leks.itervalues():
+                    yield n
+
+        def statbranches(leks):
+            if branch is not None:
+                yield leks[branch]
+            else:
+                for b in leks.itervalues():
+                    yield b
+
+        def statbones(leks):
+            if tick is not None:
+                yield leks.value_during(tick)
+            else:
+                for bone in leks.itervalues():
+                    yield bone
+
+        for namedskel in statnames(skel):
+            for branchedskel in statbranches(namedskel):
+                for bone in statbones(branchedskel):
+                    yield bone
+
+    def new_branch(self, parent, branch, tick):
+        for portal in self.iter_portals(branch=parent, tick=tick):
+            for bone in portal.new_branch(parent, branch, tick):
+                yield bone
+        for thing in self.iter_things(branch=parent, tick=tick):
+            for bone in thing.new_branch(parent, branch, tick):
+                yield bone
+        try:
+            skel = self.closet.skeleton[u"stat"][unicode(self)]
+        except KeyError:
+            return
+
+        def iterstatbones():
+            for stat in skel:
+                for bone in skel[stat][parent].iterbones():
+                    yield bone
+        for bone in upbranch(self.closet, iterstatbones(), branch, tick):
             yield bone
 
 
@@ -641,6 +715,10 @@ class Facade(Character):
         other characters.
 
         """
+        if not (
+                isinstance(observer, Character) and
+                isinstance(observed, Character)):
+            raise TypeError("Facades are between two Characters.")
         self.observer = observer
         self.observed = observed
         self.omitters = omitters
@@ -657,6 +735,10 @@ class Facade(Character):
 
     def __unicode__(self):
         return unicode(self.observed)
+
+    @property
+    def name(self):
+        return self.observed.name
 
     def evade(self, bone):
         """Raise KnowledgeException if the bone triggers an omitter. Otherwise
@@ -692,67 +774,28 @@ class Facade(Character):
 
     ### Thing
 
-    # override
-    def get_real_thing_bone(self, label, branch, tick):
-        """Return a thing bone specific to this one facade.
-
-        This method does not distort the bone. It never returns a bone
-        from my ``observed`` character.
-
-        """
-        (branch, tick) = self.sanetime(branch, tick)
-        skel = self.closet.skeleton[u"thing_facade"][
-            unicode(self.observer)][unicode(self.observed)][
-            label]
-        return self._get_thing_skel_bone(skel, branch, tick)
-
     def get_thing_bone(self, name, branch=None, tick=None):
-        """Return a thing bone, possibly from this facade, possibly from its
-        ``observed`` character, and possibly distorted by ``liars``.
-
-        In case the named thing is in the ``observed`` character, but
-        is not apparent to the ``observer``, raise KnowledgeException.
-
-        """
-        try:
-            bone = self.get_real_thing_bone(name, branch, tick)
-        except KeyError:
-            bone = self.observed.get_thing_bone(name)
+        bone = self.observed.get_thing_bone(name)
         return self.distort(bone)
 
     # override
     def iter_thing_bones(self, branch=None, tick=None):
         """Iterate over all bones for all things at the given time.
 
-        Beware, this yields bones with null values too. Just because
-        you get a bone, doesn't mean there's a thing for it at the
-        moment.
-
         """
-        skel = self.closet.skeleton[u"thing_facade"][
-            unicode(self.observer)][unicode(self.observed)]
-        accounted = set()
-        for bone in self._iter_thing_skel_bones(skel, branch, tick):
-            try:
-                yield self.distort(bone)
-            except KnowledgeException:
-                pass
-            accounted.add(bone.name)
         for bone in super(Facade, self).iter_thing_bones(branch, tick):
-            if bone.name not in accounted:
-                yield self.distort(bone)
+            yield self.distort(bone)
 
     # override
     def iter_thing_loc_bones(self, thing=None, branch=None):
-        try:
-            skel = self.closet.skeleton[u"thing_loc_facade"][
-                unicode(self.observer)][unicode(self.observed)]
-        except KeyError:
-            for bone in super(Facade, self).iter_thing_loc_bones(
-                    thing, branch):
-                yield self.distort(bone)
-            return
-        for bone in self._iter_thing_loc_bones_skel(skel, thing, branch):
+        for bone in super(Facade, self).iter_thing_loc_bones(
+                thing, branch):
+            yield self.distort(bone)
+
+    # override
+    def iter_thing_stat_bones(self, thing=None, stat=None, branch=None):
+        for bone in super(Facade, self).iter_thing_stat_bones(
+                thing, stat, branch):
             yield self.distort(bone)
 
     # override
@@ -782,14 +825,12 @@ class Facade(Character):
                 r[bone.tick] = bone
         return r
 
-    def iter_place_bones(self, branch=None, tick=None):
-        for bone in self.observed.iter_place_bones(branch, tick):
-            for omitter in self.omitters:
-                if omitter(bone):
-                    continue
-            for liar in self.liars:
-                bone = liar(bone)
-            yield bone
+    def iter_place_bones(self, name=None, branch=None, tick=None):
+        for bone in self.observed.iter_place_bones(name, branch, tick):
+            try:
+                yield self.deceive(bone)
+            except KnowledgeException:
+                pass
 
     # override
     def iter_place_contents(self, name, branch=None, tick=None):
@@ -797,94 +838,65 @@ class Facade(Character):
         given place."""
         # incase of passing a Place object and not a string
         label = unicode(name)
-        skel = self.closet.skeleton[u"thing_facade"][
-            unicode(self.observer)]
-        accounted = set()
-        for bone in self._iter_place_skel_contents(skel, label, branch, tick):
+        for bone in super(Facade, self).iter_place_contents(
+                label, branch, tick):
             try:
                 yield self.distort(bone)
             except KnowledgeException:
                 pass
-            accounted.add(bone.name)
-        for bone in super(Facade, self).iter_place_contents(
-                label, branch, tick):
-            if bone.name not in accounted:
-                try:
-                    yield self.distort(bone)
-                except KnowledgeException:
-                    pass
 
     ### Portal
 
-    def get_real_portal_bone(self, label, branch=None, tick=None):
-        """Return a portal bone specific to this facade.
-
-        This method does not distort the bone. It never returns bones
-        from my ``observed`` character.
-
-        """
-        skel = self.closet.skeleton[u"portal_loc_facade"][
-            unicode(self.observer)][unicode(self.observed)][label]
-        return self._get_portal_skel_bone(skel, branch, tick)
-
     # override
     def get_portal_loc_bone(self, name, branch=None, tick=None):
-        """Return a portal bone, possibly specific to this facade, possibly
-        from its ``observed`` character, and possibly distorted by its
-        ``liars``.
+        """Return a portal bone, possibly distorted.
 
         If the portal exists in the ``observed`` character, but is not
         apparent to the ``observer``, raise KnowledgeException.
 
         """
-        try:
-            bone = self.get_real_portal_bone(name, branch, tick)
-        except KeyError:
-            bone = self.observed.get_portal_loc_bone(name, branch, tick)
+        bone = self.observed.get_portal_loc_bone(name, branch, tick)
         return self.distort(bone)
 
     # override
+    def iter_portal_loc_bones(self, name=None, branch=None, tick=None):
+        for bone in super(Facade, self).iter_portal_loc_bones(
+                name, branch, tick):
+            try:
+                yield self.distort(bone)
+            except KnowledgeException:
+                pass
+
+    # override
     def iter_hosted_portal_bones(self, branch=None, tick=None):
-        """Iterate first over the portal bones that this facade has its own
-        records about, and then over those the underlying character
-        knows about, but only if its name was not somehow accounted
-        for by this facade.
-
-        The ``distort`` method accounts for a name by
-        - returning a bone for it
-        - raising a KnowledgeException
-
-        """
-        accounted = set()
-        try:
-            skel = self.closet.skeleton[u"portal_facade"]
-            # It's a bit dodgy to distort a bone from portal_facade,
-            # because the contents of portal_facade are *already*
-            # distortions. Even so, I will let it happen, because I cannot
-            # rule out the usefulness.
-            for bone in self._iter_hosted_portal_bones_skel(
-                    skel, branch, tick):
-                try:
-                    yield self.distort(bone)
-                except KnowledgeException:
-                    pass
-                accounted.add(bone.name)
-        except KeyError:
-            pass
-        for bone in super(Facade, self).iter_hosted_portal_bones():
-            if bone.name not in accounted:
-                try:
-                    yield self.distort(bone)
-                except KnowledgeException:
-                    pass
+        for bone in super(Facade, self).iter_hosted_portal_bones(branch, tick):
+            try:
+                yield self.distort(bone)
+            except KnowledgeException:
+                pass
 
     # override
     def get_stat_bone(self, name, branch=None, tick=None):
-        """Return a bone for the stat by the given name at the current time,
-        or the given branch and tick if specified.
+        bone = super(Facade, self).get_stat_bone(name, branch, tick)
+        return self.distort(bone)
 
-        """
-        skel = self.observed.closet.skeleton[u"stat_facade"][
-            unicode(self.observer)][unicode(self.observed)][
-            name]
-        return self._get_stat_skel_bone(skel, branch, tick)
+    # override
+    def iter_stat_bones(self, name=None, branch=None, tick=None):
+        for bone in super(Facade, self).iter_stat_bones(name, branch, tick):
+            try:
+                yield self.distort(bone)
+            except KnowledgeException:
+                pass
+
+    def new_branch(self, parent, branch, tick):
+        skel = self.closet.skeleton[u"character_stat_facade"][
+            unicode(self.observer)][unicode(self.observed)]
+
+        def bonito():
+            for stat in skel:
+                if parent in skel[stat]:
+                    for bone in skel[stat][parent].iterbones():
+                        yield bone
+
+        for bone in upbranch(self.closet, bonito(), branch, tick):
+            yield bone

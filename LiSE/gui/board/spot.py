@@ -228,18 +228,24 @@ class Spot(Scatter):
         (branch, tick) = self.sanetime(branch, tick)
         prev = None
         started = False
-        for skel in (self.skel[parent], self.coords[parent]):
+        for skel in (
+                self.board.host.closet.skeleton[u"spot"][
+                    unicode(self.board.facade.observer)][
+                    unicode(self.place.character)][
+                    unicode(self.place)],
+                self.board.host.closet.skeleton[u"spot_coords"][
+                    unicode(self.board.facade.observer)][
+                    unicode(self.place.character)][
+                    unicode(self.place)]):
             for bone in skel.iterbones():
                 if bone.tick >= tick:
-                    b2 = bone._replace(branch=branch)
-                    self.set_bone(b2)
+                    yield bone._replace(branch=branch)
                     if (
                             not started and prev is not None and
                             bone.tick > tick and prev.tick < tick):
-                        b3 = prev._replace(
+                        yield prev._replace(
                             branch=branch,
                             tick=tick)
-                        self.set_bone(b3)
                     started = True
                     prev = bone
 

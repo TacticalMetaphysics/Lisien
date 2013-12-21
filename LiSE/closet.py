@@ -166,29 +166,6 @@ before RumorMill will work. For that, run mkdb.sh.
 
         self.lisepath = lisepath
 
-        def on_bone_set(parent, child, k, v):
-            """Debugging aid"""
-            if hasattr(child, 'bonetype'):
-                bonetype = child.bonetype
-                if hasattr(parent, 'child_bonetype'):
-                    assert bonetype is parent.child_bonetype,\
-                        "Bad bonetype"
-                else:
-                    parent.child_bonetype = bonetype
-
-        def mk_on_tab_set(tabskel):
-            """Debugging aid"""
-            def on_tab_set(parent, child, k, v):
-                if parent is tabskel:
-                    child.listeners.append(on_bone_set)
-            return on_tab_set
-
-        for saveable in saveables:
-            for tabn in saveable[3]:
-                self.skeleton[tabn] = []
-                self.skeleton[tabn].listeners.append(
-                    mk_on_tab_set(self.skeleton[tabn]))
-
         for wd in self.working_dicts:
             setattr(self, wd, dict())
 
@@ -612,12 +589,20 @@ before RumorMill will work. For that, run mkdb.sh.
             return b
 
     def new_branch(self, parent, branch, tick):
+        new_bones = set()
         for character in self.character_d.itervalues():
-            character.new_branch(parent, branch, tick)
-        for board in self.board_d.itervalues():
-            board.new_branch(parent, branch, tick)
+            for bone in character.new_branch(parent, branch, tick):
+                new_bones.add(bone)
+        for observer in self.board_d:
+            for observed in self.board_d[observer]:
+                for host in self.board_d[observer][observed]:
+                    for bone in self.board_d[observer][observed][
+                            host].new_branch(parent, branch, tick):
+                        new_bones.add(bone)
         self.skeleton["timestream"][branch] = Timestream.bonetype(
             branch=branch, parent=parent, tick=tick)
+        for bone in new_bones:
+            self.set_bone(bone)
 
     def time_travel_inc_tick(self, ticks=1):
         self.time_travel(self.branch, self.tick+ticks)
@@ -697,7 +682,8 @@ before RumorMill will work. For that, run mkdb.sh.
         elif stringn == "@tick":
             self.tick_listeners.append(listener)
         if stringn[0] == "@" and stringn[1:] in self.skeleton["strings"]:
-            self.skeleton["strings"][stringn[1:]].listeners.append(listener)
+            self.skeleton["strings"][stringn[1:]].register_set_listener(
+                listener)
 
     def register_time_listener(self, listener):
         self.time_listeners.append(listener)
@@ -750,7 +736,7 @@ before RumorMill will work. For that, run mkdb.sh.
             try:
                 return self.skeleton[u"place"][host][place][
                     branch].value_during(tick) is not None
-            except KeyError:
+            except (KeyError, IndexError):
                 return False
 
         def set_place_maybe(host, place, branch, tick):
