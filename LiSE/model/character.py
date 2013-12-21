@@ -166,7 +166,7 @@ class Character(object):
                 self.graph.delete_vertex(v.index)
         for e in self.graph.es:
             try:
-                self.get_portal_bone(
+                self.get_portal_loc_bone(
                     e["name"], branch, tick)
             except (KeyError, KnowledgeException):
                 self.graph.delete_edge(e.index)
@@ -424,7 +424,9 @@ class Character(object):
                     for bone in branchskel.itervalues():
                         yield bone
                 else:
-                    yield branchskel.value_during(tick)
+                    r = branchskel.value_during(tick)
+                    if r is not None:
+                        yield r
 
     def iter_place_contents_bones(self, name, branch=None, tick=None):
         skel = self.closet.skeleton[u"thing_location"]

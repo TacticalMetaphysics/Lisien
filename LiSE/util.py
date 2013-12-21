@@ -593,7 +593,7 @@ class Skeleton(MutableMapping):
         if hasattr(self, 'ikeys') and v is not None:
             if len(self.ikeys) == 0:
                 self.ikeys = [k]
-            else:
+            elif k not in self.ikeys:
                 i = 0
                 end = True
                 for ik in self.ikeys:

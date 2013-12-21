@@ -38,15 +38,15 @@ def get_timeline_y(calendar, tick):
 class ColorBox(BoxLayout):
     """A BoxLayout with a background of a particular color.
 
-In lise.kv this is filled with a label."""
+    In lise.kv this is filled with a label."""
     color = ListProperty()
 
 
 class Cell(RelativeLayout):
     """A box to represent an event on the calendar.
 
-It needs a branch, tick_from, tick_to, text, and a calendar to belong
-to.
+    It needs a branch, tick_from, tick_to, text, and a calendar to belong
+    to.
 
     """
     active = BooleanProperty(False)
@@ -76,17 +76,17 @@ class Timeline(Widget):
 
 class Calendar(Layout):
     """A gridlike layout of cells representing events throughout every
-branch of the timestream.
+    branch of the timestream.
 
-It will fill itself in based on what it finds in the Skeleton under
-the given keys. Only the events that can be seen at the moment, and a
-few just out of view, will be instantiated.
+    It will fill itself in based on what it finds in the Skeleton under
+    the given keys. Only the events that can be seen at the moment, and a
+    few just out of view, will be instantiated.
 
-It may be scrolled by dragging. It will snap to some particular branch
-and tick when dropped.
+    It may be scrolled by dragging. It will snap to some particular branch
+    and tick when dropped.
 
-A timeline will be drawn on top of it, but that is not instantiated
-here. Look in CalendarView below.
+    A timeline will be drawn on top of it, but that is not instantiated
+    here. Look in CalendarView below.
 
     """
     branch = NumericProperty(0)
@@ -148,7 +148,6 @@ here. Look in CalendarView below.
             self.timeline.upd_branch(self, branch)
             self.timeline.upd_tick(self, tick)
         closet.register_time_listener(upd_time)
-
         self.bind(
             size=lambda i, v: self.timeline.upd_time(
                 self, closet.branch, closet.tick),
@@ -211,12 +210,15 @@ That's where you'd draw the timeline for it."""
 
     def refresh(self):
         """Generate cells that are missing. Remove cells that cannot be
-seen."""
+        seen."""
         minbranch = int(self.branch - self.branches_offscreen)
         maxbranch = int(
             self.branch + self.branches_wide + self.branches_offscreen)
         mintick = int(self.tick - self.ticks_offscreen)
         maxtick = int(self.tick + self.ticks_tall + self.ticks_offscreen)
+        old_widgets = {}
+        for child in self.children:
+            old_widgets[child.bone] = child
         self.clear_widgets()
         for branch in xrange(minbranch, maxbranch):
             if branch not in self.skel:
@@ -224,9 +226,13 @@ seen."""
             boneiter = self.skel[branch].iterbones()
             prev = next(boneiter)
             for bone in boneiter:
-                if (
+                if bone in old_widgets:
+                    self.add_widget(old_widgets[bone])
+                    print("refreshing w. old bone: {}".format(bone))
+                elif (
                         prev.tick < maxtick and
                         bone.tick > mintick):
+                    print("refreshing w. new bone: {}".format(bone))
                     if self.cal_type == 5:
                         text = prev.location
                     elif self.cal_type == 6:
@@ -238,12 +244,14 @@ seen."""
                         text = prev.value
                     else:
                         text = ""
-                    self.add_widget(Cell(
+                    cell = Cell(
                         calendar=self,
                         branch=branch,
                         text=text,
                         tick_from=prev.tick,
-                        tick_to=bone.tick))
+                        tick_to=bone.tick)
+                    cell.bone = bone
+                    self.add_widget(cell)
                 if bone.tick > maxtick:
                     break
                 prev = bone

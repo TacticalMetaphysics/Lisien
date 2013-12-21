@@ -589,6 +589,9 @@ before RumorMill will work. For that, run mkdb.sh.
             return b
 
     def new_branch(self, parent, branch, tick):
+        assert(parent != branch)
+        print("making new branch {} from parent branch {} "
+              "starting at tick {}".format(branch, parent, tick))
         new_bones = set()
         for character in self.character_d.itervalues():
             for bone in character.new_branch(parent, branch, tick):
@@ -601,6 +604,8 @@ before RumorMill will work. For that, run mkdb.sh.
                         new_bones.add(bone)
         self.skeleton["timestream"][branch] = Timestream.bonetype(
             branch=branch, parent=parent, tick=tick)
+        self.timestream.hi_branch += 1
+        assert(self.timestream.hi_branch == branch)
         for bone in new_bones:
             self.set_bone(bone)
 
