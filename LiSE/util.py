@@ -1229,7 +1229,7 @@ class SaveableMetaclass(type):
                 together.append("({})".format(" AND ".join(apart)))
             orstr = " OR ".join(together)
             return "SELECT {0} FROM {1} WHERE {2};".format(
-                ", ".join(keybones[0]._fields), tabname, orstr)
+                ", ".join(next(iter(keybones))._fields), tabname, orstr)
 
         def select_keybones_table(c, keybones, tabname):
             """Return a list of records taken from the table ``tabname``,

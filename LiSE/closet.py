@@ -22,7 +22,6 @@ from gui.menu import Menu
 from gui.img import Img
 from model import (
     Character,
-    Facade,
     Place,
     Portal,
     Timestream,
@@ -32,7 +31,6 @@ from util import (
     SaveableMetaclass,
     int2pytype,
     pytype2int,
-    Bone,
     PlaceBone,
     schemata,
     saveables,
@@ -240,7 +238,47 @@ before RumorMill will work. For that, run mkdb.sh.
             bonetype = cls.bonetypes[tabn]
             bone = bonetype._null()
             td[tabn] = [bone]
-        return cls._select_skeleton(self.c, td)
+        r = cls._select_skeleton(self.c, td)
+        for bone in r.iterbones():
+            self.upbone(bone)
+        return r
+
+    def select_keybones(self, kbs):
+        """Take an iterable of "keybones," being regular bones whose key
+        fields are to be matched with other bones loaded from
+        disc. Return a skeleton of bones that match, keyed the same
+        way the database is.
+
+        """
+        clasname2clas = {}
+        clas_qd = {}
+        for kb in kbs:
+            if kb.cls.__name__ not in clas_qd:
+                clas_qd[kb.cls.__name__] = {}
+                clasname2clas[kb.cls.__name__] = kb.cls
+            if kb.__class__.__name__ not in clas_qd[kb.cls.__name__]:
+                clas_qd[kb.cls.__name__][kb.__class__.__name__] = set()
+            clas_qd[kb.cls.__name__][kb.__class__.__name__].add(kb)
+        r = Skeleton()
+        for clasn in clas_qd:
+            clas = clasname2clas[clasn]
+            r.update(clas._select_skeleton(self.c, clas_qd[clasn]))
+        for bone in r.iterbones():
+            self.upbone(bone)
+        return r
+
+    def update_keybones(self, kbs):
+        """Update my skeleton with database records matching at least one of
+        the keybones."""
+        self.skeleton.update(self.select_keybones(kbs))
+
+    def update_keybone(self, kb):
+        """Query the database for records matching the given keybone. Make
+        bones for them, and add those to the appropriate place in my
+        skeleton, overwriting anything already there.
+
+        """
+        self.update_keybones([kb])
 
     def upd_branch(self, b):
         """Set the active branch, alerting any branch_listeners"""
@@ -289,11 +327,10 @@ before RumorMill will work. For that, run mkdb.sh.
                 return str(self.tick)
             else:
                 if strname[1:] not in self.skeleton[u"strings"]:
-                    self.skeleton.update(self._select_skeleton(
-                        self.c, {"strings": [
-                            self.bonetypes["strings"]._null()._replace(
-                                stringname=strname[1:],
-                                language=self.language)]}))
+                    self.update_keybone(
+                        self.bonetypes["strings"]._null()._replace(
+                            stringname=strname[1:],
+                            language=self.language))
                 return self.skeleton[u"strings"][
                     strname[1:]][self.language].string
         else:
@@ -327,8 +364,7 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def load_strings(self):
         """Load all strings available."""
-        self.skeleton.update(self._select_skeleton(self.c, {
-            "strings": [self.bonetypes["strings"]._null()]}))
+        self.update_keybone(self.bonetypes["strings"]._null())
 
     def make_generic_place(self, character):
         """Make a place hosted by the given character, and give it a boring
@@ -372,56 +408,43 @@ before RumorMill will work. For that, run mkdb.sh.
         specified, perhaps loading it if necessary."""
         # if the character is not loaded yet, make it so
         character = unicode(self.get_character(character))
-        bd = {
-            "charsheet": [
-                CharSheet.bonetypes["charsheet"]._null()._replace(
-                    character=character)],
-            "charsheet_item": [
-                CharSheet.bonetypes["charsheet_item"]._null()._replace
-                (character=character)]}
-        self.skeleton.update(
-            CharSheet._select_skeleton(self.c, bd))
+        keybones = [CharSheet.bonetypes["charsheet"]._null()._replace(
+            character=character),
+            CharSheet.bonetypes["charsheet_item"]._null()._replace(
+                character=character)]
+        self.update_keybones(keybones)
         return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
         """Load all the named characters and return them in a dict."""
-        charstats = Character._select_skeleton(self.c, {
-            "character_stat": [
-                Character.bonetypes["character_stat"]._null()._replace(
-                    character=name)
-                for name in names]})
-        portalstuff = Portal._select_skeleton(self.c, {
-                "portal": [
-                    Portal.bonetypes["portal"]._null()._replace(character=name)
-                    for name in names],
-                "portal_loc": [
-                    Portal.bonetypes["portal_loc"]._null()._replace(
-                        character=name)
-                    for name in names],
-                "portal_stat": [
-                    Portal.bonetypes["portal_stat"]._null()._replace(
-                        character=name)
-                    for name in names]})
-        thingstuff = Thing._select_skeleton(self.c, {
-            "thing": [
-                Thing.bonetypes["thing"]._null()._replace(
-                    character=name)
-                for name in names],
-            "thing_loc": [
-                Thing.bonetypes["thing_loc"]._null()._replace(
-                    character=name)
-                for name in names],
-            "thing_stat": [
-                Thing.bonetypes["thing_stat"]._null()._replace(
-                    character=name)
-                for name in names]})
-        placestuff = Place._select_skeleton(self.c, {
-            "place_stat": [
-                Place.bonetypes["place_stat"]._null()._replace(
-                    character=name)
-                for name in names]})
-        for stuff in (charstats, portalstuff, thingstuff, placestuff):
-            self.skeleton.update(stuff)
+        char_stat_bones = [
+            Character.bonetypes["character_stat"]._null()._replace(
+                character=name) for name in names]
+        portal_bones = [
+            Portal.bonetypes["portal"]._null()._replace(character=name)
+            for name in names]
+        portal_loc_bones = [
+            Portal.bonetypes["portal_loc"]._null()._replace(character=name)
+            for name in names]
+        portal_stat_bones = [
+            Portal.bonetypes["portal_stat"]._null()._replace(character=name)
+            for name in names]
+        thing_bones = [
+            Thing.bonetypes["thing"]._null()._replace(character=name)
+            for name in names]
+        thing_loc_bones = [
+            Thing.bonetypes["thing_loc"]._null()._replace(character=name)
+            for name in names]
+        thing_stat_bones = [
+            Thing.bonetypes["thing_stat"]._null()._replace(character=name)
+            for name in names]
+        place_stat_bones = [
+            Place.bonetypes["place_stat"]._null()._replace(character=name)
+            for name in names]
+        self.update_keybones(
+            char_stat_bones + portal_bones + portal_loc_bones +
+            portal_stat_bones + thing_bones + thing_loc_bones +
+            thing_stat_bones + place_stat_bones)
         r = {}
         for name in names:
             char = Character(self, name)
@@ -484,18 +507,19 @@ before RumorMill will work. For that, run mkdb.sh.
         the observer character.
 
         """
-        observer = unicode(observer)
-        observed = unicode(observed)
-        self.skeleton.update(Board._select_skeleton(self.c, {
-            "board": [Board.bonetype._null()._replace(
-                observer=observer, observed=observed, host=host)]}))
-        self.skeleton.update(Spot._select_skeleton(self.c, {
-            "spot": [Spot.bonetypes["spot"]._null()._replace(
-                host=host)],
-            "spot_coords": [Spot.bonetypes["spot_coords"]._null()._replace(
-                host=host)]}))
-        self.skeleton.update(Pawn._select_skeleton(self.c, {
-            "pawn": [Pawn.bonetypes["pawn"]._null()._replace(host=host)]}))
+        obsrvr = unicode(observer)
+        obsrvd = unicode(observed)
+        hst = unicode(host)
+        keybones = [
+            Board.bonetypes["board"]._null()._replace(
+                observer=obsrvr, observed=obsrvd, host=hst),
+            Spot.bonetypes["spot"]._null()._replace(
+                host=host),
+            Spot.bonetypes["spot_coords"]._null()._replace(
+                host=host),
+            Pawn.bonetypes["pawn"]._null()._replace(
+                host=host)]
+        self.update_keybones(keybones)
         return self.get_board(observer, observed, host)
 
     def get_board(self, observer, observed, host):
@@ -511,15 +535,20 @@ before RumorMill will work. For that, run mkdb.sh.
         return Board(facade=facade, host=host)
 
     def get_place(self, char, placen):
+        """Get a place from a character"""
         return self.get_character(char).get_place(placen)
 
     def get_portal(self, char, name):
+        """Get a portal from a character"""
         return self.get_character(char).get_portal(name)
 
     def get_thing(self, char, name):
+        """Get a thing from a character"""
         return self.get_character(char).get_thing(name)
 
     def get_textures(self, imgnames):
+        """Return a dictionary full of textures by the given names, loading
+        them as needed."""
         r = {}
         unloaded = set()
         for imgn in imgnames:
@@ -532,33 +561,43 @@ before RumorMill will work. For that, run mkdb.sh.
         return r
 
     def get_texture(self, imgn):
+        """Return the texture by the given name"""
         return self.get_textures([imgn])[imgn]
 
     def load_menus(self, names):
+        """Return a dictionary full of menus by the given names, loading them
+        as needed."""
         r = {}
         for name in names:
             r[name] = self.load_menu(name)
         return r
 
     def load_menu(self, name):
+        """Load and return the named menu"""
         self.load_menu_items(name)
         return Menu(closet=self, name=name)
 
     def load_menu_items(self, menu):
-        bd = {"menu_item": [Menu.bonetypes[
-            "menu_item"]._null()._replace(menu=menu)]}
-        r = Menu._select_skeleton(self.c, bd)
-        self.skeleton.update(r)
-        return r
+        """Load a dictionary of menu item infos. Don't return anything."""
+        self.update_keybone(Menu.bonetypes["menu_item"]._null()._replace(
+            menu=menu))
 
     def load_timestream(self):
+        """Load and return the timestream"""
         self.skeleton.update(self.select_class_all(Timestream))
         self.timestream = Timestream(self)
 
     def time_travel_menu_item(self, mi, branch, tick):
+        """Tiny wrapper for ``time_travel``"""
         return self.time_travel(branch, tick)
 
     def time_travel(self, branch, tick):
+        """"Set the diegetic time to the given branch and tick.
+
+        If the branch is one higher than the known highest branch,
+        create it.
+
+        """
         assert branch <= self.timestream.hi_branch + 1, (
             "Tried to travel to too high a branch")
         if branch == self.timestream.hi_branch + 1:
@@ -579,6 +618,8 @@ before RumorMill will work. For that, run mkdb.sh.
         self.tick = tick
 
     def increment_branch(self, branches=1):
+        """Go to the next higher branch. Might result in the creation of said
+        branch."""
         b = self.branch + int(branches)
         mb = self.timestream.max_branch()
         if b > mb:
@@ -588,79 +629,94 @@ before RumorMill will work. For that, run mkdb.sh.
         else:
             return b
 
-    def new_branch(self, parent, branch, tick):
-        assert(parent != branch)
-        print("making new branch {} from parent branch {} "
-              "starting at tick {}".format(branch, parent, tick))
+    def new_branch(self, parent, child, tick):
+        """Copy records from the parent branch to the child, starting at
+        tick."""
+        assert(parent != child)
         new_bones = set()
         for character in self.character_d.itervalues():
-            for bone in character.new_branch(parent, branch, tick):
+            for bone in character.new_branch(parent, child, tick):
                 new_bones.add(bone)
         for observer in self.board_d:
             for observed in self.board_d[observer]:
                 for host in self.board_d[observer][observed]:
                     for bone in self.board_d[observer][observed][
-                            host].new_branch(parent, branch, tick):
+                            host].new_branch(parent, child, tick):
                         new_bones.add(bone)
-        self.skeleton["timestream"][branch] = Timestream.bonetype(
-            branch=branch, parent=parent, tick=tick)
+        self.skeleton["timestream"][child] = Timestream.bonetype(
+            branch=child, parent=parent, tick=tick)
         self.timestream.hi_branch += 1
-        assert(self.timestream.hi_branch == branch)
+        assert(self.timestream.hi_branch == child)
         for bone in new_bones:
             self.set_bone(bone)
 
     def time_travel_inc_tick(self, ticks=1):
+        """Go to the next tick on the same branch"""
         self.time_travel(self.branch, self.tick+ticks)
 
     def time_travel_inc_branch(self, branches=1):
+        """Go to the next branch on the same tick"""
         self.increment_branch(branches)
         self.time_travel(self.branch+branches, self.tick)
 
     def go(self, nope=None):
+        """Pass time"""
         self.updating = True
 
     def stop(self, nope=None):
+        """Stop time"""
         self.updating = False
 
     def set_speed(self, newspeed):
+        """Change the rate of time passage"""
         self.game_speed = newspeed
 
     def play_speed(self, mi, n):
+        """Set the rate of time passage, and start it passing"""
         self.game_speed = int(n)
         self.updating = True
 
     def back_to_start(self, nope):
+        """Stop time and go back to the beginning"""
         self.stop()
         self.time_travel(self.branch, 0)
 
     def update(self, *args):
+        """Proceed some number of ticks into the future, according to the game
+        speed"""
         if self.updating:
             self.time_travel_inc_tick(ticks=self.game_speed)
 
     def end_game(self):
+        """Save everything and close the connection"""
         self.c.close()
         self.connector.commit()
         self.connector.close()
 
     def checkpoint(self):
+        """Store an image of the skeleton in its present state, to compare
+        later"""
         self.old_skeleton = self.skeleton.deepcopy()
 
-    def uptick_bone(self, bone):
-        if hasattr(bone, "branch") and bone.branch > self.timestream.hi_branch:
+    def upbone(self, bone):
+        """Raise the timestream's hi_branch and hi_tick if the bone has new
+        values for them"""
+        if (
+                hasattr(bone, "branch") and
+                bone.branch > self.timestream.hi_branch):
             self.timestream.hi_branch = bone.branch
+        if (
+                hasattr(bone, "tick") and
+                bone.tick > self.timestream.hi_tick):
+            self.timestream.hi_tick = bone.tick
         if (
                 hasattr(bone, "tick_from") and
                 bone.tick_from > self.timestream.hi_tick):
             self.timestream.hi_tick = bone.tick_from
-        if hasattr(bone, "tick_to") and bone.tick_to > self.timestream.hi_tick:
+        if (
+                hasattr(bone, "tick_to") and
+                bone.tick_to > self.timestream.hi_tick):
             self.timestream.hi_tick = bone.tick_to
-
-    def uptick_skel(self):
-        for bone in self.skeleton.iterbones():
-            self.uptick_bone(bone)
-
-    def get_present_bone(self, skel):
-        return skel[self.branch].value_during(self.tick)
 
     def mi_show_popup(self, mi, name):
         root = mi.get_root_window().children[0]

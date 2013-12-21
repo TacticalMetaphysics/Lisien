@@ -433,7 +433,6 @@ class LiSEApp(App):
             self.dbfn, self.lise_path, self.lang, True)
         self.closet.load_img_metadata()
         self.closet.load_textures_tagged(['base', 'body'])
-        self.closet.uptick_skel()
         self.updater = Clock.schedule_interval(self.closet.update, 0.1)
         self.closet.load_characters([
             self.observer_name,
