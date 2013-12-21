@@ -213,9 +213,11 @@ class Board(ScrollView):
 
     def new_branch(self, parent, branch, tick):
         for spot in self.spotdict.itervalues():
-            spot.new_branch(parent, branch, tick)
+            for bone in spot.new_branch(parent, branch, tick):
+                yield bone
         for pawn in self.pawndict.itervalues():
-            pawn.new_branch(parent, branch, tick)
+            for bone in pawn.new_branch(parent, branch, tick):
+                yield bone
 
     def on_touch_down(self, touch):
         for preemptor in ("charsheet", "menu"):

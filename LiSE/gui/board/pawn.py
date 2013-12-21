@@ -64,10 +64,10 @@ The relevant data are
         super(Pawn, self).__init__(**kwargs)
         self.board.pawndict[unicode(self.thing)] = self
 
-        skel = self.board.facade.closet.skeleton
-
-        skel["thing_loc"][unicode(self.thing.character)][
-            unicode(self.thing)].listeners.append(self.reposskel)
+        skel = self.board.facade.closet.skeleton[u"thing_loc"][
+            unicode(self.thing.character)][unicode(self.thing)]
+        skel.register_set_listener(self.reposskel)
+        skel.register_del_listener(self.reposskel)
 
     def __str__(self):
         return str(self.thing)
@@ -106,21 +106,22 @@ The relevant data are
         prev = None
         started = False
         imagery = self.board.host.closet.skeleton[u"pawn"][
-            unicode(self.board.dimension)][unicode(self.thing)]
+            unicode(self.board.facade.observer)][
+            unicode(self.thing.character)][
+            unicode(self.board.host)][
+            unicode(self.thing)]
         for layer in imagery:
             for tick_from in imagery[layer][parent]:
                 if tick_from >= tick:
                     bone2 = imagery[layer][parent][tick_from]._replace(
                         branch=branch)
-                    if branch not in imagery[layer]:
-                        imagery[layer][branch] = {}
-                    imagery[layer][branch][bone2.tick_from] = bone2
+                    yield bone2
                     if (
                             not started and prev is not None and
                             tick_from > tick and prev < tick):
                         bone3 = imagery[layer][parent][prev]._replace(
                             branch=branch, tick_from=tick_from)
-                        imagery[layer][branch][bone3.tick_from] = bone3
+                        yield bone3
                         started = True
                     prev = tick_from
 

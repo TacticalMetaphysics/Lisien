@@ -70,6 +70,35 @@ saveable_classes = []
 """Classes that use SaveableMetaclass"""
 
 ### End metadata
+### Begin functions
+
+
+def upbranch(closet, bones, branch, tick):
+    started = False
+    first = None
+    for bone in bones:
+        if bone.tick >= tick:
+            started = True
+            yield bone._replace(branch=branch)
+        if not started:
+            assert(bone.tick < tick)
+            first = bone
+    if first is not None:
+        yield first._replace(
+            branch=branch, tick=tick)
+
+
+def selectif(skel, key):
+    if key is None:
+        for sk in skel.itervalues():
+            yield sk
+    else:
+        try:
+            yield skel[key]
+        except (KeyError, IndexError):
+            return
+
+### End functions
 
 
 class BoneMetaclass(type):
@@ -453,7 +482,8 @@ class Skeleton(MutableMapping):
         propagate events to, and ``name`` is mostly for printing.
 
         """
-        self.listeners = []
+        self._set_listeners = []
+        self._del_listeners = []
         """Functions to call when something changes, either in my content, or
         in that of some :class:`Skeleton` I contain, however indirectly.
 
@@ -543,7 +573,6 @@ class Skeleton(MutableMapping):
                     if len(self.content) > 0:
                         assert(len(self.content) == 1)
                         if isinstance(self.content, dict):
-#                            assert(next(self.content.iterkeys()) == 0)
                             old = next(self.content.itervalues())
                         else:
                             old = self.content[0]
@@ -602,17 +631,22 @@ class Skeleton(MutableMapping):
             self.content[k] = v
         else:
             self.content[k] = self.__class__(v, name=k, parent=self)
-        for listener in self.listeners:
+        for listener in self._set_listeners:
             listener(self.parent, self, k, v)
         if hasattr(self.parent, 'on_child_set'):
             self.parent.on_child_set(self, k, v)
 
     def on_child_set(self, child, k, v):
         """Call all my listeners with args (child, k, v)."""
-        for listener in self.listeners:
+        for listener in self._set_listeners:
             listener(self, child, k, v)
         if hasattr(self.parent, 'on_child_set'):
             self.parent.on_child_set(child, k, v)
+
+    def register_set_listener(self, fun):
+        """Register a function to be called when a value is set on this or a
+        child."""
+        self._set_listeners.append(fun)
 
     def __delitem__(self, k):
         """If ``self.content`` is a :type:`dict`, delete the key in the usual
@@ -621,17 +655,22 @@ class Skeleton(MutableMapping):
             del self.content[k]
         else:
             self.ikeys.remove(k)
-        for listener in self.listeners:
+        for listener in self._del_listeners:
             listener(self.parent, self, k)
         if hasattr(self.parent, 'on_child_del'):
             self.parent.on_child_del(self, k)
 
     def on_child_del(self, child, k):
         """Call all my listeners with args (child, k)."""
-        for listener in self.listeners:
+        for listener in self._del_listeners:
             listener(self, child, k)
         if hasattr(self.parent, 'on_child_del'):
             self.parent.on_child_del(child, k)
+
+    def register_del_listener(self, fun):
+        """Register a function to be called when an element is deleted in this
+        or a child."""
+        self._del_listeners.append(fun)
 
     def __iter__(self):
         """Iterate over my keys--which, if ``self.content`` is not a

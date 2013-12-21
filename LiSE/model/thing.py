@@ -3,6 +3,7 @@
 from re import match
 
 from LiSE.util import (
+    upbranch, 
     TimeParadox,
     JourneyException,
     portex)
@@ -104,6 +105,10 @@ class Thing(Container):
     @property
     def location(self):
         return self.get_location()
+
+    @property
+    def locations(self):
+        return self.get_locations()
 
     @property
     def host(self):
@@ -237,14 +242,14 @@ class Thing(Container):
                 increment += 1
             self.character.closet.time_travel_inc_branch(branches=increment)
             self.new_branch_blank = False
-            m = match(portex, oloc)
-            if m is not None:
-                loc = m.groups()[0]
+            if "Portal" in oloc.__class__.__name__:
+                loc = oloc.origin
                 tick = self.get_locations().key_after(otick)
             else:
                 loc = oloc
                 tick = otick
-            self.follow_path(path, self.character.closet.branch, tick)
+            self.follow_path(
+                path, self.character.closet.branch, tick+1)
 
     def follow_path(self, path, branch, tick):
         """Presupposing I'm in the given host, follow the path by scheduling
@@ -262,7 +267,7 @@ class Thing(Container):
             if self.get_locations(observer=None, branch=branch).key_after(
                     tick) is not None:
                 raise TimeParadox
-        except ValueError:
+        except (ValueError, IndexError):
             # This just means the branch isn't there yet. Don't worry.
             pass
         host = self.character.closet.get_character(self.get_bone().host)
@@ -289,34 +294,66 @@ class Thing(Container):
 
         """
         if self.new_branch_blank:
-            start_loc = self.get_location(parent, tick)
+            start_loc = self.get_location(None, parent, tick)
             if hasattr(start_loc, 'destination'):
                 tick = self.locations[parent].key_after(tick)
                 start_loc = self.get_location(parent, tick)
-            self.set_location(start_loc, branch, tick)
+            locb = self.bonetypes["thing_loc"](
+                character=unicode(self.character),
+                name=self.name,
+                branch=branch,
+                tick=tick,
+                location=start_loc)
+            self.character.closet.set_bone(locb)
             return
-        prev = None
-        started = False
-        i = 0
-        for bone in self.get_locations(parent).iterbones():
-            i += 1
-            if bone.tick >= tick:
-                bone2 = bone._replace(branch=branch)
-                self.get_locations(branch)[bone2.tick] = bone2
-                if (
-                        not started and prev is not None and
-                        bone.tick > tick and prev.tick < tick):
-                    bone3 = prev._replace(branch=branch, tick=tick)
-                    self.get_locations(branch)[bone3.tick] = bone3
-                started = True
-            prev = bone
+        for bone in upbranch(
+                self.character.closet,
+                self.character.iter_thing_loc_bones(self, parent),
+                branch, tick):
+            yield bone
+        for bone in upbranch(
+                self.character.closet,
+                self.iter_stat_bones(branch=parent),
+                branch, tick):
+            yield bone
+        for observer in self.character.facade_d.iterkeys():
+            for bone in upbranch(
+                    self.character.closet,
+                    self.iter_loc_bones(observer, parent),
+                    branch, tick):
+                yield bone
+            for bone in upbranch(
+                    self.character.closet,
+                    self.iter_stat_bones(observer, branch=parent),
+                    branch, tick):
+                yield bone
+
+    def iter_loc_bones(self, observer=None, branch=None):
+        if observer is None:
+            for bone in self.character.iter_thing_loc_bones(self, branch):
+                yield bone
+        else:
+            facade = self.character.get_facade(observer)
+            for bone in facade.iter_thing_loc_bones(self, branch):
+                yield bone
+
+    def iter_stat_bones(self, observer=None, stat=None, branch=None):
+        if observer is None:
+            for bone in self.character.iter_thing_stat_bones(
+                    self, stat, branch):
+                yield bone
+        else:
+            facade = self.character.get_facade(observer)
+            for bone in facade.iter_thing_stat_bones(
+                    self, stat, branch):
+                yield bone
 
     def branch_loc_bones_gen(self, branch=None):
         """Iterate over all the location bones in the given branch, defaulting
         to the current branch.
 
         """
-        for bone in self.get_locations(branch).iterbones():
+        for bone in self.get_locations(branch=branch).iterbones():
             yield bone
 
     def restore_loc_bones(self, branch, bones):
@@ -326,4 +363,4 @@ class Thing(Container):
         """
         self.character.del_thing_locations(self.name, branch)
         for bone in bones:
-            self.character.set_thing_bone(bone)
+            self.character.closet.set_bone(bone)

@@ -181,7 +181,8 @@ here. Look in CalendarView below.
             stat = ks[0]
             self.skel = skeleton["character_stat"][
                 unicode(self.character)][stat]
-        self.skel.listeners.append(self.refresh_and_layout)
+        self.skel.register_set_listener(self.refresh_and_layout)
+        self.skel.register_del_listener(self.refresh_and_layout)
         self.bind(size=lambda i, v: self._trigger_layout(),
                   pos=lambda i, v: self._trigger_layout())
         Clock.schedule_once(self.refresh_and_layout, 0)
