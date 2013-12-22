@@ -719,6 +719,8 @@ before RumorMill will work. For that, run mkdb.sh.
             self.timestream.hi_tick = bone.tick_to
 
     def mi_show_popup(self, mi, name):
+        """Get the root LiSELayout to show a popup of a kind appropriate to
+        the name given."""
         root = mi.get_root_window().children[0]
         new_thing_match = re.match(NEW_THING_RE, name)
         if new_thing_match:
@@ -735,9 +737,12 @@ before RumorMill will work. For that, run mkdb.sh.
                 return root.show_charsheet_maker()
 
     def mi_connect_portal(self, mi):
+        """Get the root LiSELayout to make an Arrow, representing a Portal."""
         mi.get_root_window().children[0].make_arrow()
 
     def register_text_listener(self, stringn, listener):
+        """Notify the listener when the string called ``stringn`` changes its
+        content."""
         if stringn == "@branch":
             self.branch_listeners.append(listener)
         elif stringn == "@tick":
@@ -747,35 +752,36 @@ before RumorMill will work. For that, run mkdb.sh.
                 listener)
 
     def register_time_listener(self, listener):
+        """Listener will be called when ``branch`` or ``tick`` changes"""
         self.time_listeners.append(listener)
 
     def register_branch_listener(self, listener):
+        """Listener will be called when ``branch`` changes"""
         self.branch_listeners.append(listener)
 
     def register_tick_listener(self, listener):
+        """Listener will be called when ``tick`` changes"""
         self.tick_listeners.append(listener)
 
     def load_img_metadata(self):
+        """Load all the records to do with img paths and tags and so forth."""
         self.skeleton.update(self.select_class_all(Img))
 
     def query_place(self):
         """Query the 'place' view, resulting in an up-to-date record of what
         places exist in the gameworld as it exists in the
-        database. Expensive.
+        database.
 
         """
         self.c.execute("SELECT host, place, branch, tick FROM place;")
         if u"place" not in self.skeleton:
             self.skeleton[u"place"] = {}
         for (host, place, branch, tick) in self.c:
-            if host not in self.skeleton[u"place"]:
-                self.skeleton[u"place"][host] = {}
-            if place not in self.skeleton[u"place"][host]:
-                self.skeleton[u"place"][host][place] = []
-            if branch not in self.skeleton[u"place"][host][place]:
-                self.skeleton[u"place"][host][place][branch] = []
-            self.skeleton[u"place"][host][place][branch][tick] = PlaceBone(
-                host=host, place=place, branch=branch, tick=tick)
+            self.set_bone(PlaceBone(
+                host=host,
+                place=place,
+                branch=branch,
+                tick=tick))
 
     def set_bone(self, bone):
         """Take a bone of arbitrary type and put it in the right place in the
@@ -841,6 +847,134 @@ before RumorMill will work. For that, run mkdb.sh.
         skel[final_key] = bone
 
 
+def defaults(c):
+    from os import sep
+    from os.path import abspath
+    from LiSE import __path__
+    from LiSE.util import whole_imgrows
+    c.executemany(
+        "INSERT INTO img (name, path, rltile) VALUES (?, ?, ?);",
+        [(name, abspath(__path__[-1]) + sep + "gui" + sep + "assets"
+          + sep + sep.join(path), rltile)
+         for (name, path, rltile) in whole_imgrows])
+    from LiSE.util import pixel_city_imgrows
+    c.executemany(
+        "INSERT INTO img (name, path, cut_x, cut_y, cut_w, cut_h) "
+        "VALUES (?, ?, ?, ?, ?, ?);", [
+            (name, abspath(__path__[-1]) + sep + "gui" +
+             sep + "assets" + sep + "pixel-city.png", x, y, w, h)
+            for (name, x, y, w, h) in pixel_city_imgrows])
+    from LiSE.util import spot_imgs
+    c.executemany(
+        "INSERT INTO img_tag (img, tag) VALUES (?, ?);",
+        [(spotimg, 'spot') for spotimg in spot_imgs])
+    from LiSE.util import globs
+    c.executemany(
+        "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
+        globs)
+    c.execute(
+        "INSERT INTO timestream (branch, parent) VALUES (?, ?);",
+        (0, 0))
+    from LiSE.util import stackhs
+    for (height, names) in stackhs:
+        qrystr = (
+            "UPDATE img SET stacking_height=? WHERE name IN ({});".format(
+                ", ".join(["?"] * len(names))))
+        qrytup = (height,) + names
+        c.execute(qrystr, qrytup)
+    from LiSE.util import offxs
+    for (offx, names) in offxs:
+        qrystr = (
+            "UPDATE img SET off_x=? WHERE name IN ({});".format(
+                ", ".join(["?"] * len(names))))
+        qrytup = (offx,) + names
+        c.execute(qrystr, qrytup)
+    from LiSE.util import offys
+    for (offy, names) in offys:
+        qrystr = (
+            "UPDATE img SET off_y=? WHERE name IN ({});".format(
+                ", ".join(["?"] * len(names))))
+        qrytup = (offx,) + names
+        c.execute(qrystr, qrytup)
+    c.execute("INSERT INTO board DEFAULT VALUES;")
+    from LiSE.util import things
+    for character in things:
+        for thing in things[character]:
+            c.execute(
+                "INSERT INTO thing (character, name, host) VALUES (?, ?, ?);",
+                (character, thing, things[character][thing]["host"]))
+            c.execute(
+                "INSERT INTO thing_loc (character, name, location) "
+                "VALUES (?, ?, ?);",
+                (character, thing, things[character][thing]["location"]))
+    from LiSE.util import reciprocal_portals
+    for (orig, dest) in reciprocal_portals:
+        name1 = "{}->{}".format(orig, dest)
+        name2 = "{}->{}".format(dest, orig)
+        c.executemany(
+            "INSERT INTO portal (name) VALUES (?);",
+            [(name1,), (name2,)])
+        c.executemany(
+            "INSERT INTO portal_loc (name, origin, destination) VALUES "
+            "(?, ?, ?);", [(name1, orig, dest), (name2, dest, orig)])
+    from LiSE.util import one_way_portals
+    for (orig, dest) in one_way_portals:
+        name = "{}->{}".format(orig, dest)
+        c.execute(
+            "INSERT INTO portal (name) VALUES (?);",
+            (name,))
+        c.execute(
+            "INSERT INTO portal_loc (name, origin, destination) "
+            "VALUES (?, ?, ?);", (name, orig, dest))
+    from LiSE.util import charsheets
+    c.executemany(
+        "INSERT INTO charsheet (character, visible) VALUES (?, ?);",
+        charsheets)
+    from LiSE.util import charsheet_items
+    for character in charsheet_items:
+        i = 0
+        for (typ, key0) in charsheet_items[character]:
+            c.execute(
+                "INSERT INTO charsheet_item (character, type, idx, key0) "
+                "VALUES (?, ?, ?, ?);", (character, typ, i, key0))
+            i += 1
+    from LiSE.util import menu_items
+    for (menu_name, data) in menu_items.iteritems():
+        i = 0
+        for (fun, txt) in data["items"]:
+            c.execute(
+                "INSERT INTO menu_item (idx, menu, closer, on_click, text) "
+                "VALUES (?, ?, ?, ?, ?);",
+                (i, menu_name, data['closer'], fun, txt))
+            i += 1
+        if 'symbolics' in data:
+            c.executemany(
+                "UPDATE menu_item SET symbolic=? WHERE menu=? AND on_click=?;",
+                [(True, menu_name, fnu) for fnu in data['symbolics']])
+    from LiSE.util import spot_coords
+    for (place, x, y) in spot_coords:
+        c.execute(
+            "INSERT INTO spot (place) VALUES (?);",
+            (place,))
+    c.executemany(
+        "INSERT INTO spot_coords (place, x, y) VALUES (?, ?, ?);",
+        spot_coords)
+    from LiSE.util import pawns
+    for observed in pawns:
+        for (thing, layers) in pawns[observed].iteritems():
+            i = 0
+            for layer in layers:
+                c.execute(
+                    "INSERT INTO pawn (observed, thing, layer, img) "
+                    "VALUES (?, ?, ?, ?);",
+                    (observed, thing, i, layer))
+                i += 1
+    from LiSE.util import strings
+    c.executemany(
+        "INSERT INTO strings (stringname, string) VALUES (?, ?);",
+        strings)
+
+
 def mkdb(DB_NAME, lisepath):
     def recurse_rltiles(d):
         """Return a list of all bitmaps in the directory, and all levels of
@@ -874,13 +1008,6 @@ subdirectory therein."""
             for tag in tags:
                 curs.execute(qrystr, (name, tag))
 
-    def read_sql(filen):
-        """Read all text from the file, and execute it as SQL commands."""
-        sqlfile = open(filen, "r")
-        sql = sqlfile.read()
-        sqlfile.close()
-        c.executescript(sql)
-
     try:
         os.remove(DB_NAME)
     except OSError:
@@ -892,7 +1019,6 @@ subdirectory therein."""
     while saveables != []:
         (demands, provides, prelude,
          tablenames, postlude) = saveables.pop(0)
-        print(tablenames)
         breakout = False
         for demand in iter(demands):
             if demand not in done:
@@ -948,24 +1074,15 @@ subdirectory therein."""
                 else:
                     c.execute(post)
         except sqlite3.OperationalError as e:
-            print("OperationalError during postlude from {0}:".format(tn))
+            print("OperationalError during postlude from {0}.".format(tn))
             print(e)
-            import pdb
-            pdb.set_trace()
             saveables.append(
                 (demands, provides, prelude_todo, tables_todo, postlude_todo))
             continue
         done.update(provides)
 
-    oldhome = os.path.abspath(os.getcwd())
-    os.chdir(lisepath + os.sep + 'sql')
-    initfiles = sorted(os.listdir(os.getcwd()))
-    for initfile in initfiles:
-        if initfile[-3:] == "sql":  # weed out automatic backups and so forth
-            print("reading SQL from file " + initfile)
-            read_sql(initfile)
-
-    os.chdir(oldhome)
+    print("inserting default values")
+    defaults(c)
 
     print("indexing the RLTiles")
     ins_rltiles(c, os.path.abspath(lisepath)
@@ -978,13 +1095,13 @@ subdirectory therein."""
 
 def load_closet(dbfn, lisepath, lang="eng", kivy=False):
     """Construct a ``Closet`` connected to the given database file. Use
-the LiSE library in the path given.
+    the LiSE library in the path given.
 
-If ``kivy`` == True, the closet will be able to load textures using
-Kivy's Image widget.
+    If ``kivy`` == True, the closet will be able to load textures using
+    Kivy's Image widget.
 
-Strings will be loaded for the language ``lang``. Use language codes
-from ISO 639-2.
+    Strings will be loaded for the language ``lang``. Use language codes
+    from ISO 639-2, default "eng".
 
     """
     conn = sqlite3.connect(dbfn)

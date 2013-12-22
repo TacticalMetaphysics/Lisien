@@ -17,7 +17,7 @@ from kivy.uix.scatter import Scatter, ScatterPlane
 from kivy.uix.widget import Widget
 from kivy.factory import Factory
 
-from sqlite3 import connect
+from sqlite3 import connect, OperationalError
 
 from LiSE.gui.board import (
     Pawn,
@@ -28,7 +28,8 @@ from LiSE.gui.kivybits import TexPile
 from LiSE.gui.swatchbox import SwatchBox
 from LiSE import (
     __path__,
-    closet)
+    closet,
+    util)
 
 
 Factory.register('SwatchBox', cls=SwatchBox)
@@ -419,15 +420,9 @@ class LiSEApp(App):
                 # always want a fresh db for debug
                 remove(self.dbfn)
             conn = connect(self.dbfn)
-            i = 0
-            for stmt in conn.iterdump():
-                i += 1
-                if i > 3:
-                    break
-            if i < 3:
-                conn.close()
-                closet.mkdb(self.dbfn, __path__[-1])
-        except IOError:
+            for tab in util.tabclas.iterkeys():
+                conn.execute("SELECT * FROM {};".format(tab))
+        except (IOError, OperationalError):
             closet.mkdb(self.dbfn, __path__[-1])
         self.closet = closet.load_closet(
             self.dbfn, self.lise_path, self.lang, True)
