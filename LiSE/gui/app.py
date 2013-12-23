@@ -406,8 +406,6 @@ class LiSEApp(App):
     observed_name = StringProperty()
     host_name = StringProperty()
     charsheet_name = StringProperty()
-    debug = BooleanProperty(False)
-    logfile = StringProperty('')
 
     def build(self):
         """Make sure I can use the database, create the tables as needed, and
@@ -416,9 +414,6 @@ class LiSEApp(App):
             self.dbfn = self.user_data_dir + sep + "default.lise"
             print("No database specified; defaulting to {}".format(self.dbfn))
         try:
-            if self.debug:
-                # always want a fresh db for debug
-                remove(self.dbfn)
             conn = connect(self.dbfn)
             for tab in util.tabclas.iterkeys():
                 conn.execute("SELECT * FROM {};".format(tab))
@@ -428,6 +423,8 @@ class LiSEApp(App):
             self.dbfn, self.lise_path, self.lang, True)
         self.closet.load_img_metadata()
         self.closet.load_textures_tagged(['base', 'body'])
+        # Currently the decision of when and whether to update things
+        # is split between here and the closet. Seems inappropriate.
         self.updater = Clock.schedule_interval(self.closet.update, 0.1)
         self.closet.load_characters([
             self.observer_name,

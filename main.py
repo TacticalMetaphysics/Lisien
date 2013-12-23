@@ -11,12 +11,6 @@ def lise():
     print(argv)
     lang = "eng"
     dbfn = None
-    if "LISEDEBUG" in environ:
-        debugfn = environ['LISEDEBUG']
-        DEBUG = True
-    else:
-        debugfn = ""
-        DEBUG = False
 
     if "LISELANG" in environ:
         lang = environ["LISELANG"]
@@ -29,9 +23,9 @@ def lise():
     print("Starting LiSE with database {}, language {}, path {}".format(
         dbfn, lang, __path__[-1]))
 
-    LiSEApp(dbfn=dbfn, lang=lang, debug=DEBUG,
+    LiSEApp(dbfn=dbfn, lang=lang,
             lise_path=abspath(__path__[-1]),
-            logfile=debugfn, menu_name='Main',
+            menu_name='Main',
             observer_name='Omniscient',
             observed_name='Physical',
             host_name='Physical',
