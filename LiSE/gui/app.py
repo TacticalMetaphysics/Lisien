@@ -1,10 +1,9 @@
-from os import sep, remove
+from os import sep
 
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
     BoundedNumericProperty,
-    BooleanProperty,
     ObjectProperty,
     ListProperty,
     StringProperty)
@@ -14,7 +13,6 @@ from kivy.graphics import Line, Color
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
 from kivy.uix.scatter import Scatter, ScatterPlane
-from kivy.uix.widget import Widget
 from kivy.factory import Factory
 
 from sqlite3 import connect, OperationalError
@@ -24,8 +22,9 @@ from LiSE.gui.board import (
     Spot,
     Arrow)
 from LiSE.gui.board.arrow import get_points
-from LiSE.gui.kivybits import TexPile
+from LiSE.gui.kivybits import TexPile, TouchlessWidget
 from LiSE.gui.swatchbox import SwatchBox
+from LiSE.util import TimestreamException
 from LiSE import (
     __path__,
     closet,
@@ -33,34 +32,6 @@ from LiSE import (
 
 
 Factory.register('SwatchBox', cls=SwatchBox)
-
-
-class TouchlessWidget(Widget):
-    def on_touch_down(self, touch):
-        return
-
-    def on_touch_move(self, touch):
-        return
-
-    def on_touch_up(self, touch):
-        return
-
-    def collide_point(self, x, y):
-        return
-
-    def collide_widget(self, w):
-        return
-
-
-class CueCard(TouchlessWidget):
-    """Widget that looks like TextInput but doesn't take input and can't be
-clicked.
-
-This is used to display feedback to the user when it's not serious
-enough to get a popup of its own.
-
-    """
-    text = StringProperty()
 
 
 class DummyPawn(Scatter):
@@ -128,24 +99,16 @@ class LiSELayout(FloatLayout):
 and charsheets.
 
     """
-    menus = ListProperty()
-    charsheets = ListProperty()
-    board = ObjectProperty()
-    prompt = ObjectProperty()
+    app = ObjectProperty()
     portaling = BoundedNumericProperty(0, min=0, max=2)
     origspot = ObjectProperty(None, allownone=True)
     dummyspot = ObjectProperty(None, allownone=True)
+    playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
 
     def __init__(self, **kwargs):
         """Add board first, then menus and charsheets."""
         super(LiSELayout, self).__init__(**kwargs)
         self._popups = []
-        self.add_widget(self.board)
-        for menu in self.menus:
-            self.add_widget(menu)
-        for charsheet in self.charsheets:
-            self.add_widget(charsheet)
-        self.add_widget(self.prompt)
 
     def draw_arrow(self, *args):
         # Sometimes this gets triggered, *just before* getting
@@ -166,23 +129,18 @@ and charsheets.
             Color(1, 1, 1)
             Line(width=1, points=points)
 
-    def on_origspot(self, i, v):
-        if v is not None:
-            assert(v not in self.children)
-
     def on_touch_down(self, touch):
-        clost = self.board.facade.closet
+        clost = self.ids.board.facade.closet
         # menus appear above the board. you can't portal on them. so
         # interpret touches there as cancelling the portaling action.
-        for menu in self.menus:
-            if menu.collide_point(touch.x, touch.y):
-                return super(LiSELayout, self).on_touch_down(touch)
         # same comment for charsheets
-        for charsheet in self.charsheets:
-            if charsheet.collide_point(touch.x, touch.y):
-                return super(LiSELayout, self).on_touch_down(touch)
-        if self.portaling == 1:
-            for spot in self.board.spotdict.itervalues():
+        if (
+                self.ids.menu.collide_point(touch.x, touch.y) or
+                self.ids.charsheet.collide_point(touch.x, touch.y)):
+            self.portaling = 0
+            return super(LiSELayout, self).on_touch_down(touch)
+        elif self.portaling == 1:
+            for spot in self.ids.board.spotdict.itervalues():
                 if spot.collide_point(touch.x, touch.y):
                     self.origspot = spot
                     break
@@ -192,16 +150,16 @@ and charsheets.
                     pos=(touch.x, touch.y), size=(1, 1))
                 self.dummyarrow = TouchlessWidget(pos=(0, 0))
                 atop = []
-                for pawn in self.board.pawndict.itervalues():
+                for pawn in self.ids.board.pawndict.itervalues():
                     if pawn.where_upon is self.origspot:
                         atop.append(pawn)
-                self.board.children[0].remove_widget(self.origspot)
+                self.ids.board.children[0].remove_widget(self.origspot)
                 for pawn in atop:
-                    self.board.children[0].remove_widget(pawn)
-                self.board.children[0].add_widget(self.dummyarrow)
-                self.board.children[0].add_widget(self.origspot)
+                    self.ids.board.children[0].remove_widget(pawn)
+                self.ids.board.children[0].add_widget(self.dummyarrow)
+                self.ids.board.children[0].add_widget(self.origspot)
                 for pawn in atop:
-                    self.board.children[0].add_widget(pawn)
+                    self.ids.board.children[0].add_widget(pawn)
                 self.add_widget(self.dummyspot)
                 self.dummyspot.bind(pos=self.draw_arrow)
                 self.display_prompt(clost.get_text("@putportalto"))
@@ -211,7 +169,7 @@ and charsheets.
                 self.dummyspot.unbind(pos=self.draw_arrow)
                 self.dummyarrow.canvas.clear()
                 self.remove_widget(self.dummyspot)
-                self.board.children[0].remove_widget(self.dummyarrow)
+                self.ids.board.children[0].remove_widget(self.dummyarrow)
                 self.dismiss_prompt()
                 self.origspot = None
                 self.dummyspot = None
@@ -226,10 +184,10 @@ and charsheets.
             self.dummyspot.unbind(pos=self.draw_arrow)
             self.dummyarrow.canvas.clear()
             self.remove_widget(self.dummyspot)
-            self.board.children[0].remove_widget(self.dummyarrow)
+            self.ids.board.children[0].remove_widget(self.dummyarrow)
             self.dismiss_prompt()
             destspot = None
-            for spot in self.board.spotdict.itervalues():
+            for spot in self.ids.board.spotdict.itervalues():
                 if spot.collide_point(touch.x, touch.y):
                     destspot = spot
                     break
@@ -239,22 +197,22 @@ and charsheets.
                 return True
             origplace = self.origspot.place
             destplace = destspot.place
-            portal = self.board.facade.observed.make_portal(
-                origplace, destplace, host=self.board.host)
+            portal = self.ids.board.facade.observed.make_portal(
+                origplace, destplace, host=self.ids.board.host)
             arrow = Arrow(
-                board=self.board, portal=portal)
-            self.board.arrowdict[unicode(portal)] = arrow
+                board=self.ids.board, portal=portal)
+            self.ids.board.arrowdict[unicode(portal)] = arrow
             atop = []
-            for pawn in self.board.pawndict.itervalues():
+            for pawn in self.ids.board.pawndict.itervalues():
                 if pawn.where_upon is self.origspot:
                     atop.append(pawn)
-            self.board.children[0].remove_widget(self.origspot)
+            self.ids.board.children[0].remove_widget(self.origspot)
             for pawn in atop:
-                self.board.children[0].remove_widget(pawn)
-            self.board.children[0].add_widget(arrow)
-            self.board.children[0].add_widget(self.origspot)
+                self.ids.board.children[0].remove_widget(pawn)
+            self.ids.board.children[0].add_widget(arrow)
+            self.ids.board.children[0].add_widget(self.origspot)
             for pawn in atop:
-                self.board.children[0].add_widget(pawn)
+                self.ids.board.children[0].add_widget(pawn)
             self.dummyspot = None
             self.dummyarrow = None
         else:
@@ -262,27 +220,27 @@ and charsheets.
 
     def display_prompt(self, text):
         """Put the text in the cue card"""
-        self.prompt.text = text
+        self.ids.prompt.text = text
 
     def dismiss_prompt(self, *args):
         """Blank out the cue card"""
-        self.prompt.text = ''
+        self.ids.prompt.text = ''
 
     def dismiss_popup(self, *args):
         """Destroy the latest popup"""
         self._popups.pop().dismiss()
 
     def new_spot_with_swatches(self, swatches):
-        clost = self.board.facade.closet
+        clost = self.ids.board.facade.closet
         if len(swatches) < 1:
             return
         self.display_prompt(clost.get_text("@putplace"))
         Clock.schedule_once(self.dismiss_prompt, 5)
-        place = clost.make_generic_place(self.board.host)
+        place = clost.make_generic_place(self.ids.board.host)
         branch = clost.branch
         tick = clost.tick
-        obsrvr = unicode(self.board.facade.observer)
-        host = unicode(self.board.host)
+        obsrvr = unicode(self.ids.board.facade.observer)
+        host = unicode(self.ids.board.host)
         placen = unicode(place)
         i = 0
         for swatch in swatches:
@@ -303,26 +261,26 @@ and charsheets.
             branch=branch,
             tick=tick,
             x=min((
-                (0.1 * self.width) + self.board.scroll_x *
-                self.board.viewport_size[0],
-                self.board.viewport_size[0] - 32)),
+                (0.1 * self.width) + self.ids.board.scroll_x *
+                self.ids.board.viewport_size[0],
+                self.ids.board.viewport_size[0] - 32)),
             y=min((
-                (0.9 * self.height) + self.board.scroll_y *
-                self.board.viewport_size[1],
-                self.board.viewport_size[1] - 32)))
+                (0.9 * self.height) + self.ids.board.scroll_y *
+                self.ids.board.viewport_size[1],
+                self.ids.board.viewport_size[1] - 32)))
         clost.set_bone(coord_bone)
-        spot = Spot(board=self.board, place=place)
-        self.board.add_widget(spot)
+        spot = Spot(board=self.ids.board, place=place)
+        self.ids.board.add_widget(spot)
         self.dismiss_popup()
 
     def new_pawn_with_swatches(self, swatches):
         """Given some iterable of Swatch widgets, make a dummy pawn, prompt
 the user to place it, and dismiss the popup."""
-        clost = self.board.facade.closet
+        clost = self.ids.board.facade.closet
         self.display_prompt(clost.get_text("@putthing"))
         (w, h) = self.get_root_window().size
         dummy = DummyPawn(
-            board=self.board,
+            board=self.ids.board,
             imgbones=[
                 clost.skeleton[u'img'][swatch.text]
                 for swatch in swatches],
@@ -336,7 +294,7 @@ the user to place it, and dismiss the popup."""
         used to build a Spot later.
 
         """
-        clost = self.board.facade.closet
+        clost = self.ids.board.facade.closet
         cattexlst = [
             (cat, sorted(clost.textag_d[cat.strip("!?")]))
             for cat in categories]
@@ -356,7 +314,7 @@ the user to place it, and dismiss the popup."""
         used to build a Pawn later.
 
         """
-        clost = self.board.facade.closet
+        clost = self.ids.board.facade.closet
         cattexlst = [
             (cat, sorted(clost.textag_d[cat]))
             for cat in categories]
@@ -377,9 +335,49 @@ drawing the Arrow for it and prompt user to click the
 destination. Then make the Portal and its Arrow.
 
         """
-        clost = self.board.facade.closet
+        clost = self.ids.board.facade.closet
         self.display_prompt(clost.get_text("@putportalfrom"))
         self.portaling = 1
+
+    def normal_speed(self, forward=True):
+        if forward:
+            self.playspeed = 0.1
+        else:
+            self.playspeed = -0.1
+
+    def pause(self):
+        if hasattr(self, 'updater'):
+            Clock.unschedule(self.updater)
+
+    def update(self, ticks):
+        try:
+            self.app.closet.time_travel_inc_tick(ticks)
+        except TimestreamException:
+            print("Pausing!")
+            self.pause()
+
+    def on_playspeed(self, i, v):
+        self.pause()
+        if v > 0:
+            ticks = 1
+            interval = v
+        elif v < 0:
+            ticks = -1
+            interval = -v
+        else:
+            return
+        self.updater = lambda dt: self.update(ticks)
+        Clock.schedule_interval(self.updater, interval)
+
+    def go_to_branch(self, bstr):
+        b = int(bstr)
+        clost = self.ids.board.host.closet
+        clost.time_travel(b, clost.tick)
+
+    def go_to_tick(self, tstr):
+        t = int(tstr)
+        clost = self.ids.board.host.closet
+        clost.time_travel(clost.branch, t)
 
 
 class LoadImgDialog(FloatLayout):
@@ -401,11 +399,9 @@ class LiSEApp(App):
     dbfn = StringProperty(allownone=True)
     lang = StringProperty()
     lise_path = StringProperty()
-    menu_name = StringProperty()
     observer_name = StringProperty()
     observed_name = StringProperty()
     host_name = StringProperty()
-    charsheet_name = StringProperty()
 
     def build(self):
         """Make sure I can use the database, create the tables as needed, and
@@ -425,25 +421,17 @@ class LiSEApp(App):
         self.closet.load_textures_tagged(['base', 'body'])
         # Currently the decision of when and whether to update things
         # is split between here and the closet. Seems inappropriate.
-        self.updater = Clock.schedule_interval(self.closet.update, 0.1)
         self.closet.load_characters([
             self.observer_name,
             self.observed_name,
-            self.host_name,
-            self.charsheet_name])
-        menu = self.closet.load_menu(self.menu_name)
-        board = self.closet.load_board(
+            self.host_name])
+        Clock.schedule_once(lambda dt: self.closet.checkpoint(), 0)
+        self.closet.load_board(
             self.observer_name,
             self.observed_name,
             self.host_name)
-        charsheet = self.closet.load_charsheet(self.charsheet_name)
-        prompt = CueCard()
-        Clock.schedule_once(lambda dt: self.closet.checkpoint(), 0)
-        return LiSELayout(
-            menus=[menu],
-            board=board,
-            charsheets=[charsheet],
-            prompt=prompt)
+        self.closet.load_charsheet(self.observed_name)
+        return LiSELayout(app=self)
 
     def on_pause(self):
         self.closet.save()

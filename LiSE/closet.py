@@ -28,6 +28,7 @@ from model import (
     Thing)
 from model.event import Implicator
 from util import (
+    TimestreamException,
     SaveableMetaclass,
     int2pytype,
     pytype2int,
@@ -605,12 +606,13 @@ before RumorMill will work. For that, run mkdb.sh.
         # will need to take other games-stuff into account than the
         # thing_location
         if tick < 0:
-            tick = 0
-            self.updating = False
+            raise TimestreamException("Tick before start of time")
         # make it more general
         mintick = self.timestream.min_tick(branch, "thing_loc")
         if tick < mintick:
-            tick = mintick
+            raise TimestreamException("Tick before start of time")
+        if branch < 0:
+            raise TimestreamException("Branch can't be less than zero")
         self.time_travel_history.append((self.branch, self.tick))
         if tick > self.timestream.hi_tick:
             self.timestream.hi_tick = tick
@@ -680,12 +682,6 @@ before RumorMill will work. For that, run mkdb.sh.
         """Stop time and go back to the beginning"""
         self.stop()
         self.time_travel(self.branch, 0)
-
-    def update(self, *args):
-        """Proceed some number of ticks into the future, according to the game
-        speed"""
-        if self.updating:
-            self.time_travel_inc_tick(ticks=self.game_speed)
 
     def end_game(self):
         """Save everything and close the connection"""
@@ -896,7 +892,11 @@ def defaults(c):
                 ", ".join(["?"] * len(names))))
         qrytup = (offx,) + names
         c.execute(qrystr, qrytup)
-    c.execute("INSERT INTO board DEFAULT VALUES;")
+    from LiSE.util import boards
+    for (obsrvr, obsrvd, hst) in boards:
+        c.execute(
+            "INSERT INTO board (observer, observed, host) VALUES (?, ?, ?);",
+            (obsrvr, obsrvd, hst))
     from LiSE.util import things
     for character in things:
         for thing in things[character]:
@@ -926,10 +926,6 @@ def defaults(c):
         c.execute(
             "INSERT INTO portal_loc (name, origin, destination) "
             "VALUES (?, ?, ?);", (name, orig, dest))
-    from LiSE.util import charsheets
-    c.executemany(
-        "INSERT INTO charsheet (character, visible) VALUES (?, ?);",
-        charsheets)
     from LiSE.util import charsheet_items
     for character in charsheet_items:
         i = 0
@@ -938,19 +934,6 @@ def defaults(c):
                 "INSERT INTO charsheet_item (character, type, idx, key0) "
                 "VALUES (?, ?, ?, ?);", (character, typ, i, key0))
             i += 1
-    from LiSE.util import menu_items
-    for (menu_name, data) in menu_items.iteritems():
-        i = 0
-        for (fun, txt) in data["items"]:
-            c.execute(
-                "INSERT INTO menu_item (idx, menu, closer, on_click, text) "
-                "VALUES (?, ?, ?, ?, ?);",
-                (i, menu_name, data['closer'], fun, txt))
-            i += 1
-        if 'symbolics' in data:
-            c.executemany(
-                "UPDATE menu_item SET symbolic=? WHERE menu=? AND on_click=?;",
-                [(True, menu_name, fnu) for fnu in data['symbolics']])
     from LiSE.util import spot_coords
     for (place, x, y) in spot_coords:
         c.execute(
@@ -977,7 +960,7 @@ def defaults(c):
 
 def mkdb(DB_NAME, lisepath):
 
-    def ins_rltiles(curs, dirname):
+    def ins_rltiles(curs, dirname, xtags=[]):
         img_qrystr = (
             "INSERT INTO img (name, path, off_x, off_y) "
             "VALUES (?, ?, ?, ?);")
@@ -996,8 +979,10 @@ def mkdb(DB_NAME, lisepath):
                         "atlas://{}/{}/{}".format(
                             dirname, atlasn, tilen),
                         4, 8))
-                    curs.execute(tag_qrystr, (
-                        imgn, atlasn))
+                    curs.executemany(tag_qrystr, [
+                        (imgn, atlasn),
+                        (imgn, 'rltile')] + [
+                        (imgn, tag) for tag in xtags])
     try:
         os.remove(DB_NAME)
     except OSError:
@@ -1049,6 +1034,7 @@ def mkdb(DB_NAME, lisepath):
         tables_todo = list(tablenames)
         while tables_todo != []:
             tn = tables_todo.pop(0)
+            print(tn)
             c.execute(schemata[tn])
             done.add(tn)
         if breakout:
@@ -1075,7 +1061,7 @@ def mkdb(DB_NAME, lisepath):
     defaults(c)
 
     print("indexing the RLTiles")
-    ins_rltiles(c, "LiSE/gui/assets/rltiles/hominid")
+    ins_rltiles(c, "LiSE/gui/assets/rltiles/hominid", ['hominid'])
 
     conn.commit()
     return conn

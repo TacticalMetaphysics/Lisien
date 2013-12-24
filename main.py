@@ -25,11 +25,9 @@ def lise():
 
     LiSEApp(dbfn=dbfn, lang=lang,
             lise_path=abspath(__path__[-1]),
-            menu_name='Main',
             observer_name='Omniscient',
-            observed_name='Physical',
-            host_name='Physical',
-            charsheet_name='household').run()
+            observed_name='household',
+            host_name='Physical').run()
 
 
 if __name__ == '__main__':
