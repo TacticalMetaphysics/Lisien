@@ -100,7 +100,7 @@ things = {
             "location": "zack_room"},
         "gail_body": {
             "host": "Physical",
-            "location": "zack_room"}}}
+            "location": "gail_room"}}}
 
 reciprocal_portals = [
     ('zack_room', 'longhall'),
@@ -248,10 +248,10 @@ strings = [
 
 pawns = {
     'household': {
-        'zack_body': ['hominid/base/human_m.bmp',
-                      'hominid/body/robe_blue_green.bmp'],
-        'gail_body': ['hominid/base/human_f.bmp',
-                      'hominid/body/dress_green.bmp']}}
+        'zack_body': ['base.human_m',
+                      'body.robe_blue_green'],
+        'gail_body': ['base.human_f',
+                      'body.dress_green']}}
 
 ### End constants
 ### Begin metadata
