@@ -198,9 +198,11 @@ and charsheets.
             origplace = self.origspot.place
             destplace = destspot.place
             portalname = "{}->{}".format(origplace, destplace)
-            portal = self.ids.board.host.make_portal(
+            portal = self.ids.board.facade.observed.make_portal(
                 portalname, origplace, destplace,
                 host=self.ids.board.host)
+            # it seems like Arrow can only display when the character
+            # AND the host BOTH match the board's host
             arrow = Arrow(
                 board=self.ids.board, portal=portal)
             self.ids.board.arrowdict[unicode(portal)] = arrow

@@ -78,6 +78,10 @@ class Portal(Container):
         return self.get_loc_bone()
 
     @property
+    def host(self):
+        return self.character.closet.get_character(self.bone.host)
+
+    @property
     def origin(self):
         return self.get_origin()
 
@@ -117,18 +121,25 @@ class Portal(Container):
                 self.name, branch, tick)
 
     def get_origin(self, observer=None, branch=None, tick=None):
-        bone = self.get_loc_bone(observer, branch, tick)
-        try:
-            return self.character.get_place(bone.origin)
-        except KeyError:
-            return self.character.get_thing(bone.origin)
+        return self._get_origdest('origin', observer, branch, tick)
 
     def get_destination(self, observer=None, branch=None, tick=None):
+        return self._get_origdest('destination', observer, branch, tick)
+
+    def _get_origdest(self, bone_att, observer, branch, tick):
         bone = self.get_loc_bone(observer, branch, tick)
         try:
-            return self.character.get_place(bone.destination)
+            placebone = self.host.get_place_bone(getattr(bone, bone_att),
+                                                 branch, tick)
+            return self.host.get_place(placebone.place)
         except KeyError:
-            return self.character.get_thing(bone.destination)
+            skel = self.host.closet.skeleton[u"thing"]
+            for thingbone in skel.iterbones():
+                if (
+                        thingbone.name == getattr(bone, bone_att) and
+                        thingbone.host == unicode(self.host)):
+                    char = self.host.closet.get_character(thingbone.character)
+                    return char.get_thing(thingbone.name)
 
     def new_branch(self, parent, branch, tick):
         skel = self.character.closet.skeleton[u"portal_loc"][
