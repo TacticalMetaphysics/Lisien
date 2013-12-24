@@ -164,36 +164,15 @@
     font_name: sep.join([self.parent.character.closet.lisepath, "gui", "assets", "Entypo.ttf"]) if self.parent else ""
     font_size: 32
     size_hint_x: 0.2
-<CharSheetView>:
-    pos_hint: {'x': self.character.closet.skeleton[u"charsheet"][unicode(self.character)].x_hint, 'y': self.character.closet.skeleton[u"charsheet"][unicode(self.character)].y_hint}
-    size_hint: (self.character.closet.skeleton[u"charsheet"][unicode(self.character)].w_hint, self.character.closet.skeleton[u"charsheet"][unicode(self.character)].h_hint)
-    scroll_type: ['bars']
-    bar_pos_y: 'left'
-    CharSheet:
-        id: sheet
-        size_hint: (1, None)
-        width: root.width
-        character: root.character
-        cols: 2
-        spacing: 10
-        cols_minimum: {0: self.width - 32 - self.spacing[0], 1: 32}
-<Menu>:
-    orientation: 'vertical'
-    spacing: 10
-    size_hint: (0.1, 1)
-<MenuButton>:
-    font_size: 30 if self.symbolic else 20
 <CueCard>:
-    pos_hint: {'x': 0.1, 'top': 1}
-    size_hint: (None, None)
-    size: (400, 26)
     Label:
         id: l
-        text: root.text
         text_size: root.size
         color: solarized["base0"]
         pos: root.pos
         size: root.size
+        halign: 'center'
+        valign: 'middle'
         canvas.before:
             Color:
                 rgba: solarized["base02"]
@@ -202,3 +181,80 @@
                 size: l.size
 <Board>:
     auto_bring_to_front: False
+<MenuIntInput>:
+    padding: [12, 12, 12, 0]
+    font_size: 26
+<LiSELayout>:
+    Board:
+        id: board
+        facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
+        host: root.app.closet.get_character(root.app.host_name)
+    CueCard:
+        id: prompt
+        closet: root.app.closet
+        pos_hint: {'x': 0.1, 'top': 1}
+        size_hint: (None, None)
+        size: (400, 26)
+    CharSheetView:
+        id: csview
+        pos_hint: {'x': 0.7, 'y': 0.0}
+        size_hint: (0.3, 1.0)
+        scroll_type: ['bars']
+        bar_pos_y: 'left'
+        CharSheet:
+            id: charsheet
+            size_hint: (1, None)
+            width: csview.width
+            character: root.app.closet.get_character(root.app.observed_name)
+            cols: 2
+            spacing: 10
+            cols_minimum: {0: self.width - 32 - self.spacing[0], 1: 32}
+    BoxLayout:
+        id: menu
+        size_hint: (0.1, 1)
+        orientation: 'vertical'
+        spacing: 10
+        MenuButton:
+            closet: root.app.closet
+            stringname: '@place_menu'
+            fun: root.show_spot_picker
+            arg: ['spot']
+        MenuButton:
+            closet: root.app.closet
+            stringname: '@portal_menu'
+            fun: root.make_arrow
+        MenuButton:
+            closet: root.app.closet
+            stringname: '@thing_menu'
+            fun: root.show_pawn_picker
+            arg: ['base', 'body']
+        MenuButton:
+            closet: root.app.closet
+            symbolic: True
+            stringname: '@play'
+            fun: root.normal_speed
+        MenuButton:
+            closet: root.app.closet
+            symbolic: True
+            stringname: '@reverse'
+            fun: root.normal_speed
+            arg: False
+        MenuButton:
+            closet: root.app.closet
+            symbolic: True
+            stringname: '@pause'
+            fun: root.pause
+        CueCard:
+            closet: root.app.closet
+            stringname: '@branch:'
+        MenuIntInput:
+            closet: root.app.closet
+            stringname: '@branch'
+            fun: root.go_to_branch
+        CueCard:
+            closet: root.app.closet
+            stringname: '@tick:'
+        MenuIntInput:
+            closet: root.app.closet
+            stringname: '@tick'
+            fun: root.go_to_tick

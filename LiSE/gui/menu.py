@@ -1,118 +1,82 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-import os
-from re import match, compile
-
 from kivy.properties import (
     BooleanProperty,
     StringProperty,
     ObjectProperty,
-    ListProperty,
     NumericProperty)
+from kivy.uix.label import Label
+from kivy.uix.widget import Widget
+from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-
-from kivybits import SaveableWidgetMetaclass
-
 
 """Menus that are actually just stacks of buttons.
 
 I'll probably change over to drop menus at some point."""
 
 
-ON_CLICK_RE = compile("""([a-zA-Z0-9_]+)\((.*)\)""")
+class MenuWidget(Widget):
+    closet = ObjectProperty()
+    fun = ObjectProperty()
+    arg = ObjectProperty(None, allownone=True)
+    symbolic = BooleanProperty(False)
+    stringname = StringProperty()
+    completion = NumericProperty(0)
+
+    def on_closet(self, *args):
+        self.completion += 1
+
+    def on_stringname(self, *args):
+        self.completion += 1
+
+    def on_completion(self, i, v):
+        if v == 2:
+            self.complete()
+
+    def complete(self):
+        self.closet.register_text_listener(self.stringname, self.retext)
+        self.initext()
+
+    def do_fun(self):
+        if self.arg is None:
+            self.fun()
+        else:
+            self.fun(self.arg)
 
 
-class MenuButton(Button):
-    """A button that does something. It is to be placed by a Menu."""
-    symbolic = BooleanProperty()
-    oncl = ObjectProperty()
-    fargs = ListProperty()
+class MenuButton(Button, MenuWidget):
+    def initext(self):
+        if self.symbolic:
+            self.font_name = 'LiSE/gui/assets/Entypo.ttf'
+            self.font_size = 30
+        self.text = self.closet.get_text(self.stringname)
 
-    def on_press(self):
-        self.oncl(self, *self.fargs)
+    def on_press(self, *args):
+        self.do_fun()
+
+    def retext(self, skel, k, v):
+        if k == self.closet.language:
+            self.label.text = v
+
+
+class MenuIntInput(TextInput, MenuWidget):
+    def initext(self):
+        self.hint_text = self.closet.get_text(self.stringname)
+
+    def on_text(self, i, v):
+        try:
+            i.arg = int(v)
+            i.do_fun()
+        except:
+            pass
+        self.text = ''
+
+    def retext(self, time):
+        self.hint_text = str(time)
 
 
 class Menu(BoxLayout):
-    """A stack of buttons that call functions assigned in the database."""
-    __metaclass__ = SaveableWidgetMetaclass
-    tables = [
-        ('menu_item', {
-            "columns":
-            {'menu': 'text not null',
-             'idx': 'integer not null',
-             'text': 'text',
-             'on_click': 'text not null',
-             'closer': 'boolean not null default 1',
-             'symbolic': 'boolean not null default 0'},
-            "primary_key":
-            ('menu', 'idx')})]
+    """A stack of buttons that call functions in the closet."""
+    font_name = StringProperty
     closet = ObjectProperty()
-    name = StringProperty()
-    completedness = NumericProperty(0)
-
-    def __unicode__(self):
-        """Return my name in unicode"""
-        return unicode(self.name)
-
-    def __str__(self):
-        """Return my name in the default codec"""
-        return str(self.name)
-
-    def on_closet(self, i, v):
-        """Increment ``self.completedness``"""
-        self.completedness += 1
-
-    def on_name(self, i, v):
-        """Increment ``self.completedness``"""
-        self.completedness += 1
-
-    def on_parent(self, i, v):
-        """Increment ``self.completedness``"""
-        self.completedness += 1
-
-    def on_completedness(self, i, v):
-        """When ready, call ``self.finalize``"""
-        if v == 3:
-            self.finalize()
-
-    def finalize(self):
-        """Create one ``MenuButton`` for each bone under my name in the
-        Skeleton.
-
-        Each ``MenuButton``'s function will be taken from the dictionary
-        ``menu_cbs`` in my ``Closet``.
-
-        """
-        for bone in self.closet.skeleton["menu_item"][
-                unicode(self)].iterbones():
-            ocmatch = match(ON_CLICK_RE, bone.on_click)
-            if ocmatch is not None:
-                (ocfn, ocargs) = ocmatch.groups()
-                (on_click_fun, ARG_RE) = self.closet.menu_cbs[ocfn]
-                ocargm = match(ARG_RE, ocargs)
-                if ocargm is None:
-                    fargs = []
-                else:
-                    fargs = list(ocargm.groups())
-
-                if bone.symbolic:
-                    fontname = os.sep.join([
-                        self.closet.lisepath, "gui",
-                        "assets", "Entypo.ttf"])
-                else:
-                    fontname = 'DroidSans'
-
-                it = MenuButton(
-                    symbolic=bone.symbolic,
-                    oncl=on_click_fun,
-                    fargs=fargs,
-                    text=self.closet.get_text(bone.text),
-                    font_name=fontname)
-
-                def retext(*args):
-                    """When the ``Bone``'s string changes, update the
-                    ``MenuButton``'s text to match."""
-                    it.text = self.closet.get_text(bone.text)
-                self.closet.register_text_listener(bone.text, retext)
-                self.add_widget(it)

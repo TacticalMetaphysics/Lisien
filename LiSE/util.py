@@ -181,6 +181,8 @@ spot_coords = [
     ('balcony', 300, 100),
     ('apt_hall', 300, 400)]
 
+boards = [('Omniscient', 'household', 'Physical')]
+
 strings = [
     (u'game_menu', u'Game'),
     (u'editor_menu', u'Editor'),
@@ -203,8 +205,8 @@ strings = [
     (u'decorthing', u'New decoration...'),
     (u'clothing', u'New clothing...'),
     (u'toolthing', u'New tool...'),
-    (u'branch', u'Branch'),
-    (u'tick', u'Tick'),
+    (u'branch:', u'Branch:'),
+    (u'tick:', u'Tick:'),
     (u'putthing', u'Drag this thing to the spot where you want it.'),
     (u'putplace', u'Drag this place where you want it.'),
     (u'putportalfrom', u'Draw a line between the spots where you want a portal.'),

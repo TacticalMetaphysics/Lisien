@@ -1,12 +1,14 @@
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.core.image import ImageData
 from kivy.uix.image import Image
 from kivy.uix.widget import (
+    Widget,
     WidgetMetaclass)
 from kivy.properties import (
     NumericProperty,
     ListProperty,
-    ObjectProperty)
+    ObjectProperty,
+    StringProperty,
+    BooleanProperty)
 
 from LiSE.util import SaveableMetaclass
 from img import Img
@@ -20,22 +22,56 @@ class SaveableWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
     pass
 
 
-def load_rltile(path):
-    """Load one of the RLTiles, turn its chroma-key into an alpha
-    channel, and return its texture."""
-    rltex = Image(
-        source=path).texture
-    imgd = ImageData(rltex.width, rltex.height,
-                     rltex.colorfmt, rltex.pixels,
-                     source=path)
-    fixed = ImageData(
-        rltex.width, rltex.height,
-        rltex.colorfmt, imgd.data.replace(
-            '\xffGll', '\x00Gll').replace(
-            '\xff.', '\x00.'),
-        source=path)
-    rltex.blit_data(fixed)
-    return rltex
+class TouchlessWidget(Widget):
+    def on_touch_down(self, touch):
+        return
+
+    def on_touch_move(self, touch):
+        return
+
+    def on_touch_up(self, touch):
+        return
+
+    def collide_point(self, x, y):
+        return
+
+    def collide_widget(self, w):
+        return
+
+
+class CueCard(TouchlessWidget):
+    """Widget that looks like TextInput but doesn't take input and can't be
+clicked.
+
+This is used to display feedback to the user when it's not serious
+enough to get a popup of its own.
+
+    """
+    closet = ObjectProperty()
+    stringname = StringProperty()
+    symbolic = BooleanProperty(False)
+    completion = NumericProperty(0)
+
+    def on_closet(self, *args):
+        self.completion += 1
+
+    def on_stringname(self, *args):
+        self.completion += 1
+
+    def on_completion(self, i, v):
+        if v == 2:
+            self.complete()
+
+    def complete(self):
+        self.closet.register_text_listener(self.stringname, self.retext)
+        self.revert_text()
+
+    def revert_text(self):
+        self.ids.l.text = self.closet.get_text(self.stringname)
+
+    def retext(self, skel, k, v):
+        if k == self.closet.language:
+            self.text = v
 
 
 def load_textures(cursor, skel, texturedict, textagdict, names):
@@ -51,11 +87,8 @@ def load_textures(cursor, skel, texturedict, textagdict, names):
     r = {}
     for name in names:
         bone = skel[u"img"][name]
-        if bone.rltile:
-            tex = load_rltile(skel[u"img"][name].path)
-        else:
-            tex = Image(
-                source=skel[u"img"][name].path).texture
+        tex = Image(
+            source=skel[u"img"][name].path).texture
         w = bone.cut_w
         h = bone.cut_h
         if w is None:
@@ -84,11 +117,8 @@ def load_all_textures(cursor, skel, texturedict, textagdict):
     skel.update(Img._select_table_all(cursor, u"img_tag") +
                 Img._select_table_all(cursor, u"img"))
     for bone in skel[u"img"].iterbones():
-        if bone.rltile:
-            texturedict[bone.name] = load_rltile(bone.path)
-        else:
-            texturedict[bone.name] = Image(
-                source=bone.path).texture
+        texturedict[bone.name] = Image(
+            source=bone.path).texture
     for (img, tag) in skel[u"img_tag"].iterbones():
         if img not in textagdict:
             textagdict[tag] = set()
