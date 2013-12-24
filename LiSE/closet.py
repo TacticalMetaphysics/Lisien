@@ -453,6 +453,7 @@ before RumorMill will work. For that, run mkdb.sh.
         r = {}
         for name in names:
             char = Character(self, name)
+            char.update()
             r[name] = char
             self.character_d[name] = char
         return r
@@ -470,8 +471,6 @@ before RumorMill will work. For that, run mkdb.sh.
                 unhad.add(name)
         if len(unhad) > 0:
             r.update(self.load_characters(names))
-        for char in r.itervalues():
-            char.update()
         return r
 
     def get_character(self, name):

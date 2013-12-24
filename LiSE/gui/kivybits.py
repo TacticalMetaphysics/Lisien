@@ -86,17 +86,8 @@ def load_textures(cursor, skel, texturedict, textagdict, names):
     skel.update(res)
     r = {}
     for name in names:
-        bone = skel[u"img"][name]
-        tex = Image(
+        r[name] = Image(
             source=skel[u"img"][name].path).texture
-        w = bone.cut_w
-        h = bone.cut_h
-        if w is None:
-            w = tex.width - bone.cut_x
-        if h is None:
-            h = tex.height - bone.cut_y
-        r[name] = tex.get_region(
-            bone.cut_x, bone.cut_y, w, h)
     texturedict.update(r)
     for (img, tag) in skel[u"img_tag"].iterbones():
         if tag not in textagdict:
