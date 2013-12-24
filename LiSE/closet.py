@@ -976,38 +976,28 @@ def defaults(c):
 
 
 def mkdb(DB_NAME, lisepath):
-    def recurse_rltiles(d):
-        """Return a list of all bitmaps in the directory, and all levels of
-subdirectory therein."""
-        bmps = [d + os.sep + bmp
-                for bmp in os.listdir(d)
-                if bmp[0] != '.' and
-                bmp[-4:] == ".bmp"]
-        for subdir in os.listdir(d):
-            try:
-                bmps.extend(recurse_rltiles(d + os.sep + subdir))
-            except:
-                continue
-        return bmps
 
     def ins_rltiles(curs, dirname):
-        """Recurse into the directory, and for each bitmap I find, add records
-        to the database describing it.
-
-        Also tag the bitmaps with the names of the folders they are
-        in, up to (but not including) the 'rltiles' folder.
-
-        """
-        for bmp in recurse_rltiles(dirname):
-            qrystr = "insert into img (name, path, rltile, " \
-                     "off_x, off_y) values (?, ?, ?, ?, ?)"
-            name = bmp.replace(dirname, '').strip(os.sep)
-            curs.execute(qrystr, (name, bmp, True, 4, 8))
-            tags = name.split(os.sep)[:-1]
-            qrystr = "insert into img_tag (img, tag) values (?, ?)"
-            for tag in tags:
-                curs.execute(qrystr, (name, tag))
-
+        img_qrystr = (
+            "INSERT INTO img (name, path, off_x, off_y) "
+            "VALUES (?, ?, ?, ?);")
+        tag_qrystr = (
+            "INSERT INTO img_tag (img, tag) VALUES (?, ?);")
+        from kivy.atlas import Atlas
+        from os.path import sep
+        for fn in os.listdir(dirname):
+            if fn[-5:] == 'atlas':
+                atlasn = fn[:-6]
+                lass = Atlas(dirname + sep + fn)
+                for tilen in lass.textures.iterkeys():
+                    imgn = atlasn + '.' + tilen
+                    curs.execute(img_qrystr, (
+                        imgn,
+                        "atlas://{}/{}/{}".format(
+                            dirname, atlasn, tilen),
+                        4, 8))
+                    curs.execute(tag_qrystr, (
+                        imgn, atlasn))
     try:
         os.remove(DB_NAME)
     except OSError:
@@ -1085,9 +1075,7 @@ subdirectory therein."""
     defaults(c)
 
     print("indexing the RLTiles")
-    ins_rltiles(c, os.path.abspath(lisepath)
-                + os.sep + 'gui' + os.sep + 'assets'
-                + os.sep + 'rltiles')
+    ins_rltiles(c, "LiSE/gui/assets/rltiles/hominid")
 
     conn.commit()
     return conn
