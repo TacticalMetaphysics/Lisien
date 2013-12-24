@@ -44,32 +44,10 @@ phi = (1.0 + sqrt(5))/2.0
 portex = compile("Portal\((.+?)->(.+?)\)")
 """Regular expression to recognize portals by name"""
 
-spot_imgs = (
-    'default_spot', 'sidewalk', 'crossroad', 'street-ne-sw', 'street-nw-se',
-    'block', 'spacer', 'lobby', 'brutalist', 'enterprise', 'brownstone',
-    'blind', 'soviet', 'monolith', 'olivine', 'orange')
-
 whole_imgrows = [
-    ('default_wallpaper', ['wallpape.jpg'], 0),
-    ('default_spot', ['orb.png'], 0),
-    ('default_pawn', ['rltiles', 'hominid', 'unseen.bmp'], 1)]
-
-pixel_city_imgrows = [
-    ('sidewalk',     4,   5,   33, 21),
-    ('crossroad',    45,  5,   34, 21),
-    ('street-ne-sw', 4,   29,  34, 21),
-    ('street-nw-se', 46,  30,  34, 21),
-    ('block',        97,  175, 34, 29),
-    ('spacer',       220, 306, 34, 21),
-    ('lobby',        261, 307, 34, 23),
-    ('brutalist',    302, 344, 34, 28),
-    ('enterprise',   340, 344, 34, 26),
-    ('brownstone',   266, 374, 34, 23),
-    ('blind',        303, 374, 34, 23),
-    ('soviet',       340, 374, 34, 23),
-    ('monolith',     340, 400, 34, 23),
-    ('olivine',      303, 400, 34, 23),
-    ('orange',       265, 401, 34, 23)]
+    ('default_wallpaper', ['wallpape.jpg']),
+    ('default_spot', ['orb.png']),
+    ('default_pawn', ['rltiles', 'hominid', 'unseen.bmp'])]
 
 globs = [('branch',   1, '0'),
          ('tick',     1, '0'),
