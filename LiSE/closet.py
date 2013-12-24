@@ -10,6 +10,7 @@ SQL. That's in :class:`~LiSE.util.SaveableMetaclass`.
 
 """
 import os
+from os.path import abspath, sep
 import re
 import sqlite3
 
@@ -37,6 +38,9 @@ from util import (
     saveables,
     saveable_classes,
     Skeleton)
+from kivy.atlas import Atlas
+from LiSE import __path__
+from LiSE.util import whole_imgrows
 
 
 def noop(*args, **kwargs):
@@ -466,6 +470,8 @@ before RumorMill will work. For that, run mkdb.sh.
                 unhad.add(name)
         if len(unhad) > 0:
             r.update(self.load_characters(names))
+        for char in r.itervalues():
+            char.update()
         return r
 
     def get_character(self, name):
@@ -610,7 +616,7 @@ before RumorMill will work. For that, run mkdb.sh.
         # make it more general
         mintick = self.timestream.min_tick(branch, "thing_loc")
         if tick < mintick:
-            raise TimestreamException("Tick before start of time")
+            raise TimestreamException("Tick before start of branch")
         if branch < 0:
             raise TimestreamException("Branch can't be less than zero")
         self.time_travel_history.append((self.branch, self.tick))
@@ -844,26 +850,11 @@ before RumorMill will work. For that, run mkdb.sh.
 
 
 def defaults(c):
-    from os import sep
-    from os.path import abspath
-    from LiSE import __path__
-    from LiSE.util import whole_imgrows
     c.executemany(
-        "INSERT INTO img (name, path, rltile) VALUES (?, ?, ?);",
+        "INSERT INTO img (name, path) VALUES (?, ?);",
         [(name, abspath(__path__[-1]) + sep + "gui" + sep + "assets"
-          + sep + sep.join(path), rltile)
-         for (name, path, rltile) in whole_imgrows])
-    from LiSE.util import pixel_city_imgrows
-    c.executemany(
-        "INSERT INTO img (name, path, cut_x, cut_y, cut_w, cut_h) "
-        "VALUES (?, ?, ?, ?, ?, ?);", [
-            (name, abspath(__path__[-1]) + sep + "gui" +
-             sep + "assets" + sep + "pixel-city.png", x, y, w, h)
-            for (name, x, y, w, h) in pixel_city_imgrows])
-    from LiSE.util import spot_imgs
-    c.executemany(
-        "INSERT INTO img_tag (img, tag) VALUES (?, ?);",
-        [(spotimg, 'spot') for spotimg in spot_imgs])
+          + sep + sep.join(path))
+         for (name, path) in whole_imgrows])
     from LiSE.util import globs
     c.executemany(
         "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
@@ -959,30 +950,30 @@ def defaults(c):
 
 
 def mkdb(DB_NAME, lisepath):
+    img_qrystr = (
+        "INSERT INTO img (name, path) "
+        "VALUES (?, ?);")
+    tag_qrystr = (
+        "INSERT INTO img_tag (img, tag) VALUES (?, ?);")
 
-    def ins_rltiles(curs, dirname, xtags=[]):
-        img_qrystr = (
-            "INSERT INTO img (name, path, off_x, off_y) "
-            "VALUES (?, ?, ?, ?);")
-        tag_qrystr = (
-            "INSERT INTO img_tag (img, tag) VALUES (?, ?);")
-        from kivy.atlas import Atlas
-        from os.path import sep
+    def ins_atlas(curs, path, qualify=False, tags=[]):
+        lass = Atlas(path)
+        atlaspath = "atlas://{}".format(path[:-6])
+        atlasn = path.split(sep)[-1][:-6]
+        for tilen in lass.textures.iterkeys():
+            imgn = atlasn + '.' + tilen if qualify else tilen
+            curs.execute(img_qrystr, (
+                imgn, "{}/{}".format(atlaspath, tilen)))
+            for tag in tags:
+                print (imgn, tag)
+                curs.execute(tag_qrystr, (imgn, tag))
+
+    def ins_atlas_dir(curs, dirname, qualify=False, tags=[]):
         for fn in os.listdir(dirname):
             if fn[-5:] == 'atlas':
-                atlasn = fn[:-6]
-                lass = Atlas(dirname + sep + fn)
-                for tilen in lass.textures.iterkeys():
-                    imgn = atlasn + '.' + tilen
-                    curs.execute(img_qrystr, (
-                        imgn,
-                        "atlas://{}/{}/{}".format(
-                            dirname, atlasn, tilen),
-                        4, 8))
-                    curs.executemany(tag_qrystr, [
-                        (imgn, atlasn),
-                        (imgn, 'rltile')] + [
-                        (imgn, tag) for tag in xtags])
+                path = dirname + sep + fn
+                ins_atlas(curs, path, qualify, [fn[:-6]] + tags)
+
     try:
         os.remove(DB_NAME)
     except OSError:
@@ -1061,7 +1052,26 @@ def mkdb(DB_NAME, lisepath):
     defaults(c)
 
     print("indexing the RLTiles")
-    ins_rltiles(c, "LiSE/gui/assets/rltiles/hominid", ['hominid'])
+    ins_atlas_dir(
+        c, "LiSE/gui/assets/rltiles/hominid", True,
+        ['hominid', 'rltile', 'pawn'])
+
+    print("indexing Pixel City")
+    ins_atlas(c, "LiSE/gui/assets/pixel_city.atlas", False,
+              ['spot', 'pixel_city'])
+
+    print("applying offsets")
+    from LiSE.util import offxs
+    for (offset, names) in offxs:
+        for name in names:
+            c.execute("UPDATE img SET off_x=? WHERE name=?;", (offset, name))
+    from LiSE.util import offys
+    for (offset, names) in offys:
+        for name in names:
+            c.execute("UPDATE img SET off_y=? WHERE name=?;", (offset, name))
+    c.execute("UPDATE img SET off_x=4, off_y=8 "
+              "WHERE name IN (SELECT img FROM img_tag WHERE tag=?)",
+              ('pawn',))
 
     conn.commit()
     return conn

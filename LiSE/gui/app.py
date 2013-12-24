@@ -197,8 +197,10 @@ and charsheets.
                 return True
             origplace = self.origspot.place
             destplace = destspot.place
-            portal = self.ids.board.facade.observed.make_portal(
-                origplace, destplace, host=self.ids.board.host)
+            portalname = "{}->{}".format(origplace, destplace)
+            portal = self.ids.board.host.make_portal(
+                portalname, origplace, destplace,
+                host=self.ids.board.host)
             arrow = Arrow(
                 board=self.ids.board, portal=portal)
             self.ids.board.arrowdict[unicode(portal)] = arrow
@@ -220,7 +222,7 @@ and charsheets.
 
     def display_prompt(self, text):
         """Put the text in the cue card"""
-        self.ids.prompt.text = text
+        self.ids.prompt.ids.l.text = text
 
     def dismiss_prompt(self, *args):
         """Blank out the cue card"""

@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from igraph import Graph
+from igraph import Graph, InternalError
 
 from LiSE.util import (
     selectif,
@@ -158,38 +158,42 @@ class Character(object):
 
     def update(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
-        for v in self.graph.vs:
-            try:
-                self.get_place_bone(
-                    v["name"], branch, tick)
-            except (KeyError, KnowledgeException):
-                self.graph.delete_vertex(v.index)
-        for e in self.graph.es:
-            try:
-                self.get_portal_loc_bone(
-                    e["name"], branch, tick)
-            except (KeyError, KnowledgeException):
-                self.graph.delete_edge(e.index)
         for placebone in self.iter_place_bones(None, branch, tick):
             if (
                     "name" not in self.graph.vs.attributes() or
                     placebone.place not in self.graph.vs["name"]):
-                Place(self, placebone.place)
-        for e in self.iter_hosted_portal_loc_bones(branch, tick):
-            bone = self.closet.skeleton[u"portal_loc"][
-                unicode(self)][e.name][branch].value_during(tick)
+                print("Creating place {} in a graph".format(placebone.place))
+                self.make_place(placebone.place)
+        for bone in self.iter_hosted_portal_loc_bones(branch, tick):
             try:
                 oi = self.graph.vs["name"].index(bone.origin)
             except ValueError:
                 oi = len(self.graph.vs)
-                self.make_place(bone.origin)
             try:
                 di = self.graph.vs["name"].index(bone.destination)
             except ValueError:
                 di = len(self.graph.vs)
-                self.make_place(bone.destination)
-            self.graph.add_edge(
-                oi, di, name=e.name, portal=Portal(self, e.name))
+            for placen in (bone.origin, bone.destination):
+                if placen not in self.graph.vs["name"]:
+                    self.make_place(placen)
+            try:
+                self.graph.get_eid(oi, di)
+            except (ValueError, InternalError):
+                print("adding edge of {}".format(bone.name))
+                i = len(self.graph.es)
+                self.graph.add_edge(
+                    oi, di, name=bone.name)
+                self.graph.es[i]["portal"] = Portal(self, bone.name)
+        for v in self.graph.vs:
+            try:
+                self.get_place_bone(v["name"], branch, tick)
+            except (KeyError, KnowledgeException):
+                self.graph.delete_vertices(v)
+        for e in self.graph.es:
+            try:
+                self.get_portal_loc_bone(e["name"], branch, tick)
+            except (KeyError, KnowledgeException):
+                self.graph.delete_edges(e)
 
     def get_facade(self, observer):
         if observer is None:
@@ -486,12 +490,8 @@ class Character(object):
         (branch, tick) = self.sanetime(branch, tick)
         bone = self.closet.skeleton[u"portal"][unicode(self)][name]
         host = self.closet.get_character(bone.host)
-        bigbone = self.closet.skeleton[u"portal_loc"][unicode(self)][
-            unicode(host)][branch].value_during(tick)
+        host.update()
         port = Portal(self, name)
-        host.graph.add_edge(
-            bigbone.origin, bigbone.destination,
-            name=name, portal=port)
         return port
 
     def iter_portal_loc_bones(self, name=None, branch=None, tick=None):
