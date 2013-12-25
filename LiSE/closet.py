@@ -40,7 +40,6 @@ from util import (
     Skeleton)
 from kivy.atlas import Atlas
 from LiSE import __path__
-from LiSE.util import whole_imgrows
 
 
 def noop(*args, **kwargs):
@@ -413,8 +412,7 @@ before RumorMill will work. For that, run mkdb.sh.
         specified, perhaps loading it if necessary."""
         # if the character is not loaded yet, make it so
         character = unicode(self.get_character(character))
-        keybones = [CharSheet.bonetypes["charsheet"]._null()._replace(
-            character=character),
+        keybones = [
             CharSheet.bonetypes["charsheet_item"]._null()._replace(
                 character=character)]
         self.update_keybones(keybones)
@@ -849,45 +847,49 @@ before RumorMill will work. For that, run mkdb.sh.
 
 
 def defaults(c):
+    from LiSE.data import whole_imgrows
     c.executemany(
         "INSERT INTO img (name, path) VALUES (?, ?);",
         [(name, abspath(__path__[-1]) + sep + "gui" + sep + "assets"
           + sep + sep.join(path))
          for (name, path) in whole_imgrows])
-    from LiSE.util import globs
+    from LiSE.data import globs
     c.executemany(
         "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
         globs)
     c.execute(
         "INSERT INTO timestream (branch, parent) VALUES (?, ?);",
         (0, 0))
-    from LiSE.util import stackhs
+    from LiSE.data import stackhs
     for (height, names) in stackhs:
         qrystr = (
             "UPDATE img SET stacking_height=? WHERE name IN ({});".format(
                 ", ".join(["?"] * len(names))))
         qrytup = (height,) + names
         c.execute(qrystr, qrytup)
-    from LiSE.util import offxs
+    from LiSE.data import offxs
     for (offx, names) in offxs:
         qrystr = (
             "UPDATE img SET off_x=? WHERE name IN ({});".format(
                 ", ".join(["?"] * len(names))))
         qrytup = (offx,) + names
         c.execute(qrystr, qrytup)
-    from LiSE.util import offys
+    from LiSE.data import offys
     for (offy, names) in offys:
         qrystr = (
             "UPDATE img SET off_y=? WHERE name IN ({});".format(
                 ", ".join(["?"] * len(names))))
-        qrytup = (offx,) + names
+        qrytup = (offy,) + names
         c.execute(qrystr, qrytup)
-    from LiSE.util import boards
+    c.execute("UPDATE img SET off_x=4, off_y=8 "
+              "WHERE name IN (SELECT img FROM img_tag WHERE tag=?)",
+              ('pawn',))
+    from LiSE.data import boards
     for (obsrvr, obsrvd, hst) in boards:
         c.execute(
             "INSERT INTO board (observer, observed, host) VALUES (?, ?, ?);",
             (obsrvr, obsrvd, hst))
-    from LiSE.util import things
+    from LiSE.data import things
     for character in things:
         for thing in things[character]:
             c.execute(
@@ -897,7 +899,7 @@ def defaults(c):
                 "INSERT INTO thing_loc (character, name, location) "
                 "VALUES (?, ?, ?);",
                 (character, thing, things[character][thing]["location"]))
-    from LiSE.util import reciprocal_portals
+    from LiSE.data import reciprocal_portals
     for (orig, dest) in reciprocal_portals:
         name1 = "{}->{}".format(orig, dest)
         name2 = "{}->{}".format(dest, orig)
@@ -907,7 +909,7 @@ def defaults(c):
         c.executemany(
             "INSERT INTO portal_loc (name, origin, destination) VALUES "
             "(?, ?, ?);", [(name1, orig, dest), (name2, dest, orig)])
-    from LiSE.util import one_way_portals
+    from LiSE.data import one_way_portals
     for (orig, dest) in one_way_portals:
         name = "{}->{}".format(orig, dest)
         c.execute(
@@ -916,7 +918,7 @@ def defaults(c):
         c.execute(
             "INSERT INTO portal_loc (name, origin, destination) "
             "VALUES (?, ?, ?);", (name, orig, dest))
-    from LiSE.util import charsheet_items
+    from LiSE.data import charsheet_items
     for character in charsheet_items:
         i = 0
         for (typ, key0) in charsheet_items[character]:
@@ -924,7 +926,7 @@ def defaults(c):
                 "INSERT INTO charsheet_item (character, type, idx, key0) "
                 "VALUES (?, ?, ?, ?);", (character, typ, i, key0))
             i += 1
-    from LiSE.util import spot_coords
+    from LiSE.data import spot_coords
     for (place, x, y) in spot_coords:
         c.execute(
             "INSERT INTO spot (place) VALUES (?);",
@@ -932,7 +934,7 @@ def defaults(c):
     c.executemany(
         "INSERT INTO spot_coords (place, x, y) VALUES (?, ?, ?);",
         spot_coords)
-    from LiSE.util import pawns
+    from LiSE.data import pawns
     for observed in pawns:
         for (thing, layers) in pawns[observed].iteritems():
             i = 0
@@ -942,7 +944,7 @@ def defaults(c):
                     "VALUES (?, ?, ?, ?);",
                     (observed, thing, i, layer))
                 i += 1
-    from LiSE.util import strings
+    from LiSE.data import strings
     c.executemany(
         "INSERT INTO strings (stringname, string) VALUES (?, ?);",
         strings)
@@ -1047,9 +1049,6 @@ def mkdb(DB_NAME, lisepath):
             continue
         done.update(provides)
 
-    print("inserting default values")
-    defaults(c)
-
     print("indexing the RLTiles")
     ins_atlas_dir(
         c, "LiSE/gui/assets/rltiles/hominid", True,
@@ -1059,18 +1058,8 @@ def mkdb(DB_NAME, lisepath):
     ins_atlas(c, "LiSE/gui/assets/pixel_city.atlas", False,
               ['spot', 'pixel_city'])
 
-    print("applying offsets")
-    from LiSE.util import offxs
-    for (offset, names) in offxs:
-        for name in names:
-            c.execute("UPDATE img SET off_x=? WHERE name=?;", (offset, name))
-    from LiSE.util import offys
-    for (offset, names) in offys:
-        for name in names:
-            c.execute("UPDATE img SET off_y=? WHERE name=?;", (offset, name))
-    c.execute("UPDATE img SET off_x=4, off_y=8 "
-              "WHERE name IN (SELECT img FROM img_tag WHERE tag=?)",
-              ('pawn',))
+    print("inserting default values")
+    defaults(c)
 
     conn.commit()
     return conn

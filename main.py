@@ -26,7 +26,7 @@ def lise():
     LiSEApp(dbfn=dbfn, lang=lang,
             lise_path=abspath(__path__[-1]),
             observer_name='Omniscient',
-            observed_name='household',
+            observed_name='Player',
             host_name='Physical').run()
 
 

@@ -71,19 +71,6 @@ tick.
     __metaclass__ = SaveableWidgetMetaclass
     demands = ["character"]
     tables = [
-        ("charsheet",
-         {"columns":
-          {"character": "TEXT NOT NULL",
-           "visible": "BOOLEAN NOT NULL DEFAULT 0",
-           "interactive": "BOOLEAN NOT NULL DEFAULT 1",
-           "x_hint": "FLOAT NOT NULL DEFAULT 0.65",
-           "y_hint": "FLOAT NOT NULL DEFAULT 0.0",
-           "w_hint": "FLOAT NOT NULL DEFAULT 0.35",
-           "h_hint": "FLOAT NOT NULL DEFAULT 1.0"},
-          "primary_key":
-          ("character",),
-          "foreign_keys":
-          {"character": ("character", "name")}}),
         ("charsheet_item",
          {"columns":
           {"character": "TEXT NOT NULL",
@@ -120,6 +107,9 @@ things appropriate to the present, whenever that may be.
         """
         i = 0
         height = 0
+        if unicode(character) not in character.closet.skeleton[
+                u"charsheet_item"]:
+            return
         for bone in character.closet.skeleton[u"charsheet_item"][
                 unicode(character)].iterbones():
             keylst = [bone.key0, bone.key1, bone.key2]

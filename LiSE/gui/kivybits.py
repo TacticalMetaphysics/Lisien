@@ -143,6 +143,8 @@ class TexPile(RelativeLayout):
         del self.stackhs[i]
 
     def append(self, tex, xoff=0, yoff=0, stackh=0):
+        print("appending a texture with xoff={} yoff={} stackh={}".format(
+            xoff, yoff, stackh))
         pos = (xoff, yoff+sum(self.stackhs))
         size = tex.size
         self.imgs.append(Image(
