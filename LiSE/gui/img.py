@@ -21,7 +21,6 @@ class Img(object):
          {"columns":
           {"name": "text not null",
            "path": "text not null",
-           "rltile": "boolean not null DEFAULT 0",
            "off_x": "integer not null default 0",
            "off_y": "integer not null default 0",
            "stacking_height": "integer not null default 0"},

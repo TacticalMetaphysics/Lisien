@@ -1,4 +1,3 @@
-# coding=utf8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from array import array
@@ -43,195 +42,6 @@ phi = (1.0 + sqrt(5))/2.0
 
 portex = compile("Portal\((.+?)->(.+?)\)")
 """Regular expression to recognize portals by name"""
-
-whole_imgrows = [
-    ('default_wallpaper', ['wallpape.jpg']),
-    ('default_spot', ['orb.png']),
-    ('default_pawn', ['rltiles', 'hominid', 'unseen.bmp'])]
-
-globs = [('branch',   1, '0'),
-         ('tick',     1, '0'),
-         ('language', 3, 'eng'),
-         ('observer', 3, 'Omniscient'),
-         ('observed', 3, 'Physical'),
-         ('host',     3, 'Physical')]
-
-stackhs = [(8,  ('blind', 'brownstone', 'orange')),
-           (12, ('block',)),
-           (11, ('brutalist',)),
-           (6,  ('crossroad', 'enterprise', 'monolith',
-                 'olivine', 'soviet', 'lobby')),
-           (5,  ('sidewalk', 'street-ne-sw', 'street-nw-se')),
-           (4, ('spacer',))]
-
-offys = [(-2, ('spacer',)),
-         (2,  ('block', 'brutalist')),
-         (1,  ('enterprise',)),
-         (-1, ('lobby', 'street-ne-sw', 'street-nw-se'))]
-
-offxs = [(1, ('brownstone',))]
-
-things = {
-    "household": {
-        "zack_body": {
-            "host": "Physical",
-            "location": "zack_room"},
-        "gail_body": {
-            "host": "Physical",
-            "location": "gail_room"}}}
-
-reciprocal_portals = [
-    ('zack_room', 'longhall'),
-    ('zack_bathroom', 'longhall'),
-    ('longhall', 'guestroom'),
-    ('longhall', 'livingroom'),
-    ('longhall', 'diningoffice'),
-    ('gail_room', 'longhall'),
-    ('gail_bathroom', 'longhall'),
-    ('diningoffice', 'kitchen'),
-    ('livingroom', 'balcony')]
-
-one_way_portals = [
-    ('diningoffice', 'apt_hall')]
-
-charsheets = [
-    ('household', True)]
-
-charsheet_items = {
-    "household": [
-        (0, 'Physical'),
-        (5, 'zack_body'),
-        (5, 'gail_body')]}
-
-menu_items = {
-    "Game": {
-        "closer": True,
-        "items": [
-            ('start_new_map()',   '@new_map'),
-            ('open_map()',        '@open_map'),
-            ('quit_map_editor()', '@quit_maped'),
-            ('save_map()',        '@save_map')]},
-    "Editor": {
-        "closer": True,
-        "items": [
-            ('editor_select()', '@ed_select'),
-            ('editor_copy()',   '@ed_copy'),
-            ('editor_paste()',  '@ed_paste'),
-            ('editor_delete()', '@ed_delete')]},
-    "Main": {
-        "closer": False,
-        "items": [
-            ('mi_show_popup(new_thing(base, body))', '@thing_menu'),
-            ('mi_show_popup(new_place(?spot))', '@place_menu'),
-            ('mi_connect_portal()', '@portal_menu'),
-            ('mi_show_popup(character())', '@game_menu'),
-            ('noop()', '@editor_menu'),
-            ('noop()', 'Branch:'),
-            ('noop()', '@branch'),
-            ('noop()', 'Tick:'),
-            ('noop()', '@tick'),
-            ('stop()', '@pause'),
-            ('play_speed(1)', '@forward'),
-            ('play_speed(-1)', '@reverse'),
-            ('back_to_start()', '@beginning'),
-            ('time_travel_inc_tick(1)', '@stepforward'),
-            ('time_travel_inc_tick(-1)', '@stepbackward'),
-            ('time_travel_inc_branch(1)', '@next_branch')],
-        "symbolics": ['stop()',
-                      'play_speed(1)',
-                      'play_speed(-1)',
-                      'back_to_start()',
-                      'time_travel_inc_tick(1)',
-                      'time_travel_inc_tick(-1)',
-                      'time_travel_inc_branch(1)',
-                      'time_travel_inc_branch(-1)']}}
-
-spot_coords = [
-    ('zack_room', 400, 100),
-    ('zack_bathroom', 450, 150),
-    ('guestroom', 400, 200),
-    ('livingroom', 300, 150),
-    ('diningoffice', 350, 200),
-    ('kitchen', 350, 150),
-    ('longhall', 250, 150),
-    ('gail_room', 250, 100),
-    ('gail_bathroom', 250, 200),
-    ('balcony', 300, 100),
-    ('apt_hall', 300, 400)]
-
-boards = [('Omniscient', 'household', 'Physical')]
-
-strings = [
-    (u'game_menu', u'Game'),
-    (u'editor_menu', u'Editor'),
-    (u'place_menu', u'Place'),
-    (u'thing_menu', u'Thing'),
-    (u'portal_menu', u'Portal'),
-    (u'new_map', u'New world'),
-    (u'open_map', u'Open world...'),
-    (u'save_map', u'Save'),
-    (u'quit_maped', u'Quit'),
-    (u'ed_select', u'Select...'),
-    (u'ed_copy', u'Copy'),
-    (u'ed_paste', u'Paste'),
-    (u'ed_delete', u'Delete...'),
-    (u'custplace', u'New place...'),
-    (u'workplace', u'New workplace...'),
-    (u'commonplace', u'New commons...'),
-    (u'lairplace', u'New lair...'),
-    (u'custthing', u'New thing...'),
-    (u'decorthing', u'New decoration...'),
-    (u'clothing', u'New clothing...'),
-    (u'toolthing', u'New tool...'),
-    (u'branch:', u'Branch:'),
-    (u'tick:', u'Tick:'),
-    (u'putthing', u'Drag this thing to the spot where you want it.'),
-    (u'putplace', u'Drag this place where you want it.'),
-    (u'putportalfrom', u'Draw a line between the spots where you want a portal.'),
-    (u'putportalto', u'Drag the arrowhead where the portal leads.'),
-    (u'play', u'▶'),
-    (u'reverse', u''),
-    (u'forward', u''),
-    (u'switch', u'⇆'),
-    (u'pause', u'‖'),
-    (u'end', u'⏭'),
-    (u'beginning', u'⏮'),
-    (u'stepforward', u'↳'),
-    (u'stepbackward', u'↰'),
-    (u'speedup', u'⏩'),
-    (u'slowdown', u'⏪'),
-    (u'next_branch', u'➦'),
-    (u'prev_branch', u''),
-    (u'database', u'📸'),
-    (u'calendar', u'📅'),
-    (u'feed', u''),
-    (u'edit', u'✎'),
-    (u'tools', u'⚒'),
-    (u'cog', u'⚙'),
-    (u'map', u''),
-    (u'save', u'💾'),
-    (u'locked', u'🔒'),
-    (u'unlocked', u'🔓'),
-    (u'launch', u'🚀'),
-    (u'split', u'🕪'),
-    (u'bookmark', u'🔖'),
-    (u'bookmarks', u'📑'),
-    (u'character', u'👤'),
-    (u'characters', u'👥'),
-    (u'newchar', u''),
-    (u'charsheet', u''),
-    (u'delete', u''),
-    (u'db', u'📸'),
-    (u'network', u''),
-    (u'night', u'☽'),
-    (u'day', u'🔆')]
-
-pawns = {
-    'household': {
-        'zack_body': ['base.human_m',
-                      'body.robe_blue_green'],
-        'gail_body': ['base.human_f',
-                      'body.dress_green']}}
 
 ### End constants
 ### Begin metadata
@@ -1418,8 +1228,9 @@ class SaveableMetaclass(type):
                         apart.append("{}=?".format(field))
                 together.append("({})".format(" AND ".join(apart)))
             orstr = " OR ".join(together)
-            return "SELECT {0} FROM {1} WHERE {2};".format(
+            r = "SELECT {0} FROM {1} WHERE {2};".format(
                 ", ".join(next(iter(keybones))._fields), tabname, orstr)
+            return r.replace("WHERE ();", ";")
 
         def select_keybones_table(c, keybones, tabname):
             """Return a list of records taken from the table ``tabname``,
@@ -1432,7 +1243,6 @@ class SaveableMetaclass(type):
                 for key in bone._fields:
                     if getattr(bone, key) is not None:
                         qrylst.append(getattr(bone, key))
-            qrystr = qrystr.replace('WHERE ();', ';')
             c.execute(qrystr, tuple(qrylst))
             return c.fetchall()
 
