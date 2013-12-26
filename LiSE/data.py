@@ -6,7 +6,12 @@
 whole_imgrows = [
     ('default_wallpaper', ['wallpape.jpg']),
     ('default_spot', ['orb.png']),
-    ('default_pawn', ['rltiles', 'hominid', 'unseen.bmp'])]
+    ('default_pawn', ['rltiles', 'hominid', 'unseen'])]
+
+whole_imgrows = [
+    ('default_wallpaper', 'LiSE/gui/assets/wallpape.jpg'),
+    ('default_spot', 'LiSE/gui/assets/orb.png'),
+    ('default_pawn', 'atlas://LiSE/gui/assets/rltiles/hominid/base/unseen')]
 
 globs = [('branch',   1, '0'),
          ('tick',     1, '0'),

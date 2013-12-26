@@ -1,13 +1,17 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 """A graphical selector for "swatches"."""
-from kivy.uix.widget import Widget
+from kivy.uix.stencilview import StencilView
+from kivy.uix.stacklayout import StackLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.label import Label
 from kivy.properties import (
+    AliasProperty,
+    StringProperty,
     ListProperty,
     NumericProperty,
     ObjectProperty)
@@ -20,10 +24,7 @@ class FrobSwatch(Button):
     some text."""
     box = ObjectProperty()
     """The :class:`SwatchBox` that I belong to."""
-    display_texture = ObjectProperty()
-    """The ``texture`` of the :class:`Image` to show."""
-    img = ObjectProperty(None, allownone=True)
-    """The bone of the img."""
+    img_name = StringProperty()
     img_tags = ListProperty([])
     """Tags of the img."""
     xoff = NumericProperty(0)
@@ -31,31 +32,39 @@ class FrobSwatch(Button):
     stackh = NumericProperty(0)
     """When showing a preview of stacked images, mine will be regarded as
 this tall."""
-
-    def on_release(self):
-        self.box.selection.append(self)
+    display_texture = AliasProperty(
+        lambda self: self.box.closet.get_texture(self.img_name)
+        if self.box is not None and self.img_name != '' else None,
+        lambda self, v: None,
+        bind=('box', 'img_name'))
+    img = AliasProperty(
+        lambda self: self.box.closet.skeleton[u"img"][self.img_name]
+        if self.box is not None and self.img_name != '' else None,
+        lambda self, v: None,
+        bind=('box', 'img_name'))
 
 
 class TogSwatch(ToggleButton, FrobSwatch):
-    def on_state(self, i, v):
-        try:
-            self.box.selection.remove(self)
-        except ValueError:
-            if v == 'down':
-                self.box.selection.append(self)
-
-    def on_release(self):
-        pass
+    def on_box(self, i, v):
+        self.bind(state=v.upd_selection)
 
 
-class SwatchBox(ScrollView):
+class SwatchBox(BoxLayout):
     """A collection of :class:`Swatch` used to select several
     graphics at once."""
     closet = ObjectProperty()
     cattexlst = ListProperty()
     finality = NumericProperty(0)
-    selection = ListProperty([])
     sellen = NumericProperty(0)
+    selection = ListProperty([])
+
+    def upd_selection(self, togswatch, state):
+        if state == 'normal':
+            while togswatch in self.selection:
+                self.selection.remove(togswatch)
+        else:
+            if togswatch not in self.selection:
+                self.selection.append(togswatch)
 
     def on_closet(self, i, v):
         """Increment finality counter."""
@@ -97,38 +106,38 @@ class SwatchBox(ScrollView):
     def finalize(self):
         """For each category in ``cattexlst``, construct a grid of grouped
         Swatches displaying the images therein."""
-        root = GridLayout(cols=1, size_hint_y=None)
-        self.add_widget(root)
         head = GridLayout(cols=2, size_hint_y=None)
         self.undo_button = Button(text="Undo", on_release=self.undo)
         self.pile = TexPile()
         head.add_widget(self.pile)
         head.add_widget(self.undo_button)
-        root.add_widget(head)
-        root.rows_minimum[0] = 100
-        self.cat_layouts = []
-        i = 1
+        self.add_widget(head)
+        catview = ScrollView(do_scroll_x=False)
+        cats = GridLayout(cols=1, size_hint_y=None)
+        catview.add_widget(cats)
+        self.add_widget(catview)
+        i = 0
+        h = 0
         for (catname, imgnames) in self.cattexlst:
-            l = Label(text=catname.strip('!?'))
-            root.add_widget(l)
-            root.rows_minimum[i] = l.font_size
+            l = Label(text=catname.strip('!?'), size_hint_y=None)
+            cats.add_widget(l)
+            cats.rows_minimum[i] = l.font_size * 2
+            h += cats.rows_minimum[i]
             i += 1
-            layout = GridLayout(cols=5, size_hint_y=None,
-                                row_default_height=100,
-                                row_force_default=True)
-            self.cat_layouts.append(layout)
-            root.add_widget(layout)
+            layout = StackLayout(size_hint_y=None)
             for imgname in imgnames:
-                tex = self.closet.get_texture(imgname)
                 imgbone = self.closet.skeleton[u"img"][imgname]
+                fakelabel = Label(text=imgname)
+                fakelabel.texture_update()
+                w = fakelabel.texture.size[0]
                 kwargs = {
                     'box': self,
-                    'display_texture': tex,
                     'xoff': imgbone.off_x,
                     'yoff': imgbone.off_y,
                     'stackh': imgbone.stacking_height,
                     'text': imgname,
-                    'img': imgbone}
+                    'img_name': imgname,
+                    'width': w + l.font_size * 2}
                 if catname[0] == '!':
                     swatch = TogSwatch(**kwargs)
                 elif catname[0] == '?':
@@ -137,9 +146,9 @@ class SwatchBox(ScrollView):
                     kwargs['group'] = catname
                     swatch = TogSwatch(**kwargs)
                 layout.add_widget(swatch)
-            root.rows_minimum[i] = 100 * (len(layout.children) / layout.cols)
+            layout.minimum_width = 500
+            cats.add_widget(layout)
+            cats.rows_minimum[i] = (len(imgnames) / 5) * 100
+            h += cats.rows_minimum[i]
             i += 1
-        rootheight = 0
-        for v in root.rows_minimum.itervalues():
-            rootheight += v
-        root.height = rootheight
+        cats.height = h
