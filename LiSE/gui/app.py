@@ -1,8 +1,10 @@
 from os import sep
+from functools import partial
 
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
+    AliasProperty,
     BoundedNumericProperty,
     ObjectProperty,
     ListProperty,
@@ -10,6 +12,7 @@ from kivy.properties import (
 
 from kivy.graphics import Line, Color
 
+from kivy.uix.stacklayout import StackLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
 from kivy.uix.scatter import Scatter, ScatterPlane
@@ -23,7 +26,7 @@ from LiSE.gui.board import (
     Arrow)
 from LiSE.gui.board.arrow import get_points
 from LiSE.gui.kivybits import TexPile, TouchlessWidget
-from LiSE.gui.swatchbox import SwatchBox
+from LiSE.gui.swatchbox import SwatchBox, TogSwatch
 from LiSE.util import TimestreamException
 from LiSE import (
     __path__,
@@ -32,6 +35,7 @@ from LiSE import (
 
 
 Factory.register('SwatchBox', cls=SwatchBox)
+Factory.register('TogSwatch', cls=TogSwatch)
 
 
 class DummyPawn(Scatter):
@@ -92,6 +96,58 @@ exist yet, but you know what it should look like."""
                 self.clear_widgets()
                 self.callback()
                 return True
+
+
+class SpotMenuContent(StackLayout):
+    """Menu shown in a popup after pressing the Place button. Lets you
+pick which graphics set to use and give your Place a name."""
+    layout = ObjectProperty()
+    host = AliasProperty(
+        lambda self: unicode(self.layout.ids.board.host),
+        lambda self, v: None,
+        bind=('layout',))
+    skel = AliasProperty(
+        lambda self: self.layout.app.closet.skeleton[u"place"][self.host],
+        lambda self, v: None,
+        bind=('host',))
+    selection = ListProperty([])
+    spot_picker_args = ListProperty([])
+    confirm = ObjectProperty(None)
+    close = ObjectProperty(None)
+
+    def validate_place_name(self, name):
+        """Return True if the name hasn't been used for a Place in this Host
+        before, False otherwise."""
+        # assume that this is an accurate record of places that exist
+        return name not in self.skel
+
+    def put_spot(self):
+        """Collect the place name and graphics set the user has chosen. Put
+        them in my 'swatch_opts' to trigger the spot picker."""
+        namer = self.ids.namer
+        assert(len(self.selection) == 1)
+        tog = self.selection.pop()
+        if self.validate_place_name(namer.text):
+            self.spot_picker_args.append(namer.text)
+            if len(tog.img_tags) > 0:
+                self.spot_picker_args.append(tog.img_tags)
+            else:
+                self.spot_picker_args.append(tog.img.name)
+            return True
+        else:
+            self.selection.append(tog)
+            namer.text = ''
+            namer.hint_text = "That name is taken. Try another."
+            namer.background_color = [1, 0, 0, 1]
+            namer.focus = False
+
+            def unbg(*args):
+                namer.background_color = [1, 1, 1, 1]
+            Clock.schedule_once(unbg, 0.5)
+            return False
+
+    def on_selection(self, i, v):
+        pass
 
 
 class LiSELayout(FloatLayout):
@@ -234,20 +290,55 @@ and charsheets.
         """Destroy the latest popup"""
         self._popups.pop().dismiss()
 
-    def new_spot_with_swatches(self, swatches):
+    def spot_default_x(self):
+        return min((
+            (0.1 * self.width) + self.ids.board.scroll_x *
+            self.ids.board.viewport_size[0],
+            self.ids.board.viewport_size[0] - 32))
+
+    def spot_default_y(self):
+        return min((
+            (0.9 * self.height) + self.ids.board.scroll_y *
+            self.ids.board.viewport_size[1],
+            self.ids.board.viewport_size[1] - 32))
+
+    def show_spot_menu(self):
+        hostn = unicode(self.ids.board.host)
+        if hostn not in self.app.closet.skeleton[u"place"]:
+            self.app.closet.skeleton[u"place"][hostn] = {}
+        spot_menu_content = SpotMenuContent(layout=self)
+        spot_menu = Popup(
+            title="Give your place a name and appearance",
+            content=spot_menu_content)
+
+        def confirm():
+            if spot_menu_content.put_spot():
+                spotpicker_args = spot_menu_content.spot_picker_args
+                spot_menu_content.selection = []
+                self.show_spot_picker(*spotpicker_args)
+        spot_menu_content.confirm = confirm
+
+        def cancel():
+            spot_menu_content.selection = []
+            self.dismiss_popup()
+        spot_menu_content.cancel = cancel
+        self._popups.append(spot_menu)
+        spot_menu.open()
+
+    def new_spot_with_name_and_imgs(self, name, imgs):
         clost = self.ids.board.facade.closet
-        if len(swatches) < 1:
+        if len(imgs) < 1:
             return
         self.display_prompt(clost.get_text("@putplace"))
         Clock.schedule_once(self.dismiss_prompt, 5)
-        place = clost.make_generic_place(self.ids.board.host)
+        place = self.ids.board.host.make_place(name)
         branch = clost.branch
         tick = clost.tick
         obsrvr = unicode(self.ids.board.facade.observer)
         host = unicode(self.ids.board.host)
         placen = unicode(place)
         i = 0
-        for swatch in swatches:
+        for img in imgs:
             bone = Spot.bonetype(
                 observer=obsrvr,
                 host=host,
@@ -255,7 +346,7 @@ and charsheets.
                 layer=i,
                 branch=branch,
                 tick=tick,
-                img=swatch.text)
+                img=img.name)
             clost.set_bone(bone)
             i += 1
         coord_bone = Spot.bonetypes["spot_coords"](
@@ -264,18 +355,11 @@ and charsheets.
             place=place,
             branch=branch,
             tick=tick,
-            x=min((
-                (0.1 * self.width) + self.ids.board.scroll_x *
-                self.ids.board.viewport_size[0],
-                self.ids.board.viewport_size[0] - 32)),
-            y=min((
-                (0.9 * self.height) + self.ids.board.scroll_y *
-                self.ids.board.viewport_size[1],
-                self.ids.board.viewport_size[1] - 32)))
+            x=self.spot_default_x(),
+            y=self.spot_default_y())
         clost.set_bone(coord_bone)
         spot = Spot(board=self.ids.board, place=place)
         self.ids.board.add_widget(spot)
-        self.dismiss_popup()
 
     def new_pawn_with_swatches(self, swatches):
         """Given some iterable of Swatch widgets, make a dummy pawn, prompt
@@ -293,25 +377,31 @@ the user to place it, and dismiss the popup."""
         dummy.pos = (w*0.1, h*0.9)
         self.dismiss_popup()
 
-    def show_spot_picker(self, categories):
-        """Show a SwatchBox for the given tags. The chosen swatches will be
-        used to build a Spot later.
-
-        """
-        clost = self.ids.board.facade.closet
-        cattexlst = [
-            (cat, sorted(clost.textag_d[cat.strip("!?")]))
-            for cat in categories]
-        dialog = PickImgDialog(
-            set_imgs=self.new_spot_with_swatches,
-            cancel=self.dismiss_popup)
-        dialog.ids.picker.closet = clost
-        dialog.ids.picker.cattexlst = cattexlst
-        self._popups.append(Popup(
-            title="Select graphics",
-            content=dialog,
-            size_hint=(0.9, 0.9)))
-        self._popups[-1].open()
+    def show_spot_picker(self, name, imagery):
+        self.dismiss_popup()
+        if isinstance(imagery, list):
+            def set_imgs(swatches):
+                self.new_spot_with_name_and_imgs(name, [
+                    swatch.img for swatch in swatches])
+                self.dismiss_popup()
+            dialog = PickImgDialog(
+                name=name,
+                set_imgs=set_imgs,
+                cancel=self.dismiss_popup)
+            cattexlst = [
+                (cat, sorted(self.app.closet.textag_d[cat.strip("!?")]))
+                for cat in imagery]
+            dialog.ids.picker.closet = self.app.closet
+            dialog.ids.picker.cattexlst = cattexlst
+            self._popups.append(Popup(
+                title="Select graphics",
+                content=dialog,
+                size_hint=(0.9, 0.9)))
+            self._popups[-1].open()
+        else:
+            # imagery is a string name of an image
+            img = self.app.closet.skeleton[u"img"][imagery]
+            self.new_spot_with_name_and_imgs(name, [img])
 
     def show_pawn_picker(self, categories):
         """Show a SwatchBox for the given tags. The chosen Swatches will be
