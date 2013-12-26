@@ -184,6 +184,37 @@
 <MenuIntInput>:
     padding: [12, 12, 12, 0]
     font_size: 26
+<SpotMenuContent>:
+    id: spotmenu
+    TextInput:
+        id: namer
+        hint_text: "Enter a unique name"
+        size_hint: (1, None)
+        multiline: False
+        height: self.line_height * 2
+    TogSwatch:
+        box: spotmenu
+        display_texture: root.layout.app.closet.get_texture(u"default_spot")
+        img: root.layout.app.closet.skeleton[u"img"][u"default_spot"]
+        text: "Use default image"
+        group: "spotmenu"
+        size_hint_y: None
+    TogSwatch:
+        box: spotmenu
+        display_texture: root.layout.app.closet.get_texture(u"crossroad")
+        img_tags: ['?pixel_city']
+        text: "Build with PixelCity"
+        group: "spotmenu"
+        size_hint_y: None
+    BoxLayout:
+        size_hint_y: None
+        height: 30
+        Button:
+            text: 'Cancel'
+            on_release: root.cancel()
+        Button:
+            text: 'Confirm'
+            on_release: root.confirm()
 <LiSELayout>:
     Board:
         id: board
@@ -217,8 +248,7 @@
         MenuButton:
             closet: root.app.closet
             stringname: '@place_menu'
-            fun: root.show_spot_picker
-            arg: ['!spot']
+            fun: root.show_spot_menu
         MenuButton:
             closet: root.app.closet
             stringname: '@portal_menu'

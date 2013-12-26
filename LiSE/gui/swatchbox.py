@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 """A graphical selector for "swatches"."""
+from kivy.uix.widget import Widget
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.button import Button
@@ -14,36 +15,37 @@ from kivy.properties import (
 from LiSE.gui.kivybits import TexPile
 
 
-class TogSwatch(ToggleButton):
-    """A :class:`ToggleButton` that contains both an :class:`Image` and
+class FrobSwatch(Button):
+    """A :class:`Button` that contains both an :class:`Image` and
     some text."""
     box = ObjectProperty()
     """The :class:`SwatchBox` that I belong to."""
     display_texture = ObjectProperty()
     """The ``texture`` of the :class:`Image` to show."""
-    xoff = NumericProperty()
-    yoff = NumericProperty()
-    stackh = NumericProperty()
+    img = ObjectProperty(None, allownone=True)
+    """The bone of the img."""
+    img_tags = ListProperty([])
+    """Tags of the img."""
+    xoff = NumericProperty(0)
+    yoff = NumericProperty(0)
+    stackh = NumericProperty(0)
     """When showing a preview of stacked images, mine will be regarded as
 this tall."""
 
-    def on_state(self, i, v):
-        if v == 'down':
-            self.box.selection.append(self)
-        else:
-            self.box.selection.remove(self)
-
-
-class FrobSwatch(Button):
-    box = ObjectProperty()
-    """The :class:`SwatchBox` that I belong to."""
-    display_texture = ObjectProperty()
-    xoff = NumericProperty()
-    yoff = NumericProperty()
-    stackh = NumericProperty()
-
     def on_release(self):
         self.box.selection.append(self)
+
+
+class TogSwatch(ToggleButton, FrobSwatch):
+    def on_state(self, i, v):
+        try:
+            self.box.selection.remove(self)
+        except ValueError:
+            if v == 'down':
+                self.box.selection.append(self)
+
+    def on_release(self):
+        pass
 
 
 class SwatchBox(ScrollView):
@@ -125,7 +127,8 @@ class SwatchBox(ScrollView):
                     'xoff': imgbone.off_x,
                     'yoff': imgbone.off_y,
                     'stackh': imgbone.stacking_height,
-                    'text': imgname}
+                    'text': imgname,
+                    'img': imgbone}
                 if catname[0] == '!':
                     swatch = TogSwatch(**kwargs)
                 elif catname[0] == '?':
