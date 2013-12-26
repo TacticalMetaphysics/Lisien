@@ -2,10 +2,13 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 
 #: import solarized LiSE.gui.style.solarized
+<SwatchBox>:
+    orientation: 'vertical'
 <TogSwatch,FrobSwatch>:
     text_size: (self.width, self.height * 0.9)
     halign: 'center'
     multiline: True
+    size_hint: (None, None)
     BoxLayout:
         pos: root.pos
         size: root.size
@@ -194,17 +197,46 @@
         height: self.line_height * 2
     TogSwatch:
         box: spotmenu
-        display_texture: root.layout.app.closet.get_texture(u"default_spot")
-        img: root.layout.app.closet.skeleton[u"img"][u"default_spot"]
+        img_name: "default_spot"
         text: "Use default image"
         group: "spotmenu"
         size_hint_y: None
     TogSwatch:
         box: spotmenu
-        display_texture: root.layout.app.closet.get_texture(u"crossroad")
+        img_name: "crossroad"
         img_tags: ['?pixel_city']
         text: "Build with PixelCity"
         group: "spotmenu"
+        size_hint_y: None
+    BoxLayout:
+        size_hint_y: None
+        height: 30
+        Button:
+            text: 'Cancel'
+            on_release: root.cancel()
+        Button:
+            text: 'Confirm'
+            on_release: root.confirm()
+<PawnMenuContent>:
+    id: pawnmenu
+    TextInput:
+        id: namer
+        hint_text: "Enter a unique name"
+        size_hint: (1, None)
+        multiline: False
+        height: self.line_height * 2
+    TogSwatch:
+        box: pawnmenu
+        img_name: "default_pawn"
+        text: "Use default image"
+        group: "pawnmenu"
+        size_hint_y: None
+    TogSwatch:
+        box: pawnmenu
+        img_name: "base.mummy_f"
+        img_tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
+        text: "Build with RLTiles"
+        group: "pawnmenu"
         size_hint_y: None
     BoxLayout:
         size_hint_y: None
@@ -256,8 +288,7 @@
         MenuButton:
             closet: root.app.closet
             stringname: '@thing_menu'
-            fun: root.show_pawn_picker
-            arg: ['base', 'body']
+            fun: root.show_pawn_menu
         MenuButton:
             closet: root.app.closet
             symbolic: True

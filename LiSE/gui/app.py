@@ -47,6 +47,7 @@ exist yet, but you know what it should look like."""
     imgbones = ListProperty()
     board = ObjectProperty()
     callback = ObjectProperty()
+    name = StringProperty()
 
     def __init__(self, **kwargs):
         """Collect images and show them"""
@@ -71,10 +72,19 @@ exist yet, but you know what it should look like."""
                 obsrvd = unicode(self.board.facade.observed)
                 hostn = unicode(self.board.host)
                 placen = unicode(spot.place)
-                th = clost.make_generic_thing(
-                    self.board.facade.observed,
-                    self.board.host,
-                    placen)
+                tinybone = closet.Thing.bonetype(
+                    character=obsrvd,
+                    name=self.name,
+                    host=hostn)
+                bigbone = closet.Thing.bonetypes["thing_loc"](
+                    character=obsrvd,
+                    name=self.name,
+                    branch=clost.branch,
+                    tick=clost.tick,
+                    location=placen)
+                clost.set_bone(tinybone)
+                clost.set_bone(bigbone)
+                th = self.board.facade.observed.make_thing(self.name)
                 thingn = unicode(th)
                 branch = clost.branch
                 tick = clost.tick
@@ -98,41 +108,37 @@ exist yet, but you know what it should look like."""
                 return True
 
 
-class SpotMenuContent(StackLayout):
-    """Menu shown in a popup after pressing the Place button. Lets you
-pick which graphics set to use and give your Place a name."""
-    layout = ObjectProperty()
-    host = AliasProperty(
-        lambda self: unicode(self.layout.ids.board.host),
-        lambda self, v: None,
-        bind=('layout',))
-    skel = AliasProperty(
-        lambda self: self.layout.app.closet.skeleton[u"place"][self.host],
-        lambda self, v: None,
-        bind=('host',))
+class SpriteMenuContent(StackLayout):
+    closet = ObjectProperty()
+    skel = ObjectProperty()
     selection = ListProperty([])
-    spot_picker_args = ListProperty([])
-    confirm = ObjectProperty(None)
-    close = ObjectProperty(None)
+    picker_args = ListProperty([])
 
-    def validate_place_name(self, name):
+    def upd_selection(self, togswatch, state):
+        if state == 'normal':
+            while togswatch in self.selection:
+                self.selection.remove(togswatch)
+        else:
+            if togswatch not in self.selection:
+                self.selection.append(togswatch)
+
+    def validate_name(self, name):
         """Return True if the name hasn't been used for a Place in this Host
         before, False otherwise."""
         # assume that this is an accurate record of places that exist
         return name not in self.skel
 
-    def put_spot(self):
-        """Collect the place name and graphics set the user has chosen. Put
-        them in my 'swatch_opts' to trigger the spot picker."""
+    def aggregate(self):
+        """Collect the place name and graphics set the user has chosen."""
         namer = self.ids.namer
         assert(len(self.selection) == 1)
         tog = self.selection.pop()
-        if self.validate_place_name(namer.text):
-            self.spot_picker_args.append(namer.text)
+        if self.validate_name(namer.text):
+            self.picker_args.append(namer.text)
             if len(tog.img_tags) > 0:
-                self.spot_picker_args.append(tog.img_tags)
+                self.picker_args.append(tog.img_tags)
             else:
-                self.spot_picker_args.append(tog.img.name)
+                self.picker_args.append(tog.img.name)
             return True
         else:
             self.selection.append(tog)
@@ -146,8 +152,13 @@ pick which graphics set to use and give your Place a name."""
             Clock.schedule_once(unbg, 0.5)
             return False
 
-    def on_selection(self, i, v):
-        pass
+
+class SpotMenuContent(SpriteMenuContent):
+    pass
+
+
+class PawnMenuContent(SpriteMenuContent):
+    pass
 
 
 class LiSELayout(FloatLayout):
@@ -306,14 +317,16 @@ and charsheets.
         hostn = unicode(self.ids.board.host)
         if hostn not in self.app.closet.skeleton[u"place"]:
             self.app.closet.skeleton[u"place"][hostn] = {}
-        spot_menu_content = SpotMenuContent(layout=self)
+        spot_menu_content = SpotMenuContent(
+            closet=self.app.closet,
+            skel=self.app.closet.skeleton[u"place"][hostn])
         spot_menu = Popup(
             title="Give your place a name and appearance",
             content=spot_menu_content)
 
         def confirm():
-            if spot_menu_content.put_spot():
-                spotpicker_args = spot_menu_content.spot_picker_args
+            if spot_menu_content.aggregate():
+                spotpicker_args = spot_menu_content.picker_args
                 spot_menu_content.selection = []
                 self.show_spot_picker(*spotpicker_args)
         spot_menu_content.confirm = confirm
@@ -324,6 +337,33 @@ and charsheets.
         spot_menu_content.cancel = cancel
         self._popups.append(spot_menu)
         spot_menu.open()
+
+    def show_pawn_menu(self):
+        obsrvd = unicode(self.ids.board.facade.observed)
+        if obsrvd not in self.app.closet.skeleton[u"thing"]:
+            self.app.closet.skeleton[u"thing"][obsrvd] = {}
+        if obsrvd not in self.app.closet.skeleton[u"thing_loc"]:
+            self.app.closet.skeleton[u"thing_loc"][obsrvd] = {}
+        pawn_menu_content = PawnMenuContent(
+            closet=self.app.closet,
+            skel=self.app.closet.skeleton[u"thing"][obsrvd])
+        pawn_menu = Popup(
+            title="Give this thing a name and appearance",
+            content=pawn_menu_content)
+
+        def confirm():
+            if pawn_menu_content.aggregate():
+                pawnpicker_args = pawn_menu_content.picker_args
+                pawn_menu_content.selection = []
+                self.show_pawn_picker(*pawnpicker_args)
+        pawn_menu_content.confirm = confirm
+
+        def cancel():
+            pawn_menu_content.selection = []
+            self.dismiss_popup()
+        pawn_menu_content.cancel = cancel
+        self._popups.append(pawn_menu)
+        pawn_menu.open()
 
     def new_spot_with_name_and_imgs(self, name, imgs):
         clost = self.ids.board.facade.closet
@@ -361,21 +401,26 @@ and charsheets.
         spot = Spot(board=self.ids.board, place=place)
         self.ids.board.add_widget(spot)
 
-    def new_pawn_with_swatches(self, swatches):
+    def new_pawn_with_name_and_imgs(self, name, imgs):
         """Given some iterable of Swatch widgets, make a dummy pawn, prompt
 the user to place it, and dismiss the popup."""
         clost = self.ids.board.facade.closet
+        if len(imgs) < 1:
+            return
         self.display_prompt(clost.get_text("@putthing"))
         (w, h) = self.get_root_window().size
         dummy = DummyPawn(
             board=self.ids.board,
-            imgbones=[
-                clost.skeleton[u'img'][swatch.text]
-                for swatch in swatches],
-            callback=self.dismiss_prompt)
+            name=name,
+            imgbones=imgs)
+
+        def cb():
+            print("Called back")
+            self.remove_widget(dummy)
+            self.dismiss_prompt()
+        dummy.callback = cb
         self.add_widget(dummy)
         dummy.pos = (w*0.1, h*0.9)
-        self.dismiss_popup()
 
     def show_spot_picker(self, name, imagery):
         self.dismiss_popup()
@@ -403,25 +448,34 @@ the user to place it, and dismiss the popup."""
             img = self.app.closet.skeleton[u"img"][imagery]
             self.new_spot_with_name_and_imgs(name, [img])
 
-    def show_pawn_picker(self, categories):
+    def show_pawn_picker(self, name, imagery):
         """Show a SwatchBox for the given tags. The chosen Swatches will be
         used to build a Pawn later.
 
         """
-        clost = self.ids.board.facade.closet
-        cattexlst = [
-            (cat, sorted(clost.textag_d[cat]))
-            for cat in categories]
-        dialog = PickImgDialog(
-            set_imgs=self.new_pawn_with_swatches,
-            cancel=self.dismiss_popup)
-        dialog.ids.picker.closet = clost
-        dialog.ids.picker.cattexlst = cattexlst
-        self._popups.append(Popup(
-            title="Select some images",
-            content=dialog,
-            size_hint=(0.9, 0.9)))
-        self._popups[-1].open()
+        self.dismiss_popup()
+        if isinstance(imagery, list):
+            def set_imgs(swatches):
+                self.new_pawn_with_name_and_imgs(name, [
+                    swatch.img for swatch in swatches])
+                self.dismiss_popup()
+            dialog = PickImgDialog(
+                name=name,
+                set_imgs=set_imgs,
+                cancel=self.dismiss_popup)
+            cattexlst = [
+                (cat, sorted(self.app.textag_d[cat]))
+                for cat in imagery]
+            dialog.ids.picker.closet = self.app.closet
+            dialog.ids.picker.cattexlst = cattexlst
+            self._popups.append(Popup(
+                title="Select some images",
+                content=dialog,
+                size_hint=(0.9, 0.9)))
+            self._popups[-1].open()
+        else:
+            img = self.app.closet.skeleton[u"img"][imagery]
+            self.new_pawn_with_name_and_imgs(name, [img])
 
     def make_arrow(self, orig=None):
         """Prompt user to click the origin for a new Portal. Then start
