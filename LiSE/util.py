@@ -73,6 +73,10 @@ saveable_classes = []
 ### Begin functions
 
 
+def passthru(_):
+    return _
+
+
 def upbranch(closet, bones, branch, tick):
     started = False
     first = None

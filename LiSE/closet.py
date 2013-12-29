@@ -10,7 +10,7 @@ SQL. That's in :class:`~LiSE.util.SaveableMetaclass`.
 
 """
 import os
-from os.path import abspath, sep
+from os.path import sep
 import re
 import sqlite3
 
@@ -29,6 +29,7 @@ from model import (
     Thing)
 from model.event import Implicator
 from util import (
+    passthru,
     TimestreamException,
     SaveableMetaclass,
     int2pytype,
@@ -144,7 +145,8 @@ before RumorMill will work. For that, run mkdb.sh.
         else:
             super(Closet, self).__setattr__(attrn, val)
 
-    def __init__(self, connector, lisepath, USE_KIVY=False, **kwargs):
+    def __init__(self, connector, lgettext=passthru,
+                 USE_KIVY=False, **kwargs):
         """Initialize a Closet for the given connector and path.
 
         With USE_KIVY, I will use the kivybits module to load images.
@@ -154,19 +156,15 @@ before RumorMill will work. For that, run mkdb.sh.
         self.skeleton = Skeleton({"place": {}})
 
         self.c = self.connector.cursor()
-        self.lang_listeners = []
         self.branch_listeners = []
         self.tick_listeners = []
         self.time_listeners = []
-        if "language" in kwargs:
-            self.language = kwargs["language"]
-        else:
-            self.language = self.get_global("language")
 
         for glob in self.globs:
             setattr(self, glob, self.get_global(glob))
 
-        self.lisepath = lisepath
+        self.lisepath = __path__
+        self.lgettext = lgettext
 
         for wd in self.working_dicts:
             setattr(self, wd, dict())
@@ -338,7 +336,7 @@ before RumorMill will work. For that, run mkdb.sh.
                 return self.skeleton[u"strings"][
                     strname[1:]][self.language].string
         else:
-            return strname
+            return self.lgettext(strname)
 
     def save_game(self):
         """Save all pending changes to disc."""
@@ -742,38 +740,96 @@ before RumorMill will work. For that, run mkdb.sh.
     def register_text_listener(self, stringn, listener):
         """Notify the listener when the string called ``stringn`` changes its
         content."""
-        if stringn == "@branch":
+        if stringn == "@branch" and listener not in self.branch_listeners:
             self.branch_listeners.append(listener)
-        elif stringn == "@tick":
+        elif stringn == "@tick" and listener not in self.tick_listeners:
             self.tick_listeners.append(listener)
-        if stringn[0] == "@" and stringn[1:] in self.skeleton["strings"]:
+        elif (
+                stringn[0] == "@" and
+                stringn[1:] in self.skeleton["strings"] and
+                listener not in self.skeleton["strings"][
+                    stringn[1:]].set_listeners):
             self.skeleton["strings"][stringn[1:]].register_set_listener(
                 listener)
+        else:
+            return self.lgettext(stringn)
+
+    def unregister_text_listener(self, stringn, listener):
+        try:
+            if stringn == "@branch":
+                return self.unregister_branch_listener(listener)
+            elif stringn == "@tick":
+                return self.unregister_tick_listener(listener)
+            else:
+                self.skeleton["strings"][
+                    stringn[1:]].set_listeners.remove(listener)
+        except (KeyError, ValueError):
+            raise ValueError("Listener isn't registered")
 
     def register_time_listener(self, listener):
         """Listener will be called when ``branch`` or ``tick`` changes"""
-        self.time_listeners.append(listener)
+        if listener not in self.time_listeners:
+            self.time_listeners.append(listener)
+
+    def unregister_time_listener(self, listener):
+        try:
+            self.time_listeners.remove(listener)
+        except ValueError:
+            raise ValueError("Listener isn't registered")
 
     def register_branch_listener(self, listener):
         """Listener will be called when ``branch`` changes"""
-        self.branch_listeners.append(listener)
+        if listener not in self.branch_listeners:
+            self.branch_listeners.append(listener)
+
+    def unregister_branch_listener(self, listener):
+        try:
+            self.branch_listeners.remove(listener)
+        except ValueError:
+            raise ValueError("Listener isn't registered")
 
     def register_tick_listener(self, listener):
         """Listener will be called when ``tick`` changes"""
-        self.tick_listeners.append(listener)
+        if listener not in self.tick_listeners:
+            self.tick_listeners.append(listener)
+
+    def unregister_tick_listener(self, listener):
+        try:
+            self.tick_listeners.remove(listener)
+        except ValueError:
+            raise ValueError("Listener isn't registered")
+
+    def register_img_listener(self, imgn, listener):
+        try:
+            skel = self.skeleton[u"img"][imgn]
+        except KeyError:
+            raise KeyError("Image unknown: {}".format(imgn))
+        if listener not in skel.set_listeners:
+            skel.set_listeners.append(listener)
+
+    def unregister_img_listener(self, imgn, listener):
+        try:
+            skel = self.skeleton[u"img"][imgn]
+        except KeyError:
+            raise KeyError("Image unknown: {}".format(imgn))
+        try:
+            skel.set_listeners.remove(listener)
+        except ValueError:
+            raise ValueError("Listener isn't registered")
 
     def load_img_metadata(self):
         """Load all the records to do with img paths and tags and so forth."""
         self.skeleton.update(self.select_class_all(Img))
 
-    def query_place(self):
+    def query_place(self, update=False):
         """Query the 'place' view, resulting in an up-to-date record of what
         places exist in the gameworld as it exists in the
         database.
 
         """
         self.c.execute("SELECT host, place, branch, tick FROM place;")
-        if u"place" not in self.skeleton:
+        if not update or u"place" not in self.skeleton:
+            # empty it out if it exists, create it if it doesn't
             self.skeleton[u"place"] = {}
         for (host, place, branch, tick) in self.c:
             self.set_bone(PlaceBone(
@@ -941,10 +997,6 @@ def defaults(c):
                     "VALUES (?, ?, ?, ?);",
                     (observed, thing, i, layer))
                 i += 1
-    from LiSE.data import strings
-    c.executemany(
-        "INSERT INTO strings (stringname, string) VALUES (?, ?);",
-        strings)
 
 
 def mkdb(DB_NAME, lisepath):
@@ -1062,7 +1114,7 @@ def mkdb(DB_NAME, lisepath):
     return conn
 
 
-def load_closet(dbfn, lisepath, lang="eng", kivy=False):
+def load_closet(dbfn, lgettext=None, kivy=False):
     """Construct a ``Closet`` connected to the given database file. Use
     the LiSE library in the path given.
 
@@ -1074,7 +1126,11 @@ def load_closet(dbfn, lisepath, lang="eng", kivy=False):
 
     """
     conn = sqlite3.connect(dbfn)
-    r = Closet(connector=conn, lisepath=lisepath, lang=lang, USE_KIVY=kivy)
-    r.load_strings()
+    kwargs = {
+        "connector": conn,
+        "USE_KIVY": kivy}
+    if lgettext is not None:
+        kwargs["lgettext"] = lgettext
+    r = Closet(**kwargs)
     r.load_timestream()
     return r

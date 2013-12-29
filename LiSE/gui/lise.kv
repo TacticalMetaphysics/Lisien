@@ -1,98 +1,16 @@
+# coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 
 #: import solarized LiSE.gui.style.solarized
-<SwatchBox>:
-    orientation: 'vertical'
-<TogSwatch,FrobSwatch>:
-    text_size: (self.width, self.height * 0.9)
-    halign: 'center'
-    multiline: True
-    size_hint: (None, None)
-    BoxLayout:
-        pos: root.pos
-        size: root.size
-        Image:
-            texture: root.display_texture
-            pos_hint: {'top': 0.9}
-            size_hint: (0.9, 0.5)
-<LoadImgDialog>:
-    BoxLayout:
-        size: root.size
-        pos: root.pos
-        orientation: "vertical"
-        FileChooserListView:
-            id: filechooser
-        BoxLayout:
-            size_hint_y: None
-            height: 30
-            Button:
-                text: "Cancel"
-                on_release: root.cancel()
-            Button:
-                text: "Load"
-                on_release: root.load(filechooser.path, filechooser.selection)
-<PickImgDialog>:
-    BoxLayout:
-        size: root.size
-        pos: root.pos
-        orientation: "vertical"
-        SwatchBox:
-            id: picker
-            cols: 1
-        BoxLayout:
-            size_hint_y: None
-            height: 30
-            Button:
-                text: "Cancel"
-                on_release: root.cancel()
-            Button:
-                text: "Confirm"
-                on_release: root.set_imgs(picker.selection)
-<DummyPawn>:
-    size_hint: (None, None)
-    do_rotation: False
-    do_scale: False
-<Pawn>:
+#: import _ LiSE.util.passthru
+
+<ClosetLabel,ClosetButton,ClosetToggleButton>:
+    #: import sep os.sep
+    font_name: sep.join(["LiSE", "gui", "assets", "Entypo.ttf"]) if self.symbolic else "DroidSans"
+    font_size: 30 if self.symbolic else 16
+<Board>:
     auto_bring_to_front: False
-    size_hint: (None, None)
-    size: pile.size
-    do_rotation: False
-    do_scale: False
-    LayerTexPile:
-        id: pile
-        closet: root.board.facade.closet
-        imagery: self.closet.skeleton[u"pawn"][unicode(root.board.facade.observer)][unicode(root.thing.character)][unicode(root.board.host)][unicode(root.thing)]
-<TexPile>:
-    width: max([img.right for img in self.imgs]) if len(self.imgs) > 0 else 0
-    height: max([img.top for img in self.imgs]) if len(self.imgs) > 0 else 0
-<Spot>:
-    size_hint: (None, None)
-    size: pile.size
-    do_rotation: False
-    do_scale: False
-    auto_bring_to_front: False
-    LayerTexPile:
-        id: pile
-        closet: root.board.facade.closet
-        imagery: root.board.facade.closet.skeleton[u"spot"][unicode(root.board.facade.observer)][unicode(root.board.host)][unicode(root.place)]
-<ColorBox>:
-    canvas:
-        Color:
-            rgba: self.color
-        Rectangle:
-            pos: self.pos
-            size: self.size
-<Cell>:
-    size_hint: (None, None)
-    ColorBox:
-        color: solarized["base2"]
-    Label:
-        text: root.text
-        color: solarized["base00"]
-        text_size: root.size
-        pos_hint: {'x': 0, 'y': 0}
-        valign: "top"
 <CalendarLayout>:
     size: cal.size
     StencilView:
@@ -121,52 +39,213 @@
                     points: (self.x, self.y, self.x+cal.col_width, self.y)
                 Triangle:
                     points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
-<TableHeader>:
+<Cell>:
+    size_hint: (None, None)
+    ColorBox:
+        color: solarized["base2"]
+    Label:
+        text: root.text
+        color: solarized["base00"]
+        text_size: root.size
+        pos_hint: {'x': 0, 'y': 0}
+        valign: "top"
+<CharSheet>:
+    on_character: self.repop()
+[CLabel@ClosetLabel]:
+    closet: ctx.charsheet.character.closet
+    size_hint_y: None
+<CharSheetAdder>:
+    BoxLayout:
+        orientation: "vertical"
+        Accordion:
+            AccordionItem:
+                title: root.get_text(_("Tables"))
+                Accordion:
+                    orientation: "vertical"
+                    AccordionItem:
+                        id: table_thing_locations
+                        title: root.get_text(_("Thing Locations"))
+                        StackLayout:
+                            CLabel:
+                                charsheet: root.charsheet
+                                stringname: _("Select things")
+                            ThingListView:
+                                id: table_thing_locations_things
+                                charsheet: root.charsheet
+                    AccordionItem:
+                        id: table_thing_stats
+                        title: root.get_text(_("Thing Stats"))
+                        StackLayout:
+                            CLabel:
+                                charsheet: root.charsheet
+                                stringname: _("Select things")
+                            ThingListView:
+                                id: table_thing_stat_things
+                                charsheet: root.charsheet
+                            CLabel:
+                                charsheet: root.charsheet
+                                stringname: _("Select stats")
+                            NounStatListView:
+                                id: table_thing_stat_stats
+                                nouns: table_thing_stat_things.selection
+                    AccordionItem:
+                        id: table_place_stats
+                        title: root.get_text(_("Place Stats"))
+                        StackLayout:
+                            CLabel:
+                                charsheet: root.charsheet
+                                stringname: _("Select places")
+                            PlaceListView:
+                                id: table_place_stat_places
+                                charsheet: root.charsheet
+                            CLabel:
+                                stringname: _("Select stats")
+                            NounStatListView:
+                                id: table_place_stat_stats
+                                nouns: table_place_stat_places.selection
+                    AccordionItem:
+                        id: table_portal_locations
+                        title: root.get_text(_("Portal Locations"))
+                        StackLayout:
+                            CLabel:
+                                stringname: _("Select portals")
+                            PortalListView:
+                                id: table_portal_location_portals
+                                charsheet: root.charsheet
+                    AccordionItem:
+                        id: table_portal_stats
+                        title: root.get_text(_("Portal Stats"))
+                        StackLayout:
+                            CLabel:
+                                stringname: _("Select portals")
+                            PortalListView:
+                                id: table_portal_stat_portals
+                                charsheet: root.charsheet
+                                selection_mode: 'multiple'
+                            CLabel:
+                                stringname: _("Select stats")
+                            NounStatListView:
+                                id: table_portal_stat_stats
+                                nouns: table_portal_stat_portals.selection
+                                selection_mode: 'multiple'
+                    AccordionItem:
+                        id: table_general_stats
+                        title: root.get_text(_("General Stats"))
+                        StackLayout:
+                            CLabel:
+                                stringname: _("Select stats")
+                            StatListView:
+                                id: table_general_stat_stats
+                                charsheet: root.charsheet
+                                selection_mode: 'multiple'
+            AccordionItem:
+                title: root.get_text(_("Calendars"))
+                Accordion:
+                    orientation: "vertical"
+                    AccordionItem:
+                        id: calendar_thing_location
+                        title: root.get_text(_("Thing Location"))
+                        StackLayout:
+                            CLabel:
+                                stringname: _("Select a thing")
+                            ThingListView:
+                                id: calendar_thing_location_thing
+                                charsheet: root.charsheet
+                                selection_mode: 'single'
+                    AccordionItem:
+                        id: calendar_thing_stat
+                        title: root.get_text(_("Thing Stat"))
+                        StackLayout:
+                            CLabel:
+                                stringname: _("Select a thing")
+                            ThingListView:
+                                id: calendar_thing_stat_thing
+                                charsheet: root.charsheet
+                                selection_mode: 'single'
+                            CLabel:
+                                stringname: _("Select a stat")
+                            NounStatListView:
+                                id: calendar_thing_stat_stat
+                                nouns: calendar_thing_stat_thing.selection
+                                selection_mode: 'single'
+                                propname: "thing_stat_names"
+                    AccordionItem:
+                        id: calendar_place_stat
+                        title: root.get_text(_("Place Stat"))
+                        StackLayout:
+                            CLabel:
+                                stringname: _("Select a place")
+                            PlaceListView:
+                                id: calendar_place_stat_place
+                                charsheet: root.charsheet
+                                selection_mode: 'single'
+                            CLabel:
+                                stringname: _("Select a stat")
+                            NounStatListAdapter:
+                                id: calendar_place_stat_stat
+                                nouns: calendar_place_stat_place.selection
+                                selection_mode: 'single'
+                    AccordionItem:
+                        id: calendar_portal_origin
+                        title: root.get_text(_("Portal Origin"))
+                        StackLayout:
+                            CLabel:
+                                stringname: _("Select a portal")
+                            PortalListView:
+                                id: calendar_portal_origin_portal
+                                charsheet: root.charsheet
+                                selection_mode: 'single'
+                    AccordionItem:
+                        id: calendar_portal_destination
+                        title: root.get_text(_("Portal Destination"))
+                        StackLayout:
+                            CLabel:
+                                stringname: _("Select a portal")
+                            PortalListView:
+                                id: calendar_portal_destination_portal
+                                charsheet: root.charsheet
+                                selection_mode: 'single'
+                    AccordionItem:
+                        id: calendar_portal_stat
+                        title: root.get_text(_("Portal Stat"))
+                        StackLayout:
+                            CLabel:
+                                stringname: _("Select a portal")
+                            PortalListView:
+                                id: calendar_portal_stat_portal
+                                charsheet: root.charsheet
+                                selection_mode: 'single'
+                            CLabel:
+                                stringname: _("Select a stat")
+                            NounStatListView:
+                                id: calendar_portal_stat_stat
+                                nouns: calendar_portal_stat_portal.selection
+                                selection_mode: 'single'
+                    AccordionItem:
+                        id: calendar_general_stat
+                        title: root.get_text(_("General Stat"))
+                        StackLayout:
+                            CLabel:
+                                stringname: _("Select a stat")
+                            StatListView:
+                                id: calendar_general_stat_stat
+                                charsheet: root.charsheet
+                                selection_mode: 'single'
+        BoxLayout:
+            size_hint_y: 0.1
+            Button:
+                text: root.get_text(_("Cancel"))
+                on_release: root.cancel()
+            Button:
+                text: root.get_text(_("Confirm"))
+                on_release: root.confirm()
+<ColorBox>:
     canvas:
         Color:
-            rgba: solarized["base02"]
+            rgba: self.color
         Rectangle:
-            pos: root.pos
-            size: root.size
-    Label:
-        id: lb
-        size: self.texture_size
-        bold: True
-        color: solarized["base00"]
-        text: root.text
-<TableTextInput>:
-    background_disabled_active: ''
-    background_disabled_normal: ''
-    background_normal: ''
-    background_active: ''
-    border: [0, 0, 0, 0]
-    multiline: False
-    text: getattr(self.bone, self.key)
-    height: self.font_size
-    size_hint_x: 1
-    disabled: self.table.edbut.state == 'normal'
-<TableLayout>:
-    Table:
-        #:import bone LiSE.gui.charsheet.table.character_bone
-        id: tab
-        col_default_width: 75
-        edbut: root.edbut
-        padding: [0, 0, 0, 0]
-        spacing: [5, 2]
-        colkeys: root.colkey_dict[root.item_type]
-        cols: len(self.colkeys)
-        iter_skeleton: root.character.iter_hosted_thing_loc_bones
-        x: root.x + self.xmov
-        y: root.y
-<TableTextInput>:
-    background_color: solarized["base3"]
-    foreground_color: solarized["base01"]
-    disabled_foreground_color: solarized["base00"]
-<EditButton>:
-    #:import sep os.sep
-    font_name: sep.join([self.parent.character.closet.lisepath, "gui", "assets", "Entypo.ttf"]) if self.parent else ""
-    font_size: 32
-    size_hint_x: 0.2
+            pos: self.pos
+            size: self.size
 <CueCard>:
     Label:
         id: l
@@ -182,71 +261,111 @@
             Rectangle:
                 pos: l.pos
                 size: l.size
-<Board>:
-    auto_bring_to_front: False
+<DummyPawn>:
+    size_hint: (None, None)
+    do_rotation: False
+    do_scale: False
+<EditButton,AddButton>:
+    #:import sep os.sep
+    font_name: sep.join([self.parent.character.closet.lisepath[-1], "gui", "assets", "Entypo.ttf"]) if self.parent else ""
+    font_size: 32
+    size_hint_x: 0.2
+<LoadImgDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            ClosetButton:
+                closet: root.closet
+                stringname: _("Cancel")
+                on_release: root.cancel()
+            ClosetButton:
+                closet: root.closet
+                stringname: _("Load")
+                on_release: root.load(filechooser.path, filechooser.selection)
 <MenuIntInput>:
     padding: [12, 12, 12, 0]
     font_size: 26
-<SpotMenuContent>:
-    id: spotmenu
-    TextInput:
-        id: namer
-        hint_text: "Enter a unique name"
-        size_hint: (1, None)
-        multiline: False
-        height: self.line_height * 2
-    TogSwatch:
-        box: spotmenu
-        img_name: "default_spot"
-        text: "Use default image"
-        group: "spotmenu"
-        size_hint_y: None
-    TogSwatch:
-        box: spotmenu
-        img_name: "crossroad"
-        img_tags: ['?pixel_city']
-        text: "Build with PixelCity"
-        group: "spotmenu"
-        size_hint_y: None
+<Pawn>:
+    auto_bring_to_front: False
+    size_hint: (None, None)
+    size: pile.size
+    do_rotation: False
+    do_scale: False
+    LayerTexPile:
+        id: pile
+        closet: root.board.facade.closet
+        imagery: self.closet.skeleton[u"pawn"][unicode(root.board.facade.observer)][unicode(root.thing.character)][unicode(root.board.host)][unicode(root.thing)]
+<PickImgDialog>:
     BoxLayout:
-        size_hint_y: None
-        height: 30
-        Button:
-            text: 'Cancel'
-            on_release: root.cancel()
-        Button:
-            text: 'Confirm'
-            on_release: root.confirm()
-<PawnMenuContent>:
-    id: pawnmenu
-    TextInput:
-        id: namer
-        hint_text: "Enter a unique name"
-        size_hint: (1, None)
-        multiline: False
-        height: self.line_height * 2
-    TogSwatch:
-        box: pawnmenu
-        img_name: "default_pawn"
-        text: "Use default image"
-        group: "pawnmenu"
-        size_hint_y: None
-    TogSwatch:
-        box: pawnmenu
-        img_name: "base.mummy_f"
-        img_tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
-        text: "Build with RLTiles"
-        group: "pawnmenu"
-        size_hint_y: None
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        SwatchBox:
+            id: picker
+            cols: 1
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: _("Cancel")
+                on_release: root.cancel()
+            Button:
+                text: _("Confirm")
+                on_release: root.set_imgs(picker.selection)
+<Spot>:
+    size_hint: (None, None)
+    size: pile.size
+    do_rotation: False
+    do_scale: False
+    auto_bring_to_front: False
+    LayerTexPile:
+        id: pile
+        closet: root.board.facade.closet
+        imagery: root.board.facade.closet.skeleton[u"spot"][unicode(root.board.facade.observer)][unicode(root.board.host)][unicode(root.place)]
+<SwatchBox>:
+    orientation: 'vertical'
+<TogSwatch,FrobSwatch>:
+    text_size: (self.width, self.height * 0.9)
+    halign: 'center'
+    multiline: True
+    size_hint: (None, None)
     BoxLayout:
-        size_hint_y: None
-        height: 30
-        Button:
-            text: 'Cancel'
-            on_release: root.cancel()
-        Button:
-            text: 'Confirm'
-            on_release: root.confirm()
+        pos: root.pos
+        size: root.size
+        Image:
+            texture: root.display_texture
+            pos_hint: {'top': 0.9}
+            size_hint: (0.9, 0.5)
+<TableHeader>:
+    canvas:
+        Color:
+            rgba: solarized["base02"]
+        Rectangle:
+            pos: root.pos
+            size: root.size
+    Label:
+        id: lb
+        size: self.texture_size
+        bold: True
+        color: solarized["base00"]
+        text: root.text
+<TableView>:
+    #:import it2h LiSE.data.ITEM_TYPE_TO_HEADERS
+    #:import it2fn LiSE.data.ITEM_TYPE_TO_FIELD_NAMES
+    headers: it2h[self.item_type]
+    fieldnames: it2fn[self.item_type]
+    TableContent:
+        cols: len(root.fieldnames) + len(root.stats)
+        closet: root.character.closet
+<TexPile>:
+    width: max([img.right for img in self.imgs]) if len(self.imgs) > 0 else 0
+    height: max([img.top for img in self.imgs]) if len(self.imgs) > 0 else 0
 <LiSELayout>:
     Board:
         id: board
@@ -266,7 +385,6 @@
         bar_pos_y: 'left'
         CharSheet:
             id: charsheet
-            size_hint: (1, None)
             width: csview.width
             character: root.app.closet.get_character(root.app.observed_name)
             cols: 2
@@ -279,43 +397,103 @@
         spacing: 10
         MenuButton:
             closet: root.app.closet
-            stringname: '@place_menu'
+            stringname: _("Place...")
             fun: root.show_spot_menu
         MenuButton:
             closet: root.app.closet
-            stringname: '@portal_menu'
+            stringname: _("Portal...")
             fun: root.make_arrow
         MenuButton:
             closet: root.app.closet
-            stringname: '@thing_menu'
+            stringname: _("Thing...")
             fun: root.show_pawn_menu
         MenuButton:
             closet: root.app.closet
             symbolic: True
-            stringname: '@play'
+            stringname: _(u"▶")
             fun: root.normal_speed
         MenuButton:
             closet: root.app.closet
             symbolic: True
-            stringname: '@reverse'
+            stringname: _(u"")
             fun: root.normal_speed
             arg: False
         MenuButton:
             closet: root.app.closet
             symbolic: True
-            stringname: '@pause'
+            stringname: _(u"‖")
             fun: root.pause
         CueCard:
             closet: root.app.closet
-            stringname: '@branch:'
+            stringname: _("Branch:")
         MenuIntInput:
             closet: root.app.closet
             stringname: '@branch'
             fun: root.go_to_branch
         CueCard:
             closet: root.app.closet
-            stringname: '@tick:'
+            stringname: _("Tick:")
         MenuIntInput:
             closet: root.app.closet
             stringname: '@tick'
             fun: root.go_to_tick
+<SpotMenuContent>:
+    id: spotmenu
+    TextInput:
+        id: namer
+        hint_text: root.get_text(_("Enter a unique name"))
+        size_hint: (1, None)
+        multiline: False
+        height: self.line_height * 2
+    TogSwatch:
+        box: spotmenu
+        img_name: "default_spot"
+        text: root.get_text(_("Use default image"))
+        group: "spotmenu"
+        size_hint_y: None
+    TogSwatch:
+        box: spotmenu
+        img_name: "crossroad"
+        img_tags: ['?pixel_city']
+        text: root.get_text(_("Build with PixelCity"))
+        group: "spotmenu"
+        size_hint_y: None
+    BoxLayout:
+        size_hint_y: None
+        height: 30
+        Button:
+            text: root.get_text(_('Cancel'))
+            on_release: root.cancel()
+        Button:
+            text: root.get_text(_('Confirm'))
+            on_release: root.confirm()
+<PawnMenuContent>:
+    id: pawnmenu
+    TextInput:
+        id: namer
+        hint_text: root.get_text(_("Enter a unique name"))
+        size_hint: (1, None)
+        multiline: False
+        height: self.line_height * 2
+    TogSwatch:
+        box: pawnmenu
+        img_name: "default_pawn"
+        text: root.get_text(_("Use default image"))
+        group: "pawnmenu"
+        size_hint_y: None
+    TogSwatch:
+        box: pawnmenu
+        img_name: "base.mummy_f"
+        img_tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
+        text: root.get_text(_("Build with RLTiles"))
+        group: "pawnmenu"
+        size_hint_y: None
+    BoxLayout:
+        size_hint_y: None
+        height: 30
+        Button:
+            text: root.get_text(_('Cancel'))
+            on_release: root.cancel()
+        Button:
+            text: root.get_text(_('Confirm'))
+            on_release: root.confirm()

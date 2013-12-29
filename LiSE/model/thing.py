@@ -1,12 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from re import match
-
 from LiSE.util import (
-    upbranch, 
     TimeParadox,
-    JourneyException,
-    portex)
+    JourneyException)
 
 from container import Container
 
@@ -165,6 +161,20 @@ class Thing(Container):
         else:
             facade = self.character.get_facade(observer)
             return facade.get_thing_locations(self.name, branch)
+
+    def get_stats(self, observer=None, branch=None):
+        if observer is None:
+            return self.character.get_thing_stat_skel(self.name, branch)
+        else:
+            facade = self.character.get_facade(observer)
+            return facade.get_thing_stat_skel(self.name, branch)
+
+    def get_stat(self, stat, observer=None, branch=None, tick=None):
+        if observer is None:
+            return self.character.get_thing_stat(self.name, stat, branch, tick)
+        else:
+            facade = self.character.get_facade(observer)
+            return facade.get_thing_stat(self.name, stat, branch, tick)
 
     def get_speed(self, observer=None, branch=None, tick=None):
         lo = self.get_location(observer, branch, tick)
@@ -337,15 +347,12 @@ class Thing(Container):
             for bone in facade.iter_thing_loc_bones(self, branch):
                 yield bone
 
-    def iter_stat_bones(self, observer=None, stat=None, branch=None):
+    def iter_stats_bones(self, stats=[], observer=None,
+                         branch=None, tick=None):
+        (branch, tick) = self.character.sanetime(branch, tick)
         if observer is None:
             for bone in self.character.iter_thing_stat_bones(
-                    self, stat, branch):
-                yield bone
-        else:
-            facade = self.character.get_facade(observer)
-            for bone in facade.iter_thing_stat_bones(
-                    self, stat, branch):
+                    self.name, stats, [branch], [tick]):
                 yield bone
 
     def branch_loc_bones_gen(self, branch=None):
@@ -364,3 +371,9 @@ class Thing(Container):
         self.character.del_thing_locations(self.name, branch)
         for bone in bones:
             self.character.closet.set_bone(bone)
+
+    def iter_stat_keys(self, observer=None, branch=None, tick=None):
+        (branch, tick) = self.character.sanetime(branch, tick)
+        for key in self.subjective_lookup(
+                'iter_thing_stat_keys', observer, [branch, tick]):
+            yield key

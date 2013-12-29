@@ -1,12 +1,77 @@
-# coding=utf8
+# coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 """Module for extract, transform, load, as well as some constants"""
 
-whole_imgrows = [
-    ('default_wallpaper', ['wallpape.jpg']),
-    ('default_spot', ['orb.png']),
-    ('default_pawn', ['rltiles', 'hominid', 'unseen'])]
+
+def _(arg):
+    return arg
+
+THING_LOC_TAB = 0
+THING_STAT_TAB = 1
+PLACE_STAT_TAB = 2
+PORTAL_LOC_TAB = 3
+PORTAL_STAT_TAB = 4
+CHAR_STAT_TAB = 5
+THING_LOC_CAL = 6
+THING_STAT_CAL = 7
+PLACE_STAT_CAL = 8
+PORTAL_ORIG_CAL = 9
+PORTAL_DEST_CAL = 10
+PORTAL_STAT_CAL = 11
+CHAR_STAT_CAL = 12
+
+
+SHEET_ITEM_TYPES = [
+    THING_LOC_TAB,
+    THING_STAT_TAB,
+    PLACE_STAT_TAB,
+    PORTAL_LOC_TAB,
+    PORTAL_STAT_TAB,
+    CHAR_STAT_TAB,
+    THING_LOC_CAL,
+    THING_STAT_CAL,
+    PLACE_STAT_CAL,
+    PORTAL_ORIG_CAL,
+    PORTAL_DEST_CAL,
+    PORTAL_STAT_CAL,
+    CHAR_STAT_CAL]
+
+
+TABLE_TYPES = [
+    THING_LOC_TAB,
+    THING_STAT_TAB,
+    PLACE_STAT_TAB,
+    PORTAL_LOC_TAB,
+    PORTAL_STAT_TAB,
+    CHAR_STAT_TAB]
+
+
+CALENDAR_TYPES = [
+    THING_LOC_CAL,
+    THING_STAT_CAL,
+    PLACE_STAT_CAL,
+    PORTAL_ORIG_CAL,
+    PORTAL_DEST_CAL,
+    PORTAL_STAT_CAL,
+    CHAR_STAT_CAL]
+
+
+ITEM_TYPE_TO_HEADERS = {
+    THING_LOC_TAB: [_("Thing"), _("Location")],
+    THING_STAT_TAB: [_("Thing")],
+    PLACE_STAT_TAB: [_("Place")],
+    PORTAL_LOC_TAB: [_("Portal"), _("Origin"), _("Destination")],
+    PORTAL_STAT_TAB: [_("Portal")],
+    CHAR_STAT_TAB: []}
+
+ITEM_TYPE_TO_FIELD_NAMES = {
+    THING_LOC_TAB: ["name", "location"],
+    THING_STAT_TAB: ["name"],
+    PLACE_STAT_TAB: ["name"],
+    PORTAL_LOC_TAB: ["name", "origin", "destination"],
+    PORTAL_STAT_TAB: ["name"],
+    CHAR_STAT_TAB: []}
 
 whole_imgrows = [
     ('default_wallpaper', 'LiSE/gui/assets/wallpape.jpg'),
@@ -43,72 +108,6 @@ charsheet_items = {
 spot_coords = []
 
 boards = [('Omniscient', 'Player', 'Physical')]
-
-strings = [
-    (u'game_menu', u'Game'),
-    (u'editor_menu', u'Editor'),
-    (u'place_menu', u'Place'),
-    (u'thing_menu', u'Thing'),
-    (u'portal_menu', u'Portal'),
-    (u'new_map', u'New world'),
-    (u'open_map', u'Open world...'),
-    (u'save_map', u'Save'),
-    (u'quit_maped', u'Quit'),
-    (u'ed_select', u'Select...'),
-    (u'ed_copy', u'Copy'),
-    (u'ed_paste', u'Paste'),
-    (u'ed_delete', u'Delete...'),
-    (u'custplace', u'New place...'),
-    (u'workplace', u'New workplace...'),
-    (u'commonplace', u'New commons...'),
-    (u'lairplace', u'New lair...'),
-    (u'custthing', u'New thing...'),
-    (u'decorthing', u'New decoration...'),
-    (u'clothing', u'New clothing...'),
-    (u'toolthing', u'New tool...'),
-    (u'branch:', u'Branch:'),
-    (u'tick:', u'Tick:'),
-    (u'putthing', u'Drag this thing to the spot where you want it.'),
-    (u'putplace', u'Drag this place where you want it.'),
-    (u'putportalfrom',
-     u'Draw a line between the spots where you want a portal.'),
-    (u'putportalto', u'Drag the arrowhead where the portal leads.'),
-    (u'play', u'▶'),
-    (u'reverse', u''),
-    (u'forward', u''),
-    (u'switch', u'⇆'),
-    (u'pause', u'‖'),
-    (u'end', u'⏭'),
-    (u'beginning', u'⏮'),
-    (u'stepforward', u'↳'),
-    (u'stepbackward', u'↰'),
-    (u'speedup', u'⏩'),
-    (u'slowdown', u'⏪'),
-    (u'next_branch', u'➦'),
-    (u'prev_branch', u''),
-    (u'database', u'📸'),
-    (u'calendar', u'📅'),
-    (u'feed', u''),
-    (u'edit', u'✎'),
-    (u'tools', u'⚒'),
-    (u'cog', u'⚙'),
-    (u'map', u''),
-    (u'save', u'💾'),
-    (u'locked', u'🔒'),
-    (u'unlocked', u'🔓'),
-    (u'launch', u'🚀'),
-    (u'split', u'🕪'),
-    (u'bookmark', u'🔖'),
-    (u'bookmarks', u'📑'),
-    (u'character', u'👤'),
-    (u'characters', u'👥'),
-    (u'newchar', u''),
-    (u'charsheet', u''),
-    (u'delete', u''),
-    (u'db', u'📸'),
-    (u'network', u''),
-    (u'night', u'☽'),
-    (u'day', u'🔆')]
 
 things = {}
 

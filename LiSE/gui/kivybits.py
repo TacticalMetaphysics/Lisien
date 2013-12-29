@@ -1,17 +1,100 @@
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.textinput import TextInput
 from kivy.uix.image import Image
 from kivy.uix.widget import (
     Widget,
     WidgetMetaclass)
+from kivy.uix.spinner import Spinner
 from kivy.properties import (
     NumericProperty,
     ListProperty,
     ObjectProperty,
     StringProperty,
     BooleanProperty)
+from kivy.clock import Clock
 
 from LiSE.util import SaveableMetaclass
 from img import Img
+
+
+class ClosetWidget(object):
+    """Mix-in class for various text-having widget classes, to make their
+    text match some named string from the closet."""
+    stringname = StringProperty()
+    stringprop = "text"
+    closet = ObjectProperty()
+    symbolic = BooleanProperty()
+
+    def on_closet(self, *args):
+        self.upd_text()
+
+    def upd_text(self, *args):
+        setattr(self, self.stringprop, self.closet.get_text(self.stringname))
+
+    def listen(self):
+        """Arrange to change my text whenever my string changes."""
+        self.closet.register_text_listener(self.stringname, self.upd_text)
+
+    def unlisten(self):
+        self.closet.unregister_text_listener(self.stringname, self.upd_text)
+
+    def do_layout(self, *args):
+        print("Would lay out {}".format(self.__class__.__name__))
+
+
+class ClosetLabel(Label, ClosetWidget):
+    pass
+
+
+class ClosetButton(Button, ClosetWidget):
+    pass
+
+
+class ClosetToggleButton(ToggleButton, ClosetWidget):
+    pass
+
+
+class ClosetHintTextInput(TextInput, ClosetWidget):
+    stringprop = "hint_text"
+    failure_string = StringProperty()
+    """String to use when the input failed to validate"""
+    failure_color = ListProperty([1, 0, 0, 1])
+    """Color to turn the input field when it fails"""
+    failure_color_timeout = NumericProperty(0.5)
+    """Time after which to turn the color back"""
+    failure_string_timeout = NumericProperty(3)
+    """Time after which to turn the hint_text back"""
+    validator = ObjectProperty()
+    """Boolean function for whether the input is acceptable"""
+
+    def validate(self):
+        """If my text is valid, return True. Otherwise, communicate invalidity
+        to the user, and return False.
+
+        I'll communicate invalidity by blinking some other color,
+        blanking out my text, and displaying an alternative hint_text
+        for a little while.
+
+        """
+        if self.validator(self.text):
+            return True
+        else:
+            self.text = ''
+            oldcolor = self.color
+            self.color = self.failure_color
+            self.hint_text = self.closet.get_text(self.failure_string)
+
+            def unfail_color():
+                self.color = oldcolor
+            Clock.schedule_once(unfail_color, self.failure_color_timeout)
+
+            def unfail_text():
+                self.hint_text = self.closet.get_text(self.stringname)
+            Clock.schedule_once(unfail_text, self.failure_string_timeout)
+            return False
 
 
 class SaveableWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
@@ -143,8 +226,6 @@ class TexPile(RelativeLayout):
         del self.stackhs[i]
 
     def append(self, tex, xoff=0, yoff=0, stackh=0):
-        print("appending a texture with xoff={} yoff={} stackh={}".format(
-            xoff, yoff, stackh))
         pos = (xoff, yoff+sum(self.stackhs))
         size = tex.size
         self.imgs.append(Image(
