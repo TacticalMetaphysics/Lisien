@@ -2,6 +2,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 
+#: import lisepathl LiSE.__path__
 #: import solarized LiSE.gui.style.solarized
 #: import _ LiSE.util.passthru
 
@@ -51,188 +52,329 @@
         valign: "top"
 <CharSheet>:
     on_character: self.repop()
-[CLabel@ClosetLabel]:
-    closet: ctx.charsheet.character.closet
-    size_hint_y: None
 <CharSheetAdder>:
-    BoxLayout:
-        orientation: "vertical"
-        Accordion:
-            AccordionItem:
-                title: root.get_text(_("Tables"))
-                Accordion:
-                    orientation: "vertical"
-                    AccordionItem:
-                        id: table_thing_locations
-                        title: root.get_text(_("Thing Locations"))
+    StackLayout:
+        Label:
+            size_hint_y: 0.05
+            text: "Add an item to the character sheet"
+        TabbedPanel:
+            size_hint_y: 0.9
+            do_default_tab: False
+            TabbedPanelItem:
+                text: root.get_text(_('Tables'))
+                TabbedPanel:
+                    do_default_tab: False
+                    TabbedPanelItem:
+                        text: root.get_text(_('Thing Location'))
                         StackLayout:
-                            CLabel:
-                                charsheet: root.charsheet
-                                stringname: _("Select things")
+                            Label:
+                                text: root.get_text(_("Pick things."))
+                                size_hint_y: 0.1
                             ThingListView:
-                                id: table_thing_locations_things
+                                id: table_thing_location_things
                                 charsheet: root.charsheet
-                    AccordionItem:
-                        id: table_thing_stats
-                        title: root.get_text(_("Thing Stats"))
+                                size_hint_y: 0.9
+                    TabbedPanelItem:
+                        text: root.get_text(_('Thing Stat'))
                         StackLayout:
-                            CLabel:
-                                charsheet: root.charsheet
-                                stringname: _("Select things")
-                            ThingListView:
-                                id: table_thing_stat_things
-                                charsheet: root.charsheet
-                            CLabel:
-                                charsheet: root.charsheet
-                                stringname: _("Select stats")
-                            NounStatListView:
-                                id: table_thing_stat_stats
-                                nouns: table_thing_stat_things.selection
-                    AccordionItem:
-                        id: table_place_stats
-                        title: root.get_text(_("Place Stats"))
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick things."))
+                                    size_hint_y: 0.1
+                                ThingListView:
+                                    id: table_thing_stat_things
+                                    charsheet: root.charsheet
+                                    size_hint_y: 0.3
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick stats of things."))
+                                    size_hint_y: 0.1
+                                NounStatListView:
+                                    id: table_thing_stat_stats
+                                    nounitems: table_thing_stat_things.selection
+                                    charsheet: root.charsheet
+                                    size_hint_y: 0.8
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: table_thing_stat_new_stat_in
+                                        size_hint_x: 0.8
+                                        hint_text: root.get_text(_("New stat name"))
+                                    CSClosetButton:
+                                        id: table_thing_stat_new_stat_but
+                                        size_hint_x: 0.2
+                                        charsheet: root.charsheet
+                                        stringname: _(u'⊕')
+                                        symbolic: True
+                    TabbedPanelItem:
+                        text: root.get_text(_('Place Stat'))
                         StackLayout:
-                            CLabel:
-                                charsheet: root.charsheet
-                                stringname: _("Select places")
-                            PlaceListView:
-                                id: table_place_stat_places
-                                charsheet: root.charsheet
-                            CLabel:
-                                stringname: _("Select stats")
-                            NounStatListView:
-                                id: table_place_stat_stats
-                                nouns: table_place_stat_places.selection
-                    AccordionItem:
-                        id: table_portal_locations
-                        title: root.get_text(_("Portal Locations"))
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick places."))
+                                    size_hint_y: 0.1
+                                PlaceListView:
+                                    id: table_place_stat_places
+                                    charsheet: root.charsheet
+                                    size_hint_y: 0.9
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick stats of places."))
+                                    size_hint_y: 0.1
+                                NounStatListView:
+                                    id: table_place_stat_stats
+                                    nounitems: table_place_stat_places.selection
+                                    size_hint_y: 0.8
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: table_place_stat_new_stat_in
+                                        size_hint_x: 0.8
+                                        hint_text: root.get_text(_("New stat name"))
+                                    CSClosetButton:
+                                        id: table_thing_stat_new_stat_but
+                                        size_hint_x: 0.2
+                                        charsheet: root.charsheet
+                                        stringname: _(u'⊕')
+                                        symbolic: True
+                    TabbedPanelItem:
+                        text: root.get_text(_('Portal Location'))
                         StackLayout:
-                            CLabel:
-                                stringname: _("Select portals")
-                            PortalListView:
-                                id: table_portal_location_portals
-                                charsheet: root.charsheet
-                    AccordionItem:
-                        id: table_portal_stats
-                        title: root.get_text(_("Portal Stats"))
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick portals."))
+                                    size_hint_y: 0.1
+                                PortalListView:
+                                    id: table_portal_location_portals
+                                    charsheet: root.charsheet
+                                    size_hint_y: 0.9
+                    TabbedPanelItem:
+                        text: root.get_text(_('Portal Stat'))
                         StackLayout:
-                            CLabel:
-                                stringname: _("Select portals")
-                            PortalListView:
-                                id: table_portal_stat_portals
-                                charsheet: root.charsheet
-                                selection_mode: 'multiple'
-                            CLabel:
-                                stringname: _("Select stats")
-                            NounStatListView:
-                                id: table_portal_stat_stats
-                                nouns: table_portal_stat_portals.selection
-                                selection_mode: 'multiple'
-                    AccordionItem:
-                        id: table_general_stats
-                        title: root.get_text(_("General Stats"))
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick portals."))
+                                    size_hint_y: 0.1
+                                PortalListView:
+                                    id: table_portal_stat_portals
+                                    charsheet: root.charsheet
+                                    size_hint_y: 0.9
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick stats of portals."))
+                                    size_hint_y: 0.1
+                                NounStatListView:
+                                    nounitems: table_portal_stat_portals.selection
+                                    size_hint_y: 0.8
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: table_portal_stat_portals_in
+                                        size_hint_x: 0.8
+                                        hint_text: root.get_text(_("New stat name"))
+                                    CSClosetButton:
+                                        id: table_portal_stat_portals_but
+                                        size_hint_x: 0.2
+                                        charsheet: root.charsheet
+                                        stringname: _(u'⊕')
+                                        symbolic: True
+                    TabbedPanelItem:
+                        text: root.get_text(_('Character Stat'))
                         StackLayout:
-                            CLabel:
-                                stringname: _("Select stats")
+                            Label:
+                                text: root.get_text(_("Pick stats of the character."))
+                                size_hint_y: 0.1
                             StatListView:
-                                id: table_general_stat_stats
+                                id: table_character_stat_stats
                                 charsheet: root.charsheet
-                                selection_mode: 'multiple'
-            AccordionItem:
-                title: root.get_text(_("Calendars"))
-                Accordion:
-                    orientation: "vertical"
-                    AccordionItem:
-                        id: calendar_thing_location
-                        title: root.get_text(_("Thing Location"))
+                                size_hint_y: 0.8
+                            StackLayout:
+                                size_hint_y: 0.1
+                                TextInput:
+                                    id: table_portal_stat_stats_in
+                                    size_hint_x: 0.8
+                                    hint_text: root.get_text(_("New stat name"))
+                                CSClosetButton:
+                                    id: table_portal_stat_stats_but
+                                    size_hint_x: 0.2
+                                    charsheet: root.charsheet
+                                    stringname: _(u'⊕')
+                                    symbolic: True
+            TabbedPanelItem:
+                text: root.get_text(_('Calendars'))
+                TabbedPanel:
+                    do_default_tab: False
+                    TabbedPanelItem:
+                        text: root.get_text(_('Thing Location'))
                         StackLayout:
-                            CLabel:
-                                stringname: _("Select a thing")
+                            Label:
+                                text: root.get_text(_("Pick a thing."))
+                                size_hint_y: 0.1
                             ThingListView:
                                 id: calendar_thing_location_thing
                                 charsheet: root.charsheet
                                 selection_mode: 'single'
-                    AccordionItem:
-                        id: calendar_thing_stat
-                        title: root.get_text(_("Thing Stat"))
+                                size_hint_y: 0.9
+                    TabbedPanelItem:
+                        text: root.get_text(_('Thing Stat'))
                         StackLayout:
-                            CLabel:
-                                stringname: _("Select a thing")
-                            ThingListView:
-                                id: calendar_thing_stat_thing
-                                charsheet: root.charsheet
-                                selection_mode: 'single'
-                            CLabel:
-                                stringname: _("Select a stat")
-                            NounStatListView:
-                                id: calendar_thing_stat_stat
-                                nouns: calendar_thing_stat_thing.selection
-                                selection_mode: 'single'
-                                propname: "thing_stat_names"
-                    AccordionItem:
-                        id: calendar_place_stat
-                        title: root.get_text(_("Place Stat"))
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick a thing."))
+                                    size_hint_y: 0.1
+                                ThingListView:
+                                    id: calendar_thing_stat_thing
+                                    charsheet: root.charsheet
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.9
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick one of its stats."))
+                                    size_hint_y: 0.1
+                                NounStatListView:
+                                    id: calendar_thing_stat_stat
+                                    nounitems: calendar_thing_stat_thing.selection
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.8
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: calendar_thing_stat_stat_in
+                                        hint_text: root.get_text(_("New stat name"))
+                                        size_hint_x: 0.8
+                                    CSClosetButton:
+                                        text: root.get_text(_(u'⊕'))
+                                        charsheet: root.charsheet
+                                        stringname: _(u'⊕')
+                                        symbolic: True
+                    TabbedPanelItem:
+                        text: root.get_text(_('Place Stat'))
                         StackLayout:
-                            CLabel:
-                                stringname: _("Select a place")
-                            PlaceListView:
-                                id: calendar_place_stat_place
-                                charsheet: root.charsheet
-                                selection_mode: 'single'
-                            CLabel:
-                                stringname: _("Select a stat")
-                            NounStatListAdapter:
-                                id: calendar_place_stat_stat
-                                nouns: calendar_place_stat_place.selection
-                                selection_mode: 'single'
-                    AccordionItem:
-                        id: calendar_portal_origin
-                        title: root.get_text(_("Portal Origin"))
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick a place."))
+                                    size_hint_y: 0.1
+                                PlaceListView:
+                                    id: calendar_place_stat_place
+                                    charsheet: root.charsheet
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.9
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick one of its stats."))
+                                    size_hint_y: 0.1
+                                NounStatListView:
+                                    id: calendar_place_stat_stat
+                                    nounitems: calendar_place_stat_place.selection
+                                    charsheet: root.charsheet
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.8
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: calendar_place_stat_stat_in
+                                        hint_text: root.get_text(_("New stat name"))
+                                        size_hint_x: 0.8
+                                    CSClosetButton:
+                                        id: calendar_place_stat_stat_but
+                                        text: root.get_text(_(u'⊕'))
+                                        charsheet: root.charsheet
+                                        stringname: _(u'⊕')
+                                        symbolic: True
+                    TabbedPanelItem:
+                        text: root.get_text(_('Portal Origin'))
                         StackLayout:
-                            CLabel:
-                                stringname: _("Select a portal")
+                            Label:
+                                text: root.get_text(_("Pick a portal."))
+                                size_hint_y: 0.1
                             PortalListView:
                                 id: calendar_portal_origin_portal
                                 charsheet: root.charsheet
                                 selection_mode: 'single'
-                    AccordionItem:
-                        id: calendar_portal_destination
-                        title: root.get_text(_("Portal Destination"))
+                                size_hint_y: 0.9
+                    TabbedPanelItem:
+                        text: root.get_text(_('Portal Destination'))
                         StackLayout:
-                            CLabel:
-                                stringname: _("Select a portal")
+                            Label:
+                                text: root.get_text(_("Pick a portal."))
+                                size_hint_y: 0.1
                             PortalListView:
                                 id: calendar_portal_destination_portal
                                 charsheet: root.charsheet
                                 selection_mode: 'single'
-                    AccordionItem:
-                        id: calendar_portal_stat
-                        title: root.get_text(_("Portal Stat"))
+                                size_hint_y: 0.9
+                    TabbedPanelItem:
+                        text: root.get_text(_('Portal Stat'))
                         StackLayout:
-                            CLabel:
-                                stringname: _("Select a portal")
-                            PortalListView:
-                                id: calendar_portal_stat_portal
-                                charsheet: root.charsheet
-                                selection_mode: 'single'
-                            CLabel:
-                                stringname: _("Select a stat")
-                            NounStatListView:
-                                id: calendar_portal_stat_stat
-                                nouns: calendar_portal_stat_portal.selection
-                                selection_mode: 'single'
-                    AccordionItem:
-                        id: calendar_general_stat
-                        title: root.get_text(_("General Stat"))
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick a portal."))
+                                    size_hint_y: 0.1
+                                PortalListView:
+                                    id: calendar_portal_stat_portal
+                                    charsheet: root.charsheet
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.9
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick one of its stats."))
+                                    size_hint_y: 0.1
+                                PortalListView:
+                                    id: calendar_portal_stat_stat
+                                    nounitems: calendar_portal_stat_portal.selection
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.8
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: calendar_portal_stat_stat_in
+                                        hint_text: root.get_text(_("New stat name"))
+                                        size_hint_x: 0.8
+                                    CSClosetButton:
+                                        id: calendar_portal_stat_stat_but
+                                        text: root.get_text(_(u'⊕'))
+                                        charsheet: root.charsheet
+                                        stringname: _(u'⊕')
+                                        symbolic: True
+                    TabbedPanelItem:
+                        text: root.get_text(_('Character Stat'))
                         StackLayout:
-                            CLabel:
-                                stringname: _("Select a stat")
+                            Label:
+                                text: root.get_text(_("Pick a stat."))
+                                size_hint_y: 0.1
                             StatListView:
-                                id: calendar_general_stat_stat
+                                id: calendar_character_stat_stat
                                 charsheet: root.charsheet
                                 selection_mode: 'single'
+                                size_hint_y: 0.8
+                            StackLayout:
+                                size_hint_y: 0.1
+                                TextInput:
+                                    id: calendar_character_stat_stat_in
+                                    hint_text: root.get_text(_("New stat name"))
+                                    size_hint_x: 0.8
+                                CSClosetButton:
+                                    id: calendar_character_stat_stat_but
+                                    size_hint_x: 0.2
+                                    text: root.get_text(_(u'⊕'))
+                                    charsheet: root.charsheet
+                                    stringname: _(u'⊕')
+                                    symbolic: True
         BoxLayout:
-            size_hint_y: 0.1
+            size_hint_y: 0.05
             Button:
                 text: root.get_text(_("Cancel"))
                 on_release: root.cancel()

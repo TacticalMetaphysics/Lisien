@@ -11,14 +11,18 @@ from table import TableView
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
     ClosetButton)
+from kivy.uix.widget import Widget
 from kivy.uix.image import Image as KivyImage
 from kivy.uix.modalview import ModalView
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.stacklayout import StackLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.adapters.listadapter import ListAdapter
+from kivy.adapters.models import SelectableDataItem
 from kivy.uix.togglebutton import ToggleButton
-from kivy.adapters.listadapter import ListAdapter, ListView
-from kivy.uix.listview import ListItemButton
+from kivy.uix.listview import ListView, SelectableView
 from kivy.properties import (
+    BooleanProperty,
     OptionProperty,
     AliasProperty,
     ListProperty,
@@ -42,6 +46,10 @@ from LiSE.data import (
     CALENDAR_TYPES)
 
 
+class ListItemToggle(SelectableView, ToggleButton):
+    pass
+
+
 class CharListAdapter(ListAdapter):
     character = ObjectProperty()
 
@@ -49,123 +57,132 @@ class CharListAdapter(ListAdapter):
         self.redata()
 
 
-class NounListAdapter(CharListAdapter):
-    def redata(self, observer=None, branch=None, tick=None):
-        if observer is None:
-            self.data = list(getattr(
-                self.character, self.itern)(branch, tick))
-        else:
-            facade = self.character.get_facade(observer)
-            self.data = list(getattr(
-                facade, self.itern)(branch, tick))
-
-
-class ThingListAdapter(NounListAdapter):
-    itern = 'iter_things'
-
-
-def args_converter(idx, noun):
+def args_converter(idx, item):
     return {
-        'text': unicode(noun),
+        'text': unicode(item.noun),
         'size_hint_y': None,
-        'height': 25},
+        'height': 25}
 
 
-class ThingListView(ListView):
+class NounItem(SelectableDataItem):
+    def __init__(self, noun, **kwargs):
+        super(NounItem, self).__init__(**kwargs)
+        self.noun = noun
+        self.is_selected = False
+
+
+class NounListView(StackLayout):
     charsheet = ObjectProperty()
-    selection_mode = OptionProperty(['none', 'single', 'multiple'],
-                                    default='single')
+    selection_mode = OptionProperty('multiple',
+                                    options=['none', 'single', 'multiple'])
+    selection = ListProperty([])
+    allow_empty_selection = BooleanProperty(False)
+    finalized = BooleanProperty(False)
 
+    def on_charsheet(self, *args):
+        if self.charsheet is None:
+            return
+        if self.finalized:
+            raise Exception("It seems the charsheet has been set twice")
+        else:
+            nouniter = self.getiter(self.charsheet.character)
+            inidata = [NounItem(noun) for noun in nouniter]
+            adapter = ListAdapter(
+                data=inidata,
+                selection_mode=self.selection_mode,
+                args_converter=args_converter,
+                allow_empty_selection=self.allow_empty_selection,
+                cls=ListItemToggle)
+            adapter.bind(selection=self.setter('selection'))
+            listview = ListView(adapter=adapter)
+            self.add_widget(listview)
+            self.finalized = True
+
+
+class ThingListView(NounListView):
+    @staticmethod
+    def getiter(character):
+        (branch, tick) = character.sanetime()
+        return character.iter_things(branch, tick)
+
+
+class PlaceListView(NounListView):
+    @staticmethod
+    def getiter(character):
+        return character.iter_places()
+
+
+class PortalListView(NounListView):
+    @staticmethod
+    def getiter(character):
+        (branch, tick) = character.sanetime()
+        return character.iter_portals(branch, tick)
+
+
+class StatItem(SelectableDataItem):
     def __init__(self, **kwargs):
-        kwargs['adapter'] = ThingListAdapter(
-            character=kwargs['charsheet'].character,
-            selection_mode=kwargs['selection_mode'],
-            args_converter=args_converter,
-            allow_empty_selection=False,
-            cls=ListItemButton)
-        super(ThingListView, self).__init__(**kwargs)
+        super(StatItem, self).__init__(**kwargs)
+        self.name = kwargs['name']
 
 
-class PlaceListAdapter(NounListAdapter):
-    itern = 'iter_places'
-
-
-class PlaceListView(ListView):
-    charsheet = ObjectProperty()
-    selection_mode = OptionProperty(['none', 'single', 'multiple'],
-                                    default='single')
-
-    def __init__(self, **kwargs):
-        kwargs['adapter'] = PlaceListAdapter(
-            character=kwargs['charsheet'].character,
-            selection_mode=kwargs['selection_mode'],
-            args_converter=args_converter,
-            allow_empty_selection=False,
-            cls=ListItemButton)
-        super(PlaceListView, self).__init__(**kwargs)
-
-
-class PortalListAdapter(NounListAdapter):
-    itern = 'iter_portals'
-
-
-class PortalListView(ListView):
-    charsheet = ObjectProperty()
-    selection_mode = OptionProperty(['none', 'single', 'multiple'],
-                                    default='single')
-
-    def __init__(self, **kwargs):
-        kwargs['adapter'] = PortalListAdapter(
-            character=kwargs['charsheet'].character,
-            selection_mode=kwargs['selection_mode'],
-            args_converter=args_converter,
-            allow_empty_selection=False,
-            cls=ListItemButton)
-        super(PortalListView, self).__init__(**kwargs)
-
-
-class NounStatListAdapter(ListAdapter):
-    nouns = ObjectProperty()
-
-    def redata(self, observer=None, branch=None, tick=None):
-        data2b = []
-        for noun in self.nouns:
-            data2b.extend(noun.iter_stat_keys(observer, branch, tick))
-        self.data = data2b
+class NounStatListView(StackLayout):
+    nounitems = ListProperty()
+    selection = ListProperty([])
+    selection_mode = OptionProperty('multiple',
+                                    options=['none', 'single', 'multiple'])
+    allow_empty_selection = BooleanProperty(False)
+    finalized = BooleanProperty(False)
 
     def on_nouns(self, *args):
-        self.redata()
+        if len(self.nouns) == 0:
+            return
+        if self.finalized:
+            data2b = []
+            for nounitem in self.nounitems:
+                for key in nounitem.noun.iter_stat_keys():
+                    data2b.append(StatItem(name=key))
+            self.adapter.data = data2b
+        else:
+            inidata = []
+            for noun in self.nouns:
+                inidata.extend(noun.iter_stat_keys())
+            adapter = ListAdapter(
+                data=inidata,
+                selection_mode=self.selection_mode,
+                args_converter=lambda k, v: {
+                    'name': v.name,
+                    'size_hint_y': None,
+                    'height': 25},
+                allow_empty_selection=self.allow_empty_selection,
+                cls=ListItemToggle)
+            adapter.bind(selection=self.setter('selection'))
+            listview = ListView(adapter=adapter)
+            self.add_widget(listview)
+            self.finalized = True
 
 
-class NounStatListView(ListView):
-    nouns = ListProperty([])
-    selection_mode = OptionProperty(['none', 'single', 'multiple'],
-                                    default='single')
-
-    def __init__(self, **kwargs):
-        adapter = NounStatListAdapter(
-            selection_mode=kwargs['selection_mode'],
-            args_converter=args_converter,
-            allow_empty_selection=False,
-            cls=ListItemButton)
-        kwargs['adapter'] = adapter
-        super(NounStatListView, self).__init__(**kwargs)
-        self.bind(nouns=adapter.setter('nouns'))
-        adapter.nouns = self.nouns
-
-
-class StatListView(ListView):
+class StatListView(Widget):
     charsheet = ObjectProperty()
+    selection = ListProperty([])
+    selection_mode = OptionProperty('single',
+                                    options=['none', 'single', 'multiple'])
+    allow_empty_selection = BooleanProperty(False)
 
-    def __init__(self, **kwargs):
-        character = kwargs['charsheet'].character
+    def on_charsheet(self, *args):
+        if self.charsheet is None:
+            return
         adapter = ListAdapter(
-            data=list(character.iter_stat_keys()),
-            args_converter=args_converter,
-            allow_empty_selection=False,
-            cls=ListItemButton)
-        kwargs['adapter'] = adapter
-        super(StatListView, self).__init__(**kwargs)
+            data=[StatItem(name=key) for key in
+                  self.charsheet.character.iter_stat_keys()],
+            args_converter=lambda k, v: {
+                'name': v.name,
+                'size_hint_y': None,
+                'height': 25},
+            selection_mode=self.selection_mode,
+            allow_empty_selection=self.allow_empty_selection,
+            cls=ListItemToggle)
+        listview = ListView(adapter=adapter)
+        self.add_widget(listview)
 
 
 class EditButton(ToggleButton):
@@ -212,7 +229,7 @@ class CharSheetAdder(ModalView):
             PORTAL_STAT_TAB, ["table_portal_stat_portals",
                               "table_portal_stat_stats"]),
         "table_general_stats": (
-            CHAR_STAT_TAB, ["table_general_stat_stats"]),
+            CHAR_STAT_TAB, ["table_character_stat_stats"]),
         "calendar_thing_location": (
             THING_LOC_CAL, ["calendar_thing_location_thing"]),
         "calendar_thing_stat": (
@@ -229,7 +246,7 @@ class CharSheetAdder(ModalView):
             PORTAL_STAT_CAL, ["calendar_portal_stat_portal",
                               "calendar_portal_stat_stat"]),
         "calendar_general_stat": (
-            CHAR_STAT_CAL, ["calendar_general_stat_stat"])}
+            CHAR_STAT_CAL, ["calendar_character_stat_stat"])}
 
     def iter_selection(self):
         for (k, (typ, keys)) in self.selection_map.iteritems():

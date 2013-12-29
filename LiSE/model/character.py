@@ -435,11 +435,11 @@ class Character(object):
         return place
 
     def iter_places(self):
-        for bone in self.closet.skeleton[u"place"].itervalues():
+        for bone in self.closet.skeleton[u"place"].iterbones():
             try:
-                yield self.get_place(bone.name)
+                yield self.get_place(bone.place)
             except KeyError:
-                yield self.make_place(bone.name)
+                yield self.make_place(bone.place)
 
     def get_place_bone(self, name, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
