@@ -102,12 +102,8 @@
                                         id: table_thing_stat_new_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    CSClosetButton:
+                                    CSAddButton:
                                         id: table_thing_stat_new_stat_but
-                                        size_hint_x: 0.2
-                                        charsheet: root.charsheet
-                                        stringname: _(u'⊕')
-                                        symbolic: True
                     TabbedPanelItem:
                         text: root.get_text(_('Place Stat'))
                         StackLayout:
@@ -135,12 +131,8 @@
                                         id: table_place_stat_new_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    CSClosetButton:
+                                    CSAddButton:
                                         id: table_thing_stat_new_stat_but
-                                        size_hint_x: 0.2
-                                        charsheet: root.charsheet
-                                        stringname: _(u'⊕')
-                                        symbolic: True
                     TabbedPanelItem:
                         text: root.get_text(_('Portal Location'))
                         StackLayout:
@@ -179,12 +171,8 @@
                                         id: table_portal_stat_portals_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    CSClosetButton:
+                                    CSAddButton:
                                         id: table_portal_stat_portals_but
-                                        size_hint_x: 0.2
-                                        charsheet: root.charsheet
-                                        stringname: _(u'⊕')
-                                        symbolic: True
                     TabbedPanelItem:
                         text: root.get_text(_('Character Stat'))
                         StackLayout:
@@ -201,12 +189,8 @@
                                     id: table_portal_stat_stats_in
                                     size_hint_x: 0.8
                                     hint_text: root.get_text(_("New stat name"))
-                                CSClosetButton:
+                                CSAddButton:
                                     id: table_portal_stat_stats_but
-                                    size_hint_x: 0.2
-                                    charsheet: root.charsheet
-                                    stringname: _(u'⊕')
-                                    symbolic: True
             TabbedPanelItem:
                 text: root.get_text(_('Calendars'))
                 TabbedPanel:
@@ -251,11 +235,8 @@
                                         id: calendar_thing_stat_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    CSClosetButton:
-                                        text: root.get_text(_(u'⊕'))
-                                        charsheet: root.charsheet
-                                        stringname: _(u'⊕')
-                                        symbolic: True
+                                    CSAddButton:
+                                        id: calendar_thing_stat_stat_but
                     TabbedPanelItem:
                         text: root.get_text(_('Place Stat'))
                         StackLayout:
@@ -286,12 +267,8 @@
                                         id: calendar_place_stat_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    CSClosetButton:
+                                    CSAddButton:
                                         id: calendar_place_stat_stat_but
-                                        text: root.get_text(_(u'⊕'))
-                                        charsheet: root.charsheet
-                                        stringname: _(u'⊕')
-                                        symbolic: True
                     TabbedPanelItem:
                         text: root.get_text(_('Portal Origin'))
                         StackLayout:
@@ -343,12 +320,8 @@
                                         id: calendar_portal_stat_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    CSClosetButton:
+                                    CSAddButton:
                                         id: calendar_portal_stat_stat_but
-                                        text: root.get_text(_(u'⊕'))
-                                        charsheet: root.charsheet
-                                        stringname: _(u'⊕')
-                                        symbolic: True
                     TabbedPanelItem:
                         text: root.get_text(_('Character Stat'))
                         StackLayout:
@@ -366,13 +339,8 @@
                                     id: calendar_character_stat_stat_in
                                     hint_text: root.get_text(_("New stat name"))
                                     size_hint_x: 0.8
-                                CSClosetButton:
+                                CSAddButton:
                                     id: calendar_character_stat_stat_but
-                                    size_hint_x: 0.2
-                                    text: root.get_text(_(u'⊕'))
-                                    charsheet: root.charsheet
-                                    stringname: _(u'⊕')
-                                    symbolic: True
         BoxLayout:
             size_hint_y: 0.05
             Button:

@@ -48,9 +48,6 @@ class ClosetWidget(object):
     def unlisten(self):
         self.closet.unregister_text_listener(self.stringname, self.upd_text)
 
-    def do_layout(self, *args):
-        print("Would lay out {}".format(self.__class__.__name__))
-
 
 class ClosetLabel(Label, ClosetWidget):
     pass
@@ -58,15 +55,6 @@ class ClosetLabel(Label, ClosetWidget):
 
 class ClosetButton(Button, ClosetWidget):
     pass
-
-
-class CSClosetButton(ClosetButton):
-    charsheet = ObjectProperty()
-
-    def on_charsheet(self, *args):
-        if self.charsheet is None:
-            return
-        self.closet = self.charsheet.character.closet
 
 
 class ClosetToggleButton(ToggleButton, ClosetWidget):
