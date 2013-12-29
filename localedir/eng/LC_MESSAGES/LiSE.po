@@ -1,0 +1,67 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-12-28 13:29-0500\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: LiSE/gui/charsheet/charsheet.py:209 LiSE/gui/charsheet/charsheet.py:218
+#: LiSE/gui/charsheet/charsheet.py:226
+msgid "⊕"
+msgstr "⊕"
+
+#: LiSE/gui/charsheet/charsheet.py:222
+msgid "✎"
+msgstr "✎"
+
+#: LiSE/gui/app.py:255
+msgid "Draw a line between the spots where you want a portal."
+msgstr "Draw a line between the spots where you want a portal."
+
+#: LiSE/gui/app.py:395
+msgid "Drag this place where you want it."
+msgstr "Drag this place where you want it."
+
+#: LiSE/gui/app.py:434
+msgid "Drag this thing to the spot where you want it."
+msgstr "Drag this thing to the spot where you want it."
+
+#: LiSE/data.py:61 LiSE/data.py:62
+msgid "Thing"
+msgstr "Thing"
+
+#: LiSE/data.py:61
+msgid "Location"
+msgstr "Location"
+
+#: LiSE/data.py:63
+msgid "Place"
+msgstr "Place"
+
+#: LiSE/data.py:64 LiSE/data.py:65
+msgid "Portal"
+msgstr "Portal"
+
+#: LiSE/data.py:64
+msgid "Origin"
+msgstr "Origin"
+
+#: LiSE/data.py:64
+msgid "Destination"
+msgstr "Destination"
+
+#: main.py:20
+msgid "Starting LiSE with database {}, path {}"
+msgstr "Starting LiSE with database {}, path {}"
