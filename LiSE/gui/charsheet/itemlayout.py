@@ -8,7 +8,4 @@ from kivy.properties import (
 
 
 class ItemLayout(object):
-    character = ObjectProperty()
-    item_type = NumericProperty()
-    keys = ListProperty()
-    edbut = ObjectProperty()
+

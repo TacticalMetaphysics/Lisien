@@ -13,16 +13,10 @@ from kivy.uix.layout import Layout
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
 
-from itemlayout import ItemLayout
+from LiSE.data import THING_LOC_CAL
 
 
 SCROLL_FACTOR = 4
-CAL_TYPE = {
-    "THING": 0,
-    "PLACE": 1,
-    "PORTAL": 2,
-    "STAT": 3,
-    "SKILL": 4}
 
 
 def get_timeline_x(calendar, branch):
@@ -99,6 +93,7 @@ class Calendar(Layout):
     font_name = StringProperty()
     font_size = NumericProperty()
     force_refresh = BooleanProperty(False)
+    i = NumericProperty()
     keys = ListProperty()
     referent = ObjectProperty(None)
     skel = ObjectProperty(None)
@@ -163,23 +158,13 @@ class Calendar(Layout):
             if key is None:
                 break
             ks.append(key)
-        if self.cal_type == 5:
+        if self.cal_type == THING_LOC_CAL:
             thing = ks[0]
             self.referent = closet.get_thing(self.character, thing)
             self.skel = skeleton["thing_loc"][
                 unicode(self.character)][thing]
-        elif self.cal_type == 6:
-            place = ks[0]
-            self.referent = closet.get_place(self.character, place)
-        elif self.cal_type == 7:
-            portal = ks[0]
-            self.referent = closet.get_portal(self.character, portal)
-            self.skel = skeleton["portal_loc"][
-                unicode(self.character)][portal]
-        elif self.cal_type == 8:
-            stat = ks[0]
-            self.skel = skeleton["character_stat"][
-                unicode(self.character)][stat]
+        else:
+            raise NotImplementedError
         self.skel.register_set_listener(self.refresh_and_layout)
         self.skel.register_del_listener(self.refresh_and_layout)
         self.bind(size=lambda i, v: self._trigger_layout(),
@@ -353,7 +338,10 @@ tick. If so, adjust my branch and tick to fit."""
             self._trigger_layout()
 
 
-class CalendarLayout(RelativeLayout, ItemLayout):
+class CalendarLayout(RelativeLayout):
     """Really just a RelativeLayout with some Kivy properties to handle
 the parameters of a Calendar."""
-    pass
+    character = ObjectProperty()
+    item_type = NumericProperty()
+    keys = ListProperty()
+    edbut = ObjectProperty()

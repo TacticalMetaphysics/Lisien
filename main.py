@@ -3,28 +3,27 @@
 from LiSE import __path__
 from LiSE.gui.app import LiSEApp
 from sys import argv
-from os.path import abspath
-from os import environ
+from os import curdir
+from os.path import sep
+
+import gettext
 
 
 def lise():
     print(argv)
-    lang = "eng"
     dbfn = None
 
-    if "LISELANG" in environ:
-        lang = environ["LISELANG"]
-    else:
-        lang = "eng"
+    _ = gettext.translation('LiSE', curdir + sep + 'localedir',
+                            ['eng']).lgettext
 
     if argv[-1][-4:] == "lise":
         dbfn = argv[-1]
 
-    print("Starting LiSE with database {}, language {}, path {}".format(
-        dbfn, lang, __path__[-1]))
+    print(_("Starting LiSE with database {}, path {}".format(
+        dbfn, __path__[-1])))
 
-    LiSEApp(dbfn=dbfn, lang=lang,
-            lise_path=abspath(__path__[-1]),
+    LiSEApp(dbfn=dbfn, lgettext=_,
+            lise_path=__path__[-1],
             observer_name='Omniscient',
             observed_name='Player',
             host_name='Physical').run()

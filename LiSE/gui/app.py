@@ -1,10 +1,8 @@
 from os import sep
-from functools import partial
 
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
-    AliasProperty,
     BoundedNumericProperty,
     ObjectProperty,
     ListProperty,
@@ -27,6 +25,7 @@ from LiSE.gui.board import (
 from LiSE.gui.board.arrow import get_points
 from LiSE.gui.kivybits import TexPile, TouchlessWidget
 from LiSE.gui.swatchbox import SwatchBox, TogSwatch
+from LiSE.gui.charsheet import CharSheetAdder
 from LiSE.util import TimestreamException
 from LiSE import (
     __path__,
@@ -177,6 +176,27 @@ and charsheets.
         super(LiSELayout, self).__init__(**kwargs)
         self._popups = []
 
+    def handle_adbut(self, charsheet, i):
+        adder = CharSheetAdder(charsheet=charsheet)
+
+        def cancel():
+            adder.dismiss()
+        adder.cancel = cancel
+
+        def confirm():
+            bones = []
+            j = i
+            for bone in adder.iter_selection():
+                bones.append(bone._replace(idx=j))
+                j += 1
+            charsheet.push_down(i, len(bones))
+            for bone in bones:
+                self.app.closet.set_bone(bone)
+            charsheet._trigger_layout()
+            adder.dismiss()
+        adder.confirm = confirm
+        adder.open()
+
     def draw_arrow(self, *args):
         # Sometimes this gets triggered, *just before* getting
         # unbound, and ends up running one last time *just after*
@@ -196,8 +216,14 @@ and charsheets.
             Color(1, 1, 1)
             Line(width=1, points=points)
 
+    def make_arrow(self, *args):
+        _ = self.app.closet.get_text
+        self.display_prompt(_(
+            "Draw a line between the spots the portal should connect."))
+        self.portaling = 1
+
     def on_touch_down(self, touch):
-        clost = self.ids.board.facade.closet
+        _ = self.app.closet.get_text
         # menus appear above the board. you can't portal on them. so
         # interpret touches there as cancelling the portaling action.
         # same comment for charsheets
@@ -229,7 +255,8 @@ and charsheets.
                     self.ids.board.children[0].add_widget(pawn)
                 self.add_widget(self.dummyspot)
                 self.dummyspot.bind(pos=self.draw_arrow)
-                self.display_prompt(clost.get_text("@putportalto"))
+                self.display_prompt(_(
+                    'Draw a line between the spots where you want a portal.'))
                 self.portaling = 2
             else:
                 self.portaling = 0
@@ -366,14 +393,14 @@ and charsheets.
         pawn_menu.open()
 
     def new_spot_with_name_and_imgs(self, name, imgs):
-        clost = self.ids.board.facade.closet
+        _ = self.app.closet.get_text
         if len(imgs) < 1:
             return
-        self.display_prompt(clost.get_text("@putplace"))
+        self.display_prompt(_('Drag this place where you want it.'))
         Clock.schedule_once(self.dismiss_prompt, 5)
         place = self.ids.board.host.make_place(name)
-        branch = clost.branch
-        tick = clost.tick
+        branch = self.app.closet.branch
+        tick = self.app.closet.tick
         obsrvr = unicode(self.ids.board.facade.observer)
         host = unicode(self.ids.board.host)
         placen = unicode(place)
@@ -387,7 +414,7 @@ and charsheets.
                 branch=branch,
                 tick=tick,
                 img=img.name)
-            clost.set_bone(bone)
+            self.app.closet.set_bone(bone)
             i += 1
         coord_bone = Spot.bonetypes["spot_coords"](
             observer=obsrvr,
@@ -397,17 +424,18 @@ and charsheets.
             tick=tick,
             x=self.spot_default_x(),
             y=self.spot_default_y())
-        clost.set_bone(coord_bone)
+        self.app.closet.set_bone(coord_bone)
         spot = Spot(board=self.ids.board, place=place)
         self.ids.board.add_widget(spot)
 
     def new_pawn_with_name_and_imgs(self, name, imgs):
         """Given some iterable of Swatch widgets, make a dummy pawn, prompt
 the user to place it, and dismiss the popup."""
-        clost = self.ids.board.facade.closet
+        _ = self.app.closet.get_text
         if len(imgs) < 1:
             return
-        self.display_prompt(clost.get_text("@putthing"))
+        self.display_prompt(_(
+            'Drag this thing to the spot where you want it.'))
         (w, h) = self.get_root_window().size
         dummy = DummyPawn(
             board=self.ids.board,
@@ -415,7 +443,6 @@ the user to place it, and dismiss the popup."""
             imgbones=imgs)
 
         def cb():
-            print("Called back")
             self.remove_widget(dummy)
             self.dismiss_prompt()
         dummy.callback = cb
@@ -477,16 +504,6 @@ the user to place it, and dismiss the popup."""
             img = self.app.closet.skeleton[u"img"][imagery]
             self.new_pawn_with_name_and_imgs(name, [img])
 
-    def make_arrow(self, orig=None):
-        """Prompt user to click the origin for a new Portal. Then start
-drawing the Arrow for it and prompt user to click the
-destination. Then make the Portal and its Arrow.
-
-        """
-        clost = self.ids.board.facade.closet
-        self.display_prompt(clost.get_text("@putportalfrom"))
-        self.portaling = 1
-
     def normal_speed(self, forward=True):
         if forward:
             self.playspeed = 0.1
@@ -501,7 +518,6 @@ destination. Then make the Portal and its Arrow.
         try:
             self.app.closet.time_travel_inc_tick(ticks)
         except TimestreamException:
-            print("Pausing!")
             self.pause()
 
     def on_playspeed(self, i, v):
@@ -518,14 +534,10 @@ destination. Then make the Portal and its Arrow.
         Clock.schedule_interval(self.updater, interval)
 
     def go_to_branch(self, bstr):
-        b = int(bstr)
-        clost = self.ids.board.host.closet
-        clost.time_travel(b, clost.tick)
+        self.app.closet.time_travel(int(bstr), self.app.closet.tick)
 
     def go_to_tick(self, tstr):
-        t = int(tstr)
-        clost = self.ids.board.host.closet
-        clost.time_travel(clost.branch, t)
+        self.app.closet.time_travel(self.app.closet.branch, int(tstr))
 
 
 class LoadImgDialog(FloatLayout):
@@ -545,7 +557,7 @@ In lise.kv this is given a SwatchBox with texdict=root.texdict."""
 class LiSEApp(App):
     closet = ObjectProperty(None)
     dbfn = StringProperty(allownone=True)
-    lang = StringProperty()
+    lgettext = ObjectProperty(None)
     lise_path = StringProperty()
     observer_name = StringProperty()
     observed_name = StringProperty()
@@ -564,7 +576,7 @@ class LiSEApp(App):
         except (IOError, OperationalError):
             closet.mkdb(self.dbfn, __path__[-1])
         self.closet = closet.load_closet(
-            self.dbfn, self.lise_path, self.lang, True)
+            self.dbfn, self.lgettext, True)
         self.closet.load_img_metadata()
         self.closet.load_textures_tagged(['base', 'body'])
         # Currently the decision of when and whether to update things

@@ -147,3 +147,15 @@ class Portal(Container):
         for bone in upbranch(
                 self.character.closet, skel.iterbones(), branch, tick):
             yield bone
+
+    def iter_stat_keys(self, observer=None, branch=None, tick=None):
+        (branch, tick) = self.character.sanetime(branch, tick)
+        if observer is None:
+            for key in self.character.iter_portal_stat_keys(
+                    self.name, [branch], [tick]):
+                yield key
+        else:
+            facade = self.character.get_facade(observer)
+            for key in facade.iter_portal_stat_keys(
+                    self.name, [branch], [tick]):
+                yield key

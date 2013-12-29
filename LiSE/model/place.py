@@ -1,7 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from container import Container
-from LiSE.util import PlaceBone
 
 
 class Place(Container):
@@ -81,21 +80,20 @@ class Place(Container):
     def iter_portals(self, observer=None, branch=None, tick=None):
         """Iterate over all those portals which lead from this place to
         elsewhere."""
-        if observer is None:
-            getter = self.character.get_portal
-        else:
-            facade = self.character.get_facade(observer)
-            getter = facade.get_portal
         for bone in self._iter_portals_bones(observer, branch, tick):
-            yield getter(bone.name)
+            yield self.character.get_portal(bone.name)
 
     def get_portals(self, observer=None, branch=None, tick=None):
         """Get a set of names of portals leading out from here."""
-        if observer is None:
-            getter = self.character.get_portal
-        else:
-            facade = self.character.get_facade(observer)
-            getter = facade.get_portal
-        return set([
-            getter(bone.name) for bone in
-            self._iter_portals_bones(observer, branch, tick)])
+        return set([self.character_iter_portals(observer, branch, tick)])
+
+    def get_stat(self, stat, observer=None, branch=None, tick=None):
+        (branch, tick) = self.character.sanetime(branch, tick)
+        return self.subjective_lookup(
+            'get_place_stat', observer, [stat, branch, tick])
+
+    def iter_stat_keys(self, observer=None, branch=None, tick=None):
+        (branch, tick) = self.character.sanetime(branch, tick)
+        for key in self.subjective_lookup(
+                'iter_place_stat_keys', observer, [branch, tick]):
+            yield key
