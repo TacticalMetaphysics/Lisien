@@ -411,12 +411,12 @@ before RumorMill will work. For that, run mkdb.sh.
     def load_charsheet(self, character):
         """Return a CharSheetView displaying the CharSheet for the character
         specified, perhaps loading it if necessary."""
+        def gen_keybones():
+            for bonetype in CharSheet.bonetypes.itervalues():
+                yield bonetype._null()._replace(character=character)
         # if the character is not loaded yet, make it so
         character = unicode(self.get_character(character))
-        keybones = [
-            CharSheet.bonetypes["charsheet_item"]._null()._replace(
-                character=character)]
-        self.update_keybones(keybones)
+        self.update_keybones(gen_keybones())
         return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
@@ -869,6 +869,20 @@ before RumorMill will work. For that, run mkdb.sh.
                 self.set_bone(PlaceBone(
                     host=host, place=place, branch=branch, tick=tick))
 
+        def have_charsheet_type_bone(character, idx, type):
+            try:
+                return self.skeleton[u"character_sheet_item_type"][
+                    character][idx] is not None
+            except (KeyError, IndexError):
+                return False
+
+        def set_cstype_maybe(character, idx, type):
+            if not have_charsheet_type_bone:
+                self.set_bone(CharSheet.bonetype(
+                    character=character,
+                    idx=idx,
+                    type=type))
+
         if isinstance(bone, PlaceBone):
             skel = init_keys(
                 self.skeleton[u"place"],
@@ -897,6 +911,10 @@ before RumorMill will work. For that, run mkdb.sh.
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
         elif isinstance(bone, Spot.bonetypes[u"spot_coords"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
+        elif type(bone) is CharSheet.bonetype:
+            pass
+        elif type(bone) in CharSheet.bonetypes.values():
+            set_cstype_maybe(bone.character, bone.idx, bone.type)
 
         keynames = bone.cls.keynames[bone._name]
         keys = [getattr(bone, keyn) for keyn in keynames[:-1]]

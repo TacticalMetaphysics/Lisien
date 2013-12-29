@@ -202,7 +202,7 @@ class CSAddButton(Button):
     CharSheetAdder.
 
     Normally this sort of class would be defined in kv, but I couldn't
-    get kv to display this character, for some reason.
+    get kv to display '⊕', for some reason.
 
     """
     def __init__(self, **kwargs):
@@ -248,7 +248,7 @@ class CharSheetAdder(ModalView):
         "table_portal_stats": (
             PORTAL_STAT_TAB, ["table_portal_stat_portals",
                               "table_portal_stat_stats"]),
-        "table_general_stats": (
+        "table_character_stats": (
             CHAR_STAT_TAB, ["table_character_stat_stats"]),
         "calendar_thing_location": (
             THING_LOC_CAL, ["calendar_thing_location_thing"]),
@@ -265,13 +265,13 @@ class CharSheetAdder(ModalView):
         "calendar_portal_stat": (
             PORTAL_STAT_CAL, ["calendar_portal_stat_portal",
                               "calendar_portal_stat_stat"]),
-        "calendar_general_stat": (
+        "calendar_character_stat": (
             CHAR_STAT_CAL, ["calendar_character_stat_stat"])}
 
     def iter_selection(self):
         for (k, (typ, keys)) in self.selection_map.iteritems():
             outer = getattr(self.ids, k)
-            if not outer.collapse:
+            if outer.state == 'down':
                 kwid0 = getattr(self.ids, keys[0])
                 key0s = kwid0.selection
                 i = 0
@@ -290,6 +290,54 @@ class CharSheetAdder(ModalView):
                 return
 
 
+def char_sheet_table_def(
+        table_name, final_pkey, typ, foreign_key=(None, None)):
+    r = (
+        table_name,
+        {"columns":
+         {"character": "TEXT NOT NULL",
+          "idx": "INTEGER NOT NULL",
+          final_pkey: "TEXT NOT NULL",
+          "type": "INTEGER NOT NULL DEFAULT {}".format(typ)},
+         "primary_key":
+         ("character", "idx", final_pkey),
+         "foreign_keys":
+         {"character, idx, type":
+          ("character_sheet_item_type", "character, idx, type")},
+         "checks": ["type={}".format(typ)]})
+    if None not in foreign_key:
+        (foreign_key_tab, foreign_key_key) = foreign_key
+        r[1]["foreign_keys"].update(
+            {"character, {}".format(final_pkey):
+             (foreign_key_tab, "character, {}".format(foreign_key_key))})
+    return r
+
+
+def char_sheet_calendar_def(
+        table_name, col_x, typ, col_y=None, foreign_key=(None, None)):
+    r = (
+        table_name,
+        {"columns":
+         {"character": "TEXT NOT NULL",
+          "idx": "INTEGER NOT NULL",
+          col_x: "TEXT NOT NULL",
+          "type": "INTEGER DEFAULT {}".format(typ)},
+         "primary_key":
+         ("character", "idx"),
+         "foreign_keys":
+         {"character, idx, type":
+          ("character_sheet_item_type", "character, idx, type")},
+         "checks": ["type={}".format(typ)]})
+    if col_y is not None:
+        r[1][col_y] = "TEXT NOT NULL"
+    if None not in foreign_key:
+        (foreign_key_tab, foreign_key_key) = foreign_key
+        r[1]["foreign_keys"].update(
+            {"character, {}".format(col_x):
+             (foreign_key_tab, "character, {}".format(foreign_key_key))})
+    return r
+
+
 class CharSheet(GridLayout):
     """A display of some or all of the information making up a Character.
 
@@ -304,26 +352,94 @@ tick.
     __metaclass__ = SaveableWidgetMetaclass
     demands = ["character"]
     tables = [
-        ("charsheet_item",
+        ("character_sheet_item_type",
          {"columns":
           {"character": "TEXT NOT NULL",
            "idx": "INTEGER NOT NULL",
-           "type": "INTEGER NOT NULL",
-           "key0": "TEXT",
-           "key1": "TEXT",
-           "key2": "TEXT"},
+           "type": "INTEGER NOT NULL"},
           "primary_key":
           ("character", "idx"),
-          "foreign_keys":
-          {"character": ("charsheet", "character")},
           "checks":
-          ["CASE key2 WHEN NULL THEN type<>{0} END".format(
-              PORTAL_LOC_TAB),
-           "idx in ({})".format(", ".join(
-               [str(typ) for typ in SHEET_ITEM_TYPES]))
-           ]
-          }
-         )]
+          ["type IN ({})".format(
+              ", ".join([str(typ) for typ in SHEET_ITEM_TYPES]))]}),
+        char_sheet_table_def(
+            "thing_location_tab_thing",
+            "thing",
+            THING_LOC_TAB,
+            foreign_key=("thing", "name")),
+        char_sheet_table_def(
+            "thing_stat_tab_thing",
+            "thing",
+            THING_STAT_TAB,
+            foreign_key=("thing", "name")),
+        char_sheet_table_def(
+            "thing_stat_tab_stat",
+            "stat",
+            THING_STAT_TAB),
+        char_sheet_table_def(
+            "place_stat_tab_place",
+            "place",
+            PLACE_STAT_TAB,
+            foreign_key=("place", "place")),
+        char_sheet_table_def(
+            "place_stat_tab_stat",
+            "stat",
+            PLACE_STAT_TAB),
+        char_sheet_table_def(
+            "portal_loc_tab_portal",
+            "portal",
+            PORTAL_LOC_TAB,
+            foreign_key=("portal", "name")),
+        char_sheet_table_def(
+            "portal_stat_tab_portal",
+            "portal",
+            PORTAL_STAT_TAB,
+            foreign_key=("portal", "name")),
+        char_sheet_table_def(
+            "portal_stat_tab_stat",
+            "stat",
+            PORTAL_STAT_TAB),
+        char_sheet_table_def(
+            "character_stat_tab_stat",
+            "stat",
+            CHAR_STAT_TAB),
+        char_sheet_calendar_def(
+            "thing_loc_cal",
+            "thing",
+            THING_LOC_CAL,
+            foreign_key=("thing", "name")),
+        char_sheet_calendar_def(
+            "thing_stat_cal",
+            "thing",
+            THING_STAT_CAL,
+            col_y="stat",
+            foreign_key=("thing", "name")),
+        char_sheet_calendar_def(
+            "place_stat_cal",
+            "place",
+            PLACE_STAT_CAL,
+            col_y="stat",
+            foreign_key=("place", "place")),
+        char_sheet_calendar_def(
+            "portal_orig_cal",
+            "portal",
+            PORTAL_ORIG_CAL,
+            foreign_key=("portal", "name")),
+        char_sheet_calendar_def(
+            "portal_dest_cal",
+            "portal",
+            PORTAL_DEST_CAL,
+            foreign_key=("portal", "name")),
+        char_sheet_calendar_def(
+            "portal_stat_cal",
+            "portal",
+            PORTAL_STAT_CAL,
+            col_y="stat",
+            foreign_key=("portal", "name")),
+        char_sheet_calendar_def(
+            "character_stat_cal",
+            "stat",
+            CHAR_STAT_CAL)]
     character = ObjectProperty()
 
     def add_item(self, i):
@@ -343,15 +459,13 @@ but they never include branch or tick--CharSheet will only display
 things appropriate to the present, whenever that may be.
 
         """
+        self.size_hint = (1, None)
         _ = self.character.closet.get_text
         self.clear_widgets()
         i = 0
         height = 0
         if unicode(self.character) not in self.character.closet.skeleton[
-                u"charsheet_item"]:
-            # TODO: Display just the add button, and when it's
-            # pressed, get input from the user and use it to build a
-            # charsheet_item bone. Then display that.
+                u"character_sheet_item_type"]:
             self.add_widget(
                 ClosetButton(
                     closet=self.character.closet,
@@ -359,52 +473,13 @@ things appropriate to the present, whenever that may be.
                     symbolic=True,
                     on_release=lambda x: self.add_item(i)))
             return
-        for bone in self.character.closet.skeleton[u"charsheet_item"][
-                unicode(self.character)].iterbones():
-            self.size_hint = (1, None)
-            keylst = [bone.key0, bone.key1, bone.key2]
-            buttons = [
-                ClosetButton(
-                    closet=self.character.closet,
-                    stringname=_(u'⊕'),
-                    symbolic=True,
-                    size_hint_y=0.2,
-                    on_release=lambda x: self.add_item(i)),
-                EditButton(
-                    text=_(u'✎'),
-                    group=unicode(self.character),
-                    size_hint_y=0.6),
-                ClosetButton(
-                    closet=self.character.closet,
-                    stringname=_(u'⊕'),
-                    symbolic=True,
-                    size_hint_y=0.2,
-                    on_release=lambda x: self.add_item(i+1))]
-            button_layout = GridLayout(cols=1)
-            for button in buttons:
-                button_layout.add_widget(button)
-            if bone.type in TABLE_TYPES:
-                w = TableView(
-                    character=self.character,
-                    item_type=bone.type,
-                    keys=keylst,
-                    edbut=buttons[1])
-            elif bone.type in CALENDAR_TYPES:
-                w = CalendarLayout(
-                    character=self.character,
-                    item_type=bone.type,
-                    keys=keylst,
-                    edbut=buttons[1])
-            self.add_widget(w)
-            self.add_widget(button_layout)
-            self.rows_minimum[i] = w.height
-            height += w.height + self.spacing[1]
-            i += 1
-        self.height = height
+        cwids = []
 
     def on_touch_down(self, touch):
         """If one of my children catches the touch, nobody else ought to, so
-return True in that case."""
+        return True in that case.
+
+        """ 
         for child in self.children:
             if child.on_touch_down(touch):
                 return True
@@ -421,13 +496,15 @@ return True in that case."""
 
     def push_down(self, i, n):
         """Move every item after i forward n spaces."""
-        items = self.character.closet.skeleton[u"charsheet_item"][unicode(
-            self.character)]
-        before = list(items)[:i]
-        for j in xrange(i, len(items)):
-            before.append(items[j]._replace(idx=items[j].idx+n))
-        self.character.closet.skeleton[u"charsheet_item"][
-            unicode(self.character)] = before
+        for table in self.tables:
+            skel = self.character.closet.skeleton[table][unicode(self)]
+            for j in xrange(i, i+n):
+                if j in skel:
+                    leks = skel[j]
+                    del skel[j]
+                    for bone in leks.iterbones():
+                        self.character.closet.set_bone(
+                            bone._replace(idx=bone.idx+n))
 
 
 class CharSheetView(ScrollView):

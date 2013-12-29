@@ -192,7 +192,12 @@ and charsheets.
             for bone in adder.iter_selection():
                 bones.append(bone._replace(idx=j))
                 j += 1
-            charsheet.push_down(i, len(bones))
+            try:
+                charsheet.push_down(i, len(bones))
+            except KeyError:
+                # There were no charsheet items to push down.
+                # That's fine. We still have room.
+                pass
             for bone in bones:
                 self.app.closet.set_bone(bone)
             charsheet._trigger_layout()
