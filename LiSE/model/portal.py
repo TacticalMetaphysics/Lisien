@@ -140,6 +140,7 @@ class Portal(Container):
                         thingbone.host == unicode(self.host)):
                     char = self.host.closet.get_character(thingbone.character)
                     return char.get_thing(thingbone.name)
+            raise KeyError("Noplace!")
 
     def new_branch(self, parent, branch, tick):
         skel = self.character.closet.skeleton[u"portal_loc"][

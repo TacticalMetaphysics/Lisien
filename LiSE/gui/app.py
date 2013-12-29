@@ -132,8 +132,11 @@ class SpriteMenuContent(StackLayout):
 
     def aggregate(self):
         """Collect the place name and graphics set the user has chosen."""
+        if len(self.selection) < 1:
+            return False
+        else:
+            assert(len(self.selection) == 1)
         namer = self.ids.namer
-        assert(len(self.selection) == 1)
         tog = self.selection.pop()
         if self.validate_name(namer.text):
             self.picker_args.append(namer.text)
@@ -303,8 +306,6 @@ and charsheets.
             portal = self.ids.board.facade.observed.make_portal(
                 portalname, origplace, destplace,
                 host=self.ids.board.host)
-            # it seems like Arrow can only display when the character
-            # AND the host BOTH match the board's host
             arrow = Arrow(
                 board=self.ids.board, portal=portal)
             self.ids.board.arrowdict[unicode(portal)] = arrow
@@ -427,12 +428,14 @@ and charsheets.
         coord_bone = Spot.bonetypes["spot_coords"](
             observer=obsrvr,
             host=host,
-            place=place,
+            place=placen,
             branch=branch,
             tick=tick,
             x=self.spot_default_x(),
             y=self.spot_default_y())
         self.app.closet.set_bone(coord_bone)
+        assert(self.app.closet.have_place_bone(
+            host, placen))
         spot = Spot(board=self.ids.board, place=place)
         self.ids.board.add_widget(spot)
 

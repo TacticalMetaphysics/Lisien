@@ -180,9 +180,14 @@ class Character(object):
     def __unicode__(self):
         return unicode(self.name)
 
+    def _get_skel(self):
+        """Get the skeleton from the closet. Debugging method."""
+        return self.closet.skeleton
+
     def update(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
-        for placebone in self.iter_place_bones(None, branch, tick):
+        for placebone in self.iter_place_bones(
+                None, branch, tick):
             if (
                     "name" not in self.graph.vs.attributes() or
                     placebone.place not in self.graph.vs["name"]):
