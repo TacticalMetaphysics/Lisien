@@ -905,7 +905,8 @@ before RumorMill will work. For that, run mkdb.sh.
 def defaults(c):
     from LiSE.data import whole_imgrows
     c.executemany(
-        "INSERT INTO img (name, path) VALUES (?, ?);", whole_imgrows)
+        "INSERT INTO img (name, path, off_x, off_y) VALUES (?, ?, ?, ?);",
+        whole_imgrows)
     from LiSE.data import globs
     c.executemany(
         "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",

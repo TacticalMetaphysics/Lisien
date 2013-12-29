@@ -113,6 +113,9 @@ class SpriteMenuContent(StackLayout):
     selection = ListProperty([])
     picker_args = ListProperty([])
 
+    def get_text(self, stringn):
+        return self.closet.get_text(stringn)
+
     def upd_selection(self, togswatch, state):
         if state == 'normal':
             while togswatch in self.selection:

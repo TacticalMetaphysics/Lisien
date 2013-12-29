@@ -7,7 +7,6 @@ from kivy.uix.image import Image
 from kivy.uix.widget import (
     Widget,
     WidgetMetaclass)
-from kivy.uix.spinner import Spinner
 from kivy.properties import (
     NumericProperty,
     ListProperty,
@@ -27,9 +26,17 @@ class ClosetWidget(object):
     stringprop = "text"
     closet = ObjectProperty()
     symbolic = BooleanProperty()
+    completion = NumericProperty(0)
 
     def on_closet(self, *args):
-        self.upd_text()
+        self.completion += 1
+
+    def on_stringname(self, *args):
+        self.completion += 1
+
+    def on_completion(self, *args):
+        if self.completion == 2:
+            self.upd_text()
 
     def upd_text(self, *args):
         setattr(self, self.stringprop, self.closet.get_text(self.stringname))
@@ -51,6 +58,15 @@ class ClosetLabel(Label, ClosetWidget):
 
 class ClosetButton(Button, ClosetWidget):
     pass
+
+
+class CSClosetButton(ClosetButton):
+    charsheet = ObjectProperty()
+
+    def on_charsheet(self, *args):
+        if self.charsheet is None:
+            return
+        self.closet = self.charsheet.character.closet
 
 
 class ClosetToggleButton(ToggleButton, ClosetWidget):
