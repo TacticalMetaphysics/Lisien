@@ -73,6 +73,16 @@ saveable_classes = []
 ### Begin functions
 
 
+def skel_set_printer(skel, child, k, v):
+    """Debugging function to print out assignments to some skeleton or other"""
+    print("{}.{}[{}]={}".format(skel.name, child.name, k, v))
+
+
+def skel_del_printer(skel, child, k):
+    """Debugging function to print out deletions from some skeleton"""
+    print("del {}.{}[{}]".format(skel.name, child.name, k))
+
+
 def passthru(_):
     return _
 
@@ -652,6 +662,10 @@ class Skeleton(MutableMapping):
         child."""
         self._set_listeners.append(fun)
 
+    def unregister_set_listener(self, fun):
+        while fun in self._set_listeners:
+            self._set_listeners.remove(fun)
+
     def __delitem__(self, k):
         """If ``self.content`` is a :type:`dict`, delete the key in the usual
         way. Otherwise, remove the key from ``self.ikeys``."""
@@ -675,6 +689,19 @@ class Skeleton(MutableMapping):
         """Register a function to be called when an element is deleted in this
         or a child."""
         self._del_listeners.append(fun)
+
+    def unregister_del_listener(self, fun):
+        while fun in self._del_listeners:
+            self._del_listeners.remove(fun)
+
+    def _loud_toggle(self):
+        if hasattr(self, 'loud'):
+            self.unregister_set_listener(skel_set_printer)
+            self.unregister_del_listener(skel_del_printer)
+        else:
+            self.register_set_listener(skel_set_printer)
+            self.register_del_listener(skel_del_printer)
+            self.loud = True
 
     def __iter__(self):
         """Iterate over my keys--which, if ``self.content`` is not a

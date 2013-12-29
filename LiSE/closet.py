@@ -824,7 +824,7 @@ before RumorMill will work. For that, run mkdb.sh.
         """Load all the records to do with img paths and tags and so forth."""
         self.skeleton.update(self.select_class_all(Img))
 
-    def query_place(self, update=False):
+    def query_place(self, update=True):
         """Query the 'place' view, resulting in an up-to-date record of what
         places exist in the gameworld as it exists in the
         database.
@@ -840,6 +840,17 @@ before RumorMill will work. For that, run mkdb.sh.
                 place=place,
                 branch=branch,
                 tick=tick))
+
+    def have_place_bone(self, host, place, branch=None, tick=None):
+        if branch is None:
+            branch = self.branch
+        if tick is None:
+            tick = self.tick
+        try:
+            return self.skeleton[u"place"][host][place][
+                branch].value_during(tick) is not None
+        except (KeyError, IndexError):
+            return False
 
     def set_bone(self, bone):
         """Take a bone of arbitrary type and put it in the right place in the
@@ -857,17 +868,12 @@ before RumorMill will work. For that, run mkdb.sh.
                 skel = skel[key]
             return skel
 
-        def have_place_bone(host, place, branch, tick):
-            try:
-                return self.skeleton[u"place"][host][place][
-                    branch].value_during(tick) is not None
-            except (KeyError, IndexError):
-                return False
-
         def set_place_maybe(host, place, branch, tick):
-            if not have_place_bone(host, place, branch, tick):
+            if not self.have_place_bone(host, place, branch, tick):
                 self.set_bone(PlaceBone(
                     host=host, place=place, branch=branch, tick=tick))
+            else:
+                print("Already knew about {}".format(place))
 
         def have_charsheet_type_bone(character, idx, type):
             try:
@@ -884,10 +890,11 @@ before RumorMill will work. For that, run mkdb.sh.
                     type=type))
 
         if isinstance(bone, PlaceBone):
-            skel = init_keys(
+            init_keys(
                 self.skeleton[u"place"],
                 [bone.host, bone.place, bone.branch])
-            skel[bone.tick] = bone
+            self.skeleton[u"place"][bone.host][bone.place][
+                bone.branch][bone.tick] = bone
             return
 
         # Some bones implicitly declare a new place
