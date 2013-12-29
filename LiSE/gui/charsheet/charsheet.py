@@ -19,6 +19,7 @@ from kivy.uix.stacklayout import StackLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.adapters.listadapter import ListAdapter
 from kivy.adapters.models import SelectableDataItem
+from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.listview import ListView, SelectableView
 from kivy.properties import (
@@ -194,6 +195,25 @@ class EditButton(ToggleButton):
     def on_state(self, i, v):
         for listener in self.extra_listeners:
             listener(i, v)
+
+
+class CSAddButton(Button):
+    """A button with an encircled plus sign on it, to be used in the
+    CharSheetAdder.
+
+    Normally this sort of class would be defined in kv, but I couldn't
+    get kv to display this character, for some reason.
+
+    """
+    def __init__(self, **kwargs):
+        from LiSE import __path__
+        from os import sep
+        kwargs['text'] = u'⊕'
+        kwargs['size_hint_x'] = 0.2
+        kwargs['font_name'] = sep.join(
+            [__path__[-1], "gui", "assets", "Entypo.ttf"])
+        kwargs['font_size'] = 30
+        super(CSAddButton, self).__init__(**kwargs)
 
 
 class Image(KivyImage):

@@ -1,3 +1,4 @@
+# coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 """The database backend, with dictionaries of loaded objects.
@@ -335,6 +336,8 @@ before RumorMill will work. For that, run mkdb.sh.
                             language=self.language))
                 return self.skeleton[u"strings"][
                     strname[1:]][self.language].string
+        elif strname == u'⊕':
+            return u'⊕'
         else:
             return self.lgettext(strname)
 
