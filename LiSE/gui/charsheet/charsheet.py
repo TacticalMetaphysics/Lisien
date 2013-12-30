@@ -496,8 +496,9 @@ things appropriate to the present, whenever that may be.
 
     def push_down(self, i, n):
         """Move every item after i forward n spaces."""
-        for table in self.tables:
-            skel = self.character.closet.skeleton[table][unicode(self)]
+        for (table, decl) in self.tables:
+            skel = self.character.closet.skeleton[table][
+                unicode(self.character)]
             for j in xrange(i, i+n):
                 if j in skel:
                     leks = skel[j]

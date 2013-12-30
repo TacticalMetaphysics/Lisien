@@ -35,13 +35,6 @@ class ClosetWidget(Widget):
         super(ClosetWidget, self).__init__(**kwargs)
         Clock.schedule_once(self.upd_text, 0)
 
-    def on_symbolic(self, *args):
-        if self.symbolic:
-            self.font_name = sep.join(
-                [__path__[-1], "gui", "assets", "Entypo.ttf"])
-            self.font_size = 30
-            self.upd_text()
-
     def on_stringname(self, *args):
         self.completion += 1
 
