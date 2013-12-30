@@ -466,6 +466,14 @@
         bold: True
         color: solarized["base00"]
         text: root.text
+<TableContent,TableBody>:
+    size_hint_y: None
+<TableView>:
+    TableContent:
+        closet: root.character.closet
+<CharStatTableView>:
+    CharStatTableContent:
+        closet: root.character.closet
 <TexPile>:
     width: max([img.right for img in self.imgs]) if len(self.imgs) > 0 else 0
     height: max([img.top for img in self.imgs]) if len(self.imgs) > 0 else 0
