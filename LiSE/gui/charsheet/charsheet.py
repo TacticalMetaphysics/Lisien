@@ -243,13 +243,167 @@ class Image(KivyImage):
 
 
 class CharSheetAdder(ModalView):
-    cancel = ObjectProperty()
-    confirm = ObjectProperty()
     charsheet = ObjectProperty()
+    insertion_point = NumericProperty(0)
     get_text = AliasProperty(
         lambda self: self.charsheet.character.closet.get_text,
         lambda self, v: None,
         bind=('charsheet',))
+
+    def confirm(self):
+        if self.ids.panel.current_tab == self.ids.tables:
+            tab = self.ids.tables
+            if tab.current_tab == self.ids.thing_tab:
+                thing_tab_things = [
+                    CharSheet.bonetypes["thing_tab_thing"](
+                        character=unicode(self.character),
+                        idx=self.insertion_point,
+                        thing=unicode(nounitem.noun),
+                        type=THING_TAB)
+                    for nounitem in self.ids.thing_tab_thing.selection]
+                if len(thing_tab_things) < 1:
+                    return False
+                thing_tab_stats = [
+                    CharSheet.bonetypes["thing_tab_stat"](
+                        character=unicode(self.character),
+                        idx=self.insertion_point,
+                        stat=unicode(statitem.name),
+                        type=THING_TAB)
+                    for statitem in self.ids.thing_tab_stat.selection]
+                if len(thing_tab_stats) < 1:
+                    return False
+                for bone in thing_tab_things + thing_tab_stats:
+                    self.charsheet.character.closet.set_bone(bone)
+                self.charsheet.repop()
+                return True
+            elif tab.current_tab == self.ids.place_tab:
+                place_tab_places = [
+                    CharSheet.bonetypes["place_tab_place"](
+                        character=unicode(self.character),
+                        idx=self.insertion_point,
+                        place=unicode(nounitem.noun),
+                        type=PLACE_TAB)
+                    for nounitem in self.ids.place_tab_place.selection]
+                if len(place_tab_places) < 1:
+                    return False
+                place_tab_stats = [
+                    CharSheet.bonetypes["place_tab_stat"](
+                        character=unicode(self.character),
+                        idx=self.insertion_point,
+                        place=unicode(statitem.name),
+                        type=PLACE_TAB)
+                    for statitem in self.ids.place_tab_stat.selection]
+                if len(place_tab_stats) < 1:
+                    return False
+                for bone in place_tab_places + place_tab_stats:
+                    self.charsheet.character.closet.set_bone(bone)
+                self.charsheet.repop()
+                return True
+            elif tab.current_tab == self.ids.portal_tab:
+                portal_tab_portals = [
+                    CharSheet.bonetypes["portal_tab_portal"](
+                        character=unicode(self.character),
+                        idx=self.insertion_point,
+                        portal=unicode(nounitem.noun),
+                        type=PORTAL_TAB)
+                    for nounitem in self.ids.portal_tab_portal.selection]
+                if len(portal_tab_portals) < 1:
+                    return False
+                portal_tab_stats = [
+                    CharSheet.bonetypes["portal_tab_stats"](
+                        character=unicode(self.character),
+                        idx=self.insertion_point,
+                        stat=unicode(statitem.name),
+                        type=PORTAL_TAB)
+                    for statitem in self.ids.portal_tab_stat.selection]
+                if len(portal_tab_stats) < 1:
+                    return False
+                for bone in portal_tab_portals + portal_tab_stats:
+                    self.charsheet.character.closet.set_bone(bone)
+                self.charsheet.repop()
+                return True
+            elif tab.current_tab == self.ids.char_tab:
+                char_tab_stats = [
+                    CharSheet.bonetypes["char_tab_stat"](
+                        character=unicode(self.character),
+                        idx=self.insertion_point,
+                        stat=unicode(statitem.name),
+                        type=CHAR_TAB)
+                    for statitem in self.ids.char_tab_stat.selection]
+                if len(char_tab_stats) < 1:
+                    return False
+                for bone in char_tab_stats:
+                    self.charsheet.character.closet.set_bone(bone)
+                self.charsheet.repop()
+                return True
+            else:
+                raise ValueError("Bad tab")
+        elif self.ids.panel.current_tab == self.ids.calendars:
+            tab = self.ids.calendars
+            if tab.current_tab == self.ids.thing_cal:
+                if len(self.ids.thing_cal_thing.selection) != 1:
+                    return False
+                if len(self.ids.thing_cal_stat.selection) != 1:
+                    return False
+                thingn = self.ids.thing_cal_thing.selection[0].noun.name
+                statn = self.ids.thing_cal_stat.selection[0].name
+                self.charsheet.character.closet.set_bone(
+                    CharSheet.bonetypes["thing_cal"](
+                        character=unicode(self.character),
+                        thing=unicode(thingn),
+                        stat=unicode(statn),
+                        idx=self.insertion_point,
+                        type=THING_CAL))
+                self.charsheet.repop()
+                return True
+            elif tab.current_tab == self.ids.place_cal:
+                if len(self.ids.place_cal_place.selection) != 1:
+                    return False
+                if len(self.ids.place_cal_stat.selection) != 1:
+                    return False
+                placen = self.ids.place_cal_place.selection[0].noun.name
+                statn = self.ids.place_cal_stat.selection[0].name
+                self.charsheet.character.closet.set_bone(
+                    CharSheet.bonetypes["place_cal"](
+                        character=unicode(self.character),
+                        place=unicode(placen),
+                        stat=unicode(statn),
+                        idx=self.insertion_point,
+                        type=PLACE_CAL))
+                self.charsheet.repop()
+                return True
+            elif tab.current_tab == self.ids.portal_cal:
+                if len(self.ids.portal_cal_portal.selection) != 1:
+                    return False
+                if len(self.ids.portal_cal_portal.selection) != 1:
+                    return False
+                portn = self.ids.portal_cal_portal.selection[0].noun.name
+                statn = self.ids.portal_cal_stat.selection[0].name
+                self.charsheet.character.closet.set_bone(
+                    CharSheet.bonetypes["portal_cal"](
+                        character=unicode(self.character),
+                        portal=unicode(portn),
+                        stat=unicode(statn),
+                        idx=self.insertion_point,
+                        type=PORTAL_CAL))
+                self.charsheet.repop()
+                return True
+            elif tab.current_tab == self.ids.char_cal:
+                if len(self.ids.char_cal_stat.selection) != 1:
+                    return False
+                statn = self.ids.char_cal_stat.selection[0].name
+                self.charsheet.character.closet.set_bone(
+                    CharSheet.bonetypes["char_cal"](
+                        character=unicode(self.character),
+                        stat=unicode(statn),
+                        idx=self.insertion_point,
+                        type=CHAR_CAL))
+                self.charsheet.repop()
+                return True
+            else:
+                raise ValueError("Bad tab")
+        else:
+            raise ValueError("Bad tab")
 
     def iter_selection(self):
         if self.ids.panel.current_tab == self.ids.tables:

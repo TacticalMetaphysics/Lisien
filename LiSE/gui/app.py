@@ -183,29 +183,8 @@ and charsheets.
         self._popups = []
 
     def handle_adbut(self, charsheet, i):
-        adder = CharSheetAdder(charsheet=charsheet)
-
-        def cancel():
-            adder.dismiss()
-        adder.cancel = cancel
-
-        def confirm():
-            bones = []
-            j = i
-            for bone in adder.iter_selection():
-                bones.append(bone._replace(idx=j))
-                j += 1
-            try:
-                charsheet.push_down(i, len(bones))
-            except KeyError:
-                # There were no charsheet items to push down.
-                # That's fine. We still have room.
-                pass
-            for bone in bones:
-                self.app.closet.set_bone(bone)
-            charsheet._trigger_layout()
-            adder.dismiss()
-        adder.confirm = confirm
+        adder = CharSheetAdder(charsheet=charsheet, insertion_point=i)
+        self.popups.append(adder)
         adder.open()
 
     def draw_arrow(self, *args):
