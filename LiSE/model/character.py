@@ -446,8 +446,8 @@ class Character(object):
         for bone in self.closet.skeleton[u"place"].iterbones():
             try:
                 yield self.get_place(bone.place)
-            except KeyError:
-                yield self.make_place(bone.place)
+            except KeyError:  # attribute does not exist
+                return
 
     def get_place_bone(self, name, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
@@ -496,8 +496,7 @@ class Character(object):
     ### Portal
 
     def get_portal(self, name):
-        e = self.graph.es.find(name=name)
-        return e["portal"]
+        return Portal(self, name)
 
     def make_portal(self, name=None, origin=None, destination=None,
                     host=None, branch=None, tick=None):

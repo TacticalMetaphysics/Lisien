@@ -91,9 +91,8 @@ class NounListView(StackLayout):
             raise Exception("It seems the charsheet has been set twice")
         else:
             nouniter = self.getiter(self.charsheet.character)
-            inidata = [NounItem(noun) for noun in nouniter]
             adapter = ListAdapter(
-                data=inidata,
+                data=[NounItem(noun) for noun in nouniter],
                 selection_mode=self.selection_mode,
                 args_converter=args_converter,
                 allow_empty_selection=self.allow_empty_selection,
@@ -472,7 +471,7 @@ things appropriate to the present, whenever that may be.
             self.add_widget(
                 CSClosetButton(
                     closet=self.character.closet,
-                    on_release=lambda x: self.add_item(i)))
+                    fun=lambda: self.add_item(i)))
             return
         cwids = []
 
