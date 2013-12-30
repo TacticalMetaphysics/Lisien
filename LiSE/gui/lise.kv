@@ -1,15 +1,16 @@
 #: import lisepathl LiSE.__path__
 #: import solarized LiSE.gui.style.solarized
 #: import _ LiSE.util.passthru
-<ClosetLabel,ClosetButton>:
-    symbolic: False
-    font_name: sep.join([lisepathl[-1], "gui", "assets", "Entypo.ttf"]) if self.symbolic else "DroidSans"
-    font_size: 30 if self.symbolic else 16
-<CSClosetButton>:
-    symbolic: True
-    stringname: _("@add")
+#: import sep os.sep
 <Board>:
     auto_bring_to_front: False
+<ClosetWidget>:
+    font_name: sep.join([lisepathl[-1], 'gui', 'assets', 'Entypo.ttf']) if self.symbolic else 'DroidSans'
+    font_size: 30 if self.symbolic else 16
+<ClosetLabel,ClosetButton,ClosetToggleButton>:
+    text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
+<ClosetHintTextInput>:
+    hint_text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
 <CalendarLayout>:
     size: cal.size
     StencilView:
@@ -52,6 +53,12 @@
     size_hint_y: None
 <CharSheet>:
     on_character: self.repop()
+<CSAddBut>:
+    size_hint_x: 0.2
+    font_name: sep.join([lisepathl[-1], 'gui', 'assets', 'Entypo.ttf'])
+    font_size: 30
+    text: self.adder.get_text(_('@add')) if self.adder else ''
+    on_release: self.adder.add_stat(self, *self.args)
 <CharSheetAdder>:
     StackLayout:
         Label:
@@ -86,18 +93,20 @@
                                     size_hint_y: 0.1
                                 NounStatListView:
                                     id: thing_tab_stat
+                                    size_hint_y: 0.8
                                     specialitems: ["location"]
                                     nounitems: thing_tab_thing.selection
                                     charsheet: root.charsheet
-                                    size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
                                     TextInput:
                                         id: thing_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    CSAddButton:
+                                    CSAddBut:
                                         id: thing_tab_stat_add
+                                        adder: root
+                                        args: [thing_tab_thing.selection, thing_tab_stat_in.text]
                     TabbedPanelItem:
                         id: place_tab
                         text: root.get_text(_('Place'))
@@ -126,8 +135,10 @@
                                         id: place_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    CSAddButton:
+                                    CSAddBut:
                                         id: place_tab_stat_add
+                                        adder: root
+                                        args: [place_tab_place.selection, place_tab_stat_in.text]
                     TabbedPanelItem:
                         id: portal_tab
                         text: root.get_text(_('Portal'))
@@ -157,8 +168,10 @@
                                         id: portal_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    CSAddButton:
+                                    CSAddBut:
                                         id: portal_tab_stat_add
+                                        adder: root
+                                        args: [portal_tab_portal.selection, portal_tab_stat_in.text]
                     TabbedPanelItem:
                         id: char_tab
                         text: root.get_text(_('Character'))
@@ -176,8 +189,10 @@
                                     id: char_tab_stat_in
                                     size_hint_x: 0.8
                                     hint_text: root.get_text(_("New stat name"))
-                                CSAddButton:
+                                CSAddBut:
                                     id: char_tab_stat_add
+                                    adder: root
+                                    args: [char_tab_stat_in.text]
             TabbedPanelItem:
                 text: root.get_text(_('Calendars'))
                 TabbedPanel:
@@ -214,8 +229,10 @@
                                         id: thing_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    CSAddButton:
+                                    CSAddBut:
                                         id: thing_cal_stat_add
+                                        adder: root
+                                        args: [thing_cal_thing.selection[0], thing_cal_stat_in.text] if thing_cal_thing.selection else []
                     TabbedPanelItem:
                         id: place_cal
                         text: root.get_text(_('Place'))
@@ -247,8 +264,10 @@
                                         id: place_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    CSAddButton:
+                                    CSAddBut:
                                         id: place_cal_stat_add
+                                        adder: root
+                                        args: [place_cal_place.selection[0], place_cal_stat_in.text] if place_cal_place.selection else []
                     TabbedPanelItem:
                         id: portal_cal
                         text: root.get_text(_('Portal'))
@@ -280,8 +299,10 @@
                                         id: portal_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    CSAddButton:
+                                    CSAddBut:
                                         id: portal_cal_stat_add
+                                        adder: root
+                                        args: [portal_cal_portal.selection[0], portal_cal_stat_in.text] if portal_cal_portal.selection else []
                     TabbedPanelItem:
                         id: char_cal
                         text: root.get_text(_('Character'))
@@ -300,8 +321,10 @@
                                     id: char_cal_stat_in
                                     hint_text: root.get_text(_("New stat name"))
                                     size_hint_x: 0.8
-                                CSAddButton:
+                                CSAddBut:
                                     id: char_cal_stat_add
+                                    adder: root
+                                    args: [char_cal_stat_in.text]
         BoxLayout:
             size_hint_y: 0.05
             Button:
@@ -336,11 +359,6 @@
     size_hint: (None, None)
     do_rotation: False
     do_scale: False
-<EditButton,AddButton>:
-    #:import sep os.sep
-    font_name: sep.join([lisepathl[-1], "gui", "assets", "Entypo.ttf"]) if self.parent else ""
-    font_size: 32
-    size_hint_x: 0.2
 <LoadImgDialog>:
     BoxLayout:
         size: root.size
@@ -414,21 +432,9 @@
             pos_hint: {'top': 0.9}
             size_hint: (0.9, 0.5)
 <TableHeader>:
-    size_hint_y: None
-    canvas:
-        Color:
-            rgba: solarized["base02"]
-        Rectangle:
-            pos: root.pos
-            size: root.size
-    Label:
-        id: lb
-        size: self.texture_size
-        bold: True
-        color: solarized["base00"]
-        text: root.text
-<TableContent,TableBody>:
-    size_hint_y: None
+    height: 30
+<TableBody>:
+    height: 20
 <TableView>:
     TableContent:
         closet: root.character.closet
@@ -451,8 +457,8 @@
         size: (400, 26)
     CharSheetView:
         id: csview
-        pos_hint: {'x': 0.7, 'y': 0.0}
-        size_hint: (0.3, 1.0)
+        pos_hint: {'x': 0.5, 'y': 0.0}
+        size_hint: (0.5, 1.0)
         scroll_type: ['bars']
         bar_pos_y: 'left'
         CharSheet:
@@ -461,7 +467,7 @@
             character: root.app.closet.get_character(root.app.observed_name)
             cols: 2
             spacing: 10
-            cols_minimum: {0: self.width - 32 - self.spacing[0], 1: 32}
+            cols_minimum: {0: self.width - 34 - self.spacing[0], 1: 34}
     BoxLayout:
         id: menu
         size_hint: (0.1, 1)

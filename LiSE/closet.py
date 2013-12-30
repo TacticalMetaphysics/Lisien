@@ -736,15 +736,6 @@ before RumorMill will work. For that, run mkdb.sh.
             self.branch_listeners.append(listener)
         elif stringn == "@tick" and listener not in self.tick_listeners:
             self.tick_listeners.append(listener)
-        elif (
-                stringn[0] == "@" and
-                stringn[1:] in self.skeleton["strings"] and
-                listener not in self.skeleton["strings"][
-                    stringn[1:]].set_listeners):
-            self.skeleton["strings"][stringn[1:]].register_set_listener(
-                listener)
-        else:
-            return self.lgettext(stringn)
 
     def unregister_text_listener(self, stringn, listener):
         try:

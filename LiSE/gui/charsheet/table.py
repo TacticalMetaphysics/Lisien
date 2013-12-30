@@ -5,6 +5,8 @@ from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 
+from kivy.clock import Clock
+
 
 class TableCell(Label):
     text_getter = ObjectProperty()
@@ -24,8 +26,12 @@ class TableBody(TableCell):
 class TableContent(GridLayout):
     closet = ObjectProperty()
 
+    def on_parent(self, *args):
+        Clock.schedule_once(self.repop, 0)
+
     def repop(self, *args):
         self.clear_widgets()
+        self.cols = len(self.parent.headers)
         for header in self.parent.headers:
             hwid = TableHeader(
                 text_getter=lambda: self.closet.get_text(header))
@@ -34,21 +40,17 @@ class TableContent(GridLayout):
             self.add_widget(hwid)
         for item in self.parent.items:
             for fieldname in self.parent.fieldnames:
-                if fieldname in self.items_done[item]:
-                    continue
                 bwid = TableBody(
                     text_getter=lambda: unicode(getattr(item, fieldname)))
                 self.closet.register_time_listener(bwid.upd_text)
-                bwid.upd_text()
                 self.add_widget(bwid)
+                bwid.upd_text()
             for stat in self.parent.stats:
-                if stat in self.items_done[item]:
-                    continue
                 bwid = TableBody(
                     text_getter=lambda: unicode(item.get_stat(stat)))
                 self.closet.register_time_listener(bwid.upd_text)
-                bwid.upd_text()
                 self.add_widget(bwid)
+                bwid.upd_text()
 
 
 class TableView(ScrollView):

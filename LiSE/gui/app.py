@@ -184,7 +184,6 @@ and charsheets.
 
     def handle_adbut(self, charsheet, i):
         adder = CharSheetAdder(charsheet=charsheet, insertion_point=i)
-        self.popups.append(adder)
         adder.open()
 
     def draw_arrow(self, *args):
