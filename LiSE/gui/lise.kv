@@ -148,20 +148,7 @@
                                     text: root.get_text(_("Pick portals."))
                                     size_hint_y: 0.1
                                 PortalListView:
-                                    id: table_portal_location_portals
-                                    charsheet: root.charsheet
-                                    size_hint_y: 0.9
-                    TabbedPanelItem:
-                        id: table_portal_stats
-                        text: root.get_text(_('Portal Stat'))
-                        StackLayout:
-                            StackLayout:
-                                size_hint_x: 0.5
-                                Label:
-                                    text: root.get_text(_("Pick portals."))
-                                    size_hint_y: 0.1
-                                PortalListView:
-                                    id: table_portal_stat_portals
+                                    id: table_portal_portals
                                     charsheet: root.charsheet
                                     size_hint_y: 0.9
                             StackLayout:
