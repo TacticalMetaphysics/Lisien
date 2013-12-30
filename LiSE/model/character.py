@@ -212,7 +212,10 @@ class Character(object):
                 i = len(self.graph.es)
                 self.graph.add_edge(
                     oi, di, name=bone.name)
-                self.graph.es[i]["portal"] = Portal(self, bone.name)
+                # the portal is merely *hosted* here.
+                # it should know what it's a *part* of, too
+                character = self.closet.get_character(bone.character)
+                self.graph.es[i]["portal"] = Portal(character, bone.name)
         for v in self.graph.vs:
             try:
                 self.get_place_bone(v["name"], branch, tick)

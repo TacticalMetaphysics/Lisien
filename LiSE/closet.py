@@ -519,11 +519,11 @@ before RumorMill will work. For that, run mkdb.sh.
             Board.bonetypes["board"]._null()._replace(
                 observer=obsrvr, observed=obsrvd, host=hst),
             Spot.bonetypes["spot"]._null()._replace(
-                host=host),
+                host=hst),
             Spot.bonetypes["spot_coords"]._null()._replace(
-                host=host),
+                host=hst),
             Pawn.bonetypes["pawn"]._null()._replace(
-                host=host)]
+                host=hst)]
         self.update_keybones(keybones)
         return self.get_board(observer, observed, host)
 
