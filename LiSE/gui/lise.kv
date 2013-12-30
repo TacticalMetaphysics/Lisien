@@ -58,26 +58,17 @@
             size_hint_y: 0.05
             text: "Add an item to the character sheet"
         TabbedPanel:
+            id: panel
             size_hint_y: 0.9
             do_default_tab: False
             TabbedPanelItem:
                 text: root.get_text(_('Tables'))
                 TabbedPanel:
+                    id: tables
                     do_default_tab: False
                     TabbedPanelItem:
-                        id: table_thing_locations
-                        text: root.get_text(_('Thing Location'))
-                        StackLayout:
-                            Label:
-                                text: root.get_text(_("Pick things."))
-                                size_hint_y: 0.1
-                            ThingListView:
-                                id: table_thing_location_things
-                                charsheet: root.charsheet
-                                size_hint_y: 0.9
-                    TabbedPanelItem:
-                        id: table_thing_stats
-                        text: root.get_text(_('Thing Stat'))
+                        id: thing_tab
+                        text: root.get_text(_('Thing'))
                         StackLayout:
                             StackLayout:
                                 size_hint_x: 0.5
@@ -85,7 +76,7 @@
                                     text: root.get_text(_("Pick things."))
                                     size_hint_y: 0.1
                                 ThingListView:
-                                    id: table_thing_stat_things
+                                    id: thing_tab_thing
                                     charsheet: root.charsheet
                                     size_hint_y: 0.3
                             StackLayout:
@@ -94,21 +85,22 @@
                                     text: root.get_text(_("Pick stats of things."))
                                     size_hint_y: 0.1
                                 NounStatListView:
-                                    id: table_thing_stat_stats
-                                    nounitems: table_thing_stat_things.selection
+                                    id: thing_tab_stat
+                                    specialitems: ["location"]
+                                    nounitems: thing_tab_thing.selection
                                     charsheet: root.charsheet
                                     size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
                                     TextInput:
-                                        id: table_thing_stat_new_stat_in
+                                        id: thing_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
                                     CSAddButton:
-                                        id: table_thing_stat_new_stat_but
+                                        id: thing_tab_stat_add
                     TabbedPanelItem:
-                        id: table_place_stats
-                        text: root.get_text(_('Place Stat'))
+                        id: place_tab
+                        text: root.get_text(_('Place'))
                         StackLayout:
                             StackLayout:
                                 size_hint_x: 0.5
@@ -116,7 +108,7 @@
                                     text: root.get_text(_("Pick places."))
                                     size_hint_y: 0.1
                                 PlaceListView:
-                                    id: table_place_stat_places
+                                    id: place_tab_place
                                     charsheet: root.charsheet
                                     size_hint_y: 0.9
                             StackLayout:
@@ -125,20 +117,20 @@
                                     text: root.get_text(_("Pick stats of places."))
                                     size_hint_y: 0.1
                                 NounStatListView:
-                                    id: table_place_stat_stats
-                                    nounitems: table_place_stat_places.selection
+                                    id: place_tab_stat
+                                    nounitems: place_tab_place.selection
                                     size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
                                     TextInput:
-                                        id: table_place_stat_new_stat_in
+                                        id: place_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
                                     CSAddButton:
-                                        id: table_thing_stat_new_stat_but
+                                        id: place_tab_stat_add
                     TabbedPanelItem:
-                        id: table_portal_locations
-                        text: root.get_text(_('Portal Location'))
+                        id: table_portal
+                        text: root.get_text(_('Portal'))
                         StackLayout:
                             StackLayout:
                                 size_hint_x: 0.5
@@ -146,7 +138,7 @@
                                     text: root.get_text(_("Pick portals."))
                                     size_hint_y: 0.1
                                 PortalListView:
-                                    id: table_portal_portals
+                                    id: table_portal_portal
                                     charsheet: root.charsheet
                                     size_hint_y: 0.9
                             StackLayout:
@@ -155,7 +147,9 @@
                                     text: root.get_text(_("Pick stats of portals."))
                                     size_hint_y: 0.1
                                 NounStatListView:
-                                    nounitems: table_portal_portals.selection
+                                    id: table_portal_stat
+                                    specialitems: ["origin", "destination"]
+                                    nounitems: table_portal_portal.selection
                                     size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
@@ -167,26 +161,27 @@
                                         id: table_portal_stat_but
                     TabbedPanelItem:
                         id: table_character
-                        text: root.get_text(_('Character Stat'))
+                        text: root.get_text(_('Character'))
                         StackLayout:
                             Label:
                                 text: root.get_text(_("Pick stats of the character."))
                                 size_hint_y: 0.1
                             StatListView:
-                                id: table_character_stats
+                                id: table_character_stat
                                 charsheet: root.charsheet
                                 size_hint_y: 0.8
                             StackLayout:
                                 size_hint_y: 0.1
                                 TextInput:
-                                    id: table_character_stats_in
+                                    id: table_character_stat_in
                                     size_hint_x: 0.8
                                     hint_text: root.get_text(_("New stat name"))
                                 CSAddButton:
-                                    id: table_character_stats_but
+                                    id: table_character_stat_but
             TabbedPanelItem:
                 text: root.get_text(_('Calendars'))
                 TabbedPanel:
+                    id: calendars
                     do_default_tab: False
                     TabbedPanelItem:
                         id: calendar_thing_location

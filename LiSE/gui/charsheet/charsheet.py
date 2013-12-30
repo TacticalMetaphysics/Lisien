@@ -31,6 +31,7 @@ from kivy.properties import (
     AliasProperty,
     ListProperty,
     ObjectProperty)
+from kivy.clock import Clock
 from LiSE.data import (
     THING_TAB,
     PLACE_TAB,
@@ -124,15 +125,15 @@ class PortalListView(NounListView):
 
 
 class StatItem(SelectableDataItem):
-    def __init__(self, **kwargs):
+    def __init__(self, name, **kwargs):
         super(StatItem, self).__init__(**kwargs)
-        self.name = kwargs['name']
+        self.name = name
 
 
 class SpecialItem(SelectableDataItem):
-    def __init__(self, **kwargs):
-        super(StatItem, self).__init__(**kwargs)
-        self.name = kwargs['name']
+    def __init__(self, name, **kwargs):
+        super(SpecialItem, self).__init__(**kwargs)
+        self.name = name
 
 
 class NounStatListView(StackLayout):
@@ -144,33 +145,39 @@ class NounStatListView(StackLayout):
     allow_empty_selection = BooleanProperty(False)
     finalized = BooleanProperty(False)
 
+    def __init__(self, **kwargs):
+        super(NounStatListView, self).__init__(**kwargs)
+        Clock.schedule_once(self.finalize, 0)
+
     def on_nouns(self, *args):
-        if len(self.nouns) == 0:
+        if len(self.nounitems) == 0 or not self.finalized:
             return
         if self.finalized:
-            data2b = [SpecialItem(name=special) for special in
+            data2b = [SpecialItem(special) for special in
                       self.specialitems]
             for nounitem in self.nounitems:
                 for key in nounitem.noun.iter_stat_keys():
-                    data2b.append(StatItem(name=key))
+                    data2b.append(StatItem(key))
             self.adapter.data = data2b
-        else:
-            inidata = []
-            for noun in self.nouns:
-                inidata.extend(noun.iter_stat_keys())
-            adapter = ListAdapter(
-                data=inidata,
-                selection_mode=self.selection_mode,
-                args_converter=lambda k, v: {
-                    'name': v.name,
-                    'size_hint_y': None,
-                    'height': 25},
-                allow_empty_selection=self.allow_empty_selection,
-                cls=ListItemToggle)
-            adapter.bind(selection=self.setter('selection'))
-            listview = ListView(adapter=adapter)
-            self.add_widget(listview)
-            self.finalized = True
+
+    def finalize(self, *args):
+        inidata = [SpecialItem(special) for special in
+                   self.specialitems]
+        for noun in self.nounitems:
+            inidata.extend([StatItem(key) for key in noun.iter_stat_keys()])
+        adapter = ListAdapter(
+            data=inidata,
+            selection_mode=self.selection_mode,
+            args_converter=lambda k, v: {
+                'text': v.name,
+                'size_hint_y': None,
+                'height': 25},
+            allow_empty_selection=self.allow_empty_selection,
+            cls=ListItemToggle)
+        adapter.bind(selection=self.setter('selection'))
+        listview = ListView(adapter=adapter)
+        self.add_widget(listview)
+        self.finalized = True
 
 
 class StatListView(Widget):
@@ -249,54 +256,49 @@ class CharSheetAdder(ModalView):
         bind=('charsheet',))
     selection_map = {
         "table_thing_locations": (
-            THING_TAB, ["table_thing_things",
-                        "table_thing_stats"]),
+            THING_TAB, ["thing_tab_thing",
+                        "thing_tab_stat"]),
         "table_place_stats": (
-            PLACE_TAB, ["table_place_places",
-                        "table_place_stats"]),
+            PLACE_TAB, ["place_tab_place",
+                        "place_tab_stat"]),
         "table_portal_locations": (
-            PORTAL_TAB, ["table_portal_portals",
-                         "table_portal_stats"]),
+            PORTAL_TAB, ["portal_tab_portal",
+                         "portal_tab_stat"]),
         "table_character_stats": (
-            CHAR_TAB, ["table_character_stats"]),
+            CHAR_TAB, ["char_tab_stat"]),
         "calendar_thing_location": (
-            THING_LOC_CAL, ["calendar_thing_location_thing"]),
+            THING_LOC_CAL, "thing_loc_cal"),
         "calendar_thing_stat": (
-            THING_STAT_CAL, ["calendar_thing_stat_thing",
-                             "calendar_thing_stat_stat"]),
+            THING_STAT_CAL, "thing_stat_cal"),
         "calendar_place_stat": (
-            PLACE_STAT_CAL, ["calendar_place_stat_place",
-                             "calendar_place_stat_stat"]),
+            PLACE_STAT_CAL, "place_stat_cal"),
         "calendar_portal_origin": (
-            PORTAL_ORIG_CAL, ["calendar_portal_origin_portal"]),
+            PORTAL_ORIG_CAL, "portal_orig_cal"),
         "calendar_portal_destination": (
-            PORTAL_DEST_CAL, ["calendar_portal_destination_portal"]),
+            PORTAL_DEST_CAL, "portal_dest_cal"),
         "calendar_portal_stat": (
-            PORTAL_STAT_CAL, ["calendar_portal_stat_portal",
-                              "calendar_portal_stat_stat"]),
+            PORTAL_STAT_CAL, "portal_stat_cal"),
         "calendar_character_stat": (
-            CHAR_STAT_CAL, ["calendar_character_stat_stat"])}
+            CHAR_STAT_CAL, "char_stat_cal")}
 
     def iter_selection(self):
-        for (k, (typ, keys)) in self.selection_map.iteritems():
-            outer = getattr(self.ids, k)
-            if outer.state == 'down':
-                kwid0 = getattr(self.ids, keys[0])
-                key0s = kwid0.selection
-                i = 0
-                for key0 in key0s:
-                    if len(keys) > 1:
-                        # key2 is as yet unused
-                        key1 = getattr(self.ids, keys[1]).selection[i]
-                    else:
-                        key1 = None
-                    yield self.charsheet.bonetype(
-                        character=unicode(self.charsheet.character),
-                        type=typ,
-                        key0=key0,
-                        key1=key1)
-                    i += 1
-                return
+        if self.ids.panel.current_tab == self.ids.tables:
+            tab = self.ids.tables
+        else:
+            tab = self.ids.calendars
+        for tabid in self.selection_map:
+            if getattr(self.ids, tabid) == tab.current_tab:
+                (typ, widids) = self.selection_map[tabid]
+                break
+        if isinstance(widids, list):
+            for widid in widids:
+                wid = getattr(self.ids, widid)
+                for sel in wid.selection:
+                    yield sel
+        else:
+            wid = getattr(self.ids, widids)
+            for sel in wid.selection:
+                yield sel
 
 
 def char_sheet_table_def(
@@ -481,7 +483,7 @@ things appropriate to the present, whenever that may be.
             self.add_widget(
                 CSClosetButton(
                     closet=self.character.closet,
-                    fun=lambda: self.add_item(i)))
+                    fun=lambda: self.add_item(0)))
             return
         cwids = []
         i = 0
