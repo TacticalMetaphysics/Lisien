@@ -6,10 +6,13 @@
 #: import solarized LiSE.gui.style.solarized
 #: import _ LiSE.util.passthru
 
-<ClosetLabel,ClosetButton,ClosetToggleButton>:
-    #: import sep os.sep
-    font_name: sep.join(["LiSE", "gui", "assets", "Entypo.ttf"]) if self.symbolic else "DroidSans"
+<ClosetLabel,ClosetButton>:
+    symbolic: False
+    font_name: sep.join([lisepathl[-1], "gui", "assets", "Entypo.ttf"]) if self.symbolic else "DroidSans"
     font_size: 30 if self.symbolic else 16
+<CSClosetButton>:
+    symbolic: True
+    stringname: _("@add")
 <Board>:
     auto_bring_to_front: False
 <CalendarLayout>:
@@ -512,33 +515,33 @@
         size_hint: (0.1, 1)
         orientation: 'vertical'
         spacing: 10
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
             stringname: _("Place...")
             fun: root.show_spot_menu
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
             stringname: _("Portal...")
             fun: root.make_arrow
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
             stringname: _("Thing...")
             fun: root.show_pawn_menu
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
             symbolic: True
-            stringname: _(u"▶")
+            stringname: _("@starttime")
             fun: root.normal_speed
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
             symbolic: True
-            stringname: _(u"")
+            stringname: _("@reversetime")
             fun: root.normal_speed
             arg: False
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
             symbolic: True
-            stringname: _(u"‖")
+            stringname: _("@pause")
             fun: root.pause
         CueCard:
             closet: root.app.closet
