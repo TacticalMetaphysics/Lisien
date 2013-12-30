@@ -37,15 +37,11 @@ from LiSE.data import (
     PLACE_TAB,
     PORTAL_TAB,
     CHAR_TAB,
-    THING_LOC_CAL,
-    THING_STAT_CAL,
-    PLACE_STAT_CAL,
-    PORTAL_ORIG_CAL,
-    PORTAL_DEST_CAL,
-    PORTAL_STAT_CAL,
-    CHAR_STAT_CAL,
-    SHEET_ITEM_TYPES,
-    CALENDAR_TYPES,)
+    THING_CAL,
+    PLACE_CAL,
+    PORTAL_CAL,
+    CHAR_CAL,
+    SHEET_ITEM_TYPES)
 
 
 class ListItemToggle(SelectableView, ToggleButton):
@@ -254,51 +250,52 @@ class CharSheetAdder(ModalView):
         lambda self: self.charsheet.character.closet.get_text,
         lambda self, v: None,
         bind=('charsheet',))
-    selection_map = {
-        "table_thing_locations": (
-            THING_TAB, ["thing_tab_thing",
-                        "thing_tab_stat"]),
-        "table_place_stats": (
-            PLACE_TAB, ["place_tab_place",
-                        "place_tab_stat"]),
-        "table_portal_locations": (
-            PORTAL_TAB, ["portal_tab_portal",
-                         "portal_tab_stat"]),
-        "table_character_stats": (
-            CHAR_TAB, ["char_tab_stat"]),
-        "calendar_thing_location": (
-            THING_LOC_CAL, "thing_loc_cal"),
-        "calendar_thing_stat": (
-            THING_STAT_CAL, "thing_stat_cal"),
-        "calendar_place_stat": (
-            PLACE_STAT_CAL, "place_stat_cal"),
-        "calendar_portal_origin": (
-            PORTAL_ORIG_CAL, "portal_orig_cal"),
-        "calendar_portal_destination": (
-            PORTAL_DEST_CAL, "portal_dest_cal"),
-        "calendar_portal_stat": (
-            PORTAL_STAT_CAL, "portal_stat_cal"),
-        "calendar_character_stat": (
-            CHAR_STAT_CAL, "char_stat_cal")}
 
     def iter_selection(self):
         if self.ids.panel.current_tab == self.ids.tables:
             tab = self.ids.tables
+            if tab.current_tab == self.ids.thing_tab:
+                for sel in self.ids.thing_tab_thing.selection:
+                    yield sel
+                for sel in self.ids.thing_tab_stat.selection:
+                    yield sel
+            elif tab.current_tab == self.ids.place_tab:
+                for sel in self.ids.place_tab_place.selection:
+                    yield sel
+                for sel in self.ids.place_tab_stat.selection:
+                    yield sel
+            elif tab.current_tab == self.ids.portal_tab:
+                for sel in self.ids.portal_tab_portal.selection:
+                    yield sel
+                for sel in self.ids.portal_tab_stat.selection:
+                    yield sel
+            elif tab.current_tab == self.ids.char_tab:
+                for sel in self.ids.char_tab_stat.selection:
+                    yield sel
+            else:
+                raise ValueError("Invalid tab selected")
         else:
             tab = self.ids.calendars
-        for tabid in self.selection_map:
-            if getattr(self.ids, tabid) == tab.current_tab:
-                (typ, widids) = self.selection_map[tabid]
-                break
-        if isinstance(widids, list):
-            for widid in widids:
-                wid = getattr(self.ids, widid)
-                for sel in wid.selection:
+            if tab.current_tab == self.ids.thing_cal:
+                for sel in self.ids.thing_cal_thing:
                     yield sel
-        else:
-            wid = getattr(self.ids, widids)
-            for sel in wid.selection:
-                yield sel
+                for sel in self.ids.thing_cal_stat:
+                    yield sel
+            elif tab.current_tab == self.ids.place_cal:
+                for sel in self.ids.place_cal_place:
+                    yield sel
+                for sel in self.ids.place_cal_stat:
+                    yield sel
+            elif tab.current_tab == self.ids.portal_cal:
+                for sel in self.ids.portal_cal_portal:
+                    yield sel
+                for sel in self.ids.portal_cal_stat:
+                    yield sel
+            elif tab.current_tab == self.ids.char_cal:
+                for sel in self.ids.char_cal_stat.selection:
+                    yield sel
+            else:
+                raise ValueError("Invalid tab selected")
 
 
 def char_sheet_table_def(
@@ -325,13 +322,14 @@ def char_sheet_table_def(
 
 
 def char_sheet_calendar_def(
-        table_name, col_x, typ, col_y=None, foreign_key=(None, None)):
+        table_name, col_x, typ, foreign_key=(None, None)):
     r = (
         table_name,
         {"columns":
          {"character": "TEXT NOT NULL",
           "idx": "INTEGER NOT NULL",
           col_x: "TEXT NOT NULL",
+          "stat": "TEXT NOT NULL",
           "type": "INTEGER DEFAULT {}".format(typ)},
          "primary_key":
          ("character", "idx"),
@@ -339,8 +337,6 @@ def char_sheet_calendar_def(
          {"character, idx, type":
           ("character_sheet_item_type", "character, idx, type")},
          "checks": ["type={}".format(typ)]})
-    if col_y is not None:
-        r[1][col_y] = "TEXT NOT NULL"
     if None not in foreign_key:
         (foreign_key_tab, foreign_key_key) = foreign_key
         r[1]["foreign_keys"].update(
@@ -405,42 +401,32 @@ tick.
             "stat",
             CHAR_TAB),
         char_sheet_calendar_def(
-            "thing_loc_cal",
+            "thing_cal",
             "thing",
-            THING_LOC_CAL,
+            THING_CAL,
             foreign_key=("thing", "name")),
         char_sheet_calendar_def(
-            "thing_stat_cal",
-            "thing",
-            THING_STAT_CAL,
-            col_y="stat",
-            foreign_key=("thing", "name")),
-        char_sheet_calendar_def(
-            "place_stat_cal",
+            "place_cal",
             "place",
-            PLACE_STAT_CAL,
-            col_y="stat",
+            PLACE_CAL,
             foreign_key=("place", "place")),
         char_sheet_calendar_def(
-            "portal_orig_cal",
+            "portal_cal",
             "portal",
-            PORTAL_ORIG_CAL,
+            PORTAL_CAL,
             foreign_key=("portal", "name")),
-        char_sheet_calendar_def(
-            "portal_dest_cal",
-            "portal",
-            PORTAL_DEST_CAL,
-            foreign_key=("portal", "name")),
-        char_sheet_calendar_def(
-            "portal_stat_cal",
-            "portal",
-            PORTAL_STAT_CAL,
-            col_y="stat",
-            foreign_key=("portal", "name")),
-        char_sheet_calendar_def(
-            "char_stat_cal",
-            "stat",
-            CHAR_STAT_CAL)]
+        ("char_cal",
+         {"columns":
+          {"character": "TEXT NOT NULL",
+           "idx": "INTEGER NOT NULL",
+           "stat": "TEXT NOT NULL",
+           "type": "INTEGER DEFAULT {}".format(CHAR_CAL)},
+          "primary_key":
+          ("character", "idx"),
+          "foreign_keys":
+          {"character, idx, type":
+           ("character_sheet_item_type", "character, idx, type")},
+          "checks": ["type={}".format(CHAR_CAL)]})]
     character = ObjectProperty()
 
     def add_item(self, i):
@@ -462,18 +448,16 @@ things appropriate to the present, whenever that may be.
         """
         def make_calendar(i, typ, edbut):
             (tabn, keyns) = {
-                THING_LOC_CAL: ("thing_loc_cal", ["thing"]),
-                THING_STAT_CAL: ("thing_stat_cal", ["thing", "stat"]),
-                PLACE_STAT_CAL: ("place_stat_cal", ["place", "stat"]),
-                PORTAL_ORIG_CAL: ("portal_orig_cal", ["portal"]),
-                PORTAL_DEST_CAL: ("portal_dest_cal", ["portal"]),
-                PORTAL_STAT_CAL: ("portal_stat_cal", ["portal", "stat"]),
-                CHAR_STAT_CAL: ("char_stat_cal", ["stat"])
+                THING_CAL: ("thing_cal", ["thing", "stat"]),
+                PLACE_CAL: ("place_cal", ["place", "stat"]),
+                PORTAL_CAL: ("portal_cal", ["portal", "stat"]),
+                CHAR_CAL: ("char_cal", ["stat"])
             }[typ]
             bone = self.character.closet.skeleton[tabn][i]
             return CalendarLayout(
                 character=self.character,
                 item_type=typ,
+                boneatt=keyns[-1],
                 keys=[getattr(bone, keyn) for keyn in keyns],
                 edbut=edbut)
         self.size_hint = (1, None)
