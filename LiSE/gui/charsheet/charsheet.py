@@ -12,7 +12,9 @@ from table import (
     CharStatTableView)
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
+    ClosetToggleButton,
     ClosetButton)
+from kivy.uix.button import Button
 from kivy.uix.widget import Widget
 from kivy.uix.image import Image as KivyImage
 from kivy.uix.modalview import ModalView
@@ -21,7 +23,6 @@ from kivy.uix.stacklayout import StackLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.adapters.listadapter import ListAdapter
 from kivy.adapters.models import SelectableDataItem
-from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.listview import ListView, SelectableView
 from kivy.properties import (
@@ -41,7 +42,8 @@ from LiSE.data import (
     PLACE_CAL,
     PORTAL_CAL,
     CHAR_CAL,
-    SHEET_ITEM_TYPES)
+    SHEET_ITEM_TYPES,
+    CALENDAR_TYPES)
 
 
 class ListItemToggle(SelectableView, ToggleButton):
@@ -200,38 +202,6 @@ class StatListView(Widget):
         self.add_widget(listview)
 
 
-class EditButton(ToggleButton):
-    extra_listeners = ListProperty([])
-
-    def collide_point(self, x, y):
-        return super(EditButton, self).collide_point(*self.to_local(x, y))
-
-    def on_state(self, i, v):
-        for listener in self.extra_listeners:
-            listener(i, v)
-
-
-class CSAddButton(Button):
-    """A button with an encircled plus sign on it, to be used in the
-    CharSheetAdder.
-
-    Normally this sort of class would be defined in kv, but I couldn't
-    get kv to display '⊕', for some reason.
-
-    """
-    i = NumericProperty()
-
-    def __init__(self, **kwargs):
-        from LiSE import __path__
-        from os import sep
-        kwargs['text'] = u''
-        kwargs['size_hint_x'] = 0.2
-        kwargs['font_name'] = sep.join(
-            [__path__[-1], "gui", "assets", "Entypo.ttf"])
-        kwargs['font_size'] = 30
-        super(CSAddButton, self).__init__(**kwargs)
-
-
 class Image(KivyImage):
     character = ObjectProperty()
     keys = ListProperty()
@@ -242,6 +212,11 @@ class Image(KivyImage):
         self.size = self.texture.size
 
 
+class CSAddBut(Button):
+    adder = ObjectProperty()
+    args = ListProperty([])
+
+
 class CharSheetAdder(ModalView):
     charsheet = ObjectProperty()
     insertion_point = NumericProperty(0)
@@ -250,113 +225,24 @@ class CharSheetAdder(ModalView):
         lambda self, v: None,
         bind=('charsheet',))
 
+    def add_stat(self, addbut, *args):
+        pass
+
     def confirm(self):
-        if self.ids.panel.current_tab == self.ids.tables:
-            tab = self.ids.tables
-            if tab.current_tab == self.ids.thing_tab:
-                thing_tab_things = [
-                    CharSheet.bonetypes["thing_tab_thing"](
-                        character=unicode(self.character),
-                        idx=self.insertion_point,
-                        thing=unicode(nounitem.noun),
-                        type=THING_TAB)
-                    for nounitem in self.ids.thing_tab_thing.selection]
-                if len(thing_tab_things) < 1:
-                    return False
-                thing_tab_stats = [
-                    CharSheet.bonetypes["thing_tab_stat"](
-                        character=unicode(self.character),
-                        idx=self.insertion_point,
-                        stat=unicode(statitem.name),
-                        type=THING_TAB)
-                    for statitem in self.ids.thing_tab_stat.selection]
-                if len(thing_tab_stats) < 1:
-                    return False
-                for bone in thing_tab_things + thing_tab_stats:
-                    self.charsheet.character.closet.set_bone(bone)
-                self.charsheet.repop()
-                return True
-            elif tab.current_tab == self.ids.place_tab:
-                place_tab_places = [
-                    CharSheet.bonetypes["place_tab_place"](
-                        character=unicode(self.character),
-                        idx=self.insertion_point,
-                        place=unicode(nounitem.noun),
-                        type=PLACE_TAB)
-                    for nounitem in self.ids.place_tab_place.selection]
-                if len(place_tab_places) < 1:
-                    return False
-                place_tab_stats = [
-                    CharSheet.bonetypes["place_tab_stat"](
-                        character=unicode(self.character),
-                        idx=self.insertion_point,
-                        place=unicode(statitem.name),
-                        type=PLACE_TAB)
-                    for statitem in self.ids.place_tab_stat.selection]
-                if len(place_tab_stats) < 1:
-                    return False
-                for bone in place_tab_places + place_tab_stats:
-                    self.charsheet.character.closet.set_bone(bone)
-                self.charsheet.repop()
-                return True
-            elif tab.current_tab == self.ids.portal_tab:
-                portal_tab_portals = [
-                    CharSheet.bonetypes["portal_tab_portal"](
-                        character=unicode(self.character),
-                        idx=self.insertion_point,
-                        portal=unicode(nounitem.noun),
-                        type=PORTAL_TAB)
-                    for nounitem in self.ids.portal_tab_portal.selection]
-                if len(portal_tab_portals) < 1:
-                    return False
-                portal_tab_stats = [
-                    CharSheet.bonetypes["portal_tab_stats"](
-                        character=unicode(self.character),
-                        idx=self.insertion_point,
-                        stat=unicode(statitem.name),
-                        type=PORTAL_TAB)
-                    for statitem in self.ids.portal_tab_stat.selection]
-                if len(portal_tab_stats) < 1:
-                    return False
-                for bone in portal_tab_portals + portal_tab_stats:
-                    self.charsheet.character.closet.set_bone(bone)
-                self.charsheet.repop()
-                return True
-            elif tab.current_tab == self.ids.char_tab:
-                char_tab_stats = [
-                    CharSheet.bonetypes["char_tab_stat"](
-                        character=unicode(self.character),
-                        idx=self.insertion_point,
-                        stat=unicode(statitem.name),
-                        type=CHAR_TAB)
-                    for statitem in self.ids.char_tab_stat.selection]
-                if len(char_tab_stats) < 1:
-                    return False
-                for bone in char_tab_stats:
-                    self.charsheet.character.closet.set_bone(bone)
-                self.charsheet.repop()
-                return True
-            else:
-                raise ValueError("Bad tab")
-        elif self.ids.panel.current_tab == self.ids.calendars:
+        r = self.record()
+        if r is not None:
+            type_bone = CharSheet.bonetype(
+                character=unicode(self.charsheet.character),
+                idx=self.insertion_point,
+                type=r)
+            self.charsheet.character.closet.set_bone(type_bone)
+            self.dismiss()
+
+    def record(self):
+        character = self.charsheet.character
+        if self.ids.panel.current_tab == self.ids.calendars:
             tab = self.ids.calendars
-            if tab.current_tab == self.ids.thing_cal:
-                if len(self.ids.thing_cal_thing.selection) != 1:
-                    return False
-                if len(self.ids.thing_cal_stat.selection) != 1:
-                    return False
-                thingn = self.ids.thing_cal_thing.selection[0].noun.name
-                statn = self.ids.thing_cal_stat.selection[0].name
-                self.charsheet.character.closet.set_bone(
-                    CharSheet.bonetypes["thing_cal"](
-                        character=unicode(self.character),
-                        thing=unicode(thingn),
-                        stat=unicode(statn),
-                        idx=self.insertion_point,
-                        type=THING_CAL))
-                self.charsheet.repop()
-                return True
-            elif tab.current_tab == self.ids.place_cal:
+            if tab.current_tab == self.ids.place_cal:
                 if len(self.ids.place_cal_place.selection) != 1:
                     return False
                 if len(self.ids.place_cal_stat.selection) != 1:
@@ -365,91 +251,142 @@ class CharSheetAdder(ModalView):
                 statn = self.ids.place_cal_stat.selection[0].name
                 self.charsheet.character.closet.set_bone(
                     CharSheet.bonetypes["place_cal"](
-                        character=unicode(self.character),
+                        character=unicode(character),
                         place=unicode(placen),
                         stat=unicode(statn),
                         idx=self.insertion_point,
                         type=PLACE_CAL))
                 self.charsheet.repop()
-                return True
+                return PLACE_CAL
             elif tab.current_tab == self.ids.portal_cal:
                 if len(self.ids.portal_cal_portal.selection) != 1:
-                    return False
+                    return
                 if len(self.ids.portal_cal_portal.selection) != 1:
-                    return False
+                    return
                 portn = self.ids.portal_cal_portal.selection[0].noun.name
                 statn = self.ids.portal_cal_stat.selection[0].name
                 self.charsheet.character.closet.set_bone(
                     CharSheet.bonetypes["portal_cal"](
-                        character=unicode(self.character),
+                        character=unicode(character),
                         portal=unicode(portn),
                         stat=unicode(statn),
                         idx=self.insertion_point,
                         type=PORTAL_CAL))
                 self.charsheet.repop()
-                return True
+                return PORTAL_CAL
             elif tab.current_tab == self.ids.char_cal:
                 if len(self.ids.char_cal_stat.selection) != 1:
-                    return False
+                    return
                 statn = self.ids.char_cal_stat.selection[0].name
                 self.charsheet.character.closet.set_bone(
                     CharSheet.bonetypes["char_cal"](
-                        character=unicode(self.character),
+                        character=unicode(character),
                         stat=unicode(statn),
                         idx=self.insertion_point,
                         type=CHAR_CAL))
                 self.charsheet.repop()
-                return True
+                return CHAR_CAL
             else:
-                raise ValueError("Bad tab")
+                if len(self.ids.thing_cal_thing.selection) != 1:
+                    return
+                if len(self.ids.thing_cal_stat.selection) != 1:
+                    return
+                thingn = self.ids.thing_cal_thing.selection[0].noun.name
+                statn = self.ids.thing_cal_stat.selection[0].name
+                self.charsheet.character.closet.set_bone(
+                    CharSheet.bonetypes["thing_cal"](
+                        character=unicode(character),
+                        thing=unicode(thingn),
+                        stat=unicode(statn),
+                        idx=self.insertion_point,
+                        type=THING_CAL))
+                self.charsheet.repop()
+                return THING_CAL
         else:
-            raise ValueError("Bad tab")
-
-    def iter_selection(self):
-        if self.ids.panel.current_tab == self.ids.tables:
             tab = self.ids.tables
-            if tab.current_tab == self.ids.thing_tab:
-                for sel in self.ids.thing_tab_thing.selection:
-                    yield sel
-                for sel in self.ids.thing_tab_stat.selection:
-                    yield sel
-            elif tab.current_tab == self.ids.place_tab:
-                for sel in self.ids.place_tab_place.selection:
-                    yield sel
-                for sel in self.ids.place_tab_stat.selection:
-                    yield sel
+            if tab.current_tab == self.ids.place_tab:
+                place_tab_places = [
+                    CharSheet.bonetypes["place_tab_place"](
+                        character=unicode(character),
+                        idx=self.insertion_point,
+                        place=unicode(nounitem.text),
+                        type=PLACE_TAB)
+                    for nounitem in self.ids.place_tab_place.selection]
+                if len(place_tab_places) < 1:
+                    return
+                place_tab_stats = [
+                    CharSheet.bonetypes["place_tab_stat"](
+                        character=unicode(character),
+                        idx=self.insertion_point,
+                        place=unicode(statitem.text),
+                        type=PLACE_TAB)
+                    for statitem in self.ids.place_tab_stat.selection]
+                if len(place_tab_stats) < 1:
+                    return
+                for bone in place_tab_places + place_tab_stats:
+                    self.charsheet.character.closet.set_bone(bone)
+                self.charsheet.repop()
+                return PLACE_TAB
             elif tab.current_tab == self.ids.portal_tab:
-                for sel in self.ids.portal_tab_portal.selection:
-                    yield sel
-                for sel in self.ids.portal_tab_stat.selection:
-                    yield sel
+                portal_tab_portals = [
+                    CharSheet.bonetypes["portal_tab_portal"](
+                        character=unicode(character),
+                        idx=self.insertion_point,
+                        portal=unicode(nounitem.text),
+                        type=PORTAL_TAB)
+                    for nounitem in self.ids.portal_tab_portal.selection]
+                if len(portal_tab_portals) < 1:
+                    return
+                portal_tab_stats = [
+                    CharSheet.bonetypes["portal_tab_stats"](
+                        character=unicode(character),
+                        idx=self.insertion_point,
+                        stat=unicode(statitem.text),
+                        type=PORTAL_TAB)
+                    for statitem in self.ids.portal_tab_stat.selection]
+                if len(portal_tab_stats) < 1:
+                    return
+                for bone in portal_tab_portals + portal_tab_stats:
+                    self.charsheet.character.closet.set_bone(bone)
+                self.charsheet.repop()
+                return PORTAL_TAB
             elif tab.current_tab == self.ids.char_tab:
-                for sel in self.ids.char_tab_stat.selection:
-                    yield sel
+                char_tab_stats = [
+                    CharSheet.bonetypes["char_tab_stat"](
+                        character=unicode(character),
+                        idx=self.insertion_point,
+                        stat=unicode(statitem.text),
+                        type=CHAR_TAB)
+                    for statitem in self.ids.char_tab_stat.selection]
+                if len(char_tab_stats) < 1:
+                    return
+                for bone in char_tab_stats:
+                    self.charsheet.character.closet.set_bone(bone)
+                self.charsheet.repop()
+                return CHAR_TAB
             else:
-                raise ValueError("Invalid tab selected")
-        else:
-            tab = self.ids.calendars
-            if tab.current_tab == self.ids.thing_cal:
-                for sel in self.ids.thing_cal_thing:
-                    yield sel
-                for sel in self.ids.thing_cal_stat:
-                    yield sel
-            elif tab.current_tab == self.ids.place_cal:
-                for sel in self.ids.place_cal_place:
-                    yield sel
-                for sel in self.ids.place_cal_stat:
-                    yield sel
-            elif tab.current_tab == self.ids.portal_cal:
-                for sel in self.ids.portal_cal_portal:
-                    yield sel
-                for sel in self.ids.portal_cal_stat:
-                    yield sel
-            elif tab.current_tab == self.ids.char_cal:
-                for sel in self.ids.char_cal_stat.selection:
-                    yield sel
-            else:
-                raise ValueError("Invalid tab selected")
+                thing_tab_things = [
+                    CharSheet.bonetypes["thing_tab_thing"](
+                        character=unicode(character),
+                        idx=self.insertion_point,
+                        thing=unicode(nounitem.text),
+                        type=THING_TAB)
+                    for nounitem in self.ids.thing_tab_thing.selection]
+                if len(thing_tab_things) < 1:
+                    return
+                thing_tab_stats = [
+                    CharSheet.bonetypes["thing_tab_stat"](
+                        character=unicode(character),
+                        idx=self.insertion_point,
+                        stat=unicode(statitem.text),
+                        type=THING_TAB)
+                    for statitem in self.ids.thing_tab_stat.selection]
+                if len(thing_tab_stats) < 1:
+                    return
+                for bone in thing_tab_things + thing_tab_stats:
+                    self.charsheet.character.closet.set_bone(bone)
+                self.charsheet.repop()
+                return THING_TAB
 
 
 def char_sheet_table_def(
@@ -616,23 +553,32 @@ things appropriate to the present, whenever that may be.
                 edbut=edbut)
         self.size_hint = (1, None)
         self.clear_widgets()
+        _ = lambda x: x
         if unicode(self.character) not in self.character.closet.skeleton[
                 u"character_sheet_item_type"]:
             self.add_widget(
-                CSClosetButton(
+                ClosetButton(
+                    symbolic=True,
+                    stringname=_("@add"),
                     closet=self.character.closet,
-                    fun=lambda: self.add_item(0)))
+                    fun=self.add_item,
+                    arg=0))
             return
-        cwids = []
         i = 0
-        for bone in self.closet.skeleton[u"character_sheet_item_type"][
-                unicode(self)].iterbones():
-            rightside = [
-                CSAddButton(i=i),
-                EditButton(),
-                CSAddButton(i=i+1)]
+        left_col = StackLayout()
+        self.add_widget(left_col)
+        right_col = StackLayout()
+        self.add_widget(right_col)
+        for bone in self.character.closet.skeleton[
+                u"character_sheet_item_type"][
+                unicode(self.character)].iterbones():
+            edbut = ClosetToggleButton(
+                closet=self.character.closet,
+                stringname="@edit",
+                symbolic=True,
+                size_hint_y=None)
             if bone.type == THING_TAB:
-                headers = ["thing"]
+                headers = [_("thing")]
                 fieldnames = ["name"]
                 stats = []
                 for bone in self.iter_tab_i_bones("thing_tab_stat", i):
@@ -641,73 +587,85 @@ things appropriate to the present, whenever that may be.
                         fieldnames.append("location")
                     else:
                         stats.append(bone.stat)
-                cwids.append(TableView(
+                cwid = TableView(
                     character=self.character,
                     headers=headers,
                     fieldnames=fieldnames,
                     items=[self.character.get_thing(bone.thing) for bone in
                            self.iter_tab_i_bones("thing_tab_thing", i)],
                     stats=stats,
-                    edbut=rightside[1]))
+                    edbut=edbut)
             elif bone.type == PLACE_TAB:
-                cwids.append(TableView(
+                cwid = TableView(
                     character=self.character,
-                    headers=["place"],
+                    headers=[_("place")],
                     fieldnames=["name"],
                     items=[self.character.get_place(bone.place) for bone in
                            self.iter_tab_i_bones("place_tab_place", i)],
                     stats=[bone.stat for bone in
                            self.iter_tab_i_bones("place_tab_stat", i)],
-                    edbut=rightside[1]))
+                    edbut=edbut)
             elif bone.type == PORTAL_TAB:
                 headers = ["portal"]
                 fieldnames = ["name"]
                 stats = []
                 for bone in self.iter_tab_i_bones("portal_tab_stat", i):
                     if bone.stat == "origin":
-                        headers.append("origin")
+                        headers.append(_("origin"))
                         fieldnames.append("origin")
                     elif bone.stat == "destination":
-                        headers.append("destination")
+                        headers.append(_("destination"))
                         fieldnames.append("destination")
                     else:
                         stats.append(bone.stat)
-                cwids.append(TableView(
+                cwid = TableView(
                     character=self.character,
                     headers=headers,
                     fieldnames=fieldnames,
                     stats=stats,
                     items=[self.character.get_portal(bone.portal) for bone in
                            self.iter_tab_i_bones("portal_tab_portal", i)],
-                    edbut=rightside[1]))
+                    edbut=edbut)
             elif bone.type == CHAR_TAB:
-                cwids.append(CharStatTableView(
+                cwid = CharStatTableView(
                     character=self.character,
                     stats=[bone.stat for bone in
                            self.iter_tab_i_bones("char_tab_stat", i)],
-                    edbut=rightside[1]))
+                    edbut=edbut)
             elif bone.type in CALENDAR_TYPES:
-                cwids.append(make_calendar(i, bone.type, rightside[1]))
+                cwid = make_calendar(i, bone.type, edbut)
             else:
                 raise ValueError("Unknown item type: {}".format(bone.type))
-            lastwid = cwids[-1]
 
             def set_col_min(*args):
-                self.cols_minimum[i] = lastwid.height
-            lastwid.bind(height=set_col_min)
-
-            rightsidewid = StackLayout()
-            for subwid in rightside:
-                rightsidewid.add_widget(subwid)
-            cwids.append(rightsidewid)
+                self.cols_minimum[i] = cwid.height
+            cwid.bind(height=set_col_min)
+            edbut.height = cwid.height * 0.7
+            addbut = ClosetButton(
+                symbolic=True,
+                closet=self.character.closet,
+                stringname=_("@add"),
+                fun=self.add_item,
+                arg=i,
+                size_hint_y=None,
+                height=cwid.height*0.2)
+            left_col.add_widget(cwid)
+            right_col.add_widget(addbut)
+            right_col.add_widget(edbut)
 
             i += 1
-        for cwid in cwids:
-            self.add_widget(cwid)
+        right_col.add_widget(ClosetButton(
+            symbolic=True,
+            closet=self.character.closet,
+            stringname=_("@add"),
+            fun=self.add_item,
+            arg=i,
+            size_hint_y=None,
+            height=cwid.height*0.2))
 
     def iter_tab_i_bones(self, tab, i):
         for bone in self.character.closet.skeleton[tab][
-                unicode(self)][i].iterbones():
+                unicode(self.character)][i].iterbones():
             yield bone
 
     def on_touch_down(self, touch):

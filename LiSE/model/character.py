@@ -180,10 +180,6 @@ class Character(object):
     def __unicode__(self):
         return unicode(self.name)
 
-    def _get_skel(self):
-        """Get the skeleton from the closet. Debugging method."""
-        return self.closet.skeleton
-
     def update(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
         for placebone in self.iter_place_bones(
@@ -191,7 +187,6 @@ class Character(object):
             if (
                     "name" not in self.graph.vs.attributes() or
                     placebone.place not in self.graph.vs["name"]):
-                print("Creating place {} in a graph".format(placebone.place))
                 self.make_place(placebone.place)
         for bone in self.iter_hosted_portal_loc_bones(branch, tick):
             try:
@@ -208,7 +203,6 @@ class Character(object):
             try:
                 self.graph.get_eid(oi, di)
             except (ValueError, InternalError):
-                print("adding edge of {}".format(bone.name))
                 i = len(self.graph.es)
                 self.graph.add_edge(
                     oi, di, name=bone.name)

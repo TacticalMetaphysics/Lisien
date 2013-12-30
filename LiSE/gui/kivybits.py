@@ -1,8 +1,10 @@
 from os import sep
 
+from weakref import ref
+
 from kivy.uix.label import Label
 from kivy.uix.button import Button
-from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.togglebutton import ToggleButtonBehavior
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.image import Image
@@ -10,6 +12,7 @@ from kivy.uix.widget import (
     Widget,
     WidgetMetaclass)
 from kivy.properties import (
+    AliasProperty,
     NumericProperty,
     ListProperty,
     ObjectProperty,
@@ -26,34 +29,8 @@ class ClosetWidget(Widget):
     """Mix-in class for various text-having widget classes, to make their
     text match some named string from the closet."""
     stringname = StringProperty()
-    stringprop = "text"
     closet = ObjectProperty()
-    symbolic = BooleanProperty()
-    completion = NumericProperty(0)
-
-    def __init__(self, **kwargs):
-        super(ClosetWidget, self).__init__(**kwargs)
-        Clock.schedule_once(self.upd_text, 0)
-
-    def on_stringname(self, *args):
-        self.completion += 1
-
-    def on_closet(self, *args):
-        self.completion += 1
-
-    def on_completion(self, *args):
-        if self.completion == 2:
-            self.upd_text()
-
-    def upd_text(self, *args):
-        setattr(self, self.stringprop, self.closet.get_text(self.stringname))
-
-    def listen(self):
-        """Arrange to change my text whenever my string changes."""
-        self.closet.register_text_listener(self.stringname, self.upd_text)
-
-    def unlisten(self):
-        self.closet.unregister_text_listener(self.stringname, self.upd_text)
+    symbolic = BooleanProperty(False)
 
 
 class ClosetLabel(Label, ClosetWidget):
@@ -61,22 +38,23 @@ class ClosetLabel(Label, ClosetWidget):
 
 
 class ClosetButton(Button, ClosetWidget):
-    fun = ObjectProperty()
+    fun = ObjectProperty(None)
     arg = ObjectProperty(None)
 
     def on_release(self, *args):
+        if self.fun is None:
+            return
         if self.arg is None:
             self.fun()
         else:
             self.fun(self.arg)
 
 
-class ClosetToggleButton(ToggleButton, ClosetWidget):
+class ClosetToggleButton(ClosetButton, ToggleButtonBehavior):
     pass
 
 
 class ClosetHintTextInput(TextInput, ClosetWidget):
-    stringprop = "hint_text"
     failure_string = StringProperty()
     """String to use when the input failed to validate"""
     failure_color = ListProperty([1, 0, 0, 1])
