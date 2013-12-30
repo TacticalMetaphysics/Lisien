@@ -7,7 +7,9 @@ collections of simulated entities and facts.
 """
 from calendar import (
     CalendarLayout)
-from table import TableView
+from table import (
+    TableView,
+    CharStatTableView)
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
     ClosetButton)
@@ -23,18 +25,17 @@ from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.listview import ListView, SelectableView
 from kivy.properties import (
+    NumericProperty,
     BooleanProperty,
     OptionProperty,
     AliasProperty,
     ListProperty,
     ObjectProperty)
 from LiSE.data import (
-    THING_LOC_TAB,
-    THING_STAT_TAB,
-    PLACE_STAT_TAB,
-    PORTAL_LOC_TAB,
-    PORTAL_STAT_TAB,
-    CHAR_STAT_TAB,
+    THING_TAB,
+    PLACE_TAB,
+    PORTAL_TAB,
+    CHAR_TAB,
     THING_LOC_CAL,
     THING_STAT_CAL,
     PLACE_STAT_CAL,
@@ -43,8 +44,7 @@ from LiSE.data import (
     PORTAL_STAT_CAL,
     CHAR_STAT_CAL,
     SHEET_ITEM_TYPES,
-    TABLE_TYPES,
-    CALENDAR_TYPES)
+    CALENDAR_TYPES,)
 
 
 class ListItemToggle(SelectableView, ToggleButton):
@@ -129,7 +129,14 @@ class StatItem(SelectableDataItem):
         self.name = kwargs['name']
 
 
+class SpecialItem(SelectableDataItem):
+    def __init__(self, **kwargs):
+        super(StatItem, self).__init__(**kwargs)
+        self.name = kwargs['name']
+
+
 class NounStatListView(StackLayout):
+    specialitems = ListProperty([])
     nounitems = ListProperty()
     selection = ListProperty([])
     selection_mode = OptionProperty('multiple',
@@ -141,7 +148,8 @@ class NounStatListView(StackLayout):
         if len(self.nouns) == 0:
             return
         if self.finalized:
-            data2b = []
+            data2b = [SpecialItem(name=special) for special in
+                      self.specialitems]
             for nounitem in self.nounitems:
                 for key in nounitem.noun.iter_stat_keys():
                     data2b.append(StatItem(name=key))
@@ -208,6 +216,8 @@ class CSAddButton(Button):
     get kv to display '⊕', for some reason.
 
     """
+    i = NumericProperty()
+
     def __init__(self, **kwargs):
         from LiSE import __path__
         from os import sep
@@ -239,20 +249,16 @@ class CharSheetAdder(ModalView):
         bind=('charsheet',))
     selection_map = {
         "table_thing_locations": (
-            THING_LOC_TAB, ["table_thing_location_things"]),
-        "table_thing_stats": (
-            THING_STAT_TAB, ["table_thing_stat_things",
-                             "table_thing_stat_stats"]),
+            THING_TAB, ["table_thing_things",
+                        "table_thing_stats"]),
         "table_place_stats": (
-            PLACE_STAT_TAB, ["table_place_stat_places",
-                             "table_place_stat_stats"]),
+            PLACE_TAB, ["table_place_places",
+                        "table_place_stats"]),
         "table_portal_locations": (
-            PORTAL_LOC_TAB, ["table_portal_location_portals"]),
-        "table_portal_stats": (
-            PORTAL_STAT_TAB, ["table_portal_stat_portals",
-                              "table_portal_stat_stats"]),
+            PORTAL_TAB, ["table_portal_portals",
+                         "table_portal_stats"]),
         "table_character_stats": (
-            CHAR_STAT_TAB, ["table_character_stat_stats"]),
+            CHAR_TAB, ["table_character_stats"]),
         "calendar_thing_location": (
             THING_LOC_CAL, ["calendar_thing_location_thing"]),
         "calendar_thing_stat": (
@@ -366,46 +372,36 @@ tick.
           ["type IN ({})".format(
               ", ".join([str(typ) for typ in SHEET_ITEM_TYPES]))]}),
         char_sheet_table_def(
-            "thing_location_tab_thing",
+            "thing_tab_thing",
             "thing",
-            THING_LOC_TAB,
+            THING_TAB,
             foreign_key=("thing", "name")),
         char_sheet_table_def(
-            "thing_stat_tab_thing",
-            "thing",
-            THING_STAT_TAB,
-            foreign_key=("thing", "name")),
-        char_sheet_table_def(
-            "thing_stat_tab_stat",
+            "thing_tab_stat",
             "stat",
-            THING_STAT_TAB),
+            THING_TAB),
         char_sheet_table_def(
-            "place_stat_tab_place",
+            "place_tab_place",
             "place",
-            PLACE_STAT_TAB,
+            PLACE_TAB,
             foreign_key=("place", "place")),
         char_sheet_table_def(
-            "place_stat_tab_stat",
+            "place_tab_stat",
             "stat",
-            PLACE_STAT_TAB),
+            PLACE_TAB),
         char_sheet_table_def(
-            "portal_loc_tab_portal",
+            "portal_tab_portal",
             "portal",
-            PORTAL_LOC_TAB,
+            PORTAL_TAB,
             foreign_key=("portal", "name")),
         char_sheet_table_def(
-            "portal_stat_tab_portal",
-            "portal",
-            PORTAL_STAT_TAB,
-            foreign_key=("portal", "name")),
-        char_sheet_table_def(
-            "portal_stat_tab_stat",
+            "portal_tab_stat",
             "stat",
-            PORTAL_STAT_TAB),
+            PORTAL_TAB),
         char_sheet_table_def(
-            "character_stat_tab_stat",
+            "char_tab_stat",
             "stat",
-            CHAR_STAT_TAB),
+            CHAR_TAB),
         char_sheet_calendar_def(
             "thing_loc_cal",
             "thing",
@@ -440,7 +436,7 @@ tick.
             col_y="stat",
             foreign_key=("portal", "name")),
         char_sheet_calendar_def(
-            "character_stat_cal",
+            "char_stat_cal",
             "stat",
             CHAR_STAT_CAL)]
     character = ObjectProperty()
@@ -462,10 +458,24 @@ but they never include branch or tick--CharSheet will only display
 things appropriate to the present, whenever that may be.
 
         """
+        def make_calendar(i, typ, edbut):
+            (tabn, keyns) = {
+                THING_LOC_CAL: ("thing_loc_cal", ["thing"]),
+                THING_STAT_CAL: ("thing_stat_cal", ["thing", "stat"]),
+                PLACE_STAT_CAL: ("place_stat_cal", ["place", "stat"]),
+                PORTAL_ORIG_CAL: ("portal_orig_cal", ["portal"]),
+                PORTAL_DEST_CAL: ("portal_dest_cal", ["portal"]),
+                PORTAL_STAT_CAL: ("portal_stat_cal", ["portal", "stat"]),
+                CHAR_STAT_CAL: ("char_stat_cal", ["stat"])
+            }[typ]
+            bone = self.character.closet.skeleton[tabn][i]
+            return CalendarLayout(
+                character=self.character,
+                item_type=typ,
+                keys=[getattr(bone, keyn) for keyn in keyns],
+                edbut=edbut)
         self.size_hint = (1, None)
         self.clear_widgets()
-        i = 0
-        height = 0
         if unicode(self.character) not in self.character.closet.skeleton[
                 u"character_sheet_item_type"]:
             self.add_widget(
@@ -474,12 +484,97 @@ things appropriate to the present, whenever that may be.
                     fun=lambda: self.add_item(i)))
             return
         cwids = []
+        i = 0
+        for bone in self.closet.skeleton[u"character_sheet_item_type"][
+                unicode(self)].iterbones():
+            rightside = [
+                CSAddButton(i=i),
+                EditButton(),
+                CSAddButton(i=i+1)]
+            if bone.type == THING_TAB:
+                headers = ["thing"]
+                fieldnames = ["name"]
+                stats = []
+                for bone in self.iter_tab_i_bones("thing_tab_stat", i):
+                    if bone.stat == "location":
+                        headers.append("location")
+                        fieldnames.append("location")
+                    else:
+                        stats.append(bone.stat)
+                cwids.append(TableView(
+                    character=self.character,
+                    headers=headers,
+                    fieldnames=fieldnames,
+                    items=[self.character.get_thing(bone.thing) for bone in
+                           self.iter_tab_i_bones("thing_tab_thing", i)],
+                    stats=stats,
+                    edbut=rightside[1]))
+            elif bone.type == PLACE_TAB:
+                cwids.append(TableView(
+                    character=self.character,
+                    headers=["place"],
+                    fieldnames=["name"],
+                    items=[self.character.get_place(bone.place) for bone in
+                           self.iter_tab_i_bones("place_tab_place", i)],
+                    stats=[bone.stat for bone in
+                           self.iter_tab_i_bones("place_tab_stat", i)],
+                    edbut=rightside[1]))
+            elif bone.type == PORTAL_TAB:
+                headers = ["portal"]
+                fieldnames = ["name"]
+                stats = []
+                for bone in self.iter_tab_i_bones("portal_tab_stat", i):
+                    if bone.stat == "origin":
+                        headers.append("origin")
+                        fieldnames.append("origin")
+                    elif bone.stat == "destination":
+                        headers.append("destination")
+                        fieldnames.append("destination")
+                    else:
+                        stats.append(bone.stat)
+                cwids.append(TableView(
+                    character=self.character,
+                    headers=headers,
+                    fieldnames=fieldnames,
+                    stats=stats,
+                    items=[self.character.get_portal(bone.portal) for bone in
+                           self.iter_tab_i_bones("portal_tab_portal", i)],
+                    edbut=rightside[1]))
+            elif bone.type == CHAR_TAB:
+                cwids.append(CharStatTableView(
+                    character=self.character,
+                    stats=[bone.stat for bone in
+                           self.iter_tab_i_bones("char_tab_stat", i)],
+                    edbut=rightside[1]))
+            elif bone.type in CALENDAR_TYPES:
+                cwids.append(make_calendar(i, bone.type, rightside[1]))
+            else:
+                raise ValueError("Unknown item type: {}".format(bone.type))
+            lastwid = cwids[-1]
+
+            def set_col_min(*args):
+                self.cols_minimum[i] = lastwid.height
+            lastwid.bind(height=set_col_min)
+
+            rightsidewid = StackLayout()
+            for subwid in rightside:
+                rightsidewid.add_widget(subwid)
+            cwids.append(rightsidewid)
+
+            i += 1
+        for cwid in cwids:
+            self.add_widget(cwid)
+
+    def iter_tab_i_bones(self, tab, i):
+        for bone in self.character.closet.skeleton[tab][
+                unicode(self)][i].iterbones():
+            yield bone
 
     def on_touch_down(self, touch):
         """If one of my children catches the touch, nobody else ought to, so
         return True in that case.
 
-        """ 
+        """
         for child in self.children:
             if child.on_touch_down(touch):
                 return True
