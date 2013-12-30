@@ -50,6 +50,8 @@
         text_size: root.size
         pos_hint: {'x': 0, 'y': 0}
         valign: "top"
+<TableContent,TableHeader,TableBody>:
+    size_hint_y: None
 <CharSheet>:
     on_character: self.repop()
 <CharSheetAdder>:
@@ -65,15 +67,27 @@
                 TabbedPanel:
                     do_default_tab: False
                     TabbedPanelItem:
-                        id: table_thing
-                        text: root.get_text(_('Thing'))
+                        id: table_thing_locations
+                        text: root.get_text(_('Thing Location'))
+                        StackLayout:
+                            Label:
+                                text: root.get_text(_("Pick things."))
+                                size_hint_y: 0.1
+                            ThingListView:
+                                id: table_thing_location_things
+                                charsheet: root.charsheet
+                                size_hint_y: 0.9
+                    TabbedPanelItem:
+                        id: table_thing_stats
+                        text: root.get_text(_('Thing Stat'))
+                        StackLayout:
                             StackLayout:
                                 size_hint_x: 0.5
                                 Label:
                                     text: root.get_text(_("Pick things."))
                                     size_hint_y: 0.1
                                 ThingListView:
-                                    id: table_thing_things
+                                    id: table_thing_stat_things
                                     charsheet: root.charsheet
                                     size_hint_y: 0.3
                             StackLayout:
@@ -82,22 +96,21 @@
                                     text: root.get_text(_("Pick stats of things."))
                                     size_hint_y: 0.1
                                 NounStatListView:
-                                    id: table_thing_stats
-                                    specialitems: ["location"]
-                                    nounitems: table_thing_things.selection
+                                    id: table_thing_stat_stats
+                                    nounitems: table_thing_stat_things.selection
                                     charsheet: root.charsheet
                                     size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
                                     TextInput:
-                                        id: table_thing_new_stat_in
+                                        id: table_thing_stat_new_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
                                     CSAddButton:
-                                        id: table_thing_new_stat_but
+                                        id: table_thing_stat_new_stat_but
                     TabbedPanelItem:
-                        id: table_place
-                        text: root.get_text(_('Place'))
+                        id: table_place_stats
+                        text: root.get_text(_('Place Stat'))
                         StackLayout:
                             StackLayout:
                                 size_hint_x: 0.5
@@ -105,7 +118,7 @@
                                     text: root.get_text(_("Pick places."))
                                     size_hint_y: 0.1
                                 PlaceListView:
-                                    id: table_place_places
+                                    id: table_place_stat_places
                                     charsheet: root.charsheet
                                     size_hint_y: 0.9
                             StackLayout:
@@ -114,19 +127,20 @@
                                     text: root.get_text(_("Pick stats of places."))
                                     size_hint_y: 0.1
                                 NounStatListView:
-                                    id: table_place_stats
-                                    nounitems: table_place_places.selection
+                                    id: table_place_stat_stats
+                                    nounitems: table_place_stat_places.selection
                                     size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
                                     TextInput:
-                                        id: table_place_new_stat_in
+                                        id: table_place_stat_new_stat_in
                                         size_hint_x: 0.8
-                                        hint_text: root.get_text(_("New stat name"))                                    CSAddButton:
-                                        id: table_place_new_stat_but
+                                        hint_text: root.get_text(_("New stat name"))
+                                    CSAddButton:
+                                        id: table_thing_stat_new_stat_but
                     TabbedPanelItem:
-                        id: table_portal
-                        text: root.get_text(_('Portal'))
+                        id: table_portal_locations
+                        text: root.get_text(_('Portal Location'))
                         StackLayout:
                             StackLayout:
                                 size_hint_x: 0.5
@@ -134,7 +148,20 @@
                                     text: root.get_text(_("Pick portals."))
                                     size_hint_y: 0.1
                                 PortalListView:
-                                    id: table_portal_portals
+                                    id: table_portal_location_portals
+                                    charsheet: root.charsheet
+                                    size_hint_y: 0.9
+                    TabbedPanelItem:
+                        id: table_portal_stats
+                        text: root.get_text(_('Portal Stat'))
+                        StackLayout:
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick portals."))
+                                    size_hint_y: 0.1
+                                PortalListView:
+                                    id: table_portal_stat_portals
                                     charsheet: root.charsheet
                                     size_hint_y: 0.9
                             StackLayout:
@@ -143,35 +170,35 @@
                                     text: root.get_text(_("Pick stats of portals."))
                                     size_hint_y: 0.1
                                 NounStatListView:
-                                    nounitems: table_portal_portals.selection
+                                    nounitems: table_portal_stat_portals.selection
                                     size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
                                     TextInput:
-                                        id: table_portal_stat_in
+                                        id: table_portal_stat_portals_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
                                     CSAddButton:
-                                        id: table_portal_stat_but
+                                        id: table_portal_stat_portals_but
                     TabbedPanelItem:
-                        id: table_character
+                        id: table_character_stats
                         text: root.get_text(_('Character Stat'))
                         StackLayout:
                             Label:
                                 text: root.get_text(_("Pick stats of the character."))
                                 size_hint_y: 0.1
                             StatListView:
-                                id: table_character_stats
+                                id: table_character_stat_stats
                                 charsheet: root.charsheet
                                 size_hint_y: 0.8
                             StackLayout:
                                 size_hint_y: 0.1
                                 TextInput:
-                                    id: table_character_stats_in
+                                    id: table_portal_stat_stats_in
                                     size_hint_x: 0.8
                                     hint_text: root.get_text(_("New stat name"))
                                 CSAddButton:
-                                    id: table_character_stats_but
+                                    id: table_portal_stat_stats_but
             TabbedPanelItem:
                 text: root.get_text(_('Calendars'))
                 TabbedPanel:
@@ -441,7 +468,6 @@
             pos_hint: {'top': 0.9}
             size_hint: (0.9, 0.5)
 <TableHeader>:
-    size_hint_y: None
     canvas:
         Color:
             rgba: solarized["base02"]
@@ -454,14 +480,6 @@
         bold: True
         color: solarized["base00"]
         text: root.text
-<TableContent,TableBody>:
-    size_hint_y: None
-<TableView>:
-    TableContent:
-        closet: root.character.closet
-<CharStatTableView>:
-    CharStatTableContent:
-        closet: root.character.closet
 <TexPile>:
     width: max([img.right for img in self.imgs]) if len(self.imgs) > 0 else 0
     height: max([img.top for img in self.imgs]) if len(self.imgs) > 0 else 0
