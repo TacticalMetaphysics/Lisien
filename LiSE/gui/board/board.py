@@ -151,25 +151,12 @@ class Board(ScrollView):
                 char = self.facade.closet.get_character(bone.host)
                 place = char.get_place(bone.place)
                 self.spotdict[bone.place] = Spot(board=self, place=place)
-        for bone in self.facade.closet.skeleton[u"portal"].iterbones():
-            if bone.host == host and bone.name not in self.arrowdict:
-                hostchar = self.facade.closet.get_character(bone.host)
-                try:
-                    port = hostchar.get_portal(bone.name)
-                except (KeyError, ValueError):
-                    boen = hostchar.closet.skeleton[u"portal_loc"][
-                        bone.character][bone.name][branch].value_during(tick)
-                    char = hostchar.closet.get_character(
-                        bone.character)
-                    port = char.make_portal(
-                        name=bone.name,
-                        origin=boen.origin,
-                        destination=boen.destination,
-                        host=bone.host,
-                        branch=boen.branch,
-                        tick=boen.tick)
-                self.arrowdict[bone.name] = Arrow(board=self, portal=port)
-                content.add_widget(self.arrowdict[bone.name])
+        for bone in self.facade.closet.skeleton[u"portal"][obsrvd].iterbones():
+            if bone.host == host:
+                port = self.facade.observed.get_portal(bone.name)
+                self.arrowdict[bone.name] = Arrow(
+                    board=self, portal=port)
+                self.add_widget(self.arrowdict[bone.name])
         for bone in self.facade.closet.skeleton[u"pawn"].iterbones():
             if bone.host == host and bone.thing not in self.pawndict:
                 char = self.facade.closet.get_character(bone.observed)
