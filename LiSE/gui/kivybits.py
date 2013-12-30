@@ -1,3 +1,5 @@
+from os import sep
+
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
@@ -15,11 +17,12 @@ from kivy.properties import (
     BooleanProperty)
 from kivy.clock import Clock
 
+from LiSE import __path__
 from LiSE.util import SaveableMetaclass
 from img import Img
 
 
-class ClosetWidget(object):
+class ClosetWidget(Widget):
     """Mix-in class for various text-having widget classes, to make their
     text match some named string from the closet."""
     stringname = StringProperty()
@@ -28,10 +31,21 @@ class ClosetWidget(object):
     symbolic = BooleanProperty()
     completion = NumericProperty(0)
 
-    def on_closet(self, *args):
-        self.completion += 1
+    def __init__(self, **kwargs):
+        super(ClosetWidget, self).__init__(**kwargs)
+        Clock.schedule_once(self.upd_text, 0)
+
+    def on_symbolic(self, *args):
+        if self.symbolic:
+            self.font_name = sep.join(
+                [__path__[-1], "gui", "assets", "Entypo.ttf"])
+            self.font_size = 30
+            self.upd_text()
 
     def on_stringname(self, *args):
+        self.completion += 1
+
+    def on_closet(self, *args):
         self.completion += 1
 
     def on_completion(self, *args):
@@ -54,7 +68,14 @@ class ClosetLabel(Label, ClosetWidget):
 
 
 class ClosetButton(Button, ClosetWidget):
-    pass
+    fun = ObjectProperty()
+    arg = ObjectProperty(None)
+
+    def on_release(self, *args):
+        if self.arg is None:
+            self.fun()
+        else:
+            self.fun(self.arg)
 
 
 class ClosetToggleButton(ToggleButton, ClosetWidget):

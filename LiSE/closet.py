@@ -323,23 +323,12 @@ before RumorMill will work. For that, run mkdb.sh.
         """Get the string of the given name in the language set at startup."""
         if strname is None:
             return ""
-        elif strname[0] == "@":
-            if strname[1:] == "branch":
-                return str(self.branch)
-            elif strname[1:] == "tick":
-                return str(self.tick)
-            else:
-                if strname[1:] not in self.skeleton[u"strings"]:
-                    self.update_keybone(
-                        self.bonetypes["strings"]._null()._replace(
-                            stringname=strname[1:],
-                            language=self.language))
-                return self.skeleton[u"strings"][
-                    strname[1:]][self.language].string
-        elif strname == u'⊕':
-            return u'⊕'
+        elif strname == "@branch":
+            return unicode(self.branch)
+        elif strname == "@tick":
+            return unicode(self.tick)
         else:
-            return self.lgettext(strname)
+            return unicode(self.lgettext(strname))
 
     def save_game(self):
         """Save all pending changes to disc."""

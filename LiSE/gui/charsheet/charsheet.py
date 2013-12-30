@@ -51,6 +51,10 @@ class ListItemToggle(SelectableView, ToggleButton):
     pass
 
 
+class CSClosetButton(ClosetButton):
+    pass
+
+
 class CharListAdapter(ListAdapter):
     character = ObjectProperty()
 
@@ -208,7 +212,7 @@ class CSAddButton(Button):
     def __init__(self, **kwargs):
         from LiSE import __path__
         from os import sep
-        kwargs['text'] = u'⊕'
+        kwargs['text'] = u''
         kwargs['size_hint_x'] = 0.2
         kwargs['font_name'] = sep.join(
             [__path__[-1], "gui", "assets", "Entypo.ttf"])
@@ -460,17 +464,14 @@ things appropriate to the present, whenever that may be.
 
         """
         self.size_hint = (1, None)
-        _ = self.character.closet.get_text
         self.clear_widgets()
         i = 0
         height = 0
         if unicode(self.character) not in self.character.closet.skeleton[
                 u"character_sheet_item_type"]:
             self.add_widget(
-                ClosetButton(
+                CSClosetButton(
                     closet=self.character.closet,
-                    stringname=_(u'⊕'),
-                    symbolic=True,
                     on_release=lambda x: self.add_item(i)))
             return
         cwids = []
