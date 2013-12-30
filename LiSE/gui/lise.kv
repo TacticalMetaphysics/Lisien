@@ -155,35 +155,35 @@
                                     text: root.get_text(_("Pick stats of portals."))
                                     size_hint_y: 0.1
                                 NounStatListView:
-                                    nounitems: table_portal_stat_portals.selection
+                                    nounitems: table_portal_portals.selection
                                     size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
                                     TextInput:
-                                        id: table_portal_stat_portals_in
+                                        id: table_portal_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
                                     CSAddButton:
-                                        id: table_portal_stat_portals_but
+                                        id: table_portal_stat_but
                     TabbedPanelItem:
-                        id: table_character_stats
+                        id: table_character
                         text: root.get_text(_('Character Stat'))
                         StackLayout:
                             Label:
                                 text: root.get_text(_("Pick stats of the character."))
                                 size_hint_y: 0.1
                             StatListView:
-                                id: table_character_stat_stats
+                                id: table_character_stats
                                 charsheet: root.charsheet
                                 size_hint_y: 0.8
                             StackLayout:
                                 size_hint_y: 0.1
                                 TextInput:
-                                    id: table_portal_stat_stats_in
+                                    id: table_character_stats_in
                                     size_hint_x: 0.8
                                     hint_text: root.get_text(_("New stat name"))
                                 CSAddButton:
-                                    id: table_portal_stat_stats_but
+                                    id: table_character_stats_but
             TabbedPanelItem:
                 text: root.get_text(_('Calendars'))
                 TabbedPanel:
