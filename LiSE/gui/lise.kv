@@ -131,7 +131,7 @@
                                     CSAddButton:
                                         id: place_tab_stat_add
                     TabbedPanelItem:
-                        id: table_portal
+                        id: portal_tab
                         text: root.get_text(_('Portal'))
                         StackLayout:
                             StackLayout:
@@ -140,7 +140,7 @@
                                     text: root.get_text(_("Pick portals."))
                                     size_hint_y: 0.1
                                 PortalListView:
-                                    id: table_portal_portal
+                                    id: portal_tab_portal
                                     charsheet: root.charsheet
                                     size_hint_y: 0.9
                             StackLayout:
@@ -149,57 +149,45 @@
                                     text: root.get_text(_("Pick stats of portals."))
                                     size_hint_y: 0.1
                                 NounStatListView:
-                                    id: table_portal_stat
+                                    id: portal_tab_stat
                                     specialitems: ["origin", "destination"]
-                                    nounitems: table_portal_portal.selection
+                                    nounitems: portal_tab_portal.selection
                                     size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
                                     TextInput:
-                                        id: table_portal_stat_in
+                                        id: portal_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
                                     CSAddButton:
-                                        id: table_portal_stat_but
+                                        id: portal_tab_stat_add
                     TabbedPanelItem:
-                        id: table_character
+                        id: char_tab
                         text: root.get_text(_('Character'))
                         StackLayout:
                             Label:
                                 text: root.get_text(_("Pick stats of the character."))
                                 size_hint_y: 0.1
                             StatListView:
-                                id: table_character_stat
+                                id: char_tab_stat
                                 charsheet: root.charsheet
                                 size_hint_y: 0.8
                             StackLayout:
                                 size_hint_y: 0.1
                                 TextInput:
-                                    id: table_character_stat_in
+                                    id: char_tab_stat_in
                                     size_hint_x: 0.8
                                     hint_text: root.get_text(_("New stat name"))
                                 CSAddButton:
-                                    id: table_character_stat_but
+                                    id: char_tab_stat_add
             TabbedPanelItem:
                 text: root.get_text(_('Calendars'))
                 TabbedPanel:
                     id: calendars
                     do_default_tab: False
                     TabbedPanelItem:
-                        id: calendar_thing_location
-                        text: root.get_text(_('Thing Location'))
-                        StackLayout:
-                            Label:
-                                text: root.get_text(_("Pick a thing."))
-                                size_hint_y: 0.1
-                            ThingListView:
-                                id: calendar_thing_location_thing
-                                charsheet: root.charsheet
-                                selection_mode: 'single'
-                                size_hint_y: 0.9
-                    TabbedPanelItem:
-                        id: calendar_thing_stat
-                        text: root.get_text(_('Thing Stat'))
+                        id: thing_cal
+                        text: root.get_text(_('Thing'))
                         StackLayout:
                             StackLayout:
                                 size_hint_x: 0.5
@@ -207,7 +195,7 @@
                                     text: root.get_text(_("Pick a thing."))
                                     size_hint_y: 0.1
                                 ThingListView:
-                                    id: calendar_thing_stat_thing
+                                    id: thing_cal_thing
                                     charsheet: root.charsheet
                                     selection_mode: 'single'
                                     size_hint_y: 0.9
@@ -217,21 +205,22 @@
                                     text: root.get_text(_("Pick one of its stats."))
                                     size_hint_y: 0.1
                                 NounStatListView:
-                                    id: calendar_thing_stat_stat
-                                    nounitems: calendar_thing_stat_thing.selection
+                                    id: thing_cal_stat
+                                    specialitems: ["location"]
+                                    nounitems: thing_cal_thing.selection
                                     selection_mode: 'single'
                                     size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
                                     TextInput:
-                                        id: calendar_thing_stat_stat_in
+                                        id: thing_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
                                     CSAddButton:
-                                        id: calendar_thing_stat_stat_but
+                                        id: thing_cal_stat_add
                     TabbedPanelItem:
-                        id: calendar_place_stat
-                        text: root.get_text(_('Place Stat'))
+                        id: place_cal
+                        text: root.get_text(_('Place'))
                         StackLayout:
                             StackLayout:
                                 size_hint_x: 0.5
@@ -239,7 +228,7 @@
                                     text: root.get_text(_("Pick a place."))
                                     size_hint_y: 0.1
                                 PlaceListView:
-                                    id: calendar_place_stat_place
+                                    id: place_cal_place
                                     charsheet: root.charsheet
                                     selection_mode: 'single'
                                     size_hint_y: 0.9
@@ -249,46 +238,22 @@
                                     text: root.get_text(_("Pick one of its stats."))
                                     size_hint_y: 0.1
                                 NounStatListView:
-                                    id: calendar_place_stat_stat
-                                    nounitems: calendar_place_stat_place.selection
+                                    id: place_cal_stat
+                                    nounitems: place_cal_place.selection
                                     charsheet: root.charsheet
                                     selection_mode: 'single'
                                     size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
                                     TextInput:
-                                        id: calendar_place_stat_stat_in
+                                        id: place_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
                                     CSAddButton:
-                                        id: calendar_place_stat_stat_but
+                                        id: place_cal_stat_add
                     TabbedPanelItem:
-                        id: calendar_portal_origin
-                        text: root.get_text(_('Portal Origin'))
-                        StackLayout:
-                            Label:
-                                text: root.get_text(_("Pick a portal."))
-                                size_hint_y: 0.1
-                            PortalListView:
-                                id: calendar_portal_origin_portal
-                                charsheet: root.charsheet
-                                selection_mode: 'single'
-                                size_hint_y: 0.9
-                    TabbedPanelItem:
-                        id: calendar_portal_destination
-                        text: root.get_text(_('Portal Destination'))
-                        StackLayout:
-                            Label:
-                                text: root.get_text(_("Pick a portal."))
-                                size_hint_y: 0.1
-                            PortalListView:
-                                id: calendar_portal_destination_portal
-                                charsheet: root.charsheet
-                                selection_mode: 'single'
-                                size_hint_y: 0.9
-                    TabbedPanelItem:
-                        id: calendar_portal_stat
-                        text: root.get_text(_('Portal Stat'))
+                        id: portal_cal
+                        text: root.get_text(_('Portal'))
                         StackLayout:
                             StackLayout:
                                 size_hint_x: 0.5
@@ -296,7 +261,7 @@
                                     text: root.get_text(_("Pick a portal."))
                                     size_hint_y: 0.1
                                 PortalListView:
-                                    id: calendar_portal_stat_portal
+                                    id: portal_cal_portal
                                     charsheet: root.charsheet
                                     selection_mode: 'single'
                                     size_hint_y: 0.9
@@ -305,39 +270,40 @@
                                 Label:
                                     text: root.get_text(_("Pick one of its stats."))
                                     size_hint_y: 0.1
-                                PortalListView:
-                                    id: calendar_portal_stat_stat
-                                    nounitems: calendar_portal_stat_portal.selection
+                                NounStatListView:
+                                    id: portal_cal_stat
+                                    specialitems: ["origin", "destination"]
+                                    nounitems: portal_cal_portal.selection
                                     selection_mode: 'single'
                                     size_hint_y: 0.8
                                 StackLayout:
                                     size_hint_y: 0.1
                                     TextInput:
-                                        id: calendar_portal_stat_stat_in
+                                        id: portal_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
                                     CSAddButton:
-                                        id: calendar_portal_stat_stat_but
+                                        id: portal_cal_stat_add
                     TabbedPanelItem:
-                        id: calendar_character_stat
-                        text: root.get_text(_('Character Stat'))
+                        id: char_cal
+                        text: root.get_text(_('Character'))
                         StackLayout:
                             Label:
                                 text: root.get_text(_("Pick a stat."))
                                 size_hint_y: 0.1
                             StatListView:
-                                id: calendar_character_stat_stat
+                                id: char_cal_stat
                                 charsheet: root.charsheet
                                 selection_mode: 'single'
                                 size_hint_y: 0.8
                             StackLayout:
                                 size_hint_y: 0.1
                                 TextInput:
-                                    id: calendar_character_stat_stat_in
+                                    id: char_cal_stat_in
                                     hint_text: root.get_text(_("New stat name"))
                                     size_hint_x: 0.8
                                 CSAddButton:
-                                    id: calendar_character_stat_stat_but
+                                    id: char_cal_stat_add
         BoxLayout:
             size_hint_y: 0.05
             Button:

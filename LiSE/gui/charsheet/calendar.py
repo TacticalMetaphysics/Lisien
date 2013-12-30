@@ -13,7 +13,11 @@ from kivy.uix.layout import Layout
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
 
-from LiSE.data import THING_LOC_CAL
+from LiSE.data import (
+    THING_CAL,
+    PLACE_CAL,
+    PORTAL_CAL,
+    CHAR_CAL)
 
 
 SCROLL_FACTOR = 4
@@ -83,6 +87,7 @@ class Calendar(Layout):
     here. Look in CalendarView below.
 
     """
+    boneatt = StringProperty()
     branch = NumericProperty(0)
     branches_offscreen = NumericProperty(2)
     branches_wide = NumericProperty()
@@ -153,16 +158,32 @@ class Calendar(Layout):
         self.timeline.upd_time(
             self, closet.branch, closet.tick)
         skeleton = closet.skeleton
-        ks = []
-        for key in self.keys:
-            if key is None:
-                break
-            ks.append(key)
-        if self.cal_type == THING_LOC_CAL:
-            thing = ks[0]
-            self.referent = closet.get_thing(self.character, thing)
-            self.skel = skeleton["thing_loc"][
-                unicode(self.character)][thing]
+        if self.cal_type == THING_CAL:
+            (thingn, statn) = self.keys
+            self.referent = self.character.get_thing(thingn)
+            if statn == "location":
+                self.skel = skeleton["thing_loc"][
+                    unicode(self.character)][thingn]
+            else:
+                self.skel = skeleton["thing_stat"][
+                    unicode(self.character)][thingn][statn]
+        elif self.cal_type == PLACE_CAL:
+            (placen, statn) = self.keys
+            self.referent = self.character.get_place(placen)
+            self.skel = skeleton["place_stat"][
+                unicode(self.character)][placen][statn]
+        elif self.cal_type == PORTAL_CAL:
+            (portn, statn) = self.keys
+            if statn in ("origin", "destination"):
+                self.skel = skeleton["portal_loc"][
+                    unicode(self.character)][portn]
+            else:
+                self.skel = skeleton["portal_stat"][
+                    unicode(self.character)][portn][statn]
+        elif self.cal_type == CHAR_CAL:
+            statn = self.keys[0]
+            self.skel = skeleton["character_stat"][
+                unicode(self.character)][statn]
         else:
             raise NotImplementedError
         self.skel.register_set_listener(self.refresh_and_layout)
@@ -218,21 +239,10 @@ That's where you'd draw the timeline for it."""
                         prev.tick < maxtick and
                         bone.tick > mintick):
                     print("refreshing w. new bone: {}".format(bone))
-                    if self.cal_type == 5:
-                        text = prev.location
-                    elif self.cal_type == 6:
-                        text = prev.place
-                    elif self.cal_type == 7:
-                        text = "{}->{}".format(
-                            prev.origin, prev.destination)
-                    elif self.cal_type == 8:
-                        text = prev.value
-                    else:
-                        text = ""
                     cell = Cell(
                         calendar=self,
                         branch=branch,
-                        text=text,
+                        text=getattr(prev, self.boneatt),
                         tick_from=prev.tick,
                         tick_to=bone.tick)
                     cell.bone = bone
