@@ -12,7 +12,6 @@ from table import (
     CharStatTableView)
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
-    ClosetToggleButton,
     ClosetButton)
 from kivy.uix.button import Button
 from kivy.uix.widget import Widget
@@ -47,10 +46,6 @@ from LiSE.data import (
 
 
 class ListItemToggle(SelectableView, ToggleButton):
-    pass
-
-
-class CSClosetButton(ClosetButton):
     pass
 
 
@@ -217,6 +212,13 @@ class CSAddBut(Button):
     args = ListProperty([])
 
 
+class CSEdBut(ToggleButton):
+    charsheet = ObjectProperty()
+
+    def on_text(self, *args):
+        print(self.text)
+
+
 class CharSheetAdder(ModalView):
     charsheet = ObjectProperty()
     insertion_point = NumericProperty(0)
@@ -241,14 +243,14 @@ class CharSheetAdder(ModalView):
     def record(self):
         character = self.charsheet.character
         if self.ids.panel.current_tab == self.ids.calendars:
-            tab = self.ids.calendars
+            tab = self.ids.calendars_panel
             if tab.current_tab == self.ids.place_cal:
                 if len(self.ids.place_cal_place.selection) != 1:
                     return False
                 if len(self.ids.place_cal_stat.selection) != 1:
                     return False
-                placen = self.ids.place_cal_place.selection[0].noun.name
-                statn = self.ids.place_cal_stat.selection[0].name
+                placen = self.ids.place_cal_place.selection[0].text
+                statn = self.ids.place_cal_stat.selection[0].text
                 self.charsheet.character.closet.set_bone(
                     CharSheet.bonetypes["place_cal"](
                         character=unicode(character),
@@ -263,8 +265,8 @@ class CharSheetAdder(ModalView):
                     return
                 if len(self.ids.portal_cal_portal.selection) != 1:
                     return
-                portn = self.ids.portal_cal_portal.selection[0].noun.name
-                statn = self.ids.portal_cal_stat.selection[0].name
+                portn = self.ids.portal_cal_portal.selection[0].text
+                statn = self.ids.portal_cal_stat.selection[0].text
                 self.charsheet.character.closet.set_bone(
                     CharSheet.bonetypes["portal_cal"](
                         character=unicode(character),
@@ -277,7 +279,7 @@ class CharSheetAdder(ModalView):
             elif tab.current_tab == self.ids.char_cal:
                 if len(self.ids.char_cal_stat.selection) != 1:
                     return
-                statn = self.ids.char_cal_stat.selection[0].name
+                statn = self.ids.char_cal_stat.selection[0].text
                 self.charsheet.character.closet.set_bone(
                     CharSheet.bonetypes["char_cal"](
                         character=unicode(character),
@@ -291,8 +293,8 @@ class CharSheetAdder(ModalView):
                     return
                 if len(self.ids.thing_cal_stat.selection) != 1:
                     return
-                thingn = self.ids.thing_cal_thing.selection[0].noun.name
-                statn = self.ids.thing_cal_stat.selection[0].name
+                thingn = self.ids.thing_cal_thing.selection[0].text
+                statn = self.ids.thing_cal_stat.selection[0].text
                 self.charsheet.character.closet.set_bone(
                     CharSheet.bonetypes["thing_cal"](
                         character=unicode(character),
@@ -303,7 +305,7 @@ class CharSheetAdder(ModalView):
                 self.charsheet.repop()
                 return THING_CAL
         else:
-            tab = self.ids.tables
+            tab = self.ids.tables_panel
             if tab.current_tab == self.ids.place_tab:
                 place_tab_places = [
                     CharSheet.bonetypes["place_tab_place"](
@@ -525,6 +527,9 @@ tick.
         layout = self.parent.parent
         layout.handle_adbut(self, i)
 
+    def on_cols_minimum(self, *args):
+        pass
+
     def repop(self, *args):
         """Iterate over the bones under my name, and add widgets appropriate
 to each of them.
@@ -544,12 +549,14 @@ things appropriate to the present, whenever that may be.
                 PORTAL_CAL: ("portal_cal", ["portal", "stat"]),
                 CHAR_CAL: ("char_cal", ["stat"])
             }[typ]
-            bone = self.character.closet.skeleton[tabn][i]
+            bone = self.character.closet.skeleton[tabn][
+                unicode(self.character)][i]
             return CalendarLayout(
                 character=self.character,
                 item_type=typ,
-                boneatt=keyns[-1],
-                keys=[getattr(bone, keyn) for keyn in keyns],
+                boneatt=keyns[1],
+                key=getattr(bone, keyns[0]),
+                stat=getattr(bone, keyns[1]) if len(keyns) == 2 else '',
                 edbut=edbut)
         self.size_hint = (1, None)
         self.clear_widgets()
@@ -572,11 +579,7 @@ things appropriate to the present, whenever that may be.
         for bone in self.character.closet.skeleton[
                 u"character_sheet_item_type"][
                 unicode(self.character)].iterbones():
-            edbut = ClosetToggleButton(
-                closet=self.character.closet,
-                stringname="@edit",
-                symbolic=True,
-                size_hint_y=None)
+            edbut = CSEdBut(charsheet=self)
             if bone.type == THING_TAB:
                 headers = [_("thing")]
                 fieldnames = ["name"]
@@ -637,10 +640,7 @@ things appropriate to the present, whenever that may be.
             else:
                 raise ValueError("Unknown item type: {}".format(bone.type))
 
-            def set_col_min(*args):
-                self.cols_minimum[i] = cwid.height
-            cwid.bind(height=set_col_min)
-            edbut.height = cwid.height * 0.7
+            edbut.height = cwid.height * 0.6
             addbut = ClosetButton(
                 symbolic=True,
                 closet=self.character.closet,

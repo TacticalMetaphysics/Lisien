@@ -99,11 +99,12 @@ class Calendar(Layout):
     font_size = NumericProperty()
     force_refresh = BooleanProperty(False)
     i = NumericProperty()
-    keys = ListProperty()
+    key = StringProperty()
     referent = ObjectProperty(None)
     skel = ObjectProperty(None)
     spacing_x = NumericProperty()
     spacing_y = NumericProperty()
+    stat = StringProperty()
     tick = BoundedNumericProperty(0, min=0)
     tick_height = NumericProperty()
     ticks_tall = NumericProperty(100)
@@ -159,31 +160,27 @@ class Calendar(Layout):
             self, closet.branch, closet.tick)
         skeleton = closet.skeleton
         if self.cal_type == THING_CAL:
-            (thingn, statn) = self.keys
-            self.referent = self.character.get_thing(thingn)
-            if statn == "location":
+            self.referent = self.character.get_thing(self.key)
+            if self.stat == "location":
                 self.skel = skeleton["thing_loc"][
-                    unicode(self.character)][thingn]
+                    unicode(self.character)][self.key]
             else:
                 self.skel = skeleton["thing_stat"][
-                    unicode(self.character)][thingn][statn]
+                    unicode(self.character)][self.key][self.stat]
         elif self.cal_type == PLACE_CAL:
-            (placen, statn) = self.keys
-            self.referent = self.character.get_place(placen)
+            self.referent = self.character.get_place(self.key)
             self.skel = skeleton["place_stat"][
-                unicode(self.character)][placen][statn]
+                unicode(self.character)][self.key][self.stat]
         elif self.cal_type == PORTAL_CAL:
-            (portn, statn) = self.keys
-            if statn in ("origin", "destination"):
+            if self.stat in ("origin", "destination"):
                 self.skel = skeleton["portal_loc"][
-                    unicode(self.character)][portn]
+                    unicode(self.character)][self.key]
             else:
                 self.skel = skeleton["portal_stat"][
-                    unicode(self.character)][portn][statn]
+                    unicode(self.character)][self.key][self.stat]
         elif self.cal_type == CHAR_CAL:
-            statn = self.keys[0]
             self.skel = skeleton["character_stat"][
-                unicode(self.character)][statn]
+                unicode(self.character)][self.key]
         else:
             raise NotImplementedError
         self.skel.register_set_listener(self.refresh_and_layout)
