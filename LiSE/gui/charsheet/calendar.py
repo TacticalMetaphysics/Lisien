@@ -320,12 +320,13 @@ necessary."""
 
     def on_touch_up(self, touch):
         """Snap to the nearest branch and tick."""
-        touch.grab_current = None
-        self.xmov = 0
-        self.xcess = 0
-        self.ymov = 0
-        self.ycess = 0
-        self._trigger_layout()
+        if touch.grab_current is self:
+            touch.grab_current = None
+            self.xmov = 0
+            self.xcess = 0
+            self.ymov = 0
+            self.ycess = 0
+            self._trigger_layout()
 
     def on_touch_move(self, touch):
         """If I'm being dragged, trigger a layout, but first check to see if
