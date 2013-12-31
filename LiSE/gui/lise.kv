@@ -18,7 +18,8 @@
             timeline: tl
             character: root.character
             cal_type: root.item_type
-            keys: root.keys
+            key: root.key
+            stat: root.stat
             col_width: 100
             branches_wide: 2
             tick_height: 2
@@ -38,16 +39,25 @@
                     points: (self.x, self.y, self.x+cal.col_width, self.y)
                 Triangle:
                     points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
+<ColorBox>:
+    canvas:
+        Color:
+            rgba: root.color
+        Rectangle:
+            pos: root.pos
+            size: root.size
 <Cell>:
-    size_hint: (None, None)
     ColorBox:
+        id: box
         color: solarized["base2"]
-    Label:
-        text: root.text
-        color: solarized["base00"]
-        text_size: root.size
-        pos_hint: {'x': 0, 'y': 0}
-        valign: "top"
+        pos: root.pos
+        size: root.size
+        Label:
+            text: root.text
+            color: solarized["base02"]
+            pos: box.pos
+            text_size: box.size
+            valign: "top"
 <TableContent,TableHeader,TableBody>:
     size_hint_y: None
 <CharSheet>:
@@ -340,13 +350,6 @@
             Button:
                 text: root.get_text(_("Confirm"))
                 on_release: root.confirm()
-<ColorBox>:
-    canvas:
-        Color:
-            rgba: self.color
-        Rectangle:
-            pos: self.pos
-            size: self.size
 <CueCard>:
     Label:
         id: l
