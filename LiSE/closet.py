@@ -330,8 +330,6 @@ before RumorMill will work. For that, run mkdb.sh.
             return unicode(self.branch)
         elif strname == "@tick":
             return unicode(self.tick)
-        elif strname == "@locked":
-            return unichr(0x1f512)
         else:
             return unicode(self.lgettext(strname))
 
@@ -415,38 +413,28 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def load_characters(self, names):
         """Load all the named characters and return them in a dict."""
-        char_stat_bones = [
-            Character.bonetypes["character_stat"]._null()._replace(
-                character=name) for name in names]
-        portal_bones = [
-            Portal.bonetypes["portal"]._null()._replace(character=name)
-            for name in names]
-        portal_loc_bones = [
-            Portal.bonetypes["portal_loc"]._null()._replace(character=name)
-            for name in names]
-        portal_stat_bones = [
-            Portal.bonetypes["portal_stat"]._null()._replace(character=name)
-            for name in names]
-        thing_bones = [
-            Thing.bonetypes["thing"]._null()._replace(character=name)
-            for name in names]
-        thing_loc_bones = [
-            Thing.bonetypes["thing_loc"]._null()._replace(character=name)
-            for name in names]
-        thing_stat_bones = [
-            Thing.bonetypes["thing_stat"]._null()._replace(character=name)
-            for name in names]
-        place_stat_bones = [
-            Place.bonetypes["place_stat"]._null()._replace(character=name)
-            for name in names]
-        self.update_keybones(
-            char_stat_bones + portal_bones + portal_loc_bones +
-            portal_stat_bones + thing_bones + thing_loc_bones +
-            thing_stat_bones + place_stat_bones)
+        def iterkbs():
+            for name in names:
+                yield Character.bonetypes["character_stat"]._null()._replace(
+                    character=name)
+                yield Portal.bonetypes["portal"]._null()._replace(
+                    character=name)
+                yield Portal.bonetypes["portal_loc"]._null()._replace(
+                    character=name)
+                yield Portal.bonetypes["portal_stat"]._null()._replace(
+                    character=name)
+                yield Thing.bonetypes["thing"]._null()._replace(
+                    character=name)
+                yield Thing.bonetypes["thing_loc"]._null()._replace(
+                    character=name)
+                yield Thing.bonetypes["thing_stat"]._null()._replace(
+                    character=name)
+                yield Place.bonetypes["place_stat"]._null()._replace(
+                    character=name)
+        self.update_keybones(iterkbs())
         r = {}
         for name in names:
             char = Character(self, name)
-            char.update()
             r[name] = char
             self.character_d[name] = char
         return r
