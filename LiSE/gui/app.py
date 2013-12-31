@@ -547,7 +547,6 @@ class LiSEApp(App):
     closet = ObjectProperty(None)
     dbfn = StringProperty(allownone=True)
     lgettext = ObjectProperty(None)
-    lise_path = StringProperty()
     observer_name = StringProperty()
     observed_name = StringProperty()
     host_name = StringProperty()

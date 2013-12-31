@@ -3,7 +3,6 @@
 from LiSE import __path__
 from LiSE.gui.app import LiSEApp
 from sys import argv
-from os import curdir
 from os.path import sep
 
 import gettext
@@ -13,7 +12,7 @@ def lise():
     print(argv)
     dbfn = None
 
-    _ = gettext.translation('LiSE', curdir + sep + 'localedir',
+    _ = gettext.translation('LiSE', sep.join([__path__[0], 'localedir']),
                             ['eng']).lgettext
 
     if argv[-1][-4:] == "lise":
@@ -23,7 +22,6 @@ def lise():
         dbfn, __path__[-1])))
 
     LiSEApp(dbfn=dbfn, lgettext=_,
-            lise_path=__path__[-1],
             observer_name='Omniscient',
             observed_name='Player',
             host_name='Physical').run()
