@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from __future__ import print_function
+from functools import partial
 from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
     AliasProperty,
@@ -9,6 +10,7 @@ from kivy.properties import (
     ObjectProperty)
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import Image
 from spot import Spot
 from arrow import Arrow
@@ -127,8 +129,6 @@ class Board(ScrollView):
             self.finalize()
 
     def finalize(self):
-        branch = self.facade.closet.branch
-        tick = self.facade.closet.tick
         obsrvr = unicode(self.facade.observer)
         obsrvd = unicode(self.facade.observed)
         host = unicode(self.host)
@@ -142,6 +142,12 @@ class Board(ScrollView):
             size_hint=(None, None),
             size=tex.size)
         content.add_widget(Image(pos=(0, 0), texture=tex, size=tex.size))
+        self.arrow_layout = FloatLayout()
+        content.add_widget(self.arrow_layout)
+        self.spot_layout = FloatLayout()
+        content.add_widget(self.spot_layout)
+        self.pawn_layout = FloatLayout()
+        content.add_widget(self.pawn_layout)
         super(Board, self).add_widget(content)
         # Regardless of what the facade *shows*, create spots, pawns,
         # and portals for everything in the host, just in case I need
@@ -156,7 +162,7 @@ class Board(ScrollView):
                 port = self.facade.observed.get_portal(bone.name)
                 self.arrowdict[bone.name] = Arrow(
                     board=self, portal=port)
-                self.add_widget(self.arrowdict[bone.name])
+                self.arrow_layout.add_widget(self.arrowdict[bone.name])
         for bone in self.facade.closet.skeleton[u"pawn"].iterbones():
             if bone.host == host and bone.thing not in self.pawndict:
                 char = self.facade.closet.get_character(bone.observed)
@@ -166,9 +172,9 @@ class Board(ScrollView):
                     thing = char.make_thing(bone.thing)
                 self.pawndict[bone.thing] = Pawn(board=self, thing=thing)
         for spot in self.spotdict.itervalues():
-            content.add_widget(spot)
+            self.spot_layout.add_widget(spot)
         for pawn in self.pawndict.itervalues():
-            content.add_widget(pawn)
+            self.pawn_layout.add_widget(pawn)
 
     def __str__(self):
         return str(self.facade)
@@ -216,19 +222,12 @@ class Board(ScrollView):
         for preemptor in ("charsheet", "menu"):
             if preemptor in touch.ud:
                 return
-        if not self._touch:
-            for pawn in self.pawndict.itervalues():
-                if pawn.collide_point(touch.x, touch.y):
-                    self._touch = touch
-                    break
-        if not self._touch:
-            for spot in self.spotdict.itervalues():
-                if spot.collide_point(touch.x, touch.y):
-                    self._touch = touch
-                    break
         if self.parent.dummyspot is not None:
             self.parent.dummyspot.pos = (touch.x, touch.y)
-        return super(Board, self).on_touch_down(touch)
+        return (
+            self.pawn_layout.on_touch_down(touch) or
+            self.spot_layout.on_touch_down(touch) or
+            super(Board, self).on_touch_down(touch))
 
     def on_touch_move(self, touch):
         if self.parent.dummyspot is not None:
