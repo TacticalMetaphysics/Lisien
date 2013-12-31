@@ -192,6 +192,7 @@ class Character(object):
             for placen in (bone.origin, bone.destination):
                 if placen not in self.graph.vs["name"]:
                     self.make_place(placen)
+            char = self.closet.get_character(bone.character)
             try:
                 origv = self.graph.vs.find(name=bone.origin)
             except ValueError:
@@ -203,15 +204,8 @@ class Character(object):
             try:
                 eid = self.graph.get_eid(origv.index, destv.index)
                 e = self.graph.es[eid]
-                if e["name"] != bone.name:
-                    self.graph.delete_edges([eid])
-                    raise ValueError("Wrong portal name")
+                e["portals"][bone.character] = Portal(char, bone.name)
             except (KeyError, ValueError, InternalError):
-                try:
-                    e = self.graph.es.find(name=bone.name)
-                    self.graph.delete_edges([e.index])
-                except (KeyError, ValueError, InternalError):
-                    pass
                 # the portal goes in my graph, but it doesn't get
                 # constructed in me--it's merely hosted here. get its
                 # real character.
@@ -219,7 +213,7 @@ class Character(object):
                 port = Portal(char, bone.name)
                 self.graph.add_edge(
                     origv.index, destv.index,
-                    name=bone.name, portal=port)
+                    name=bone.name, portals={bone.character: port})
         for v in self.graph.vs:
             try:
                 self.get_place_bone(v["name"], branch, tick)
