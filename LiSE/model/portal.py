@@ -2,6 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from container import Container
 from LiSE.util import upbranch
+from igraph import InternalError
 
 
 class Portal(Container):
@@ -68,6 +69,10 @@ class Portal(Container):
             "foreign_keys": {
                 "observed, name": (
                     "portal", "character, name")}})]
+
+    @property
+    def e(self):
+        return self.character.graph.es.find(name=self.name)
 
     @property
     def bone(self):

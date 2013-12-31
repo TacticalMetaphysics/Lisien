@@ -225,6 +225,7 @@ class Thing(Container):
         # which may not match reality.  It would be weird to use some
         # other character's understanding.
         host = self.character.closet.get_character(self.get_bone().host)
+        host.update(branch, tick)
         facade = host.get_facade(self.character)
         facade.update(branch, tick)
         ipath = facade.graph.get_shortest_paths(

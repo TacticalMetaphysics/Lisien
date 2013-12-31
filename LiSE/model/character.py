@@ -189,27 +189,37 @@ class Character(object):
                     placebone.place not in self.graph.vs["name"]):
                 self.make_place(placebone.place)
         for bone in self.iter_hosted_portal_loc_bones(branch, tick):
-            try:
-                oi = self.graph.vs["name"].index(bone.origin)
-            except ValueError:
-                oi = len(self.graph.vs)
-            try:
-                di = self.graph.vs["name"].index(bone.destination)
-            except ValueError:
-                di = len(self.graph.vs)
             for placen in (bone.origin, bone.destination):
                 if placen not in self.graph.vs["name"]:
                     self.make_place(placen)
             try:
-                self.graph.get_eid(oi, di)
-            except (ValueError, InternalError):
-                i = len(self.graph.es)
+                origv = self.graph.vs.find(name=bone.origin)
+            except ValueError:
+                destv = self.make_place(bone.origin).v
+            try:
+                destv = self.graph.vs.find(name=bone.destination)
+            except ValueError:
+                destv = self.make_place(bone.destination).v
+            try:
+                eid = self.graph.get_eid(origv.index, destv.index)
+                e = self.graph.es[eid]
+                if e["name"] != bone.name:
+                    self.graph.delete_edges([eid])
+                    raise ValueError("Wrong portal name")
+            except (KeyError, ValueError, InternalError):
+                try:
+                    e = self.graph.es.find(name=bone.name)
+                    self.graph.delete_edges([e.index])
+                except (KeyError, ValueError, InternalError):
+                    pass
+                # the portal goes in my graph, but it doesn't get
+                # constructed in me--it's merely hosted here. get its
+                # real character.
+                char = self.closet.get_character(bone.character)
+                port = Portal(char, bone.name)
                 self.graph.add_edge(
-                    oi, di, name=bone.name)
-                # the portal is merely *hosted* here.
-                # it should know what it's a *part* of, too
-                character = self.closet.get_character(bone.character)
-                self.graph.es[i]["portal"] = Portal(character, bone.name)
+                    origv.index, destv.index,
+                    name=bone.name, portal=port)
         for v in self.graph.vs:
             try:
                 self.get_place_bone(v["name"], branch, tick)
@@ -217,8 +227,8 @@ class Character(object):
                 self.graph.delete_vertices(v)
         for e in self.graph.es:
             try:
-                self.get_portal_loc_bone(e["name"], branch, tick)
-            except (KeyError, KnowledgeException):
+                e["portal"].get_loc_bone(None, branch, tick)
+            except (KeyError, ValueError, KnowledgeException):
                 self.graph.delete_edges(e)
 
     def get_facade(self, observer):
@@ -431,9 +441,6 @@ class Character(object):
 
     def make_place(self, name):
         place = Place(self, name)
-        self.graph.add_vertex(
-            name=name,
-            place=place)
         return place
 
     def iter_places(self):
@@ -958,12 +965,22 @@ class Facade(Character):
                 pass
 
     # override
+    def iter_hosted_portal_loc_bones(self, branch=None, tick=None):
+        for bone in self.observed.iter_hosted_portal_loc_bones(branch, tick):
+            try:
+                yield self.distort(bone)
+            except KnowledgeException:
+                pass
+
+    # override
     def iter_hosted_portal_bones(self, branch=None, tick=None):
         for bone in super(Facade, self).iter_hosted_portal_bones(branch, tick):
             try:
                 yield self.distort(bone)
             except KnowledgeException:
                 pass
+
+    ### Stat
 
     # override
     def get_stat_bone(self, name, branch=None, tick=None):
