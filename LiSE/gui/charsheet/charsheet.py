@@ -142,6 +142,11 @@ class NounStatListView(StackLayout):
         super(NounStatListView, self).__init__(**kwargs)
         Clock.schedule_once(self.finalize, 0)
 
+    def add_stat(self, stat):
+        self.specialitems.append(stat)
+        self.clear_widgets()
+        self.finalize()
+
     def on_nouns(self, *args):
         if len(self.nounitems) == 0 or not self.finalized:
             return
@@ -209,7 +214,8 @@ class Image(KivyImage):
 
 class CSAddBut(Button):
     adder = ObjectProperty()
-    args = ListProperty([])
+    statview = ObjectProperty()
+    arg = ObjectProperty()
 
 
 class CSEdBut(ToggleButton):
@@ -223,9 +229,6 @@ class CharSheetAdder(ModalView):
         lambda self: self.charsheet.character.closet.get_text,
         lambda self, v: None,
         bind=('charsheet',))
-
-    def add_stat(self, addbut, *args):
-        pass
 
     def confirm(self):
         r = self.record()

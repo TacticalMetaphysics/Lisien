@@ -58,7 +58,6 @@
             color: solarized["base02"]
             pos: box.pos
             text_size: box.size
-            valign: "top"
 <TableContent,TableHeader,TableBody>:
     size_hint_y: None
 <CharSheet>:
@@ -68,7 +67,7 @@
     font_name: sep.join([lisepathl[-1], 'gui', 'assets', 'Entypo.ttf'])
     font_size: 30
     text: self.adder.get_text(_('@add')) if self.adder else ''
-    on_release: self.adder.add_stat(self, *self.args)
+    on_release: self.statview.add_stat(self.arg)
 <CSEdBut>:
     size_hint_y: None
     font_name: sep.join([lisepathl[-1], 'gui', 'assets', 'Entypo.ttf'])
@@ -123,7 +122,8 @@
                                     CSAddBut:
                                         id: thing_tab_stat_add
                                         adder: root
-                                        args: [thing_tab_thing.selection, thing_tab_stat_in.text]
+                                        statview: thing_tab_stat
+                                        arg: thing_tab_stat_in.text
                     TabbedPanelItem:
                         id: place_tab
                         text: root.get_text(_('Place'))

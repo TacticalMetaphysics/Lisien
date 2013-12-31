@@ -31,8 +31,8 @@ class TableContent(GridLayout):
 
     def repop(self, *args):
         self.clear_widgets()
-        self.cols = len(self.parent.headers)
-        for header in self.parent.headers:
+        self.cols = len(self.parent.headers) + len(self.parent.stats)
+        for header in self.parent.headers + self.parent.stats:
             hwid = TableHeader(
                 text_getter=lambda: self.closet.get_text(header))
             self.closet.register_text_listener(header, hwid.upd_text)
@@ -76,7 +76,8 @@ class CharStatTableContent(GridLayout):
                 text_getter=lambda: self.closet.get_text(stat))
             self.add_widget(statwid)
             valwid = TableBody(
-                text_getter=lambda: self.parent.character.get_stat(stat))
+                text_getter=lambda: unicode(
+                    self.parent.character.get_stat(stat)))
             self.closet.register_time_listener(valwid.upd_text)
 
 
