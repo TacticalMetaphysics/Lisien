@@ -12,6 +12,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.layout import Layout
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
+from kivy.uix.label import Label
 
 from LiSE.data import (
     THING_CAL,
@@ -34,25 +35,32 @@ def get_timeline_y(calendar, tick):
 
 
 class ColorBox(BoxLayout):
-    """A BoxLayout with a background of a particular color.
-
-    In lise.kv this is filled with a label."""
     color = ListProperty()
 
 
-class Cell(RelativeLayout):
+class Cell(Widget):
     """A box to represent an event on the calendar.
 
     It needs a branch, tick_from, tick_to, text, and a calendar to belong
     to.
 
     """
+    text = StringProperty()
     active = BooleanProperty(False)
+    bone = ObjectProperty()
     branch = NumericProperty()
     calendar = ObjectProperty()
-    text = StringProperty()
     tick_from = NumericProperty()
     tick_to = NumericProperty(None, allownone=True)
+
+    def on_text(self, *args):
+        print("text {}".format(self.text))
+
+    def on_pos(self, *args):
+        print("pos {}".format(self.pos))
+
+    def on_size(self, *args):
+        print("size {}".format(self.size))
 
 
 class Timeline(Widget):
@@ -117,14 +125,21 @@ class Calendar(Layout):
 
     def on_character(self, i, v):
         """Count toward completion"""
+        print("character")
         self.completedness += 1
 
-    def on_keys(self, i, v):
+    def on_key(self, i, v):
         """Count toward completion"""
+        print("key")
+        self.completedness += 1
+
+    def on_stat(self, i, v):
+        print("stat")
         self.completedness += 1
 
     def on_timeline(self, i, v):
         """Count toward completion"""
+        print("timeline")
         self.completedness += 1
 
     def on_completedness(self, i, v):
@@ -132,7 +147,7 @@ class Calendar(Layout):
         self.completed().
 
         """
-        if v == 3:
+        if v == 4:
             self.completed()
 
     def completed(self):
@@ -142,12 +157,12 @@ class Calendar(Layout):
         out again.
 
         """
-        character = self.character
-        closet = character.closet
-
         def upd_time(branch, tick):
             self.timeline.upd_branch(self, branch)
             self.timeline.upd_tick(self, tick)
+
+        character = self.character
+        closet = character.closet
         closet.register_time_listener(upd_time)
         self.bind(
             size=lambda i, v: self.timeline.upd_time(
@@ -182,18 +197,17 @@ class Calendar(Layout):
             self.skel = skeleton["character_stat"][
                 unicode(self.character)][self.key]
         else:
-            raise NotImplementedError
-        self.skel.register_set_listener(self.refresh_and_layout)
-        self.skel.register_del_listener(self.refresh_and_layout)
+            raise ValueError("Unknown cal_type")
+        self.skel.register_set_listener(self.remake)
+        self.skel.register_del_listener(self.remake)
         self.bind(size=lambda i, v: self._trigger_layout(),
                   pos=lambda i, v: self._trigger_layout())
-        Clock.schedule_once(self.refresh_and_layout, 0)
+        Clock.schedule_once(self.remake, 0)
 
-    def refresh_and_layout(self, *args):
+    def remake(self, *args):
         """Get rid of my current widgets and make new ones."""
         self.clear_widgets()
-        self.force_refresh = True
-        self._trigger_layout()
+        self.refresh()
 
     def branch_x(self, b):
         """Where does the column representing that branch have its left
@@ -206,10 +220,9 @@ edge?"""
 
 That's where you'd draw the timeline for it."""
         if t is None:
-            return self.y
+            return 0
         else:
-            t -= self.tick
-            return self.y + self.ymov + self.height - self.tick_height * t
+            return self.parent.top - (self.tick_height * (self.tick-t))
 
     def refresh(self):
         """Generate cells that are missing. Remove cells that cannot be
@@ -241,8 +254,8 @@ That's where you'd draw the timeline for it."""
                         branch=branch,
                         text=getattr(prev, self.boneatt),
                         tick_from=prev.tick,
-                        tick_to=bone.tick)
-                    cell.bone = bone
+                        tick_to=bone.tick,
+                        bone=bone)
                     self.add_widget(cell)
                 if bone.tick > maxtick:
                     break
@@ -290,9 +303,6 @@ necessary."""
                 self.tick = 0
             self.ymov -= d_tick * tickheight
             self.refresh()
-        elif self.force_refresh:
-            self.refresh()
-            self.force_refresh = False
         for child in self.children:
             x = self.branch_x(child.branch)
             y = self.tick_y(child.tick_to)
@@ -333,7 +343,7 @@ tick. If so, adjust my branch and tick to fit."""
                 if self.xcess < 0:
                     self.xcess = 0
             if self.ycess == 0:
-                nuymov = self.ymov + touch.dy
+                nuymov = self.ymov - touch.dy
                 if not (self.tick == 0 and nuymov < 0):
                     self.ymov = nuymov
                 else:
@@ -350,5 +360,6 @@ class CalendarLayout(RelativeLayout):
 the parameters of a Calendar."""
     character = ObjectProperty()
     item_type = NumericProperty()
-    keys = ListProperty()
+    key = StringProperty()
+    stat = StringProperty()
     edbut = ObjectProperty()

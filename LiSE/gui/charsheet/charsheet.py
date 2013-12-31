@@ -215,9 +215,6 @@ class CSAddBut(Button):
 class CSEdBut(ToggleButton):
     charsheet = ObjectProperty()
 
-    def on_text(self, *args):
-        print(self.text)
-
 
 class CharSheetAdder(ModalView):
     charsheet = ObjectProperty()
@@ -542,7 +539,8 @@ but they never include branch or tick--CharSheet will only display
 things appropriate to the present, whenever that may be.
 
         """
-        def make_calendar(i, typ, edbut):
+        def make_calendar(i, bone, edbut):
+            typ = bone.type
             (tabn, keyns) = {
                 THING_CAL: ("thing_cal", ["thing", "stat"]),
                 PLACE_CAL: ("place_cal", ["place", "stat"]),
@@ -636,7 +634,7 @@ things appropriate to the present, whenever that may be.
                            self.iter_tab_i_bones("char_tab_stat", i)],
                     edbut=edbut)
             elif bone.type in CALENDAR_TYPES:
-                cwid = make_calendar(i, bone.type, edbut)
+                cwid = make_calendar(i, bone, edbut)
             else:
                 raise ValueError("Unknown item type: {}".format(bone.type))
 
