@@ -164,7 +164,10 @@ before RumorMill will work. For that, run mkdb.sh.
         for glob in self.globs:
             setattr(self, glob, self.get_global(glob))
 
-        self.lisepath = __path__
+        self.lisepath = __path__[-1]
+        self.sep = os.sep
+        self.entypo = self.sep.join(
+            [self.lisepath, 'gui', 'assets', 'Entypo.ttf'])
         self.lgettext = lgettext
 
         for wd in self.working_dicts:
@@ -327,6 +330,8 @@ before RumorMill will work. For that, run mkdb.sh.
             return unicode(self.branch)
         elif strname == "@tick":
             return unicode(self.tick)
+        elif strname == "@locked":
+            return unichr(0x1f512)
         else:
             return unicode(self.lgettext(strname))
 

@@ -258,6 +258,8 @@ msgstr "Build with RLTiles"
 msgid "Character"
 msgstr "Character"
 
-#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:344
-msgid "@edit"
-msgstr "⌕"
+msgid "@unlocked"
+msgstr "🔓"
+
+msgid "@locked"
+msgstr "🔒"
