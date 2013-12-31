@@ -302,7 +302,17 @@ class Character(object):
 
     def get_thing_stat_bone(self, thing, stat, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
-        return self.get_thing_stat_skel(thing, stat, branch).value_during(tick)
+        try:
+            return self.get_thing_stat_skel(
+                thing, stat, branch).value_during(tick)
+        except KeyError:
+            return Thing.bonetypes["thing_stat"](
+                character=self.name,
+                name=unicode(thing),
+                key=stat,
+                value=None,
+                branch=branch,
+                tick=tick)
 
     def get_thing_stat(self, thing, stat, branch=None, tick=None):
         return self.get_thing_stat_bone(thing, stat, branch, tick).value
