@@ -6,13 +6,14 @@ from kivy.properties import (
     ListProperty,
     NumericProperty,
     ObjectProperty)
-from kivy.uix.scatter import Scatter
+from kivy.uix.widget import Widget
+from kivy.graphics import Rectangle, InstructionGroup
 
 
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class Spot(Scatter):
+class Spot(Widget):
     __metaclass__ = SaveableWidgetMetaclass
     """The icon that represents a Place.
 
@@ -107,13 +108,17 @@ class Spot(Scatter):
     place = ObjectProperty()
     board = ObjectProperty()
     completedness = NumericProperty(0)
-    cheatx = NumericProperty(0)
-    cheaty = NumericProperty(0)
+    textures = ListProperty([])
+    rectangles = ListProperty([])
     pawns_here = ListProperty([])
 
     def __init__(self, **kwargs):
         super(Spot, self).__init__(**kwargs)
+        self.board.facade.closet.register_time_listener(self.repos)
         self.board.spotdict[unicode(self.place)] = self
+        self.collect_textures()
+        self.retex()
+        self.repos()
 
     def __str__(self):
         """Return the name of my :class:`Place`."""
@@ -123,25 +128,57 @@ class Spot(Scatter):
         """Return the name of my :class:`Place`."""
         return unicode(self.place)
 
-    def on_board(self, i, v):
-        if v is None:
-            return
-        v.facade.closet.register_time_listener(self.repos)
-        self.repos()
+    def collect_textures(self, branch=None, tick=None):
+        self.textures = []
+        (branch, tick) = self.board.host.sanetime(branch, tick)
+        try:
+            skel = self.board.host.closet.skeleton[u"spot"][
+                unicode(self.board.facade.observer)][
+                unicode(self.board.host)][
+                unicode(self.place)]
+        except KeyError:
+            raise NotImplementedError(
+                "TODO: Pick the most similar graphic and use it.")
+        gettex = self.board.host.closet.get_texture
+        w = h = 0
+        for layer in skel:
+            t = gettex(
+                skel[layer][branch].value_during(tick).img)
+            w = max([t.width, w])
+            h = max([t.height, h])
+            self.textures.append(t)
+        self.size = (w, h)
 
-    def on_pos(self, i, v):
-        for pawn in i.pawns_here:
+    def retex(self, branch=None, tick=None):
+        self.canvas.clear()
+        for texture in self.textures:
+            r = Rectangle(
+                size=self.size,
+                pos=self.pos,
+                texture=texture)
+            self.canvas.add(r)
+            self.rectangles.append(r)
+
+    def on_pos(self, *args):
+        for pawn in self.pawns_here:
+            pawn.pos = self.pos
+        for rectangle in self.rectangles:
+            rectangle.pos = self.pos
+
+    def on_pawns_here(self, *args):
+        for pawn in self.pawns_here:
             pawn.pos = self.pos
 
-    def on_pawns_here(self, i, v):
-        for pawn in v:
-            pawn.pos = self.pos
+    def repos(self, branch=None, tick=None):
+        self.pos = self.get_pos(branch, tick)
 
-    def repos(self, *args):
-        """Update my pos to match the database. Keep respecting my transform
-        as I can."""
-        (x, y) = self.get_coords()
-        self.pos = (x, y)
+    def get_pos(self, branch=None, tick=None):
+        (branch, tick) = self.sanetime(branch, tick)
+        posbone = self.board.facade.closet.skeleton[u"spot_coords"][
+            unicode(self.board.facade.observer)][
+            unicode(self.board.host)][
+            unicode(self.place)][branch].value_during(tick)
+        return (posbone.x, posbone.y)
 
     def set_img(self, img, layer, branch=None, tick_from=None):
         if branch is None:
@@ -249,10 +286,20 @@ class Spot(Scatter):
                     started = True
                     prev = bone
 
-    def collide_point(self, x, y):
-        return self.ids.pile.collide_point(x, y)
+    def on_touch_down(self, touch):
+        if self.collide_point(touch.x, touch.y):
+            touch.grab(self)
+            return True
+
+    def on_touch_move(self, touch):
+        if "dummyspot" in touch.ud:
+            return
+        self.center = touch.pos
 
     def on_touch_up(self, touch):
         if touch.grab_current is self:
             self.set_coords(*self.pos)
         return super(Spot, self).on_touch_up(touch)
+
+    def __repr__(self):
+        return "{}@({},{})".format(self.place.name, self.x, self.y)

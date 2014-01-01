@@ -101,7 +101,7 @@ exist yet, but you know what it should look like."""
                     clost.set_bone(pawnbone)
                 pawn = Pawn(board=self.board, thing=th)
                 self.board.pawndict[thingn] = pawn
-                self.board.add_widget(pawn)
+                self.board.pawn_layout.add_widget(pawn)
                 self.clear_widgets()
                 self.callback()
                 return True
@@ -173,14 +173,7 @@ and charsheets.
     """
     app = ObjectProperty()
     portaling = BoundedNumericProperty(0, min=0, max=2)
-    origspot = ObjectProperty(None, allownone=True)
-    dummyspot = ObjectProperty(None, allownone=True)
     playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
-
-    def __init__(self, **kwargs):
-        """Add board first, then menus and charsheets."""
-        super(LiSELayout, self).__init__(**kwargs)
-        self._popups = []
 
     def handle_adbut(self, charsheet, i):
         adder = CharSheetAdder(charsheet=charsheet, insertion_point=i)
@@ -208,66 +201,49 @@ and charsheets.
     def make_arrow(self, *args):
         _ = self.app.closet.get_text
         self.display_prompt(_(
-            "Draw a line between the spots the portal should connect."))
+            "Draw a line between the spots to connect with a portal."))
         self.portaling = 1
 
     def on_touch_down(self, touch):
-        _ = self.app.closet.get_text
-        # menus appear above the board. you can't portal on them. so
-        # interpret touches there as cancelling the portaling action.
-        # same comment for charsheets
         if (
                 self.ids.menu.collide_point(touch.x, touch.y) or
                 self.ids.charsheet.collide_point(touch.x, touch.y)):
             self.portaling = 0
             return super(LiSELayout, self).on_touch_down(touch)
         elif self.portaling == 1:
-            for spot in self.ids.board.spotdict.itervalues():
-                if spot.collide_point(touch.x, touch.y):
-                    self.origspot = spot
-                    break
-            if self.origspot is not None:
-                assert(self.origspot not in self.children)
+            if "spot" in touch.ud:
                 self.dummyspot = ScatterPlane(
                     pos=(touch.x, touch.y), size=(1, 1))
-                self.dummyarrow = TouchlessWidget(pos=(0, 0))
-                atop = []
-                for pawn in self.ids.board.pawndict.itervalues():
-                    if pawn.where_upon is self.origspot:
-                        atop.append(pawn)
-                self.ids.board.children[0].remove_widget(self.origspot)
-                for pawn in atop:
-                    self.ids.board.children[0].remove_widget(pawn)
-                self.ids.board.children[0].add_widget(self.dummyarrow)
-                self.ids.board.children[0].add_widget(self.origspot)
-                for pawn in atop:
-                    self.ids.board.children[0].add_widget(pawn)
-                self.add_widget(self.dummyspot)
-                self.dummyspot.bind(pos=self.draw_arrow)
-                self.display_prompt(_(
-                    'Draw a line between the spots where you want a portal.'))
+                touch.ud["dummyspot"] = self.dummyspot
+                touch.ud['dummyarrow'] = TouchlessWidget(pos=(0, 0))
+                self.ids.board.add_widget(touch.ud['dummyarrow'])
+                self.add_widget(touch.ud['dummyspot'])
+                touch.ud["dummyspot"].bind(pos=self.draw_arrow)
                 self.portaling = 2
             else:
                 self.portaling = 0
-                self.dummyspot.unbind(pos=self.draw_arrow)
-                self.dummyarrow.canvas.clear()
-                self.remove_widget(self.dummyspot)
-                self.ids.board.children[0].remove_widget(self.dummyarrow)
+                if 'dummyspot' in touch.ud:
+                    touch.ud['dummyspot'].unbind(pos=self.draw_arrow)
+                    self.remove_widget(touch.ud['dummyspot'])
+                    del touch.ud['dummyspot']
+                if 'dummyarrow' in touch.ud:
+                    touch.ud['dummyarrow'].canvas.clear()
+                    self.ids.board.remove_widget(
+                        touch.ud['dummyarrow'])
+                    del touch.ud['dummyarrow']
                 self.dismiss_prompt()
                 self.origspot = None
                 self.dummyspot = None
                 self.dummyarrow = None
-        else:
-            assert(self.portaling == 0)
         return super(LiSELayout, self).on_touch_down(touch)
 
     def on_touch_up(self, touch):
         if self.portaling == 2:
             self.portaling = 0
-            self.dummyspot.unbind(pos=self.draw_arrow)
-            self.dummyarrow.canvas.clear()
-            self.remove_widget(self.dummyspot)
-            self.ids.board.children[0].remove_widget(self.dummyarrow)
+            touch.ud['dummyspot'].unbind(pos=self.draw_arrow)
+            touch.ud['dummyarrow'].canvas.clear()
+            self.remove_widget(touch.ud['dummyspot'])
+            self.ids.board.remove_widget(touch.ud['dummyarrow'])
             self.dismiss_prompt()
             destspot = None
             for spot in self.ids.board.spotdict.itervalues():
@@ -275,10 +251,10 @@ and charsheets.
                     destspot = spot
                     break
             if destspot is None:
-                self.dummyarrow.canvas.clear()
+                touch.ud['dummyarrow'].canvas.clear()
                 self.dismiss_prompt()
                 return True
-            origplace = self.origspot.place
+            origplace = touch.ud['spot'].place
             destplace = destspot.place
             portalname = "{}->{}".format(origplace, destplace)
             portal = self.ids.board.facade.observed.make_portal(
@@ -287,19 +263,6 @@ and charsheets.
             arrow = Arrow(
                 board=self.ids.board, portal=portal)
             self.ids.board.arrowdict[unicode(portal)] = arrow
-            atop = []
-            for pawn in self.ids.board.pawndict.itervalues():
-                if pawn.where_upon is self.origspot:
-                    atop.append(pawn)
-            self.ids.board.children[0].remove_widget(self.origspot)
-            for pawn in atop:
-                self.ids.board.children[0].remove_widget(pawn)
-            self.ids.board.children[0].add_widget(arrow)
-            self.ids.board.children[0].add_widget(self.origspot)
-            for pawn in atop:
-                self.ids.board.children[0].add_widget(pawn)
-            self.dummyspot = None
-            self.dummyarrow = None
         else:
             return super(LiSELayout, self).on_touch_up(touch)
 
@@ -310,22 +273,6 @@ and charsheets.
     def dismiss_prompt(self, *args):
         """Blank out the cue card"""
         self.ids.prompt.text = ''
-
-    def dismiss_popup(self, *args):
-        """Destroy the latest popup"""
-        self._popups.pop().dismiss()
-
-    def spot_default_x(self):
-        return min((
-            (0.1 * self.width) + self.ids.board.scroll_x *
-            self.ids.board.viewport_size[0],
-            self.ids.board.viewport_size[0] - 32))
-
-    def spot_default_y(self):
-        return min((
-            (0.9 * self.height) + self.ids.board.scroll_y *
-            self.ids.board.viewport_size[1],
-            self.ids.board.viewport_size[1] - 32))
 
     def show_spot_menu(self):
         hostn = unicode(self.ids.board.host)
@@ -342,14 +289,14 @@ and charsheets.
             if spot_menu_content.aggregate():
                 spotpicker_args = spot_menu_content.picker_args
                 spot_menu_content.selection = []
+                spot_menu.dismiss()
                 self.show_spot_picker(*spotpicker_args)
         spot_menu_content.confirm = confirm
 
         def cancel():
             spot_menu_content.selection = []
-            self.dismiss_popup()
+            spot_menu.dismiss()
         spot_menu_content.cancel = cancel
-        self._popups.append(spot_menu)
         spot_menu.open()
 
     def show_pawn_menu(self):
@@ -374,9 +321,8 @@ and charsheets.
 
         def cancel():
             pawn_menu_content.selection = []
-            self.dismiss_popup()
+            pawn_menu.dismiss()
         pawn_menu_content.cancel = cancel
-        self._popups.append(pawn_menu)
         pawn_menu.open()
 
     def new_spot_with_name_and_imgs(self, name, imgs):
@@ -409,8 +355,10 @@ and charsheets.
             place=placen,
             branch=branch,
             tick=tick,
-            x=self.spot_default_x(),
-            y=self.spot_default_y())
+            x=self.ids.board.width/2,
+            y=self.ids.board.height/2)
+        self.ids.board.scroll_x = 0.5
+        self.ids.board.scroll_y = 0.5
         self.app.closet.set_bone(coord_bone)
         assert(self.app.closet.have_place_bone(
             host, placen))
@@ -439,7 +387,6 @@ the user to place it, and dismiss the popup."""
         dummy.pos = (w*0.1, h*0.9)
 
     def show_spot_picker(self, name, imagery):
-        self.dismiss_popup()
         if isinstance(imagery, list):
             def set_imgs(swatches):
                 self.new_spot_with_name_and_imgs(name, [
@@ -447,18 +394,18 @@ the user to place it, and dismiss the popup."""
                 self.dismiss_popup()
             dialog = PickImgDialog(
                 name=name,
-                set_imgs=set_imgs,
-                cancel=self.dismiss_popup)
+                set_imgs=set_imgs)
             cattexlst = [
                 (cat, sorted(self.app.closet.textag_d[cat.strip("!?")]))
                 for cat in imagery]
             dialog.ids.picker.closet = self.app.closet
             dialog.ids.picker.cattexlst = cattexlst
-            self._popups.append(Popup(
+            popup = Popup(
                 title="Select graphics",
                 content=dialog,
-                size_hint=(0.9, 0.9)))
-            self._popups[-1].open()
+                size_hint=(0.9, 0.9))
+            dialog.cancel = lambda: popup.dismiss()
+            popup.open()
         else:
             # imagery is a string name of an image
             img = self.app.closet.skeleton[u"img"][imagery]
@@ -579,7 +526,12 @@ class LiSEApp(App):
             self.observed_name,
             self.host_name)
         self.closet.load_charsheet(self.observed_name)
-        return LiSELayout(app=self)
+        l = LiSELayout(app=self)
+        from kivy.core.window import Window
+        from kivy.modules import inspector
+        inspector.create_inspector(Window, l)
+        l.ids.board.finalize()
+        return l
 
     def on_pause(self):
         self.closet.save()

@@ -195,7 +195,7 @@ def load_all_textures(cursor, skel, texturedict, textagdict):
         textagdict[tag].add(img)
 
 
-class TexPile(RelativeLayout):
+class TexPile(Widget):
     """Several images superimposed, and perhaps offset by differing amounts.
 
     Presents a list-like API. Append textures (not Images) to it,
@@ -211,23 +211,28 @@ class TexPile(RelativeLayout):
         return self.imgs[i]
 
     def __setitem__(self, i, tex, xoff=0, yoff=0, stackh=0):
-        self.imgs[i] = Image(
+        the_img = Image(
             texture=tex,
             pos=(xoff, yoff+sum(self.stackhs[:i])),
             size=tex.size)
+        self.imgs[i] = the_img
+        self.bind(pos=the_img.setter('pos'))
         self.stackhs[i] = stackh
 
     def __delitem__(self, i):
+        self.imgs[i].unbindall()
         del self.imgs[i]
         del self.stackhs[i]
 
     def append(self, tex, xoff=0, yoff=0, stackh=0):
         pos = (xoff, yoff+sum(self.stackhs))
         size = tex.size
-        self.imgs.append(Image(
+        the_img = Image(
             texture=tex,
             pos=pos,
-            size=size))
+            size=size)
+        self.imgs.append(the_img)
+        self.bind(pos=the_img.setter('pos'))
         self.add_widget(self.imgs[-1])
         self.stackhs.append(stackh)
 
