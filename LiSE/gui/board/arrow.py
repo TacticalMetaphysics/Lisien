@@ -96,17 +96,14 @@ class Arrow(Widget):
         """
         Widget.__init__(self, **kwargs)
         self.board.arrowdict[unicode(self.portal)] = self
-        self.upd_pos_size()
         orign = unicode(self.portal.origin)
         destn = unicode(self.portal.destination)
         self.board.spotdict[orign].bind(
-            pos=self.setter('pos'),
-            size=self.realign,
-            transform=self.realign)
+            pos=self.repoint,
+            size=self.repoint)
         self.board.spotdict[destn].bind(
-            pos=self.upd_size,
-            size=self.realign,
-            transform=self.realign)
+            pos=self.repoint,
+            size=self.repoint)
         self.board.host.closet.register_time_listener(self.repawn)
         self.bind(pos=self.repoint)
         self.bind(size=self.repoint)
@@ -207,53 +204,6 @@ class Arrow(Widget):
         (ox, oy) = origspot.pos
         (dx, dy) = destspot.pos
         (branch, tick) = self.board.host.sanetime(None, None)
-
-    def realign(self, *args):
-        self.upd_pos_size()
-        self.repoint()
-
-    def upd_size(self, i, (x, y)):
-        """Set my size so that my upper right corner is at the point given.
-
-        This will, not infrequently, give me a negative size. Don't
-        think too hard about it.
-
-        """
-        self.width = x - self.x
-        self.height = y - self.y
-
-    def upd_pos_size(self, *args):
-        """Update my ``pos`` and ``size`` based on the spots at my
-        origin and destination.
-
-        This is often necessary because :class:`Spot` is a subclass of
-        :class:`Scatter`, which implements high-performance
-        drag-and-drop behavior by not really moving the widget, but
-        doing a matrix transformation on its texture. This still makes
-        the ``pos`` appear with a new value when accessed here, but
-        might not trigger an update of variables bound to ``pos``.
-
-        """
-        orig = self.board.spotdict[unicode(self.portal.origin)]
-        dest = self.board.spotdict[unicode(self.portal.destination)]
-        (ox, oy) = orig.pos
-        (dx, dy) = dest.pos
-        w = dx - ox
-        h = dy - oy
-        if w < 0:
-            if h < 0:
-                self.pos = (dx, dy)
-                self.size = (-w, -h)
-            else:
-                self.pos = (ox, dy)
-                self.size = (-w, h)
-        else:
-            if h < 0:
-                self.pos = (dx, oy)
-                self.size = (w, -h)
-            else:
-                self.pos = (ox, oy)
-                self.size = (w, h)
 
     def collide_point(self, x, y):
         """Return True iff the point falls sufficiently close to my core line

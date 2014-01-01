@@ -3,11 +3,13 @@
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass)
 from kivy.properties import (
+    DictProperty,
     ListProperty,
     NumericProperty,
     ObjectProperty)
 from kivy.uix.widget import Widget
-from kivy.graphics import Rectangle, InstructionGroup
+from kivy.graphics import Rectangle
+from kivy.clock import Clock
 
 
 """Widgets to represent places. Pawns move around on top of these."""
@@ -107,18 +109,18 @@ class Spot(Widget):
                     "spot", "observer, host, place")}})]
     place = ObjectProperty()
     board = ObjectProperty()
+    _touch = ObjectProperty(None, allownone=True)
     completedness = NumericProperty(0)
     textures = ListProperty([])
     rectangles = ListProperty([])
     pawns_here = ListProperty([])
 
     def __init__(self, **kwargs):
+        kwargs['size_hint'] = (None, None)
         super(Spot, self).__init__(**kwargs)
         self.board.facade.closet.register_time_listener(self.repos)
         self.board.spotdict[unicode(self.place)] = self
-        self.collect_textures()
         self.retex()
-        self.repos()
 
     def __str__(self):
         """Return the name of my :class:`Place`."""
@@ -150,10 +152,14 @@ class Spot(Widget):
         self.size = (w, h)
 
     def retex(self, branch=None, tick=None):
+        self.collect_textures(branch, tick)
         self.canvas.clear()
+        w = h = 0
         for texture in self.textures:
+            w = max([w, texture.width])
+            h = max([h, texture.height])
             r = Rectangle(
-                size=self.size,
+                size=texture.size,
                 pos=self.pos,
                 texture=texture)
             self.canvas.add(r)
@@ -171,14 +177,6 @@ class Spot(Widget):
 
     def repos(self, branch=None, tick=None):
         self.pos = self.get_pos(branch, tick)
-
-    def get_pos(self, branch=None, tick=None):
-        (branch, tick) = self.sanetime(branch, tick)
-        posbone = self.board.facade.closet.skeleton[u"spot_coords"][
-            unicode(self.board.facade.observer)][
-            unicode(self.board.host)][
-            unicode(self.place)][branch].value_during(tick)
-        return (posbone.x, posbone.y)
 
     def set_img(self, img, layer, branch=None, tick_from=None):
         if branch is None:
@@ -210,10 +208,7 @@ class Spot(Widget):
             unicode(self.place)][layer][branch].value_during(tick)
 
     def set_bone(self, bone):
-        self.board.skelset(
-            self.board.facade.closet.skeleton[u"spot"],
-            "place",
-            bone)
+        return self.board.host.closet.set_bone(bone)
 
     def get_coord_bone(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
@@ -223,10 +218,7 @@ class Spot(Widget):
             branch].value_during(tick)
 
     def set_coord_bone(self, bone):
-        self.board.skelset(
-            self.board.facade.closet.skeleton[u"spot_coords"],
-            "place",
-            bone)
+        return self.set_bone(bone)
 
     def get_coords(self, branch=None, tick=None, default=None):
         """Return a pair of coordinates for where I should be on my board,
@@ -236,13 +228,19 @@ class Spot(Widget):
         try:
             bone = self.get_coord_bone(branch, tick)
             if bone is None:
-                return None
+                raise KeyError
             else:
                 return (bone.x, bone.y)
         except KeyError:
             if default is not None:
                 self.set_coords(*default)
                 return default
+
+    def get_pos(self, branch=None, tick=None):
+        if self._touch:
+            return self.pos
+        (x, y) = self.get_coords(branch, tick)
+        return (self.board.x + x, self.board.y + y)
 
     def set_coords(self, x, y, branch=None, tick=None):
         """Set my coordinates on the :class:`Board`.
@@ -289,14 +287,19 @@ class Spot(Widget):
     def on_touch_down(self, touch):
         if self.collide_point(touch.x, touch.y):
             touch.grab(self)
+            touch.ud['spot'] = self
             return True
 
     def on_touch_move(self, touch):
-        if "dummyspot" in touch.ud:
+        if "portaling" in touch.ud:
+            touch.ungrab(self)
+        if touch.grab_current is not self:
             return
-        self.center = touch.pos
+        self._touch = touch
+        self.center = self.parent.to_local(*touch.pos)
 
     def on_touch_up(self, touch):
+        self._touch = None
         if touch.grab_current is self:
             self.set_coords(*self.pos)
         return super(Spot, self).on_touch_up(touch)
