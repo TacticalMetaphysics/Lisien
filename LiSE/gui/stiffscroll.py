@@ -1,8 +1,10 @@
+from time import time
 from kivy.animation import AnimationTransition
 from kivy.effects.kinetic import KineticEffect
 from kivy.properties import (
     ObjectProperty,
     NumericProperty)
+from kivy.uix.widget import Widget
 
 
 class StiffScrollEffect(KineticEffect):
@@ -13,12 +15,14 @@ class StiffScrollEffect(KineticEffect):
     """Minimum boundary to stop the scrolling at."""
     max = NumericProperty(0)
     """Maximum boundary to stop the scrolling at."""
-    body = NumericProperty(0.9)
+    max_friction = NumericProperty(1)
+    """How hard should it be to scroll, at the worst?"""
+    body = NumericProperty(0.7)
     """Proportion of the range in which you can scroll unimpeded."""
     scroll = NumericProperty(0.)
     """Computed value for scrolling"""
-    transition_min = ObjectProperty(AnimationTransition.out_expo)
-    transition_max = ObjectProperty(AnimationTransition.out_expo)
+    transition_min = ObjectProperty(AnimationTransition.in_cubic)
+    transition_max = ObjectProperty(AnimationTransition.in_cubic)
     target_widget = ObjectProperty(None, allownone=True, baseclass=Widget)
     displacement = NumericProperty(0)
     scroll = NumericProperty(0.)
@@ -33,23 +37,25 @@ class StiffScrollEffect(KineticEffect):
         if hard_min > hard_max:
             hard_min, hard_max = hard_max, hard_min
         margin = (1. - self.body) * (hard_max - hard_min)
-        soft_min = self.min + margin
-        soft_max = self.max - margin
+        soft_min = hard_min + margin
+        soft_max = hard_max - margin
 
-        if self.value < soft_min and self.value < self.history[-1][1]:
+        if self.value < soft_min:
             try:
                 prop = (soft_min - self.value) / (soft_min - hard_min)
-                self.friction = self.base_friction + (
-                    1.0 - self.base_friction) * self.transition_min(prop)
+                self.friction = self.base_friction + abs(
+                    self.max_friction - self.base_friction
+                    ) * self.transition_min(prop)
             except ZeroDivisionError:
                 pass
-        elif self.value > soft_max and self.value > self.history[-1][1]:
+        elif self.value > soft_max:
             try:
                 # normalize how far past soft_max I've gone as a
                 # proportion of the distance between soft_max and hard_max
                 prop = (self.value - soft_max) / (hard_max - soft_max)
-                self.friction = self.base_friction + (
-                    1.0 - self.base_friction) * self.transition_max(prop)
+                self.friction = self.base_friction + abs(
+                    self.max_friction - self.base_friction
+                    ) * self.transition_min(prop)
             except ZeroDivisionError:
                 pass
         else:
@@ -68,18 +74,37 @@ class StiffScrollEffect(KineticEffect):
 
     def start(self, val, t=None):
         self.is_manual = True
-        self.displacement = 0
-        return super(StiffScrollEffect, self).start(val, t)
+        t = t or time()
+        self.velocity = self.displacement = 0
+        self.friction = self.base_friction
+        self.history = [(t, val)]
 
     def update(self, val, t=None):
+        t = t or time()
+        hard_min = self.min
+        hard_max = self.max
+        if hard_min > hard_max:
+            hard_min, hard_max = hard_max, hard_min
+        gamut = hard_max - hard_min
+        margin = (1. - self.body) * gamut
+        soft_min = hard_min + margin
+        soft_max = hard_max - margin
+        distance = val - self.history[-1][1]
+        reach = distance + self.value
+        if (
+            distance < 0 and reach < soft_min) or (
+                distance > 0 and soft_max < reach):
+            distance -= distance * self.friction
+        self.apply_distance(distance)
+        self.history.append((t, val))
+        if len(self.history) > self.max_history:
+            self.history.pop(0)
+        self.displacement += abs(distance)
         self.trigger_velocity_update()
-        self.displacement += abs(val - self.history[-1][1])
-        return super(StiffScrollEffect, self).update(val, t)
 
     def stop(self, val, t=None):
         self.is_manual = False
         self.displacement += abs(val - self.history[-1][1])
         if self.displacement <= self.drag_threshold:
             self.velocity = 0
-            return
         return super(StiffScrollEffect, self).stop(val, t)

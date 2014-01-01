@@ -430,8 +430,10 @@
 <CharStatTableView>:
     CharStatTableContent:
         closet: root.character.closet
+<PoliteScrollView>:
+    scroll: max([min([self.value, self.max]), self.min])
 <LiSELayout>:
-    ScrollView:
+    BoardView:
         id: board_view
         Board:
             id: board

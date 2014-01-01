@@ -12,7 +12,6 @@ from kivy.properties import (
 from kivy.graphics import Line, Color
 
 from kivy.uix.widget import Widget
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
@@ -24,7 +23,8 @@ from sqlite3 import connect, OperationalError
 from LiSE.gui.board import (
     Pawn,
     Spot,
-    Arrow)
+    Arrow,
+    BoardView)
 from LiSE.gui.board.arrow import get_points
 from LiSE.gui.kivybits import TexPile, TouchlessWidget
 from LiSE.gui.swatchbox import SwatchBox, TogSwatch
@@ -35,7 +35,7 @@ from LiSE import (
     closet,
     util)
 
-
+Factory.register('BoardView', cls=BoardView)
 Factory.register('SwatchBox', cls=SwatchBox)
 Factory.register('TogSwatch', cls=TogSwatch)
 
