@@ -64,7 +64,7 @@ The relevant data are
 * The location data for the Thing I represent, in the table thing_location"""
         def reposskel(*args):
             self.repos()
-
+        kwargs['size_hint'] = (None, None)
         super(Pawn, self).__init__(**kwargs)
         self.board.pawndict[unicode(self.thing)] = self
 

@@ -2,15 +2,11 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from __future__ import print_function
 from LiSE.gui.kivybits import SaveableWidgetMetaclass
-from kivy.graphics import Rectangle
 from kivy.properties import (
-    AliasProperty,
-    DictProperty,
     NumericProperty,
+    DictProperty,
     ObjectProperty)
-from kivy.uix.widget import Widget
 from kivy.uix.image import Image
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.floatlayout import FloatLayout
 from kivy.clock import Clock
 from spot import Spot
@@ -44,29 +40,13 @@ class Board(FloatLayout):
     facade = ObjectProperty()
     host = ObjectProperty()
     wallpaper = ObjectProperty()
-
-    def _set_bone(self, bone):
-        self.facade.closet.skeleton[u"board"][
-            unicode(self.facade.observer)][
-            unicode(self.facade.observed)][
-            unicode(self.host)] = bone
-
-    def _set_x(self, x):
-        bone = self.bone._replace(x=x)
-        self._set_bone(bone)
-
-    def _set_y(self, y):
-        bone = self.bone._replace(y=y)
-        self._set_bone(bone)
-
     spotdict = DictProperty({})
+    spotlayout = ObjectProperty()
     pawndict = DictProperty({})
+    pawnlayout = ObjectProperty()
     arrowdict = DictProperty({})
-
-    def on_spotdict(self, i, v):
-        for vv in v.itervalues():
-            if vv.parent not in (None, self):
-                pass
+    arrowlayout = ObjectProperty()
+    superlayout = ObjectProperty()
 
     @property
     def bone(self):
@@ -83,71 +63,77 @@ class Board(FloatLayout):
     def arrowhead_size(self):
         return self.bone.arrowhead_size
 
-    def skelset(self, skel, namefield, bone):
-        if bone.observer not in skel:
-            skel[bone.observer] = {}
-        if 'observed' in bone._fields:
-            if bone.observed not in skel[
-                    bone.observer]:
-                skel[bone.observer][bone.observed] = {}
-            if bone.host not in skel[bone.observer][bone.observed]:
-                skel[bone.observer][bone.observed][bone.host] = {}
-            skel = skel[bone.observer][bone.observed][bone.host]
-        else:
-            if bone.host not in skel[bone.observer]:
-                skel[bone.observer][bone.host] = {}
-            skel = skel[bone.observer][bone.host]
-        if getattr(bone, namefield) not in skel:
-            skel[getattr(bone, namefield)] = []
-        if 'layer' in bone._fields:
-            if bone.layer not in skel[getattr(bone, namefield)]:
-                skel[getattr(bone, namefield)][bone.layer] = []
-            skel = skel[getattr(bone, namefield)][bone.layer]
-        else:
-            skel = skel[getattr(bone, namefield)]
-        if bone.branch not in skel:
-            skel[bone.branch] = []
-        skel[bone.branch][bone.tick] = bone
+    def __init__(self, **kwargs):
+        kwargs['size_hint'] = (None, None)
+        Clock.schedule_once(self.finalize, 0)
+        return super(Board, self).__init__(**kwargs)
 
     def finalize(self, *args):
-        obsrvr = unicode(self.facade.observer)
-        obsrvd = unicode(self.facade.observed)
-        host = unicode(self.host)
+        def repos_all(*args):
+            for each in (
+                    self.wallpaper,
+                    self.arrowlayout,
+                    self.spotlayout,
+                    self.pawnlayout):
+                each.pos = self.pos
+        if not self.facade and self.host:
+            Clock.schedule_once(self.finalize, 0)
+            return
+        bone = self.bone
+        self.scroll_x = bone.x
+        self.scroll_y = bone.y
         tex = self.host.closet.get_texture('default_wallpaper')
-        self.wallpaper = tex
-        self.size = self.wallpaper.size
-        if obsrvr not in self.facade.closet.board_d:
-            self.facade.closet.board_d[obsrvr] = {}
-        if obsrvd not in self.facade.closet.board_d[obsrvr]:
-            self.facade.closet.board_d[obsrvr][obsrvd] = {}
-        self.facade.closet.board_d[obsrvr][obsrvd][host] = self
+        self.size = tex.size
+        self.wallpaper = Image(
+            texture=tex,
+            pos=self.pos,
+            size=self.size)
+        self.add_widget(self.wallpaper)
+        self.arrowlayout = FloatLayout(pos=self.pos, size=self.size)
+        self.add_widget(self.arrowlayout)
+        self.spotlayout = FloatLayout(pos=self.pos, size=self.size)
+        self.add_widget(self.spotlayout)
+        self.pawnlayout = FloatLayout(pos=self.pos, size=self.size)
+        self.add_widget(self.pawnlayout)
+        self.bind(pos=repos_all)
+        if bone.observer not in self.facade.closet.board_d:
+            self.facade.closet.board_d[bone.observer] = {}
+        if bone.observed not in self.facade.closet.board_d[bone.observer]:
+            self.facade.closet.board_d[bone.observer][bone.observed] = {}
+        self.facade.closet.board_d[bone.observer][bone.observed][
+            bone.host] = self
         # Regardless of what the facade *shows*, create spots, pawns,
         # and portals for everything in the host, just in case I need
         # to show them.
-        for bone in self.facade.closet.skeleton[u"spot"].iterbones():
-            if bone.host == host and bone.place not in self.spotdict:
-                char = self.facade.closet.get_character(bone.host)
-                place = char.get_place(bone.place)
-                self.spotdict[bone.place] = Spot(board=self, place=place)
-        for bone in self.facade.closet.skeleton[u"portal"][obsrvd].iterbones():
-            if bone.host == host:
-                port = self.facade.observed.get_portal(bone.name)
-                self.arrowdict[bone.name] = Arrow(
+        for spotbone in self.facade.closet.skeleton[u"spot"].iterbones():
+            if (
+                    spotbone.host == bone.host and
+                    spotbone.place not in self.spotdict):
+                char = self.facade.closet.get_character(spotbone.host)
+                place = char.get_place(spotbone.place)
+                self.spotdict[spotbone.place] = Spot(board=self, place=place)
+        for portbone in self.facade.closet.skeleton[u"portal"][
+                bone.observed].iterbones():
+            if portbone.host == bone.host:
+                port = self.facade.observed.get_portal(portbone.name)
+                self.arrowdict[portbone.name] = Arrow(
                     board=self, portal=port)
-        for bone in self.facade.closet.skeleton[u"pawn"].iterbones():
-            if bone.host == host and bone.thing not in self.pawndict:
+        for pawnbone in self.facade.closet.skeleton[u"pawn"].iterbones():
+            if (
+                    pawnbone.host == bone.host and
+                    pawnbone.thing not in self.pawndict):
                 char = self.facade.closet.get_character(bone.observed)
                 try:
                     thing = char.get_thing(bone.thing)
                 except KeyError:
                     thing = char.make_thing(bone.thing)
-                self.pawndict[bone.thing] = Pawn(board=self, thing=thing)
+                self.pawndict[pawnbone.thing] = Pawn(board=self, thing=thing)
         for arrow in self.arrowdict.itervalues():
-            self.add_widget(arrow)
+            self.arrowlayout.add_widget(arrow)
         for spot in self.spotdict.itervalues():
-            self.add_widget(spot)
+            self.spotlayout.add_widget(spot)
         for pawn in self.pawndict.itervalues():
-            self.add_widget(pawn)
+            self.pawnlayout.add_widget(pawn)
 
     def __str__(self):
         return str(self.facade)
@@ -187,3 +173,20 @@ class Board(FloatLayout):
         for pawn in self.pawndict.itervalues():
             for bone in pawn.new_branch(parent, branch, tick):
                 yield bone
+
+    def do_layout(self, *args):
+        for spot in self.spotlayout.children:
+            spot.pos = spot.get_pos()
+
+    def on_touch_down(self, touch):
+        return (
+            self.pawnlayout.on_touch_down(touch) or
+            self.spotlayout.on_touch_down(touch) or
+            super(Board, self).on_touch_down(touch))
+
+    def on_touch_move(self, touch):
+        if 'portaling' in touch.ud:
+            touch.ud['portaling']['dummyspot'].pos = touch.pos
+        elif touch.grab_current is not self:
+            return
+        return super(Board, self).on_touch_move(touch)

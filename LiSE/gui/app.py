@@ -11,6 +11,7 @@ from kivy.properties import (
 
 from kivy.graphics import Line, Color
 
+from kivy.uix.widget import Widget
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -174,26 +175,9 @@ and charsheets.
 
     """
     app = ObjectProperty()
-    bigview = ObjectProperty()
-    board = ObjectProperty()
+    _touch = ObjectProperty(None, allownone=True)
     portaling = BoundedNumericProperty(0, min=0, max=2)
     playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
-    completion = NumericProperty(0)
-
-    def on_app(self, *args):
-        self.completion += 1
-
-    def on_board(self, *args):
-        self.completion += 1
-
-    def on_completion(self, *args):
-        if self.completion == 2:
-            self.finalize()
-
-    def finalize(self):
-        self.bigview = ScrollView()
-        self.bigview.add_widget(self.board)
-        self.add_widget(self.bigview)
 
     def handle_adbut(self, charsheet, i):
         adder = CharSheetAdder(charsheet=charsheet, insertion_point=i)
@@ -203,16 +187,16 @@ and charsheets.
         # Sometimes this gets triggered, *just before* getting
         # unbound, and ends up running one last time *just after*
         # self.dummyspot = None
-        if self.dummyspot is None:
+        if self._touch is None:
             return
-        (ox, oy) = self.origspot.pos
-        (dx, dy) = self.dummyspot.pos
-        (ow, oh) = self.origspot.size
+        (ox, oy) = self._touch.ud['spot'].pos
+        (dx, dy) = self._touch.ud['portaling']['dummyspot'].pos
+        (ow, oh) = self._touch.ud['spot'].size
         orx = ow / 2
         ory = oh / 2
         points = get_points(ox, orx, oy, ory, dx, 0, dy, 0, 10)
-        self.dummyarrow.canvas.clear()
-        with self.dummyarrow.canvas:
+        self._touch.ud['portaling']['dummyarrow'].canvas.clear()
+        with self._touch.ud['portaling']['dummyarrow'].canvas:
             Color(0.25, 0.25, 0.25)
             Line(width=1.4, points=points)
             Color(1, 1, 1)
@@ -225,32 +209,31 @@ and charsheets.
         self.portaling = 1
 
     def on_touch_down(self, touch):
-        if (
-                self.ids.menu.collide_point(touch.x, touch.y) or
-                self.ids.charsheet.collide_point(touch.x, touch.y)):
-            self.portaling = 0
-            return super(LiSELayout, self).on_touch_down(touch)
-        elif self.portaling == 1:
+        self.ids.board.on_touch_down(touch)
+        if self.portaling == 1:
             if "spot" in touch.ud:
-                self.dummyspot = ScatterPlane(
-                    pos=(touch.x, touch.y), size=(1, 1))
-                touch.ud["dummyspot"] = self.dummyspot
-                touch.ud['dummyarrow'] = TouchlessWidget(pos=(0, 0))
-                self.ids.board.add_widget(touch.ud['dummyarrow'])
-                self.add_widget(touch.ud['dummyspot'])
-                touch.ud["dummyspot"].bind(pos=self.draw_arrow)
+                ud = {
+                    'dummyspot': Widget(
+                        pos=touch.pos),
+                    'dummyarrow': TouchlessWidget()}
+                self.ids.board.arrowlayout.add_widget(ud['dummyarrow'])
+                self.add_widget(ud['dummyspot'])
+                ud["dummyspot"].bind(pos=self.draw_arrow)
+                touch.ud['portaling'] = ud
+                self._touch = touch
                 self.portaling = 2
             else:
                 self.portaling = 0
-                if 'dummyspot' in touch.ud:
-                    touch.ud['dummyspot'].unbind(pos=self.draw_arrow)
-                    self.remove_widget(touch.ud['dummyspot'])
-                    del touch.ud['dummyspot']
-                if 'dummyarrow' in touch.ud:
-                    touch.ud['dummyarrow'].canvas.clear()
-                    self.ids.board.remove_widget(
-                        touch.ud['dummyarrow'])
-                    del touch.ud['dummyarrow']
+                if (
+                        'portaling' in touch.ud and
+                        'dummyspot' in touch.ud['portaling']):
+                    ud = touch.ud['portaling']
+                    ud['dummyspot'].unbind(pos=self.draw_arrow)
+                    self.remove_widget(ud['dummyspot'])
+                    ud['dummyarrow'].canvas.clear()
+                    self.ids.board.arrowlayout.remove_widget(
+                        ud['dummyarrow'])
+                    del touch.ud['portaling']
                 self.dismiss_prompt()
                 self.origspot = None
                 self.dummyspot = None
@@ -260,10 +243,13 @@ and charsheets.
     def on_touch_up(self, touch):
         if self.portaling == 2:
             self.portaling = 0
-            touch.ud['dummyspot'].unbind(pos=self.draw_arrow)
-            touch.ud['dummyarrow'].canvas.clear()
-            self.remove_widget(touch.ud['dummyspot'])
-            self.ids.board.remove_widget(touch.ud['dummyarrow'])
+            if touch != self._touch:
+                return
+            ud = touch.ud['portaling']
+            ud['dummyspot'].unbind(pos=self.draw_arrow)
+            ud['dummyarrow'].canvas.clear()
+            self.remove_widget(ud['dummyspot'])
+            self.ids.board.remove_widget(ud['dummyarrow'])
             self.dismiss_prompt()
             destspot = None
             for spot in self.ids.board.spotdict.itervalues():
@@ -271,7 +257,7 @@ and charsheets.
                     destspot = spot
                     break
             if destspot is None:
-                touch.ud['dummyarrow'].canvas.clear()
+                ud['dummyarrow'].canvas.clear()
                 self.dismiss_prompt()
                 return True
             origplace = touch.ud['spot'].place
@@ -283,6 +269,7 @@ and charsheets.
             arrow = Arrow(
                 board=self.ids.board, portal=portal)
             self.ids.board.arrowdict[unicode(portal)] = arrow
+            self.ids.board.arrowlayout.add_widget(arrow)
         else:
             return super(LiSELayout, self).on_touch_up(touch)
 
@@ -549,7 +536,6 @@ class LiSEApp(App):
         from kivy.core.window import Window
         from kivy.modules import inspector
         inspector.create_inspector(Window, l)
-        l.board.finalize()
         return l
 
     def on_pause(self):

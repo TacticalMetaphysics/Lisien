@@ -216,11 +216,9 @@ class TexPile(Widget):
             pos=(xoff, yoff+sum(self.stackhs[:i])),
             size=tex.size)
         self.imgs[i] = the_img
-        self.bind(pos=the_img.setter('pos'))
         self.stackhs[i] = stackh
 
     def __delitem__(self, i):
-        self.imgs[i].unbindall()
         del self.imgs[i]
         del self.stackhs[i]
 
@@ -232,7 +230,6 @@ class TexPile(Widget):
             pos=pos,
             size=size)
         self.imgs.append(the_img)
-        self.bind(pos=the_img.setter('pos'))
         self.add_widget(self.imgs[-1])
         self.stackhs.append(stackh)
 
