@@ -1,17 +1,23 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from __future__ import print_function
+from time import time
 from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
+    AliasProperty,
+    BooleanProperty,
+    BoundedNumericProperty,
     NumericProperty,
     DictProperty,
     ObjectProperty)
 from kivy.uix.image import Image
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.clock import Clock
 from spot import Spot
 from arrow import Arrow
 from pawn import Pawn
+from LiSE.gui.stiffscroll import StiffScrollEffect
 
 
 class Board(FloatLayout):
@@ -190,3 +196,9 @@ class Board(FloatLayout):
         elif touch.grab_current is not self:
             return
         return super(Board, self).on_touch_move(touch)
+
+
+class BoardView(ScrollView):
+    def __init__(self, **kwargs):
+        kwargs['effect_cls'] = StiffScrollEffect
+        return super(BoardView, self).__init__(**kwargs)
