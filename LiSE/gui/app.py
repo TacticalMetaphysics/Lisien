@@ -3,6 +3,7 @@ from os import sep
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
+    NumericProperty,
     BoundedNumericProperty,
     ObjectProperty,
     ListProperty,
@@ -10,6 +11,7 @@ from kivy.properties import (
 
 from kivy.graphics import Line, Color
 
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
@@ -172,8 +174,26 @@ and charsheets.
 
     """
     app = ObjectProperty()
+    bigview = ObjectProperty()
+    board = ObjectProperty()
     portaling = BoundedNumericProperty(0, min=0, max=2)
     playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
+    completion = NumericProperty(0)
+
+    def on_app(self, *args):
+        self.completion += 1
+
+    def on_board(self, *args):
+        self.completion += 1
+
+    def on_completion(self, *args):
+        if self.completion == 2:
+            self.finalize()
+
+    def finalize(self):
+        self.bigview = ScrollView()
+        self.bigview.add_widget(self.board)
+        self.add_widget(self.bigview)
 
     def handle_adbut(self, charsheet, i):
         adder = CharSheetAdder(charsheet=charsheet, insertion_point=i)
@@ -521,16 +541,15 @@ class LiSEApp(App):
             self.observed_name,
             self.host_name])
         Clock.schedule_once(lambda dt: self.closet.checkpoint(), 0)
-        self.closet.load_board(
+        self.closet.load_charsheet(self.observed_name)
+        l = LiSELayout(app=self, board=self.closet.load_board(
             self.observer_name,
             self.observed_name,
-            self.host_name)
-        self.closet.load_charsheet(self.observed_name)
-        l = LiSELayout(app=self)
+            self.host_name))
         from kivy.core.window import Window
         from kivy.modules import inspector
         inspector.create_inspector(Window, l)
-        l.ids.board.finalize()
+        l.board.finalize()
         return l
 
     def on_pause(self):
