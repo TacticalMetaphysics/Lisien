@@ -2,15 +2,16 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass)
-from kivy.uix.scatter import Scatter
+from kivy.uix.widget import Widget
 from kivy.properties import (
     ObjectProperty)
+from kivy.graphics import Rectangle
 
 
 """Widget representing things that move about from place to place."""
 
 
-class Pawn(Scatter):
+class Pawn(Widget):
     __metaclass__ = SaveableWidgetMetaclass
     """A token to represent something that moves about between places.
 
@@ -61,19 +62,43 @@ The relevant data are
 
 * The branch and tick, being the two measures of game-time.
 * The location data for the Thing I represent, in the table thing_location"""
+        def reposskel(*args):
+            self.repos()
+
         super(Pawn, self).__init__(**kwargs)
         self.board.pawndict[unicode(self.thing)] = self
 
         skel = self.board.facade.closet.skeleton[u"thing_loc"][
             unicode(self.thing.character)][unicode(self.thing)]
-        skel.register_set_listener(self.reposskel)
-        skel.register_del_listener(self.reposskel)
+        skel.register_set_listener(reposskel)
+        skel.register_del_listener(reposskel)
+        self.retex()
 
     def __str__(self):
         return str(self.thing)
 
     def __unicode__(self):
         return unicode(self.thing)
+
+    def retex(self, branch=None, tick=None):
+        """Clear my canvas and rebuild it with textures from the closet."""
+        self.canvas.clear()
+        (branch, tick) = self.board.host.sanetime(branch, tick)
+        gettex = self.board.host.closet.get_texture
+        try:
+            skel = self.board.host.closet.skeleton[u"pawn_img"][
+                unicode(self.board.observer)][unicode(self.board.observed)][
+                unicode(self.board.host)][unicode(self.thing)]
+        except KeyError:
+            raise NotImplementedError(
+                "TODO: Pick the most similar graphic and use it.")
+        for layer in skel:
+            texbone = skel[layer][branch].value_during(tick)
+            texture = gettex(texbone.img)
+            self.canvas.add(Rectangle(
+                texture=texture,
+                size=texture.size,
+                pos=self.pos))
 
     def on_board(self, i, v):
         v.facade.closet.register_time_listener(self.repos)
@@ -147,30 +172,7 @@ The relevant data are
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
-    def on_touch_up(self, touch):
-        """Check if I've been dropped on top of a :class:`Spot`.  If so, my
-        :class:`Thing` should attempt to go there.
-
-        """
-        if touch.grab_current is not self:
-            return
-        for spot in self.board.spotdict.itervalues():
-            if self.collide_widget(spot):
-                myplace = self.thing.location
-                theirplace = spot.place
-                if myplace != theirplace:
-                    self.thing.journey_to(spot.place)
-                    break
-        branch = self.board.facade.closet.branch
-        tick = self.board.facade.closet.tick
-        self.repos(branch, tick)
-        super(Pawn, self).on_touch_up(touch)
-        return True
-
-    def reposskel(self, *args):
-        self.repos(*self.board.host.sanetime(None, None))
-
-    def repos(self, b, t):
+    def repos(self, b=None, t=None):
         """Recalculate and reassign my position, based on the apparent
         position of whatever widget I am located on--a :class:`Spot`
         or an :class:`Arrow`.
@@ -188,5 +190,33 @@ The relevant data are
         self.where_upon = new_where_upon
         self.where_upon.pawns_here.append(self)
 
-    def collide_point(self, x, y):
-        return self.ids.pile.collide_point(x, y)
+    def check_spot_collision(self):
+        for spot in self.board.spot_layout.children:
+            if self.collide_widget(spot):
+                return spot
+
+    def on_touch_down(self, touch):
+        r = self.ids.pile.on_touch_down(touch)
+        if r:
+            touch.ud["pawn"] = self
+            touch.grab(self)
+        return r
+
+    def on_touch_move(self, touch):
+        if touch.grab_current is self:
+            self.center = touch.pos
+            return True
+
+    def on_touch_up(self, touch):
+        if touch.grab_current is self:
+            touch.ungrab(self)
+            new_spot = self.check_spot_collision()
+
+            if new_spot:
+                myplace = self.thing.location
+                theirplace = new_spot.place
+                if myplace != theirplace:
+                    self.thing.journey_to(new_spot.place)
+            self.repos()
+            return True
+        return super(Pawn, self).on_touch_up(touch)

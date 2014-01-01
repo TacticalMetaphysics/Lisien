@@ -1,6 +1,8 @@
 #: import lisepathl LiSE.__path__
 #: import solarized LiSE.gui.style.solarized
 #: import _ LiSE.util.passthru
+#: import sep os.sep
+
 <Board>:
     auto_bring_to_front: False
 <ClosetWidget>:
@@ -390,16 +392,6 @@
 <MenuIntInput>:
     padding: [12, 12, 12, 0]
     font_size: 26
-<Pawn>:
-    auto_bring_to_front: False
-    size_hint: (None, None)
-    size: pile.size
-    do_rotation: False
-    do_scale: False
-    LayerTexPile:
-        id: pile
-        closet: root.board.facade.closet
-        imagery: self.closet.skeleton[u"pawn"][unicode(root.board.facade.observer)][unicode(root.thing.character)][unicode(root.board.host)][unicode(root.thing)]
 <PickImgDialog>:
     BoxLayout:
         size: root.size
@@ -417,16 +409,6 @@
             Button:
                 text: _("Confirm")
                 on_release: root.set_imgs(picker.selection)
-<Spot>:
-    size_hint: (None, None)
-    size: pile.size
-    do_rotation: False
-    do_scale: False
-    auto_bring_to_front: False
-    LayerTexPile:
-        id: pile
-        closet: root.board.facade.closet
-        imagery: root.board.facade.closet.skeleton[u"spot"][unicode(root.board.facade.observer)][unicode(root.board.host)][unicode(root.place)]
 <SwatchBox>:
     orientation: 'vertical'
 <TogSwatch,FrobSwatch>:
@@ -451,14 +433,21 @@
 <CharStatTableView>:
     CharStatTableContent:
         closet: root.character.closet
-<TexPile>:
-    width: max([img.right for img in self.imgs]) if len(self.imgs) > 0 else 0
-    height: max([img.top for img in self.imgs]) if len(self.imgs) > 0 else 0
+<Board>:
+    Image:
+        texture: root.wallpaper
+        pos: root.pos
+        size: root.size
+<Pawn,Spot>:
+    size_hint: (None, None)
 <LiSELayout>:
-    Board:
-        id: board
-        facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
-        host: root.app.closet.get_character(root.app.host_name)
+    ScrollView:
+        id: board_view
+        Board:
+            id: board
+            facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
+            host: root.app.closet.get_character(root.app.host_name)
+            size_hint: (None, None)
     CueCard:
         id: prompt
         closet: root.app.closet

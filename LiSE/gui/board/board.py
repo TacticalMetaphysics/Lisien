@@ -2,21 +2,23 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from __future__ import print_function
 from LiSE.gui.kivybits import SaveableWidgetMetaclass
+from kivy.graphics import Rectangle
 from kivy.properties import (
     AliasProperty,
     DictProperty,
     NumericProperty,
     ObjectProperty)
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.relativelayout import RelativeLayout
-from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.widget import Widget
 from kivy.uix.image import Image
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.floatlayout import FloatLayout
+from kivy.clock import Clock
 from spot import Spot
 from arrow import Arrow
 from pawn import Pawn
 
 
-class Board(ScrollView):
+class Board(FloatLayout):
     """A graphical view onto a facade, resembling a game board."""
     __metaclass__ = SaveableWidgetMetaclass
     demands = ["thing", "img"]
@@ -41,7 +43,7 @@ class Board(ScrollView):
                        "arrow_width>0", "arrowhead_size>0")})]
     facade = ObjectProperty()
     host = ObjectProperty()
-    completion = NumericProperty(0)
+    wallpaper = ObjectProperty()
 
     def _set_bone(self, bone):
         self.facade.closet.skeleton[u"board"][
@@ -56,13 +58,6 @@ class Board(ScrollView):
     def _set_y(self, y):
         bone = self.bone._replace(y=y)
         self._set_bone(bone)
-
-    scroll_x = AliasProperty(
-        lambda self: self.bone.x,
-        _set_x)
-    scroll_y = AliasProperty(
-        lambda self: self.bone.y,
-        _set_y)
 
     spotdict = DictProperty({})
     pawndict = DictProperty({})
@@ -114,40 +109,18 @@ class Board(ScrollView):
             skel[bone.branch] = []
         skel[bone.branch][bone.tick] = bone
 
-    def on_facade(self, i, v):
-        self.completion += 1
-
-    def on_host(self, i, v):
-        self.completion += 1
-
-    def on_parent(self, i, v):
-        self.completion += 1
-
-    def on_completion(self, i, v):
-        if v == 3:
-            self.finalize()
-
-    def finalize(self):
+    def finalize(self, *args):
         obsrvr = unicode(self.facade.observer)
         obsrvd = unicode(self.facade.observed)
         host = unicode(self.host)
+        tex = self.host.closet.get_texture('default_wallpaper')
+        self.wallpaper = tex
+        self.size = self.wallpaper.size
         if obsrvr not in self.facade.closet.board_d:
             self.facade.closet.board_d[obsrvr] = {}
         if obsrvd not in self.facade.closet.board_d[obsrvr]:
             self.facade.closet.board_d[obsrvr][obsrvd] = {}
         self.facade.closet.board_d[obsrvr][obsrvd][host] = self
-        tex = self.facade.closet.get_texture(self.bone.wallpaper)
-        content = RelativeLayout(
-            size_hint=(None, None),
-            size=tex.size)
-        content.add_widget(Image(pos=(0, 0), texture=tex, size=tex.size))
-        self.arrow_layout = FloatLayout()
-        content.add_widget(self.arrow_layout)
-        self.spot_layout = FloatLayout()
-        content.add_widget(self.spot_layout)
-        self.pawn_layout = FloatLayout()
-        content.add_widget(self.pawn_layout)
-        super(Board, self).add_widget(content)
         # Regardless of what the facade *shows*, create spots, pawns,
         # and portals for everything in the host, just in case I need
         # to show them.
@@ -161,7 +134,6 @@ class Board(ScrollView):
                 port = self.facade.observed.get_portal(bone.name)
                 self.arrowdict[bone.name] = Arrow(
                     board=self, portal=port)
-                self.arrow_layout.add_widget(self.arrowdict[bone.name])
         for bone in self.facade.closet.skeleton[u"pawn"].iterbones():
             if bone.host == host and bone.thing not in self.pawndict:
                 char = self.facade.closet.get_character(bone.observed)
@@ -170,10 +142,12 @@ class Board(ScrollView):
                 except KeyError:
                     thing = char.make_thing(bone.thing)
                 self.pawndict[bone.thing] = Pawn(board=self, thing=thing)
+        for arrow in self.arrowdict.itervalues():
+            self.add_widget(arrow)
         for spot in self.spotdict.itervalues():
-            self.spot_layout.add_widget(spot)
+            self.add_widget(spot)
         for pawn in self.pawndict.itervalues():
-            self.pawn_layout.add_widget(pawn)
+            self.add_widget(pawn)
 
     def __str__(self):
         return str(self.facade)
@@ -183,9 +157,6 @@ class Board(ScrollView):
 
     def __repr__(self):
         return "Board({})".format(self)
-
-    def add_widget(self, w):
-        return self.children[0].add_widget(w)
 
     def get_texture(self):
         return self.facade.closet.get_texture(self.bone.wallpaper)
@@ -216,19 +187,3 @@ class Board(ScrollView):
         for pawn in self.pawndict.itervalues():
             for bone in pawn.new_branch(parent, branch, tick):
                 yield bone
-
-    def on_touch_down(self, touch):
-        for preemptor in ("charsheet", "menu"):
-            if preemptor in touch.ud:
-                return
-        if self.parent.dummyspot is not None:
-            self.parent.dummyspot.pos = (touch.x, touch.y)
-        return (
-            self.pawn_layout.on_touch_down(touch) or
-            self.spot_layout.on_touch_down(touch) or
-            super(Board, self).on_touch_down(touch))
-
-    def on_touch_move(self, touch):
-        if self.parent.dummyspot is not None:
-            self.parent.dummyspot.pos = (touch.x, touch.y)
-        return super(Board, self).on_touch_move(touch)
