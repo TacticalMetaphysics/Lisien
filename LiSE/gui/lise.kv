@@ -437,137 +437,137 @@
         size: root.size
 <Pawn,Spot>:
     size_hint: (None, None)
-<LiSELayout>:
-    ScrollView:
-        id: board_view
-        Board:
-            id: board
-            facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
-            host: root.app.closet.get_character(root.app.host_name)
-            size_hint: (None, None)
-    CueCard:
-        id: prompt
-        closet: root.app.closet
-        pos_hint: {'x': 0.1, 'top': 1}
-        size_hint: (None, None)
-        size: (400, 26)
-    CharSheetView:
-        id: csview
-        pos_hint: {'x': 0.5, 'y': 0.0}
-        size_hint: (0.5, 1.0)
-        scroll_type: ['bars']
-        bar_pos_y: 'left'
-        CharSheet:
-            id: charsheet
-            width: csview.width
-            character: root.app.closet.get_character(root.app.observed_name)
-            cols: 2
-            spacing: 10
-            cols_minimum: {0: self.width - 34 - self.spacing[0], 1: 34}
-    BoxLayout:
-        id: menu
-        size_hint: (0.1, 1)
-        orientation: 'vertical'
-        spacing: 10
-        ClosetButton:
-            closet: root.app.closet
-            stringname: _("Place...")
-            fun: root.show_spot_menu
-        ClosetButton:
-            closet: root.app.closet
-            stringname: _("Portal...")
-            fun: root.make_arrow
-        ClosetButton:
-            closet: root.app.closet
-            stringname: _("Thing...")
-            fun: root.show_pawn_menu
-        ClosetButton:
-            closet: root.app.closet
-            symbolic: True
-            stringname: _("@starttime")
-            fun: root.normal_speed
-        ClosetButton:
-            closet: root.app.closet
-            symbolic: True
-            stringname: _("@reversetime")
-            fun: root.normal_speed
-            arg: False
-        ClosetButton:
-            closet: root.app.closet
-            symbolic: True
-            stringname: _("@pause")
-            fun: root.pause
-        CueCard:
-            closet: root.app.closet
-            stringname: _("Branch:")
-        MenuIntInput:
-            closet: root.app.closet
-            stringname: '@branch'
-            fun: root.go_to_branch
-        CueCard:
-            closet: root.app.closet
-            stringname: _("Tick:")
-        MenuIntInput:
-            closet: root.app.closet
-            stringname: '@tick'
-            fun: root.go_to_tick
-<SpotMenuContent>:
-    id: spotmenu
-    TextInput:
-        id: namer
-        hint_text: root.get_text(_("Enter a unique name"))
-        size_hint: (1, None)
-        multiline: False
-        height: self.line_height * 2
-    TogSwatch:
-        box: spotmenu
-        img_name: "default_spot"
-        text: root.get_text(_("Use default image"))
-        group: "spotmenu"
-        size_hint_y: None
-    TogSwatch:
-        box: spotmenu
-        img_name: "crossroad"
-        img_tags: ['?pixel_city']
-        text: root.get_text(_("Build with PixelCity"))
-        group: "spotmenu"
-        size_hint_y: None
-    BoxLayout:
-        size_hint_y: None
-        height: 30
-        Button:
-            text: root.get_text(_('Cancel'))
-            on_release: root.cancel()
-        Button:
-            text: root.get_text(_('Confirm'))
-            on_release: root.confirm()
-<PawnMenuContent>:
-    id: pawnmenu
-    TextInput:
-        id: namer
-        hint_text: root.get_text(_("Enter a unique name"))
-        size_hint: (1, None)
-        multiline: False
-        height: self.line_height * 2
-    TogSwatch:
-        box: pawnmenu
-        img_name: "default_pawn"
-        text: root.get_text(_("Use default image"))
-        group: "pawnmenu"
-        size_hint_y: None
-    TogSwatch:
-        box: pawnmenu
-        img_name: "base.mummy_f"
-        img_tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
-        text: root.get_text(_("Build with RLTiles"))
-        group: "pawnmenu"
-        size_hint_y: None
-    BoxLayout:
-        size_hint_y: None
-        height: 30
-        Button:
-            text: root.get_text(_('Cancel'))
-            on_release: root.cancel()
-        Button:
-            text: root.get_text(_('Confirm'))
-            on_release: root.confirm()
+# <LiSELayout>:
+#     ScrollView:
+#         id: board_view
+#         Board:
+#             id: board
+#             facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
+#             host: root.app.closet.get_character(root.app.host_name)
+#             size_hint: (None, None)
+#     CueCard:
+#         id: prompt
+#         closet: root.app.closet
+#         pos_hint: {'x': 0.1, 'top': 1}
+#         size_hint: (None, None)
+#         size: (400, 26)
+#     CharSheetView:
+#         id: csview
+#         pos_hint: {'x': 0.5, 'y': 0.0}
+#         size_hint: (0.5, 1.0)
+#         scroll_type: ['bars']
+#         bar_pos_y: 'left'
+#         CharSheet:
+#             id: charsheet
+#             width: csview.width
+#             character: root.app.closet.get_character(root.app.observed_name)
+#             cols: 2
+#             spacing: 10
+#             cols_minimum: {0: self.width - 34 - self.spacing[0], 1: 34}
+#     BoxLayout:
+#         id: menu
+#         size_hint: (0.1, 1)
+#         orientation: 'vertical'
+#         spacing: 10
+#         ClosetButton:
+#             closet: root.app.closet
+#             stringname: _("Place...")
+#             fun: root.show_spot_menu
+#         ClosetButton:
+#             closet: root.app.closet
+#             stringname: _("Portal...")
+#             fun: root.make_arrow
+#         ClosetButton:
+#             closet: root.app.closet
+#             stringname: _("Thing...")
+#             fun: root.show_pawn_menu
+#         ClosetButton:
+#             closet: root.app.closet
+#             symbolic: True
+#             stringname: _("@starttime")
+#             fun: root.normal_speed
+#         ClosetButton:
+#             closet: root.app.closet
+#             symbolic: True
+#             stringname: _("@reversetime")
+#             fun: root.normal_speed
+#             arg: False
+#         ClosetButton:
+#             closet: root.app.closet
+#             symbolic: True
+#             stringname: _("@pause")
+#             fun: root.pause
+#         CueCard:
+#             closet: root.app.closet
+#             stringname: _("Branch:")
+#         MenuIntInput:
+#             closet: root.app.closet
+#             stringname: '@branch'
+#             fun: root.go_to_branch
+#         CueCard:
+#             closet: root.app.closet
+#             stringname: _("Tick:")
+#         MenuIntInput:
+#             closet: root.app.closet
+#             stringname: '@tick'
+#             fun: root.go_to_tick
+# <SpotMenuContent>:
+#     id: spotmenu
+#     TextInput:
+#         id: namer
+#         hint_text: root.get_text(_("Enter a unique name"))
+#         size_hint: (1, None)
+#         multiline: False
+#         height: self.line_height * 2
+#     TogSwatch:
+#         box: spotmenu
+#         img_name: "default_spot"
+#         text: root.get_text(_("Use default image"))
+#         group: "spotmenu"
+#         size_hint_y: None
+#     TogSwatch:
+#         box: spotmenu
+#         img_name: "crossroad"
+#         img_tags: ['?pixel_city']
+#         text: root.get_text(_("Build with PixelCity"))
+#         group: "spotmenu"
+#         size_hint_y: None
+#     BoxLayout:
+#         size_hint_y: None
+#         height: 30
+#         Button:
+#             text: root.get_text(_('Cancel'))
+#             on_release: root.cancel()
+#         Button:
+#             text: root.get_text(_('Confirm'))
+#             on_release: root.confirm()
+# <PawnMenuContent>:
+#     id: pawnmenu
+#     TextInput:
+#         id: namer
+#         hint_text: root.get_text(_("Enter a unique name"))
+#         size_hint: (1, None)
+#         multiline: False
+#         height: self.line_height * 2
+#     TogSwatch:
+#         box: pawnmenu
+#         img_name: "default_pawn"
+#         text: root.get_text(_("Use default image"))
+#         group: "pawnmenu"
+#         size_hint_y: None
+#     TogSwatch:
+#         box: pawnmenu
+#         img_name: "base.mummy_f"
+#         img_tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
+#         text: root.get_text(_("Build with RLTiles"))
+#         group: "pawnmenu"
+#         size_hint_y: None
+#     BoxLayout:
+#         size_hint_y: None
+#         height: 30
+#         Button:
+#             text: root.get_text(_('Cancel'))
+#             on_release: root.cancel()
+#         Button:
+#             text: root.get_text(_('Confirm'))
+#             on_release: root.confirm()
