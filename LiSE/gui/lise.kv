@@ -69,11 +69,6 @@
     font_size: 30
     text: self.adder.get_text(_('@add')) if self.adder else ''
     on_release: self.statview.add_stat(self.arg)
-<CSEdBut>:
-    size_hint_y: None
-    Image:
-        pos: root.center
-        source: sep.join([lisepathl[-1], 'gui', 'assets', 'closedlock.png']) if root.state == 'normal' else sep.join([lisepathl[-1], 'gui', 'assets', 'openlock.png'])
 <CharSheetAdder>:
     StackLayout:
         Label:
