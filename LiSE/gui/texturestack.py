@@ -24,7 +24,7 @@ def first_negative(L):
 def enforce_positivity(L):
     neg = first_negative(L)
     while neg is not None:
-        push_list(L, n)
+        push_list(L, neg)
 
 
 class TextureStack(Widget):
