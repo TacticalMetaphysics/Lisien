@@ -60,8 +60,8 @@ exist yet, but you know what it should look like."""
         for bone in self.imgbones:
             self.pile.append(
                 clost.get_texture(bone.name),
-                xoff=bone.off_x,
-                yoff=bone.off_y,
+                offx=bone.off_x,
+                offy=bone.off_y,
                 stackh=bone.stacking_height)
         self.add_widget(self.pile)
 
@@ -105,7 +105,7 @@ exist yet, but you know what it should look like."""
                     clost.set_bone(pawnbone)
                 pawn = Pawn(board=self.board, thing=th)
                 self.board.pawndict[thingn] = pawn
-                self.board.pawn_layout.add_widget(pawn)
+                self.board.pawnlayout.add_widget(pawn)
                 self.clear_widgets()
                 self.callback()
                 return True
@@ -325,6 +325,7 @@ and charsheets.
                 pawnpicker_args = pawn_menu_content.picker_args
                 pawn_menu_content.selection = []
                 self.show_pawn_picker(*pawnpicker_args)
+                pawn_menu.dismiss()
         pawn_menu_content.confirm = confirm
 
         def cancel():

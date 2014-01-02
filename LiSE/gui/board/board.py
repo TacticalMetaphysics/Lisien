@@ -130,9 +130,9 @@ class Board(FloatLayout):
                     pawnbone.thing not in self.pawndict):
                 char = self.facade.closet.get_character(bone.observed)
                 try:
-                    thing = char.get_thing(bone.thing)
+                    thing = char.get_thing(pawnbone.thing)
                 except KeyError:
-                    thing = char.make_thing(bone.thing)
+                    thing = char.make_thing(pawnbone.thing)
                 self.pawndict[pawnbone.thing] = Pawn(board=self, thing=thing)
         for arrow in self.arrowdict.itervalues():
             self.arrowlayout.add_widget(arrow)

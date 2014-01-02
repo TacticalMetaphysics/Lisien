@@ -55,6 +55,12 @@ class TextureStack(Widget):
     other textures will be moved upward.
 
     """
+    stackhs = ListProperty([])
+    """Stacking heights. A texture with a positive stacking height will
+    cause all textures on top of it to be offset in the vertical
+    dimension by that amount. Stacking heights are cumulative.
+
+    """
     texture_rectangles = DictProperty({})
     rectangle_groups = DictProperty({})
     suppressor = BooleanProperty(False)
@@ -111,13 +117,14 @@ class TextureStack(Widget):
         self.rectangle_groups[rect] = group
         return group
 
-    def insert(self, i, tex, offx=0, offy=0):
+    def insert(self, i, tex, offx=0, offy=0, stackh=0):
         if not self.canvas:
             Clock.schedule_once(
                 lambda dt: self.insert(i, tex, offx, offy), 0)
             return
         self.offxs.insert(i, offx)
-        self.offys.insert(i, offy)
+        self.offys.insert(i, offy+sum(self.stackhs[:i]))
+        self.stackhs.insert(i, stackh)
         self.texs.insert(i, tex)
         # the handlers for offxs and offys mean that they will not
         # necessarily remain at the value they were when we just
@@ -125,8 +132,8 @@ class TextureStack(Widget):
         group = self.rectify(tex, self.x+self.offxs[i], self.y+self.offys[i])
         self.canvas.insert(i, group)
 
-    def append(self, tex, offx=0, offy=0):
-        self.insert(len(self.texs), tex, offx, offy)
+    def append(self, tex, offx=0, offy=0, stackh=0):
+        self.insert(len(self.texs), tex, offx, offy, stackh)
 
     def __delitem__(self, i):
         tex = self.texs[i]
@@ -142,9 +149,9 @@ class TextureStack(Widget):
         del self.offys[i]
         del self.texs[i]
 
-    def __setitem__(self, i, v, offx=0, offy=0):
+    def __setitem__(self, i, v, offx=0, offy=0, stackh=0):
         self.__delitem__(i)
-        self.insert(i, v, offx, offy)
+        self.insert(i, v, offx, offy, stackh)
 
     def pop(self, i=-1):
         self.offxs.pop(i)
