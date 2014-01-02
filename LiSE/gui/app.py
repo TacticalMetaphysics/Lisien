@@ -58,11 +58,12 @@ exist yet, but you know what it should look like."""
         self.pile = TextureStack()
         clost = self.board.facade.closet
         for bone in self.imgbones:
+            image = clost.get_image(bone.name)
             self.pile.append(
-                clost.get_texture(bone.name),
-                offx=bone.off_x,
-                offy=bone.off_y,
-                stackh=bone.stacking_height)
+                image.texture,
+                offx=image.offx,
+                offy=image.offy,
+                stackh=image.stackh)
         self.add_widget(self.pile)
 
     def on_touch_up(self, touch):
@@ -523,7 +524,7 @@ class LiSEApp(App):
         self.closet = closet.load_closet(
             self.dbfn, self.lgettext, True)
         self.closet.load_img_metadata()
-        self.closet.load_textures_tagged(['base', 'body'])
+        self.closet.load_images_tagged(['base', 'body'])
         # Currently the decision of when and whether to update things
         # is split between here and the closet. Seems inappropriate.
         self.closet.load_characters([

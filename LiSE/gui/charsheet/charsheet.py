@@ -217,6 +217,11 @@ class CSAddBut(Button):
     statview = ObjectProperty()
     arg = ObjectProperty()
 
+    def __init__(self, **kwargs):
+        kwargs['size_hint'] = (None, None)
+        super(CSAddBut, self).__init__(**kwargs)
+        self.texs = [
+
 
 class CSEdBut(ToggleButton):
     charsheet = ObjectProperty()

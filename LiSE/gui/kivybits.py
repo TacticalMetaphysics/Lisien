@@ -2,7 +2,7 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButtonBehavior
 from kivy.uix.textinput import TextInput
-from kivy.uix.image import Image
+from kivy.core.image import Image as KImage
 from kivy.uix.widget import (
     Widget,
     WidgetMetaclass)
@@ -24,6 +24,25 @@ from LiSE import __path__
 from LiSE.util import SaveableMetaclass
 from texturestack import TextureStack
 from img import Img
+
+
+class Image(KImage):
+    """Just an Image that stores some LiSE-specific metadata."""
+    offx = NumericProperty(0)
+    offy = NumericProperty(0)
+    stackh = NumericProperty(0)
+    tags = ListProperty([])
+
+    @staticmethod
+    def load(self, filename):
+        img_d = KImage.load(filename, keep_data=True).__dict__
+        return Image(**img_d)
+
+    @staticmethod
+    def from_bone(bone):
+        return Image(KImage.load(bone.path, keep_data=True).texture,
+                     offx=bone.off_x, offy=bone.off_y,
+                     stackh=bone.stacking_height)
 
 
 class ClosetWidget(Widget):
@@ -154,52 +173,49 @@ enough to get a popup of its own.
             self.text = v
 
 
-def load_textures(cursor, skel, texturedict, textagdict, names):
+def load_images(cursor, setter, names):
     """Load all the textures in ``names``. Put their :class:`Bone`s in
     ``skel``, and the textures themselves in ``texturedict``."""
-    nulimg = Img.bonetypes["img"](
-        *[None for field in Img.bonetypes["img"]._fields])
-    qd = {
-        u"img": [nulimg._replace(name=n) for n in names],
-        u"img_tag": [Img.bonetypes["img_tag"](img=n) for n in names]}
-    res = Img._select_skeleton(cursor, qd)
-    skel.update(res)
     r = {}
-    for name in names:
-        r[name] = Image(
-            source=skel[u"img"][name].path).texture
-    texturedict.update(r)
-    for (img, tag) in skel[u"img_tag"].iterbones():
-        if tag not in textagdict:
-            textagdict[tag] = set()
-        textagdict[tag].add(img)
+    for bone in Img._select_skeleton(cursor, {u"img": [
+            Img.bonetype._null()._replace(name=n) for n in names]
+    }).iterbones():
+        setter(bone)
+        r[bone.name] = Image.from_bone(bone)
+    for bone in Img._select_skeleton(cursor, {u"img_tag": [
+            Img.bonetypes["img_tag"](img=n) for n in names]
+    }).iterbones():
+        setter(bone)
+        image = r[bone.img]
+        if bone.tag not in image.tags:
+            image.tags.append(bone.tag)
     return r
 
 
-def load_textures_tagged(cursor, skel, texturedict, textagdict, tags):
+def load_images_tagged(cursor, setter, tags):
     tagskel = Img._select_skeleton(
         cursor, {u"img_tag": [Img.bonetypes["img_tag"](tag=t) for t in tags]})
-    skel.update(tagskel)
     imgs = set([bone.img for bone in tagskel.iterbones()])
-    return load_textures(cursor, skel, texturedict, textagdict, imgs)
+    return load_images(cursor, setter, imgs)
 
 
-def load_all_textures(cursor, skel, texturedict, textagdict):
-    skel.update(Img._select_table_all(cursor, u"img_tag") +
-                Img._select_table_all(cursor, u"img"))
-    for bone in skel[u"img"].iterbones():
-        texturedict[bone.name] = Image(
-            source=bone.path).texture
-    for (img, tag) in skel[u"img_tag"].iterbones():
-        if img not in textagdict:
-            textagdict[tag] = set()
-        textagdict[tag].add(img)
+def load_all_images(cursor, setter):
+    imagedict = {}
+    for bone in Img._select_table_all(cursor, u"img").iterbones():
+        setter(bone)
+    for bone in Img._select_table_all(cursor, u"img_tag").iterbones():
+        setter(bone)
+        (img, tag) = bone
+        image = imagedict[img]
+        if tag not in image.tags:
+            image.tags.append(tag)
+    return imagedict
 
 
 class ClosetTextureStack(TextureStack):
     closet = ObjectProperty()
     bones = ListProperty([])
-    bone_textures = DictProperty({})
+    bone_images = DictProperty({})
 
     def on_bones(self, *args):
         if not self.closet:
@@ -207,16 +223,18 @@ class ClosetTextureStack(TextureStack):
         i = 0
         for bone in self.bones:
             if len(self.texs) == i:
-                tex = self.closet.get_texture(bone.name)
-                self.append(tex, offx=bone.off_x, offy=bone.off_y)
-                self.bone_textures[bone] = tex
-            elif bone in self.bone_textures:
+                image = self.closet.get_image
+                self.append(image.texture,
+                            offx=image.offx,
+                            offy=image.offy)
+                self.bone_images[bone] = image
+            elif bone in self.bone_images:
                 continue
             else:
-                tex = self.closet.get_texture(bone.name)
-                self.offxs[i] = bone.off_x
-                self.offys[i] = bone.off_y
-                self[i] = self.bone_textures[bone] = tex
+                image = self.closet.get_image(bone.name)
+                self.offxs[i] = image.off_x
+                self.offys[i] = image.off_y
+                self[i] = self.bone_images[bone] = image
             i += 1
 
 

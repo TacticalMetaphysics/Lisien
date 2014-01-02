@@ -208,7 +208,15 @@ class Thing(Container):
         return passed / duration
 
     def journey_to(self, destplace, branch=None, tick=None):
-        """Schedule myself to travel somewhere."""
+        """Schedule myself to travel somewhere.
+
+        I'll attempt to find a path from wherever I am at the moment
+        (or the time supplied) to the destination given. If I find
+        one, I'll schedule myself to be in the places and portals in
+        it at the appropriate times. Precisely what times are
+        'appropriate' depends on the effective lengths of the portals.
+
+        """
         if unicode(destplace) == unicode(self.get_location(branch, tick)):
             # Nothing to do
             return

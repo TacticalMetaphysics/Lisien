@@ -118,8 +118,8 @@ before RumorMill will work. For that, run mkdb.sh.
         "board_d",
         "effect_d",
         "img_d",
-        "texture_d",
-        "textag_d",
+        "image_d",
+        "image_tag_d",
         "menu_d",
         "menuitem_d",
         "style_d",
@@ -170,17 +170,32 @@ before RumorMill will work. For that, run mkdb.sh.
 
         if USE_KIVY:
             from gui.kivybits import (
-                load_textures,
-                load_textures_tagged,
-                load_all_textures)
-            self.load_textures = lambda names: load_textures(
-                self.c, self.skeleton, self.texture_d,
-                self.textag_d, names)
-            self.load_all_textures = lambda: load_all_textures(
-                self.c, self.skeleton, self.texture_d, self.textag_d)
-            self.load_textures_tagged = lambda tags: load_textures_tagged(
-                self.c, self.skeleton, self.texture_d, self.textag_d,
-                tags)
+                load_images,
+                load_images_tagged,
+                load_all_images)
+
+            def _load_images(names):
+                r = load_images(self.c, self.set_bone)
+                self.imagedict.update(r)
+                return r
+
+            def _load_all_images():
+                r = load_all_images(self.c, self.set_bone)
+                self.imagedict.update(r)
+                return r
+
+            def _load_images_tagged(tags):
+                r = load_images_tagged(self.c, self.set_bone, tags)
+                self.imagedict.update(r)
+                for image in r.itervalues():
+                    for tag in image.tags:
+                        if tag not in self.image_tag_d:
+                            self.image_tag_d[tag] = set()
+                        self.image_tag_d[tag].add(image)
+                return r
+            self.load_images = _load_images
+            self.load_all_images = _load_all_images
+            self.load_images_tagged = _load_images_tagged
             self.USE_KIVY = True
 
         self.timestream = Timestream(self)
@@ -487,8 +502,8 @@ before RumorMill will work. For that, run mkdb.sh.
         """Get a thing from a character"""
         return self.get_character(char).get_thing(name)
 
-    def get_textures(self, imgnames):
-        """Return a dictionary full of textures by the given names, loading
+    def get_images(self, imgnames):
+        """Return a dictionary full of images by the given names, loading
         them as needed."""
         r = {}
         unloaded = set()
@@ -498,12 +513,12 @@ before RumorMill will work. For that, run mkdb.sh.
             else:
                 unloaded.add(imgn)
         if len(unloaded) > 0:
-            r.update(self.load_textures(unloaded))
+            r.update(self.load_images(unloaded))
         return r
 
-    def get_texture(self, imgn):
+    def get_image(self, imgn):
         """Return the texture by the given name"""
-        return self.get_textures([imgn])[imgn]
+        return self.get_images([imgn])[imgn]
 
     def load_menus(self, names):
         """Return a dictionary full of menus by the given names, loading them
