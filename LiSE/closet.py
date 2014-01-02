@@ -44,11 +44,6 @@ from kivy.atlas import Atlas
 from LiSE import __path__
 
 
-def noop(*args, **kwargs):
-    """Do nothing."""
-    pass
-
-
 ###
 # These regexes serve to parse certain database records that represent
 # function calls.
@@ -192,41 +187,6 @@ before RumorMill will work. For that, run mkdb.sh.
         self.time_travel_history = []
         self.game_speed = 1
         self.updating = False
-        placeholder = (noop, ITEM_ARG_RE)
-        self.menu_cbs = {
-            'play_speed':
-            (self.play_speed, ONE_ARG_RE),
-            'back_to_start':
-            (self.back_to_start, ''),
-            'noop': placeholder,
-            'make_generic_place':
-            (self.make_generic_place, ''),
-            'increment_branch':
-            (self.increment_branch, ONE_ARG_RE),
-            'time_travel_inc_tick':
-            (lambda mi, ticks:
-             self.time_travel_inc_tick(int(ticks)), ONE_ARG_RE),
-            'time_travel':
-            (self.time_travel_menu_item, TWO_ARG_RE),
-            'time_travel_inc_branch':
-            (lambda mi, branches: self.time_travel_inc_branch(int(branches)),
-             ONE_ARG_RE),
-            'go':
-            (self.go, ""),
-            'stop':
-            (self.stop, ""),
-            'start_new_map': placeholder,
-            'open_map': placeholder,
-            'save_map': placeholder,
-            'quit_map_editor': placeholder,
-            'editor_select': placeholder,
-            'editor_copy': placeholder,
-            'editor_paste': placeholder,
-            'editor_delete': placeholder,
-            'mi_connect_portal':
-            (self.mi_connect_portal, ""),
-            'mi_show_popup':
-            (self.mi_show_popup, ONE_ARG_RE)}
 
     def __del__(self):
         """Try to write changes to disk before dying.
@@ -304,12 +264,6 @@ before RumorMill will work. For that, run mkdb.sh.
         """Set the current branch and tick, alerting any time_listeners"""
         for listener in self.time_listeners:
             listener(b, t)
-
-    def upd_lang(self, l):
-        """Set the current language, alerting any lang_listeners"""
-        for listener in self.lang_listeners:
-            listener(self, l)
-        super(Closet, self).__setattr__('language', l)
 
     def get_global(self, key):
         self.c.execute("SELECT type, value FROM globals WHERE key=?;", (key,))

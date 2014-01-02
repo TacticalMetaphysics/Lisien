@@ -32,7 +32,9 @@ class TextureStack(Widget):
         while texs != []:
             tex = texs.pop()
             if tex not in self.texture_rectangles:
+                self.suppressor = True
                 self[len(texs)] = tex
+                self.suppressor = False
 
     def clear(self):
         self.canvas.clear()
@@ -43,7 +45,7 @@ class TextureStack(Widget):
 
     def recalc_size(self):
         width = height = 1
-        for texture in self.texture_rectangles.iterkeys():
+        for texture in self.texs:
             if texture.width > width:
                 width = texture.width
             if texture.height > height:
@@ -85,25 +87,6 @@ class TextureStack(Widget):
             self.width = tex.width
         if tex.height > self.height:
             self.height = tex.height
-        self.suppressor = False
-
-    def remove(self, tex_rect):
-        def rmrect(rect):
-            group = self.rectangle_groups[rect]
-            self.canvas.remove(group)
-            del self.rectangle_groups[rect]
-
-        def rmtex(tex):
-            self.texs.remove(tex)
-            rmrect(self.texture_rectangles[tex])
-            del self.texture_rectangles[tex]
-
-        self.suppressor = True
-        if isinstance(tex_rect, Rectangle):
-            rmrect(tex_rect)
-        else:
-            rmtex(tex_rect)
-        self.recalc_size()
         self.suppressor = False
 
     def __delitem__(self, i):

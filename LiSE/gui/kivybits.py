@@ -1,7 +1,3 @@
-from os import sep
-
-from weakref import ref
-
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButtonBehavior
@@ -18,6 +14,10 @@ from kivy.properties import (
     ObjectProperty,
     StringProperty,
     BooleanProperty)
+from kivy.graphics import (
+    Rectangle,
+    InstructionGroup
+)
 from kivy.clock import Clock
 
 from LiSE import __path__
@@ -196,43 +196,126 @@ def load_all_textures(cursor, skel, texturedict, textagdict):
         textagdict[tag].add(img)
 
 
-class ClosetTextureStack(TextureStack):
-    texs = ListProperty([])
-    texture_rectangles = DictProperty({})
-    rectangle_groups = DictProperty({})
-    closet = ObjectProperty()
-    names = ListProperty([])
-    name_textures = DictProperty({})
+class OffsetTextureStack(TextureStack):
+    offxs = ListProperty([])
+    offys = ListProperty([])
 
-    def on_names(self, *args):
+    def on_width(self, *args):
+        pass
+
+    def clear(self):
+        super(OffsetTextureStack, self).clear()
+        self.offxs = []
+        self.offys = []
+
+    def insert(self, i, tex, offx=0, offy=0):
+        self.suppressor = True
+        if not self.canvas:
+            Clock.schedule_once(
+                lambda dt: self.insert(i, tex, offx, offy), 0)
+            return
+        self.texs.insert(i, tex)
+        self.offxs.insert(i, offx)
+        self.offys.insert(i, offy)
+        group = self.rectify(tex, offx, offy)
+        self.canvas.insert(i, group)
+        self.width = max([self.width, tex.width + max([offx, 0])])
+        self.height = max([self.height, tex.height + max([offy, 0])])
+        self.suppressor = False
+
+    def append(self, tex, offx=0, offy=0):
+        self.insert(len(self.texs), tex, offx, offy)
+
+    def __setitem__(self, i, v, offx=0, offy=0):
+        self.__delitem__(i)
+        self.insert(i, v, offx, offy)
+
+    def __delitem__(self, i):
+        super(OffsetTextureStack, self).__delitem__(i)
+        del self.offxs[i]
+        del self.offys[i]
+
+    def pop(self, i=-1):
+        tex = super(OffsetTextureStack, self).pop(i)
+        self.offxs.pop(i)
+        self.offys.pop(i)
+        return tex
+
+    def rectify(self, tex, offx=0, offy=0):
+        if offx < 0:
+            self.offxs = map(lambda x: x-offx, self.offxs)
+            offx = 0
+        if offy < 0:
+            self.offys = map(lambda y: y-offy, self.offys)
+            offy = 0
+        rect = Rectangle(
+            x=self.x+offx,
+            y=self.y+offy,
+            pos=self.pos,
+            size=tex.size,
+            texture=tex)
+        self.texture_rectangles[tex] = rect
+        group = InstructionGroup()
+        group.add(rect)
+        self.rectangle_groups[rect] = group
+        return group
+
+    def recalc_size(self):
+        width = height = 1
+        for i in xrange(0, len(self.texs)):
+            tex = self.texs[i]
+            offx = self.offxs[i]
+            offy = self.offys[i]
+            assert(offx >= 0 and offy >= 0)
+            w = tex.width + offx
+            h = tex.height + offy
+            width = max([width, w])
+            height = max([height, h])
+        self.size = (width, height)
+
+    def on_pos(self, *args):
+        for i in xrange(0, len(self.texs)):
+            tex = self.texs[i]
+            offx = self.offxs[i]
+            offy = self.offys[i]
+            rect = self.texture_rectangles[tex]
+            rect.pos = (self.x + offx, self.y + offy)
+
+
+class ClosetTextureStack(OffsetTextureStack):
+    closet = ObjectProperty()
+    bones = ListProperty([])
+    bone_textures = DictProperty({})
+
+    def on_bones(self, *args):
         if not self.closet:
             Clock.schedule_once(self.on_names, 0)
         i = 0
-        for name in self.names:
+        for bone in self.bones:
             if len(self.texs) == i:
-                tex = self.closet.get_texture(name)
-                self.append(tex)
-                self.name_textures[name] = tex
-            elif name in self.name_textures:
+                tex = self.closet.get_texture(bone.name)
+                self.append(tex, offx=bone.off_x, offy=bone.off_y)
+                self.name_textures[bone] = tex
+            elif bone in self.bone_textures:
                 continue
             else:
-                tex = self.closet.get_texture(name)
-                self[i] = self.name_textures[name] = tex
+                tex = self.closet.get_texture(bone.name)
+                self.offxs[i] = bone.off_x
+                self.offys[i] = bone.off_y
+                self[i] = self.bone_textures[bone] = tex
             i += 1
 
     def update_texture_named(self, name):
         i = self.names.index(name)
+        bone = self.closet.skeleton[u"img"][name]
         tex = self.closet.get_texture(name)
+        self.offxs[i] = bone.off_x
+        self.offys[i] = bone.off_y
         self[i] = tex
 
 
 class LayerTextureStack(ClosetTextureStack):
-    texs = ListProperty([])
-    texture_rectangles = DictProperty({})
-    rectangle_groups = DictProperty({})
     imagery = ObjectProperty()
-    names = ListProperty([])
-    name_textures = DictProperty({})
 
     def on_imagery(self, *args):
         if not (self.imagery and self.closet):
@@ -242,5 +325,6 @@ class LayerTextureStack(ClosetTextureStack):
         tick = self.closet.tick
         self.clear()
         for layer in self.imagery:
-            bone = self.imagery[layer][branch].value_during(tick)
-            self.names.append(bone.img)
+            imgn = self.imagery[layer][branch].value_during(tick).img
+            bone = self.closet.skeleton[u"img"][imgn]
+            self.bones.append(bone)
