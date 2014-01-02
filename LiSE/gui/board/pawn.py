@@ -75,8 +75,9 @@ The relevant data are
             unicode(self.thing.character)][unicode(self.thing)]
         skel.register_set_listener(reposskel)
         skel.register_del_listener(reposskel)
-        self.imagery = self.closet.skeleton[u"pawn_img"][
-            unicode(self.board.observer)][unicode(self.board.observed)][
+        self.imagery = self.closet.skeleton[u"pawn"][
+            unicode(self.board.facade.observer)][
+            unicode(self.board.facade.observed)][
             unicode(self.board.host)][unicode(self.thing)]
 
     def __str__(self):
@@ -171,16 +172,15 @@ The relevant data are
         self.where_upon.pawns_here.append(self)
 
     def check_spot_collision(self):
-        for spot in self.board.spot_layout.children:
+        for spot in self.board.spotlayout.children:
             if self.collide_widget(spot):
                 return spot
 
     def on_touch_down(self, touch):
-        r = self.ids.pile.on_touch_down(touch)
-        if r:
+        if self.collide_point(touch.x, touch.y):
             touch.ud["pawn"] = self
             touch.grab(self)
-        return r
+            return True
 
     def on_touch_move(self, touch):
         if touch.grab_current is self:

@@ -68,10 +68,9 @@
     on_release: self.statview.add_stat(self.arg)
 <CSEdBut>:
     size_hint_y: None
-    font_name: sep.join([lisepathl[-1], 'gui', 'assets', 'Entypo.ttf'])
-    font_size: 30
-    get_text: self.charsheet.character.closet.get_text if self.charsheet else None
-    text: self.get_text('@locked') if self.state == 'normal' else self.get_text('@unlocked')
+    Image:
+        pos: root.center
+        source: sep.join([lisepathl[-1], 'gui', 'assets', 'closedlock.png']) if root.state == 'normal' else sep.join([lisepathl[-1], 'gui', 'assets', 'openlock.png'])
 <CharSheetAdder>:
     StackLayout:
         Label:

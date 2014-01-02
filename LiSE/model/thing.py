@@ -236,7 +236,8 @@ class Thing(Container):
                 continue
             desti = facade.graph.es[p[-1]].target
             if desti == destplace.v.index:
-                path = [facade.graph.es[i]["portal"] for i in p]
+                path = [facade.graph.es[i]["portals"][
+                    unicode(facade.observer)] for i in p]
                 break
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
