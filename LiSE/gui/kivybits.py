@@ -5,7 +5,6 @@ from weakref import ref
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButtonBehavior
-from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.image import Image
 from kivy.uix.widget import (
@@ -13,6 +12,7 @@ from kivy.uix.widget import (
     WidgetMetaclass)
 from kivy.properties import (
     AliasProperty,
+    DictProperty,
     NumericProperty,
     ListProperty,
     ObjectProperty,
@@ -22,6 +22,7 @@ from kivy.clock import Clock
 
 from LiSE import __path__
 from LiSE.util import SaveableMetaclass
+from texturestack import TextureStack
 from img import Img
 
 
@@ -195,81 +196,51 @@ def load_all_textures(cursor, skel, texturedict, textagdict):
         textagdict[tag].add(img)
 
 
-class TexPile(Widget):
-    """Several images superimposed, and perhaps offset by differing amounts.
-
-    Presents a list-like API. Append textures (not Images) to it,
-    possibly specifying offsets on the x and y axes, and perhaps a
-    stacking height, which will be added to the y offset of textures
-    appended thereafter.
-
-    """
-    imgs = ListProperty([])
-    stackhs = ListProperty([])
-
-    def __getitem__(self, i):
-        return self.imgs[i]
-
-    def __setitem__(self, i, tex, xoff=0, yoff=0, stackh=0):
-        the_img = Image(
-            texture=tex,
-            pos=(xoff, yoff+sum(self.stackhs[:i])),
-            size=tex.size)
-        self.imgs[i] = the_img
-        self.stackhs[i] = stackh
-
-    def __delitem__(self, i):
-        del self.imgs[i]
-        del self.stackhs[i]
-
-    def append(self, tex, xoff=0, yoff=0, stackh=0):
-        pos = (xoff, yoff+sum(self.stackhs))
-        size = tex.size
-        the_img = Image(
-            texture=tex,
-            pos=pos,
-            size=size)
-        self.imgs.append(the_img)
-        self.add_widget(self.imgs[-1])
-        self.stackhs.append(stackh)
-
-    def pop(self, i=-1):
-        self.stackhs.pop(i)
-        r = self.imgs.pop(i)
-        self.remove_widget(r)
-        return r
-
-
-class LayerTexPile(TexPile):
-    imagery = ObjectProperty()
-    completedness = NumericProperty(0)
+class ClosetTextureStack(TextureStack):
+    texs = ListProperty([])
+    texture_rectangles = DictProperty({})
+    rectangle_groups = DictProperty({})
     closet = ObjectProperty()
+    names = ListProperty([])
+    name_textures = DictProperty({})
 
-    def collide_point(self, x, y):
-        (x, y) = self.to_widget(x, y)
-        for i in xrange(0, len(self.imagery)):
-            img = self.imgs[i]
-            if img.collide_point(x, y):
-                return True
-        return False
+    def on_names(self, *args):
+        if not self.closet:
+            Clock.schedule_once(self.on_names, 0)
+        i = 0
+        for name in self.names:
+            if len(self.texs) == i:
+                tex = self.closet.get_texture(name)
+                self.append(tex)
+                self.name_textures[name] = tex
+            elif name in self.name_textures:
+                continue
+            else:
+                tex = self.closet.get_texture(name)
+                self[i] = self.name_textures[name] = tex
+            i += 1
+
+    def update_texture_named(self, name):
+        i = self.names.index(name)
+        tex = self.closet.get_texture(name)
+        self[i] = tex
+
+
+class LayerTextureStack(ClosetTextureStack):
+    texs = ListProperty([])
+    texture_rectangles = DictProperty({})
+    rectangle_groups = DictProperty({})
+    imagery = ObjectProperty()
+    names = ListProperty([])
+    name_textures = DictProperty({})
 
     def on_imagery(self, *args):
-        self.completedness += 1
-
-    def on_closet(self, *args):
-        self.completedness += 1
-
-    def on_completedness(self, i, v):
-        if v == 2:
-            self.upd_from_imagery()
-
-    def upd_from_imagery(self, *args):
+        if not (self.imagery and self.closet):
+            Clock.schedule_once(self.on_imagery, 0)
+            return
         branch = self.closet.branch
         tick = self.closet.tick
-        self.clear_widgets()
+        self.clear()
         for layer in self.imagery:
             bone = self.imagery[layer][branch].value_during(tick)
-            tex = self.closet.get_texture(bone.img)
-            imgbone = self.closet.skeleton[u"img"][bone.img]
-            self.append(tex, imgbone.off_x, imgbone.off_y,
-                        imgbone.stacking_height)
+            self.names.append(bone.img)
