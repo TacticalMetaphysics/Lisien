@@ -26,7 +26,8 @@ from LiSE.gui.board import (
     Arrow,
     BoardView)
 from LiSE.gui.board.arrow import get_points
-from LiSE.gui.kivybits import TexPile, TouchlessWidget
+from LiSE.gui.kivybits import TouchlessWidget
+from LiSE.gui.texturestack import TextureStack
 from LiSE.gui.swatchbox import SwatchBox, TogSwatch
 from LiSE.gui.charsheet import CharSheetAdder
 from LiSE.util import TimestreamException
@@ -54,7 +55,7 @@ exist yet, but you know what it should look like."""
     def __init__(self, **kwargs):
         """Collect images and show them"""
         super(DummyPawn, self).__init__(**kwargs)
-        self.pile = TexPile()
+        self.pile = TextureStack()
         clost = self.board.facade.closet
         for bone in self.imgbones:
             self.pile.append(
@@ -395,13 +396,15 @@ the user to place it, and dismiss the popup."""
 
     def show_spot_picker(self, name, imagery):
         if isinstance(imagery, list):
-            def set_imgs(swatches):
-                self.new_spot_with_name_and_imgs(name, [
-                    swatch.img for swatch in swatches])
-                self.dismiss_popup()
             dialog = PickImgDialog(
                 name=name,
                 set_imgs=set_imgs)
+
+            def set_imgs(swatches):
+                self.new_spot_with_name_and_imgs(name, [
+                    swatch.img for swatch in swatches])
+                dialog.dismiss()
+
             cattexlst = [
                 (cat, sorted(self.app.closet.textag_d[cat.strip("!?")]))
                 for cat in imagery]
@@ -423,7 +426,6 @@ the user to place it, and dismiss the popup."""
         used to build a Pawn later.
 
         """
-        self.dismiss_popup()
         if isinstance(imagery, list):
             def set_imgs(swatches):
                 self.new_pawn_with_name_and_imgs(name, [

@@ -1,7 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 """A graphical selector for "swatches"."""
-from kivy.uix.stencilview import StencilView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
@@ -16,7 +15,7 @@ from kivy.properties import (
     NumericProperty,
     ObjectProperty)
 
-from LiSE.gui.kivybits import TexPile
+from LiSE.gui.kivybits import ClosetTextureStack
 
 
 class FrobSwatch(Button):
@@ -108,7 +107,7 @@ class SwatchBox(BoxLayout):
         Swatches displaying the images therein."""
         head = GridLayout(cols=2, size_hint_y=None)
         self.undo_button = Button(text="Undo", on_release=self.undo)
-        self.pile = TexPile()
+        self.pile = ClosetTextureStack(closet=self.closet)
         head.add_widget(self.pile)
         head.add_widget(self.undo_button)
         self.add_widget(head)
@@ -146,6 +145,17 @@ class SwatchBox(BoxLayout):
                     kwargs['group'] = catname
                     swatch = TogSwatch(**kwargs)
                 layout.add_widget(swatch)
+
+                def upd_from_swatch(swatch, state):
+                    if (
+                            state == 'down' and
+                            swatch.img_name not in self.pile.names):
+                        self.pile.names.append(swatch.img_name)
+                    elif (
+                            state == 'normal' and
+                            swatch.img_name in self.pile.names):
+                        self.pile.names.remove(swatch.img_name)
+                swatch.bind(state=upd_from_swatch)
             layout.minimum_width = 500
             cats.add_widget(layout)
             cats.rows_minimum[i] = (len(imgnames) / 5) * 100

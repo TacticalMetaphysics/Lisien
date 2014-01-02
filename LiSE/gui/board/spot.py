@@ -1,21 +1,19 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from LiSE.gui.kivybits import (
-    SaveableWidgetMetaclass)
+    SaveableWidgetMetaclass,
+    LayerTextureStack)
 from kivy.properties import (
     DictProperty,
     ListProperty,
     NumericProperty,
     ObjectProperty)
-from kivy.uix.widget import Widget
-from kivy.graphics import Rectangle
-from kivy.clock import Clock
 
 
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class Spot(Widget):
+class Spot(LayerTextureStack):
     __metaclass__ = SaveableWidgetMetaclass
     """The icon that represents a Place.
 
@@ -107,20 +105,28 @@ class Spot(Widget):
             "foreign_keys": {
                 "observer, host, place": (
                     "spot", "observer, host, place")}})]
+    closet = ObjectProperty()
     place = ObjectProperty()
     board = ObjectProperty()
+    texs = ListProperty([])
+    texture_rectangles = DictProperty({})
+    rectangle_groups = DictProperty({})
+    imagery = ObjectProperty()
+    names = ListProperty([])
+    name_textures = DictProperty({})
     _touch = ObjectProperty(None, allownone=True)
     completedness = NumericProperty(0)
-    textures = ListProperty([])
-    rectangles = ListProperty([])
     pawns_here = ListProperty([])
 
     def __init__(self, **kwargs):
         kwargs['size_hint'] = (None, None)
         super(Spot, self).__init__(**kwargs)
-        self.board.facade.closet.register_time_listener(self.repos)
+        self.closet = self.board.host.closet
+        self.closet.register_time_listener(self.repos)
         self.board.spotdict[unicode(self.place)] = self
-        self.retex()
+        self.imagery = self.closet.skeleton[
+            u"spot"][unicode(self.board.facade.observer)][
+            unicode(self.board.host)][unicode(self.place)]
 
     def __str__(self):
         """Return the name of my :class:`Place`."""
@@ -130,46 +136,20 @@ class Spot(Widget):
         """Return the name of my :class:`Place`."""
         return unicode(self.place)
 
-    def collect_textures(self, branch=None, tick=None):
-        self.textures = []
-        (branch, tick) = self.board.host.sanetime(branch, tick)
-        try:
-            skel = self.board.host.closet.skeleton[u"spot"][
-                unicode(self.board.facade.observer)][
-                unicode(self.board.host)][
-                unicode(self.place)]
-        except KeyError:
-            raise NotImplementedError(
-                "TODO: Pick the most similar graphic and use it.")
-        gettex = self.board.host.closet.get_texture
+    def on_imagery(self, *args):
+        super(Spot, self).on_imagery(*args)
+
+    def upd_size(self, branch=None, tick=None):
         w = h = 0
-        for layer in skel:
-            t = gettex(
-                skel[layer][branch].value_during(tick).img)
+        for t in self.texs:
             w = max([t.width, w])
             h = max([t.height, h])
-            self.textures.append(t)
         self.size = (w, h)
-
-    def retex(self, branch=None, tick=None):
-        self.collect_textures(branch, tick)
-        self.canvas.clear()
-        w = h = 0
-        for texture in self.textures:
-            w = max([w, texture.width])
-            h = max([h, texture.height])
-            r = Rectangle(
-                size=texture.size,
-                pos=self.pos,
-                texture=texture)
-            self.canvas.add(r)
-            self.rectangles.append(r)
 
     def on_pos(self, *args):
         for pawn in self.pawns_here:
             pawn.pos = self.pos
-        for rectangle in self.rectangles:
-            rectangle.pos = self.pos
+        super(Spot, self).on_pos(*args)
 
     def on_pawns_here(self, *args):
         for pawn in self.pawns_here:
