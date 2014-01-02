@@ -196,7 +196,7 @@ def load_all_textures(cursor, skel, texturedict, textagdict):
         textagdict[tag].add(img)
 
 
-class ClosetTextureStack(OffsetTextureStack):
+class ClosetTextureStack(TextureStack):
     closet = ObjectProperty()
     bones = ListProperty([])
     bone_textures = DictProperty({})
