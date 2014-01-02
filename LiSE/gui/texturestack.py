@@ -1,5 +1,3 @@
-"""A widget with a list-like interface. Give it textures, and it will
-draw those textures in itself."""
 from kivy.uix.widget import Widget
 from kivy.graphics import (
     Rectangle,
@@ -12,9 +10,51 @@ from kivy.properties import (
 from kivy.clock import Clock
 
 
+def push_list(L, n):
+    for i in xrange(0, len(L)):
+        L[i] += n
+
+
+def first_negative(L):
+    for n in L:
+        if n < 0:
+            return n
+
+
+def enforce_positivity(L):
+    neg = first_negative(L)
+    while neg is not None:
+        push_list(L, n)
+
+
 class TextureStack(Widget):
+    """Several textures superimposed on one another, and possibly offset
+    by some amount.
+
+    In 2D games where characters can wear different clothes or hold
+    different equipment, their graphics are often composed of several
+    graphics layered on one another. This widget simplifies the
+    management of such compositions.
+
+    """
     texs = ListProperty([])
+    """Texture objects"""
     offxs = ListProperty([])
+    """Integer offsets in the horizontal dimension. The texture with a
+    given index will be pushed rightward by the number of pixels at
+    the same index in offxs. Negative offsets will be adjusted to
+    zero, but will still appear to push the texture to the left,
+    because all the other textures will be moved to the right.
+
+    """
+    offys = ListProperty([])
+    """Integer offsets in the vertical dimension. The texture with a given
+    index will be pushed upward by the number of pixels at the same
+    index in offys. Negative offsets will be adjusted to zero, but
+    will still appear to push the texture downward, because all the
+    other textures will be moved upward.
+
+    """
     texture_rectangles = DictProperty({})
     rectangle_groups = DictProperty({})
     suppressor = BooleanProperty(False)
@@ -36,6 +76,13 @@ class TextureStack(Widget):
                 self.suppressor = True
                 self[len(texs)] = tex
                 self.suppressor = False
+        self.recalc_size()
+
+    def on_offxs(self, *args):
+        enforce_positivity(self.offxs)
+
+    def on_offys(self, *args):
+        enforce_positivity(self.offys)
 
     def clear(self):
         self.canvas.clear()
@@ -53,17 +100,9 @@ class TextureStack(Widget):
             height = max([self.texs[i].height + self.offys[i], height])
         self.size = (width, height)
 
-    def rectify(self, tex, offx=0, offy=0):
-        if offx < 0:
-            self.offxs = map(lambda x: x-offx, self.offxs)
-            offx = 0
-        if offy < 0:
-            self.offys = map(lambda y: y-offy, self.offys)
-            offy = 0
+    def rectify(self, tex, x, y):
         rect = Rectangle(
-            x=self.x+offx,
-            y=self.y+offy,
-            pos=self.pos,
+            pos=(x, y),
             size=tex.size,
             texture=tex)
         self.texture_rectangles[tex] = rect
@@ -73,25 +112,23 @@ class TextureStack(Widget):
         return group
 
     def insert(self, i, tex, offx=0, offy=0):
-        self.suppressor = True
         if not self.canvas:
             Clock.schedule_once(
                 lambda dt: self.insert(i, tex, offx, offy), 0)
             return
-        self.texs.insert(i, tex)
         self.offxs.insert(i, offx)
         self.offys.insert(i, offy)
-        group = self.rectify(tex, offx, offy)
+        self.texs.insert(i, tex)
+        # the handlers for offxs and offys mean that they will not
+        # necessarily remain at the value they were when we just
+        # inserted them.
+        group = self.rectify(tex, self.x+self.offxs[i], self.y+self.offys[i])
         self.canvas.insert(i, group)
-        self.width = max([self.width, tex.width + max([offx, 0])])
-        self.height = max([self.height, tex.height + max([offy, 0])])
-        self.suppressor = False
 
     def append(self, tex, offx=0, offy=0):
         self.insert(len(self.texs), tex, offx, offy)
 
     def __delitem__(self, i):
-        self.suppressor = True
         tex = self.texs[i]
         try:
             rect = self.texture_rectangles[tex]
@@ -101,23 +138,18 @@ class TextureStack(Widget):
             del self.texture_rectangles[tex]
         except KeyError:
             pass
-        del self.texs[i]
         del self.offxs[i]
         del self.offys[i]
-        self.recalc_size()
-        self.suppressor = False
+        del self.texs[i]
 
     def __setitem__(self, i, v, offx=0, offy=0):
         self.__delitem__(i)
         self.insert(i, v, offx, offy)
 
     def pop(self, i=-1):
-        self.suppressor = True
-        tex = self.texs.pop(i)
         self.offxs.pop(i)
         self.offys.pop(i)
-        self.suppressor = False
-        self.on_texs()
+        tex = self.texs.pop(i)
         return tex
 
     def on_pos(self, *args):
