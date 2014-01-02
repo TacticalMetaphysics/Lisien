@@ -196,92 +196,6 @@ def load_all_textures(cursor, skel, texturedict, textagdict):
         textagdict[tag].add(img)
 
 
-class OffsetTextureStack(TextureStack):
-    offxs = ListProperty([])
-    offys = ListProperty([])
-
-    def on_width(self, *args):
-        pass
-
-    def clear(self):
-        super(OffsetTextureStack, self).clear()
-        self.offxs = []
-        self.offys = []
-
-    def insert(self, i, tex, offx=0, offy=0):
-        self.suppressor = True
-        if not self.canvas:
-            Clock.schedule_once(
-                lambda dt: self.insert(i, tex, offx, offy), 0)
-            return
-        self.texs.insert(i, tex)
-        self.offxs.insert(i, offx)
-        self.offys.insert(i, offy)
-        group = self.rectify(tex, offx, offy)
-        self.canvas.insert(i, group)
-        self.width = max([self.width, tex.width + max([offx, 0])])
-        self.height = max([self.height, tex.height + max([offy, 0])])
-        self.suppressor = False
-
-    def append(self, tex, offx=0, offy=0):
-        self.insert(len(self.texs), tex, offx, offy)
-
-    def __setitem__(self, i, v, offx=0, offy=0):
-        self.__delitem__(i)
-        self.insert(i, v, offx, offy)
-
-    def __delitem__(self, i):
-        super(OffsetTextureStack, self).__delitem__(i)
-        del self.offxs[i]
-        del self.offys[i]
-
-    def pop(self, i=-1):
-        tex = super(OffsetTextureStack, self).pop(i)
-        self.offxs.pop(i)
-        self.offys.pop(i)
-        return tex
-
-    def rectify(self, tex, offx=0, offy=0):
-        if offx < 0:
-            self.offxs = map(lambda x: x-offx, self.offxs)
-            offx = 0
-        if offy < 0:
-            self.offys = map(lambda y: y-offy, self.offys)
-            offy = 0
-        rect = Rectangle(
-            x=self.x+offx,
-            y=self.y+offy,
-            pos=self.pos,
-            size=tex.size,
-            texture=tex)
-        self.texture_rectangles[tex] = rect
-        group = InstructionGroup()
-        group.add(rect)
-        self.rectangle_groups[rect] = group
-        return group
-
-    def recalc_size(self):
-        width = height = 1
-        for i in xrange(0, len(self.texs)):
-            tex = self.texs[i]
-            offx = self.offxs[i]
-            offy = self.offys[i]
-            assert(offx >= 0 and offy >= 0)
-            w = tex.width + offx
-            h = tex.height + offy
-            width = max([width, w])
-            height = max([height, h])
-        self.size = (width, height)
-
-    def on_pos(self, *args):
-        for i in xrange(0, len(self.texs)):
-            tex = self.texs[i]
-            offx = self.offxs[i]
-            offy = self.offys[i]
-            rect = self.texture_rectangles[tex]
-            rect.pos = (self.x + offx, self.y + offy)
-
-
 class ClosetTextureStack(OffsetTextureStack):
     closet = ObjectProperty()
     bones = ListProperty([])
@@ -314,7 +228,7 @@ class ClosetTextureStack(OffsetTextureStack):
         self[i] = tex
 
 
-class LayerTextureStack(ClosetTextureStack):
+class ImageryStack(ClosetTextureStack):
     imagery = ObjectProperty()
 
     def on_imagery(self, *args):

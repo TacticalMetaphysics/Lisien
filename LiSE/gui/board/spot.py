@@ -2,7 +2,8 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
-    LayerTextureStack)
+    ImageryStack
+)
 from kivy.properties import (
     DictProperty,
     ListProperty,
@@ -13,7 +14,7 @@ from kivy.properties import (
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class Spot(LayerTextureStack):
+class Spot(ImageryStack):
     __metaclass__ = SaveableWidgetMetaclass
     """The icon that represents a Place.
 

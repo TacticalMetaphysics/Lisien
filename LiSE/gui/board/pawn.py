@@ -1,7 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from LiSE.gui.kivybits import (
-    SaveableWidgetMetaclass)
+    SaveableWidgetMetaclass,
+    ImageryStack
+)
 from kivy.uix.widget import Widget
 from kivy.properties import (
     ObjectProperty)
@@ -11,7 +13,7 @@ from kivy.graphics import Rectangle
 """Widget representing things that move about from place to place."""
 
 
-class Pawn(Widget):
+class Pawn(ImageryStack):
     __metaclass__ = SaveableWidgetMetaclass
     """A token to represent something that moves about between places.
 
@@ -68,37 +70,20 @@ The relevant data are
         super(Pawn, self).__init__(**kwargs)
         self.board.pawndict[unicode(self.thing)] = self
 
-        skel = self.board.facade.closet.skeleton[u"thing_loc"][
+        self.closet = self.board.host.closet
+        skel = self.closet.skeleton[u"thing_loc"][
             unicode(self.thing.character)][unicode(self.thing)]
         skel.register_set_listener(reposskel)
         skel.register_del_listener(reposskel)
-        self.retex()
+        self.imagery = self.closet.skeleton[u"pawn_img"][
+            unicode(self.board.observer)][unicode(self.board.observed)][
+            unicode(self.board.host)][unicode(self.thing)]
 
     def __str__(self):
         return str(self.thing)
 
     def __unicode__(self):
         return unicode(self.thing)
-
-    def retex(self, branch=None, tick=None):
-        """Clear my canvas and rebuild it with textures from the closet."""
-        self.canvas.clear()
-        (branch, tick) = self.board.host.sanetime(branch, tick)
-        gettex = self.board.host.closet.get_texture
-        try:
-            skel = self.board.host.closet.skeleton[u"pawn_img"][
-                unicode(self.board.observer)][unicode(self.board.observed)][
-                unicode(self.board.host)][unicode(self.thing)]
-        except KeyError:
-            raise NotImplementedError(
-                "TODO: Pick the most similar graphic and use it.")
-        for layer in skel:
-            texbone = skel[layer][branch].value_during(tick)
-            texture = gettex(texbone.img)
-            self.canvas.add(Rectangle(
-                texture=texture,
-                size=texture.size,
-                pos=self.pos))
 
     def on_board(self, i, v):
         v.facade.closet.register_time_listener(self.repos)
@@ -119,11 +104,6 @@ The relevant data are
             unicode(self.thing.host)][
             unicode(self.thing)][
             layer][branch].value_during(tick)
-
-    def get_img_bone(self, layer=0, branch=None, tick=None):
-        (branch, tick) = self.board.host.sanetime(branch, tick)
-        pawnbone = self.get_pawn_bone(layer, branch, tick)
-        return self.board.host.closet.skeleton[u"img"][pawnbone.img]
 
     def new_branch(self, parent, branch, tick):
         """Update my part of the :class:`Skeleton` to have this new branch in
