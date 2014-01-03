@@ -179,6 +179,9 @@ before RumorMill will work. For that, run mkdb.sh.
                 self.image_d.update(r)
                 return r
 
+            def _load_image(name):
+                return load_images(self.c, self.set_bone, [name])
+
             def _load_all_images():
                 r = load_all_images(self.c, self.set_bone)
                 self.image_d.update(r)
@@ -193,6 +196,7 @@ before RumorMill will work. For that, run mkdb.sh.
                             self.image_tag_d[tag] = set()
                         self.image_tag_d[tag].add(image)
                 return r
+            self.load_image = _load_image
             self.load_images = _load_images
             self.load_all_images = _load_all_images
             self.load_images_tagged = _load_images_tagged
@@ -222,6 +226,7 @@ before RumorMill will work. For that, run mkdb.sh.
         r = cls._select_skeleton(self.c, td)
         for bone in r.iterbones():
             self.upbone(bone)
+            self.set_bone(bone)
         return r
 
     def select_keybones(self, kbs):
@@ -327,6 +332,9 @@ before RumorMill will work. For that, run mkdb.sh.
                         pass
         # remember how things are now
         self.checkpoint()
+
+    def load_img_metadata(self):
+        self.select_class_all(Img)
 
     def load_strings(self):
         """Load all strings available."""
@@ -517,7 +525,6 @@ before RumorMill will work. For that, run mkdb.sh.
         return r
 
     def get_image(self, imgn):
-        """Return the texture by the given name"""
         return self.get_images([imgn])[imgn]
 
     def load_menus(self, names):
@@ -762,10 +769,6 @@ before RumorMill will work. For that, run mkdb.sh.
         except ValueError:
             raise ValueError("Listener isn't registered")
 
-    def load_img_metadata(self):
-        """Load all the records to do with img paths and tags and so forth."""
-        self.skeleton.update(self.select_class_all(Img))
-
     def query_place(self, update=True):
         """Query the 'place' view, resulting in an up-to-date record of what
         places exist in the gameworld as it exists in the
@@ -794,6 +797,23 @@ before RumorMill will work. For that, run mkdb.sh.
         except (KeyError, IndexError):
             return False
 
+    def images_with_tag(self, tag):
+        """Generate images with a given tag."""
+        for imgn in self.image_tag_d[tag]:
+            yield self.get_image(imgn)
+
+    def get_images_with_tags(self, tags):
+        """Return a dict of images that have at least one of the given
+        tags. It will be keyed with the tags, not the image names, and images
+        may appear more than once in the values."""
+        r = {}
+        for tag in tags:
+            if tag not in r:
+                r[tag] = set()
+            for imgn in self.image_tag_d[tag]:
+                r[tag].add(self.image_d[imgn])
+        return r
+
     def set_bone(self, bone):
         """Take a bone of arbitrary type and put it in the right place in the
         skeleton.
@@ -814,8 +834,6 @@ before RumorMill will work. For that, run mkdb.sh.
             if not self.have_place_bone(host, place, branch, tick):
                 self.set_bone(PlaceBone(
                     host=host, place=place, branch=branch, tick=tick))
-            else:
-                print("Already knew about {}".format(place))
 
         def have_charsheet_type_bone(character, idx, type):
             try:
@@ -833,8 +851,8 @@ before RumorMill will work. For that, run mkdb.sh.
 
         if isinstance(bone, PlaceBone):
             init_keys(
-                self.skeleton[u"place"],
-                [bone.host, bone.place, bone.branch])
+                self.skeleton,
+                [u"place", bone.host, bone.place, bone.branch])
             self.skeleton[u"place"][bone.host][bone.place][
                 bone.branch][bone.tick] = bone
             return
@@ -864,10 +882,14 @@ before RumorMill will work. For that, run mkdb.sh.
             pass
         elif type(bone) in CharSheet.bonetypes.values():
             set_cstype_maybe(bone.character, bone.idx, bone.type)
+        elif isinstance(bone, Img.bonetypes["img_tag"]):
+            if bone.tag not in self.image_tag_d:
+                self.image_tag_d[bone.tag] = set()
+            self.image_tag_d[bone.tag].add(bone.img)
 
         keynames = bone.cls.keynames[bone._name]
-        keys = [getattr(bone, keyn) for keyn in keynames[:-1]]
-        skel = init_keys(self.skeleton[bone._name], keys)
+        keys = [bone._name] + [getattr(bone, keyn) for keyn in keynames[:-1]]
+        skel = init_keys(self.skeleton, keys)
         final_key = getattr(bone, keynames[-1])
         skel[final_key] = bone
 
@@ -986,7 +1008,6 @@ def mkdb(DB_NAME, lisepath):
             curs.execute(img_qrystr, (
                 imgn, "{}/{}".format(atlaspath, tilen)))
             for tag in tags:
-                print (imgn, tag)
                 curs.execute(tag_qrystr, (imgn, tag))
 
     def ins_atlas_dir(curs, dirname, qualify=False, tags=[]):

@@ -1,4 +1,15 @@
+"""Several textures superimposed on one another, and possibly offset
+by some amount.
+
+In 2D games where characters can wear different clothes or hold
+different equipment, their graphics are often composed of several
+graphics layered on one another. This widget simplifies the management
+of such compositions.
+
+"""
+
 from kivy.uix.widget import Widget
+from kivy.core.image import Image
 from kivy.graphics import (
     Rectangle,
     InstructionGroup
@@ -62,11 +73,23 @@ class TextureStack(Widget):
 
     """
     texture_rectangles = DictProperty({})
+    """Private.
+
+    Rectangle instructions for each of the textures, keyed by the
+    texture.
+
+    """
     rectangle_groups = DictProperty({})
-    suppressor = BooleanProperty(False)
+    """Private.
+
+    InstructionGroups for each Rectangle--including the BindTexture
+    instruction that goes with it. Keyed by the Rectangle.
+
+    """
 
     def __init__(self, **kwargs):
         super(TextureStack, self).__init__(**kwargs)
+        self.suppressor = False
         if len(self.texs) == 0:
             self.size = [1, 1]
         else:
@@ -148,17 +171,18 @@ class TextureStack(Widget):
             pass
         del self.offxs[i]
         del self.offys[i]
+        del self.stackhs[i]
         del self.texs[i]
 
-    def __setitem__(self, i, v, offx=0, offy=0, stackh=0):
+    def __setitem__(self, i, v):
         self.__delitem__(i)
-        self.insert(i, v, offx, offy, stackh)
+        self.insert(i, v)
 
     def pop(self, i=-1):
         self.offxs.pop(i)
         self.offys.pop(i)
-        tex = self.texs.pop(i)
-        return tex
+        self.stackhs.pop(i)
+        return self.texs.pop(i)
 
     def on_pos(self, *args):
         for i in xrange(0, len(self.texs)):
@@ -167,3 +191,31 @@ class TextureStack(Widget):
             offy = self.offys[i]
             rect = self.texture_rectangles[tex]
             rect.pos = (self.x + offx, self.y + offy)
+
+
+class ImageStack(TextureStack):
+    """Instead of supplying textures themselves, supply paths to where the
+    texture may be loaded from."""
+    paths = ListProperty()
+
+    def on_paths(self, *args):
+        for i in xrange(0, len(self.paths)):
+            self.texs[i] = Image.load(self.paths[i])
+
+    def insert(self, i, v, offx=0, offy=0, stackh=0):
+        self.offxs.insert(i, offx)
+        self.offys.insert(i, offy)
+        self.stackhs.insert(i, stackh)
+        self.paths.insert(i, v)
+        # on_paths triggers at this point
+        tex = self.texs[i]
+        group = self.rectify(tex, self.x+self.offxs[i], self.y+self.offys[i])
+        self.canvas.add(group)
+
+    def __delitem__(self, i):
+        super(ImageStack, self).__delitem__(i)
+        del self.paths[i]
+
+    def pop(self, i=-1):
+        self.paths.pop(i)
+        return super(ImageStack, self).pop(i)

@@ -7,10 +7,10 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.image import Image
 from kivy.uix.label import Label
+from kivy.clock import Clock
 from kivy.properties import (
-    AliasProperty,
-    StringProperty,
     ListProperty,
     NumericProperty,
     ObjectProperty)
@@ -23,24 +23,22 @@ class FrobSwatch(Button):
     some text."""
     box = ObjectProperty()
     """The :class:`SwatchBox` that I belong to."""
-    img_name = StringProperty()
-    img_tags = ListProperty([])
-    """Tags of the img."""
-    xoff = NumericProperty(0)
-    yoff = NumericProperty(0)
-    stackh = NumericProperty(0)
-    """When showing a preview of stacked images, mine will be regarded as
-this tall."""
-    display_texture = AliasProperty(
-        lambda self: self.box.closet.get_texture(self.img_name)
-        if self.box is not None and self.img_name != '' else None,
-        lambda self, v: None,
-        bind=('box', 'img_name'))
-    img = AliasProperty(
-        lambda self: self.box.closet.skeleton[u"img"][self.img_name]
-        if self.box is not None and self.img_name != '' else None,
-        lambda self, v: None,
-        bind=('box', 'img_name'))
+    image = ObjectProperty()
+    """Image to show"""
+    tags = ListProperty([])
+    """List for use in SwatchBox"""
+
+    def on_image(self, *args):
+        if not self.image:
+            return
+        if self.image.name == '':
+            Clock.schedule_once(self.on_image, 0)
+            return
+        self.img = Image(
+            texture=self.image.texture,
+            pos_hint={'top': 0.9},
+            size_hint=(0.9, 0.5))
+        self.ids.imgbox.add_widget(self.img)
 
 
 class TogSwatch(ToggleButton, FrobSwatch):
@@ -52,8 +50,7 @@ class SwatchBox(BoxLayout):
     """A collection of :class:`Swatch` used to select several
     graphics at once."""
     closet = ObjectProperty()
-    cattexlst = ListProperty()
-    finality = NumericProperty(0)
+    categorized_images = ObjectProperty()
     sellen = NumericProperty(0)
     selection = ListProperty([])
 
@@ -64,23 +61,6 @@ class SwatchBox(BoxLayout):
         else:
             if togswatch not in self.selection:
                 self.selection.append(togswatch)
-
-    def on_closet(self, i, v):
-        """Increment finality counter."""
-        self.finality += 1
-
-    def on_cattexlst(self, i, v):
-        """Increment finality counter."""
-        self.finality += 1
-
-    def on_parent(self, i, v):
-        """Increment finality counter."""
-        self.finality += 1
-
-    def on_finality(self, i, v):
-        """If final enough, finalize."""
-        if v == 3:
-            self.finalize()
 
     def on_selection(self, i, v):
         lv = len(v)
@@ -102,9 +82,12 @@ class SwatchBox(BoxLayout):
         except IndexError:
             pass
 
-    def finalize(self):
+    def finalize(self, *args):
         """For each category in ``cattexlst``, construct a grid of grouped
         Swatches displaying the images therein."""
+        if not self.closet and self.categorized_images:
+            Clock.schedule_once(self.finalize, 0)
+            return
         head = GridLayout(cols=2, size_hint_y=None)
         self.undo_button = Button(text="Undo", on_release=self.undo)
         self.pile = ClosetTextureStack(closet=self.closet)
@@ -117,25 +100,21 @@ class SwatchBox(BoxLayout):
         self.add_widget(catview)
         i = 0
         h = 0
-        for (catname, imgnames) in self.cattexlst:
+        for (catname, images) in self.categorized_images:
             l = Label(text=catname.strip('!?'), size_hint_y=None)
             cats.add_widget(l)
             cats.rows_minimum[i] = l.font_size * 2
             h += cats.rows_minimum[i]
             i += 1
             layout = StackLayout(size_hint_y=None)
-            for imgname in imgnames:
-                imgbone = self.closet.skeleton[u"img"][imgname]
-                fakelabel = Label(text=imgname)
+            for image in images:
+                fakelabel = Label(text=image.name)
                 fakelabel.texture_update()
                 w = fakelabel.texture.size[0]
                 kwargs = {
                     'box': self,
-                    'xoff': imgbone.off_x,
-                    'yoff': imgbone.off_y,
-                    'stackh': imgbone.stacking_height,
-                    'text': imgname,
-                    'img_name': imgname,
+                    'text': image.name,
+                    'image': image,
                     'width': w + l.font_size * 2}
                 if catname[0] == '!':
                     swatch = TogSwatch(**kwargs)
@@ -158,7 +137,7 @@ class SwatchBox(BoxLayout):
                 swatch.bind(state=upd_from_swatch)
             layout.minimum_width = 500
             cats.add_widget(layout)
-            cats.rows_minimum[i] = (len(imgnames) / 5) * 100
+            cats.rows_minimum[i] = (len(images) / 5) * 100
             h += cats.rows_minimum[i]
             i += 1
         cats.height = h

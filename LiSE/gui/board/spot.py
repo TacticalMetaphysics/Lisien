@@ -128,6 +128,7 @@ class Spot(ImageryStack):
         self.imagery = self.closet.skeleton[
             u"spot"][unicode(self.board.facade.observer)][
             unicode(self.board.host)][unicode(self.place)]
+        self.repos()
 
     def __str__(self):
         """Return the name of my :class:`Place`."""

@@ -14,13 +14,8 @@ from kivy.properties import (
     ObjectProperty,
     StringProperty,
     BooleanProperty)
-from kivy.graphics import (
-    Rectangle,
-    InstructionGroup
-)
 from kivy.clock import Clock
 
-from LiSE import __path__
 from LiSE.util import SaveableMetaclass
 from texturestack import TextureStack
 from img import Img
@@ -28,9 +23,10 @@ from img import Img
 
 class Image(KImage):
     """Just an Image that stores some LiSE-specific metadata."""
-    offx = NumericProperty(0)
-    offy = NumericProperty(0)
-    stackh = NumericProperty(0)
+    name = StringProperty()
+    offx = NumericProperty()
+    offy = NumericProperty()
+    stackh = NumericProperty()
     tags = ListProperty([])
 
     @staticmethod
@@ -40,9 +36,12 @@ class Image(KImage):
 
     @staticmethod
     def from_bone(bone):
-        return Image(KImage.load(bone.path, keep_data=True).texture,
-                     offx=bone.off_x, offy=bone.off_y,
-                     stackh=bone.stacking_height)
+        r = Image(bone.path)
+        r.name = bone.name
+        r.offx = bone.off_x
+        r.offy = bone.off_y
+        r.stackh = bone.stacking_height
+        return r
 
 
 class ClosetWidget(Widget):
@@ -219,7 +218,10 @@ class ClosetTextureStack(TextureStack):
 
     def on_bones(self, *args):
         if not self.closet:
-            Clock.schedule_once(self.on_names, 0)
+            Clock.schedule_once(self.on_bones, 0)
+            return
+        if not self.bones:
+            return
         i = 0
         for bone in self.bones:
             if len(self.texs) == i:
