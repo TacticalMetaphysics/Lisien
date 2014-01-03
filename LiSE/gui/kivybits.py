@@ -223,17 +223,17 @@ class ClosetTextureStack(TextureStack):
         i = 0
         for bone in self.bones:
             if len(self.texs) == i:
-                image = self.closet.get_image
+                image = self.closet.get_image(bone.name)
                 self.append(image.texture,
-                            offx=image.offx,
-                            offy=image.offy)
+                            offx=bone.off_x,
+                            offy=bone.off_y)
                 self.bone_images[bone] = image
             elif bone in self.bone_images:
                 continue
             else:
                 image = self.closet.get_image(bone.name)
-                self.offxs[i] = image.off_x
-                self.offys[i] = image.off_y
+                self.offxs[i] = bone.off_x
+                self.offys[i] = bone.off_y
                 self[i] = self.bone_images[bone] = image
             i += 1
 

@@ -87,7 +87,7 @@ class Board(FloatLayout):
         bone = self.bone
         self.scroll_x = bone.x
         self.scroll_y = bone.y
-        tex = self.host.closet.get_texture('default_wallpaper')
+        tex = self.host.closet.get_image('default_wallpaper').texture
         self.size = tex.size
         self.wallpaper = Image(
             texture=tex,

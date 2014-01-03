@@ -75,13 +75,14 @@ class TextureStack(Widget):
     def on_texs(self, *args):
         if self.suppressor:
             return
-        texs = list(self.texs)
-        while texs != []:
-            tex = texs.pop()
+        i = len(self.texs) - 1
+        while i >= 0:
+            tex = self.texs[i]
             if tex not in self.texture_rectangles:
-                self.suppressor = True
-                self[len(texs)] = tex
-                self.suppressor = False
+                x = self.x + self.offxs[i]
+                y = self.y + self.offys[i] + sum(self.stackhs[:i])
+                self.canvas.add(self.rectify(tex, x, y))
+            i -= 1
         self.recalc_size()
 
     def on_offxs(self, *args):
