@@ -159,25 +159,6 @@ class Spot(ImageryStack):
     def repos(self, branch=None, tick=None):
         self.pos = self.get_pos(branch, tick)
 
-    def set_img(self, img, layer, branch=None, tick_from=None):
-        if branch is None:
-            branch = self.board.facade.closet.branch
-        if tick_from is None:
-            tick_from = self.board.facade.closet.tick
-        imagery = self.board.facade.closet.skeleton["spot_img"][
-            unicode(self.board.dimension)][unicode(self.place)]
-        if layer not in imagery:
-            imagery[layer] = []
-        il = imagery[layer]
-        if branch not in il:
-            il[branch] = []
-        il[branch][tick_from] = self.bonetypes["spot_img"](
-            dimension=unicode(self.board),
-            place=unicode(self.place),
-            branch=branch,
-            tick_from=tick_from,
-            img=unicode(img))
-
     def sanetime(self, branch, tick):
         return self.board.facade.sanetime(branch, tick)
 
@@ -188,18 +169,12 @@ class Spot(ImageryStack):
             unicode(self.board.host)][
             unicode(self.place)][layer][branch].value_during(tick)
 
-    def set_bone(self, bone):
-        return self.board.host.closet.set_bone(bone)
-
     def get_coord_bone(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
         return self.board.facade.closet.skeleton[u"spot_coords"][
             unicode(self.board.facade.observer)][
             unicode(self.board.host)][unicode(self.place)][
             branch].value_during(tick)
-
-    def set_coord_bone(self, bone):
-        return self.set_bone(bone)
 
     def get_coords(self, branch=None, tick=None, default=None):
         """Return a pair of coordinates for where I should be on my board,
@@ -232,7 +207,7 @@ class Spot(ImageryStack):
         """
         (branch, tick) = self.sanetime(branch, tick)
         bone = self.get_coord_bone(branch, tick)
-        self.set_coord_bone(bone._replace(
+        self.closet.set_bone(bone._replace(
             x=x, y=y,
             branch=branch, tick=tick))
 

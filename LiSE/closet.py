@@ -175,18 +175,18 @@ before RumorMill will work. For that, run mkdb.sh.
                 load_all_images)
 
             def _load_images(names):
-                r = load_images(self.c, self.set_bone)
-                self.imagedict.update(r)
+                r = load_images(self.c, self.set_bone, names)
+                self.image_d.update(r)
                 return r
 
             def _load_all_images():
                 r = load_all_images(self.c, self.set_bone)
-                self.imagedict.update(r)
+                self.image_d.update(r)
                 return r
 
             def _load_images_tagged(tags):
                 r = load_images_tagged(self.c, self.set_bone, tags)
-                self.imagedict.update(r)
+                self.image_d.update(r)
                 for image in r.itervalues():
                     for tag in image.tags:
                         if tag not in self.image_tag_d:
@@ -508,8 +508,8 @@ before RumorMill will work. For that, run mkdb.sh.
         r = {}
         unloaded = set()
         for imgn in imgnames:
-            if imgn in self.texture_d:
-                r[imgn] = self.texture_d[imgn]
+            if imgn in self.image_d:
+                r[imgn] = self.image_d[imgn]
             else:
                 unloaded.add(imgn)
         if len(unloaded) > 0:
