@@ -145,10 +145,10 @@ class SpriteMenuContent(StackLayout):
         tog = self.selection.pop()
         if self.validate_name(namer.text):
             self.picker_args.append(namer.text)
-            if len(tog.img_tags) > 0:
-                self.picker_args.append(tog.img_tags)
+            if len(tog.tags) > 0:
+                self.picker_args.append(tog.tags)
             else:
-                self.picker_args.append(tog.img.name)
+                self.picker_args.append(tog.image.name)
             return True
         else:
             self.selection.append(tog)
@@ -359,21 +359,27 @@ and charsheets.
                 img=img.name)
             self.app.closet.set_bone(bone)
             i += 1
+        # get the point on the board that is presently at the center
+        # of the screen
+        b = self.ids.board
+        bv = self.ids.board_view
+        # clamp to that part of the board where the view's center might be
+        effective_w = b.width - bv.width
+        effective_h = b.height - bv.height
+        x = b.width / 2 + effective_w * (bv.scroll_x - 0.5)
+        y = b.height / 2 + effective_h * (bv.scroll_y - 0.5)
         coord_bone = Spot.bonetypes["spot_coords"](
             observer=obsrvr,
             host=host,
             place=placen,
             branch=branch,
             tick=tick,
-            x=self.ids.board.width/2,
-            y=self.ids.board.height/2)
-        self.ids.board.scroll_x = 0.5
-        self.ids.board.scroll_y = 0.5
+            x=int(x), y=int(y))
         self.app.closet.set_bone(coord_bone)
         assert(self.app.closet.have_place_bone(
             host, placen))
         spot = Spot(board=self.ids.board, place=place)
-        self.ids.board.add_widget(spot)
+        self.ids.board.spotlayout.add_widget(spot)
 
     def new_pawn_with_name_and_imgs(self, name, imgs):
         """Given some iterable of Swatch widgets, make a dummy pawn, prompt
@@ -397,27 +403,29 @@ the user to place it, and dismiss the popup."""
         dummy.pos = (w*0.1, h*0.9)
 
     def show_spot_picker(self, name, imagery):
+        def set_imgs(swatches):
+            self.new_spot_with_name_and_imgs(name, [
+                swatch.img for swatch in swatches])
+            dialog.dismiss()
         if isinstance(imagery, list):
             dialog = PickImgDialog(
                 name=name,
                 set_imgs=set_imgs)
-
-            def set_imgs(swatches):
-                self.new_spot_with_name_and_imgs(name, [
-                    swatch.img for swatch in swatches])
-                dialog.dismiss()
-
-            cattexlst = [
-                (cat, sorted(self.app.closet.textag_d[cat.strip("!?")]))
-                for cat in imagery]
+            catimg_d = {}
+            for cat in imagery:
+                catimg_d[cat] = self.app.closet.images_with_tag(
+                    cat.strip("?!"))
             dialog.ids.picker.closet = self.app.closet
-            dialog.ids.picker.cattexlst = cattexlst
+            dialog.ids.picker.categorized_images = [
+                (cat, sorted(images)) for (cat, images) in
+                catimg_d.iteritems()]
             popup = Popup(
                 title="Select graphics",
                 content=dialog,
                 size_hint=(0.9, 0.9))
             dialog.cancel = lambda: popup.dismiss()
             popup.open()
+            dialog.finalize()
         else:
             # imagery is a string name of an image
             img = self.app.closet.skeleton[u"img"][imagery]

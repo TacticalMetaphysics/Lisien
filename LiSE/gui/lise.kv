@@ -408,12 +408,9 @@
     multiline: True
     size_hint: (None, None)
     BoxLayout:
+        id: imgbox
         pos: root.pos
         size: root.size
-        Image:
-            texture: root.display_texture
-            pos_hint: {'top': 0.9}
-            size_hint: (0.9, 0.5)
 <TableHeader>:
     height: 30
 <TableBody>:
@@ -509,14 +506,14 @@
         height: self.line_height * 2
     TogSwatch:
         box: spotmenu
-        img_name: "default_spot"
+        image: root.closet.get_image("default_spot")
         text: root.get_text(_("Use default image"))
         group: "spotmenu"
         size_hint_y: None
     TogSwatch:
         box: spotmenu
-        img_name: "crossroad"
-        img_tags: ['?pixel_city']
+        image: root.closet.get_image("crossroad")
+        tags: ['?pixel_city']
         text: root.get_text(_("Build with PixelCity"))
         group: "spotmenu"
         size_hint_y: None
