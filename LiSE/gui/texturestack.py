@@ -89,38 +89,55 @@ class TextureStack(Widget):
 
     def __init__(self, **kwargs):
         super(TextureStack, self).__init__(**kwargs)
-        self.suppressor = False
         if len(self.texs) == 0:
             self.size = [1, 1]
         else:
             self.recalc_size()
+        self.bind(texs=self.upd_texs, offxs=self.upd_offxs,
+                  offys=self.upd_offys, pos=self.upd_pos)
+        if len(self.texs) > 0:
+            self.upd_texs()
+            self.upd_offxs()
+            self.upd_offys()
+            self.upd_pos()
 
-    def on_texs(self, *args):
-        if self.suppressor:
-            return
+    def upd_texs(self, *args):
         i = len(self.texs) - 1
         while i >= 0:
             tex = self.texs[i]
             if tex not in self.texture_rectangles:
                 x = self.x + self.offxs[i]
                 y = self.y + self.offys[i] + sum(self.stackhs[:i])
-                self.canvas.add(self.rectify(tex, x, y))
+                self.canvas.insert(i, self.rectify(tex, x, y))
             i -= 1
         self.recalc_size()
 
-    def on_offxs(self, *args):
+    def upd_offxs(self, *args):
         enforce_positivity(self.offxs)
 
-    def on_offys(self, *args):
+    def upd_offys(self, *args):
         enforce_positivity(self.offys)
+
+    def upd_pos(self, *args):
+        for i in xrange(0, len(self.texs)):
+            tex = self.texs[i]
+            offx = self.offxs[i]
+            offy = self.offys[i]
+            rect = self.texture_rectangles[tex]
+            rect.pos = (self.x + offx, self.y + offy)
 
     def clear(self):
         self.canvas.clear()
+        self.unbind(
+            texs=self.upd_texs, offxs=self.upd_offxs, offys=self.upd_offys)
         self.rectangle_groups = {}
         self.texture_rectangles = {}
         self.texs = []
         self.offxs = []
         self.offys = []
+        self.bind(
+            texs=self.upd_offxs, offxs=self.upd_offxs, offys=self.upd_offys)
+        self.stackhs = []
         self.size = [1, 1]
 
     def recalc_size(self):
@@ -144,8 +161,10 @@ class TextureStack(Widget):
     def insert(self, i, tex, offx=0, offy=0, stackh=0):
         if not self.canvas:
             Clock.schedule_once(
-                lambda dt: self.insert(i, tex, offx, offy), 0)
+                lambda dt: TextureStack.insert(
+                    self, i, tex, offx, offy, stackh), 0)
             return
+        self.unbind(texs=self.upd_texs)
         self.offxs.insert(i, offx)
         self.offys.insert(i, offy+sum(self.stackhs[:i]))
         self.stackhs.insert(i, stackh)
@@ -155,9 +174,10 @@ class TextureStack(Widget):
         # inserted them.
         group = self.rectify(tex, self.x+self.offxs[i], self.y+self.offys[i])
         self.canvas.insert(i, group)
+        self.bind(texs=self.upd_texs)
 
     def append(self, tex, offx=0, offy=0, stackh=0):
-        self.insert(len(self.texs), tex, offx, offy, stackh)
+        TextureStack.insert(self, len(self.texs), tex, offx, offy, stackh)
 
     def __delitem__(self, i):
         tex = self.texs[i]
@@ -169,28 +189,35 @@ class TextureStack(Widget):
             del self.texture_rectangles[tex]
         except KeyError:
             pass
+        self.unbind(
+            offxs=self.upd_offxs,
+            offys=self.upd_offys,
+            texs=self.upd_texs)
         del self.offxs[i]
         del self.offys[i]
         del self.stackhs[i]
         del self.texs[i]
+        self.bind(
+            offxs=self.upd_offxs,
+            offys=self.upd_offys,
+            texs=self.upd_texs)
 
     def __setitem__(self, i, v):
-        self.__delitem__(i)
+        if len(self.texs) > 0:
+            self.__delitem__(i)
         self.insert(i, v)
 
     def pop(self, i=-1):
+        self.unbind(
+            offxs=self.upd_offxs,
+            offys=self.upd_offys)
         self.offxs.pop(i)
         self.offys.pop(i)
+        self.bind(
+            offxs=self.upd_offxs,
+            offys=self.upd_offys)
         self.stackhs.pop(i)
         return self.texs.pop(i)
-
-    def on_pos(self, *args):
-        for i in xrange(0, len(self.texs)):
-            tex = self.texs[i]
-            offx = self.offxs[i]
-            offy = self.offys[i]
-            rect = self.texture_rectangles[tex]
-            rect.pos = (self.x + offx, self.y + offy)
 
 
 class ImageStack(TextureStack):
@@ -199,18 +226,31 @@ class ImageStack(TextureStack):
     paths = ListProperty()
 
     def on_paths(self, *args):
+        offxs = self.offxs
+        offys = self.offys
+        stackhs = self.stackhs
         for i in xrange(0, len(self.paths)):
-            self.texs[i] = Image.load(self.paths[i])
+            image = Image.load(self.paths[i])
+            if i < len(self.texs):
+                del self[i]
+            while i >= len(offxs):
+                offxs.append(0)
+            while i >= len(offys):
+                offys.append(0)
+            while i >= len(stackhs):
+                stackhs.append(0)
+            super(ImageStack, self).insert(
+                i, image.texture, offxs=offxs[i],
+                offy=offys[i], stackh=stackhs[i])
+        self.offxs = offxs
+        self.offys = offys
+        self.stackhs = stackhs
 
     def insert(self, i, v, offx=0, offy=0, stackh=0):
         self.offxs.insert(i, offx)
         self.offys.insert(i, offy)
         self.stackhs.insert(i, stackh)
         self.paths.insert(i, v)
-        # on_paths triggers at this point
-        tex = self.texs[i]
-        group = self.rectify(tex, self.x+self.offxs[i], self.y+self.offys[i])
-        self.canvas.add(group)
 
     def __delitem__(self, i):
         super(ImageStack, self).__delitem__(i)

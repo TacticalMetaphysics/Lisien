@@ -1,15 +1,14 @@
+
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButtonBehavior
 from kivy.uix.textinput import TextInput
-from kivy.core.image import Image as KImage
 from kivy.uix.widget import (
     Widget,
     WidgetMetaclass)
 from kivy.properties import (
-    AliasProperty,
-    DictProperty,
     NumericProperty,
+    ReferenceListProperty,
     ListProperty,
     ObjectProperty,
     StringProperty,
@@ -18,30 +17,6 @@ from kivy.clock import Clock
 
 from LiSE.util import SaveableMetaclass
 from texturestack import TextureStack
-from img import Img
-
-
-class Image(KImage):
-    """Just an Image that stores some LiSE-specific metadata."""
-    name = StringProperty()
-    offx = NumericProperty()
-    offy = NumericProperty()
-    stackh = NumericProperty()
-    tags = ListProperty([])
-
-    @staticmethod
-    def load(self, filename):
-        img_d = KImage.load(filename, keep_data=True).__dict__
-        return Image(**img_d)
-
-    @staticmethod
-    def from_bone(bone):
-        r = Image(bone.path)
-        r.name = bone.name
-        r.offx = bone.off_x
-        r.offy = bone.off_y
-        r.stackh = bone.stacking_height
-        return r
 
 
 class ClosetWidget(Widget):
@@ -172,75 +147,53 @@ enough to get a popup of its own.
             self.text = v
 
 
-def load_images(cursor, setter, names):
-    """Load all the textures in ``names``. Put their :class:`Bone`s in
-    ``skel``, and the textures themselves in ``texturedict``."""
-    r = {}
-    for bone in Img._select_skeleton(cursor, {u"img": [
-            Img.bonetype._null()._replace(name=n) for n in names]
-    }).iterbones():
-        setter(bone)
-        r[bone.name] = Image.from_bone(bone)
-    for bone in Img._select_skeleton(cursor, {u"img_tag": [
-            Img.bonetypes["img_tag"](img=n) for n in names]
-    }).iterbones():
-        setter(bone)
-        image = r[bone.img]
-        if bone.tag not in image.tags:
-            image.tags.append(bone.tag)
-    return r
+class ImgStack(TextureStack):
+    imgs = ListProperty()
+    collided_x = NumericProperty(0)
+    collided_y = NumericProperty(0)
+    collided = ReferenceListProperty(collided_x, collided_y)
 
+    def __init__(self, **kwargs):
+        super(ImgStack, self).__init__(**kwargs)
+        self.bind(imgs=self.upd_imgs)
+        if len(self.imgs) > 0:
+            self.upd_imgs()
 
-def load_images_tagged(cursor, setter, tags):
-    tagskel = Img._select_skeleton(
-        cursor, {u"img_tag": [Img.bonetypes["img_tag"](tag=t) for t in tags]})
-    imgs = set([bone.img for bone in tagskel.iterbones()])
-    return load_images(cursor, setter, imgs)
+    def clear(self, *args):
+        self.imgs = []
+        super(ImgStack, self).clear()
 
+    def upd_imgs(self, *args):
+        super(ImgStack, self).clear()
+        for img in self.imgs:
+            super(ImgStack, self).append(
+                img.texture, offx=img.offx,
+                offy=img.offy, stackh=img.stackh)
 
-def load_all_images(cursor, setter):
-    imagedict = {}
-    for bone in Img._select_table_all(cursor, u"img").iterbones():
-        setter(bone)
-    for bone in Img._select_table_all(cursor, u"img_tag").iterbones():
-        setter(bone)
-        (img, tag) = bone
-        image = imagedict[img]
-        if tag not in image.tags:
-            image.tags.append(tag)
-    return imagedict
+    def insert(self, i, v):
+        self.imgs.insert(i, v)
 
+    def append(self, v):
+        self.imgs.append(v)
 
-class ClosetTextureStack(TextureStack):
-    closet = ObjectProperty()
-    bones = ListProperty([])
-    bone_images = DictProperty({})
+    def collide_point(self, x, y):
+        """If all of my images are transparent at the given point, don't
+        collide.
 
-    def on_bones(self, *args):
-        if not self.closet:
-            Clock.schedule_once(self.on_bones, 0)
-            return
-        if not self.bones:
-            return
-        i = 0
-        for bone in self.bones:
-            if len(self.texs) == i:
-                image = self.closet.get_image(bone.name)
-                self.append(image.texture,
-                            offx=bone.off_x,
-                            offy=bone.off_y)
-                self.bone_images[bone] = image
-            elif bone in self.bone_images:
+        """
+        (x, y) = self.to_local(x, y, relative=True)
+        for img in self.imgs:
+            try:
+                alpha = img.read_pixel(x + img.offx, y + img.offy)[3]
+            except IndexError:
                 continue
-            else:
-                image = self.closet.get_image(bone.name)
-                self.offxs[i] = bone.off_x
-                self.offys[i] = bone.off_y
-                self[i] = self.bone_images[bone] = image
-            i += 1
+            if alpha > 0.0125:
+                self.collided = (x, y)
+                return True
 
 
-class ImageryStack(ClosetTextureStack):
+class ImageryStack(ImgStack):
+    closet = ObjectProperty()
     imagery = ObjectProperty()
 
     def on_imagery(self, *args):
@@ -252,5 +205,4 @@ class ImageryStack(ClosetTextureStack):
         self.clear()
         for layer in self.imagery:
             imgn = self.imagery[layer][branch].value_during(tick).img
-            bone = self.closet.skeleton[u"img"][imgn]
-            self.bones.append(bone)
+            self.append(self.closet.get_img(imgn))

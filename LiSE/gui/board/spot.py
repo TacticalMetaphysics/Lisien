@@ -99,14 +99,13 @@ class Spot(ImageryStack):
                 "place": "text not null",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
-                "x": "integer not null",
-                "y": "integer not null"},
+                "x": "float not null",
+                "y": "float not null"},
             "primary_key": (
                 "observer", "host", "place", "branch", "tick"),
             "foreign_keys": {
                 "observer, host, place": (
                     "spot", "observer, host, place")}})]
-    closet = ObjectProperty()
     place = ObjectProperty()
     board = ObjectProperty()
     texs = ListProperty([])
@@ -123,12 +122,10 @@ class Spot(ImageryStack):
         kwargs['size_hint'] = (None, None)
         super(Spot, self).__init__(**kwargs)
         self.closet = self.board.host.closet
-        self.closet.register_time_listener(self.repos)
         self.board.spotdict[unicode(self.place)] = self
         self.imagery = self.closet.skeleton[
             u"spot"][unicode(self.board.facade.observer)][
             unicode(self.board.host)][unicode(self.place)]
-        self.repos()
 
     def __str__(self):
         """Return the name of my :class:`Place`."""
@@ -148,17 +145,9 @@ class Spot(ImageryStack):
             h = max([t.height, h])
         self.size = (w, h)
 
-    def on_pos(self, *args):
+    def upd_pawns_here(self, *args):
         for pawn in self.pawns_here:
             pawn.pos = self.pos
-        super(Spot, self).on_pos(*args)
-
-    def on_pawns_here(self, *args):
-        for pawn in self.pawns_here:
-            pawn.pos = self.pos
-
-    def repos(self, branch=None, tick=None):
-        self.pos = self.get_pos(branch, tick)
 
     def sanetime(self, branch, tick):
         return self.board.facade.sanetime(branch, tick)
@@ -193,12 +182,6 @@ class Spot(ImageryStack):
                 self.set_coords(*default)
                 return default
 
-    def get_pos(self, branch=None, tick=None):
-        if self._touch:
-            return self.pos
-        (x, y) = self.get_coords(branch, tick)
-        return (self.board.x + x, self.board.y + y)
-
     def set_coords(self, x, y, branch=None, tick=None):
         """Set my coordinates on the :class:`Board`.
 
@@ -211,6 +194,10 @@ class Spot(ImageryStack):
         self.closet.set_bone(bone._replace(
             x=x, y=y,
             branch=branch, tick=tick))
+
+    def set_center_coords(self, x, y, branch=None, tick=None):
+        self.set_coords(x - self.width / 2, y - self.height / 2,
+                        branch, tick)
 
     def new_branch(self, parent, branch=None, tick=None):
         """Copy all the stuff from the parent to the child branch as of the
@@ -253,12 +240,14 @@ class Spot(ImageryStack):
         if touch.grab_current is not self:
             return
         self._touch = touch
-        self.center = self.parent.to_local(*touch.pos)
+        (x, y) = touch.pos
+        self.center = (x - self.collided_x, y - self.collided_y)
 
     def on_touch_up(self, touch):
-        self._touch = None
-        if touch.grab_current is self:
+        if self._touch:
             self.set_coords(*self.pos)
+        self._touch = None
+        self.collided = (0, 0)
         return super(Spot, self).on_touch_up(touch)
 
     def __repr__(self):

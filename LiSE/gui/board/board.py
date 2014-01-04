@@ -12,6 +12,7 @@ from kivy.properties import (
 from kivy.uix.image import Image
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.clock import Clock
 from spot import Spot
 from arrow import Arrow
@@ -87,18 +88,18 @@ class Board(FloatLayout):
         bone = self.bone
         self.scroll_x = bone.x
         self.scroll_y = bone.y
-        tex = self.host.closet.get_image('default_wallpaper').texture
+        tex = self.host.closet.get_img('default_wallpaper').texture
         self.size = tex.size
         self.wallpaper = Image(
             texture=tex,
             pos=self.pos,
             size=self.size)
         self.add_widget(self.wallpaper)
-        self.arrowlayout = FloatLayout(pos=self.pos, size=self.size)
+        self.arrowlayout = RelativeLayout(pos=self.pos, size=self.size)
         self.add_widget(self.arrowlayout)
-        self.spotlayout = FloatLayout(pos=self.pos, size=self.size)
+        self.spotlayout = RelativeLayout(pos=self.pos, size=self.size)
         self.add_widget(self.spotlayout)
-        self.pawnlayout = FloatLayout(pos=self.pos, size=self.size)
+        self.pawnlayout = RelativeLayout(pos=self.pos, size=self.size)
         self.add_widget(self.pawnlayout)
         self.bind(pos=repos_all)
         if bone.observer not in self.facade.closet.board_d:
@@ -136,6 +137,7 @@ class Board(FloatLayout):
         for arrow in self.arrowdict.itervalues():
             self.arrowlayout.add_widget(arrow)
         for spot in self.spotdict.itervalues():
+            spot.pos = spot.get_coords()
             self.spotlayout.add_widget(spot)
         for pawn in self.pawndict.itervalues():
             self.pawnlayout.add_widget(pawn)
@@ -178,10 +180,6 @@ class Board(FloatLayout):
         for pawn in self.pawndict.itervalues():
             for bone in pawn.new_branch(parent, branch, tick):
                 yield bone
-
-    def do_layout(self, *args):
-        for spot in self.spotlayout.children:
-            spot.pos = spot.get_pos()
 
     def on_touch_down(self, touch):
         return (
