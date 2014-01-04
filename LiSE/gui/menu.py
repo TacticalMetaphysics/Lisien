@@ -5,7 +5,6 @@ from kivy.properties import (
     StringProperty,
     ObjectProperty,
     NumericProperty)
-from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout

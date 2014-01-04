@@ -13,7 +13,9 @@ from table import (
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
     ClosetButton)
+from LiSE.gui.swatchbox import TogSwatch
 from kivy.uix.button import Button
+from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 from kivy.uix.image import Image as KivyImage
 from kivy.uix.modalview import ModalView
@@ -22,7 +24,6 @@ from kivy.uix.stacklayout import StackLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.adapters.listadapter import ListAdapter
 from kivy.adapters.models import SelectableDataItem
-from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.listview import ListView, SelectableView
 from kivy.properties import (
     NumericProperty,
@@ -220,10 +221,6 @@ class CSAddBut(Button):
     def __init__(self, **kwargs):
         kwargs['size_hint'] = (None, None)
         super(CSAddBut, self).__init__(**kwargs)
-
-
-class CSEdBut(ToggleButton):
-    charsheet = ObjectProperty()
 
 
 class CharSheetAdder(ModalView):
@@ -584,7 +581,13 @@ things appropriate to the present, whenever that may be.
         for bone in self.character.closet.skeleton[
                 u"character_sheet_item_type"][
                 unicode(self.character)].iterbones():
-            edbut = CSEdBut(charsheet=self)
+            edbut = TogSwatch(
+                box=self, image=self.character.closet.get_image("locked"))
+
+            def lock_unlock(*args):
+                imgn = "unlocked" if edbut.state == "down" else "locked"
+                edbut.image = self.character.closet.get_image(imgn)
+            edbut.bind(state=lock_unlock)
             if bone.type == THING_TAB:
                 headers = [_("thing")]
                 fieldnames = ["name"]

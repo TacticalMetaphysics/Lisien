@@ -393,7 +393,7 @@
         orientation: "vertical"
         SwatchBox:
             id: picker
-            cols: 1
+            categorized_images: root.categorized_images
         BoxLayout:
             size_hint_y: None
             height: 30
@@ -441,8 +441,8 @@
         size: (400, 26)
     CharSheetView:
         id: csview
-        pos_hint: {'x': 0.5, 'y': 0.0}
-        size_hint: (0.5, 1.0)
+        pos_hint: {'x': 0.7, 'y': 0.0}
+        size_hint: (0.3, 1.0)
         scroll_type: ['bars']
         bar_pos_y: 'left'
         CharSheet:
@@ -509,13 +509,13 @@
         height: self.line_height * 2
     TogSwatch:
         box: spotmenu
-        image: root.closet.get_image("default_spot")
+        img: root.closet.get_img("default_spot")
         text: root.get_text(_("Use default image"))
         group: "spotmenu"
         size_hint_y: None
     TogSwatch:
         box: spotmenu
-        image: root.closet.get_image("crossroad")
+        img: root.closet.get_img("crossroad")
         tags: ['?pixel_city']
         text: root.get_text(_("Build with PixelCity"))
         group: "spotmenu"
@@ -539,14 +539,14 @@
         height: self.line_height * 2
     TogSwatch:
         box: pawnmenu
-        img_name: "default_pawn"
+        image: root.closet.get_img("default_pawn")
         text: root.get_text(_("Use default image"))
         group: "pawnmenu"
         size_hint_y: None
     TogSwatch:
         box: pawnmenu
-        img_name: "base.mummy_f"
-        img_tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
+        image: root.closet.get_img("base.mummy_m")
+        tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
         text: root.get_text(_("Build with RLTiles"))
         group: "pawnmenu"
         size_hint_y: None

@@ -4,10 +4,8 @@ from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
     ImageryStack
 )
-from kivy.uix.widget import Widget
 from kivy.properties import (
     ObjectProperty)
-from kivy.graphics import Rectangle
 
 
 """Widget representing things that move about from place to place."""
@@ -70,12 +68,13 @@ The relevant data are
         super(Pawn, self).__init__(**kwargs)
         self.board.pawndict[unicode(self.thing)] = self
 
-        self.closet = self.board.host.closet
-        skel = self.closet.skeleton[u"thing_loc"][
+        closet = self.board.host.closet
+        skel = closet.skeleton[u"thing_loc"][
             unicode(self.thing.character)][unicode(self.thing)]
         skel.register_set_listener(reposskel)
         skel.register_del_listener(reposskel)
-        self.imagery = self.closet.skeleton[u"pawn"][
+        self.getter = closet.get_img
+        self.imagery = closet.skeleton[u"pawn"][
             unicode(self.board.facade.observer)][
             unicode(self.board.facade.observed)][
             unicode(self.board.host)][unicode(self.thing)]

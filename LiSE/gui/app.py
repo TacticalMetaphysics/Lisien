@@ -3,7 +3,6 @@ from os import sep
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
-    NumericProperty,
     BoundedNumericProperty,
     ObjectProperty,
     ListProperty,
@@ -15,7 +14,6 @@ from kivy.uix.widget import Widget
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
-from kivy.uix.scatter import Scatter, ScatterPlane
 from kivy.factory import Factory
 
 from sqlite3 import connect, OperationalError
@@ -26,73 +24,54 @@ from LiSE.gui.board import (
     Arrow,
     BoardView)
 from LiSE.gui.board.arrow import get_points
-from LiSE.gui.kivybits import TouchlessWidget
-from LiSE.gui.texturestack import TextureStack
+from LiSE.gui.kivybits import TouchlessWidget, ImgStack
 from LiSE.gui.swatchbox import SwatchBox, TogSwatch
 from LiSE.gui.charsheet import CharSheetAdder
-from LiSE.util import TimestreamException
-from LiSE import (
-    __path__,
-    closet,
-    util)
+from LiSE.util import TimestreamException, tabclas
+from LiSE.closet import Thing, mkdb, load_closet
+from LiSE import __path__
 
 Factory.register('BoardView', cls=BoardView)
 Factory.register('SwatchBox', cls=SwatchBox)
 Factory.register('TogSwatch', cls=TogSwatch)
 
 
-class DummyPawn(Scatter):
+class DummyPawn(ImgStack):
     """Looks like a Pawn, but doesn't have a Thing associated.
 
 This is meant to be used when the user is presently engaged with
 deciding where a Thing should be, when the Thing in question doesn't
 exist yet, but you know what it should look like."""
-    imgbones = ListProperty()
+    name = StringProperty()
     board = ObjectProperty()
     callback = ObjectProperty()
-    name = StringProperty()
-
-    def __init__(self, **kwargs):
-        """Collect images and show them"""
-        super(DummyPawn, self).__init__(**kwargs)
-        self.pile = TextureStack()
-        clost = self.board.facade.closet
-        for bone in self.imgbones:
-            image = clost.get_image(bone.name)
-            self.pile.append(
-                image.texture,
-                offx=image.offx,
-                offy=image.offy,
-                stackh=image.stackh)
-        self.add_widget(self.pile)
 
     def on_touch_up(self, touch):
         """Create a real Pawn on top of the Spot I am on top of, along
         with a Thing for it to represent. Then disappear."""
-        clost = self.board.facade.closet
-        for spot in self.board.spotdict.itervalues():
+        for spot in self.board.spotlayout.children:
             if self.collide_widget(spot):
                 obsrvr = unicode(self.board.facade.observer)
                 obsrvd = unicode(self.board.facade.observed)
                 hostn = unicode(self.board.host)
                 placen = unicode(spot.place)
-                tinybone = closet.Thing.bonetype(
+                tinybone = Thing.bonetype(
                     character=obsrvd,
                     name=self.name,
                     host=hostn)
-                bigbone = closet.Thing.bonetypes["thing_loc"](
+                bigbone = Thing.bonetypes["thing_loc"](
                     character=obsrvd,
                     name=self.name,
-                    branch=clost.branch,
-                    tick=clost.tick,
+                    branch=self.closet.branch,
+                    tick=self.closet.tick,
                     location=placen)
-                clost.set_bone(tinybone)
-                clost.set_bone(bigbone)
+                self.closet.set_bone(tinybone)
+                self.closet.set_bone(bigbone)
                 th = self.board.facade.observed.make_thing(self.name)
                 thingn = unicode(th)
-                branch = clost.branch
-                tick = clost.tick
-                for layer in xrange(0, len(self.imgbones)):
+                branch = self.closet.branch
+                tick = self.closet.tick
+                for layer in xrange(0, len(self.bones)):
                     pawnbone = Pawn.bonetype(
                         observer=obsrvr,
                         observed=obsrvd,
@@ -101,9 +80,8 @@ exist yet, but you know what it should look like."""
                         layer=layer,
                         branch=branch,
                         tick=tick,
-                        img=self.imgbones[layer].name)
-                    # default to being interactive
-                    clost.set_bone(pawnbone)
+                        img=self.bones[layer].name)
+                    self.closet.set_bone(pawnbone)
                 pawn = Pawn(board=self.board, thing=th)
                 self.board.pawndict[thingn] = pawn
                 self.board.pawnlayout.add_widget(pawn)
@@ -148,7 +126,7 @@ class SpriteMenuContent(StackLayout):
             if len(tog.tags) > 0:
                 self.picker_args.append(tog.tags)
             else:
-                self.picker_args.append(tog.image.name)
+                self.picker_args.append(tog.img)
             return True
         else:
             self.selection.append(tog)
@@ -359,15 +337,7 @@ and charsheets.
                 img=img.name)
             self.app.closet.set_bone(bone)
             i += 1
-        # get the point on the board that is presently at the center
-        # of the screen
-        b = self.ids.board
-        bv = self.ids.board_view
-        # clamp to that part of the board where the view's center might be
-        effective_w = b.width - bv.width
-        effective_h = b.height - bv.height
-        x = b.width / 2 + effective_w * (bv.scroll_x - 0.5)
-        y = b.height / 2 + effective_h * (bv.scroll_y - 0.5)
+        (x, y) = self.center_of_view_on_board()
         coord_bone = Spot.bonetypes["spot_coords"](
             observer=obsrvr,
             host=host,
@@ -381,6 +351,18 @@ and charsheets.
         spot = Spot(board=self.ids.board, place=place)
         self.ids.board.spotlayout.add_widget(spot)
 
+    def center_of_view_on_board(self):
+        # get the point on the board that is presently at the center
+        # of the screen
+        b = self.ids.board
+        bv = self.ids.board_view
+        # clamp to that part of the board where the view's center might be
+        effective_w = b.width - bv.width
+        effective_h = b.height - bv.height
+        x = b.width / 2 + effective_w * (bv.scroll_x - 0.5)
+        y = b.height / 2 + effective_h * (bv.scroll_y - 0.5)
+        return (x, y)
+
     def new_pawn_with_name_and_imgs(self, name, imgs):
         """Given some iterable of Swatch widgets, make a dummy pawn, prompt
 the user to place it, and dismiss the popup."""
@@ -389,31 +371,30 @@ the user to place it, and dismiss the popup."""
             return
         self.display_prompt(_(
             'Drag this thing to the spot where you want it.'))
-        (w, h) = self.get_root_window().size
         dummy = DummyPawn(
-            board=self.ids.board,
             name=name,
-            imgbones=imgs)
+            closet=self.app.closet,
+            board=self.ids.board, bones=imgs)
 
         def cb():
             self.remove_widget(dummy)
             self.dismiss_prompt()
         dummy.callback = cb
         self.add_widget(dummy)
-        dummy.pos = (w*0.1, h*0.9)
+        (w, h) = self.size
+        dummy.pos = (w/2, h/2)
 
     def show_spot_picker(self, name, imagery):
-        def set_imgs(swatches):
+        def set_imgs(swatches, dialog):
             self.new_spot_with_name_and_imgs(name, [
                 swatch.img for swatch in swatches])
             dialog.dismiss()
         if isinstance(imagery, list):
-            dialog = PickImgDialog(
-                name=name,
-                set_imgs=set_imgs)
+            dialog = PickImgDialog(name=name)
+            dialog.set_imgs = lambda swatches: set_imgs(swatches, dialog)
             catimg_d = {}
             for cat in imagery:
-                catimg_d[cat] = self.app.closet.images_with_tag(
+                catimg_d[cat] = self.app.closet.imgs_with_tag(
                     cat.strip("?!"))
             dialog.ids.picker.closet = self.app.closet
             dialog.ids.picker.categorized_images = [
@@ -425,11 +406,8 @@ the user to place it, and dismiss the popup."""
                 size_hint=(0.9, 0.9))
             dialog.cancel = lambda: popup.dismiss()
             popup.open()
-            dialog.finalize()
         else:
-            # imagery is a string name of an image
-            img = self.app.closet.skeleton[u"img"][imagery]
-            self.new_spot_with_name_and_imgs(name, [img])
+            self.new_spot_with_name_and_imgs(name, [imagery])
 
     def show_pawn_picker(self, name, imagery):
         """Show a SwatchBox for the given tags. The chosen Swatches will be
@@ -437,24 +415,26 @@ the user to place it, and dismiss the popup."""
 
         """
         if isinstance(imagery, list):
+            pickest = Popup(
+                title="Select some images",
+                size_hint=(0.9, 0.9))
+
             def set_imgs(swatches):
                 self.new_pawn_with_name_and_imgs(name, [
                     swatch.img for swatch in swatches])
-                self.dismiss_popup()
+                pickest.dismiss()
+
+            catimglst = [
+                (cat, sorted(self.app.closet.image_tag_d[cat]))
+                for cat in imagery]
             dialog = PickImgDialog(
                 name=name,
+                categorized_images=catimglst,
                 set_imgs=set_imgs,
-                cancel=self.dismiss_popup)
-            cattexlst = [
-                (cat, sorted(self.app.textag_d[cat]))
-                for cat in imagery]
+                cancel=pickest.dismiss)
             dialog.ids.picker.closet = self.app.closet
-            dialog.ids.picker.cattexlst = cattexlst
-            self._popups.append(Popup(
-                title="Select some images",
-                content=dialog,
-                size_hint=(0.9, 0.9)))
-            self._popups[-1].open()
+            pickest.content = dialog
+            pickest.open()
         else:
             img = self.app.closet.skeleton[u"img"][imagery]
             self.new_pawn_with_name_and_imgs(name, [img])
@@ -505,6 +485,7 @@ class PickImgDialog(FloatLayout):
     """Dialog for associating imgs with something, perhaps a Pawn.
 
 In lise.kv this is given a SwatchBox with texdict=root.texdict."""
+    categorized_images = ObjectProperty()
     set_imgs = ObjectProperty()
     cancel = ObjectProperty()
 
@@ -525,14 +506,14 @@ class LiSEApp(App):
             print("No database specified; defaulting to {}".format(self.dbfn))
         try:
             conn = connect(self.dbfn)
-            for tab in util.tabclas.iterkeys():
+            for tab in tabclas.iterkeys():
                 conn.execute("SELECT * FROM {};".format(tab))
         except (IOError, OperationalError):
-            closet.mkdb(self.dbfn, __path__[-1])
-        self.closet = closet.load_closet(
+            mkdb(self.dbfn, __path__[-1])
+        self.closet = load_closet(
             self.dbfn, self.lgettext, True)
         self.closet.load_img_metadata()
-        self.closet.load_images_tagged(['base', 'body'])
+        self.closet.load_imgs_tagged(['base', 'body'])
         # Currently the decision of when and whether to update things
         # is split between here and the closet. Seems inappropriate.
         self.closet.load_characters([

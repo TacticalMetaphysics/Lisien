@@ -43,10 +43,10 @@ CALENDAR_TYPES = [
 
 
 whole_imgrows = [
-    ('default_wallpaper', 'LiSE/gui/assets/wallpape.jpg', 0, 0),
-    ('default_spot', 'LiSE/gui/assets/orb.png', 0, 0),
+    ('default_wallpaper', 'LiSE/gui/assets/wallpape.jpg', 0, 0, 0),
+    ('default_spot', 'LiSE/gui/assets/orb.png', 0, 0, 0),
     ('default_pawn', 'atlas://LiSE/gui/assets/rltiles/hominid/base/unseen',
-     4, 8)]
+     4, 8, 0)]
 
 globs = [('branch',   1, '0'),
          ('tick',     1, '0'),

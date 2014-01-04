@@ -15,7 +15,7 @@ from kivy.properties import (
     NumericProperty,
     ObjectProperty)
 
-from LiSE.gui.kivybits import ClosetTextureStack
+from LiSE.gui.kivybits import ImgStack
 
 
 class FrobSwatch(Button):
@@ -23,22 +23,18 @@ class FrobSwatch(Button):
     some text."""
     box = ObjectProperty()
     """The :class:`SwatchBox` that I belong to."""
-    image = ObjectProperty()
+    img = ObjectProperty()
     """Image to show"""
     tags = ListProperty([])
     """List for use in SwatchBox"""
 
-    def on_image(self, *args):
-        if not self.image:
+    def on_img(self, *args):
+        if not self.img:
             return
-        if self.image.name == '':
+        if self.img.name == '':
             Clock.schedule_once(self.on_image, 0)
             return
-        self.img = Image(
-            texture=self.image.texture,
-            pos_hint={'top': 0.9},
-            size_hint=(0.9, 0.5))
-        self.ids.imgbox.add_widget(self.img)
+        self.ids.imgbox.add_widget(Image(texture=self.img.texture))
 
 
 class TogSwatch(ToggleButton, FrobSwatch):
@@ -90,7 +86,7 @@ class SwatchBox(BoxLayout):
             return
         head = GridLayout(cols=2, size_hint_y=None)
         self.undo_button = Button(text="Undo", on_release=self.undo)
-        self.pile = ClosetTextureStack(closet=self.closet)
+        self.pile = ImgStack(closet=self.closet)
         head.add_widget(self.pile)
         head.add_widget(self.undo_button)
         self.add_widget(head)
@@ -126,14 +122,15 @@ class SwatchBox(BoxLayout):
                 layout.add_widget(swatch)
 
                 def upd_from_swatch(swatch, state):
+                    bone = self.closet.skeleton[u"img"][swatch.img_name]
                     if (
                             state == 'down' and
                             swatch.img_name not in self.pile.names):
-                        self.pile.names.append(swatch.img_name)
+                        self.pile.bones.append(bone)
                     elif (
                             state == 'normal' and
                             swatch.img_name in self.pile.names):
-                        self.pile.names.remove(swatch.img_name)
+                        self.pile.bones.remove(bone)
                 swatch.bind(state=upd_from_swatch)
             layout.minimum_width = 500
             cats.add_widget(layout)

@@ -117,9 +117,6 @@ before RumorMill will work. For that, run mkdb.sh.
         "color_d",
         "board_d",
         "effect_d",
-        "img_d",
-        "image_d",
-        "image_tag_d",
         "menu_d",
         "menuitem_d",
         "style_d",
@@ -169,37 +166,93 @@ before RumorMill will work. For that, run mkdb.sh.
             setattr(self, wd, dict())
 
         if USE_KIVY:
-            from gui.kivybits import (
-                load_images,
-                load_images_tagged,
-                load_all_images)
+            from collections import defaultdict
+            from kivy.core.image import Image
+            self.img_d = {}
+            self.img_tag_d = defaultdict(set)
 
-            def _load_images(names):
-                r = load_images(self.c, self.set_bone, names)
-                self.image_d.update(r)
+            def load_imgs(names):
+                r = {}
+                try:
+                    for bone in Img._select_skeleton(self.c, {
+                            u"img": [
+                                Img.bonetypes[u"img"]._null()._replace(name=n)
+                                for n in names]}).iterbones():
+                        r[bone.name] = Img(
+                            closet=self,
+                            name=bone.name,
+                            texture=Image(bone.path).texture)
+                        self.set_bone(bone)
+                    for bone in Img._select_skeleton(self.c, {
+                            u"img_tag": [
+                                Img.bonetypes[u"img_tag"]._null()._replace(
+                                    img=n)]}).iterbones():
+                        self.set_bone(bone)
+                except StopIteration:
+                    pass
+                self.img_d.update(r)
                 return r
 
-            def _load_image(name):
-                return load_images(self.c, self.set_bone, [name])
-
-            def _load_all_images():
-                r = load_all_images(self.c, self.set_bone)
-                self.image_d.update(r)
+            def get_imgs(names):
+                r = {}
+                unhad = set()
+                try:
+                    for name in names:
+                        if name in self.img_d:
+                            r[name] = self.img_d[name]
+                        else:
+                            unhad.add(name)
+                except StopIteration:
+                    pass
+                r.update(load_imgs(unhad))
                 return r
 
-            def _load_images_tagged(tags):
-                r = load_images_tagged(self.c, self.set_bone, tags)
-                self.image_d.update(r)
-                for image in r.itervalues():
-                    for tag in image.tags:
-                        if tag not in self.image_tag_d:
-                            self.image_tag_d[tag] = set()
-                        self.image_tag_d[tag].add(image)
+            def load_all_imgs():
+                r = {}
+                for bone in Img._select_table_all(self.c, u"img"):
+                    self.set_bone(bone)
+                    r[bone.name] = Img(
+                        closet=self,
+                        name=bone.name,
+                        texture=Image(bone.path).texture)
+                for bone in Img._select_table_all(self.c, u"img_tag"):
+                    self.set_bone(bone)
+                self.img_d.update(r)
                 return r
-            self.load_image = _load_image
-            self.load_images = _load_images
-            self.load_all_images = _load_all_images
-            self.load_images_tagged = _load_images_tagged
+
+            def load_imgs_tagged(tags):
+                def iter_and_set_tag(tag):
+                    for bone in Img._select_skeleton(self.c, {
+                            u"img_tag": [Img.bonetypes["img_tag"](tag=tag)]}
+                    ).iterbones():
+                        self.img_tag_d[bone.img].add(bone.tag)
+                        yield bone.img
+                r = {}
+                try:
+                    for tag in tags:
+                        r[tag] = load_imgs(iter_and_set_tag(tag))
+                except StopIteration:
+                    pass
+                self.img_d.update(r)
+                return r
+
+            def get_imgs_tagged(tags):
+                r = {}
+                unhad = set()
+                for tag in tags:
+                    if tag in self.img_tag_d:
+                        r[tag] = get_imgs(self.img_tag_d[tag])
+                    else:
+                        unhad.add(tag)
+                r.update(load_imgs_tagged(unhad))
+                return r
+
+            self.load_imgs = load_imgs
+            self.get_imgs = get_imgs
+            self.load_imgs_tagged = load_imgs_tagged
+            self.get_imgs_tagged = get_imgs_tagged
+            self.load_all_imgs = load_all_imgs
+
             self.USE_KIVY = True
 
         self.timestream = Timestream(self)
@@ -510,22 +563,22 @@ before RumorMill will work. For that, run mkdb.sh.
         """Get a thing from a character"""
         return self.get_character(char).get_thing(name)
 
-    def get_images(self, imgnames):
+    def get_imgs(self, imgnames):
         """Return a dictionary full of images by the given names, loading
         them as needed."""
         r = {}
         unloaded = set()
         for imgn in imgnames:
-            if imgn in self.image_d:
-                r[imgn] = self.image_d[imgn]
+            if imgn in self.img_d:
+                r[imgn] = self.img_d[imgn]
             else:
                 unloaded.add(imgn)
         if len(unloaded) > 0:
-            r.update(self.load_images(unloaded))
+            r.update(self.load_imgs(unloaded))
         return r
 
-    def get_image(self, imgn):
-        return self.get_images([imgn])[imgn]
+    def get_img(self, imgn):
+        return self.get_imgs([imgn])[imgn]
 
     def load_menus(self, names):
         """Return a dictionary full of menus by the given names, loading them
@@ -797,23 +850,6 @@ before RumorMill will work. For that, run mkdb.sh.
         except (KeyError, IndexError):
             return False
 
-    def images_with_tag(self, tag):
-        """Generate images with a given tag."""
-        for imgn in self.image_tag_d[tag]:
-            yield self.get_image(imgn)
-
-    def get_images_with_tags(self, tags):
-        """Return a dict of images that have at least one of the given
-        tags. It will be keyed with the tags, not the image names, and images
-        may appear more than once in the values."""
-        r = {}
-        for tag in tags:
-            if tag not in r:
-                r[tag] = set()
-            for imgn in self.image_tag_d[tag]:
-                r[tag].add(self.image_d[imgn])
-        return r
-
     def set_bone(self, bone):
         """Take a bone of arbitrary type and put it in the right place in the
         skeleton.
@@ -883,9 +919,9 @@ before RumorMill will work. For that, run mkdb.sh.
         elif type(bone) in CharSheet.bonetypes.values():
             set_cstype_maybe(bone.character, bone.idx, bone.type)
         elif isinstance(bone, Img.bonetypes["img_tag"]):
-            if bone.tag not in self.image_tag_d:
-                self.image_tag_d[bone.tag] = set()
-            self.image_tag_d[bone.tag].add(bone.img)
+            if bone.tag not in self.img_tag_d:
+                self.img_tag_d[bone.tag] = set()
+            self.img_tag_d[bone.tag].add(bone.img)
 
         keynames = bone.cls.keynames[bone._name]
         keys = [bone._name] + [getattr(bone, keyn) for keyn in keynames[:-1]]
@@ -897,7 +933,8 @@ before RumorMill will work. For that, run mkdb.sh.
 def defaults(c):
     from LiSE.data import whole_imgrows
     c.executemany(
-        "INSERT INTO img (name, path, off_x, off_y) VALUES (?, ?, ?, ?);",
+        "INSERT INTO img (name, path, offset_x, offset_y, stacking_height) "
+        "VALUES (?, ?, ?, ?, ?);",
         whole_imgrows)
     from LiSE.data import globs
     c.executemany(
@@ -916,18 +953,18 @@ def defaults(c):
     from LiSE.data import offxs
     for (offx, names) in offxs:
         qrystr = (
-            "UPDATE img SET off_x=? WHERE name IN ({});".format(
+            "UPDATE img SET offset_x=? WHERE name IN ({});".format(
                 ", ".join(["?"] * len(names))))
         qrytup = (offx,) + names
         c.execute(qrystr, qrytup)
     from LiSE.data import offys
     for (offy, names) in offys:
         qrystr = (
-            "UPDATE img SET off_y=? WHERE name IN ({});".format(
+            "UPDATE img SET offset_y=? WHERE name IN ({});".format(
                 ", ".join(["?"] * len(names))))
         qrytup = (offy,) + names
         c.execute(qrystr, qrytup)
-    c.execute("UPDATE img SET off_x=4, off_y=8 "
+    c.execute("UPDATE img SET offset_x=4, offset_y=8 "
               "WHERE name IN (SELECT img FROM img_tag WHERE tag=?)",
               ('pawn',))
     from LiSE.data import boards
