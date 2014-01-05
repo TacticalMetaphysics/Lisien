@@ -421,15 +421,15 @@
     imgs: list(self.closet.iter_graphic_imgs(self.graphic_name)) if self.closet and self.graphic_name else []
     offset_x: self.graphic_bone.offset_x if self.graphic_bone else 0
     offset_y: self.graphic_bone.offset_y if self.graphic_bone else 0
+<BoardView>:
+    #:import stiffscroll LiSE.gui.stiffscroll.StiffScrollEffect
+    board: self.app.closet.get_board(self.app.observer_name, self.app.observed_name, self.app.host_name)
+    effect_cls: stiffscroll
 <LiSELayout>:
+    board: board_view.board
     BoardView:
         id: board_view
-        Board:
-            id: board
-            facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
-            host: root.app.closet.get_character(root.app.host_name)
-            size_hint: (None, None)
-            superlayout: root
+        app: root.app
     CueCard:
         id: prompt
         closet: root.app.closet

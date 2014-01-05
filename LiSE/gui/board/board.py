@@ -4,9 +4,6 @@ from __future__ import print_function
 from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
     AliasProperty,
-    BooleanProperty,
-    BoundedNumericProperty,
-    NumericProperty,
     DictProperty,
     ObjectProperty)
 from kivy.uix.image import Image
@@ -23,7 +20,7 @@ from LiSE.gui.stiffscroll import StiffScrollEffect
 class Board(FloatLayout):
     """A graphical view onto a facade, resembling a game board."""
     __metaclass__ = SaveableWidgetMetaclass
-    demands = ["thing", "img"]
+    demands = ["thing", "graphic_img"]
     tables = [
         ("board", {
             "columns": {
@@ -52,7 +49,14 @@ class Board(FloatLayout):
     pawnlayout = ObjectProperty()
     arrowdict = DictProperty({})
     arrowlayout = ObjectProperty()
-    superlayout = ObjectProperty()
+    scroll_x = AliasProperty(
+        lambda self: self.bone.x,
+        lambda self, v: self.closet.set_bone(self.bone._replace(x=v)),
+        cache=False)
+    scroll_y = AliasProperty(
+        lambda self: self.bone.x,
+        lambda self, v: self.closet.set_bone(self.bone._replace(y=v)),
+        cache=False)
 
     @property
     def bone(self):
@@ -207,9 +211,9 @@ class Board(FloatLayout):
 
 
 class BoardView(ScrollView):
-    def __init__(self, **kwargs):
-        kwargs['effect_cls'] = StiffScrollEffect
-        return super(BoardView, self).__init__(**kwargs)
+    app = ObjectProperty()
+    board = ObjectProperty()
 
-    def on_touch_down(self, touch):
-        super(BoardView, self).on_touch_down(touch)
+    def on_board(self, *args):
+        self.scroll_x = self.board.scroll_x
+        self.scroll_y = self.board.scroll_y

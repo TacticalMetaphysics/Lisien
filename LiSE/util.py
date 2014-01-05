@@ -62,6 +62,10 @@ primary key, in a tuple."""
 tabclas = {}
 """Map the name of each table to the class it was declared in."""
 
+tabbone = {}
+"""Map the name of each bone type (incidentally, also the name of its
+table) to the bone type itself."""
+
 saveables = []
 """Tuples of information about saveable classes. These may be used to
 apply the database schema."""
@@ -313,7 +317,9 @@ class BoneMetaclass(type):
             atts["_types"][field_name] = field_type
             atts["_defaults"][field_name] = default
             i += 1
-        return type.__new__(metaclass, clas, parents, atts)
+        r = type.__new__(metaclass, clas, parents, atts)
+        tabbone[clas] = r
+        return r
 
 
 class Bone(tuple):
@@ -1244,62 +1250,6 @@ class SaveableMetaclass(type):
             """
             for keybone in keybones:
                 c.execute(*gen_sql_delete(keybone, tabname))
-
-        def gen_sql_select(keybones, tabname):
-            """Return an SQL SELECT statement to get the records
-            matching the bones from the table ``tabname``.
-
-            """
-            # Assumes that all keybones have the same type.
-            together = []
-            for bone in keybones:
-                apart = []
-                for field in bone._fields:
-                    if getattr(bone, field) is not None:
-                        apart.append("{}=?".format(field))
-                together.append("({})".format(" AND ".join(apart)))
-            orstr = " OR ".join(together)
-            r = "SELECT {0} FROM {1} WHERE {2};".format(
-                ", ".join(next(iter(keybones))._fields), tabname, orstr)
-            return r.replace("WHERE ();", ";")
-
-        def select_keybones_table(c, keybones, tabname):
-            """Return a list of records taken from the table ``tabname``,
-            through the cursor ``c``, matching the bones.
-
-            """
-            qrystr = gen_sql_select(keybones, tabname)
-            qrylst = []
-            for bone in keybones:
-                for key in bone._fields:
-                    if getattr(bone, key) is not None:
-                        qrylst.append(getattr(bone, key))
-            c.execute(qrystr, tuple(qrylst))
-            return c.fetchall()
-
-        @staticmethod
-        def _select_skeleton(c, skel):
-            """Return a new :class:`Skeleton` like ``skel``, but with the bones
-            filled in with live data. Requires a cursor ``c``.
-
-            ``skel`` needs to have table names for its keys. It may be a
-            :type:`dict` instead of a :class:`Skeleton`.
-
-            """
-            r = Skeleton({})
-            for (tabname, bones) in skel.items():
-                if tabname not in r:
-                    r[tabname] = {}
-                for row in select_keybones_table(c, bones, tabname):
-                    bone = bonetypes[tabname](*row)
-                    ptr = r[tabname]
-                    for key in bone.cls.keynames[bone._name][:-1]:
-                        if getattr(bone, key) not in ptr:
-                            ptr[getattr(bone, key)] = {}
-                        ptr = ptr[getattr(bone, key)]
-                    finkey = bone.cls.keynames[bone._name][-1]
-                    ptr[getattr(bone, finkey)] = bone
-            return r
 
         @staticmethod
         def _insert_skeleton(c, skeleton):
