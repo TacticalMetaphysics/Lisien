@@ -14,6 +14,7 @@ import os
 from os.path import sep
 import re
 import sqlite3
+from collections import defaultdict, deque
 
 from gui.board import (
     Board,
@@ -38,6 +39,7 @@ from util import (
     pytype2int,
     PlaceBone,
     schemata,
+    tabbone,
     saveables,
     saveable_classes,
     Skeleton)
@@ -70,6 +72,25 @@ NEW_PLACE_RE = re.compile(
     "new_place\((.+)\)")
 CHARACTER_RE = re.compile(
     "character\((.+)\)")
+
+
+def iter_character_query_bones_named(name):
+    yield Thing.bonetypes["thing"]._null()._replace(
+        character=name)
+    yield Portal.bonetypes["portal"]._null()._replace(
+        character=name)
+    yield Place.bonetypes["place_stat"]._null()._replace(
+        character=name)
+    yield Character.bonetypes["character_stat"]._null()._replace(
+        character=name)
+    yield Portal.bonetypes["portal_loc"]._null()._replace(
+        character=name)
+    yield Portal.bonetypes["portal_stat"]._null()._replace(
+        character=name)
+    yield Thing.bonetypes["thing_loc"]._null()._replace(
+        character=name)
+    yield Thing.bonetypes["thing_stat"]._null()._replace(
+        character=name)
 
 
 class Closet(object):
@@ -171,7 +192,6 @@ before RumorMill will work. For that, run mkdb.sh.
             setattr(self, wd, dict())
 
         if USE_KIVY:
-            from collections import defaultdict
             from kivy.core.image import Image
             self.img_d = {}
             self.img_tag_d = defaultdict(set)
@@ -179,51 +199,42 @@ before RumorMill will work. For that, run mkdb.sh.
 
             def load_imgs(names):
                 r = {}
-                try:
-                    for bone in Img._select_skeleton(self.c, {
-                            u"img": [
-                                Img.bonetypes[u"img"]._null()._replace(name=n)
-                                for n in names]}).iterbones():
-                        r[bone.name] = Img(
-                            closet=self,
-                            name=bone.name,
-                            texture=Image(bone.path).texture)
-                        self.set_bone(bone)
-                    for bone in Img._select_skeleton(self.c, {
-                            u"img_tag": [
-                                Img.bonetypes[u"img_tag"]._null()._replace(
-                                    img=n)]}).iterbones():
-                        self.set_bone(bone)
-                except StopIteration:
-                    pass
+
+                def remember_img_bone(bone):
+                    r[bone.name] = Img(
+                        closet=self,
+                        name=bone.name,
+                        texture=Image(bone.path).texture)
+                self.select_and_set(
+                    (Img.bonetypes["img"]._null()._replace(name=n)
+                     for n in names), remember_img_bone)
+                self.select_and_set(
+                    Img.bonetypes["img_tag"]._null()._replace(name=n)
+                    for n in names)
                 self.img_d.update(r)
                 return r
 
             def get_imgs(names):
                 r = {}
-                unhad = set()
-                try:
+
+                def iter_unhad():
                     for name in names:
                         if name in self.img_d:
                             r[name] = self.img_d[name]
                         else:
-                            unhad.add(name)
-                except StopIteration:
-                    pass
-                r.update(load_imgs(unhad))
-                return r
+                            yield Img.bonetypes["img"]._null()._replace(
+                                name=name)
 
-            def load_all_imgs():
-                r = {}
-                for bone in Img._select_table_all(self.c, u"img"):
-                    self.set_bone(bone)
+                def remember_img_bone(bone):
                     r[bone.name] = Img(
                         closet=self,
                         name=bone.name,
                         texture=Image(bone.path).texture)
-                for bone in Img._select_table_all(self.c, u"img_tag"):
-                    self.set_bone(bone)
-                self.img_d.update(r)
+
+                self.select_and_set(iter_unhad(), remember_img_bone)
+                self.select_and_set(
+                    Img.bonetypes["img_tag"]._null()._replace(name=n)
+                    for n in names if n not in self.img_tag_d)
                 return r
 
             def load_imgs_tagged(tags):
@@ -256,8 +267,8 @@ before RumorMill will work. For that, run mkdb.sh.
             def load_game_pieces(names):
                 def iter_keybones():
                     for name in names:
-                        yield GamePiece.bonetypes[u"graphic"]._null(
-                        )._replace(name=name)
+                        yield GamePiece.bonetypes[
+                            u"graphic"]._null()._replace(name=name)
                         yield GamePiece.bonetypes[
                             u"graphic_img"]._null()._replace(graphic=name)
                 self.select_keybones(iter_keybones())
@@ -282,7 +293,6 @@ before RumorMill will work. For that, run mkdb.sh.
             self.get_imgs = get_imgs
             self.load_imgs_tagged = load_imgs_tagged
             self.get_imgs_tagged = get_imgs_tagged
-            self.load_all_imgs = load_all_imgs
             self.load_game_pieces = load_game_pieces
             self.load_game_piece = lambda name: load_game_pieces([name])[name]
             self.get_game_pieces = get_game_pieces
@@ -317,42 +327,49 @@ before RumorMill will work. For that, run mkdb.sh.
             self.set_bone(bone)
         return r
 
+    def insert_or_replace_bones_single_typ(self, typ, bones):
+        qrystr = "INSERT OR REPLACE INTO {} ({}) VALUES ({});".format(
+            typ.__name__, ", ".join(typ._fields), ", ".join(
+                ["?"] * len(typ._fields)))
+        self.c.executemany(qrystr, tuple(bones))
+
+    def select_keybones_single_typ(self, typ, kbs):
+        qrystr = "SELECT {} FROM {} WHERE {};".format(
+            ", ".join(typ._fields), typ.__name__,
+            " AND ".join(["{}=?".format(field) for field in
+                          typ._fields]))
+        self.c.executemany(qrystr, tuple(kbs))
+        for row in self.c:
+            yield typ(*row)
+
     def select_keybones(self, kbs):
-        """Take an iterable of "keybones," being regular bones whose key
-        fields are to be matched with other bones loaded from
-        disc. Return a skeleton of bones that match, keyed the same
-        way the database is.
-
-        """
-        clasname2clas = {}
-        clas_qd = {}
+        clas_qd = defaultdict(set)
         for kb in kbs:
-            if kb.cls.__name__ not in clas_qd:
-                clas_qd[kb.cls.__name__] = {}
-                clasname2clas[kb.cls.__name__] = kb.cls
-            if kb.__class__.__name__ not in clas_qd[kb.cls.__name__]:
-                clas_qd[kb.cls.__name__][kb.__class__.__name__] = set()
-            clas_qd[kb.cls.__name__][kb.__class__.__name__].add(kb)
-        r = Skeleton()
-        for clasn in clas_qd:
-            clas = clasname2clas[clasn]
-            r.update(clas._select_skeleton(self.c, clas_qd[clasn]))
-        for bone in r.iterbones():
+            clas_qd[type(kb)].add(kb)
+        for (clas, kbset) in clas_qd.iteritems():
+            for bone in self.select_keybones_single_typ(clas, kbset):
+                yield bone
+
+    def delete_keybones_single_typ(self, typ, kbs):
+        qrystr = "DELETE FROM {} WHERE {};".format(
+            typ.__name__, " AND ".join(
+                ["{}=?".format(field) for field in
+                 typ._fields]))
+        self.c.execute(qrystr, tuple(kbs))
+        for row in self.c:
+            yield typ(*row)
+
+    def delete_keybones(self, kbs):
+        clas_qd = defaultdict(set)
+        for kb in kbs:
+            clas_qd[type(kb)].add(kb)
+        for (clas, kbset) in clas_qd.iteritems():
+            self.delete_keybones_single_typ(clas, kbset)
+
+    def select_and_set(self, kbs, also_bone=lambda b: None):
+        for bone in self.select_keybones(kbs):
             self.set_bone(bone)
-        return r
-
-    def update_keybones(self, kbs):
-        """Update my skeleton with database records matching at least one of
-        the keybones."""
-        self.skeleton.update(self.select_keybones(kbs))
-
-    def update_keybone(self, kb):
-        """Query the database for records matching the given keybone. Make
-        bones for them, and add those to the appropriate place in my
-        skeleton, overwriting anything already there.
-
-        """
-        self.update_keybones([kb])
+            also_bone(bone)
 
     def upd_branch(self, b):
         """Set the active branch, alerting any branch_listeners"""
@@ -403,22 +420,15 @@ before RumorMill will work. For that, run mkdb.sh.
         # find out what's changed since last checkpoint
         to_save = self.skeleton - self.old_skeleton
         to_delete = self.old_skeleton - self.skeleton
-        # save each class in turn
-        for clas in saveable_classes:
-            assert(len(clas.tablenames) > 0)
-            for tabname in clas.tablenames:
-                if tabname in to_delete:
-                    clas._delete_keybones_table(
-                        self.c, to_delete[tabname].iterbones(), tabname)
-                if tabname in to_save:
-                    clas._delete_keybones_table(
-                        self.c, to_save[tabname].iterbones(), tabname)
-                    try:
-                        clas._insert_bones_table(
-                            self.c, to_save[tabname].iterbones(), tabname)
-                    except ValueError:
-                        pass
-        # remember how things are now
+        # save saveables
+        for (tab, v) in to_save.iteritems():
+            self.insert_or_replace_bones_single_typ(
+                tabbone[tab], v.iterbones())
+        # delete deletables
+        for (tab, v) in to_delete.iteritems():
+            self.delete_bones_single_typ(
+                tabbone[tab], v.iterbones())
+        # remember how things are now, for reference next time
         self.checkpoint()
 
     def load_img_metadata(self):
@@ -426,7 +436,7 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def load_strings(self):
         """Load all strings available."""
-        self.update_keybone(self.bonetypes["strings"]._null())
+        self.select_and_set(self.bonetypes["strings"]._null())
 
     def make_generic_place(self, character):
         """Make a place hosted by the given character, and give it a boring
@@ -473,50 +483,31 @@ before RumorMill will work. For that, run mkdb.sh.
                 yield bonetype._null()._replace(character=character)
         # if the character is not loaded yet, make it so
         character = unicode(self.get_character(character))
-        self.update_keybones(gen_keybones())
+        self.select_and_set(gen_keybones())
         return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
-        """Load all the named characters and return them in a dict."""
         def iterkbs():
             for name in names:
-                yield Character.bonetypes["character_stat"]._null()._replace(
-                    character=name)
-                yield Portal.bonetypes["portal"]._null()._replace(
-                    character=name)
-                yield Portal.bonetypes["portal_loc"]._null()._replace(
-                    character=name)
-                yield Portal.bonetypes["portal_stat"]._null()._replace(
-                    character=name)
-                yield Thing.bonetypes["thing"]._null()._replace(
-                    character=name)
-                yield Thing.bonetypes["thing_loc"]._null()._replace(
-                    character=name)
-                yield Thing.bonetypes["thing_stat"]._null()._replace(
-                    character=name)
-                yield Place.bonetypes["place_stat"]._null()._replace(
-                    character=name)
-        self.update_keybones(iterkbs())
-        r = {}
-        for name in names:
-            char = Character(self, name)
-            r[name] = char
-            self.character_d[name] = char
-        return r
+                for bone in iter_character_query_bones_named(name):
+                    yield(bone)
+        self.select_and_set(iterkbs())
 
     def get_characters(self, names):
-        """Return the named characters in a dict. Load them as needed."""
         r = {}
-        unhad = set()
-        for name in names:
-            if isinstance(name, Character):
-                r[str(name)] = name
-            elif name in self.character_d:
-                r[name] = self.character_d[name]
-            else:
-                unhad.add(name)
-        if len(unhad) > 0:
-            r.update(self.load_characters(names))
+
+        def iter_unhad():
+            for name in names:
+                if name in self.skeleton[u"character"]:
+                    r[name] = Character(self, name)
+                else:
+                    for bone in iter_character_query_bones_named(name):
+                        yield bone
+
+        def updb(bone):
+            r[bone.name] = Character(self, bone.name)
+
+        self.select_and_set(iter_unhad(), updb)
         return r
 
     def get_character(self, name):
@@ -571,7 +562,7 @@ before RumorMill will work. For that, run mkdb.sh.
                 host=hst),
             Pawn.bonetypes["pawn"]._null()._replace(
                 host=hst)]
-        self.update_keybones(keybones)
+        self.select_and_set(keybones)
         return self.get_board(observer, observed, host)
 
     def get_board(self, observer, observed, host):
@@ -635,8 +626,9 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def load_timestream(self):
         """Load and return the timestream"""
-        self.skeleton.update(self.select_class_all(Timestream))
+        self.select_class_all(Timestream)
         self.timestream = Timestream(self)
+        return self.timestream
 
     def time_travel_menu_item(self, mi, branch, tick):
         """Tiny wrapper for ``time_travel``"""
