@@ -15,7 +15,7 @@ from kivy.properties import (
     NumericProperty,
     ObjectProperty)
 
-from LiSE.gui.kivybits import ImgStack
+from gamepiece import ImgStack
 
 
 class FrobSwatch(Button):
@@ -34,7 +34,9 @@ class FrobSwatch(Button):
         if self.img.name == '':
             Clock.schedule_once(self.on_image, 0)
             return
-        self.ids.imgbox.add_widget(Image(texture=self.img.texture))
+        self.ids.imgbox.add_widget(Image(
+            texture=self.img.texture,
+            pos_hint={'center': 0.5, 'top': 1}))
 
 
 class TogSwatch(ToggleButton, FrobSwatch):

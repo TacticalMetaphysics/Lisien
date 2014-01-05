@@ -8,7 +8,6 @@ from kivy.uix.widget import (
     WidgetMetaclass)
 from kivy.properties import (
     NumericProperty,
-    ReferenceListProperty,
     ListProperty,
     ObjectProperty,
     StringProperty,
@@ -16,7 +15,6 @@ from kivy.properties import (
 from kivy.clock import Clock
 
 from LiSE.util import SaveableMetaclass
-from texturestack import TextureStack
 
 
 class ClosetWidget(Widget):
@@ -145,64 +143,3 @@ enough to get a popup of its own.
     def retext(self, skel, k, v):
         if k == self.closet.language:
             self.text = v
-
-
-class ImgStack(TextureStack):
-    imgs = ListProperty()
-    collided_x = NumericProperty(0)
-    collided_y = NumericProperty(0)
-    collided = ReferenceListProperty(collided_x, collided_y)
-
-    def __init__(self, **kwargs):
-        super(ImgStack, self).__init__(**kwargs)
-        self.bind(imgs=self.upd_imgs)
-        if len(self.imgs) > 0:
-            self.upd_imgs()
-
-    def clear(self, *args):
-        self.imgs = []
-        super(ImgStack, self).clear()
-
-    def upd_imgs(self, *args):
-        super(ImgStack, self).clear()
-        for img in self.imgs:
-            super(ImgStack, self).append(
-                img.texture, offx=img.offx,
-                offy=img.offy, stackh=img.stackh)
-
-    def insert(self, i, v):
-        self.imgs.insert(i, v)
-
-    def append(self, v):
-        self.imgs.append(v)
-
-    def collide_point(self, x, y):
-        """If all of my images are transparent at the given point, don't
-        collide.
-
-        """
-        (x, y) = self.to_local(x, y, relative=True)
-        for img in self.imgs:
-            try:
-                alpha = img.read_pixel(x + img.offx, y + img.offy)[3]
-            except IndexError:
-                continue
-            if alpha > 0.0125:
-                self.collided = (x, y)
-                return True
-
-
-class ImageryStack(ImgStack):
-    closet = ObjectProperty()
-    imagery = ObjectProperty()
-
-    def on_imagery(self, *args):
-        if not (self.imagery and self.closet):
-            Clock.schedule_once(self.on_imagery, 0)
-            return
-        branch = self.closet.branch
-        tick = self.closet.tick
-        self.clear()
-        for layer in self.imagery:
-            imgn = self.imagery[layer][branch].value_during(tick).img
-            self.append(self.closet.get_img(imgn))

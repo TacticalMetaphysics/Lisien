@@ -182,10 +182,21 @@ class Board(FloatLayout):
                 yield bone
 
     def on_touch_down(self, touch):
-        return (
-            self.pawnlayout.on_touch_down(touch) or
-            self.spotlayout.on_touch_down(touch) or
-            super(Board, self).on_touch_down(touch))
+        for preemptor in ("charsheet", "menu"):
+            if preemptor in touch.ud:
+                return
+        if touch.grab_current in (
+                self.pawnlayout.children +
+                self.spotlayout.children):
+            print("Not recursing into board because done already")
+            return
+        for pawn in self.pawnlayout.children[:]:
+            if pawn.dispatch('on_touch_down', touch):
+                return True
+        for spot in self.spotlayout.children[:]:
+            if spot.dispatch('on_touch_down', touch):
+                return True
+        return super(Board, self).on_touch_down(touch)
 
     def on_touch_move(self, touch):
         if 'portaling' in touch.ud:
@@ -199,3 +210,6 @@ class BoardView(ScrollView):
     def __init__(self, **kwargs):
         kwargs['effect_cls'] = StiffScrollEffect
         return super(BoardView, self).__init__(**kwargs)
+
+    def on_touch_down(self, touch):
+        super(BoardView, self).on_touch_down(touch)

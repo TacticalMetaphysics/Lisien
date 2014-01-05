@@ -25,13 +25,11 @@ class Img(EventDispatcher):
          {"columns":
           {"name": "text not null",
            "path": "text not null",
-           "offset_x": "integer not null default 0",
-           "offset_y": "integer not null default 0",
            "stacking_height": "integer not null default 0"},
           "primary_key":
           ("name",),
           "checks":
-          ["stacking_height >= 0.0"]}),
+          ["stacking_height >= 0"]}),
         ("img_tag",
          {"columns":
           {"img": "text not null",
