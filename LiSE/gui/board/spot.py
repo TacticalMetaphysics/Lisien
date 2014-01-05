@@ -1,21 +1,17 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.gui.kivybits import (
-    SaveableWidgetMetaclass,
-    ImageryStack
-)
+from LiSE.gui.gamepiece import GamePiece
 from kivy.properties import (
-    DictProperty,
+    AliasProperty,
     ListProperty,
-    NumericProperty,
     ObjectProperty)
+from kivy.clock import Clock
 
 
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class Spot(ImageryStack):
-    __metaclass__ = SaveableWidgetMetaclass
+class Spot(GamePiece):
     """The icon that represents a Place.
 
     The Spot is located on the Board that represents the same
@@ -73,8 +69,6 @@ class Spot(ImageryStack):
         "SELECT spot.host AS host, spot.place AS place, "
         "spot.branch AS branch, spot.tick AS tick "
         "FROM spot WHERE observer<>'Omniscient';"]
-# TODO: query tool for places in facades that do not *currently*
-# correspond to any place in any character
     tables = [
         ("spot", {
             "columns": {
@@ -84,14 +78,14 @@ class Spot(ImageryStack):
                 "layer": "integer not null default 0",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
-                "img": "text default 'default_spot'",
+                "graphic": "text not null default 'default_spot'",
                 "interactive": "boolean default 1"},
             "primary_key": (
                 "observer", "host", "place",
-                "layer", "branch", "tick"),
+                "branch", "tick"),
             "foreign_keys": {
                 "observer, host": ("board", "observer, observed"),
-                "img": ("img", "name")}}),
+                "graphic": ("graphic", "name")}}),
         ("spot_coords", {
             "columns": {
                 "observer": "text not null default 'Omniscient'",
@@ -108,24 +102,32 @@ class Spot(ImageryStack):
                     "spot", "observer, host, place")}})]
     place = ObjectProperty()
     board = ObjectProperty()
-    texs = ListProperty([])
-    texture_rectangles = DictProperty({})
-    rectangle_groups = DictProperty({})
-    imagery = ObjectProperty()
-    names = ListProperty([])
-    name_textures = DictProperty({})
+    bone = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
-    completedness = NumericProperty(0)
     pawns_here = ListProperty([])
+    graphic_name = AliasProperty(
+        lambda self: self.bone.graphic if self.bone else '',
+        lambda self, v: None,
+        bind=('bone',))
 
     def __init__(self, **kwargs):
-        kwargs['size_hint'] = (None, None)
+        if 'board' in kwargs and 'closet' not in kwargs:
+            kwargs['closet'] = kwargs['board'].host.closet
+        kwargs['bone'] = kwargs['closet'].skeleton[u'spot'][
+            unicode(kwargs['board'].facade.observer)][
+            unicode(kwargs['place'].character)][
+            unicode(kwargs['place'])][
+            kwargs['closet'].branch].value_during(
+            kwargs['closet'].tick)
+        kwargs['imgs'] = kwargs['closet'].get_game_piece(
+            kwargs['bone'].graphic).imgs
         super(Spot, self).__init__(**kwargs)
-        self.closet = self.board.host.closet
+        self.closet.register_time_listener(self.handle_time)
+        self.handle_time(*self.closet.time)
         self.board.spotdict[unicode(self.place)] = self
-        self.imagery = self.closet.skeleton[
-            u"spot"][unicode(self.board.facade.observer)][
-            unicode(self.board.host)][unicode(self.place)]
+        self.bind(
+            pawns_here=self.upd_pawns_here,
+            center=self.upd_pawns_here)
 
     def __str__(self):
         """Return the name of my :class:`Place`."""
@@ -135,29 +137,31 @@ class Spot(ImageryStack):
         """Return the name of my :class:`Place`."""
         return unicode(self.place)
 
-    def on_imagery(self, *args):
-        super(Spot, self).on_imagery(*args)
+    def handle_time(self, b, t):
+        self.bone = self.get_bone(b, t)
+        self.repos(b, t)
 
-    def upd_size(self, branch=None, tick=None):
-        w = h = 0
-        for t in self.texs:
-            w = max([t.width, w])
-            h = max([t.height, h])
-        self.size = (w, h)
+    def repos(self, b, t):
+        if not self.graphic_bone:
+            Clock.schedule_once(lambda dt: self.repos(b, t), 0)
+            return
+        bone = self.get_coord_bone(b, t)
+        self.x = bone.x + self.graphic_bone.offset_x
+        self.y = bone.y + self.graphic_bone.offset_y
 
     def upd_pawns_here(self, *args):
         for pawn in self.pawns_here:
-            pawn.pos = self.pos
+            pawn.pos = self.center
 
     def sanetime(self, branch, tick):
         return self.board.facade.sanetime(branch, tick)
 
-    def get_bone(self, layer=0, branch=None, tick=None):
+    def get_bone(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
-        return self.board.facade.closet.skeleton[u"spot"][
+        return self.closet.skeleton[u"spot"][
             unicode(self.board.facade.observer)][
             unicode(self.board.host)][
-            unicode(self.place)][layer][branch].value_during(tick)
+            unicode(self.place)][branch].value_during(tick)
 
     def get_coord_bone(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
@@ -229,6 +233,8 @@ class Spot(ImageryStack):
                     prev = bone
 
     def on_touch_down(self, touch):
+        if touch.grab_current:
+            return
         if self.collide_point(touch.x, touch.y):
             touch.grab(self)
             touch.ud['spot'] = self
@@ -240,14 +246,12 @@ class Spot(ImageryStack):
         if touch.grab_current is not self:
             return
         self._touch = touch
-        (x, y) = touch.pos
-        self.center = (x - self.collided_x, y - self.collided_y)
+        self.center = touch.pos
 
     def on_touch_up(self, touch):
         if self._touch:
             self.set_coords(*self.pos)
         self._touch = None
-        self.collided = (0, 0)
         return super(Spot, self).on_touch_up(touch)
 
     def __repr__(self):

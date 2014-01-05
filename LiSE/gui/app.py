@@ -24,7 +24,8 @@ from LiSE.gui.board import (
     Arrow,
     BoardView)
 from LiSE.gui.board.arrow import get_points
-from LiSE.gui.kivybits import TouchlessWidget, ImgStack
+from LiSE.gui.kivybits import TouchlessWidget
+from LiSE.gui.gamepiece import GamePiece
 from LiSE.gui.swatchbox import SwatchBox, TogSwatch
 from LiSE.gui.charsheet import CharSheetAdder
 from LiSE.util import TimestreamException, tabclas
@@ -36,19 +37,37 @@ Factory.register('SwatchBox', cls=SwatchBox)
 Factory.register('TogSwatch', cls=TogSwatch)
 
 
-class DummyPawn(ImgStack):
+class DummyPawn(GamePiece):
     """Looks like a Pawn, but doesn't have a Thing associated.
 
 This is meant to be used when the user is presently engaged with
 deciding where a Thing should be, when the Thing in question doesn't
 exist yet, but you know what it should look like."""
-    name = StringProperty()
+    thing_name = StringProperty()
     board = ObjectProperty()
     callback = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        super(DummyPawn, self).__init__(**kwargs)
+
+    def on_touch_down(self, touch):
+        if touch.grab_current:
+            print("Not checking collision because {} got there first".format(
+                touch.grab_current))
+        if self.collide_point(touch.x, touch.y):
+            touch.grab(self)
+            return True
+
+    def on_touch_move(self, touch):
+        if touch.grab_current is not self:
+            return
+        self._touch = touch
+        self.center = touch.pos
 
     def on_touch_up(self, touch):
         """Create a real Pawn on top of the Spot I am on top of, along
         with a Thing for it to represent. Then disappear."""
+        closet = self.board.host.closet
         for spot in self.board.spotlayout.children:
             if self.collide_widget(spot):
                 obsrvr = unicode(self.board.facade.observer)
@@ -57,35 +76,31 @@ exist yet, but you know what it should look like."""
                 placen = unicode(spot.place)
                 tinybone = Thing.bonetype(
                     character=obsrvd,
-                    name=self.name,
+                    name=self.thing_name,
                     host=hostn)
                 bigbone = Thing.bonetypes["thing_loc"](
                     character=obsrvd,
-                    name=self.name,
-                    branch=self.closet.branch,
-                    tick=self.closet.tick,
+                    name=self.thing_name,
+                    branch=closet.branch,
+                    tick=closet.tick,
                     location=placen)
-                self.closet.set_bone(tinybone)
-                self.closet.set_bone(bigbone)
-                th = self.board.facade.observed.make_thing(self.name)
+                pawnbone = Pawn.bonetype(
+                    observer=obsrvr,
+                    observed=obsrvd,
+                    host=hostn,
+                    thing=self.thing_name,
+                    branch=closet.branch,
+                    tick=closet.tick,
+                    graphic=self.graphic_name)
+                closet.set_bone(tinybone)
+                closet.set_bone(bigbone)
+                closet.set_bone(pawnbone)
+                th = self.board.facade.observed.make_thing(self.thing_name)
                 thingn = unicode(th)
-                branch = self.closet.branch
-                tick = self.closet.tick
-                for layer in xrange(0, len(self.bones)):
-                    pawnbone = Pawn.bonetype(
-                        observer=obsrvr,
-                        observed=obsrvd,
-                        host=hostn,
-                        thing=thingn,
-                        layer=layer,
-                        branch=branch,
-                        tick=tick,
-                        img=self.bones[layer].name)
-                    self.closet.set_bone(pawnbone)
                 pawn = Pawn(board=self.board, thing=th)
                 self.board.pawndict[thingn] = pawn
                 self.board.pawnlayout.add_widget(pawn)
-                self.clear_widgets()
+                self.clear()
                 self.callback()
                 return True
 
@@ -126,7 +141,7 @@ class SpriteMenuContent(StackLayout):
             if len(tog.tags) > 0:
                 self.picker_args.append(tog.tags)
             else:
-                self.picker_args.append(tog.img)
+                self.picker_args.append(tog.img.name)
             return True
         else:
             self.selection.append(tog)
@@ -277,7 +292,10 @@ and charsheets.
                 spotpicker_args = spot_menu_content.picker_args
                 spot_menu_content.selection = []
                 spot_menu.dismiss()
-                self.show_spot_picker(*spotpicker_args)
+                if isinstance(spotpicker_args[-1], list):
+                    self.show_spot_picker(*spotpicker_args)
+                else:
+                    self.new_spot_with_name_and_graphic(*spotpicker_args)
         spot_menu_content.confirm = confirm
 
         def cancel():
@@ -363,51 +381,71 @@ and charsheets.
         y = b.height / 2 + effective_h * (bv.scroll_y - 0.5)
         return (x, y)
 
-    def new_pawn_with_name_and_imgs(self, name, imgs):
-        """Given some iterable of Swatch widgets, make a dummy pawn, prompt
-the user to place it, and dismiss the popup."""
+    def new_pawn_with_name_and_graphic(self, thing_name, graphic_name):
         _ = self.app.closet.get_text
-        if len(imgs) < 1:
-            return
         self.display_prompt(_(
-            'Drag this thing to the spot where you want it.'))
+            "Drag this to a spot"))
         dummy = DummyPawn(
-            name=name,
-            closet=self.app.closet,
-            board=self.ids.board, bones=imgs)
+            thing_name=thing_name,
+            board=self.ids.board,
+            graphic_name=graphic_name)
 
         def cb():
-            self.remove_widget(dummy)
+            self.ids.board.pawnlayout.remove_widget(dummy)
             self.dismiss_prompt()
         dummy.callback = cb
-        self.add_widget(dummy)
-        (w, h) = self.size
-        dummy.pos = (w/2, h/2)
+        dummy.pos = self.center_of_view_on_board()
+        self.ids.board.pawnlayout.add_widget(dummy)
+
+    def new_spot_with_name_and_graphic(self, place_name, graphic_name):
+        place = self.ids.board.host.make_place(place_name)
+        (branch, tick) = self.app.closet.time
+        obsrvr = unicode(self.ids.board.facade.observer)
+        hst = unicode(self.ids.board.host)
+        self.app.closet.set_bone(Spot.bonetypes["spot"](
+            observer=obsrvr,
+            host=hst,
+            place=place_name,
+            branch=branch,
+            tick=tick,
+            graphic=graphic_name))
+        (x, y) = self.center_of_view_on_board()
+        self.app.closet.set_bone(Spot.bonetypes["spot_coords"](
+            observer=obsrvr,
+            host=hst,
+            place=place_name,
+            branch=branch,
+            tick=tick,
+            x=x,
+            y=y))
+        self.ids.board.spotlayout.add_widget(
+            Spot(board=self.ids.board,
+                 place=place))
 
     def show_spot_picker(self, name, imagery):
-        def set_imgs(swatches, dialog):
-            self.new_spot_with_name_and_imgs(name, [
-                swatch.img for swatch in swatches])
+        def set_graphic(swatches, dialog):
+            graphic_name = u"{}_graphic".format(name)
+            self.app.closet.set_bone(GamePiece.bonetypes["graphic"](
+                name=name))
+            for i in xrange(0, len(imagery)):
+                self.app.closet.set_bone(GamePiece.bonetypes["graphic_img"](
+                    graphic=graphic_name,
+                    img=imagery[i].img.name,
+                    layer=i))
+            self.new_spot_with_name_and_graphic(name, graphic_name)
             dialog.dismiss()
-        if isinstance(imagery, list):
-            dialog = PickImgDialog(name=name)
-            dialog.set_imgs = lambda swatches: set_imgs(swatches, dialog)
-            catimg_d = {}
-            for cat in imagery:
-                catimg_d[cat] = self.app.closet.imgs_with_tag(
-                    cat.strip("?!"))
-            dialog.ids.picker.closet = self.app.closet
-            dialog.ids.picker.categorized_images = [
-                (cat, sorted(images)) for (cat, images) in
-                catimg_d.iteritems()]
-            popup = Popup(
-                title="Select graphics",
-                content=dialog,
-                size_hint=(0.9, 0.9))
-            dialog.cancel = lambda: popup.dismiss()
-            popup.open()
-        else:
-            self.new_spot_with_name_and_imgs(name, [imagery])
+        dialog = PickImgDialog(name=name)
+        dialog.set_imgs = lambda swatches: set_graphic(swatches, dialog)
+        dialog.ids.picker.closet = self.app.closet
+        dialog.ids.picker.categorized_images = [
+            (cat, sorted(self.app.closet.imgs_with_tag(cat.strip("?!"))))
+            for cat in imagery]
+        popup = Popup(
+            title="Select graphics",
+            content=dialog,
+            size_hint=(0.9, 0.9))
+        dialog.cancel = lambda: popup.dismiss()
+        popup.open()
 
     def show_pawn_picker(self, name, imagery):
         """Show a SwatchBox for the given tags. The chosen Swatches will be
@@ -420,8 +458,25 @@ the user to place it, and dismiss the popup."""
                 size_hint=(0.9, 0.9))
 
             def set_imgs(swatches):
-                self.new_pawn_with_name_and_imgs(name, [
-                    swatch.img for swatch in swatches])
+                # TODO interface for defining appearances independent
+                # of pawns per-se, make the user's defined appearances
+                # show up on the pawn picker
+                #
+                # default pawn offsets
+                graphic_name = "{}_imagery".format(name)
+                graphic_bone = GamePiece.bonetypes["graphic"](
+                    name=graphic_name,
+                    offset_x=4,
+                    offset_y=8)
+                img_bones = [
+                    GamePiece.bonetypes["graphic_img"](
+                        graphic=graphic_name,
+                        layer=i,
+                        img=imagery[i])
+                    for i in xrange(0, len(imagery))]
+                for bone in [graphic_bone] + img_bones:
+                    self.app.closet.set_bone(bone)
+                self.new_pawn_with_name_and_graphic(name, graphic_name)
                 pickest.dismiss()
 
             catimglst = [
@@ -436,8 +491,7 @@ the user to place it, and dismiss the popup."""
             pickest.content = dialog
             pickest.open()
         else:
-            img = self.app.closet.skeleton[u"img"][imagery]
-            self.new_pawn_with_name_and_imgs(name, [img])
+            self.new_pawn_with_name_and_graphic(name, imagery)
 
     def normal_speed(self, forward=True):
         if forward:

@@ -22,6 +22,7 @@ from gui.board import (
 from gui.charsheet import CharSheet, CharSheetView
 from gui.menu import Menu
 from gui.img import Img
+from gui.gamepiece import GamePiece
 from model import (
     Character,
     Place,
@@ -128,6 +129,10 @@ before RumorMill will work. For that, run mkdb.sh.
 
     """
 
+    @property
+    def time(self):
+        return (self.branch, self.tick)
+
     def __setattr__(self, attrn, val):
         if attrn == "branch" and hasattr(self, 'branch'):
             self.upd_branch(val)
@@ -170,6 +175,7 @@ before RumorMill will work. For that, run mkdb.sh.
             from kivy.core.image import Image
             self.img_d = {}
             self.img_tag_d = defaultdict(set)
+            self.game_piece_d = defaultdict(list)
 
             def load_imgs(names):
                 r = {}
@@ -247,11 +253,40 @@ before RumorMill will work. For that, run mkdb.sh.
                 r.update(load_imgs_tagged(unhad))
                 return r
 
+            def load_game_pieces(names):
+                def iter_keybones():
+                    for name in names:
+                        yield GamePiece.bonetypes[u"graphic"]._null(
+                        )._replace(name=name)
+                        yield GamePiece.bonetypes[
+                            u"graphic_img"]._null()._replace(graphic=name)
+                self.select_keybones(iter_keybones())
+                r = {}
+                for name in names:
+                    r[name] = GamePiece(closet=self, graphic_name=name)
+                self.game_piece_d.update(r)
+                return r
+
+            def get_game_pieces(names):
+                r = {}
+                unhad = set()
+                for name in names:
+                    if name in self.game_piece_d:
+                        r[name] = self.game_piece_d[name]
+                    else:
+                        unhad.add(name)
+                r.update(self.load_game_pieces(unhad))
+                return r
+
             self.load_imgs = load_imgs
             self.get_imgs = get_imgs
             self.load_imgs_tagged = load_imgs_tagged
             self.get_imgs_tagged = get_imgs_tagged
             self.load_all_imgs = load_all_imgs
+            self.load_game_pieces = load_game_pieces
+            self.load_game_piece = lambda name: load_game_pieces([name])[name]
+            self.get_game_pieces = get_game_pieces
+            self.get_game_piece = lambda name: get_game_pieces([name])[name]
 
             self.USE_KIVY = True
 
@@ -303,7 +338,7 @@ before RumorMill will work. For that, run mkdb.sh.
             clas = clasname2clas[clasn]
             r.update(clas._select_skeleton(self.c, clas_qd[clasn]))
         for bone in r.iterbones():
-            self.upbone(bone)
+            self.set_bone(bone)
         return r
 
     def update_keybones(self, kbs):
@@ -850,6 +885,12 @@ before RumorMill will work. For that, run mkdb.sh.
         except (KeyError, IndexError):
             return False
 
+    def iter_graphic_imgs(self, graphicn):
+        if graphicn not in self.skeleton[u"graphic_img"]:
+            return
+        for bone in self.skeleton[u"graphic_img"][graphicn].iterbones():
+            yield self.get_img(bone.img)
+
     def set_bone(self, bone):
         """Take a bone of arbitrary type and put it in the right place in the
         skeleton.
@@ -933,9 +974,20 @@ before RumorMill will work. For that, run mkdb.sh.
 def defaults(c):
     from LiSE.data import whole_imgrows
     c.executemany(
-        "INSERT INTO img (name, path, offset_x, offset_y, stacking_height) "
-        "VALUES (?, ?, ?, ?, ?);",
+        "INSERT INTO img (name, path, stacking_height) "
+        "VALUES (?, ?, ?);",
         whole_imgrows)
+    from LiSE.data import graphics
+    for (name, d) in graphics.iteritems():
+        c.execute(
+            "INSERT INTO graphic (name, offset_x, offset_y) "
+            "VALUES (?, ?, ?);",
+            (name, d.get('offset_x', 0), d.get('offset_y', 0)))
+        for i in xrange(0, len(d['imgs'])):
+            c.execute(
+                "INSERT INTO graphic_img (graphic, layer, img) "
+                "VALUES (?, ?, ?);",
+                (name, i, d['imgs'][i]))
     from LiSE.data import globs
     c.executemany(
         "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
@@ -950,23 +1002,6 @@ def defaults(c):
                 ", ".join(["?"] * len(names))))
         qrytup = (height,) + names
         c.execute(qrystr, qrytup)
-    from LiSE.data import offxs
-    for (offx, names) in offxs:
-        qrystr = (
-            "UPDATE img SET offset_x=? WHERE name IN ({});".format(
-                ", ".join(["?"] * len(names))))
-        qrytup = (offx,) + names
-        c.execute(qrystr, qrytup)
-    from LiSE.data import offys
-    for (offy, names) in offys:
-        qrystr = (
-            "UPDATE img SET offset_y=? WHERE name IN ({});".format(
-                ", ".join(["?"] * len(names))))
-        qrytup = (offy,) + names
-        c.execute(qrystr, qrytup)
-    c.execute("UPDATE img SET offset_x=4, offset_y=8 "
-              "WHERE name IN (SELECT img FROM img_tag WHERE tag=?)",
-              ('pawn',))
     from LiSE.data import boards
     for (obsrvr, obsrvd, hst) in boards:
         c.execute(

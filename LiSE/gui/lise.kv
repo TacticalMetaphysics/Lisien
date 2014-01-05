@@ -361,10 +361,6 @@
             Rectangle:
                 pos: l.pos
                 size: l.size
-<DummyPawn>:
-    size_hint: (None, None)
-    do_rotation: False
-    do_scale: False
 <LoadImgDialog>:
     BoxLayout:
         size: root.size
@@ -424,6 +420,10 @@
 <CharStatTableView>:
     CharStatTableContent:
         closet: root.character.closet
+<GamePiece>:
+    imgs: list(self.closet.iter_graphic_imgs(self.graphic_name)) if self.closet and self.graphic_name else []
+    offset_x: self.graphic_bone.offset_x if self.graphic_bone else 0
+    offset_y: self.graphic_bone.offset_y if self.graphic_bone else 0
 <LiSELayout>:
     BoardView:
         id: board_view
@@ -539,13 +539,13 @@
         height: self.line_height * 2
     TogSwatch:
         box: pawnmenu
-        image: root.closet.get_img("default_pawn")
+        img: root.closet.get_img("default_pawn")
         text: root.get_text(_("Use default image"))
         group: "pawnmenu"
         size_hint_y: None
     TogSwatch:
         box: pawnmenu
-        image: root.closet.get_img("base.mummy_m")
+        img: root.closet.get_img("base.mummy_m")
         tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
         text: root.get_text(_("Build with RLTiles"))
         group: "pawnmenu"
