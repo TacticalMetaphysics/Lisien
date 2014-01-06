@@ -15,26 +15,10 @@ from kivy.graphics import (
     InstructionGroup
 )
 from kivy.properties import (
+    BooleanProperty,
     ListProperty,
     DictProperty)
 from kivy.clock import Clock
-
-
-def push_list(L, n):
-    for i in xrange(0, len(L)):
-        L[i] += n
-
-
-def first_negative(L):
-    for n in L:
-        if n < 0:
-            return n
-
-
-def enforce_positivity(L):
-    neg = first_negative(L)
-    while neg is not None:
-        push_list(L, neg)
 
 
 class TextureStack(Widget):
@@ -66,6 +50,7 @@ class TextureStack(Widget):
     instruction that goes with it. Keyed by the Rectangle.
 
     """
+    freeze_texs = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         super(TextureStack, self).__init__(**kwargs)
@@ -74,26 +59,26 @@ class TextureStack(Widget):
             self.upd_texs()
             self.upd_pos()
 
+    def on_texs(self, *args):
+        if self.freeze_texs:
+            pass
+
     def upd_texs(self, *args):
         if not self.canvas:
             Clock.schedule_once(self.upd_texs, 0)
             return
-        i = len(self.texs) - 1
-        while i >= 0:
-            tex = self.texs[i]
-            if tex not in self.texture_rectangles:
-                x = self.x
-                y = self.y + sum(self.stackhs[:i])
-                self.canvas.insert(i, self.rectify(tex, x, y))
-            i -= 1
+        self.canvas.clear()
+        for tex in self.texs:
+            L = len(self.canvas.children)
+            self.canvas.add(self.rectify(tex, self.x, self.y))
+            assert(len(self.canvas.children) == L + 1)
 
     def upd_pos(self, *args):
         for rect in self.texture_rectangles.itervalues():
             rect.pos = self.pos
 
     def clear(self):
-        if self.canvas:
-            self.canvas.clear()
+        self.canvas.clear()
         self.unbind(texs=self.upd_texs)
         self.rectangle_groups = {}
         self.texture_rectangles = {}
@@ -119,20 +104,15 @@ class TextureStack(Widget):
 
     def insert(self, i, tex):
         if not self.canvas:
+            self.freeze_texs = True
             Clock.schedule_once(
                 lambda dt: TextureStack.insert(
                     self, i, tex), 0)
             return
-        self.unbind(texs=self.upd_texs)
-        self.texs.insert(i, tex)
         if len(self.stackhs) < len(self.texs):
             self.stackhs.extend([0] * (len(self.texs) - len(self.stackhs)))
-        # the handlers for offxs and offys mean that they will not
-        # necessarily remain at the value they were when we just
-        # inserted them.
-        group = self.rectify(tex, self.x, self.y + sum(self.stackhs[:i]))
-        self.canvas.insert(i, group)
-        self.bind(texs=self.upd_texs)
+        self.texs.insert(i, tex)
+        self.freeze_texs = False
 
     def append(self, tex):
         TextureStack.insert(self, len(self.texs), tex)
@@ -147,33 +127,17 @@ class TextureStack(Widget):
             del self.texture_rectangles[tex]
         except KeyError:
             pass
-        self.unbind(
-            offxs=self.upd_offxs,
-            offys=self.upd_offys,
-            texs=self.upd_texs)
-        del self.offxs[i]
-        del self.offys[i]
         del self.stackhs[i]
         del self.texs[i]
-        self.bind(
-            offxs=self.upd_offxs,
-            offys=self.upd_offys,
-            texs=self.upd_texs)
 
     def __setitem__(self, i, v):
         if len(self.texs) > 0:
+            self.unbind(texs=self.upd_texs)
             self.__delitem__(i)
+            self.bind(texs=self.upd_texs)
         self.insert(i, v)
 
     def pop(self, i=-1):
-        self.unbind(
-            offxs=self.upd_offxs,
-            offys=self.upd_offys)
-        self.offxs.pop(i)
-        self.offys.pop(i)
-        self.bind(
-            offxs=self.upd_offxs,
-            offys=self.upd_offys)
         self.stackhs.pop(i)
         return self.texs.pop(i)
 

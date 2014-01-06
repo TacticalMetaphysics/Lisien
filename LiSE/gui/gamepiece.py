@@ -7,6 +7,7 @@ from kivy.properties import (
     ObjectProperty,
     ListProperty,
     ReferenceListProperty)
+from kivy.clock import Clock
 
 
 class ImgStack(TextureStack):
@@ -14,9 +15,12 @@ class ImgStack(TextureStack):
     imgs = ListProperty()
 
     def on_imgs(self, *args):
-        for i in xrange(0, len(self.imgs)):
-            if self.imgs[i].texture not in self.texture_rectangles:
-                self[i] = self.imgs[i].texture
+        if not self.canvas:
+            Clock.schedule_once(self.on_imgs, 0)
+            return
+        super(ImgStack, self).clear()
+        for img in self.imgs:
+            self.append(img.texture)
 
     def clear(self):
         self.imgs = []
@@ -44,25 +48,24 @@ class GamePiece(ImgStack):
             "checks": ["layer>=0"]})]
     graphic_name = StringProperty()
     _touch = ObjectProperty(None, allownone=True)
-    imgs = ListProperty()
+    graphic_bone = ObjectProperty()
     offset_x = NumericProperty()
     offset_y = NumericProperty()
-    graphic_bone = AliasProperty(
-        lambda self: self._get_graphic_bone(),
-        lambda self, v: None,
-        bind=('graphic_name', 'closet'))
     offset = ReferenceListProperty(offset_x, offset_y)
-
-    def _get_graphic_bone(self):
-        if not (self.closet and self.graphic_name):
-            return
-        if self.graphic_name not in self.closet.skeleton[u"graphic"]:
-            self.closet.load_game_piece(self.graphic_name)
-        assert(self.graphic_name in self.closet.skeleton[u"graphic"])
-        return self.closet.skeleton[u"graphic"][self.graphic_name]
 
     def __init__(self, **kwargs):
         kwargs['size_hint'] = (None, None)
         if 'board' in kwargs and 'closet' not in kwargs:
             kwargs['closet'] = kwargs['board'].host.closet
         super(GamePiece, self).__init__(**kwargs)
+        self.bind(graphic_name=self._get_graphic_bone)
+        self._get_graphic_bone()
+
+    def _get_graphic_bone(self, *args):
+        if not (self.closet and self.graphic_name):
+            Clock.schedule_once(self.get_graphic_bone, 0)
+            return
+        if self.graphic_name not in self.closet.skeleton[u"graphic"]:
+            self.closet.load_game_piece(self.graphic_name)
+        assert(self.graphic_name in self.closet.skeleton[u"graphic"])
+        self.graphic_bone = self.closet.skeleton[u"graphic"][self.graphic_name]
