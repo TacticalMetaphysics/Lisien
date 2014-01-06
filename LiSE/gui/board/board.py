@@ -20,8 +20,10 @@ from pawn import Pawn
 class BoardLayout(RelativeLayout):
     def add_widget(self, w):
         super(BoardLayout, self).add_widget(w)
-        w.handle_time(*self.parent.host.closet.time)
-        w.upd_texs()
+        if hasattr(w, 'handle_time'):
+            w.handle_time(*self.parent.host.closet.time)
+        if hasattr(w, 'upd_texs'):
+            w.upd_texs()
 
     def on_touch_down(self, touch):
         if touch.grab_current in self.children:
@@ -209,6 +211,9 @@ class Board(FloatLayout):
         for preemptor in ("charsheet", "menu"):
             if preemptor in touch.ud:
                 return
+        if 'portaling' in touch.ud:
+            touch.ud['portaling']['dummyspot'].pos = touch.pos
+            return
         return (
             self.pawnlayout.on_touch_down(touch) or
             self.spotlayout.on_touch_down(touch) or
@@ -217,6 +222,7 @@ class Board(FloatLayout):
     def on_touch_move(self, touch):
         if 'portaling' in touch.ud:
             touch.ud['portaling']['dummyspot'].pos = touch.pos
+            return
         elif touch.grab_current is not self:
             return
         return super(Board, self).on_touch_move(touch)

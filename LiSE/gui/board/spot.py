@@ -1,8 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.gui.gamepiece import GamePiece
+from gamepiece import GamePiece
 from kivy.properties import (
-    AliasProperty,
     ListProperty,
     ObjectProperty)
 from kivy.clock import Clock
@@ -135,8 +134,6 @@ class Spot(GamePiece):
 
     def upd_texs(self, *args):
         super(Spot, self).upd_texs(*args)
-        if len(self.canvas.children) > 1:
-            pass
 
     def on_size(self, *args):
         print("spot for {} got size {}".format(
@@ -240,7 +237,7 @@ class Spot(GamePiece):
                     prev = bone
 
     def on_touch_down(self, touch):
-        if touch.grab_current:
+        if touch.grab_current or 'portaling' in touch.ud:
             return
         touch.grab(self)
         touch.ud['spot'] = self
