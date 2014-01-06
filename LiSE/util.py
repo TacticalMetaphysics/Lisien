@@ -8,7 +8,6 @@ from collections import (
 from math import sqrt, hypot, atan, pi, sin, cos
 from operator import itemgetter
 from re import match, compile, findall
-from sqlite3 import IntegrityError
 
 
 """Common utility functions and data structures.
@@ -1010,11 +1009,15 @@ class SaveableMetaclass(type):
     executed in the order of iteration, so use a sequence type.
 
     """
+    clasd = {}
+
     def __new__(metaclass, clas, parents, attrs):
         """Return a new class with all the accoutrements of
         :class:`SaveableMetaclass`.
 
         """
+        if clas in SaveableMetaclass.clasd:
+            return SaveableMetaclass.clasd[clas]
         global schemata
         global tabclas
         tablenames = []
@@ -1113,10 +1116,9 @@ class SaveableMetaclass(type):
             rowlen[tablename] = len(coldict)
             rowqms[tablename] = ", ".join(["?"] * rowlen[tablename])
             rowstrs[tablename] = "(" + rowqms[tablename] + ")"
-        for tablename in coldecls.keys():
+        for tablename in coldecls.iterkeys():
             colnames[tablename] = keynames[tablename] + valnames[tablename]
         for tablename in tablenames:
-            assert(tablename not in tabclas)
             bonetypes[tablename] = Bone.subclass(
                 tablename,
                 [(colname,
@@ -1195,10 +1197,12 @@ class SaveableMetaclass(type):
             'bonetype': bonetypes[tablenames[0]]}
         atrdic.update(attrs)
 
+        clasn = clas
         clas = type.__new__(metaclass, clas, parents, atrdic)
         saveable_classes.append(clas)
         for bonetype in bonetypes.itervalues():
             bonetype.cls = clas
+        SaveableMetaclass.clasd[clasn] = clas
         return clas
 
 

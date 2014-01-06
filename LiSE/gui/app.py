@@ -7,14 +7,13 @@ from kivy.properties import (
     ObjectProperty,
     ListProperty,
     StringProperty)
-
+from kivy.factory import Factory
 from kivy.graphics import Line, Color
 
 from kivy.uix.widget import Widget
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
-from kivy.factory import Factory
 
 from sqlite3 import connect, OperationalError
 
@@ -24,13 +23,16 @@ from LiSE.gui.board import (
     Spot,
     Arrow,
     BoardView)
+from LiSE.gui.board.gamepiece import GamePiece
 from LiSE.gui.board.arrow import get_points
+
 from LiSE.gui.kivybits import TouchlessWidget
-from LiSE.gui.gamepiece import GamePiece
 from LiSE.gui.swatchbox import SwatchBox, TogSwatch
 from LiSE.gui.charsheet import CharSheetAdder
+
 from LiSE.util import TimestreamException, tabclas
-from LiSE.closet import Thing, mkdb, load_closet
+from LiSE.model import Thing
+from LiSE.closet import mkdb, load_closet
 from LiSE import __path__
 
 Factory.register('BoardView', cls=BoardView)
@@ -38,39 +40,41 @@ Factory.register('SwatchBox', cls=SwatchBox)
 Factory.register('TogSwatch', cls=TogSwatch)
 
 
+class DummySpot(Widget):
+    def collide_point(self, *args):
+        return True
+
+    def on_touch_move(self, touch):
+        self.pos = touch.pos
+
+
 class DummyPawn(GamePiece):
     """Looks like a Pawn, but doesn't have a Thing associated.
 
-This is meant to be used when the user is presently engaged with
-deciding where a Thing should be, when the Thing in question doesn't
-exist yet, but you know what it should look like."""
+    This is meant to be used when the user is presently engaged with
+    deciding where a Thing should be, when the Thing in question
+    doesn't exist yet, but you know what it should look like.
+
+    """
     thing_name = StringProperty()
     board = ObjectProperty()
     callback = ObjectProperty()
 
-    def __init__(self, **kwargs):
-        super(DummyPawn, self).__init__(**kwargs)
-
-    def handle_time(self, b, t):
-        pass
-
     def on_touch_down(self, touch):
-        if touch.grab_current:
-            print("Not checking collision because {} got there first".format(
-                touch.grab_current))
+        """Grab the touch if it hits me."""
         if self.collide_point(touch.x, touch.y):
             touch.grab(self)
+            touch.ud['pawn'] = self
             return True
 
     def on_touch_move(self, touch):
-        if touch.grab_current is not self:
-            return
-        self._touch = touch
-        self.center = touch.pos
+        """If I've been grabbed, move to the touch."""
+        if 'pawn' in touch.ud and touch.ud['pawn'] is self:
+            self.center = touch.pos
 
     def on_touch_up(self, touch):
         """Create a real Pawn on top of the Spot I am on top of, along
-        with a Thing for it to represent. Then disappear."""
+        with a Thing for it to represent."""
         closet = self.board.host.closet
         for spot in self.board.spotlayout.children:
             if self.collide_widget(spot):
@@ -104,16 +108,19 @@ exist yet, but you know what it should look like."""
                 pawn = Pawn(board=self.board, thing=th)
                 self.board.pawndict[thingn] = pawn
                 self.board.pawnlayout.add_widget(pawn)
-                self.clear()
                 self.callback()
                 return True
 
 
 class SpriteMenuContent(StackLayout):
+    """Menu shown when a place or thing is to be created."""
     closet = ObjectProperty()
-    skel = ObjectProperty()
+    """Closet to make things with and get text from."""
     selection = ListProperty([])
+    """Swatches go in here. I'll make picker_args from them."""
     picker_args = ListProperty([])
+    """Either one or two arguments for the method that creates the
+    spot/pawn."""
 
     def get_text(self, stringn):
         return self.closet.get_text(stringn)
@@ -130,7 +137,7 @@ class SpriteMenuContent(StackLayout):
         """Return True if the name hasn't been used for a Place in this Host
         before, False otherwise."""
         # assume that this is an accurate record of places that exist
-        return name not in self.skel
+        return name not in self.closet.skeleton[u'place']
 
     def aggregate(self):
         """Collect the place name and graphics set the user has chosen."""
@@ -209,12 +216,12 @@ and charsheets.
         self.portaling = 1
 
     def on_touch_down(self, touch):
-        self.board.on_touch_down(touch)
         if self.portaling == 1:
+            self.board.on_touch_down(touch)
             if "spot" in touch.ud:
+                touch.grab(self)
                 ud = {
-                    'dummyspot': Widget(
-                        pos=touch.pos),
+                    'dummyspot': DummySpot(pos=touch.pos),
                     'dummyarrow': TouchlessWidget()}
                 self.board.arrowlayout.add_widget(ud['dummyarrow'])
                 self.add_widget(ud['dummyspot'])
@@ -239,6 +246,12 @@ and charsheets.
                 self.dummyspot = None
                 self.dummyarrow = None
         return super(LiSELayout, self).on_touch_down(touch)
+
+    def on_touch_move(self, touch):
+        if 'portaling' in touch.ud:
+            touch.ud['portaling']['dummyspot'].pos = touch.pos
+            return True
+        return super(LiSELayout, self).on_touch_move(touch)
 
     def on_touch_up(self, touch):
         if self.portaling == 2:
