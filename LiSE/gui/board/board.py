@@ -4,6 +4,7 @@ from __future__ import print_function
 from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
     AliasProperty,
+    BooleanProperty,
     DictProperty,
     ObjectProperty)
 from kivy.uix.image import Image
@@ -14,7 +15,27 @@ from kivy.clock import Clock
 from spot import Spot
 from arrow import Arrow
 from pawn import Pawn
-from LiSE.gui.stiffscroll import StiffScrollEffect
+
+
+class BoardLayout(RelativeLayout):
+    def add_widget(self, w):
+        super(BoardLayout, self).add_widget(w)
+        w.handle_time(*self.parent.host.closet.time)
+        w.upd_texs()
+
+    def on_touch_down(self, touch):
+        if touch.grab_current in self.children:
+            return
+        for child in self.children:
+            if child.x > touch.x:
+                continue
+            if child.y > touch.y:
+                continue
+            if child.right < touch.x:
+                continue
+            if child.top < touch.y:
+                continue
+            return child.on_touch_down(touch)
 
 
 class Board(FloatLayout):
@@ -49,13 +70,14 @@ class Board(FloatLayout):
     pawnlayout = ObjectProperty()
     arrowdict = DictProperty({})
     arrowlayout = ObjectProperty()
+    final = BooleanProperty()
     scroll_x = AliasProperty(
         lambda self: self.bone.x,
-        lambda self, v: self.closet.set_bone(self.bone._replace(x=v)),
+        lambda self, v: self.host.closet.set_bone(self.bone._replace(x=v)),
         cache=False)
     scroll_y = AliasProperty(
         lambda self: self.bone.x,
-        lambda self, v: self.closet.set_bone(self.bone._replace(y=v)),
+        lambda self, v: self.host.closet.set_bone(self.bone._replace(y=v)),
         cache=False)
 
     @property
@@ -75,7 +97,6 @@ class Board(FloatLayout):
 
     def __init__(self, **kwargs):
         kwargs['size_hint'] = (None, None)
-        Clock.schedule_once(self.finalize, 0)
         return super(Board, self).__init__(**kwargs)
 
     def finalize(self, *args):
@@ -99,11 +120,11 @@ class Board(FloatLayout):
             pos=self.pos,
             size=self.size)
         self.add_widget(self.wallpaper)
-        self.arrowlayout = RelativeLayout(pos=self.pos, size=self.size)
+        self.arrowlayout = BoardLayout(pos=self.pos, size=self.size)
         self.add_widget(self.arrowlayout)
-        self.spotlayout = RelativeLayout(pos=self.pos, size=self.size)
+        self.spotlayout = BoardLayout(pos=self.pos, size=self.size)
         self.add_widget(self.spotlayout)
-        self.pawnlayout = RelativeLayout(pos=self.pos, size=self.size)
+        self.pawnlayout = BoardLayout(pos=self.pos, size=self.size)
         self.add_widget(self.pawnlayout)
         self.bind(pos=repos_all)
         if bone.observer not in self.facade.closet.board_d:
@@ -141,7 +162,6 @@ class Board(FloatLayout):
         for arrow in self.arrowdict.itervalues():
             self.arrowlayout.add_widget(arrow)
         for spot in self.spotdict.itervalues():
-            spot.pos = spot.get_coords()
             self.spotlayout.add_widget(spot)
         for pawn in self.pawndict.itervalues():
             self.pawnlayout.add_widget(pawn)
@@ -189,18 +209,10 @@ class Board(FloatLayout):
         for preemptor in ("charsheet", "menu"):
             if preemptor in touch.ud:
                 return
-        if touch.grab_current in (
-                self.pawnlayout.children +
-                self.spotlayout.children):
-            print("Not recursing into board because done already")
-            return
-        for pawn in self.pawnlayout.children[:]:
-            if pawn.dispatch('on_touch_down', touch):
-                return True
-        for spot in self.spotlayout.children[:]:
-            if spot.dispatch('on_touch_down', touch):
-                return True
-        return super(Board, self).on_touch_down(touch)
+        return (
+            self.pawnlayout.on_touch_down(touch) or
+            self.spotlayout.on_touch_down(touch) or
+            super(Board, self).on_touch_down(touch))
 
     def on_touch_move(self, touch):
         if 'portaling' in touch.ud:
@@ -217,3 +229,4 @@ class BoardView(ScrollView):
     def on_board(self, *args):
         self.scroll_x = self.board.scroll_x
         self.scroll_y = self.board.scroll_y
+        self.add_widget(self.board)

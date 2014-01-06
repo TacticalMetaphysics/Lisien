@@ -19,6 +19,7 @@ from kivy.factory import Factory
 from sqlite3 import connect, OperationalError
 
 from LiSE.gui.board import (
+    Board,
     Pawn,
     Spot,
     Arrow,
@@ -49,6 +50,9 @@ exist yet, but you know what it should look like."""
 
     def __init__(self, **kwargs):
         super(DummyPawn, self).__init__(**kwargs)
+
+    def handle_time(self, b, t):
+        pass
 
     def on_touch_down(self, touch):
         if touch.grab_current:
@@ -170,6 +174,7 @@ and charsheets.
 
     """
     app = ObjectProperty()
+    board = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
     portaling = BoundedNumericProperty(0, min=0, max=2)
     playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
@@ -204,14 +209,14 @@ and charsheets.
         self.portaling = 1
 
     def on_touch_down(self, touch):
-        self.ids.board.on_touch_down(touch)
+        self.board.on_touch_down(touch)
         if self.portaling == 1:
             if "spot" in touch.ud:
                 ud = {
                     'dummyspot': Widget(
                         pos=touch.pos),
                     'dummyarrow': TouchlessWidget()}
-                self.ids.board.arrowlayout.add_widget(ud['dummyarrow'])
+                self.board.arrowlayout.add_widget(ud['dummyarrow'])
                 self.add_widget(ud['dummyspot'])
                 ud["dummyspot"].bind(pos=self.draw_arrow)
                 touch.ud['portaling'] = ud
@@ -226,7 +231,7 @@ and charsheets.
                     ud['dummyspot'].unbind(pos=self.draw_arrow)
                     self.remove_widget(ud['dummyspot'])
                     ud['dummyarrow'].canvas.clear()
-                    self.ids.board.arrowlayout.remove_widget(
+                    self.board.arrowlayout.remove_widget(
                         ud['dummyarrow'])
                     del touch.ud['portaling']
                 self.dismiss_prompt()
@@ -244,10 +249,10 @@ and charsheets.
             ud['dummyspot'].unbind(pos=self.draw_arrow)
             ud['dummyarrow'].canvas.clear()
             self.remove_widget(ud['dummyspot'])
-            self.ids.board.remove_widget(ud['dummyarrow'])
+            self.board.remove_widget(ud['dummyarrow'])
             self.dismiss_prompt()
             destspot = None
-            for spot in self.ids.board.spotdict.itervalues():
+            for spot in self.board.spotdict.itervalues():
                 if spot.collide_point(touch.x, touch.y):
                     destspot = spot
                     break
@@ -258,13 +263,13 @@ and charsheets.
             origplace = touch.ud['spot'].place
             destplace = destspot.place
             portalname = "{}->{}".format(origplace, destplace)
-            portal = self.ids.board.facade.observed.make_portal(
+            portal = self.board.facade.observed.make_portal(
                 portalname, origplace, destplace,
-                host=self.ids.board.host)
+                host=self.board.host)
             arrow = Arrow(
-                board=self.ids.board, portal=portal)
-            self.ids.board.arrowdict[unicode(portal)] = arrow
-            self.ids.board.arrowlayout.add_widget(arrow)
+                board=self.board, portal=portal)
+            self.board.arrowdict[unicode(portal)] = arrow
+            self.board.arrowlayout.add_widget(arrow)
         else:
             return super(LiSELayout, self).on_touch_up(touch)
 
@@ -277,7 +282,7 @@ and charsheets.
         self.ids.prompt.text = ''
 
     def show_spot_menu(self):
-        hostn = unicode(self.ids.board.host)
+        hostn = unicode(self.board.host)
         if hostn not in self.app.closet.skeleton[u"place"]:
             self.app.closet.skeleton[u"place"][hostn] = {}
         spot_menu_content = SpotMenuContent(
@@ -305,7 +310,7 @@ and charsheets.
         spot_menu.open()
 
     def show_pawn_menu(self):
-        obsrvd = unicode(self.ids.board.facade.observed)
+        obsrvd = unicode(self.board.facade.observed)
         if obsrvd not in self.app.closet.skeleton[u"thing"]:
             self.app.closet.skeleton[u"thing"][obsrvd] = {}
         if obsrvd not in self.app.closet.skeleton[u"thing_loc"]:
@@ -331,48 +336,10 @@ and charsheets.
         pawn_menu_content.cancel = cancel
         pawn_menu.open()
 
-    def new_spot_with_name_and_imgs(self, name, imgs):
-        _ = self.app.closet.get_text
-        if len(imgs) < 1:
-            return
-        self.display_prompt(_('Drag this place where you want it.'))
-        Clock.schedule_once(self.dismiss_prompt, 5)
-        place = self.ids.board.host.make_place(name)
-        branch = self.app.closet.branch
-        tick = self.app.closet.tick
-        obsrvr = unicode(self.ids.board.facade.observer)
-        host = unicode(self.ids.board.host)
-        placen = unicode(place)
-        i = 0
-        for img in imgs:
-            bone = Spot.bonetype(
-                observer=obsrvr,
-                host=host,
-                place=placen,
-                layer=i,
-                branch=branch,
-                tick=tick,
-                img=img.name)
-            self.app.closet.set_bone(bone)
-            i += 1
-        (x, y) = self.center_of_view_on_board()
-        coord_bone = Spot.bonetypes["spot_coords"](
-            observer=obsrvr,
-            host=host,
-            place=placen,
-            branch=branch,
-            tick=tick,
-            x=int(x), y=int(y))
-        self.app.closet.set_bone(coord_bone)
-        assert(self.app.closet.have_place_bone(
-            host, placen))
-        spot = Spot(board=self.ids.board, place=place)
-        self.ids.board.spotlayout.add_widget(spot)
-
     def center_of_view_on_board(self):
         # get the point on the board that is presently at the center
         # of the screen
-        b = self.ids.board
+        b = self.board
         bv = self.ids.board_view
         # clamp to that part of the board where the view's center might be
         effective_w = b.width - bv.width
@@ -387,21 +354,21 @@ and charsheets.
             "Drag this to a spot"))
         dummy = DummyPawn(
             thing_name=thing_name,
-            board=self.ids.board,
+            board=self.board,
             graphic_name=graphic_name)
 
         def cb():
-            self.ids.board.pawnlayout.remove_widget(dummy)
+            self.board.pawnlayout.remove_widget(dummy)
             self.dismiss_prompt()
         dummy.callback = cb
         dummy.pos = self.center_of_view_on_board()
-        self.ids.board.pawnlayout.add_widget(dummy)
+        self.board.pawnlayout.add_widget(dummy)
 
     def new_spot_with_name_and_graphic(self, place_name, graphic_name):
-        place = self.ids.board.host.make_place(place_name)
+        place = self.board.host.make_place(place_name)
         (branch, tick) = self.app.closet.time
-        obsrvr = unicode(self.ids.board.facade.observer)
-        hst = unicode(self.ids.board.host)
+        obsrvr = unicode(self.board.facade.observer)
+        hst = unicode(self.board.host)
         self.app.closet.set_bone(Spot.bonetypes["spot"](
             observer=obsrvr,
             host=hst,
@@ -418,8 +385,8 @@ and charsheets.
             tick=tick,
             x=x,
             y=y))
-        self.ids.board.spotlayout.add_widget(
-            Spot(board=self.ids.board,
+        self.board.spotlayout.add_widget(
+            Spot(board=self.board,
                  place=place))
 
     def show_spot_picker(self, name, imagery):
@@ -568,6 +535,7 @@ class LiSEApp(App):
             self.dbfn, self.lgettext, True)
         self.closet.load_img_metadata()
         self.closet.load_imgs_tagged(['base', 'body'])
+        self.closet.load_gfx_metadata()
         # Currently the decision of when and whether to update things
         # is split between here and the closet. Seems inappropriate.
         self.closet.load_characters([
@@ -576,13 +544,20 @@ class LiSEApp(App):
             self.host_name])
         Clock.schedule_once(lambda dt: self.closet.checkpoint(), 0)
         self.closet.load_charsheet(self.observed_name)
-        l = LiSELayout(app=self, board=self.closet.load_board(
+        self.closet.load_board(
             self.observer_name,
             self.observed_name,
-            self.host_name))
+            self.host_name)
+        observer = self.closet.get_character(self.observer_name)
+        observed = self.closet.get_character(self.observed_name)
+        host = self.closet.get_character(self.host_name)
+        l = LiSELayout(app=self, board=Board(
+            app=self, facade=observed.get_facade(observer),
+            host=host))
         from kivy.core.window import Window
         from kivy.modules import inspector
         inspector.create_inspector(Window, l)
+        l.board.finalize()
         return l
 
     def on_pause(self):

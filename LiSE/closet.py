@@ -40,6 +40,7 @@ from util import (
     PlaceBone,
     schemata,
     tabbone,
+    tabclas,
     saveables,
     saveable_classes,
     Skeleton)
@@ -173,6 +174,8 @@ before RumorMill will work. For that, run mkdb.sh.
         """
         self.connector = connector
         self.skeleton = Skeleton({"place": {}})
+        for tab in tabclas.iterkeys():
+            self.skeleton[tab] = {}
 
         self.c = self.connector.cursor()
         self.branch_listeners = []
@@ -233,25 +236,19 @@ before RumorMill will work. For that, run mkdb.sh.
 
                 self.select_and_set(iter_unhad(), remember_img_bone)
                 self.select_and_set(
-                    Img.bonetypes["img_tag"]._null()._replace(name=n)
+                    Img.bonetypes["img_tag"]._null()._replace(img=n)
                     for n in names if n not in self.img_tag_d)
                 return r
 
             def load_imgs_tagged(tags):
-                def iter_and_set_tag(tag):
-                    for bone in Img._select_skeleton(self.c, {
-                            u"img_tag": [Img.bonetypes["img_tag"](tag=tag)]}
-                    ).iterbones():
-                        self.img_tag_d[bone.img].add(bone.tag)
-                        yield bone.img
-                r = {}
-                try:
-                    for tag in tags:
-                        r[tag] = load_imgs(iter_and_set_tag(tag))
-                except StopIteration:
-                    pass
-                self.img_d.update(r)
-                return r
+                boned = set()
+
+                def remembone(bone):
+                    boned.add(bone.img)
+                self.select_and_set(
+                    (Img.bonetypes["img_tag"]._null()._replace(
+                        tag=tag) for tag in tags), remembone)
+                return get_imgs(boned)
 
             def get_imgs_tagged(tags):
                 r = {}
@@ -314,18 +311,8 @@ before RumorMill will work. For that, run mkdb.sh.
         self.connector.close()
 
     def select_class_all(self, cls):
-        """Return a Skeleton with all records for all tables defined in the
-        class."""
-        td = {}
-        for tabn in cls.tablenames:
-            bonetype = cls.bonetypes[tabn]
-            bone = bonetype._null()
-            td[tabn] = [bone]
-        r = cls._select_skeleton(self.c, td)
-        for bone in r.iterbones():
-            self.upbone(bone)
-            self.set_bone(bone)
-        return r
+        self.select_and_set(bonetype._null() for bonetype in
+                            cls.bonetypes.itervalues())
 
     def insert_or_replace_bones_single_typ(self, typ, bones):
         qrystr = "INSERT OR REPLACE INTO {} ({}) VALUES ({});".format(
@@ -333,21 +320,25 @@ before RumorMill will work. For that, run mkdb.sh.
                 ["?"] * len(typ._fields)))
         self.c.executemany(qrystr, tuple(bones))
 
-    def select_keybones_single_typ(self, typ, kbs):
+    def select_keybone(self, kb):
         qrystr = "SELECT {} FROM {} WHERE {};".format(
-            ", ".join(typ._fields), typ.__name__,
-            " AND ".join(["{}=?".format(field) for field in
-                          typ._fields]))
-        self.c.executemany(qrystr, tuple(kbs))
-        for row in self.c:
-            yield typ(*row)
+            ", ".join(kb._fields),
+            kb.__class__.__name__,
+            " AND ".join("{}=?".format(field) for field in kb._fields
+                         if getattr(kb, field) is not None))
+        if " WHERE ;" in qrystr:
+            # keybone is null
+            self.c.execute(qrystr.strip(" WHERE ;"))
+            for bone in self.c:
+                yield type(kb)(*bone)
+            return
+        self.c.execute(qrystr, [field for field in kb if field])
+        for bone in self.c:
+            yield type(kb)(*bone)
 
     def select_keybones(self, kbs):
-        clas_qd = defaultdict(set)
         for kb in kbs:
-            clas_qd[type(kb)].add(kb)
-        for (clas, kbset) in clas_qd.iteritems():
-            for bone in self.select_keybones_single_typ(clas, kbset):
+            for bone in self.select_keybone(kb):
                 yield bone
 
     def delete_keybones_single_typ(self, typ, kbs):
@@ -422,17 +413,23 @@ before RumorMill will work. For that, run mkdb.sh.
         to_delete = self.old_skeleton - self.skeleton
         # save saveables
         for (tab, v) in to_save.iteritems():
+            if tab == 'place':
+                continue
             self.insert_or_replace_bones_single_typ(
                 tabbone[tab], v.iterbones())
         # delete deletables
         for (tab, v) in to_delete.iteritems():
-            self.delete_bones_single_typ(
-                tabbone[tab], v.iterbones())
+            if tab == 'place':
+                continue
+            self.delete_keybones(v.iterbones())
         # remember how things are now, for reference next time
         self.checkpoint()
 
     def load_img_metadata(self):
         self.select_class_all(Img)
+
+    def load_gfx_metadata(self):
+        self.select_class_all(GamePiece)
 
     def load_strings(self):
         """Load all strings available."""
@@ -498,16 +495,16 @@ before RumorMill will work. For that, run mkdb.sh.
 
         def iter_unhad():
             for name in names:
-                if name in self.skeleton[u"character"]:
-                    r[name] = Character(self, name)
-                else:
+                if name not in self.character_d:
                     for bone in iter_character_query_bones_named(name):
                         yield bone
 
-        def updb(bone):
-            r[bone.name] = Character(self, bone.name)
-
-        self.select_and_set(iter_unhad(), updb)
+        self.select_and_set(iter_unhad())
+        for name in names:
+            r[name] = Character(self, name)  # you can have a
+                                             # character with no data
+                                             # in it, that's fine
+        self.character_d.update(r)
         return r
 
     def get_character(self, name):
@@ -563,7 +560,6 @@ before RumorMill will work. For that, run mkdb.sh.
             Pawn.bonetypes["pawn"]._null()._replace(
                 host=hst)]
         self.select_and_set(keybones)
-        return self.get_board(observer, observed, host)
 
     def get_board(self, observer, observed, host):
         """Return a graphical board widget displaying the contents of the host

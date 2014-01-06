@@ -138,6 +138,9 @@ class Arrow(Widget):
         except KeyError:
             return None
 
+    def handle_time(self, b, t):
+        pass
+
     def get_points(self):
         """Return the coordinates of the points that describe my shape."""
         orig = self.board.spotdict[unicode(self.portal.origin)]

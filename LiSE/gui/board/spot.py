@@ -105,10 +105,6 @@ class Spot(GamePiece):
     bone = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
     pawns_here = ListProperty([])
-    graphic_name = AliasProperty(
-        lambda self: self.bone.graphic if self.bone else '',
-        lambda self, v: None,
-        bind=('bone',))
 
     def __init__(self, **kwargs):
         if 'board' in kwargs and 'closet' not in kwargs:
@@ -119,11 +115,11 @@ class Spot(GamePiece):
             unicode(kwargs['place'])][
             kwargs['closet'].branch].value_during(
             kwargs['closet'].tick)
+        kwargs['graphic_name'] = kwargs['bone'].graphic
         kwargs['imgs'] = kwargs['closet'].get_game_piece(
             kwargs['bone'].graphic).imgs
         super(Spot, self).__init__(**kwargs)
         self.closet.register_time_listener(self.handle_time)
-        self.handle_time(*self.closet.time)
         self.board.spotdict[unicode(self.place)] = self
         self.bind(
             pawns_here=self.upd_pawns_here,
@@ -137,8 +133,18 @@ class Spot(GamePiece):
         """Return the name of my :class:`Place`."""
         return unicode(self.place)
 
+    def upd_texs(self, *args):
+        super(Spot, self).upd_texs(*args)
+        if len(self.canvas.children) > 1:
+            pass
+
+    def on_size(self, *args):
+        print("spot for {} got size {}".format(
+            self.place, self.size))
+
     def handle_time(self, b, t):
         self.bone = self.get_bone(b, t)
+        self.graphic_name = self.bone.graphic
         self.repos(b, t)
 
     def repos(self, b, t):
@@ -146,8 +152,9 @@ class Spot(GamePiece):
             Clock.schedule_once(lambda dt: self.repos(b, t), 0)
             return
         bone = self.get_coord_bone(b, t)
-        self.x = bone.x + self.graphic_bone.offset_x
-        self.y = bone.y + self.graphic_bone.offset_y
+        x = bone.x + self.graphic_bone.offset_x
+        y = bone.y + self.graphic_bone.offset_y
+        self.pos = (x, y)
 
     def upd_pawns_here(self, *args):
         for pawn in self.pawns_here:
@@ -235,10 +242,9 @@ class Spot(GamePiece):
     def on_touch_down(self, touch):
         if touch.grab_current:
             return
-        if self.collide_point(touch.x, touch.y):
-            touch.grab(self)
-            touch.ud['spot'] = self
-            return True
+        touch.grab(self)
+        touch.ud['spot'] = self
+        return True
 
     def on_touch_move(self, touch):
         if "portaling" in touch.ud:
