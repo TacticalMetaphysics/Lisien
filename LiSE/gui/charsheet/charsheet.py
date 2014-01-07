@@ -53,8 +53,12 @@ class ListItemToggle(SelectableView, ToggleButton):
 class CharListAdapter(ListAdapter):
     character = ObjectProperty()
 
+    def __init__(self, **kwargs):
+        super(CharListAdapter, self).__init__(**kwargs)
+        self.trigger_redata = Clock.create_trigger(self.redata)
+
     def on_character(self, *args):
-        self.redata()
+        self.trigger_redata()
 
 
 def args_converter(idx, item):
@@ -581,12 +585,11 @@ things appropriate to the present, whenever that may be.
         for bone in self.character.closet.skeleton[
                 u"character_sheet_item_type"][
                 unicode(self.character)].iterbones():
-            edbut = TogSwatch(
-                box=self, image=self.character.closet.get_image("locked"))
+            edbut = TogSwatch(img=self.character.closet.get_img("locked"))
 
             def lock_unlock(*args):
                 imgn = "unlocked" if edbut.state == "down" else "locked"
-                edbut.image = self.character.closet.get_image(imgn)
+                edbut.image = self.character.closet.get_img(imgn)
             edbut.bind(state=lock_unlock)
             if bone.type == THING_TAB:
                 headers = [_("thing")]

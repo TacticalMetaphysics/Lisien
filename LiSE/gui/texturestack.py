@@ -50,18 +50,17 @@ class TextureStack(Widget):
     instruction that goes with it. Keyed by the Rectangle.
 
     """
-    freeze_texs = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         super(TextureStack, self).__init__(**kwargs)
+        self.trigger_upd_texs = Clock.create_trigger(
+            self.upd_texs, timeout=-1)
+        self.trigger_upd_pos = Clock.create_trigger(
+            self.upd_pos, timeout=-1)
         self.bind(texs=self.trigger_upd_texs, pos=self.trigger_upd_pos)
         if len(self.texs) > 0:
             self.trigger_upd_texs()
             self.trigger_upd_pos()
-
-    def on_texs(self, *args):
-        if self.freeze_texs:
-            pass
 
     def upd_texs(self, *args):
         if not self.canvas:
@@ -73,17 +72,9 @@ class TextureStack(Widget):
             self.canvas.add(self.rectify(tex, self.x, self.y))
             assert(len(self.canvas.children) == L + 1)
 
-    def trigger_upd_texs(self, *args):
-        Clock.unschedule(self.upd_texs)
-        Clock.schedule_once(self.upd_texs, -1)
-
     def upd_pos(self, *args):
         for rect in self.texture_rectangles.itervalues():
             rect.pos = self.pos
-
-    def trigger_upd_pos(self, *args):
-        Clock.unschedule(self.upd_pos)
-        Clock.schedule_once(self.upd_pos, -1)
 
     def clear(self):
         self.canvas.clear()
@@ -112,7 +103,6 @@ class TextureStack(Widget):
 
     def insert(self, i, tex):
         if not self.canvas:
-            self.freeze_texs = True
             Clock.schedule_once(
                 lambda dt: TextureStack.insert(
                     self, i, tex), 0)
@@ -120,7 +110,6 @@ class TextureStack(Widget):
         if len(self.stackhs) < len(self.texs):
             self.stackhs.extend([0] * (len(self.texs) - len(self.stackhs)))
         self.texs.insert(i, tex)
-        self.freeze_texs = False
 
     def append(self, tex):
         TextureStack.insert(self, len(self.texs), tex)
