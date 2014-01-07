@@ -254,6 +254,8 @@ class Spot(GamePiece):
     def on_touch_up(self, touch):
         if self._touch:
             self.set_coords(*self.pos)
+        if 'spot' in touch.ud:
+            del touch.ud['spot']
         self._touch = None
         return super(Spot, self).on_touch_up(touch)
 
