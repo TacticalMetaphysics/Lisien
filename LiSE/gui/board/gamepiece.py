@@ -62,7 +62,7 @@ class GamePiece(ImgStack):
 
     def _get_graphic_bone(self, *args):
         if not (self.closet and self.graphic_name):
-            Clock.schedule_once(self.get_graphic_bone, 0)
+            Clock.schedule_once(self._get_graphic_bone, 0)
             return
         if self.graphic_name not in self.closet.skeleton[u"graphic"]:
             self.closet.load_game_piece(self.graphic_name)

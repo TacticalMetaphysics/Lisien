@@ -75,6 +75,10 @@ class DummyPawn(GamePiece):
     def on_touch_up(self, touch):
         """Create a real Pawn on top of the Spot I am on top of, along
         with a Thing for it to represent."""
+        if 'pawn' in touch.ud:
+            del touch.ud['pawn']
+        else:
+            return
         closet = self.board.host.closet
         for spot in self.board.spotlayout.children:
             if self.collide_widget(spot):
@@ -259,6 +263,7 @@ and charsheets.
             if touch != self._touch:
                 return
             ud = touch.ud['portaling']
+            del touch.ud['portaling']
             ud['dummyspot'].unbind(pos=self.draw_arrow)
             ud['dummyarrow'].canvas.clear()
             self.remove_widget(ud['dummyspot'])

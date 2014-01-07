@@ -72,8 +72,7 @@ will update its position appropriately.
             unicode(kwargs['thing'])][
             kwargs['closet'].branch].value_during(
             kwargs['closet'].tick)
-        kwargs['imgs'] = kwargs['closet'].get_game_piece(
-            kwargs['bone'].graphic).imgs
+        kwargs['graphic_name'] = kwargs['bone'].graphic
         super(Pawn, self).__init__(**kwargs)
         skel = self.closet.skeleton[u"thing_loc"][
             unicode(self.thing.character)][unicode(self.thing)]
@@ -188,6 +187,8 @@ will update its position appropriately.
             return True
 
     def on_touch_up(self, touch):
+        if 'pawn' in touch.ud:
+            del touch.ud['pawn']
         if touch.grab_current is self:
             touch.ungrab(self)
             new_spot = self.check_spot_collision()
