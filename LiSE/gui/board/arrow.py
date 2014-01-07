@@ -11,6 +11,7 @@ from kivy.uix.widget import Widget
 from kivy.properties import (
     ObjectProperty,
     ListProperty)
+from kivy.clock import Clock
 
 
 def get_points(ox, orx, oy, ory, dx, drx, dy, dry, taillen):
@@ -99,11 +100,11 @@ class Arrow(Widget):
         orign = unicode(self.portal.origin)
         destn = unicode(self.portal.destination)
         self.board.spotdict[orign].bind(
-            pos=self.repoint,
-            size=self.repoint)
+            pos=self.trigger_repoint,
+            size=self.trigger_repoint)
         self.board.spotdict[destn].bind(
-            pos=self.repoint,
-            size=self.repoint)
+            pos=self.trigger_repoint,
+            size=self.trigger_repoint)
         self.board.host.closet.register_time_listener(self.repawn)
         self.bind(pos=self.repoint)
         self.bind(size=self.repoint)
@@ -207,6 +208,10 @@ class Arrow(Widget):
         (ox, oy) = origspot.pos
         (dx, dy) = destspot.pos
         (branch, tick) = self.board.host.sanetime(None, None)
+
+    def trigger_repoint(self, *args):
+        Clock.unschedule(self.repoint)
+        Clock.schedule_once(self.repoint, -1)
 
     def collide_point(self, x, y):
         """Return True iff the point falls sufficiently close to my core line
