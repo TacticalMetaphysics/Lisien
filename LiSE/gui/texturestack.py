@@ -54,10 +54,10 @@ class TextureStack(Widget):
 
     def __init__(self, **kwargs):
         super(TextureStack, self).__init__(**kwargs)
-        self.bind(texs=self.upd_texs, pos=self.upd_pos)
+        self.bind(texs=self.trigger_upd_texs, pos=self.trigger_upd_pos)
         if len(self.texs) > 0:
-            self.upd_texs()
-            self.upd_pos()
+            self.trigger_upd_texs()
+            self.trigger_upd_pos()
 
     def on_texs(self, *args):
         if self.freeze_texs:
@@ -73,9 +73,17 @@ class TextureStack(Widget):
             self.canvas.add(self.rectify(tex, self.x, self.y))
             assert(len(self.canvas.children) == L + 1)
 
+    def trigger_upd_texs(self, *args):
+        Clock.unschedule(self.upd_texs)
+        Clock.schedule_once(self.upd_texs, -1)
+
     def upd_pos(self, *args):
         for rect in self.texture_rectangles.itervalues():
             rect.pos = self.pos
+
+    def trigger_upd_pos(self, *args):
+        Clock.unschedule(self.upd_pos)
+        Clock.schedule_once(self.upd_pos, -1)
 
     def clear(self):
         self.canvas.clear()
