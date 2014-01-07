@@ -31,10 +31,10 @@ class FrobSwatch(Button):
     def on_img(self, *args):
         if not self.img:
             return
-        if self.img.name == '':
-            Clock.schedule_once(self.on_image, 0)
+        if self.img.name == '' or self.box is None:
+            Clock.schedule_once(self.on_img, 0)
             return
-        self.ids.imgbox.add_widget(Image(
+        self.box.imgbox.add_widget(Image(
             texture=self.img.texture,
             pos_hint={'center': 0.5, 'top': 1}))
 
@@ -49,6 +49,7 @@ class SwatchBox(BoxLayout):
     graphics at once."""
     closet = ObjectProperty()
     categorized_images = ObjectProperty()
+    imgbox = ObjectProperty()
     sellen = NumericProperty(0)
     selection = ListProperty([])
 

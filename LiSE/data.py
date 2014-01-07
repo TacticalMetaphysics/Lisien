@@ -45,7 +45,9 @@ CALENDAR_TYPES = [
 whole_imgrows = [
     ('default_wallpaper', 'LiSE/gui/assets/wallpape.jpg', 0),
     ('default_spot', 'LiSE/gui/assets/orb.png', 0),
-    ('default_pawn', 'atlas://LiSE/gui/assets/rltiles/hominid/base/unseen', 0)]
+    ('default_pawn', 'atlas://LiSE/gui/assets/rltiles/hominid/base/unseen', 0),
+    ('locked', 'LiSE/gui/assets/locked.png', 0),
+    ('unlocked', 'LiSE/gui/assets/unlocked.png', 0)]
 
 graphics = {
     'default_wallpaper': {

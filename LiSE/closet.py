@@ -401,7 +401,7 @@ before RumorMill will work. For that, run mkdb.sh.
         elif strname == "@tick":
             return unicode(self.tick)
         else:
-            return unicode(self.lgettext(strname))
+            return unicode(self.lgettext(strname), 'utf-8')
 
     def save_game(self):
         """Save all pending changes to disc."""
