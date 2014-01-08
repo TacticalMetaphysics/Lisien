@@ -66,6 +66,15 @@
     font_size: 30
     text: self.adder.get_text(_('@add')) if self.adder else ''
     on_release: self.statview.add_stat(self.arg)
+<AddButton>:
+    symbolic: True
+    stringname: _('@add')
+<EditButton>:
+    size_hint_y: 0.8
+    Image:
+        center: root.center
+        size: 32, 32
+        texture: root.imgd[root.state].texture
 <CharSheetAdder>:
     StackLayout:
         Label:

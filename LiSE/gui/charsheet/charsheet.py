@@ -13,7 +13,6 @@ from table import (
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
     ClosetButton)
-from LiSE.gui.swatchbox import TogSwatch
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
@@ -25,6 +24,7 @@ from kivy.adapters.listadapter import ListAdapter
 from kivy.adapters.models import SelectableDataItem
 from kivy.uix.listview import ListView, SelectableView
 from kivy.properties import (
+    DictProperty,
     NumericProperty,
     BooleanProperty,
     OptionProperty,
@@ -232,6 +232,7 @@ class CharSheetAdder(ModalView):
                 idx=self.insertion_point,
                 type=r)
             self.charsheet.character.closet.set_bone(type_bone)
+            self.charsheet.repop()
             self.dismiss()
 
     def record(self):
@@ -432,6 +433,14 @@ def char_sheet_calendar_def(
     return r
 
 
+class AddButton(ClosetButton):
+    pass
+
+
+class EditButton(ToggleButton):
+    imgd = DictProperty({})
+
+
 class CharSheet(GridLayout):
     """A display of some or all of the information making up a Character.
 
@@ -568,17 +577,14 @@ things appropriate to the present, whenever that may be.
         self.add_widget(left_col)
         right_col = StackLayout()
         self.add_widget(right_col)
+        edimgd = self.character.closet.get_imgs(
+            ("locked", "unlocked"))
+        edimgd = {'normal': edimgd['locked'],
+                  'down': edimgd['unlocked']}
         for bone in self.character.closet.skeleton[
                 u"character_sheet_item_type"][
                 unicode(self.character)].iterbones():
-            edbut = ToggleButton()
-
-            def lock_unlock(*args):
-                imgn = "unlocked" if edbut.state == "down" else "locked"
-                edbut.clear_widgets()
-                edbut.add_widget(self.character.closet.get_game_piece(imgn))
-            edbut.bind(state=lock_unlock)
-            lock_unlock()
+            edbut = EditButton(imgd=edimgd)
             if bone.type == THING_TAB:
                 headers = [_("thing")]
                 fieldnames = ["name"]
@@ -639,28 +645,24 @@ things appropriate to the present, whenever that may be.
             else:
                 raise ValueError("Unknown item type: {}".format(bone.type))
 
-            edbut.height = cwid.height * 0.6
-            addbut = ClosetButton(
-                symbolic=True,
+            addbut = AddButton(
                 closet=self.character.closet,
-                stringname=_("@add"),
                 fun=self.add_item,
                 arg=i,
-                size_hint_y=None,
-                height=cwid.height*0.2)
+                size_hint_y=0.2)
+
             left_col.add_widget(cwid)
             right_col.add_widget(addbut)
             right_col.add_widget(edbut)
 
             i += 1
-        right_col.add_widget(ClosetButton(
-            symbolic=True,
+        final_addbut = AddButton(
             closet=self.character.closet,
-            stringname=_("@add"),
             fun=self.add_item,
             arg=i,
             size_hint_y=None,
-            height=cwid.height*0.2))
+            height=30)
+        right_col.add_widget(final_addbut)
 
     def iter_tab_i_bones(self, tab, i):
         for bone in self.character.closet.skeleton[tab][
