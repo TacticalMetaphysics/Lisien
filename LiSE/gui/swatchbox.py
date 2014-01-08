@@ -28,15 +28,26 @@ class FrobSwatch(Button):
     tags = ListProperty([])
     """List for use in SwatchBox"""
 
-    def on_img(self, *args):
+    def __init__(self, **kwargs):
+        super(FrobSwatch, self).__init__(**kwargs)
+        self.trigger_upd_image = Clock.create_trigger(self.upd_image)
+        self.bind(img=self.trigger_upd_image)
+
+    def upd_image(self, *args):
         if not self.img:
             return
-        if self.img.name == '' or self.box is None:
-            Clock.schedule_once(self.on_img, 0)
+        if not self.box:
+            self.trigger_upd_image()
             return
-        self.box.imgbox.add_widget(Image(
+        image = Image(
             texture=self.img.texture,
-            pos_hint={'center': 0.5, 'top': 1}))
+            center=self.center,
+            size=self.img.size)
+        self.bind(center=image.setter('center'))
+        self.add_widget(image)
+
+    def on_box(self, *args):
+        self.bind(state=self.box.upd_selection)
 
 
 class TogSwatch(ToggleButton, FrobSwatch):

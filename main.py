@@ -13,7 +13,7 @@ def lise():
     dbfn = None
 
     _ = gettext.translation('LiSE', sep.join([__path__[0], 'localedir']),
-                            ['eng']).lgettext
+                            ['eng']).gettext
 
     if argv[-1][-4:] == "lise":
         dbfn = argv[-1]
