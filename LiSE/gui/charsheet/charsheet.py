@@ -17,7 +17,6 @@ from LiSE.gui.swatchbox import TogSwatch
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
-from kivy.uix.image import Image as KivyImage
 from kivy.uix.modalview import ModalView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.stacklayout import StackLayout
@@ -205,16 +204,6 @@ class StatListView(Widget):
             cls=ListItemToggle)
         listview = ListView(adapter=adapter)
         self.add_widget(listview)
-
-
-class Image(KivyImage):
-    character = ObjectProperty()
-    keys = ListProperty()
-    edbut = ObjectProperty()
-
-    def __init__(self, **kwargs):
-        super(Image, self).__init__(**kwargs)
-        self.size = self.texture.size
 
 
 class CSAddBut(Button):
@@ -532,9 +521,6 @@ tick.
         layout = self.parent.parent
         layout.handle_adbut(self, i)
 
-    def on_cols_minimum(self, *args):
-        pass
-
     def repop(self, *args):
         """Iterate over the bones under my name, and add widgets appropriate
 to each of them.
@@ -566,7 +552,7 @@ things appropriate to the present, whenever that may be.
                 edbut=edbut)
         self.size_hint = (1, None)
         self.clear_widgets()
-        _ = lambda x: x
+        _ = self.character.closet.get_text
         if unicode(self.character) not in self.character.closet.skeleton[
                 u"character_sheet_item_type"]:
             self.add_widget(
@@ -585,12 +571,14 @@ things appropriate to the present, whenever that may be.
         for bone in self.character.closet.skeleton[
                 u"character_sheet_item_type"][
                 unicode(self.character)].iterbones():
-            edbut = TogSwatch(img=self.character.closet.get_img("locked"))
+            edbut = ToggleButton()
 
             def lock_unlock(*args):
                 imgn = "unlocked" if edbut.state == "down" else "locked"
-                edbut.image = self.character.closet.get_img(imgn)
+                edbut.clear_widgets()
+                edbut.add_widget(self.character.closet.get_game_piece(imgn))
             edbut.bind(state=lock_unlock)
+            lock_unlock()
             if bone.type == THING_TAB:
                 headers = [_("thing")]
                 fieldnames = ["name"]

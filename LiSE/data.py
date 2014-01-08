@@ -50,6 +50,8 @@ whole_imgrows = [
     ('unlocked', 'LiSE/gui/assets/unlocked.png', 0)]
 
 graphics = {
+    'locked': {'imgs': ['locked']},
+    'unlocked': {'imgs': ['unlocked']},
     'default_wallpaper': {
         'imgs': ['default_wallpaper']},
     'default_spot': {

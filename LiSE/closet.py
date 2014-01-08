@@ -165,7 +165,7 @@ before RumorMill will work. For that, run mkdb.sh.
         else:
             super(Closet, self).__setattr__(attrn, val)
 
-    def __init__(self, connector, lgettext=passthru,
+    def __init__(self, connector, gettext=passthru,
                  USE_KIVY=False, **kwargs):
         """Initialize a Closet for the given connector and path.
 
@@ -189,7 +189,7 @@ before RumorMill will work. For that, run mkdb.sh.
         self.sep = os.sep
         self.entypo = self.sep.join(
             [self.lisepath, 'gui', 'assets', 'Entypo.ttf'])
-        self.lgettext = lgettext
+        self.gettext = gettext
 
         for wd in self.working_dicts:
             setattr(self, wd, dict())
@@ -401,7 +401,7 @@ before RumorMill will work. For that, run mkdb.sh.
         elif strname == "@tick":
             return unicode(self.tick)
         else:
-            return unicode(self.lgettext(strname), 'utf-8')
+            return self.gettext(strname)
 
     def save_game(self):
         """Save all pending changes to disc."""
@@ -1166,7 +1166,7 @@ def mkdb(DB_NAME, lisepath):
     return conn
 
 
-def load_closet(dbfn, lgettext=None, kivy=False):
+def load_closet(dbfn, gettext=None, kivy=False):
     """Construct a ``Closet`` connected to the given database file. Use
     the LiSE library in the path given.
 
@@ -1181,8 +1181,8 @@ def load_closet(dbfn, lgettext=None, kivy=False):
     kwargs = {
         "connector": conn,
         "USE_KIVY": kivy}
-    if lgettext is not None:
-        kwargs["lgettext"] = lgettext
+    if gettext is not None:
+        kwargs["gettext"] = gettext
     r = Closet(**kwargs)
     r.load_timestream()
     return r
