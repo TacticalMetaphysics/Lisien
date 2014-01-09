@@ -122,41 +122,27 @@ class Calendar(Layout):
     xmov = NumericProperty(0)
     ycess = NumericProperty(0)
     ymov = NumericProperty(0)
+    _touch = ObjectProperty(None, allownone=True)
 
-    def on_character(self, i, v):
-        """Count toward completion"""
-        print("character")
-        self.completedness += 1
+    def __init__(self, **kwargs):
+        super(Calendar, self).__init__(**kwargs)
+        self._trigger_remake = Clock.create_trigger(self.remake)
+        self._trigger_retime = Clock.create_trigger(self.retime)
+        self._trigger_timely_layout = Clock.create_trigger(
+            self.timely_layout)
+        Clock.schedule_once(self.finalize, 0)
 
-    def on_key(self, i, v):
-        """Count toward completion"""
-        print("key")
-        self.completedness += 1
-
-    def on_stat(self, i, v):
-        print("stat")
-        self.completedness += 1
-
-    def on_timeline(self, i, v):
-        """Count toward completion"""
-        print("timeline")
-        self.completedness += 1
-
-    def on_completedness(self, i, v):
-        """When I have everything I need to fetch everything I'm missing, call
-        self.completed().
-
-        """
-        if v == 4:
-            self.completed()
-
-    def completed(self):
+    def finalize(self, *args):
         """Collect my referent--the object I am about--and my skel--the
         portion of the great Skeleton that pertains to my
         referent. Arrange to be notified whenever I need to lay myself
         out again.
 
         """
+        if not (self.character and self.timeline and self.key and self.stat):
+            Clock.schedule_once(self.finalize, 0)
+            return
+
         def upd_time(branch, tick):
             self.timeline.upd_branch(self, branch)
             self.timeline.upd_tick(self, tick)
@@ -168,9 +154,7 @@ class Calendar(Layout):
             size=lambda i, v: self.timeline.upd_time(
                 self, closet.branch, closet.tick),
             pos=lambda i, v: self.timeline.upd_time(
-                self, closet.branch, closet.tick),
-            xmov=lambda i, v: self.timeline.upd_branch(self, closet.branch),
-            ymov=lambda i, v: self.timeline.upd_tick(self, closet.tick))
+                self, closet.branch, closet.tick))
         self.timeline.upd_time(
             self, closet.branch, closet.tick)
         skeleton = closet.skeleton
@@ -179,30 +163,36 @@ class Calendar(Layout):
             if self.stat == "location":
                 self.skel = skeleton["thing_loc"][
                     unicode(self.character)][self.key]
+                self.boneatt = "location"
             else:
                 self.skel = skeleton["thing_stat"][
                     unicode(self.character)][self.key][self.stat]
+                self.boneatt = "value"
         elif self.cal_type == PLACE_CAL:
             self.referent = self.character.get_place(self.key)
             self.skel = skeleton["place_stat"][
                 unicode(self.character)][self.key][self.stat]
+            self.boneatt = "value"
         elif self.cal_type == PORTAL_CAL:
             if self.stat in ("origin", "destination"):
                 self.skel = skeleton["portal_loc"][
                     unicode(self.character)][self.key]
+                self.boneatt = self.stat
             else:
                 self.skel = skeleton["portal_stat"][
                     unicode(self.character)][self.key][self.stat]
+                self.boneatt = "value"
         elif self.cal_type == CHAR_CAL:
             self.skel = skeleton["character_stat"][
                 unicode(self.character)][self.key]
+            self.boneatt = "value"
         else:
             raise ValueError("Unknown cal_type")
         self.skel.register_set_listener(self.remake)
         self.skel.register_del_listener(self.remake)
         self.bind(size=lambda i, v: self._trigger_layout(),
                   pos=lambda i, v: self._trigger_layout())
-        Clock.schedule_once(self.remake, 0)
+        self._trigger_remake()
 
     def remake(self, *args):
         """Get rid of my current widgets and make new ones."""
@@ -211,18 +201,19 @@ class Calendar(Layout):
 
     def branch_x(self, b):
         """Where does the column representing that branch have its left
-edge?"""
+        edge?"""
         b -= self.branch
-        return self.x + self.xmov + b * self.col_width
+        return self.xmov + self.x + b * self.col_width
 
     def tick_y(self, t):
         """Where upon me does the given tick appear?
 
-That's where you'd draw the timeline for it."""
+        That's where you'd draw the timeline for it."""
         if t is None:
             return 0
         else:
-            return self.parent.top - (self.tick_height * (self.tick-t))
+            return self.ymov + self.top - (
+                self.tick_height * (self.tick-t))
 
     def refresh(self):
         """Generate cells that are missing. Remove cells that cannot be
@@ -281,79 +272,65 @@ That's where you'd draw the timeline for it."""
                     tick_from=prev.tick,
                     tick_to=None))
 
-    def do_layout(self, *largs):
-        """Arrange all the cells into columns sorted by branch, and stack them
-as appropriate to their start and end times. Adjust for scrolling as
-necessary."""
-        if self.parent is None:
-            return
-        branchwidth = self.col_width
-        d_branch = int(self.xmov / branchwidth)
-        tickheight = self.tick_height
-        d_tick = int(self.ymov / tickheight)
-        if abs(d_branch) >= 1 or abs(d_tick) >= 1:
-            try:
-                self.branch -= d_branch
-            except ValueError:
-                self.branch = 0
-            self.xmov -= d_branch * (branchwidth + self.spacing_y)
-            try:
-                self.tick += d_tick
-            except ValueError:
-                self.tick = 0
-            self.ymov -= d_tick * tickheight
-            self.refresh()
-        for child in self.children:
-            x = self.branch_x(child.branch)
-            y = self.tick_y(child.tick_to)
-            height = self.tick_y(child.tick_from) - y
-            hs = self.spacing_y
-            ws = self.spacing_x
-            child.pos = (x + ws, y + hs)
-            child.size = (branchwidth - ws, height - hs)
+    def do_layout(self, *args):
+        """Reposition all my cells so that they are in the column for their
+        branch, start and end at the right place for their tick, and are
+        offset by whatever amounts I'm scrolled."""
+        for cell in self.children:
+            if cell.tick_to is None:
+                h = (self.tick + self.ticks_tall -
+                     cell.tick_from) * self.tick_height
+                if h <= 0:
+                    self.remove_widget(cell)
+                else:
+                    cell.pos = (self.branch_x(cell.branch), 0)
+                    cell.size = (h, self.branch_width)
+            else:
+                y = self.tick_y(cell.tick_to)
+                cell.size = (self.branch_width,
+                             self.tick_y(cell.tick_from) - y)
+                cell.pos = (self.branch_x(cell.branch), y)
+
+    def retime(self, *args):
+        """Position my pointers at the timestream so they correspond to the
+        apparent position of my top-left corner.
+
+        """
+        # you can only move through time by integral amounts; drop the
+        # remainder
+        xmov = self.xmov - self.xmov % self.branch_width
+        ymov = self.ymov - self.ymov % self.tick_height
+        if xmov > 0:
+            self.branch += xmov / self.branch_width
+            self.xmov %= self.branch_width
+        if ymov > 0:
+            self.tick += ymov / self.tick_height
+            self.ymov %= self.tick_height
+
+    def timely_layout(self, *args):
+        self.retime(*args)
+        self.do_layout(*args)
 
     def on_touch_down(self, touch):
-        """Catch the touch if it hits me."""
         if self.collide_point(touch.x, touch.y):
+            self._touch = touch
             touch.grab(self)
-            return True
-
-    def on_touch_up(self, touch):
-        """Snap to the nearest branch and tick."""
-        if touch.grab_current is self:
-            touch.grab_current = None
-            self.xmov = 0
-            self.xcess = 0
-            self.ymov = 0
-            self.ycess = 0
-            self._trigger_layout()
+            touch.ud['calendar'] = self
 
     def on_touch_move(self, touch):
-        """If I'm being dragged, trigger a layout, but first check to see if
-I've been dragged far enough that I'm no longer at the same branch and
-tick. If so, adjust my branch and tick to fit."""
-        if touch.grab_current is self:
-            if self.xcess == 0:
-                nuxmov = self.xmov + touch.dx
-                if not (self.branch == 0 and nuxmov < 0):
-                    self.xmov = nuxmov
-                else:
-                    self.xcess += touch.dx
-            else:
-                self.xcess += touch.dx
-                if self.xcess < 0:
-                    self.xcess = 0
-            if self.ycess == 0:
-                nuymov = self.ymov - touch.dy
-                if not (self.tick == 0 and nuymov < 0):
-                    self.ymov = nuymov
-                else:
-                    self.ycess += touch.dy
-            else:
-                self.ycess += touch.dy
-                if self.ycess > 0:
-                    self.ycess = 0
-            self._trigger_layout()
+        if self._touch is touch:
+            self.xmov -= touch.dx
+            self.ymov -= touch.dy
+            self._trigger_timely_layout()
+        else:
+            touch.ungrab(self)
+
+    def on_touch_up(self, touch):
+        _touch = self._touch
+        self._touch = None
+        if _touch is not touch:
+            return
+        self._trigger_timely_layout()
 
 
 class CalendarLayout(RelativeLayout):
