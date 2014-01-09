@@ -845,6 +845,12 @@ before RumorMill will work. For that, run mkdb.sh.
         except ValueError:
             raise ValueError("Listener isn't registered")
 
+    def register_hi_branch_listener(self, listener):
+        self.timeline.hi_branch_listeners.append(listener)
+
+    def register_hi_tick_listener(self, listener):
+        self.timeline.hi_tick_listeners.append(listener)
+
     def query_place(self, update=True):
         """Query the 'place' view, resulting in an up-to-date record of what
         places exist in the gameworld as it exists in the
@@ -914,6 +920,10 @@ before RumorMill will work. For that, run mkdb.sh.
                     idx=idx,
                     type=type))
 
+        def upd_time(branch, tick):
+            self.timestream.upbranch(branch)
+            self.timestream.uptick(tick)
+
         if isinstance(bone, PlaceBone):
             init_keys(
                 self.skeleton,
@@ -926,23 +936,30 @@ before RumorMill will work. For that, run mkdb.sh.
         if isinstance(bone, Thing.bonetypes[u"thing_loc"]):
             core = self.skeleton[u"thing"][bone.character][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
+            upd_time(bone.branch, bone.tick)
         elif isinstance(bone, Thing.bonetypes[u"thing_loc_facade"]):
             core = self.skeleton[u"thing"][bone.observed][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
+            upd_time(bone.branch, bone.tick)
         elif isinstance(bone, Portal.bonetypes[u"portal_loc"]):
             core = self.skeleton[u"portal"][bone.character][bone.name]
+            upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif isinstance(bone, Portal.bonetypes[u"portal_stat_facade"]):
             core = self.skeleton[u"portal"][bone.observed][bone.name]
+            upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif isinstance(bone, Place.bonetypes[u"place_stat"]):
             set_place_maybe(bone.host, bone.name, bone.branch, bone.tick)
+            upd_time(bone.branch, bone.tick)
         elif isinstance(bone, Spot.bonetypes[u"spot"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
+            upd_time(bone.branch, bone.tick)
         elif isinstance(bone, Spot.bonetypes[u"spot_coords"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
+            upd_time(bone.branch, bone.tick)
         elif type(bone) is CharSheet.bonetype:
             pass
         elif type(bone) in CharSheet.bonetypes.values():

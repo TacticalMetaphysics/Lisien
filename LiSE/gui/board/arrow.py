@@ -1,6 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import print_function
 from math import cos, sin, hypot, atan
 from LiSE.util import (
     wedge_offsets_rise_run,

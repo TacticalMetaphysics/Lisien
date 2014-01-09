@@ -326,26 +326,15 @@ class Thing(Container):
                 location=start_loc)
             self.character.closet.set_bone(locb)
             return
-        for bone in upbranch(
-                self.character.closet,
-                self.character.iter_thing_loc_bones(self, parent),
-                branch, tick):
+        for bone in self.character.iter_thing_loc_bones(
+                self, branch=parent):
             yield bone
-        for bone in upbranch(
-                self.character.closet,
-                self.iter_stat_bones(branch=parent),
-                branch, tick):
+        for bone in self.iter_stats_bones(branch=parent):
             yield bone
         for observer in self.character.facade_d.iterkeys():
-            for bone in upbranch(
-                    self.character.closet,
-                    self.iter_loc_bones(observer, parent),
-                    branch, tick):
+            for bone in self.iter_loc_bones(observer, branch=parent):
                 yield bone
-            for bone in upbranch(
-                    self.character.closet,
-                    self.iter_stat_bones(observer, branch=parent),
-                    branch, tick):
+            for bone in self.iter_stats_bones([], observer, branch=parent):
                 yield bone
 
     def iter_loc_bones(self, observer=None, branch=None):
@@ -362,6 +351,11 @@ class Thing(Container):
         (branch, tick) = self.character.sanetime(branch, tick)
         if observer is None:
             for bone in self.character.iter_thing_stat_bones(
+                    self.name, stats, [branch], [tick]):
+                yield bone
+        else:
+            facade = self.character.get_facade(observer)
+            for bone in facade.iter_thing_stat_bones(
                     self.name, stats, [branch], [tick]):
                 yield bone
 

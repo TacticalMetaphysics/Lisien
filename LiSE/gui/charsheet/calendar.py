@@ -2,40 +2,30 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from kivy.clock import Clock
 from kivy.properties import (
+    DictProperty,
     BooleanProperty,
     BoundedNumericProperty,
     ListProperty,
     NumericProperty,
     ObjectProperty,
     StringProperty)
-from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.stacklayout import StackLayout
 from kivy.uix.layout import Layout
+from kivy.uix.label import Label
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
-from kivy.uix.label import Label
+from kivy.logger import Logger
+from kivy.graphics import Color, Rectangle, Line, Triangle, Callback
 
 from LiSE.data import (
     THING_CAL,
     PLACE_CAL,
     PORTAL_CAL,
     CHAR_CAL)
+from LiSE.gui.style import solarized
 
 
 SCROLL_FACTOR = 4
-
-
-def get_timeline_x(calendar, branch):
-    return ((branch - calendar.branch) * calendar.col_width
-            + calendar.xmov + calendar.x)
-
-
-def get_timeline_y(calendar, tick):
-    return calendar.ymov + calendar.top + calendar.y - (
-        tick - calendar.tick) * calendar.tick_height
-
-
-class ColorBox(BoxLayout):
-    color = ListProperty()
 
 
 class Cell(Widget):
@@ -45,6 +35,8 @@ class Cell(Widget):
     to.
 
     """
+    bg_color = ListProperty(solarized["base0"])
+    text_color = ListProperty(solarized["base02"])
     text = StringProperty()
     active = BooleanProperty(False)
     bone = ObjectProperty()
@@ -53,14 +45,32 @@ class Cell(Widget):
     tick_from = NumericProperty()
     tick_to = NumericProperty(None, allownone=True)
 
-    def on_text(self, *args):
-        print("text {}".format(self.text))
+    def __init__(self, **kwargs):
+        super(Cell, self).__init__(**kwargs)
+        Clock.schedule_once(self.finalize, 0)
 
-    def on_pos(self, *args):
-        print("pos {}".format(self.pos))
+    def finalize(self, *args):
+        if not (self.calendar and self.canvas and
+                self.tick_from is not None):
+            Clock.schedule_once(self.finalize, 0)
+            return
+        with self.canvas:
+            Color(*self.bg_color)
+            Rectangle(
+                pos=self.pos,
+                size=self.size)
+        self.bind(
+            bg_color=self.recanvas,
+            pos=self.recanvas,
+            size=self.recanvas)
 
-    def on_size(self, *args):
-        print("size {}".format(self.size))
+    def recanvas(self, *args):
+        self.canvas.clear()
+        with self.canvas:
+            Color(*self.bg_color)
+            Rectangle(
+                pos=self.pos,
+                size=self.size)
 
 
 class Timeline(Widget):
@@ -68,19 +78,30 @@ class Timeline(Widget):
     the present moment.
 
     """
+    calendar = ObjectProperty()
 
-    def upd_branch(self, calendar, branch):
-        self.x = get_timeline_x(calendar, branch)
+    def finalize(self, *args):
+        if not self.canvas and self.calendar:
+            Clock.schedule_once(self.finalize, 0)
+            return
+        with self.canvas:
+            self.cb = Callback(self.upd_time)
+            Color(1, 0, 0, 1)
+            Line(points=[
+                self.x, self.y, self.x+self.calendar.col_width, self.y])
+            Triangle(points=[
+                self.x, self.y+8, self.x+16, self.y, self.x, self.y-8])
 
-    def upd_tick(self, calendar, tick):
-        self.y = get_timeline_y(calendar, tick)
+    def upd_time(self, *args):
+        branch, tick = self.calendar.character.closet.time
+        self.x = ((branch - self.calendar.branch) * self.calendar.col_width
+                  + self.calendar.xmov + self.calendar.x)
+        self.y = (
+            self.calendar.ymov + self.calendar.top + self.calendar.y -
+            (tick - self.calendar.tick) * self.calendar.tick_height)
 
-    def upd_time(self, calendar, branch, tick):
-        self.upd_branch(calendar, branch)
-        self.upd_tick(calendar, tick)
 
-
-class Calendar(Layout):
+class Calendar(RelativeLayout):
     """A gridlike layout of cells representing events throughout every
     branch of the timestream.
 
@@ -100,9 +121,13 @@ class Calendar(Layout):
     branches_offscreen = NumericProperty(2)
     branches_wide = NumericProperty()
     cal_type = NumericProperty()
+    branches_cells = DictProperty({})
+    branches_cols = DictProperty({})
+    charsheet = ObjectProperty()
     character = ObjectProperty()
     col_width = NumericProperty()
     completedness = NumericProperty()
+    edbut = ObjectProperty()
     font_name = StringProperty()
     font_size = NumericProperty()
     force_refresh = BooleanProperty(False)
@@ -118,11 +143,27 @@ class Calendar(Layout):
     ticks_tall = NumericProperty(100)
     ticks_offscreen = NumericProperty(0)
     timeline = ObjectProperty()
-    xcess = NumericProperty(0)
     xmov = NumericProperty(0)
-    ycess = NumericProperty(0)
     ymov = NumericProperty(0)
     _touch = ObjectProperty(None, allownone=True)
+
+    @property
+    def minbranch(self):
+        return int(max([0, self.branch - self.branches_offscreen]))
+
+    @property
+    def maxbranch(self):
+        return int(self.branch + self.branches_wide
+                   + self.branches_offscreen)
+
+    @property
+    def mintick(self):
+        return int(max([0, self.tick - self.ticks_offscreen]))
+
+    @property
+    def maxtick(self):
+        return int(self.tick + self.ticks_tall
+                   + self.ticks_offscreen)
 
     def __init__(self, **kwargs):
         super(Calendar, self).__init__(**kwargs)
@@ -139,25 +180,16 @@ class Calendar(Layout):
         out again.
 
         """
-        if not (self.character and self.timeline and self.key and self.stat):
+        if self.charsheet and not self.character:
+            self.character = self.charsheet.character
+        if not (self.character and self.key and self.stat):
             Clock.schedule_once(self.finalize, 0)
             return
 
-        def upd_time(branch, tick):
-            self.timeline.upd_branch(self, branch)
-            self.timeline.upd_tick(self, tick)
-
         character = self.character
         closet = character.closet
-        closet.register_time_listener(upd_time)
-        self.bind(
-            size=lambda i, v: self.timeline.upd_time(
-                self, closet.branch, closet.tick),
-            pos=lambda i, v: self.timeline.upd_time(
-                self, closet.branch, closet.tick))
-        self.timeline.upd_time(
-            self, closet.branch, closet.tick)
         skeleton = closet.skeleton
+
         if self.cal_type == THING_CAL:
             self.referent = self.character.get_thing(self.key)
             if self.stat == "location":
@@ -187,109 +219,130 @@ class Calendar(Layout):
                 unicode(self.character)][self.key]
             self.boneatt = "value"
         else:
-            raise ValueError("Unknown cal_type")
-        self.skel.register_set_listener(self.remake)
-        self.skel.register_del_listener(self.remake)
-        self.bind(size=lambda i, v: self._trigger_layout(),
-                  pos=lambda i, v: self._trigger_layout())
+            Logger.debug('Unknown cal_type, finalize later')
+            Clock.schedule_once(self.finalize, 0)
+            return
+
+        self.timeline = Timeline(calendar=self)
+
+        closet.register_time_listener(self.timeline.upd_time)
+        self.bind(
+            size=lambda i, v: self.timeline.upd_time(
+                closet.branch, closet.tick),
+            pos=lambda i, v: self.timeline.upd_time(
+                closet.branch, closet.tick))
+        self.timeline.upd_time(
+            closet.branch, closet.tick)
+
+        self.skel.register_set_listener(self._trigger_remake)
+        self.skel.register_del_listener(self._trigger_remake)
+        self.bind(size=lambda i, v: self._trigger_timely_layout(),
+                  pos=lambda i, v: self._trigger_timely_layout())
         self._trigger_remake()
 
     def remake(self, *args):
         """Get rid of my current widgets and make new ones."""
-        self.clear_widgets()
         self.refresh()
+        self.do_layout()
 
     def branch_x(self, b):
         """Where does the column representing that branch have its left
         edge?"""
         b -= self.branch
-        return self.xmov + self.x + b * self.col_width
+        return self.x + b * self.col_width - self.xmov
 
     def tick_y(self, t):
         """Where upon me does the given tick appear?
 
         That's where you'd draw the timeline for it."""
         if t is None:
-            return 0
+            return
         else:
-            return self.ymov + self.top - (
-                self.tick_height * (self.tick-t))
+            # ticks from the top
+            tft = t - self.tick
+            if tft < 1:
+                return
+            # pixels from the top
+            pft = tft * self.tick_height
+            return self.height - pft + self.ymov
 
     def refresh(self):
         """Generate cells that are missing. Remove cells that cannot be
         seen."""
-        minbranch = int(self.branch - self.branches_offscreen)
-        maxbranch = int(
-            self.branch + self.branches_wide + self.branches_offscreen)
-        mintick = int(self.tick - self.ticks_offscreen)
-        maxtick = int(self.tick + self.ticks_tall + self.ticks_offscreen)
         old_widgets = {}
         for child in self.children:
             old_widgets[child.bone] = child
         self.clear_widgets()
-        for branch in xrange(minbranch, maxbranch):
+        for branch in xrange(self.minbranch, self.maxbranch):
             if branch not in self.skel:
                 continue
+            if branch not in self.branches_cells:
+                self.branches_cells[branch] = {}
             boneiter = self.skel[branch].iterbones()
             prev = next(boneiter)
+            i = 0
+            colors = [[0, 1, 0, 1],
+                      [0, 0, 1, 1]]
             for bone in boneiter:
                 if bone in old_widgets:
-                    self.add_widget(old_widgets[bone])
-                    print("refreshing w. old bone: {}".format(bone))
+                    self.branches_cells[branch][prev.tick] = old_widgets[bone]
                 elif (
-                        prev.tick < maxtick and
-                        bone.tick > mintick):
-                    print("refreshing w. new bone: {}".format(bone))
+                        prev.tick < self.maxtick and
+                        bone.tick > self.mintick):
                     cell = Cell(
                         calendar=self,
                         branch=branch,
                         text=getattr(prev, self.boneatt),
                         tick_from=prev.tick,
                         tick_to=bone.tick,
+                        bg_color=colors[i % 2],
                         bone=bone)
-                    self.add_widget(cell)
-                if bone.tick > maxtick:
+                    self.branches_cells[branch][prev.tick] = cell
+                if bone.tick > self.maxtick:
                     break
                 prev = bone
+                i += 1
             # The last cell is infinitely long
-            if prev.tick < maxtick:
-                if self.cal_type == 5:
-                    text = prev.location
-                elif self.cal_type == 6:
-                    text = prev.place
-                elif self.cal_type == 7:
-                    text = "{}->{}".format(
-                        prev.origin, prev.destination)
-                elif self.cal_type == 8:
-                    text = prev.value
-                else:
-                    text = ""
-                assert(text is not None)
-                self.add_widget(Cell(
+            if prev.tick < self.maxtick:
+                cell = Cell(
                     calendar=self,
                     branch=branch,
-                    text=text,
+                    text=getattr(prev, self.boneatt),
                     tick_from=prev.tick,
-                    tick_to=None))
+                    tick_to=None,
+                    bg_color=[1, 0, 0, 1])
+                self.branches_cells[branch][prev.tick] = cell
 
     def do_layout(self, *args):
         """Reposition all my cells so that they are in the column for their
         branch, start and end at the right place for their tick, and are
         offset by whatever amounts I'm scrolled."""
-        for cell in self.children:
-            if cell.tick_to is None:
-                h = (self.tick + self.ticks_tall -
-                     cell.tick_from) * self.tick_height
-                if h <= 0:
-                    self.remove_widget(cell)
-                else:
-                    cell.pos = (self.branch_x(cell.branch), 0)
-                    cell.size = (h, self.branch_width)
-            else:
-                y = self.tick_y(cell.tick_to)
-                cell.size = (self.branch_width,
-                             self.tick_y(cell.tick_from) - y)
-                cell.pos = (self.branch_x(cell.branch), y)
+        hi_tick = self.character.closet.timestream.hi_tick
+        branches_height = max([hi_tick * self.tick_height, 100])
+        for branch in xrange(self.minbranch, self.maxbranch):
+            if branch not in self.branches_cells:
+                return
+            if branch not in self.branches_cols:
+                # height of the column is however much needed to hold
+                # all the ticks.
+                self.branches_cols[branch] = StackLayout()
+            branch_col = self.branches_cols[branch]
+            branch_col.height = branches_height
+            branch_col.y = self.tick_height * self.tick
+            branch_col.x = self.x + (self.col_width + self.spacing_x) * branch
+            branch_col.width = self.col_width
+            branch_col.clear_widgets()
+            final = None
+            for tick in sorted(self.branches_cells[branch].keys()):
+                cell = self.branches_cells[branch][tick]
+                if cell.tick_to is None:
+                    final = cell
+                    break
+                cell.height = (
+                    cell.tick_to - cell.tick_from) * self.tick_height
+                branch_col.add_widget(cell)
+            if branch_col not in self.children:
+                self.add_widget(branch_col)
 
     def retime(self, *args):
         """Position my pointers at the timestream so they correspond to the
@@ -298,14 +351,18 @@ class Calendar(Layout):
         """
         # you can only move through time by integral amounts; drop the
         # remainder
-        xmov = self.xmov - self.xmov % self.branch_width
+        xmov = self.xmov - self.xmov % self.col_width
         ymov = self.ymov - self.ymov % self.tick_height
-        if xmov > 0:
-            self.branch += xmov / self.branch_width
-            self.xmov %= self.branch_width
-        if ymov > 0:
-            self.tick += ymov / self.tick_height
-            self.ymov %= self.tick_height
+        if xmov != 0:
+            self.branch += xmov / self.col_width
+            self.xmov %= self.col_width
+        if ymov != 0:
+            try:
+                self.tick += ymov / self.tick_height
+                self.ymov %= self.tick_height
+            except ValueError:
+                self.tick = 0
+                self.ymov = 0
 
     def timely_layout(self, *args):
         self.retime(*args)
@@ -316,12 +373,15 @@ class Calendar(Layout):
             self._touch = touch
             touch.grab(self)
             touch.ud['calendar'] = self
+            touch.ud['charsheet'] = self.charsheet
+            return True
 
     def on_touch_move(self, touch):
         if self._touch is touch:
             self.xmov -= touch.dx
-            self.ymov -= touch.dy
+            self.ymov += touch.dy
             self._trigger_timely_layout()
+            return True
         else:
             touch.ungrab(self)
 
@@ -331,13 +391,4 @@ class Calendar(Layout):
         if _touch is not touch:
             return
         self._trigger_timely_layout()
-
-
-class CalendarLayout(RelativeLayout):
-    """Really just a RelativeLayout with some Kivy properties to handle
-the parameters of a Calendar."""
-    character = ObjectProperty()
-    item_type = NumericProperty()
-    key = StringProperty()
-    stat = StringProperty()
-    edbut = ObjectProperty()
+        return True

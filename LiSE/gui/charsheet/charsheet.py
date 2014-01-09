@@ -5,8 +5,7 @@
 collections of simulated entities and facts.
 
 """
-from calendar import (
-    CalendarLayout)
+from calendar import Calendar
 from table import (
     TableView,
     CharStatTableView)
@@ -441,7 +440,7 @@ class EditButton(ToggleButton):
     imgd = DictProperty({})
 
 
-class CharSheet(GridLayout):
+class CharSheet(StackLayout):
     """A display of some or all of the information making up a Character.
 
 A CharSheet is a layout of vertically stacked widgets that are not
@@ -552,9 +551,9 @@ things appropriate to the present, whenever that may be.
             }[typ]
             bone = self.character.closet.skeleton[tabn][
                 unicode(self.character)][i]
-            return CalendarLayout(
-                character=self.character,
-                item_type=typ,
+            return Calendar(
+                charsheet=self,
+                cal_type=typ,
                 boneatt=keyns[1],
                 key=getattr(bone, keyns[0]),
                 stat=getattr(bone, keyns[1]) if len(keyns) == 2 else '',
@@ -562,21 +561,17 @@ things appropriate to the present, whenever that may be.
         self.size_hint = (1, None)
         self.clear_widgets()
         _ = self.character.closet.get_text
+        i = 0
+        self.add_widget(
+            AddButton(
+                closet=self.character.closet,
+                fun=self.add_item,
+                arg=0,
+                size_hint_y=None,
+                height=20))
         if unicode(self.character) not in self.character.closet.skeleton[
                 u"character_sheet_item_type"]:
-            self.add_widget(
-                ClosetButton(
-                    symbolic=True,
-                    stringname=_("@add"),
-                    closet=self.character.closet,
-                    fun=self.add_item,
-                    arg=0))
             return
-        i = 0
-        left_col = StackLayout()
-        self.add_widget(left_col)
-        right_col = StackLayout()
-        self.add_widget(right_col)
         edimgd = self.character.closet.get_imgs(
             ("locked", "unlocked"))
         edimgd = {'normal': edimgd['locked'],
@@ -645,15 +640,20 @@ things appropriate to the present, whenever that may be.
             else:
                 raise ValueError("Unknown item type: {}".format(bone.type))
 
-            addbut = AddButton(
-                closet=self.character.closet,
-                fun=self.add_item,
-                arg=i,
-                size_hint_y=0.2)
-
-            left_col.add_widget(cwid)
-            right_col.add_widget(addbut)
-            right_col.add_widget(edbut)
+            entry = GridLayout(cols=2)
+            buttons = StackLayout(size_hint_x=0.2)
+            if i > 0:
+                addbut = AddButton(
+                    closet=self.character.closet,
+                    fun=self.add_item,
+                    arg=i,
+                    size_hint_y=0.2)
+                buttons.add_widget(addbut)
+            buttons.add_widget(edbut)
+            cwid.size_hint_x = 0.8
+            entry.add_widget(cwid)
+            entry.add_widget(buttons)
+            self.add_widget(entry)
 
             i += 1
         final_addbut = AddButton(
@@ -661,8 +661,8 @@ things appropriate to the present, whenever that may be.
             fun=self.add_item,
             arg=i,
             size_hint_y=None,
-            height=30)
-        right_col.add_widget(final_addbut)
+            height=20)
+        self.add_widget(final_addbut)
 
     def iter_tab_i_bones(self, tab, i):
         for bone in self.character.closet.skeleton[tab][

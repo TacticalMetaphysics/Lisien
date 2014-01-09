@@ -1,6 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from __future__ import print_function
 from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
     AliasProperty,
@@ -208,7 +207,7 @@ class Board(FloatLayout):
                 yield bone
 
     def on_touch_down(self, touch):
-        for preemptor in ("charsheet", "menu"):
+        for preemptor in ("charsheet", "menu", "spot"):
             if preemptor in touch.ud:
                 return
         if 'portaling' in touch.ud:
