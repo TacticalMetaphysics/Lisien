@@ -9,35 +9,13 @@
     text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
 <ClosetHintTextInput>:
     hint_text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
-<CalendarLayout>:
-    size: cal.size
-    StencilView:
-        Calendar:
-            id: cal
-            timeline: tl
-            character: root.character
-            cal_type: root.item_type
-            key: root.key
-            stat: root.stat
-            col_width: 100
-            branches_wide: 2
-            tick_height: 2
-            spacing_x: 5
-            spacing_y: 5
-            editing: root.edbut.state == 'down' if root.edbut else False
-            width: self.branches_wide * (self.col_width + self.spacing_x)
-            height: self.tick_height * self.ticks_tall
-            on_branch: tl.upd_branch
-            on_tick: tl.upd_tick
-        Timeline:
-            id: tl
-            canvas:
-                Color:
-                    rgba: 1, 0, 0, 1
-                Line:
-                    points: (self.x, self.y, self.x+cal.col_width, self.y)
-                Triangle:
-                    points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
+<Calendar>:
+    branches_wide: 2
+    tick_height: 2
+    spacing_x: 5
+    spacing_y: 5
+    width: self.branches_wide * (self.col_width + self.spacing_x)
+    height: self.tick_height * self.ticks_tall
 <ColorBox>:
     canvas:
         Color:
@@ -45,19 +23,10 @@
         Rectangle:
             pos: root.pos
             size: root.size
-<Cell>:
-    ColorBox:
-        id: box
-        color: solarized["base2"]
-        pos: root.pos
-        size: root.size
-        Label:
-            text: root.text
-            color: solarized["base02"]
-            pos: box.pos
-            text_size: box.size
 <TableContent,TableHeader,TableBody>:
     size_hint_y: None
+<Calendar>:
+    col_width: 100
 <CharSheet>:
     on_character: self.repop()
 <CSAddBut>:
@@ -70,7 +39,6 @@
     symbolic: True
     stringname: _('@add')
 <EditButton>:
-    size_hint_y: 0.8
     Image:
         center: root.center
         size: 32, 32

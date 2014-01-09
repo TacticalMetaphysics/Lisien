@@ -135,10 +135,6 @@ class Spot(GamePiece):
     def upd_texs(self, *args):
         super(Spot, self).upd_texs(*args)
 
-    def on_size(self, *args):
-        print("spot for {} got size {}".format(
-            self.place, self.size))
-
     def handle_time(self, b, t):
         self.bone = self.get_bone(b, t)
         self.graphic_name = self.bone.graphic

@@ -294,12 +294,31 @@ class Character(object):
             return r[branch]
         return r
 
-    def iter_thing_stat_bones(self, name, stat, branch=None):
-        skel = self.closet.skeleton[u"thing_stat"][unicode(self)][name][stat]
-        if branch is not None:
-            skel = skel[branch]
-        for bone in skel.iterbones():
-            yield bone
+    def iter_thing_stat_bones(self, name, stats=[], branches=[], ticks=[]):
+        skel = self.closet.skeleton[u"thing_stat"][unicode(self)][name]
+        if stats:
+            outermost = iter(stats)
+        else:
+            outermost = skel.iterkeys()
+        for stat in outermost:
+            if branches:
+                def outer(sk):
+                    for branch in branches:
+                        yield sk[branch]
+            else:
+                def outer(sk):
+                    for branch in sk:
+                        yield sk[branch]
+            if ticks:
+                def inner(sk):
+                    for tick in ticks:
+                        yield sk.value_during(tick)
+            else:
+                def inner(sk):
+                    for tick in sk:
+                        yield sk.value_during(tick)
+            for bone in inner(outer(skel[stat])):
+                yield bone
 
     def get_thing_stat_bone(self, thing, stat, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
