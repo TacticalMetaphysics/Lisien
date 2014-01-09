@@ -221,7 +221,8 @@ class Character(object):
                 self.graph.delete_vertices(v)
         for e in self.graph.es:
             try:
-                e["portal"].get_loc_bone(None, branch, tick)
+                for portal in e["portals"].itervalues():
+                    portal.get_loc_bone(None, branch, tick)
             except (KeyError, ValueError, KnowledgeException):
                 self.graph.delete_edges(e)
 
