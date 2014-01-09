@@ -11,6 +11,10 @@ from kivy.clock import Clock
 class TableCell(Label):
     text_getter = ObjectProperty()
 
+    def __init__(self, **kwargs):
+        kwargs['size_hint_y'] = None
+        super(TableCell, self).__init__(**kwargs)
+
     def upd_text(self, *args):
         self.text = self.text_getter()
 

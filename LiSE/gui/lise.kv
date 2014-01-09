@@ -12,32 +12,6 @@
     text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
 <ClosetHintTextInput>:
     hint_text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
-<Calendar>:
-    branches_wide: 2
-    tick_height: 2
-    spacing_x: 5
-    spacing_y: 5
-    width: self.branches_wide * (self.col_width + self.spacing_x)
-    height: self.tick_height * self.ticks_tall
-<ColorBox>:
-    canvas:
-        Color:
-            rgba: root.color
-        Rectangle:
-            pos: root.pos
-            size: root.size
-<TableContent,TableHeader,TableBody>:
-    size_hint_y: None
-<Calendar>:
-    col_width: 100
-<CharSheet>:
-    on_character: self.repop()
-<CSAddBut>:
-    size_hint_x: 0.2
-    font_name: sep.join([lisepathl[-1], 'gui', 'assets', 'Entypo.ttf'])
-    font_size: 30
-    text: self.adder.get_text(_('@add')) if self.adder else ''
-    on_release: self.statview.add_stat(self.arg)
 <AddButton>:
     symbolic: True
     stringname: _('@add')
@@ -46,6 +20,14 @@
         center: root.center
         size: 32, 32
         texture: root.imgd[root.state].texture
+<CalendarView>:
+    font_name: 'DroidSans'
+    font_size: 20
+    branches_wide: 2
+    spacing: (5, 5)
+    offscreen: (2, 2)
+    tick_height: 2
+    col_width: 100
 <CharSheetAdder>:
     StackLayout:
         Label:

@@ -5,14 +5,13 @@
 collections of simulated entities and facts.
 
 """
-from calendar import Calendar
+from calendar import CalendarView
 from table import (
     TableView,
     CharStatTableView)
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
     ClosetButton)
-from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 from kivy.uix.modalview import ModalView
@@ -203,16 +202,6 @@ class StatListView(Widget):
             cls=ListItemToggle)
         listview = ListView(adapter=adapter)
         self.add_widget(listview)
-
-
-class CSAddBut(Button):
-    adder = ObjectProperty()
-    statview = ObjectProperty()
-    arg = ObjectProperty()
-
-    def __init__(self, **kwargs):
-        kwargs['size_hint'] = (None, None)
-        super(CSAddBut, self).__init__(**kwargs)
 
 
 class CharSheetAdder(ModalView):
@@ -524,6 +513,10 @@ tick.
           "checks": ["type={}".format(CHAR_CAL)]})]
     character = ObjectProperty()
 
+    def __init__(self, **kwargs):
+        super(CharSheet, self).__init__(**kwargs)
+        self.bind(character=self.repop)
+
     def add_item(self, i):
         # I need the layout, proper
         layout = self.parent.parent
@@ -551,7 +544,7 @@ things appropriate to the present, whenever that may be.
             }[typ]
             bone = self.character.closet.skeleton[tabn][
                 unicode(self.character)][i]
-            return Calendar(
+            return CalendarView(
                 charsheet=self,
                 cal_type=typ,
                 boneatt=keyns[1],
