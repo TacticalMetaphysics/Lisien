@@ -8,11 +8,11 @@ from kivy.properties import (
     ListProperty,
     NumericProperty,
     ObjectProperty,
-    StringProperty)
+    StringProperty,
+    ReferenceListProperty)
 from kivy.uix.stacklayout import StackLayout
+from kivy.uix.stencilview import StencilView
 from kivy.uix.layout import Layout
-from kivy.uix.label import Label
-from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
 from kivy.logger import Logger
 from kivy.graphics import Color, Rectangle, Line, Triangle, Callback
@@ -22,7 +22,6 @@ from LiSE.data import (
     PLACE_CAL,
     PORTAL_CAL,
     CHAR_CAL)
-from LiSE.gui.style import solarized
 
 
 SCROLL_FACTOR = 4
@@ -35,8 +34,8 @@ class Cell(Widget):
     to.
 
     """
-    bg_color = ListProperty(solarized["base0"])
-    text_color = ListProperty(solarized["base02"])
+    bg_color = ListProperty()
+    text_color = ListProperty()
     text = StringProperty()
     active = BooleanProperty(False)
     bone = ObjectProperty()
@@ -46,6 +45,7 @@ class Cell(Widget):
     tick_to = NumericProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
+        kwargs['size_hint_y'] = None
         super(Cell, self).__init__(**kwargs)
         Clock.schedule_once(self.finalize, 0)
 
@@ -54,15 +54,11 @@ class Cell(Widget):
                 self.tick_from is not None):
             Clock.schedule_once(self.finalize, 0)
             return
-        with self.canvas:
-            Color(*self.bg_color)
-            Rectangle(
-                pos=self.pos,
-                size=self.size)
         self.bind(
             bg_color=self.recanvas,
             pos=self.recanvas,
             size=self.recanvas)
+        self.recanvas()
 
     def recanvas(self, *args):
         self.canvas.clear()
@@ -101,7 +97,7 @@ class Timeline(Widget):
             (tick - self.calendar.tick) * self.calendar.tick_height)
 
 
-class Calendar(RelativeLayout):
+class Calendar(Layout):
     """A gridlike layout of cells representing events throughout every
     branch of the timestream.
 
@@ -118,7 +114,7 @@ class Calendar(RelativeLayout):
     """
     boneatt = StringProperty()
     branch = NumericProperty(0)
-    branches_offscreen = NumericProperty(2)
+    branches_offscreen = NumericProperty()
     branches_wide = NumericProperty()
     cal_type = NumericProperty()
     branches_cells = DictProperty({})
@@ -127,11 +123,9 @@ class Calendar(RelativeLayout):
     character = ObjectProperty()
     col_width = NumericProperty()
     completedness = NumericProperty()
-    edbut = ObjectProperty()
     font_name = StringProperty()
     font_size = NumericProperty()
     force_refresh = BooleanProperty(False)
-    i = NumericProperty()
     key = StringProperty()
     referent = ObjectProperty(None)
     skel = ObjectProperty(None)
@@ -145,7 +139,6 @@ class Calendar(RelativeLayout):
     timeline = ObjectProperty()
     xmov = NumericProperty(0)
     ymov = NumericProperty(0)
-    _touch = ObjectProperty(None, allownone=True)
 
     @property
     def minbranch(self):
@@ -328,19 +321,25 @@ class Calendar(RelativeLayout):
                 self.branches_cols[branch] = StackLayout()
             branch_col = self.branches_cols[branch]
             branch_col.height = branches_height
-            branch_col.y = self.tick_height * self.tick
+            branch_col.y = self.y + self.tick_height * self.tick
             branch_col.x = self.x + (self.col_width + self.spacing_x) * branch
             branch_col.width = self.col_width
             branch_col.clear_widgets()
             final = None
             for tick in sorted(self.branches_cells[branch].keys()):
                 cell = self.branches_cells[branch][tick]
+                cell.width = self.col_width
                 if cell.tick_to is None:
                     final = cell
                     break
                 cell.height = (
                     cell.tick_to - cell.tick_from) * self.tick_height
                 branch_col.add_widget(cell)
+            if final is not None:
+                # 100% arbitrary
+                final.height = 100
+                final.width = self.col_width
+                branch_col.add_widget(final)
             if branch_col not in self.children:
                 self.add_widget(branch_col)
 
@@ -368,19 +367,72 @@ class Calendar(RelativeLayout):
         self.retime(*args)
         self.do_layout(*args)
 
+
+class CalendarView(StencilView):
+    boneatt = StringProperty()
+    cal_type = NumericProperty()
+    col_width = NumericProperty()
+    key = StringProperty()
+    stat = StringProperty()
+    i = NumericProperty()
+    edbut = ObjectProperty()
+    branches_wide = NumericProperty()
+    font_name = StringProperty()
+    font_size = NumericProperty()
+    spacing_x = NumericProperty()
+    spacing_y = NumericProperty()
+    spacing = ReferenceListProperty(
+        spacing_x, spacing_y)
+    tick_height = NumericProperty()
+    ticks_offscreen = NumericProperty()
+    branches_offscreen = NumericProperty()
+    offscreen = ReferenceListProperty(
+        branches_offscreen, ticks_offscreen)
+    calendar = ObjectProperty()
+    charsheet = ObjectProperty()
+    timeline = ObjectProperty()
+    _touch = ObjectProperty(None, allownone=True)
+
+    def __init__(self, **kwargs):
+        super(CalendarView, self).__init__(**kwargs)
+        Clock.schedule_once(self.finalize, 0)
+
+    def finalize(self, *args):
+        if not self.charsheet:
+            Clock.schedule_once(self.finalize, 0)
+            return
+        self.calendar = Calendar(
+            boneatt=self.boneatt,
+            cal_type=self.cal_type,
+            key=self.key,
+            stat=self.stat,
+            branches_wide=self.branches_wide,
+            col_width=self.col_width,
+            font_name=self.font_name,
+            font_size=self.font_size,
+            spacing_x=self.spacing_x,
+            spacing_y=self.spacing_y,
+            tick_height=self.tick_height,
+            ticks_offscreen=self.ticks_offscreen,
+            branches_offscreen=self.branches_offscreen,
+            charsheet=self.charsheet)
+        self.calendar.bind(timeline=self.setter('timeline'))
+        self.add_widget(self.calendar)
+        self.bind(pos=self.calendar.setter('pos'))
+
     def on_touch_down(self, touch):
         if self.collide_point(touch.x, touch.y):
             self._touch = touch
             touch.grab(self)
-            touch.ud['calendar'] = self
+            touch.ud['calendar'] = self.calendar
             touch.ud['charsheet'] = self.charsheet
             return True
 
     def on_touch_move(self, touch):
         if self._touch is touch:
-            self.xmov -= touch.dx
-            self.ymov += touch.dy
-            self._trigger_timely_layout()
+            self.calendar.xmov -= touch.dx
+            self.calendar.ymov += touch.dy
+            self.calendar._trigger_timely_layout()
             return True
         else:
             touch.ungrab(self)
@@ -390,5 +442,5 @@ class Calendar(RelativeLayout):
         self._touch = None
         if _touch is not touch:
             return
-        self._trigger_timely_layout()
+        self.calendar._trigger_timely_layout()
         return True
