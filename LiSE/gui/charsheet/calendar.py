@@ -13,9 +13,10 @@ from kivy.properties import (
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.stencilview import StencilView
 from kivy.uix.layout import Layout
+from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.logger import Logger
-from kivy.graphics import Color, Rectangle, Line, Triangle, Callback
+from kivy.graphics import Callback, Color, Line, Triangle
 
 from LiSE.data import (
     THING_CAL,
@@ -27,7 +28,7 @@ from LiSE.data import (
 SCROLL_FACTOR = 4
 
 
-class Cell(Widget):
+class Cell(Label):
     """A box to represent an event on the calendar.
 
     It needs a branch, tick_from, tick_to, text, and a calendar to belong
@@ -35,7 +36,6 @@ class Cell(Widget):
 
     """
     bg_color = ListProperty()
-    text_color = ListProperty()
     text = StringProperty()
     active = BooleanProperty(False)
     bone = ObjectProperty()
@@ -43,30 +43,13 @@ class Cell(Widget):
     calendar = ObjectProperty()
     tick_from = NumericProperty()
     tick_to = NumericProperty(None, allownone=True)
+    label = ObjectProperty()
+    color_inst = ObjectProperty()
+    rect_inst = ObjectProperty()
 
     def __init__(self, **kwargs):
         kwargs['size_hint_y'] = None
         super(Cell, self).__init__(**kwargs)
-        Clock.schedule_once(self.finalize, 0)
-
-    def finalize(self, *args):
-        if not (self.calendar and self.canvas and
-                self.tick_from is not None):
-            Clock.schedule_once(self.finalize, 0)
-            return
-        self.bind(
-            bg_color=self.recanvas,
-            pos=self.recanvas,
-            size=self.recanvas)
-        self.recanvas()
-
-    def recanvas(self, *args):
-        self.canvas.clear()
-        with self.canvas:
-            Color(*self.bg_color)
-            Rectangle(
-                pos=self.pos,
-                size=self.size)
 
 
 class Timeline(Widget):
@@ -274,8 +257,6 @@ class Calendar(Layout):
             boneiter = self.skel[branch].iterbones()
             prev = next(boneiter)
             i = 0
-            colors = [[0, 1, 0, 1],
-                      [0, 0, 1, 1]]
             for bone in boneiter:
                 if bone in old_widgets:
                     self.branches_cells[branch][prev.tick] = old_widgets[bone]
@@ -288,7 +269,8 @@ class Calendar(Layout):
                         text=getattr(prev, self.boneatt),
                         tick_from=prev.tick,
                         tick_to=bone.tick,
-                        bg_color=colors[i % 2],
+                        bg_color=[1, 1, 1, 1],
+                        color=[0, 0, 0, 1],
                         bone=bone)
                     self.branches_cells[branch][prev.tick] = cell
                 if bone.tick > self.maxtick:
@@ -333,8 +315,10 @@ class Calendar(Layout):
                     final = cell
                     break
                 cell.height = (
-                    cell.tick_to - cell.tick_from) * self.tick_height
+                    cell.tick_to - cell.tick_from - 1) * self.tick_height
                 branch_col.add_widget(cell)
+                branch_col.add_widget(
+                    Widget(size_hint_y=None, height=self.tick_height))
             if final is not None:
                 # 100% arbitrary
                 final.height = 100
