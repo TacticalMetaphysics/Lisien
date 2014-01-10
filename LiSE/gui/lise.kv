@@ -25,6 +25,15 @@
     offscreen: (2, 2)
     tick_height: 2
     col_width: 100
+<Cell>:
+    valign: 'top'
+    text_size: self.size
+    canvas.before:
+        Color:
+            rgba: root.bg_color
+        Rectangle:
+            pos: root.pos
+            size: root.size
 <CharSheetAdder>:
     StackLayout:
         Label:
