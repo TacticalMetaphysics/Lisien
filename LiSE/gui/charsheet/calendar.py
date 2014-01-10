@@ -36,16 +36,12 @@ class Cell(Label):
 
     """
     bg_color = ListProperty()
-    text = StringProperty()
     active = BooleanProperty(False)
     bone = ObjectProperty()
     branch = NumericProperty()
     calendar = ObjectProperty()
     tick_from = NumericProperty()
     tick_to = NumericProperty(None, allownone=True)
-    label = ObjectProperty()
-    color_inst = ObjectProperty()
-    rect_inst = ObjectProperty()
 
     def __init__(self, **kwargs):
         kwargs['size_hint_y'] = None
@@ -53,31 +49,30 @@ class Cell(Label):
 
 
 class Timeline(Widget):
-    """A line drawn atop one of the columns of the calendar, representing
-    the present moment.
+    color = ListProperty()
+    col_width = NumericProperty()
 
-    """
-    calendar = ObjectProperty()
+    def __init__(self, **kwargs):
+        super(Timeline, self).__init__(**kwargs)
+        self.colorinst = Color(*self.color)
+        self.canvas.add(self.colorinst)
+        self.lineinst = Line(
+            points=[self.x, self.y, self.x+self.col_width, self.y])
+        self.canvas.add(self.lineinst)
+        self.triinst = Triangle(points=[
+            self.x, self.y+8, self.x+16, self.y, self.x, self.y-8])
+        self.canvas.add(self.triinst)
 
-    def finalize(self, *args):
-        if not self.canvas and self.calendar:
-            Clock.schedule_once(self.finalize, 0)
-            return
-        with self.canvas:
-            self.cb = Callback(self.upd_time)
-            Color(1, 0, 0, 1)
-            Line(points=[
-                self.x, self.y, self.x+self.calendar.col_width, self.y])
-            Triangle(points=[
-                self.x, self.y+8, self.x+16, self.y, self.x, self.y-8])
+        def recolor(*args):
+            self.colorinst.rgba = self.color
+        self.bind(color=recolor)
 
-    def upd_time(self, *args):
-        branch, tick = self.calendar.character.closet.time
-        self.x = ((branch - self.calendar.branch) * self.calendar.col_width
-                  + self.calendar.xmov + self.calendar.x)
-        self.y = (
-            self.calendar.ymov + self.calendar.top + self.calendar.y -
-            (tick - self.calendar.tick) * self.calendar.tick_height)
+        def repos(*args):
+            self.lineinst.points = [
+                self.x, self.y, self.x+self.col_width, self.y]
+            self.triinst.points = [
+                self.x, self.y+8, self.x+16, self.y, self.x, self.y-8]
+        self.bind(pos=repos, col_width=repos)
 
 
 class Calendar(Layout):
@@ -119,7 +114,10 @@ class Calendar(Layout):
     tick_height = NumericProperty()
     ticks_tall = NumericProperty(100)
     ticks_offscreen = NumericProperty(0)
-    timeline = ObjectProperty()
+    offscreen = ReferenceListProperty(branches_offscreen, ticks_offscreen)
+    timeline_x = NumericProperty()
+    timeline_y = NumericProperty()
+    timeline_pos = ReferenceListProperty(timeline_x, timeline_y)
     xmov = NumericProperty(0)
     ymov = NumericProperty(0)
 
@@ -147,7 +145,7 @@ class Calendar(Layout):
         self._trigger_retime = Clock.create_trigger(self.retime)
         self._trigger_timely_layout = Clock.create_trigger(
             self.timely_layout)
-        Clock.schedule_once(self.finalize, 0)
+        self.finalize()
 
     def finalize(self, *args):
         """Collect my referent--the object I am about--and my skel--the
@@ -199,48 +197,27 @@ class Calendar(Layout):
             Clock.schedule_once(self.finalize, 0)
             return
 
-        self.timeline = Timeline(calendar=self)
-
-        closet.register_time_listener(self.timeline.upd_time)
-        self.bind(
-            size=lambda i, v: self.timeline.upd_time(
-                closet.branch, closet.tick),
-            pos=lambda i, v: self.timeline.upd_time(
-                closet.branch, closet.tick))
-        self.timeline.upd_time(
-            closet.branch, closet.tick)
-
+        self.character.closet.register_time_listener(
+            self.upd_timeline)
+        self.upd_timeline(*self.character.closet.time)
         self.skel.register_set_listener(self._trigger_remake)
         self.skel.register_del_listener(self._trigger_remake)
         self.bind(size=lambda i, v: self._trigger_timely_layout(),
                   pos=lambda i, v: self._trigger_timely_layout())
         self._trigger_remake()
 
+    def upd_timeline(self, branch, tick):
+        self.timeline_x = (
+            (branch - self.branch) * self.col_width
+            + self.xmov)
+        self.timeline_y = (
+            self.ymov + self.height - (
+                tick - self.tick) * self.tick_height)
+
     def remake(self, *args):
         """Get rid of my current widgets and make new ones."""
         self.refresh()
         self.do_layout()
-
-    def branch_x(self, b):
-        """Where does the column representing that branch have its left
-        edge?"""
-        b -= self.branch
-        return self.x + b * self.col_width - self.xmov
-
-    def tick_y(self, t):
-        """Where upon me does the given tick appear?
-
-        That's where you'd draw the timeline for it."""
-        if t is None:
-            return
-        else:
-            # ticks from the top
-            tft = t - self.tick
-            if tft < 1:
-                return
-            # pixels from the top
-            pft = tft * self.tick_height
-            return self.height - pft + self.ymov
 
     def refresh(self):
         """Generate cells that are missing. Remove cells that cannot be
@@ -269,8 +246,6 @@ class Calendar(Layout):
                         text=getattr(prev, self.boneatt),
                         tick_from=prev.tick,
                         tick_to=bone.tick,
-                        bg_color=[1, 1, 1, 1],
-                        color=[0, 0, 0, 1],
                         bone=bone)
                     self.branches_cells[branch][prev.tick] = cell
                 if bone.tick > self.maxtick:
@@ -374,35 +349,8 @@ class CalendarView(StencilView):
         branches_offscreen, ticks_offscreen)
     calendar = ObjectProperty()
     charsheet = ObjectProperty()
-    timeline = ObjectProperty()
+    tl_color = ListProperty()
     _touch = ObjectProperty(None, allownone=True)
-
-    def __init__(self, **kwargs):
-        super(CalendarView, self).__init__(**kwargs)
-        Clock.schedule_once(self.finalize, 0)
-
-    def finalize(self, *args):
-        if not self.charsheet:
-            Clock.schedule_once(self.finalize, 0)
-            return
-        self.calendar = Calendar(
-            boneatt=self.boneatt,
-            cal_type=self.cal_type,
-            key=self.key,
-            stat=self.stat,
-            branches_wide=self.branches_wide,
-            col_width=self.col_width,
-            font_name=self.font_name,
-            font_size=self.font_size,
-            spacing_x=self.spacing_x,
-            spacing_y=self.spacing_y,
-            tick_height=self.tick_height,
-            ticks_offscreen=self.ticks_offscreen,
-            branches_offscreen=self.branches_offscreen,
-            charsheet=self.charsheet)
-        self.calendar.bind(timeline=self.setter('timeline'))
-        self.add_widget(self.calendar)
-        self.bind(pos=self.calendar.setter('pos'))
 
     def on_touch_down(self, touch):
         if self.collide_point(touch.x, touch.y):

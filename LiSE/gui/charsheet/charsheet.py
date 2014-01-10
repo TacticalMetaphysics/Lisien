@@ -534,6 +534,8 @@ but they never include branch or tick--CharSheet will only display
 things appropriate to the present, whenever that may be.
 
         """
+        self.unbind(character=self.repop)
+
         def make_calendar(i, bone, edbut):
             typ = bone.type
             (tabn, keyns) = {

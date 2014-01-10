@@ -28,9 +28,33 @@
     offscreen: (2, 2)
     tick_height: 2
     col_width: 100
+    tl_color: [1, 0, 0, 1]
+    Calendar:
+        id: cal
+        font_name: root.font_name
+        font_size: root.font_size
+        branches_wide: root.branches_wide
+        spacing: root.spacing
+        offscreen: root.offscreen
+        tick_height: root.tick_height
+        col_width: root.col_width
+        boneatt: root.boneatt
+        cal_type: root.cal_type
+        key: root.key
+        stat: root.stat
+        charsheet: root.charsheet
+        character: self.charsheet.character
+        pos: root.pos
+    Timeline:
+        x: cal.timeline_x + cal.x
+        y: cal.timeline_y + cal.y
+        col_width: root.col_width
+        color: root.tl_color
 <Cell>:
     valign: 'top'
     text_size: self.size
+    color: solarized['base00']
+    bg_color: solarized['base2']
     canvas.before:
         Color:
             rgba: root.bg_color
