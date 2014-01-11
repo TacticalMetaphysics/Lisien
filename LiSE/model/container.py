@@ -23,3 +23,12 @@ class Container(object):
 
     def get_contents(self, branch=None, tick=None):
         return set(self.iter_contents(branch, tick))
+
+    def subjective_lookup(self, method, observer=None, xargs=[]):
+        if observer is None:
+            callabl = getattr(self.character, method)
+        else:
+            facade = self.character.get_facade(observer)
+            callabl = getattr(facade, method)
+        args = [self.name] + xargs
+        return callabl(*args)

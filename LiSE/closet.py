@@ -1,3 +1,4 @@
+# coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 """The database backend, with dictionaries of loaded objects.
@@ -10,9 +11,10 @@ SQL. That's in :class:`~LiSE.util.SaveableMetaclass`.
 
 """
 import os
-from os.path import abspath, sep
+from os.path import sep
 import re
 import sqlite3
+from collections import defaultdict, deque
 
 from gui.board import (
     Board,
@@ -21,6 +23,7 @@ from gui.board import (
 from gui.charsheet import CharSheet, CharSheetView
 from gui.menu import Menu
 from gui.img import Img
+from gui.gamepiece import GamePiece
 from model import (
     Character,
     Place,
@@ -29,22 +32,20 @@ from model import (
     Thing)
 from model.event import Implicator
 from util import (
+    passthru,
     TimestreamException,
     SaveableMetaclass,
     int2pytype,
     pytype2int,
     PlaceBone,
     schemata,
+    tabbone,
+    tabclas,
     saveables,
     saveable_classes,
     Skeleton)
 from kivy.atlas import Atlas
 from LiSE import __path__
-
-
-def noop(*args, **kwargs):
-    """Do nothing."""
-    pass
 
 
 ###
@@ -72,6 +73,25 @@ NEW_PLACE_RE = re.compile(
     "new_place\((.+)\)")
 CHARACTER_RE = re.compile(
     "character\((.+)\)")
+
+
+def iter_character_query_bones_named(name):
+    yield Thing.bonetypes["thing"]._null()._replace(
+        character=name)
+    yield Portal.bonetypes["portal"]._null()._replace(
+        character=name)
+    yield Place.bonetypes["place_stat"]._null()._replace(
+        character=name)
+    yield Character.bonetypes["character_stat"]._null()._replace(
+        character=name)
+    yield Portal.bonetypes["portal_loc"]._null()._replace(
+        character=name)
+    yield Portal.bonetypes["portal_stat"]._null()._replace(
+        character=name)
+    yield Thing.bonetypes["thing_loc"]._null()._replace(
+        character=name)
+    yield Thing.bonetypes["thing_stat"]._null()._replace(
+        character=name)
 
 
 class Closet(object):
@@ -120,9 +140,6 @@ before RumorMill will work. For that, run mkdb.sh.
         "color_d",
         "board_d",
         "effect_d",
-        "img_d",
-        "texture_d",
-        "textag_d",
         "menu_d",
         "menuitem_d",
         "style_d",
@@ -134,6 +151,10 @@ before RumorMill will work. For that, run mkdb.sh.
 
     """
 
+    @property
+    def time(self):
+        return (self.branch, self.tick)
+
     def __setattr__(self, attrn, val):
         if attrn == "branch" and hasattr(self, 'branch'):
             self.upd_branch(val)
@@ -144,7 +165,8 @@ before RumorMill will work. For that, run mkdb.sh.
         else:
             super(Closet, self).__setattr__(attrn, val)
 
-    def __init__(self, connector, lisepath, USE_KIVY=False, **kwargs):
+    def __init__(self, connector, gettext=passthru,
+                 USE_KIVY=False, **kwargs):
         """Initialize a Closet for the given connector and path.
 
         With USE_KIVY, I will use the kivybits module to load images.
@@ -152,79 +174,133 @@ before RumorMill will work. For that, run mkdb.sh.
         """
         self.connector = connector
         self.skeleton = Skeleton({"place": {}})
+        for tab in tabclas.iterkeys():
+            self.skeleton[tab] = {}
 
         self.c = self.connector.cursor()
-        self.lang_listeners = []
         self.branch_listeners = []
         self.tick_listeners = []
         self.time_listeners = []
-        if "language" in kwargs:
-            self.language = kwargs["language"]
-        else:
-            self.language = self.get_global("language")
 
         for glob in self.globs:
             setattr(self, glob, self.get_global(glob))
 
-        self.lisepath = lisepath
+        self.lisepath = __path__[-1]
+        self.sep = os.sep
+        self.entypo = self.sep.join(
+            [self.lisepath, 'gui', 'assets', 'Entypo.ttf'])
+        self.gettext = gettext
 
         for wd in self.working_dicts:
             setattr(self, wd, dict())
 
         if USE_KIVY:
-            from gui.kivybits import (
-                load_textures,
-                load_textures_tagged,
-                load_all_textures)
-            self.load_textures = lambda names: load_textures(
-                self.c, self.skeleton, self.texture_d,
-                self.textag_d, names)
-            self.load_all_textures = lambda: load_all_textures(
-                self.c, self.skeleton, self.texture_d, self.textag_d)
-            self.load_textures_tagged = lambda tags: load_textures_tagged(
-                self.c, self.skeleton, self.texture_d, self.textag_d,
-                tags)
+            from kivy.core.image import Image
+            self.img_d = {}
+            self.img_tag_d = defaultdict(set)
+            self.game_piece_d = defaultdict(list)
+
+            def load_imgs(names):
+                r = {}
+
+                def remember_img_bone(bone):
+                    r[bone.name] = Img(
+                        closet=self,
+                        name=bone.name,
+                        texture=Image(bone.path).texture)
+                self.select_and_set(
+                    (Img.bonetypes["img"]._null()._replace(name=n)
+                     for n in names), remember_img_bone)
+                self.select_and_set(
+                    Img.bonetypes["img_tag"]._null()._replace(name=n)
+                    for n in names)
+                self.img_d.update(r)
+                return r
+
+            def get_imgs(names):
+                r = {}
+
+                def iter_unhad():
+                    for name in names:
+                        if name in self.img_d:
+                            r[name] = self.img_d[name]
+                        else:
+                            yield Img.bonetypes["img"]._null()._replace(
+                                name=name)
+
+                def remember_img_bone(bone):
+                    r[bone.name] = Img(
+                        closet=self,
+                        name=bone.name,
+                        texture=Image(bone.path).texture)
+
+                self.select_and_set(iter_unhad(), remember_img_bone)
+                self.select_and_set(
+                    Img.bonetypes["img_tag"]._null()._replace(img=n)
+                    for n in names if n not in self.img_tag_d)
+                return r
+
+            def load_imgs_tagged(tags):
+                boned = set()
+
+                def remembone(bone):
+                    boned.add(bone.img)
+                self.select_and_set(
+                    (Img.bonetypes["img_tag"]._null()._replace(
+                        tag=tag) for tag in tags), remembone)
+                return get_imgs(boned)
+
+            def get_imgs_tagged(tags):
+                r = {}
+                unhad = set()
+                for tag in tags:
+                    if tag in self.img_tag_d:
+                        r[tag] = get_imgs(self.img_tag_d[tag])
+                    else:
+                        unhad.add(tag)
+                r.update(load_imgs_tagged(unhad))
+                return r
+
+            def load_game_pieces(names):
+                def iter_keybones():
+                    for name in names:
+                        yield GamePiece.bonetypes[
+                            u"graphic"]._null()._replace(name=name)
+                        yield GamePiece.bonetypes[
+                            u"graphic_img"]._null()._replace(graphic=name)
+                self.select_keybones(iter_keybones())
+                r = {}
+                for name in names:
+                    r[name] = GamePiece(closet=self, graphic_name=name)
+                self.game_piece_d.update(r)
+                return r
+
+            def get_game_pieces(names):
+                r = {}
+                unhad = set()
+                for name in names:
+                    if name in self.game_piece_d:
+                        r[name] = self.game_piece_d[name]
+                    else:
+                        unhad.add(name)
+                r.update(self.load_game_pieces(unhad))
+                return r
+
+            self.load_imgs = load_imgs
+            self.get_imgs = get_imgs
+            self.load_imgs_tagged = load_imgs_tagged
+            self.get_imgs_tagged = get_imgs_tagged
+            self.load_game_pieces = load_game_pieces
+            self.load_game_piece = lambda name: load_game_pieces([name])[name]
+            self.get_game_pieces = get_game_pieces
+            self.get_game_piece = lambda name: get_game_pieces([name])[name]
+
             self.USE_KIVY = True
 
         self.timestream = Timestream(self)
         self.time_travel_history = []
         self.game_speed = 1
         self.updating = False
-        placeholder = (noop, ITEM_ARG_RE)
-        self.menu_cbs = {
-            'play_speed':
-            (self.play_speed, ONE_ARG_RE),
-            'back_to_start':
-            (self.back_to_start, ''),
-            'noop': placeholder,
-            'make_generic_place':
-            (self.make_generic_place, ''),
-            'increment_branch':
-            (self.increment_branch, ONE_ARG_RE),
-            'time_travel_inc_tick':
-            (lambda mi, ticks:
-             self.time_travel_inc_tick(int(ticks)), ONE_ARG_RE),
-            'time_travel':
-            (self.time_travel_menu_item, TWO_ARG_RE),
-            'time_travel_inc_branch':
-            (lambda mi, branches: self.time_travel_inc_branch(int(branches)),
-             ONE_ARG_RE),
-            'go':
-            (self.go, ""),
-            'stop':
-            (self.stop, ""),
-            'start_new_map': placeholder,
-            'open_map': placeholder,
-            'save_map': placeholder,
-            'quit_map_editor': placeholder,
-            'editor_select': placeholder,
-            'editor_copy': placeholder,
-            'editor_paste': placeholder,
-            'editor_delete': placeholder,
-            'mi_connect_portal':
-            (self.mi_connect_portal, ""),
-            'mi_show_popup':
-            (self.mi_show_popup, ONE_ARG_RE)}
 
     def __del__(self):
         """Try to write changes to disk before dying.
@@ -235,54 +311,56 @@ before RumorMill will work. For that, run mkdb.sh.
         self.connector.close()
 
     def select_class_all(self, cls):
-        """Return a Skeleton with all records for all tables defined in the
-        class."""
-        td = {}
-        for tabn in cls.tablenames:
-            bonetype = cls.bonetypes[tabn]
-            bone = bonetype._null()
-            td[tabn] = [bone]
-        r = cls._select_skeleton(self.c, td)
-        for bone in r.iterbones():
-            self.upbone(bone)
-        return r
+        self.select_and_set(bonetype._null() for bonetype in
+                            cls.bonetypes.itervalues())
+
+    def insert_or_replace_bones_single_typ(self, typ, bones):
+        qrystr = "INSERT OR REPLACE INTO {} ({}) VALUES ({});".format(
+            typ.__name__, ", ".join(typ._fields), ", ".join(
+                ["?"] * len(typ._fields)))
+        self.c.executemany(qrystr, tuple(bones))
+
+    def select_keybone(self, kb):
+        qrystr = "SELECT {} FROM {} WHERE {};".format(
+            ", ".join(kb._fields),
+            kb.__class__.__name__,
+            " AND ".join("{}=?".format(field) for field in kb._fields
+                         if getattr(kb, field) is not None))
+        if " WHERE ;" in qrystr:
+            # keybone is null
+            self.c.execute(qrystr.strip(" WHERE ;"))
+            for bone in self.c:
+                yield type(kb)(*bone)
+            return
+        self.c.execute(qrystr, [field for field in kb if field])
+        for bone in self.c:
+            yield type(kb)(*bone)
 
     def select_keybones(self, kbs):
-        """Take an iterable of "keybones," being regular bones whose key
-        fields are to be matched with other bones loaded from
-        disc. Return a skeleton of bones that match, keyed the same
-        way the database is.
-
-        """
-        clasname2clas = {}
-        clas_qd = {}
         for kb in kbs:
-            if kb.cls.__name__ not in clas_qd:
-                clas_qd[kb.cls.__name__] = {}
-                clasname2clas[kb.cls.__name__] = kb.cls
-            if kb.__class__.__name__ not in clas_qd[kb.cls.__name__]:
-                clas_qd[kb.cls.__name__][kb.__class__.__name__] = set()
-            clas_qd[kb.cls.__name__][kb.__class__.__name__].add(kb)
-        r = Skeleton()
-        for clasn in clas_qd:
-            clas = clasname2clas[clasn]
-            r.update(clas._select_skeleton(self.c, clas_qd[clasn]))
-        for bone in r.iterbones():
-            self.upbone(bone)
-        return r
+            for bone in self.select_keybone(kb):
+                yield bone
 
-    def update_keybones(self, kbs):
-        """Update my skeleton with database records matching at least one of
-        the keybones."""
-        self.skeleton.update(self.select_keybones(kbs))
+    def delete_keybones_single_typ(self, typ, kbs):
+        qrystr = "DELETE FROM {} WHERE {};".format(
+            typ.__name__, " AND ".join(
+                ["{}=?".format(field) for field in
+                 typ._fields]))
+        self.c.execute(qrystr, tuple(kbs))
+        for row in self.c:
+            yield typ(*row)
 
-    def update_keybone(self, kb):
-        """Query the database for records matching the given keybone. Make
-        bones for them, and add those to the appropriate place in my
-        skeleton, overwriting anything already there.
+    def delete_keybones(self, kbs):
+        clas_qd = defaultdict(set)
+        for kb in kbs:
+            clas_qd[type(kb)].add(kb)
+        for (clas, kbset) in clas_qd.iteritems():
+            self.delete_keybones_single_typ(clas, kbset)
 
-        """
-        self.update_keybones([kb])
+    def select_and_set(self, kbs, also_bone=lambda b: None):
+        for bone in self.select_keybones(kbs):
+            self.set_bone(bone)
+            also_bone(bone)
 
     def upd_branch(self, b):
         """Set the active branch, alerting any branch_listeners"""
@@ -303,12 +381,6 @@ before RumorMill will work. For that, run mkdb.sh.
         for listener in self.time_listeners:
             listener(b, t)
 
-    def upd_lang(self, l):
-        """Set the current language, alerting any lang_listeners"""
-        for listener in self.lang_listeners:
-            listener(self, l)
-        super(Closet, self).__setattr__('language', l)
-
     def get_global(self, key):
         self.c.execute("SELECT type, value FROM globals WHERE key=?;", (key,))
         (typ_i, val_s) = self.c.fetchone()
@@ -324,21 +396,12 @@ before RumorMill will work. For that, run mkdb.sh.
         """Get the string of the given name in the language set at startup."""
         if strname is None:
             return ""
-        elif strname[0] == "@":
-            if strname[1:] == "branch":
-                return str(self.branch)
-            elif strname[1:] == "tick":
-                return str(self.tick)
-            else:
-                if strname[1:] not in self.skeleton[u"strings"]:
-                    self.update_keybone(
-                        self.bonetypes["strings"]._null()._replace(
-                            stringname=strname[1:],
-                            language=self.language))
-                return self.skeleton[u"strings"][
-                    strname[1:]][self.language].string
+        elif strname == "@branch":
+            return unicode(self.branch)
+        elif strname == "@tick":
+            return unicode(self.tick)
         else:
-            return strname
+            return self.gettext(strname)
 
     def save_game(self):
         """Save all pending changes to disc."""
@@ -348,27 +411,29 @@ before RumorMill will work. For that, run mkdb.sh.
         # find out what's changed since last checkpoint
         to_save = self.skeleton - self.old_skeleton
         to_delete = self.old_skeleton - self.skeleton
-        # save each class in turn
-        for clas in saveable_classes:
-            assert(len(clas.tablenames) > 0)
-            for tabname in clas.tablenames:
-                if tabname in to_delete:
-                    clas._delete_keybones_table(
-                        self.c, to_delete[tabname].iterbones(), tabname)
-                if tabname in to_save:
-                    clas._delete_keybones_table(
-                        self.c, to_save[tabname].iterbones(), tabname)
-                    try:
-                        clas._insert_bones_table(
-                            self.c, to_save[tabname].iterbones(), tabname)
-                    except ValueError:
-                        pass
-        # remember how things are now
+        # save saveables
+        for (tab, v) in to_save.iteritems():
+            if tab == 'place':
+                continue
+            self.insert_or_replace_bones_single_typ(
+                tabbone[tab], v.iterbones())
+        # delete deletables
+        for (tab, v) in to_delete.iteritems():
+            if tab == 'place':
+                continue
+            self.delete_keybones(v.iterbones())
+        # remember how things are now, for reference next time
         self.checkpoint()
+
+    def load_img_metadata(self):
+        self.select_class_all(Img)
+
+    def load_gfx_metadata(self):
+        self.select_class_all(GamePiece)
 
     def load_strings(self):
         """Load all strings available."""
-        self.update_keybone(self.bonetypes["strings"]._null())
+        self.select_and_set(self.bonetypes["strings"]._null())
 
     def make_generic_place(self, character):
         """Make a place hosted by the given character, and give it a boring
@@ -410,65 +475,36 @@ before RumorMill will work. For that, run mkdb.sh.
     def load_charsheet(self, character):
         """Return a CharSheetView displaying the CharSheet for the character
         specified, perhaps loading it if necessary."""
+        def gen_keybones():
+            for bonetype in CharSheet.bonetypes.itervalues():
+                yield bonetype._null()._replace(character=character)
         # if the character is not loaded yet, make it so
         character = unicode(self.get_character(character))
-        keybones = [
-            CharSheet.bonetypes["charsheet_item"]._null()._replace(
-                character=character)]
-        self.update_keybones(keybones)
+        self.select_and_set(gen_keybones())
         return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
-        """Load all the named characters and return them in a dict."""
-        char_stat_bones = [
-            Character.bonetypes["character_stat"]._null()._replace(
-                character=name) for name in names]
-        portal_bones = [
-            Portal.bonetypes["portal"]._null()._replace(character=name)
-            for name in names]
-        portal_loc_bones = [
-            Portal.bonetypes["portal_loc"]._null()._replace(character=name)
-            for name in names]
-        portal_stat_bones = [
-            Portal.bonetypes["portal_stat"]._null()._replace(character=name)
-            for name in names]
-        thing_bones = [
-            Thing.bonetypes["thing"]._null()._replace(character=name)
-            for name in names]
-        thing_loc_bones = [
-            Thing.bonetypes["thing_loc"]._null()._replace(character=name)
-            for name in names]
-        thing_stat_bones = [
-            Thing.bonetypes["thing_stat"]._null()._replace(character=name)
-            for name in names]
-        place_stat_bones = [
-            Place.bonetypes["place_stat"]._null()._replace(character=name)
-            for name in names]
-        self.update_keybones(
-            char_stat_bones + portal_bones + portal_loc_bones +
-            portal_stat_bones + thing_bones + thing_loc_bones +
-            thing_stat_bones + place_stat_bones)
-        r = {}
-        for name in names:
-            char = Character(self, name)
-            char.update()
-            r[name] = char
-            self.character_d[name] = char
-        return r
+        def iterkbs():
+            for name in names:
+                for bone in iter_character_query_bones_named(name):
+                    yield(bone)
+        self.select_and_set(iterkbs())
 
     def get_characters(self, names):
-        """Return the named characters in a dict. Load them as needed."""
         r = {}
-        unhad = set()
+
+        def iter_unhad():
+            for name in names:
+                if name not in self.character_d:
+                    for bone in iter_character_query_bones_named(name):
+                        yield bone
+
+        self.select_and_set(iter_unhad())
         for name in names:
-            if isinstance(name, Character):
-                r[str(name)] = name
-            elif name in self.character_d:
-                r[name] = self.character_d[name]
-            else:
-                unhad.add(name)
-        if len(unhad) > 0:
-            r.update(self.load_characters(names))
+            r[name] = Character(self, name)  # you can have a
+                                             # character with no data
+                                             # in it, that's fine
+        self.character_d.update(r)
         return r
 
     def get_character(self, name):
@@ -518,13 +554,12 @@ before RumorMill will work. For that, run mkdb.sh.
             Board.bonetypes["board"]._null()._replace(
                 observer=obsrvr, observed=obsrvd, host=hst),
             Spot.bonetypes["spot"]._null()._replace(
-                host=host),
+                host=hst),
             Spot.bonetypes["spot_coords"]._null()._replace(
-                host=host),
+                host=hst),
             Pawn.bonetypes["pawn"]._null()._replace(
-                host=host)]
-        self.update_keybones(keybones)
-        return self.get_board(observer, observed, host)
+                host=hst)]
+        self.select_and_set(keybones)
 
     def get_board(self, observer, observed, host):
         """Return a graphical board widget displaying the contents of the host
@@ -550,23 +585,22 @@ before RumorMill will work. For that, run mkdb.sh.
         """Get a thing from a character"""
         return self.get_character(char).get_thing(name)
 
-    def get_textures(self, imgnames):
-        """Return a dictionary full of textures by the given names, loading
+    def get_imgs(self, imgnames):
+        """Return a dictionary full of images by the given names, loading
         them as needed."""
         r = {}
         unloaded = set()
         for imgn in imgnames:
-            if imgn in self.texture_d:
-                r[imgn] = self.texture_d[imgn]
+            if imgn in self.img_d:
+                r[imgn] = self.img_d[imgn]
             else:
                 unloaded.add(imgn)
         if len(unloaded) > 0:
-            r.update(self.load_textures(unloaded))
+            r.update(self.load_imgs(unloaded))
         return r
 
-    def get_texture(self, imgn):
-        """Return the texture by the given name"""
-        return self.get_textures([imgn])[imgn]
+    def get_img(self, imgn):
+        return self.get_imgs([imgn])[imgn]
 
     def load_menus(self, names):
         """Return a dictionary full of menus by the given names, loading them
@@ -588,8 +622,9 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def load_timestream(self):
         """Load and return the timestream"""
-        self.skeleton.update(self.select_class_all(Timestream))
+        self.select_class_all(Timestream)
         self.timestream = Timestream(self)
+        return self.timestream
 
     def time_travel_menu_item(self, mi, branch, tick):
         """Tiny wrapper for ``time_travel``"""
@@ -742,38 +777,89 @@ before RumorMill will work. For that, run mkdb.sh.
     def register_text_listener(self, stringn, listener):
         """Notify the listener when the string called ``stringn`` changes its
         content."""
-        if stringn == "@branch":
+        if stringn == "@branch" and listener not in self.branch_listeners:
             self.branch_listeners.append(listener)
-        elif stringn == "@tick":
+        elif stringn == "@tick" and listener not in self.tick_listeners:
             self.tick_listeners.append(listener)
-        if stringn[0] == "@" and stringn[1:] in self.skeleton["strings"]:
-            self.skeleton["strings"][stringn[1:]].register_set_listener(
-                listener)
+
+    def unregister_text_listener(self, stringn, listener):
+        try:
+            if stringn == "@branch":
+                return self.unregister_branch_listener(listener)
+            elif stringn == "@tick":
+                return self.unregister_tick_listener(listener)
+            else:
+                self.skeleton["strings"][
+                    stringn[1:]].set_listeners.remove(listener)
+        except (KeyError, ValueError):
+            raise ValueError("Listener isn't registered")
 
     def register_time_listener(self, listener):
         """Listener will be called when ``branch`` or ``tick`` changes"""
-        self.time_listeners.append(listener)
+        if listener not in self.time_listeners:
+            self.time_listeners.append(listener)
+
+    def unregister_time_listener(self, listener):
+        try:
+            self.time_listeners.remove(listener)
+        except ValueError:
+            raise ValueError("Listener isn't registered")
 
     def register_branch_listener(self, listener):
         """Listener will be called when ``branch`` changes"""
-        self.branch_listeners.append(listener)
+        if listener not in self.branch_listeners:
+            self.branch_listeners.append(listener)
+
+    def unregister_branch_listener(self, listener):
+        try:
+            self.branch_listeners.remove(listener)
+        except ValueError:
+            raise ValueError("Listener isn't registered")
 
     def register_tick_listener(self, listener):
         """Listener will be called when ``tick`` changes"""
-        self.tick_listeners.append(listener)
+        if listener not in self.tick_listeners:
+            self.tick_listeners.append(listener)
 
-    def load_img_metadata(self):
-        """Load all the records to do with img paths and tags and so forth."""
-        self.skeleton.update(self.select_class_all(Img))
+    def unregister_tick_listener(self, listener):
+        try:
+            self.tick_listeners.remove(listener)
+        except ValueError:
+            raise ValueError("Listener isn't registered")
 
-    def query_place(self):
+    def register_img_listener(self, imgn, listener):
+        try:
+            skel = self.skeleton[u"img"][imgn]
+        except KeyError:
+            raise KeyError("Image unknown: {}".format(imgn))
+        if listener not in skel.set_listeners:
+            skel.set_listeners.append(listener)
+
+    def unregister_img_listener(self, imgn, listener):
+        try:
+            skel = self.skeleton[u"img"][imgn]
+        except KeyError:
+            raise KeyError("Image unknown: {}".format(imgn))
+        try:
+            skel.set_listeners.remove(listener)
+        except ValueError:
+            raise ValueError("Listener isn't registered")
+
+    def register_hi_branch_listener(self, listener):
+        self.timeline.hi_branch_listeners.append(listener)
+
+    def register_hi_tick_listener(self, listener):
+        self.timeline.hi_tick_listeners.append(listener)
+
+    def query_place(self, update=True):
         """Query the 'place' view, resulting in an up-to-date record of what
         places exist in the gameworld as it exists in the
         database.
 
         """
         self.c.execute("SELECT host, place, branch, tick FROM place;")
-        if u"place" not in self.skeleton:
+        if not update or u"place" not in self.skeleton:
+            # empty it out if it exists, create it if it doesn't
             self.skeleton[u"place"] = {}
         for (host, place, branch, tick) in self.c:
             self.set_bone(PlaceBone(
@@ -781,6 +867,23 @@ before RumorMill will work. For that, run mkdb.sh.
                 place=place,
                 branch=branch,
                 tick=tick))
+
+    def have_place_bone(self, host, place, branch=None, tick=None):
+        if branch is None:
+            branch = self.branch
+        if tick is None:
+            tick = self.tick
+        try:
+            return self.skeleton[u"place"][host][place][
+                branch].value_during(tick) is not None
+        except (KeyError, IndexError):
+            return False
+
+    def iter_graphic_imgs(self, graphicn):
+        if graphicn not in self.skeleton[u"graphic_img"]:
+            return
+        for bone in self.skeleton[u"graphic_img"][graphicn].iterbones():
+            yield self.get_img(bone.img)
 
     def set_bone(self, bone):
         """Take a bone of arbitrary type and put it in the right place in the
@@ -798,50 +901,77 @@ before RumorMill will work. For that, run mkdb.sh.
                 skel = skel[key]
             return skel
 
-        def have_place_bone(host, place, branch, tick):
-            try:
-                return self.skeleton[u"place"][host][place][
-                    branch].value_during(tick) is not None
-            except (KeyError, IndexError):
-                return False
-
         def set_place_maybe(host, place, branch, tick):
-            if not have_place_bone(host, place, branch, tick):
+            if not self.have_place_bone(host, place, branch, tick):
                 self.set_bone(PlaceBone(
                     host=host, place=place, branch=branch, tick=tick))
 
+        def have_charsheet_type_bone(character, idx, type):
+            try:
+                return self.skeleton[u"character_sheet_item_type"][
+                    character][idx] is not None
+            except (KeyError, IndexError):
+                return False
+
+        def set_cstype_maybe(character, idx, type):
+            if not have_charsheet_type_bone:
+                self.set_bone(CharSheet.bonetype(
+                    character=character,
+                    idx=idx,
+                    type=type))
+
+        def upd_time(branch, tick):
+            self.timestream.upbranch(branch)
+            self.timestream.uptick(tick)
+
         if isinstance(bone, PlaceBone):
-            skel = init_keys(
-                self.skeleton[u"place"],
-                [bone.host, bone.place, bone.branch])
-            skel[bone.tick] = bone
+            init_keys(
+                self.skeleton,
+                [u"place", bone.host, bone.place, bone.branch])
+            self.skeleton[u"place"][bone.host][bone.place][
+                bone.branch][bone.tick] = bone
             return
 
         # Some bones implicitly declare a new place
         if isinstance(bone, Thing.bonetypes[u"thing_loc"]):
             core = self.skeleton[u"thing"][bone.character][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
+            upd_time(bone.branch, bone.tick)
         elif isinstance(bone, Thing.bonetypes[u"thing_loc_facade"]):
             core = self.skeleton[u"thing"][bone.observed][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
+            upd_time(bone.branch, bone.tick)
         elif isinstance(bone, Portal.bonetypes[u"portal_loc"]):
             core = self.skeleton[u"portal"][bone.character][bone.name]
+            upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif isinstance(bone, Portal.bonetypes[u"portal_stat_facade"]):
             core = self.skeleton[u"portal"][bone.observed][bone.name]
+            upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif isinstance(bone, Place.bonetypes[u"place_stat"]):
             set_place_maybe(bone.host, bone.name, bone.branch, bone.tick)
+            upd_time(bone.branch, bone.tick)
         elif isinstance(bone, Spot.bonetypes[u"spot"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
+            upd_time(bone.branch, bone.tick)
         elif isinstance(bone, Spot.bonetypes[u"spot_coords"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
+            upd_time(bone.branch, bone.tick)
+        elif type(bone) is CharSheet.bonetype:
+            pass
+        elif type(bone) in CharSheet.bonetypes.values():
+            set_cstype_maybe(bone.character, bone.idx, bone.type)
+        elif isinstance(bone, Img.bonetypes["img_tag"]):
+            if bone.tag not in self.img_tag_d:
+                self.img_tag_d[bone.tag] = set()
+            self.img_tag_d[bone.tag].add(bone.img)
 
         keynames = bone.cls.keynames[bone._name]
-        keys = [getattr(bone, keyn) for keyn in keynames[:-1]]
-        skel = init_keys(self.skeleton[bone._name], keys)
+        keys = [bone._name] + [getattr(bone, keyn) for keyn in keynames[:-1]]
+        skel = init_keys(self.skeleton, keys)
         final_key = getattr(bone, keynames[-1])
         skel[final_key] = bone
 
@@ -849,7 +979,20 @@ before RumorMill will work. For that, run mkdb.sh.
 def defaults(c):
     from LiSE.data import whole_imgrows
     c.executemany(
-        "INSERT INTO img (name, path) VALUES (?, ?);", whole_imgrows)
+        "INSERT INTO img (name, path, stacking_height) "
+        "VALUES (?, ?, ?);",
+        whole_imgrows)
+    from LiSE.data import graphics
+    for (name, d) in graphics.iteritems():
+        c.execute(
+            "INSERT INTO graphic (name, offset_x, offset_y) "
+            "VALUES (?, ?, ?);",
+            (name, d.get('offset_x', 0), d.get('offset_y', 0)))
+        for i in xrange(0, len(d['imgs'])):
+            c.execute(
+                "INSERT INTO graphic_img (graphic, layer, img) "
+                "VALUES (?, ?, ?);",
+                (name, i, d['imgs'][i]))
     from LiSE.data import globs
     c.executemany(
         "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
@@ -864,23 +1007,6 @@ def defaults(c):
                 ", ".join(["?"] * len(names))))
         qrytup = (height,) + names
         c.execute(qrystr, qrytup)
-    from LiSE.data import offxs
-    for (offx, names) in offxs:
-        qrystr = (
-            "UPDATE img SET off_x=? WHERE name IN ({});".format(
-                ", ".join(["?"] * len(names))))
-        qrytup = (offx,) + names
-        c.execute(qrystr, qrytup)
-    from LiSE.data import offys
-    for (offy, names) in offys:
-        qrystr = (
-            "UPDATE img SET off_y=? WHERE name IN ({});".format(
-                ", ".join(["?"] * len(names))))
-        qrytup = (offy,) + names
-        c.execute(qrystr, qrytup)
-    c.execute("UPDATE img SET off_x=4, off_y=8 "
-              "WHERE name IN (SELECT img FROM img_tag WHERE tag=?)",
-              ('pawn',))
     from LiSE.data import boards
     for (obsrvr, obsrvd, hst) in boards:
         c.execute(
@@ -941,10 +1067,6 @@ def defaults(c):
                     "VALUES (?, ?, ?, ?);",
                     (observed, thing, i, layer))
                 i += 1
-    from LiSE.data import strings
-    c.executemany(
-        "INSERT INTO strings (stringname, string) VALUES (?, ?);",
-        strings)
 
 
 def mkdb(DB_NAME, lisepath):
@@ -963,7 +1085,6 @@ def mkdb(DB_NAME, lisepath):
             curs.execute(img_qrystr, (
                 imgn, "{}/{}".format(atlaspath, tilen)))
             for tag in tags:
-                print (imgn, tag)
                 curs.execute(tag_qrystr, (imgn, tag))
 
     def ins_atlas_dir(curs, dirname, qualify=False, tags=[]):
@@ -1062,7 +1183,7 @@ def mkdb(DB_NAME, lisepath):
     return conn
 
 
-def load_closet(dbfn, lisepath, lang="eng", kivy=False):
+def load_closet(dbfn, gettext=None, kivy=False):
     """Construct a ``Closet`` connected to the given database file. Use
     the LiSE library in the path given.
 
@@ -1074,7 +1195,11 @@ def load_closet(dbfn, lisepath, lang="eng", kivy=False):
 
     """
     conn = sqlite3.connect(dbfn)
-    r = Closet(connector=conn, lisepath=lisepath, lang=lang, USE_KIVY=kivy)
-    r.load_strings()
+    kwargs = {
+        "connector": conn,
+        "USE_KIVY": kivy}
+    if gettext is not None:
+        kwargs["gettext"] = gettext
+    r = Closet(**kwargs)
     r.load_timestream()
     return r

@@ -1,3 +1,5 @@
+last commit wherein dragging spots worked: c07753928f55fbba603abcd6ebc84feaaaaa1b2d
+
 * database
 ** DONE change loaders so they can handle the case where you try to load something that doesn't exist
 ** schema changes
@@ -26,6 +28,15 @@
     Doubletap an event to bring up a detail view. Includes all the
     participants, the causes, event, and effects. You can't reassign
     those *here* but may click through to the event builder.
+*** Pick a widget to add to the sheet
+    This uses a pop-in menu that covers the middle of the screen but
+    leaves the charsheet area visible.
+
+    It's triggered by a button on the right side of the character
+    sheet, additional to the edit buttons there now. [2013-12-27 Fri 06:29]
+*** Move widgets around within the sheet
+    Being able to simply drag them would be great! Perhaps use the
+    edit button as a handle?
 ** build events
 *** How to get here?
     You can click through from an event on the calendar, or there's a

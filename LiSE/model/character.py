@@ -26,6 +26,30 @@ def skelget(tl, skel, branch, tick):
     return skel[0].value_during(tick)
 
 
+def skel_filter_iter(skel, keys=[]):
+    if len(keys) == 0:
+        for v in skel.itervalues():
+            yield v
+    else:
+        for k in keys:
+            yield skel[k]
+
+
+def iter_skel_keys(key_skel, branches=[], ticks=[]):
+    accounted = set()
+    for key in key_skel:
+        if key in accounted:
+            break
+            for branch_skel in skel_filter_iter(key_skel[key], branches):
+                if key in accounted:
+                    break
+                    for tick_skel in skel_filter_iter(branch_skel, ticks):
+                        if key in accounted:
+                            break
+                            accounted.add(key)
+                            yield key
+
+
 class Character(object):
     __metaclass__ = SaveableMetaclass
     """A collection of :class:`Thing`, :class:`Place`, :class:`Portal`,
@@ -158,32 +182,38 @@ class Character(object):
 
     def update(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
-        for placebone in self.iter_place_bones(None, branch, tick):
+        for placebone in self.iter_place_bones(
+                None, branch, tick):
             if (
                     "name" not in self.graph.vs.attributes() or
                     placebone.place not in self.graph.vs["name"]):
-                print("Creating place {} in a graph".format(placebone.place))
                 self.make_place(placebone.place)
         for bone in self.iter_hosted_portal_loc_bones(branch, tick):
-            try:
-                oi = self.graph.vs["name"].index(bone.origin)
-            except ValueError:
-                oi = len(self.graph.vs)
-            try:
-                di = self.graph.vs["name"].index(bone.destination)
-            except ValueError:
-                di = len(self.graph.vs)
             for placen in (bone.origin, bone.destination):
                 if placen not in self.graph.vs["name"]:
                     self.make_place(placen)
+            char = self.closet.get_character(bone.character)
             try:
-                self.graph.get_eid(oi, di)
-            except (ValueError, InternalError):
-                print("adding edge of {}".format(bone.name))
-                i = len(self.graph.es)
+                origv = self.graph.vs.find(name=bone.origin)
+            except ValueError:
+                destv = self.make_place(bone.origin).v
+            try:
+                destv = self.graph.vs.find(name=bone.destination)
+            except ValueError:
+                destv = self.make_place(bone.destination).v
+            try:
+                eid = self.graph.get_eid(origv.index, destv.index)
+                e = self.graph.es[eid]
+                e["portals"][bone.character] = Portal(char, bone.name)
+            except (KeyError, ValueError, InternalError):
+                # the portal goes in my graph, but it doesn't get
+                # constructed in me--it's merely hosted here. get its
+                # real character.
+                char = self.closet.get_character(bone.character)
+                port = Portal(char, bone.name)
                 self.graph.add_edge(
-                    oi, di, name=bone.name)
-                self.graph.es[i]["portal"] = Portal(self, bone.name)
+                    origv.index, destv.index,
+                    name=bone.name, portals={bone.character: port})
         for v in self.graph.vs:
             try:
                 self.get_place_bone(v["name"], branch, tick)
@@ -191,8 +221,9 @@ class Character(object):
                 self.graph.delete_vertices(v)
         for e in self.graph.es:
             try:
-                self.get_portal_loc_bone(e["name"], branch, tick)
-            except (KeyError, KnowledgeException):
+                for portal in e["portals"].itervalues():
+                    portal.get_loc_bone(None, branch, tick)
+            except (KeyError, ValueError, KnowledgeException):
                 self.graph.delete_edges(e)
 
     def get_facade(self, observer):
@@ -203,7 +234,7 @@ class Character(object):
                 observer, observed=self)
         return self.facade_d[unicode(observer)]
 
-    def sanetime(self, branch, tick):
+    def sanetime(self, branch=None, tick=None):
         """If branch or tick are None, replace them with the current value
         from the closet.
 
@@ -256,6 +287,55 @@ class Character(object):
         """Return a bone describing a thing's location at some particular
         time."""
         return self.closet.skeleton[u"thing"][unicode(self)][name]
+
+    def get_thing_stat_skel(self, name, stat, branch=None):
+        r = self.closet.skeleton[u"thing_stat"][unicode(self)][name][stat]
+        if branch:
+            return r[branch]
+        return r
+
+    def iter_thing_stat_bones(self, name, stats=[], branches=[], ticks=[]):
+        skel = self.closet.skeleton[u"thing_stat"][unicode(self)][name]
+        if stats:
+            outermost = iter(stats)
+        else:
+            outermost = skel.iterkeys()
+        for stat in outermost:
+            if branches:
+                def outer(sk):
+                    for branch in branches:
+                        yield sk[branch]
+            else:
+                def outer(sk):
+                    for branch in sk:
+                        yield sk[branch]
+            if ticks:
+                def inner(sk):
+                    for tick in ticks:
+                        yield sk.value_during(tick)
+            else:
+                def inner(sk):
+                    for tick in sk:
+                        yield sk.value_during(tick)
+            for bone in inner(outer(skel[stat])):
+                yield bone
+
+    def get_thing_stat_bone(self, thing, stat, branch=None, tick=None):
+        (branch, tick) = self.sanetime(branch, tick)
+        try:
+            return self.get_thing_stat_skel(
+                thing, stat, branch).value_during(tick)
+        except KeyError:
+            return Thing.bonetypes["thing_stat"](
+                character=self.name,
+                name=unicode(thing),
+                key=stat,
+                value=None,
+                branch=branch,
+                tick=tick)
+
+    def get_thing_stat(self, thing, stat, branch=None, tick=None):
+        return self.get_thing_stat_bone(thing, stat, branch, tick).value
 
     def _iter_thing_skel_bones(self, skel, branch, tick):
         (branch, tick) = self.sanetime(branch, tick)
@@ -321,17 +401,6 @@ class Character(object):
                 for bone in branch_skel.iterbones():
                     yield bone
 
-    def iter_thing_stat_bones(self, thing=None, stat=None, branch=None):
-        try:
-            skel = self.closet.skeleton[u"thing_stat"][unicode(self)]
-        except KeyError:
-            return
-        for thing_skel in selectif(skel, unicode(thing)):
-            for stat_skel in selectif(thing_skel, stat):
-                for branch_skel in selectif(stat_skel, branch):
-                    for bone in branch_skel.iterbones():
-                        yield bone
-
     def get_thing_locations(self, name, branch=None):
         r = self.closet.skeleton[u"thing_loc"][unicode(self)][name]
         if branch is None:
@@ -396,17 +465,14 @@ class Character(object):
 
     def make_place(self, name):
         place = Place(self, name)
-        self.graph.add_vertex(
-            name=name,
-            place=place)
         return place
 
     def iter_places(self):
-        for bone in self.closet.skeleton[u"place"].itervalues():
+        for bone in self.closet.skeleton[u"place"].iterbones():
             try:
-                yield self.get_place(bone.name)
-            except KeyError:
-                yield self.make_place(bone.name)
+                yield self.get_place(bone.place)
+            except (KeyError, ValueError):
+                return
 
     def get_place_bone(self, name, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
@@ -455,8 +521,7 @@ class Character(object):
     ### Portal
 
     def get_portal(self, name):
-        e = self.graph.es.find(name=name)
-        return e["portal"]
+        return Portal(self, name)
 
     def make_portal(self, name=None, origin=None, destination=None,
                     host=None, branch=None, tick=None):
@@ -523,6 +588,12 @@ class Character(object):
     def get_portal_bone(self, name):
         return self.closet.skeleton[u"portal"][unicode(self)][name]
 
+    def get_portal_locations(self, name, branch=None):
+        skel = self.closet.skeleton[u"portal_loc"][unicode(self)][name]
+        if branch is not None:
+            skel = skel[branch]
+        return skel
+
     def get_portal_loc_bone(self, name, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
         return self.closet.skeleton[u"portal_loc"][unicode(self)][
@@ -543,42 +614,61 @@ class Character(object):
 
     ### Stat
 
-    def _get_stat_skel_bone(self, skel, branch, tick):
-        (branch, tick) = self.sanetime(branch, tick)
-        return skelget(self.closet.timeline, skel, branch, tick)
-
-    def get_stat_bone(self, name, branch=None, tick=None):
-        skel = self.closet.skeleton[u"stat"][unicode(self)][name]
-        return self._get_stat_skel_bone(skel, branch, tick)
-
-    def iter_stat_bones(self, name=None, branch=None, tick=None):
-        skel = self.closet.skeleton[u"stat"][unicode(self)]
-
-        def statnames(leks):
-            if name is not None:
-                yield leks[name]
-            else:
-                for n in leks.itervalues():
-                    yield n
-
-        def statbranches(leks):
-            if branch is not None:
-                yield leks[branch]
-            else:
-                for b in leks.itervalues():
-                    yield b
-
-        def statbones(leks):
-            if tick is not None:
-                yield leks.value_during(tick)
-            else:
-                for bone in leks.itervalues():
+    def iter_stat_bones(self, keys=[], branches=[], ticks=[]):
+        skel = self.closet.skeleton[u"character_stat"]
+        if unicode(self) not in skel:
+            return
+        key_skel = skel[unicode(self)]
+        for branch_skel in skel_filter_iter(key_skel, keys):
+            for tick_skel in skel_filter_iter(branch_skel, branches):
+                for bone in skel_filter_iter(tick_skel, ticks):
                     yield bone
 
-        for namedskel in statnames(skel):
-            for branchedskel in statbranches(namedskel):
-                for bone in statbones(branchedskel):
-                    yield bone
+    def iter_stat_keys(self, branches=[], ticks=[]):
+        skel = self.closet.skeleton[u"character_stat"]
+        if unicode(self) not in skel:
+            return
+        for key in iter_skel_keys(skel[unicode(self)], branches, ticks):
+            yield key
+
+    def _iter_noun_stat_bones(self, nountab, nounnames=[],
+                              stats=[], branches=[], ticks=[]):
+        skel = self.closet.skeleton[nountab]
+        if unicode(self) not in skel:
+            return
+        skel = skel[unicode(self)]
+        for nounname in nounnames:
+            if nounname not in skel:
+                continue
+            for stat_skel in skel_filter_iter(skel[nounname], stats):
+                for branch_skel in skel_filter_iter(stat_skel, branches):
+                    for bone in skel_filter_iter(branch_skel, ticks):
+                        yield bone
+
+    def _iter_noun_stat_keys(self, nountab, nounname, branches=[], ticks=[]):
+        skel = self.closet.skeleton[nountab]
+        if unicode(self) not in skel:
+            return
+        if nounname not in skel[unicode(self)]:
+            return
+        for key in iter_skel_keys(
+                skel[unicode(self)][nounname], branches, ticks):
+            yield key
+
+    def iter_thing_stat_keys(self, thingn, branches=[], ticks=[]):
+        for key in self._iter_noun_stat_keys(
+                u"thing_stat", thingn, branches, ticks):
+            yield key
+
+    def iter_place_stat_keys(self, placen, branches=[], ticks=[]):
+        for key in self._iter_noun_stat_keys(
+                u"place_stat", placen, branches, ticks):
+            yield key
+
+    def iter_portal_stat_keys(self, portn, branches=[], ticks=[]):
+        for key in self._iter_noun_stat_keys(
+                u"portal_stat", portn, branches, ticks):
+            yield key
 
     def new_branch(self, parent, branch, tick):
         for portal in self.iter_portals(branch=parent, tick=tick):
@@ -776,9 +866,36 @@ class Facade(Character):
 
     ### Thing
 
+    # override
     def get_thing_bone(self, name, branch=None, tick=None):
         bone = self.observed.get_thing_bone(name)
         return self.distort(bone)
+
+    # override
+    def iter_thing_stat_bones(self, thing, stat, branch=None):
+        for bone in self.observed.iter_thing_stat_bones(thing, stat, branch):
+            try:
+                yield self.distort(bone)
+            except KnowledgeException:
+                continue
+
+    # override
+    def get_thing_stat_skel(self, thing, stat, branch=None):
+        r = Skeleton()
+        if branch is None:
+            for bone in self.iter_thing_stat_bones(thing, stat, branch):
+                if bone.branch not in r:
+                    r[bone.branch] = []
+                r[bone.branch][bone.tick] = bone
+        else:
+            for bone in self.iter_thing_stat_bones(thing, stat, branch):
+                r[bone.tick] = bone
+        return r
+
+    # override
+    def get_thing_stat_bone(self, name, stat, branch=None, tick=None):
+        return self.distort(self.observed.get_thing_stat_bone(
+            name, stat, branch, tick))
 
     # override
     def iter_thing_bones(self, branch=None, tick=None):
@@ -792,12 +909,6 @@ class Facade(Character):
     def iter_thing_loc_bones(self, thing=None, branch=None):
         for bone in super(Facade, self).iter_thing_loc_bones(
                 thing, branch):
-            yield self.distort(bone)
-
-    # override
-    def iter_thing_stat_bones(self, thing=None, stat=None, branch=None):
-        for bone in super(Facade, self).iter_thing_stat_bones(
-                thing, stat, branch):
             yield self.distort(bone)
 
     # override
@@ -847,6 +958,14 @@ class Facade(Character):
             except KnowledgeException:
                 pass
 
+    # override
+    def iter_place_stat_bones(self, place, stat, branch=None):
+        for bone in self.observed.iter_place_stat_bones(place, stat, branch):
+            try:
+                yield self.deceive(bone)
+            except KnowledgeException:
+                continue
+
     ### Portal
 
     # override
@@ -870,12 +989,22 @@ class Facade(Character):
                 pass
 
     # override
+    def iter_hosted_portal_loc_bones(self, branch=None, tick=None):
+        for bone in self.observed.iter_hosted_portal_loc_bones(branch, tick):
+            try:
+                yield self.distort(bone)
+            except KnowledgeException:
+                pass
+
+    # override
     def iter_hosted_portal_bones(self, branch=None, tick=None):
         for bone in super(Facade, self).iter_hosted_portal_bones(branch, tick):
             try:
                 yield self.distort(bone)
             except KnowledgeException:
                 pass
+
+    ### Stat
 
     # override
     def get_stat_bone(self, name, branch=None, tick=None):

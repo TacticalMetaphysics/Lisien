@@ -1,19 +1,16 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.gui.kivybits import (
-    SaveableWidgetMetaclass)
+from gamepiece import GamePiece
 from kivy.properties import (
     ListProperty,
-    NumericProperty,
     ObjectProperty)
-from kivy.uix.scatter import Scatter
+from kivy.clock import Clock
 
 
 """Widgets to represent places. Pawns move around on top of these."""
 
 
-class Spot(Scatter):
-    __metaclass__ = SaveableWidgetMetaclass
+class Spot(GamePiece):
     """The icon that represents a Place.
 
     The Spot is located on the Board that represents the same
@@ -71,8 +68,6 @@ class Spot(Scatter):
         "SELECT spot.host AS host, spot.place AS place, "
         "spot.branch AS branch, spot.tick AS tick "
         "FROM spot WHERE observer<>'Omniscient';"]
-# TODO: query tool for places in facades that do not *currently*
-# correspond to any place in any character
     tables = [
         ("spot", {
             "columns": {
@@ -82,14 +77,14 @@ class Spot(Scatter):
                 "layer": "integer not null default 0",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
-                "img": "text default 'default_spot'",
+                "graphic": "text not null default 'default_spot'",
                 "interactive": "boolean default 1"},
             "primary_key": (
                 "observer", "host", "place",
-                "layer", "branch", "tick"),
+                "branch", "tick"),
             "foreign_keys": {
                 "observer, host": ("board", "observer, observed"),
-                "img": ("img", "name")}}),
+                "graphic": ("graphic", "name")}}),
         ("spot_coords", {
             "columns": {
                 "observer": "text not null default 'Omniscient'",
@@ -97,8 +92,8 @@ class Spot(Scatter):
                 "place": "text not null",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
-                "x": "integer not null",
-                "y": "integer not null"},
+                "x": "float not null",
+                "y": "float not null"},
             "primary_key": (
                 "observer", "host", "place", "branch", "tick"),
             "foreign_keys": {
@@ -106,14 +101,28 @@ class Spot(Scatter):
                     "spot", "observer, host, place")}})]
     place = ObjectProperty()
     board = ObjectProperty()
-    completedness = NumericProperty(0)
-    cheatx = NumericProperty(0)
-    cheaty = NumericProperty(0)
+    bone = ObjectProperty()
+    _touch = ObjectProperty(None, allownone=True)
     pawns_here = ListProperty([])
 
     def __init__(self, **kwargs):
+        if 'board' in kwargs and 'closet' not in kwargs:
+            kwargs['closet'] = kwargs['board'].host.closet
+        kwargs['bone'] = kwargs['closet'].skeleton[u'spot'][
+            unicode(kwargs['board'].facade.observer)][
+            unicode(kwargs['place'].character)][
+            unicode(kwargs['place'])][
+            kwargs['closet'].branch].value_during(
+            kwargs['closet'].tick)
+        kwargs['graphic_name'] = kwargs['bone'].graphic
+        kwargs['imgs'] = kwargs['closet'].get_game_piece(
+            kwargs['bone'].graphic).imgs
         super(Spot, self).__init__(**kwargs)
+        self.closet.register_time_listener(self.handle_time)
         self.board.spotdict[unicode(self.place)] = self
+        self.bind(
+            pawns_here=self.upd_pawns_here,
+            center=self.upd_pawns_here)
 
     def __str__(self):
         """Return the name of my :class:`Place`."""
@@ -123,60 +132,36 @@ class Spot(Scatter):
         """Return the name of my :class:`Place`."""
         return unicode(self.place)
 
-    def on_board(self, i, v):
-        if v is None:
+    def upd_texs(self, *args):
+        super(Spot, self).upd_texs(*args)
+
+    def handle_time(self, b, t):
+        self.bone = self.get_bone(b, t)
+        self.graphic_name = self.bone.graphic
+        self.repos(b, t)
+
+    def repos(self, b, t):
+        if not self.graphic_bone:
+            Clock.schedule_once(lambda dt: self.repos(b, t), 0)
             return
-        v.facade.closet.register_time_listener(self.repos)
-        self.repos()
-
-    def on_pos(self, i, v):
-        for pawn in i.pawns_here:
-            pawn.pos = self.pos
-
-    def on_pawns_here(self, i, v):
-        for pawn in v:
-            pawn.pos = self.pos
-
-    def repos(self, *args):
-        """Update my pos to match the database. Keep respecting my transform
-        as I can."""
-        (x, y) = self.get_coords()
+        bone = self.get_coord_bone(b, t)
+        x = bone.x + self.graphic_bone.offset_x
+        y = bone.y + self.graphic_bone.offset_y
         self.pos = (x, y)
 
-    def set_img(self, img, layer, branch=None, tick_from=None):
-        if branch is None:
-            branch = self.board.facade.closet.branch
-        if tick_from is None:
-            tick_from = self.board.facade.closet.tick
-        imagery = self.board.facade.closet.skeleton["spot_img"][
-            unicode(self.board.dimension)][unicode(self.place)]
-        if layer not in imagery:
-            imagery[layer] = []
-        il = imagery[layer]
-        if branch not in il:
-            il[branch] = []
-        il[branch][tick_from] = self.bonetypes["spot_img"](
-            dimension=unicode(self.board),
-            place=unicode(self.place),
-            branch=branch,
-            tick_from=tick_from,
-            img=unicode(img))
+    def upd_pawns_here(self, *args):
+        for pawn in self.pawns_here:
+            pawn.pos = self.center
 
     def sanetime(self, branch, tick):
         return self.board.facade.sanetime(branch, tick)
 
-    def get_bone(self, layer=0, branch=None, tick=None):
+    def get_bone(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
-        return self.board.facade.closet.skeleton[u"spot"][
+        return self.closet.skeleton[u"spot"][
             unicode(self.board.facade.observer)][
             unicode(self.board.host)][
-            unicode(self.place)][layer][branch].value_during(tick)
-
-    def set_bone(self, bone):
-        self.board.skelset(
-            self.board.facade.closet.skeleton[u"spot"],
-            "place",
-            bone)
+            unicode(self.place)][branch].value_during(tick)
 
     def get_coord_bone(self, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
@@ -184,12 +169,6 @@ class Spot(Scatter):
             unicode(self.board.facade.observer)][
             unicode(self.board.host)][unicode(self.place)][
             branch].value_during(tick)
-
-    def set_coord_bone(self, bone):
-        self.board.skelset(
-            self.board.facade.closet.skeleton[u"spot_coords"],
-            "place",
-            bone)
 
     def get_coords(self, branch=None, tick=None, default=None):
         """Return a pair of coordinates for where I should be on my board,
@@ -199,7 +178,7 @@ class Spot(Scatter):
         try:
             bone = self.get_coord_bone(branch, tick)
             if bone is None:
-                return None
+                raise KeyError
             else:
                 return (bone.x, bone.y)
         except KeyError:
@@ -216,9 +195,13 @@ class Spot(Scatter):
         """
         (branch, tick) = self.sanetime(branch, tick)
         bone = self.get_coord_bone(branch, tick)
-        self.set_coord_bone(bone._replace(
+        self.closet.set_bone(bone._replace(
             x=x, y=y,
             branch=branch, tick=tick))
+
+    def set_center_coords(self, x, y, branch=None, tick=None):
+        self.set_coords(x - self.width / 2, y - self.height / 2,
+                        branch, tick)
 
     def new_branch(self, parent, branch=None, tick=None):
         """Copy all the stuff from the parent to the child branch as of the
@@ -249,10 +232,28 @@ class Spot(Scatter):
                     started = True
                     prev = bone
 
-    def collide_point(self, x, y):
-        return self.ids.pile.collide_point(x, y)
+    def on_touch_down(self, touch):
+        if touch.grab_current or 'portaling' in touch.ud:
+            return
+        touch.grab(self)
+        touch.ud['spot'] = self
+        return True
+
+    def on_touch_move(self, touch):
+        if "portaling" in touch.ud:
+            touch.ungrab(self)
+        if touch.grab_current is not self:
+            return
+        self._touch = touch
+        self.center = touch.pos
 
     def on_touch_up(self, touch):
-        if touch.grab_current is self:
+        if self._touch:
             self.set_coords(*self.pos)
+        if 'spot' in touch.ud:
+            del touch.ud['spot']
+        self._touch = None
         return super(Spot, self).on_touch_up(touch)
+
+    def __repr__(self):
+        return "{}@({},{})".format(self.place.name, self.x, self.y)

@@ -8,7 +8,6 @@ from collections import (
 from math import sqrt, hypot, atan, pi, sin, cos
 from operator import itemgetter
 from re import match, compile, findall
-from sqlite3 import IntegrityError
 
 
 """Common utility functions and data structures.
@@ -62,6 +61,10 @@ primary key, in a tuple."""
 tabclas = {}
 """Map the name of each table to the class it was declared in."""
 
+tabbone = {}
+"""Map the name of each bone type (incidentally, also the name of its
+table) to the bone type itself."""
+
 saveables = []
 """Tuples of information about saveable classes. These may be used to
 apply the database schema."""
@@ -71,6 +74,20 @@ saveable_classes = []
 
 ### End metadata
 ### Begin functions
+
+
+def skel_set_printer(skel, child, k, v):
+    """Debugging function to print out assignments to some skeleton or other"""
+    print("{}.{}[{}]={}".format(skel.name, child.name, k, v))
+
+
+def skel_del_printer(skel, child, k):
+    """Debugging function to print out deletions from some skeleton"""
+    print("del {}.{}[{}]".format(skel.name, child.name, k))
+
+
+def passthru(_):
+    return _
 
 
 def upbranch(closet, bones, branch, tick):
@@ -299,7 +316,9 @@ class BoneMetaclass(type):
             atts["_types"][field_name] = field_type
             atts["_defaults"][field_name] = default
             i += 1
-        return type.__new__(metaclass, clas, parents, atts)
+        r = type.__new__(metaclass, clas, parents, atts)
+        tabbone[clas] = r
+        return r
 
 
 class Bone(tuple):
@@ -648,6 +667,10 @@ class Skeleton(MutableMapping):
         child."""
         self._set_listeners.append(fun)
 
+    def unregister_set_listener(self, fun):
+        while fun in self._set_listeners:
+            self._set_listeners.remove(fun)
+
     def __delitem__(self, k):
         """If ``self.content`` is a :type:`dict`, delete the key in the usual
         way. Otherwise, remove the key from ``self.ikeys``."""
@@ -671,6 +694,19 @@ class Skeleton(MutableMapping):
         """Register a function to be called when an element is deleted in this
         or a child."""
         self._del_listeners.append(fun)
+
+    def unregister_del_listener(self, fun):
+        while fun in self._del_listeners:
+            self._del_listeners.remove(fun)
+
+    def _loud_toggle(self):
+        if hasattr(self, 'loud'):
+            self.unregister_set_listener(skel_set_printer)
+            self.unregister_del_listener(skel_del_printer)
+        else:
+            self.register_set_listener(skel_set_printer)
+            self.register_del_listener(skel_del_printer)
+            self.loud = True
 
     def __iter__(self):
         """Iterate over my keys--which, if ``self.content`` is not a
@@ -948,40 +984,6 @@ class SaveableMetaclass(type):
     table-tuples. The tables will be declared in the order they appear
     in the tables attribute.
 
-    Running queries
-    ===============
-
-    Classes in :class:`SaveableMetaclass` have methods to generate and
-    execute SQL, but as they are not themselves database connectors,
-    they require you to supply a cursor as the first argument. The
-    second argument should be a dictionary (or :class:`Skeleton`) in
-    which the keys are names of tables that the class knows about, and
-    the values are iterables full of the type of :class:`Bone` used
-    for that table. If you're selecting data from a table, the
-    :class:`Bone`s should be filled in with the keys you want, but
-    their other fields should be set to ``None``. You may need to do
-    this explicitly, if a field has some default value other than
-    ``None``.
-
-    To get the particular :class:`Bone` subclass for a given table of
-    a given class, access the ``bonetypes`` attribute of the
-    class. For instance, suppose there is a table named ``ham`` in a
-    class named ``Spam``, and you want to select the records with the
-    field ``eggs`` equal to 3, or ``beans`` equal to True:
-
-    ``Spam._select_skeleton(cursor, {u"ham":
-    [Spam.bonetypes.ham(eggs=3), Spam.bonetypes.ham(beans=True)]})``
-
-    This expression will return a :class:`Skeleton` with all the
-    results in. The outermost layer of the :class:`Skeleton` will be
-    keyed with the table names, in this case just "ham"; successive
-    layers are each keyed with one of the fields in the primary key of
-    the table.
-
-    The same :class:`Skeleton` may later be passed to
-    :method:`_insert_skeleton`, presumably with some of the data
-    changed.
-
 
     Dependencies and Custom SQL
     ===========================
@@ -1007,11 +1009,15 @@ class SaveableMetaclass(type):
     executed in the order of iteration, so use a sequence type.
 
     """
+    clasd = {}
+
     def __new__(metaclass, clas, parents, attrs):
         """Return a new class with all the accoutrements of
         :class:`SaveableMetaclass`.
 
         """
+        if clas in SaveableMetaclass.clasd:
+            return SaveableMetaclass.clasd[clas]
         global schemata
         global tabclas
         tablenames = []
@@ -1110,10 +1116,9 @@ class SaveableMetaclass(type):
             rowlen[tablename] = len(coldict)
             rowqms[tablename] = ", ".join(["?"] * rowlen[tablename])
             rowstrs[tablename] = "(" + rowqms[tablename] + ")"
-        for tablename in coldecls.keys():
+        for tablename in coldecls.iterkeys():
             colnames[tablename] = keynames[tablename] + valnames[tablename]
         for tablename in tablenames:
-            assert(tablename not in tabclas)
             bonetypes[tablename] = Bone.subclass(
                 tablename,
                 [(colname,
@@ -1169,137 +1174,7 @@ class SaveableMetaclass(type):
              tuple(tablenames),
              tuple(postlude)))
 
-        def gen_sql_insert(tabname):
-            """Return an SQL INSERT statement suitable for adding one row, with
-            all the fields filled in."""
-            return "INSERT INTO {0} ({1}) VALUES {2};".format(
-                tabname,
-                colnamestr[tabname],
-                rowstrs[tabname])
-
-        @staticmethod
-        def insert_bones_table(c, bones, tabname):
-            """Use the cursor ``c` to insert the bones into the table
-            ``tabname``."""
-            try:
-                c.executemany(gen_sql_insert(tabname), bones)
-            except IntegrityError as ie:
-                print(ie)
-                print(gen_sql_insert(tabname))
-
-        def gen_sql_delete(keybone, tabname):
-            """Return an SQL DELETE statement to get rid of the record
-            corresponding to ``keybone`` in table ``tabname``."""
-            try:
-                keyns = keynames[tabname]
-            except KeyError:
-                return
-            keys = []
-            if tabname not in tablenames:
-                raise ValueError("Unknown table: {}".format(tabname))
-            checks = []
-            for keyn in keyns:
-                checks.append(keyn + "=?")
-                keys.append(getattr(keybone, keyn))
-            where = "(" + " AND ".join(checks) + ")"
-            qrystr = "DELETE FROM {0} WHERE {1}".format(tabname, where)
-            return (qrystr, tuple(keys))
-
-        @staticmethod
-        def delete_keybones_table(c, keybones, tabname):
-            """Use the cursor ``c`` to delete the records matching the
-            bones from the table ``tabname``.
-
-            """
-            for keybone in keybones:
-                c.execute(*gen_sql_delete(keybone, tabname))
-
-        def gen_sql_select(keybones, tabname):
-            """Return an SQL SELECT statement to get the records
-            matching the bones from the table ``tabname``.
-
-            """
-            # Assumes that all keybones have the same type.
-            together = []
-            for bone in keybones:
-                apart = []
-                for field in bone._fields:
-                    if getattr(bone, field) is not None:
-                        apart.append("{}=?".format(field))
-                together.append("({})".format(" AND ".join(apart)))
-            orstr = " OR ".join(together)
-            r = "SELECT {0} FROM {1} WHERE {2};".format(
-                ", ".join(next(iter(keybones))._fields), tabname, orstr)
-            return r.replace("WHERE ();", ";")
-
-        def select_keybones_table(c, keybones, tabname):
-            """Return a list of records taken from the table ``tabname``,
-            through the cursor ``c``, matching the bones.
-
-            """
-            qrystr = gen_sql_select(keybones, tabname)
-            qrylst = []
-            for bone in keybones:
-                for key in bone._fields:
-                    if getattr(bone, key) is not None:
-                        qrylst.append(getattr(bone, key))
-            c.execute(qrystr, tuple(qrylst))
-            return c.fetchall()
-
-        @staticmethod
-        def _select_skeleton(c, skel):
-            """Return a new :class:`Skeleton` like ``skel``, but with the bones
-            filled in with live data. Requires a cursor ``c``.
-
-            ``skel`` needs to have table names for its keys. It may be a
-            :type:`dict` instead of a :class:`Skeleton`.
-
-            """
-            r = Skeleton({})
-            for (tabname, bones) in skel.items():
-                if tabname not in r:
-                    r[tabname] = {}
-                for row in select_keybones_table(c, bones, tabname):
-                    bone = bonetypes[tabname](*row)
-                    ptr = r[tabname]
-                    for key in bone.cls.keynames[bone._name][:-1]:
-                        if getattr(bone, key) not in ptr:
-                            ptr[getattr(bone, key)] = {}
-                        ptr = ptr[getattr(bone, key)]
-                    finkey = bone.cls.keynames[bone._name][-1]
-                    ptr[getattr(bone, finkey)] = bone
-            return r
-
-        @staticmethod
-        def _insert_skeleton(c, skeleton):
-            """Use the cursor ``c`` to insert the bones in the
-            skeleton into the table given by the key.
-
-            """
-            for (tabname, rds) in skeleton.items():
-                if tabname in tablenames:
-                    insert_bones_table(c, rds, tabname)
-
-        @staticmethod
-        def _delete_skeleton(c, skeleton):
-            """Use the cursor ``c`` to delete records from the tables in
-            the skeleton's keys, when they match any of the bones in the
-            skeleton's values.
-
-            """
-            for (tabname, records) in skeleton.items():
-                if tabname in tablenames:
-                    bones = [bone for bone in records.iterbones()]
-                    delete_keybones_table(c, bones, tabname)
-
         atrdic = {
-            '_select_skeleton': _select_skeleton,
-            '_insert_skeleton': _insert_skeleton,
-            '_delete_skeleton': _delete_skeleton,
-            '_insert_bones_table': insert_bones_table,
-            '_delete_keybones_table': delete_keybones_table,
-            '_gen_sql_insert': gen_sql_insert,
-            '_gen_sql_delete': gen_sql_delete,
             'colnames': dict([
                 (tabn, tuple(colnames[tabn])) for tabn in tablenames]),
             'colnamestr': dict([
@@ -1322,10 +1197,12 @@ class SaveableMetaclass(type):
             'bonetype': bonetypes[tablenames[0]]}
         atrdic.update(attrs)
 
+        clasn = clas
         clas = type.__new__(metaclass, clas, parents, atrdic)
         saveable_classes.append(clas)
         for bonetype in bonetypes.itervalues():
             bonetype.cls = clas
+        SaveableMetaclass.clasd[clasn] = clas
         return clas
 
 

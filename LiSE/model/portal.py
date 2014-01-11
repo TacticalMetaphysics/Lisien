@@ -2,6 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from container import Container
 from LiSE.util import upbranch
+from igraph import InternalError
 
 
 class Portal(Container):
@@ -68,6 +69,10 @@ class Portal(Container):
             "foreign_keys": {
                 "observed, name": (
                     "portal", "character, name")}})]
+
+    @property
+    def e(self):
+        return self.character.graph.es.find(name=self.name)
 
     @property
     def bone(self):
@@ -140,6 +145,7 @@ class Portal(Container):
                         thingbone.host == unicode(self.host)):
                     char = self.host.closet.get_character(thingbone.character)
                     return char.get_thing(thingbone.name)
+            raise KeyError("Noplace!")
 
     def new_branch(self, parent, branch, tick):
         skel = self.character.closet.skeleton[u"portal_loc"][
@@ -147,3 +153,15 @@ class Portal(Container):
         for bone in upbranch(
                 self.character.closet, skel.iterbones(), branch, tick):
             yield bone
+
+    def iter_stat_keys(self, observer=None, branch=None, tick=None):
+        (branch, tick) = self.character.sanetime(branch, tick)
+        if observer is None:
+            for key in self.character.iter_portal_stat_keys(
+                    self.name, [branch], [tick]):
+                yield key
+        else:
+            facade = self.character.get_facade(observer)
+            for key in facade.iter_portal_stat_keys(
+                    self.name, [branch], [tick]):
+                yield key

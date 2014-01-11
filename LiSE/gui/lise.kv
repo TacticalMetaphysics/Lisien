@@ -1,172 +1,340 @@
-# This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-
+#: import lisepathl LiSE.__path__
 #: import solarized LiSE.gui.style.solarized
-<SwatchBox>:
-    orientation: 'vertical'
-<TogSwatch,FrobSwatch>:
-    text_size: (self.width, self.height * 0.9)
-    halign: 'center'
-    multiline: True
-    size_hint: (None, None)
-    BoxLayout:
+#: import _ LiSE.util.passthru
+#: import sep os.sep
+<ClosetWidget>:
+    font_name: sep.join([lisepathl[-1], 'gui', 'assets', 'Entypo.ttf']) if self.symbolic else 'DroidSans'
+    font_size: 30 if self.symbolic else 16
+<ClosetLabel,ClosetButton,ClosetToggleButton>:
+    text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
+<ClosetHintTextInput>:
+    hint_text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
+<AddButton>:
+    symbolic: True
+    stringname: _('@add')
+<EditButton>:
+    Image:
+        center: root.center
+        size: 32, 32
+        texture: root.imgd[root.state].texture
+<CalendarView>:
+    font_name: 'DroidSans'
+    font_size: 20
+    branches_wide: 2
+    spacing: (5, 5)
+    offscreen: (2, 2)
+    tick_height: 2
+    col_width: 100
+    tl_color: [1, 0, 0, 1]
+    Calendar:
+        id: cal
+        font_name: root.font_name
+        font_size: root.font_size
+        branches_wide: root.branches_wide
+        spacing: root.spacing
+        offscreen: root.offscreen
+        tick_height: root.tick_height
+        col_width: root.col_width
+        boneatt: root.boneatt
+        cal_type: root.cal_type
+        key: root.key
+        stat: root.stat
+        charsheet: root.charsheet
+        character: self.charsheet.character
         pos: root.pos
-        size: root.size
-        Image:
-            texture: root.display_texture
-            pos_hint: {'top': 0.9}
-            size_hint: (0.9, 0.5)
-<LoadImgDialog>:
-    BoxLayout:
-        size: root.size
-        pos: root.pos
-        orientation: "vertical"
-        FileChooserListView:
-            id: filechooser
-        BoxLayout:
-            size_hint_y: None
-            height: 30
-            Button:
-                text: "Cancel"
-                on_release: root.cancel()
-            Button:
-                text: "Load"
-                on_release: root.load(filechooser.path, filechooser.selection)
-<PickImgDialog>:
-    BoxLayout:
-        size: root.size
-        pos: root.pos
-        orientation: "vertical"
-        SwatchBox:
-            id: picker
-            cols: 1
-        BoxLayout:
-            size_hint_y: None
-            height: 30
-            Button:
-                text: "Cancel"
-                on_release: root.cancel()
-            Button:
-                text: "Confirm"
-                on_release: root.set_imgs(picker.selection)
-<DummyPawn>:
-    size_hint: (None, None)
-    do_rotation: False
-    do_scale: False
-<Pawn>:
-    auto_bring_to_front: False
-    size_hint: (None, None)
-    size: pile.size
-    do_rotation: False
-    do_scale: False
-    LayerTexPile:
-        id: pile
-        closet: root.board.facade.closet
-        imagery: self.closet.skeleton[u"pawn"][unicode(root.board.facade.observer)][unicode(root.thing.character)][unicode(root.board.host)][unicode(root.thing)]
-<TexPile>:
-    width: max([img.right for img in self.imgs]) if len(self.imgs) > 0 else 0
-    height: max([img.top for img in self.imgs]) if len(self.imgs) > 0 else 0
-<Spot>:
-    size_hint: (None, None)
-    size: pile.size
-    do_rotation: False
-    do_scale: False
-    auto_bring_to_front: False
-    LayerTexPile:
-        id: pile
-        closet: root.board.facade.closet
-        imagery: root.board.facade.closet.skeleton[u"spot"][unicode(root.board.facade.observer)][unicode(root.board.host)][unicode(root.place)]
-<ColorBox>:
-    canvas:
-        Color:
-            rgba: self.color
-        Rectangle:
-            pos: self.pos
-            size: self.size
+    Timeline:
+        x: cal.timeline_x + cal.x
+        y: cal.timeline_y + cal.y
+        col_width: root.col_width
+        color: root.tl_color
 <Cell>:
-    size_hint: (None, None)
-    ColorBox:
-        color: solarized["base2"]
-    Label:
-        text: root.text
-        color: solarized["base00"]
-        text_size: root.size
-        pos_hint: {'x': 0, 'y': 0}
-        valign: "top"
-<CalendarLayout>:
-    size: cal.size
-    StencilView:
-        Calendar:
-            id: cal
-            timeline: tl
-            character: root.character
-            cal_type: root.item_type
-            keys: root.keys
-            col_width: 100
-            branches_wide: 2
-            tick_height: 2
-            spacing_x: 5
-            spacing_y: 5
-            editing: root.edbut.state == 'down' if root.edbut else False
-            width: self.branches_wide * (self.col_width + self.spacing_x)
-            height: self.tick_height * self.ticks_tall
-            on_branch: tl.upd_branch
-            on_tick: tl.upd_tick
-        Timeline:
-            id: tl
-            canvas:
-                Color:
-                    rgba: 1, 0, 0, 1
-                Line:
-                    points: (self.x, self.y, self.x+cal.col_width, self.y)
-                Triangle:
-                    points: (self.x, self.y+8, self.x+16, self.y, self.x, self.y-8)
-<TableHeader>:
-    canvas:
+    valign: 'top'
+    text_size: self.size
+    color: solarized['base00']
+    bg_color: solarized['base2']
+    canvas.before:
         Color:
-            rgba: solarized["base02"]
+            rgba: root.bg_color
         Rectangle:
             pos: root.pos
             size: root.size
-    Label:
-        id: lb
-        size: self.texture_size
-        bold: True
-        color: solarized["base00"]
-        text: root.text
-<TableTextInput>:
-    background_disabled_active: ''
-    background_disabled_normal: ''
-    background_normal: ''
-    background_active: ''
-    border: [0, 0, 0, 0]
-    multiline: False
-    text: getattr(self.bone, self.key)
-    height: self.font_size
-    size_hint_x: 1
-    disabled: self.table.edbut.state == 'normal'
-<TableLayout>:
-    Table:
-        #:import bone LiSE.gui.charsheet.table.character_bone
-        id: tab
-        col_default_width: 75
-        edbut: root.edbut
-        padding: [0, 0, 0, 0]
-        spacing: [5, 2]
-        colkeys: root.colkey_dict[root.item_type]
-        cols: len(self.colkeys)
-        iter_skeleton: root.character.iter_hosted_thing_loc_bones
-        x: root.x + self.xmov
-        y: root.y
-<TableTextInput>:
-    background_color: solarized["base3"]
-    foreground_color: solarized["base01"]
-    disabled_foreground_color: solarized["base00"]
-<EditButton>:
-    #:import sep os.sep
-    font_name: sep.join([self.parent.character.closet.lisepath, "gui", "assets", "Entypo.ttf"]) if self.parent else ""
-    font_size: 32
-    size_hint_x: 0.2
+<CharSheetAdder>:
+    StackLayout:
+        Label:
+            size_hint_y: 0.05
+            text: "Add an item to the character sheet"
+        TabbedPanel:
+            id: panel
+            size_hint_y: 0.9
+            do_default_tab: False
+            TabbedPanelItem:
+                id: tables
+                text: root.get_text(_('Tables'))
+                TabbedPanel:
+                    id: tables_panel
+                    do_default_tab: False
+                    TabbedPanelItem:
+                        id: thing_tab
+                        text: root.get_text(_('Thing'))
+                        StackLayout:
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick things."))
+                                    size_hint_y: 0.1
+                                ThingListView:
+                                    id: thing_tab_thing
+                                    charsheet: root.charsheet
+                                    size_hint_y: 0.3
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick stats of things."))
+                                    size_hint_y: 0.1
+                                NounStatListView:
+                                    id: thing_tab_stat
+                                    size_hint_y: 0.8
+                                    specialitems: ["location"]
+                                    nounitems: thing_tab_thing.selection
+                                    charsheet: root.charsheet
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: thing_tab_stat_in
+                                        size_hint_x: 0.8
+                                        hint_text: root.get_text(_("New stat name"))
+                                    CSAddBut:
+                                        id: thing_tab_stat_add
+                                        adder: root
+                                        statview: thing_tab_stat
+                                        arg: thing_tab_stat_in.text
+                    TabbedPanelItem:
+                        id: place_tab
+                        text: root.get_text(_('Place'))
+                        StackLayout:
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick places."))
+                                    size_hint_y: 0.1
+                                PlaceListView:
+                                    id: place_tab_place
+                                    charsheet: root.charsheet
+                                    size_hint_y: 0.9
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick stats of places."))
+                                    size_hint_y: 0.1
+                                NounStatListView:
+                                    id: place_tab_stat
+                                    nounitems: place_tab_place.selection
+                                    size_hint_y: 0.8
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: place_tab_stat_in
+                                        size_hint_x: 0.8
+                                        hint_text: root.get_text(_("New stat name"))
+                                    CSAddBut:
+                                        id: place_tab_stat_add
+                                        adder: root
+                                        args: [place_tab_place.selection, place_tab_stat_in.text]
+                    TabbedPanelItem:
+                        id: portal_tab
+                        text: root.get_text(_('Portal'))
+                        StackLayout:
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick portals."))
+                                    size_hint_y: 0.1
+                                PortalListView:
+                                    id: portal_tab_portal
+                                    charsheet: root.charsheet
+                                    size_hint_y: 0.9
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick stats of portals."))
+                                    size_hint_y: 0.1
+                                NounStatListView:
+                                    id: portal_tab_stat
+                                    specialitems: ["origin", "destination"]
+                                    nounitems: portal_tab_portal.selection
+                                    size_hint_y: 0.8
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: portal_tab_stat_in
+                                        size_hint_x: 0.8
+                                        hint_text: root.get_text(_("New stat name"))
+                                    CSAddBut:
+                                        id: portal_tab_stat_add
+                                        adder: root
+                                        args: [portal_tab_portal.selection, portal_tab_stat_in.text]
+                    TabbedPanelItem:
+                        id: char_tab
+                        text: root.get_text(_('Character'))
+                        StackLayout:
+                            Label:
+                                text: root.get_text(_("Pick stats of the character."))
+                                size_hint_y: 0.1
+                            StatListView:
+                                id: char_tab_stat
+                                charsheet: root.charsheet
+                                size_hint_y: 0.8
+                            StackLayout:
+                                size_hint_y: 0.1
+                                TextInput:
+                                    id: char_tab_stat_in
+                                    size_hint_x: 0.8
+                                    hint_text: root.get_text(_("New stat name"))
+                                CSAddBut:
+                                    id: char_tab_stat_add
+                                    adder: root
+                                    args: [char_tab_stat_in.text]
+            TabbedPanelItem:
+                id: calendars
+                text: root.get_text(_('Calendars'))
+                TabbedPanel:
+                    id: calendars_panel
+                    do_default_tab: False
+                    TabbedPanelItem:
+                        id: thing_cal
+                        text: root.get_text(_('Thing'))
+                        StackLayout:
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick a thing."))
+                                    size_hint_y: 0.1
+                                ThingListView:
+                                    id: thing_cal_thing
+                                    charsheet: root.charsheet
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.9
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick one of its stats."))
+                                    size_hint_y: 0.1
+                                NounStatListView:
+                                    id: thing_cal_stat
+                                    specialitems: ["location"]
+                                    nounitems: thing_cal_thing.selection
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.8
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: thing_cal_stat_in
+                                        hint_text: root.get_text(_("New stat name"))
+                                        size_hint_x: 0.8
+                                    CSAddBut:
+                                        id: thing_cal_stat_add
+                                        adder: root
+                                        args: [thing_cal_thing.selection[0], thing_cal_stat_in.text] if thing_cal_thing.selection else []
+                    TabbedPanelItem:
+                        id: place_cal
+                        text: root.get_text(_('Place'))
+                        StackLayout:
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick a place."))
+                                    size_hint_y: 0.1
+                                PlaceListView:
+                                    id: place_cal_place
+                                    charsheet: root.charsheet
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.9
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick one of its stats."))
+                                    size_hint_y: 0.1
+                                NounStatListView:
+                                    id: place_cal_stat
+                                    nounitems: place_cal_place.selection
+                                    charsheet: root.charsheet
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.8
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: place_cal_stat_in
+                                        hint_text: root.get_text(_("New stat name"))
+                                        size_hint_x: 0.8
+                                    CSAddBut:
+                                        id: place_cal_stat_add
+                                        adder: root
+                                        args: [place_cal_place.selection[0], place_cal_stat_in.text] if place_cal_place.selection else []
+                    TabbedPanelItem:
+                        id: portal_cal
+                        text: root.get_text(_('Portal'))
+                        StackLayout:
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick a portal."))
+                                    size_hint_y: 0.1
+                                PortalListView:
+                                    id: portal_cal_portal
+                                    charsheet: root.charsheet
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.9
+                            StackLayout:
+                                size_hint_x: 0.5
+                                Label:
+                                    text: root.get_text(_("Pick one of its stats."))
+                                    size_hint_y: 0.1
+                                NounStatListView:
+                                    id: portal_cal_stat
+                                    specialitems: ["origin", "destination"]
+                                    nounitems: portal_cal_portal.selection
+                                    selection_mode: 'single'
+                                    size_hint_y: 0.8
+                                StackLayout:
+                                    size_hint_y: 0.1
+                                    TextInput:
+                                        id: portal_cal_stat_in
+                                        hint_text: root.get_text(_("New stat name"))
+                                        size_hint_x: 0.8
+                                    CSAddBut:
+                                        id: portal_cal_stat_add
+                                        adder: root
+                                        args: [portal_cal_portal.selection[0], portal_cal_stat_in.text] if portal_cal_portal.selection else []
+                    TabbedPanelItem:
+                        id: char_cal
+                        text: root.get_text(_('Character'))
+                        StackLayout:
+                            Label:
+                                text: root.get_text(_("Pick a stat."))
+                                size_hint_y: 0.1
+                            StatListView:
+                                id: char_cal_stat
+                                charsheet: root.charsheet
+                                selection_mode: 'single'
+                                size_hint_y: 0.8
+                            StackLayout:
+                                size_hint_y: 0.1
+                                TextInput:
+                                    id: char_cal_stat_in
+                                    hint_text: root.get_text(_("New stat name"))
+                                    size_hint_x: 0.8
+                                CSAddBut:
+                                    id: char_cal_stat_add
+                                    adder: root
+                                    args: [char_cal_stat_in.text]
+        BoxLayout:
+            size_hint_y: 0.05
+            Button:
+                text: root.get_text(_("Cancel"))
+                on_release: root.dismiss()
+            Button:
+                text: root.get_text(_("Confirm"))
+                on_release: root.confirm()
 <CueCard>:
     Label:
         id: l
@@ -182,76 +350,71 @@
             Rectangle:
                 pos: l.pos
                 size: l.size
-<Board>:
-    auto_bring_to_front: False
+<LoadImgDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            ClosetButton:
+                closet: root.closet
+                stringname: _("Cancel")
+                on_release: root.cancel()
+            ClosetButton:
+                closet: root.closet
+                stringname: _("Load")
+                on_release: root.load(filechooser.path, filechooser.selection)
 <MenuIntInput>:
     padding: [12, 12, 12, 0]
     font_size: 26
-<SpotMenuContent>:
-    id: spotmenu
-    TextInput:
-        id: namer
-        hint_text: "Enter a unique name"
-        size_hint: (1, None)
-        multiline: False
-        height: self.line_height * 2
-    TogSwatch:
-        box: spotmenu
-        img_name: "default_spot"
-        text: "Use default image"
-        group: "spotmenu"
-        size_hint_y: None
-    TogSwatch:
-        box: spotmenu
-        img_name: "crossroad"
-        img_tags: ['?pixel_city']
-        text: "Build with PixelCity"
-        group: "spotmenu"
-        size_hint_y: None
+<PickImgDialog>:
     BoxLayout:
-        size_hint_y: None
-        height: 30
-        Button:
-            text: 'Cancel'
-            on_release: root.cancel()
-        Button:
-            text: 'Confirm'
-            on_release: root.confirm()
-<PawnMenuContent>:
-    id: pawnmenu
-    TextInput:
-        id: namer
-        hint_text: "Enter a unique name"
-        size_hint: (1, None)
-        multiline: False
-        height: self.line_height * 2
-    TogSwatch:
-        box: pawnmenu
-        img_name: "default_pawn"
-        text: "Use default image"
-        group: "pawnmenu"
-        size_hint_y: None
-    TogSwatch:
-        box: pawnmenu
-        img_name: "base.mummy_f"
-        img_tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
-        text: "Build with RLTiles"
-        group: "pawnmenu"
-        size_hint_y: None
-    BoxLayout:
-        size_hint_y: None
-        height: 30
-        Button:
-            text: 'Cancel'
-            on_release: root.cancel()
-        Button:
-            text: 'Confirm'
-            on_release: root.confirm()
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        SwatchBox:
+            id: picker
+            categorized_images: root.categorized_images
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: _("Cancel")
+                on_release: root.cancel()
+            Button:
+                text: _("Confirm")
+                on_release: root.set_imgs(picker.selection)
+<SwatchBox>:
+    orientation: 'vertical'
+<TogSwatch,FrobSwatch>:
+    text_size: (self.width, self.height * 0.9)
+    halign: 'center'
+    multiline: True
+    size_hint: (None, None)
+<TableHeader>:
+    height: 30
+<TableBody>:
+    height: 20
+<TableView>:
+    TableContent:
+        closet: root.character.closet
+<CharStatTableView>:
+    CharStatTableContent:
+        closet: root.character.closet
+<GamePiece>:
+    imgs: list(self.closet.iter_graphic_imgs(self.graphic_name)) if self.closet and self.graphic_name else []
+    offset_x: self.graphic_bone.offset_x if self.graphic_bone else 0
+    offset_y: self.graphic_bone.offset_y if self.graphic_bone else 0
 <LiSELayout>:
-    Board:
-        id: board
-        facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
-        host: root.app.closet.get_character(root.app.host_name)
+    #:import stiffscroll LiSE.gui.stiffscroll.StiffScrollEffect
+    BoardView:
+        id: board_view
+        board: root.board
+        effect_cls: stiffscroll
     CueCard:
         id: prompt
         closet: root.app.closet
@@ -266,56 +429,115 @@
         bar_pos_y: 'left'
         CharSheet:
             id: charsheet
-            size_hint: (1, None)
             width: csview.width
             character: root.app.closet.get_character(root.app.observed_name)
             cols: 2
             spacing: 10
-            cols_minimum: {0: self.width - 32 - self.spacing[0], 1: 32}
+            cols_minimum: {0: self.width - 34 - self.spacing[0], 1: 34}
     BoxLayout:
         id: menu
         size_hint: (0.1, 1)
         orientation: 'vertical'
         spacing: 10
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
-            stringname: '@place_menu'
+            stringname: _("Place...")
             fun: root.show_spot_menu
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
-            stringname: '@portal_menu'
+            stringname: _("Portal...")
             fun: root.make_arrow
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
-            stringname: '@thing_menu'
+            stringname: _("Thing...")
             fun: root.show_pawn_menu
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
             symbolic: True
-            stringname: '@play'
+            stringname: _("@starttime")
             fun: root.normal_speed
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
             symbolic: True
-            stringname: '@reverse'
+            stringname: _("@reversetime")
             fun: root.normal_speed
             arg: False
-        MenuButton:
+        ClosetButton:
             closet: root.app.closet
             symbolic: True
-            stringname: '@pause'
+            stringname: _("@pause")
             fun: root.pause
         CueCard:
             closet: root.app.closet
-            stringname: '@branch:'
+            stringname: _("Branch:")
         MenuIntInput:
             closet: root.app.closet
             stringname: '@branch'
             fun: root.go_to_branch
         CueCard:
             closet: root.app.closet
-            stringname: '@tick:'
+            stringname: _("Tick:")
         MenuIntInput:
             closet: root.app.closet
             stringname: '@tick'
             fun: root.go_to_tick
+<SpotMenuContent>:
+    id: spotmenu
+    TextInput:
+        id: namer
+        hint_text: root.get_text(_("Enter a unique name"))
+        size_hint: (1, None)
+        multiline: False
+        height: self.line_height * 2
+    TogSwatch:
+        box: spotmenu
+        img: root.closet.get_img("default_spot")
+        text: root.get_text(_("Use default image"))
+        group: "spotmenu"
+        size_hint_y: None
+    TogSwatch:
+        box: spotmenu
+        img: root.closet.get_img("crossroad")
+        tags: ['?pixel_city']
+        text: root.get_text(_("Build with PixelCity"))
+        group: "spotmenu"
+        size_hint_y: None
+    BoxLayout:
+        size_hint_y: None
+        height: 30
+        Button:
+            text: root.get_text(_('Cancel'))
+            on_release: root.cancel()
+        Button:
+            text: root.get_text(_('Confirm'))
+            on_release: root.confirm()
+<PawnMenuContent>:
+    id: pawnmenu
+    TextInput:
+        id: namer
+        hint_text: root.get_text(_("Enter a unique name"))
+        size_hint: (1, None)
+        multiline: False
+        height: self.line_height * 2
+    TogSwatch:
+        box: pawnmenu
+        img: root.closet.get_img("default_pawn")
+        text: root.get_text(_("Use default image"))
+        group: "pawnmenu"
+        size_hint_y: None
+    TogSwatch:
+        box: pawnmenu
+        img: root.closet.get_img("base.mummy_m")
+        tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
+        text: root.get_text(_("Build with RLTiles"))
+        group: "pawnmenu"
+        size_hint_y: None
+    BoxLayout:
+        size_hint_y: None
+        height: 30
+        Button:
+            text: root.get_text(_('Cancel'))
+            on_release: root.cancel()
+        Button:
+            text: root.get_text(_('Confirm'))
+            on_release: root.confirm()

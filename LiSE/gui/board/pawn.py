@@ -1,17 +1,15 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.gui.kivybits import (
-    SaveableWidgetMetaclass)
-from kivy.uix.scatter import Scatter
+from gamepiece import GamePiece
 from kivy.properties import (
+    AliasProperty,
     ObjectProperty)
 
 
 """Widget representing things that move about from place to place."""
 
 
-class Pawn(Scatter):
-    __metaclass__ = SaveableWidgetMetaclass
+class Pawn(GamePiece):
     """A token to represent something that moves about between places.
 
 Pawns are graphical widgets made of one or more textures layered atop
@@ -35,39 +33,53 @@ will update its position appropriately.
                 "observed": "text not null default 'Physical'",
                 "host": "text not null default 'Physical'",
                 "thing": "text not null",
-                "layer": "integer not null default 0",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
-                "img": "text not null default 'default_pawn'",
+                "graphic": "text not null",
                 "interactive": "boolean default 1"},
             "primary_key": (
                 "observer", "observed", "host", "thing",
-                "layer", "branch", "tick"),
+                "branch", "tick"),
             "foreign_keys": {
                 "observer, observed, host": (
                     "board", "observer, observed, host"),
                 "observed, host, thing": (
                     "thing", "character, host, name"),
-                "img": ("img", "name")}})]
+                "graphic": ("graphic", "name")}})]
     board = ObjectProperty()
     thing = ObjectProperty()
-    where_upon = ObjectProperty(None)
+    bone = ObjectProperty()
+    _touch = ObjectProperty(None, allownone=True)
+    where_upon = ObjectProperty()
+    name = AliasProperty(
+        lambda self: self.bone.graphic if self.bone else '',
+        lambda self, v: None,
+        bind=('bone',))
 
     def __init__(self, **kwargs):
         """Arrange to update my textures and my position whenever the relevant
-data change.
+        data change.
 
-The relevant data are
-
-* The branch and tick, being the two measures of game-time.
-* The location data for the Thing I represent, in the table thing_location"""
+        """
+        def reposskel(*args):
+            self.repos()
+        if 'board' in kwargs and 'closet' not in kwargs:
+            kwargs['closet'] = kwargs['board'].host.closet
+        kwargs['bone'] = kwargs['closet'].skeleton[u'pawn'][
+            unicode(kwargs['board'].facade.observer)][
+            unicode(kwargs['thing'].character)][
+            unicode(kwargs['thing'].host)][
+            unicode(kwargs['thing'])][
+            kwargs['closet'].branch].value_during(
+            kwargs['closet'].tick)
+        kwargs['graphic_name'] = kwargs['bone'].graphic
         super(Pawn, self).__init__(**kwargs)
-        self.board.pawndict[unicode(self.thing)] = self
-
-        skel = self.board.facade.closet.skeleton[u"thing_loc"][
+        skel = self.closet.skeleton[u"thing_loc"][
             unicode(self.thing.character)][unicode(self.thing)]
-        skel.register_set_listener(self.reposskel)
-        skel.register_del_listener(self.reposskel)
+        skel.register_set_listener(reposskel)
+        skel.register_del_listener(reposskel)
+        self.closet.register_time_listener(self.handle_time)
+        self.board.pawndict[unicode(self.thing)] = self
 
     def __str__(self):
         return str(self.thing)
@@ -75,30 +87,23 @@ The relevant data are
     def __unicode__(self):
         return unicode(self.thing)
 
-    def on_board(self, i, v):
-        v.facade.closet.register_time_listener(self.repos)
-        try:
-            whereami = v.arrowdict[unicode(self.thing.location)]
-        except KeyError:
-            whereami = v.spotdict[unicode(self.thing.location)]
-        whereami.pawns_here.append(self)
+    def handle_time(self, b, t):
+        self.bone = self.get_pawn_bone(b, t)
+        self.repos(b, t)
+
+    def on_board(self, *args):
+        self.repos()
 
     def get_loc_bone(self, branch=None, tick=None):
         return self.thing.get_bone(branch, tick)
 
-    def get_pawn_bone(self, layer=0, branch=None, tick=None):
+    def get_pawn_bone(self, branch=None, tick=None):
         (branch, tick) = self.board.host.sanetime(branch, tick)
         return self.board.host.closet.skeleton[u"pawn"][
             unicode(self.board.facade.observer)][
-            unicode(self.thing.character)][
+            unicode(self.board.facade.observed)][
             unicode(self.thing.host)][
-            unicode(self.thing)][
-            layer][branch].value_during(tick)
-
-    def get_img_bone(self, layer=0, branch=None, tick=None):
-        (branch, tick) = self.board.host.sanetime(branch, tick)
-        pawnbone = self.get_pawn_bone(layer, branch, tick)
-        return self.board.host.closet.skeleton[u"img"][pawnbone.img]
+            unicode(self.thing)][branch].value_during(tick)
 
     def new_branch(self, parent, branch, tick):
         """Update my part of the :class:`Skeleton` to have this new branch in
@@ -147,30 +152,7 @@ The relevant data are
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
-    def on_touch_up(self, touch):
-        """Check if I've been dropped on top of a :class:`Spot`.  If so, my
-        :class:`Thing` should attempt to go there.
-
-        """
-        if touch.grab_current is not self:
-            return
-        for spot in self.board.spotdict.itervalues():
-            if self.collide_widget(spot):
-                myplace = self.thing.location
-                theirplace = spot.place
-                if myplace != theirplace:
-                    self.thing.journey_to(spot.place)
-                    break
-        branch = self.board.facade.closet.branch
-        tick = self.board.facade.closet.tick
-        self.repos(branch, tick)
-        super(Pawn, self).on_touch_up(touch)
-        return True
-
-    def reposskel(self, *args):
-        self.repos(*self.board.host.sanetime(None, None))
-
-    def repos(self, b, t):
+    def repos(self, b=None, t=None):
         """Recalculate and reassign my position, based on the apparent
         position of whatever widget I am located on--a :class:`Spot`
         or an :class:`Arrow`.
@@ -188,5 +170,34 @@ The relevant data are
         self.where_upon = new_where_upon
         self.where_upon.pawns_here.append(self)
 
-    def collide_point(self, x, y):
-        return self.ids.pile.collide_point(x, y)
+    def check_spot_collision(self):
+        for spot in self.board.spotlayout.children:
+            if self.collide_widget(spot):
+                return spot
+
+    def on_touch_down(self, touch):
+        if self.collide_point(touch.x, touch.y):
+            touch.ud["pawn"] = self
+            touch.grab(self)
+            return True
+
+    def on_touch_move(self, touch):
+        if touch.grab_current is self:
+            self.center = touch.pos
+            return True
+
+    def on_touch_up(self, touch):
+        if 'pawn' in touch.ud:
+            del touch.ud['pawn']
+        if touch.grab_current is self:
+            touch.ungrab(self)
+            new_spot = self.check_spot_collision()
+
+            if new_spot:
+                myplace = self.thing.location
+                theirplace = new_spot.place
+                if myplace != theirplace:
+                    self.thing.journey_to(new_spot.place)
+            self.repos()
+            return True
+        return super(Pawn, self).on_touch_up(touch)

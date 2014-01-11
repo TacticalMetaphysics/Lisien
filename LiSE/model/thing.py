@@ -1,12 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from re import match
-
 from LiSE.util import (
-    upbranch, 
     TimeParadox,
-    JourneyException,
-    portex)
+    JourneyException)
 
 from container import Container
 
@@ -166,6 +162,20 @@ class Thing(Container):
             facade = self.character.get_facade(observer)
             return facade.get_thing_locations(self.name, branch)
 
+    def get_stats(self, observer=None, branch=None):
+        if observer is None:
+            return self.character.get_thing_stat_skel(self.name, branch)
+        else:
+            facade = self.character.get_facade(observer)
+            return facade.get_thing_stat_skel(self.name, branch)
+
+    def get_stat(self, stat, observer=None, branch=None, tick=None):
+        if observer is None:
+            return self.character.get_thing_stat(self.name, stat, branch, tick)
+        else:
+            facade = self.character.get_facade(observer)
+            return facade.get_thing_stat(self.name, stat, branch, tick)
+
     def get_speed(self, observer=None, branch=None, tick=None):
         lo = self.get_location(observer, branch, tick)
         ticks = self.get_ticks_thru(lo, observer, branch, tick)
@@ -198,7 +208,15 @@ class Thing(Container):
         return passed / duration
 
     def journey_to(self, destplace, branch=None, tick=None):
-        """Schedule myself to travel somewhere."""
+        """Schedule myself to travel somewhere.
+
+        I'll attempt to find a path from wherever I am at the moment
+        (or the time supplied) to the destination given. If I find
+        one, I'll schedule myself to be in the places and portals in
+        it at the appropriate times. Precisely what times are
+        'appropriate' depends on the effective lengths of the portals.
+
+        """
         if unicode(destplace) == unicode(self.get_location(branch, tick)):
             # Nothing to do
             return
@@ -215,6 +233,7 @@ class Thing(Container):
         # which may not match reality.  It would be weird to use some
         # other character's understanding.
         host = self.character.closet.get_character(self.get_bone().host)
+        host.update(branch, tick)
         facade = host.get_facade(self.character)
         facade.update(branch, tick)
         ipath = facade.graph.get_shortest_paths(
@@ -225,7 +244,8 @@ class Thing(Container):
                 continue
             desti = facade.graph.es[p[-1]].target
             if desti == destplace.v.index:
-                path = [facade.graph.es[i]["portal"] for i in p]
+                path = [facade.graph.es[i]["portals"][
+                    unicode(facade.observer)] for i in p]
                 break
         if path is None:
             raise JourneyException("Found no path to " + str(destplace))
@@ -306,26 +326,15 @@ class Thing(Container):
                 location=start_loc)
             self.character.closet.set_bone(locb)
             return
-        for bone in upbranch(
-                self.character.closet,
-                self.character.iter_thing_loc_bones(self, parent),
-                branch, tick):
+        for bone in self.character.iter_thing_loc_bones(
+                self, branch=parent):
             yield bone
-        for bone in upbranch(
-                self.character.closet,
-                self.iter_stat_bones(branch=parent),
-                branch, tick):
+        for bone in self.iter_stats_bones(branch=parent):
             yield bone
         for observer in self.character.facade_d.iterkeys():
-            for bone in upbranch(
-                    self.character.closet,
-                    self.iter_loc_bones(observer, parent),
-                    branch, tick):
+            for bone in self.iter_loc_bones(observer, branch=parent):
                 yield bone
-            for bone in upbranch(
-                    self.character.closet,
-                    self.iter_stat_bones(observer, branch=parent),
-                    branch, tick):
+            for bone in self.iter_stats_bones([], observer, branch=parent):
                 yield bone
 
     def iter_loc_bones(self, observer=None, branch=None):
@@ -337,15 +346,17 @@ class Thing(Container):
             for bone in facade.iter_thing_loc_bones(self, branch):
                 yield bone
 
-    def iter_stat_bones(self, observer=None, stat=None, branch=None):
+    def iter_stats_bones(self, stats=[], observer=None,
+                         branch=None, tick=None):
+        (branch, tick) = self.character.sanetime(branch, tick)
         if observer is None:
             for bone in self.character.iter_thing_stat_bones(
-                    self, stat, branch):
+                    self.name, stats, [branch], [tick]):
                 yield bone
         else:
             facade = self.character.get_facade(observer)
             for bone in facade.iter_thing_stat_bones(
-                    self, stat, branch):
+                    self.name, stats, [branch], [tick]):
                 yield bone
 
     def branch_loc_bones_gen(self, branch=None):
@@ -364,3 +375,9 @@ class Thing(Container):
         self.character.del_thing_locations(self.name, branch)
         for bone in bones:
             self.character.closet.set_bone(bone)
+
+    def iter_stat_keys(self, observer=None, branch=None, tick=None):
+        (branch, tick) = self.character.sanetime(branch, tick)
+        for key in self.subjective_lookup(
+                'iter_thing_stat_keys', observer, [branch, tick]):
+            yield key

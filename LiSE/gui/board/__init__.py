@@ -2,8 +2,9 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from board import (
     Board,
+    BoardView,
     Spot,
     Arrow,
     Pawn)
 
-__all__ = [Board, Spot, Pawn, Arrow]
+__all__ = [Board, BoardView, Spot, Pawn, Arrow]
