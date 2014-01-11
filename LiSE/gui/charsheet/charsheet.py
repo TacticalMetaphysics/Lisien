@@ -12,6 +12,7 @@ from table import (
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
     ClosetButton)
+from kivy.logger import Logger
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 from kivy.uix.modalview import ModalView
@@ -80,8 +81,13 @@ class NounListView(StackLayout):
     allow_empty_selection = BooleanProperty(False)
     finalized = BooleanProperty(False)
 
-    def on_charsheet(self, *args):
+    def __init__(self, **kwargs):
+        super(NounListView, self).__init__(**kwargs)
+        self.finalize()
+
+    def finalize(self, *args):
         if self.charsheet is None:
+            Clock.schedule_once(self.finalize, 0)
             return
         if self.finalized:
             raise Exception("It seems the charsheet has been set twice")
@@ -142,28 +148,29 @@ class NounStatListView(StackLayout):
 
     def __init__(self, **kwargs):
         super(NounStatListView, self).__init__(**kwargs)
-        Clock.schedule_once(self.finalize, 0)
+        self.finalize()
 
     def add_stat(self, stat):
         self.specialitems.append(stat)
         self.clear_widgets()
         self.finalize()
 
-    def on_nouns(self, *args):
-        if len(self.nounitems) == 0 or not self.finalized:
-            return
-        if self.finalized:
-            data2b = [SpecialItem(special) for special in
-                      self.specialitems]
-            for nounitem in self.nounitems:
-                for key in nounitem.noun.iter_stat_keys():
-                    data2b.append(StatItem(key))
-            self.adapter.data = data2b
+    def on_nounitems(self, *args):
+        data2b = [SpecialItem(special) for special in
+                  self.specialitems]
+        for nounitem in self.nounitems:
+            for key in nounitem.noun.iter_stat_keys():
+                data2b.append(StatItem(key))
+        self.adapter.data = data2b
 
     def finalize(self, *args):
+        if not self.nounitems:
+            Clock.schedule_once(self.finalize, 0)
+            return
         inidata = [SpecialItem(special) for special in
                    self.specialitems]
         for noun in self.nounitems:
+            print(noun)
             inidata.extend([StatItem(key) for key in noun.iter_stat_keys()])
         adapter = ListAdapter(
             data=inidata,
@@ -183,12 +190,23 @@ class NounStatListView(StackLayout):
 class StatListView(Widget):
     charsheet = ObjectProperty()
     selection = ListProperty([])
+    specialitems = ListProperty([])
     selection_mode = OptionProperty('single',
                                     options=['none', 'single', 'multiple'])
     allow_empty_selection = BooleanProperty(False)
 
-    def on_charsheet(self, *args):
+    def __init__(self, **kwargs):
+        super(StatListView, self).__init__(**kwargs)
+        self.finalize()
+
+    def add_stat(self, stat):
+        self.specialitems.append(stat)
+        self.clear_widgets()
+        self.finalize()
+
+    def finalize(self, *args):
         if self.charsheet is None:
+            Clock.schedule_once(self.finalize, 0)
             return
         adapter = ListAdapter(
             data=[StatItem(name=key) for key in
@@ -206,11 +224,15 @@ class StatListView(Widget):
 
 class CharSheetAdder(ModalView):
     charsheet = ObjectProperty()
-    insertion_point = NumericProperty(0)
-    get_text = AliasProperty(
-        lambda self: self.charsheet.character.closet.get_text,
+    closet = AliasProperty(
+        lambda self: self.charsheet.character.closet,
         lambda self, v: None,
         bind=('charsheet',))
+    get_text = AliasProperty(
+        lambda self: self.closet.get_text,
+        lambda self, v: None,
+        bind=('closet',))
+    insertion_point = NumericProperty(0)
 
     def confirm(self):
         r = self.record()
@@ -382,13 +404,15 @@ def char_sheet_table_def(
          {"character": "TEXT NOT NULL",
           "idx": "INTEGER NOT NULL",
           final_pkey: "TEXT NOT NULL",
-          "type": "INTEGER NOT NULL DEFAULT {}".format(typ)},
+          "type": "INTEGER NOT NULL DEFAULT {}".format(typ),
+          "height": "INTEGER NOT NULL DEFAULT 100"},
          "primary_key":
          ("character", "idx", final_pkey),
          "foreign_keys":
          {"character, idx, type":
           ("character_sheet_item_type", "character, idx, type")},
-         "checks": ["type={}".format(typ)]})
+         "checks": ["type={}".format(typ),
+                    "height>=50"]})
     if None not in foreign_key:
         (foreign_key_tab, foreign_key_key) = foreign_key
         r[1]["foreign_keys"].update(
@@ -406,19 +430,25 @@ def char_sheet_calendar_def(
           "idx": "INTEGER NOT NULL",
           col_x: "TEXT NOT NULL",
           "stat": "TEXT NOT NULL",
-          "type": "INTEGER DEFAULT {}".format(typ)},
+          "type": "INTEGER DEFAULT {}".format(typ),
+          "height": "INTEGER NOT NULL DEFAULT 100"},
          "primary_key":
          ("character", "idx"),
          "foreign_keys":
          {"character, idx, type":
           ("character_sheet_item_type", "character, idx, type")},
-         "checks": ["type={}".format(typ)]})
+         "checks": ["type={}".format(typ),
+                    "height>=50"]})
     if None not in foreign_key:
         (foreign_key_tab, foreign_key_key) = foreign_key
         r[1]["foreign_keys"].update(
             {"character, {}".format(col_x):
              (foreign_key_tab, "character, {}".format(foreign_key_key))})
     return r
+
+
+class Sizer(ClosetButton):
+    pass
 
 
 class AddButton(ClosetButton):
@@ -504,14 +534,17 @@ tick.
           {"character": "TEXT NOT NULL",
            "idx": "INTEGER NOT NULL",
            "stat": "TEXT NOT NULL",
-           "type": "INTEGER DEFAULT {}".format(CHAR_CAL)},
+           "type": "INTEGER DEFAULT {}".format(CHAR_CAL),
+           "height": "INTEGER NOT NULL DEFAULT 100"},
           "primary_key":
           ("character", "idx"),
           "foreign_keys":
           {"character, idx, type":
            ("character_sheet_item_type", "character, idx, type")},
-          "checks": ["type={}".format(CHAR_CAL)]})]
+          "checks": ["type={}".format(CHAR_CAL),
+                     "height>=50"]})]
     character = ObjectProperty()
+    csitems = ListProperty()
 
     def __init__(self, **kwargs):
         super(CharSheet, self).__init__(**kwargs)
@@ -534,8 +567,6 @@ but they never include branch or tick--CharSheet will only display
 things appropriate to the present, whenever that may be.
 
         """
-        self.unbind(character=self.repop)
-
         def make_calendar(i, bone, edbut):
             typ = bone.type
             (tabn, keyns) = {
@@ -552,7 +583,9 @@ things appropriate to the present, whenever that may be.
                 boneatt=keyns[1],
                 key=getattr(bone, keyns[0]),
                 stat=getattr(bone, keyns[1]) if len(keyns) == 2 else '',
-                edbut=edbut)
+                edbut=edbut,
+                size_hint=(0.8, None),
+                height=bone.height)
         self.size_hint = (1, None)
         self.clear_widgets()
         _ = self.character.closet.get_text
@@ -579,12 +612,12 @@ things appropriate to the present, whenever that may be.
                 headers = [_("thing")]
                 fieldnames = ["name"]
                 stats = []
-                for bone in self.iter_tab_i_bones("thing_tab_stat", i):
-                    if bone.stat == "location":
+                for subbone in self.iter_tab_i_bones("thing_tab_stat", i):
+                    if subbone.stat == "location":
                         headers.append("location")
                         fieldnames.append("location")
                     else:
-                        stats.append(bone.stat)
+                        stats.append(subbone.stat)
                 cwid = TableView(
                     character=self.character,
                     headers=headers,
@@ -592,7 +625,9 @@ things appropriate to the present, whenever that may be.
                     items=[self.character.get_thing(bone.thing) for bone in
                            self.iter_tab_i_bones("thing_tab_thing", i)],
                     stats=stats,
-                    edbut=edbut)
+                    edbut=edbut,
+                    size_hint=(0.8, None),
+                    height=bone.height)
             elif bone.type == PLACE_TAB:
                 cwid = TableView(
                     character=self.character,
@@ -602,20 +637,22 @@ things appropriate to the present, whenever that may be.
                            self.iter_tab_i_bones("place_tab_place", i)],
                     stats=[bone.stat for bone in
                            self.iter_tab_i_bones("place_tab_stat", i)],
-                    edbut=edbut)
+                    edbut=edbut,
+                    size_hint=(0.8, None),
+                    height=bone.height)
             elif bone.type == PORTAL_TAB:
                 headers = ["portal"]
                 fieldnames = ["name"]
                 stats = []
-                for bone in self.iter_tab_i_bones("portal_tab_stat", i):
-                    if bone.stat == "origin":
+                for subbone in self.iter_tab_i_bones("portal_tab_stat", i):
+                    if subbone.stat == "origin":
                         headers.append(_("origin"))
                         fieldnames.append("origin")
-                    elif bone.stat == "destination":
+                    elif subbone.stat == "destination":
                         headers.append(_("destination"))
                         fieldnames.append("destination")
                     else:
-                        stats.append(bone.stat)
+                        stats.append(subbone.stat)
                 cwid = TableView(
                     character=self.character,
                     headers=headers,
@@ -623,34 +660,59 @@ things appropriate to the present, whenever that may be.
                     stats=stats,
                     items=[self.character.get_portal(bone.portal) for bone in
                            self.iter_tab_i_bones("portal_tab_portal", i)],
-                    edbut=edbut)
+                    edbut=edbut,
+                    size_hint=(0.8, None),
+                    height=bone.height)
             elif bone.type == CHAR_TAB:
                 cwid = CharStatTableView(
                     character=self.character,
                     stats=[bone.stat for bone in
                            self.iter_tab_i_bones("char_tab_stat", i)],
-                    edbut=edbut)
+                    edbut=edbut,
+                    size_hint=(0.8, None),
+                    height=bone.height)
             elif bone.type in CALENDAR_TYPES:
                 cwid = make_calendar(i, bone, edbut)
             else:
                 raise ValueError("Unknown item type: {}".format(bone.type))
 
-            entry = GridLayout(cols=2)
+            entry = GridLayout(cols=2, size_hint_y=None)
             buttons = StackLayout(size_hint_x=0.2)
             if i > 0:
+                sizer = Sizer(
+                    closet=self.character.closet,
+                    height=10)
+                buttons.add_widget(sizer)
                 addbut = AddButton(
                     closet=self.character.closet,
                     fun=self.add_item,
                     arg=i,
-                    size_hint_y=0.2)
+                    size_hint_y=None,
+                    height=20)
                 buttons.add_widget(addbut)
             buttons.add_widget(edbut)
-            cwid.size_hint_x = 0.8
             entry.add_widget(cwid)
             entry.add_widget(buttons)
+            self.csitems.append(entry)
             self.add_widget(entry)
 
             i += 1
+
+        # Supposing I've got to the final entry without running out of
+        # space, let the final entry fill all available space;
+        # otherwise leave it be.
+        def adj_final_entry(*args):
+            final_entry = self.csitems[-1]
+            bot = self.y + 20
+            if final_entry.y > bot:
+                final_entry.size_hint_y = 1.
+            else:
+                final_entry.size_hint_y = None
+        if hasattr(self, 'adj_final_entry'):
+            self.unbind(y=self.adj_final_entry)
+        self.adj_final_entry = adj_final_entry
+        self.bind(y=self.adj_final_entry)
+
         final_addbut = AddButton(
             closet=self.character.closet,
             fun=self.add_item,
@@ -671,6 +733,7 @@ things appropriate to the present, whenever that may be.
         """
         for child in self.children:
             if child.on_touch_down(touch):
+                touch.ud['charsheet'] = self
                 return True
 
     def on_touch_move(self, touch):

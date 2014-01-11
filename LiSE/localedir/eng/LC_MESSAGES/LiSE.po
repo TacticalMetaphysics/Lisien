@@ -17,6 +17,10 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#: LiSE/gui/lise.kv:14
+msgid "@resize-ud"
+msgstr "⇕"
+
 #: LiSE/gui/charsheet/charsheet.py:472
 #: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:10
 msgid "@add"

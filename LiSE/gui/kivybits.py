@@ -32,6 +32,7 @@ class ClosetLabel(Label, ClosetWidget):
 class ClosetButton(Button, ClosetWidget):
     fun = ObjectProperty(None)
     arg = ObjectProperty(None)
+    pressed = BooleanProperty(False)
 
     def on_release(self, *args):
         if self.fun is None:
