@@ -337,7 +337,6 @@ class CalendarView(StencilView):
     key = StringProperty()
     stat = StringProperty()
     i = NumericProperty()
-    edbut = ObjectProperty()
     branches_wide = NumericProperty()
     font_name = StringProperty()
     font_size = NumericProperty()

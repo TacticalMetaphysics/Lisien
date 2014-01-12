@@ -1,4 +1,5 @@
 from kivy.properties import (
+    NumericProperty,
     ListProperty,
     ObjectProperty)
 from kivy.uix.label import Label
@@ -67,7 +68,7 @@ class TableView(ScrollView):
     fieldnames = ListProperty()
     items = ListProperty()
     stats = ListProperty()
-    edbut = ObjectProperty()
+    i = NumericProperty()
 
 
 class CharStatTableContent(GridLayout):
@@ -92,4 +93,4 @@ class CharStatTableContent(GridLayout):
 class CharStatTableView(ScrollView):
     character = ObjectProperty()
     stats = ListProperty()
-    edbut = ObjectProperty()
+    i = NumericProperty()

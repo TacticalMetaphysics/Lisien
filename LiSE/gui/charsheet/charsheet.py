@@ -16,7 +16,7 @@ from kivy.logger import Logger
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 from kivy.uix.modalview import ModalView
-from kivy.uix.gridlayout import GridLayout
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.adapters.listadapter import ListAdapter
@@ -561,24 +561,12 @@ things appropriate to the present, whenever that may be.
         self.clear_widgets()
         _ = self.character.closet.get_text
         i = 0
-        self.add_widget(
-            AddButton(
-                closet=self.character.closet,
-                fun=self.add_item,
-                arg=0,
-                size_hint_y=None,
-                height=20))
         if unicode(self.character) not in self.character.closet.skeleton[
                 u"character_sheet_item_type"]:
             return
-        edimgd = self.character.closet.get_imgs(
-            ("locked", "unlocked"))
-        edimgd = {'normal': edimgd['locked'],
-                  'down': edimgd['unlocked']}
         for bone in self.character.closet.skeleton[
                 u"character_sheet_item_type"][
                 unicode(self.character)].iterbones():
-            edbut = EditButton(imgd=edimgd)
             if bone.type == THING_TAB:
                 headers = [_("thing")]
                 fieldnames = ["name"]
@@ -653,43 +641,46 @@ things appropriate to the present, whenever that may be.
             widspec[1].update({
                 'character': self.character,
                 'size_hint_x': 0.8,
-                'edbut': edbut})
+                'i': i})
             if bone.height:
                 widspec[1].update({
                     'size_hint_y': None,
                     'height': bone.height})
-            entry = GridLayout(
-                cols=2,
-                size_hint_y=None if bone.height else 1.)
-            buttons = StackLayout(size_hint_x=0.2)
-            if i > 0:
-                sizer = Sizer(
-                    closet=self.character.closet,
-                    height=10)
-                buttons.add_widget(sizer)
-                addbut = AddButton(
-                    closet=self.character.closet,
-                    fun=self.add_item,
-                    arg=i,
-                    size_hint_y=None,
-                    height=20)
-                buttons.add_widget(addbut)
-            buttons.add_widget(edbut)
-            entry.add_widget(widspec[0](**widspec[1]))
-            entry.add_widget(buttons)
-            self.csitems.append(entry)
+            self.csitems.append(widspec[0](**widspec[1]))
 
             i += 1
-        middle = StackLayout(size_hint_y=0.9)
-        for item in self.csitems:
-            middle.add_widget(item)
-        self.add_widget(middle)
+
+        itemct = i
+        initial_addbut = AddButton(
+            closet=self.character.closet,
+            fun=self.add_item,
+            arg=0,
+            size_hint_y=None,
+            height=20)
         final_addbut = AddButton(
             closet=self.character.closet,
             fun=self.add_item,
-            arg=i,
+            arg=itemct,
             size_hint_y=None,
             height=20)
+        self.add_widget(initial_addbut)
+        middle = StackLayout(size_hint_y=0.9)
+        for item in self.csitems:
+            middle.add_widget(item)
+            if item.i + 1 < itemct:
+                buttonbox = BoxLayout(
+                    size_hint_y=None,
+                    height=20)
+                buttonbox.add_widget(Sizer(
+                    closet=self.character.closet,
+                    size_hint_x=0.2))
+                buttonbox.add_widget(AddButton(
+                    closet=self.character.closet,
+                    fun=self.add_item,
+                    arg=item.i+1,
+                    size_hint_x=0.8))
+                middle.add_widget(buttonbox)
+        self.add_widget(middle)
         self.add_widget(final_addbut)
 
     def iter_tab_i_bones(self, tab, i):
