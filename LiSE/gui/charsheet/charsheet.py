@@ -45,7 +45,7 @@ from LiSE.data import (
 
 
 class ListItemToggle(SelectableView, ToggleButton):
-    pass
+    noun = ObjectProperty(allownone=True)
 
 
 class CharListAdapter(ListAdapter):
@@ -61,6 +61,7 @@ class CharListAdapter(ListAdapter):
 
 def args_converter(idx, item):
     return {
+        'noun': item.noun,
         'text': unicode(item.noun),
         'size_hint_y': None,
         'height': 25}
@@ -164,16 +165,8 @@ class NounStatListView(StackLayout):
         self.adapter.data = data2b
 
     def finalize(self, *args):
-        if not self.nounitems:
-            Clock.schedule_once(self.finalize, 0)
-            return
-        inidata = [SpecialItem(special) for special in
-                   self.specialitems]
-        for noun in self.nounitems:
-            print(noun)
-            inidata.extend([StatItem(key) for key in noun.iter_stat_keys()])
-        adapter = ListAdapter(
-            data=inidata,
+        self.adapter = ListAdapter(
+            data=[],  # will be filled on_nounitems
             selection_mode=self.selection_mode,
             args_converter=lambda k, v: {
                 'text': v.name,
@@ -181,8 +174,8 @@ class NounStatListView(StackLayout):
                 'height': 25},
             allow_empty_selection=self.allow_empty_selection,
             cls=ListItemToggle)
-        adapter.bind(selection=self.setter('selection'))
-        listview = ListView(adapter=adapter)
+        self.adapter.bind(selection=self.setter('selection'))
+        listview = ListView(adapter=self.adapter)
         self.add_widget(listview)
         self.finalized = True
 
@@ -404,15 +397,13 @@ def char_sheet_table_def(
          {"character": "TEXT NOT NULL",
           "idx": "INTEGER NOT NULL",
           final_pkey: "TEXT NOT NULL",
-          "type": "INTEGER NOT NULL DEFAULT {}".format(typ),
-          "height": "INTEGER NOT NULL DEFAULT 100"},
+          "type": "INTEGER NOT NULL DEFAULT {}".format(typ)},
          "primary_key":
          ("character", "idx", final_pkey),
          "foreign_keys":
          {"character, idx, type":
           ("character_sheet_item_type", "character, idx, type")},
-         "checks": ["type={}".format(typ),
-                    "height>=50"]})
+         "checks": ["type={}".format(typ)]})
     if None not in foreign_key:
         (foreign_key_tab, foreign_key_key) = foreign_key
         r[1]["foreign_keys"].update(
@@ -430,15 +421,13 @@ def char_sheet_calendar_def(
           "idx": "INTEGER NOT NULL",
           col_x: "TEXT NOT NULL",
           "stat": "TEXT NOT NULL",
-          "type": "INTEGER DEFAULT {}".format(typ),
-          "height": "INTEGER NOT NULL DEFAULT 100"},
+          "type": "INTEGER DEFAULT {}".format(typ)},
          "primary_key":
          ("character", "idx"),
          "foreign_keys":
          {"character, idx, type":
           ("character_sheet_item_type", "character, idx, type")},
-         "checks": ["type={}".format(typ),
-                    "height>=50"]})
+         "checks": ["type={}".format(typ)]})
     if None not in foreign_key:
         (foreign_key_tab, foreign_key_key) = foreign_key
         r[1]["foreign_keys"].update(
@@ -477,7 +466,8 @@ tick.
          {"columns":
           {"character": "TEXT NOT NULL",
            "idx": "INTEGER NOT NULL",
-           "type": "INTEGER NOT NULL"},
+           "type": "INTEGER NOT NULL",
+           "height": "INTEGER"},  # null means size_hint=1
           "primary_key":
           ("character", "idx"),
           "checks":
@@ -567,25 +557,6 @@ but they never include branch or tick--CharSheet will only display
 things appropriate to the present, whenever that may be.
 
         """
-        def make_calendar(i, bone, edbut):
-            typ = bone.type
-            (tabn, keyns) = {
-                THING_CAL: ("thing_cal", ["thing", "stat"]),
-                PLACE_CAL: ("place_cal", ["place", "stat"]),
-                PORTAL_CAL: ("portal_cal", ["portal", "stat"]),
-                CHAR_CAL: ("char_cal", ["stat"])
-            }[typ]
-            bone = self.character.closet.skeleton[tabn][
-                unicode(self.character)][i]
-            return CalendarView(
-                charsheet=self,
-                cal_type=typ,
-                boneatt=keyns[1],
-                key=getattr(bone, keyns[0]),
-                stat=getattr(bone, keyns[1]) if len(keyns) == 2 else '',
-                edbut=edbut,
-                size_hint=(0.8, None),
-                height=bone.height)
         self.size_hint = (1, None)
         self.clear_widgets()
         _ = self.character.closet.get_text
@@ -614,32 +585,28 @@ things appropriate to the present, whenever that may be.
                 stats = []
                 for subbone in self.iter_tab_i_bones("thing_tab_stat", i):
                     if subbone.stat == "location":
-                        headers.append("location")
+                        headers.append(_("location"))
                         fieldnames.append("location")
                     else:
                         stats.append(subbone.stat)
-                cwid = TableView(
-                    character=self.character,
-                    headers=headers,
-                    fieldnames=fieldnames,
-                    items=[self.character.get_thing(bone.thing) for bone in
-                           self.iter_tab_i_bones("thing_tab_thing", i)],
-                    stats=stats,
-                    edbut=edbut,
-                    size_hint=(0.8, None),
-                    height=bone.height)
+                widspec = (TableView, {
+                    'headers': headers,
+                    'fieldnames': fieldnames,
+                    'items': [self.character.get_thing(subbone.thing)
+                              for subbone in
+                              self.iter_tab_i_bones("thing_tab_thing", i)],
+                    'stats': stats})
             elif bone.type == PLACE_TAB:
-                cwid = TableView(
-                    character=self.character,
-                    headers=[_("place")],
-                    fieldnames=["name"],
-                    items=[self.character.get_place(bone.place) for bone in
-                           self.iter_tab_i_bones("place_tab_place", i)],
-                    stats=[bone.stat for bone in
-                           self.iter_tab_i_bones("place_tab_stat", i)],
-                    edbut=edbut,
-                    size_hint=(0.8, None),
-                    height=bone.height)
+                widspec = (TableView, {
+                    'headers': [_("place")],
+                    'fieldnames': ["name"],
+                    'items': [
+                        self.character.get_place(bone.place)
+                        for bone in
+                        self.iter_tab_i_bones("place_tab_place", i)],
+                    'stats': [
+                        bone.stat for bone in
+                        self.iter_tab_i_bones("place_tab_stat", i)]})
             elif bone.type == PORTAL_TAB:
                 headers = ["portal"]
                 fieldnames = ["name"]
@@ -653,30 +620,47 @@ things appropriate to the present, whenever that may be.
                         fieldnames.append("destination")
                     else:
                         stats.append(subbone.stat)
-                cwid = TableView(
-                    character=self.character,
-                    headers=headers,
-                    fieldnames=fieldnames,
-                    stats=stats,
-                    items=[self.character.get_portal(bone.portal) for bone in
-                           self.iter_tab_i_bones("portal_tab_portal", i)],
-                    edbut=edbut,
-                    size_hint=(0.8, None),
-                    height=bone.height)
+                widspec = (TableView, {
+                    'headers': headers,
+                    'fieldnames': fieldnames,
+                    'stats': stats,
+                    'items': [
+                        self.character.get_portal(bone.portal) for bone in
+                        self.iter_tab_i_bones("portal_tab_portal", i)]})
             elif bone.type == CHAR_TAB:
-                cwid = CharStatTableView(
-                    character=self.character,
-                    stats=[bone.stat for bone in
-                           self.iter_tab_i_bones("char_tab_stat", i)],
-                    edbut=edbut,
-                    size_hint=(0.8, None),
-                    height=bone.height)
+                widspec = (CharStatTableView, {
+                    'stats': [
+                        bone.stat for bone in
+                        self.iter_tab_i_bones("char_tab_stat", i)]})
             elif bone.type in CALENDAR_TYPES:
-                cwid = make_calendar(i, bone, edbut)
+                (tabn, keyns) = {
+                    THING_CAL: ("thing_cal", ["thing", "stat"]),
+                    PLACE_CAL: ("place_cal", ["place", "stat"]),
+                    PORTAL_CAL: ("portal_cal", ["portal", "stat"]),
+                    CHAR_CAL: ("char_cal", ["stat"])
+                }[bone.type]
+                subbone = self.character.closet.skeleton[tabn][
+                    unicode(self.character)][i]
+                widspec = (CalendarView, {
+                    'cal_type': bone.type,
+                    'boneatt': keyns[1],
+                    'key': getattr(subbone, keyns[0]),
+                    'stat': getattr(subbone, keyns[1])
+                    if len(keyns) == 2 else ''})
             else:
                 raise ValueError("Unknown item type: {}".format(bone.type))
 
-            entry = GridLayout(cols=2, size_hint_y=None)
+            widspec[1].update({
+                'character': self.character,
+                'size_hint_x': 0.8,
+                'edbut': edbut})
+            if bone.height:
+                widspec[1].update({
+                    'size_hint_y': None,
+                    'height': bone.height})
+            entry = GridLayout(
+                cols=2,
+                size_hint_y=None if bone.height else 1.)
             buttons = StackLayout(size_hint_x=0.2)
             if i > 0:
                 sizer = Sizer(
@@ -691,28 +675,15 @@ things appropriate to the present, whenever that may be.
                     height=20)
                 buttons.add_widget(addbut)
             buttons.add_widget(edbut)
-            entry.add_widget(cwid)
+            entry.add_widget(widspec[0](**widspec[1]))
             entry.add_widget(buttons)
             self.csitems.append(entry)
-            self.add_widget(entry)
 
             i += 1
-
-        # Supposing I've got to the final entry without running out of
-        # space, let the final entry fill all available space;
-        # otherwise leave it be.
-        def adj_final_entry(*args):
-            final_entry = self.csitems[-1]
-            bot = self.y + 20
-            if final_entry.y > bot:
-                final_entry.size_hint_y = 1.
-            else:
-                final_entry.size_hint_y = None
-        if hasattr(self, 'adj_final_entry'):
-            self.unbind(y=self.adj_final_entry)
-        self.adj_final_entry = adj_final_entry
-        self.bind(y=self.adj_final_entry)
-
+        middle = StackLayout(size_hint_y=0.9)
+        for item in self.csitems:
+            middle.add_widget(item)
+        self.add_widget(middle)
         final_addbut = AddButton(
             closet=self.character.closet,
             fun=self.add_item,
