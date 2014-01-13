@@ -228,3 +228,7 @@ class BoardView(ScrollView):
             self.do_scroll_x = self.do_scroll_y = (
                 not self.board.spotlayout.on_touch_down(touch))
         return super(BoardView, self).on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        self.do_scroll_x = self.do_scroll_y = True
+        return super(BoardView, self).on_touch_up(touch)
