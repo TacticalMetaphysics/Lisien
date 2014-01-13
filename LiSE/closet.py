@@ -914,7 +914,7 @@ before RumorMill will work. For that, run mkdb.sh.
                 return False
 
         def set_cstype_maybe(character, idx, type):
-            if not have_charsheet_type_bone:
+            if not have_charsheet_type_bone(character, idx, type):
                 self.set_bone(CharSheet.bonetype(
                     character=character,
                     idx=idx,
@@ -960,7 +960,9 @@ before RumorMill will work. For that, run mkdb.sh.
         elif isinstance(bone, Spot.bonetypes[u"spot_coords"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
             upd_time(bone.branch, bone.tick)
-        elif type(bone) is CharSheet.bonetype:
+        elif isinstance(bone, CharSheet.bonetype):
+            # no need to *implicitly* set that bonetype, so preclude
+            # doing so
             pass
         elif type(bone) in CharSheet.bonetypes.values():
             set_cstype_maybe(bone.character, bone.idx, bone.type)

@@ -351,6 +351,7 @@ class CalendarView(StencilView):
         branches_offscreen, ticks_offscreen)
     calendar = ObjectProperty()
     charsheet = ObjectProperty()
+    csbone = ObjectProperty()
     tl_color = ListProperty()
     _touch = ObjectProperty(None, allownone=True)
 

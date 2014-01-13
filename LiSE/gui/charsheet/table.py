@@ -64,6 +64,7 @@ class TableContent(GridLayout):
 
 class TableView(ScrollView):
     character = ObjectProperty()
+    csbone = ObjectProperty()
     headers = ListProperty()
     fieldnames = ListProperty()
     items = ListProperty()

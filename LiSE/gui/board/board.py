@@ -218,8 +218,12 @@ class BoardView(ScrollView):
         self.add_widget(self.board)
 
     def on_touch_down(self, touch):
-        self.do_scroll_x = self.do_scroll_y = (
-            not self.board.pawnlayout.on_touch_down(touch))
+        for preemptor in 'menu', 'charsheet', 'portaling':
+            if preemptor in touch.ud:
+                self.do_scroll_x = self.do_scroll_y = False
+        if self.do_scroll_x:
+            self.do_scroll_x = self.do_scroll_y = (
+                not self.board.pawnlayout.on_touch_down(touch))
         if self.do_scroll_x:
             self.do_scroll_x = self.do_scroll_y = (
                 not self.board.spotlayout.on_touch_down(touch))

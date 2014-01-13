@@ -437,7 +437,43 @@ def char_sheet_calendar_def(
 
 
 class Sizer(ClosetButton):
-    pass
+    charsheet = ObjectProperty()
+    i = NumericProperty()
+    prior_y = NumericProperty()
+
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            touch.ud['charsheet'] = self.charsheet
+            touch.ud['sizer'] = self
+            touch.grab(self)
+            self.prior_y = self.y
+            self.state = 'down'
+            return True
+
+    def on_touch_move(self, touch):
+        if 'sizer' not in touch.ud or touch.ud['sizer'] is not self:
+            touch.ungrab(self)
+            self.state = 'normal'
+            return
+        self.parent.center_y = touch.y
+        self.charsheet.csitems[self.i].bottom = self.top
+        self.charsheet.csitems[self.i+1].top = self.y
+        return True
+
+    def on_touch_up(self, touch):
+        assert('sizer' in touch.ud and touch.ud['sizer'] is self)
+        wid_before = self.charsheet.csitems[self.i]
+        wid_after = self.charsheet.csitems[self.i+1]
+        bone_before = wid_before.csbone._replace(
+            height=wid_before.top-self.top)
+        bone_after = wid_after.csbone._replace(
+            height=self.y-wid_after.y)
+        self.closet.set_bone(bone_before)
+        self.closet.set_bone(bone_after)
+        wid_before.csbone = bone_before
+        wid_after.csbone = bone_after
+        self.state = 'normal'
+        return True
 
 
 class AddButton(ClosetButton):
@@ -640,6 +676,7 @@ things appropriate to the present, whenever that may be.
 
             widspec[1].update({
                 'character': self.character,
+                'csbone': bone,
                 'size_hint_x': 0.8,
                 'i': i})
             if bone.height:
@@ -663,23 +700,27 @@ things appropriate to the present, whenever that may be.
             arg=itemct,
             size_hint_y=None,
             height=20)
-        self.add_widget(initial_addbut)
         middle = StackLayout(size_hint_y=0.9)
         for item in self.csitems:
             middle.add_widget(item)
-            if item.i + 1 < itemct:
+            whereat = item.i + 1
+            if whereat < itemct:
                 buttonbox = BoxLayout(
                     size_hint_y=None,
                     height=20)
                 buttonbox.add_widget(Sizer(
+                    charsheet=self,
+                    i=item.i,
                     closet=self.character.closet,
                     size_hint_x=0.2))
                 buttonbox.add_widget(AddButton(
                     closet=self.character.closet,
                     fun=self.add_item,
-                    arg=item.i+1,
+                    arg=whereat,
                     size_hint_x=0.8))
                 middle.add_widget(buttonbox)
+
+        self.add_widget(initial_addbut)
         self.add_widget(middle)
         self.add_widget(final_addbut)
 
