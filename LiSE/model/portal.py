@@ -2,7 +2,6 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from container import Container
 from LiSE.util import upbranch
-from igraph import InternalError
 
 
 class Portal(Container):

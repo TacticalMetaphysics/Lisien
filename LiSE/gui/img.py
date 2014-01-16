@@ -8,7 +8,7 @@ from kivy.properties import (
     ReferenceListProperty,
 )
 
-from LiSE.util import SaveableMetaclass
+from LiSE.orm import SaveableMetaclass
 
 
 """Saveable records about image files."""

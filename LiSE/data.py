@@ -7,40 +7,6 @@
 def _(arg):
     return arg
 
-THING_TAB = 0
-PLACE_TAB = 2
-PORTAL_TAB = 3
-CHAR_TAB = 4
-THING_CAL = 5
-PLACE_CAL = 6
-PORTAL_CAL = 7
-CHAR_CAL = 8
-
-
-SHEET_ITEM_TYPES = [
-    THING_TAB,
-    PLACE_TAB,
-    PORTAL_TAB,
-    CHAR_TAB,
-    THING_CAL,
-    PLACE_CAL,
-    PORTAL_CAL,
-    CHAR_CAL]
-
-
-TABLE_TYPES = [
-    THING_TAB,
-    PLACE_TAB,
-    PORTAL_TAB,
-    CHAR_TAB]
-
-
-CALENDAR_TYPES = [
-    THING_CAL,
-    PLACE_CAL,
-    PORTAL_CAL,
-    CHAR_CAL]
-
 
 whole_imgrows = [
     ('default_wallpaper', 'LiSE/gui/assets/wallpape.jpg', 0),

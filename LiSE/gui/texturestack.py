@@ -15,7 +15,6 @@ from kivy.graphics import (
     InstructionGroup
 )
 from kivy.properties import (
-    BooleanProperty,
     ListProperty,
     DictProperty)
 from kivy.clock import Clock

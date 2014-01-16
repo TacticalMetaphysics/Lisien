@@ -1,4 +1,4 @@
-from LiSE.util import SaveableMetaclass
+from LiSE.orm import SaveableMetaclass
 
 
 class Timestream(object):

@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.util import tabclas
+from LiSE.orm import SaveableMetaclass
 
 
 class ChangeException(Exception):
@@ -17,7 +17,7 @@ they'll be looked up in the skeleton--table name first, field name
 last.
 
         """
-        global tabclas
+        tabclas = SaveableMetaclass.tabclas
         self.clas = tabclas[keys[0]]
         for fn in keys:
             if fn not in self.clas.colnames[keys[0]]:

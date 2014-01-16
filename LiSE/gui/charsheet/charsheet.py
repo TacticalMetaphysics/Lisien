@@ -12,7 +12,6 @@ from table import (
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
     ClosetButton)
-from kivy.logger import Logger
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 from kivy.uix.modalview import ModalView
@@ -31,7 +30,7 @@ from kivy.properties import (
     ListProperty,
     ObjectProperty)
 from kivy.clock import Clock
-from LiSE.data import (
+from LiSE.util import (
     THING_TAB,
     PLACE_TAB,
     PORTAL_TAB,
