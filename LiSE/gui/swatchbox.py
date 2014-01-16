@@ -15,7 +15,7 @@ from kivy.properties import (
     NumericProperty,
     ObjectProperty)
 
-from gamepiece import ImgStack
+from LiSE.gui.board.gamepiece import ImgStack
 
 
 class FrobSwatch(Button):
