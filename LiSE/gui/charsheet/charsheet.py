@@ -229,11 +229,13 @@ class CharSheetAdder(ModalView):
 
     def confirm(self):
         r = self.record()
-        if r is not None:
+        if r is not None:  # might be 0
             type_bone = CharSheet.bonetype(
                 character=unicode(self.charsheet.character),
                 idx=self.insertion_point,
-                type=r)
+                type=r,
+                height=max([100, self.charsheet.height - sum(
+                    csitem.height for csitem in self.charsheet.csitems)]))
             self.charsheet.character.closet.set_bone(type_bone)
             self.charsheet.repop()
             self.dismiss()
@@ -461,7 +463,10 @@ class Sizer(ClosetButton):
         return True
 
     def on_touch_up(self, touch):
-        assert('sizer' in touch.ud and touch.ud['sizer'] is self)
+        if 'sizer' not in touch.ud or touch.ud['sizer'] is not self:
+            touch.ungrab(self)
+            self.state = 'normal'
+            return
         wid_before = self.charsheet.csitems[self.i]
         wid_after = self.charsheet.csitems[self.i+1]
         bone_before = wid_before.csbone._replace(
@@ -503,7 +508,7 @@ tick.
           {"character": "TEXT NOT NULL",
            "idx": "INTEGER NOT NULL",
            "type": "INTEGER NOT NULL",
-           "height": "INTEGER"},  # null means size_hint=1
+           "height": "INTEGER NOT NULL"},
           "primary_key":
           ("character", "idx"),
           "checks":
@@ -678,11 +683,9 @@ things appropriate to the present, whenever that may be.
                 'character': self.character,
                 'csbone': bone,
                 'size_hint_x': 0.8,
-                'i': i})
-            if bone.height:
-                widspec[1].update({
-                    'size_hint_y': None,
-                    'height': bone.height})
+                'i': i,
+                'size_hint_y': None,
+                'height': bone.height})
             self.csitems.append(widspec[0](**widspec[1]))
 
             i += 1
