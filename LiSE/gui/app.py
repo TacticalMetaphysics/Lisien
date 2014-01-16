@@ -30,9 +30,9 @@ from LiSE.gui.kivybits import TouchlessWidget
 from LiSE.gui.swatchbox import SwatchBox, TogSwatch
 from LiSE.gui.charsheet import CharSheetAdder
 
-from LiSE.util import TimestreamException, tabclas
+from LiSE.util import TimestreamException
 from LiSE.model import Thing
-from LiSE.closet import mkdb, load_closet
+from LiSE.orm import SaveableMetaclass, mkdb, load_closet
 from LiSE import __path__
 
 Factory.register('BoardView', cls=BoardView)
@@ -545,7 +545,7 @@ class LiSEApp(App):
             print("No database specified; defaulting to {}".format(self.dbfn))
         try:
             conn = connect(self.dbfn)
-            for tab in tabclas.iterkeys():
+            for tab in SaveableMetaclass.tabclas.iterkeys():
                 conn.execute("SELECT * FROM {};".format(tab))
         except (IOError, OperationalError):
             mkdb(self.dbfn, __path__[-1])

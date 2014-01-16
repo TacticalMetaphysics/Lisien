@@ -18,7 +18,7 @@ from kivy.uix.widget import Widget
 from kivy.logger import Logger
 from kivy.graphics import Color, Line, Triangle
 
-from LiSE.data import (
+from LiSE.util import (
     THING_CAL,
     PLACE_CAL,
     PORTAL_CAL,

@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.util import SaveableMetaclass, Fabulator
+from LiSE.orm import SaveableMetaclass
+from LiSE.util import Fabulator
 from cause import Cause
 from effect import Effect
 

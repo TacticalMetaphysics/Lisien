@@ -14,7 +14,7 @@ from kivy.properties import (
     BooleanProperty)
 from kivy.clock import Clock
 
-from LiSE.util import SaveableMetaclass
+from LiSE.orm import SaveableMetaclass
 
 
 class ClosetWidget(Widget):

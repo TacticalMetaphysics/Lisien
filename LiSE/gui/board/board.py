@@ -6,7 +6,6 @@ from kivy.properties import (
     BooleanProperty,
     DictProperty,
     ObjectProperty)
-from kivy.logger import Logger
 from kivy.uix.image import Image
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
