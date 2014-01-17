@@ -9,6 +9,9 @@
     text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
 <ClosetHintTextInput>:
     hint_text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
+<Sizer>:
+    symbolic: True
+    stringname: _('@resize-ud')
 <AddButton>:
     symbolic: True
     stringname: _('@add')
@@ -26,6 +29,7 @@
     tick_height: 2
     col_width: 100
     tl_color: [1, 0, 0, 1]
+    calendar: cal
     Calendar:
         id: cal
         font_name: root.font_name
@@ -58,6 +62,8 @@
         Rectangle:
             pos: root.pos
             size: root.size
+<TabbedPanel>:
+    do_default_tab: False
 <CharSheetAdder>:
     StackLayout:
         Label:
@@ -66,13 +72,12 @@
         TabbedPanel:
             id: panel
             size_hint_y: 0.9
-            do_default_tab: False
+            default_tab: tables
             TabbedPanelItem:
                 id: tables
                 text: root.get_text(_('Tables'))
                 TabbedPanel:
                     id: tables_panel
-                    do_default_tab: False
                     TabbedPanelItem:
                         id: thing_tab
                         text: root.get_text(_('Thing'))
@@ -103,10 +108,10 @@
                                         id: thing_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    CSAddBut:
+                                    AddButton:
                                         id: thing_tab_stat_add
-                                        adder: root
-                                        statview: thing_tab_stat
+                                        closet: root.closet
+                                        fun: thing_tab_stat.add_stat
                                         arg: thing_tab_stat_in.text
                     TabbedPanelItem:
                         id: place_tab
@@ -136,10 +141,11 @@
                                         id: place_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    CSAddBut:
+                                    AddButton:
                                         id: place_tab_stat_add
-                                        adder: root
-                                        args: [place_tab_place.selection, place_tab_stat_in.text]
+                                        closet: root.closet
+                                        fun: place_tab_stat.add_stat
+                                        arg: place_tab_stat_in.text
                     TabbedPanelItem:
                         id: portal_tab
                         text: root.get_text(_('Portal'))
@@ -169,10 +175,11 @@
                                         id: portal_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    CSAddBut:
+                                    AddButton:
                                         id: portal_tab_stat_add
-                                        adder: root
-                                        args: [portal_tab_portal.selection, portal_tab_stat_in.text]
+                                        closet: root.closet
+                                        fun: portal_tab_stat.add_stat
+                                        arg: portal_tab_stat_in.text
                     TabbedPanelItem:
                         id: char_tab
                         text: root.get_text(_('Character'))
@@ -190,16 +197,16 @@
                                     id: char_tab_stat_in
                                     size_hint_x: 0.8
                                     hint_text: root.get_text(_("New stat name"))
-                                CSAddBut:
+                                AddButton:
                                     id: char_tab_stat_add
-                                    adder: root
-                                    args: [char_tab_stat_in.text]
+                                    closet: root.closet
+                                    fun: char_tab_stat.add_stat
+                                    arg: char_tab_stat_in.text
             TabbedPanelItem:
                 id: calendars
                 text: root.get_text(_('Calendars'))
                 TabbedPanel:
                     id: calendars_panel
-                    do_default_tab: False
                     TabbedPanelItem:
                         id: thing_cal
                         text: root.get_text(_('Thing'))
@@ -231,7 +238,7 @@
                                         id: thing_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    CSAddBut:
+                                    AddButton:
                                         id: thing_cal_stat_add
                                         adder: root
                                         args: [thing_cal_thing.selection[0], thing_cal_stat_in.text] if thing_cal_thing.selection else []
@@ -266,7 +273,7 @@
                                         id: place_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    CSAddBut:
+                                    AddButton:
                                         id: place_cal_stat_add
                                         adder: root
                                         args: [place_cal_place.selection[0], place_cal_stat_in.text] if place_cal_place.selection else []
@@ -301,7 +308,7 @@
                                         id: portal_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    CSAddBut:
+                                    AddButton:
                                         id: portal_cal_stat_add
                                         adder: root
                                         args: [portal_cal_portal.selection[0], portal_cal_stat_in.text] if portal_cal_portal.selection else []
@@ -323,7 +330,7 @@
                                     id: char_cal_stat_in
                                     hint_text: root.get_text(_("New stat name"))
                                     size_hint_x: 0.8
-                                CSAddBut:
+                                AddButton:
                                     id: char_cal_stat_add
                                     adder: root
                                     args: [char_cal_stat_in.text]
@@ -429,7 +436,8 @@
         bar_pos_y: 'left'
         CharSheet:
             id: charsheet
-            width: csview.width
+            pos: csview.pos
+            size: csview.size
             character: root.app.closet.get_character(root.app.observed_name)
             cols: 2
             spacing: 10

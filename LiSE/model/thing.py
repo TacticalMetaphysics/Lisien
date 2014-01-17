@@ -2,7 +2,8 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from LiSE.util import (
     TimeParadox,
-    JourneyException)
+    JourneyException
+)
 
 from container import Container
 

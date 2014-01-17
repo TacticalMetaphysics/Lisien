@@ -206,26 +206,6 @@ class Board(FloatLayout):
             for bone in pawn.new_branch(parent, branch, tick):
                 yield bone
 
-    def on_touch_down(self, touch):
-        for preemptor in ("charsheet", "menu", "spot"):
-            if preemptor in touch.ud:
-                return
-        if 'portaling' in touch.ud:
-            touch.ud['portaling']['dummyspot'].pos = touch.pos
-            return
-        return (
-            self.pawnlayout.on_touch_down(touch) or
-            self.spotlayout.on_touch_down(touch) or
-            super(Board, self).on_touch_down(touch))
-
-    def on_touch_move(self, touch):
-        if 'portaling' in touch.ud:
-            touch.ud['portaling']['dummyspot'].pos = touch.pos
-            return
-        elif touch.grab_current is not self:
-            return
-        return super(Board, self).on_touch_move(touch)
-
 
 class BoardView(ScrollView):
     app = ObjectProperty()
@@ -235,3 +215,19 @@ class BoardView(ScrollView):
         self.scroll_x = self.board.scroll_x
         self.scroll_y = self.board.scroll_y
         self.add_widget(self.board)
+
+    def on_touch_down(self, touch):
+        for preemptor in 'menu', 'charsheet', 'portaling':
+            if preemptor in touch.ud:
+                self.do_scroll_x = self.do_scroll_y = False
+        if self.do_scroll_x:
+            self.do_scroll_x = self.do_scroll_y = (
+                not self.board.pawnlayout.on_touch_down(touch))
+        if self.do_scroll_x:
+            self.do_scroll_x = self.do_scroll_y = (
+                not self.board.spotlayout.on_touch_down(touch))
+        return super(BoardView, self).on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        self.do_scroll_x = self.do_scroll_y = True
+        return super(BoardView, self).on_touch_up(touch)

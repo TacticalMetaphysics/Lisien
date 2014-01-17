@@ -14,7 +14,7 @@ from kivy.properties import (
     BooleanProperty)
 from kivy.clock import Clock
 
-from LiSE.util import SaveableMetaclass
+from LiSE.orm import SaveableMetaclass
 
 
 class ClosetWidget(Widget):
@@ -32,6 +32,7 @@ class ClosetLabel(Label, ClosetWidget):
 class ClosetButton(Button, ClosetWidget):
     fun = ObjectProperty(None)
     arg = ObjectProperty(None)
+    pressed = BooleanProperty(False)
 
     def on_release(self, *args):
         if self.fun is None:

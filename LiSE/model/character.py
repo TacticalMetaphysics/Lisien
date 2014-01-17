@@ -5,9 +5,12 @@ from igraph import Graph, InternalError
 from LiSE.util import (
     selectif,
     upbranch,
-    KnowledgeException,
+    KnowledgeException
+)
+from LiSE.orm import (
     SaveableMetaclass,
-    Skeleton)
+    Skeleton
+)
 from thing import Thing
 from place import Place
 from portal import Portal

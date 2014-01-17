@@ -16,9 +16,9 @@ from kivy.uix.layout import Layout
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 from kivy.logger import Logger
-from kivy.graphics import Callback, Color, Line, Triangle
+from kivy.graphics import Color, Line, Triangle
 
-from LiSE.data import (
+from LiSE.util import (
     THING_CAL,
     PLACE_CAL,
     PORTAL_CAL,
@@ -100,10 +100,8 @@ class Calendar(Layout):
     charsheet = ObjectProperty()
     character = ObjectProperty()
     col_width = NumericProperty()
-    completedness = NumericProperty()
     font_name = StringProperty()
     font_size = NumericProperty()
-    force_refresh = BooleanProperty(False)
     key = StringProperty()
     referent = ObjectProperty(None)
     skel = ObjectProperty(None)
@@ -120,6 +118,7 @@ class Calendar(Layout):
     timeline_pos = ReferenceListProperty(timeline_x, timeline_y)
     xmov = NumericProperty(0)
     ymov = NumericProperty(0)
+    mov = ReferenceListProperty(xmov, ymov)
 
     @property
     def minbranch(self):
@@ -236,6 +235,11 @@ class Calendar(Layout):
             i = 0
             for bone in boneiter:
                 if bone in old_widgets:
+                    # I haven't established a way to delete the old
+                    # widgets when they are unused. Is that what
+                    # weakproxy is for? That might result in their
+                    # being garbage collected prior to add_widget
+                    # though.
                     self.branches_cells[branch][prev.tick] = old_widgets[bone]
                 elif (
                         prev.tick < self.maxtick and
@@ -268,13 +272,13 @@ class Calendar(Layout):
         branch, start and end at the right place for their tick, and are
         offset by whatever amounts I'm scrolled."""
         hi_tick = self.character.closet.timestream.hi_tick
+        # height of a column is however much needed to hold
+        # all the ticks.
         branches_height = max([hi_tick * self.tick_height, 100])
         for branch in xrange(self.minbranch, self.maxbranch):
             if branch not in self.branches_cells:
                 return
             if branch not in self.branches_cols:
-                # height of the column is however much needed to hold
-                # all the ticks.
                 self.branches_cols[branch] = StackLayout()
             branch_col = self.branches_cols[branch]
             branch_col.height = branches_height
@@ -295,8 +299,7 @@ class Calendar(Layout):
                 branch_col.add_widget(
                     Widget(size_hint_y=None, height=self.tick_height))
             if final is not None:
-                # 100% arbitrary
-                final.height = 100
+                final.size_hint_y = 1.
                 final.width = self.col_width
                 branch_col.add_widget(final)
             if branch_col not in self.children:
@@ -334,7 +337,6 @@ class CalendarView(StencilView):
     key = StringProperty()
     stat = StringProperty()
     i = NumericProperty()
-    edbut = ObjectProperty()
     branches_wide = NumericProperty()
     font_name = StringProperty()
     font_size = NumericProperty()
@@ -349,6 +351,7 @@ class CalendarView(StencilView):
         branches_offscreen, ticks_offscreen)
     calendar = ObjectProperty()
     charsheet = ObjectProperty()
+    csbone = ObjectProperty()
     tl_color = ListProperty()
     _touch = ObjectProperty(None, allownone=True)
 
