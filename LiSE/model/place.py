@@ -88,12 +88,10 @@ class Place(Container):
         return set([self.character_iter_portals(observer, branch, tick)])
 
     def get_stat(self, stat, observer=None, branch=None, tick=None):
-        (branch, tick) = self.character.sanetime(branch, tick)
-        return self.subjective_lookup(
+        return self.get_subjectively(
             'get_place_stat', observer, [stat, branch, tick])
 
     def iter_stat_keys(self, observer=None, branch=None, tick=None):
-        (branch, tick) = self.character.sanetime(branch, tick)
-        for key in self.subjective_lookup(
+        for key in self.get_subjectively(
                 'iter_place_stat_keys', observer, [branch, tick]):
             yield key
