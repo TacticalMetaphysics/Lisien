@@ -73,13 +73,9 @@ class Portal(Container):
     def e(self):
         return self.character.graph.es.find(name=self.name)
 
-    @property
-    def bone(self):
-        return self.get_bone()
-
-    @property
-    def loc_bone(self):
-        return self.get_loc_bone()
+    # @property
+    # def loc_bone(self):
+    #     return self.get_loc_bone()
 
     @property
     def host(self):
@@ -96,6 +92,9 @@ class Portal(Container):
     def __init__(self, character, name):
         self.character = character
         self.name = name
+        self.closet = self.character.closet
+        self.bone = self.closet.skeleton[u"portal"][
+            self.character.name][self.name]
 
     def __str__(self):
         return str(self.name)

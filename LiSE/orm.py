@@ -190,11 +190,6 @@ class BoneMetaclass(type):
                 ["{}={}".format(field, getattr(self, field))
                  for field in self._fields]))
 
-        def _asdict(self):
-            """Return a new OrderedDict which maps field names
-            to their values"""
-            return OrderedDict(zip(self._fields, self))
-
         def _replace(self, **kwds):
             """Return a new {} object replacing specified fields with new
             values""".format(clas)
@@ -204,6 +199,23 @@ class BoneMetaclass(type):
                     kwds.keys()))
             return result
 
+        def _mksqlins(self):
+            return "INSERT INTO {} ({}) VALUES ({});".format(
+                self._name, ", ".join(f for f in self._fields if
+                                      getattr(self, f) is not None),
+                ", ".join("?" for f in self._fields
+                          if getattr(self, f) is not None))
+
+        def _mksqldel(self):
+            if hasattr(self, 'keynames'):
+                kns = self.keynames
+            else:
+                kns = self._fields
+            return "DELETE FROM {} WHERE {};".format(
+                self._name,
+                " AND ".join("{}={}".format(kn, "?")
+                             for kn in kns))
+                    
         def __getnewargs__(self):
             """Return self as a plain tuple. Used by copy and pickle."""
             return tuple(self)
@@ -211,10 +223,8 @@ class BoneMetaclass(type):
         atts = {"__new__": __new__,
                 "_make": _make,
                 "__repr__": __repr__,
-                "_asdict": _asdict,
                 "_replace": _replace,
                 "__getnewargs__": __getnewargs__,
-                "__dict__": property(_asdict),
                 "_fields": [],
                 "_types": {},
                 "_defaults": {},
@@ -223,6 +233,8 @@ class BoneMetaclass(type):
                 "getfmt": getfmt,
                 "getbytelen": getbytelen,
                 "packed": packed,
+                "sql_ins": property(_mksqlins),
+                "sql_del": property(_mksqldel),
                 "_unpack": _unpack,
                 "_unpack_from": _unpack_from,
                 "_pack_into": _pack_into,
@@ -442,6 +454,7 @@ class Skeleton(MutableMapping):
         propagate events to, and ``name`` is mostly for printing.
 
         """
+        self.content = {}
         self._set_listeners = []
         self._del_listeners = []
         """Functions to call when something changes, either in my content, or
@@ -455,7 +468,6 @@ class Skeleton(MutableMapping):
         ``None``.
 
         """
-        self.content = {}
         """My data, a :type:`dict` by default. It may become a :type:`list` or
         :type:`array` when its first key is assigned."""
         if content is not None:
@@ -615,21 +627,22 @@ class Skeleton(MutableMapping):
     def __delitem__(self, k):
         """If ``self.content`` is a :type:`dict`, delete the key in the usual
         way. Otherwise, remove the key from ``self.ikeys``."""
+        v = self.content[k]
         if isinstance(self.content, dict):
             del self.content[k]
         else:
             self.ikeys.remove(k)
         for listener in self._del_listeners:
-            listener(self.parent, self, k)
+            listener(self.parent, self, k, v)
         if hasattr(self.parent, 'on_child_del'):
-            self.parent.on_child_del(self, k)
+            self.parent.on_child_del(self, k, v)
 
-    def on_child_del(self, child, k):
-        """Call all my listeners with args (child, k)."""
+    def on_child_del(self, child, k, v):
+        """Call all my listeners with args (child, k, v)."""
         for listener in self._del_listeners:
-            listener(self, child, k)
+            listener(self, child, k, v)
         if hasattr(self.parent, 'on_child_del'):
-            self.parent.on_child_del(child, k)
+            self.parent.on_child_del(child, k, v)
 
     def register_del_listener(self, fun):
         """Register a function to be called when an element is deleted in this
@@ -1116,6 +1129,7 @@ class SaveableMetaclass(type):
                   coltypes[tablename][colname],
                   coldefaults[tablename][colname])
                  for colname in SaveableMetaclass.colnames[tablename]])
+            bonetypes[tablename].keynames = keynames[tablename]
             SaveableMetaclass.tabclas[tablename] = clas
             provides.add(tablename)
             coldecl = coldecls[tablename]
@@ -1313,29 +1327,6 @@ before RumorMill will work. For that, run mkdb.sh.
         global Implicator
         import LiSE.model.event
         Implicator = LiSE.model.event.Implicator
-
-        self.connector = connector
-        self.skeleton = Skeleton({"place": {}})
-        for tab in SaveableMetaclass.tabclas.iterkeys():
-            self.skeleton[tab] = {}
-
-        self.c = self.connector.cursor()
-        self.branch_listeners = []
-        self.tick_listeners = []
-        self.time_listeners = []
-
-        for glob in self.globs:
-            setattr(self, glob, self.get_global(glob))
-
-        self.lisepath = __path__[-1]
-        self.sep = os.sep
-        self.entypo = self.sep.join(
-            [self.lisepath, 'gui', 'assets', 'Entypo.ttf'])
-        self.gettext = gettext
-
-        for wd in self.working_dicts:
-            setattr(self, wd, dict())
-
         if USE_KIVY:
             global Board
             global Spot
@@ -1455,6 +1446,30 @@ before RumorMill will work. For that, run mkdb.sh.
 
             self.USE_KIVY = True
 
+        self.connector = connector
+        self.skeleton = Skeleton({"place": {}})
+        self.sql_todo = []
+
+        for tab in SaveableMetaclass.tabclas.iterkeys():
+            self.skeleton[tab] = {}
+
+        self.c = self.connector.cursor()
+        self.branch_listeners = []
+        self.tick_listeners = []
+        self.time_listeners = []
+
+        for glob in self.globs:
+            setattr(self, glob, self.get_global(glob))
+
+        self.lisepath = __path__[-1]
+        self.sep = os.sep
+        self.entypo = self.sep.join(
+            [self.lisepath, 'gui', 'assets', 'Entypo.ttf'])
+        self.gettext = gettext
+
+        for wd in self.working_dicts:
+            setattr(self, wd, dict())
+
         self.timestream = Timestream(self)
         self.time_travel_history = []
         self.game_speed = 1
@@ -1468,7 +1483,15 @@ before RumorMill will work. For that, run mkdb.sh.
         self.connector.commit()
         self.connector.close()
 
-    def get_timely(self, keys, branch=None, tick=None):
+    def listen_to_skeleton(self):
+        self.skeleton.register_set_listener(self.upd_sql_todo_on_set)
+        self.skeleton.register_del_listener(self.upd_sql_todo_on_del)
+
+    def ignore_skeleton(self):
+        self.skeleton.unregister_set_listener(self.upd_sql_todo_on_set)
+        self.skeleton.unregister_del_listener(self.upd_sql_todo_on_del)
+
+    def get_bone_timely(self, keys, branch=None, tick=None):
         if branch is None:
             branch = self.branch
         if tick is None:
@@ -1481,42 +1504,68 @@ before RumorMill will work. For that, run mkdb.sh.
         # may throw KeyError
         return self.skeleton.get_timely(keys, 0, tick)
 
-    def timely_getter(self, keys):
+    def timely_bone_getter(self, keys):
         def r(branch=None, tick=None):
             return self.get_timely(keys, branch, tick)
         return r
 
-    def set_timely(self, keys, value, branch=None, tick=None):
+    def set_bone_timely(self, keys, value, branch=None, tick=None):
         if branch is None:
             branch = self.branch
         if tick is None:
             tick = self.tick
         self.skeleton.set_timely(keys, value, branch, tick)
 
-    def timely_setter(self, keys):
+    def timely_bone_setter(self, keys):
         def r(value, branch=None, tick=None):
             self.set_timely(keys, value, branch, tick)
         return r
 
-    def del_timely(self, keys, branch=None, tick=None):
+    def del_bone_timely(self, keys, branch=None, tick=None):
         if branch is None:
             branch = self.branch
         if tick is None:
             tick = self.tick
         self.skeleton.del_timely(keys, branch, tick)
 
-    def timely_deleter(self, keys):
+    def timely_bone_deleter(self, keys):
         def r(branch=None, tick=None):
             self.del_timely(keys, branch, tick)
         return r
 
-    def timely_property(self, keys):
+    def timely_bone_property(self, keys):
         return property(
             self.timely_getter(keys),
             self.timely_setter(keys),
             self.timely_deleter(keys),
             "Returns the value in {} at the current sim-time.".format(
                 repr(keys)))
+
+    def get_fact_timely(self, keys, boneatt, branch=None, tick=None):
+        bone = self.get_bone_timely(keys, branch, tick)
+        return getattr(bone, boneatt)
+
+    def timely_fact_getter(self, keys, boneatt):
+        def r(branch=None, tick=None):
+            return self.get_fact_timely(keys, boneatt, branch, tick)
+        return r
+
+    def set_fact_timely(self, keys, boneatt, val, branch=None, tick=None):
+        former = self.get_bone_timely(keys, branch, tick)
+        latter = former._replace(**{boneatt: val})
+        self.set_bone_timely(keys, latter, branch, tick)
+
+    def timely_fact_setter(self, keys, boneatt):
+        def r(val, branch=None, tick=None):
+            self.set_fact_timely(keys, boneatt, val, branch, tick)
+        return r
+
+    def timely_fact_property(self, keys, boneatt):
+        return property(
+            self.timely_fact_getter(keys, boneatt),
+            self.timely_fact_setter(keys, boneatt),
+            doc="Change the {} attribute of the bone at {}.".format(
+                boneatt, repr(keys)))
 
     def select_class_all(self, cls):
         self.select_and_set(bonetype._null() for bonetype in
@@ -1527,6 +1576,17 @@ before RumorMill will work. For that, run mkdb.sh.
             typ.__name__, ", ".join(typ._fields), ", ".join(
                 ["?"] * len(typ._fields)))
         self.c.executemany(qrystr, tuple(bones))
+
+    def upd_sql_todo_on_set(self, skel, child, k, v):
+        if issubclass(v.__class__, Bone):
+            self.sql_todo.append((v.sql_del, tuple(
+                getattr(v, f) for f in v.keynames)))
+            self.sql_todo.append((v.sql_ins, v))
+
+    def upd_sql_todo_on_del(self, skel, child, k, v):
+        if issubclass(v.__class__, Bone):
+            self.sql_todo.append((v.sql_del, tuple(
+                getattr(v, f) for f in v.keynames)))
 
     def select_keybone(self, kb):
         qrystr = "SELECT {} FROM {} WHERE {};".format(
@@ -1613,25 +1673,17 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def save_game(self):
         """Save all pending changes to disc."""
+        from time import time
         # save globals first
+        Logger.debug("{}: globals".format(time()))
         for glob in self.globs:
             self.set_global(glob, getattr(self, glob))
-        # find out what's changed since last checkpoint
-        to_save = self.skeleton - self.old_skeleton
-        to_delete = self.old_skeleton - self.skeleton
-        # save saveables
-        for (tab, v) in to_save.iteritems():
-            if tab == 'place':
-                continue
-            self.insert_or_replace_bones_single_typ(
-                BoneMetaclass.tabbone[tab], v.iterbones())
-        # delete deletables
-        for (tab, v) in to_delete.iteritems():
-            if tab == 'place':
-                continue
-            self.delete_keybones(v.iterbones())
-        # remember how things are now, for reference next time
-        self.checkpoint()
+        Logger.debug("{}: sql_todo".format(time()))
+        for sql in self.sql_todo:
+            Logger.debug("{}: {}".format(time(), sql))
+            self.c.execute(*sql)
+        Logger.debug("{}: game saved".format(time()))
+        self.sql_todo = []
 
     def load_img_metadata(self):
         self.select_class_all(Img)
@@ -2141,40 +2193,41 @@ before RumorMill will work. For that, run mkdb.sh.
             return
 
         # Some bones implicitly declare a new place
-        if isinstance(bone, Thing.bonetypes[u"thing_loc"]):
+        if Thing and isinstance(bone, Thing.bonetypes[u"thing_loc"]):
             core = self.skeleton[u"thing"][bone.character][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
             upd_time(bone.branch, bone.tick)
-        elif isinstance(bone, Thing.bonetypes[u"thing_loc_facade"]):
+        elif Thing and isinstance(bone, Thing.bonetypes[u"thing_loc_facade"]):
             core = self.skeleton[u"thing"][bone.observed][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
             upd_time(bone.branch, bone.tick)
-        elif isinstance(bone, Portal.bonetypes[u"portal_loc"]):
+        elif Portal and isinstance(bone, Portal.bonetypes[u"portal_loc"]):
             core = self.skeleton[u"portal"][bone.character][bone.name]
             upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
-        elif isinstance(bone, Portal.bonetypes[u"portal_stat_facade"]):
+        elif Portal and isinstance(
+                bone, Portal.bonetypes[u"portal_stat_facade"]):
             core = self.skeleton[u"portal"][bone.observed][bone.name]
             upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
-        elif isinstance(bone, Place.bonetypes[u"place_stat"]):
+        elif Place and isinstance(bone, Place.bonetypes[u"place_stat"]):
             set_place_maybe(bone.host, bone.name, bone.branch, bone.tick)
             upd_time(bone.branch, bone.tick)
-        elif isinstance(bone, Spot.bonetypes[u"spot"]):
+        elif Spot and isinstance(bone, Spot.bonetypes[u"spot"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
             upd_time(bone.branch, bone.tick)
-        elif isinstance(bone, Spot.bonetypes[u"spot_coords"]):
+        elif Spot and isinstance(bone, Spot.bonetypes[u"spot_coords"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
             upd_time(bone.branch, bone.tick)
-        elif isinstance(bone, CharSheet.bonetype):
+        elif CharSheet and isinstance(bone, CharSheet.bonetype):
             # no need to *implicitly* set that bonetype, so preclude
             # doing so
             pass
-        elif type(bone) in CharSheet.bonetypes.values():
+        elif CharSheet and type(bone) in CharSheet.bonetypes.values():
             set_cstype_maybe(bone.character, bone.idx, bone.type)
-        elif isinstance(bone, Img.bonetypes["img_tag"]):
+        elif Img and isinstance(bone, Img.bonetypes["img_tag"]):
             if bone.tag not in self.img_tag_d:
                 self.img_tag_d[bone.tag] = set()
             self.img_tag_d[bone.tag].add(bone.img)
@@ -2418,7 +2471,9 @@ def mkdb(DB_NAME, lisepath, kivy=False):
     return conn
 
 
-def load_closet(dbfn, gettext=None, kivy=False):
+def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
+                load_gfx=False, load_characters=[], load_charsheet=None,
+                load_board=[]):
     """Construct a ``Closet`` connected to the given database file. Use
     the LiSE library in the path given.
 
@@ -2429,12 +2484,21 @@ def load_closet(dbfn, gettext=None, kivy=False):
     from ISO 639-2, default "eng".
 
     """
-    conn = sqlite3.connect(dbfn)
-    kwargs = {
-        "connector": conn,
-        "USE_KIVY": kivy}
-    if gettext is not None:
-        kwargs["gettext"] = gettext
-    r = Closet(**kwargs)
+    r = Closet(connector=sqlite3.connect(dbfn), gettext=gettext,
+               USE_KIVY=(load_img or load_img_tags or load_gfx or
+                         load_charsheet or load_board))
     r.load_timestream()
+    if load_img:
+        r.load_img_metadata()
+    if load_img_tags:
+        r.load_imgs_tagged(load_img_tags)
+    if load_gfx:
+        r.load_gfx_metadata()
+    if load_characters:
+        r.load_characters(load_characters)
+    if load_charsheet:
+        r.load_charsheet(load_charsheet)
+    if load_board:
+        r.load_board(*load_board)
+    r.listen_to_skeleton()
     return r

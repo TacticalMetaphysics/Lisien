@@ -19,16 +19,6 @@ from portal import Portal
 """Things that should have character sheets."""
 
 
-def skelget(tl, skel, branch, tick):
-    while branch != 0:
-        try:
-            return skel[branch].value_during(tick)
-        except KeyError:
-            branch = tl.parent(branch)
-    # may throw KeyError
-    return skel[0].value_during(tick)
-
-
 def skel_filter_iter(skel, keys=[]):
     if len(keys) == 0:
         for v in skel.itervalues():
@@ -282,13 +272,7 @@ class Character(object):
         self.thing_d[name] = Thing(self, name)
         return self.thing_d[name]
 
-    def _get_thing_skel_bone(self, skel, branch, tick):
-        (branch, tick) = self.sanetime(branch, tick)
-        return skelget(self.closet.timestream, skel, branch, tick)
-
     def get_thing_bone(self, name):
-        """Return a bone describing a thing's location at some particular
-        time."""
         return self.closet.skeleton[u"thing"][unicode(self)][name]
 
     def get_thing_stat_skel(self, name, stat, branch=None):
@@ -340,11 +324,6 @@ class Character(object):
     def get_thing_stat(self, thing, stat, branch=None, tick=None):
         return self.get_thing_stat_bone(thing, stat, branch, tick).value
 
-    def _iter_thing_skel_bones(self, skel, branch, tick):
-        (branch, tick) = self.sanetime(branch, tick)
-        for name in skel:
-            yield skelget(self.closet.tl, skel, branch, tick)
-
     def iter_things(self, branch=None, tick=None):
         """Iterate over things that have been defined for this character,
         possibly creating them. If a time is given, the iteration will
@@ -390,13 +369,6 @@ class Character(object):
             assert(r is not None)
             yield r
 
-    def iter_thing_bones(self, branch=None, tick=None):
-        """Iterate over all things present in this character at the time
-        specified, or the present time if not specified."""
-        skel = self.closet.skeleton[u"thing"][unicode(self)]
-        for bone in self._iter_thing_skel_bones(skel, branch, tick):
-            yield bone
-
     def iter_thing_loc_bones(self, thing=None, branch=None):
         skel = self.closet.skeleton[u"thing_loc"][unicode(self)]
         for thing_skel in selectif(skel, unicode(thing)):
@@ -420,7 +392,8 @@ class Character(object):
 
     def get_thing_location(self, name, branch, tick):
         (branch, tick) = self.sanetime(branch, tick)
-        bone = self.get_thing_locations(name, branch).value_during(tick)
+        bone = self.closet.get_bone_timely(
+            [u"thing_loc", self.name, name], branch, tick)
         if bone is None:
             return None
         corebone = self.get_thing_bone(name)
@@ -478,12 +451,8 @@ class Character(object):
                 return
 
     def get_place_bone(self, name, branch=None, tick=None):
-        (branch, tick) = self.sanetime(branch, tick)
-        return skelget(
-            self.closet.timestream,
-            self.closet.skeleton[u"place"][unicode(self)][name],
-            branch,
-            tick)
+        return self.closet.get_bone_timely(
+            [u"place", self.name, name], branch, tick)
 
     def iter_place_bones(self, name=None, branch=None, tick=None):
         self.closet.query_place()
@@ -633,20 +602,6 @@ class Character(object):
             return
         for key in iter_skel_keys(skel[unicode(self)], branches, ticks):
             yield key
-
-    def _iter_noun_stat_bones(self, nountab, nounnames=[],
-                              stats=[], branches=[], ticks=[]):
-        skel = self.closet.skeleton[nountab]
-        if unicode(self) not in skel:
-            return
-        skel = skel[unicode(self)]
-        for nounname in nounnames:
-            if nounname not in skel:
-                continue
-            for stat_skel in skel_filter_iter(skel[nounname], stats):
-                for branch_skel in skel_filter_iter(stat_skel, branches):
-                    for bone in skel_filter_iter(branch_skel, ticks):
-                        yield bone
 
     def _iter_noun_stat_keys(self, nountab, nounname, branches=[], ticks=[]):
         skel = self.closet.skeleton[nountab]

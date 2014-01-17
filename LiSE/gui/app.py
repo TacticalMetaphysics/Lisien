@@ -550,22 +550,14 @@ class LiSEApp(App):
         except (IOError, OperationalError):
             mkdb(self.dbfn, __path__[-1], True)
         self.closet = load_closet(
-            self.dbfn, self.lgettext, True)
-        self.closet.load_img_metadata()
-        self.closet.load_imgs_tagged(['base', 'body'])
-        self.closet.load_gfx_metadata()
-        # Currently the decision of when and whether to update things
-        # is split between here and the closet. Seems inappropriate.
-        self.closet.load_characters([
-            self.observer_name,
-            self.observed_name,
-            self.host_name])
-        Clock.schedule_once(lambda dt: self.closet.checkpoint(), 0)
-        self.closet.load_charsheet(self.observed_name)
-        self.closet.load_board(
-            self.observer_name,
-            self.observed_name,
-            self.host_name)
+            self.dbfn, self.lgettext,
+            load_img=True,
+            load_img_tags=['base', 'body'],
+            load_gfx=True,
+            load_characters=[self.observer_name, self.observed_name,
+                             self.host_name],
+            load_board=[self.observer_name, self.observed_name,
+                        self.host_name])
         observer = self.closet.get_character(self.observer_name)
         observed = self.closet.get_character(self.observed_name)
         host = self.closet.get_character(self.host_name)

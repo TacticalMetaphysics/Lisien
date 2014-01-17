@@ -8,14 +8,13 @@ class Container(object):
         return it.location is self
 
     def iter_contents(self, branch=None, tick=None):
-        (branch, tick) = self.character.sanetime(branch, tick)
         skel = self.character.closet.skeleton[u"thing"][
             unicode(self.character)]
         for thingbone in skel.iterbones():
             if thingbone.host == unicode(self.character):
-                locbone = self.character.closet.skeleton[u"thing_loc"][
-                    thingbone.character][thingbone.name][
-                    branch].value_during(tick)
+                locbone = self.character.closet.get_timely(
+                    [u"thing_loc", thingbone.character, thingbone.name],
+                    branch, tick)
                 if locbone.location == unicode(self):
                     char = self.character.closet.get_character(
                         thingbone.character)
@@ -24,7 +23,7 @@ class Container(object):
     def get_contents(self, branch=None, tick=None):
         return set(self.iter_contents(branch, tick))
 
-    def subjective_lookup(self, method, observer=None, xargs=[]):
+    def get_subjectively(self, method, observer=None, xargs=[]):
         if observer is None:
             callabl = getattr(self.character, method)
         else:
