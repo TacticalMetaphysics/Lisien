@@ -6,5 +6,6 @@ from board import (
     Spot,
     Arrow,
     Pawn)
+from gamepiece import GamePiece
 
-__all__ = [Board, BoardView, Spot, Pawn, Arrow]
+__all__ = [Board, BoardView, Spot, Pawn, GamePiece, Arrow]
