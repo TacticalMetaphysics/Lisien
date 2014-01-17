@@ -592,6 +592,9 @@ class Skeleton(MutableMapping):
             if diff > 0:
                 self.content.extend([None] * diff)
         ### actually set content to value
+        ### only if i didn't have it that way though.
+        if k in self and self[k] == v:
+            return
         if issubclass(v.__class__, Bone):
             if isinstance(self.content, array):
                 v._pack_into(self.content, k)
@@ -1578,13 +1581,13 @@ before RumorMill will work. For that, run mkdb.sh.
         self.c.executemany(qrystr, tuple(bones))
 
     def upd_sql_todo_on_set(self, skel, child, k, v):
-        if issubclass(v.__class__, Bone):
+        if hasattr(v, 'keynames'):
             self.sql_todo.append((v.sql_del, tuple(
                 getattr(v, f) for f in v.keynames)))
             self.sql_todo.append((v.sql_ins, v))
 
     def upd_sql_todo_on_del(self, skel, child, k, v):
-        if issubclass(v.__class__, Bone):
+        if hasattr(v, 'keynames'):
             self.sql_todo.append((v.sql_del, tuple(
                 getattr(v, f) for f in v.keynames)))
 
