@@ -1316,30 +1316,19 @@ before RumorMill will work. For that, run mkdb.sh.
             global Board
             global Spot
             global Pawn
-            import LiSE.gui.board
-            Board = LiSE.gui.board.Board
-            Spot = LiSE.gui.board.Spot
-            Pawn = LiSE.gui.board.Pawn
             global GamePiece
-            import LiSE.gui.board.gamepiece
-            GamePiece = LiSE.gui.board.gamepiece.GamePiece
+            from LiSE.gui.board import Board, Spot, Pawn, GamePiece
             global CharSheet
             global CharSheetView
-            import LiSE.gui.charsheet
-            CharSheet = LiSE.gui.charsheet.CharSheet
-            CharSheetView = LiSE.gui.charsheet.CharSheetView
+            from LiSE.gui.charsheet import CharSheet, CharSheetView
             global Menu
-            import LiSE.gui.menu
-            Menu = LiSE.gui.menu.Menu
+            from LiSE.gui.menu import Menu
             global Img
-            import LiSE.gui.img
-            Img = LiSE.gui.img.Img
+            from LiSE.gui.img import Img
             global Atlas
-            import kivy.atlas
-            Atlas = kivy.atlas.Atlas
+            from kivy.atlas import Atlas
             global Logger
-            import kivy.logger
-            Logger = kivy.logger.Logger
+            from kivy.logger import Logger
             from kivy.core.image import Image
             self.img_d = {}
             self.img_tag_d = defaultdict(set)
@@ -2123,23 +2112,55 @@ before RumorMill will work. For that, run mkdb.sh.
         skel[final_key] = bone
 
 
-def defaults(c):
-    from LiSE.data import whole_imgrows
-    c.executemany(
-        "INSERT INTO img (name, path, stacking_height) "
-        "VALUES (?, ?, ?);",
-        whole_imgrows)
-    from LiSE.data import graphics
-    for (name, d) in graphics.iteritems():
-        c.execute(
-            "INSERT INTO graphic (name, offset_x, offset_y) "
+def defaults(c, kivy=False):
+    if kivy:
+        from LiSE.data import whole_imgrows
+        c.executemany(
+            "INSERT INTO img (name, path, stacking_height) "
             "VALUES (?, ?, ?);",
-            (name, d.get('offset_x', 0), d.get('offset_y', 0)))
-        for i in xrange(0, len(d['imgs'])):
+            whole_imgrows)
+        from LiSE.data import graphics
+        for (name, d) in graphics.iteritems():
             c.execute(
-                "INSERT INTO graphic_img (graphic, layer, img) "
+                "INSERT INTO graphic (name, offset_x, offset_y) "
                 "VALUES (?, ?, ?);",
-                (name, i, d['imgs'][i]))
+                (name, d.get('offset_x', 0), d.get('offset_y', 0)))
+            for i in xrange(0, len(d['imgs'])):
+                c.execute(
+                    "INSERT INTO graphic_img (graphic, layer, img) "
+                    "VALUES (?, ?, ?);",
+                    (name, i, d['imgs'][i]))
+        from LiSE.data import stackhs
+        for (height, names) in stackhs:
+            qrystr = (
+                "UPDATE img SET stacking_height=? WHERE name IN ({});".format(
+                    ", ".join(["?"] * len(names))))
+            qrytup = (height,) + names
+            c.execute(qrystr, qrytup)
+        from LiSE.data import boards
+        for (obsrvr, obsrvd, hst) in boards:
+            c.execute(
+                "INSERT INTO board (observer, observed, host) "
+                "VALUES (?, ?, ?);",
+                (obsrvr, obsrvd, hst))
+        from LiSE.data import spot_coords
+        for (place, x, y) in spot_coords:
+            c.execute(
+                "INSERT INTO spot (place) VALUES (?);",
+                (place,))
+        c.executemany(
+            "INSERT INTO spot_coords (place, x, y) VALUES (?, ?, ?);",
+            spot_coords)
+        from LiSE.data import pawns
+        for observed in pawns:
+            for (thing, layers) in pawns[observed].iteritems():
+                i = 0
+                for layer in layers:
+                    c.execute(
+                        "INSERT INTO pawn (observed, thing, layer, img) "
+                        "VALUES (?, ?, ?, ?);",
+                        (observed, thing, i, layer))
+                    i += 1
     from LiSE.data import globs
     c.executemany(
         "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
@@ -2147,18 +2168,6 @@ def defaults(c):
     c.execute(
         "INSERT INTO timestream (branch, parent) VALUES (?, ?);",
         (0, 0))
-    from LiSE.data import stackhs
-    for (height, names) in stackhs:
-        qrystr = (
-            "UPDATE img SET stacking_height=? WHERE name IN ({});".format(
-                ", ".join(["?"] * len(names))))
-        qrytup = (height,) + names
-        c.execute(qrystr, qrytup)
-    from LiSE.data import boards
-    for (obsrvr, obsrvd, hst) in boards:
-        c.execute(
-            "INSERT INTO board (observer, observed, host) VALUES (?, ?, ?);",
-            (obsrvr, obsrvd, hst))
     from LiSE.data import things
     for character in things:
         for thing in things[character]:
@@ -2196,27 +2205,10 @@ def defaults(c):
                 "INSERT INTO charsheet_item (character, type, idx, key0) "
                 "VALUES (?, ?, ?, ?);", (character, typ, i, key0))
             i += 1
-    from LiSE.data import spot_coords
-    for (place, x, y) in spot_coords:
-        c.execute(
-            "INSERT INTO spot (place) VALUES (?);",
-            (place,))
-    c.executemany(
-        "INSERT INTO spot_coords (place, x, y) VALUES (?, ?, ?);",
-        spot_coords)
-    from LiSE.data import pawns
-    for observed in pawns:
-        for (thing, layers) in pawns[observed].iteritems():
-            i = 0
-            for layer in layers:
-                c.execute(
-                    "INSERT INTO pawn (observed, thing, layer, img) "
-                    "VALUES (?, ?, ?, ?);",
-                    (observed, thing, i, layer))
-                i += 1
 
 
-def mkdb(DB_NAME, lisepath):
+def mkdb(DB_NAME, lisepath, kivy=False):
+    global Logger
     img_qrystr = (
         "INSERT INTO img (name, path) "
         "VALUES (?, ?);")
@@ -2224,6 +2216,10 @@ def mkdb(DB_NAME, lisepath):
         "INSERT INTO img_tag (img, tag) VALUES (?, ?);")
 
     def ins_atlas(curs, path, qualify=False, tags=[]):
+        global Atlas
+        if Atlas is None:
+            import kivy.atlas
+            Atlas = kivy.atlas.Atlas
         lass = Atlas(path)
         atlaspath = "atlas://{}".format(path[:-6])
         atlasn = path.split(sep)[-1][:-6]
@@ -2239,6 +2235,21 @@ def mkdb(DB_NAME, lisepath):
             if fn[-5:] == 'atlas':
                 path = dirname + sep + fn
                 ins_atlas(curs, path, qualify, [fn[:-6]] + tags)
+
+    if Logger is None:
+        if kivy:
+            import kivy.logger
+            Logger = kivy.logger.Logger
+        else:
+            import logging
+            Logger = logging.getLogger()
+    if kivy:
+        # I just need them to fill in the relevant bits of
+        # SaveableMetaclass. They don't have to do anything.
+        import LiSE.gui.img
+        del LiSE.gui.img
+        import LiSE.gui.board
+        del LiSE.gui.board
 
     try:
         os.remove(DB_NAME)
@@ -2292,7 +2303,7 @@ def mkdb(DB_NAME, lisepath):
         tables_todo = list(tablenames)
         while tables_todo != []:
             tn = tables_todo.pop(0)
-            print(tn)
+            Logger.debug("Building table: {}".format(tn))
             c.execute(SaveableMetaclass.schemata[tn])
             done.add(tn)
         if breakout:
@@ -2315,17 +2326,18 @@ def mkdb(DB_NAME, lisepath):
             continue
         done.update(provides)
 
-    print("indexing the RLTiles")
-    ins_atlas_dir(
-        c, "LiSE/gui/assets/rltiles/hominid", True,
-        ['hominid', 'rltile', 'pawn'])
+    Logger.debug("inserting default values")
+    defaults(c, kivy)
 
-    print("indexing Pixel City")
-    ins_atlas(c, "LiSE/gui/assets/pixel_city.atlas", False,
-              ['spot', 'pixel_city'])
+    if kivy:
+        Logger.debug("indexing the RLTiles")
+        ins_atlas_dir(
+            c, "LiSE/gui/assets/rltiles/hominid", True,
+            ['hominid', 'rltile', 'pawn'])
 
-    print("inserting default values")
-    defaults(c)
+        Logger.debug("indexing Pixel City")
+        ins_atlas(c, "LiSE/gui/assets/pixel_city.atlas", False,
+                  ['spot', 'pixel_city'])
 
     conn.commit()
     return conn

@@ -548,7 +548,7 @@ class LiSEApp(App):
             for tab in SaveableMetaclass.tabclas.iterkeys():
                 conn.execute("SELECT * FROM {};".format(tab))
         except (IOError, OperationalError):
-            mkdb(self.dbfn, __path__[-1])
+            mkdb(self.dbfn, __path__[-1], True)
         self.closet = load_closet(
             self.dbfn, self.lgettext, True)
         self.closet.load_img_metadata()
