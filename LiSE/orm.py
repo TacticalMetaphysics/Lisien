@@ -898,6 +898,30 @@ other
                 for bone in self.content[i].iterbones():
                     yield bone
 
+    def get_timely(self, keys, branch, tick):
+        ptr = self
+        for key in keys:
+            ptr = ptr[key]
+        return ptr[branch].value_during(tick)
+
+    def set_timely(self, keys, value, branch, tick):
+        ptr = self
+        for key in keys:
+            ptr = ptr[key]
+        if branch not in ptr:
+            ptr[branch] = []
+        ptr[branch][tick] = value
+
+    def del_timely(self, keys, branch, tick):
+        ptr = self
+        for key in keys:
+            ptr = ptr[key]
+        if branch not in ptr:
+            raise KeyError("Branch doesn't exist")
+        if tick not in ptr[branch]:
+            raise KeyError("No value at that tick")
+        del ptr[branch][tick]
+
 
 class SaveableMetaclass(type):
     """SQL strings and methods relevant to the tables a class is about.
@@ -1443,6 +1467,56 @@ before RumorMill will work. For that, run mkdb.sh.
         self.c.close()
         self.connector.commit()
         self.connector.close()
+
+    def get_timely(self, keys, branch=None, tick=None):
+        if branch is None:
+            branch = self.branch
+        if tick is None:
+            tick = self.tick
+        while branch > 0:
+            try:
+                return self.skeleton.get_timely(keys, branch, tick)
+            except KeyError:
+                branch = self.timestream.parent(branch)
+        # may throw KeyError
+        return self.skeleton.get_timely(keys, 0, tick)
+
+    def timely_getter(self, keys):
+        def r(branch=None, tick=None):
+            return self.get_timely(keys, branch, tick)
+        return r
+
+    def set_timely(self, keys, value, branch=None, tick=None):
+        if branch is None:
+            branch = self.branch
+        if tick is None:
+            tick = self.tick
+        self.skeleton.set_timely(keys, value, branch, tick)
+
+    def timely_setter(self, keys):
+        def r(value, branch=None, tick=None):
+            self.set_timely(keys, value, branch, tick)
+        return r
+
+    def del_timely(self, keys, branch=None, tick=None):
+        if branch is None:
+            branch = self.branch
+        if tick is None:
+            tick = self.tick
+        self.skeleton.del_timely(keys, branch, tick)
+
+    def timely_deleter(self, keys):
+        def r(branch=None, tick=None):
+            self.del_timely(keys, branch, tick)
+        return r
+
+    def timely_property(self, keys):
+        return property(
+            self.timely_getter(keys),
+            self.timely_setter(keys),
+            self.timely_deleter(keys),
+            "Returns the value in {} at the current sim-time.".format(
+                repr(keys)))
 
     def select_class_all(self, cls):
         self.select_and_set(bonetype._null() for bonetype in
@@ -2319,8 +2393,9 @@ def mkdb(DB_NAME, lisepath, kivy=False):
                 else:
                     c.execute(post)
         except sqlite3.OperationalError as e:
-            print("OperationalError during postlude from {0}.".format(tn))
-            print(e)
+            Logger.warning(
+                "Building {}: OperationalError during postlude: {}".format(
+                    tn, e))
             saveables.append(
                 (demands, provides, prelude_todo, tables_todo, postlude_todo))
             continue
