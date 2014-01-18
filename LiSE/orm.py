@@ -1744,6 +1744,10 @@ before RumorMill will work. For that, run mkdb.sh.
         # if the character is not loaded yet, make it so
         character = unicode(self.get_character(character))
         self.select_and_set(gen_keybones())
+
+    def get_charsheet(self, character):
+        if character not in self.skeleton[u"character_sheet_item_type"]:
+            self.load_charsheet(character)
         return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
@@ -2169,20 +2173,6 @@ before RumorMill will work. For that, run mkdb.sh.
                 self.set_bone(PlaceBone(
                     host=host, place=place, branch=branch, tick=tick))
 
-        def have_charsheet_type_bone(character, idx, type):
-            try:
-                return self.skeleton[u"character_sheet_item_type"][
-                    character][idx] is not None
-            except (KeyError, IndexError):
-                return False
-
-        def set_cstype_maybe(character, idx, type):
-            if not have_charsheet_type_bone(character, idx, type):
-                self.set_bone(CharSheet.bonetype(
-                    character=character,
-                    idx=idx,
-                    type=type))
-
         def upd_time(branch, tick):
             self.timestream.upbranch(branch)
             self.timestream.uptick(tick)
@@ -2224,12 +2214,6 @@ before RumorMill will work. For that, run mkdb.sh.
         elif Spot and isinstance(bone, Spot.bonetypes[u"spot_coords"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
             upd_time(bone.branch, bone.tick)
-        elif CharSheet and isinstance(bone, CharSheet.bonetype):
-            # no need to *implicitly* set that bonetype, so preclude
-            # doing so
-            pass
-        elif CharSheet and type(bone) in CharSheet.bonetypes.values():
-            set_cstype_maybe(bone.character, bone.idx, bone.type)
         elif Img and isinstance(bone, Img.bonetypes["img_tag"]):
             if bone.tag not in self.img_tag_d:
                 self.img_tag_d[bone.tag] = set()

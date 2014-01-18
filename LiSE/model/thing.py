@@ -379,6 +379,6 @@ class Thing(Container):
 
     def iter_stat_keys(self, observer=None, branch=None, tick=None):
         (branch, tick) = self.character.sanetime(branch, tick)
-        for key in self.subjective_lookup(
+        for key in self.get_subjectively(
                 'iter_thing_stat_keys', observer, [branch, tick]):
             yield key
