@@ -47,7 +47,7 @@
         key: root.key
         stat: root.stat
         charsheet: root.charsheet
-        character: self.charsheet.character
+        character: self.charsheet.character if self.charsheet else None
         pos: root.pos
     Timeline:
         x: cal.timeline_x + cal.x

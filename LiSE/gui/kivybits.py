@@ -132,11 +132,8 @@ enough to get a popup of its own.
 
     def on_completion(self, i, v):
         if v == 2:
-            self.complete()
-
-    def complete(self):
-        self.closet.register_text_listener(self.stringname, self.retext)
-        self.revert_text()
+            self.closet.register_text_listener(self.stringname, self.retext)
+            self.revert_text()
 
     def revert_text(self):
         self.ids.l.text = self.closet.get_text(self.stringname)
