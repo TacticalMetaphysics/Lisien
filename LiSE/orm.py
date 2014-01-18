@@ -1,13 +1,11 @@
 # coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-"""The database backend, with dictionaries of loaded objects.
-
-This is a caching database connector. There are dictionaries for all
-objects that can be loaded from the database.
-
-This module does not contain the code used to generate
-SQL. That's in :class:`~LiSE.util.SaveableMetaclass`.
+"""Contains ``Closet``, a caching object-relational mapper with
+support for time-travelling objects; the support class ``Bone``, a
+named tuple that generates SQL and can be packed into an array;
+``Skeleton``, the map used by ``Closet``; and various metamagic in
+support.
 
 """
 from operator import itemgetter
@@ -20,7 +18,6 @@ import sqlite3
 from collections import (
     defaultdict,
     MutableMapping,
-    OrderedDict
 )
 # future imports
 Board = None
@@ -52,7 +49,15 @@ from LiSE import __path__
 
 
 class BoneMetaclass(type):
-    """Metaclass for the creation of :class:`Bone` and its subclasses."""
+    """Metaclass for the creation of :class:`Bone` and its subclasses.
+
+    Mostly this is a reimplementation of ``namedtuple`` from the
+    ``collections`` module. However, :class:`Bone` subclasses also get
+    type information for their fields. This uses the type information
+    to make methods to pack and unpack the subclass in an array, as
+    well as perform type checking.
+
+    """
     tabbone = {}
     """Map the name of each bone type (incidentally, also the name of its
     table) to the bone type itself."""
@@ -215,7 +220,7 @@ class BoneMetaclass(type):
                 self._name,
                 " AND ".join("{}={}".format(kn, "?")
                              for kn in kns))
-                    
+
         def __getnewargs__(self):
             """Return self as a plain tuple. Used by copy and pickle."""
             return tuple(self)
@@ -275,8 +280,8 @@ class BoneMetaclass(type):
 
 
 class Bone(tuple):
-    """A named tuple with an odd interface, which can be packed into
-    an array.
+    """A named tuple with type information. It can generate SQL of itself
+    and pack itself into an array.
 
     :class:`Bone` is meant to represent records in a database,
     including all the restrictions that come with the database
@@ -294,7 +299,7 @@ class Bone(tuple):
     explicitly, will always result in ``None`` occupying that field.
 
     To pack a :class:`Bone` into an array, use
-    :method:`_pack_into`. This calls therelevant :module:`struct`
+    :method:`_pack_into`. This calls the relevant :module:`struct`
     method, supplying a format string appropriate to the field types
     specified at class creation. Retrieve the :class:`Bone` later
     using :method:`unpack_from`.
@@ -376,8 +381,7 @@ class PlaceBone(Bone):
 
 
 class Skeleton(MutableMapping):
-    """A tree structure whose leaves correspond directly to individual
-    database records.
+    """A tree structure full of :class:`Bone`. Used to cache the database.
 
     Skeleton is used to store a cache of some or all of the LiSE
     database. It does not, itself, synchronize with the
@@ -935,7 +939,11 @@ other
         if branch not in ptr:
             raise KeyError("Branch doesn't exist")
         if tick not in ptr[branch]:
-            raise KeyError("No value at that tick")
+            tick = ptr[branch].key_before(tick)
+        if not isinstance(tick, int):
+            raise KeyError(
+                "No value in branch {} at or before tick {}".format(
+                    branch, tick))
         del ptr[branch][tick]
 
 
@@ -1237,24 +1245,20 @@ def iter_character_query_bones_named(name):
 
 
 class Closet(object):
-    """This is where you should get all your LiSE objects from, generally.
+    """A caching object-relational mapper with support for time travelling
+    objects.
 
-A RumorMill is a database connector that can load and generate LiSE
-objects. When loaded or generated, the object will be kept in the
-RumorMill, even if nowhere else.
+    Time travelling objects are technically stateless, containing only
+    their key in the main ``Skeleton`` in the ``Closet``. All their
+    time-sensitive attributes are really ``property``s that look up
+    the appropriate value in the ``Skeleton`` at the current branch
+    and tick, given by the ``Closet``'s ``time`` property. For
+    convenience, you can use the method ``timely_property`` to
+    construct this kind of ``property``.
 
-There are some special facilities here for the convenience of
-particular LiSE objects: Things look up their location here; Items
-(including Things) look up their contents here; and Effects look up
-their functions here. That means you need to register functions here
-when you want Effects to use them. Supply callback
-functions for Effects in a list in the keyword argument "effect_cbs".
-
-Supply boolean callback functions for Causes and the like in the
-keyword argument "test_cbs".
-
-You need to create a SQLite database file with the appropriate schema
-before RumorMill will work. For that, run mkdb.sh.
+    ``Closet`` also functions as an event handler. Use
+    ``register_time_listener`` for functions that need to be called
+    whenever the sim-time changes.
 
     """
     __metaclass__ = SaveableMetaclass
@@ -1275,6 +1279,7 @@ before RumorMill will work. For that, run mkdb.sh.
                 "string": "text not null"},
             "primary_key": ("stringname", "language")})]
     globs = ("branch", "tick", "observer", "observed", "host")
+    """Names of global variables"""
     working_dicts = [
         "boardhand_d",
         "calendar_d",
@@ -1353,9 +1358,13 @@ before RumorMill will work. For that, run mkdb.sh.
             self.game_piece_d = defaultdict(list)
 
             def load_imgs(names):
+                """Load ``Img`` objects into my ``img_d``.
+
+                These contain texture data and some metadata."""
                 r = {}
 
                 def remember_img_bone(bone):
+                    """Construct the Img and keep it in ``r``"""
                     r[bone.name] = Img(
                         closet=self,
                         name=bone.name,
@@ -1370,9 +1379,14 @@ before RumorMill will work. For that, run mkdb.sh.
                 return r
 
             def get_imgs(names):
+                """Return a dict of ``Img`` by name, loading as needed."""
                 r = {}
 
                 def iter_unhad():
+                    """Put the ones I have into ``r``; for each of the rest,
+                    yield a ``Bone`` to match it
+
+                    """
                     for name in names:
                         if name in self.img_d:
                             r[name] = self.img_d[name]
@@ -1381,6 +1395,7 @@ before RumorMill will work. For that, run mkdb.sh.
                                 name=name)
 
                 def remember_img_bone(bone):
+                    """Load the ``Img`` for ``bone`` and keep it in ``r``"""
                     r[bone.name] = Img(
                         closet=self,
                         name=bone.name,
@@ -1393,16 +1408,16 @@ before RumorMill will work. For that, run mkdb.sh.
                 return r
 
             def load_imgs_tagged(tags):
+                """Load ``Img``s tagged thus, return as from ``get_imgs``"""
                 boned = set()
-
-                def remembone(bone):
-                    boned.add(bone.img)
                 self.select_and_set(
                     (Img.bonetypes["img_tag"]._null()._replace(
-                        tag=tag) for tag in tags), remembone)
+                        tag=tag) for tag in tags),
+                    lambda bone: boned.add(bone.img))
                 return get_imgs(boned)
 
             def get_imgs_tagged(tags):
+                """Get ``Img``s tagged thus, return as from ``get_imgs``"""
                 r = {}
                 unhad = set()
                 for tag in tags:
@@ -1413,14 +1428,19 @@ before RumorMill will work. For that, run mkdb.sh.
                 r.update(load_imgs_tagged(unhad))
                 return r
 
+            def iter_graphic_keybones(names):
+                """Yield the ``graphic`` and ``graphic_img`` bones
+                for each name in turn."""
+                for name in names:
+                    yield GamePiece.bonetypes[
+                        u"graphic"]._null()._replace(name=name)
+                    yield GamePiece.bonetypes[
+                        u"graphic_img"]._null()._replace(graphic=name)
+
             def load_game_pieces(names):
-                def iter_keybones():
-                    for name in names:
-                        yield GamePiece.bonetypes[
-                            u"graphic"]._null()._replace(name=name)
-                        yield GamePiece.bonetypes[
-                            u"graphic_img"]._null()._replace(graphic=name)
-                self.select_keybones(iter_keybones())
+                """Load graphics into game pieces. Return a dictionary
+                with one game piece per name."""
+                self.select_keybones(iter_graphic_keybones(names))
                 r = {}
                 for name in names:
                     r[name] = GamePiece(closet=self, graphic_name=name)
@@ -1428,6 +1448,8 @@ before RumorMill will work. For that, run mkdb.sh.
                 return r
 
             def get_game_pieces(names):
+                """Return a dictionary of one game piece per name,
+                loading as needed."""
                 r = {}
                 unhad = set()
                 for name in names:
@@ -1450,12 +1472,12 @@ before RumorMill will work. For that, run mkdb.sh.
             self.USE_KIVY = True
 
         self.connector = connector
-        self.skeleton = Skeleton({"place": {}})
-        self.altered_bones = set()
-        self.deleted_bones = set()
-
+        self.empty = Skeleton({"place": {}})
         for tab in SaveableMetaclass.tabclas.iterkeys():
-            self.skeleton[tab] = {}
+            self.empty[tab] = {}
+        self.skeleton = self.empty.copy()
+        self.altered = self.empty.copy()
+        self.deleted = self.empty.copy()
 
         self.c = self.connector.cursor()
         self.branch_listeners = []
@@ -1488,14 +1510,21 @@ before RumorMill will work. For that, run mkdb.sh.
         self.connector.close()
 
     def listen_to_skeleton(self):
+        """Arrange that I will remember each bone set into or deleted from the
+        skeleton, so that I can SQL-ify them later on--and *not*
+        SQL-ify any that were set when I *wasn't* listening.
+
+        """
         self.skeleton.register_set_listener(self.upd_on_set)
         self.skeleton.register_del_listener(self.upd_on_del)
 
     def ignore_skeleton(self):
+        """Stop paying attention to changes in the skeleton."""
         self.skeleton.unregister_set_listener(self.upd_on_set)
         self.skeleton.unregister_del_listener(self.upd_on_del)
 
     def get_bone_timely(self, keys, branch=None, tick=None):
+        """Get the bone at the given keys and time"""
         if branch is None:
             branch = self.branch
         if tick is None:
@@ -1509,11 +1538,15 @@ before RumorMill will work. For that, run mkdb.sh.
         return self.skeleton.get_timely(keys, 0, tick)
 
     def timely_bone_getter(self, keys):
+        """Return a function that gets the bone with the given keys, at the
+        sim-time when it's called."""
         def r(branch=None, tick=None):
             return self.get_timely(keys, branch, tick)
         return r
 
     def set_bone_timely(self, keys, value, branch=None, tick=None):
+        """Set the bone ``value`` into the skeleton with the given keys and
+        sim-time."""
         if branch is None:
             branch = self.branch
         if tick is None:
@@ -1521,11 +1554,19 @@ before RumorMill will work. For that, run mkdb.sh.
         self.skeleton.set_timely(keys, value, branch, tick)
 
     def timely_bone_setter(self, keys):
+        """Return a function that sets a bone into the skeleton at the present
+        sim-time, with the keys supplied to ``timely_bone_setter``.
+
+        """
         def r(value, branch=None, tick=None):
             self.set_timely(keys, value, branch, tick)
         return r
 
     def del_bone_timely(self, keys, branch=None, tick=None):
+        """Delete the bone at the given keys and sim-time, or the previous
+        bone if there's none at the precise tick given.
+
+        """
         if branch is None:
             branch = self.branch
         if tick is None:
@@ -1533,38 +1574,58 @@ before RumorMill will work. For that, run mkdb.sh.
         self.skeleton.del_timely(keys, branch, tick)
 
     def timely_bone_deleter(self, keys):
+        """Return a function to delete the bone at or before the current time
+        with the keys supplied to ``timely_bone_deleter``.
+
+        """
         def r(branch=None, tick=None):
             self.del_timely(keys, branch, tick)
         return r
 
     def timely_bone_property(self, keys):
+        """Make a property for the most recent value of the bone with the given
+        keys."""
         return property(
             self.timely_getter(keys),
             self.timely_setter(keys),
             self.timely_deleter(keys),
-            "Returns the value in {} at the current sim-time.".format(
+            "The value in {} at the current sim-time.".format(
                 repr(keys)))
 
     def get_fact_timely(self, keys, boneatt, branch=None, tick=None):
+        """Get a particular attribute of the bone with the given keys at the
+        given time."""
         bone = self.get_bone_timely(keys, branch, tick)
         return getattr(bone, boneatt)
 
     def timely_fact_getter(self, keys, boneatt):
+        """Return a function to get a particular attribute, of a particular
+        bone, with keys supplied to ``timely_fact_getter``, at the current
+        sim-time."""
         def r(branch=None, tick=None):
             return self.get_fact_timely(keys, boneatt, branch, tick)
         return r
 
     def set_fact_timely(self, keys, boneatt, val, branch=None, tick=None):
+        """Set a particular field of a bone with given keys and sim-time."""
         former = self.get_bone_timely(keys, branch, tick)
         latter = former._replace(**{boneatt: val})
         self.set_bone_timely(keys, latter, branch, tick)
 
     def timely_fact_setter(self, keys, boneatt):
+        """Return a function to set a predetermined attribute of the bone with
+        the given keys, at the present sim-time."""
         def r(val, branch=None, tick=None):
             self.set_fact_timely(keys, boneatt, val, branch, tick)
         return r
 
     def timely_fact_property(self, keys, boneatt):
+        """Return a ``property`` that gets and sets the attribute ``boneatt``
+        of the bone with ``keys``.
+
+        Deletion of bone attributes is not supported.
+
+        """
         return property(
             self.timely_fact_getter(keys, boneatt),
             self.timely_fact_setter(keys, boneatt),
@@ -1572,22 +1633,21 @@ before RumorMill will work. For that, run mkdb.sh.
                 boneatt, repr(keys)))
 
     def select_class_all(self, cls):
+        """Load all the data from the database for the given class."""
         self.select_and_set(bonetype._null() for bonetype in
                             cls.bonetypes.itervalues())
 
-    def insert_or_replace_bones_single_typ(self, typ, bones):
-        qrystr = "INSERT OR REPLACE INTO {} ({}) VALUES ({});".format(
-            typ.__name__, ", ".join(typ._fields), ", ".join(
-                ["?"] * len(typ._fields)))
-        self.c.executemany(qrystr, tuple(bones))
-
     def upd_on_set(self, skel, child, k, v):
+        """Supposing that the bone is equipped to write its own SQL, keep it
+        in my ``altered_bones`` so as to do so later."""
         if hasattr(v, 'keynames'):
-            self.altered_bones.add(v)
+            self.set_bone(v, 'altered')
 
     def upd_on_del(self, skel, child, k, v):
+        """Supposing that the bone is equipped to write its own SQL, keep it
+        in my ``deleted_bones`` so as to do so later."""
         if hasattr(v, 'keynames'):
-            self.deleted_bones.add(v)
+            self.set_bone(v, 'deleted')
 
     def select_keybone(self, kb):
         qrystr = "SELECT {} FROM {} WHERE {};".format(
@@ -1674,19 +1734,21 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def save_game(self):
         """Save all pending changes to disc."""
-        # save globals first
         Logger.debug("closet: beginning save_game")
         for glob in self.globs:
             self.set_global(glob, getattr(self, glob))
-        for bone in self.deleted_bones.union(self.altered_bones):
+        for bone in self.deleted.iterbones():
+            Logger.debug("deleting: {}".format(bone))
             self.c.execute(bone.sql_del, tuple(
                 getattr(bone, f) for f in bone.keynames))
-        for bone in self.altered_bones:
-            self.c.execute(bone.sql_ins, bone)
+        for bone in self.altered.iterbones():
+            Logger.debug("overwriting: {}".format(bone))
+            self.c.execute(bone.sql_del, tuple(
+                getattr(bone, f) for f in bone.keynames))
+            self.c.execute(bone.sql_ins, tuple(
+                getattr(bone, f) for f in bone._fields))
         self.connector.commit()
         Logger.debug("closet: saved game")
-        self.deleted_bones = set()
-        self.altered_bones = set()
 
     def load_img_metadata(self):
         self.select_class_all(Img)
@@ -2152,7 +2214,7 @@ before RumorMill will work. For that, run mkdb.sh.
         for bone in self.skeleton[u"graphic_img"][graphicn].iterbones():
             yield self.get_img(bone.img)
 
-    def set_bone(self, bone):
+    def set_bone(self, bone, skel='main'):
         """Take a bone of arbitrary type and put it in the right place in the
         skeleton.
 
@@ -2161,17 +2223,27 @@ before RumorMill will work. For that, run mkdb.sh.
         PlaceBone to describe it.
 
         """
-        def init_keys(skel, keylst):
+        if skel == 'main':
+            skeleton = self.skeleton
+        elif skel == 'altered':
+            skeleton = self.altered
+        elif skel == 'deleted':
+            skeleton = self.deleted
+        else:
+            raise ValueError("I have no skeleton named {}".format(skel))
+
+        def init_keys(skeleton, keylst):
             for key in keylst:
-                if key not in skel:
-                    skel[key] = {}
-                skel = skel[key]
-            return skel
+                if key not in skeleton:
+                    skeleton[key] = {}
+                skeleton = skeleton[key]
+            return skeleton
 
         def set_place_maybe(host, place, branch, tick):
             if not self.have_place_bone(host, place, branch, tick):
-                self.set_bone(PlaceBone(
-                    host=host, place=place, branch=branch, tick=tick))
+                self.set_bone(bone=PlaceBone(
+                    host=host, place=place, branch=branch, tick=tick),
+                    skel=skel)
 
         def upd_time(branch, tick):
             self.timestream.upbranch(branch)
@@ -2179,29 +2251,29 @@ before RumorMill will work. For that, run mkdb.sh.
 
         if isinstance(bone, PlaceBone):
             init_keys(
-                self.skeleton,
+                skeleton,
                 [u"place", bone.host, bone.place, bone.branch])
-            self.skeleton[u"place"][bone.host][bone.place][
+            skeleton[u"place"][bone.host][bone.place][
                 bone.branch][bone.tick] = bone
             return
 
         # Some bones implicitly declare a new place
         if Thing and isinstance(bone, Thing.bonetypes[u"thing_loc"]):
-            core = self.skeleton[u"thing"][bone.character][bone.name]
+            core = skeleton[u"thing"][bone.character][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
             upd_time(bone.branch, bone.tick)
         elif Thing and isinstance(bone, Thing.bonetypes[u"thing_loc_facade"]):
-            core = self.skeleton[u"thing"][bone.observed][bone.name]
+            core = skeleton[u"thing"][bone.observed][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
             upd_time(bone.branch, bone.tick)
         elif Portal and isinstance(bone, Portal.bonetypes[u"portal_loc"]):
-            core = self.skeleton[u"portal"][bone.character][bone.name]
+            core = skeleton[u"portal"][bone.character][bone.name]
             upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif Portal and isinstance(
                 bone, Portal.bonetypes[u"portal_stat_facade"]):
-            core = self.skeleton[u"portal"][bone.observed][bone.name]
+            core = skeleton[u"portal"][bone.observed][bone.name]
             upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
@@ -2221,9 +2293,9 @@ before RumorMill will work. For that, run mkdb.sh.
 
         keynames = bone.cls.keynames[bone._name]
         keys = [bone._name] + [getattr(bone, keyn) for keyn in keynames[:-1]]
-        skel = init_keys(self.skeleton, keys)
+        skelly = init_keys(skeleton, keys)
         final_key = getattr(bone, keynames[-1])
-        skel[final_key] = bone
+        skelly[final_key] = bone
 
 
 def defaults(c, kivy=False):
@@ -2461,16 +2533,6 @@ def mkdb(DB_NAME, lisepath, kivy=False):
 def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
                 load_gfx=False, load_characters=[], load_charsheet=None,
                 load_board=[]):
-    """Construct a ``Closet`` connected to the given database file. Use
-    the LiSE library in the path given.
-
-    If ``kivy`` == True, the closet will be able to load textures using
-    Kivy's Image widget.
-
-    Strings will be loaded for the language ``lang``. Use language codes
-    from ISO 639-2, default "eng".
-
-    """
     r = Closet(connector=sqlite3.connect(dbfn), gettext=gettext,
                USE_KIVY=(load_img or load_img_tags or load_gfx or
                          load_charsheet or load_board))
