@@ -1451,7 +1451,8 @@ before RumorMill will work. For that, run mkdb.sh.
 
         self.connector = connector
         self.skeleton = Skeleton({"place": {}})
-        self.sql_todo = []
+        self.altered_bones = set()
+        self.deleted_bones = set()
 
         for tab in SaveableMetaclass.tabclas.iterkeys():
             self.skeleton[tab] = {}
@@ -1487,12 +1488,12 @@ before RumorMill will work. For that, run mkdb.sh.
         self.connector.close()
 
     def listen_to_skeleton(self):
-        self.skeleton.register_set_listener(self.upd_sql_todo_on_set)
-        self.skeleton.register_del_listener(self.upd_sql_todo_on_del)
+        self.skeleton.register_set_listener(self.upd_on_set)
+        self.skeleton.register_del_listener(self.upd_on_del)
 
     def ignore_skeleton(self):
-        self.skeleton.unregister_set_listener(self.upd_sql_todo_on_set)
-        self.skeleton.unregister_del_listener(self.upd_sql_todo_on_del)
+        self.skeleton.unregister_set_listener(self.upd_on_set)
+        self.skeleton.unregister_del_listener(self.upd_on_del)
 
     def get_bone_timely(self, keys, branch=None, tick=None):
         if branch is None:
@@ -1580,16 +1581,13 @@ before RumorMill will work. For that, run mkdb.sh.
                 ["?"] * len(typ._fields)))
         self.c.executemany(qrystr, tuple(bones))
 
-    def upd_sql_todo_on_set(self, skel, child, k, v):
+    def upd_on_set(self, skel, child, k, v):
         if hasattr(v, 'keynames'):
-            self.sql_todo.append((v.sql_del, tuple(
-                getattr(v, f) for f in v.keynames)))
-            self.sql_todo.append((v.sql_ins, v))
+            self.altered_bones.add(v)
 
-    def upd_sql_todo_on_del(self, skel, child, k, v):
+    def upd_on_del(self, skel, child, k, v):
         if hasattr(v, 'keynames'):
-            self.sql_todo.append((v.sql_del, tuple(
-                getattr(v, f) for f in v.keynames)))
+            self.deleted_bones.add(v)
 
     def select_keybone(self, kb):
         qrystr = "SELECT {} FROM {} WHERE {};".format(
@@ -1676,17 +1674,19 @@ before RumorMill will work. For that, run mkdb.sh.
 
     def save_game(self):
         """Save all pending changes to disc."""
-        from time import time
         # save globals first
-        Logger.debug("{}: globals".format(time()))
+        Logger.debug("closet: beginning save_game")
         for glob in self.globs:
             self.set_global(glob, getattr(self, glob))
-        Logger.debug("{}: sql_todo".format(time()))
-        for sql in self.sql_todo:
-            Logger.debug("{}: {}".format(time(), sql))
-            self.c.execute(*sql)
-        Logger.debug("{}: game saved".format(time()))
-        self.sql_todo = []
+        for bone in self.deleted_bones.union(self.altered_bones):
+            self.c.execute(bone.sql_del, tuple(
+                getattr(bone, f) for f in bone.keynames))
+        for bone in self.altered_bones:
+            self.c.execute(bone.sql_ins, bone)
+        self.connector.commit()
+        Logger.debug("closet: saved game")
+        self.deleted_bones = set()
+        self.altered_bones = set()
 
     def load_img_metadata(self):
         self.select_class_all(Img)
