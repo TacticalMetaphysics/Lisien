@@ -1080,16 +1080,6 @@ class SaveableMetaclass(type):
                 checks[name] = tabdict["checks"]
             else:
                 checks[name] = []
-        inserts = {}
-        """The beginnings of SQL INSERT statements"""
-        deletes = {}
-        """The beginnings of SQL DELETE statements"""
-        keylen = {}
-        rowlen = {}
-        keyqms = {}
-        rowqms = {}
-        keystrs = {}
-        rowstrs = {}
         keynames = {}
         valnames = {}
         coltypes = {}
@@ -1098,9 +1088,6 @@ class SaveableMetaclass(type):
         for item in local_pkeys.items():
             (tablename, pkey) = item
             keynames[tablename] = list(pkey)
-            keylen[tablename] = len(pkey)
-            keyqms[tablename] = ", ".join(["?"] * keylen[tablename])
-            keystrs[tablename] = "(" + keyqms[tablename] + ")"
         for item in coldecls.items():
             (tablename, coldict) = item
             coltypes[tablename] = {}
@@ -1127,9 +1114,6 @@ class SaveableMetaclass(type):
                 coldefaults[tablename][fieldname] = default
             valnames[tablename] = list(set(coldict.keys()) -
                                        set(keynames[tablename]))
-            rowlen[tablename] = len(coldict)
-            rowqms[tablename] = ", ".join(["?"] * rowlen[tablename])
-            rowstrs[tablename] = "(" + rowqms[tablename] + ")"
         for tablename in coldecls.iterkeys():
             SaveableMetaclass.colnames[tablename] = (
                 keynames[tablename] + valnames[tablename])
@@ -1140,15 +1124,17 @@ class SaveableMetaclass(type):
                   coltypes[tablename][colname],
                   coldefaults[tablename][colname])
                  for colname in SaveableMetaclass.colnames[tablename]])
+            # assigning keynames here is kind of redundant (you could
+            # look them up in bonetype.cls) but mildly convenient, and
+            # serves to indicate that this bonetype was constructed by
+            # SaveableMetaclass
             bonetypes[tablename].keynames = keynames[tablename]
             SaveableMetaclass.tabclas[tablename] = clas
             provides.add(tablename)
-            coldecl = coldecls[tablename]
             pkey = SaveableMetaclass.primarykeys[tablename]
             fkeys = foreignkeys[tablename]
             cks = ["CHECK(%s)" % ck for ck in checks[tablename]]
-            coldecs = [coln + " " + coldecl[coln]
-                       for coln in SaveableMetaclass.colnames[tablename]]
+            coldecs = [" ".join(it) for it in coldecls[tablename].iteritems()]
             coldecstr = ", ".join(coldecs)
             pkeycolstr = ", ".join(pkey)
             SaveableMetaclass.colnamestr[tablename] = (
@@ -1176,14 +1162,9 @@ class SaveableMetaclass(type):
             if len(cks) > 0:
                 table_decl_data.append(chkstr)
             table_decl = ", ".join(table_decl_data)
-            create_stmt = "CREATE TABLE %s (%s)" % (tablename, table_decl)
-            insert_stmt_start = ("INSERT INTO " + tablename +
-                                 " ({0}) VALUES {1};")
-            inserts[tablename] = insert_stmt_start
-            delete_stmt_start = "DELETE FROM %s WHERE (%s) IN " % (
-                tablename, pkeycolstr)
-            deletes[tablename] = delete_stmt_start
-            SaveableMetaclass.schemata[tablename] = create_stmt
+            SaveableMetaclass.schemata[
+                tablename] = "CREATE TABLE {} ({})".format(
+                tablename, table_decl)
         SaveableMetaclass.saveables.append(
             (tuple(demands),
              tuple(provides),
@@ -1206,10 +1187,6 @@ class SaveableMetaclass(type):
             'keyns': tuple(keynames[tablenames[0]]),
             'valns': tuple(valnames[tablenames[0]]),
             'colns': tuple(SaveableMetaclass.colnames[tablenames[0]]),
-            'keylen': keylen,
-            'rowlen': rowlen,
-            'keyqms': keyqms,
-            'rowqms': rowqms,
             'maintab': tablenames[0],
             'tablenames': tuple(tablenames),
             'bonetypes': bonetypes,
@@ -2291,7 +2268,7 @@ class Closet(object):
                 self.img_tag_d[bone.tag] = set()
             self.img_tag_d[bone.tag].add(bone.img)
 
-        keynames = bone.cls.keynames[bone._name]
+        keynames = bone.keynames
         keys = [bone._name] + [getattr(bone, keyn) for keyn in keynames[:-1]]
         skelly = init_keys(skeleton, keys)
         final_key = getattr(bone, keynames[-1])
