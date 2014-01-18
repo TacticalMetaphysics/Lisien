@@ -257,7 +257,6 @@ class CharSheetAdder(ModalView):
                         stat=unicode(statn),
                         idx=self.insertion_point,
                         type=PLACE_CAL))
-                self.charsheet.repop()
                 return PLACE_CAL
             elif tab.current_tab == self.ids.portal_cal:
                 if len(self.ids.portal_cal_portal.selection) != 1:
@@ -273,7 +272,6 @@ class CharSheetAdder(ModalView):
                         stat=unicode(statn),
                         idx=self.insertion_point,
                         type=PORTAL_CAL))
-                self.charsheet.repop()
                 return PORTAL_CAL
             elif tab.current_tab == self.ids.char_cal:
                 if len(self.ids.char_cal_stat.selection) != 1:
@@ -285,7 +283,6 @@ class CharSheetAdder(ModalView):
                         stat=unicode(statn),
                         idx=self.insertion_point,
                         type=CHAR_CAL))
-                self.charsheet.repop()
                 return CHAR_CAL
             else:
                 if len(self.ids.thing_cal_thing.selection) != 1:
@@ -301,7 +298,6 @@ class CharSheetAdder(ModalView):
                         stat=unicode(statn),
                         idx=self.insertion_point,
                         type=THING_CAL))
-                self.charsheet.repop()
                 return THING_CAL
         else:
             tab = self.ids.tables_panel
@@ -326,7 +322,6 @@ class CharSheetAdder(ModalView):
                     return
                 for bone in place_tab_places + place_tab_stats:
                     self.charsheet.character.closet.set_bone(bone)
-                self.charsheet.repop()
                 return PLACE_TAB
             elif tab.current_tab == self.ids.portal_tab:
                 portal_tab_portals = [
@@ -349,7 +344,6 @@ class CharSheetAdder(ModalView):
                     return
                 for bone in portal_tab_portals + portal_tab_stats:
                     self.charsheet.character.closet.set_bone(bone)
-                self.charsheet.repop()
                 return PORTAL_TAB
             elif tab.current_tab == self.ids.char_tab:
                 char_tab_stats = [
@@ -363,7 +357,6 @@ class CharSheetAdder(ModalView):
                     return
                 for bone in char_tab_stats:
                     self.charsheet.character.closet.set_bone(bone)
-                self.charsheet.repop()
                 return CHAR_TAB
             else:
                 thing_tab_things = [
@@ -386,7 +379,6 @@ class CharSheetAdder(ModalView):
                     return
                 for bone in thing_tab_things + thing_tab_stats:
                     self.charsheet.character.closet.set_bone(bone)
-                self.charsheet.repop()
                 return THING_TAB
 
 
@@ -578,7 +570,7 @@ tick.
 
     def __init__(self, **kwargs):
         super(CharSheet, self).__init__(**kwargs)
-        self.bind(character=self.repop)
+        self.repop()
 
     def add_item(self, i):
         # I need the layout, proper
@@ -599,11 +591,17 @@ things appropriate to the present, whenever that may be.
         """
         self.size_hint = (1, None)
         self.clear_widgets()
-        _ = self.character.closet.get_text
-        i = 0
         if unicode(self.character) not in self.character.closet.skeleton[
                 u"character_sheet_item_type"]:
+            self.add_widget(AddButton(
+                closet=self.character.closet,
+                fun=self.add_item,
+                arg=0,
+                size_hint_y=None,
+                height=50))
             return
+        _ = self.character.closet.get_text
+        i = 0
         for bone in self.character.closet.skeleton[
                 u"character_sheet_item_type"][
                 unicode(self.character)].iterbones():
@@ -678,13 +676,14 @@ things appropriate to the present, whenever that may be.
             else:
                 raise ValueError("Unknown item type: {}".format(bone.type))
 
-            widspec[1].update({
+            kwargs = {
                 'character': self.character,
                 'csbone': bone,
                 'size_hint_x': 0.8,
                 'i': i,
                 'size_hint_y': None,
-                'height': bone.height})
+                'height': bone.height}
+            widspec[1].update(kwargs)
             self.csitems.append(widspec[0](**widspec[1]))
 
             i += 1
@@ -766,6 +765,15 @@ things appropriate to the present, whenever that may be.
 
 
 class CharSheetView(ScrollView):
+    charsheet = ObjectProperty()
+
+    def on_charsheet(self, *args):
+        if self.charsheet is None:
+            return
+        self.add_widget(self.charsheet)
+        self.bind(pos=self.charsheet.setter('pos'),
+                  size=self.charsheet.setter('size'))
+
     def on_touch_down(self, touch):
         if self.collide_point(touch.x, touch.y):
             touch.ud["charsheet"] = self.children[0]

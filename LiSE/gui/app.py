@@ -28,7 +28,7 @@ from LiSE.gui.board.arrow import get_points
 
 from LiSE.gui.kivybits import TouchlessWidget
 from LiSE.gui.swatchbox import SwatchBox, TogSwatch
-from LiSE.gui.charsheet import CharSheetAdder
+from LiSE.gui.charsheet import CharSheet, CharSheetAdder
 
 from LiSE.util import TimestreamException
 from LiSE.model import Thing
@@ -186,6 +186,7 @@ and charsheets.
     """
     app = ObjectProperty()
     board = ObjectProperty()
+    charsheet = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
     portaling = BoundedNumericProperty(0, min=0, max=2)
     playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
@@ -556,6 +557,7 @@ class LiSEApp(App):
             load_gfx=True,
             load_characters=[self.observer_name, self.observed_name,
                              self.host_name],
+            load_charsheet=self.observed_name,
             load_board=[self.observer_name, self.observed_name,
                         self.host_name])
         observer = self.closet.get_character(self.observer_name)
@@ -563,7 +565,7 @@ class LiSEApp(App):
         host = self.closet.get_character(self.host_name)
         l = LiSELayout(app=self, board=Board(
             app=self, facade=observed.get_facade(observer),
-            host=host))
+            host=host), charsheet=CharSheet(character=observed))
         from kivy.core.window import Window
         from kivy.modules import inspector
         inspector.create_inspector(Window, l)
