@@ -1767,9 +1767,11 @@ class Closet(object):
 
     def load_characters(self, names):
         """Load records to do with the named characters"""
-        self.select_and_set(
-            (bone for bone in iter_character_query_bones_named(name))
-            for name in names)
+        def longway():
+            for name in names:
+                for bone in iter_character_query_bones_named(name):
+                    yield bone
+        self.select_and_set(longway())
 
     def get_characters(self, names):
         """Return a dict full of ``Character``s by the given names, loading
