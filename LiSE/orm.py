@@ -1628,8 +1628,17 @@ class Closet(object):
         in my ``deleted_bones`` so as to do so later."""
         if hasattr(v, 'keynames'):
             self.set_bone(v, 'deleted')
+            # if it's been altered in the same session, it must be removed
+            ptr = self.altered
+            try:
+                for keyn in v.keynames[:-1]:
+                    ptr = ptr[keyn]
+                del ptr[v.keynames[-1]]
+            except KeyError:
+                return
 
     def select_keybone(self, kb):
+        """Yield records from the database matching the bone."""
         qrystr = "SELECT {} FROM {} WHERE {};".format(
             ", ".join(kb._fields),
             kb.__class__.__name__,
@@ -1646,25 +1655,11 @@ class Closet(object):
             yield type(kb)(*bone)
 
     def select_keybones(self, kbs):
+        """Yield any records from the database that match at least one of the
+        bones."""
         for kb in kbs:
             for bone in self.select_keybone(kb):
                 yield bone
-
-    def delete_keybones_single_typ(self, typ, kbs):
-        qrystr = "DELETE FROM {} WHERE {};".format(
-            typ.__name__, " AND ".join(
-                ["{}=?".format(field) for field in
-                 typ._fields]))
-        self.c.execute(qrystr, tuple(kbs))
-        for row in self.c:
-            yield typ(*row)
-
-    def delete_keybones(self, kbs):
-        clas_qd = defaultdict(set)
-        for kb in kbs:
-            clas_qd[type(kb)].add(kb)
-        for (clas, kbset) in clas_qd.iteritems():
-            self.delete_keybones_single_typ(clas, kbset)
 
     def select_and_set(self, kbs, also_bone=lambda b: None):
         """Select records matching the keybones, turn them into bones
@@ -2053,26 +2048,6 @@ class Closet(object):
         """Get the root LiSELayout to make an Arrow, representing a Portal."""
         mi.get_root_window().children[0].make_arrow()
 
-    def register_text_listener(self, stringn, listener):
-        """Notify the listener when the string called ``stringn`` changes its
-        content."""
-        if stringn == "@branch" and listener not in self.branch_listeners:
-            self.branch_listeners.append(listener)
-        elif stringn == "@tick" and listener not in self.tick_listeners:
-            self.tick_listeners.append(listener)
-
-    def unregister_text_listener(self, stringn, listener):
-        try:
-            if stringn == "@branch":
-                return self.unregister_branch_listener(listener)
-            elif stringn == "@tick":
-                return self.unregister_tick_listener(listener)
-            else:
-                self.skeleton["strings"][
-                    stringn[1:]].set_listeners.remove(listener)
-        except (KeyError, ValueError):
-            raise ValueError("Listener isn't registered")
-
     def register_time_listener(self, listener):
         """``listener`` will be called when ``branch`` or ``tick`` changes"""
         if listener not in self.time_listeners:
@@ -2128,6 +2103,14 @@ class Closet(object):
             raise KeyError("Image unknown: {}".format(imgn))
         skel.unregister_set_listener(listener)
 
+    def register_text_listener(self, stringn, listener):
+        """``listener`` will be called when there is a different string known
+        by the name ``stringn``"""
+        if stringn == "@branch" and listener not in self.branch_listeners:
+            self.branch_listeners.append(listener)
+        elif stringn == "@tick" and listener not in self.tick_listeners:
+            self.tick_listeners.append(listener)
+
     def query_place(self, update=True):
         """Query the 'place' view, resulting in an up-to-date record of what
         places exist in the gameworld as it exists in the
@@ -2146,6 +2129,7 @@ class Closet(object):
                 tick=tick))
 
     def have_place_bone(self, host, place, branch=None, tick=None):
+        """Do I have a bone for that place? Time-sensitive."""
         if branch is None:
             branch = self.branch
         if tick is None:
@@ -2157,6 +2141,7 @@ class Closet(object):
             return False
 
     def iter_graphic_imgs(self, graphicn):
+        """Iterate over the ``Img``s in the graphic"""
         if graphicn not in self.skeleton[u"graphic_img"]:
             return
         for bone in self.skeleton[u"graphic_img"][graphicn].iterbones():
@@ -2212,21 +2197,21 @@ class Closet(object):
 
         # Some bones implicitly declare a new place
         if Thing and isinstance(bone, Thing.bonetypes[u"thing_loc"]):
-            core = skeleton[u"thing"][bone.character][bone.name]
+            core = self.skeleton[u"thing"][bone.character][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
             upd_time(bone.branch, bone.tick)
         elif Thing and isinstance(bone, Thing.bonetypes[u"thing_loc_facade"]):
-            core = skeleton[u"thing"][bone.observed][bone.name]
+            core = self.skeleton[u"thing"][bone.observed][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
             upd_time(bone.branch, bone.tick)
         elif Portal and isinstance(bone, Portal.bonetypes[u"portal_loc"]):
-            core = skeleton[u"portal"][bone.character][bone.name]
+            core = self.skeleton[u"portal"][bone.character][bone.name]
             upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif Portal and isinstance(
                 bone, Portal.bonetypes[u"portal_stat_facade"]):
-            core = skeleton[u"portal"][bone.observed][bone.name]
+            core = self.skeleton[u"portal"][bone.observed][bone.name]
             upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)

@@ -31,11 +31,8 @@ class MenuWidget(Widget):
 
     def on_completion(self, i, v):
         if v == 2:
-            self.complete()
-
-    def complete(self):
-        self.closet.register_text_listener(self.stringname, self.retext)
-        self.initext()
+            self.closet.register_text_listener(self.stringname, self.retext)
+            self.initext()
 
     def do_fun(self):
         if self.arg is None:
