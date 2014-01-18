@@ -1203,6 +1203,8 @@ class SaveableMetaclass(type):
 
 
 def iter_character_query_bones_named(name):
+    """Yield all the bones needed to query the database about all the data
+    in a character."""
     yield Thing.bonetypes["thing"]._null()._replace(
         character=name)
     yield Portal.bonetypes["portal"]._null()._replace(
@@ -1277,15 +1279,16 @@ class Closet(object):
 
     @property
     def time(self):
+        """(branch, tick)"""
         return (self.branch, self.tick)
 
     def __setattr__(self, attrn, val):
+        """Handle updates to ``branch`` and ``tick``. Otherwise just
+        pass-thru."""
         if attrn == "branch" and hasattr(self, 'branch'):
             self.upd_branch(val)
         elif attrn == "tick" and hasattr(self, 'tick'):
             self.upd_tick(val)
-        elif attrn == "language" and hasattr(self, 'language'):
-            self.upd_lang(val)
         else:
             super(Closet, self).__setattr__(attrn, val)
 
@@ -1664,6 +1667,11 @@ class Closet(object):
             self.delete_keybones_single_typ(clas, kbset)
 
     def select_and_set(self, kbs, also_bone=lambda b: None):
+        """Select records matching the keybones, turn them into bones
+        themselves, and set those bones in my skeleton. Then pass them
+        to ``also_bone``, if specified.
+
+        """
         for bone in self.select_keybones(kbs):
             self.set_bone(bone)
             also_bone(bone)
@@ -1688,11 +1696,15 @@ class Closet(object):
             listener(b, t)
 
     def get_global(self, key):
+        """Retrieve a global value from the database and return it.
+
+        Not a bone. A scalar."""
         self.c.execute("SELECT type, value FROM globals WHERE key=?;", (key,))
         (typ_i, val_s) = self.c.fetchone()
         return int2pytype[typ_i](val_s)
 
     def set_global(self, key, value):
+        """Set ``key``=``value`` in the database"""
         self.c.execute("DELETE FROM globals WHERE key=?;", (key,))
         self.c.execute(
             "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
@@ -1728,88 +1740,46 @@ class Closet(object):
         Logger.debug("closet: saved game")
 
     def load_img_metadata(self):
+        """Get all the records to do with where images are, so maybe I can
+        load them later"""
         self.select_class_all(Img)
 
     def load_gfx_metadata(self):
+        """Get all the records to do with how to put ``Img``s together into
+        ``GamePiece``s"""
         self.select_class_all(GamePiece)
 
-    def load_strings(self):
-        """Load all strings available."""
-        self.select_and_set(self.bonetypes["strings"]._null())
-
-    def make_generic_place(self, character):
-        """Make a place hosted by the given character, and give it a boring
-        name.
-
-        """
-        character = self.get_character(character)
-        placen = "generic_place_{0}".format(len(character.graph.vs))
-        return character.make_place(placen)
-
-    def make_generic_thing(self, character, host, location,
-                           branch=None, tick=None):
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        character = self.get_character(character)
-        charn = unicode(character)
-        hostn = unicode(host)
-        locn = unicode(location)
-        if charn not in self.skeleton[u"thing"]:
-            self.skeleton[u"thing"][charn] = {}
-        thingn = u"generic_thing_{}".format(
-            len(self.skeleton[u"thing"][charn]))
-        thing_core_bone = Thing.bonetypes["thing"](
-            character=charn,
-            name=thingn,
-            host=hostn)
-        self.set_bone(thing_core_bone)
-        thing_loc_bone = Thing.bonetypes["thing_loc"](
-            character=charn,
-            name=thingn,
-            branch=branch,
-            tick=tick,
-            location=locn)
-        self.set_bone(thing_loc_bone)
-        return character.make_thing(thingn)
-
     def load_charsheet(self, character):
-        """Return a CharSheetView displaying the CharSheet for the character
-        specified, perhaps loading it if necessary."""
-        def gen_keybones():
-            for bonetype in CharSheet.bonetypes.itervalues():
-                yield bonetype._null()._replace(character=character)
+        """Load records to do with the ``CharSheet`` representing the named
+        character"""
         # if the character is not loaded yet, make it so
         character = unicode(self.get_character(character))
-        self.select_and_set(gen_keybones())
+        self.select_and_set(
+            bonetype._null()._replace(character=character)
+            for bonetype in CharSheet.bonetypes.itervalues())
 
     def get_charsheet(self, character):
+        """Return a CharSheetView displaying the CharSheet for the character
+        specified, perhaps loading it if necessary."""
         if character not in self.skeleton[u"character_sheet_item_type"]:
             self.load_charsheet(character)
         return CharSheetView(character=self.get_character(character))
 
     def load_characters(self, names):
-        def iterkbs():
-            for name in names:
-                for bone in iter_character_query_bones_named(name):
-                    yield(bone)
-        self.select_and_set(iterkbs())
+        """Load records to do with the named characters"""
+        self.select_and_set(
+            (bone for bone in iter_character_query_bones_named(name))
+            for name in names)
 
     def get_characters(self, names):
+        """Return a dict full of ``Character``s by the given names, loading
+        them as needed"""
         r = {}
-
-        def iter_unhad():
-            for name in names:
-                if name not in self.character_d:
-                    for bone in iter_character_query_bones_named(name):
-                        yield bone
-
-        self.select_and_set(iter_unhad())
         for name in names:
-            r[name] = Character(self, name)  # you can have a
-                                             # character with no data
-                                             # in it, that's fine
+            self.select_and_set(
+                bone for bone in iter_character_query_bones_named(name)
+                if name not in self.character_d)
+            r[name] = Character(self, name)
         self.character_d.update(r)
         return r
 
@@ -1906,6 +1876,7 @@ class Closet(object):
         return r
 
     def get_img(self, imgn):
+        """Get an ``Img`` and return it, loading if needed"""
         return self.get_imgs([imgn])[imgn]
 
     def load_menus(self, names):
@@ -2101,61 +2072,59 @@ class Closet(object):
             raise ValueError("Listener isn't registered")
 
     def register_time_listener(self, listener):
-        """Listener will be called when ``branch`` or ``tick`` changes"""
+        """``listener`` will be called when ``branch`` or ``tick`` changes"""
         if listener not in self.time_listeners:
             self.time_listeners.append(listener)
 
     def unregister_time_listener(self, listener):
+        """``listener`` will not be called when ``branch`` or ``tick``
+        changes"""
         try:
             self.time_listeners.remove(listener)
         except ValueError:
             raise ValueError("Listener isn't registered")
 
     def register_branch_listener(self, listener):
-        """Listener will be called when ``branch`` changes"""
+        """``listener`` will be called when ``branch`` changes"""
         if listener not in self.branch_listeners:
             self.branch_listeners.append(listener)
 
     def unregister_branch_listener(self, listener):
+        """``listener`` will not be called when ``branch`` changes"""
         try:
             self.branch_listeners.remove(listener)
         except ValueError:
             raise ValueError("Listener isn't registered")
 
     def register_tick_listener(self, listener):
-        """Listener will be called when ``tick`` changes"""
+        """``listener`` will be called when ``tick`` changes"""
         if listener not in self.tick_listeners:
             self.tick_listeners.append(listener)
 
     def unregister_tick_listener(self, listener):
+        """``listener`` will not be called when ``tick`` changes"""
         try:
             self.tick_listeners.remove(listener)
         except ValueError:
             raise ValueError("Listener isn't registered")
 
     def register_img_listener(self, imgn, listener):
+        """``listener`` will be called when the image by the given name
+        changes"""
         try:
             skel = self.skeleton[u"img"][imgn]
         except KeyError:
             raise KeyError("Image unknown: {}".format(imgn))
-        if listener not in skel.set_listeners:
-            skel.set_listeners.append(listener)
+        skel.register_set_listener(listener)
 
     def unregister_img_listener(self, imgn, listener):
+        """``listener`` will not be called when the image by the given name
+        changes"""
         try:
             skel = self.skeleton[u"img"][imgn]
         except KeyError:
             raise KeyError("Image unknown: {}".format(imgn))
-        try:
-            skel.set_listeners.remove(listener)
-        except ValueError:
-            raise ValueError("Listener isn't registered")
-
-    def register_hi_branch_listener(self, listener):
-        self.timeline.hi_branch_listeners.append(listener)
-
-    def register_hi_tick_listener(self, listener):
-        self.timeline.hi_tick_listeners.append(listener)
+        skel.unregister_set_listener(listener)
 
     def query_place(self, update=True):
         """Query the 'place' view, resulting in an up-to-date record of what
@@ -2210,6 +2179,8 @@ class Closet(object):
             raise ValueError("I have no skeleton named {}".format(skel))
 
         def init_keys(skeleton, keylst):
+            """Make sure skeleton goes deep enough to put a value in, at the
+            bottom of ``keylst``"""
             for key in keylst:
                 if key not in skeleton:
                     skeleton[key] = {}
@@ -2217,12 +2188,15 @@ class Closet(object):
             return skeleton
 
         def set_place_maybe(host, place, branch, tick):
+            """Set a PlaceBone, but only if I don't have one for that place
+            already"""
             if not self.have_place_bone(host, place, branch, tick):
                 self.set_bone(bone=PlaceBone(
                     host=host, place=place, branch=branch, tick=tick),
                     skel=skel)
 
         def upd_time(branch, tick):
+            """Make sure the timestream knows how long it is"""
             self.timestream.upbranch(branch)
             self.timestream.uptick(tick)
 
@@ -2276,6 +2250,10 @@ class Closet(object):
 
 
 def defaults(c, kivy=False):
+    """Retrieve default values from ``LiSE.data`` and insert them with the
+    cursor ``c``.
+
+    With ``kivy``==``True``, this will include data about graphics."""
     if kivy:
         from LiSE.data import whole_imgrows
         c.executemany(
@@ -2371,6 +2349,7 @@ def defaults(c, kivy=False):
 
 
 def mkdb(DB_NAME, lisepath, kivy=False):
+    """Initialize a database file and insert default values"""
     global Logger
     img_qrystr = (
         "INSERT INTO img (name, path) "
@@ -2510,6 +2489,8 @@ def mkdb(DB_NAME, lisepath, kivy=False):
 def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
                 load_gfx=False, load_characters=[], load_charsheet=None,
                 load_board=[]):
+    """Return a Closet instance for the given database, maybe loading a
+    few things before listening to the skeleton."""
     r = Closet(connector=sqlite3.connect(dbfn), gettext=gettext,
                USE_KIVY=(load_img or load_img_tags or load_gfx or
                          load_charsheet or load_board))
