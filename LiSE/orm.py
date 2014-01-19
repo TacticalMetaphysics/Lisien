@@ -1477,7 +1477,8 @@ class Closet(object):
             setattr(self, wd, dict())
 
         self.timestream = Timestream(self)
-        self.time_travel_history = []
+        self.time_travel_history = [
+            (self.get_global('branch'), self.get_global('tick'))]
         self.game_speed = 1
         self.updating = False
 
@@ -1513,7 +1514,10 @@ class Closet(object):
             try:
                 return self.skeleton.get_timely(keys, branch, tick)
             except KeyError:
-                branch = self.timestream.parent(branch)
+                try:
+                    branch = self.timestream.parent(branch)
+                except IndexError:
+                    break
         # may throw KeyError
         return self.skeleton.get_timely(keys, 0, tick)
 
@@ -1674,6 +1678,17 @@ class Closet(object):
     def upd_branch(self, b):
         """Set the active branch, alerting any branch_listeners"""
         super(Closet, self).__setattr__('branch', b)
+        del self.branch
+        (ob, ot) = self.time_travel_history[-1]
+        mb = self.timestream.max_branch()
+        b = min(b, mb)
+        if b != ob:
+            self.new_branch(ob, b, self.tick)
+        self.branch = b
+        for char in self.character_d.itervalues():
+            char.update()
+        for facd in self.facade_d.itervalues():
+            facd.update()
         self.upd_time(b, self.tick)
         for listener in self.branch_listeners:
             listener(b)
@@ -1913,8 +1928,6 @@ class Closet(object):
         """
         assert branch <= self.timestream.hi_branch + 1, (
             "Tried to travel to too high a branch")
-        if branch == self.timestream.hi_branch + 1:
-            self.new_branch(self.branch, branch, tick)
         # will need to take other games-stuff into account than the
         # thing_location
         if tick < 0:
@@ -1925,11 +1938,12 @@ class Closet(object):
             raise TimestreamException("Tick before start of branch")
         if branch < 0:
             raise TimestreamException("Branch can't be less than zero")
-        self.time_travel_history.append((self.branch, self.tick))
         if tick > self.timestream.hi_tick:
             self.timestream.hi_tick = tick
+        old = self.time
         self.branch = branch
         self.tick = tick
+        self.time_travel_history.append(old)
 
     def increment_branch(self, branches=1):
         """Go to the next higher branch. Might result in the creation of said
@@ -1970,7 +1984,6 @@ class Closet(object):
 
     def time_travel_inc_branch(self, branches=1):
         """Go to the next branch on the same tick"""
-        self.increment_branch(branches)
         self.time_travel(self.branch+branches, self.tick)
 
     def go(self, nope=None):

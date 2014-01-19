@@ -7,8 +7,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LiSE 0.0\n"
-"Report-Msgid-Bugs-To: Zachary Spector <zacharyspector@gmail.com>\n"
-"POT-Creation-Date: 2014-01-11 09:36-0500\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-01-19 13:31-0500\n"
 "PO-Revision-Date: 2014-01-11 10:39-0500\n"
 "Last-Translator: Zachary Spector <zacharyspector@gmail.com>\n"
 "Language: English\n"
@@ -16,27 +16,31 @@ msgstr ""
 "Content-Type: text/plain; charset=utf8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: LiSE/gui/charsheet/charsheet.py:612
+#: LiSE/gui/charsheet/charsheet.py:613
 msgid "thing"
 msgstr "thing"
 
-#: LiSE/gui/charsheet/charsheet.py:634
+#: LiSE/gui/charsheet/charsheet.py:618
+msgid "location"
+msgstr ""
+
+#: LiSE/gui/charsheet/charsheet.py:631
 msgid "place"
 msgstr "place"
 
-#: LiSE/gui/charsheet/charsheet.py:649
+#: LiSE/gui/charsheet/charsheet.py:646
 msgid "origin"
 msgstr "origin"
 
-#: LiSE/gui/charsheet/charsheet.py:652
+#: LiSE/gui/charsheet/charsheet.py:649
 msgid "destination"
 msgstr "destination"
 
-#: LiSE/gui/app.py:219
+#: LiSE/gui/app.py:220
 msgid "Draw a line between the spots to connect with a portal."
 msgstr "Draw a line between the spots to connect with a portal."
 
-#: LiSE/gui/app.py:372
+#: LiSE/gui/app.py:373
 msgid "Drag this to a spot"
 msgstr "Drag this to a spot"
 
@@ -48,143 +52,147 @@ msgstr "⇕"
 msgid "@add"
 msgstr "⊕"
 
-#: LiSE/gui/lise.kv:78
+#: LiSE/gui/lise.kv:20
+msgid "@del"
+msgstr "⌫"
+
+#: LiSE/gui/lise.kv:63
 msgid "Tables"
 msgstr "Tables"
 
-#: LiSE/gui/lise.kv:83 LiSE/gui/lise.kv:212
+#: LiSE/gui/lise.kv:68 LiSE/gui/lise.kv:197
 msgid "Thing"
 msgstr "Thing"
 
-#: LiSE/gui/lise.kv:88
+#: LiSE/gui/lise.kv:73
 msgid "Pick things."
 msgstr "Pick things."
 
-#: LiSE/gui/lise.kv:97
+#: LiSE/gui/lise.kv:82
 msgid "Pick stats of things."
 msgstr "Pick stats of things."
 
-#: LiSE/gui/lise.kv:110 LiSE/gui/lise.kv:143 LiSE/gui/lise.kv:177
-#: LiSE/gui/lise.kv:199 LiSE/gui/lise.kv:239 LiSE/gui/lise.kv:274
-#: LiSE/gui/lise.kv:309 LiSE/gui/lise.kv:331
+#: LiSE/gui/lise.kv:95 LiSE/gui/lise.kv:128 LiSE/gui/lise.kv:162
+#: LiSE/gui/lise.kv:184 LiSE/gui/lise.kv:224 LiSE/gui/lise.kv:259
+#: LiSE/gui/lise.kv:294 LiSE/gui/lise.kv:316
 msgid "New stat name"
 msgstr "New stat name"
 
-#: LiSE/gui/lise.kv:118 LiSE/gui/lise.kv:247
+#: LiSE/gui/lise.kv:103 LiSE/gui/lise.kv:232
 msgid "Place"
 msgstr "Place"
 
-#: LiSE/gui/lise.kv:123
+#: LiSE/gui/lise.kv:108
 msgid "Pick places."
 msgstr "Pick places."
 
-#: LiSE/gui/lise.kv:132
+#: LiSE/gui/lise.kv:117
 msgid "Pick stats of places."
 msgstr "Pick stats of places."
 
-#: LiSE/gui/lise.kv:151 LiSE/gui/lise.kv:282
+#: LiSE/gui/lise.kv:136 LiSE/gui/lise.kv:267
 msgid "Portal"
 msgstr "Portal"
 
-#: LiSE/gui/lise.kv:156
+#: LiSE/gui/lise.kv:141
 msgid "Pick portals."
 msgstr "Pick portals."
 
-#: LiSE/gui/lise.kv:165
+#: LiSE/gui/lise.kv:150
 msgid "Pick stats of portals."
 msgstr "Pick stats of portals."
 
-#: LiSE/gui/lise.kv:185 LiSE/gui/lise.kv:317
+#: LiSE/gui/lise.kv:170 LiSE/gui/lise.kv:302
 msgid "Character"
 msgstr "Character"
 
-#: LiSE/gui/lise.kv:188
+#: LiSE/gui/lise.kv:173
 msgid "Pick stats of the character."
 msgstr "Pick stats of the character."
 
-#: LiSE/gui/lise.kv:207
+#: LiSE/gui/lise.kv:192
 msgid "Calendars"
 msgstr "Calendars"
 
-#: LiSE/gui/lise.kv:217
+#: LiSE/gui/lise.kv:202
 msgid "Pick a thing."
 msgstr "Pick a thing."
 
-#: LiSE/gui/lise.kv:227 LiSE/gui/lise.kv:262 LiSE/gui/lise.kv:297
+#: LiSE/gui/lise.kv:212 LiSE/gui/lise.kv:247 LiSE/gui/lise.kv:282
 msgid "Pick one of its stats."
 msgstr "Pick one of its stats."
 
-#: LiSE/gui/lise.kv:252
+#: LiSE/gui/lise.kv:237
 msgid "Pick a place."
 msgstr "Pick a place."
 
-#: LiSE/gui/lise.kv:287
+#: LiSE/gui/lise.kv:272
 msgid "Pick a portal."
 msgstr "Pick a portal."
 
-#: LiSE/gui/lise.kv:320
+#: LiSE/gui/lise.kv:305
 msgid "Pick a stat."
 msgstr "Pick a stat."
 
-#: LiSE/gui/lise.kv:340 LiSE/gui/lise.kv:372 LiSE/gui/lise.kv:393
-#: LiSE/gui/lise.kv:517 LiSE/gui/lise.kv:547
+#: LiSE/gui/lise.kv:325 LiSE/gui/lise.kv:357 LiSE/gui/lise.kv:378
+#: LiSE/gui/lise.kv:499 LiSE/gui/lise.kv:529
 msgid "Cancel"
 msgstr "Cancel"
 
-#: LiSE/gui/lise.kv:343 LiSE/gui/lise.kv:396 LiSE/gui/lise.kv:520
-#: LiSE/gui/lise.kv:550
+#: LiSE/gui/lise.kv:328 LiSE/gui/lise.kv:381 LiSE/gui/lise.kv:502
+#: LiSE/gui/lise.kv:532
 msgid "Confirm"
 msgstr "Confirm"
 
-#: LiSE/gui/lise.kv:376
+#: LiSE/gui/lise.kv:361
 msgid "Load"
 msgstr "Load"
 
-#: LiSE/gui/lise.kv:452
+#: LiSE/gui/lise.kv:434
 msgid "Place..."
 msgstr "Place..."
 
-#: LiSE/gui/lise.kv:456
+#: LiSE/gui/lise.kv:438
 msgid "Portal..."
 msgstr "Portal..."
 
-#: LiSE/gui/lise.kv:460
+#: LiSE/gui/lise.kv:442
 msgid "Thing..."
 msgstr "Thing..."
 
-#: LiSE/gui/lise.kv:465
+#: LiSE/gui/lise.kv:447
 msgid "@starttime"
 msgstr "▶"
 
-#: LiSE/gui/lise.kv:470
+#: LiSE/gui/lise.kv:452
 msgid "@reversetime"
 msgstr "⏪"
 
-#: LiSE/gui/lise.kv:476
+#: LiSE/gui/lise.kv:458
 msgid "@pause"
 msgstr "‖"
 
-#: LiSE/gui/lise.kv:480
+#: LiSE/gui/lise.kv:462
 msgid "Branch:"
 msgstr "Branch:"
 
-#: LiSE/gui/lise.kv:487
+#: LiSE/gui/lise.kv:469
 msgid "Tick:"
 msgstr "Tick:"
 
-#: LiSE/gui/lise.kv:496 LiSE/gui/lise.kv:526
+#: LiSE/gui/lise.kv:478 LiSE/gui/lise.kv:508
 msgid "Enter a unique name"
 msgstr "Enter a unique name"
 
-#: LiSE/gui/lise.kv:503 LiSE/gui/lise.kv:533
+#: LiSE/gui/lise.kv:485 LiSE/gui/lise.kv:515
 msgid "Use default image"
 msgstr "Use default image"
 
-#: LiSE/gui/lise.kv:510
+#: LiSE/gui/lise.kv:492
 msgid "Build with PixelCity"
 msgstr "Build with PixelCity"
 
-#: LiSE/gui/lise.kv:540
+#: LiSE/gui/lise.kv:522
 msgid "Build with RLTiles"
 msgstr "Build with RLTiles"
 
