@@ -23,15 +23,19 @@
         center: root.center
         size: 32, 32
         texture: root.imgd[root.state].texture
-<CalendarView>:
+<Calendar>:
     font_name: 'DroidSans'
     font_size: 20
     branches_wide: 2
     spacing: (5, 5)
     offscreen: (2, 2)
     tick_height: 2
+    ticks_tall: self.character.closet.timestream.hi_tick
+    character: self.charsheet.character if self.charsheet else None
+    closet: self.charsheet.character.closet if self.charsheet else None
     col_width: 100
-    tl_color: [1, 0, 0, 1]
+    tlx: self.x + (self.col_width + self.spacing_x) * (self.closetbranch - self.branch)
+    tly: self.top - self.tick_height * (self.closettick - self.tick)
 <Cell>:
     valign: 'top'
     text_size: self.size
