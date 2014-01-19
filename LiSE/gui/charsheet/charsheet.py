@@ -677,6 +677,7 @@ things appropriate to the present, whenever that may be.
                 raise ValueError("Unknown item type: {}".format(bone.type))
 
             kwargs = {
+                'charsheet': self,
                 'character': self.character,
                 'csbone': bone,
                 'size_hint_x': 0.8,
