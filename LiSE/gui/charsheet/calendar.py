@@ -2,6 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from kivy.clock import Clock
 from kivy.properties import (
+    AliasProperty,
     DictProperty,
     BooleanProperty,
     BoundedNumericProperty,
@@ -90,35 +91,20 @@ class Calendar(Layout):
     here. Look in CalendarView below.
 
     """
-    boneatt = StringProperty()
-    branch = NumericProperty(0)
-    branches_offscreen = NumericProperty()
-    branches_wide = NumericProperty()
-    cal_type = NumericProperty()
-    branches_cells = DictProperty({})
-    branches_cols = DictProperty({})
-    charsheet = ObjectProperty()
-    character = ObjectProperty()
-    col_width = NumericProperty()
-    font_name = StringProperty()
-    font_size = NumericProperty()
-    key = StringProperty()
-    referent = ObjectProperty(None)
-    skel = ObjectProperty(None)
-    spacing_x = NumericProperty()
-    spacing_y = NumericProperty()
-    stat = StringProperty()
+    view = ObjectProperty()
+    branch = NumericProperty()
     tick = BoundedNumericProperty(0, min=0)
-    tick_height = NumericProperty()
-    ticks_tall = NumericProperty(100)
-    ticks_offscreen = NumericProperty(0)
-    offscreen = ReferenceListProperty(branches_offscreen, ticks_offscreen)
-    timeline_x = NumericProperty()
-    timeline_y = NumericProperty()
-    timeline_pos = ReferenceListProperty(timeline_x, timeline_y)
-    xmov = NumericProperty(0)
-    ymov = NumericProperty(0)
+    time = ReferenceListProperty(branch, tick)
+    branches_cells = DictProperty()
+    branches_cols = DictProperty()
+    referent = ObjectProperty()
+    skel = ObjectProperty()
+    xmov = NumericProperty()
+    ymov = NumericProperty()
     mov = ReferenceListProperty(xmov, ymov)
+    tlx = NumericProperty()
+    tly = NumericProperty()
+    tlpos = ReferenceListProperty(tlx, tly)
 
     @property
     def minbranch(self):
@@ -196,22 +182,11 @@ class Calendar(Layout):
             Clock.schedule_once(self.finalize, 0)
             return
 
-        self.character.closet.register_time_listener(
-            self.upd_timeline)
-        self.upd_timeline(*self.character.closet.time)
         self.skel.register_set_listener(self._trigger_remake)
         self.skel.register_del_listener(self._trigger_remake)
         self.bind(size=lambda i, v: self._trigger_timely_layout(),
                   pos=lambda i, v: self._trigger_timely_layout())
         self._trigger_remake()
-
-    def upd_timeline(self, branch, tick):
-        self.timeline_x = (
-            (branch - self.branch) * self.col_width
-            + self.xmov)
-        self.timeline_y = (
-            self.ymov + self.height - (
-                tick - self.tick) * self.tick_height)
 
     def remake(self, *args):
         """Get rid of my current widgets and make new ones."""
@@ -275,6 +250,7 @@ class Calendar(Layout):
         # height of a column is however much needed to hold
         # all the ticks.
         branches_height = max([hi_tick * self.tick_height, 100])
+        self.mvtl()
         for branch in xrange(self.minbranch, self.maxbranch):
             if branch not in self.branches_cells:
                 return
@@ -282,8 +258,11 @@ class Calendar(Layout):
                 self.branches_cols[branch] = StackLayout()
             branch_col = self.branches_cols[branch]
             branch_col.height = branches_height
-            branch_col.y = self.y + self.tick_height * self.tick
-            branch_col.x = self.x + (self.col_width + self.spacing_x) * branch
+            branch_col.top = (
+                self.top + self.ymov - self.tick * self.tick_height)
+            branch_col.x = (
+                self.x + self.xmov + (
+                    self.col_width + self.spacing_x) * branch)
             branch_col.width = self.col_width
             branch_col.clear_widgets()
             final = None
@@ -329,6 +308,82 @@ class Calendar(Layout):
         self.retime(*args)
         self.do_layout(*args)
 
+    def get_aliased(self, att):
+        if self.view:
+            return getattr(self.view, att)
+        else:
+            raise TypeError("View not set! Can't get anything from it.")
+
+    def set_aliased(self, att, val):
+        if self.view:
+            setattr(self.view, att, val)
+        else:
+            raise TypeError("View not set! Can't set anything in it.")
+
+    def __getattribute__(self, att):
+        if att in (
+                "boneatt",
+                "charsheet",
+                "closet",
+                "cal_type",
+                "col_width",
+                "key",
+                "stat",
+                "i",
+                "branches_wide",
+                "font_name",
+                "font_size",
+                "spacing_x",
+                "spacing_y",
+                "spacing",
+                "tick_height",
+                "ticks_offscreen",
+                "branches_offscreen",
+                "offscreen",
+                "charsheet"):
+            return super(Calendar, self).__getattribute__('get_aliased')(att)
+        elif att == "character":
+            return super(Calendar, self).__getattribute__('get_aliased')(
+                "charsheet").character
+        elif att == "ticks_tall":
+            height = super(Calendar, self).__getattribute__('view').height
+            tick_height = super(Calendar, self).__getattribute__(
+                'view').tick_height
+            return int(height / tick_height)
+        else:
+            return super(Calendar, self).__getattribute__(att)
+
+    def mvtl(self, *args):
+        tlx = self.x + self.xmov + (
+            self.col_width + self.spacing_x) * self.branch
+        tly = self.top + self.ymov - \
+            self.tick_height * (self.closet.tick - self.tick)
+        self.tlpos = (tlx, tly)
+
+    def __setattr__(self, att, val):
+        if att in (
+                "boneatt",
+                "charsheet",
+                "cal_type",
+                "col_width",
+                "key",
+                "stat",
+                "i",
+                "branches_wide",
+                "font_name",
+                "font_size",
+                "spacing_x",
+                "spacing_y",
+                "spacing",
+                "tick_height",
+                "ticks_offscreen",
+                "branches_offscreen",
+                "offscreen",
+                "charsheet"):
+            self.set_aliased(att, val)
+        else:
+            super(Calendar, self).__setattr__(att, val)
+
 
 class CalendarView(StencilView):
     boneatt = StringProperty()
@@ -350,10 +405,29 @@ class CalendarView(StencilView):
     offscreen = ReferenceListProperty(
         branches_offscreen, ticks_offscreen)
     calendar = ObjectProperty()
+    timeline = ObjectProperty()
     charsheet = ObjectProperty()
+    closet = AliasProperty(
+        lambda self: self.charsheet.character.closet
+        if self.charsheet else None,
+        lambda self, v: None,
+        bind=('charsheet',))
     csbone = ObjectProperty()
     tl_color = ListProperty()
     _touch = ObjectProperty(None, allownone=True)
+
+    def __init__(self, **kwargs):
+        super(CalendarView, self).__init__(**kwargs)
+        self.calendar = Calendar(view=self)
+        self.bind(pos=self.calendar.setter('pos'),
+                  size=self.calendar.setter('size'))
+        self.add_widget(self.calendar)
+        self.timeline = Timeline(
+            col_width=self.col_width,
+            color=self.tl_color)
+        self.calendar.bind(tlpos=self.timeline.setter('pos'))
+        self.closet.register_time_listener(self.calendar.mvtl)
+        self.add_widget(self.timeline)
 
     def on_touch_down(self, touch):
         if self.collide_point(touch.x, touch.y):
@@ -365,11 +439,12 @@ class CalendarView(StencilView):
 
     def on_touch_move(self, touch):
         if self._touch is touch:
-            self.calendar.xmov -= touch.dx
-            self.calendar.ymov += touch.dy
-            self.calendar._trigger_timely_layout()
+            self.calendar.xmov = touch.x - touch.ox
+            self.calendar.ymov = touch.y - touch.oy
+            self.calendar._trigger_layout()
             return True
         else:
+            self._touch = None
             touch.ungrab(self)
 
     def on_touch_up(self, touch):
@@ -378,4 +453,5 @@ class CalendarView(StencilView):
         if _touch is not touch:
             return
         self.calendar._trigger_timely_layout()
+        self.calendar.mov = (0, 0)
         return True
