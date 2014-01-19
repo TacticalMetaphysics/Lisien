@@ -21,6 +21,10 @@ class Timestream(object):
           ["parent=0 or parent<>branch"]})
         ]
 
+    @property
+    def hi_time(self):
+        return (self.hi_branch, self.hi_tick)
+
     def __init__(self, closet):
         """Initialize hi_branch and hi_tick to 0, and their listeners to
         empty.
@@ -29,6 +33,7 @@ class Timestream(object):
         self.closet = closet
         self.hi_branch_listeners = []
         self.hi_tick_listeners = []
+        self.hi_time_listeners = []
         self.hi_branch = 0
         self.hi_tick = 0
 
@@ -37,9 +42,13 @@ class Timestream(object):
         if attrn == "hi_branch":
             for listener in self.hi_branch_listeners:
                 listener(self, val)
+            for listener in self.hi_time_listeners:
+                listener(self, val, self.hi_tick)
         elif attrn == "hi_tick":
             for listener in self.hi_tick_listeners:
                 listener(self, val)
+            for listener in self.hi_time_listeners:
+                listener(self, self.hi_branch, val)
         super(Timestream, self).__setattr__(attrn, val)
 
     def min_branch(self, table=None):
