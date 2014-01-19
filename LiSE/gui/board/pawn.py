@@ -115,20 +115,19 @@ will update its position appropriately.
             unicode(self.thing.character)][
             unicode(self.board.host)][
             unicode(self.thing)]
-        for layer in imagery:
-            for tick_from in imagery[layer][parent]:
-                if tick_from >= tick:
-                    bone2 = imagery[layer][parent][tick_from]._replace(
-                        branch=branch)
-                    yield bone2
-                    if (
-                            not started and prev is not None and
-                            tick_from > tick and prev < tick):
-                        bone3 = imagery[layer][parent][prev]._replace(
-                            branch=branch, tick_from=tick_from)
-                        yield bone3
-                        started = True
-                    prev = tick_from
+        for tick_from in imagery[parent]:
+            if tick_from >= tick:
+                bone2 = imagery[parent][tick_from]._replace(
+                    branch=branch)
+                yield bone2
+                if (
+                        not started and prev is not None and
+                        tick_from > tick and prev < tick):
+                    bone3 = imagery[parent][prev]._replace(
+                        branch=branch, tick_from=tick_from)
+                    yield bone3
+                    started = True
+                prev = tick_from
 
     def dropped(self, x, y, button, modifiers):
         """When dropped on a spot, if my :class:`Thing` doesn't have anything

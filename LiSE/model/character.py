@@ -282,7 +282,10 @@ class Character(object):
         return r
 
     def iter_thing_stat_bones(self, name, stats=[], branches=[], ticks=[]):
-        skel = self.closet.skeleton[u"thing_stat"][unicode(self)][name]
+        try:
+            skel = self.closet.skeleton[u"thing_stat"][unicode(self)][name]
+        except KeyError:
+            return
         if stats:
             outermost = iter(stats)
         else:
@@ -830,8 +833,9 @@ class Facade(Character):
         return self.distort(bone)
 
     # override
-    def iter_thing_stat_bones(self, thing, stat, branch=None):
-        for bone in self.observed.iter_thing_stat_bones(thing, stat, branch):
+    def iter_thing_stat_bones(self, name, stats=[], branches=[], ticks=[]):
+        for bone in super(Facade, self).iter_thing_stat_bones(
+                name, stats, branches, ticks):
             try:
                 yield self.distort(bone)
             except KnowledgeException:

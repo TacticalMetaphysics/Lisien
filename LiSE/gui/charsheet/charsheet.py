@@ -476,8 +476,16 @@ class AddButton(ClosetButton):
     pass
 
 
-class EditButton(ToggleButton):
-    imgd = DictProperty({})
+class DelButton(ClosetButton):
+    pass
+
+
+class UpButton(ClosetButton):
+    pass
+
+
+class DownButton(ClosetButton):
+    pass
 
 
 class CharSheet(StackLayout):
@@ -576,6 +584,80 @@ tick.
         # I need the layout, proper
         layout = self.parent.parent
         layout.handle_adbut(self, i)
+
+    def swap_its(self, i, di):
+        if i < 1:
+            raise ValueError("Tried to move item past start of charsheet")
+        superskel = self.character.closet.skeleton
+        skeleton = superskel[
+            u"character_sheet_item_type"][
+            unicode(self.character)]
+        corebone = skeleton[i]
+        prevbone = skeleton[i+di]
+        to_set = [corebone._replace(idx=i+di), prevbone._replace(idx=i)]
+        # Need to move the ancilliary bones first to keep the
+        # integrity correct
+        if corebone.type in CALENDAR_TYPES:
+            subskels = [superskel[u"char_cal"]]
+        elif corebone.type == THING_TAB:
+            subskels = [
+                superskel[u"thing_tab_thing"],
+                superskel[u"thing_tab_stat"]]
+        elif corebone.type == PLACE_TAB:
+            subskels = [
+                superskel[u"place_tab_place"],
+                superskel[u"place_tab_stat"]]
+        elif corebone.type == PORTAL_TAB:
+            subskels = [
+                superskel[u"portal_tab_portal"],
+                superskel[u"portal_tab_stat"]]
+        elif corebone.type == CHAR_TAB:
+            subskels = [superskel[u"char_tab_stat"]]
+        else:
+            raise TypeError('Unknown charsheet item type {}'.format(
+                corebone.type))
+        for subskel in subskels:
+            try:
+                subskel = subskel[unicode(self.character)]
+            except KeyError:
+                raise KeyError('No matching ancilliary bone')
+            if i in subskel:
+                to_set.append(subskel[i]._replace(idx=i+di))
+            if i+di in subskel:
+                to_set.append(subskel[i+di]._replace(idx=i))
+        for bone in to_set:
+            self.character.closet.set_bone(bone)
+        self.repop()
+
+    def move_it_up(self, i):
+        self.swap_its(-1)
+
+    def move_it_down(self, i):
+        self.swap_its(1)
+
+    def del_it(self, i):
+        for j in xrange(i+1, len(self.csitems)):
+            self.move_it_up(j)
+        i = len(self.csitems) - 1
+        superskel = self.character.closet.skeleton
+
+        def tabs_del(tabs):
+            for tab in tabs:
+                del superskel[tab][unicode(self.character)][i]
+        corebone = superskel[u"character_sheet_item_type"][
+            unicode(self.character)][i]
+        if corebone.type in CALENDAR_TYPES:
+            tabs_del([u"char_cal"])
+        elif corebone.type == THING_TAB:
+            tabs_del(u"thing_tab_stat", u"thing_tab_thing")
+        elif corebone.type == PLACE_TAB:
+            tabs_del(u"place_tab_stat", u"place_tab_place")
+        elif corebone.type == PORTAL_TAB:
+            tabs_del(u"portal_tab_stat", u"portal_tab_portal")
+        elif corebone.type == CHAR_TAB:
+            tabs_del([u"char_tab_stat"])
+
+        tabs_del([u"character_sheet_item_type"])
 
     def repop(self, *args):
         """Iterate over the bones under my name, and add widgets appropriate
@@ -680,9 +762,8 @@ things appropriate to the present, whenever that may be.
                 'charsheet': self,
                 'character': self.character,
                 'csbone': bone,
-                'size_hint_x': 0.8,
                 'i': i,
-                'size_hint_y': None,
+                'size_hint_x': 0.8,
                 'height': bone.height}
             widspec[1].update(kwargs)
             self.csitems.append(widspec[0](**widspec[1]))
@@ -704,7 +785,33 @@ things appropriate to the present, whenever that may be.
             height=20)
         middle = StackLayout(size_hint_y=0.9)
         for item in self.csitems:
-            middle.add_widget(item)
+            itembox = BoxLayout(
+                size_hint_y=None,
+                height=item.height)
+            itembox.add_widget(item)
+            buttonbox = BoxLayout(
+                orientation='vertical',
+                size_hint_x=0.2)
+            itembox.add_widget(buttonbox)
+            upb = UpButton(
+                closet=self.character.closet,
+                fun=self.move_it_up,
+                arg=item.i,
+                size_hint_y=0.2)
+            buttonbox.add_widget(upb)
+            delb = DelButton(
+                closet=self.character.closet,
+                fun=self.del_it,
+                arg=item.i,
+                size_hint_y=0.6)
+            buttonbox.add_widget(delb)
+            downb = DownButton(
+                closet=self.character.closet,
+                fun=self.move_it_down,
+                arg=item.i,
+                size_hint_y=0.2)
+            buttonbox.add_widget(downb)
+            middle.add_widget(itembox)
             whereat = item.i + 1
             if whereat < itemct:
                 buttonbox = BoxLayout(

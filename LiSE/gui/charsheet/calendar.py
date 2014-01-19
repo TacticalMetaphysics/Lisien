@@ -37,7 +37,6 @@ class Cell(Label):
 
     """
     bg_color = ListProperty()
-    active = BooleanProperty(False)
     bone = ObjectProperty()
     branch = NumericProperty()
     calendar = ObjectProperty()
