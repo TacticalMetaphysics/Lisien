@@ -78,7 +78,6 @@ class Timeline(Widget):
         self.colorinst.rgba = self.color
 
     def on_pos(self, *args):
-        print("moving timeline to {}".format(self.pos))
         if not hasattr(self, 'lineinst'):
             return
         self.lineinst.points = [
@@ -462,7 +461,7 @@ class CalendarView(StencilView):
             y = touch.ud['cloy'] + touch.y - touch.oy
             self.clayout.pos = (x, y)
             self.calendar.tick = max(0, int((
-                self.top - self.clayout.top) / self.calendar.tick_height))
+                self.clayout.top - self.top) / self.calendar.tick_height))
             self.calendar.branch = max(0, int((
                 self.x - self.clayout.x) / (
                 self.calendar.col_width + self.calendar.spacing_x)))
@@ -480,8 +479,12 @@ class CalendarView(StencilView):
         self._touch = None
         if _touch is not touch:
             return
-        self.clayout.x = self.x + int(self.calendar.branch * (
-            self.calendar.col_width + self.calendar.spacing_x))
-        self.clayout.top = self.top - int(
-            self.calendar.tick * self.calendar.tick_height)
+        x = self.clayout.x
+        top = self.clayout.top
+        x -= x % (self.calendar.col_width + self.calendar.spacing_x)
+        x = max(self.x, x)
+        top -= top % self.calendar.tick_height
+        top = max(self.top, top)
+        self.clayout.x = x
+        self.clayout.top = top
         return True
