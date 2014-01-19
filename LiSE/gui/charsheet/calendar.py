@@ -283,9 +283,6 @@ class Calendar(Layout):
     def refresh(self):
         """Generate cells that are missing. Remove cells that cannot be
         seen."""
-        old_widgets = {}
-        for child in self.children:
-            old_widgets[child.bone] = child
         self.clear_widgets()
         for branch in xrange(self.minbranch, self.maxbranch):
             if branch not in self.skel:
@@ -296,13 +293,13 @@ class Calendar(Layout):
             prev = next(boneiter)
             i = 0
             for bone in boneiter:
-                if bone in old_widgets:
-                    # I haven't established a way to delete the old
-                    # widgets when they are unused. Is that what
-                    # weakproxy is for? That might result in their
-                    # being garbage collected prior to add_widget
-                    # though.
-                    self.branches_cells[branch][prev.tick] = old_widgets[bone]
+                if bone.tick > self.maxtick:
+                    break
+                elif (
+                        branch in self.branches_cells and
+                        prev.tick in self.branches_cells[branch] and
+                        bone == self.branches_cells[branch][prev.tick]):
+                    continue
                 elif (
                         prev.tick < self.maxtick and
                         bone.tick > self.mintick):
@@ -314,8 +311,6 @@ class Calendar(Layout):
                         tick_to=bone.tick,
                         bone=bone)
                     self.branches_cells[branch][prev.tick] = cell
-                if bone.tick > self.maxtick:
-                    break
                 prev = bone
                 i += 1
             # The last cell is infinitely long
