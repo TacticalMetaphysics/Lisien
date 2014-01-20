@@ -515,7 +515,9 @@ class Skeleton(MutableMapping):
         case.
 
         """
-        if isinstance(self.content, list):
+        if not k in self:
+            raise KeyError("No item under {}".format(k))
+        elif isinstance(self.content, list):
             return self.content[k]
         elif isinstance(self.content, dict):
             return self.content[k]
