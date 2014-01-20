@@ -235,6 +235,15 @@ class CharSheetAdder(ModalView):
                 type=r,
                 height=max([100, self.charsheet.height - sum(
                     csitem.height for csitem in self.charsheet.csitems)]))
+            itemskel = self.closet.skeleton[u"character_sheet_item_type"][
+                unicode(self.charsheet.character)]
+            i = max(itemskel.keys())
+            if self.insertion_point > i:
+                self.charsheet.character.closet.set_bone(type_bone)
+                self.charsheet.repop()
+                self.dismiss()
+                return
+            self.charsheet.shift_its(self.insertion_point, 1)
             self.charsheet.character.closet.set_bone(type_bone)
             self.charsheet.repop()
             self.dismiss()
@@ -575,6 +584,40 @@ tick.
                      "height>=50"]})]
     character = ObjectProperty()
     csitems = ListProperty()
+    boxeditems = ListProperty()
+
+    def _get_bones(self):
+        superskel = self.character.closet.skeleton
+        r = {}
+        for tab in self.tablenames:
+            if unicode(self.character) not in superskel[tab]:
+                superskel[tab][unicode(self.character)] = []
+            r[tab] = []
+            for (i, v) in self.character.closet.skeleton[tab][
+                    unicode(self.character)].iteritems():
+                while len(r[tab]) <= i:
+                    r[tab].append(None)
+                r[tab][i] = v
+        return r
+
+    def _set_bones(self, v):
+        def setter(v):
+            assert(v.character is not None)
+            self.character.closet.set_bone(v)
+        for tab in self.tablenames:
+            self.character.closet.skeleton[tab][
+                unicode(self.character)] = []
+            i = 0
+            for w in v[tab]:
+                if w is None:
+                    continue
+                elif hasattr(w, 'itervalues'):
+                    for bone in w.itervalues():
+                        if bone is not None:
+                            setter(bone)
+                else:
+                    setter(w)
+                i += 1
 
     def __init__(self, **kwargs):
         super(CharSheet, self).__init__(**kwargs)
@@ -585,79 +628,84 @@ tick.
         layout = self.parent.parent
         layout.handle_adbut(self, i)
 
-    def swap_its(self, i, di):
-        if i < 1:
-            raise ValueError("Tried to move item past start of charsheet")
+    outerbone_ksd = {
+        THING_TAB: [u'thing_tab_thing', u'thing_tab_stat'],
+        PLACE_TAB: [u'place_tab_place', u'place_tab_stat'],
+        PORTAL_TAB: [u'portal_tab_portal', u'portal_tab_stat'],
+        CHAR_TAB: [u'char_tab_stat'],
+        THING_CAL: [u'thing_cal'],
+        PLACE_CAL: [u'place_cal'],
+        PORTAL_CAL: [u'portal_cal'],
+        CHAR_CAL: [u'char_cal']
+    }
+
+    def move_it(self, i, d):
         superskel = self.character.closet.skeleton
-        skeleton = superskel[
-            u"character_sheet_item_type"][
-            unicode(self.character)]
-        corebone = skeleton[i]
-        prevbone = skeleton[i+di]
-        to_set = [corebone._replace(idx=i+di), prevbone._replace(idx=i)]
-        # Need to move the ancilliary bones first to keep the
-        # integrity correct
-        if corebone.type in CALENDAR_TYPES:
-            subskels = [superskel[u"char_cal"]]
-        elif corebone.type == THING_TAB:
-            subskels = [
-                superskel[u"thing_tab_thing"],
-                superskel[u"thing_tab_stat"]]
-        elif corebone.type == PLACE_TAB:
-            subskels = [
-                superskel[u"place_tab_place"],
-                superskel[u"place_tab_stat"]]
-        elif corebone.type == PORTAL_TAB:
-            subskels = [
-                superskel[u"portal_tab_portal"],
-                superskel[u"portal_tab_stat"]]
-        elif corebone.type == CHAR_TAB:
-            subskels = [superskel[u"char_tab_stat"]]
-        else:
-            raise TypeError('Unknown charsheet item type {}'.format(
-                corebone.type))
-        for subskel in subskels:
-            try:
-                subskel = subskel[unicode(self.character)]
-            except KeyError:
-                raise KeyError('No matching ancilliary bone')
-            if i in subskel:
-                to_set.append(subskel[i]._replace(idx=i+di))
-            if i+di in subskel:
-                to_set.append(subskel[i+di]._replace(idx=i))
-        for bone in to_set:
+        mainbone = superskel[u'character_sheet_item_type'][
+            unicode(self.character)].pop(i)
+        belowbone = superskel[u'character_sheet_item_type'][
+            unicode(self.character)].pop(i+d)
+        abovebones = set([mainbone._replace(idx=i+d)])
+        for ks in self.outerbone_ksd[mainbone.type]:
+            for k in ks:
+                try:
+                    abovebones.add(
+                        superskel[k][unicode(self.character)].pop(
+                            i)._replace(idx=i+d))
+                except KeyError:
+                    pass
+        belowbones = set([belowbone._replace(idx=i-d)])
+        for ks in self.outerbone_ksd[belowbone.type]:
+            for k in ks:
+                try:
+                    belowbones.add(superskel[k][unicode(self.charater)].pop(
+                        i)._replace(idx=i-d))
+                except KeyError:
+                    pass
+        for bone in abovebones.union(belowbones):
             self.character.closet.set_bone(bone)
-        self.repop()
 
     def move_it_up(self, i):
-        self.swap_its(-1)
+        self.move_it(i, -1)
 
     def move_it_down(self, i):
-        self.swap_its(1)
+        self.move_it(i, 1)
+
+    def shift_its(self, pivot, d):
+        if d == 0:
+            return
+        r = {}
+        for (tab, bones) in self._get_bones().iteritems():
+            r[tab] = set()
+
+            def bitters():
+                for v in bones:
+                    if hasattr(v, 'itervalues'):
+                        for bone in v.itervalues():
+                            yield bone
+                    elif v is None:
+                        continue
+                    else:
+                        yield v
+            for bone in bitters():
+                if (bone.idx > pivot and d > 0) or (
+                        bone.idx < pivot and d > 0):
+                    r[tab].add(bone._replace(
+                        idx=bone.idx+d))
+                else:
+                    r[tab].add(bone)
 
     def del_it(self, i):
-        for j in xrange(i+1, len(self.csitems)):
-            self.move_it_up(j)
-        i = len(self.csitems) - 1
         superskel = self.character.closet.skeleton
-
-        def tabs_del(tabs):
-            for tab in tabs:
-                del superskel[tab][unicode(self.character)][i]
-        corebone = superskel[u"character_sheet_item_type"][
-            unicode(self.character)][i]
-        if corebone.type in CALENDAR_TYPES:
-            tabs_del([u"char_cal"])
-        elif corebone.type == THING_TAB:
-            tabs_del(u"thing_tab_stat", u"thing_tab_thing")
-        elif corebone.type == PLACE_TAB:
-            tabs_del(u"place_tab_stat", u"place_tab_place")
-        elif corebone.type == PORTAL_TAB:
-            tabs_del(u"portal_tab_stat", u"portal_tab_portal")
-        elif corebone.type == CHAR_TAB:
-            tabs_del([u"char_tab_stat"])
-
-        tabs_del([u"character_sheet_item_type"])
+        mainbone = superskel[u'character_sheet_item_type'][
+            unicode(self.character)].pop(i)
+        if mainbone is not None:
+            for ks in self.outerbone_ksd[mainbone.type]:
+                for k in ks:
+                    try:
+                        del superskel[k][unicode(self.character)][i]
+                    except KeyError:
+                        pass
 
     def repop(self, *args):
         """Iterate over the bones under my name, and add widgets appropriate
@@ -672,7 +720,11 @@ things appropriate to the present, whenever that may be.
 
         """
         self.size_hint = (1, None)
+        for box in self.boxeditems:
+            box.clear_widgets()
         self.clear_widgets()
+        self.boxeditems = []
+        self.csitems = []
         if unicode(self.character) not in self.character.closet.skeleton[
                 u"character_sheet_item_type"]:
             self.add_widget(AddButton(
@@ -687,6 +739,7 @@ things appropriate to the present, whenever that may be.
         for bone in self.character.closet.skeleton[
                 u"character_sheet_item_type"][
                 unicode(self.character)].iterbones():
+            assert(bone.character is not None)
             if bone.type == THING_TAB:
                 headers = [_("thing")]
                 fieldnames = ["name"]
@@ -788,46 +841,49 @@ things appropriate to the present, whenever that may be.
             itembox = BoxLayout(
                 size_hint_y=None,
                 height=item.height)
+            self.boxeditems.append(itembox)
             itembox.add_widget(item)
             buttonbox = BoxLayout(
                 orientation='vertical',
                 size_hint_x=0.2)
             itembox.add_widget(buttonbox)
-            upb = UpButton(
-                closet=self.character.closet,
-                fun=self.move_it_up,
-                arg=item.i,
-                size_hint_y=0.2)
-            buttonbox.add_widget(upb)
+            if item.i > 0:
+                upb = UpButton(
+                    closet=self.character.closet,
+                    fun=self.move_it_up,
+                    arg=item.i,
+                    size_hint_y=0.2)
+                buttonbox.add_widget(upb)
             delb = DelButton(
                 closet=self.character.closet,
                 fun=self.del_it,
                 arg=item.i,
                 size_hint_y=0.6)
             buttonbox.add_widget(delb)
-            downb = DownButton(
-                closet=self.character.closet,
-                fun=self.move_it_down,
-                arg=item.i,
-                size_hint_y=0.2)
-            buttonbox.add_widget(downb)
-            middle.add_widget(itembox)
             whereat = item.i + 1
             if whereat < itemct:
-                buttonbox = BoxLayout(
+                downb = DownButton(
+                    closet=self.character.closet,
+                    fun=self.move_it_down,
+                    arg=item.i,
+                    size_hint_y=0.2)
+                buttonbox.add_widget(downb)
+            middle.add_widget(itembox)
+            if whereat < itemct:
+                sizeaddbox = BoxLayout(
                     size_hint_y=None,
                     height=20)
-                buttonbox.add_widget(Sizer(
+                sizeaddbox.add_widget(Sizer(
                     charsheet=self,
                     i=item.i,
                     closet=self.character.closet,
                     size_hint_x=0.2))
-                buttonbox.add_widget(AddButton(
+                sizeaddbox.add_widget(AddButton(
                     closet=self.character.closet,
                     fun=self.add_item,
                     arg=whereat,
                     size_hint_x=0.8))
-                middle.add_widget(buttonbox)
+                middle.add_widget(sizeaddbox)
 
         self.add_widget(initial_addbut)
         self.add_widget(middle)
