@@ -8,7 +8,9 @@ collections of simulated entities and facts.
 from calendar import CalendarView
 from table import (
     TableView,
-    CharStatTableView)
+    CharStatTableView
+)
+from item import CharSheetItem
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
     ClosetButton)
@@ -22,7 +24,6 @@ from kivy.adapters.listadapter import ListAdapter
 from kivy.adapters.models import SelectableDataItem
 from kivy.uix.listview import ListView, SelectableView
 from kivy.properties import (
-    DictProperty,
     NumericProperty,
     BooleanProperty,
     OptionProperty,
@@ -441,7 +442,6 @@ def char_sheet_calendar_def(
 class Sizer(ClosetButton):
     charsheet = ObjectProperty()
     i = NumericProperty()
-    prior_y = NumericProperty()
 
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
@@ -450,6 +450,7 @@ class Sizer(ClosetButton):
             touch.grab(self)
             self.prior_y = self.y
             self.state = 'down'
+            touch.ud['sizer_i'] = self.i
             return True
 
     def on_touch_move(self, touch):
@@ -458,8 +459,11 @@ class Sizer(ClosetButton):
             self.state = 'normal'
             return
         self.parent.center_y = touch.y
-        self.charsheet.csitems[self.i].bottom = self.top
-        self.charsheet.csitems[self.i+1].top = self.y
+        wid_before = self.charsheet.csitems[self.i]
+        wid_after = self.charsheet.csitems[self.i+1]
+        wid_before.y = self.top
+        wid_before.height = wid_before.top - self.top
+        wid_after.height = self.y - wid_after.y
         return True
 
     def on_touch_up(self, touch):
@@ -467,34 +471,8 @@ class Sizer(ClosetButton):
             touch.ungrab(self)
             self.state = 'normal'
             return
-        wid_before = self.charsheet.csitems[self.i]
-        wid_after = self.charsheet.csitems[self.i+1]
-        bone_before = wid_before.csbone._replace(
-            height=wid_before.top-self.top)
-        bone_after = wid_after.csbone._replace(
-            height=self.y-wid_after.y)
-        self.closet.set_bone(bone_before)
-        self.closet.set_bone(bone_after)
-        wid_before.csbone = bone_before
-        wid_after.csbone = bone_after
         self.state = 'normal'
         return True
-
-
-class AddButton(ClosetButton):
-    pass
-
-
-class DelButton(ClosetButton):
-    pass
-
-
-class UpButton(ClosetButton):
-    pass
-
-
-class DownButton(ClosetButton):
-    pass
 
 
 class CharSheet(StackLayout):
@@ -727,8 +705,10 @@ things appropriate to the present, whenever that may be.
         self.csitems = []
         if unicode(self.character) not in self.character.closet.skeleton[
                 u"character_sheet_item_type"]:
-            self.add_widget(AddButton(
+            self.add_widget(ClosetButton(
                 closet=self.character.closet,
+                symbolic=True,
+                stringname="@add",
                 fun=self.add_item,
                 arg=0,
                 size_hint_y=None,
@@ -807,7 +787,8 @@ things appropriate to the present, whenever that may be.
                     'boneatt': keyns[1],
                     'key': getattr(subbone, keyns[0]),
                     'stat': getattr(subbone, keyns[1])
-                    if len(keyns) == 2 else ''})
+                    if len(keyns) == 2 else '',
+                    'mybone': subbone})
             else:
                 raise ValueError("Unknown item type: {}".format(bone.type))
 
@@ -819,7 +800,7 @@ things appropriate to the present, whenever that may be.
                 'size_hint_x': 0.8,
                 'height': bone.height}
             widspec[1].update(kwargs)
-            self.csitems.append(widspec[0](**widspec[1]))
+            self.csitems.append(widspec)
 
             i += 1
 
@@ -837,12 +818,12 @@ things appropriate to the present, whenever that may be.
             size_hint_y=None,
             height=20)
         middle = StackLayout(size_hint_y=0.9)
-        for item in self.csitems:
-            itembox = BoxLayout(
-                size_hint_y=None,
-                height=item.height)
+        for widspec in self.csitems:
+            itembox = CharSheetItem(
+                charsheet=self,
+                closet=self.character.closet,
+                widspec=widspec)
             self.boxeditems.append(itembox)
-            itembox.add_widget(item)
             buttonbox = BoxLayout(
                 orientation='vertical',
                 size_hint_x=0.2)
@@ -883,6 +864,7 @@ things appropriate to the present, whenever that may be.
                     fun=self.add_item,
                     arg=whereat,
                     size_hint_x=0.8))
+                sizeaddbox.bind(top=itembox.setter('y'))
                 middle.add_widget(sizeaddbox)
 
         self.add_widget(initial_addbut)

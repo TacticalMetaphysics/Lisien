@@ -1,3 +1,5 @@
+#: kivy 1.8
+
 #: import lisepathl LiSE.__path__
 #: import solarized LiSE.gui.style.solarized
 #: import _ LiSE.util.passthru
@@ -12,20 +14,6 @@
 <Sizer>:
     symbolic: True
     stringname: _('@resize-ud')
-<AddButton>:
-    symbolic: True
-    stringname: _('@add')
-<DelButton>:
-    symbolic: True
-    stringname: _('@del')
-<UpButton>:
-    font_name: 'DejaVuSansMono-Bold.ttf'
-    font_size: 30
-    stringname: _('@up')
-<DownButton>:
-    font_name: 'DejaVuSansMono-Bold.ttf'
-    font_size: 30
-    stringname: _('@down')
 <Calendar>:
     font_name: 'DroidSans'
     font_size: 20
@@ -39,6 +27,10 @@
     col_width: 100
     tlx: self.x + (self.col_width + self.spacing_x) * (self.closetbranch - self.branch)
     tly: self.top - self.tick_height * (self.closettick - self.tick)
+    minbranch: int(max(0, self.branch - self.branches_offscreen))
+    maxbranch: int(self.branch + self.branches_wide + self.branches_offscreen)
+    mintick: int(max(0, self.tick - self.ticks_offscreen))
+    maxtick: int(self.tick + self.ticks_tall + self.ticks_offscreen)
 <Cell>:
     valign: 'top'
     text_size: self.size
@@ -397,6 +389,49 @@
 <TableView>:
     TableContent:
         closet: root.character.closet
+<CharSheetItemButtonBox>:
+    orientation: 'vertical'
+    ClosetButton:
+        id: 'upper_add_button'
+        closet: root.csitem.closet
+        symbolic: True
+        stringname: _('@add')
+        fun: self.csitem.charsheet.add_item
+        arg: self.csitem.i
+        size_hint_y: 0.2 if self.csitem.i > 0 else 0.0
+    ClosetButton:
+        id: 'up_button'
+        closet: root.csitem.closet
+        # need to put these glyphs into my own ttf
+        font_name: 'DejaVuSansMono-Bold.ttf'
+        font_size: 30
+        stringname: _('@up')
+        fun: self.csitem.charsheet.move_it_up
+        arg: self.csitem.i
+    ClosetButton:
+        id: 'del_button'
+        closet: root.csitem.closet
+        symbolic: True
+        stringname: '@del'
+        fun: self.csitem.charsheet.del_item
+        arg: self.csitem.i
+    ClosetButton:
+        id: 'down_button'
+        closet: root.csitem.closet
+        font_name: 'DejaVuSansMono-Bold.ttf'
+        font_size: 30
+        stringname: _('@down')
+        fun: self.csitem.charsheet.move_it_down
+        arg: self.csitem.i
+    ClosetButton:
+        id: 'lower_add_button'
+        closet: root.csitem.closet
+        symbolic: True
+        stringname: _('@add')
+        fun: self.csitem.charsheet.add_item
+        arg: self.csitem.i+1
+<CharSheetItem>:
+    closet: self.charsheet.closet
 <CharStatTableView>:
     CharStatTableContent:
         closet: root.character.closet
