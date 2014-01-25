@@ -134,20 +134,15 @@ class BoneMetaclass(type):
             args = [arr, pos]
             for field in self._fields:
                 datum = getattr(self, field)
+                assert(datum is not None)
                 if isinstance(datum, unicode):
-                    args.append(str(datum))
-                elif datum is None:
-                    if self._defaults[field] is None:
-                        if self._types[field] in (str, unicode):
-                            args.append(
-                                '\x00' * BoneMetaclass.packed_str_len)
-                        else:
-                            args.append(0)
-                    else:
-                        args.append(self._defaults[field])
+                    arg = str(datum)
+                    assert(arg[0] != '\x00')
+                    args.append(arg)
                 else:
                     args.append(datum)
             self.structtyp.pack_into(*args)
+            assert(self.packed in args[0].tostring())
 
         def denull(self):
             """Return a copy of myself with the nulls stripped out of
@@ -616,6 +611,10 @@ class Skeleton(MutableMapping):
             listener(self.parent, self, k, v)
         if hasattr(self.parent, 'on_child_set'):
             self.parent.on_child_set(self, k, v)
+        if isinstance(self.content, array):
+            item = self.bonetype._unpack_from(0, self.content)
+            for field in item:
+                assert field is not None
 
     def on_child_set(self, child, k, v):
         """Call all my listeners with args (child, k, v)."""
@@ -1747,7 +1746,8 @@ class Closet(object):
             self.c.execute(bone.sql_del, tuple(
                 getattr(bone, f) for f in bone.keynames))
             self.c.execute(bone.sql_ins, tuple(
-                getattr(bone, f) for f in bone._fields))
+                getattr(bone, f) for f in bone._fields
+                if getattr(bone, f) is not None))
         self.connector.commit()
         Logger.debug("closet: saved game")
 

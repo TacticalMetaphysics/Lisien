@@ -4,8 +4,7 @@ from kivy.properties import (
     ObjectProperty)
 from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
-from kivy.uix.scrollview import ScrollView
-
+from kivy.uix.stencilview import StencilView
 from kivy.clock import Clock
 
 
@@ -62,9 +61,10 @@ class TableContent(GridLayout):
                 bwid.upd_text()
 
 
-class TableView(ScrollView):
+class TableView(StencilView):
     character = ObjectProperty()
     csbone = ObjectProperty()
+    mybone = ObjectProperty()
     headers = ListProperty()
     fieldnames = ListProperty()
     items = ListProperty()
@@ -91,7 +91,7 @@ class CharStatTableContent(GridLayout):
             self.closet.register_time_listener(valwid.upd_text)
 
 
-class CharStatTableView(ScrollView):
+class CharStatTableView(StencilView):
     character = ObjectProperty()
     stats = ListProperty()
     i = NumericProperty()

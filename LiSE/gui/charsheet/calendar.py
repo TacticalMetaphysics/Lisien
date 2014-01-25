@@ -2,9 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from kivy.clock import Clock
 from kivy.properties import (
-    AliasProperty,
     DictProperty,
-    BooleanProperty,
     BoundedNumericProperty,
     ListProperty,
     NumericProperty,
@@ -27,6 +25,7 @@ from LiSE.util import (
     PORTAL_CAL,
     CHAR_CAL)
 from LiSE.gui.kivybits import EnumProperty
+from item import CharSheetItem
 
 
 class Cell(Label):
@@ -173,40 +172,26 @@ class Calendar(Layout):
     """Current (branch, tick) as a Kivy property"""
     ticks_tall = NumericProperty()
     """How many ticks fit in me at once"""
+    minbranch = NumericProperty()
+    """The lowest branch I have, which may be lower than the lowest branch
+    I show.
 
-    @property
-    def minbranch(self):
-        """The lowest branch I have, which may be lower than the lowest branch
-        I show.
+    """
+    maxbranch = NumericProperty()
+    """The highest branch I have, which may be higher than the highest
+    branch I show.
 
-        """
-        return int(max([0, self.branch - self.branches_offscreen]))
+    """
+    mintick = NumericProperty()
+    """The lowest tick I have, which may be lower than the lowest tick I
+    show.
 
-    @property
-    def maxbranch(self):
-        """The highest branch I have, which may be higher than the highest
-        branch I show.
+    """
+    maxtick = NumericProperty()
+    """The highest tick I have, which may be higher than the highest tick
+    I show.
 
-        """
-        return int(self.branch + self.branches_wide
-                   + self.branches_offscreen)
-
-    @property
-    def mintick(self):
-        """The lowest tick I have, which may be lower than the lowest tick I
-        show.
-
-        """
-        return int(max([0, self.tick - self.ticks_offscreen]))
-
-    @property
-    def maxtick(self):
-        """The highest tick I have, which may be higher than the highest tick
-        I show.
-
-        """
-        return int(self.tick + self.ticks_tall
-                   + self.ticks_offscreen)
+    """
 
     def __init__(self, **kwargs):
         """Make triggers for remake, retime, and timely_layout methods, then
