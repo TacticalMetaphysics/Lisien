@@ -9,11 +9,11 @@ from kivy.properties import (
     StringProperty)
 from kivy.factory import Factory
 from kivy.graphics import Line, Color
-
 from kivy.uix.widget import Widget
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
+from kivy.logger import Logger
 
 from sqlite3 import connect, OperationalError
 
@@ -254,7 +254,8 @@ and charsheets.
 
     def on_touch_move(self, touch):
         if 'portaling' in touch.ud:
-            touch.ud['portaling']['dummyspot'].pos = touch.pos
+            touch.ud['portaling']['dummyspot'].pos = (
+                self.board.spotlayout.to_local(*touch.pos))
             return True
         return super(LiSELayout, self).on_touch_move(touch)
 
@@ -271,8 +272,9 @@ and charsheets.
             self.board.remove_widget(ud['dummyarrow'])
             self.dismiss_prompt()
             destspot = None
-            for spot in self.board.spotdict.itervalues():
-                if spot.collide_point(touch.x, touch.y):
+            for spot in self.board.spotlayout.children:
+                if spot.collide_point(*self.board.spotlayout.to_local(
+                        *touch.pos)):
                     destspot = spot
                     break
             if destspot is None:
