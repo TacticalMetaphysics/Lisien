@@ -5,6 +5,7 @@ from kivy.properties import (
     ListProperty,
     ObjectProperty)
 from kivy.clock import Clock
+from kivy.logger import Logger
 
 
 """Widgets to represent places. Pawns move around on top of these."""
@@ -233,18 +234,24 @@ class Spot(GamePiece):
                     prev = bone
 
     def on_touch_down(self, touch):
-        if touch.grab_current or 'portaling' in touch.ud:
+        if touch.grab_current:
             return
+        if not self.collide_point(touch.x, touch.y):
+            return
+        Logger.debug('spot touched: {}'.format(self.place.name))
         touch.grab(self)
         touch.ud['spot'] = self
+        self._touch = touch
         return True
 
     def on_touch_move(self, touch):
         if "portaling" in touch.ud:
             touch.ungrab(self)
+            return
         if touch.grab_current is not self:
             return
-        self._touch = touch
+        if self._touch is not touch:
+            return
         self.center = touch.pos
 
     def on_touch_up(self, touch):

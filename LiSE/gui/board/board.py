@@ -24,20 +24,6 @@ class BoardLayout(RelativeLayout):
         if hasattr(w, 'upd_texs'):
             w.upd_texs()
 
-    def on_touch_down(self, touch):
-        if touch.grab_current in self.children:
-            return
-        for child in self.children:
-            if child.x > touch.x:
-                continue
-            if child.y > touch.y:
-                continue
-            if child.right < touch.x:
-                continue
-            if child.top < touch.y:
-                continue
-            return child.on_touch_down(touch)
-
 
 class Board(FloatLayout):
     """A graphical view onto a facade, resembling a game board."""
@@ -226,6 +212,8 @@ class BoardView(ScrollView):
         if self.do_scroll_x:
             self.do_scroll_x = self.do_scroll_y = (
                 not self.board.spotlayout.on_touch_down(touch))
+        if self.board.on_touch_down(touch):
+            return True
         return super(BoardView, self).on_touch_down(touch)
 
     def on_touch_up(self, touch):
