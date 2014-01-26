@@ -599,91 +599,31 @@ tick.
 
     def __init__(self, **kwargs):
         super(CharSheet, self).__init__(**kwargs)
-        self.repop()
+        self._trigger_repop = Clock.create_trigger(self.repop)
+        self.bind(character=self.finalize)
 
     def add_item(self, i):
         # I need the layout, proper
         layout = self.parent.parent
         layout.handle_adbut(self, i)
 
-    outerbone_ksd = {
-        THING_TAB: [u'thing_tab_thing', u'thing_tab_stat'],
-        PLACE_TAB: [u'place_tab_place', u'place_tab_stat'],
-        PORTAL_TAB: [u'portal_tab_portal', u'portal_tab_stat'],
-        CHAR_TAB: [u'char_tab_stat'],
-        THING_CAL: [u'thing_cal'],
-        PLACE_CAL: [u'place_cal'],
-        PORTAL_CAL: [u'portal_cal'],
-        CHAR_CAL: [u'char_cal']
-    }
-
-    def move_it(self, i, d):
-        superskel = self.character.closet.skeleton
-        mainbone = superskel[u'character_sheet_item_type'][
-            unicode(self.character)].pop(i)
-        belowbone = superskel[u'character_sheet_item_type'][
-            unicode(self.character)].pop(i+d)
-        abovebones = set([mainbone._replace(idx=i+d)])
-        for ks in self.outerbone_ksd[mainbone.type]:
-            for k in ks:
-                try:
-                    abovebones.add(
-                        superskel[k][unicode(self.character)].pop(
-                            i)._replace(idx=i+d))
-                except KeyError:
-                    pass
-        belowbones = set([belowbone._replace(idx=i-d)])
-        for ks in self.outerbone_ksd[belowbone.type]:
-            for k in ks:
-                try:
-                    belowbones.add(superskel[k][unicode(self.charater)].pop(
-                        i)._replace(idx=i-d))
-                except KeyError:
-                    pass
-        for bone in abovebones.union(belowbones):
-            self.character.closet.set_bone(bone)
-
-    def move_it_up(self, i):
-        self.move_it(i, -1)
-
-    def move_it_down(self, i):
-        self.move_it(i, 1)
-
-    def shift_its(self, pivot, d):
-        if d == 0:
+    def finalize(self, *args):
+        """If I do not yet contain any items, show a button to add
+        one. Otherwise, fill myself with the widgets for the items."""
+        if unicode(self.character) in self.character.closet.skeleton[
+                u'character_sheet_item_type']:
+            self._trigger_repop()
             return
-        r = {}
-        for (tab, bones) in self._get_bones().iteritems():
-            r[tab] = set()
-
-            def bitters():
-                for v in bones:
-                    if hasattr(v, 'itervalues'):
-                        for bone in v.itervalues():
-                            yield bone
-                    elif v is None:
-                        continue
-                    else:
-                        yield v
-            for bone in bitters():
-                if (bone.idx > pivot and d > 0) or (
-                        bone.idx < pivot and d > 0):
-                    r[tab].add(bone._replace(
-                        idx=bone.idx+d))
-                else:
-                    r[tab].add(bone)
-
-    def del_it(self, i):
-        superskel = self.character.closet.skeleton
-        mainbone = superskel[u'character_sheet_item_type'][
-            unicode(self.character)].pop(i)
-        if mainbone is not None:
-            for ks in self.outerbone_ksd[mainbone.type]:
-                for k in ks:
-                    try:
-                        del superskel[k][unicode(self.character)][i]
-                    except KeyError:
-                        pass
+        _ = lambda x: x
+        self.add_widget(ClosetButton(
+            closet=self.character.closet,
+            symbolic=True,
+            stringname=_("@add"),
+            fun=self.add_item,
+            arg=0,
+            size_hint_y=None,
+            height=30,
+            top=self.top))
 
     def repop(self, *args):
         """Iterate over the bones under my name, and add widgets appropriate
@@ -701,19 +641,6 @@ things appropriate to the present, whenever that may be.
         for box in self.boxeditems:
             box.clear_widgets()
         self.clear_widgets()
-        self.boxeditems = []
-        self.csitems = []
-        if unicode(self.character) not in self.character.closet.skeleton[
-                u"character_sheet_item_type"]:
-            self.add_widget(ClosetButton(
-                closet=self.character.closet,
-                symbolic=True,
-                stringname="@add",
-                fun=self.add_item,
-                arg=0,
-                size_hint_y=None,
-                height=50))
-            return
         _ = self.character.closet.get_text
         i = 0
         for bone in self.character.closet.skeleton[
