@@ -33,10 +33,10 @@ class TableContent(GridLayout):
 
     def __init__(self, **kwargs):
         super(TableContent, self).__init__(**kwargs)
-        self.trigger_repop = Clock.create_trigger(self.repop)
+        self._trigger_repop = Clock.create_trigger(self.repop)
 
     def on_parent(self, *args):
-        self.trigger_repop()
+        self._trigger_repop()
 
     def repop(self, *args):
         self.clear_widgets()

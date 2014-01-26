@@ -578,12 +578,31 @@ tick.
 
     def __init__(self, **kwargs):
         super(CharSheet, self).__init__(**kwargs)
-        self.bind(character=self.repop)
+        self._trigger_repop = Clock.create_trigger(self.repop)
+        self.bind(character=self.finalize)
 
     def add_item(self, i):
         # I need the layout, proper
         layout = self.parent.parent
         layout.handle_adbut(self, i)
+
+    def finalize(self, *args):
+        """If I do not yet contain any items, show a button to add
+        one. Otherwise, fill myself with the widgets for the items."""
+        if unicode(self.character) in self.character.closet.skeleton[
+                u'character_sheet_item_type']:
+            self._trigger_repop()
+            return
+        _ = lambda x: x
+        self.add_widget(ClosetButton(
+            closet=self.character.closet,
+            symbolic=True,
+            stringname=_("@add"),
+            fun=self.add_item,
+            arg=0,
+            size_hint_y=None,
+            height=30,
+            top=self.top))
 
     def repop(self, *args):
         """Iterate over the bones under my name, and add widgets appropriate
@@ -601,9 +620,6 @@ things appropriate to the present, whenever that may be.
         self.clear_widgets()
         _ = self.character.closet.get_text
         i = 0
-        if unicode(self.character) not in self.character.closet.skeleton[
-                u"character_sheet_item_type"]:
-            return
         for bone in self.character.closet.skeleton[
                 u"character_sheet_item_type"][
                 unicode(self.character)].iterbones():
