@@ -31,8 +31,8 @@ class TableContent(GridLayout):
     closet = ObjectProperty()
 
     def __init__(self, **kwargs):
-        super(TableContent, self).__init__(**kwargs)
         self._trigger_repop = Clock.create_trigger(self.repop)
+        super(TableContent, self).__init__(**kwargs)
 
     def on_parent(self, *args):
         self._trigger_repop()
