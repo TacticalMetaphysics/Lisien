@@ -91,9 +91,11 @@
                                         id: thing_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    AddButton:
+                                    ClosetButton:
                                         id: thing_tab_stat_add
                                         closet: root.closet
+                                        symbolic: True
+                                        stringname: _("@add")
                                         fun: thing_tab_stat.add_stat
                                         arg: thing_tab_stat_in.text
                     TabbedPanelItem:
@@ -124,9 +126,11 @@
                                         id: place_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    AddButton:
+                                    ClosetButton:
                                         id: place_tab_stat_add
                                         closet: root.closet
+                                        symbolic: True
+                                        stringname: _("@add")
                                         fun: place_tab_stat.add_stat
                                         arg: place_tab_stat_in.text
                     TabbedPanelItem:
@@ -158,9 +162,11 @@
                                         id: portal_tab_stat_in
                                         size_hint_x: 0.8
                                         hint_text: root.get_text(_("New stat name"))
-                                    AddButton:
+                                    ClosetButton:
                                         id: portal_tab_stat_add
                                         closet: root.closet
+                                        symbolic: True
+                                        stringname: _("@add")
                                         fun: portal_tab_stat.add_stat
                                         arg: portal_tab_stat_in.text
                     TabbedPanelItem:
@@ -180,9 +186,11 @@
                                     id: char_tab_stat_in
                                     size_hint_x: 0.8
                                     hint_text: root.get_text(_("New stat name"))
-                                AddButton:
+                                ClosetButton:
                                     id: char_tab_stat_add
                                     closet: root.closet
+                                    symbolic: True
+                                    stringname: _("@add")
                                     fun: char_tab_stat.add_stat
                                     arg: char_tab_stat_in.text
             TabbedPanelItem:
@@ -221,9 +229,11 @@
                                         id: thing_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    AddButton:
+                                    ClosetButton:
                                         id: thing_cal_stat_add
-                                        adder: root
+                                        symbolic: True
+                                        stringname: _("@add")
+                                        closet: root.closet
                                         args: [thing_cal_thing.selection[0], thing_cal_stat_in.text] if thing_cal_thing.selection else []
                     TabbedPanelItem:
                         id: place_cal
@@ -256,9 +266,11 @@
                                         id: place_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    AddButton:
+                                    ClosetButton:
                                         id: place_cal_stat_add
-                                        adder: root
+                                        closet: root.closet
+                                        symbolic: True
+                                        fun: root.confirm
                                         args: [place_cal_place.selection[0], place_cal_stat_in.text] if place_cal_place.selection else []
                     TabbedPanelItem:
                         id: portal_cal
@@ -291,9 +303,11 @@
                                         id: portal_cal_stat_in
                                         hint_text: root.get_text(_("New stat name"))
                                         size_hint_x: 0.8
-                                    AddButton:
+                                    ClosetButton:
                                         id: portal_cal_stat_add
-                                        adder: root
+                                        closet: root.closet
+                                        symbolic: True
+                                        fun: root.confirm
                                         args: [portal_cal_portal.selection[0], portal_cal_stat_in.text] if portal_cal_portal.selection else []
                     TabbedPanelItem:
                         id: char_cal
@@ -313,9 +327,12 @@
                                     id: char_cal_stat_in
                                     hint_text: root.get_text(_("New stat name"))
                                     size_hint_x: 0.8
-                                AddButton:
+                                ClosetButton:
                                     id: char_cal_stat_add
-                                    adder: root
+                                    closet: root.closet
+                                    symbolic: True
+                                    stringname: _("@add")
+                                    fun: root.confirm
                                     args: [char_cal_stat_in.text]
         BoxLayout:
             size_hint_y: 0.05
