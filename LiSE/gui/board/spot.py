@@ -238,7 +238,7 @@ class Spot(GamePiece):
         if touch.grab_current:
             Logger.debug("touch.grab_current")
             return
-        if not self.collide_point(touch.x, touch.y):
+        if not self.collide_point(*self.to_local(*touch.pos)):
             Logger.debug("{} does not collide {}".format(
                 self, touch.pos))
             return
