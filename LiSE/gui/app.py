@@ -274,7 +274,7 @@ and charsheets.
             destspot = None
             for spot in self.board.spotlayout.children:
                 if spot.collide_point(*self.board.spotlayout.to_local(
-                        *touch.pos)):
+                        *touch.pos)) and spot is not ud['spot']:
                     destspot = spot
                     break
             if destspot is None:
