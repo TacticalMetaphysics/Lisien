@@ -85,7 +85,9 @@ class CharSheetItem(BoxLayout):
             return
         self.content = self.item_class(**self.item_kwargs)
         self.add_widget(self.content)
-        buttonbox = CharSheetItemButtonBox(csitem=self)
+        buttonbox = CharSheetItemButtonBox(
+            csitem=self,
+            size_hint_x=0.2)
         self.add_widget(buttonbox)
         self.buttons = buttonbox.children
         buttonbox.bind(children=self.setter('buttons'))
