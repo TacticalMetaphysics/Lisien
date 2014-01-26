@@ -234,29 +234,27 @@ class Spot(GamePiece):
                     prev = bone
 
     def on_touch_down(self, touch):
-        Logger.debug("{}.on_touch_down".format(self))
         if touch.grab_current:
-            Logger.debug("touch.grab_current")
             return
         if not self.collide_point(*self.to_local(*touch.pos)):
-            Logger.debug("{} does not collide {}".format(
-                self, touch.pos))
             return
-        Logger.debug("{} collides {}".format(self, touch.pos))
+        if 'spot' in touch.ud:
+            return
         touch.grab(self)
         touch.ud['spot'] = self
         self._touch = touch
         return True
 
     def on_touch_move(self, touch):
-        if "portaling" in touch.ud:
-            touch.ungrab(self)
-            return
-        if touch.grab_current is not self:
-            return
-        if self._touch is not touch:
-            return
-        self.center = touch.pos
+        if 'spot' in touch.ud:
+            if touch.ud['spot'] is self and 'portaling' not in touch.ud:
+                self.center = self.to_local(*touch.pos)
+            elif (not touch.ud['spot'].collide_point(
+                    *touch.ud['spot'].to_local(*touch.pos)) and
+                    self.collide_point(*self.to_local(*touch.pos))):
+                touch.ud['spot'] = self
+        elif self.collide_point(*self.to_local(*touch.pos)):
+            touch.ud['spot'] = self
 
     def on_touch_up(self, touch):
         if self._touch:

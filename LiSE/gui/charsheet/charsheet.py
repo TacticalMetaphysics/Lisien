@@ -598,9 +598,17 @@ tick.
                 i += 1
 
     def __init__(self, **kwargs):
-        super(CharSheet, self).__init__(**kwargs)
         self._trigger_repop = Clock.create_trigger(self.repop)
-        self.bind(character=self.finalize)
+        super(CharSheet, self).__init__(**kwargs)
+
+    def _add_widget_later(self, w):
+        if w.canvas and self.canvas:
+            self.add_widget(w)
+            return
+        Clock.schedule_once(lambda dt: self._add_widget_later(w), 0)
+
+    def on_character(self, *args):
+        self.finalize()
 
     def add_item(self, i):
         # I need the layout, proper
@@ -615,7 +623,7 @@ tick.
             self._trigger_repop()
             return
         _ = lambda x: x
-        self.add_widget(ClosetButton(
+        self._add_widget_later(ClosetButton(
             closet=self.character.closet,
             symbolic=True,
             stringname=_("@add"),

@@ -10,7 +10,6 @@
 <ClosetWidget>:
     font_name: sep.join([lisepathl[-1], 'gui', 'assets', 'Entypo.ttf']) if self.symbolic else 'DroidSans'
     font_size: 30 if self.symbolic else 16
-<ClosetLabel,ClosetButton,ClosetToggleButton>:
     text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
 <ClosetHintTextInput>:
     hint_text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''

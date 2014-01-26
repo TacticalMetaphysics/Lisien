@@ -75,9 +75,7 @@ class DummyPawn(GamePiece):
     def on_touch_up(self, touch):
         """Create a real Pawn on top of the Spot I am on top of, along
         with a Thing for it to represent."""
-        if 'pawn' in touch.ud:
-            del touch.ud['pawn']
-        else:
+        if 'pawn' not in touch.ud:
             return
         closet = self.board.host.closet
         for spot in self.board.spotlayout.children:
@@ -201,14 +199,15 @@ and charsheets.
         # self.dummyspot = None
         if self._touch is None:
             return
-        (ox, oy) = self._touch.ud['spot'].pos
-        (dx, dy) = self._touch.ud['portaling']['dummyspot'].pos
-        (ow, oh) = self._touch.ud['spot'].size
+        ud = self._touch.ud['portaling']
+        (ox, oy) = ud['origspot'].pos
+        (dx, dy) = ud['dummyspot'].pos
+        (ow, oh) = ud['origspot'].size
         orx = ow / 2
         ory = oh / 2
         points = get_points(ox, orx, oy, ory, dx, 0, dy, 0, 10)
-        self._touch.ud['portaling']['dummyarrow'].canvas.clear()
-        with self._touch.ud['portaling']['dummyarrow'].canvas:
+        ud['dummyarrow'].canvas.clear()
+        with ud['dummyarrow'].canvas:
             Color(0.25, 0.25, 0.25)
             Line(width=1.4, points=points)
             Color(1, 1, 1)
@@ -226,6 +225,7 @@ and charsheets.
             if "spot" in touch.ud:
                 touch.grab(self)
                 ud = {
+                    'origspot': touch.ud['spot'],
                     'dummyspot': DummySpot(pos=touch.pos),
                     'dummyarrow': TouchlessWidget()}
                 self.board.arrowlayout.add_widget(ud['dummyarrow'])
@@ -245,7 +245,6 @@ and charsheets.
                     ud['dummyarrow'].canvas.clear()
                     self.board.arrowlayout.remove_widget(
                         ud['dummyarrow'])
-                    del touch.ud['portaling']
                 self.dismiss_prompt()
                 self.origspot = None
                 self.dummyspot = None
@@ -254,9 +253,7 @@ and charsheets.
 
     def on_touch_move(self, touch):
         if 'portaling' in touch.ud:
-            touch.ud['portaling']['dummyspot'].pos = (
-                self.board.spotlayout.to_local(*touch.pos))
-            return True
+            touch.ud['portaling']['dummyspot'].pos = touch.pos
         return super(LiSELayout, self).on_touch_move(touch)
 
     def on_touch_up(self, touch):
@@ -265,7 +262,6 @@ and charsheets.
             if touch != self._touch:
                 return
             ud = touch.ud['portaling']
-            del touch.ud['portaling']
             ud['dummyspot'].unbind(pos=self.draw_arrow)
             ud['dummyarrow'].canvas.clear()
             self.remove_widget(ud['dummyspot'])
@@ -274,14 +270,14 @@ and charsheets.
             destspot = None
             for spot in self.board.spotlayout.children:
                 if spot.collide_point(*self.board.spotlayout.to_local(
-                        *touch.pos)) and spot is not ud['spot']:
+                        *touch.pos)) and spot is not ud['origspot']:
                     destspot = spot
                     break
             if destspot is None:
                 ud['dummyarrow'].canvas.clear()
                 self.dismiss_prompt()
                 return True
-            origplace = touch.ud['spot'].place
+            origplace = ud['origspot'].place
             destplace = destspot.place
             portalname = "{}->{}".format(origplace, destplace)
             portal = self.board.facade.observed.make_portal(

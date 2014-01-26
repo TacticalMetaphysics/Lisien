@@ -33,7 +33,7 @@ class EnumProperty(ObjectProperty):
         return super(EnumProperty, self).set(obj, value)
 
 
-class ClosetWidget(Widget):
+class ClosetLabel(Label):
     """Mix-in class for various text-having widget classes, to make their
     text match some named string from the closet."""
     stringname = StringProperty()
@@ -41,11 +41,7 @@ class ClosetWidget(Widget):
     symbolic = BooleanProperty(False)
 
 
-class ClosetLabel(Label, ClosetWidget):
-    pass
-
-
-class ClosetButton(Button, ClosetWidget):
+class ClosetButton(Button, ClosetLabel):
     fun = ObjectProperty(None)
     arg = ObjectProperty(None)
     pressed = BooleanProperty(False)
@@ -63,7 +59,8 @@ class ClosetToggleButton(ClosetButton, ToggleButtonBehavior):
     pass
 
 
-class ClosetHintTextInput(TextInput, ClosetWidget):
+class ClosetHintTextInput(TextInput):
+    closet = ObjectProperty()
     failure_string = StringProperty()
     """String to use when the input failed to validate"""
     failure_color = ListProperty([1, 0, 0, 1])
