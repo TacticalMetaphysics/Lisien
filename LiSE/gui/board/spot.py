@@ -234,10 +234,15 @@ class Spot(GamePiece):
                     prev = bone
 
     def on_touch_down(self, touch):
+        Logger.debug("{}.on_touch_down".format(self))
         if touch.grab_current:
+            Logger.debug("touch.grab_current")
             return
         if not self.collide_point(touch.x, touch.y):
+            Logger.debug("{} does not collide {}".format(
+                self, touch.pos))
             return
+        Logger.debug("{} collides {}".format(self, touch.pos))
         touch.grab(self)
         touch.ud['spot'] = self
         self._touch = touch
