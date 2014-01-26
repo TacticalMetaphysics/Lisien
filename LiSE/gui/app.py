@@ -270,8 +270,9 @@ and charsheets.
             self.board.remove_widget(ud['dummyarrow'])
             self.dismiss_prompt()
             destspot = None
-            for spot in self.board.spotdict.itervalues():
-                if spot.collide_point(touch.x, touch.y):
+            for spot in self.board.spotlayout.children:
+                if spot.collide_point(*self.board.spotlayout.to_local(
+                        *touch.pos)) and spot is not ud['spot']:
                     destspot = spot
                     break
             if destspot is None:

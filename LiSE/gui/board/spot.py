@@ -235,6 +235,8 @@ class Spot(GamePiece):
     def on_touch_down(self, touch):
         if touch.grab_current or 'portaling' in touch.ud:
             return
+        if not self.collide_point(touch.x, touch.y):
+            return
         touch.grab(self)
         touch.ud['spot'] = self
         return True
@@ -250,8 +252,6 @@ class Spot(GamePiece):
     def on_touch_up(self, touch):
         if self._touch:
             self.set_coords(*self.pos)
-        if 'spot' in touch.ud:
-            del touch.ud['spot']
         self._touch = None
         return super(Spot, self).on_touch_up(touch)
 
