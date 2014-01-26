@@ -412,9 +412,9 @@
         closet: root.csitem.closet
         symbolic: True
         stringname: _('@add')
-        fun: self.csitem.charsheet.add_item
-        arg: self.csitem.i
-        size_hint_y: 0.2 if self.csitem.i > 0 else 0.0
+        fun: root.csitem.charsheet.add_item
+        arg: root.csitem.i
+        size_hint_y: 0.2 if root.csitem.i > 0 else 0.0
     ClosetButton:
         id: 'up_button'
         closet: root.csitem.closet
@@ -422,32 +422,36 @@
         font_name: 'DejaVuSansMono-Bold.ttf'
         font_size: 30
         stringname: _('@up')
-        fun: self.csitem.charsheet.move_it_up
-        arg: self.csitem.i
+        fun: root.csitem.charsheet.move_it_up
+        arg: root.csitem.i
     ClosetButton:
         id: 'del_button'
         closet: root.csitem.closet
         symbolic: True
         stringname: '@del'
-        fun: self.csitem.charsheet.del_item
-        arg: self.csitem.i
+        fun: root.csitem.charsheet.del_item
+        arg: root.csitem.i
     ClosetButton:
         id: 'down_button'
         closet: root.csitem.closet
         font_name: 'DejaVuSansMono-Bold.ttf'
         font_size: 30
         stringname: _('@down')
-        fun: self.csitem.charsheet.move_it_down
-        arg: self.csitem.i
+        fun: root.csitem.charsheet.move_it_down
+        arg: root.csitem.i
     ClosetButton:
         id: 'lower_add_button'
         closet: root.csitem.closet
         symbolic: True
         stringname: _('@add')
-        fun: self.csitem.charsheet.add_item
-        arg: self.csitem.i+1
+        fun: root.csitem.charsheet.add_item
+        arg: root.csitem.i+1
 <CharSheetItem>:
-    closet: self.charsheet.closet
+    closet: self.charsheet.character.closet
+    content: self.item_class(**self.item_kwargs) if self.item_class and self.item_kwargs else None
+    csbone: self.item_kwargs['csbone'] if 'csbone' in self.item_kwargs else None
+    mybone: self.item_kwargs['mybone'] if 'mybone' in self.item_kwargs else None
+    height: self.csbone.height if self.csbone else 1
 <CharStatTableView>:
     CharStatTableContent:
         closet: root.character.closet

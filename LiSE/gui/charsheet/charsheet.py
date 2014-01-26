@@ -44,6 +44,13 @@ from LiSE.util import (
     CALENDAR_TYPES)
 
 
+from collections import defaultdict
+
+
+csitem_type_table_d = defaultdict(set)
+csitem_type_table_d[CHAR_CAL].add(u"char_cal")
+
+
 class ListItemToggle(SelectableView, ToggleButton):
     noun = ObjectProperty(allownone=True)
 
@@ -228,6 +235,11 @@ class CharSheetAdder(ModalView):
     insertion_point = NumericProperty(0)
 
     def confirm(self):
+        csitskel = self.closet.skeleton[u"character_sheet_item_type"]
+        if unicode(self.charsheet.character) not in csitskel:
+            csitskel[unicode(self.charsheet.character)] = {}
+        myskel = csitskel[unicode(self.charsheet.character)]
+        set_bone = self.charsheet.character.closet.set_bone
         r = self.record()
         if r is not None:  # might be 0
             type_bone = CharSheet.bonetype(
@@ -236,16 +248,14 @@ class CharSheetAdder(ModalView):
                 type=r,
                 height=max([100, self.charsheet.height - sum(
                     csitem.height for csitem in self.charsheet.csitems)]))
-            itemskel = self.closet.skeleton[u"character_sheet_item_type"][
-                unicode(self.charsheet.character)]
-            i = max(itemskel.keys())
-            if self.insertion_point > i:
-                self.charsheet.character.closet.set_bone(type_bone)
-                self.charsheet.repop()
-                self.dismiss()
-                return
-            self.charsheet.shift_its(self.insertion_point, 1)
-            self.charsheet.character.closet.set_bone(type_bone)
+            try:
+                i = max(myskel.iterkeys())
+            except ValueError:
+                i = -1
+            if self.insertion_point <= i:
+                for j in xrange(self.insertion_point, i+1):
+                    set_bone(myskel[j]._replace(idx=j+1))
+            set_bone(type_bone)
             self.charsheet.repop()
             self.dismiss()
 
@@ -394,6 +404,7 @@ class CharSheetAdder(ModalView):
 
 def char_sheet_table_def(
         table_name, final_pkey, typ, foreign_key=(None, None)):
+    csitem_type_table_d[typ].add(table_name)
     r = (
         table_name,
         {"columns":
@@ -417,6 +428,7 @@ def char_sheet_table_def(
 
 def char_sheet_calendar_def(
         table_name, col_x, typ, foreign_key=(None, None)):
+    csitem_type_table_d[typ].add(table_name)
     r = (
         table_name,
         {"columns":
@@ -615,6 +627,36 @@ tick.
         layout = self.parent.parent
         layout.handle_adbut(self, i)
 
+    def _move_bone(self, i, n):
+        myskel = self.character.closet.skeleton[
+            u'character_sheet_item_type'][unicode(self.character)]
+        bone = myskel[i]
+        del myskel[i]
+        self.character.closet.set_bone(bone._replace(idx=i+n))
+        for tab in csitem_type_table_d[bone.type]:
+            unterskel = self.character.closet.skeleton[
+                tab][unicode(self.character)]
+            unterbone = unterskel[i]
+            del unterskel[i]
+            self.character.closet.set_bone(unterbone._replace(idx=i+n))
+        self._trigger_repop()
+
+    def move_it_down(self, i):
+        self._move_bone(i, 1)
+
+    def move_it_up(self, i):
+        self._move_bone(i, -1)
+
+    def del_item(self, i):
+        uberskel = self.character.closet.skeleton[
+            u'character_sheet_item_type'][unicode(self.character)]
+        bone = uberskel[i]
+        del uberskel[i]
+        for tab in csitem_type_table_d[bone.type]:
+            del self.character.closet.skeleton[tab][
+                unicode(self.character)][i]
+        self._trigger_repop()
+
     def finalize(self, *args):
         """If I do not yet contain any items, show a button to add
         one. Otherwise, fill myself with the widgets for the items."""
@@ -740,14 +782,19 @@ things appropriate to the present, whenever that may be.
             i += 1
 
         itemct = i
-        initial_addbut = AddButton(
+        _ = lambda x: x
+        initial_addbut = ClosetButton(
             closet=self.character.closet,
+            symbolic=True,
+            stringname=_('@add'),
             fun=self.add_item,
             arg=0,
             size_hint_y=None,
             height=20)
-        final_addbut = AddButton(
+        final_addbut = ClosetButton(
             closet=self.character.closet,
+            symbolic=True,
+            stringname=_('@add'),
             fun=self.add_item,
             arg=itemct,
             size_hint_y=None,
@@ -756,48 +803,24 @@ things appropriate to the present, whenever that may be.
         for widspec in self.csitems:
             itembox = CharSheetItem(
                 charsheet=self,
-                closet=self.character.closet,
                 widspec=widspec)
             self.boxeditems.append(itembox)
-            buttonbox = BoxLayout(
-                orientation='vertical',
-                size_hint_x=0.2)
-            itembox.add_widget(buttonbox)
-            if item.i > 0:
-                upb = UpButton(
-                    closet=self.character.closet,
-                    fun=self.move_it_up,
-                    arg=item.i,
-                    size_hint_y=0.2)
-                buttonbox.add_widget(upb)
-            delb = DelButton(
-                closet=self.character.closet,
-                fun=self.del_it,
-                arg=item.i,
-                size_hint_y=0.6)
-            buttonbox.add_widget(delb)
-            whereat = item.i + 1
-            if whereat < itemct:
-                downb = DownButton(
-                    closet=self.character.closet,
-                    fun=self.move_it_down,
-                    arg=item.i,
-                    size_hint_y=0.2)
-                buttonbox.add_widget(downb)
-            middle.add_widget(itembox)
-            if whereat < itemct:
+            self.add_widget(itembox)
+            if widspec[0].i < i:
                 sizeaddbox = BoxLayout(
                     size_hint_y=None,
                     height=20)
                 sizeaddbox.add_widget(Sizer(
                     charsheet=self,
-                    i=item.i,
+                    i=itembox.content.i,
                     closet=self.character.closet,
                     size_hint_x=0.2))
-                sizeaddbox.add_widget(AddButton(
+                sizeaddbox.add_widget(ClosetButton(
                     closet=self.character.closet,
+                    symbolic=True,
+                    stringname=_('@add'),
                     fun=self.add_item,
-                    arg=whereat,
+                    arg=i+1,
                     size_hint_x=0.8))
                 sizeaddbox.bind(top=itembox.setter('y'))
                 middle.add_widget(sizeaddbox)
@@ -805,6 +828,8 @@ things appropriate to the present, whenever that may be.
         self.add_widget(initial_addbut)
         self.add_widget(middle)
         self.add_widget(final_addbut)
+
+    _trigger_repop = Clock.create_trigger(repop)
 
     def iter_tab_i_bones(self, tab, i):
         for bone in self.character.closet.skeleton[tab][

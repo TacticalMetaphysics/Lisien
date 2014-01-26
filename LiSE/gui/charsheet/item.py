@@ -1,15 +1,13 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import (
+    AliasProperty,
     DictProperty,
     ListProperty,
     ObjectProperty,
-    ReferenceListProperty,
-    NumericProperty
+    ReferenceListProperty
 )
 from kivy.clock import Clock
 from kivy.logger import Logger
-
-from LiSE.gui.kivybits import ClosetButton
 
 
 """Common behavior for items that go in character sheets"""
@@ -26,36 +24,32 @@ class CharSheetItem(BoxLayout):
     csbone = ObjectProperty()
     content = ObjectProperty()
     buttons = ListProperty()
-    i = NumericProperty()
     item_class = ObjectProperty()
     item_kwargs = DictProperty()
     widspec = ReferenceListProperty(item_class, item_kwargs)
 
     def __init__(self, **kwargs):
+        self._trigger_set_bone = Clock.create_trigger(self._set_my_bone)
         super(CharSheetItem, self).__init__(**kwargs)
-        self._trigger_set_bone = Clock.create_trigger(
-            lambda dt: self.closet.set_bone(self.mybone))
+        self.finalize()
 
-    def on_widspec(self, *args):
-        if not (self.item_class and self.item_kwargs):
-            Clock.schedule_once(self.on_widspec, 0)
+    def _set_my_bone(self, *args):
+        if not self.mybone:
             return
-        self.content = self.item_class(**self.item_kwargs)
-        self.csbone = self.item_kwargs['csbone']
-        if 'mybone' in self.item_kwargs:
-            self.mybone = self.item_kwargs['mybone']
-        self.i = self.csbone.idx
-        self.height = self.csbone.height
-        self.buttons = BoxLayout(orientation='vertical')
-        upb = UpButton(fun=self.charsheet.move_it_up)
+        self.closet.set_bone(self.mybone)
 
-    def set_i(self, i):
+    def _set_i(self, i):
         if not self.csbone:
             Logger.debug("{0}.i set before {0}.csbone; why?".format(self))
             Clock.schedule_once(lambda dt: self.set_i(i), 0)
             return
         self.csbone = self.csbone._replace(idx=self.i)
         self._trigger_set_bone()
+
+    i = AliasProperty(
+        lambda self: self.csbone.idx if self.csbone else -1,
+        _set_i,
+        bind=('csbone',))
 
     def on_height(self, *args):
         if not self.csbone:
@@ -84,3 +78,14 @@ class CharSheetItem(BoxLayout):
             return
         self.mybone = self.mybone._replace(height=self.height)
         self.closet.set_bone(self.csbone)
+
+    def finalize(self, *args):
+        if not self.item_class and self.item_kwargs:
+            Clock.schedule_once(self.finalize, 0)
+            return
+        self.content = self.item_class(**self.item_kwargs)
+        self.add_widget(self.content)
+        buttonbox = CharSheetItemButtonBox(csitem=self)
+        self.add_widget(buttonbox)
+        self.buttons = buttonbox.children
+        buttonbox.bind(children=self.setter('buttons'))
