@@ -247,7 +247,8 @@ class CharSheetAdder(ModalView):
                 idx=self.insertion_point,
                 type=r,
                 height=max([100, self.charsheet.height - sum(
-                    csitem.height for csitem in self.charsheet.csitems)]))
+                    csitem[1]['height'] for csitem in
+                    self.charsheet.csitems)]))
             try:
                 i = max(myskel.iterkeys())
             except ValueError:
