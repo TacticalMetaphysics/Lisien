@@ -2,9 +2,20 @@ LiSE is an application for developing life simulation games.
 
 # What is a life simulation game?
 
-For the purposes of LiSE, it is any game where you are primarily concerned with "who you are" rather than "what you're doing". Everything your character in a life simulator can do should be represented somehow, but mostly in non-interactive form. This frees the player to attend to the high-level tasks of "living" in the game world: choosing what to do and when, rather than how.
+For the purposes of LiSE, it is any game where you are primarily
+concerned with "who you are" rather than "what you're
+doing". Everything your character in a life simulator can do should be
+represented somehow, but mostly in non-interactive form. This frees
+the player to attend to the high-level tasks of "living" in the game
+world: choosing what to do and when, rather than how.
 
-In concrete terms, LiSE-style life simulators are games of time and resource management. The primary method for interacting with the game is to arrange events on a schedule, and then wait for your character(s) to carry them out. These games may be turn-based or real-time, but in the latter case, they allow the player to control the passage of game-time.
+In concrete terms, LiSE-style life simulators are games of time and
+resource management. The primary method for interacting with the game
+is to arrange events on a schedule, and then wait for your
+character(s) to carry them out. These games may be turn-based or
+real-time, but in the latter case, they allow the player to control
+the passage of game-time. There may be time pressure on the character(s),
+but the player experiences this only as a strategic concern.
 
 Existing games that LiSE seeks to imitate include:
 
@@ -31,12 +42,14 @@ designers turn two-dimensional background art into something the
 player character can walk around in, just by painting in the parts
 that are walkable. RenPy assumes that the player will be reading a lot
 and picking options from menus a lot, and so automates the
-construction of menus and dialogs--but with an enormous variety of
+construction of menus and dialogs, with an enormous variety of
 options for stylizing them.
 
 LiSE is a game engine in the latter sense. It assumes that there are
 certain problems any designer of life simulators will have, and
 provides powerful tools specialized to those problems.
+
+## Examples
 
 Many designers of this sort of game will not care very much how it
 looks. For them, there is a default interface style that will let
@@ -56,8 +69,6 @@ genre, but also the ability to *rewind* time. Normally this would be
 accomplished by keeping a lot of save files, but the database features
 render multiple saves unnecessary.
 
-# How does LiSE simulate life?
-
 The engine provides a simple user interface
 for both playing and developing games. The distinction is only in how
 much control the user has over the world model--developers can
@@ -76,50 +87,18 @@ represent physical objects, such as people.
 Actually, the engine distinguishes people from their bodies--more on
 that later.
 
+# How does LiSE simulate life?
+
 There is an event handler for the purpose of managing changes to the
-world that occur at particular game-times. It watches particular parts
-of the world for particular states to trigger an event, and resolves
-the event into a set of changes to the world. The triggers, event
-types, and changes are all wired together following rules stored in
-the database. This is similar to the concept of "reactions" that Dwarf
-Fortress uses.
+world that occur at particular game-times. Events are resolved into a
+list of changes to the world. The triggers, event types, and changes
+are all wired together following rules stored in the database. This is
+similar to the concept of "reactions" that Dwarf Fortress uses.
 
 One possible trigger for an event is that the player chose to trigger
 it. The usual ways of doing this are by dragging their character to a
-new place, thus triggering a movement event, or playing a card from
-their hand. Cards may represent anything the player can do.
-
-Having scheduled a variety of events, the player starts time. Much as
-in The Sims, they can pause whenever they want, and they can decide
-how fast time should go. They may also be allowed to rewind! By
-default, every game made with LiSE generates a random seed when first
-started, and whenever a random choice is needed, the same seed is used
-to make it. This makes it possible to try several approaches to a
-given situation and see how *all of them* will turn out. It is also
-convenient for debugging those random events.
-
-Events may be triggered by other events, as well. The triggered event
-does not need to take place at the same time as the triggering event,
-and indeed may take place in the past--events can rewrite history. For
-a mundane example: when a movement event is triggered, and discovers
-that the character to be moved is not where it is to be moved *from*,
-it triggers a pathfinding event that will in turn trigger various
-movement events at various times, resulting in the character moving to
-the intended destination in a series of steps.
-
-Most games will have more than one board in them. Events on all of
-these can happen at the same time. Generally, only one of those boards
-should represent "physical reality" in the form that video games
-use--that is, only one board should manage the business of determining
-where people are standing, how they get from here to there, and so
-forth. The rest represent other game mechanics. You might use one to
-implement a tech tree, as in Civilization, where instead of moving
-about on it, the player has limited options for where to place
-counters indicating they've acquired a given tech. You might use
-another as a social graph, where the "places" are actually people, and
-the "portals" are actually the relationships between them, connecting,
-disconnecting, and changing color in response to drama. Templates for
-several such boards will be provided.
+new place, thus triggering a movement event; picking an option from a
+menu; or playing a card.
 
 Various places, things, and portals could represent the same person
 for the purposes of different game mechanics. They are grouped
@@ -130,6 +109,11 @@ a character may be used to resolve the effects of any given event, and
 to decide how to schedule any event. The character is what determines
 how fast someone can move, whether in the physical world, the tech
 tree, or elsewhere.
+
+Each of those ways of looking at the game world gets its own
+board. They all use the same graph data structure, and events on all
+of them occur on the same timeline(s), but they may follow different
+rules in any other respect.
 
 It's all very abstract. You could implement physics in this engine, if
 you wanted, but if that's your main concern, you might be happier with
