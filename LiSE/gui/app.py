@@ -41,10 +41,18 @@ Factory.register('TogSwatch', cls=TogSwatch)
 
 
 class DummySpot(Widget):
+    """This is at the end of the arrow that appears when you're drawing a
+    new portal. It's invisible, serving only to mark the pixel the
+    arrow ends at for the moment.
+
+    """
     def collide_point(self, *args):
+        """This should be wherever you point, and therefore, always
+        collides."""
         return True
 
     def on_touch_move(self, touch):
+        """Be where the touch is."""
         self.pos = touch.pos
 
 
@@ -125,9 +133,13 @@ class SpriteMenuContent(StackLayout):
     spot/pawn."""
 
     def get_text(self, stringn):
+        """Alias of the closet's get_text to make the kv a bit tidier.
+
+        """
         return self.closet.get_text(stringn)
 
     def upd_selection(self, togswatch, state):
+        """Respond to the selection or deselection of one of the options"""
         if state == 'normal':
             while togswatch in self.selection:
                 self.selection.remove(togswatch)
@@ -170,21 +182,30 @@ class SpriteMenuContent(StackLayout):
 
 
 class SpotMenuContent(SpriteMenuContent):
-    pass
+    """For deciding how to make a new place"""
 
 
 class PawnMenuContent(SpriteMenuContent):
-    pass
+    """For deciding how to make a new thing"""
 
 
 class LiSELayout(FloatLayout):
     """A very tiny master layout that contains one board and some menus
-and charsheets.
+    and charsheets.
+
+    This contains three elements: a board, a menu, and a character
+    sheet. This class has some support methods for handling
+    interactions with the menu and the character sheet, but if neither
+    of those happen, the board handles touches on its own.
 
     """
     app = ObjectProperty()
+    """The App instance that created me"""
     board = ObjectProperty()
+    """The Board instance that's visible at present"""
     charsheet = ObjectProperty()
+    
+    menu = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
     portaling = BoundedNumericProperty(0, min=0, max=2)
     playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
@@ -571,7 +592,7 @@ class LiSEApp(App):
         return l
 
     def on_pause(self):
-        self.closet.save()
+        self.closet.save_game()
 
     def stop(self, *largs):
         self.closet.save_game()
