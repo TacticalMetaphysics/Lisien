@@ -610,6 +610,8 @@ tick.
                     setter(w)
                 i += 1
 
+    bones = AliasProperty(_get_bones, _set_bones)
+
     def __init__(self, **kwargs):
         self._trigger_repop = Clock.create_trigger(self.repop)
         super(CharSheet, self).__init__(**kwargs)
