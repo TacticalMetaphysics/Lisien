@@ -118,6 +118,8 @@ class Spot(GamePiece):
         kwargs['graphic_name'] = kwargs['bone'].graphic
         kwargs['imgs'] = kwargs['closet'].get_game_piece(
             kwargs['bone'].graphic).imgs
+        self._trigger_move_to_touch = Clock.create_trigger(
+            self._move_to_touch)
         super(Spot, self).__init__(**kwargs)
         self.closet.register_time_listener(self.handle_time)
         self.board.spotdict[unicode(self.place)] = self
@@ -248,13 +250,17 @@ class Spot(GamePiece):
     def on_touch_move(self, touch):
         if 'spot' in touch.ud:
             if touch.ud['spot'] is self and 'portaling' not in touch.ud:
-                self.center = self.to_local(*touch.pos)
+                self._touch = touch
+                self._trigger_move_to_touch()
             elif (not touch.ud['spot'].collide_point(
                     *touch.ud['spot'].to_local(*touch.pos)) and
                     self.collide_point(*self.to_local(*touch.pos))):
                 touch.ud['spot'] = self
         elif self.collide_point(*self.to_local(*touch.pos)):
             touch.ud['spot'] = self
+
+    def _move_to_touch(self, *args):
+        self.center = self.to_local(*self._touch.pos)
 
     def on_touch_up(self, touch):
         if self._touch:

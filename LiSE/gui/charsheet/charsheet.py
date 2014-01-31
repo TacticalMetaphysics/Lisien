@@ -240,6 +240,7 @@ class CharSheetAdder(ModalView):
             csitskel[unicode(self.charsheet.character)] = {}
         myskel = csitskel[unicode(self.charsheet.character)]
         set_bone = self.charsheet.character.closet.set_bone
+        # TODO change over to size_hint_y for every charsheet item
         r = self.record()
         if r is not None:  # might be 0
             type_bone = CharSheet.bonetype(
@@ -610,6 +611,8 @@ tick.
                     setter(w)
                 i += 1
 
+    bones = AliasProperty(_get_bones, _set_bones)
+
     def __init__(self, **kwargs):
         self._trigger_repop = Clock.create_trigger(self.repop)
         super(CharSheet, self).__init__(**kwargs)
@@ -673,7 +676,7 @@ tick.
             fun=self.add_item,
             arg=0,
             size_hint_y=None,
-            height=30,
+            height=50,
             top=self.top))
 
     def repop(self, *args):
@@ -791,7 +794,7 @@ things appropriate to the present, whenever that may be.
             fun=self.add_item,
             arg=0,
             size_hint_y=None,
-            height=20)
+            height=40)
         final_addbut = ClosetButton(
             closet=self.character.closet,
             symbolic=True,
@@ -799,7 +802,7 @@ things appropriate to the present, whenever that may be.
             fun=self.add_item,
             arg=itemct,
             size_hint_y=None,
-            height=20)
+            height=40)
         middle = StackLayout(size_hint_y=0.9)
         for widspec in self.csitems:
             itembox = CharSheetItem(
@@ -810,7 +813,7 @@ things appropriate to the present, whenever that may be.
             if widspec[0].i < i:
                 sizeaddbox = BoxLayout(
                     size_hint_y=None,
-                    height=20)
+                    height=40)
                 sizeaddbox.add_widget(Sizer(
                     charsheet=self,
                     i=itembox.content.i,
