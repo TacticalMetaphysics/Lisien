@@ -96,7 +96,7 @@ class Arrow(Widget):
         """
         Widget.__init__(self, **kwargs)
         self.trigger_repoint = Clock.create_trigger(
-            self.repoint, timeout=-1)
+            self.repoint)
         self.board.arrowdict[unicode(self.portal)] = self
         orign = unicode(self.portal.origin)
         destn = unicode(self.portal.destination)
