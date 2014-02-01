@@ -20,9 +20,6 @@
     spacing: (5, 5)
     offscreen: (2, 2)
     tick_height: 2
-    ticks_tall: self.character.closet.timestream.hi_tick
-    character: self.charsheet.character if self.charsheet else None
-    closet: self.charsheet.character.closet if self.charsheet else None
     col_width: 100
     tlx: self.x + (self.col_width + self.spacing_x) * (self.closetbranch - self.branch)
     tly: self.top - self.tick_height * (self.closettick - self.tick)
@@ -402,13 +399,6 @@
     height: 30
 <TableBody>:
     height: 20
-<TableView>:
-    TableContent:
-        closet: root.character.closet
-        cols: len(root.headers)
-        width: root.width
-        x: root.x
-        top: root.top
 <CharSheetItemButtonBox>:
     orientation: 'vertical'
     ClosetButton:
@@ -457,13 +447,6 @@
         fun: root.csitem.charsheet.add_item
         arg: root.csitem.i+1
         size_hint_y: 0.1
-<CharSheetItem>:
-    closet: self.charsheet.character.closet
-    content: self.item_class(**self.item_kwargs) if self.item_class and self.item_kwargs else None
-    csbone: self.item_kwargs['csbone'] if 'csbone' in self.item_kwargs else None
-    mybone: self.item_kwargs['mybone'] if 'mybone' in self.item_kwargs else None
-    height: self.csbone.height if self.csbone else 1
-    size_hint_y: None
 <CharStatTableView>:
     CharStatTableContent:
         closet: root.character.closet

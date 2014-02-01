@@ -2,6 +2,7 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from kivy.clock import Clock
 from kivy.properties import (
+    AliasProperty,
     DictProperty,
     BoundedNumericProperty,
     ListProperty,
@@ -25,7 +26,6 @@ from LiSE.util import (
     PORTAL_CAL,
     CHAR_CAL)
 from LiSE.gui.kivybits import EnumProperty
-from item import CharSheetItem
 
 
 class Cell(Label):
@@ -160,9 +160,17 @@ class Calendar(Layout):
     """Position of the timeline"""
     charsheet = ObjectProperty()
     """Character sheet I'm in"""
-    character = ObjectProperty()
+    character = AliasProperty(
+        lambda self: self.charsheet.character
+        if self.charsheet else None,
+        lambda self, v: None,
+        bind=('charsheet',))
     """Conveniently reach the character"""
-    closet = ObjectProperty()
+    closet = AliasProperty(
+        lambda self: self.charsheet.character.closet
+        if self.charsheet else None,
+        lambda self, v: None,
+        bind=('charsheet',))
     """Conveniently reach the closet"""
     closetbranch = BoundedNumericProperty(0, min=0)
     """Current branch as a Kivy property"""
@@ -170,7 +178,11 @@ class Calendar(Layout):
     """Current tick as a Kivy property"""
     closettime = ReferenceListProperty(closetbranch, closettick)
     """Current (branch, tick) as a Kivy property"""
-    ticks_tall = NumericProperty()
+    ticks_tall = AliasProperty(
+        lambda self: self.charsheet.character.closet.timestream.hi_tick
+        if self.charsheet else None,
+        lambda self, v: None,
+        bind=('charsheet',))
     """How many ticks fit in me at once"""
     minbranch = NumericProperty()
     """The lowest branch I have, which may be lower than the lowest branch
