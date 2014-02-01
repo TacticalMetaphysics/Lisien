@@ -52,8 +52,7 @@ class DummySpot(Widget):
         return True
 
     def on_touch_move(self, touch):
-        """Be where the touch is."""
-        self.pos = touch.pos
+        self.center = touch.pos
 
 
 class DummyPawn(GamePiece):
@@ -204,7 +203,6 @@ class LiSELayout(FloatLayout):
     board = ObjectProperty()
     """The Board instance that's visible at present"""
     charsheet = ObjectProperty()
-    
     menu = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
     portaling = BoundedNumericProperty(0, min=0, max=2)
@@ -221,12 +219,9 @@ class LiSELayout(FloatLayout):
         if self._touch is None:
             return
         ud = self._touch.ud['portaling']
-        (ox, oy) = ud['origspot'].pos
-        (dx, dy) = ud['dummyspot'].pos
-        (ow, oh) = ud['origspot'].size
-        orx = ow / 2
-        ory = oh / 2
-        points = get_points(ox, orx, oy, ory, dx, 0, dy, 0, 10)
+        (ox, oy) = ud['origspot'].center
+        (dx, dy) = self.board.spotlayout.to_local(*ud['dummyspot'].center)
+        points = get_points(ox, 0, oy, 0, dx, 0, dy, 0, 10)
         ud['dummyarrow'].canvas.clear()
         with ud['dummyarrow'].canvas:
             Color(0.25, 0.25, 0.25)
@@ -271,11 +266,6 @@ class LiSELayout(FloatLayout):
                 self.dummyspot = None
                 self.dummyarrow = None
         return super(LiSELayout, self).on_touch_down(touch)
-
-    def on_touch_move(self, touch):
-        if 'portaling' in touch.ud:
-            touch.ud['portaling']['dummyspot'].pos = touch.pos
-        return super(LiSELayout, self).on_touch_move(touch)
 
     def on_touch_up(self, touch):
         if self.portaling == 2:

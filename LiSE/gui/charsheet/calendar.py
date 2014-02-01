@@ -363,8 +363,6 @@ class CalendarView(StencilView):
     """A StencilView displaying a Calendar and a Timeline."""
     i = NumericProperty()
     """Index in the character sheet"""
-    csbone = ObjectProperty()
-    """Bone indicating me to the character sheet"""
     calendar = ObjectProperty()
     """I exist to hold this"""
     timeline = ObjectProperty()
@@ -384,15 +382,6 @@ class CalendarView(StencilView):
     def __init__(self, **kwargs):
         """Construct the calendar and the timeline atop it."""
         super(CalendarView, self).__init__(**kwargs)
-        for questionable in (
-                'pos_hint', 'size_hint', 'pos_hint_x',
-                'pos_hint_y', 'pos_hint_top', 'pos_hint_right',
-                'size_hint_x', 'size_hint_y', 'size',
-                'x', 'y', 'width', 'height', 'top', 'right'):
-            if questionable in kwargs:
-                del kwargs[questionable]
-        kwargs['pos'] = (0, 0)
-        kwargs['height'] = self.csbone.height
         self.calendar = Calendar(**kwargs)
         self.clayout = RelativeLayout(top=self.top, x=self.x)
         self.closet.timestream.hi_time_listeners.append(

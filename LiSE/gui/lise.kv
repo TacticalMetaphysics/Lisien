@@ -405,15 +405,6 @@
 <CharSheetItemButtonBox>:
     orientation: 'vertical'
     ClosetButton:
-        id: 'upper_add_button'
-        closet: root.csitem.closet
-        symbolic: True
-        stringname: _('@add')
-        fun: root.csitem.charsheet.add_item
-        arg: root.csitem.i
-        size_hint_y: 0.1 if root.csitem.i > 0 else None
-        height: 0
-    ClosetButton:
         id: 'up_button'
         closet: root.csitem.closet
         # need to put these glyphs into my own ttf
@@ -442,14 +433,6 @@
         arg: root.csitem.i
         size_hint_y: 0.1 if root.csitem.i < len(root.csitem.charsheet.csitems)-1 else None
         height: 0
-    ClosetButton:
-        id: 'lower_add_button'
-        closet: root.csitem.closet
-        symbolic: True
-        stringname: _('@add')
-        fun: root.csitem.charsheet.add_item
-        arg: root.csitem.i+1
-        size_hint_y: 0.1
 <CharStatTableView>:
     CharStatTableContent:
         closet: root.character.closet
