@@ -22,6 +22,7 @@ from kivy.adapters.listadapter import ListAdapter
 from kivy.adapters.models import SelectableDataItem
 from kivy.uix.listview import ListView, SelectableView
 from kivy.properties import (
+    DictProperty,
     NumericProperty,
     BooleanProperty,
     OptionProperty,
@@ -222,32 +223,37 @@ class StatListView(Widget):
 
 class CharSheetAdder(ModalView):
     charsheet = ObjectProperty()
+    character = AliasProperty(
+        lambda self: self.charsheet.character,
+        lambda self, v: None,
+        bind=('charsheet',))
     closet = AliasProperty(
         lambda self: self.charsheet.character.closet,
         lambda self, v: None,
         bind=('charsheet',))
     get_text = AliasProperty(
-        lambda self: self.closet.get_text,
+        lambda self: self.charsheet.character.closet.get_text,
         lambda self, v: None,
-        bind=('closet',))
+        bind=('charsheet',))
     insertion_point = NumericProperty(0)
 
     def confirm(self):
         csitskel = self.closet.skeleton[u"character_sheet_item_type"]
-        if unicode(self.charsheet.character) not in csitskel:
+        if unicode(self.character) not in csitskel:
             csitskel[unicode(self.charsheet.character)] = {}
-        myskel = csitskel[unicode(self.charsheet.character)]
-        set_bone = self.charsheet.character.closet.set_bone
+        myskel = csitskel[unicode(self.character)]
+        set_bone = self.character.closet.set_bone
         # TODO change over to size_hint_y for every charsheet item
         r = self.record()
         if r is not None:  # might be 0
             type_bone = CharSheet.bonetype(
-                character=unicode(self.charsheet.character),
+                character=unicode(self.character),
                 idx=self.insertion_point,
                 type=r,
-                height=max([100, self.charsheet.height - sum(
-                    csitem[1]['height'] for csitem in
-                    self.charsheet.csitems)]))
+                height=min(self.charsheet.height / 2,
+                           self.charsheet.height - sum(
+                               getattr(csitem, 'height') for csitem in
+                               self.charsheet.csitems)))
             try:
                 i = max(myskel.iterkeys())
             except ValueError:
@@ -451,42 +457,6 @@ def char_sheet_calendar_def(
     return r
 
 
-class Sizer(ClosetButton):
-    charsheet = ObjectProperty()
-    i = NumericProperty()
-
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            touch.ud['charsheet'] = self.charsheet
-            touch.ud['sizer'] = self
-            touch.grab(self)
-            self.prior_y = self.y
-            self.state = 'down'
-            touch.ud['sizer_i'] = self.i
-            return True
-
-    def on_touch_move(self, touch):
-        if 'sizer' not in touch.ud or touch.ud['sizer'] is not self:
-            touch.ungrab(self)
-            self.state = 'normal'
-            return
-        self.parent.center_y = touch.y
-        wid_before = self.charsheet.csitems[self.i]
-        wid_after = self.charsheet.csitems[self.i+1]
-        wid_before.y = self.top
-        wid_before.height = wid_before.top - self.top
-        wid_after.height = self.y - wid_after.y
-        return True
-
-    def on_touch_up(self, touch):
-        if 'sizer' not in touch.ud or touch.ud['sizer'] is not self:
-            touch.ungrab(self)
-            self.state = 'normal'
-            return
-        self.state = 'normal'
-        return True
-
-
 class CharSheet(StackLayout):
     """A display of some or all of the information making up a Character.
 
@@ -574,8 +544,13 @@ tick.
                      "height>=50"]})]
     character = ObjectProperty()
     """The character this sheet is about."""
+    closet = AliasProperty(
+        lambda self: self.character.closet,
+        lambda self, v: None,
+        bind=('character',))
     csitems = ListProperty()
     """Bones from character_sheet_item_type"""
+    i2wid = DictProperty()
     adapter = ObjectProperty()
     """Turn character_sheet_item_type bones into BoxLayouts that contain
     the widget to display, along with a few buttons to manipulate it."""
@@ -673,11 +648,10 @@ tick.
                 u'character_sheet_item_type']:
             myskel = self.character.closet.skeleton[
                 u'character_sheet_item_type'][unicode(self.character)]
-            self.csitems = list(myskel.iterbones())
-            myskel.register_set_listener(
-                lambda skel, child, k, v: self.csitems.append(v))
-            myskel.register_del_listener(
-                lambda skel, child, k, v: self.csitems.remove(v))
+            myskel.register_set_listener(self.repop)
+            myskel.register_del_listener(self.repop)
+            self.closet.register_time_listener(self.repop)
+            self.repop()  # populates self.csitems
             self.adapter = ListAdapter(
                 data=self.csitems,
                 args_converter=self.args_converter,
@@ -774,153 +748,10 @@ tick.
             'item_kwargs': inner_kwargs}
 
     def repop(self, *args):
-        """Iterate over the bones under my name, and add widgets appropriate
-to each of them.
-
-Each widget gets kwargs character, item_type, and
-keys. item_type is an integer, defined in SHEET_ITEM_TYPE,
-representing both the widget class and the way it looks up its
-data. keys identify a particular entity whose data will be displayed,
-but they never include branch or tick--CharSheet will only display
-things appropriate to the present, whenever that may be.
-
-        """
-        # i = 0
-        # for bone in self.character.closet.skeleton[
-        #         u"character_sheet_item_type"][
-        #         unicode(self.character)].iterbones():
-        #     assert(bone.character is not None)
-        #     if bone.type == THING_TAB:
-        #         headers = [_("thing")]
-        #         fieldnames = ["name"]
-        #         stats = []
-        #         for subbone in self.iter_tab_i_bones("thing_tab_stat", i):
-        #             if subbone.stat == "location":
-        #                 headers.append(_("location"))
-        #                 fieldnames.append("location")
-        #             else:
-        #                 stats.append(subbone.stat)
-        #         widspec = (TableView, {
-        #             'headers': headers,
-        #             'fieldnames': fieldnames,
-        #             'items': [self.character.get_thing(subbone.thing)
-        #                       for subbone in
-        #                       self.iter_tab_i_bones("thing_tab_thing", i)],
-        #             'stats': stats})
-        #     elif bone.type == PLACE_TAB:
-        #         widspec = (TableView, {
-        #             'headers': [_("place")],
-        #             'fieldnames': ["name"],
-        #             'items': [
-        #                 self.character.get_place(bone.place)
-        #                 for bone in
-        #                 self.iter_tab_i_bones("place_tab_place", i)],
-        #             'stats': [
-        #                 bone.stat for bone in
-        #                 self.iter_tab_i_bones("place_tab_stat", i)]})
-        #     elif bone.type == PORTAL_TAB:
-        #         headers = ["portal"]
-        #         fieldnames = ["name"]
-        #         stats = []
-        #         for subbone in self.iter_tab_i_bones("portal_tab_stat", i):
-        #             if subbone.stat == "origin":
-        #                 headers.append(_("origin"))
-        #                 fieldnames.append("origin")
-        #             elif subbone.stat == "destination":
-        #                 headers.append(_("destination"))
-        #                 fieldnames.append("destination")
-        #             else:
-        #                 stats.append(subbone.stat)
-        #         widspec = (TableView, {
-        #             'headers': headers,
-        #             'fieldnames': fieldnames,
-        #             'stats': stats,
-        #             'items': [
-        #                 self.character.get_portal(bone.portal) for bone in
-        #                 self.iter_tab_i_bones("portal_tab_portal", i)]})
-        #     elif bone.type == CHAR_TAB:
-        #         widspec = (CharStatTableView, {
-        #             'stats': [
-        #                 bone.stat for bone in
-        #                 self.iter_tab_i_bones("char_tab_stat", i)]})
-        #     elif bone.type in CALENDAR_TYPES:
-        #         (tabn, keyns) = {
-        #             THING_CAL: ("thing_cal", ["thing", "stat"]),
-        #             PLACE_CAL: ("place_cal", ["place", "stat"]),
-        #             PORTAL_CAL: ("portal_cal", ["portal", "stat"]),
-        #             CHAR_CAL: ("char_cal", ["stat"])
-        #         }[bone.type]
-        #         subbone = self.character.closet.skeleton[tabn][
-        #             unicode(self.character)][i]
-        #         widspec = (CalendarView, {
-        #             'cal_type': bone.type,
-        #             'boneatt': keyns[1],
-        #             'key': getattr(subbone, keyns[0]),
-        #             'stat': getattr(subbone, keyns[1])
-        #             if len(keyns) == 2 else '',
-        #             'mybone': subbone})
-        #     else:
-        #         raise ValueError("Unknown item type: {}".format(bone.type))
-
-        #     kwargs = {
-        #         'charsheet': self,
-        #         'character': self.character,
-        #         'csbone': bone,
-        #         'i': i,
-        #         'size_hint_x': 0.8,
-        #         'height': bone.height}
-        #     widspec[1].update(kwargs)
-        #     self.csitems.append(widspec)
-
-        #     i += 1
-
-        # itemct = i
-        # _ = lambda x: x
-        # initial_addbut = ClosetButton(
-        #     closet=self.character.closet,
-        #     symbolic=True,
-        #     stringname=_('@add'),
-        #     fun=self.add_item,
-        #     arg=0,
-        #     size_hint_y=None,
-        #     height=40)
-        # final_addbut = ClosetButton(
-        #     closet=self.character.closet,
-        #     symbolic=True,
-        #     stringname=_('@add'),
-        #     fun=self.add_item,
-        #     arg=itemct,
-        #     size_hint_y=None,
-        #     height=40)
-        # middle = StackLayout(size_hint_y=0.9)
-        # for widspec in self.csitems:
-        #     itembox = CharSheetItem(
-        #         charsheet=self,
-        #         widspec=widspec)
-        #     self.boxeditems.append(itembox)
-        #     self.add_widget(itembox)
-        #     if widspec[0].i < i:
-        #         sizeaddbox = BoxLayout(
-        #             size_hint_y=None,
-        #             height=40)
-        #         sizeaddbox.add_widget(Sizer(
-        #             charsheet=self,
-        #             i=itembox.content.i,
-        #             closet=self.character.closet,
-        #             size_hint_x=0.2))
-        #         sizeaddbox.add_widget(ClosetButton(
-        #             closet=self.character.closet,
-        #             symbolic=True,
-        #             stringname=_('@add'),
-        #             fun=self.add_item,
-        #             arg=i+1,
-        #             size_hint_x=0.8))
-        #         sizeaddbox.bind(top=itembox.setter('y'))
-        #         middle.add_widget(sizeaddbox)
-
-        # self.add_widget(initial_addbut)
-        # self.add_widget(middle)
-        # self.add_widget(final_addbut)
+        self.i2wid = {}
+        myskel = self.character.closet.skeleton[
+            u'character_sheet_item_type'][unicode(self.character)]
+        self.csitems = list(myskel.iterbones())
 
     def iter_tab_i_bones(self, tab, i):
         for bone in self.character.closet.skeleton[tab][
