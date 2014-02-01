@@ -10,28 +10,42 @@ from kivy.clock import Clock
 from kivy.logger import Logger
 
 
-"""Common behavior for items that go in character sheets"""
-
-
 class CharSheetItemButtonBox(BoxLayout):
     csitem = ObjectProperty()
 
 
 class CharSheetItem(BoxLayout):
-    charsheet = ObjectProperty()
-    closet = ObjectProperty()
-    mybone = ObjectProperty()
     csbone = ObjectProperty()
     content = ObjectProperty()
     buttons = ListProperty()
     item_class = ObjectProperty()
     item_kwargs = DictProperty()
     widspec = ReferenceListProperty(item_class, item_kwargs)
+    charsheet = AliasProperty(
+        lambda self: self.item_kwargs['charsheet']
+        if self.item_kwargs else None,
+        lambda self, v: None,
+        bind=('item_kwargs',))
+    closet = AliasProperty(
+        lambda self: self.item_kwargs['charsheet'].character.closet
+        if self.item_kwargs else None,
+        lambda self, v: None,
+        bind=('item_kwargs',))
+    mybone = AliasProperty(
+        lambda self: self.item_kwargs['mybone']
+        if self.item_kwargs and 'mybone' in self.item_kwargs
+        else None,
+        lambda self, v: None,
+        bind=('item_kwargs',))
 
     def __init__(self, **kwargs):
         self._trigger_set_bone = Clock.create_trigger(self._set_my_bone)
         super(CharSheetItem, self).__init__(**kwargs)
         self.finalize()
+
+    def on_csbone(self, *args):
+        self.height = self.csbone.height
+        self._trigger_set_bone()
 
     def _set_my_bone(self, *args):
         if not self.mybone:
@@ -51,7 +65,7 @@ class CharSheetItem(BoxLayout):
         _set_i,
         bind=('csbone',))
 
-    def on_height(self, *args):
+    def upd_height(self, *args):
         if not self.csbone:
             Logger.debug("{0}.height set before {0}.csbone; why?".format(self))
             Clock.schedule_once(self.on_height, 0)
@@ -91,3 +105,4 @@ class CharSheetItem(BoxLayout):
         self.add_widget(buttonbox)
         self.buttons = buttonbox.children
         buttonbox.bind(children=self.setter('buttons'))
+        self.bind(height=self.upd_height)

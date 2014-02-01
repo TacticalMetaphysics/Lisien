@@ -1,5 +1,12 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+"""That which displays a one-way connection between two places.
+
+An arrow connects two spots, the origin and the destination, and it
+points from the origin to the destination, regardless of where on the
+screen they are at the moment.
+
+"""
 from math import cos, sin, hypot, atan
 from LiSE.util import (
     wedge_offsets_rise_run,

@@ -1,11 +1,17 @@
 from kivy.properties import (
+    AliasProperty,
     NumericProperty,
     ListProperty,
     ObjectProperty)
+from kivy.adapters.listadapter import ListAdapter
+from kivy.uix.listview import ListView
 from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.stacklayout import StackLayout
 from kivy.uix.stencilview import StencilView
 from kivy.clock import Clock
+from kivy.logger import Logger
 
 
 class TableCell(Label):
@@ -27,49 +33,128 @@ class TableBody(TableCell):
     pass
 
 
-class TableContent(GridLayout):
+class TableRow(BoxLayout):
+    item = ObjectProperty()
+    tableview = ObjectProperty()
     closet = ObjectProperty()
+    fieldnames = ListProperty()
+    statnames = ListProperty()
 
     def __init__(self, **kwargs):
-        self._trigger_repop = Clock.create_trigger(self.repop)
+        kwargs['closet'] = kwargs['tableview'].character.closet
+        kwargs['fieldnames'] = kwargs['tableview'].fieldnames
+        kwargs['statnames'] = kwargs['tableview'].stats
+        super(TableRow, self).__init__(**kwargs)
+        for fieldname in self.fieldnames:
+            bwid = TableBody(
+                text_getter=lambda: unicode(getattr(self.item, fieldname)))
+            self.closet.register_time_listener(bwid.upd_text)
+            self.add_widget(bwid)
+            bwid.upd_text()
+        for statname in self.statnames:
+            bwid = TableBody(
+                text_getter=lambda: unicode(self.item.get_stat(statname)))
+            self.closet.register_time_listener(bwid.upd_text)
+            self.add_widget(bwid)
+            bwid.upd_text()
+
+
+class TableContent(StackLayout):
+    closet = ObjectProperty()
+    adapter = ObjectProperty()
+    listview = ObjectProperty()
+
+    def __init__(self, **kwargs):
         super(TableContent, self).__init__(**kwargs)
+        self.finalize()
 
-    def on_parent(self, *args):
-        self._trigger_repop()
-
-    def repop(self, *args):
-        self.clear_widgets()
-        self.cols = len(self.parent.headers) + len(self.parent.stats)
+    def finalize(self, *args):
+        if not (self.closet and self.parent):
+            Clock.schedule_once(self.finalize, 0)
+            return
+        head = BoxLayout()
         for header in self.parent.headers + self.parent.stats:
             hwid = TableHeader(
                 text_getter=lambda: self.closet.get_text(header))
             self.closet.register_text_listener(header, hwid.upd_text)
             hwid.upd_text()
-            self.add_widget(hwid)
-        for item in self.parent.items:
-            for fieldname in self.parent.fieldnames:
-                bwid = TableBody(
-                    text_getter=lambda: unicode(getattr(item, fieldname)))
-                self.closet.register_time_listener(bwid.upd_text)
-                self.add_widget(bwid)
-                bwid.upd_text()
-            for stat in self.parent.stats:
-                bwid = TableBody(
-                    text_getter=lambda: unicode(item.get_stat(stat)))
-                self.closet.register_time_listener(bwid.upd_text)
-                self.add_widget(bwid)
-                bwid.upd_text()
+            head.add_widget(hwid)
+        self.add_widget(head)
+        self.adapter = ListAdapter(
+            data=self.parent.items,
+            args_converter=self.args_converter,
+            cls=TableRow)
+        self.listview = ListView(adapter=self.adapter)
+        self.parent.bind(items=self.adapter.setter('data'))
+        self.add_widget(self.listview)
+
+    def args_converter(self, index, arg):
+        return {
+            'item': arg,
+            'tableview': self.parent}
+
+    # def repop(self, *args):
+    #     if not self.closet:
+    #         Clock.schedule_once(self.repop, 0)
+    #         return
+    #     self.clear_widgets()
+    #     self.cols = len(self.parent.headers) + len(self.parent.stats)
+    #     for header in self.parent.headers + self.parent.stats:
+    #         hwid = TableHeader(
+    #             text_getter=lambda: self.closet.get_text(header))
+    #         self.closet.register_text_listener(header, hwid.upd_text)
+    #         hwid.upd_text()
+    #         self.add_widget(hwid)
+    #     for item in self.parent.items:
+    #         for fieldname in self.parent.fieldnames:
+    #             bwid = TableBody(
+    #                 text_getter=lambda: unicode(getattr(item, fieldname)))
+    #             self.closet.register_time_listener(bwid.upd_text)
+    #             self.add_widget(bwid)
+    #             bwid.upd_text()
+    #         for stat in self.parent.stats:
+    #             bwid = TableBody(
+    #                 text_getter=lambda: unicode(item.get_stat(stat)))
+    #             self.closet.register_time_listener(bwid.upd_text)
+    #             self.add_widget(bwid)
+    #             bwid.upd_text()
 
 
 class TableView(StencilView):
-    character = ObjectProperty()
-    csbone = ObjectProperty()
+    charsheet = ObjectProperty()
+    character = AliasProperty(
+        lambda self: self.charsheet.character
+        if self.charsheet else None,
+        lambda self, v: None,
+        bind=('charsheet',))
     mybone = ObjectProperty()
     headers = ListProperty()
     fieldnames = ListProperty()
     items = ListProperty()
     stats = ListProperty()
     i = NumericProperty()
+
+    def __init__(self, **kwargs):
+        super(TableView, self).__init__(**kwargs)
+        self.finalize()
+
+    def finalize(self, *args):
+        if not (
+                self.charsheet and
+                self.headers and
+                (self.fieldnames or self.stats) and
+                self.items):
+            Clock.schedule_once(self.finalize, 0)
+            return
+        content = TableContent(
+            closet=self.charsheet.character.closet,
+            width=self.width,
+            x=self.x,
+            top=self.top)
+        self.add_widget(content)
+        self.bind(width=content.setter('width'),
+                  x=content.setter('x'),
+                  top=content.setter('top'))
 
 
 class CharStatTableContent(GridLayout):
