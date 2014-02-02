@@ -406,30 +406,30 @@
     imgs: list(self.closet.iter_graphic_imgs(self.graphic_name)) if self.closet and self.graphic_name else []
     offset_x: self.graphic_bone.offset_x if self.graphic_bone else 0
     offset_y: self.graphic_bone.offset_y if self.graphic_bone else 0
-<CharSheet>:
-    cols: 2
-    spacing: 10
-    cols_minimum: {0: self.width - 34 - self.spacing[0], 1: 34}
 <LiSELayout>:
     #:import stiffscroll LiSE.gui.stiffscroll.StiffScrollEffect
     menu: menu
+    charsheet: charsheet
+    board: board
     BoardView:
-        id: board_view
-        board: root.board
+        id: boardview
+        board: board
         effect_cls: stiffscroll
+        Board:
+            id: board
+            facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
+            host: root.app.closet.get_character(root.app.host_name)
     CueCard:
         id: prompt
         closet: root.app.closet
         pos_hint: {'x': 0.1, 'top': 1}
         size_hint: (None, None)
         size: (400, 26)
-    CharSheetView:
-        id: csview
+    CharSheet:
+        id: charsheet
+        character: root.app.closet.get_character(root.app.observed_name)
         pos_hint: {'x': 0.7, 'y': 0.0}
         size_hint: (0.3, 1.0)
-        scroll_type: ['bars']
-        bar_pos_y: 'left'
-        charsheet: root.charsheet
     BoxLayout:
         id: menu
         size_hint: (0.1, 1)

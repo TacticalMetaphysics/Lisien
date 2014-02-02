@@ -262,7 +262,7 @@ class CharSheetAdder(ModalView):
                 for j in xrange(self.insertion_point, i+1):
                     set_bone(myskel[j]._replace(idx=j+1))
             set_bone(type_bone)
-            self.charsheet.repop()
+            self.charsheet._trigger_repop()
             self.dismiss()
 
     def record(self):
@@ -557,6 +557,7 @@ tick.
     listview = ObjectProperty()
     """An instance of ListView that will display stuff appropriate to
     csitems."""
+    widgets2b = ListProperty()
 
     def _get_bones(self):
         superskel = self.character.closet.skeleton
@@ -595,14 +596,18 @@ tick.
 
     def __init__(self, **kwargs):
         self._trigger_repop = Clock.create_trigger(self.repop)
+        self._trigger_cued_widgets = Clock.create_trigger(
+            self._add_cued_widgets)
         kwargs['size_hint'] = (1, None)
         super(CharSheet, self).__init__(**kwargs)
 
+    def _add_cued_widgets(self, *args):
+        while self.widgets2b != []:
+            self.add_widget(self.widgets2b.pop(0))
+
     def _add_widget_later(self, w):
-        if w.canvas and self.canvas:
-            self.add_widget(w)
-            return
-        Clock.schedule_once(lambda dt: self._add_widget_later(w), 0)
+        self.widgets2b.append(w)
+        self._trigger_cued_widgets()
 
     def on_character(self, *args):
         self.finalize()
@@ -652,14 +657,7 @@ tick.
             myskel.register_set_listener(self.repop)
             myskel.register_del_listener(self.repop)
             self.closet.register_time_listener(self.repop)
-            self.repop()  # populates self.csitems
-            self.adapter = ListAdapter(
-                data=self.csitems,
-                args_converter=self.args_converter,
-                cls=CharSheetItem)
-            self.listview = ListView(adapter=self.adapter)
-            self.bind(csitems=self.adapter.setter('data'))
-            self._add_widget_later(self.listview)
+            self.repop()
             return
         _ = lambda x: x
         self._add_widget_later(ClosetButton(
@@ -673,6 +671,8 @@ tick.
             top=self.top))
 
     def bone2widspec(self, bone):
+        if bone is None:
+            return (Widget, {})
         if bone.type == THING_TAB:
             headers = ["thing"]
             fieldnames = ["name"]
@@ -749,10 +749,17 @@ tick.
             'item_kwargs': inner_kwargs}
 
     def repop(self, *args):
+        self.clear_widgets()
         self.i2wid = {}
-        myskel = self.character.closet.skeleton[
+        myskel = self.closet.skeleton[
             u'character_sheet_item_type'][unicode(self.character)]
         self.csitems = list(myskel.iterbones())
+        self.adapter = ListAdapter(
+            data=self.csitems + [None],
+            args_converter=self.args_converter,
+            cls=CharSheetItem)
+        self.listview = ListView(adapter=self.adapter)
+        self._add_widget_later(self.listview)
 
     def iter_tab_i_bones(self, tab, i):
         for bone in self.character.closet.skeleton[tab][
@@ -791,24 +798,3 @@ tick.
                     for bone in leks.iterbones():
                         self.character.closet.set_bone(
                             bone._replace(idx=bone.idx+n))
-
-
-class CharSheetView(ScrollView):
-    charsheet = ObjectProperty()
-
-    def on_charsheet(self, *args):
-        if self.charsheet is None:
-            return
-        self.add_widget(self.charsheet)
-        self.bind(pos=self.charsheet.setter('pos'),
-                  size=self.charsheet.setter('size'))
-
-    def on_touch_down(self, touch):
-        if self.collide_point(touch.x, touch.y):
-            touch.ud["charsheet"] = self.children[0]
-        return super(CharSheetView, self).on_touch_down(touch)
-
-    def on_touch_up(self, touch):
-        if "charsheet" in touch.ud:
-            del touch.ud["charsheet"]
-        return super(CharSheetView, self).on_touch_up(touch)

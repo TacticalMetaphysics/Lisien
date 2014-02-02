@@ -14,8 +14,6 @@ from LiSE.gui.kivybits import ClosetButton
 
 
 class Sizer(ClosetButton):
-    spacer = ObjectProperty()
-
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
             touch.ud['charsheet'] = self.charsheet
@@ -46,28 +44,29 @@ class Sizer(ClosetButton):
 class Spacer(BoxLayout):
     csitem = ObjectProperty()
     charsheet = AliasProperty(
-        lambda self: self.csitem.charsheet,
+        lambda self: self.csitem.charsheet if self.csitem else None,
         lambda self, v: None,
         bind=('csitem',))
-    i = NumericProperty()
-    sizer = ObjectProperty()
-    adder = ObjectProperty()
+    i = AliasProperty(
+        lambda self: self.csitem.i if self.csitem else None,
+        lambda self, v: None,
+        bind=('csitem',))
 
     def __init__(self, **kwargs):
         _ = lambda x: x
         kwargs['size_hint_y'] = None
         kwargs['height'] = 30
-        kwargs['sizer'] = Sizer(
+        super(Spacer, self).__init__(**kwargs)
+        self.sizer = Sizer(
             spacer=self,
             size_hint_x=0.2)
-        kwargs['adder'] = ClosetButton(
+        self.adder = ClosetButton(
             closet=self.charsheet.character.closet,
             symbolic=True,
             stringname=_('@add'),
             fun=self.charsheet.add_item,
-            arg=kwargs['i'],
+            arg=self.i,
             size_hint_y=0.8)
-        super(Sizer, self).__init__(**kwargs)
         self.add_widget(self.sizer)
         self.add_widget(self.adder)
 
@@ -107,28 +106,26 @@ class CharSheetItem(BoxLayout):
         bind=('csbone',))
 
     def __init__(self, **kwargs):
-        self._trigger_set_bone = Clock.create_trigger(
-            lambda dt: self.closet.set_bone(self.csbone))
+        self._trigger_set_bone = Clock.create_trigger(self.set_bone)
         kwargs['orientation'] = 'vertical'
+        kwargs['size_hint_y'] = None
         super(CharSheetItem, self).__init__(**kwargs)
         self.finalize()
 
+    def set_bone(self, *args):
+        if self.csbone:
+            self.closet.set_bone(self.csbone)
+
     def upd_height(self, *args):
-        if not self.csbone:
-            Logger.debug("{0}.height set before {0}.csbone; why?".format(self))
-            Clock.schedule_once(self.upd_height, 0)
-            return
-        elif self.i - 1 not in self.charsheet.i2wid:
-            Logger.debug("{0} seems to be the 0th charsheet item, but {0}.i=1".format(self))
-            Clock.schedule_once(self.upd_height, 0)
-            return
-        if self.sizer:
-            self.height = self.sizer.top - self.y
-            dh = self.height - self.csbone.height
+        self.height = self.spacer.top - self.y
+        dh = self.height - self.csbone.height
+        try:
             wid_before = self.charsheet.i2wid[self.i-1]
             wid_before.y += dh
             wid_before.height -= dh
-        if self.height != self.csbone.height:
+        except KeyError:
+            pass
+        if self.csbone and self.height != self.csbone.height:
             self.csbone = self.csbone._replace(height=self.height)
             self.content.height = self.height
             self.buttons.height = self.height
@@ -139,25 +136,16 @@ class CharSheetItem(BoxLayout):
             return
         if 'wid_before' in touch.ud:
             return
-        # crappy hack to get the widget seen before me in the charsheet
-        touch.ud['wid_before'] = self.charsheet.i2wid[self.i-1]
         touch.ud['wid_after'] = self
-
-    def on_touch_up(self, touch):
-        if 'wid_before' not in touch.ud:
-            return
-        if self not in (touch.ud['wid_before'], touch.ud['wid_after']):
-            return
-        if not self.mybone:
-            return
-        self.mybone = self.mybone._replace(height=self.height)
-        self.closet.set_bone(self.csbone)
+        if self.i > 0:
+            touch.ud['wid_before'] = self.charsheet.i2wid[self.i-1]
 
     def finalize(self, *args):
         _ = lambda x: x
-        if not self.item_class and self.item_kwargs:
+        if not (self.item_class and self.item_kwargs):
             Clock.schedule_once(self.finalize, 0)
             return
+        self.spacer = Spacer(csitem=self)
         self.middle = BoxLayout()
         self.content = self.item_class(**self.item_kwargs)
         buttonbox = BoxLayout(
@@ -189,12 +177,8 @@ class CharSheetItem(BoxLayout):
             buttonbox.add_widget(button)
         self.middle.add_widget(self.content)
         self.middle.add_widget(buttonbox)
-        if self.csbone.idx > 0:
-            self.spacer = Spacer(
-                csitem=self,
-                i=self.csbone.idx)
-            self.add_widget(self.spacer)
-            self.sizer.bind(top=self.upd_height)
+        self.add_widget(self.spacer)
+        self.spacer.bind(top=self.upd_height)
         self.add_widget(self.middle)
-        self.bind(height=self.upd_height)
+        self.height = self.csbone.height
         self.charsheet.i2wid[self.i] = self

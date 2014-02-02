@@ -28,7 +28,7 @@ from LiSE.gui.board.arrow import get_points
 
 from LiSE.gui.kivybits import TouchlessWidget
 from LiSE.gui.swatchbox import SwatchBox, TogSwatch
-from LiSE.gui.charsheet import CharSheet, CharSheetAdder
+from LiSE.gui.charsheet import CharSheetAdder
 
 from LiSE.util import TimestreamException
 from LiSE.model import Thing
@@ -199,7 +199,6 @@ class LiSELayout(FloatLayout):
 
     """
     app = ObjectProperty()
-    """The App instance that created me"""
     board = ObjectProperty()
     """The Board instance that's visible at present"""
     charsheet = ObjectProperty()
@@ -207,6 +206,12 @@ class LiSELayout(FloatLayout):
     _touch = ObjectProperty(None, allownone=True)
     portaling = BoundedNumericProperty(0, min=0, max=2)
     playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
+
+    def __init__(self, **kwargs):
+        kwargs['__no_builder'] = True
+        super(LiSELayout, self).__init__(**kwargs)
+        del kwargs['__no_builder']
+        super(LiSELayout, self).__init__(**kwargs)
 
     def handle_adbut(self, charsheet, i):
         adder = CharSheetAdder(charsheet=charsheet, insertion_point=i)
@@ -569,12 +574,7 @@ class LiSEApp(App):
             load_charsheet=self.observed_name,
             load_board=[self.observer_name, self.observed_name,
                         self.host_name])
-        observer = self.closet.get_character(self.observer_name)
-        observed = self.closet.get_character(self.observed_name)
-        host = self.closet.get_character(self.host_name)
-        l = LiSELayout(app=self, board=Board(
-            app=self, facade=observed.get_facade(observer),
-            host=host), charsheet=CharSheet(character=observed))
+        l = LiSELayout(app=self)
         from kivy.core.window import Window
         from kivy.modules import inspector
         inspector.create_inspector(Window, l)
