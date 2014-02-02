@@ -11,7 +11,6 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.stencilview import StencilView
 from kivy.clock import Clock
-from kivy.logger import Logger
 
 
 class TableCell(Label):
@@ -92,32 +91,6 @@ class TableContent(StackLayout):
         return {
             'item': arg,
             'tableview': self.parent}
-
-    # def repop(self, *args):
-    #     if not self.closet:
-    #         Clock.schedule_once(self.repop, 0)
-    #         return
-    #     self.clear_widgets()
-    #     self.cols = len(self.parent.headers) + len(self.parent.stats)
-    #     for header in self.parent.headers + self.parent.stats:
-    #         hwid = TableHeader(
-    #             text_getter=lambda: self.closet.get_text(header))
-    #         self.closet.register_text_listener(header, hwid.upd_text)
-    #         hwid.upd_text()
-    #         self.add_widget(hwid)
-    #     for item in self.parent.items:
-    #         for fieldname in self.parent.fieldnames:
-    #             bwid = TableBody(
-    #                 text_getter=lambda: unicode(getattr(item, fieldname)))
-    #             self.closet.register_time_listener(bwid.upd_text)
-    #             self.add_widget(bwid)
-    #             bwid.upd_text()
-    #         for stat in self.parent.stats:
-    #             bwid = TableBody(
-    #                 text_getter=lambda: unicode(item.get_stat(stat)))
-    #             self.closet.register_time_listener(bwid.upd_text)
-    #             self.add_widget(bwid)
-    #             bwid.upd_text()
 
 
 class TableView(StencilView):

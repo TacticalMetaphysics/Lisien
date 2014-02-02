@@ -58,14 +58,7 @@ class Board(FloatLayout):
     arrowdict = DictProperty({})
     arrowlayout = ObjectProperty()
     final = BooleanProperty()
-    scroll_x = AliasProperty(
-        lambda self: self.bone.x,
-        lambda self, v: self.host.closet.set_bone(self.bone._replace(x=v)),
-        cache=False)
-    scroll_y = AliasProperty(
-        lambda self: self.bone.x,
-        lambda self, v: self.host.closet.set_bone(self.bone._replace(y=v)),
-        cache=False)
+
 
     @property
     def bone(self):
@@ -194,13 +187,17 @@ class Board(FloatLayout):
 
 
 class BoardView(ScrollView):
-    app = ObjectProperty()
     board = ObjectProperty()
-
-    def on_board(self, *args):
-        self.scroll_x = self.board.scroll_x
-        self.scroll_y = self.board.scroll_y
-        self.add_widget(self.board)
+    scroll_x = AliasProperty(
+        lambda self: self.board.bone.x if self.board else 0,
+        lambda self, v: self.board.host.closet.set_bone(
+            self.board.bone._replace(x=v)),
+        cache=False)
+    scroll_y = AliasProperty(
+        lambda self: self.board.bone.y if self.board else 0,
+        lambda self, v: self.board.host.closet.set_bone(
+            self.board.bone._replace(y=v)),
+        cache=False)
 
     def on_touch_down(self, touch):
         for preemptor in 'menu', 'charsheet', 'portaling':

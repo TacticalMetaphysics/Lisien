@@ -24,7 +24,6 @@ Board = None
 Spot = None
 Pawn = None
 CharSheet = None
-CharSheetView = None
 Menu = None
 Img = None
 GamePiece = None
@@ -1323,8 +1322,7 @@ class Closet(object):
             global GamePiece
             from LiSE.gui.board import Board, Spot, Pawn, GamePiece
             global CharSheet
-            global CharSheetView
-            from LiSE.gui.charsheet import CharSheet, CharSheetView
+            from LiSE.gui.charsheet import CharSheet
             global Menu
             from LiSE.gui.menu import Menu
             global Img
@@ -1771,11 +1769,13 @@ class Closet(object):
             for bonetype in CharSheet.bonetypes.itervalues())
 
     def get_charsheet(self, character):
-        """Return a CharSheetView displaying the CharSheet for the character
-        specified, perhaps loading it if necessary."""
+        """Return a CharSheet displaying the character specified, perhaps
+        loading it if necessary.
+
+        """
         if character not in self.skeleton[u"character_sheet_item_type"]:
             self.load_charsheet(character)
-        return CharSheetView(character=self.get_character(character))
+        return CharSheet(character=self.get_character(character))
 
     def load_characters(self, names):
         """Load records to do with the named characters"""
