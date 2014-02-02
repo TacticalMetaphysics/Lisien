@@ -58,10 +58,7 @@ class Spacer(BoxLayout):
         if self.csitem else None,
         lambda self, v: None,
         bind=('csitem',))
-    i = AliasProperty(
-        lambda self: self.csitem.csbone.idx if self.csitem else None,
-        lambda self, v: None,
-        bind=('csitem',))
+    i = NumericProperty()
 
     def __init__(self, **kwargs):
         _ = lambda x: x
@@ -159,7 +156,9 @@ class CharSheetItem(BoxLayout):
         if not (self.item_class and self.item_kwargs):
             Clock.schedule_once(self.finalize, 0)
             return
-        self.spacer = Spacer(csitem=self)
+        self.spacer = Spacer(
+            csitem=self,
+            i=self.i)
         self.middle = BoxLayout()
         self.content = self.item_class(**self.item_kwargs)
         self.buttonbox = BoxLayout(
@@ -189,7 +188,9 @@ class CharSheetItem(BoxLayout):
                     arg=self.i,
                     size_hint_y=0.1))
         if self.i+1 == len(self.charsheet.csitems):
-            self.spacer2 = Spacer(csitem=self)
+            self.spacer2 = Spacer(
+                csitem=self,
+                i=self.i+1)
         for button in self.buttons:
             self.buttonbox.add_widget(button)
         self.middle.add_widget(self.content)
