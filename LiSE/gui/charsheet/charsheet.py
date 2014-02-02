@@ -613,9 +613,7 @@ tick.
         self.finalize()
 
     def add_item(self, i):
-        # I need the layout, proper
-        layout = self.parent.parent
-        layout.handle_adbut(self, i)
+        self.parent.handle_adbut(self, i)
 
     def _move_bone(self, i, n):
         myskel = self.character.closet.skeleton[

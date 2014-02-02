@@ -101,7 +101,7 @@ class Board(FloatLayout):
             unicode(self.facade.observer)][unicode(self.facade.observed)][
             unicode(self.host)]
         self.bone = bone
-        tex = self.host.closet.get_img('default_wallpaper').texture
+        tex = self.host.closet.get_img(bone.wallpaper).texture
         self.size = tex.size
         self.wallpaper = Image(
             texture=tex,
