@@ -15,6 +15,8 @@ from kivy.graphics import (
     InstructionGroup
 )
 from kivy.properties import (
+    AliasProperty,
+    ReferenceListProperty,
     ListProperty,
     DictProperty)
 from kivy.clock import Clock
@@ -66,10 +68,14 @@ class TextureStack(Widget):
             Clock.schedule_once(self.upd_texs, 0)
             return
         self.canvas.clear()
+        w = h = 0
         for tex in self.texs:
-            L = len(self.canvas.children)
             self.canvas.add(self.rectify(tex, self.x, self.y))
-            assert(len(self.canvas.children) == L + 1)
+            if tex.width > w:
+                w = tex.width
+            if tex.height > h:
+                h = tex.height
+        self.size = (w, h)
 
     def upd_pos(self, *args):
         for rect in self.texture_rectangles.itervalues():
