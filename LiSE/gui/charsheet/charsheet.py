@@ -748,7 +748,6 @@ tick.
 
     def repop(self, *args):
         self.clear_widgets()
-        self.i2wid = {}
         myskel = self.closet.skeleton[
             u'character_sheet_item_type'][unicode(self.character)]
         self.csitems = list(myskel.iterbones())
