@@ -58,25 +58,32 @@ class Board(FloatLayout):
     arrowdict = DictProperty({})
     arrowlayout = ObjectProperty()
     final = BooleanProperty()
+    bone = ObjectProperty()
 
+    def _set_arrow_width(self, w):
+        self.bone = self.bone._replace(arrow_width=w)
+        self._trigger_set_bone()
 
-    @property
-    def bone(self):
-        return self.facade.closet.skeleton[u"board"][
-            unicode(self.facade.observer)][
-            unicode(self.facade.observed)][
-            unicode(self.host)]
+    arrow_width = AliasProperty(
+        lambda self: self.bone.arrow_width,
+        _set_arrow_width,
+        bind=('bone',))
 
-    @property
-    def arrow_width(self):
-        return self.bone.arrow_width
+    def _set_arrowhead_size(self, v):
+        self.bone = self.bone._replace(arrowhead_size=v)
+        self._trigger_set_bone()
 
-    @property
-    def arrowhead_size(self):
-        return self.bone.arrowhead_size
+    arrowhead_size = AliasProperty(
+        lambda self: self.bone.arrowhead_size,
+        _set_arrowhead_size,
+        bind=('bone',))
+
+    def _set_bone(self, *args):
+        self.host.closet.set_bone(self.bone)
 
     def __init__(self, **kwargs):
         kwargs['size_hint'] = (None, None)
+        self._trigger_set_bone = Clock.create_trigger(self._set_bone)
         return super(Board, self).__init__(**kwargs)
 
     def finalize(self, *args):
@@ -90,9 +97,10 @@ class Board(FloatLayout):
         if not self.facade and self.host:
             Clock.schedule_once(self.finalize, 0)
             return
-        bone = self.bone
-        self.scroll_x = bone.x
-        self.scroll_y = bone.y
+        bone = self.host.closet.skeleton[u'board'][
+            unicode(self.facade.observer)][unicode(self.facade.observed)][
+            unicode(self.host)]
+        self.bone = bone
         tex = self.host.closet.get_img('default_wallpaper').texture
         self.size = tex.size
         self.wallpaper = Image(
@@ -188,15 +196,23 @@ class Board(FloatLayout):
 
 class BoardView(ScrollView):
     board = ObjectProperty()
+
+    def _set_scroll_x(self, x):
+        self.board.bone = self.board.bone._replace(x=x)
+        self.board._trigger_set_bone()
+
+    def _set_scroll_y(self, y):
+        self.board.bone = self.board.bone._replace(y=y)
+        self.board._trigger_set_bone()
+
     scroll_x = AliasProperty(
         lambda self: self.board.bone.x if self.board else 0,
-        lambda self, v: self.board.host.closet.set_bone(
-            self.board.bone._replace(x=v)),
+        _set_scroll_x,
         cache=False)
+
     scroll_y = AliasProperty(
         lambda self: self.board.bone.y if self.board else 0,
-        lambda self, v: self.board.host.closet.set_bone(
-            self.board.bone._replace(y=v)),
+        _set_scroll_y,
         cache=False)
 
     def on_touch_down(self, touch):
