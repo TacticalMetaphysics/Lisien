@@ -14,17 +14,7 @@ from LiSE.gui.kivybits import ClosetButton
 
 
 class Sizer(ClosetButton):
-    csitem = ObjectProperty()
-    charsheet = AliasProperty(
-        lambda self: self.csitem.charsheet,
-        lambda self, v: None,
-        bind=('csitem',))
-    i = NumericProperty()
-
-    def __init__(self, **kwargs):
-        kwargs['size_hint_y'] = None
-        kwargs['height'] = 30
-        super(Sizer, self).__init__(**kwargs)
+    spacer = ObjectProperty()
 
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
@@ -33,7 +23,7 @@ class Sizer(ClosetButton):
             touch.grab(self)
             self.prior_y = self.y
             self.state = 'down'
-            touch.ud['sizer_i'] = self.i
+            touch.ud['sizer_i'] = self.spacer.i
             return True
 
     def on_touch_move(self, touch):
@@ -53,6 +43,35 @@ class Sizer(ClosetButton):
         return True
 
 
+class Spacer(BoxLayout):
+    csitem = ObjectProperty()
+    charsheet = AliasProperty(
+        lambda self: self.csitem.charsheet,
+        lambda self, v: None,
+        bind=('csitem',))
+    i = NumericProperty()
+    sizer = ObjectProperty()
+    adder = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        _ = lambda x: x
+        kwargs['size_hint_y'] = None
+        kwargs['height'] = 30
+        kwargs['sizer'] = Sizer(
+            spacer=self,
+            size_hint_x=0.2)
+        kwargs['adder'] = ClosetButton(
+            closet=self.charsheet.character.closet,
+            symbolic=True,
+            stringname=_('@add'),
+            fun=self.charsheet.add_item,
+            arg=kwargs['i'],
+            size_hint_y=0.8)
+        super(Sizer, self).__init__(**kwargs)
+        self.add_widget(self.sizer)
+        self.add_widget(self.adder)
+
+
 class CharSheetItemButtonBox(BoxLayout):
     csitem = ObjectProperty()
 
@@ -60,7 +79,7 @@ class CharSheetItemButtonBox(BoxLayout):
 class CharSheetItem(BoxLayout):
     csbone = ObjectProperty()
     content = ObjectProperty()
-    sizer = ObjectProperty()
+    spacer = ObjectProperty()
     buttons = ListProperty()
     middle = ObjectProperty()
     item_class = ObjectProperty()
@@ -135,22 +154,46 @@ class CharSheetItem(BoxLayout):
         self.closet.set_bone(self.csbone)
 
     def finalize(self, *args):
+        _ = lambda x: x
         if not self.item_class and self.item_kwargs:
             Clock.schedule_once(self.finalize, 0)
             return
         self.middle = BoxLayout()
         self.content = self.item_class(**self.item_kwargs)
-        buttonbox = CharSheetItemButtonBox(
-            csitem=self,
+        buttonbox = BoxLayout(
+            orientation='vertical',
             size_hint_x=0.2)
-        self.buttons = buttonbox.children
+        self.buttons = [ClosetButton(
+            closet=self.closet,
+            symbolic=True,
+            stringname=_('@del'),
+            fun=self.charsheet.del_item,
+            arg=self.i)]
+        if self.i > 0:
+            self.buttons.insert(0, ClosetButton(
+                closet=self.closet,
+                symbolic=True,
+                stringname=_('@up'),
+                fun=self.charsheet.move_it_up,
+                arg=self.i,
+                size_hint_y=0.1))
+            if self.i+1 < len(self.charsheet.csitems):
+                self.buttons.append(ClosetButton(
+                    closet=self.closet,
+                    symbolic=True,
+                    stringname=_('@down'),
+                    fun=self.charsheet.move_it_down,
+                    arg=self.i,
+                    size_hint_y=0.1))
+        for button in self.buttons:
+            buttonbox.add_widget(button)
         self.middle.add_widget(self.content)
         self.middle.add_widget(buttonbox)
         if self.csbone.idx > 0:
-            self.sizer = Sizer(
+            self.spacer = Spacer(
                 csitem=self,
                 i=self.csbone.idx)
-            self.add_widget(self.sizer)
+            self.add_widget(self.spacer)
             self.sizer.bind(top=self.upd_height)
         self.add_widget(self.middle)
         self.bind(height=self.upd_height)

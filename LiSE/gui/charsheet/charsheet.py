@@ -594,6 +594,7 @@ tick.
     bones = AliasProperty(_get_bones, _set_bones)
 
     def __init__(self, **kwargs):
+        self._trigger_repop = Clock.create_trigger(self.repop)
         kwargs['size_hint'] = (1, None)
         super(CharSheet, self).__init__(**kwargs)
 
