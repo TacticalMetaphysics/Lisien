@@ -399,37 +399,6 @@
     height: 30
 <TableBody>:
     height: 20
-<CharSheetItemButtonBox>:
-    orientation: 'vertical'
-    ClosetButton:
-        id: 'up_button'
-        closet: root.csitem.closet
-        # need to put these glyphs into my own ttf
-        font_name: 'DejaVuSansMono-Bold.ttf'
-        font_size: 30
-        stringname: _('@up')
-        fun: root.csitem.charsheet.move_it_up
-        arg: root.csitem.i
-        size_hint_y: 0.1 if root.csitem.i > 0 else None
-        height: 0
-    ClosetButton:
-        id: 'del_button'
-        closet: root.csitem.closet
-        symbolic: True
-        stringname: '@del'
-        fun: root.csitem.charsheet.del_item
-        arg: root.csitem.i
-        size_hint_y: 0.6
-    ClosetButton:
-        id: 'down_button'
-        closet: root.csitem.closet
-        font_name: 'DejaVuSansMono-Bold.ttf'
-        font_size: 30
-        stringname: _('@down')
-        fun: root.csitem.charsheet.move_it_down
-        arg: root.csitem.i
-        size_hint_y: 0.1 if root.csitem.i < len(root.csitem.charsheet.csitems)-1 else None
-        height: 0
 <CharStatTableView>:
     CharStatTableContent:
         closet: root.character.closet
