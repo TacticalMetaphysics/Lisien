@@ -634,7 +634,7 @@ class Skeleton(MutableMapping):
     def __delitem__(self, k):
         """If ``self.content`` is a :type:`dict`, delete the key in the usual
         way. Otherwise, remove the key from ``self.ikeys``."""
-        v = self.content[k]
+        v = self[k]
         if isinstance(self.content, dict):
             del self.content[k]
         else:
@@ -890,7 +890,10 @@ other
     def itervalues(self):
         if isinstance(self.content, array):
             for i in self.ikeys:
-                yield self.bonetype._unpack_from(i, self.content)
+                try:
+                    yield self.bonetype._unpack_from(i, self.content)
+                except struct.error:
+                    return
         else:
             for v in super(Skeleton, self).itervalues():
                 yield v
