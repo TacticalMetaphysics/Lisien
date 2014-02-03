@@ -1,6 +1,7 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import (
     AliasProperty,
+    BooleanProperty,
     DictProperty,
     ListProperty,
     NumericProperty,
@@ -13,6 +14,9 @@ from kivy.logger import Logger
 from LiSE.gui.kivybits import ClosetButton
 
 
+made_spacer2 = False
+
+
 class Sizer(ClosetButton):
     spacer = ObjectProperty()
     csitem = AliasProperty(
@@ -23,32 +27,17 @@ class Sizer(ClosetButton):
         lambda self: self.spacer.csitem.item_kwargs['charsheet'],
         lambda self, v: None,
         bind=('spacer',))
+    grabbed = BooleanProperty()
 
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
-            touch.ud['charsheet'] = self.charsheet
-            touch.ud['sizer'] = self
-            touch.grab(self)
-            self.prior_y = self.y
-            self.state = 'down'
-            touch.ud['sizer_i'] = self.spacer.i
+            self.grabbed = True
+            touch.ud['spacer'] = self.parent
+            touch.grab(self.parent)
             return True
 
-    def on_touch_move(self, touch):
-        if 'sizer' not in touch.ud or touch.ud['sizer'] is not self:
-            touch.ungrab(self)
-            self.state = 'normal'
-            return
-        self.center_y = touch.y
-        return True
-
     def on_touch_up(self, touch):
-        if 'sizer' not in touch.ud or touch.ud['sizer'] is not self:
-            touch.ungrab(self)
-            self.state = 'normal'
-            return
-        self.state = 'normal'
-        return True
+        self.grabbed = False
 
 
 class Spacer(BoxLayout):
@@ -68,7 +57,6 @@ class Spacer(BoxLayout):
         self.sizer = Sizer(
             spacer=self,
             size_hint_x=0.2)
-        self.sizer.bind(y=self.setter('y'))
         self.adder = ClosetButton(
             closet=self.charsheet.character.closet,
             symbolic=True,
@@ -78,6 +66,11 @@ class Spacer(BoxLayout):
             size_hint_y=0.8)
         self.add_widget(self.sizer)
         self.add_widget(self.adder)
+
+    def on_touch_move(self, touch):
+        if self.sizer.grabbed:
+            self.center_y = touch.y
+            return True
 
 
 class CharSheetItemButtonBox(BoxLayout):
@@ -116,7 +109,6 @@ class CharSheetItem(BoxLayout):
 
     def __init__(self, **kwargs):
         self._trigger_set_bone = Clock.create_trigger(self.set_bone)
-        self._trigger_upd_height = Clock.create_trigger(self.upd_height)
         kwargs['orientation'] = 'vertical'
         kwargs['size_hint_y'] = None
         super(CharSheetItem, self).__init__(**kwargs)
@@ -126,30 +118,26 @@ class CharSheetItem(BoxLayout):
         if self.csbone:
             self.closet.set_bone(self.csbone)
 
-    def upd_height(self, *args):
-        h = self.csbone.height
-        t = self.top
-        b = self.y
-        s1t = self.spacer.top
-        s1h = self.spacer.height
-        s2b = self.spacer2.y if self.spacer2 else b
-        s2h = self.spacer2.height if self.spacer2 else 0
-        if s1t - s2b == h:
-            return
-        self.y = s2b
-        self.height = s1t - s2b
-        self.content.height = self.buttonbox.height = self.height - s1h - s2h
-        self.csbone = self.csbone._replace(height=self.height)
-        self._trigger_set_bone()
-
     def on_touch_move(self, touch):
         if not ('sizer_i' in touch.ud and touch.ud['sizer_i'] == self.i):
             return
         if 'wid_before' in touch.ud:
             return
         touch.ud['wid_after'] = self
-        if self.i > 0:
+        if self.i > 0 and self.spacer.on_touch_move(touch):
             touch.ud['wid_before'] = self.charsheet.i2wid[self.i-1]
+            if touch.ud['wid_before'].y != self.spacer.top:
+                btop = touch.ud['wid_before'].top
+                bbot = self.spacer.top
+                touch.ud['wid_before'].y = bbot
+                touch.ud['wid_before'].height = btop - bbot
+        if self.spacer2 and self.spacer2.on_touch_move(touch):
+            assert(self.i == max(self.charsheet.i2wid.keys()))
+            if self.y != self.spacer2.y:
+                atop = self.top
+                abot = self.spacer2.y
+                self.y = abot
+                self.height = atop - abot
 
     def finalize(self, *args):
         _ = lambda x: x
@@ -188,6 +176,9 @@ class CharSheetItem(BoxLayout):
                     arg=self.i,
                     size_hint_y=0.1))
         if self.i+1 == len(self.charsheet.csitems):
+            global made_spacer2
+            assert(not made_spacer2)
+            made_spacer2 = True
             self.spacer2 = Spacer(
                 csitem=self,
                 i=self.i+1)
@@ -205,8 +196,6 @@ class CharSheetItem(BoxLayout):
         self.content.height = self.buttonbox.height = (
             self.height - s1h - s2h)
         self.spacer.top = self.top
-        self.spacer.bind(y=self.upd_height)
         if self.spacer2:
             self.spacer2.y = self.y
-            self.spacer2.bind(y=self._trigger_upd_height)
         self.charsheet.i2wid[self.i] = self
