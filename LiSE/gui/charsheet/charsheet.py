@@ -641,8 +641,13 @@ tick.
         bone = uberskel[i]
         del uberskel[i]
         for tab in csitem_type_table_d[bone.type]:
-            del self.character.closet.skeleton[tab][
-                unicode(self.character)][i]
+            unterskel = self.character.closet.skeleton[tab][
+                unicode(self.character)]
+            del unterskel[i]
+            for j in range(i+1, len(self.csitems)):
+                replacebone = unterskel[j].replace(idx=j-1)
+                del unterskel[j]
+                self.character.closet.set_bone(replacebone)
         self._trigger_repop()
 
     def finalize(self, *args):
@@ -751,6 +756,18 @@ tick.
         myskel = self.closet.skeleton[
             u'character_sheet_item_type'][unicode(self.character)]
         self.csitems = list(myskel.iterbones())
+        if len(self.csitems) == 0:
+            _ = lambda x: x
+            self._add_widget_later(ClosetButton(
+                closet=self.character.closet,
+                symbolic=True,
+                stringname=_("@add"),
+                fun=self.add_item,
+                arg=0,
+                size_hint_y=None,
+                height=50,
+                top=self.top))
+            return
         self.adapter = ListAdapter(
             data=self.csitems + [None],
             args_converter=self.args_converter,
