@@ -9,7 +9,9 @@ from kivy.properties import (
     NumericProperty,
     ObjectProperty,
     StringProperty,
-    ReferenceListProperty)
+    ReferenceListProperty,
+    OptionProperty
+)
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.stencilview import StencilView
@@ -25,7 +27,6 @@ from LiSE.util import (
     PLACE_CAL,
     PORTAL_CAL,
     CHAR_CAL)
-from LiSE.gui.kivybits import EnumProperty
 
 
 class Cell(Label):
@@ -106,7 +107,7 @@ class Calendar(Layout):
     once. Each represents a branch of the timestream."""
     boneatt = StringProperty()
     """What attribute of its bone each cell should display for its text"""
-    cal_type = EnumProperty(permitted=CALENDAR_TYPES)
+    cal_type = OptionProperty(THING_CAL, options=CALENDAR_TYPES)
     """Integer to indicate where in the skeleton to look up the bones for
     the cells"""
     col_width = BoundedNumericProperty(100, min=50)
@@ -337,6 +338,11 @@ class Calendar(Layout):
                 self.col_width + self.spacing_x) * branch
             branch_col.width = self.col_width
             branch_col.clear_widgets()
+            # I won't show anything prior to mintick, so fill up the
+            # space prior to mintick with nothingness.
+            branch_col.add_widget(Widget(
+                size_hint_y=None,
+                height=self.tick_height*self.mintick))
             final = None
             for tick in sorted(self.branches_cells[branch].keys()):
                 cell = self.branches_cells[branch][tick]

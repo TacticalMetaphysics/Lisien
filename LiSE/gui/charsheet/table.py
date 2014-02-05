@@ -14,10 +14,13 @@ from kivy.clock import Clock
 
 
 class TableCell(Label):
+    """Basically just a Label that may be conveniently rewritten with a
+    callback."""
     text_getter = ObjectProperty()
 
     def __init__(self, **kwargs):
         kwargs['size_hint_y'] = None
+        self._trigger_upd_text = Clock.create_trigger(self.upd_text)
         super(TableCell, self).__init__(**kwargs)
 
     def upd_text(self, *args):
@@ -25,14 +28,18 @@ class TableCell(Label):
 
 
 class TableHeader(TableCell):
+    """TableCell to put at the top of the table"""
     pass
 
 
 class TableBody(TableCell):
+    """TableCell to put in the rows of the table"""
     pass
 
 
 class TableRow(BoxLayout):
+    """Assembles appropriate TableBody for the fieldnames and statnames
+    for the item"""
     item = ObjectProperty()
     tableview = ObjectProperty()
     closet = ObjectProperty()
@@ -47,18 +54,19 @@ class TableRow(BoxLayout):
         for fieldname in self.fieldnames:
             bwid = TableBody(
                 text_getter=lambda: unicode(getattr(self.item, fieldname)))
-            self.closet.register_time_listener(bwid.upd_text)
+            self.closet.register_time_listener(bwid._trigger_upd_text)
             self.add_widget(bwid)
             bwid.upd_text()
         for statname in self.statnames:
             bwid = TableBody(
                 text_getter=lambda: unicode(self.item.get_stat(statname)))
-            self.closet.register_time_listener(bwid.upd_text)
+            self.closet.register_time_listener(bwid._trigger_upd_text)
             self.add_widget(bwid)
             bwid.upd_text()
 
 
 class TableContent(StackLayout):
+    """Contains a ListView to assemble the table."""
     closet = ObjectProperty()
     adapter = ObjectProperty()
     listview = ObjectProperty()
@@ -91,6 +99,8 @@ class TableContent(StackLayout):
         return {
             'item': arg,
             'tableview': self.parent}
+
+# TODO unify TableView and TableContent
 
 
 class TableView(StencilView):
