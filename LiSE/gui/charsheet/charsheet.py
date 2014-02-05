@@ -6,21 +6,11 @@ collections of simulated entities and facts.
 
 """
 from calendar import CalendarView
-from table import (
-    TableView,
-)
-from item import CharSheetItem
-from LiSE.gui.kivybits import (
-    SaveableWidgetMetaclass,
-    ClosetButton)
-from kivy.uix.togglebutton import ToggleButton
-from kivy.uix.widget import Widget
-from kivy.uix.modalview import ModalView
-from kivy.uix.stacklayout import StackLayout
-from kivy.uix.scrollview import ScrollView
+from collections import defaultdict
+
 from kivy.adapters.listadapter import ListAdapter
 from kivy.adapters.models import SelectableDataItem
-from kivy.uix.listview import ListView, SelectableView
+from kivy.clock import Clock
 from kivy.properties import (
     DictProperty,
     NumericProperty,
@@ -28,8 +18,20 @@ from kivy.properties import (
     OptionProperty,
     AliasProperty,
     ListProperty,
-    ObjectProperty)
-from kivy.clock import Clock
+    ReferenceListProperty,
+    ObjectProperty
+)
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.listview import ListView, SelectableView
+from kivy.uix.modalview import ModalView
+from kivy.uix.stacklayout import StackLayout
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.widget import Widget
+
+from LiSE.gui.kivybits import (
+    SaveableWidgetMetaclass,
+    ClosetButton
+)
 from LiSE.util import (
     THING_TAB,
     PLACE_TAB,
@@ -40,10 +42,9 @@ from LiSE.util import (
     PORTAL_CAL,
     CHAR_CAL,
     SHEET_ITEM_TYPES,
-    CALENDAR_TYPES)
-
-
-from collections import defaultdict
+    CALENDAR_TYPES
+)
+from table import TableView
 
 
 csitem_type_table_d = defaultdict(set)
@@ -51,105 +52,117 @@ csitem_type_table_d[CHAR_CAL].add(u"char_cal")
 
 
 class ListItemToggle(SelectableView, ToggleButton):
+    """ToggleButton workalike for a ListView."""
     noun = ObjectProperty(allownone=True)
 
 
 class CharListAdapter(ListAdapter):
+    """Abstract class for ListAdapters that are views onto Characters."""
     character = ObjectProperty()
+    """The character I am about."""
 
     def __init__(self, **kwargs):
+        """Make a trigger for self.redata."""
+        self._trigger_redata = Clock.create_trigger(self.redata)
         super(CharListAdapter, self).__init__(**kwargs)
-        self.trigger_redata = Clock.create_trigger(self.redata)
 
     def on_character(self, *args):
-        self.trigger_redata()
-
-
-def args_converter(idx, item):
-    return {
-        'noun': item.noun,
-        'text': unicode(item.noun),
-        'size_hint_y': None,
-        'height': 25}
+        """Trigger self.redata"""
+        self._trigger_redata()
 
 
 class NounItem(SelectableDataItem):
     def __init__(self, noun, **kwargs):
+        """Remember the noun. Start unselected."""
         super(NounItem, self).__init__(**kwargs)
         self.noun = noun
         self.is_selected = False
 
 
 class NounListView(StackLayout):
+    """Container for a ListView that offers a selection of nouns."""
     charsheet = ObjectProperty()
-    selection_mode = OptionProperty('multiple',
-                                    options=['none', 'single', 'multiple'])
+    """The charsheet I am in."""
+    selection_mode = OptionProperty(
+        'multiple', options=['none', 'single', 'multiple'])
+    """To be passed to the internal ListView."""
     selection = ListProperty([])
+    """Nouns selected here."""
     allow_empty_selection = BooleanProperty(False)
-    finalized = BooleanProperty(False)
+    """To be passed to the internal ListView."""
 
     def __init__(self, **kwargs):
+        """Call self.finalize() ASAP."""
         super(NounListView, self).__init__(**kwargs)
         self.finalize()
 
     def finalize(self, *args):
+        """Put together a ListView out of the nouns I get from self.getiter"""
         if self.charsheet is None:
             Clock.schedule_once(self.finalize, 0)
             return
-        if self.finalized:
-            raise Exception("It seems the charsheet has been set twice")
-        else:
-            nouniter = self.getiter(self.charsheet.character)
-            adapter = ListAdapter(
-                data=[NounItem(noun) for noun in nouniter],
-                selection_mode=self.selection_mode,
-                args_converter=args_converter,
-                allow_empty_selection=self.allow_empty_selection,
-                cls=ListItemToggle)
-            adapter.bind(selection=self.setter('selection'))
-            listview = ListView(adapter=adapter)
-            self.add_widget(listview)
-            self.finalized = True
+        nouniter = self.getiter(self.charsheet.character)
+        adapter = ListAdapter(
+            data=[NounItem(noun) for noun in nouniter],
+            selection_mode=self.selection_mode,
+            args_converter=lambda k, v: {
+                'noun': v.noun,
+                'text': unicode(v.noun),
+                'size_hint_y': None,
+                'height': 25},
+            allow_empty_selection=self.allow_empty_selection,
+            cls=ListItemToggle)
+        adapter.bind(selection=self.setter('selection'))
+        listview = ListView(adapter=adapter)
+        self.add_widget(listview)
+        self.finalized = True
 
 
 class ThingListView(NounListView):
+    """NounListView for Things"""
     @staticmethod
-    def getiter(character):
-        (branch, tick) = character.sanetime()
-        return character.iter_things(branch, tick)
+    def getiter(character, branch=None, tick=None):
+        return character.iter_things(*character.sanetime(branch, tick))
 
 
 class PlaceListView(NounListView):
+    """NounListView for Places"""
     @staticmethod
-    def getiter(character):
+    def getiter(character, branch=None, tick=None):
         return character.iter_places()
 
 
 class PortalListView(NounListView):
+    """NounListView for Portals"""
     @staticmethod
-    def getiter(character):
-        (branch, tick) = character.sanetime()
-        return character.iter_portals(branch, tick)
+    def getiter(character, branch=None, tick=None):
+        return character.iter_portals(*character.sanetime(branch, tick))
 
 
 class StatItem(SelectableDataItem):
+    """SelectableDataItem for Stats"""
     def __init__(self, name, **kwargs):
         super(StatItem, self).__init__(**kwargs)
         self.name = name
 
 
 class SpecialItem(SelectableDataItem):
+    """SelectableDataItem for something unusual, like location"""
     def __init__(self, name, **kwargs):
         super(SpecialItem, self).__init__(**kwargs)
         self.name = name
 
 
-class NounStatListView(StackLayout):
+class NounStatListView(Widget):
+    """Container for a ListView that shows selectable stats had by nouns
+    (eg. places, portals, things).
+
+    """
     specialitems = ListProperty([])
     nounitems = ListProperty()
     selection = ListProperty([])
-    selection_mode = OptionProperty('multiple',
-                                    options=['none', 'single', 'multiple'])
+    selection_mode = OptionProperty(
+        'multiple', options=['none', 'single', 'multiple'])
     allow_empty_selection = BooleanProperty(False)
     finalized = BooleanProperty(False)
 
@@ -187,11 +200,12 @@ class NounStatListView(StackLayout):
 
 
 class StatListView(Widget):
+    """Container for a ListView for stats"""
     charsheet = ObjectProperty()
     selection = ListProperty([])
     specialitems = ListProperty([])
-    selection_mode = OptionProperty('single',
-                                    options=['none', 'single', 'multiple'])
+    selection_mode = OptionProperty(
+        'single', options=['none', 'single', 'multiple'])
     allow_empty_selection = BooleanProperty(False)
 
     def __init__(self, **kwargs):
@@ -222,6 +236,7 @@ class StatListView(Widget):
 
 
 class CharSheetAdder(ModalView):
+    """A dialog in which you pick something to add to the CharSheet."""
     charsheet = ObjectProperty()
     character = AliasProperty(
         lambda self: self.charsheet.character,
@@ -410,6 +425,12 @@ class CharSheetAdder(ModalView):
 
 def char_sheet_table_def(
         table_name, final_pkey, typ, foreign_key=(None, None)):
+    """Generate a tuple to describe one of CharSheet's database tables.
+
+    The form of the tuple is that used by
+    LiSE.orm.SaveableMetaclass
+
+    """
     csitem_type_table_d[typ].add(table_name)
     r = (
         table_name,
@@ -434,6 +455,12 @@ def char_sheet_table_def(
 
 def char_sheet_calendar_def(
         table_name, col_x, typ, foreign_key=(None, None)):
+    """Generate a tuple to describe one of the database tables that the
+    Calendar widget uses.
+
+    The form of the tuple is that used by LiSE.orm.SaveableMetaclass
+
+    """
     csitem_type_table_d[typ].add(table_name)
     r = (
         table_name,
@@ -457,15 +484,137 @@ def char_sheet_calendar_def(
     return r
 
 
+class CharSheetItem(BoxLayout):
+    """Container for either a Calendar or a Table.
+
+    In either case, it has some buttons on the right for deleting it
+    or moving it up or down, and some buttons on the bottom for adding
+    a new one below or resizing.
+
+    """
+    csbone = ObjectProperty()
+    content = ObjectProperty()
+    sizer = ObjectProperty(None, allownone=True)
+    adder = ObjectProperty(None, allownone=True)
+    asbox = ObjectProperty(None, allownone=True)
+    buttons = ListProperty()
+    middle = ObjectProperty()
+    item_class = ObjectProperty()
+    item_kwargs = DictProperty()
+    widspec = ReferenceListProperty(item_class, item_kwargs)
+    charsheet = AliasProperty(
+        lambda self: self.item_kwargs['charsheet']
+        if self.item_kwargs else None,
+        lambda self, v: None,
+        bind=('item_kwargs',))
+    closet = AliasProperty(
+        lambda self: self.item_kwargs['charsheet'].character.closet
+        if self.item_kwargs else None,
+        lambda self, v: None,
+        bind=('item_kwargs',))
+    mybone = AliasProperty(
+        lambda self: self.item_kwargs['mybone']
+        if self.item_kwargs and 'mybone' in self.item_kwargs
+        else None,
+        lambda self, v: None,
+        bind=('item_kwargs',))
+    i = AliasProperty(
+        lambda self: self.csbone.idx if self.csbone else -1,
+        lambda self, v: None,
+        bind=('csbone',))
+
+    def __init__(self, **kwargs):
+        self._trigger_set_bone = Clock.create_trigger(self.set_bone)
+        kwargs['orientation'] = 'vertical'
+        kwargs['size_hint_y'] = None
+        super(CharSheetItem, self).__init__(**kwargs)
+        self.finalize()
+
+    def on_touch_down(self, touch):
+        if self.sizer.collide_point(*touch.pos):
+            touch.ud['sizer'] = self.sizer
+            return True
+        return super(CharSheetItem, self).on_touch_down(touch)
+
+    def on_touch_move(self, touch):
+        if not ('sizer' in touch.ud and touch.ud['sizer'] is self.sizer):
+            return
+        touch.push()
+        b = touch.y - self.sizer.height / 2
+        h = self.top - b
+        self.y = b
+        self.height = h
+        touch.pop()
+
+    def set_bone(self, *args):
+        if self.csbone:
+            self.closet.set_bone(self.csbone)
+
+    def finalize(self, *args):
+        _ = lambda x: x
+        if not (self.item_class and self.item_kwargs):
+            Clock.schedule_once(self.finalize, 0)
+            return
+        self.middle = BoxLayout()
+        self.content = self.item_class(**self.item_kwargs)
+        self.buttonbox = BoxLayout(
+            orientation='vertical',
+            size_hint_x=0.2)
+        self.buttons = [ClosetButton(
+            closet=self.closet,
+            symbolic=True,
+            stringname=_('@del'),
+            fun=self.charsheet.del_item,
+            arg=self.i)]
+        if self.i > 0:
+            self.buttons.insert(0, ClosetButton(
+                closet=self.closet,
+                symbolic=True,
+                stringname=_('@up'),
+                fun=self.charsheet.move_it_up,
+                arg=self.i,
+                size_hint_y=0.1))
+            if self.i+1 < len(self.charsheet.csitems):
+                self.buttons.append(ClosetButton(
+                    closet=self.closet,
+                    symbolic=True,
+                    stringname=_('@down'),
+                    fun=self.charsheet.move_it_down,
+                    arg=self.i,
+                    size_hint_y=0.1))
+        for button in self.buttons:
+            self.buttonbox.add_widget(button)
+        self.middle.add_widget(self.content)
+        self.middle.add_widget(self.buttonbox)
+        self.add_widget(self.middle)
+        self.sizer = ClosetButton(
+            closet=self.charsheet.character.closet,
+            symbolic=True,
+            stringname=_('@ud'),
+            size_hint_x=0.2)
+        self.adder = ClosetButton(
+            closet=self.charsheet.character.closet,
+            symbolic=True,
+            stringname=_('@add'),
+            fun=self.charsheet.add_item,
+            arg=self.i+1,
+            size_hint_x=0.8)
+        self.asbox = BoxLayout(
+            size_hint_y=None,
+            height=40)
+        self.asbox.add_widget(self.sizer)
+        self.asbox.add_widget(self.adder)
+        self.add_widget(self.asbox)
+        self.height = self.csbone.height
+        self.content.height = self.buttonbox.height = (
+            self.height - self.asbox.height)
+        self.charsheet.i2wid[self.i] = self
+
+
 class CharSheet(StackLayout):
     """A display of some or all of the information making up a Character.
 
-A CharSheet is a layout of vertically stacked widgets that are not
-usable outside of a CharSheet. Those widgets are instances or
-subclasses of Table, Calendar, or Image. In developer mode, each
-widget has a toggle next to it that will enable editing the data
-therein. The new data will be applied at the current branch and
-tick.
+    CharSheet contains a ListView of CharSheetItems.
 
     """
     __metaclass__ = SaveableWidgetMetaclass
@@ -551,6 +700,7 @@ tick.
     csitems = ListProperty()
     """Bones from character_sheet_item_type"""
     i2wid = DictProperty()
+    """Map indices to widgets in my ListView."""
     adapter = ObjectProperty()
     """Turn character_sheet_item_type bones into BoxLayouts that contain
     the widget to display, along with a few buttons to manipulate it."""

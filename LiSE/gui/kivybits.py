@@ -17,22 +17,6 @@ from kivy.clock import Clock
 from LiSE.orm import SaveableMetaclass
 
 
-class EnumProperty(ObjectProperty):
-    """Basically just ObjectProperty but restricted to certain
-    predetermined objects."""
-    def __init__(self, *args, **kwargs):
-        if 'permitted' in kwargs:
-            self.permitted = kwargs['permitted']
-        else:
-            raise TypeError('Need at least one permitted value')
-        super(EnumProperty, self).__init__(*args, **kwargs)
-
-    def set(self, obj, value):
-        if value not in self.permitted:
-            raise ValueError('Value not permitted')
-        return super(EnumProperty, self).set(obj, value)
-
-
 class ClosetLabel(Label):
     """Mix-in class for various text-having widget classes, to make their
     text match some named string from the closet."""
