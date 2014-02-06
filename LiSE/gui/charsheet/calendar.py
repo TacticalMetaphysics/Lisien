@@ -27,27 +27,12 @@ from LiSE.util import (
     PLACE_CAL,
     PORTAL_CAL,
     CHAR_CAL)
+from LiSE.gui.kivybits import ClosetLabel
 
 
 class Cell(Label):
-    """A box to represent an event on the calendar.
-
-    It needs a branch, tick_from, tick_to, text, and a calendar to belong
-    to.
-
-    """
-    bg_color = ListProperty()
-    bone = ObjectProperty()
-    branch = NumericProperty()
-    calendar = ObjectProperty()
-    tick_from = NumericProperty()
-    tick_to = NumericProperty(None, allownone=True)
-
-    def __init__(self, **kwargs):
-        """Not sure why, but setting size_hint_y: None in lise.kv had no
-        effect."""
-        kwargs['size_hint_y'] = None
-        super(Cell, self).__init__(**kwargs)
+    closet = ObjectProperty()
+    stringname = StringProperty()
 
 
 class Timeline(Widget):
@@ -87,6 +72,93 @@ class Timeline(Widget):
             self.x, self.y+8, self.x+16, self.y, self.x, self.y-8]
 
 
+class Column(StackLayout):
+    view = ObjectProperty()
+    adapter = ObjectProperty()
+    calendar = ObjectProperty()
+    branch = NumericProperty()
+    data = ListProperty()
+    firsttick = NumericProperty()
+    lasttick = NumericProperty()
+    closet = AliasProperty(
+        lambda self: self.calendar.charsheet.character.closet,
+        lambda self, v: None,
+        bind=('calendar',))
+    skel = AliasProperty(
+        lambda self: self.calendar.skel[self.branch],
+        lambda self, v: None,
+        bind=('calendar',))
+    boneatt = AliasProperty(
+        lambda self: self.calendar.boneatt,
+        lambda self, v: None,
+        bind=('calendar',))
+    tick_height = AliasProperty(
+        lambda self: self.calendar.tick_height,
+        lambda self, v: None,
+        bind=('calendar',))
+    mintick = AliasProperty(
+        lambda self: self.calendar.mintick,
+        lambda self, v: None,
+        bind=('calendar',))
+    maxtick = AliasProperty(
+        lambda self: self.calendar.maxtick,
+        lambda self, v: None,
+        bind=('calendar',))
+
+    def __init__(self, **kwargs):
+        self._trigger_redata = Clock.create_trigger(self.redata)
+        self._trigger_x = Clock.create_trigger(self.re_x)
+        super(Column, self).__init__(**kwargs)
+        self.skel.unregister_set_listener(self._trigger_redata)
+        self.skel.unregister_del_listener(self._trigger_redata)
+        self.skel.register_set_listener(self._trigger_redata)
+        self.skel.register_del_listener(self._trigger_redata)
+        self.redata()
+
+    def re_x(self, *args):
+        self.x = (self.calendar.col_width +
+                  self.calendar.spacing_x) * self.branch
+
+    def args_converter(self, idx, bone):
+        try:
+            bone2 = self.data[idx+1]
+            return {
+                'closet': self.closet,
+                'size_hint_y': None,
+                'height': (bone2.tick - bone.tick) * self.tick_height,
+                'top': self.top - (bone.tick * self.tick_height),
+                'stringname': getattr(bone, self.boneatt)}
+        except IndexError:
+            return {
+                'closet': self.closet,
+                'size_hint_y': None,
+                'height': (max(self.calendar.view.hi_tick,
+                               self.height / self.tick_height) -
+                           bone.tick) * self.tick_height,
+                'top': self.top - (bone.tick * self.tick_height),
+                'stringname': getattr(bone, self.boneatt)}
+
+    def gen_cells(self):
+        i = 0
+        firsttick = -1
+        lasttick = -1
+        for bone in self.data:
+            if self.mintick <= bone.tick <= self.maxtick:
+                if firsttick == -1:
+                    self.firsttick = bone.tick
+                lasttick = bone.tick
+                yield Cell(**self.args_converter(i, bone))
+            i += 1
+        self.firsttick = firsttick
+        self.lasttick = lasttick
+
+    def redata(self, *args):
+        self.data = list(self.skel.iterbones())
+        self.clear_widgets()
+        for cell in self.gen_cells():
+            self.add_widget(cell)
+
+
 class Calendar(Layout):
     """A gridlike layout of cells representing events throughout every
     branch of the timestream.
@@ -112,6 +184,7 @@ class Calendar(Layout):
     the cells"""
     col_width = BoundedNumericProperty(100, min=50)
     """How wide a column of the calendar should be"""
+    col_height = NumericProperty()
     key = StringProperty()
     """The *most specific* element of the partial key identifying the
     records of the calendar's referent, not including the branch and
@@ -148,77 +221,42 @@ class Calendar(Layout):
     """The topmost tick I show"""
     time = ReferenceListProperty(branch, tick)
     """[branch, tick]"""
-    branches_cells = DictProperty()
-    """Where I keep my cells when it's inconvenient for them to be my
-    children."""
-    branches_cols = DictProperty()
-    """Where I keep my columns when it's inconvenient for them to be my
-    children."""
     referent = ObjectProperty()
     """The sim-object I am about"""
     skel = ObjectProperty()
     """That portion of the grand skeleton I am concerned with"""
-    """Position of the timeline"""
-    charsheet = ObjectProperty()
+    view = ObjectProperty()
+    cal_type = AliasProperty(
+        lambda self: self.view.mybone.type,
+        lambda self, v: None,
+        bind=('view',))
+    charsheet = AliasProperty(
+        lambda self: self.view.charsheet,
+        lambda self, v: None,
+        bind=('view',))
     """Character sheet I'm in"""
     character = AliasProperty(
-        lambda self: self.charsheet.character
+        lambda self: self.view.charsheet.character
         if self.charsheet else None,
         lambda self, v: None,
-        bind=('charsheet',))
+        bind=('view',))
     """Conveniently reach the character"""
     closet = AliasProperty(
-        lambda self: self.charsheet.character.closet
+        lambda self: self.view.charsheet.character.closet
         if self.charsheet else None,
         lambda self, v: None,
-        bind=('charsheet',))
+        bind=('view',))
     """Conveniently reach the closet"""
-    closetbranch = BoundedNumericProperty(0, min=0)
-    """Current branch as a Kivy property"""
-    closettick = BoundedNumericProperty(0, min=0)
-    """Current tick as a Kivy property"""
-    closettime = ReferenceListProperty(closetbranch, closettick)
-    """Current (branch, tick) as a Kivy property"""
-    ticks_tall = AliasProperty(
-        lambda self: self.charsheet.character.closet.timestream.hi_tick
-        if self.charsheet else None,
-        lambda self, v: None,
-        bind=('charsheet',))
+    branches_cols = DictProperty()
     """How many ticks fit in me at once"""
     minbranch = NumericProperty()
-    """The lowest branch I have, which may be lower than the lowest branch
-    I show.
-
-    """
     maxbranch = NumericProperty()
-    """The highest branch I have, which may be higher than the highest
-    branch I show.
-
-    """
     mintick = NumericProperty()
-    """The lowest tick I have, which may be lower than the lowest tick I
-    show.
-
-    """
     maxtick = NumericProperty()
-    """The highest tick I have, which may be higher than the highest tick
-    I show.
-
-    """
 
     def __init__(self, **kwargs):
-        """Make triggers for remake, retime, and timely_layout methods, then
-        call self.finalize()
-
-        """
+        self._trigger_redata = Clock.create_trigger(self.redata)
         super(Calendar, self).__init__(**kwargs)
-        self._trigger_remake = Clock.create_trigger(self.remake)
-        self.bind(branch=self._trigger_layout,
-                  tick=self._trigger_layout)
-        self.closet.register_time_listener(self.upd_closettime)
-
-    def upd_closettime(self, b, t):
-        self.closettime = [b, t]
 
     def finalize(self, *args):
         """Collect my referent--the object I am about--and my skel--the
@@ -228,6 +266,7 @@ class Calendar(Layout):
 
         """
         if not (self.character and self.key and self.stat):
+            Logger.debug("Calendar: Not finalizing just yet")
             Clock.schedule_once(self.finalize, 0)
             return
 
@@ -267,102 +306,52 @@ class Calendar(Layout):
             Logger.debug('Unknown cal_type, finalize later')
             Clock.schedule_once(self.finalize, 0)
             return
+        self.redata()
 
-        self.skel.register_set_listener(self._trigger_remake)
-        self.skel.register_del_listener(self._trigger_remake)
-        self._trigger_remake()
-
-    def remake(self, *args):
-        """Get rid of my current widgets and make new ones."""
-        self.refresh()
-        self._trigger_layout()
-
-    def refresh(self):
-        """Generate cells that are missing. Remove cells that cannot be
-        seen."""
-        self.clear_widgets()
-        for branch in xrange(self.minbranch, self.maxbranch):
+    def redata(self, *args):
+        for branch in xrange(0, self.closet.timestream.hi_branch+1):
             if branch not in self.skel:
-                continue
-            if branch not in self.branches_cells:
-                self.branches_cells[branch] = {}
-            boneiter = self.skel[branch].iterbones()
-            prev = next(boneiter)
-            i = 0
-            for bone in boneiter:
-                if bone.tick > self.maxtick:
-                    break
-                elif (
-                        branch in self.branches_cells and
-                        prev.tick in self.branches_cells[branch] and
-                        bone == self.branches_cells[branch][prev.tick]):
+                if branch in self.branches_cols:
+                    self.remove_widget(self.branches_cols[branch])
+                    del self.branches_cols[branch]
                     continue
-                elif (
-                        prev.tick < self.maxtick and
-                        bone.tick > self.mintick):
-                    cell = Cell(
-                        calendar=self,
-                        branch=branch,
-                        text=getattr(prev, self.boneatt),
-                        tick_from=prev.tick,
-                        tick_to=bone.tick,
-                        bone=bone)
-                    self.branches_cells[branch][prev.tick] = cell
-                prev = bone
-                i += 1
-            # The last cell is infinitely long
-            if prev.tick < self.maxtick:
-                cell = Cell(
+            elif branch not in self.branches_cols.keys():
+                col = Column(
                     calendar=self,
                     branch=branch,
-                    text=getattr(prev, self.boneatt),
-                    tick_from=prev.tick,
-                    tick_to=None,
-                    bg_color=[1, 0, 0, 1])
-                self.branches_cells[branch][prev.tick] = cell
+                    size_hint=(None, 1),
+                    width=self.col_width,
+                    x=(self.col_width + self.spacing_x) * branch,
+                    top=self.top)
+                self.branches_cols[branch] = col
+                self.bind(x=col._trigger_x,
+                          top=col.setter('top'))
+            try:
+                if (
+                        self.skel[branch].key_or_key_before(self.mintick)
+                        != self.branches_cols[branch].firsttick):
+                    self.branches_cols[branch]._trigger_redata()
+            except ValueError:
+                pass
+            try:
+                if (
+                        self.skel[branch].key_or_key_after(self.maxtick)
+                        != self.branches_cols[branch].lasttick):
+                    self.branches_cols[branch]._trigger_redata()
+            except ValueError:
+                pass
+            self.add_widget(self.branches_cols[branch])
 
     def do_layout(self, *args):
-        """Reposition all my cells so that they are in the column for their
-        branch, start and end at the right place for their tick, and are
-        offset by whatever amounts I'm scrolled."""
-        colheight = max(self.tick_height * self.ticks_tall, 100)
-        for branch in xrange(self.minbranch, self.maxbranch):
-            if branch not in self.branches_cells:
-                return
-            if branch not in self.branches_cols:
-                self.branches_cols[branch] = StackLayout()
-            branch_col = self.branches_cols[branch]
-            branch_col.height = colheight
-            branch_col.top = self.top
-            branch_col.x = self.x + (
-                self.col_width + self.spacing_x) * branch
-            branch_col.width = self.col_width
-            branch_col.clear_widgets()
-            # I won't show anything prior to mintick, so fill up the
-            # space prior to mintick with nothingness.
-            branch_col.add_widget(Widget(
-                size_hint_y=None,
-                height=self.tick_height*self.mintick))
-            final = None
-            for tick in sorted(self.branches_cells[branch].keys()):
-                cell = self.branches_cells[branch][tick]
-                cell.width = self.col_width
-                if cell.tick_to is None:
-                    final = cell
-                    break
-                cell.height = (
-                    cell.tick_to - cell.tick_from
-                ) * self.tick_height - self.spacing_y
-                branch_col.add_widget(cell)
-                branch_col.add_widget(
-                    Widget(size_hint_y=None, height=self.spacing_y))
-            if final is not None:
-                final.width = self.col_width
-                final.height = max(100, (
-                    self.ticks_tall - final.tick_from) * self.tick_height)
-                branch_col.add_widget(final)
-            if branch_col not in self.children:
-                self.add_widget(branch_col)
+        for child in self.children:
+            x = self.x + (self.col_width + self.spacing_x) * child.branch
+            if x != child.x:
+                child.x = x
+            if child.width != self.col_width:
+                child.width = self.col_width
+            if child.top != self.top:
+                child.top = self.top
+        super(Calendar, self).do_layout(*args)
 
 
 class CalendarView(StencilView):
@@ -378,20 +367,34 @@ class CalendarView(StencilView):
     """
     charsheet = ObjectProperty()
     """Character sheet I'm in"""
+    mybone = ObjectProperty()
+    closet = AliasProperty(
+        lambda self: self.charsheet.character.closet,
+        lambda self, v: None,
+        bind=('charsheet',))
+    branch = NumericProperty()
+    hi_branch = NumericProperty()
+    tick = NumericProperty()
+    hi_tick = NumericProperty()
+    time = ReferenceListProperty(branch, tick)
+    hi_time = ReferenceListProperty(hi_branch, hi_tick)
     _touch = ObjectProperty(None, allownone=True)
     """For when I've been grabbed and should handle scrolling"""
 
-    @property
-    def closet(self):
-        return self.charsheet.character.closet
-
     def __init__(self, **kwargs):
         """Construct the calendar and the timeline atop it."""
-        super(CalendarView, self).__init__(**kwargs)
-        self.calendar = Calendar(**kwargs)
-        self.clayout = RelativeLayout(top=self.top, x=self.x)
-        self.closet.timestream.hi_time_listeners.append(
+        self._trigger_clayout_pos = Clock.create_trigger(
+            self.upd_clayout_pos)
+        self._trigger_clayout_size = Clock.create_trigger(
             self.upd_clayout_size)
+        self._trigger_time = Clock.create_trigger(
+            self.upd_time)
+        super(CalendarView, self).__init__(**kwargs)
+        self.calendar = Calendar(
+            view=self,
+            key=kwargs['key'],
+            stat=kwargs['stat'])
+        self.clayout = RelativeLayout(top=self.top, x=self.x)
         self.upd_clayout_size(self.closet.timestream,
                               *self.closet.timestream.hi_time)
         self.add_widget(self.clayout)
@@ -400,27 +403,48 @@ class CalendarView(StencilView):
             color=kwargs['tl_color'] if 'tl_color' in kwargs
             else [1, 0, 0, 1],
             calendar=self.calendar)
-        self.closet.register_time_listener(self.upd_tl_pos)
-        self.upd_tl_pos(*self.closet.time)
         self.clayout.add_widget(self.timeline)
         self.calendar.finalize()
-        self.bind(pos=self.upd_clayout_pos)
 
-    def upd_tl_pos(self, branch, tick):
+        def set_time(b, t):
+            self.time = (b, t)
+
+        def set_hi_time(b, t):
+            self.hi_time = (b, t)
+        self.closet.register_time_listener(set_time)
+        self.closet.register_hi_time_listener(set_hi_time)
+        self.bind(pos=self._trigger_clayout_pos)
+        self.bind(time=self._trigger_time)
+        self.closet.timestream.hi_time_listeners.append(
+            self._trigger_clayout_size)
+        self.time = self.closet.time
+
+    def on_calendar(self, *args):
+        Logger.debug("CalendarView: calendar={}".format(self.calendar))
+
+    def upd_time(self, *args):
+        (branch, tick) = self.time
         x = (self.calendar.col_width + self.calendar.spacing_x) * branch
         y = self.clayout.height - self.calendar.tick_height * tick
-        self.timeline.pos = (x, y)
+        if self.timeline.pos != (x, y):
+            self.timeline.pos = (x, y)
 
-    def upd_clayout_size(self, ts, hi_branch, hi_tick):
+    def upd_clayout_size(self, *args):
+        hi_branch = self.closet.timestream.hi_branch
+        hi_tick = self.closet.timestream.hi_tick
         w = (self.calendar.col_width + self.calendar.spacing_x) * hi_branch
         h = self.calendar.tick_height * hi_tick
-        self.clayout.size = (w, max(100, h))
+        size = (w, max(100, h))
+        if self.clayout.size != size:
+            self.clayout.size = size
 
     def upd_clayout_pos(self, *args):
         if self._touch:
             return
-        self.clayout.x = self.x
-        self.clayout.top = self.top
+        if self.clayout.x != self.x:
+            self.clayout.x = self.x
+        if self.clayout.top != self.top:
+            self.clayout.top = self.top
 
     def on_touch_down(self, touch):
         """Detect grab. If grabbed, put 'calendar' and 'charsheet' into

@@ -1484,6 +1484,35 @@ class Closet(object):
         self.game_speed = 1
         self.updating = False
 
+        for handle in [
+                ('branch', self.branch_listeners),
+                ('tick', self.tick_listeners),
+                ('time', self.time_listeners),
+                ('hi_branch', self.timestream.hi_branch_listeners),
+                ('hi_tick', self.timestream.hi_tick_listeners),
+                ('hi_time', self.timestream.hi_time_listeners)]:
+            self.mk_handle(*handle)
+
+    def mk_handle(self, name, llist):
+        def register_listener(llist, listener):
+            if listener not in llist:
+                llist.append(listener)
+
+        def registrar(llist):
+            return lambda listener: register_listener(llist, listener)
+
+        def unregister_listener(llist, listener):
+            while listener in llist:
+                llist.remove(listener)
+
+        def unregistrar(llist):
+            return lambda listener: unregister_listener(llist, listener)
+
+        setattr(self, 'register_{}_listener'.format(name),
+                registrar(llist))
+        setattr(self, 'unregister_{}_listener'.format(name),
+                unregistrar(llist))
+
     def __del__(self):
         """Try to write changes to disk before dying.
 
@@ -2065,43 +2094,6 @@ class Closet(object):
     def mi_connect_portal(self, mi):
         """Get the root LiSELayout to make an Arrow, representing a Portal."""
         mi.get_root_window().children[0].make_arrow()
-
-    def register_time_listener(self, listener):
-        """``listener`` will be called when ``branch`` or ``tick`` changes"""
-        if listener not in self.time_listeners:
-            self.time_listeners.append(listener)
-
-    def unregister_time_listener(self, listener):
-        """``listener`` will not be called when ``branch`` or ``tick``
-        changes"""
-        try:
-            self.time_listeners.remove(listener)
-        except ValueError:
-            raise ValueError("Listener isn't registered")
-
-    def register_branch_listener(self, listener):
-        """``listener`` will be called when ``branch`` changes"""
-        if listener not in self.branch_listeners:
-            self.branch_listeners.append(listener)
-
-    def unregister_branch_listener(self, listener):
-        """``listener`` will not be called when ``branch`` changes"""
-        try:
-            self.branch_listeners.remove(listener)
-        except ValueError:
-            raise ValueError("Listener isn't registered")
-
-    def register_tick_listener(self, listener):
-        """``listener`` will be called when ``tick`` changes"""
-        if listener not in self.tick_listeners:
-            self.tick_listeners.append(listener)
-
-    def unregister_tick_listener(self, listener):
-        """``listener`` will not be called when ``tick`` changes"""
-        try:
-            self.tick_listeners.remove(listener)
-        except ValueError:
-            raise ValueError("Listener isn't registered")
 
     def register_img_listener(self, imgn, listener):
         """``listener`` will be called when the image by the given name
