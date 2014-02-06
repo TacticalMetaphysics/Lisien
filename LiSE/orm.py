@@ -1292,8 +1292,7 @@ class Closet(object):
             self.upd_branch(val)
         elif attrn == "tick" and hasattr(self, 'tick'):
             self.upd_tick(val)
-        else:
-            super(Closet, self).__setattr__(attrn, val)
+        super(Closet, self).__setattr__(attrn, val)
 
     def __init__(self, connector, gettext=passthru,
                  USE_KIVY=False, **kwargs):
@@ -1556,7 +1555,7 @@ class Closet(object):
         """Return a function that gets the bone with the given keys, at the
         sim-time when it's called."""
         def r(branch=None, tick=None):
-            return self.get_timely(keys, branch, tick)
+            return self.get_bone_timely(keys, branch, tick)
         return r
 
     def set_bone_timely(self, keys, value, branch=None, tick=None):

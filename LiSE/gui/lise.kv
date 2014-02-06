@@ -24,7 +24,6 @@
     offscreen: (2, 2)
     tick_height: 2
     col_width: 100
-    col_height: max(self.tick_height * self.view.hi_tick, 100)
     minbranch: int(max(0, self.branch - self.branches_offscreen))
     maxbranch: int(min(self.view.hi_branch, self.branch + self.branches_wide + self.branches_offscreen))
     mintick: int(max(0, self.tick - self.ticks_offscreen))
@@ -509,6 +508,8 @@
         Button:
             text: root.get_text(_('Confirm'))
             on_release: root.confirm()
+<Pawn>:
+    bone: self.get_bone()
 <PawnMenuContent>:
     id: pawnmenu
     TextInput:

@@ -284,13 +284,9 @@ class Thing(Container):
         already scheduled.
 
         """
-        try:
-            if self.get_locations(observer=None, branch=branch).key_after(
-                    tick) is not None:
-                raise TimeParadox
-        except (ValueError, IndexError):
-            # This just means the branch isn't there yet. Don't worry.
-            pass
+        if self.get_locations(observer=None, branch=branch).key_after(
+                tick) is not None:
+            raise TimeParadox
         host = self.character.closet.get_character(self.get_bone().host)
         bone = self.character.get_thing_locations(
             self.name, branch).value_during(tick)
