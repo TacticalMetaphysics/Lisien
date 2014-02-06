@@ -21,20 +21,19 @@
     offscreen: (2, 2)
     tick_height: 2
     col_width: 100
-    tlx: self.x + (self.col_width + self.spacing_x) * (self.closetbranch - self.branch)
-    tly: self.top - self.tick_height * (self.closettick - self.tick)
+    col_height: max(self.tick_height * self.view.hi_tick, 100)
     minbranch: int(max(0, self.branch - self.branches_offscreen))
-    maxbranch: int(self.branch + self.branches_wide + self.branches_offscreen)
+    maxbranch: int(min(self.view.hi_branch, self.branch + self.branches_wide + self.branches_offscreen))
     mintick: int(max(0, self.tick - self.ticks_offscreen))
-    maxtick: int(self.tick + self.ticks_tall + self.ticks_offscreen)
+    maxtick: int(min(self.view.hi_tick, self.tick + self.view.hi_tick + self.ticks_offscreen))
 <Cell>:
     valign: 'top'
     text_size: self.size
     color: solarized['base00']
-    bg_color: solarized['base2']
+    text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
     canvas.before:
         Color:
-            rgba: root.bg_color
+            rgba: solarized['base2']
         Rectangle:
             pos: root.pos
             size: root.size
