@@ -3,7 +3,11 @@
 from gamepiece import GamePiece
 from kivy.properties import (
     AliasProperty,
-    ObjectProperty)
+    ObjectProperty,
+    NumericProperty,
+    ReferenceListProperty)
+from kivy.logger import Logger
+from kivy.clock import Clock
 
 
 """Widget representing things that move about from place to place."""
@@ -49,9 +53,37 @@ will update its position appropriately.
     board = ObjectProperty()
     thing = ObjectProperty()
     bone = ObjectProperty()
+    branch = NumericProperty()
+    tick = NumericProperty()
+    time = ReferenceListProperty(branch, tick)
     _touch = ObjectProperty(None, allownone=True)
     where_upon = ObjectProperty()
     name = AliasProperty(
+        lambda self: self.bone.graphic if self.bone else '',
+        lambda self, v: None,
+        bind=('bone',))
+    character = AliasProperty(
+        lambda self: self.thing.character,
+        lambda self, v: None,
+        bind=('thing',))
+    closet = AliasProperty(
+        lambda self: self.thing.character.closet,
+        lambda self, v: None,
+        bind=('thing',))
+    locskel = AliasProperty(
+        lambda self: self.thing.character.closet.skeleton[u'thing_loc'][
+            unicode(self.thing.character)][unicode(self.thing)],
+        lambda self, v: None,
+        bind=('thing',))
+    get_bone = AliasProperty(
+        lambda self: self.thing.character.closet.timely_bone_getter(
+            [u'pawn', unicode(self.board.facade.observer),
+             unicode(self.board.facade.observed),
+             unicode(self.thing.host), unicode(self.thing)])
+        if self.board else None,
+        lambda self, v: None,
+        bind=('board', 'time'))
+    graphic_name = AliasProperty(
         lambda self: self.bone.graphic if self.bone else '',
         lambda self, v: None,
         bind=('bone',))
@@ -61,25 +93,10 @@ will update its position appropriately.
         data change.
 
         """
-        def reposskel(*args):
-            self.repos()
-        if 'board' in kwargs and 'closet' not in kwargs:
-            kwargs['closet'] = kwargs['board'].host.closet
-        kwargs['bone'] = kwargs['closet'].skeleton[u'pawn'][
-            unicode(kwargs['board'].facade.observer)][
-            unicode(kwargs['thing'].character)][
-            unicode(kwargs['thing'].host)][
-            unicode(kwargs['thing'])][
-            kwargs['closet'].branch].value_during(
-            kwargs['closet'].tick)
-        kwargs['graphic_name'] = kwargs['bone'].graphic
         super(Pawn, self).__init__(**kwargs)
-        skel = self.closet.skeleton[u"thing_loc"][
-            unicode(self.thing.character)][unicode(self.thing)]
-        skel.register_set_listener(reposskel)
-        skel.register_del_listener(reposskel)
         self.closet.register_time_listener(self.handle_time)
         self.board.pawndict[unicode(self.thing)] = self
+        self.handle_time(*self.closet.time)
 
     def __str__(self):
         return str(self.thing)
@@ -87,9 +104,18 @@ will update its position appropriately.
     def __unicode__(self):
         return unicode(self.thing)
 
+    def reposskel(self, *args):
+        self.repos()
+
     def handle_time(self, b, t):
-        self.bone = self.get_pawn_bone(b, t)
-        self.repos(b, t)
+        try:
+            self.time = (b, t)
+        except KeyError:
+            Logger.debug("Pawn: No bone at ({}, {}); delaying".format(
+                b, t))
+            Clock.schedule_once(lambda dt: self.handle_time(b, t), 0)
+            return
+        self.repos()
 
     def on_board(self, *args):
         self.repos()
@@ -151,13 +177,15 @@ will update its position appropriately.
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
-    def repos(self, b=None, t=None):
+    def repos(self, *args):
         """Recalculate and reassign my position, based on the apparent
         position of whatever widget I am located on--a :class:`Spot`
         or an :class:`Arrow`.
 
         """
-        thingloc = self.thing.get_location(self.board.facade.observer, b, t)
+        (b, t) = self.time
+        thingloc = self.thing.get_location(
+            self.board.facade.observer, b, t)
         if thingloc is None:
             return
         try:
@@ -196,7 +224,9 @@ will update its position appropriately.
                 myplace = self.thing.location
                 theirplace = new_spot.place
                 if myplace != theirplace:
+                    self.locskel.unregister_del_listener(self.reposskel)
                     self.thing.journey_to(new_spot.place)
+                    self.locskel.register_del_listener(self.reposskel)
             self.repos()
             return True
         return super(Pawn, self).on_touch_up(touch)

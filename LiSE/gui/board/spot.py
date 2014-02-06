@@ -139,7 +139,13 @@ class Spot(GamePiece):
         super(Spot, self).upd_texs(*args)
 
     def handle_time(self, b, t):
-        self.bone = self.get_bone(b, t)
+        try:
+            self.bone = self.get_bone(b, t)
+        except KeyError:
+            Logger.debug("Spot: No bone at ({}, {}); delaying".format(
+                b, t))
+            Clock.schedule_once(lambda dt: self.handle_time(b, t), 0)
+            return
         self.graphic_name = self.bone.graphic
         self.repos(b, t)
 
