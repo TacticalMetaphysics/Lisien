@@ -83,26 +83,11 @@ class Column(StackLayout):
         lambda self: self.calendar.charsheet.character.closet,
         lambda self, v: None,
         bind=('calendar',))
-    skel = AliasProperty(
-        lambda self: self.calendar.skel[self.branch],
-        lambda self, v: None,
-        bind=('calendar',))
-    boneatt = AliasProperty(
-        lambda self: self.calendar.boneatt,
-        lambda self, v: None,
-        bind=('calendar',))
-    tick_height = AliasProperty(
-        lambda self: self.calendar.tick_height,
-        lambda self, v: None,
-        bind=('calendar',))
-    mintick = AliasProperty(
-        lambda self: self.calendar.mintick,
-        lambda self, v: None,
-        bind=('calendar',))
-    maxtick = AliasProperty(
-        lambda self: self.calendar.maxtick,
-        lambda self, v: None,
-        bind=('calendar',))
+    skel = ObjectProperty()
+    boneatt = StringProperty()
+    tick_height = NumericProperty()
+    mintick = NumericProperty()
+    maxtick = NumericProperty()
 
     def __init__(self, **kwargs):
         self._trigger_redata = Clock.create_trigger(self.redata)
@@ -146,7 +131,8 @@ class Column(StackLayout):
                 if firsttick == -1:
                     self.firsttick = bone.tick
                 lasttick = bone.tick
-                yield Cell(**self.args_converter(i, bone))
+                celargs = self.args_converter(i, bone)
+                yield Cell(**celargs)
             i += 1
         self.firsttick = firsttick
         self.lasttick = lasttick
@@ -308,23 +294,48 @@ class Calendar(Layout):
         self.redata()
 
     def redata(self, *args):
+        def col_skel_updater(branch):
+            def upd_col_skel(*args):
+                self.branches_cols[branch].skel = self.skel[branch]
+            return upd_col_skel
+
+        if self.mintick == self.maxtick:
+            Logger.warning(
+                "Calendar: Haven't got a window of ticks between "
+                "which to render.")
+            Clock.schedule_once(self.redata)
+            return
+
         for branch in xrange(0, self.closet.timestream.hi_branch+1):
             if branch not in self.skel:
                 if branch in self.branches_cols:
                     self.remove_widget(self.branches_cols[branch])
-                    del self.branches_cols[branch]
-                    continue
-            elif branch not in self.branches_cols.keys():
+                continue
+            elif (
+                    branch not in self.branches_cols or
+                    not isinstance(self.branches_cols[branch],
+                                   Column)):
                 col = Column(
                     calendar=self,
                     branch=branch,
                     size_hint=(None, 1),
                     width=self.col_width,
                     x=(self.col_width + self.spacing_x) * branch,
-                    top=self.top)
+                    top=self.top,
+                    skel=self.skel[branch],
+                    boneatt=self.boneatt,
+                    tick_height=self.tick_height,
+                    mintick=self.mintick,
+                    maxtick=self.maxtick)
                 self.branches_cols[branch] = col
                 self.bind(x=col._trigger_x,
-                          top=col.setter('top'))
+                          top=col.setter('top'),
+                          boneatt=col.setter('boneatt'),
+                          tick_height=col.setter('tick_height'),
+                          mintick=col.setter('mintick'),
+                          maxtick=col.setter('maxtick'))
+                self.skel[branch].register_listener(
+                    col_skel_updater(branch))
             try:
                 if (
                         self.skel[branch].key_or_key_before(self.mintick)
@@ -418,15 +429,36 @@ class CalendarView(StencilView):
             self._trigger_clayout_size)
         self.time = self.closet.time
 
-    def on_calendar(self, *args):
-        Logger.debug("CalendarView: calendar={}".format(self.calendar))
-
     def upd_time(self, *args):
         (branch, tick) = self.time
         x = (self.calendar.col_width + self.calendar.spacing_x) * branch
         y = self.clayout.height - self.calendar.tick_height * tick
         if self.timeline.pos != (x, y):
             self.timeline.pos = (x, y)
+        minbranch = int(max(
+            0, self.calendar.branch -
+            self.calendar.branches_offscreen))
+        if minbranch != self.calendar.minbranch:
+            self.calendar.minbranch = minbranch
+        maxbranch = int(max(
+            self.hi_branch, self.calendar.branch +
+            self.calendar.branches_wide +
+            self.calendar.branches_offscreen))
+        if maxbranch != self.calendar.maxbranch:
+            self.calendar.maxbranch = maxbranch
+        mintick = int(max(
+            0, self.calendar.tick - self.calendar.ticks_offscreen))
+        if mintick != self.calendar.mintick:
+            self.calendar.mintick = mintick
+        maxtick = int(max(
+            self.hi_tick, self.calendar.tick +
+            self.hi_tick + self.calendar.ticks_offscreen))
+        if maxtick != self.calendar.maxtick:
+            self.calendar.maxtick = maxtick
+        Logger.debug(
+            "CalendarView: minbranch={} maxbranch={}"
+            " mintick={} maxtick={}".format(
+                minbranch, maxbranch, mintick, maxtick))
 
     def upd_clayout_size(self, *args):
         hi_branch = self.closet.timestream.hi_branch
