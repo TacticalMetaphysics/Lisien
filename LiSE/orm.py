@@ -661,6 +661,14 @@ class Skeleton(MutableMapping):
         while fun in self._del_listeners:
             self._del_listeners.remove(fun)
 
+    def register_listener(self, fun):
+        self.register_set_listener(fun)
+        self.register_del_listener(fun)
+
+    def unregister_listener(self, fun):
+        self.unregister_set_listener(fun)
+        self.unregister_del_listener(fun)
+
     def _loud_toggle(self):
         def skel_set_printer(skel, child, k, v):
             """Debugging function to print out assignments to some skeleton or

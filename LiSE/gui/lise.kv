@@ -21,10 +21,6 @@
     offscreen: (2, 2)
     tick_height: 2
     col_width: 100
-    minbranch: int(max(0, self.branch - self.branches_offscreen))
-    maxbranch: int(min(self.view.hi_branch, self.branch + self.branches_wide + self.branches_offscreen))
-    mintick: int(max(0, self.tick - self.ticks_offscreen))
-    maxtick: int(min(self.view.hi_tick, self.tick + self.view.hi_tick + self.ticks_offscreen))
 <Cell>:
     valign: 'top'
     text_size: self.size
