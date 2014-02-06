@@ -45,6 +45,7 @@ from LiSE.util import (
     int2pytype,
     pytype2int)
 from LiSE import __path__
+from kivy.logger import Logger
 
 
 class BoneMetaclass(type):
@@ -798,8 +799,16 @@ other
                 else:
                     return self.ikeys[iki + 1]
             else:
-                return min([j for j in self.ikeys if j > k])
-        return min([j for j in self.content.keys() if j > k])
+                try:
+                    return min([j for j in self.ikeys if j > k])
+                except ValueError:
+                    raise ValueError("No key in {} after {}".format(
+                        self, k))
+        try:
+            return min([j for j in self.content.keys() if j > k])
+        except ValueError:
+            raise ValueError("No key in {} after {}".format(
+                self, k))
 
     def key_or_key_after(self, k):
         """Return ``k`` if it's a key I have, or else my
@@ -808,11 +817,21 @@ other
             if k in self.ikeys:
                 return k
             else:
-                return self.key_after(k)
+                try:
+                    return self.key_after(k)
+                except ValueError:
+                    raise ValueError(
+                        "Neither {} nor any later key in {}".format(
+                            k, self))
         if k in self.content:
             return k
         else:
-            return self.key_after(k)
+            try:
+                return self.key_after(k)
+            except ValueError:
+                raise ValueError(
+                    "Neither {} nor any later key in {}".format(
+                        k, self))
 
     def copy(self):
         """Return a shallow copy of myself. Changes to the copy won't affect
@@ -1481,6 +1500,9 @@ class Closet(object):
         self.time_travel_history = [
             (self.get_global('branch'), self.get_global('tick'))]
         self.game_speed = 1
+        self.new_branch_blank = set()
+        self.branch = 0
+        self.tick = 0
         self.updating = False
 
         for handle in [
@@ -1707,25 +1729,12 @@ class Closet(object):
 
     def upd_branch(self, b):
         """Set the active branch, alerting any branch_listeners"""
-        super(Closet, self).__setattr__('branch', b)
-        del self.branch
-        (ob, ot) = self.time_travel_history[-1]
-        mb = self.timestream.max_branch()
-        b = min(b, mb)
-        if b != ob:
-            self.new_branch(ob, b, self.tick)
-        self.branch = b
-        for char in self.character_d.itervalues():
-            char.update()
-        for facd in self.facade_d.itervalues():
-            facd.update()
         self.upd_time(b, self.tick)
         for listener in self.branch_listeners:
             listener(b)
 
     def upd_tick(self, t):
         """Set the current tick, alerting any tick_listeners"""
-        super(Closet, self).__setattr__('tick', t)
         self.upd_time(self.branch, t)
         for listener in self.tick_listeners:
             listener(t)
@@ -1993,23 +2002,23 @@ class Closet(object):
     def new_branch(self, parent, child, tick):
         """Copy records from the parent branch to the child, starting at
         tick."""
+        Logger.debug("orm: new branch {} from parent {}".format(
+            child, parent))
         assert(parent != child)
-        new_bones = set()
         for character in self.character_d.itervalues():
             for bone in character.new_branch(parent, child, tick):
-                new_bones.add(bone)
+                self.set_bone(bone)
+            character.update()
         for observer in self.board_d:
             for observed in self.board_d[observer]:
                 for host in self.board_d[observer][observed]:
                     for bone in self.board_d[observer][observed][
                             host].new_branch(parent, child, tick):
-                        new_bones.add(bone)
+                        self.set_bone(bone)
         self.skeleton["timestream"][child] = Timestream.bonetype(
             branch=child, parent=parent, tick=tick)
         self.timestream.hi_branch += 1
         assert(self.timestream.hi_branch == child)
-        for bone in new_bones:
-            self.set_bone(bone)
 
     def time_travel_inc_tick(self, ticks=1):
         """Go to the next tick on the same branch"""

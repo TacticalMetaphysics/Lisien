@@ -27,7 +27,6 @@ from LiSE.util import (
     PLACE_CAL,
     PORTAL_CAL,
     CHAR_CAL)
-from LiSE.gui.kivybits import ClosetLabel
 
 
 class Cell(Label):
