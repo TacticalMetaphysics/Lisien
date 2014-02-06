@@ -111,8 +111,6 @@ will update its position appropriately.
         try:
             self.time = (b, t)
         except KeyError:
-            Logger.debug("Pawn: No bone at ({}, {}); delaying".format(
-                b, t))
             Clock.schedule_once(lambda dt: self.handle_time(b, t), 0)
             return
         self.repos()

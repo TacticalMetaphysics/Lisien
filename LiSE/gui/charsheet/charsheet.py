@@ -254,7 +254,7 @@ class CharSheetAdder(ModalView):
                                getattr(csitem, 'height') for csitem in
                                self.charsheet.csitems)))
             try:
-                i = max(self.myskel.iterkeys())
+                i = max(self.charsheet.myskel.iterkeys())
             except ValueError:
                 i = -1
             if self.insertion_point <= i:
