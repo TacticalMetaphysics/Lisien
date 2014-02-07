@@ -1,7 +1,8 @@
 from LiSE.orm import SaveableMetaclass
+from LiSE.util import HandleHandler
 
 
-class Timestream(object):
+class Timestream(HandleHandler):
     """Tracks the genealogy of the various branches of time.
 
 
@@ -21,9 +22,55 @@ class Timestream(object):
           ["parent=0 or parent<>branch"]})
         ]
 
-    @property
-    def hi_time(self):
-        return (self.hi_branch, self.hi_tick)
+    def __getattr__(self, attrn):
+        d = {'branch': self._branch,
+             'tick': self._tick,
+             'hi_branch': self._hi_branch,
+             'hi_tick': self._hi_tick,
+             'time': (self._branch, self._tick),
+             'hi_time': (self._hi_branch, self._hi_tick)}
+        if attrn in d:
+            return d[attrn]
+        else:
+            raise AttributeError
+
+    def __setattr__(self, attrn, value):
+        """Fire listeners for branch, tick, hi_branch, hi_tick"""
+        setter = super(Timestream, self).__setattr__
+        fire = set()
+        if attrn == 'time':
+            (branch, tick) = value
+            setter('_branch', branch)
+            setter('_tick', tick)
+            fire.update(['branch', 'tick'])
+        elif attrn == 'hi_time':
+            (hi_branch, hi_tick) = value
+            setter('_hi_branch', hi_branch)
+            setter('_hi_tick', hi_tick)
+            fire.update(['hi_branch', 'hi_tick'])
+        elif attrn == 'branch':
+            setter('_branch', value)
+            fire.add('branch')
+            if self.branch > self.hi_branch:
+                setter('_hi_branch', self.branch)
+                fire.add('hi_branch')
+        elif attrn == 'tick':
+            setter('_tick', value)
+            fire.add('tick')
+            if self.tick > self.hi_tick:
+                setter('_hi_tick', self.tick)
+                fire.add('hi_tick')
+        else:
+            setter(attrn, value)
+        for ln in fire:
+            for f in getattr(self, ln + '_listeners'):
+                f(getattr(self, ln))
+        if 'branch' in fire or 'tick' in fire:
+            for f in self.time_listeners:
+                f(self.branch, self.tick)
+        if 'hi_branch' in fire or 'hi_tick' in fire:
+            for f in self.hi_time_listeners:
+                f(self.hi_branch, self.hi_tick)
 
     def __init__(self, closet):
         """Initialize hi_branch and hi_tick to 0, and their listeners to
@@ -31,25 +78,12 @@ class Timestream(object):
 
         """
         self.closet = closet
-        self.hi_branch_listeners = []
-        self.hi_tick_listeners = []
-        self.hi_time_listeners = []
-        self.hi_branch = 0
-        self.hi_tick = 0
-
-    def __setattr__(self, attrn, val):
-        """Trigger the listeners as needed"""
-        if attrn == "hi_branch":
-            for listener in self.hi_branch_listeners:
-                listener(self, val)
-            for listener in self.hi_time_listeners:
-                listener(self, val, self.hi_tick)
-        elif attrn == "hi_tick":
-            for listener in self.hi_tick_listeners:
-                listener(self, val)
-            for listener in self.hi_time_listeners:
-                listener(self, self.hi_branch, val)
-        super(Timestream, self).__setattr__(attrn, val)
+        self._branch = 0
+        self._tick = 0
+        self._hi_branch = 0
+        self._hi_tick = 0
+        self.mk_handles('branch', 'tick', 'time',
+                        'hi_branch', 'hi_tick', 'hi_time')
 
     def min_branch(self, table=None):
         """Return the lowest known branch.
@@ -127,15 +161,6 @@ class Timestream(object):
                                 tick < lowest):
                             lowest = tick
         return lowest
-
-    def uptick(self, tick):
-        """Set ``self.hi_tick`` to ``tick`` if the present value is lower."""
-        self.hi_tick = max((tick, self.hi_tick))
-
-    def upbranch(self, branch):
-        """Set ``self.hi_branch`` to ``branch`` if the present value is
-        lower."""
-        self.hi_branch = max((branch, self.hi_branch))
 
     def parent(self, branch):
         """Return the parent of the branch"""

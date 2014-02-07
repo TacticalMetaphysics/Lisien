@@ -6,6 +6,7 @@ from LiSE.util import (
 )
 
 from container import Container
+from kivy.logger import Logger
 
 
 class Thing(Container):
@@ -254,21 +255,32 @@ class Thing(Container):
         # Attempt to follow the path based on how the graph is
         # actually laid out.
         try:
+            Logger.debug("Thing: attempting to follow path {}".format(
+                path))
             self.follow_path(path, branch, tick)
         except TimeParadox:
+            Logger.debug("Thing: TimeParadox! Restoring {} to {}".format(
+                branch, locs))
+            tupme = (unicode(self.character), unicode(self))
+            self.character.closet.new_branch_blank.add(tupme)
             self.restore_loc_bones(branch, locs)
-            self.new_branch_blank = True
+            new_branch_blank = True
             increment = 1
             while branch + increment in self.locations:
                 increment += 1
-            self.character.closet.time_travel_inc_branch(branches=increment)
-            self.new_branch_blank = False
+            Logger.debug("Thing: incrementing branch from {} to {}".format(
+                branch, branch+increment))
+            self.character.closet.new_branch(branch, branch+increment, tick)
+            self.character.closet.time_travel(branch+increment, tick)
+            self.character.closet.new_branch_blank.remove(tupme)
             if "Portal" in oloc.__class__.__name__:
                 loc = oloc.origin
                 tick = self.get_locations().key_after(otick)
             else:
                 loc = oloc
                 tick = otick
+            Logger.debug("Thing: trying again on branch {} (was branch {})".format(
+                self.character.closet.branch, branch))
             self.follow_path(
                 path, self.character.closet.branch, tick+1)
 
@@ -285,11 +297,13 @@ class Thing(Container):
 
         """
         try:
-            if self.get_locations(observer=None, branch=branch).key_after(
-                    tick) is not None:
-                raise TimeParadox
-        except (ValueError, IndexError):
-            # This just means the branch isn't there yet. Don't worry.
+            aft = self.get_locations(
+                observer=None, branch=branch).key_after(tick)
+            raise TimeParadox(
+                "Tried to follow a path at tick {},"
+                " but I was scheduled to be elsewhere "
+                " at tick {}".format(tick, aft))
+        except ValueError:
             pass
         host = self.character.closet.get_character(self.get_bone().host)
         bone = self.character.get_thing_locations(
@@ -314,7 +328,12 @@ class Thing(Container):
         the parent branch, to the child.
 
         """
-        if self.new_branch_blank:
+        Logger.debug("Thing: new branch {} from parent {}".format(
+            branch, parent))
+        if (
+                unicode(self.character), unicode(self)
+        ) in self.character.closet.new_branch_blank:
+            Logger.debug("Thing: new_branch_blank")
             start_loc = self.get_location(None, parent, tick)
             if hasattr(start_loc, 'destination'):
                 tick = self.locations[parent].key_after(tick)
@@ -325,19 +344,19 @@ class Thing(Container):
                 branch=branch,
                 tick=tick,
                 location=start_loc)
-            self.character.closet.set_bone(locb)
+            yield locb
             return
         for bone in self.character.iter_thing_loc_bones(
                 self, branch=parent):
-            yield bone
+            yield bone._replace(branch=branch)
         for bone in self.iter_stats_bones(branch=parent):
-            yield bone
+            yield bone._replace(branch=branch)
         for observer in self.character.facade_d.iterkeys():
             for bone in self.iter_loc_bones(observer, branch=parent):
-                yield bone
+                yield bone._replace(branch=branch)
             for bone in self.iter_stats_bones(
                     stats=[], observer=observer, branch=parent):
-                yield bone
+                yield bone._replace(branch=branch)
 
     def iter_loc_bones(self, observer=None, branch=None):
         if observer is None:

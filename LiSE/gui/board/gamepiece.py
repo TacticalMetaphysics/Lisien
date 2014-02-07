@@ -1,6 +1,7 @@
 from LiSE.gui.texturestack import TextureStack
 from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
+    AliasProperty,
     NumericProperty,
     StringProperty,
     ObjectProperty,
@@ -68,3 +69,7 @@ class GamePiece(ImgStack):
             self.closet.load_game_piece(self.graphic_name)
         assert(self.graphic_name in self.closet.skeleton[u"graphic"])
         self.graphic_bone = self.closet.skeleton[u"graphic"][self.graphic_name]
+
+    def upd_texs(self, *args):
+        super(GamePiece, self).upd_texs()
+        self.size = (self.width + self.offset_x, self.height + self.offset_y)

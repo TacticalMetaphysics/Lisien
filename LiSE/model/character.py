@@ -14,6 +14,7 @@ from LiSE.orm import (
 from thing import Thing
 from place import Place
 from portal import Portal
+from kivy.logger import Logger
 
 
 """Things that should have character sheets."""

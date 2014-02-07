@@ -5,6 +5,7 @@ from kivy.properties import (
     ListProperty,
     ObjectProperty)
 from kivy.clock import Clock
+from kivy.logger import Logger
 
 
 """Widgets to represent places. Pawns move around on top of these."""
@@ -117,6 +118,8 @@ class Spot(GamePiece):
         kwargs['graphic_name'] = kwargs['bone'].graphic
         kwargs['imgs'] = kwargs['closet'].get_game_piece(
             kwargs['bone'].graphic).imgs
+        self._trigger_move_to_touch = Clock.create_trigger(
+            self._move_to_touch)
         super(Spot, self).__init__(**kwargs)
         self.closet.register_time_listener(self.handle_time)
         self.board.spotdict[unicode(self.place)] = self
@@ -136,7 +139,13 @@ class Spot(GamePiece):
         super(Spot, self).upd_texs(*args)
 
     def handle_time(self, b, t):
-        self.bone = self.get_bone(b, t)
+        try:
+            self.bone = self.get_bone(b, t)
+        except KeyError:
+            Logger.debug("Spot: No bone at ({}, {}); delaying".format(
+                b, t))
+            Clock.schedule_once(lambda dt: self.handle_time(b, t), 0)
+            return
         self.graphic_name = self.bone.graphic
         self.repos(b, t)
 
@@ -233,25 +242,32 @@ class Spot(GamePiece):
                     prev = bone
 
     def on_touch_down(self, touch):
-        if touch.grab_current or 'portaling' in touch.ud:
+        if touch.grab_current:
+            return
+        if not self.collide_point(*self.to_local(*touch.pos)):
+            return
+        if 'spot' in touch.ud:
             return
         touch.grab(self)
         touch.ud['spot'] = self
+        self._touch = touch
         return True
 
     def on_touch_move(self, touch):
-        if "portaling" in touch.ud:
-            touch.ungrab(self)
-        if touch.grab_current is not self:
-            return
-        self._touch = touch
-        self.center = touch.pos
+        if 'spot' in touch.ud and 'pawn' not in touch.ud:
+            if touch.ud['spot'] is self and 'portaling' not in touch.ud:
+                self._touch = touch
+                self._trigger_move_to_touch()
+        elif self.collide_point(*self.to_local(*touch.pos)):
+            touch.ud['spot'] = self
+
+    def _move_to_touch(self, *args):
+        if self._touch:
+            self.center = self.parent.to_local(*self._touch.pos)
 
     def on_touch_up(self, touch):
         if self._touch:
             self.set_coords(*self.pos)
-        if 'spot' in touch.ud:
-            del touch.ud['spot']
         self._touch = None
         return super(Spot, self).on_touch_up(touch)
 

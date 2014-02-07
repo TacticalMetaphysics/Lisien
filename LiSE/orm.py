@@ -24,7 +24,6 @@ Board = None
 Spot = None
 Pawn = None
 CharSheet = None
-CharSheetView = None
 Menu = None
 Img = None
 GamePiece = None
@@ -46,6 +45,7 @@ from LiSE.util import (
     int2pytype,
     pytype2int)
 from LiSE import __path__
+from kivy.logger import Logger
 
 
 class BoneMetaclass(type):
@@ -99,10 +99,12 @@ class BoneMetaclass(type):
 
         @classmethod
         def getfmt(cls):
+            """Return the format code for my struct"""
             return cls.structtyp.format
 
         @classmethod
         def getbytelen(cls):
+            """Return the size (in bytes) of my struct"""
             return cls.structtyp.size
 
         @classmethod
@@ -134,20 +136,15 @@ class BoneMetaclass(type):
             args = [arr, pos]
             for field in self._fields:
                 datum = getattr(self, field)
+                assert(datum is not None)
                 if isinstance(datum, unicode):
-                    args.append(str(datum))
-                elif datum is None:
-                    if self._defaults[field] is None:
-                        if self._types[field] in (str, unicode):
-                            args.append(
-                                '\x00' * BoneMetaclass.packed_str_len)
-                        else:
-                            args.append(0)
-                    else:
-                        args.append(self._defaults[field])
+                    arg = str(datum)
+                    assert(arg[0] != '\x00')
+                    args.append(arg)
                 else:
                     args.append(datum)
             self.structtyp.pack_into(*args)
+            assert(self.packed in args[0].tostring())
 
         def denull(self):
             """Return a copy of myself with the nulls stripped out of
@@ -376,6 +373,11 @@ class Bone(tuple):
 
 
 class PlaceBone(Bone):
+    """A Bone for Places, which have no actual database records, but are
+    created implicitly whenever something is in them or links to
+    them.
+
+    """
     _field_decls = [("host", unicode, None), ("place", unicode, None),
                     ("branch", int, 0), ("tick", int, 0)]
 
@@ -460,9 +462,15 @@ class Skeleton(MutableMapping):
         """
         self.content = {}
         self._set_listeners = []
+        """Functions to call when something in me is set to a value, either in
+        my content, or in that of some :class:`Skeleton` I contain,
+        however indirectly.
+
+        """
         self._del_listeners = []
-        """Functions to call when something changes, either in my content, or
-        in that of some :class:`Skeleton` I contain, however indirectly.
+        """Functions to call when something in me is deleted, either in my
+        content, or in that of some :class:`Skeleton` I contain,
+        however indirectly.
 
         """
         self.name = name
@@ -616,6 +624,10 @@ class Skeleton(MutableMapping):
             listener(self.parent, self, k, v)
         if hasattr(self.parent, 'on_child_set'):
             self.parent.on_child_set(self, k, v)
+        if isinstance(self.content, array):
+            item = self.bonetype._unpack_from(0, self.content)
+            for field in item:
+                assert field is not None
 
     def on_child_set(self, child, k, v):
         """Call all my listeners with args (child, k, v)."""
@@ -630,13 +642,14 @@ class Skeleton(MutableMapping):
         self._set_listeners.append(fun)
 
     def unregister_set_listener(self, fun):
+        """Remove a function from my _set_listeners, if it's there."""
         while fun in self._set_listeners:
             self._set_listeners.remove(fun)
 
     def __delitem__(self, k):
         """If ``self.content`` is a :type:`dict`, delete the key in the usual
         way. Otherwise, remove the key from ``self.ikeys``."""
-        v = self.content[k]
+        v = self[k]
         if isinstance(self.content, dict):
             del self.content[k]
         else:
@@ -659,10 +672,22 @@ class Skeleton(MutableMapping):
         self._del_listeners.append(fun)
 
     def unregister_del_listener(self, fun):
+        """Remove a function from my _del_listeners, if it's there."""
         while fun in self._del_listeners:
             self._del_listeners.remove(fun)
 
+    def register_listener(self, fun):
+        """Register a function to be called when I change somehow."""
+        self.register_set_listener(fun)
+        self.register_del_listener(fun)
+
+    def unregister_listener(self, fun):
+        """Unregister a function previously given to register_listener."""
+        self.unregister_set_listener(fun)
+        self.unregister_del_listener(fun)
+
     def _loud_toggle(self):
+        """Toggle overly verbose debugging messages"""
         def skel_set_printer(skel, child, k, v):
             """Debugging function to print out assignments to some skeleton or
 other
@@ -674,13 +699,14 @@ other
             """Debugging function to print out deletions from some skeleton"""
             Logger.debug("%s: del %s[%s]", skel.name, child.name, k)
 
-        if hasattr(self, 'loud'):
-            self.unregister_set_listener(skel_set_printer)
-            self.unregister_del_listener(skel_del_printer)
+        fru = (skel_set_printer, skel_del_printer)
+
+        if skel_set_printer in self._set_listeners:
+            for fun in fru:
+                self.unregister_listener(fun)
         else:
-            self.register_set_listener(skel_set_printer)
-            self.register_del_listener(skel_del_printer)
-            self.loud = True
+            for fun in fru:
+                self.register_listener(fun)
 
     def __iter__(self):
         """Iterate over my keys--which, if ``self.content`` is not a
@@ -800,8 +826,16 @@ other
                 else:
                     return self.ikeys[iki + 1]
             else:
-                return min([j for j in self.ikeys if j > k])
-        return min([j for j in self.content.keys() if j > k])
+                try:
+                    return min([j for j in self.ikeys if j > k])
+                except ValueError:
+                    raise ValueError("No key in {} after {}".format(
+                        self, k))
+        try:
+            return min([j for j in self.content.keys() if j > k])
+        except ValueError:
+            raise ValueError("No key in {} after {}".format(
+                self, k))
 
     def key_or_key_after(self, k):
         """Return ``k`` if it's a key I have, or else my
@@ -810,11 +844,21 @@ other
             if k in self.ikeys:
                 return k
             else:
-                return self.key_after(k)
+                try:
+                    return self.key_after(k)
+                except ValueError:
+                    raise ValueError(
+                        "Neither {} nor any later key in {}".format(
+                            k, self))
         if k in self.content:
             return k
         else:
-            return self.key_after(k)
+            try:
+                return self.key_after(k)
+            except ValueError:
+                raise ValueError(
+                    "Neither {} nor any later key in {}".format(
+                        k, self))
 
     def copy(self):
         """Return a shallow copy of myself. Changes to the copy won't affect
@@ -890,9 +934,13 @@ other
                         content=v, name=k, parent=self)
 
     def itervalues(self):
+        """Iterate over my values. They're not my keys."""
         if isinstance(self.content, array):
             for i in self.ikeys:
-                yield self.bonetype._unpack_from(i, self.content)
+                try:
+                    yield self.bonetype._unpack_from(i, self.content)
+                except struct.error:
+                    return
         else:
             for v in super(Skeleton, self).itervalues():
                 yield v
@@ -921,12 +969,21 @@ other
                     yield bone
 
     def get_timely(self, keys, branch, tick):
+        """Recursively look up each of the ``keys`` in myself, and then the
+        branch and tick.
+
+        This is clearer than simply recursing because the branch and
+        tick are generally special, and in any case looking up a tick
+        in a branch is done with ``self.value_during(tick)``.
+
+        """
         ptr = self
         for key in keys:
             ptr = ptr[key]
         return ptr[branch].value_during(tick)
 
     def set_timely(self, keys, value, branch, tick):
+        """Set ``value`` into ``keys`` at time (``branch``, ``tick``)"""
         ptr = self
         for key in keys:
             ptr = ptr[key]
@@ -935,6 +992,7 @@ other
         ptr[branch][tick] = value
 
     def del_timely(self, keys, branch, tick):
+        """Delete value under ``keys`` at time (``branch``, ``tick``)"""
         ptr = self
         for key in keys:
             ptr = ptr[key]
@@ -1012,6 +1070,7 @@ class SaveableMetaclass(type):
 
     """
     clasd = {}
+    """Class objects of this metaclass, keyed by their names"""
     saveables = []
     """Tuples of information about saveable classes. These may be used to
     apply the database schema."""
@@ -1279,18 +1338,24 @@ class Closet(object):
 
     """
 
-    @property
-    def time(self):
-        """(branch, tick)"""
-        return (self.branch, self.tick)
+    def __getattr__(self, attrn):
+        """Forward requests for time-related stuff to the timestream"""
+        if attrn in ('branch', 'tick', 'hi_branch', 'hi_tick',
+                     'time', 'hi_time', 'register_branch_listener',
+                     'register_tick_listener', 'register_time_listener',
+                     'register_hi_branch_listener',
+                     'register_hi_tick_listener',
+                     'register_hi_time_listener'):
+            return getattr(self.timestream, attrn)
+        else:
+            raise AttributeError
 
     def __setattr__(self, attrn, val):
         """Handle updates to ``branch`` and ``tick``. Otherwise just
         pass-thru."""
-        if attrn == "branch" and hasattr(self, 'branch'):
-            self.upd_branch(val)
-        elif attrn == "tick" and hasattr(self, 'tick'):
-            self.upd_tick(val)
+        if attrn in ('branch', 'tick', 'hi_branch', 'hi_tick',
+                     'time', 'hi_time'):
+            setattr(self.timestream, attrn, val)
         else:
             super(Closet, self).__setattr__(attrn, val)
 
@@ -1324,8 +1389,7 @@ class Closet(object):
             global GamePiece
             from LiSE.gui.board import Board, Spot, Pawn, GamePiece
             global CharSheet
-            global CharSheetView
-            from LiSE.gui.charsheet import CharSheet, CharSheetView
+            from LiSE.gui.charsheet import CharSheet
             global Menu
             from LiSE.gui.menu import Menu
             global Img
@@ -1466,9 +1530,6 @@ class Closet(object):
         self.tick_listeners = []
         self.time_listeners = []
 
-        for glob in self.globs:
-            setattr(self, glob, self.get_global(glob))
-
         self.lisepath = __path__[-1]
         self.sep = os.sep
         self.entypo = self.sep.join(
@@ -1482,14 +1543,17 @@ class Closet(object):
         self.time_travel_history = [
             (self.get_global('branch'), self.get_global('tick'))]
         self.game_speed = 1
+        self.new_branch_blank = set()
         self.updating = False
+        for glob in self.globs:
+            setattr(self, glob, self.get_global(glob))
 
     def __del__(self):
         """Try to write changes to disk before dying.
 
         """
-        self.c.close()
         self.connector.commit()
+        self.c.close()
         self.connector.close()
 
     def listen_to_skeleton(self):
@@ -1527,7 +1591,7 @@ class Closet(object):
         """Return a function that gets the bone with the given keys, at the
         sim-time when it's called."""
         def r(branch=None, tick=None):
-            return self.get_timely(keys, branch, tick)
+            return self.get_bone_timely(keys, branch, tick)
         return r
 
     def set_bone_timely(self, keys, value, branch=None, tick=None):
@@ -1677,36 +1741,6 @@ class Closet(object):
             self.set_bone(bone)
             also_bone(bone)
 
-    def upd_branch(self, b):
-        """Set the active branch, alerting any branch_listeners"""
-        super(Closet, self).__setattr__('branch', b)
-        del self.branch
-        (ob, ot) = self.time_travel_history[-1]
-        mb = self.timestream.max_branch()
-        b = min(b, mb)
-        if b != ob:
-            self.new_branch(ob, b, self.tick)
-        self.branch = b
-        for char in self.character_d.itervalues():
-            char.update()
-        for facd in self.facade_d.itervalues():
-            facd.update()
-        self.upd_time(b, self.tick)
-        for listener in self.branch_listeners:
-            listener(b)
-
-    def upd_tick(self, t):
-        """Set the current tick, alerting any tick_listeners"""
-        super(Closet, self).__setattr__('tick', t)
-        self.upd_time(self.branch, t)
-        for listener in self.tick_listeners:
-            listener(t)
-
-    def upd_time(self, b, t):
-        """Set the current branch and tick, alerting any time_listeners"""
-        for listener in self.time_listeners:
-            listener(b, t)
-
     def get_global(self, key):
         """Retrieve a global value from the database and return it.
 
@@ -1747,7 +1781,8 @@ class Closet(object):
             self.c.execute(bone.sql_del, tuple(
                 getattr(bone, f) for f in bone.keynames))
             self.c.execute(bone.sql_ins, tuple(
-                getattr(bone, f) for f in bone._fields))
+                getattr(bone, f) for f in bone._fields
+                if getattr(bone, f) is not None))
         self.connector.commit()
         Logger.debug("closet: saved game")
 
@@ -1771,11 +1806,13 @@ class Closet(object):
             for bonetype in CharSheet.bonetypes.itervalues())
 
     def get_charsheet(self, character):
-        """Return a CharSheetView displaying the CharSheet for the character
-        specified, perhaps loading it if necessary."""
+        """Return a CharSheet displaying the character specified, perhaps
+        loading it if necessary.
+
+        """
         if character not in self.skeleton[u"character_sheet_item_type"]:
             self.load_charsheet(character)
-        return CharSheetView(character=self.get_character(character))
+        return CharSheet(character=self.get_character(character))
 
     def load_characters(self, names):
         """Load records to do with the named characters"""
@@ -1962,23 +1999,23 @@ class Closet(object):
     def new_branch(self, parent, child, tick):
         """Copy records from the parent branch to the child, starting at
         tick."""
+        Logger.debug("orm: new branch {} from parent {}".format(
+            child, parent))
         assert(parent != child)
-        new_bones = set()
         for character in self.character_d.itervalues():
             for bone in character.new_branch(parent, child, tick):
-                new_bones.add(bone)
+                self.set_bone(bone)
+            character.update()
         for observer in self.board_d:
             for observed in self.board_d[observer]:
                 for host in self.board_d[observer][observed]:
                     for bone in self.board_d[observer][observed][
                             host].new_branch(parent, child, tick):
-                        new_bones.add(bone)
+                        self.set_bone(bone)
         self.skeleton["timestream"][child] = Timestream.bonetype(
             branch=child, parent=parent, tick=tick)
         self.timestream.hi_branch += 1
         assert(self.timestream.hi_branch == child)
-        for bone in new_bones:
-            self.set_bone(bone)
 
     def time_travel_inc_tick(self, ticks=1):
         """Go to the next tick on the same branch"""
@@ -2062,43 +2099,6 @@ class Closet(object):
     def mi_connect_portal(self, mi):
         """Get the root LiSELayout to make an Arrow, representing a Portal."""
         mi.get_root_window().children[0].make_arrow()
-
-    def register_time_listener(self, listener):
-        """``listener`` will be called when ``branch`` or ``tick`` changes"""
-        if listener not in self.time_listeners:
-            self.time_listeners.append(listener)
-
-    def unregister_time_listener(self, listener):
-        """``listener`` will not be called when ``branch`` or ``tick``
-        changes"""
-        try:
-            self.time_listeners.remove(listener)
-        except ValueError:
-            raise ValueError("Listener isn't registered")
-
-    def register_branch_listener(self, listener):
-        """``listener`` will be called when ``branch`` changes"""
-        if listener not in self.branch_listeners:
-            self.branch_listeners.append(listener)
-
-    def unregister_branch_listener(self, listener):
-        """``listener`` will not be called when ``branch`` changes"""
-        try:
-            self.branch_listeners.remove(listener)
-        except ValueError:
-            raise ValueError("Listener isn't registered")
-
-    def register_tick_listener(self, listener):
-        """``listener`` will be called when ``tick`` changes"""
-        if listener not in self.tick_listeners:
-            self.tick_listeners.append(listener)
-
-    def unregister_tick_listener(self, listener):
-        """``listener`` will not be called when ``tick`` changes"""
-        try:
-            self.tick_listeners.remove(listener)
-        except ValueError:
-            raise ValueError("Listener isn't registered")
 
     def register_img_listener(self, imgn, listener):
         """``listener`` will be called when the image by the given name
@@ -2197,11 +2197,6 @@ class Closet(object):
                     host=host, place=place, branch=branch, tick=tick),
                     skel=skel)
 
-        def upd_time(branch, tick):
-            """Make sure the timestream knows how long it is"""
-            self.timestream.upbranch(branch)
-            self.timestream.uptick(tick)
-
         if isinstance(bone, PlaceBone):
             init_keys(
                 skeleton,
@@ -2214,31 +2209,24 @@ class Closet(object):
         if Thing and isinstance(bone, Thing.bonetypes[u"thing_loc"]):
             core = self.skeleton[u"thing"][bone.character][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
-            upd_time(bone.branch, bone.tick)
         elif Thing and isinstance(bone, Thing.bonetypes[u"thing_loc_facade"]):
             core = self.skeleton[u"thing"][bone.observed][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
-            upd_time(bone.branch, bone.tick)
         elif Portal and isinstance(bone, Portal.bonetypes[u"portal_loc"]):
             core = self.skeleton[u"portal"][bone.character][bone.name]
-            upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif Portal and isinstance(
                 bone, Portal.bonetypes[u"portal_stat_facade"]):
             core = self.skeleton[u"portal"][bone.observed][bone.name]
-            upd_time(bone.branch, bone.tick)
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif Place and isinstance(bone, Place.bonetypes[u"place_stat"]):
             set_place_maybe(bone.host, bone.name, bone.branch, bone.tick)
-            upd_time(bone.branch, bone.tick)
         elif Spot and isinstance(bone, Spot.bonetypes[u"spot"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
-            upd_time(bone.branch, bone.tick)
         elif Spot and isinstance(bone, Spot.bonetypes[u"spot_coords"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
-            upd_time(bone.branch, bone.tick)
         elif Img and isinstance(bone, Img.bonetypes["img_tag"]):
             if bone.tag not in self.img_tag_d:
                 self.img_tag_d[bone.tag] = set()

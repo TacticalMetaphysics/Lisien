@@ -17,23 +17,7 @@ from kivy.clock import Clock
 from LiSE.orm import SaveableMetaclass
 
 
-class EnumProperty(ObjectProperty):
-    """Basically just ObjectProperty but restricted to certain
-    predetermined objects."""
-    def __init__(self, *args, **kwargs):
-        if 'permitted' in kwargs:
-            self.permitted = kwargs['permitted']
-        else:
-            raise TypeError('Need at least one permitted value')
-        super(EnumProperty, self).__init__(*args, **kwargs)
-
-    def set(self, obj, value):
-        if value not in self.permitted:
-            raise ValueError('Value not permitted')
-        return super(EnumProperty, self).set(obj, value)
-
-
-class ClosetWidget(Widget):
+class ClosetLabel(Label):
     """Mix-in class for various text-having widget classes, to make their
     text match some named string from the closet."""
     stringname = StringProperty()
@@ -41,11 +25,7 @@ class ClosetWidget(Widget):
     symbolic = BooleanProperty(False)
 
 
-class ClosetLabel(Label, ClosetWidget):
-    pass
-
-
-class ClosetButton(Button, ClosetWidget):
+class ClosetButton(Button, ClosetLabel):
     fun = ObjectProperty(None)
     arg = ObjectProperty(None)
     pressed = BooleanProperty(False)
@@ -63,7 +43,8 @@ class ClosetToggleButton(ClosetButton, ToggleButtonBehavior):
     pass
 
 
-class ClosetHintTextInput(TextInput, ClosetWidget):
+class ClosetHintTextInput(TextInput):
+    closet = ObjectProperty()
     failure_string = StringProperty()
     """String to use when the input failed to validate"""
     failure_color = ListProperty([1, 0, 0, 1])

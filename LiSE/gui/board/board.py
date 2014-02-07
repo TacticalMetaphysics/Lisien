@@ -24,20 +24,6 @@ class BoardLayout(RelativeLayout):
         if hasattr(w, 'upd_texs'):
             w.upd_texs()
 
-    def on_touch_down(self, touch):
-        if touch.grab_current in self.children:
-            return
-        for child in self.children:
-            if child.x > touch.x:
-                continue
-            if child.y > touch.y:
-                continue
-            if child.right < touch.x:
-                continue
-            if child.top < touch.y:
-                continue
-            return child.on_touch_down(touch)
-
 
 class Board(FloatLayout):
     """A graphical view onto a facade, resembling a game board."""
@@ -72,32 +58,32 @@ class Board(FloatLayout):
     arrowdict = DictProperty({})
     arrowlayout = ObjectProperty()
     final = BooleanProperty()
-    scroll_x = AliasProperty(
-        lambda self: self.bone.x,
-        lambda self, v: self.host.closet.set_bone(self.bone._replace(x=v)),
-        cache=False)
-    scroll_y = AliasProperty(
-        lambda self: self.bone.x,
-        lambda self, v: self.host.closet.set_bone(self.bone._replace(y=v)),
-        cache=False)
+    bone = ObjectProperty()
 
-    @property
-    def bone(self):
-        return self.facade.closet.skeleton[u"board"][
-            unicode(self.facade.observer)][
-            unicode(self.facade.observed)][
-            unicode(self.host)]
+    def _set_arrow_width(self, w):
+        self.bone = self.bone._replace(arrow_width=w)
+        self._trigger_set_bone()
 
-    @property
-    def arrow_width(self):
-        return self.bone.arrow_width
+    arrow_width = AliasProperty(
+        lambda self: self.bone.arrow_width,
+        _set_arrow_width,
+        bind=('bone',))
 
-    @property
-    def arrowhead_size(self):
-        return self.bone.arrowhead_size
+    def _set_arrowhead_size(self, v):
+        self.bone = self.bone._replace(arrowhead_size=v)
+        self._trigger_set_bone()
+
+    arrowhead_size = AliasProperty(
+        lambda self: self.bone.arrowhead_size,
+        _set_arrowhead_size,
+        bind=('bone',))
+
+    def _set_bone(self, *args):
+        self.host.closet.set_bone(self.bone)
 
     def __init__(self, **kwargs):
         kwargs['size_hint'] = (None, None)
+        self._trigger_set_bone = Clock.create_trigger(self._set_bone)
         return super(Board, self).__init__(**kwargs)
 
     def finalize(self, *args):
@@ -111,10 +97,11 @@ class Board(FloatLayout):
         if not self.facade and self.host:
             Clock.schedule_once(self.finalize, 0)
             return
-        bone = self.bone
-        self.scroll_x = bone.x
-        self.scroll_y = bone.y
-        tex = self.host.closet.get_img('default_wallpaper').texture
+        bone = self.host.closet.skeleton[u'board'][
+            unicode(self.facade.observer)][unicode(self.facade.observed)][
+            unicode(self.host)]
+        self.bone = bone
+        tex = self.host.closet.get_img(bone.wallpaper).texture
         self.size = tex.size
         self.wallpaper = Image(
             texture=tex,
@@ -208,13 +195,25 @@ class Board(FloatLayout):
 
 
 class BoardView(ScrollView):
-    app = ObjectProperty()
     board = ObjectProperty()
 
-    def on_board(self, *args):
-        self.scroll_x = self.board.scroll_x
-        self.scroll_y = self.board.scroll_y
-        self.add_widget(self.board)
+    def _set_scroll_x(self, x):
+        self.board.bone = self.board.bone._replace(x=x)
+        self.board._trigger_set_bone()
+
+    def _set_scroll_y(self, y):
+        self.board.bone = self.board.bone._replace(y=y)
+        self.board._trigger_set_bone()
+
+    scroll_x = AliasProperty(
+        lambda self: self.board.bone.x if self.board else 0,
+        _set_scroll_x,
+        cache=False)
+
+    scroll_y = AliasProperty(
+        lambda self: self.board.bone.y if self.board else 0,
+        _set_scroll_y,
+        cache=False)
 
     def on_touch_down(self, touch):
         for preemptor in 'menu', 'charsheet', 'portaling':
@@ -226,6 +225,8 @@ class BoardView(ScrollView):
         if self.do_scroll_x:
             self.do_scroll_x = self.do_scroll_y = (
                 not self.board.spotlayout.on_touch_down(touch))
+        if self.board.on_touch_down(touch):
+            return True
         return super(BoardView, self).on_touch_down(touch)
 
     def on_touch_up(self, touch):

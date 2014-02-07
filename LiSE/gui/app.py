@@ -9,11 +9,11 @@ from kivy.properties import (
     StringProperty)
 from kivy.factory import Factory
 from kivy.graphics import Line, Color
-
 from kivy.uix.widget import Widget
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
+from kivy.logger import Logger
 
 from sqlite3 import connect, OperationalError
 
@@ -28,7 +28,7 @@ from LiSE.gui.board.arrow import get_points
 
 from LiSE.gui.kivybits import TouchlessWidget
 from LiSE.gui.swatchbox import SwatchBox, TogSwatch
-from LiSE.gui.charsheet import CharSheet, CharSheetAdder
+from LiSE.gui.charsheet import CharSheetAdder
 
 from LiSE.util import TimestreamException
 from LiSE.model import Thing
@@ -41,11 +41,18 @@ Factory.register('TogSwatch', cls=TogSwatch)
 
 
 class DummySpot(Widget):
+    """This is at the end of the arrow that appears when you're drawing a
+    new portal. It's invisible, serving only to mark the pixel the
+    arrow ends at for the moment.
+
+    """
     def collide_point(self, *args):
+        """This should be wherever you point, and therefore, always
+        collides."""
         return True
 
     def on_touch_move(self, touch):
-        self.pos = touch.pos
+        self.center = touch.pos
 
 
 class DummyPawn(GamePiece):
@@ -75,9 +82,7 @@ class DummyPawn(GamePiece):
     def on_touch_up(self, touch):
         """Create a real Pawn on top of the Spot I am on top of, along
         with a Thing for it to represent."""
-        if 'pawn' in touch.ud:
-            del touch.ud['pawn']
-        else:
+        if 'pawn' not in touch.ud:
             return
         closet = self.board.host.closet
         for spot in self.board.spotlayout.children:
@@ -127,9 +132,13 @@ class SpriteMenuContent(StackLayout):
     spot/pawn."""
 
     def get_text(self, stringn):
+        """Alias of the closet's get_text to make the kv a bit tidier.
+
+        """
         return self.closet.get_text(stringn)
 
     def upd_selection(self, togswatch, state):
+        """Respond to the selection or deselection of one of the options"""
         if state == 'normal':
             while togswatch in self.selection:
                 self.selection.remove(togswatch)
@@ -172,24 +181,37 @@ class SpriteMenuContent(StackLayout):
 
 
 class SpotMenuContent(SpriteMenuContent):
-    pass
+    """For deciding how to make a new place"""
 
 
 class PawnMenuContent(SpriteMenuContent):
-    pass
+    """For deciding how to make a new thing"""
 
 
 class LiSELayout(FloatLayout):
     """A very tiny master layout that contains one board and some menus
-and charsheets.
+    and charsheets.
+
+    This contains three elements: a board, a menu, and a character
+    sheet. This class has some support methods for handling
+    interactions with the menu and the character sheet, but if neither
+    of those happen, the board handles touches on its own.
 
     """
     app = ObjectProperty()
     board = ObjectProperty()
+    """The Board instance that's visible at present"""
     charsheet = ObjectProperty()
+    menu = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
     portaling = BoundedNumericProperty(0, min=0, max=2)
     playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
+
+    def __init__(self, **kwargs):
+        kwargs['__no_builder'] = True
+        super(LiSELayout, self).__init__(**kwargs)
+        del kwargs['__no_builder']
+        super(LiSELayout, self).__init__(**kwargs)
 
     def handle_adbut(self, charsheet, i):
         adder = CharSheetAdder(charsheet=charsheet, insertion_point=i)
@@ -201,14 +223,12 @@ and charsheets.
         # self.dummyspot = None
         if self._touch is None:
             return
-        (ox, oy) = self._touch.ud['spot'].pos
-        (dx, dy) = self._touch.ud['portaling']['dummyspot'].pos
-        (ow, oh) = self._touch.ud['spot'].size
-        orx = ow / 2
-        ory = oh / 2
-        points = get_points(ox, orx, oy, ory, dx, 0, dy, 0, 10)
-        self._touch.ud['portaling']['dummyarrow'].canvas.clear()
-        with self._touch.ud['portaling']['dummyarrow'].canvas:
+        ud = self._touch.ud['portaling']
+        (ox, oy) = ud['origspot'].center
+        (dx, dy) = self.board.spotlayout.to_local(*ud['dummyspot'].center)
+        points = get_points(ox, 0, oy, 0, dx, 0, dy, 0, 10)
+        ud['dummyarrow'].canvas.clear()
+        with ud['dummyarrow'].canvas:
             Color(0.25, 0.25, 0.25)
             Line(width=1.4, points=points)
             Color(1, 1, 1)
@@ -226,6 +246,7 @@ and charsheets.
             if "spot" in touch.ud:
                 touch.grab(self)
                 ud = {
+                    'origspot': touch.ud['spot'],
                     'dummyspot': DummySpot(pos=touch.pos),
                     'dummyarrow': TouchlessWidget()}
                 self.board.arrowlayout.add_widget(ud['dummyarrow'])
@@ -245,18 +266,11 @@ and charsheets.
                     ud['dummyarrow'].canvas.clear()
                     self.board.arrowlayout.remove_widget(
                         ud['dummyarrow'])
-                    del touch.ud['portaling']
                 self.dismiss_prompt()
                 self.origspot = None
                 self.dummyspot = None
                 self.dummyarrow = None
         return super(LiSELayout, self).on_touch_down(touch)
-
-    def on_touch_move(self, touch):
-        if 'portaling' in touch.ud:
-            touch.ud['portaling']['dummyspot'].pos = touch.pos
-            return True
-        return super(LiSELayout, self).on_touch_move(touch)
 
     def on_touch_up(self, touch):
         if self.portaling == 2:
@@ -264,22 +278,22 @@ and charsheets.
             if touch != self._touch:
                 return
             ud = touch.ud['portaling']
-            del touch.ud['portaling']
             ud['dummyspot'].unbind(pos=self.draw_arrow)
             ud['dummyarrow'].canvas.clear()
             self.remove_widget(ud['dummyspot'])
             self.board.remove_widget(ud['dummyarrow'])
             self.dismiss_prompt()
             destspot = None
-            for spot in self.board.spotdict.itervalues():
-                if spot.collide_point(touch.x, touch.y):
+            for spot in self.board.spotlayout.children:
+                if spot.collide_point(*self.board.spotlayout.to_local(
+                        *touch.pos)) and spot is not ud['origspot']:
                     destspot = spot
                     break
             if destspot is None:
                 ud['dummyarrow'].canvas.clear()
                 self.dismiss_prompt()
                 return True
-            origplace = touch.ud['spot'].place
+            origplace = ud['origspot'].place
             destplace = destspot.place
             portalname = "{}->{}".format(origplace, destplace)
             portal = self.board.facade.observed.make_portal(
@@ -560,12 +574,7 @@ class LiSEApp(App):
             load_charsheet=self.observed_name,
             load_board=[self.observer_name, self.observed_name,
                         self.host_name])
-        observer = self.closet.get_character(self.observer_name)
-        observed = self.closet.get_character(self.observed_name)
-        host = self.closet.get_character(self.host_name)
-        l = LiSELayout(app=self, board=Board(
-            app=self, facade=observed.get_facade(observer),
-            host=host), charsheet=CharSheet(character=observed))
+        l = LiSELayout(app=self)
         from kivy.core.window import Window
         from kivy.modules import inspector
         inspector.create_inspector(Window, l)
@@ -573,7 +582,7 @@ class LiSEApp(App):
         return l
 
     def on_pause(self):
-        self.closet.save()
+        self.closet.save_game()
 
     def stop(self, *largs):
         self.closet.save_game()

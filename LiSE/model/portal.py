@@ -103,7 +103,7 @@ class Portal(Container):
         return unicode(self.name)
 
     def __repr__(self):
-        bone = self.loc_bone
+        bone = self.get_loc_bone()
         return "{2}({0}->{1})".format(
             bone.origin, bone.destination, self.name)
 
