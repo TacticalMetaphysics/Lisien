@@ -33,22 +33,13 @@ from LiSE.gui.kivybits import (
     ClosetButton
 )
 from LiSE.util import (
-    THING_TAB,
-    PLACE_TAB,
-    PORTAL_TAB,
-    CHAR_TAB,
-    THING_CAL,
-    PLACE_CAL,
-    PORTAL_CAL,
-    CHAR_CAL,
     SHEET_ITEM_TYPES,
     CALENDAR_TYPES
 )
 from table import TableView
 
-
 csitem_type_table_d = defaultdict(set)
-csitem_type_table_d[CHAR_CAL].add(u"char_cal")
+csitem_type_table_d['char_cal'].add('char_cal')
 
 
 class ListItemToggle(SelectableView, ToggleButton):
@@ -281,8 +272,8 @@ class CharSheetAdder(ModalView):
                         place=unicode(placen),
                         stat=unicode(statn),
                         idx=self.insertion_point,
-                        type=PLACE_CAL))
-                return PLACE_CAL
+                        type='place_cal'))
+                return 'place_cal'
             elif tab.current_tab == self.ids.portal_cal:
                 if len(self.ids.portal_cal_portal.selection) != 1:
                     return
@@ -296,8 +287,8 @@ class CharSheetAdder(ModalView):
                         portal=unicode(portn),
                         stat=unicode(statn),
                         idx=self.insertion_point,
-                        type=PORTAL_CAL))
-                return PORTAL_CAL
+                        type='portal_cal'))
+                return 'portal_cal'
             elif tab.current_tab == self.ids.char_cal:
                 if len(self.ids.char_cal_stat.selection) != 1:
                     return
@@ -307,8 +298,8 @@ class CharSheetAdder(ModalView):
                         character=unicode(character),
                         stat=unicode(statn),
                         idx=self.insertion_point,
-                        type=CHAR_CAL))
-                return CHAR_CAL
+                        type='char_cal'))
+                return 'char_cal'
             else:
                 if len(self.ids.thing_cal_thing.selection) != 1:
                     return
@@ -322,8 +313,8 @@ class CharSheetAdder(ModalView):
                         thing=unicode(thingn),
                         stat=unicode(statn),
                         idx=self.insertion_point,
-                        type=THING_CAL))
-                return THING_CAL
+                        type='thing_cal'))
+                return 'thing_cal'
         else:
             tab = self.ids.tables_panel
             if tab.current_tab == self.ids.place_tab:
@@ -332,7 +323,7 @@ class CharSheetAdder(ModalView):
                         character=unicode(character),
                         idx=self.insertion_point,
                         place=unicode(nounitem.text),
-                        type=PLACE_TAB)
+                        type='place_tab')
                     for nounitem in self.ids.place_tab_place.selection]
                 if len(place_tab_places) < 1:
                     return
@@ -341,20 +332,20 @@ class CharSheetAdder(ModalView):
                         character=unicode(character),
                         idx=self.insertion_point,
                         place=unicode(statitem.text),
-                        type=PLACE_TAB)
+                        type='place_tab')
                     for statitem in self.ids.place_tab_stat.selection]
                 if len(place_tab_stats) < 1:
                     return
                 for bone in place_tab_places + place_tab_stats:
                     self.charsheet.character.closet.set_bone(bone)
-                return PLACE_TAB
+                return 'place_tab'
             elif tab.current_tab == self.ids.portal_tab:
                 portal_tab_portals = [
                     CharSheet.bonetypes["portal_tab_portal"](
                         character=unicode(character),
                         idx=self.insertion_point,
                         portal=unicode(nounitem.text),
-                        type=PORTAL_TAB)
+                        type='portal_tab')
                     for nounitem in self.ids.portal_tab_portal.selection]
                 if len(portal_tab_portals) < 1:
                     return
@@ -363,33 +354,33 @@ class CharSheetAdder(ModalView):
                         character=unicode(character),
                         idx=self.insertion_point,
                         stat=unicode(statitem.text),
-                        type=PORTAL_TAB)
+                        type='portal_tab')
                     for statitem in self.ids.portal_tab_stat.selection]
                 if len(portal_tab_stats) < 1:
                     return
                 for bone in portal_tab_portals + portal_tab_stats:
                     self.charsheet.character.closet.set_bone(bone)
-                return PORTAL_TAB
+                return 'portal_tab'
             elif tab.current_tab == self.ids.char_tab:
                 char_tab_stats = [
                     CharSheet.bonetypes["char_tab_stat"](
                         character=unicode(character),
                         idx=self.insertion_point,
                         stat=unicode(statitem.text),
-                        type=CHAR_TAB)
+                        type='char_tab')
                     for statitem in self.ids.char_tab_stat.selection]
                 if len(char_tab_stats) < 1:
                     return
                 for bone in char_tab_stats:
                     self.charsheet.character.closet.set_bone(bone)
-                return CHAR_TAB
+                return 'char_tab'
             else:
                 thing_tab_things = [
                     CharSheet.bonetypes["thing_tab_thing"](
                         character=unicode(character),
                         idx=self.insertion_point,
                         thing=unicode(nounitem.text),
-                        type=THING_TAB)
+                        type='char_tab')
                     for nounitem in self.ids.thing_tab_thing.selection]
                 if len(thing_tab_things) < 1:
                     return
@@ -398,13 +389,13 @@ class CharSheetAdder(ModalView):
                         character=unicode(character),
                         idx=self.insertion_point,
                         stat=unicode(statitem.text),
-                        type=THING_TAB)
+                        type='thing_tab')
                     for statitem in self.ids.thing_tab_stat.selection]
                 if len(thing_tab_stats) < 1:
                     return
                 for bone in thing_tab_things + thing_tab_stats:
                     self.charsheet.character.closet.set_bone(bone)
-                return THING_TAB
+                return 'thing_tab'
 
 
 def char_sheet_table_def(
@@ -422,13 +413,13 @@ def char_sheet_table_def(
          {"character": "TEXT NOT NULL",
           "idx": "INTEGER NOT NULL",
           final_pkey: "TEXT NOT NULL",
-          "type": "INTEGER NOT NULL DEFAULT {}".format(typ)},
+          "type": "TEXT NOT NULL DEFAULT {}".format(typ)},
          "primary_key":
          ("character", "idx", final_pkey),
          "foreign_keys":
          {"character, idx, type":
           ("character_sheet_item_type", "character, idx, type")},
-         "checks": ["type={}".format(typ)]})
+         "checks": ["type='{}'".format(typ)]})
     if None not in foreign_key:
         (foreign_key_tab, foreign_key_key) = foreign_key
         r[1]["foreign_keys"].update(
@@ -453,13 +444,13 @@ def char_sheet_calendar_def(
           "idx": "INTEGER NOT NULL",
           col_x: "TEXT NOT NULL",
           "stat": "TEXT NOT NULL",
-          "type": "INTEGER DEFAULT {}".format(typ)},
+          "type": "TEXT DEFAULT {}".format(typ)},
          "primary_key":
          ("character", "idx"),
          "foreign_keys":
          {"character, idx, type":
           ("character_sheet_item_type", "character, idx, type")},
-         "checks": ["type={}".format(typ)]})
+         "checks": ["type='{}'".format(typ)]})
     if None not in foreign_key:
         (foreign_key_tab, foreign_key_key) = foreign_key
         r[1]["foreign_keys"].update(
@@ -529,6 +520,10 @@ class CharSheetItem(BoxLayout):
         self.y = b
         self.height = h
         touch.pop()
+
+    def on_touch_up(self, touch):
+        if 'sizer' in touch.ud:
+            del touch.ud['sizer']
 
     def set_bone(self, *args):
         if self.csbone:
@@ -608,72 +603,74 @@ class CharSheet(StackLayout):
          {"columns":
           {"character": "TEXT NOT NULL",
            "idx": "INTEGER NOT NULL",
-           "type": "INTEGER NOT NULL",
+           "type": "TEXT NOT NULL",
            "height": "INTEGER NOT NULL"},
           "primary_key":
           ("character", "idx"),
           "checks":
           ["type IN ({})".format(
-              ", ".join([str(typ) for typ in SHEET_ITEM_TYPES]))]}),
+              ", ".join(
+                  ["'{}'".format(typ)
+                   for typ in SHEET_ITEM_TYPES]))]}),
         char_sheet_table_def(
             "thing_tab_thing",
             "thing",
-            THING_TAB,
+            "thing_tab",
             foreign_key=("thing", "name")),
         char_sheet_table_def(
             "thing_tab_stat",
             "stat",
-            THING_TAB),
+            "thing_tab"),
         char_sheet_table_def(
             "place_tab_place",
             "place",
-            PLACE_TAB,
+            "place_tab",
             foreign_key=("place", "place")),
         char_sheet_table_def(
             "place_tab_stat",
             "stat",
-            PLACE_TAB),
+            "place_tab"),
         char_sheet_table_def(
             "portal_tab_portal",
             "portal",
-            PORTAL_TAB,
+            "portal_tab",
             foreign_key=("portal", "name")),
         char_sheet_table_def(
             "portal_tab_stat",
             "stat",
-            PORTAL_TAB),
+            "portal_tab"),
         char_sheet_table_def(
             "char_tab_stat",
             "stat",
-            CHAR_TAB),
+            "char_tab"),
         char_sheet_calendar_def(
             "thing_cal",
             "thing",
-            THING_CAL,
+            "thing_cal",
             foreign_key=("thing", "name")),
         char_sheet_calendar_def(
             "place_cal",
             "place",
-            PLACE_CAL,
+            "place_cal",
             foreign_key=("place", "place")),
         char_sheet_calendar_def(
             "portal_cal",
             "portal",
-            PORTAL_CAL,
+            "portal_cal",
             foreign_key=("portal", "name")),
         ("char_cal",
          {"columns":
           {"character": "TEXT NOT NULL",
            "idx": "INTEGER NOT NULL",
            "stat": "TEXT NOT NULL",
-           "type": "INTEGER DEFAULT {}".format(CHAR_CAL),
+           "type": "TEXT DEFAULT 'char_cal'",
            "height": "INTEGER NOT NULL DEFAULT 100"},
           "primary_key":
           ("character", "idx"),
           "foreign_keys":
           {"character, idx, type":
            ("character_sheet_item_type", "character, idx, type")},
-          "checks": ["type={}".format(CHAR_CAL),
+          "checks": ["type='char_cal'",
                      "height>=50"]})]
     character = ObjectProperty()
     """The character this sheet is about."""
@@ -683,7 +680,9 @@ class CharSheet(StackLayout):
         bind=('character',))
     myskel = AliasProperty(
         lambda self: self.character.closet.skeleton[
-            u'character_sheet_item_type'][unicode(self.character)],
+            u'character_sheet_item_type'][unicode(self.character)]
+        if unicode(self.character) in self.character.closet.skeleton[
+            u'character_sheet_item_type'] else None,
         lambda self, v: None,
         bind=('character',))
     csitems = ListProperty()
@@ -794,6 +793,7 @@ class CharSheet(StackLayout):
             self.repop()
             return
         _ = lambda x: x
+        self.clear_widgets()
         self.add_widget(ClosetButton(
             closet=self.character.closet,
             symbolic=True,
@@ -801,15 +801,14 @@ class CharSheet(StackLayout):
             fun=self.add_item,
             arg=0,
             size_hint_y=None,
-            height=50,
-            top=self.top))
+            height=50))
 
     def bone2widspec(self, bone):
         if bone is None:
             return {'csbone': bone,
                     'item_class': Widget,
                     'item_kwargs': {}}
-        if bone.type == THING_TAB:
+        if bone.type == 'thing_tab':
             headers = ["thing"]
             fieldnames = ["name"]
             stats = []
@@ -830,7 +829,7 @@ class CharSheet(StackLayout):
                         self.character.get_thing(subsubbone.thing)
                         for subsubbone in self.iter_tab_i_bones(
                             "thing_tab_thing", bone.idx)]}}
-        elif bone.type == PLACE_TAB:
+        elif bone.type == 'place_tab':
             return {
                 'csbone': bone,
                 'item_class': TableView,
@@ -842,7 +841,7 @@ class CharSheet(StackLayout):
                         self.character.get_place(subbone.place)
                         for subbone in self.iter_tab_i_bones(
                             "thing_tab_thing", bone.idx)]}}
-        elif bone.type == PORTAL_TAB:
+        elif bone.type == 'portal_tab':
             headers = ["portal"]
             fieldnames = ["name"]
             stats = []
@@ -865,13 +864,13 @@ class CharSheet(StackLayout):
                         for subbone in self.iter_tab_i_bones(
                             "portal_tab_portal", bone.idx)]}}
         elif bone.type in CALENDAR_TYPES:
-            (tabn, keyns) = {
-                THING_CAL: ("thing_cal", ["thing", "stat"]),
-                PLACE_CAL: ("place_cal", ["place", "stat"]),
-                PORTAL_CAL: ("portal_cal", ["portal", "stat"]),
-                CHAR_CAL: ("char_cal", ["stat"])
+            keyns = {
+                'thing_cal': ("thing", "stat"),
+                'place_cal': ("place", "stat"),
+                'portal_cal': ("portal", "stat"),
+                'char_cal': ("stat",)
             }[bone.type]
-            subbone = self.character.closet.skeleton[tabn][
+            subbone = self.character.closet.skeleton[bone.type][
                 unicode(self.character)][bone.idx]
             return {
                 'csbone': bone,

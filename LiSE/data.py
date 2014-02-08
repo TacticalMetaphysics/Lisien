@@ -27,12 +27,12 @@ graphics = {
         'offset_y': 8,
         'imgs': ['default_pawn']}}
 
-globs = [('branch',   1, '0'),
-         ('tick',     1, '0'),
-         ('language', 3, 'eng'),
-         ('observer', 3, 'Omniscient'),
-         ('observed', 3, 'Physical'),
-         ('host',     3, 'Physical')]
+globs = [('branch',   'int', '0'),
+         ('tick',     'int', '0'),
+         ('language', 'unicode', 'eng'),
+         ('observer', 'unicode', 'Omniscient'),
+         ('observed', 'unicode', 'Player'),
+         ('host',     'unicode', 'Physical')]
 
 stackhs = [(10, ('block', 'brutalist')),
            (6,  ('crossroad', 'corporate', 'modernist',

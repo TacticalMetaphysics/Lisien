@@ -42,8 +42,9 @@ from LiSE.util import (
     passthru,
     ListItemIterator,
     TimestreamException,
-    int2pytype,
-    pytype2int)
+    unicode2pytype,
+    pytype2unicode
+)
 from LiSE import __path__
 from kivy.logger import Logger
 
@@ -1306,11 +1307,11 @@ class Closet(object):
         ("globals", {
             "columns": {
                 "key": "text not null",
-                "type": "integer not null default 3",
+                "type": "text not null default 'unicode'",
                 "value": "text"},
             "primary_key": ("key",),
             "checks": ["type in ({})".format(", ".join([
-                str(typ) for typ in int2pytype]))]
+                "'{}'".format(typ) for typ in unicode2pytype]))]
         }),
         ("strings", {
             "columns": {
@@ -1746,15 +1747,15 @@ class Closet(object):
 
         Not a bone. A scalar."""
         self.c.execute("SELECT type, value FROM globals WHERE key=?;", (key,))
-        (typ_i, val_s) = self.c.fetchone()
-        return int2pytype[typ_i](val_s)
+        (typ_s, val_s) = self.c.fetchone()
+        return unicode2pytype[typ_s](val_s)
 
     def set_global(self, key, value):
         """Set ``key``=``value`` in the database"""
         self.c.execute("DELETE FROM globals WHERE key=?;", (key,))
         self.c.execute(
             "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
-            (key, pytype2int[type(value)], unicode(value)))
+            (key, pytype2unicode[type(value)], unicode(value)))
 
     def get_text(self, strname):
         """Get the string of the given name in the language set at startup."""

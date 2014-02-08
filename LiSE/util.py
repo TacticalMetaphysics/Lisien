@@ -14,50 +14,46 @@ SQL from metadata declared as class atttributes.
 
 ### Constants
 
-THING_TAB = 0
-PLACE_TAB = 2
-PORTAL_TAB = 3
-CHAR_TAB = 4
-THING_CAL = 5
-PLACE_CAL = 6
-PORTAL_CAL = 7
-CHAR_CAL = 8
-
-
 SHEET_ITEM_TYPES = [
-    THING_TAB,
-    PLACE_TAB,
-    PORTAL_TAB,
-    CHAR_TAB,
-    THING_CAL,
-    PLACE_CAL,
-    PORTAL_CAL,
-    CHAR_CAL]
+    'thing_tab',
+    'place_tab',
+    'portal_tab',
+    'char_tab',
+    'thing_cal',
+    'place_cal',
+    'portal_cal',
+    'char_cal']
 
 
 TABLE_TYPES = [
-    THING_TAB,
-    PLACE_TAB,
-    PORTAL_TAB,
-    CHAR_TAB]
+    'thing_tab',
+    'place_tab',
+    'portal_tab',
+    'char_tab']
 
 
 CALENDAR_TYPES = [
-    THING_CAL,
-    PLACE_CAL,
-    PORTAL_CAL,
-    CHAR_CAL]
+    'thing_cal',
+    'place_cal',
+    'portal_cal',
+    'char_cal']
 
-int2pytype = {
-    0: bool,
-    1: int,
-    2: float,
-    3: unicode}
-"""Arbitrary numerical codes for inbuilt Python types"""
+unicode2pytype = {
+    'bool': bool,
+    'boolean': bool,
+    'int': int,
+    'integer': int,
+    'float': float,
+    'str': unicode,
+    'unicode': unicode,
+    'text': unicode}
 
-pytype2int = dict([
-    (value, key) for (key, value) in int2pytype.iteritems()
-])
+pytype2unicode = {
+    bool: 'bool',
+    int: 'int',
+    float: 'float',
+    unicode: 'unicode',
+    str: 'unicode'}
 
 phi = (1.0 + sqrt(5))/2.0
 """The golden ratio."""
