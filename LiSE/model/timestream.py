@@ -85,6 +85,16 @@ class Timestream(HandleHandler):
         self.mk_handles('branch', 'tick', 'time',
                         'hi_branch', 'hi_tick', 'hi_time')
 
+    def upd_time(self, branch, tick):
+        if (
+                branch > self._hi_branch and
+                tick > self._hi_tick):
+            self.hi_time = (branch, tick)
+        elif branch > self.hi_branch:
+            self.hi_branch = branch
+        elif tick > self.hi_tick:
+            self.hi_tick = tick
+
     def min_branch(self, table=None):
         """Return the lowest known branch.
 

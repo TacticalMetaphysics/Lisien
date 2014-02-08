@@ -2001,7 +2001,10 @@ class Closet(object):
         tick."""
         Logger.debug("orm: new branch {} from parent {}".format(
             child, parent))
-        assert(parent != child)
+        if parent == child:
+            raise TimestreamException(
+                "new_branch with child and parent both = {}".format(
+                    child))
         for character in self.character_d.itervalues():
             for bone in character.new_branch(parent, child, tick):
                 self.set_bone(bone)
@@ -2014,8 +2017,12 @@ class Closet(object):
                         self.set_bone(bone)
         self.skeleton["timestream"][child] = Timestream.bonetype(
             branch=child, parent=parent, tick=tick)
-        self.timestream.hi_branch += 1
-        assert(self.timestream.hi_branch == child)
+        if self.timestream.hi_branch != child:
+            raise TimestreamException(
+                "Made a new branch, {}, which was supposed to be "
+                "the hi_branch, but instead the hi_branch is {}. "
+                "Has time been overwritten?".format(
+                    child, self.timestream.hi_branch))
 
     def time_travel_inc_tick(self, ticks=1):
         """Go to the next tick on the same branch"""
@@ -2227,10 +2234,15 @@ class Closet(object):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
         elif Spot and isinstance(bone, Spot.bonetypes[u"spot_coords"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
-        elif Img and isinstance(bone, Img.bonetypes["img_tag"]):
+        elif Img and isinstance(bone, Img.bonetypes[u"img_tag"]):
             if bone.tag not in self.img_tag_d:
                 self.img_tag_d[bone.tag] = set()
             self.img_tag_d[bone.tag].add(bone.img)
+
+        # Timestream.hi_time is always supposed to = the latest branch
+        # and tick on record. Make sure of this.
+        if hasattr(bone, 'branch') and hasattr(bone, 'tick'):
+            self.timestream.upd_time(bone.branch, bone.tick)
 
         keynames = bone.keynames
         keys = [bone._name] + [getattr(bone, keyn) for keyn in keynames[:-1]]
