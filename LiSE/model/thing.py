@@ -264,7 +264,6 @@ class Thing(Container):
             tupme = (unicode(self.character), unicode(self))
             self.character.closet.new_branch_blank.add(tupme)
             self.restore_loc_bones(branch, locs)
-            new_branch_blank = True
             increment = 1
             while branch + increment in self.locations:
                 increment += 1
@@ -279,8 +278,6 @@ class Thing(Container):
             else:
                 loc = oloc
                 tick = otick
-            Logger.debug("Thing: trying again on branch {} (was branch {})".format(
-                self.character.closet.branch, branch))
             self.follow_path(
                 path, self.character.closet.branch, tick+1)
 

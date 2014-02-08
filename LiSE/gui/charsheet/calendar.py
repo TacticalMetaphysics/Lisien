@@ -251,7 +251,6 @@ class Calendar(Layout):
 
         """
         if not (self.character and self.key and self.stat):
-            Logger.debug("Calendar: Not finalizing just yet")
             Clock.schedule_once(self.finalize, 0)
             return
 
@@ -288,7 +287,6 @@ class Calendar(Layout):
                 unicode(self.character)][self.key]
             self.boneatt = "value"
         else:
-            Logger.debug('Unknown cal_type, finalize later')
             Clock.schedule_once(self.finalize, 0)
             return
         self.redata()
@@ -300,9 +298,6 @@ class Calendar(Layout):
             return upd_col_skel
 
         if self.mintick == self.maxtick:
-            Logger.warning(
-                "Calendar: Haven't got a window of ticks between "
-                "which to render.")
             Clock.schedule_once(self.redata)
             return
 
@@ -455,10 +450,6 @@ class CalendarView(StencilView):
             self.hi_tick + self.calendar.ticks_offscreen))
         if maxtick != self.calendar.maxtick:
             self.calendar.maxtick = maxtick
-        Logger.debug(
-            "CalendarView: minbranch={} maxbranch={}"
-            " mintick={} maxtick={}".format(
-                minbranch, maxbranch, mintick, maxtick))
 
     def upd_clayout_size(self, *args):
         hi_branch = self.closet.timestream.hi_branch
