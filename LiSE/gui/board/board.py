@@ -3,7 +3,6 @@
 from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
     AliasProperty,
-    BooleanProperty,
     DictProperty,
     ObjectProperty)
 from kivy.uix.image import Image
@@ -57,7 +56,6 @@ class Board(FloatLayout):
     pawnlayout = ObjectProperty()
     arrowdict = DictProperty({})
     arrowlayout = ObjectProperty()
-    final = BooleanProperty()
     bone = ObjectProperty()
 
     def _set_arrow_width(self, w):

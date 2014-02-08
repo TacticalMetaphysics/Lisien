@@ -208,9 +208,7 @@ class LiSELayout(FloatLayout):
     playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
 
     def __init__(self, **kwargs):
-        kwargs['__no_builder'] = True
-        super(LiSELayout, self).__init__(**kwargs)
-        del kwargs['__no_builder']
+        self._trigger_draw_arrow = Clock.create_trigger(self.draw_arrow)
         super(LiSELayout, self).__init__(**kwargs)
 
     def handle_adbut(self, charsheet, i):
@@ -223,9 +221,9 @@ class LiSELayout(FloatLayout):
         # self.dummyspot = None
         if self._touch is None:
             return
-        ud = self._touch.ud['portaling']
+        ud = self.portal_d
         (ox, oy) = ud['origspot'].center
-        (dx, dy) = self.board.spotlayout.to_local(*ud['dummyspot'].center)
+        (dx, dy) = self.board.parent.to_local(*self._touch.pos)
         points = get_points(ox, 0, oy, 0, dx, 0, dy, 0, 10)
         ud['dummyarrow'].canvas.clear()
         with ud['dummyarrow'].canvas:
@@ -245,40 +243,37 @@ class LiSELayout(FloatLayout):
             self.board.on_touch_down(touch)
             if "spot" in touch.ud:
                 touch.grab(self)
-                ud = {
+                touch.ungrab(touch.ud['spot'])
+                touch.ud['portaling'] = True
+                self.portal_d = {
                     'origspot': touch.ud['spot'],
                     'dummyspot': DummySpot(pos=touch.pos),
                     'dummyarrow': TouchlessWidget()}
-                self.board.arrowlayout.add_widget(ud['dummyarrow'])
-                self.add_widget(ud['dummyspot'])
-                ud["dummyspot"].bind(pos=self.draw_arrow)
-                touch.ud['portaling'] = ud
+                self.board.arrowlayout.add_widget(
+                    self.portal_d['dummyarrow'])
+                self.add_widget(
+                    self.portal_d['dummyspot'])
                 self._touch = touch
                 self.portaling = 2
             else:
                 self.portaling = 0
-                if (
-                        'portaling' in touch.ud and
-                        'dummyspot' in touch.ud['portaling']):
-                    ud = touch.ud['portaling']
-                    ud['dummyspot'].unbind(pos=self.draw_arrow)
-                    self.remove_widget(ud['dummyspot'])
-                    ud['dummyarrow'].canvas.clear()
-                    self.board.arrowlayout.remove_widget(
-                        ud['dummyarrow'])
                 self.dismiss_prompt()
-                self.origspot = None
-                self.dummyspot = None
-                self.dummyarrow = None
-        return super(LiSELayout, self).on_touch_down(touch)
+            return True
+        else:
+            return super(LiSELayout, self).on_touch_down(touch)
+
+    def on_touch_move(self, touch):
+        if self.portaling == 2:
+            self._touch = touch
+            self._trigger_draw_arrow()
+        return super(LiSELayout, self).on_touch_move(touch)
 
     def on_touch_up(self, touch):
         if self.portaling == 2:
             self.portaling = 0
             if touch != self._touch:
                 return
-            ud = touch.ud['portaling']
-            ud['dummyspot'].unbind(pos=self.draw_arrow)
+            ud = self.portal_d
             ud['dummyarrow'].canvas.clear()
             self.remove_widget(ud['dummyspot'])
             self.board.remove_widget(ud['dummyarrow'])

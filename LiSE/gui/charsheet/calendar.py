@@ -21,12 +21,7 @@ from kivy.uix.widget import Widget
 from kivy.logger import Logger
 from kivy.graphics import Color, Line, Triangle
 
-from LiSE.util import (
-    CALENDAR_TYPES,
-    THING_CAL,
-    PLACE_CAL,
-    PORTAL_CAL,
-    CHAR_CAL)
+from LiSE.util import CALENDAR_TYPES
 
 
 class Cell(Label):
@@ -164,7 +159,7 @@ class Calendar(Layout):
     once. Each represents a branch of the timestream."""
     boneatt = StringProperty()
     """What attribute of its bone each cell should display for its text"""
-    cal_type = OptionProperty(THING_CAL, options=CALENDAR_TYPES)
+    cal_type = OptionProperty('thing_cal', options=CALENDAR_TYPES)
     """Integer to indicate where in the skeleton to look up the bones for
     the cells"""
     col_width = BoundedNumericProperty(100, min=50)
@@ -258,7 +253,7 @@ class Calendar(Layout):
         closet = character.closet
         skeleton = closet.skeleton
 
-        if self.cal_type == THING_CAL:
+        if self.cal_type == 'thing_cal':
             self.referent = self.character.get_thing(self.key)
             if self.stat == "location":
                 self.skel = skeleton["thing_loc"][
@@ -268,12 +263,12 @@ class Calendar(Layout):
                 self.skel = skeleton["thing_stat"][
                     unicode(self.character)][self.key][self.stat]
                 self.boneatt = "value"
-        elif self.cal_type == PLACE_CAL:
+        elif self.cal_type == 'place_cal':
             self.referent = self.character.get_place(self.key)
             self.skel = skeleton["place_stat"][
                 unicode(self.character)][self.key][self.stat]
             self.boneatt = "value"
-        elif self.cal_type == PORTAL_CAL:
+        elif self.cal_type == 'portal_cal':
             if self.stat in ("origin", "destination"):
                 self.skel = skeleton["portal_loc"][
                     unicode(self.character)][self.key]
@@ -282,7 +277,7 @@ class Calendar(Layout):
                 self.skel = skeleton["portal_stat"][
                     unicode(self.character)][self.key][self.stat]
                 self.boneatt = "value"
-        elif self.cal_type == CHAR_CAL:
+        elif self.cal_type == 'char_cal':
             self.skel = skeleton["character_stat"][
                 unicode(self.character)][self.key]
             self.boneatt = "value"

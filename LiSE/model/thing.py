@@ -259,16 +259,12 @@ class Thing(Container):
                 path))
             self.follow_path(path, branch, tick)
         except TimeParadox:
-            Logger.debug("Thing: TimeParadox! Restoring {} to {}".format(
-                branch, locs))
             tupme = (unicode(self.character), unicode(self))
             self.character.closet.new_branch_blank.add(tupme)
             self.restore_loc_bones(branch, locs)
             increment = 1
             while branch + increment in self.locations:
                 increment += 1
-            Logger.debug("Thing: incrementing branch from {} to {}".format(
-                branch, branch+increment))
             self.character.closet.new_branch(branch, branch+increment, tick)
             self.character.closet.time_travel(branch+increment, tick)
             self.character.closet.new_branch_blank.remove(tupme)
