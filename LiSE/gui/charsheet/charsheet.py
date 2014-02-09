@@ -140,24 +140,24 @@ class NounStatListView(Widget):
     selection_mode = OptionProperty(
         'multiple', options=['none', 'single', 'multiple'])
     allow_empty_selection = BooleanProperty(False)
-    finalized = BooleanProperty(False)
 
     def __init__(self, **kwargs):
+        self._trigger_redata = Clock.create_trigger(self.redata)
         super(NounStatListView, self).__init__(**kwargs)
+        self.bind(nounitems=self._trigger_redata)
         self.finalize()
 
-    def add_stat(self, stat):
-        self.specialitems.append(stat)
-        self.clear_widgets()
-        self.finalize()
-
-    def on_nounitems(self, *args):
+    def redata(self, *args):
         data2b = [SpecialItem(special) for special in
                   self.specialitems]
         for nounitem in self.nounitems:
             for key in nounitem.noun.iter_stat_keys():
                 data2b.append(StatItem(key))
         self.adapter.data = data2b
+
+    def add_stat(self, stat):
+        self.specialitems.append(stat)
+        self._trigger_redata()
 
     def finalize(self, *args):
         self.adapter = ListAdapter(
@@ -170,9 +170,13 @@ class NounStatListView(Widget):
             allow_empty_selection=self.allow_empty_selection,
             cls=ListItemToggle)
         self.adapter.bind(selection=self.setter('selection'))
-        listview = ListView(adapter=self.adapter)
+        listview = ListView(
+            adapter=self.adapter,
+            size=self.size,
+            pos=self.pos)
+        self.bind(size=listview.setter('size'),
+                  pos=listview.setter('pos'))
         self.add_widget(listview)
-        self.finalized = True
 
 
 class StatListView(Widget):
