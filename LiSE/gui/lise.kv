@@ -86,6 +86,7 @@
                                         closet: root.closet
                                         symbolic: True
                                         stringname: _("@add")
+                                        size_hint_x: 0.2
                                         fun: thing_tab_stat.add_stat
                                         arg: thing_tab_stat_in.text
                     TabbedPanelItem:
@@ -121,6 +122,7 @@
                                         closet: root.closet
                                         symbolic: True
                                         stringname: _("@add")
+                                        size_hint_x: 0.2
                                         fun: place_tab_stat.add_stat
                                         arg: place_tab_stat_in.text
                     TabbedPanelItem:
@@ -157,6 +159,7 @@
                                         closet: root.closet
                                         symbolic: True
                                         stringname: _("@add")
+                                        size_hint_x: 0.2
                                         fun: portal_tab_stat.add_stat
                                         arg: portal_tab_stat_in.text
                     TabbedPanelItem:
@@ -180,6 +183,7 @@
                                     id: char_tab_stat_add
                                     closet: root.closet
                                     symbolic: True
+                                    size_hint_x: 0.2
                                     stringname: _("@add")
                                     fun: char_tab_stat.add_stat
                                     arg: char_tab_stat_in.text
@@ -223,6 +227,7 @@
                                         id: thing_cal_stat_add
                                         symbolic: True
                                         stringname: _("@add")
+                                        size_hint_x: 0.2
                                         closet: root.closet
                                         args: [thing_cal_thing.selection[0], thing_cal_stat_in.text] if thing_cal_thing.selection else []
                     TabbedPanelItem:
@@ -260,6 +265,7 @@
                                         id: place_cal_stat_add
                                         closet: root.closet
                                         symbolic: True
+                                        size_hint_x: 0.2
                                         fun: root.confirm
                                         args: [place_cal_place.selection[0], place_cal_stat_in.text] if place_cal_place.selection else []
                     TabbedPanelItem:
@@ -297,6 +303,7 @@
                                         id: portal_cal_stat_add
                                         closet: root.closet
                                         symbolic: True
+                                        size_hint_x: 0.2
                                         fun: root.confirm
                                         args: [portal_cal_portal.selection[0], portal_cal_stat_in.text] if portal_cal_portal.selection else []
                     TabbedPanelItem:
@@ -321,6 +328,7 @@
                                     id: char_cal_stat_add
                                     closet: root.closet
                                     symbolic: True
+                                    size_hint_x: 0.2
                                     stringname: _("@add")
                                     fun: root.confirm
                                     args: [char_cal_stat_in.text]
