@@ -97,6 +97,7 @@ will update its position appropriately.
         self.closet.register_time_listener(self.handle_time)
         self.board.pawndict[unicode(self.thing)] = self
         self.handle_time(*self.closet.time)
+        self.locskel.register_listener(self.reposskel)
 
     def __str__(self):
         return str(self.thing)

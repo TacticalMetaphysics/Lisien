@@ -216,9 +216,6 @@ class LiSELayout(FloatLayout):
         adder.open()
 
     def draw_arrow(self, *args):
-        # Sometimes this gets triggered, *just before* getting
-        # unbound, and ends up running one last time *just after*
-        # self.dummyspot = None
         if self._touch is None:
             return
         ud = self.portal_d

@@ -3,12 +3,13 @@
 from kivy.properties import (
     BooleanProperty,
     StringProperty,
-    ObjectProperty,
-    NumericProperty)
+    ObjectProperty
+)
 from kivy.uix.widget import Widget
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.clock import Clock
 
 """Menus that are actually just stacks of buttons.
 
@@ -18,27 +19,19 @@ I'll probably change over to drop menus at some point."""
 class MenuWidget(Widget):
     closet = ObjectProperty()
     fun = ObjectProperty()
-    arg = ObjectProperty(None, allownone=True)
     symbolic = BooleanProperty(False)
     stringname = StringProperty()
-    completion = NumericProperty(0)
 
-    def on_closet(self, *args):
-        self.completion += 1
+    def __init__(self, **kwargs):
+        super(MenuWidget, self).__init__(**kwargs)
+        self.finalize()
 
-    def on_stringname(self, *args):
-        self.completion += 1
-
-    def on_completion(self, i, v):
-        if v == 2:
-            self.closet.register_text_listener(self.stringname, self.retext)
-            self.initext()
-
-    def do_fun(self):
-        if self.arg is None:
-            self.fun()
-        else:
-            self.fun(self.arg)
+    def finalize(self, *args):
+        if not (self.closet and self.stringname):
+            Clock.schedule_once(self.finalize, 0)
+            return
+        self.closet.register_text_listener(self.stringname, self.retext)
+        self.initext()
 
 
 class MenuButton(Button, MenuWidget):
@@ -49,7 +42,7 @@ class MenuButton(Button, MenuWidget):
         self.text = self.closet.get_text(self.stringname)
 
     def on_press(self, *args):
-        self.do_fun()
+        self.fun()
 
     def retext(self, skel, k, v):
         if k == self.closet.language:
@@ -58,15 +51,15 @@ class MenuButton(Button, MenuWidget):
 
 class MenuIntInput(TextInput, MenuWidget):
     def initext(self):
+        self.text = ''
         self.hint_text = self.closet.get_text(self.stringname)
 
-    def on_text(self, i, v):
-        try:
-            i.arg = int(v)
-            i.do_fun()
-        except:
-            pass
-        self.text = ''
+    def on_focus(self, *args):
+        if not self.focus:
+            try:
+                self.fun(int(self.text))
+            except ValueError:
+                self.initext()
 
     def retext(self, time):
         self.hint_text = str(time)

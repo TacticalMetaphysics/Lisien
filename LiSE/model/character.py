@@ -421,6 +421,27 @@ class Character(object):
             self.graph.add_vertex(name=bone.location, place=place)
             return place
 
+    def set_thing_location(self, thing, place, branch=None, tick=None):
+        (branch, tick) = self.sanetime(branch, tick)
+        locb = thing.bonetypes[u'thing_loc'](
+            character=unicode(self),
+            name=unicode(thing),
+            branch=branch,
+            tick=tick,
+            location=unicode(place))
+        self.closet.set_bone(locb)
+
+    def set_thing_stat(self, thing, key, value, branch=None, tick=None):
+        (branch, tick) = self.sanetime(branch, tick)
+        statb = thing.bonetypes[u'thing_stat'](
+            character=unicode(self),
+            thing=unicode(thing),
+            branch=branch,
+            tick=tick,
+            key=unicode(key),
+            value=unicode(value))
+        self.closet.set_bone(statb)
+
     def iter_hosted_thing_bones(self):
         skel = self.closet.skeleton[u"thing"]
         for bone in skel.iterbones():

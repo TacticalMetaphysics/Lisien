@@ -2,10 +2,14 @@ from kivy.properties import (
     AliasProperty,
     NumericProperty,
     ListProperty,
-    ObjectProperty)
+    ObjectProperty,
+    StringProperty
+)
 from kivy.adapters.listadapter import ListAdapter
-from kivy.uix.listview import ListView
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.label import Label
+from kivy.uix.listview import ListView
+from kivy.uix.textinput import TextInput
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
@@ -13,7 +17,7 @@ from kivy.uix.stencilview import StencilView
 from kivy.clock import Clock
 
 
-class TableCell(Label):
+class TableCell(object):
     """Basically just a Label that may be conveniently rewritten with a
     callback."""
     text_getter = ObjectProperty()
@@ -23,24 +27,39 @@ class TableCell(Label):
         self._trigger_upd_text = Clock.create_trigger(self.upd_text)
         super(TableCell, self).__init__(**kwargs)
 
+
+class TableHeader(Label, TableCell):
+    """TableCell to put at the top of the table"""
     def upd_text(self, *args):
         self.text = self.text_getter()
 
 
-class TableHeader(TableCell):
-    """TableCell to put at the top of the table"""
-    pass
-
-
-class TableBody(TableCell):
+class TableBody(TextInput, TableCell):
     """TableCell to put in the rows of the table"""
-    pass
+    _touch = ObjectProperty()
+    item = ObjectProperty()
+    key = StringProperty()
+    bone_setter = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        kwargs['multiline'] = False
+        super(TableBody, self).__init__(**kwargs)
+
+    def on_text_validate(self, *args):
+        self.bone_setter(self.key, self.text)
+        self.focus = False
+        self.upd_text()
+
+    def upd_text(self, *args):
+        self.text = ''
+        self.hint_text = self.text_getter()
 
 
 class TableRow(BoxLayout):
     """Assembles appropriate TableBody for the fieldnames and statnames
     for the item"""
     item = ObjectProperty()
+    tab_type = StringProperty()
     tableview = ObjectProperty()
     closet = ObjectProperty()
     fieldnames = ListProperty()
@@ -51,54 +70,80 @@ class TableRow(BoxLayout):
         kwargs['fieldnames'] = kwargs['tableview'].fieldnames
         kwargs['statnames'] = kwargs['tableview'].stats
         super(TableRow, self).__init__(**kwargs)
+
         for fieldname in self.fieldnames:
             bwid = TableBody(
-                text_getter=lambda: unicode(getattr(self.item, fieldname)))
+                item=self.item,
+                key=fieldname,
+                bone_setter=self.field_bone_setter,
+                text_getter=lambda: str(getattr(self.item, fieldname)))
             self.closet.register_time_listener(bwid._trigger_upd_text)
             self.add_widget(bwid)
             bwid.upd_text()
         for statname in self.statnames:
             bwid = TableBody(
-                text_getter=lambda: unicode(self.item.get_stat(statname)))
+                item=self.item,
+                key=statname,
+                bone_setter=lambda k, v: self.item.set_stat(k, v),
+                text_getter=lambda: str(self.item.get_stat(statname)))
             self.closet.register_time_listener(bwid._trigger_upd_text)
             self.add_widget(bwid)
             bwid.upd_text()
 
+    def field_bone_setter(self, key, text):
+        if self.tab_type == 'thing_tab' and key == 'location':
+            self.item.set_location(text)
+        elif self.tab_type == 'portal_tab':
+            if key == 'origin':
+                self.item.set_origin(text)
+            elif key == 'destination':
+                self.item.set_destination(text)
+        else:
+            raise ValueError("Don't know how to set {} of {}".format(
+                key, type(self.item)))
 
-class TableContent(StackLayout):
-    """Contains a ListView to assemble the table."""
+
+class TableContent(GridLayout):
     closet = ObjectProperty()
     adapter = ObjectProperty()
     listview = ObjectProperty()
+    tab_type = StringProperty()
+    view = ObjectProperty()
 
     def __init__(self, **kwargs):
+        kwargs['cols'] = 1
         super(TableContent, self).__init__(**kwargs)
         self.finalize()
 
     def finalize(self, *args):
-        if not (self.closet and self.parent):
+        if not (self.closet and self.view):
             Clock.schedule_once(self.finalize, 0)
             return
         head = BoxLayout()
-        for header in self.parent.headers + self.parent.stats:
+        for header in self.view.headers + self.view.stats:
             hwid = TableHeader(
-                text_getter=lambda: self.closet.get_text(header))
+                text_getter=lambda: self.closet.get_text(header),
+                size_hint_y=None,
+                height=40)
             self.closet.register_text_listener(header, hwid.upd_text)
             hwid.upd_text()
             head.add_widget(hwid)
         self.add_widget(head)
         self.adapter = ListAdapter(
-            data=self.parent.items,
+            data=self.view.items,
             args_converter=self.args_converter,
             cls=TableRow)
         self.listview = ListView(adapter=self.adapter)
-        self.parent.bind(items=self.adapter.setter('data'))
+        self.view.bind(items=self.adapter.setter('data'))
         self.add_widget(self.listview)
 
     def args_converter(self, index, arg):
         return {
             'item': arg,
-            'tableview': self.parent}
+            'tab_type': self.tab_type,
+            'tableview': self.view,
+            'size_hint_y': None,
+            'height': 40}
 
 # TODO unify TableView and TableContent
 
@@ -110,6 +155,7 @@ class TableView(StencilView):
         if self.charsheet else None,
         lambda self, v: None,
         bind=('charsheet',))
+    item_type = StringProperty()
     mybone = ObjectProperty()
     headers = ListProperty()
     fieldnames = ListProperty()
@@ -129,15 +175,18 @@ class TableView(StencilView):
                 self.items):
             Clock.schedule_once(self.finalize, 0)
             return
-        content = TableContent(
+        self.content = TableContent(
             closet=self.charsheet.character.closet,
-            width=self.width,
+            tab_type=self.item_type,
+            view=self,
+            size_hint_y=None,
             x=self.x,
-            top=self.top)
-        self.add_widget(content)
-        self.bind(width=content.setter('width'),
-                  x=content.setter('x'),
-                  top=content.setter('top'))
+            top=self.top,
+            width=self.width)
+        self.bind(x=self.content.setter('x'),
+                  top=self.content.setter('top'),
+                  width=self.content.setter('width'))
+        self.add_widget(self.content)
 
 
 class CharStatTableContent(GridLayout):

@@ -376,6 +376,8 @@
 <MenuIntInput>:
     padding: [12, 12, 12, 0]
     font_size: 26
+    keyboard_suggestions: False
+    multiline: False
 <PickImgDialog>:
     BoxLayout:
         size: root.size
@@ -400,10 +402,6 @@
     halign: 'center'
     multiline: True
     size_hint: (None, None)
-<TableHeader>:
-    height: 30
-<TableBody>:
-    height: 20
 <CharStatTableView>:
     CharStatTableContent:
         closet: root.character.closet

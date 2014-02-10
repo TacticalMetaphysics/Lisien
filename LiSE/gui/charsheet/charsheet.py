@@ -12,6 +12,7 @@ from kivy.adapters.listadapter import ListAdapter
 from kivy.adapters.models import SelectableDataItem
 from kivy.clock import Clock
 from kivy.properties import (
+    StringProperty,
     DictProperty,
     NumericProperty,
     BooleanProperty,
@@ -34,6 +35,7 @@ from LiSE.gui.kivybits import (
 )
 from LiSE.util import (
     SHEET_ITEM_TYPES,
+    TABLE_TYPES,
     CALENDAR_TYPES
 )
 from table import TableView
@@ -478,9 +480,8 @@ class CharSheetItem(BoxLayout):
     asbox = ObjectProperty(None, allownone=True)
     buttons = ListProperty()
     middle = ObjectProperty()
-    item_class = ObjectProperty()
+    item_type = StringProperty()
     item_kwargs = DictProperty()
-    widspec = ReferenceListProperty(item_class, item_kwargs)
     charsheet = AliasProperty(
         lambda self: self.item_kwargs['charsheet']
         if self.item_kwargs else None,
@@ -501,6 +502,10 @@ class CharSheetItem(BoxLayout):
         lambda self: self.csbone.idx if self.csbone else -1,
         lambda self, v: None,
         bind=('csbone',))
+    item_class = AliasProperty(
+        lambda self: self.get_item_class(),
+        lambda self, v: None,
+        bind=('item_type',))
 
     def __init__(self, **kwargs):
         self._trigger_set_bone = Clock.create_trigger(self.set_bone)
@@ -508,6 +513,14 @@ class CharSheetItem(BoxLayout):
         kwargs['size_hint_y'] = None
         super(CharSheetItem, self).__init__(**kwargs)
         self.finalize()
+
+    def get_item_class(self):
+        if self.item_type in TABLE_TYPES:
+            return TableView
+        elif self.item_type in CALENDAR_TYPES:
+            return CalendarView
+        else:
+            raise ValueError("Unknown item type")
 
     def on_touch_down(self, touch):
         if self.sizer.collide_point(*touch.pos):
@@ -539,6 +552,7 @@ class CharSheetItem(BoxLayout):
             Clock.schedule_once(self.finalize, 0)
             return
         self.middle = BoxLayout()
+        self.item_kwargs['item_type'] = self.item_type
         self.content = self.item_class(**self.item_kwargs)
         self.buttonbox = BoxLayout(
             orientation='vertical',
@@ -783,7 +797,7 @@ class CharSheet(StackLayout):
                     stats.append(subbone.stat)
             return {
                 'csbone': bone,
-                'item_class': TableView,
+                'item_type': 'thing_tab',
                 'item_kwargs': {
                     'charsheet': self,
                     'headers': fieldnames,
@@ -795,7 +809,7 @@ class CharSheet(StackLayout):
         elif bone.type == 'place_tab':
             return {
                 'csbone': bone,
-                'item_class': TableView,
+                'item_type': 'place_tab',
                 'item_kwargs': {
                     'charsheet': self,
                     'headers': ['place'],
@@ -816,7 +830,7 @@ class CharSheet(StackLayout):
                     stats.append(subbone.stat)
             return {
                 'csbone': bone,
-                'item_class': TableView,
+                'item_type': 'portal_tab',
                 'item_kwargs': {
                     'charsheet': self,
                     'headers': headers,
@@ -837,7 +851,7 @@ class CharSheet(StackLayout):
                 unicode(self.character)][bone.idx]
             return {
                 'csbone': bone,
-                'item_class': CalendarView,
+                'item_type': bone.type,
                 'item_kwargs': {
                     'charsheet': self,
                     'boneatt': keyns[-1],
@@ -849,6 +863,8 @@ class CharSheet(StackLayout):
                 bone.type))
 
     def repop(self, *args):
+        """Put data in my ListAdapter if available. Otherwise, show a +
+        button."""
         self.csitems = list(self.skel.iterbones())
         if len(self.csitems) == 0:
             _ = lambda x: x
