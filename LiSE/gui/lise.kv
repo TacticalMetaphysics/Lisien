@@ -402,9 +402,6 @@
     halign: 'center'
     multiline: True
     size_hint: (None, None)
-<CharStatTableView>:
-    CharStatTableContent:
-        closet: root.character.closet
 <GamePiece>:
     imgs: list(self.closet.iter_graphic_imgs(self.graphic_name)) if self.closet and self.graphic_name else []
     offset_x: self.graphic_bone.offset_x if self.graphic_bone else 0

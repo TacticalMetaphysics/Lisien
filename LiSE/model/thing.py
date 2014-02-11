@@ -164,7 +164,12 @@ class Thing(Container):
             facade = self.character.get_facade(observer)
             return facade.get_thing_locations(self.name, branch)
 
-    def set_location(self, location, branch=None, tick=None):
+    def set_location(self, location, branch=None, tick=None,
+                     check_existence=False):
+        if check_existence:
+            # make sure the location is present in my host; throw
+            # ValueError if it isn't
+            self.host.get_place(str(location))
         self.character.set_thing_location(self, location, branch, tick)
 
     def get_stats(self, observer=None, branch=None):

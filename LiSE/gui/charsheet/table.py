@@ -3,16 +3,15 @@ from kivy.properties import (
     NumericProperty,
     ListProperty,
     ObjectProperty,
-    StringProperty
+    StringProperty,
+    BooleanProperty
 )
 from kivy.adapters.listadapter import ListAdapter
-from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.label import Label
 from kivy.uix.listview import ListView
 from kivy.uix.textinput import TextInput
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.stacklayout import StackLayout
 from kivy.uix.stencilview import StencilView
 from kivy.clock import Clock
 
@@ -37,27 +36,54 @@ class TableHeader(Label, TableCell):
 class TableBody(TextInput, TableCell):
     """TableCell to put in the rows of the table"""
     _touch = ObjectProperty()
+    tab_type = StringProperty()
     item = ObjectProperty()
     key = StringProperty()
-    bone_setter = ObjectProperty()
+    is_stat = BooleanProperty()
 
     def __init__(self, **kwargs):
         kwargs['multiline'] = False
         super(TableBody, self).__init__(**kwargs)
 
     def on_text_validate(self, *args):
-        self.bone_setter(self.key, self.text)
+        try:
+            self.bone_setter(self.key, self.text)
+        except ValueError:
+            self.blink_error()
         self.focus = False
         self.upd_text()
+
+    def blink_error(self):
+        color = self.background_color
+        self.background_color = [1, 0, 0, 1]
+
+        def uncolor(*args):
+            self.background_color = color
+        Clock.schedule_once(uncolor, 1)
 
     def upd_text(self, *args):
         self.text = ''
         self.hint_text = self.text_getter()
 
+    def bone_setter(self, key, value):
+        if self.is_stat:
+            self.item.set_stat(key, value)
+        elif self.tab_type == 'thing_tab' and key == 'location':
+            self.item.set_location(value, check_existence=True)
+        elif self.tab_type == 'portal_tab':
+            if key == 'origin':
+                self.item.set_origin(value)
+            elif key == 'destination':
+                self.item.set_destination(value)
+        else:
+            raise ValueError("Don't know how to set {} of {}".format(
+                key, type(self.item)))
+
 
 class TableRow(BoxLayout):
     """Assembles appropriate TableBody for the fieldnames and statnames
     for the item"""
+    charsheet = ObjectProperty()
     item = ObjectProperty()
     tab_type = StringProperty()
     tableview = ObjectProperty()
@@ -66,44 +92,37 @@ class TableRow(BoxLayout):
     statnames = ListProperty()
 
     def __init__(self, **kwargs):
+        kwargs['charsheet'] = kwargs['tableview'].charsheet
         kwargs['closet'] = kwargs['tableview'].character.closet
         kwargs['fieldnames'] = kwargs['tableview'].fieldnames
         kwargs['statnames'] = kwargs['tableview'].stats
         super(TableRow, self).__init__(**kwargs)
 
-        for fieldname in self.fieldnames:
-            bwid = TableBody(
-                item=self.item,
-                key=fieldname,
-                bone_setter=self.field_bone_setter,
-                text_getter=lambda: str(getattr(self.item, fieldname)))
-            self.closet.register_time_listener(bwid._trigger_upd_text)
-            self.add_widget(bwid)
-            bwid.upd_text()
+        if self.tab_type != 'char_tab':
+            for fieldname in self.fieldnames:
+                bwid = TableBody(
+                    item=self.item,
+                    key=fieldname,
+                    is_stat=False,
+                    tab_type=self.tab_type,
+                    text_getter=lambda: str(getattr(self.item, fieldname)))
+                self.closet.register_time_listener(bwid._trigger_upd_text)
+                self.add_widget(bwid)
+                bwid.upd_text()
         for statname in self.statnames:
             bwid = TableBody(
                 item=self.item,
                 key=statname,
-                bone_setter=lambda k, v: self.item.set_stat(k, v),
+                is_stat=True,
+                tab_type=self.tab_type,
                 text_getter=lambda: str(self.item.get_stat(statname)))
             self.closet.register_time_listener(bwid._trigger_upd_text)
             self.add_widget(bwid)
             bwid.upd_text()
 
-    def field_bone_setter(self, key, text):
-        if self.tab_type == 'thing_tab' and key == 'location':
-            self.item.set_location(text)
-        elif self.tab_type == 'portal_tab':
-            if key == 'origin':
-                self.item.set_origin(text)
-            elif key == 'destination':
-                self.item.set_destination(text)
-        else:
-            raise ValueError("Don't know how to set {} of {}".format(
-                key, type(self.item)))
-
 
 class TableContent(GridLayout):
+    charsheet = ObjectProperty()
     closet = ObjectProperty()
     adapter = ObjectProperty()
     listview = ObjectProperty()
@@ -112,6 +131,7 @@ class TableContent(GridLayout):
 
     def __init__(self, **kwargs):
         kwargs['cols'] = 1
+        kwargs['closet'] = kwargs['charsheet'].character.closet
         super(TableContent, self).__init__(**kwargs)
         self.finalize()
 
@@ -145,8 +165,6 @@ class TableContent(GridLayout):
             'size_hint_y': None,
             'height': 40}
 
-# TODO unify TableView and TableContent
-
 
 class TableView(StencilView):
     charsheet = ObjectProperty()
@@ -176,7 +194,7 @@ class TableView(StencilView):
             Clock.schedule_once(self.finalize, 0)
             return
         self.content = TableContent(
-            closet=self.charsheet.character.closet,
+            charsheet=self.charsheet,
             tab_type=self.item_type,
             view=self,
             size_hint_y=None,
