@@ -1393,8 +1393,6 @@ class Closet(object):
             from LiSE.gui.board import Board, Spot, Pawn, GamePiece
             global CharSheet
             from LiSE.gui.charsheet import CharSheet
-            global Menu
-            from LiSE.gui.menu import Menu
             global Img
             from LiSE.gui.img import Img
             global Atlas

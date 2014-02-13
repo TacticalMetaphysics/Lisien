@@ -8,10 +8,12 @@ from kivy.properties import (
     ListProperty,
     StringProperty)
 from kivy.factory import Factory
+from kivy.lang import Builder
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 from kivy.logger import Logger
 
@@ -38,6 +40,74 @@ from LiSE import __path__
 Factory.register('BoardView', cls=BoardView)
 Factory.register('SwatchBox', cls=SwatchBox)
 Factory.register('TogSwatch', cls=TogSwatch)
+
+
+class MenuTextInput(TextInput):
+    closet = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        super(MenuTextInput, self).__init__(**kwargs)
+        self.finalize()
+
+    def finalize(self, *args):
+        if not self.closet:
+            Clock.schedule_once(self.finalize, 0)
+            return
+        self.rehint_registrar(self.rehint)
+        self.rehint()
+
+    def rehint(self, *args):
+        self.text = ''
+        self.hint_text = self.hint_getter()
+
+    def on_focus(self, *args):
+        if not self.focus:
+            try:
+                self.value_setter(self.text)
+            except ValueError:
+                pass
+            self.rehint()
+        super(MenuTextInput, self).on_focus(*args)
+
+    def rehint_registrar(self, reh):
+        raise NotImplementedError(
+            "Abstract method")
+
+    def hint_getter(self):
+        raise NotImplementedError(
+            "Abstract method")
+
+    def value_setter(self, v):
+        raise NotImplementedError(
+            "Abstract method")
+
+
+class MenuBranchInput(MenuTextInput):
+    def rehint_registrar(self, reh):
+        self.closet.register_branch_listener(reh)
+
+    def hint_getter(self):
+        return str(self.closet.branch)
+
+    def value_setter(self, v):
+        w = int(v)
+        if w < 0:
+            raise ValueError
+        self.closet.branch = w
+
+
+class MenuTickInput(MenuTextInput):
+    def rehint_registrar(self, reh):
+        self.closet.register_tick_listener(reh)
+
+    def hint_getter(self):
+        return str(self.closet.tick)
+
+    def value_setter(self, v):
+        w = int(v)
+        if w < 0:
+            raise ValueError
+        self.closet.tick = w
 
 
 class DummySpot(Widget):
@@ -182,10 +252,74 @@ class SpriteMenuContent(StackLayout):
 
 class SpotMenuContent(SpriteMenuContent):
     """For deciding how to make a new place"""
+    kv = """
+<SpotMenuContent>:
+    id: spotmenu
+    TextInput:
+        id: namer
+        hint_text: root.get_text(_("Enter a unique name"))
+        size_hint: (1, None)
+        multiline: False
+        height: self.line_height * 2
+    TogSwatch:
+        box: spotmenu
+        img: root.closet.get_img("default_spot")
+        text: root.get_text(_("Use default image"))
+        group: "spotmenu"
+        size_hint_y: None
+    TogSwatch:
+        box: spotmenu
+        img: root.closet.get_img("crossroad")
+        tags: ['?pixel_city']
+        text: root.get_text(_("Build with PixelCity"))
+        group: "spotmenu"
+        size_hint_y: None
+    BoxLayout:
+        size_hint_y: None
+        height: 30
+        Button:
+            text: root.get_text(_('Cancel'))
+            on_release: root.cancel()
+        Button:
+            text: root.get_text(_('Confirm'))
+            on_release: root.confirm()
+"""
 
 
 class PawnMenuContent(SpriteMenuContent):
     """For deciding how to make a new thing"""
+    kv = """
+<PawnMenuContent>:
+    id: pawnmenu
+    TextInput:
+        id: namer
+        hint_text: root.get_text(_("Enter a unique name"))
+        size_hint: (1, None)
+        multiline: False
+        height: self.line_height * 2
+    TogSwatch:
+        box: pawnmenu
+        img: root.closet.get_img("default_pawn")
+        text: root.get_text(_("Use default image"))
+        group: "pawnmenu"
+        size_hint_y: None
+    TogSwatch:
+        box: pawnmenu
+        img: root.closet.get_img("base.mummy_m")
+        tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
+        text: root.get_text(_("Build with RLTiles"))
+        group: "pawnmenu"
+        size_hint_y: None
+    BoxLayout:
+        size_hint_y: None
+        height: 30
+        Button:
+            text: root.get_text(_('Cancel'))
+            on_release: root.cancel()
+        Button:
+            text: root.get_text(_('Confirm'))
+            on_release: root.confirm()
+"""
 
 
 class LiSELayout(FloatLayout):
@@ -206,6 +340,79 @@ class LiSELayout(FloatLayout):
     _touch = ObjectProperty(None, allownone=True)
     portaling = BoundedNumericProperty(0, min=0, max=2)
     playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
+    kv = """
+<LiSELayout>:
+    #:import stiffscroll LiSE.gui.stiffscroll.StiffScrollEffect
+    menu: menu
+    charsheet: charsheet
+    board: board
+    BoardView:
+        id: board_view
+        board: board
+        effect_cls: stiffscroll
+        Board:
+            id: board
+            facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
+            host: root.app.closet.get_character(root.app.host_name)
+    CueCard:
+        id: prompt
+        closet: root.app.closet
+        pos_hint: {'x': 0.1, 'top': 1}
+        size_hint: (None, None)
+        size: (400, 26)
+    CharSheet:
+        id: charsheet
+        character: root.app.closet.get_character(root.app.observed_name)
+        pos_hint: {'x': 0.7, 'y': 0.0}
+        size_hint: (0.3, 1.0)
+    BoxLayout:
+        id: menu
+        size_hint: (0.1, 1)
+        orientation: 'vertical'
+        spacing: 10
+        ClosetButton:
+            closet: root.app.closet
+            stringname: _("Place...")
+            fun: root.show_spot_menu
+        ClosetButton:
+            closet: root.app.closet
+            stringname: _("Portal...")
+            fun: root.make_arrow
+        ClosetButton:
+            closet: root.app.closet
+            stringname: _("Thing...")
+            fun: root.show_pawn_menu
+        ClosetButton:
+            closet: root.app.closet
+            symbolic: True
+            stringname: _("@starttime")
+            fun: root.normal_speed
+        ClosetButton:
+            closet: root.app.closet
+            symbolic: True
+            stringname: _("@reversetime")
+            fun: root.normal_speed
+            arg: False
+        ClosetButton:
+            closet: root.app.closet
+            symbolic: True
+            stringname: _("@pause")
+            fun: root.pause
+        CueCard:
+            closet: root.app.closet
+            stringname: _("Branch:")
+        MenuBranchInput:
+            closet: root.app.closet
+            multiline: False
+            font_size: 30
+        CueCard:
+            closet: root.app.closet
+            stringname: _("Tick:")
+        MenuTickInput:
+            closet: root.app.closet
+            multiline: False
+            font_size: 30
+    """
 
     def __init__(self, **kwargs):
         self._trigger_draw_arrow = Clock.create_trigger(self.draw_arrow)
@@ -277,8 +484,7 @@ class LiSELayout(FloatLayout):
             self.dismiss_prompt()
             destspot = None
             for spot in self.board.spotlayout.children:
-                if spot.collide_point(*self.board.spotlayout.to_local(
-                        *touch.pos)) and spot is not ud['origspot']:
+                if touch.ud['spot'] is spot:
                     destspot = spot
                     break
             if destspot is None:
@@ -580,3 +786,7 @@ class LiSEApp(App):
         self.closet.save_game()
         self.closet.end_game()
         super(LiSEApp, self).stop(*largs)
+
+
+for cls in [LiSELayout, SpotMenuContent, PawnMenuContent]:
+    Builder.load_string(cls.kv)
