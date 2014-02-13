@@ -750,7 +750,7 @@ class CharSheet(StackLayout):
         uberskel = self.character.closet.skeleton[
             u'character_sheet_item_type'][unicode(self.character)]
         bone = uberskel[i]
-        del uberskel[i]
+        self.character.closet.set_bone(bone, mode='delete')
         for tab in csitem_type_table_d[bone.type]:
             unterskel = self.character.closet.skeleton[tab][
                 unicode(self.character)]

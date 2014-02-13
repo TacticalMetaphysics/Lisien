@@ -1692,13 +1692,17 @@ class Closet(object):
 
     def upd_on_set(self, skel, child, k, v):
         """Supposing that the bone is equipped to write its own SQL, keep it
-        in my ``altered_bones`` so as to do so later."""
+        in my ``altered_bones`` so as to see it."""
+        if not self.extraskels:
+            return
         if hasattr(v, 'keynames'):
             self.set_bone(v, 'alter')
 
     def upd_on_del(self, skel, child, k, v):
         """Supposing that the bone is equipped to write its own SQL, keep it
-        in my ``deleted_bones`` so as to do so later."""
+        in my ``deleted_bones`` so as to see it."""
+        if not self.extraskels:
+            return
         if hasattr(v, 'keynames'):
             self.set_bone(v, 'delete')
             # if it's been altered in the same session, it must be removed
@@ -1789,8 +1793,9 @@ class Closet(object):
         #         if getattr(bone, f) is not None))
         self.connector.commit()
         Logger.debug("closet: saved game")
-        self.deleted = self.empty.deepcopy()
-        self.altered = self.empty.deepcopy()
+        if self.extraskels:
+            self.deleted = self.empty.deepcopy()
+            self.altered = self.empty.deepcopy()
         self.c.execute("BEGIN;")
         self.recording = True
 
@@ -2177,7 +2182,7 @@ class Closet(object):
         for bone in self.skeleton[u"graphic_img"][graphicn].iterbones():
             yield self.get_img(bone.img)
 
-    def set_bone(self, bone, mode='main'):
+    def set_bone(self, bone, mode='alter'):
         """Take a bone of arbitrary type and put it in the right place in the
         skeleton.
 
@@ -2186,16 +2191,8 @@ class Closet(object):
         PlaceBone to describe it.
 
         """
-        if mode == 'main' or not self.extraskels:
-            skeleton = self.skeleton
-        elif self.extraskels and mode in ('alter', 'delete'):
-            if mode == 'alter':
-                skeleton = self.altered
-            elif mode == 'delete':
-                skeleton = self.deleted
-        else:
-            raise ValueError("I only recognize modes"
-                             " 'main', 'alter', and 'delete'")
+        if mode not in ('alter', 'delete'):
+            raise ValueError("Valid modes are 'alter', 'delete'")
 
         def init_keys(skeleton, keylst):
             """Make sure skeleton goes deep enough to put a value in, at the
@@ -2206,6 +2203,15 @@ class Closet(object):
                 skeleton = skeleton[key]
             return skeleton
 
+        def dig_in(skeleton):
+            keynames = bone.keynames
+            keys = [bone._name] + [
+                getattr(bone, keyn)
+                for keyn in keynames[:-1]]
+            skelly = init_keys(skeleton, keys)
+            final_key = getattr(bone, keynames[-1])
+            return (skelly, final_key)
+
         def set_place_maybe(host, place, branch, tick):
             """Set a PlaceBone, but only if I don't have one for that place
             already"""
@@ -2215,9 +2221,9 @@ class Closet(object):
 
         if isinstance(bone, PlaceBone):
             init_keys(
-                skeleton,
+                self.skeleton,
                 [u"place", bone.host, bone.place, bone.branch])
-            skeleton[u"place"][bone.host][bone.place][
+            self.skeleton[u"place"][bone.host][bone.place][
                 bone.branch][bone.tick] = bone
             return
 
@@ -2253,21 +2259,22 @@ class Closet(object):
         if hasattr(bone, 'branch') and hasattr(bone, 'tick'):
             self.timestream.upd_time(bone.branch, bone.tick)
 
-        keynames = bone.keynames
-        keys = [bone._name] + [
-            getattr(bone, keyn)
-            for keyn in keynames[:-1]]
-        skelly = init_keys(skeleton, keys)
-        final_key = getattr(bone, keynames[-1])
-        if mode == 'delete' and skeleton is self.skeleton:
-            del skelly[final_key]
+        (final_skel, final_key) = dig_in(self.skeleton)
+        if mode == 'delete':
+            del final_skel[final_key]
+            if self.extraskels:
+                (dskel, dkey) = dig_in(self.deleted)
+                dskel[dkey] = bone
         else:
-            skelly[final_key] = bone
+            final_skel[final_key] = bone
+            if self.extraskels:
+                (askel, akey) = dig_in(self.altered)
+                askel[akey] = bone
 
         if self.recording:
             self.c.execute(bone.sql_del, tuple(
                 getattr(bone, a) for a in bone.keynames))
-            if mode in ('main', 'alter'):
+            if mode == 'alter':
                 self.c.execute(bone.sql_ins, tuple(
                     getattr(bone, b) for b in bone._fields
                     if getattr(bone, b) is not None))
@@ -2531,7 +2538,6 @@ def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
         r.load_charsheet(load_charsheet)
     if load_board:
         r.load_board(*load_board)
-    r.listen_to_skeleton()
     r.c.execute("BEGIN;")
     r.recording = True
     return r
