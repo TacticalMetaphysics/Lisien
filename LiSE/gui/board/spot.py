@@ -259,12 +259,11 @@ class Spot(GamePiece):
         if self.collide_point(
                 *self.board.spotlayout.to_local(*touch.pos)) or (
                 'spot' in touch.ud and touch.ud['spot'] is self):
-            Logger.debug('spot: enter touch.ud')
-            touch.ud['spot'] = self
-            if 'portaling' not in touch.ud:
+            if 'spot' not in touch.ud:
+                touch.ud['spot'] = self
+            elif touch.ud['spot'] is self and 'portaling' not in touch.ud:
                 self._touch = touch
-                Logger.debug('spot: _trigger_move_to_touch')
-                self._trigger_move_to_touch()
+                Clock.schedule_once(self._move_to_touch, -1)
 
     def _move_to_touch(self, *args):
         if self._touch:

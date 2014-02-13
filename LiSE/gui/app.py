@@ -481,7 +481,7 @@ class LiSELayout(FloatLayout):
             destspot = None
             for spot in self.board.spotlayout.children:
                 if touch.ud['spot'] is spot:
-                    if touch.ud['origspot'] is not spot:
+                    if self.portal_d['origspot'] is not spot:
                         destspot = spot
                     break
             if destspot is None:
