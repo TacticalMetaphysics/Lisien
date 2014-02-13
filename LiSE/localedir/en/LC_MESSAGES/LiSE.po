@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: LiSE 0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-01-19 17:09-0500\n"
+"POT-Creation-Date: 2014-02-13 09:06-0500\n"
 "PO-Revision-Date: 2014-01-11 10:39-0500\n"
 "Last-Translator: Zachary Spector <zacharyspector@gmail.com>\n"
 "Language: English\n"
@@ -16,194 +16,201 @@ msgstr ""
 "Content-Type: text/plain; charset=utf8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: LiSE/gui/charsheet/charsheet.py:691
-msgid "thing"
-msgstr "thing"
-
-#: LiSE/gui/charsheet/charsheet.py:696
-msgid "location"
-msgstr "location"
-
-#: LiSE/gui/charsheet/charsheet.py:709
-msgid "place"
-msgstr "place"
-
-#: LiSE/gui/charsheet/charsheet.py:724
-msgid "origin"
-msgstr "origin"
-
-#: LiSE/gui/charsheet/charsheet.py:727
-msgid "destination"
-msgstr "destination"
-
-#: LiSE/gui/app.py:220
-msgid "Draw a line between the spots to connect with a portal."
-msgstr "Draw a line between the spots to connect with a portal."
-
-#: LiSE/gui/app.py:373
-msgid "Drag this to a spot"
-msgstr "Drag this to a spot"
-
-#: LiSE/gui/lise.kv:14
-msgid "@resize-ud"
-msgstr "⇕"
-
-#: LiSE/gui/lise.kv:17
-msgid "@add"
-msgstr "⊕"
-
-#: LiSE/gui/lise.kv:20
+#: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:563
 msgid "@del"
 msgstr "⌫"
 
-#: LiSE/gui/lise.kv:23
+#: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:570
 msgid "@up"
 msgstr "⌃"
 
-#: LiSE/gui/lise.kv:26
+#: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:578
 msgid "@down"
 msgstr "⌄"
 
-#: LiSE/gui/lise.kv:64
+#: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:590
+#, fuzzy
+msgid "@ud"
+msgstr ""
+
+#: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:595
+#: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:777
+#: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:875
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:85
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:121
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:158
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:184
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:226
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:329
+msgid "@add"
+msgstr "⊕"
+
+#: /home/sanotehu/src/LiSE/LiSE/gui/app.py:442
+msgid "Draw a line between the spots to connect with a portal."
+msgstr "Draw a line between the spots to connect with a portal."
+
+#: /home/sanotehu/src/LiSE/LiSE/gui/app.py:582
+msgid "Drag this to a spot"
+msgstr "Drag this to a spot"
+
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:15
+msgid "@resize-ud"
+msgstr "⇕"
+
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:48
 msgid "Tables"
 msgstr "Tables"
 
-#: LiSE/gui/lise.kv:69 LiSE/gui/lise.kv:198
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:53
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:194
 msgid "Thing"
 msgstr "Thing"
 
-#: LiSE/gui/lise.kv:74
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:58
 msgid "Pick things."
 msgstr "Pick things."
 
-#: LiSE/gui/lise.kv:83
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:67
 msgid "Pick stats of things."
 msgstr "Pick stats of things."
 
-#: LiSE/gui/lise.kv:96 LiSE/gui/lise.kv:129 LiSE/gui/lise.kv:163
-#: LiSE/gui/lise.kv:185 LiSE/gui/lise.kv:225 LiSE/gui/lise.kv:260
-#: LiSE/gui/lise.kv:295 LiSE/gui/lise.kv:317
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:80
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:116
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:153
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:178
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:221
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:259
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:297
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:322
 msgid "New stat name"
 msgstr "New stat name"
 
-#: LiSE/gui/lise.kv:104 LiSE/gui/lise.kv:233
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:91
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:232
 msgid "Place"
 msgstr "Place"
 
-#: LiSE/gui/lise.kv:109
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:96
 msgid "Pick places."
 msgstr "Pick places."
 
-#: LiSE/gui/lise.kv:118
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:105
 msgid "Pick stats of places."
 msgstr "Pick stats of places."
 
-#: LiSE/gui/lise.kv:137 LiSE/gui/lise.kv:268
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:127
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:270
 msgid "Portal"
 msgstr "Portal"
 
-#: LiSE/gui/lise.kv:142
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:132
 msgid "Pick portals."
 msgstr "Pick portals."
 
-#: LiSE/gui/lise.kv:151
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:141
 msgid "Pick stats of portals."
 msgstr "Pick stats of portals."
 
-#: LiSE/gui/lise.kv:171 LiSE/gui/lise.kv:303
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:164
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:308
 msgid "Character"
 msgstr "Character"
 
-#: LiSE/gui/lise.kv:174
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:167
 msgid "Pick stats of the character."
 msgstr "Pick stats of the character."
 
-#: LiSE/gui/lise.kv:193
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:189
 msgid "Calendars"
 msgstr "Calendars"
 
-#: LiSE/gui/lise.kv:203
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:199
 msgid "Pick a thing."
 msgstr "Pick a thing."
 
-#: LiSE/gui/lise.kv:213 LiSE/gui/lise.kv:248 LiSE/gui/lise.kv:283
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:209
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:247
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:285
 msgid "Pick one of its stats."
 msgstr "Pick one of its stats."
 
-#: LiSE/gui/lise.kv:238
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:237
 msgid "Pick a place."
 msgstr "Pick a place."
 
-#: LiSE/gui/lise.kv:273
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:275
 msgid "Pick a portal."
 msgstr "Pick a portal."
 
-#: LiSE/gui/lise.kv:306
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:311
 msgid "Pick a stat."
 msgstr "Pick a stat."
 
-#: LiSE/gui/lise.kv:326 LiSE/gui/lise.kv:358 LiSE/gui/lise.kv:379
-#: LiSE/gui/lise.kv:500 LiSE/gui/lise.kv:530
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:335
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:367
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:385
 msgid "Cancel"
 msgstr "Cancel"
 
-#: LiSE/gui/lise.kv:329 LiSE/gui/lise.kv:382 LiSE/gui/lise.kv:503
-#: LiSE/gui/lise.kv:533
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:338
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:388
 msgid "Confirm"
 msgstr "Confirm"
 
-#: LiSE/gui/lise.kv:362
+#: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:371
 msgid "Load"
 msgstr "Load"
 
-#: LiSE/gui/lise.kv:435
-msgid "Place..."
-msgstr "Place..."
+#~ msgid "thing"
+#~ msgstr "thing"
 
-#: LiSE/gui/lise.kv:439
-msgid "Portal..."
-msgstr "Portal..."
+#~ msgid "location"
+#~ msgstr "location"
 
-#: LiSE/gui/lise.kv:443
-msgid "Thing..."
-msgstr "Thing..."
+#~ msgid "place"
+#~ msgstr "place"
 
-#: LiSE/gui/lise.kv:448
-msgid "@starttime"
-msgstr "▶"
+#~ msgid "origin"
+#~ msgstr "origin"
 
-#: LiSE/gui/lise.kv:453
-msgid "@reversetime"
-msgstr "⏪"
+#~ msgid "destination"
+#~ msgstr "destination"
 
-#: LiSE/gui/lise.kv:459
-msgid "@pause"
-msgstr "‖"
+#~ msgid "Place..."
+#~ msgstr "Place..."
 
-#: LiSE/gui/lise.kv:463
-msgid "Branch:"
-msgstr "Branch:"
+#~ msgid "Portal..."
+#~ msgstr "Portal..."
 
-#: LiSE/gui/lise.kv:470
-msgid "Tick:"
-msgstr "Tick:"
+#~ msgid "Thing..."
+#~ msgstr "Thing..."
 
-#: LiSE/gui/lise.kv:479 LiSE/gui/lise.kv:509
-msgid "Enter a unique name"
-msgstr "Enter a unique name"
+#~ msgid "@starttime"
+#~ msgstr "▶"
 
-#: LiSE/gui/lise.kv:486 LiSE/gui/lise.kv:516
-msgid "Use default image"
-msgstr "Use default image"
+#~ msgid "@reversetime"
+#~ msgstr "⏪"
 
-#: LiSE/gui/lise.kv:493
-msgid "Build with PixelCity"
-msgstr "Build with PixelCity"
+#~ msgid "@pause"
+#~ msgstr "‖"
 
-#: LiSE/gui/lise.kv:523
-msgid "Build with RLTiles"
-msgstr "Build with RLTiles"
+#~ msgid "Branch:"
+#~ msgstr "Branch:"
 
-#: main.py:21
-msgid "Starting LiSE with database {}, path {}"
-msgstr "Starting LiSE with database {}, path {}"
+#~ msgid "Tick:"
+#~ msgstr "Tick:"
+
+#~ msgid "Enter a unique name"
+#~ msgstr "Enter a unique name"
+
+#~ msgid "Use default image"
+#~ msgstr "Use default image"
+
+#~ msgid "Build with PixelCity"
+#~ msgstr "Build with PixelCity"
+
+#~ msgid "Build with RLTiles"
+#~ msgstr "Build with RLTiles"
+
+#~ msgid "Starting LiSE with database {}, path {}"
+#~ msgstr "Starting LiSE with database {}, path {}"
