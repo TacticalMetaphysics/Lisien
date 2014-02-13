@@ -75,14 +75,6 @@ will update its position appropriately.
             unicode(self.thing.character)][unicode(self.thing)],
         lambda self, v: None,
         bind=('thing',))
-    get_bone = AliasProperty(
-        lambda self: self.thing.character.closet.timely_bone_getter(
-            [u'pawn', unicode(self.board.facade.observer),
-             unicode(self.board.facade.observed),
-             unicode(self.thing.host), unicode(self.thing)])
-        if self.board else None,
-        lambda self, v: None,
-        bind=('board', 'time'))
     graphic_name = AliasProperty(
         lambda self: self.bone.graphic if self.bone else '',
         lambda self, v: None,
@@ -94,6 +86,7 @@ will update its position appropriately.
 
         """
         super(Pawn, self).__init__(**kwargs)
+        self.bone = self.get_pawn_bone()
         self.closet.register_time_listener(self.handle_time)
         self.board.pawndict[unicode(self.thing)] = self
         self.handle_time(*self.closet.time)

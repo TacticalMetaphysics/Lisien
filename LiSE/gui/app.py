@@ -8,7 +8,6 @@ from kivy.properties import (
     ListProperty,
     StringProperty)
 from kivy.factory import Factory
-from kivy.lang import Builder
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
 from kivy.uix.stacklayout import StackLayout
@@ -27,7 +26,10 @@ from LiSE.gui.board import (
 from LiSE.gui.board.gamepiece import GamePiece
 from LiSE.gui.board.arrow import get_points
 
-from LiSE.gui.kivybits import TouchlessWidget
+from LiSE.gui.kivybits import (
+    TouchlessWidget,
+    LiSEWidgetMetaclass
+)
 from LiSE.gui.swatchbox import SwatchBox, TogSwatch
 from LiSE.gui.charsheet import CharSheetAdder
 
@@ -192,6 +194,7 @@ class DummyPawn(GamePiece):
 
 class SpriteMenuContent(StackLayout):
     """Menu shown when a place or thing is to be created."""
+    __metaclass__ = LiSEWidgetMetaclass
     closet = ObjectProperty()
     """Closet to make things with and get text from."""
     selection = ListProperty([])
@@ -332,6 +335,7 @@ class LiSELayout(FloatLayout):
     of those happen, the board handles touches on its own.
 
     """
+    __metaclass__ = LiSEWidgetMetaclass
     app = ObjectProperty()
     board = ObjectProperty()
     """The Board instance that's visible at present"""
@@ -728,6 +732,27 @@ class LiSELayout(FloatLayout):
 
 class LoadImgDialog(FloatLayout):
     """Dialog for adding img files to the database."""
+    __metaclass__ = LiSEWidgetMetaclass
+    kv = """
+<LoadImgDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            ClosetButton:
+                closet: root.closet
+                stringname: _("Cancel")
+                on_release: root.cancel()
+            ClosetButton:
+                closet: root.closet
+                stringname: _("Load")
+                on_release: root.load(filechooser.path, filechooser.selection)
+    """
     load = ObjectProperty()
     cancel = ObjectProperty()
 
@@ -736,6 +761,26 @@ class PickImgDialog(FloatLayout):
     """Dialog for associating imgs with something, perhaps a Pawn.
 
 In lise.kv this is given a SwatchBox with texdict=root.texdict."""
+    __metaclass__ = LiSEWidgetMetaclass
+    kv = """
+<PickImgDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        SwatchBox:
+            id: picker
+            categorized_images: root.categorized_images
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: _("Cancel")
+                on_release: root.cancel()
+            Button:
+                text: _("Confirm")
+                on_release: root.set_imgs(picker.selection)
+    """
     categorized_images = ObjectProperty()
     set_imgs = ObjectProperty()
     cancel = ObjectProperty()
@@ -785,7 +830,3 @@ class LiSEApp(App):
         self.closet.save_game()
         self.closet.end_game()
         super(LiSEApp, self).stop(*largs)
-
-
-for cls in [LiSELayout, SpotMenuContent, PawnMenuContent]:
-    Builder.load_string(cls.kv)

@@ -12,14 +12,13 @@ from LiSE.util import (
     fortyfive,
     ninety
 )
+from LiSE.gui.kivybits import LiSEWidgetMetaclass
 from kivy.uix.widget import Widget
 from kivy.properties import (
     ObjectProperty,
     ListProperty,
     ReferenceListProperty,
-    NumericProperty,
     BoundedNumericProperty,
-    AliasProperty
 )
 from kivy.clock import Clock
 
@@ -177,6 +176,21 @@ class Arrow(Widget):
     its destination.
 
     """
+    __metaclass__ = LiSEWidgetMetaclass
+    kv = """
+<Arrow>:
+    canvas:
+        Color:
+            rgba: root.bg_color
+        Line:
+            width: root.w * 1.4
+            points: root.points
+        Color:
+            rgba: root.fg_color
+        Line:
+            width: root.w
+            points: root.points
+    """
     margin = 10
     """When deciding whether a touch collides with me, how far away can
     the touch get before I should consider it a miss?"""
@@ -332,7 +346,8 @@ class Arrow(Widget):
             error_seg_len = hypot(x, y)
             return sin(error_angle_a) * error_seg_len <= self.margin
 
-    def repawn(self, branch, tick):
+    def repawn(self, *args):
+        (branch, tick) = self.board.host.closet.time
         for pawn in self.pawns_here:
             locations = pawn.thing.get_locations(
                 self.board.facade.observer, branch)

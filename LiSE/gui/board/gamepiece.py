@@ -1,7 +1,6 @@
 from LiSE.gui.texturestack import TextureStack
-from LiSE.gui.kivybits import SaveableWidgetMetaclass
+from LiSE.gui.kivybits import LiSEWidgetMetaclass
 from kivy.properties import (
-    AliasProperty,
     NumericProperty,
     StringProperty,
     ObjectProperty,
@@ -28,7 +27,14 @@ class ImgStack(TextureStack):
 
 
 class GamePiece(ImgStack):
-    __metaclass__ = SaveableWidgetMetaclass
+    __metaclass__ = LiSEWidgetMetaclass
+    kv = """
+<GamePiece>:
+    imgs: list(self.closet.iter_graphic_imgs(self.graphic_name))\
+    if self.closet and self.graphic_name else []
+    offset_x: self.graphic_bone.offset_x if self.graphic_bone else 0
+    offset_y: self.graphic_bone.offset_y if self.graphic_bone else 0
+    """
     tables = [
         ("graphic", {
             "columns": {

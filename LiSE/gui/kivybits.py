@@ -13,6 +13,7 @@ from kivy.properties import (
     StringProperty,
     BooleanProperty)
 from kivy.clock import Clock
+from kivy.lang import Builder
 
 import LiSE
 from LiSE.orm import SaveableMetaclass
@@ -68,6 +69,22 @@ class ClosetToggleButton(ClosetButton, ToggleButtonBehavior):
     pass
 
 
+class LiSEWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
+    """A combination of :class:`~kivy.uix.widget.WidgetMetaclass`
+    and :class:`~LiSE.util.SaveableMetaclass`.
+
+    There is no additional functionality beyond what those metaclasses do."""
+    def __new__(metaclass, clas, parents, attrs):
+        q = WidgetMetaclass.__new__(
+            LiSEWidgetMetaclass, clas, parents, attrs)
+        r = SaveableMetaclass.__new__(
+            LiSEWidgetMetaclass, clas, parents, dict(q.__dict__))
+        if hasattr(r, 'kv') and not hasattr(r, 'kv_loaded'):
+            Builder.load_string(r.kv)
+            r.kv_loaded = True
+        return r
+
+
 class ClosetHintTextInput(TextInput):
     closet = ObjectProperty()
     failure_string = StringProperty()
@@ -80,6 +97,12 @@ class ClosetHintTextInput(TextInput):
     """Time after which to turn the hint_text back"""
     validator = ObjectProperty()
     """Boolean function for whether the input is acceptable"""
+    kv = """
+<ClosetHintTextInput>:
+    hint_text: self.closet.get_text(self.stringname)\
+    if self.closet and self.stringname else ''
+"""
+    __metaclass__ = LiSEWidgetMetaclass
 
     def validate(self):
         """If my text is valid, return True. Otherwise, communicate invalidity
@@ -106,14 +129,6 @@ class ClosetHintTextInput(TextInput):
                 self.hint_text = self.closet.get_text(self.stringname)
             Clock.schedule_once(unfail_text, self.failure_string_timeout)
             return False
-
-
-class SaveableWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
-    """A combination of :class:`~kivy.uix.widget.WidgetMetaclass`
-    and :class:`~LiSE.util.SaveableMetaclass`.
-
-    There is no additional functionality beyond what those metaclasses do."""
-    pass
 
 
 class TouchlessWidget(Widget):
