@@ -451,12 +451,9 @@ class LiSELayout(FloatLayout):
                 touch.ud['portaling'] = True
                 self.portal_d = {
                     'origspot': touch.ud['spot'],
-                    'dummyspot': DummySpot(pos=touch.pos),
                     'dummyarrow': TouchlessWidget()}
                 self.board.arrowlayout.add_widget(
                     self.portal_d['dummyarrow'])
-                self.add_widget(
-                    self.portal_d['dummyspot'])
                 self._touch = touch
                 self.portaling = 2
             else:
@@ -479,13 +476,13 @@ class LiSELayout(FloatLayout):
                 return
             ud = self.portal_d
             ud['dummyarrow'].canvas.clear()
-            self.remove_widget(ud['dummyspot'])
             self.board.remove_widget(ud['dummyarrow'])
             self.dismiss_prompt()
             destspot = None
             for spot in self.board.spotlayout.children:
                 if touch.ud['spot'] is spot:
-                    destspot = spot
+                    if touch.ud['origspot'] is not spot:
+                        destspot = spot
                     break
             if destspot is None:
                 ud['dummyarrow'].canvas.clear()
