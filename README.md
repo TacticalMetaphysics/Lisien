@@ -82,10 +82,11 @@ board game to distinguish the spots where you can put game
 pieces. They draw lines between the places, called "portals," which
 normally indicate that you can travel between two places. Then they
 drag and drop a variety of things into the places, many of which
-represent physical objects, such as people.
+represent physical objects, such as the bodies of the characters in
+the game
 
-Actually, the engine distinguishes people from their bodies--more on
-that later.
+Characters may exist on several of these boards at once--more on that
+later.
 
 # How does LiSE simulate life?
 
