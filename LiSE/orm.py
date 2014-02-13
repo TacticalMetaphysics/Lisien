@@ -1356,6 +1356,8 @@ class Closet(object):
         pass-thru."""
         if attrn in ('branch', 'tick', 'hi_branch', 'hi_tick',
                      'time', 'hi_time'):
+            if not isinstance(val, int):
+                raise TypeError('Time is integers.')
             setattr(self.timestream, attrn, val)
         else:
             super(Closet, self).__setattr__(attrn, val)

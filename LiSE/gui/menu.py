@@ -16,7 +16,7 @@ from kivy.clock import Clock
 I'll probably change over to drop menus at some point."""
 
 
-class MenuWidget(Widget):
+class MenuButton(Button):
     closet = ObjectProperty()
     fun = ObjectProperty()
     symbolic = BooleanProperty(False)
@@ -33,14 +33,6 @@ class MenuWidget(Widget):
         self.closet.register_text_listener(self.stringname, self.retext)
         self.initext()
 
-
-class MenuButton(Button, MenuWidget):
-    def initext(self):
-        if self.symbolic:
-            self.font_name = 'LiSE/gui/assets/Entypo.ttf'
-            self.font_size = 30
-        self.text = self.closet.get_text(self.stringname)
-
     def on_press(self, *args):
         self.fun()
 
@@ -48,21 +40,77 @@ class MenuButton(Button, MenuWidget):
         if k == self.closet.language:
             self.label.text = v
 
-
-class MenuIntInput(TextInput, MenuWidget):
     def initext(self):
+        if self.symbolic:
+            self.font_name = 'LiSE/gui/assets/Entypo.ttf'
+            self.font_size = 30
+        self.text = self.closet.get_text(self.stringname)
+
+
+class MenuTextInput(TextInput):
+    closet = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        super(MenuTextInput, self).__init__(**kwargs)
+        self.finalize()
+
+    def finalize(self, *args):
+        if not (
+                self.closet and
+                self.rehint_registrar and
+                self.hint_getter and
+                self.value_setter):
+            Clock.schedule_once(self.finalize, 0)
+            return
+        self.rehint_registrar(self.rehint)
+        self.rehint()
+
+    def rehint(self, *args):
         self.text = ''
-        self.hint_text = self.closet.get_text(self.stringname)
+        self.hint_text = self.hint_getter()
 
     def on_focus(self, *args):
         if not self.focus:
             try:
-                self.fun(int(self.text))
+                self.value_setter(self.text)
             except ValueError:
-                self.initext()
+                pass
+            self.rehint()
+        super(MenuTextInput, self).on_focus(*args)
 
-    def retext(self, time):
-        self.hint_text = str(time)
+    def rehint_registrar(self, reh):
+        raise NotImplementedError(
+            "Abstract method")
+
+    def hint_getter(self):
+        raise NotImplementedError(
+            "Abstract method")
+
+    def value_setter(self, v):
+        raise NotImplementedError(
+            "Abstract method")
+
+
+class MenuBranchInput(MenuTextInput):
+    def rehint_registrar(self, reh):
+        self.closet.register_branch_listener(reh)
+
+    def hint_getter(self):
+        return str(self.closet.branch)
+
+    def value_setter(self, v):
+        self.closet.branch = int(v)
+
+
+class MenuTickInput(MenuTextInput):
+    def rehint_registrar(self, reh):
+        self.closet.register_tick_listener(reh)
+
+    def hint_getter(self):
+        return str(self.closet.tick)
+
+    def value_setter(self, v):
+        self.closet.tick = int(v)
 
 
 class Menu(BoxLayout):

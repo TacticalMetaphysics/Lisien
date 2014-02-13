@@ -466,17 +466,17 @@
         CueCard:
             closet: root.app.closet
             stringname: _("Branch:")
-        MenuIntInput:
+        MenuBranchInput:
             closet: root.app.closet
-            stringname: '@branch'
-            fun: root.go_to_branch
+            multiline: False
+            font_size: 30
         CueCard:
             closet: root.app.closet
             stringname: _("Tick:")
-        MenuIntInput:
+        MenuTickInput:
             closet: root.app.closet
-            stringname: '@tick'
-            fun: root.go_to_tick
+            multiline: False
+            font_size: 30
 <SpotMenuContent>:
     id: spotmenu
     TextInput:
