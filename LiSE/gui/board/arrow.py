@@ -201,7 +201,6 @@ class Arrow(Widget):
     fg_b = BoundedNumericProperty(1, min=0., max=1.)
     fg_a = BoundedNumericProperty(1, min=0., max=1.)
     fg_color = ReferenceListProperty(fg_r, fg_g, fg_b, fg_a)
-    repoints = NumericProperty(0)
     points = ListProperty()
 
     def __init__(self, **kwargs):
@@ -211,11 +210,11 @@ class Arrow(Widget):
         guaranteed to know the positions of our endpoints.
 
         """
-        Widget.__init__(self, **kwargs)
         self.trigger_repoint = Clock.create_trigger(
             self.repoint, timeout=-1)
         self.trigger_repawn = Clock.create_trigger(
             self.repawn, timeout=-1)
+        Widget.__init__(self, **kwargs)
         self.board.arrowdict[unicode(self.portal)] = self
         orign = unicode(self.portal.origin)
         destn = unicode(self.portal.destination)

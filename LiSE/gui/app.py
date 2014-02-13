@@ -20,7 +20,6 @@ from kivy.logger import Logger
 from sqlite3 import connect, OperationalError
 
 from LiSE.gui.board import (
-    Board,
     Pawn,
     Spot,
     Arrow,
@@ -306,7 +305,8 @@ class PawnMenuContent(SpriteMenuContent):
     TogSwatch:
         box: pawnmenu
         img: root.closet.get_img("base.mummy_m")
-        tags: ["base", "body", "boot", "hand1", "hand2", "hair", "head", "leg", "beard", "cloak"]
+        tags: ["base", "body", "boot", "hand1", "hand2", "hair",\
+        "head", "leg", "beard", "cloak"]
         text: root.get_text(_("Build with RLTiles"))
         group: "pawnmenu"
         size_hint_y: None
@@ -352,7 +352,9 @@ class LiSELayout(FloatLayout):
         effect_cls: stiffscroll
         Board:
             id: board
-            facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
+            facade: root.app.closet.get_character(\
+            root.app.observed_name).get_facade(\
+            root.app.closet.get_character(root.app.observer_name))
             host: root.app.closet.get_character(root.app.host_name)
     CueCard:
         id: prompt
@@ -384,19 +386,19 @@ class LiSELayout(FloatLayout):
             fun: root.show_pawn_menu
         ClosetButton:
             closet: root.app.closet
-            symbolic: True
             stringname: _("@starttime")
+            symbolic: True
             fun: root.normal_speed
         ClosetButton:
             closet: root.app.closet
-            symbolic: True
             stringname: _("@reversetime")
+            symbolic: True
             fun: root.normal_speed
             arg: False
         ClosetButton:
             closet: root.app.closet
-            symbolic: True
             stringname: _("@pause")
+            symbolic: True
             fun: root.pause
         CueCard:
             closet: root.app.closet

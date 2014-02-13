@@ -5,16 +5,10 @@
 #: import _ LiSE.util.passthru
 #: import sep os.sep
 
-<Board>:
-    auto_bring_to_front: False
-<ClosetWidget>:
-    font_name: sep.join([lisepathl[-1], 'gui', 'assets', 'Entypo.ttf']) if self.symbolic else 'DroidSans'
-    font_size: 30 if self.symbolic else 16
-    text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
+
 <ClosetHintTextInput>:
     hint_text: self.closet.get_text(self.stringname) if self.closet and self.stringname else ''
 <Sizer>:
-    symbolic: True
     stringname: _('@resize-ud')
 <Calendar>:
     font_name: 'DroidSans'
@@ -84,8 +78,8 @@
                                     ClosetButton:
                                         id: thing_tab_stat_add
                                         closet: root.closet
-                                        symbolic: True
                                         stringname: _("@add")
+                                        symbolic: True
                                         size_hint_x: 0.2
                                         fun: thing_tab_stat.add_stat
                                         arg: thing_tab_stat_in.text
@@ -120,8 +114,8 @@
                                     ClosetButton:
                                         id: place_tab_stat_add
                                         closet: root.closet
-                                        symbolic: True
                                         stringname: _("@add")
+                                        symbolic: True
                                         size_hint_x: 0.2
                                         fun: place_tab_stat.add_stat
                                         arg: place_tab_stat_in.text
@@ -157,8 +151,8 @@
                                     ClosetButton:
                                         id: portal_tab_stat_add
                                         closet: root.closet
-                                        symbolic: True
                                         stringname: _("@add")
+                                        symbolic: True
                                         size_hint_x: 0.2
                                         fun: portal_tab_stat.add_stat
                                         arg: portal_tab_stat_in.text
@@ -182,9 +176,9 @@
                                 ClosetButton:
                                     id: char_tab_stat_add
                                     closet: root.closet
-                                    symbolic: True
                                     size_hint_x: 0.2
                                     stringname: _("@add")
+                                    symbolic: True
                                     fun: char_tab_stat.add_stat
                                     arg: char_tab_stat_in.text
             TabbedPanelItem:
@@ -225,8 +219,8 @@
                                         size_hint_x: 0.8
                                     ClosetButton:
                                         id: thing_cal_stat_add
-                                        symbolic: True
                                         stringname: _("@add")
+                                        symbolic: True
                                         size_hint_x: 0.2
                                         closet: root.closet
                                         args: [thing_cal_thing.selection[0], thing_cal_stat_in.text] if thing_cal_thing.selection else []
@@ -264,8 +258,9 @@
                                     ClosetButton:
                                         id: place_cal_stat_add
                                         closet: root.closet
-                                        symbolic: True
                                         size_hint_x: 0.2
+                                        stringname: _('@add')
+                                        symbolic: True
                                         fun: root.confirm
                                         args: [place_cal_place.selection[0], place_cal_stat_in.text] if place_cal_place.selection else []
                     TabbedPanelItem:
@@ -302,8 +297,9 @@
                                     ClosetButton:
                                         id: portal_cal_stat_add
                                         closet: root.closet
-                                        symbolic: True
                                         size_hint_x: 0.2
+                                        stringname: _('@add')
+                                        symbolic: True
                                         fun: root.confirm
                                         args: [portal_cal_portal.selection[0], portal_cal_stat_in.text] if portal_cal_portal.selection else []
                     TabbedPanelItem:
@@ -327,9 +323,9 @@
                                 ClosetButton:
                                     id: char_cal_stat_add
                                     closet: root.closet
-                                    symbolic: True
                                     size_hint_x: 0.2
                                     stringname: _("@add")
+                                    symbolic: True
                                     fun: root.confirm
                                     args: [char_cal_stat_in.text]
         BoxLayout:

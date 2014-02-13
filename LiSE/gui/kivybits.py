@@ -14,7 +14,10 @@ from kivy.properties import (
     BooleanProperty)
 from kivy.clock import Clock
 
+import LiSE
 from LiSE.orm import SaveableMetaclass
+
+from os import sep
 
 
 class ClosetLabel(Label):
@@ -24,11 +27,33 @@ class ClosetLabel(Label):
     closet = ObjectProperty()
     symbolic = BooleanProperty(False)
 
+    def __init__(self, **kwargs):
+        super(ClosetLabel, self).__init__(**kwargs)
+        self.finalize()
+
+    def finalize(self, *args):
+        if not (self.stringname and self.closet):
+            Clock.schedule_once(self.finalize, 0)
+            return
+        self.closet.register_text_listener(self.stringname, self.retext)
+        self.retext()
+
+    def retext(self, *args):
+        self.text = self.closet.get_text(self.stringname)
+
+    def on_symbolic(self, *args):
+        if self.symbolic:
+            self.font_name = sep.join(
+                [LiSE.__path__[-1], 'gui', 'assets', 'Entypo.ttf'])
+            self.font_size = 30
+        else:
+            self.font_name = 'DroidSans'
+            self.font_size = 16
+
 
 class ClosetButton(Button, ClosetLabel):
     fun = ObjectProperty(None)
     arg = ObjectProperty(None)
-    pressed = BooleanProperty(False)
 
     def on_release(self, *args):
         if self.fun is None:

@@ -1363,12 +1363,13 @@ class Closet(object):
             super(Closet, self).__setattr__(attrn, val)
 
     def __init__(self, connector, gettext=passthru,
-                 USE_KIVY=False, **kwargs):
+                 kivy=False, extraskels=False, **kwargs):
         """Initialize a Closet for the given connector and path.
 
-        With USE_KIVY, I will use the kivybits module to load images.
+        With kivy=True, I will use the kivybits module to load images.
 
         """
+        self.extraskels = extraskels
         global Place
         global Portal
         global Thing
@@ -1385,7 +1386,7 @@ class Closet(object):
         global Implicator
         import LiSE.model.event
         Implicator = LiSE.model.event.Implicator
-        if USE_KIVY:
+        if kivy:
             global Board
             global Spot
             global Pawn
@@ -1516,7 +1517,7 @@ class Closet(object):
             self.get_game_pieces = get_game_pieces
             self.get_game_piece = lambda name: get_game_pieces([name])[name]
 
-            self.USE_KIVY = True
+            self.kivy = True
 
         self.connector = connector
         self.empty = Skeleton({"place": {}})
@@ -1548,6 +1549,7 @@ class Closet(object):
         self.updating = False
         for glob in self.globs:
             setattr(self, glob, self.get_global(glob))
+        self.recording = False
 
     def __del__(self):
         """Try to write changes to disk before dying.
@@ -1692,13 +1694,13 @@ class Closet(object):
         """Supposing that the bone is equipped to write its own SQL, keep it
         in my ``altered_bones`` so as to do so later."""
         if hasattr(v, 'keynames'):
-            self.set_bone(v, 'altered')
+            self.set_bone(v, 'alter')
 
     def upd_on_del(self, skel, child, k, v):
         """Supposing that the bone is equipped to write its own SQL, keep it
         in my ``deleted_bones`` so as to do so later."""
         if hasattr(v, 'keynames'):
-            self.set_bone(v, 'deleted')
+            self.set_bone(v, 'delete')
             # if it's been altered in the same session, it must be removed
             ptr = self.altered
             try:
@@ -1771,21 +1773,26 @@ class Closet(object):
     def save_game(self):
         """Save all pending changes to disc."""
         Logger.debug("closet: beginning save_game")
+        self.recording = False
         for glob in self.globs:
             self.set_global(glob, getattr(self, glob))
-        for bone in self.deleted.iterbones():
-            Logger.debug("deleting: {}".format(bone))
-            self.c.execute(bone.sql_del, tuple(
-                getattr(bone, f) for f in bone.keynames))
-        for bone in self.altered.iterbones():
-            Logger.debug("overwriting: {}".format(bone))
-            self.c.execute(bone.sql_del, tuple(
-                getattr(bone, f) for f in bone.keynames))
-            self.c.execute(bone.sql_ins, tuple(
-                getattr(bone, f) for f in bone._fields
-                if getattr(bone, f) is not None))
+        # for bone in self.deleted.iterbones():
+        #     Logger.debug("deleting: {}".format(bone))
+        #     self.c.execute(bone.sql_del, tuple(
+        #         getattr(bone, f) for f in bone.keynames))
+        # for bone in self.altered.iterbones():
+        #     Logger.debug("overwriting: {}".format(bone))
+        #     self.c.execute(bone.sql_del, tuple(
+        #         getattr(bone, f) for f in bone.keynames))
+        #     self.c.execute(bone.sql_ins, tuple(
+        #         getattr(bone, f) for f in bone._fields
+        #         if getattr(bone, f) is not None))
         self.connector.commit()
         Logger.debug("closet: saved game")
+        self.deleted = self.empty.deepcopy()
+        self.altered = self.empty.deepcopy()
+        self.c.execute("BEGIN;")
+        self.recording = True
 
     def load_img_metadata(self):
         """Get all the records to do with where images are, so maybe I can
@@ -2170,7 +2177,7 @@ class Closet(object):
         for bone in self.skeleton[u"graphic_img"][graphicn].iterbones():
             yield self.get_img(bone.img)
 
-    def set_bone(self, bone, skel='main'):
+    def set_bone(self, bone, mode='main'):
         """Take a bone of arbitrary type and put it in the right place in the
         skeleton.
 
@@ -2179,14 +2186,16 @@ class Closet(object):
         PlaceBone to describe it.
 
         """
-        if skel == 'main':
+        if mode == 'main' or not self.extraskels:
             skeleton = self.skeleton
-        elif skel == 'altered':
-            skeleton = self.altered
-        elif skel == 'deleted':
-            skeleton = self.deleted
+        elif self.extraskels and mode in ('alter', 'delete'):
+            if mode == 'alter':
+                skeleton = self.altered
+            elif mode == 'delete':
+                skeleton = self.deleted
         else:
-            raise ValueError("I have no skeleton named {}".format(skel))
+            raise ValueError("I only recognize modes"
+                             " 'main', 'alter', and 'delete'")
 
         def init_keys(skeleton, keylst):
             """Make sure skeleton goes deep enough to put a value in, at the
@@ -2202,8 +2211,7 @@ class Closet(object):
             already"""
             if not self.have_place_bone(host, place, branch, tick):
                 self.set_bone(bone=PlaceBone(
-                    host=host, place=place, branch=branch, tick=tick),
-                    skel=skel)
+                    host=host, place=place, branch=branch, tick=tick))
 
         if isinstance(bone, PlaceBone):
             init_keys(
@@ -2246,10 +2254,23 @@ class Closet(object):
             self.timestream.upd_time(bone.branch, bone.tick)
 
         keynames = bone.keynames
-        keys = [bone._name] + [getattr(bone, keyn) for keyn in keynames[:-1]]
+        keys = [bone._name] + [
+            getattr(bone, keyn)
+            for keyn in keynames[:-1]]
         skelly = init_keys(skeleton, keys)
         final_key = getattr(bone, keynames[-1])
-        skelly[final_key] = bone
+        if mode == 'delete' and skeleton is self.skeleton:
+            del skelly[final_key]
+        else:
+            skelly[final_key] = bone
+
+        if self.recording:
+            self.c.execute(bone.sql_del, tuple(
+                getattr(bone, a) for a in bone.keynames))
+            if mode in ('main', 'alter'):
+                self.c.execute(bone.sql_ins, tuple(
+                    getattr(bone, b) for b in bone._fields
+                    if getattr(bone, b) is not None))
 
 
 def defaults(c, kivy=False):
@@ -2495,8 +2516,8 @@ def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
     """Return a Closet instance for the given database, maybe loading a
     few things before listening to the skeleton."""
     r = Closet(connector=sqlite3.connect(dbfn), gettext=gettext,
-               USE_KIVY=(load_img or load_img_tags or load_gfx or
-                         load_charsheet or load_board))
+               kivy=(load_img or load_img_tags or load_gfx or
+                     load_charsheet or load_board))
     r.load_timestream()
     if load_img:
         r.load_img_metadata()
@@ -2511,4 +2532,6 @@ def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
     if load_board:
         r.load_board(*load_board)
     r.listen_to_skeleton()
+    r.c.execute("BEGIN;")
+    r.recording = True
     return r
