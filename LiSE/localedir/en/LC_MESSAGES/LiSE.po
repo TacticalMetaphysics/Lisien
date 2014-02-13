@@ -1,37 +1,37 @@
-# English translation file for LiSE.
-# Copyright (C) 2014 Zachary Spector
-# This file is distributed under the same license as the LiSE package.
-# Zachary Spector <zacharyspector@gmail.com>, 2014
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: LiSE 0.0\n"
+"Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2014-02-13 09:06-0500\n"
-"PO-Revision-Date: 2014-01-11 10:39-0500\n"
-"Last-Translator: Zachary Spector <zacharyspector@gmail.com>\n"
-"Language: English\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:563
 msgid "@del"
-msgstr "⌫"
+msgstr ""
 
 #: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:570
 msgid "@up"
-msgstr "⌃"
+msgstr "^"
 
 #: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:578
 msgid "@down"
-msgstr "⌄"
+msgstr "v"
 
 #: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:590
-#, fuzzy
 msgid "@ud"
-msgstr "ᛨ"
+msgstr ""
 
 #: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:595
 #: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:777
@@ -43,7 +43,7 @@ msgstr "ᛨ"
 #: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:226
 #: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:329
 msgid "@add"
-msgstr "⊕"
+msgstr "+"
 
 #: /home/sanotehu/src/LiSE/LiSE/gui/app.py:442
 msgid "Draw a line between the spots to connect with a portal."
@@ -55,7 +55,7 @@ msgstr "Drag this to a spot"
 
 #: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:15
 msgid "@resize-ud"
-msgstr "⇕"
+msgstr ""
 
 #: /home/sanotehu/src/LiSE/LiSE/gui/lise.kv:48
 msgid "Tables"
@@ -161,56 +161,61 @@ msgstr "Confirm"
 msgid "Load"
 msgstr "Load"
 
+msgid "location"
+msgstr "location"
+
+msgid "origin"
+msgstr "origin"
+
+msgid "destination"
+msgstr "destination"
+
+msgid "@starttime"
+msgstr ">"
+
+msgid "@reversetime"
+msgstr "<"
+
+msgid "@pause"
+msgstr "|"
+
+msgid "Branch:"
+msgstr "Branch:"
+
+msgid "Tick:"
+msgstr "Tick:"
+
+msgid "Enter a unique name"
+msgstr "Enter a unique name"
+
+msgid "Use default image"
+msgstr "Use default image"
+
+msgid "Build with PixelCity"
+msgstr "Build with PixelCity"
+
+msgid "Build with RLTiles"
+msgstr "Build with RLTiles"
+
+msgid "Starting LiSE with database {}, path {}"
+msgstr "Starting LiSE with database {}, path {}"
+
+#, fuzzy
 #~ msgid "thing"
-#~ msgstr "thing"
+#~ msgstr "Thing"
 
-#~ msgid "location"
-#~ msgstr "location"
-
+#, fuzzy
 #~ msgid "place"
-#~ msgstr "place"
+#~ msgstr "Place"
 
-#~ msgid "origin"
-#~ msgstr "origin"
-
-#~ msgid "destination"
-#~ msgstr "destination"
-
+#, fuzzy
 #~ msgid "Place..."
-#~ msgstr "Place..."
+#~ msgstr "Place"
 
+#, fuzzy
 #~ msgid "Portal..."
-#~ msgstr "Portal..."
+#~ msgstr "Portal"
 
+#, fuzzy
 #~ msgid "Thing..."
-#~ msgstr "Thing..."
-
-#~ msgid "@starttime"
-#~ msgstr "▶"
-
-#~ msgid "@reversetime"
-#~ msgstr "⏪"
-
-#~ msgid "@pause"
-#~ msgstr "‖"
-
-#~ msgid "Branch:"
-#~ msgstr "Branch:"
-
-#~ msgid "Tick:"
-#~ msgstr "Tick:"
-
-#~ msgid "Enter a unique name"
-#~ msgstr "Enter a unique name"
-
-#~ msgid "Use default image"
-#~ msgstr "Use default image"
-
-#~ msgid "Build with PixelCity"
-#~ msgstr "Build with PixelCity"
-
-#~ msgid "Build with RLTiles"
-#~ msgstr "Build with RLTiles"
-
-#~ msgid "Starting LiSE with database {}, path {}"
-#~ msgstr "Starting LiSE with database {}, path {}"
+#~ msgstr "Thing"
