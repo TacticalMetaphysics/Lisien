@@ -256,14 +256,13 @@ class Spot(GamePiece):
         return True
 
     def on_touch_move(self, touch):
-        if self.collide_point(
-                *self.board.spotlayout.to_local(*touch.pos)) or (
-                'spot' in touch.ud and touch.ud['spot'] is self):
-            if 'spot' not in touch.ud:
-                touch.ud['spot'] = self
-            elif touch.ud['spot'] is self and 'portaling' not in touch.ud:
-                self._touch = touch
-                Clock.schedule_once(self._move_to_touch, -1)
+        if 'spot' not in touch.ud:
+            return
+        if touch.ud['spot'] is self and (
+                'portaling' not in touch.ud and
+                'pawn' not in touch.ud):
+            self._touch = touch
+            Clock.schedule_once(self._move_to_touch, -1)
 
     def _move_to_touch(self, *args):
         if self._touch:
@@ -273,6 +272,8 @@ class Spot(GamePiece):
         if self._touch:
             self.set_coords(*self.pos)
         self._touch = None
+        if self.collide_point(*self.board.parent.to_local(*touch.pos)):
+            return True
         return super(Spot, self).on_touch_up(touch)
 
     def __repr__(self):

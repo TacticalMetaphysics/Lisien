@@ -111,21 +111,6 @@ class MenuTickInput(MenuTextInput):
         self.closet.tick = w
 
 
-class DummySpot(Widget):
-    """This is at the end of the arrow that appears when you're drawing a
-    new portal. It's invisible, serving only to mark the pixel the
-    arrow ends at for the moment.
-
-    """
-    def collide_point(self, *args):
-        """This should be wherever you point, and therefore, always
-        collides."""
-        return True
-
-    def on_touch_move(self, touch):
-        self.center = touch.pos
-
-
 class DummyPawn(GamePiece):
     """Looks like a Pawn, but doesn't have a Thing associated.
 
@@ -461,6 +446,7 @@ class LiSELayout(FloatLayout):
                 self.board.arrowlayout.add_widget(
                     self.portal_d['dummyarrow'])
                 self._touch = touch
+                del touch.ud['spot']
                 self.portaling = 2
             else:
                 self.portaling = 0
@@ -486,9 +472,9 @@ class LiSELayout(FloatLayout):
             self.dismiss_prompt()
             destspot = None
             for spot in self.board.spotlayout.children:
-                if touch.ud['spot'] is spot:
-                    if self.portal_d['origspot'] is not spot:
-                        destspot = spot
+                if self.portal_d['origspot'] is not spot and\
+                   spot.on_touch_up(touch):
+                    destspot = spot
                     break
             if destspot is None:
                 ud['dummyarrow'].canvas.clear()
@@ -504,6 +490,7 @@ class LiSELayout(FloatLayout):
                 board=self.board, portal=portal)
             self.board.arrowdict[unicode(portal)] = arrow
             self.board.arrowlayout.add_widget(arrow)
+            arrow.trigger_repoint()
         else:
             return super(LiSELayout, self).on_touch_up(touch)
 

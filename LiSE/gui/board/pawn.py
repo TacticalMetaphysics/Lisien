@@ -195,19 +195,17 @@ will update its position appropriately.
                 return spot
 
     def on_touch_down(self, touch):
-        if self.collide_point(touch.x, touch.y):
+        if self.collide_point(touch.x, touch.y) and 'spot' not in touch.ud:
             touch.ud["pawn"] = self
             touch.grab(self)
             return True
 
     def on_touch_move(self, touch):
-        if touch.grab_current is self:
+        if 'pawn' in touch.ud and touch.ud['pawn'] is self:
             self.center = touch.pos
             return True
 
     def on_touch_up(self, touch):
-        if 'pawn' in touch.ud:
-            del touch.ud['pawn']
         if touch.grab_current is self:
             touch.ungrab(self)
             new_spot = self.check_spot_collision()
