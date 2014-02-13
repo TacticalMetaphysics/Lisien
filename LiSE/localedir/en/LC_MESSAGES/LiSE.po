@@ -31,7 +31,7 @@ msgstr "⌄"
 #: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:590
 #, fuzzy
 msgid "@ud"
-msgstr ""
+msgstr "ᛨ"
 
 #: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:595
 #: /home/sanotehu/src/LiSE/LiSE/gui/charsheet/charsheet.py:777
