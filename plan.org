@@ -1,8 +1,9 @@
-last commit wherein dragging spots worked: c07753928f55fbba603abcd6ebc84feaaaaa1b2d
-
 * database
 ** DONE change loaders so they can handle the case where you try to load something that doesn't exist
 ** schema changes
+** ORM
+   In orm.py mostly. Note there is no actual *class* called "ORM".
+*** 
 * interface
 ** place places (w. spots)
 ** place things (w. pawns)
@@ -196,6 +197,7 @@ cities. Abstraction is wonderful for that kind of thing.
 ***** DONE get_place_bone
 ***** DONE get_place_contents
 ***** TODO get_place_incident
+      I guess that just means portals from/to?
 **** set [2/2]
 ***** DONE set_place_bone
 ***** DONE set_place_idx
