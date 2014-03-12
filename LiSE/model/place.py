@@ -4,16 +4,16 @@ from container import Container
 
 
 class Place(Container):
-    """Where you go when you have to be someplace.
+    """Places where things may be.
 
-    Places are vertices in a character's graph where things can go,
+    Places are vertices in a character's graph where things can be,
     and where portals can lead. A place's name must be unique within
     its character.
 
     Unlike things and portals, places can't be hosted by characters
     other than the one they are part of. When something is "hosted" in
-    a character, that means it's in a place that's in the
-    character--always.
+    a character, that always means it's in a place that's in the
+    character.
 
     You don't need to create a bone for each and every place you
     use--link to it with a portal, or put a thing there, and it will
@@ -45,6 +45,7 @@ class Place(Container):
 
     @property
     def v(self):
+        """My iGraph vertex object"""
         return self.character.graph.vs.find(name=self.name)
 
     def __init__(self, character, name):
@@ -63,29 +64,20 @@ class Place(Container):
     def __unicode__(self):
         return unicode(self.name)
 
-    def _iter_portals_bones(self, observer=None, branch=None, tick=None):
-        """Iterate over the bones of portals that lead out from me"""
-        if observer is None:
-            for bone in self.character.iter_portal_bones(branch, tick):
-                if (
-                        bone.host == unicode(self.character) and
-                        bone.location == self.name):
-                    yield bone
-            return
-        facade = self.character.get_facade(observer)
-        for bone in facade.iter_hosted_portal_bones(branch, tick):
-            if bone.origin == self.name:
-                yield bone
+    def iter_portals(self, mode="both", observer=None, branch=None, tick=None):
+        """Iterate over portals incident on this place.
 
-    def iter_portals(self, observer=None, branch=None, tick=None):
-        """Iterate over all those portals which lead from this place to
-        elsewhere."""
-        for bone in self._iter_portals_bones(observer, branch, tick):
-            yield self.character.get_portal(bone.name)
+        By default this includes portals leading from and to
+        here. Change this by setting mode to 'in' or 'out'.
 
-    def get_portals(self, observer=None, branch=None, tick=None):
-        """Get a set of names of portals leading out from here."""
-        return set([self.character_iter_portals(observer, branch, tick)])
+        """
+        if observer:
+            charfac = self.character.get_facade(observer)
+        else:
+            charfac = self.character
+        for portal in charfac.iter_portals_incident_on_place(
+                self.name, mode, observer, branch, tick):
+            yield portal
 
     def get_stat(self, stat, observer=None, branch=None, tick=None):
         return self.get_subjectively(

@@ -494,6 +494,38 @@ class Character(object):
         return set([bone for bone in self.iter_place_contents(
             name, branch, tick)])
 
+    def iter_portal_loc_bones_incident_on_place(
+            self, name, mode="both", branch=None, tick=None):
+        if mode not in ("in", "out", "both"):
+            raise ValueError("mode must be one of 'in', 'out', 'both'")
+        if mode == "in":
+            checker = lambda bone: bone.destination == name
+        elif mode == "out":
+            checker = lambda bone: bone.origin == name
+        else:
+            checker = lambda bone: True
+        for portal_loc_bone in self.iter_portal_loc_bones(
+                branch=branch, tick=tick):
+            yield portal_loc_bone if checker(portal_loc_bone)
+
+    def iter_portals_incident_on_place(
+            self, name, mode="both", branch=None, tick=None):
+        for portal_loc_bone in self.iter_portal_loc_bones_incident_on_place(
+                name, mode, branch, tick):
+            yield self.get_portal(portal_loc_bone.name)
+
+    def iter_portal_loc_bones_from_place(
+            self, name, branch=None, tick=None):
+        for portal_loc_bone in self.iter_portal_loc_bones_incident_on_place(
+                name, "out", branch, tick):
+            yield portal_loc_bone
+
+    def iter_portals_from_place(
+            self, name, branch=None, tick=None):
+        for portal_loc_bone in self.iter_portal_loc_bones_from_place(
+                name, branch, tick):
+            yield self.get_portal(portal_loc_bone.name)
+
     ### Portal
 
     def get_portal(self, name):
