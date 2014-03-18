@@ -11,6 +11,17 @@ from kivy.clock import Clock
 
 
 class ImgStack(TextureStack):
+    """Several Img superimposed upon one another.
+
+    LiSE uses tile graphics, and tile graphics are often made
+    deliberately incomplete: perhaps there is a generic sprite for a
+    human, which is then made to represent a specific person by
+    layering different skins on top, and then clothes may be layered
+    on top of that. ImgStack lets you assemble such a compound sprite
+    easily, using a list-like interface, and thereafter treat the
+    ImgStack much as you would a single image.
+
+    """
     closet = ObjectProperty()
     imgs = ListProperty()
 
@@ -28,6 +39,7 @@ class ImgStack(TextureStack):
 
 
 class GamePiece(ImgStack):
+    """A saveable ImgStack with optional offsets of its own."""
     __metaclass__ = SaveableWidgetMetaclass
     tables = [
         ("graphic", {
@@ -48,7 +60,14 @@ class GamePiece(ImgStack):
             "checks": ["layer>=0"]})]
     graphic_name = StringProperty()
     _touch = ObjectProperty(None, allownone=True)
-    graphic_bone = ObjectProperty()
+    graphic_bone = AliasProperty(
+        lambda self: self._get_graphic_bone(),
+        lambda self, v: None,
+        bind=('graphic_name',))
+    graphic_img_bones = AliasProperty(
+        lambda self: self._get_graphic_img_bones(),
+        lambda self, v: None,
+        bind=('graphic_name',))
     offset_x = NumericProperty()
     offset_y = NumericProperty()
     offset = ReferenceListProperty(offset_x, offset_y)
@@ -63,13 +82,18 @@ class GamePiece(ImgStack):
 
     def _get_graphic_bone(self, *args):
         if not (self.closet and self.graphic_name):
-            Clock.schedule_once(self._get_graphic_bone, 0)
+
             return
         if self.graphic_name not in self.closet.skeleton[u"graphic"]:
             self.closet.load_game_piece(self.graphic_name)
-        assert(self.graphic_name in self.closet.skeleton[u"graphic"])
-        self.graphic_bone = self.closet.skeleton[u"graphic"][self.graphic_name]
+        if self.graphic_name not in self.closet.skeleton[u"graphic"]:
+            raise KeyError("Graphic {} not loaded".format(self.graphic_name))
+        return self.closet.skeleton[u"graphic"][self.graphic_name]
 
+    def _get_graphic_img_bones(self, *args):
+        if not (self.closet and self.graphic_name):
+            return
+        
     def upd_texs(self, *args):
         super(GamePiece, self).upd_texs()
         self.size = (self.width + self.offset_x, self.height + self.offset_y)

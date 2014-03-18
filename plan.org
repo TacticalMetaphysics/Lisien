@@ -6,6 +6,21 @@
 *** 
 * interface
 ** place places (w. spots)
+*** pick graphics
+    Using SwatchBox.
+
+    This used to work but is now broken. Tracking down the exact
+    reason proves tricky because I used indirect methods of
+    instantiating the SwatchBox, its container, and the other widgets
+    thereabout. I think I was trying to keep things out of Python and
+    in Kivy. I no longer think this was a good idea, if I ever did.
+
+    I want one method to make a pop-over that is appropriate to my
+    layout. It should take a FloatLayout or RelativeLayout for its
+    argument, and display the contents in the pop-over.
+
+    When the stuff in a widget depends on *prior* user input, that
+    widget should be constructed in pure Python, not kv.
 ** place things (w. pawns)
 ** character shets
 *** Link items to characters and vice versa.

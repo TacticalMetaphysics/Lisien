@@ -23,6 +23,8 @@ SHEET_ITEM_TYPES = [
     'place_cal',
     'portal_cal',
     'char_cal']
+"""Type codes for CharSheetItems, those things that go in character
+sheets so that the character sheets actually show something"""
 
 
 TABLE_TYPES = [
@@ -30,6 +32,7 @@ TABLE_TYPES = [
     'place_tab',
     'portal_tab',
     'char_tab']
+"""Those SHEET_ITEM_TYPES that represent tables"""
 
 
 CALENDAR_TYPES = [
@@ -37,6 +40,7 @@ CALENDAR_TYPES = [
     'place_cal',
     'portal_cal',
     'char_cal']
+"""Those SHEET_ITEM_TYPES that represent calendars"""
 
 unicode2pytype = {
     'bool': bool,
@@ -47,6 +51,7 @@ unicode2pytype = {
     'str': unicode,
     'unicode': unicode,
     'text': unicode}
+"""Map the names of types to their types"""
 
 pytype2unicode = {
     bool: 'bool',
@@ -54,48 +59,24 @@ pytype2unicode = {
     float: 'float',
     unicode: 'unicode',
     str: 'unicode'}
+"""Map types to the names I'll use for them in the database"""
 
 phi = (1.0 + sqrt(5))/2.0
 """The golden ratio."""
-
-portex = compile("Portal\((.+?)->(.+?)\)")
-"""Regular expression to recognize portals by name"""
-
-###
-# These regexes serve to parse certain database records that represent
-# function calls.
-#
-# Mainly, that means menu items and Effects.
-###
-ONE_ARG_RE = compile("(.+)")
-TWO_ARG_RE = compile("(.+), ?(.+)")
-ITEM_ARG_RE = compile("(.+)\.(.+)")
-MAKE_SPOT_ARG_RE = compile(
-    "(.+)\."
-    "(.+),([0-9]+),([0-9]+),?(.*)")
-MAKE_PORTAL_ARG_RE = compile(
-    "(.+)\.(.+)->"
-    "(.+)\.(.+)")
-MAKE_THING_ARG_RE = compile(
-    "(.+)\.(.+)@(.+)")
-PORTAL_NAME_RE = compile(
-    "Portal\((.+)->(.+)\)")
-NEW_THING_RE = compile(
-    "new_thing\((.+)+\)")
-NEW_PLACE_RE = compile(
-    "new_place\((.+)\)")
-CHARACTER_RE = compile(
-    "character\((.+)\)")
 
 ### End constants
 ### Begin functions
 
 
 def passthru(_):
+    """A function that returns its input. Defined here for convenient
+    import into lise.kv"""
     return _
 
 
 def upbranch(closet, bones, branch, tick):
+    """Yield copies of the bones with their branch changed, but only if
+    the bone's tick is >= the given."""
     started = False
     first = None
     for bone in bones:
@@ -111,6 +92,8 @@ def upbranch(closet, bones, branch, tick):
 
 
 def selectif(skel, key):
+    """With key==None, yield all values in skel. Otherwise yield only
+    skel[key]."""
     if key is None:
         for sk in skel.itervalues():
             yield sk
