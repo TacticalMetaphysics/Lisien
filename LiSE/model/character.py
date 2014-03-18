@@ -527,7 +527,8 @@ class Character(object):
             checker = lambda bone: True
         for portal_loc_bone in self.iter_portal_loc_bones(
                 branch=branch, tick=tick):
-            yield portal_loc_bone if checker(portal_loc_bone)
+            if checker(portal_loc_bone):
+                yield portal_loc_bone
 
     def iter_portals_incident_on_place(
             self, name, mode="both", branch=None, tick=None):

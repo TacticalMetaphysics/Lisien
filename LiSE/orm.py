@@ -36,10 +36,6 @@ Thing = None
 Timestream = None
 Implicator = None
 from LiSE.util import (
-    NEW_THING_RE,
-    NEW_PLACE_RE,
-    CHARACTER_RE,
-    passthru,
     ListItemIterator,
     TimestreamException,
     unicode2pytype,
@@ -203,6 +199,7 @@ class BoneMetaclass(type):
             return result
 
         def _mksqlins(self):
+            """Return an SQL command that inserts a record of me."""
             return "INSERT INTO {} ({}) VALUES ({});".format(
                 self._name, ", ".join(f for f in self._fields if
                                       getattr(self, f) is not None),
@@ -210,6 +207,7 @@ class BoneMetaclass(type):
                           if getattr(self, f) is not None))
 
         def _mksqldel(self):
+            """Return an SQL command that deletes my record."""
             if hasattr(self, 'keynames'):
                 kns = self.keynames
             else:
@@ -244,7 +242,11 @@ class BoneMetaclass(type):
                 "denull": denull}
         atts.update(attrs)
         if '_no_fmt' not in atts:
+            # Nearly every bone type is going to have a Struct
+            # instance. To make that instance, put together a string
+            # with a format code.
             fmt = bytearray('@')
+            """I'll be a ``str`` soon"""
             for (field_name, field_type, default) in atts["_field_decls"]:
                 if field_type in (unicode, str):
                     fmt.extend('{}s'.format(BoneMetaclass.packed_str_len))
@@ -310,6 +312,7 @@ class Bone(tuple):
     """
     __metaclass__ = BoneMetaclass
     _field_decls = []
+    """Tuples describing the fields I have. Used by BoneMetaclass."""
 
     def __init__(self, *args, **kwargs):
         """Refuse to initialize :class:`Bone` directly.
@@ -462,6 +465,8 @@ class Skeleton(MutableMapping):
 
         """
         self.content = {}
+        """My content might not turn out to be dict-type at all, but since my
+        API resembles that of dict, use one of those by default."""
         self._set_listeners = []
         """Functions to call when something in me is set to a value, either in
         my content, or in that of some :class:`Skeleton` I contain,
@@ -690,10 +695,7 @@ class Skeleton(MutableMapping):
     def _loud_toggle(self):
         """Toggle overly verbose debugging messages"""
         def skel_set_printer(skel, child, k, v):
-            """Debugging function to print out assignments to some skeleton or
-other
-
-            """
+            """Debugging function to print out assignments to a skeleton"""
             Logger.debug("%s: %s[%s]=%s", skel.name, child.name, k, v)
 
         def skel_del_printer(skel, child, k):
@@ -1362,8 +1364,8 @@ class Closet(object):
         else:
             super(Closet, self).__setattr__(attrn, val)
 
-    def __init__(self, connector, gettext=passthru,
-                 kivy=False, extraskels=False, **kwargs):
+    def __init__(self, connector, gettext=lambda _: _,
+                 USE_KIVY=False, **kwargs):
         """Initialize a Closet for the given connector and path.
 
         With kivy=True, I will use the kivybits module to load images.
@@ -1485,6 +1487,57 @@ class Closet(object):
                     yield GamePiece.bonetypes[
                         u"graphic_img"]._null()._replace(graphic=name)
 
+            def create_graphic(name=None, offx=0, offy=0):
+                if name is None:
+                    numeral = self.get_global(u'top_generic_graphic') + 1
+                    self.set_global(u'top_generic_graphic', numeral)
+                    name = "generic_graphic_{}".format(numeral)
+                grafbone = GamePiece.bonetypes[
+                    u"graphic"](name=name,
+                                offset_x=offx,
+                                offset_y=offy)
+                self.set_bone(grafbone)
+                return grafbone
+
+            def add_img_to_graphic(imgname, grafname, layer=None):
+                if grafname not in self.skeleton[u"graphic"]:
+                    raise ValueError("No such graphic: {}".format(
+                        grafname))
+                if imgname not in self.skeleton[u"img"]:
+                    raise ValueError("No such img: {}".format(
+                        imgname))
+                if layer is None:
+                    layer = max(self.skeleton[u"graphic_img"].keys())
+                imggrafbone = GamePiece.bonetypes[
+                    u"graphic_img"](
+                    graphic=grafname,
+                    img=imgname,
+                    layer=layer)
+                self.set_bone(imggrafbone)
+
+            def rm_graphic_layer(grafname, layer):
+                if grafname not in self.skeleton[u"graphic"]:
+                    raise ValueError(
+                        "No such graphic: {}".format(grafname))
+                if grafname not in self.skeleton[u"graphic_img"]:
+                    raise ValueError(
+                        "No imgs for graphic:: {}".format(
+                            grafname))
+                if layer not in self.skeleton[
+                        u"graphic_img"][grafname]:
+                    raise ValueError(
+                        "Graphic {} does not have layer {}".format(
+                            grafname, layer))
+
+                self.del_bone(GamePiece.bonetypes[
+                    u"graphic_img"]._null()._replace(
+                    name=grafname,
+                    layer=layer))
+                if not self.skeleton[u"graphic_img"][grafname].keys():
+                    self.del_bone(GamePiece.bonetypes[
+                        u"graphic"]._null()._replace(
+                        name=grafname))
+
             def load_game_pieces(names):
                 """Load graphics into game pieces. Return a dictionary
                 with one game piece per name."""
@@ -1516,18 +1569,29 @@ class Closet(object):
             self.load_game_piece = lambda name: load_game_pieces([name])[name]
             self.get_game_pieces = get_game_pieces
             self.get_game_piece = lambda name: get_game_pieces([name])[name]
+            self.create_graphic = create_graphic
+            self.add_img_to_graphic = add_img_to_graphic
+            self.rm_graphic_layer = rm_graphic_layer
 
             self.kivy = True
+
+        if 'load_img_tags' in kwargs:
+            self.load_imgs_tagged(kwargs['load_img_tags'])
+        if 'load_characters' in kwargs:
+            self.load_characters(kwargs['load_characters'])
+        if 'load_charsheet' in kwargs:
+            self.load_charsheet(kwargs['load_charsheet'])
 
         self.connector = connector
         self.empty = Skeleton({"place": {}})
         for tab in SaveableMetaclass.tabclas.iterkeys():
             self.empty[tab] = {}
         self.skeleton = self.empty.copy()
-        self.altered = self.empty.copy()
-        self.deleted = self.empty.copy()
 
-        self.c = self.connector.cursor()
+        self.c = self.connector.cursor(
+        )
+        self.c.execute("BEGIN;")
+
         self.branch_listeners = []
         self.tick_listeners = []
         self.time_listeners = []
@@ -1542,14 +1606,26 @@ class Closet(object):
             setattr(self, wd, dict())
 
         self.timestream = Timestream(self)
+        for glub in ('branch', 'tick'):
+            try:
+                self.get_global(glub)
+            except TypeError:
+                self.set_global(glub, 0)
         self.time_travel_history = [
             (self.get_global('branch'), self.get_global('tick'))]
         self.game_speed = 1
         self.new_branch_blank = set()
         self.updating = False
         for glob in self.globs:
-            setattr(self, glob, self.get_global(glob))
-        self.recording = False
+            try:
+                setattr(self, glob, self.get_global(glob))
+            except TypeError as ex:
+                if glob == 'observer':
+                    self.observer = 'Omniscient'
+                elif glob in ('observed', 'host'):
+                    setattr(self, glob, 'Physical')
+                else:
+                    raise ex
 
     def __del__(self):
         """Try to write changes to disk before dying.
@@ -1696,7 +1772,7 @@ class Closet(object):
         if not self.extraskels:
             return
         if hasattr(v, 'keynames'):
-            self.set_bone(v, 'alter')
+            self.set_bone(v)
 
     def upd_on_del(self, skel, child, k, v):
         """Supposing that the bone is equipped to write its own SQL, keep it
@@ -1704,15 +1780,7 @@ class Closet(object):
         if not self.extraskels:
             return
         if hasattr(v, 'keynames'):
-            self.set_bone(v, 'delete')
-            # if it's been altered in the same session, it must be removed
-            ptr = self.altered
-            try:
-                for keyn in v.keynames[:-1]:
-                    ptr = ptr[keyn]
-                del ptr[v.keynames[-1]]
-            except KeyError:
-                return
+            self.del_bone(v)
 
     def select_keybone(self, kb):
         """Yield records from the database matching the bone."""
@@ -1775,29 +1843,13 @@ class Closet(object):
             return self.gettext(strname)
 
     def save_game(self):
-        """Save all pending changes to disc."""
-        Logger.debug("closet: beginning save_game")
-        self.recording = False
+        """Commit the current transaction and start a new one."""
+        Logger.debug("Closet: beginning save_game")
         for glob in self.globs:
             self.set_global(glob, getattr(self, glob))
-        # for bone in self.deleted.iterbones():
-        #     Logger.debug("deleting: {}".format(bone))
-        #     self.c.execute(bone.sql_del, tuple(
-        #         getattr(bone, f) for f in bone.keynames))
-        # for bone in self.altered.iterbones():
-        #     Logger.debug("overwriting: {}".format(bone))
-        #     self.c.execute(bone.sql_del, tuple(
-        #         getattr(bone, f) for f in bone.keynames))
-        #     self.c.execute(bone.sql_ins, tuple(
-        #         getattr(bone, f) for f in bone._fields
-        #         if getattr(bone, f) is not None))
         self.connector.commit()
-        Logger.debug("closet: saved game")
-        if self.extraskels:
-            self.deleted = self.empty.deepcopy()
-            self.altered = self.empty.deepcopy()
-        self.c.execute("BEGIN;")
-        self.recording = True
+        self.c.execute("BEGIN TRANSACTION;")
+        Logger.debug("Closet: saved game")
 
     def load_img_metadata(self):
         """Get all the records to do with where images are, so maybe I can
@@ -1972,10 +2024,7 @@ class Closet(object):
         return self.time_travel(branch, tick)
 
     def time_travel(self, branch, tick):
-        """"Set the diegetic time to the given branch and tick.
-
-        If the branch is one higher than the known highest branch,
-        create it.
+        """Set the diegetic time to the given branch and tick.
 
         """
         assert branch <= self.timestream.hi_branch + 1, (
@@ -2102,15 +2151,15 @@ class Closet(object):
         """Get the root LiSELayout to show a popup of a kind appropriate to
         the name given."""
         root = mi.get_root_window().children[0]
-        new_thing_match = match(NEW_THING_RE, name)
+        new_thing_match = match("new_thing\((.+)+\)", name)
         if new_thing_match:
             return root.show_pawn_picker(
                 new_thing_match.groups()[0].split(", "))
-        new_place_match = match(NEW_PLACE_RE, name)
+        new_place_match = match("new_place\((.+)\)", name)
         if new_place_match:
             return root.show_spot_picker(
                 new_place_match.groups()[0].split(", "))
-        character_match = match(CHARACTER_RE, name)
+        character_match = match("character\((.+)\)", name)
         if character_match:
             argstr = character_match.groups()[0]
             if len(argstr) == 0:
@@ -2182,7 +2231,7 @@ class Closet(object):
         for bone in self.skeleton[u"graphic_img"][graphicn].iterbones():
             yield self.get_img(bone.img)
 
-    def set_bone(self, bone, mode='alter'):
+    def set_bone(self, bone):
         """Take a bone of arbitrary type and put it in the right place in the
         skeleton.
 
@@ -2191,8 +2240,7 @@ class Closet(object):
         PlaceBone to describe it.
 
         """
-        if mode not in ('alter', 'delete'):
-            raise ValueError("Valid modes are 'alter', 'delete'")
+        skeleton = self.skeleton
 
         def init_keys(skeleton, keylst):
             """Make sure skeleton goes deep enough to put a value in, at the
@@ -2203,29 +2251,23 @@ class Closet(object):
                 skeleton = skeleton[key]
             return skeleton
 
-        def dig_in(skeleton):
-            keynames = bone.keynames
-            keys = [bone._name] + [
-                getattr(bone, keyn)
-                for keyn in keynames[:-1]]
-            skelly = init_keys(skeleton, keys)
-            final_key = getattr(bone, keynames[-1])
-            return (skelly, final_key)
+        def set_place_bone(pbone):
+            init_keys(
+                skeleton,
+                [u"place", pbone.host, pbone.place, pbone.branch])
+            skeleton[u"place"][pbone.host][pbone.place][
+                pbone.branch][pbone.tick] = pbone
+
+        if isinstance(bone, PlaceBone):
+            set_place_bone(bone)
+            return
 
         def set_place_maybe(host, place, branch, tick):
             """Set a PlaceBone, but only if I don't have one for that place
             already"""
             if not self.have_place_bone(host, place, branch, tick):
-                self.set_bone(bone=PlaceBone(
+                set_place_bone(bone=PlaceBone(
                     host=host, place=place, branch=branch, tick=tick))
-
-        if isinstance(bone, PlaceBone):
-            init_keys(
-                self.skeleton,
-                [u"place", bone.host, bone.place, bone.branch])
-            self.skeleton[u"place"][bone.host][bone.place][
-                bone.branch][bone.tick] = bone
-            return
 
         # Some bones implicitly declare a new place
         if Thing and isinstance(bone, Thing.bonetypes[u"thing_loc"]):
@@ -2278,6 +2320,33 @@ class Closet(object):
                 self.c.execute(bone.sql_ins, tuple(
                     getattr(bone, b) for b in bone._fields
                     if getattr(bone, b) is not None))
+
+        # The skeleton is supposed to be an optimized mirror of what's
+        # in the database, so update the database to make it so. The
+        # change won't be committed until the next call to save_game.
+        if hasattr(bone, 'sql_ins'):
+            self.c.execute(bone.sql_ins)
+
+    def del_bone(self, bone):
+        """Take a bone of arbitrary type and delete it from the skeleton, if
+        present.
+
+        Delete it from the database too."""
+        keynames = bone.keynames
+        keys = [bone._name] + [getattr(bone, keyn) for keyn in keynames[:-1]]
+        skeleton = self.skeleton
+        for key in keys:
+            if key not in skeleton:
+                # Bone isn't in skeleton.
+                # Delete it from the database anyway, just in case.
+                if hasattr(bone, 'sql_del'):
+                    self.c.execute(bone.sql_del)
+                return
+            skeleton = skeleton[key]
+        final_key = getattr(bone, keynames[-1])
+        del skeleton[final_key]
+        if hasattr(bone, 'sql_del'):
+            self.c.execute(bone.sql_del)
 
 
 def defaults(c, kivy=False):
@@ -2389,6 +2458,12 @@ def mkdb(DB_NAME, lisepath, kivy=False):
         "INSERT INTO img_tag (img, tag) VALUES (?, ?);")
 
     def ins_atlas(curs, path, qualify=False, tags=[]):
+        """Grab all the images in an atlas and store them, optionally sticking
+        the name of the atlas on the start.
+
+        Apply the given tags if any.
+
+        """
         global Atlas
         if Atlas is None:
             import kivy.atlas
@@ -2404,6 +2479,7 @@ def mkdb(DB_NAME, lisepath, kivy=False):
                 curs.execute(tag_qrystr, (imgn, tag))
 
     def ins_atlas_dir(curs, dirname, qualify=False, tags=[]):
+        """Recurse into the directory and ins_atlas for all atlas therein."""
         for fn in os.listdir(dirname):
             if fn[-5:] == 'atlas':
                 path = dirname + sep + fn
@@ -2522,9 +2598,15 @@ def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
                 load_board=[]):
     """Return a Closet instance for the given database, maybe loading a
     few things before listening to the skeleton."""
-    r = Closet(connector=sqlite3.connect(dbfn), gettext=gettext,
-               kivy=(load_img or load_img_tags or load_gfx or
-                     load_charsheet or load_board))
+    kivish = False
+    for kive in (load_img, load_img_tags, load_gfx,
+                 load_charsheet, load_board):
+        if kive:
+            kivish = True
+            break
+    r = Closet(connector=sqlite3.connect(dbfn, isolation_level=None),
+               gettext=gettext,
+               USE_KIVY=kivish)
     r.load_timestream()
     if load_img:
         r.load_img_metadata()

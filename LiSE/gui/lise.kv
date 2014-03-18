@@ -23,8 +23,36 @@
             Rectangle:
                 pos: l.pos
                 size: l.size
-<SwatchBox>:
-    orientation: 'vertical'
+<LoadImgDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            ClosetButton:
+                closet: root.closet
+                stringname: _("Cancel")
+                on_release: root.cancel()
+            ClosetButton:
+                closet: root.closet
+                stringname: _("Load")
+                on_release: root.load(filechooser.path, filechooser.selection)
+<MenuIntInput>:
+    padding: [12, 12, 12, 0]
+    font_size: 26
+<ConfirmOrCancel>:
+    size_hint_y: None
+    height: 30
+    Button:
+        text: _("Cancel")
+        on_release: root.cancel()
+    Button:
+        text: _("Confirm")
+        on_release: root.confirm()
 <TogSwatch,FrobSwatch>:
     text_size: (self.width, self.height * 0.9)
     halign: 'center'
@@ -121,12 +149,14 @@
         multiline: False
         height: self.line_height * 2
     TogSwatch:
+        id: default_tog_swatch
         box: spotmenu
         img: root.closet.get_img("default_spot")
         text: root.get_text(_("Use default image"))
         group: "spotmenu"
         size_hint_y: None
     TogSwatch:
+        id: pixel_city_tog_swatch
         box: spotmenu
         img: root.closet.get_img("crossroad")
         tags: ['?pixel_city']
@@ -137,9 +167,11 @@
         size_hint_y: None
         height: 30
         Button:
+            id: cancel_button
             text: root.get_text(_('Cancel'))
             on_release: root.cancel()
         Button:
+            id: confirm_button
             text: root.get_text(_('Confirm'))
             on_release: root.confirm()
 <Pawn>:
