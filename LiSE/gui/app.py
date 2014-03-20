@@ -6,15 +6,25 @@ from kivy.properties import (
     BoundedNumericProperty,
     ObjectProperty,
     ListProperty,
-    StringProperty)
+    DictProperty,
+    StringProperty,
+    NumericProperty,
+    AliasProperty
+)
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
+from kivy.uix.image import Image
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
+
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.togglebutton import ToggleButton
 from kivy.logger import Logger
 
 from sqlite3 import connect, OperationalError
@@ -93,8 +103,6 @@ class FrobSwatch(Button):
     """The :class:`SwatchBox` that I belong to."""
     img = ObjectProperty()
     """Image to show"""
-    tags = ListProperty([])
-    """List for use in SwatchBox"""
 
     def __init__(self, **kwargs):
         """Bind ``self.img`` to ``self.upd_img``"""
@@ -125,113 +133,38 @@ class TogSwatch(ToggleButton, FrobSwatch):
     pass
 
 
-class SwatchBox(ScrollView):
+class SwatchBox(GridLayout):
     """A collection of :class:`Swatch` used to select several
     graphics at once."""
     cols = NumericProperty()
     """Number of columns, as for ``GridLayout``"""
     closet = ObjectProperty()
     """Closet to get data from"""
-    tags = ListProperty([])
-    """Image tags to be used as categories. If supplied,
-    ``categorized_images`` is not necessary.
+    tag = StringProperty()
+    """Tag of the images to be displayed herein."""
+    max_sel = BoundedNumericProperty(1, min=1)
+    """How many swatches may the user select at once?
+
+    When exceeded, the oldest selection will wear off.
 
     """
-    categorized_images = DictProperty()
-    """Lists of images, keyed by the name to use for each list
-    when displaying its images to the user.
-
-    Overrides ``tags``.
-
-    """
-    sellen = NumericProperty(0)
+    sellen = BoundedNumericProperty(0, min=0)
     selection = ListProperty([])
+    pile = ListProperty([])
 
     def __init__(self, **kwargs):
-        def finalize(*args):
-            """For each category in ``cattexlst``, construct a grid of grouped
-            Swatches displaying the images therein.
+        """Get the imgs for ``tag``, make a swatch for each, and add them to
+        me.
 
-            """
-            def wait_for_cats(*args):
-                """Assign ``self.categorized_images`` based on
-                ``kwargs['tags']`` if present. Otherwise,
-                ``kwargs['categorized_images']`` must be
-                present, so wait for it.
-
-                """
-                if (
-                        'categorized_images' in kwargs
-                        and not self.categorized_images):
-                    Clock.schedule_once(wait_for_cats, 0)
-                    return
-                if 'tags' in kwargs:
-                    self.categorized_images = get_categorized_images(
-                        kwargs['closet'], kwargs['tags'])
-                else:
-                    if not self.categorized_images:
-                        raise ValueError("SwatchBox requires either ``tags``_"
-                                         " or ``categorized_images``")
-            wait_for_cats()
-
-            if not self.cols and self.closet and self.categorized_images:
-                Clock.schedule_once(finalize, 0)
-                return
-            cats = GridLayout(cols=self.cols, size_hint_y=None)
-            self.add_widget(cats)
-            i = 0
-            h = 0
-            for (catname, images) in self.categorized_images:
-                l = ClosetLabel(closet=self.closet,
-                                stringname=catname.strip('!?'),
-                                size_hint_y=None)
-                cats.add_widget(l)
-                cats.rows_minimum[i] = l.font_size * 2
-                h += cats.rows_minimum[i]
-                i += 1
-                layout = StackLayout(size_hint_y=None)
-                for image in images:
-                    fakelabel = Label(text=image.name)
-                    fakelabel.texture_update()
-                    w = fakelabel.texture.size[0]
-                    kwargs = {
-                        'box': self,
-                        'text': image.name,
-                        'image': image,
-                        'width': w + l.font_size * 2}
-                    if catname[0] == '!':
-                        swatch = TogSwatch(**kwargs)
-                    elif catname[0] == '?':
-                        swatch = FrobSwatch(**kwargs)
-                    else:
-                        kwargs['group'] = catname
-                        swatch = TogSwatch(**kwargs)
-                    layout.add_widget(swatch)
-
-                    def upd_from_swatch(swatch, state):
-                        """When the swatch notices it's been pressed, put it in
-                        the pile."""
-                        # It seems weird I'm handling the state in two places.
-                        bone = self.closet.skeleton[u"img"][swatch.img_name]
-                        if (
-                                state == 'down' and
-                                swatch.img_name not in self.pile.names):
-                            self.pile.bones.append(bone)
-                        elif (
-                                state == 'normal' and
-                                swatch.img_name in self.pile.names):
-                            self.pile.bones.remove(bone)
-                    swatch.bind(state=upd_from_swatch)
-                layout.minimum_width = 500
-                cats.add_widget(layout)
-                cats.rows_minimum[i] = (len(images) / 5) * 100
-                h += cats.rows_minimum[i]
-                i += 1
-            cats.height = h
-
-        kwargs['orientation'] = 'vertical'
+        """
+        if 'tag' not in kwargs:
+            raise ValueError("img tag required")
         super(SwatchBox, self).__init__(**kwargs)
-        finalize()
+        imgs = self.closet.get_imgs_with_tag(kwargs['tag'])
+        for imgn in imgs:
+            img = self.closet.get_img(imgn)
+            self.add_widget(TogSwatch(
+                box=self, img=img, size_hint=(None, None)))
 
     def upd_selection(self, togswatch, state):
         """Make sure self.selection has the togswatch in it if it's pressed,
@@ -256,6 +189,13 @@ class SwatchBox(ScrollView):
             except IndexError:
                 pass
         self.sellen = lv
+        if self.sellen > self.max_sel:
+            if self.sellen != self.max_sel + 1:
+                raise ValueError(
+                    "Seems like you somehow selected >1 at once?")
+            oldsel = self.selection.pop(0)
+            oldsel.state = 'normal'
+            self.sellen -= 1
 
     def undo(self, *args):
         """Put the last pressed swatch back to normal."""
@@ -588,7 +528,7 @@ class LiSELayout(FloatLayout):
         """Blank out the cue card"""
         self.ids.prompt.text = ''
 
-    def get_swatch_view(self, sections):
+    def get_swatch_view(self, sections, cols=5):
         """Return a ``ScrollView``, to be used in a popup, for the user to
         select a graphic for something (not necessarily a Thing) that
         they want to make.
@@ -601,19 +541,22 @@ class LiSELayout(FloatLayout):
         hostn = unicode(self.board.host)
         if hostn not in self.app.closet.skeleton[u"place"]:
             self.app.closet.skeleton[u"place"][hostn] = {}
-        swatch_menu_swatches = ScrollView(do_scroll_x=False)
-        for (headtxt, tags) in sections:
+        swatch_menu_scrollview = ScrollView(
+            do_scroll_x=False)
+        swatch_menu_swatches = BoxLayout(orientation='vertical')
+        swatch_menu_scrollview.add_widget(swatch_menu_swatches)
+        for (headtxt, tag) in sections:
             content = BoxLayout(orientation='vertical', size_hint_y=None)
-            header = ClosetLabel(closet=self.closet, stringname=headtxt)
+            header = ClosetLabel(closet=self.app.closet, stringname=headtxt)
             content.add_widget(header)
-            pallet = SpriteMenuContent(
+            pallet = SwatchBox(
                 closet=self.app.closet,
-                swatchbox=SwatchBox(
-                    closet=self.app.closet,
-                    tags=tags))
+                tag=tag,
+                cols=cols,
+                size_hint_y=None)
             content.add_widget(pallet)
             swatch_menu_swatches.add_widget(content)
-        return swatch_menu_swatches
+        return swatch_menu_scrollview
 
     def graphic_menu_confirm(self, cb, namebox, swatches):
         """Validate the name, compose a graphic from the selected
@@ -651,10 +594,10 @@ class LiSELayout(FloatLayout):
 
         namebox = TextInput(
             hint_text=_('Enter a unique thing name'), multiline=False,
-            size_hint_y=None, height=34, font_size=30)
+            size_hint_y=None, height=34, font_size=20)
         swatches = self.get_swatch_view([('Body', 'base'),
                                          ('Clothes', 'body')])
-        popcont = BoxLayout()
+        popcont = BoxLayout(orientation='vertcal')
         popcont.add_widget(namebox)
         popcont.add_widget(swatches)
         pawnmenu = Popup(title=_('Select Thing\'s Appearance'),
@@ -662,7 +605,7 @@ class LiSELayout(FloatLayout):
         popcont.add_widget(ConfirmOrCancel(
             confirm=lambda: self.graphic_menu_confirm(
                 self.new_pawn_with_name_and_swatches, namebox, swatches),
-            cancel=lambda: pawnmenu.close()))
+            cancel=lambda: pawnmenu.dismiss()))
         pawnmenu.open()
         return pawnmenu
 
@@ -674,9 +617,9 @@ class LiSELayout(FloatLayout):
 
         namebox = TextInput(
             hint_text=_('Enter a unique place name'), multiline=False,
-            size_hint_y=None, height=34, font_size=30)
-        swatches = self.get_swatch_view([('', '?pixelcity')])
-        popcont = BoxLayout()
+            size_hint_y=None, height=34, font_size=20)
+        swatches = self.get_swatch_view([('', 'pixel_city')])
+        popcont = BoxLayout(orientation='vertical')
         popcont.add_widget(namebox)
         popcont.add_widget(swatches)
         spotmenu = Popup(title=_("Select Place's Appearance"),
@@ -684,7 +627,7 @@ class LiSELayout(FloatLayout):
         popcont.add_widget(ConfirmOrCancel(
             confirm=lambda: self.graphic_menu_confirm(
                 self.new_spot_with_name_and_swatches, namebox, swatches),
-            cancel=lambda: spotmenu.close()))
+            cancel=lambda: spotmenu.dismiss()))
         spotmenu.open()
         return spotmenu
 
@@ -759,7 +702,9 @@ class LiSELayout(FloatLayout):
 
     def center_of_view_on_board(self):
         """Get the point on the Board that is presently at the center of the
-        screen."""
+        screen.
+
+        """
         b = self.board
         bv = self.ids.board_view
         # clamp to that part of the board where the view's center might be
@@ -820,7 +765,7 @@ class LoadImgDialog(FloatLayout):
 class PickImgDialog(FloatLayout):
     """Dialog for associating imgs with something, perhaps a Pawn.
 
-In lise.kv this is given a SwatchBox with texdict=root.texdict."""
+    """
     categorized_images = ObjectProperty()
     set_imgs = ObjectProperty()
     cancel = ObjectProperty()

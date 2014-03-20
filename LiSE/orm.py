@@ -1465,7 +1465,7 @@ class Closet(object):
                     lambda bone: boned.add(bone.img))
                 return get_imgs(boned)
 
-            def get_imgs_tagged(tags):
+            def get_imgs_with_tags(tags):
                 """Get ``Img``s tagged thus, return as from ``get_imgs``"""
                 r = {}
                 unhad = set()
@@ -1476,6 +1476,9 @@ class Closet(object):
                         unhad.add(tag)
                 r.update(load_imgs_tagged(unhad))
                 return r
+
+            def get_imgs_with_tag(tag):
+                return get_imgs_with_tags([tag])[tag]
 
             def iter_graphic_keybones(names):
                 """Yield the ``graphic`` and ``graphic_img`` bones
@@ -1563,7 +1566,8 @@ class Closet(object):
             self.load_imgs = load_imgs
             self.get_imgs = get_imgs
             self.load_imgs_tagged = load_imgs_tagged
-            self.get_imgs_tagged = get_imgs_tagged
+            self.get_imgs_with_tags = get_imgs_with_tags
+            self.get_imgs_with_tag = get_imgs_with_tag
             self.load_game_pieces = load_game_pieces
             self.load_game_piece = lambda name: load_game_pieces([name])[name]
             self.get_game_pieces = get_game_pieces
@@ -2306,7 +2310,9 @@ class Closet(object):
         # in the database, so update the database to make it so. The
         # change won't be committed until the next call to save_game.
         if hasattr(bone, 'sql_ins'):
-            self.c.execute(bone.sql_ins)
+            self.c.execute(bone.sql_del, [getattr(bone, keyn)
+                                          for keyn in keynames])
+            self.c.execute(bone.sql_ins, bone)
 
     def del_bone(self, bone):
         """Take a bone of arbitrary type and delete it from the skeleton, if
@@ -2327,7 +2333,8 @@ class Closet(object):
         final_key = getattr(bone, keynames[-1])
         del skeleton[final_key]
         if hasattr(bone, 'sql_del'):
-            self.c.execute(bone.sql_del)
+            self.c.execute(bone.sql_del, [getattr(bone, keyn)
+                                          for keyn in keynames])
 
 
 def defaults(c, kivy=False):
