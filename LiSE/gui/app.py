@@ -112,6 +112,8 @@ class FrobSwatch(Button):
 
     def upd_image(self, *args):
         """Make an ``Image`` to display ``self.img`` with."""
+        Logger.debug("FooSwatch: upd_image with img {}".format(
+            self.img))
         if not self.img:
             return
         if not self.box:
@@ -126,6 +128,8 @@ class FrobSwatch(Button):
 
     def on_box(self, *args):
         """Bind the box's state to its ``upd_selection`` method"""
+        Logger.debug("FooSwatch: got box {}".format(
+            self.box))
         self.bind(state=self.box.upd_selection)
 
 
@@ -136,8 +140,6 @@ class TogSwatch(ToggleButton, FrobSwatch):
 class SwatchBox(GridLayout):
     """A collection of :class:`Swatch` used to select several
     graphics at once."""
-    cols = NumericProperty()
-    """Number of columns, as for ``GridLayout``"""
     closet = ObjectProperty()
     """Closet to get data from"""
     tag = StringProperty()
@@ -161,10 +163,15 @@ class SwatchBox(GridLayout):
             raise ValueError("img tag required")
         super(SwatchBox, self).__init__(**kwargs)
         imgs = self.closet.get_imgs_with_tag(kwargs['tag'])
+        Logger.debug("SwatchBox: tag {} has {} imgs".format(
+            kwargs['tag'], len(imgs)))
         for imgn in imgs:
             img = self.closet.get_img(imgn)
-            self.add_widget(TogSwatch(
-                box=self, img=img, size_hint=(None, None)))
+            box = TogSwatch(
+                box=self, img=img, size_hint=(None, None))
+            self.add_widget(box)
+        self.height = self.children[0].height * (
+            (len(self.children) % self.cols) + 1)
 
     def upd_selection(self, togswatch, state):
         """Make sure self.selection has the togswatch in it if it's pressed,
@@ -181,7 +188,7 @@ class SwatchBox(GridLayout):
         lv = len(self.selection)
         if lv > self.sellen:
             self.pile.append(
-                self.selection[-1].display_texture, self.selection[-1].xoff,
+                self.selection[-1].texture, self.selection[-1].xoff,
                 self.selection[-1].yoff, self.selection[-1].stackh)
         elif lv < self.sellen:
             try:
@@ -609,18 +616,14 @@ class LiSELayout(FloatLayout):
             swatch_menu_swatches.add_widget(content)
         return swatch_menu_scrollview
 
-    def graphic_menu_confirm(self, cb, namebox, swatches):
+    def graphic_menu_confirm(self, validator, confirmer, namebox, swatches_view):
         """Validate the name, compose a graphic from the selected
         images, and pass those to the callback.
 
         """
-        if self.validate_name(namebox.text):
-            swatchl = []
-            for swatchbox in swatches:
-                swatchl.extend(swatchbox.selection)
-            graphic = self.mk_graphic_from_list(swatchl)
-            return cb(namebox.text, graphic)
-        else:
+        vmesg = validator(namebox.text)
+        # if the validator returns a message, it indicates failure
+        if vmesg:
             old_color = namebox.background_color
 
             def unred(*args):
@@ -628,9 +631,16 @@ class LiSELayout(FloatLayout):
                 namebox.background_color = old_color
 
             namebox.background_color = [1, 0, 0, 1]
-            namebox.hint_text = _("Another Thing has that name already. "
-                                  "Use a different name.")
+            namebox.hint_text = vmesg
             Clock.schedule_once(unred, 0.5)
+        else:
+            swatchl = []
+            for swatchbox in swatches_view.children[0].children[0].children:
+                if isinstance(swatchbox, SwatchBox):
+                    swatchl.extend(swatchbox.selection)
+            graphic = self.mk_graphic_from_img_list([
+                swatch.img for swatch in swatchl])
+            return confirmer(namebox.text, graphic)
 
     def show_pawn_menu(self):
         """Show the menu to pick what graphic to give to the Pawn the user
@@ -662,6 +672,15 @@ class LiSELayout(FloatLayout):
 
     def show_spot_menu(self):
         """Show the menu to pick the name and graphic for a new Spot"""
+        def validator(text):
+            if text == '':
+                return _('You need to enter a name here')
+            elif text in self.app.closet.skeleton[u'place'][
+                    unicode(self.board.host)]:
+                return _('That name is already used, choose another')
+            else:
+                return None
+
         hst = unicode(self.board.host)
         if hst not in self.app.closet.skeleton[u"place"]:
             self.app.closet.skeleton[u"place"][hst] = {}
@@ -675,19 +694,24 @@ class LiSELayout(FloatLayout):
         popcont.add_widget(swatches)
         spotmenu = Popup(title=_("Select Place's Appearance"),
                          content=popcont)
+
+        def confirmer(name, graphic):
+            spotmenu.dismiss()
+            self.new_spot_with_name_and_graphic(name, graphic)
+
         popcont.add_widget(ConfirmOrCancel(
             confirm=lambda: self.graphic_menu_confirm(
-                self.new_spot_with_name_and_swatches, namebox, swatches),
+                validator, confirmer, namebox, swatches),
             cancel=lambda: spotmenu.dismiss()))
         spotmenu.open()
         return spotmenu
 
     def mk_graphic_from_img_list(self, imgl, offx=0, offy=0):
         """Make a new graphic from the list of images; return its name."""
-        grafbone = self.closet.create_graphic(offx=offx, offy=offy)
+        grafbone = self.app.closet.create_graphic(offx=offx, offy=offy)
         i = 0
         for img in imgl:
-            self.closet.add_img_to_graphic(img.name, grafbone.name, i)
+            self.app.closet.add_img_to_graphic(img.name, grafbone.name, i)
             i += 1
         return grafbone.name
 
