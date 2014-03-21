@@ -1460,8 +1460,8 @@ class Closet(object):
                 """Load ``Img``s tagged thus, return as from ``get_imgs``"""
                 boned = set()
                 self.select_and_set(
-                    (Img.bonetypes["img_tag"]._null()._replace(
-                        tag=tag) for tag in tags),
+                    [Img.bonetypes["img_tag"]._null()._replace(
+                        tag=tag) for tag in tags],
                     lambda bone: boned.add(bone.img))
                 return get_imgs(boned)
 
@@ -1811,7 +1811,8 @@ class Closet(object):
         to ``also_bone``, if specified.
 
         """
-        for bone in self.select_keybones(kbs):
+        todo = list(self.select_keybones(kbs))
+        for bone in todo:
             self.set_bone(bone)
             also_bone(bone)
 
@@ -2265,7 +2266,7 @@ class Closet(object):
             """Set a PlaceBone, but only if I don't have one for that place
             already"""
             if not self.have_place_bone(host, place, branch, tick):
-                set_place_bone(bone=PlaceBone(
+                set_place_bone(PlaceBone(
                     host=host, place=place, branch=branch, tick=tick))
 
         # Some bones implicitly declare a new place
