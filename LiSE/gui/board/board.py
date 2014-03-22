@@ -23,6 +23,13 @@ class BoardLayout(RelativeLayout):
         if hasattr(w, 'upd_texs'):
             w.upd_texs()
 
+    def on_touch_up(self, touch):
+        r = None
+        for child in self.children:
+            r = child.on_touch_up(touch)
+            if r:
+                return r
+
 
 class Board(FloatLayout):
     """A graphical view onto a facade, resembling a game board."""
@@ -190,3 +197,20 @@ class Board(FloatLayout):
         for pawn in self.pawndict.itervalues():
             for bone in pawn.new_branch(parent, branch, tick):
                 yield bone
+
+    def on_touch_up(self, touch):
+        touch.push()
+        touch.apply_transform_2d(self.parent.to_local)
+        r = self.pawnlayout.on_touch_up(touch)
+        if r:
+            touch.pop()
+            return r
+        r = self.spotlayout.on_touch_up(touch)
+        if r:
+            touch.pop()
+            return r
+        r = self.arrowlayout.on_touch_up(touch)
+        if r:
+            touch.pop()
+            return r
+        return super(Board, self).on_touch_up(touch)
