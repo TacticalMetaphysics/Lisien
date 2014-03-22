@@ -500,22 +500,16 @@ class LiSELayout(FloatLayout):
             self.portaling = 0
             if touch != self._touch:
                 return
-            ud = self.portal_d
-            ud['dummyarrow'].canvas.clear()
-            self.remove_widget(ud['dummyspot'])
-            self.board.remove_widget(ud['dummyarrow'])
+            self.portal_d['dummyarrow'].canvas.clear()
+            self.remove_widget(self.portal_d['dummyspot'])
+            self.board.remove_widget(self.portal_d['dummyarrow'])
             self.dismiss_prompt()
-            destspot = None
-            for spot in self.board.spotlayout.children:
-                if spot.collide_point(*self.board.spotlayout.to_local(
-                        *touch.pos)) and spot is not ud['origspot']:
-                    destspot = spot
-                    break
-            if destspot is None:
-                ud['dummyarrow'].canvas.clear()
+            destspot = self.board.on_touch_up(touch)
+            if not destspot or 'origspot' not in self.portal_d:
+                self.portal_d['dummyarrow'].canvas.clear()
                 self.dismiss_prompt()
                 return True
-            origplace = ud['origspot'].place
+            origplace = self.portal_d['origspot'].place
             destplace = destspot.place
             portalname = "{}->{}".format(origplace, destplace)
             portal = self.board.facade.observed.make_portal(

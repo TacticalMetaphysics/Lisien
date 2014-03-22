@@ -242,17 +242,13 @@ class Spot(GamePiece):
                     prev = bone
 
     def on_touch_down(self, touch):
-        touch.push()
-        if not self.collide_point(*self.board.parent.to_local(*touch.pos)):
-            touch.pop()
-            return
-        if 'spot' in touch.ud:
-            touch.pop()
+        if (
+                not self.collide_point(*self.board.parent.to_local(*touch.pos))
+                or 'spot' in touch.ud):
             return
         touch.grab(self)
         touch.ud['spot'] = self
         self._touch = touch
-        touch.pop()
         return True
 
     def on_touch_move(self, touch):
@@ -279,7 +275,8 @@ class Spot(GamePiece):
         if self._touch:
             self.set_coords(*self.pos)
         self._touch = None
-        return super(Spot, self).on_touch_up(touch)
+        if self.collide_point(*touch.pos):
+            return self
 
     def __repr__(self):
         return "{}@({},{})".format(self.place.name, self.x, self.y)
