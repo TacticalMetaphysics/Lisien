@@ -256,7 +256,8 @@ class Spot(GamePiece):
         return True
 
     def on_touch_move(self, touch):
-        if 'spot' not in touch.ud:
+        if 'portaling' in touch.ud or 'pawn' in touch.ud:
+            touch.ungrab(self)
             return
         if touch.ud['spot'] is self and (
                 'portaling' not in touch.ud and
