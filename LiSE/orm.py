@@ -1,7 +1,9 @@
 # coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-"""Contains ``Closet``, a caching object-relational mapper with
+"""An object-relational mapper optimized for time travel.
+
+Contains ``Closet``, a caching object-relational mapper with
 support for time-travelling objects; the support class ``Bone``, a
 named tuple that generates SQL and can be packed into an array;
 ``Skeleton``, the map used by ``Closet``; and various metamagic in
@@ -389,72 +391,67 @@ class PlaceBone(Bone):
 class Skeleton(MutableMapping):
     """A tree structure full of :class:`Bone`. Used to cache the database.
 
-    Skeleton is used to store a cache of some or all of the LiSE
-    database. It does not, itself, synchronize with the
-    database--Closet and SaveableMetaclass handle that--but it
-    supports union and difference operations, as though it were a
-    set. This makes it easy to decide which records to save.
+    Skeleton is used to store a cache of some or all of the LiSE database. It
+    does not, itself, synchronize with the database--Closet and
+    SaveableMetaclass handle that--but it supports union and difference
+    operations, as though it were a set. This makes it easy to decide which
+    records to save.
 
-    Nearly everything in LiSE keeps its data in a single, enormous
-    Skeleton, which itself is kept in an instance of Closet. Whenever
-    you want a LiSE object, you should get it by calling some
-    appropriate method in the single instance of Closet used by that
-    instance of LiSE. The method will require keys for
-    arguments--these are the same keys you would use to look up a
-    record in one of the tables that the object refers to. The object
-    you get this way will not really contain any data apart from the
-    key and the Closet--whenever it needs to know something, it will
-    ask Closet about it, and Closet will look up the answer in
-    Skeleton, first loading it in from disc if necessary.
+    Nearly everything in LiSE keeps its data in a single, enormous Skeleton,
+    which itself is kept in an instance of Closet. Whenever you want a LiSE
+    object, you should get it by calling some appropriate method in the
+    single instance of Closet used by that instance of LiSE. The method will
+    require keys for arguments--these are the same keys you would use to look
+    up a record in one of the tables that the object refers to. The object
+    you get this way will not really contain any data apart from the key and
+    the Closet--whenever it needs to know something, it will ask Closet about
+    it, and Closet will look up the answer in Skeleton, first loading it in
+    from disc if necessary.
 
-    Apart from simplifying the process of saving, this approach also
-    makes LiSE's time travel work. The keys that identify LiSE objects
-    are only partial keys--they do not specify time. Every record in
-    the database and the Skeleton is also keyed by the time at which
-    that record was written--not "real" time, but simulated time,
-    measured in ticks that represent the smallest significant
-    time-span in your simulation. They are also keyed with a branch
-    number, indicating which of several alternate histories the record
-    is about. When you refer to properties of a LiSE object, you get
-    data from only one branch of one tick--the most recent data with
-    respect to the time the simulation is at, in the branch the
-    simulation is at, but ignoring any data whose tick is later than
-    the tick the simulation is at. The simulation's "present" branch
-    and tick are attributes of its Closet. The user may set them
-    arbitrarily, and thereby travel through time.
+    Apart from simplifying the process of saving, this approach also makes
+    LiSE's time travel work. The keys that identify LiSE objects are only
+    partial keys--they do not specify time. Every record in the database and
+    the Skeleton is also keyed by the time at which that record was
+    written--not "real" time, but simulated time, measured in ticks that
+    represent the smallest significant time-span in your simulation. They are
+    also keyed with a branch number, indicating which of several alternate
+    histories the record is about. When you refer to properties of a LiSE
+    object, you get data from only one branch of one tick--the most recent
+    data with respect to the time the simulation is at, in the branch the
+    simulation is at, but ignoring any data whose tick is later than the tick
+    the simulation is at. The simulation's "present" branch and tick are
+    attributes of its Closet. The user may set them arbitrarily, and thereby
+    travel through time.
 
-    The "leaves" at the lowest level of a Skeleton are instances of
-    some subclass of :class:`Bone`. The API for :class:`Bone` is made
-    to resemble an ordinary Python object with properties full of
-    data, with type checking. Treat it that way; the only caveat is
-    that any :class:`Skeleton` with any type of :class:`Bone` in its
-    values cannot hold any other type. This helps with data integrity,
-    as the corresponding table in the database has that
-    :class:`Bone`'s fields and none other. It also allows for
-    optimization using :module:`array` and :module:`struct`. See the
-    documentation of :class:`Bone` for details.
+    The "leaves" at the lowest level of a Skeleton are instances of some
+    subclass of :class:`Bone`. The API for :class:`Bone` is made to resemble
+    an ordinary Python object with properties full of data, with type
+    checking. Treat it that way; the only caveat is that any
+    :class:`Skeleton` with any type of :class:`Bone` in its values cannot
+    hold any other type. This helps with data integrity, as the corresponding
+    table in the database has that :class:`Bone`'s fields and none other. It
+    also allows for optimization using :module:`array` and
+    :module:`struct`. See the documentation of :class:`Bone` for details.
 
-    Iteration over a :class:`Skeleton` is a bit unusual. The usual
-    iterators over mappings are available, but they will proceed in
-    ascending order of the keys if, and only if, the keys are
-    integers. Otherwise they are in the same order as a
-    dictionary. :class:`Skeleton` also provides the special generator
-    method :method:`iterbones`, which performs a depth-first
-    traversal, yielding only the :class:`Bone`s.
+    Iteration over a :class:`Skeleton` is a bit unusual. The usual iterators
+    over mappings are available, but they will proceed in ascending order of
+    the keys if, and only if, the keys are integers. Otherwise they are in
+    the same order as a dictionary. :class:`Skeleton` also provides the
+    special generator method :method:`iterbones`, which performs a
+    depth-first traversal, yielding only the :class:`Bone`s.
 
-    Several methods are made purely for the convenience of time
-    travel, particularly :method:`value_during`, which assumes that
-    the keys are ticks, and returns the :class:`Bone` of the latest
-    tick less than or equal to the present tick.
+    Several methods are made purely for the convenience of time travel,
+    particularly :method:`value_during`, which assumes that the keys are
+    ticks, and returns the :class:`Bone` of the latest tick less than or
+    equal to the present tick.
 
     There is a primitive event handling infrastructure built into
-    :class:`Skeleton`. Functions in the list :attribute:`listeners`
-    will be called with the :class:`Skeleton` object, the key, and the
-    value of each assignment to the :class:`Skeleton`, or to any other
-    :class:`Skeleton` contained by that one, however
-    indirectly. Likewise with each deletion, though in that case, the
-    value is not supplied. This feature exists for the convenience of
-    the user interface code.
+    :class:`Skeleton`. Functions in the list :attribute:`listeners` will be
+    called with the :class:`Skeleton` object, the key, and the value of each
+    assignment to the :class:`Skeleton`, or to any other :class:`Skeleton`
+    contained by that one, however indirectly. Likewise with each deletion,
+    though in that case, the value is not supplied. This feature exists for
+    the convenience of the user interface code.
 
     """
     def __init__(self, content=None, name="", parent=None):
@@ -1016,10 +1013,9 @@ class SaveableMetaclass(type):
     Table declarations
     ==================
 
-    Classes with this metaclass need to be declared with an attribute
-    called tables. This is a sequence of tuples. Each of the tuples is
-    of length 5. Each describes a table that records what's in the
-    class.
+    Classes with this metaclass need to be declared with an attribute called
+    ``tables``. This is a sequence of tuples. Each of the tuples is of length
+    5. Each describes a table that records what's in the class.
 
     The meaning of each tuple is thus:
 
@@ -1028,48 +1024,46 @@ class SaveableMetaclass(type):
     ``name`` is the name of the table as sqlite3 will use it.
 
     ``column_declarations`` is a dictionary. The keys are field names, aka
-    column names. Each value is the type for its field, perhaps
-    including a clause like DEFAULT 0.
+    column names. Each value is the type for its field, perhaps including a
+    clause like DEFAULT 0.
 
     ``primary_key`` is an iterable over strings that are column names as
-    declared in the previous argument. Together the columns so named
-    form the primary key for this table.
+    declared in the previous argument. Together the columns so named form the
+    primary key for this table.
 
-    ``foreign_keys`` is a dictionary. Each foreign key is a key here, and
-    its value is a pair. The first element of the pair is the foreign
-    table that the foreign key refers to. The second element is the
-    field or fields in that table that the foreign key points to.
+    ``foreign_keys`` is a dictionary. Each foreign key is a key here, and its
+    value is a pair. The first element of the pair is the foreign table that
+    the foreign key refers to. The second element is the field or fields in
+    that table that the foreign key points to.
 
-    ``checks`` is an iterable over strings that will end up in a CHECK(...)
-    clause in sqlite3.
+    ``checks`` is an iterable over strings that will each end up in its own
+    CHECK(...)  clause in sqlite3.
 
     A class of :class:`SaveableMetaclass` can have any number of such
-    table-tuples. The tables will be declared in the order they appear
-    in the tables attribute.
+    table-tuples. The tables will be declared in the order they appear in the
+    tables attribute.
 
 
     Dependencies and Custom SQL
     ===========================
 
-    The LiSE database schema uses a lot of foreign keys, which only
-    work if they refer to a table that exists. To make sure it does,
-    the class that uses a foreign key will have the names of the
-    tables it points to in a class attribute called ``demands``. The
-    tables demanded are looked up in other classes' attribute called
-    ``provides`` to ensure they've been taken care of. Both attributes
-    are :type:`set`s.``provides`` is generated automatically, but will
-    accept any additions you give it, which is occasionally necessary
-    when a class deals with SQL that is not generated in the usual
-    way.
+    The LiSE database schema uses a lot of foreign keys, which only work if
+    they refer to a table that exists. To make sure it does, the class that
+    uses a foreign key will have the names of the tables it points to in a
+    class attribute called ``demands``. The tables demanded are looked up in
+    other classes' attribute called ``provides`` to ensure they've been taken
+    care of. Both attributes are :type:`set`s. ``provides`` is generated
+    automatically, but will accept any additions you give it, which is
+    occasionally necessary when a class deals with SQL that is not generated
+    in the usual way.
 
-    If you want to do something with SQL that
-    :class:`SaveableMetaclass` does not do for you, put the SQL
-    statements you want executed in :type:`list` attributes on the
-    classes, called ``prelude`` and ``postlude``. All statements in
-    ``prelude`` will be executed prior to declaring the first table in
-    the class. All statements in ``postlude`` will be executed after
-    declaring the last table in the class. In both cases, they are
-    executed in the order of iteration, so use a sequence type.
+    If you want to do something with SQL that :class:`SaveableMetaclass` does
+    not do for you, put the SQL statements you want executed in :type:`list`
+    attributes on the classes, called ``prelude`` and ``postlude``. All
+    statements in ``prelude`` will be executed prior to declaring the first
+    table in the class. All statements in ``postlude`` will be executed after
+    declaring the last table in the class. In both cases, they are executed
+    in the order of iteration, so use a sequence type.
 
     """
     clasd = {}
@@ -1291,13 +1285,12 @@ class Closet(object):
     """A caching object-relational mapper with support for time travelling
     objects.
 
-    Time travelling objects are technically stateless, containing only
-    their key in the main ``Skeleton`` in the ``Closet``. All their
-    time-sensitive attributes are really ``property``s that look up
-    the appropriate value in the ``Skeleton`` at the current branch
-    and tick, given by the ``Closet``'s ``time`` property. For
-    convenience, you can use the method ``timely_property`` to
-    construct this kind of ``property``.
+    Time travelling objects are technically stateless, containing only their
+    key in the main ``Skeleton`` in the ``Closet``. All their time-sensitive
+    attributes are really ``property``s that look up the appropriate value in
+    the ``Skeleton`` at the current branch and tick, given by the
+    ``Closet``'s ``time`` property. For convenience, you can use the method
+    ``timely_property`` to construct this kind of ``property``.
 
     ``Closet`` also functions as an event handler. Use
     ``register_time_listener`` for functions that need to be called
@@ -1490,6 +1483,21 @@ class Closet(object):
                         u"graphic_img"]._null()._replace(graphic=name)
 
             def create_graphic(name=None, offx=0, offy=0):
+                """Create a new graphic, but don't put any images in it yet.
+                Return its bone.
+
+                Graphics are really just headers that group imgs
+                together. They hold the offset of the img, being some
+                amount to move every img on each of the x and y axes
+                (default 0, 0) -- this is used so that a Spot and a
+                Pawn may have the same coordinates, yet neither will
+                entirely cover the other.
+
+                Every graphic has a unique name, which will be
+                assigned for you if you don't provide it. You can get
+                it from the bone returned.
+
+                """
                 if name is None:
                     numeral = self.get_global(u'top_generic_graphic') + 1
                     self.set_global(u'top_generic_graphic', numeral)
@@ -1502,6 +1510,13 @@ class Closet(object):
                 return grafbone
 
             def add_img_to_graphic(imgname, grafname, layer=None):
+                """Put the named img in the named graphic at the given layer,
+                or the new topmost layer if unspecified.
+
+                img must already be loaded, graphic must already exist--use
+                ``create_graphic`` if it does not.
+
+                """
                 if grafname not in self.skeleton[u"graphic"]:
                     raise ValueError("No such graphic: {}".format(
                         grafname))
@@ -1509,7 +1524,7 @@ class Closet(object):
                     raise ValueError("No such img: {}".format(
                         imgname))
                 if layer is None:
-                    layer = max(self.skeleton[u"graphic_img"].keys())
+                    layer = max(self.skeleton[u"graphic_img"].keys()) + 1
                 imggrafbone = GamePiece.bonetypes[
                     u"graphic_img"](
                     graphic=grafname,
@@ -1518,12 +1533,17 @@ class Closet(object):
                 self.set_bone(imggrafbone)
 
             def rm_graphic_layer(grafname, layer):
+                """Delete the layer from the graphic.
+
+                The img on that layer won't be there anymore.
+
+                """
                 if grafname not in self.skeleton[u"graphic"]:
                     raise ValueError(
                         "No such graphic: {}".format(grafname))
                 if grafname not in self.skeleton[u"graphic_img"]:
                     raise ValueError(
-                        "No imgs for graphic:: {}".format(
+                        "No imgs for graphic: {}".format(
                             grafname))
                 if layer not in self.skeleton[
                         u"graphic_img"][grafname]:
@@ -1591,8 +1611,7 @@ class Closet(object):
             self.empty[tab] = {}
         self.skeleton = self.empty.copy()
 
-        self.c = self.connector.cursor(
-        )
+        self.c = self.connector.cursor()
         self.c.execute("BEGIN;")
 
         self.branch_listeners = []
@@ -1819,7 +1838,10 @@ class Closet(object):
     def get_global(self, key):
         """Retrieve a global value from the database and return it.
 
-        Not a bone. A scalar."""
+        The returned value is not a bone. It is a scalar of one of the types
+        in ``unicode2pytype`` and ``pytype2unicode``.
+
+        """
         self.c.execute("SELECT type, value FROM globals WHERE key=?;", (key,))
         (typ_s, val_s) = self.c.fetchone()
         return unicode2pytype[typ_s](val_s)
@@ -1831,14 +1853,28 @@ class Closet(object):
             "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
             (key, pytype2unicode[type(value)], unicode(value)))
 
+    get_text_funs = {
+        "branch": lambda self: unicode(self.branch),
+        "tick": lambda self: unicode(self.tick)
+        }
+    """A dict of functions that return strings that may be presented to
+    the user. Though they are not methods, they will nonetheless be
+    passed this Closet instance.
+
+    """
+
     def get_text(self, strname):
-        """Get the string of the given name in the language set at startup."""
+        """Get the string of the given name in the language set at startup.
+
+        If ``strname`` begins with ``@``, it might be the name of a
+        special string such as ``@branch`` or ``@tick`` which are the
+        results of functions--in this case, simple getters.
+
+        """
         if strname is None:
             return ""
-        elif strname == "@branch":
-            return unicode(self.branch)
-        elif strname == "@tick":
-            return unicode(self.tick)
+        elif strname[0] == "@" and strname[1:] in self.get_text_funs:
+            return self.get_text_funs[strname[1:]](self)
         else:
             return self.gettext(strname)
 
@@ -2291,6 +2327,9 @@ class Closet(object):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
         elif Spot and isinstance(bone, Spot.bonetypes[u"spot_coords"]):
             set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
+
+        # img_tag bones give the keys to be used in ``img_tag_d``,
+        # which stores Img instances by their tag
         elif Img and isinstance(bone, Img.bonetypes[u"img_tag"]):
             if bone.tag not in self.img_tag_d:
                 self.img_tag_d[bone.tag] = set()
@@ -2301,6 +2340,8 @@ class Closet(object):
         if hasattr(bone, 'branch') and hasattr(bone, 'tick'):
             self.timestream.upd_time(bone.branch, bone.tick)
 
+        # Initialize this place in the skeleton, as needed, and put
+        # the bone into it.
         keynames = bone.keynames
         keys = [bone._name] + [getattr(bone, keyn) for keyn in keynames[:-1]]
         skelly = init_keys(skeleton, keys)
@@ -2482,8 +2523,9 @@ def mkdb(DB_NAME, lisepath, kivy=False):
             import logging
             Logger = logging.getLogger()
     if kivy:
-        # I just need them to fill in the relevant bits of
-        # SaveableMetaclass. They don't have to do anything.
+        # I just need these modules to fill in the relevant bits of
+        # SaveableMetaclass, which they do when imported. They don't
+        # have to do anything else, so delete them.
         import LiSE.gui.img
         del LiSE.gui.img
         import LiSE.gui.board

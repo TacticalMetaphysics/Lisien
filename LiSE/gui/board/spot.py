@@ -256,8 +256,7 @@ class Spot(GamePiece):
         return True
 
     def on_touch_move(self, touch):
-        if 'portaling' in touch.ud:
-            Logger.debug('spot: portaling')
+        if 'portaling' in touch.ud or 'pawn' in touch.ud:
             touch.ungrab(self)
             return
         elif 'spot' in touch.ud:

@@ -161,6 +161,7 @@ class SwatchBox(GridLayout):
         """
         if 'tag' not in kwargs:
             raise ValueError("img tag required")
+        kwargs['size_hint_y'] = None
         super(SwatchBox, self).__init__(**kwargs)
         imgs = self.closet.get_imgs_with_tag(kwargs['tag'])
         Logger.debug("SwatchBox: tag {} has {} imgs".format(
@@ -168,10 +169,10 @@ class SwatchBox(GridLayout):
         for imgn in imgs:
             img = self.closet.get_img(imgn)
             box = TogSwatch(
-                box=self, img=img, size_hint=(None, None))
+                box=self, img=img, size_hint_y=None)
             self.add_widget(box)
         self.height = self.children[0].height * (
-            (len(self.children) % self.cols) + 1)
+            (len(self.children) / self.cols) + 1)
 
     def upd_selection(self, togswatch, state):
         """Make sure self.selection has the togswatch in it if it's pressed,
@@ -550,11 +551,14 @@ class LiSELayout(FloatLayout):
             self.app.closet.skeleton[u"place"][hostn] = {}
         swatch_menu_scrollview = ScrollView(
             do_scroll_x=False)
-        swatch_menu_swatches = BoxLayout(orientation='vertical')
+        swatch_menu_swatches = StackLayout(size_hint_y=None)
         swatch_menu_scrollview.add_widget(swatch_menu_swatches)
+        h = 0
         for (headtxt, tag) in sections:
             content = BoxLayout(orientation='vertical', size_hint_y=None)
-            header = ClosetLabel(closet=self.app.closet, stringname=headtxt)
+            header = ClosetLabel(
+                closet=self.app.closet, stringname=headtxt,
+                size_hint_y=None, height=30)
             content.add_widget(header)
             pallet = SwatchBox(
                 closet=self.app.closet,
@@ -563,9 +567,13 @@ class LiSELayout(FloatLayout):
                 size_hint_y=None)
             content.add_widget(pallet)
             swatch_menu_swatches.add_widget(content)
+            content.height = header.height + pallet.height
+            h += content.height
+        swatch_menu_swatches.height = h
         return swatch_menu_scrollview
 
-    def graphic_menu_confirm(self, validator, confirmer, namebox, swatches_view):
+    def graphic_menu_confirm(self, validator, confirmer,
+                             namebox, swatches_view):
         """Validate the name, compose a graphic from the selected
         images, and pass those to the callback.
 
@@ -584,9 +592,10 @@ class LiSELayout(FloatLayout):
             Clock.schedule_once(unred, 0.5)
         else:
             swatchl = []
-            for swatchbox in swatches_view.children[0].children[0].children:
-                if isinstance(swatchbox, SwatchBox):
-                    swatchl.extend(swatchbox.selection)
+            for swatchboxbox in swatches_view.children[0].children:
+                for swatchbox in swatchboxbox.children:
+                    if isinstance(swatchbox, SwatchBox):
+                        swatchl.extend(swatchbox.selection)
             graphic = self.mk_graphic_from_img_list([
                 swatch.img for swatch in swatchl])
             return confirmer(namebox.text, graphic)
@@ -596,6 +605,13 @@ class LiSELayout(FloatLayout):
         wants to make.
 
         """
+        def validator(text):
+            if text == '':
+                return _('You need to enter a thing name here')
+            elif text in self.app.closet.skeleton[u'thing'][
+                    unicode(self.board.facade.observed)]:
+                return _('That thing name is already used, choose another')
+
         obsrvd = unicode(self.board.facade.observed)
         if obsrvd not in self.app.closet.skeleton[u"thing"]:
             self.app.closet.skeleton[u"thing"][obsrvd] = {}
@@ -607,28 +623,30 @@ class LiSELayout(FloatLayout):
             size_hint_y=None, height=34, font_size=20)
         swatches = self.get_swatch_view([('Body', 'base'),
                                          ('Clothes', 'body')])
-        popcont = BoxLayout(orientation='vertcal')
+        popcont = BoxLayout(orientation='vertical')
         popcont.add_widget(namebox)
         popcont.add_widget(swatches)
         pawnmenu = Popup(title=_('Select Thing\'s Appearance'),
                          content=popcont)
+
+        def confirmer(name, graphic):
+            pawnmenu.dismiss()
+            self.new_pawn_with_name_and_graphic(name, graphic)
         popcont.add_widget(ConfirmOrCancel(
             confirm=lambda: self.graphic_menu_confirm(
-                self.new_pawn_with_name_and_swatches, namebox, swatches),
+                validator, confirmer, namebox, swatches),
             cancel=lambda: pawnmenu.dismiss()))
         pawnmenu.open()
         return pawnmenu
 
     def show_spot_menu(self):
-        """Show the menu to pick the name and graphic for a new Spot"""
+        """Show the menu to pick the name and graphic for a new Spot."""
         def validator(text):
             if text == '':
-                return _('You need to enter a name here')
+                return _('You need to enter a place name here')
             elif text in self.app.closet.skeleton[u'place'][
                     unicode(self.board.host)]:
-                return _('That name is already used, choose another')
-            else:
-                return None
+                return _('That place name is already used, choose another')
 
         hst = unicode(self.board.host)
         if hst not in self.app.closet.skeleton[u"place"]:
@@ -656,7 +674,12 @@ class LiSELayout(FloatLayout):
         return spotmenu
 
     def mk_graphic_from_img_list(self, imgl, offx=0, offy=0):
-        """Make a new graphic from the list of images; return its name."""
+        """Make a new graphic from the list of images. Return its name.
+
+        The graphic may be assigned to a ``Spot`` or ``Pawn`` at its
+        creation.
+
+        """
         grafbone = self.app.closet.create_graphic(offx=offx, offy=offy)
         i = 0
         for img in imgl:
