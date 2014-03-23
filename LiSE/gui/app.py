@@ -637,13 +637,18 @@ class LiSELayout(FloatLayout):
             namebox.hint_text = vmesg
             Clock.schedule_once(unred, 0.5)
         else:
-            swatchl = []
-            for swatchboxbox in swatches_view.children[0].children:
-                for swatchbox in swatchboxbox.children:
-                    if isinstance(swatchbox, SwatchBox):
-                        swatchl.extend(swatchbox.selection)
-            graphic = self.mk_graphic_from_img_list([
-                swatch.img for swatch in swatchl])
+            def gen_selected_imgs():
+                # Children are in the reverse order they were
+                # added. Reverse them back again.
+                swatchboxboxen = list(swatches_view.children[0].children)
+                while swatchboxboxen:
+                    swatchboxen = list(swatchboxboxen.pop().children)
+                    while swatchboxen:
+                        swatchbox = swatchboxen.pop()
+                        if isinstance(swatchbox, SwatchBox):
+                            for swatch in swatchbox.selection:
+                                yield swatch.img
+            graphic = self.mk_graphic_from_imgs(gen_selected_imgs())
             return confirmer(namebox.text, graphic)
 
     def show_pawn_menu(self):
@@ -719,8 +724,8 @@ class LiSELayout(FloatLayout):
         spotmenu.open()
         return spotmenu
 
-    def mk_graphic_from_img_list(self, imgl, offx=0, offy=0):
-        """Make a new graphic from the list of images. Return its name.
+    def mk_graphic_from_imgs(self, imgs, offx=0, offy=0):
+        """Make a new graphic from the iterable of imgs. Return its name.
 
         The graphic may be assigned to a ``Spot`` or ``Pawn`` at its
         creation.
@@ -728,7 +733,9 @@ class LiSELayout(FloatLayout):
         """
         grafbone = self.app.closet.create_graphic(offx=offx, offy=offy)
         i = 0
-        for img in imgl:
+        for img in imgs:
+            Logger.debug("Graphic: {}[{}] = {}".format(
+                grafbone.name, i, img.name))
             self.app.closet.add_img_to_graphic(img.name, grafbone.name, i)
             i += 1
         return grafbone.name
