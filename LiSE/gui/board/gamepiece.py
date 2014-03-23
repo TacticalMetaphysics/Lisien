@@ -93,7 +93,7 @@ class GamePiece(ImgStack):
     def _get_graphic_img_bones(self, *args):
         if not (self.closet and self.graphic_name):
             return
-        
+
     def upd_texs(self, *args):
         super(GamePiece, self).upd_texs()
         self.size = (self.width + self.offset_x, self.height + self.offset_y)
