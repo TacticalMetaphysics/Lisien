@@ -181,6 +181,9 @@ class SwatchBox(GridLayout):
         self.height = self.children[0].height * (
             (len(self.children) / self.cols) + 1)
 
+    def on_cols(self, *args):
+        assert(isinstance(self.cols, int))
+
     def upd_selection(self, togswatch, state):
         """Make sure self.selection has the togswatch in it if it's pressed,
         and not if it isn't."""
@@ -476,7 +479,7 @@ class LiSELayout(FloatLayout):
         """Blank out the cue card"""
         self.ids.prompt.text = ''
 
-    def get_swatch_view(self, sections, cols=5):
+    def get_swatch_view(self, sections, cols=5, mode='tog'):
         """Return a ``ScrollView``, to be used in a popup, for the user to
         select a graphic for something (not necessarily a Thing) that
         they want to make.
@@ -607,7 +610,7 @@ class LiSELayout(FloatLayout):
         namebox = TextInput(
             hint_text=_('Enter a unique place name'), multiline=False,
             size_hint_y=None, height=34, font_size=20)
-        swatches = self.get_swatch_view([('', 'spot')], 'frob')
+        swatches = self.get_swatch_view([('', 'spot')], mode='frob')
         popcont = BoxLayout(orientation='vertical')
         popcont.add_widget(namebox)
         popcont.add_widget(swatches)
