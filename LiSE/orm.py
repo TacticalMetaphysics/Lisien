@@ -1658,20 +1658,6 @@ class Closet(object):
         self.c.close()
         self.connector.close()
 
-    def listen_to_skeleton(self):
-        """Arrange that I will remember each bone set into or deleted from the
-        skeleton, so that I can SQL-ify them later on--and *not*
-        SQL-ify any that were set when I *wasn't* listening.
-
-        """
-        self.skeleton.register_set_listener(self.upd_on_set)
-        self.skeleton.register_del_listener(self.upd_on_del)
-
-    def ignore_skeleton(self):
-        """Stop paying attention to changes in the skeleton."""
-        self.skeleton.unregister_set_listener(self.upd_on_set)
-        self.skeleton.unregister_del_listener(self.upd_on_del)
-
     def get_bone_timely(self, keys, branch=None, tick=None):
         """Get the bone at the given keys and time"""
         if branch is None:
@@ -1788,22 +1774,6 @@ class Closet(object):
         """Load all the data from the database for the given class."""
         self.select_and_set(bonetype._null() for bonetype in
                             cls.bonetypes.itervalues())
-
-    def upd_on_set(self, skel, child, k, v):
-        """Supposing that the bone is equipped to write its own SQL, keep it
-        in my ``altered_bones`` so as to see it."""
-        if not self.extraskels:
-            return
-        if hasattr(v, 'keynames'):
-            self.set_bone(v)
-
-    def upd_on_del(self, skel, child, k, v):
-        """Supposing that the bone is equipped to write its own SQL, keep it
-        in my ``deleted_bones`` so as to see it."""
-        if not self.extraskels:
-            return
-        if hasattr(v, 'keynames'):
-            self.del_bone(v)
 
     def select_keybone(self, kb):
         """Yield records from the database matching the bone."""
@@ -2656,6 +2626,4 @@ def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
         r.load_charsheet(load_charsheet)
     if load_board:
         r.load_board(*load_board)
-    r.c.execute("BEGIN;")
-    r.recording = True
     return r

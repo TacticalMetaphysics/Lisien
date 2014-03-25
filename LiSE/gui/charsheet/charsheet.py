@@ -24,9 +24,12 @@ from kivy.properties import (
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.listview import ListView, SelectableView
 from kivy.uix.modalview import ModalView
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
+
+from kivy.logger import Logger
 
 from LiSE.gui.kivybits import (
     SaveableWidgetMetaclass,
@@ -137,10 +140,6 @@ class NounStatListView(StackLayout):
 
     """
     charsheet = ObjectProperty()
-    closet = AliasProperty(
-        lambda self: self.charsheet.character.closet,
-        lambda self, v: None,
-        bind=('charsheet',))
     selection = AliasProperty(
         lambda self: list(self.iter_selection()),
         lambda self, v: None)
@@ -169,7 +168,7 @@ class NounStatListView(StackLayout):
         self.clear_widgets()
         for item in iteritems():
             self.add_widget(ClosetToggleButton(
-                closet=self.closet,
+                closet=self.charsheet.character.closet,
                 stringname=item,
                 size_hint_y=None,
                 height=25))
@@ -540,31 +539,30 @@ class CharSheetAdder(ModalView):
         csitskel = self.closet.skeleton[u"character_sheet_item_type"]
         if unicode(self.character) not in csitskel:
             csitskel[unicode(self.charsheet.character)] = {}
-        set_bone = self.character.closet.set_bone
         # TODO change over to size_hint_y for every charsheet item
-        r = self.record()
-        if r is not None:  # might be 0
-            type_bone = CharSheet.bonetype(
-                character=unicode(self.character),
-                idx=self.insertion_point,
-                type=r,
-                height=min(self.charsheet.height / 2,
-                           self.charsheet.height - sum(
-                               getattr(csitem, 'height') for csitem in
-                               self.charsheet.csitems)))
-            try:
-                i = max(self.charsheet.skel.iterkeys())
-            except ValueError:
-                i = -1
-            if self.insertion_point <= i:
-                for j in xrange(self.insertion_point, i+1):
-                    set_bone(self.charsheet.skel[j]._replace(idx=j+1))
-            set_bone(type_bone)
+        r = self.new_bones()
+        type_bone = r[0]
+        if r:
+            self.charsheet.insert_bones(r)
             self.charsheet._trigger_repop()
             self.dismiss()
 
-    def record(self):
-        character = self.charsheet.character
+    def new_bones(self):
+        """Return a tuple of bones for the new charsheet item.
+
+        The first bone is always for character_sheet_item_type. The
+        ones beyond that are specific to one type or another.
+
+        """
+        charname = unicode(self.charsheet.character)
+        idx = self.insertion_point
+        protobone = CharSheet.bonetype(
+            character=charname,
+            idx=idx,
+            height=min(self.charsheet.height / 2,
+                       self.charsheet.height - sum(
+                           getattr(csitem, 'height') for csitem in
+                           self.charsheet.csitems)))
         if self.ids.panel.current_tab == self.ids.calendars:
             tab = self.ids.calendars_panel
             if tab.current_tab == self.ids.place_cal:
@@ -574,14 +572,14 @@ class CharSheetAdder(ModalView):
                     return False
                 placen = self.ids.place_cal_place.selection[0].text
                 statn = self.ids.place_cal_stat.selection[0].text
-                self.charsheet.character.closet.set_bone(
+                return (
+                    protobone._replace(type="place_cal"),
                     CharSheet.bonetypes["place_cal"](
-                        character=unicode(character),
+                        character=charname,
                         place=unicode(placen),
                         stat=unicode(statn),
-                        idx=self.insertion_point,
+                        idx=idx,
                         type='place_cal'))
-                return 'place_cal'
             elif tab.current_tab == self.ids.portal_cal:
                 if len(self.ids.portal_cal_portal.selection) != 1:
                     return
@@ -589,25 +587,25 @@ class CharSheetAdder(ModalView):
                     return
                 portn = self.ids.portal_cal_portal.selection[0].text
                 statn = self.ids.portal_cal_stat.selection[0].text
-                self.charsheet.character.closet.set_bone(
+                return (
+                    protobone._replace(type="portal_cal"),
                     CharSheet.bonetypes["portal_cal"](
-                        character=unicode(character),
+                        character=charname,
                         portal=unicode(portn),
                         stat=unicode(statn),
-                        idx=self.insertion_point,
+                        idx=idx,
                         type='portal_cal'))
-                return 'portal_cal'
             elif tab.current_tab == self.ids.char_cal:
                 if len(self.ids.char_cal_stat.selection) != 1:
                     return
                 statn = self.ids.char_cal_stat.selection[0].text
-                self.charsheet.character.closet.set_bone(
+                return (
+                    protobone._replace(type="char_cal"),
                     CharSheet.bonetypes["char_cal"](
-                        character=unicode(character),
+                        character=charname,
                         stat=unicode(statn),
-                        idx=self.insertion_point,
+                        idx=idx,
                         type='char_cal'))
-                return 'char_cal'
             else:
                 if len(self.ids.thing_cal_thing.selection) != 1:
                     return
@@ -615,21 +613,21 @@ class CharSheetAdder(ModalView):
                     return
                 thingn = self.ids.thing_cal_thing.selection[0].text
                 statn = self.ids.thing_cal_stat.selection[0].text
-                self.charsheet.character.closet.set_bone(
+                return (
+                    protobone._replace(type="thing_cal"),
                     CharSheet.bonetypes["thing_cal"](
-                        character=unicode(character),
+                        character=charname,
                         thing=unicode(thingn),
                         stat=unicode(statn),
-                        idx=self.insertion_point,
+                        idx=idx,
                         type='thing_cal'))
-                return 'thing_cal'
         else:
             tab = self.ids.tables_panel
             if tab.current_tab == self.ids.place_tab:
                 place_tab_places = [
                     CharSheet.bonetypes["place_tab_place"](
-                        character=unicode(character),
-                        idx=self.insertion_point,
+                        character=charname,
+                        idx=idx,
                         place=unicode(nounitem.text),
                         type='place_tab')
                     for nounitem in self.ids.place_tab_place.selection]
@@ -637,21 +635,22 @@ class CharSheetAdder(ModalView):
                     return
                 place_tab_stats = [
                     CharSheet.bonetypes["place_tab_stat"](
-                        character=unicode(character),
-                        idx=self.insertion_point,
+                        character=charname,
+                        idx=idx,
                         place=unicode(statitem.text),
                         type='place_tab')
                     for statitem in self.ids.place_tab_stat.selection]
                 if len(place_tab_stats) < 1:
                     return
-                for bone in place_tab_places + place_tab_stats:
-                    self.charsheet.character.closet.set_bone(bone)
-                return 'place_tab'
+                return (
+                    protobone._replace(type="place_tab"),
+                    place_tab_places,
+                    place_tab_stats)
             elif tab.current_tab == self.ids.portal_tab:
                 portal_tab_portals = [
                     CharSheet.bonetypes["portal_tab_portal"](
-                        character=unicode(character),
-                        idx=self.insertion_point,
+                        character=charname,
+                        idx=idx,
                         portal=unicode(nounitem.text),
                         type='portal_tab')
                     for nounitem in self.ids.portal_tab_portal.selection]
@@ -659,34 +658,34 @@ class CharSheetAdder(ModalView):
                     return
                 portal_tab_stats = [
                     CharSheet.bonetypes["portal_tab_stats"](
-                        character=unicode(character),
-                        idx=self.insertion_point,
+                        character=charname,
+                        idx=idx,
                         stat=unicode(statitem.text),
                         type='portal_tab')
                     for statitem in self.ids.portal_tab_stat.selection]
                 if len(portal_tab_stats) < 1:
                     return
-                for bone in portal_tab_portals + portal_tab_stats:
-                    self.charsheet.character.closet.set_bone(bone)
-                return 'portal_tab'
+                return (
+                    protobone._replace(type="portal_tab"),
+                    portal_tab_portals, portal_tab_stats)
             elif tab.current_tab == self.ids.char_tab:
                 char_tab_stats = [
                     CharSheet.bonetypes["char_tab_stat"](
-                        character=unicode(character),
-                        idx=self.insertion_point,
+                        character=charname,
+                        idx=idx,
                         stat=unicode(statitem.text),
                         type='char_tab')
                     for statitem in self.ids.char_tab_stat.selection]
                 if len(char_tab_stats) < 1:
                     return
-                for bone in char_tab_stats:
-                    self.charsheet.character.closet.set_bone(bone)
-                return 'char_tab'
+                return (
+                    protobone._replace(type="char_tab"),
+                    char_tab_stats)
             else:
                 thing_tab_things = [
                     CharSheet.bonetypes["thing_tab_thing"](
-                        character=unicode(character),
-                        idx=self.insertion_point,
+                        character=charname,
+                        idx=idx,
                         thing=unicode(nounitem.text),
                         type='thing_tab')
                     for nounitem in self.ids.thing_tab_thing.selection]
@@ -694,16 +693,17 @@ class CharSheetAdder(ModalView):
                     return
                 thing_tab_stats = [
                     CharSheet.bonetypes["thing_tab_stat"](
-                        character=unicode(character),
-                        idx=self.insertion_point,
+                        character=charname,
+                        idx=idx,
                         stat=unicode(statitem.text),
                         type='thing_tab')
                     for statitem in self.ids.thing_tab_stat.selection]
                 if len(thing_tab_stats) < 1:
                     return
-                for bone in thing_tab_things + thing_tab_stats:
-                    self.charsheet.character.closet.set_bone(bone)
-                return 'thing_tab'
+                return (
+                    protobone._replace(type="thing_tab"),
+                    thing_tab_things,
+                    thing_tab_stats)
 
 
 def char_sheet_table_def(
@@ -994,45 +994,29 @@ class CharSheet(StackLayout):
                      "height>=50"]})]
     character = ObjectProperty()
     """The character this sheet is about."""
-    closet = AliasProperty(
-        lambda self: self.character.closet,
-        lambda self, v: None,
-        bind=('character',))
-    myskel = AliasProperty(
-        lambda self: self.character.closet.skeleton[
-            u'character_sheet_item_type'][unicode(self.character)]
-        if unicode(self.character) in self.character.closet.skeleton[
-            u'character_sheet_item_type'] else None,
-        lambda self, v: None,
-        bind=('character',))
     csitems = ListProperty([])
     """Bones from character_sheet_item_type"""
     i2wid = DictProperty()
     """Map indices to widgets in my ListView."""
     view = ObjectProperty()
-    """My ListView that holds all my content, exception being when I'm
+    """My ListView that holds all my content, except when I'm
     empty.
 
     """
-
     def __init__(self, **kwargs):
         self._trigger_repop = Clock.create_trigger(self.repop)
         kwargs['size_hint'] = (1, None)
         super(CharSheet, self).__init__(**kwargs)
-        self.review()
-
-    def review(self, *args):
-        if self.view:
-            self.remove_widget(self.view)
-        self.view = ListView(
-            adapter=ListAdapter(
-                data=self.csitems,
-                cls=CharSheetItem,
-                args_converter=self.args_converter))
-        self.add_widget(self.view)
-
-    def args_converter(self, i, bone):
-        return self.bone2widspec(bone)
+        sv = ScrollView(
+            do_scroll_x=False,
+            pos=self.pos,
+            size=self.size)
+        self.bind(pos=sv.setter('pos'),
+                  size=sv.setter('size'))
+        self.add_widget(sv)
+        self.view = StackLayout()
+        sv.add_widget(self.view)
+        self.repop()
 
     def on_character(self, *args):
         if unicode(self.character) not in self.character.closet.skeleton[
@@ -1047,51 +1031,26 @@ class CharSheet(StackLayout):
     def add_item(self, i):
         self.parent.handle_adbut(self, i)
 
-    def _move_bone(self, i, n):
-        bone = self.skel[i]
-        del self.skel[i]
-        self.character.closet.set_bone(bone._replace(idx=i+n))
-        for tab in csitem_type_table_d[bone.type]:
-            unterskel = self.character.closet.skeleton[
-                tab][unicode(self.character)]
-            unterbone = unterskel[i]
-            del unterskel[i]
-            self.character.closet.set_bone(unterbone._replace(idx=i+n))
-        self._trigger_repop()
-
-    def move_it_down(self, i):
-        self._move_bone(i, 1)
-
-    def move_it_up(self, i):
-        self._move_bone(i, -1)
-
-    def del_item(self, i):
-        uberskel = self.character.closet.skeleton[
-            u'character_sheet_item_type'][unicode(self.character)]
-        bone = uberskel[i]
-        self.character.closet.set_bone(bone, mode='delete')
-        for tab in csitem_type_table_d[bone.type]:
-            unterskel = self.character.closet.skeleton[tab][
-                unicode(self.character)]
-            del unterskel[i]
-            for j in range(i+1, len(self.csitems)):
-                replacebone = unterskel[j].replace(idx=j-1)
-                del unterskel[j]
-                self.character.closet.set_bone(replacebone)
-        self._trigger_repop()
-
     def finalize(self, *args):
         """If I do not yet contain any items, show a button to add
         one. Otherwise, fill myself with the widgets for the items."""
-        if len(self.skel) > 0:
-            self.skel.register_listener(self._trigger_repop)
-            self.closet.register_time_listener(self._trigger_repop)
+        closet = self.character.closet
+        if unicode(self.character) in self.character.closet.skeleton[
+                u'character_sheet_item_type']:
+            myskel = closet.skeleton[
+                u'character_sheet_item_type'][unicode(self.character)]
+            myskel.register_set_listener(self._trigger_repop)
+            myskel.register_del_listener(self._trigger_repop)
+            closet.register_time_listener(self._trigger_repop)
             self.repop()
             return
+        else:
+            closet.skeleton[u'character_sheet_item_type'][
+                unicode(self.character)] = {}
         _ = lambda x: x
         self.clear_widgets()
         self.add_widget(ClosetButton(
-            closet=self.character.closet,
+            closet=closet,
             symbolic=True,
             stringname=_("@add"),
             fun=self.add_item,
@@ -1182,9 +1141,22 @@ class CharSheet(StackLayout):
                 bone.type))
 
     def repop(self, *args):
-        """Put data in my ListAdapter if available. Otherwise, show a +
-        button."""
-        self.csitems = list(self.skel.iterbones())
+        if not self.character:
+            Clock.schedule_once(self.repop, 0)
+            return
+        Logger.debug("CharSheet: about to repopulate")
+        myskel = self.character.closet.skeleton[
+            u'character_sheet_item_type'][unicode(self.character)]
+        # This used to be a ListView. It may yet be again. I changed
+        # it to make the debugger easier to use.
+        self.csitems = []
+        for bone in myskel.iterbones():
+            widspec = self.bone2widspec(bone)
+            wid = CharSheetItem(**widspec)
+            self.csitems.append(wid)
+        self.view.clear_widgets()
+        for item in self.csitems:
+            self.view.add_widget(item)
         if len(self.csitems) == 0:
             _ = lambda x: x
             self.clear_widgets()
@@ -1197,11 +1169,6 @@ class CharSheet(StackLayout):
                 size_hint_y=None,
                 height=50,
                 top=self.top))
-            return
-        if self.view not in self.children:
-            self.clear_widgets()
-            self.add_widget(self.view)
-        self.view.adapter.data = self.csitems
 
     def iter_tab_i_bones(self, tab, i):
         for bone in self.character.closet.skeleton[tab][
@@ -1228,15 +1195,25 @@ class CharSheet(StackLayout):
         for child in self.children:
             child.on_touch_up(touch)
 
-    def push_down(self, i, n):
-        """Move every item after i forward n spaces."""
-        for (table, decl) in self.tables:
-            skel = self.character.closet.skeleton[table][
-                unicode(self.character)]
-            for j in xrange(i, i+n):
-                if j in skel:
-                    leks = skel[j]
-                    del skel[j]
-                    for bone in leks.iterbones():
-                        self.character.closet.set_bone(
-                            bone._replace(idx=bone.idx+n))
+    def insert_bones(self, bones):
+        """Move extant items downward to make room for each new bone as
+        needed. Then set as normal.
+
+        """
+        # For now, this works by making a local copy of the whole
+        # charsheet, modifying that, and clobbering the original. This
+        # causes more disk activity than necessary. Probably not much
+        # disk activity in the absolute.
+        closet = self.character.closet
+        localbones = {}
+        for tab in self.tablenames:
+            localbones[tab] = list(closet.skeleton[tab][
+                unicode(self.character)])
+        for bone in bones:
+            self.localbones[bone._name].insert(bone.idx, bone)
+        for bonel in localbones.itervalues():
+            for oldbone in bonel:
+                # correct the idx
+                newbone = oldbone._replace(idx=bonel.index(oldbone))
+                closet.del_bone(oldbone)
+                closet.set_bone(newbone)
