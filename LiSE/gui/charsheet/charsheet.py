@@ -29,8 +29,9 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 
 from LiSE.gui.kivybits import (
-    LiSEWidgetMetaclass,
-    ClosetButton
+    SaveableWidgetMetaclass,
+    ClosetButton,
+    ClosetToggleButton
 )
 from LiSE.util import (
     SHEET_ITEM_TYPES,
@@ -130,54 +131,48 @@ class SpecialItem(SelectableDataItem):
         self.name = name
 
 
-class NounStatListView(Widget):
+class NounStatListView(StackLayout):
     """Container for a ListView that shows selectable stats had by nouns
     (eg. places, portals, things).
 
     """
+    charsheet = ObjectProperty()
+    closet = AliasProperty(
+        lambda self: self.charsheet.character.closet,
+        lambda self, v: None,
+        bind=('charsheet',))
+    selection = AliasProperty(
+        lambda self: list(self.iter_selection()),
+        lambda self, v: None)
     specialitems = ListProperty([])
     nounitems = ListProperty()
-    selection = ListProperty([])
     selection_mode = OptionProperty(
         'multiple', options=['none', 'single', 'multiple'])
     allow_empty_selection = BooleanProperty(False)
 
-    def __init__(self, **kwargs):
-        self._trigger_redata = Clock.create_trigger(self.redata)
-        super(NounStatListView, self).__init__(**kwargs)
-        self.bind(nounitems=self._trigger_redata)
-        self.finalize()
-
-    def redata(self, *args):
-        data2b = [SpecialItem(special) for special in
-                  self.specialitems]
-        for nounitem in self.nounitems:
-            for key in nounitem.noun.iter_stat_keys():
-                data2b.append(StatItem(key))
-        self.adapter.data = data2b
+    def iter_selection(self):
+        for child in self.children:
+            if child.state == 'down':
+                yield child
 
     def add_stat(self, stat):
         self.specialitems.append(stat)
-        self._trigger_redata()
+        self.on_nounitems()
 
-    def finalize(self, *args):
-        self.adapter = ListAdapter(
-            data=[],  # will be filled on_nounitems
-            selection_mode=self.selection_mode,
-            args_converter=lambda k, v: {
-                'text': v.name,
-                'size_hint_y': None,
-                'height': 25},
-            allow_empty_selection=self.allow_empty_selection,
-            cls=ListItemToggle)
-        self.adapter.bind(selection=self.setter('selection'))
-        listview = ListView(
-            adapter=self.adapter,
-            size=self.size,
-            pos=self.pos)
-        self.bind(size=listview.setter('size'),
-                  pos=listview.setter('pos'))
-        self.add_widget(listview)
+    def on_nounitems(self, *args):
+        def iteritems():
+            for special in self.specialitems:
+                yield special
+            for nounitem in self.nounitems:
+                for key in nounitem.noun.iter_stat_keys():
+                    yield key
+        self.clear_widgets()
+        for item in iteritems():
+            self.add_widget(ClosetToggleButton(
+                closet=self.closet,
+                stringname=item,
+                size_hint_y=None,
+                height=25))
 
 
 class StatListView(Widget):
@@ -1003,18 +998,35 @@ class CharSheet(StackLayout):
         lambda self: self.character.closet,
         lambda self, v: None,
         bind=('character',))
-    csitems = ListProperty()
+    myskel = AliasProperty(
+        lambda self: self.character.closet.skeleton[
+            u'character_sheet_item_type'][unicode(self.character)]
+        if unicode(self.character) in self.character.closet.skeleton[
+            u'character_sheet_item_type'] else None,
+        lambda self, v: None,
+        bind=('character',))
+    csitems = ListProperty([])
     """Bones from character_sheet_item_type"""
     i2wid = DictProperty()
     """Map indices to widgets in my ListView."""
+    view = ObjectProperty()
+    """My ListView that holds all my content, exception being when I'm
+    empty.
+
+    """
 
     def __init__(self, **kwargs):
         self._trigger_repop = Clock.create_trigger(self.repop)
         kwargs['size_hint'] = (1, None)
         super(CharSheet, self).__init__(**kwargs)
+        self.review()
+
+    def review(self, *args):
+        if self.view:
+            self.remove_widget(self.view)
         self.view = ListView(
             adapter=ListAdapter(
-                data=[],
+                data=self.csitems,
                 cls=CharSheetItem,
                 args_converter=self.args_converter))
         self.add_widget(self.view)
