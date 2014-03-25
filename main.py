@@ -21,7 +21,7 @@ def lise():
     print(_("Starting LiSE with database {}, path {}".format(
         dbfn, __path__[-1])))
 
-    LiSEApp(dbfn=dbfn, lgettext=_,
+    LiSEApp(dbfn=dbfn, gettext=_,
             observer_name='Omniscient',
             observed_name='Player',
             host_name='Physical').run()

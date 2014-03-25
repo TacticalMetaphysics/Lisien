@@ -201,15 +201,15 @@ will update its position appropriately.
                 return spot
 
     def on_touch_down(self, touch):
-        if self.collide_point(touch.x, touch.y):
+        if self.collide_point(*touch.pos):
             touch.ud["pawn"] = self
             touch.grab(self)
-            return True
+            return self
 
     def on_touch_move(self, touch):
         if touch.grab_current is self:
             self.center = touch.pos
-            return True
+            return self
 
     def on_touch_up(self, touch):
         if 'pawn' in touch.ud:
@@ -226,5 +226,5 @@ will update its position appropriately.
                     self.thing.journey_to(new_spot.place)
                     self.locskel.register_del_listener(self.reposskel)
             self.repos()
-            return True
+            return self
         return super(Pawn, self).on_touch_up(touch)

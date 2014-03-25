@@ -38,7 +38,7 @@
     StackLayout:
         Label:
             size_hint_y: 0.05
-            text: "Add an item to the character sheet"
+            text: _("Add an item to the character sheet")
         TabbedPanel:
             id: panel
             size_hint_y: 0.9
@@ -68,6 +68,7 @@
                                     size_hint_y: 0.1
                                 NounStatListView:
                                     id: thing_tab_stat
+                                    charsheet: root.charsheet
                                     size_hint_y: 0.8
                                     specialitems: ["location"]
                                     nounitems: thing_tab_thing.selection
@@ -105,6 +106,7 @@
                                     size_hint_y: 0.1
                                 NounStatListView:
                                     id: place_tab_stat
+                                    charsheet: root.charsheet
                                     nounitems: place_tab_place.selection
                                     size_hint_y: 0.8
                                 StackLayout:
@@ -140,6 +142,7 @@
                                     size_hint_y: 0.1
                                 NounStatListView:
                                     id: portal_tab_stat
+                                    charsheet: root.charsheet
                                     specialitems: ["origin", "destination"]
                                     nounitems: portal_tab_portal.selection
                                     size_hint_y: 0.8
@@ -188,7 +191,7 @@
                     TabbedPanelItem:
                         id: thing_cal
                         text: root.get_text(_('Thing'))
-                        StackLayout:
+                        BoxLayout:
                             StackLayout:
                                 size_hint_x: 0.5
                                 Label:
@@ -206,6 +209,7 @@
                                     size_hint_y: 0.1
                                 NounStatListView:
                                     id: thing_cal_stat
+                                    charsheet: root.charsheet
                                     specialitems: ["location"]
                                     nounitems: thing_cal_thing.selection
                                     selection_mode: 'single'
@@ -243,8 +247,8 @@
                                     size_hint_y: 0.1
                                 NounStatListView:
                                     id: place_cal_stat
-                                    nounitems: place_cal_place.selection
                                     charsheet: root.charsheet
+                                    nounitems: place_cal_place.selection
                                     selection_mode: 'single'
                                     size_hint_y: 0.8
                                 StackLayout:
@@ -280,6 +284,7 @@
                                     size_hint_y: 0.1
                                 NounStatListView:
                                     id: portal_cal_stat
+                                    charsheet: root.charsheet
                                     specialitems: ["origin", "destination"]
                                     nounitems: portal_cal_portal.selection
                                     selection_mode: 'single'
@@ -321,14 +326,9 @@
                                     stringname: _("@add")
                                     fun: root.confirm
                                     args: [char_cal_stat_in.text]
-        BoxLayout:
-            size_hint_y: 0.05
-            Button:
-                text: root.get_text(_("Cancel"))
-                on_release: root.dismiss()
-            Button:
-                text: root.get_text(_("Confirm"))
-                on_release: root.confirm()
+        ConfirmOrCancel:
+            cancel: root.dismiss
+            confirm: root.confirm
 <CueCard>:
     Label:
         id: l
@@ -375,9 +375,6 @@
         text: _("Confirm")
         on_release: root.confirm()
 <TogSwatch,FrobSwatch>:
-    text_size: (self.width, self.height * 0.9)
-    halign: 'center'
-    multiline: True
     size_hint: (None, None)
     Image:
         texture: root.img.texture

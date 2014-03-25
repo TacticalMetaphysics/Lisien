@@ -243,13 +243,13 @@ class Spot(GamePiece):
 
     def on_touch_down(self, touch):
         if (
-                not self.collide_point(*self.board.parent.to_local(*touch.pos))
+                not self.collide_point(*touch.pos)
                 or 'spot' in touch.ud):
             return
         touch.grab(self)
         touch.ud['spot'] = self
         self._touch = touch
-        return True
+        return self
 
     def on_touch_move(self, touch):
         if 'portaling' in touch.ud or 'pawn' in touch.ud:
@@ -257,15 +257,10 @@ class Spot(GamePiece):
             return
         elif 'spot' in touch.ud:
             if touch.ud['spot'] is not self:
-                Logger.debug('spot: preempted')
                 return
             self._touch = touch
-            Logger.debug('spot: _trigger_move_to_touch')
             self._trigger_move_to_touch()
-        elif self.collide_point(
-                *self.board.parent.to_local(*touch.pos)):
-            Logger.debug('spot: enter touch.ud')
-            touch.ud['spot'] = self
+            return self
 
     def _move_to_touch(self, *args):
         if self._touch:

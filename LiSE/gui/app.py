@@ -5,6 +5,7 @@ from kivy.clock import Clock
 from kivy.properties import (
     BoundedNumericProperty,
     ObjectProperty,
+    OptionProperty,
     ListProperty,
     DictProperty,
     StringProperty,
@@ -150,9 +151,10 @@ class SwatchBox(GridLayout):
     When exceeded, the oldest selection will wear off.
 
     """
+    mode = OptionProperty('tog', options=['tog', 'frob'])
     sellen = BoundedNumericProperty(0, min=0)
     selection = ListProperty([])
-    pile = ListProperty([])
+    pile = ListProperty([])  # TODO: display a preview using the imgs here
 
     def __init__(self, **kwargs):
         """Get the imgs for ``tag``, make a swatch for each, and add them to
@@ -163,14 +165,19 @@ class SwatchBox(GridLayout):
             raise ValueError("img tag required")
         kwargs['size_hint_y'] = None
         super(SwatchBox, self).__init__(**kwargs)
+        swatch_cls = {
+            'frob': FrobSwatch,
+            'tog': TogSwatch
+            }[self.mode]
         imgs = self.closet.get_imgs_with_tag(kwargs['tag'])
         Logger.debug("SwatchBox: tag {} has {} imgs".format(
             kwargs['tag'], len(imgs)))
         for imgn in imgs:
             img = self.closet.get_img(imgn)
-            box = TogSwatch(
+            swatch = swatch_cls(
                 box=self, img=img, size_hint_y=None)
-            self.add_widget(box)
+            swatch.bind(state=self.upd_selection)
+            self.add_widget(swatch)
         self.height = self.children[0].height * (
             (len(self.children) / self.cols) + 1)
 
@@ -188,9 +195,7 @@ class SwatchBox(GridLayout):
         """Make sure the pile stays sync'd with the selection"""
         lv = len(self.selection)
         if lv > self.sellen:
-            self.pile.append(
-                self.selection[-1].texture, self.selection[-1].xoff,
-                self.selection[-1].yoff, self.selection[-1].stackh)
+            self.pile.append(self.selection[-1].img)
         elif lv < self.sellen:
             try:
                 self.pile.pop()
@@ -303,65 +308,6 @@ class ConfirmOrCancel(BoxLayout):
     """To be called when my cancel button is pressed"""
     confirm = ObjectProperty()
     """To be called when my confirm button is pressed"""
-
-
-class SpriteMenuContent(StackLayout):
-    """Menu shown when a place or thing is to be created."""
-    closet = ObjectProperty()
-    """Closet to make things with and get text from."""
-    cancel = ObjectProperty()
-    """Callable for when user presses cancel button"""
-    confirm = ObjectProperty()
-    """Callable for when user presses confirm button"""
-    preview = ObjectProperty()
-    """Optional thing to wedge between the title and the swatchbox.
-
-    The intent is that it will show what the sprite will look like
-    if you press Confirm right now.
-
-    """
-    swatchbox = ObjectProperty()
-    """Swatches go in here to begin with. I'll show them surrounded by a
-    titlebar and cancel/confirm buttons."""
-
-    def __init__(self, **kwargs):
-        """Do as for StackLayout, then add child widgets"""
-        def finalize(*args):
-            """Put myself together.
-
-            Waits for ``self.swatchbox`` and, if provided in keywords,
-            ``self.preview``
-
-            """
-            def delay_for_preview(*args):
-                """If I have preview, wait for it to get assigned properly
-                before triggering ``finalize``"""
-                if not self.preview:
-                    Clock.schedule_once(delay_for_preview, 0)
-            if 'preview' in kwargs:
-                delay_for_preview()
-
-            if not self.swatchbox:
-                Clock.schedule_once(self.finalize, 0)
-                return
-
-            self.confirm_cancel = ConfirmOrCancel(
-                confirm=lambda: self.confirm(),
-                cancel=lambda: self.cancel())
-            if self.preview:
-                self.add_widget(self.preview)
-            self.add_widget(self.swatchbox)
-            self.add_widget(self.confirm_cancel)
-        super(SpriteMenuContent, self).__init__(**kwargs)
-
-    def upd_selection(self, togswatch, state):
-        """Respond to the selection or deselection of one of the options"""
-        if state == 'normal':
-            while togswatch in self.selection:
-                self.selection.remove(togswatch)
-        else:
-            if togswatch not in self.selection:
-                self.selection.append(togswatch)
 
 
 class LiSELayout(FloatLayout):
@@ -605,6 +551,9 @@ class LiSELayout(FloatLayout):
 
         """
         def validator(text):
+            """Make sure there's a name and it hasn't been used for a thing yet
+
+            """
             if text == '':
                 return _('You need to enter a thing name here')
             elif text in self.app.closet.skeleton[u'thing'][
@@ -625,7 +574,7 @@ class LiSELayout(FloatLayout):
         popcont = BoxLayout(orientation='vertical')
         popcont.add_widget(namebox)
         popcont.add_widget(swatches)
-        pawnmenu = Popup(title=_('Select Thing\'s Appearance'),
+        pawnmenu = Popup(title=_("Select Thing's Appearance"),
                          content=popcont)
 
         def confirmer(name, graphic):
@@ -641,6 +590,10 @@ class LiSELayout(FloatLayout):
     def show_spot_menu(self):
         """Show the menu to pick the name and graphic for a new Spot."""
         def validator(text):
+            """Make sure there's a name and it hasn't been used for a place
+            already
+
+            """
             if text == '':
                 return _('You need to enter a place name here')
             elif text in self.app.closet.skeleton[u'place'][
@@ -654,7 +607,7 @@ class LiSELayout(FloatLayout):
         namebox = TextInput(
             hint_text=_('Enter a unique place name'), multiline=False,
             size_hint_y=None, height=34, font_size=20)
-        swatches = self.get_swatch_view([('', 'pixel_city')])
+        swatches = self.get_swatch_view([('', 'spot')], 'frob')
         popcont = BoxLayout(orientation='vertical')
         popcont.add_widget(namebox)
         popcont.add_widget(swatches)
@@ -763,26 +716,34 @@ class LiSELayout(FloatLayout):
         return (x, y)
 
     def normal_speed(self, forward=True):
-        """Advance time at a sensible rate."""
+        """Advance time at a sensible rate.
+
+        """
         if forward:
             self.playspeed = 0.1
         else:
             self.playspeed = -0.1
 
     def pause(self):
-        """Halt the flow of time."""
+        """Halt the flow of time.
+
+        """
         if hasattr(self, 'updater'):
             Clock.unschedule(self.updater)
 
     def update(self, ticks):
-        """Advance time if possible. Otherwise pause."""
+        """Advance time if possible. Otherwise pause.
+
+        """
         try:
             self.app.closet.time_travel_inc_tick(ticks)
         except TimestreamException:
             self.pause()
 
     def on_playspeed(self, *args):
-        """Change the interval of updates to match the playspeed."""
+        """Change the interval of updates to match the playspeed.
+
+        """
         self.pause()
         if self.playspeed > 0:
             ticks = 1
@@ -796,27 +757,16 @@ class LiSELayout(FloatLayout):
         Clock.schedule_interval(self.updater, interval)
 
     def go_to_branch(self, bstr):
-        """Switch to a different branch of the timestream."""
+        """Switch to a different branch of the timestream.
+
+        """
         self.app.closet.time_travel(int(bstr), self.app.closet.tick)
 
     def go_to_tick(self, tstr):
-        """Go to a different tick of the current branch of the timestream."""
+        """Go to a different tick of the current branch of the timestream.
+
+        """
         self.app.closet.time_travel(self.app.closet.branch, int(tstr))
-
-
-class LoadImgDialog(FloatLayout):
-    """Dialog for adding img files to the database."""
-    load = ObjectProperty()
-    cancel = ObjectProperty()
-
-
-class PickImgDialog(FloatLayout):
-    """Dialog for associating imgs with something, perhaps a Pawn.
-
-    """
-    categorized_images = ObjectProperty()
-    set_imgs = ObjectProperty()
-    cancel = ObjectProperty()
 
 
 class LiSEApp(App):
@@ -830,7 +780,7 @@ class LiSEApp(App):
     """The interface to the ORM."""
     dbfn = StringProperty(allownone=True)
     """Name of the database file to use."""
-    lgettext = ObjectProperty()
+    gettext = ObjectProperty()
     """gettext function"""
     observer_name = StringProperty()
     """Name of the Character whose view on the world we display presently."""
@@ -865,7 +815,7 @@ class LiSEApp(App):
         except (IOError, OperationalError):
             mkdb(self.dbfn, __path__[-1], True)
         self.closet = load_closet(
-            self.dbfn, self.lgettext,
+            self.dbfn, self.gettext,
             load_img=True,
             load_img_tags=['base', 'body'],
             load_gfx=True,
