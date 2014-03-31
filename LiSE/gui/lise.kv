@@ -388,6 +388,7 @@
     CharSheet:
         id: charsheet
         character: root.app.closet.get_character(root.app.observed_name)
+        observer: root.app.closet.get_character(root.app.observer_name)
         pos_hint: {'x': 0.7, 'y': 0.0}
         size_hint: (0.3, 1.0)
     BoxLayout:

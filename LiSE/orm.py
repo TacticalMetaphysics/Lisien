@@ -1599,21 +1599,34 @@ class Closet(object):
 
             self.kivy = True
 
-        if 'load_img_tags' in kwargs:
-            self.load_imgs_tagged(kwargs['load_img_tags'])
-        if 'load_characters' in kwargs:
-            self.load_characters(kwargs['load_characters'])
-        if 'load_charsheet' in kwargs:
-            self.load_charsheet(kwargs['load_charsheet'])
-
+        for wd in self.working_dicts:
+            setattr(self, wd, dict())
         self.connector = connector
+        self.c = self.connector.cursor()
+        self.c.execute("BEGIN;")
         self.empty = Skeleton({"place": {}})
         for tab in SaveableMetaclass.tabclas.iterkeys():
             self.empty[tab] = {}
         self.skeleton = self.empty.copy()
+        self.timestream = Timestream(self)
+        for glub in ('branch', 'tick'):
+            try:
+                self.get_global(glub)
+            except TypeError:
+                self.set_global(glub, 0)
 
-        self.c = self.connector.cursor()
-        self.c.execute("BEGIN;")
+        if 'load_img_tags' in kwargs:
+            self.load_imgs_tagged(kwargs['load_img_tags'])
+        if 'load_characters' in kwargs:
+            self.load_characters(kwargs['load_characters'])
+        # two characters that always exist, though they may not play
+        # any role in the game
+        if 'Physical' not in self.character_d:
+            Character(self, 'Physical')
+        if 'Omniscient' not in self.character_d:
+            Character(self, 'Omniscient')
+        if 'load_charsheet' in kwargs:
+            self.load_charsheet(kwargs['load_charsheet'])
 
         self.branch_listeners = []
         self.tick_listeners = []
@@ -1625,15 +1638,6 @@ class Closet(object):
             [self.lisepath, 'gui', 'assets', 'Entypo.ttf'])
         self.gettext = gettext
 
-        for wd in self.working_dicts:
-            setattr(self, wd, dict())
-
-        self.timestream = Timestream(self)
-        for glub in ('branch', 'tick'):
-            try:
-                self.get_global(glub)
-            except TypeError:
-                self.set_global(glub, 0)
         self.time_travel_history = [
             (self.get_global('branch'), self.get_global('tick'))]
         self.game_speed = 1

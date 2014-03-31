@@ -41,10 +41,12 @@ from LiSE.util import (
     TABLE_TYPES,
     CALENDAR_TYPES
 )
+
 from table import TableView
 
 csitem_type_table_d = defaultdict(set)
 csitem_type_table_d['char_cal'].add('char_cal')
+_ = lambda x: x
 
 
 class ListItemToggle(SelectableView, ToggleButton):
@@ -82,7 +84,7 @@ class NounListView(StackLayout):
         if self.charsheet is None:
             Clock.schedule_once(self.finalize, 0)
             return
-        nouniter = self.getiter(self.charsheet.character)
+        nouniter = self.getiter(self.charsheet.facade)
         adapter = ListAdapter(
             data=[NounItem(noun) for noun in nouniter],
             selection_mode=self.selection_mode,
@@ -102,22 +104,22 @@ class NounListView(StackLayout):
 class ThingListView(NounListView):
     """NounListView for Things"""
     @staticmethod
-    def getiter(character, branch=None, tick=None):
-        return character.iter_things(*character.sanetime(branch, tick))
+    def getiter(facade, branch=None, tick=None):
+        return facade.iter_things(*facade.sanetime(branch, tick))
 
 
 class PlaceListView(NounListView):
     """NounListView for Places"""
     @staticmethod
-    def getiter(character, branch=None, tick=None):
-        return character.iter_places()
+    def getiter(facade, branch=None, tick=None):
+        return facade.iter_places()
 
 
 class PortalListView(NounListView):
     """NounListView for Portals"""
     @staticmethod
-    def getiter(character, branch=None, tick=None):
-        return character.iter_portals(*character.sanetime(branch, tick))
+    def getiter(facade, branch=None, tick=None):
+        return facade.iter_portals(*facade.sanetime(branch, tick))
 
 
 class StatItem(SelectableDataItem):
@@ -536,12 +538,15 @@ class CharSheetAdder(ModalView):
     insertion_point = NumericProperty(0)
 
     def confirm(self):
+        """The user pressed the button to corfirm adding something to the
+        charsheet. Handle it.
+
+        """
         csitskel = self.closet.skeleton[u"character_sheet_item_type"]
         if unicode(self.character) not in csitskel:
             csitskel[unicode(self.charsheet.character)] = {}
         # TODO change over to size_hint_y for every charsheet item
         r = self.new_bones()
-        type_bone = r[0]
         if r:
             self.charsheet.insert_bones(r)
             self.charsheet._trigger_repop()
@@ -706,67 +711,6 @@ class CharSheetAdder(ModalView):
                     thing_tab_stats)
 
 
-def char_sheet_table_def(
-        table_name, final_pkey, typ, foreign_key=(None, None)):
-    """Generate a tuple to describe one of CharSheet's database tables.
-
-    The form of the tuple is that used by
-    LiSE.orm.SaveableMetaclass
-
-    """
-    csitem_type_table_d[typ].add(table_name)
-    r = (
-        table_name,
-        {"columns":
-         {"character": "TEXT NOT NULL",
-          "idx": "INTEGER NOT NULL",
-          final_pkey: "TEXT NOT NULL",
-          "type": "TEXT NOT NULL DEFAULT {}".format(typ)},
-         "primary_key":
-         ("character", "idx", final_pkey),
-         "foreign_keys":
-         {"character, idx, type":
-          ("character_sheet_item_type", "character, idx, type")},
-         "checks": ["type='{}'".format(typ)]})
-    if None not in foreign_key:
-        (foreign_key_tab, foreign_key_key) = foreign_key
-        r[1]["foreign_keys"].update(
-            {"character, {}".format(final_pkey):
-             (foreign_key_tab, "character, {}".format(foreign_key_key))})
-    return r
-
-
-def char_sheet_calendar_def(
-        table_name, col_x, typ, foreign_key=(None, None)):
-    """Generate a tuple to describe one of the database tables that the
-    Calendar widget uses.
-
-    The form of the tuple is that used by LiSE.orm.SaveableMetaclass
-
-    """
-    csitem_type_table_d[typ].add(table_name)
-    r = (
-        table_name,
-        {"columns":
-         {"character": "TEXT NOT NULL",
-          "idx": "INTEGER NOT NULL",
-          col_x: "TEXT NOT NULL",
-          "stat": "TEXT NOT NULL",
-          "type": "TEXT DEFAULT {}".format(typ)},
-         "primary_key":
-         ("character", "idx"),
-         "foreign_keys":
-         {"character, idx, type":
-          ("character_sheet_item_type", "character, idx, type")},
-         "checks": ["type='{}'".format(typ)]})
-    if None not in foreign_key:
-        (foreign_key_tab, foreign_key_key) = foreign_key
-        r[1]["foreign_keys"].update(
-            {"character, {}".format(col_x):
-             (foreign_key_tab, "character, {}".format(foreign_key_key))})
-    return r
-
-
 class CharSheetItem(BoxLayout):
     """Container for either a Calendar or a Table.
 
@@ -784,22 +728,9 @@ class CharSheetItem(BoxLayout):
     middle = ObjectProperty()
     item_type = StringProperty()
     item_kwargs = DictProperty()
-    charsheet = AliasProperty(
-        lambda self: self.item_kwargs['charsheet']
-        if self.item_kwargs else None,
-        lambda self, v: None,
-        bind=('item_kwargs',))
-    closet = AliasProperty(
-        lambda self: self.item_kwargs['charsheet'].character.closet
-        if self.item_kwargs else None,
-        lambda self, v: None,
-        bind=('item_kwargs',))
-    mybone = AliasProperty(
-        lambda self: self.item_kwargs['mybone']
-        if self.item_kwargs and 'mybone' in self.item_kwargs
-        else None,
-        lambda self, v: None,
-        bind=('item_kwargs',))
+    widspec = ReferenceListProperty(item_class, item_kwargs)
+    charsheet = ObjectProperty()
+    mybone = ObjectProperty()
     i = AliasProperty(
         lambda self: self.csbone.idx if self.csbone else -1,
         lambda self, v: None,
@@ -816,13 +747,12 @@ class CharSheetItem(BoxLayout):
         super(CharSheetItem, self).__init__(**kwargs)
         self.finalize()
 
-    def get_item_class(self):
-        if self.item_type in TABLE_TYPES:
-            return TableView
-        elif self.item_type in CALENDAR_TYPES:
-            return CalendarView
-        else:
-            raise ValueError("Unknown item type")
+    def on_item_kwargs(self, *args):
+        if not self.item_kwargs:
+            return
+        self.charsheet = self.item_kwargs['charsheet']
+        if 'mybone' in self.item_kwargs:
+            self.mybone = self.item_kwargs['mybone']
 
     def on_touch_down(self, touch):
         if self.sizer.collide_point(*touch.pos):
@@ -846,10 +776,11 @@ class CharSheetItem(BoxLayout):
 
     def set_bone(self, *args):
         if self.csbone:
-            self.closet.set_bone(self.csbone)
+            self.charsheet.character.closet.set_bone(self.csbone)
 
     def finalize(self, *args):
         _ = lambda x: x
+        closet = self.charsheet.character.closet
         if not (self.item_class and self.item_kwargs):
             Clock.schedule_once(self.finalize, 0)
             return
@@ -860,14 +791,14 @@ class CharSheetItem(BoxLayout):
             orientation='vertical',
             size_hint_x=0.2)
         self.buttons = [ClosetButton(
-            closet=self.closet,
+            closet=closet,
             symbolic=True,
             stringname=_('@del'),
             fun=self.charsheet.del_item,
             arg=self.i)]
         if self.i > 0:
             self.buttons.insert(0, ClosetButton(
-                closet=self.closet,
+                closet=closet,
                 symbolic=True,
                 stringname=_('@up'),
                 fun=self.charsheet.move_it_up,
@@ -875,7 +806,7 @@ class CharSheetItem(BoxLayout):
                 size_hint_y=0.1))
             if self.i+1 < len(self.charsheet.csitems):
                 self.buttons.append(ClosetButton(
-                    closet=self.closet,
+                    closet=closet,
                     symbolic=True,
                     stringname=_('@down'),
                     fun=self.charsheet.move_it_down,
@@ -918,10 +849,72 @@ class CharSheet(StackLayout):
     """
     __metaclass__ = LiSEWidgetMetaclass
     demands = ["character"]
+
+    def _calendar_decl(
+            table_name, col_x, typ, foreign_key=(None, None)):
+        """Generate a tuple to describe one of the database tables that the
+        Calendar widget uses.
+
+        The form of the tuple is that used by LiSE.orm.SaveableMetaclass
+
+        """
+        csitem_type_table_d[typ].add(table_name)
+        r = (
+            table_name,
+            {"columns":
+             {"character": "TEXT NOT NULL",
+              "idx": "INTEGER NOT NULL",
+              col_x: "TEXT NOT NULL",
+              "stat": "TEXT NOT NULL",
+              "type": "TEXT DEFAULT {}".format(typ)},
+             "primary_key":
+             ("character", "idx"),
+             "foreign_keys":
+             {"character, idx, type":
+              ("character_sheet_item_type", "character, idx, type")},
+             "checks": ["type='{}'".format(typ)]})
+        if None not in foreign_key:
+            (foreign_key_tab, foreign_key_key) = foreign_key
+            r[1]["foreign_keys"].update(
+                {"character, {}".format(col_x):
+                 (foreign_key_tab, "character, {}".format(foreign_key_key))})
+        return r
+
+    def _table_decl(
+            table_name, final_pkey, typ, foreign_key=(None, None)):
+        """Generate a tuple to describe one of CharSheet's database tables.
+
+        The form of the tuple is that used by
+        LiSE.orm.SaveableMetaclass
+
+        """
+        csitem_type_table_d[typ].add(table_name)
+        r = (
+            table_name,
+            {"columns":
+             {"character": "TEXT NOT NULL",
+              "observer": "TEXT NOT NULL",
+              "idx": "INTEGER NOT NULL",
+              final_pkey: "TEXT NOT NULL",
+              "type": "TEXT NOT NULL DEFAULT {}".format(typ)},
+             "primary_key":
+             ("character", "idx", final_pkey),
+             "foreign_keys":
+             {"character, idx, type":
+              ("character_sheet_item_type", "character, idx, type")},
+             "checks": ["type='{}'".format(typ)]})
+        if None not in foreign_key:
+            (foreign_key_tab, foreign_key_key) = foreign_key
+            r[1]["foreign_keys"].update(
+                {"character, {}".format(final_pkey):
+                 (foreign_key_tab, "character, {}".format(foreign_key_key))})
+        return r
+
     tables = [
         ("character_sheet_item_type",
          {"columns":
           {"character": "TEXT NOT NULL",
+           "observer": "TEXT NOT NULL",
            "idx": "INTEGER NOT NULL",
            "type": "TEXT NOT NULL",
            "height": "INTEGER NOT NULL"},
@@ -932,48 +925,48 @@ class CharSheet(StackLayout):
               ", ".join(
                   ["'{}'".format(typ)
                    for typ in SHEET_ITEM_TYPES]))]}),
-        char_sheet_table_def(
+        _table_decl(
             "thing_tab_thing",
             "thing",
             "thing_tab",
             foreign_key=("thing", "name")),
-        char_sheet_table_def(
+        _table_decl(
             "thing_tab_stat",
             "stat",
             "thing_tab"),
-        char_sheet_table_def(
+        _table_decl(
             "place_tab_place",
             "place",
             "place_tab",
             foreign_key=("place", "place")),
-        char_sheet_table_def(
+        _table_decl(
             "place_tab_stat",
             "stat",
             "place_tab"),
-        char_sheet_table_def(
+        _table_decl(
             "portal_tab_portal",
             "portal",
             "portal_tab",
             foreign_key=("portal", "name")),
-        char_sheet_table_def(
+        _table_decl(
             "portal_tab_stat",
             "stat",
             "portal_tab"),
-        char_sheet_table_def(
+        _table_decl(
             "char_tab_stat",
             "stat",
             "char_tab"),
-        char_sheet_calendar_def(
+        _calendar_decl(
             "thing_cal",
             "thing",
             "thing_cal",
             foreign_key=("thing", "name")),
-        char_sheet_calendar_def(
+        _calendar_decl(
             "place_cal",
             "place",
             "place_cal",
             foreign_key=("place", "place")),
-        char_sheet_calendar_def(
+        _calendar_decl(
             "portal_cal",
             "portal",
             "portal_cal",
@@ -994,15 +987,26 @@ class CharSheet(StackLayout):
                      "height>=50"]})]
     character = ObjectProperty()
     """The character this sheet is about."""
+    observer = ObjectProperty()
+    """The character whose view on this one we'll show.
+
+    Defaults to Omniscient, a character with no distinguishing
+    characteristics save knowing everything about everything with
+    perfect accuracy.
+
+    """
+    facade = ObjectProperty()
+    """The facade from which I will get all the information I'll display.
+
+    It will in turn get the information from the character, though it
+    may be distorted.
+
+    """
     csitems = ListProperty([])
     """Bones from character_sheet_item_type"""
     i2wid = DictProperty()
-    """Map indices to widgets in my ListView."""
     view = ObjectProperty()
-    """My ListView that holds all my content, except when I'm
-    empty.
 
-    """
     def __init__(self, **kwargs):
         self._trigger_repop = Clock.create_trigger(self.repop)
         kwargs['size_hint'] = (1, None)
@@ -1019,36 +1023,33 @@ class CharSheet(StackLayout):
         self.repop()
 
     def on_character(self, *args):
-        if unicode(self.character) not in self.character.closet.skeleton[
-                u'character_sheet_item_type']:
-            self.character.closet.skeleton[u'character_sheet_item_type'][
-                unicode(self.character)] = {}
-        self.skel = self.character.closet.skeleton[
-            u'character_sheet_item_type'][unicode(self.character)]
-        self.skel.register_listener(self._trigger_repop)
+        if not self.observer:
+            self.observer = self.character.closet.character_d['Omniscient']
+        self.facade = self.character.get_facade(self.observer)
         self.finalize()
 
     def add_item(self, i):
         self.parent.handle_adbut(self, i)
 
+    def del_item(self, i):
+        pass
+
     def finalize(self, *args):
         """If I do not yet contain any items, show a button to add
         one. Otherwise, fill myself with the widgets for the items."""
         closet = self.character.closet
-        if unicode(self.character) in self.character.closet.skeleton[
-                u'character_sheet_item_type']:
-            myskel = closet.skeleton[
-                u'character_sheet_item_type'][unicode(self.character)]
-            myskel.register_set_listener(self._trigger_repop)
-            myskel.register_del_listener(self._trigger_repop)
-            closet.register_time_listener(self._trigger_repop)
-            self.repop()
-            return
-        else:
-            closet.skeleton[u'character_sheet_item_type'][
-                unicode(self.character)] = {}
-        _ = lambda x: x
-        self.clear_widgets()
+        obsrvr = unicode(self.observer)
+        char = unicode(self.character)
+        skel = closet.skeleton[u'character_sheet_item_type']
+        if obsrvr not in skel:
+            skel[obsrvr] = {}
+        if char not in skel[obsrvr]:
+            skel[obsrvr][char] = {}
+        myskel = skel[obsrvr][char]
+        myskel.register_set_listener(self._trigger_repop)
+        myskel.register_del_listener(self._trigger_repop)
+        closet.register_time_listener(self._trigger_repop)
+        self.repop()
         self.add_widget(ClosetButton(
             closet=closet,
             symbolic=True,
@@ -1146,7 +1147,9 @@ class CharSheet(StackLayout):
             return
         Logger.debug("CharSheet: about to repopulate")
         myskel = self.character.closet.skeleton[
-            u'character_sheet_item_type'][unicode(self.character)]
+            u'character_sheet_item_type'][
+            unicode(self.observer)][
+            unicode(self.character)]
         # This used to be a ListView. It may yet be again. I changed
         # it to make the debugger easier to use.
         self.csitems = []
@@ -1158,9 +1161,7 @@ class CharSheet(StackLayout):
         for item in self.csitems:
             self.view.add_widget(item)
         if len(self.csitems) == 0:
-            _ = lambda x: x
-            self.clear_widgets()
-            self.add_widget(ClosetButton(
+            self.view.add_widget(ClosetButton(
                 closet=self.character.closet,
                 symbolic=True,
                 stringname=_("@add"),
@@ -1171,7 +1172,7 @@ class CharSheet(StackLayout):
                 top=self.top))
 
     def iter_tab_i_bones(self, tab, i):
-        for bone in self.character.closet.skeleton[tab][
+        for bone in self.facade.closet.skeleton[tab][
                 unicode(self.character)][i].iterbones():
             yield bone
 
@@ -1185,6 +1186,7 @@ class CharSheet(StackLayout):
                 touch.ud['charsheet'] = self
                 return True
 
+    # I think "dispatch" actually has some special meaning
     def on_touch_move(self, touch):
         """Dispatch this touch to all my children."""
         for child in self.children:
@@ -1195,6 +1197,24 @@ class CharSheet(StackLayout):
         for child in self.children:
             child.on_touch_up(touch)
 
+    def _localbones(self):
+        closet = self.character.closet
+        r = {}
+        for tab in self.tablenames:
+            r[tab] = list(closet.skeleton[tab][
+                unicode(self.observer)][
+                unicode(self.character)])
+        return r
+
+    def _writebones(self, bone_d):
+        closet = self.character.closet
+        for bone_l in bone_d.itervalues():
+            for old_bone in bone_l:
+                # correct the idx
+                new_bone = old_bone._replace(idx=bone_l.index(old_bone))
+                closet.del_bone(old_bone)
+                closet.set_bone(new_bone)
+
     def insert_bones(self, bones):
         """Move extant items downward to make room for each new bone as
         needed. Then set as normal.
@@ -1204,16 +1224,51 @@ class CharSheet(StackLayout):
         # charsheet, modifying that, and clobbering the original. This
         # causes more disk activity than necessary. Probably not much
         # disk activity in the absolute.
-        closet = self.character.closet
-        localbones = {}
-        for tab in self.tablenames:
-            localbones[tab] = list(closet.skeleton[tab][
-                unicode(self.character)])
+        localbones = self._localbones()
         for bone in bones:
-            self.localbones[bone._name].insert(bone.idx, bone)
-        for bonel in localbones.itervalues():
-            for oldbone in bonel:
-                # correct the idx
-                newbone = oldbone._replace(idx=bonel.index(oldbone))
-                closet.del_bone(oldbone)
-                closet.set_bone(newbone)
+            localbones[bone._name].insert(bone.idx, bone)
+        self._writebones(localbones)
+
+    def move_items(self, begin, end, n):
+        """Move items ``begin`` through ``end`` forward``n`` places.
+
+        ``n`` may be negative.
+
+        """
+        if begin == end:
+            self.move_item(begin, n)
+            return
+        if n == 0:
+            return
+        localbones = self._localbones()
+        for tab in self.tablenames:
+            mobile_bones = localbones[tab][begin:end]
+            del localbones[tab][begin:end]
+            new_beginning = begin + n
+            localbones[tab][new_beginning:new_beginning] = mobile_bones
+        self._writebones(localbones)
+        self._trigger_repop()
+
+    def move_item(self, i, n):
+        """Get item at index ``i``, and move it ``n`` places forward.
+
+        ``n`` may be negative.
+
+        """
+        if n == 0:
+            return
+        localbones = self._localbones()
+        for tab in self.tablenames:
+            bone = localbones[tab][i]
+            del localbones[tab][i]
+            localbones[tab].insert(
+                i+n,
+                bone._replace(idx=i+n))
+        self._writebones(localbones)
+        self._trigger_repop()
+
+    def move_it_up(self, i, n):
+        self.move_item(i, -n)
+
+    def move_it_down(self, i, n):
+        self.move_item(i, n)

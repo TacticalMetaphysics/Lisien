@@ -14,7 +14,6 @@ from LiSE.orm import (
 from thing import Thing
 from place import Place
 from portal import Portal
-from kivy.logger import Logger
 
 
 """Things that should have character sheets."""
@@ -104,8 +103,9 @@ class Character(object):
             "primary_key": (
                 "character", "key", "branch", "tick")})]
 
-    def __init__(self, closet, name, knows_self=True,
-                 self_omitters=[], self_liars=[]):
+    def __init__(self, closet, name,
+                 omitter_getter=lambda observer: [lambda: False],
+                 liar_getter=lambda observer: [lambda x: x]):
         """Initialize a character from the data in the closet.
 
         A character is a collection of items in the game world that
@@ -152,6 +152,8 @@ class Character(object):
         """
         self.closet = closet
         self.name = name
+        self.get_omitters = omitter_getter
+        self.get_liars = liar_getter
         if unicode(self) not in self.closet.skeleton[u"thing"]:
             self.closet.skeleton[u"thing"][unicode(self)] = {}
         if unicode(self) not in self.closet.skeleton[u"portal"]:
@@ -160,11 +162,14 @@ class Character(object):
             (thingn, Thing(self, thingn)) for thingn in
             self.closet.skeleton[u"thing"][unicode(self)]])
         self.facade_d = {}
-        if knows_self:
-            self.facade_d[unicode(self)] = Facade(
-                observer=self, observed=self, omitters=self_omitters,
-                liars=self_liars)
         self.graph = Graph(directed=True)
+        """This graph represents the portion of the world that is contained
+        within me. Everything contained herein is to be regarded as
+        true and correct, though nobody--not even me--is guaranteed
+        access to this information, and it may be distorted if they
+        get it.
+
+        """
         self.closet.character_d[unicode(self)] = self
         self.update()
 
@@ -175,6 +180,9 @@ class Character(object):
         return unicode(self.name)
 
     def update(self, branch=None, tick=None):
+        """Update my graph.
+
+        """
         (branch, tick) = self.sanetime(branch, tick)
         for placebone in self.iter_place_bones(
                 None, branch, tick):
@@ -225,7 +233,10 @@ class Character(object):
             raise ValueError("Every facade must have an observer.")
         if unicode(observer) not in self.facade_d:
             self.facade_d[unicode(observer)] = Facade(
-                observer, observed=self)
+                observer=observer,
+                observed=self,
+                omitters=self.get_omitters(observer),
+                liars=self.get_liars(observer))
         return self.facade_d[unicode(observer)]
 
     def sanetime(self, branch=None, tick=None):
@@ -253,14 +264,6 @@ class Character(object):
                 return self.get_portal(name)
             except KeyError:
                 return self.get_thing(name)
-
-    def get_whatever(self, bone):
-        """Get the item of the appropriate type, based on the type of the bone
-        supplied."""
-        return {
-            Place.bonetype: self.get_place,
-            Portal.bonetypes.portal: self.get_portal,
-            Thing.bonetypes.thing: self.get_thing}[type(bone)](bone.name)
 
     ### Thing
 
@@ -833,6 +836,11 @@ class Facade(Character):
         self.liars = liars
         self.closet = self.observed.closet
         self.graph = Graph(directed=True)
+        """This graph represents the portion of the world contained in
+        the observed character, as it appears to the observer
+        character.
+
+        """
         if unicode(self.observer) not in self.closet.facade_d:
             self.closet.facade_d[unicode(self.observer)] = {}
         self.closet.facade_d[unicode(self.observer)][
@@ -847,6 +855,11 @@ class Facade(Character):
     @property
     def name(self):
         return self.observed.name
+
+    def update(self, branch=None, tick=None):
+        """Update my graph.
+
+        """
 
     def evade(self, bone):
         """Raise KnowledgeException if the bone triggers an omitter. Otherwise

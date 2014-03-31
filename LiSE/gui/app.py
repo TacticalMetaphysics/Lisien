@@ -7,9 +7,7 @@ from kivy.properties import (
     ObjectProperty,
     OptionProperty,
     ListProperty,
-    DictProperty,
     StringProperty,
-    NumericProperty,
     AliasProperty
 )
 from kivy.graphics import Line, Color
@@ -23,7 +21,6 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 
-from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.logger import Logger
