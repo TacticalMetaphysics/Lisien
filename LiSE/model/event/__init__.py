@@ -5,6 +5,6 @@ from implicator import (
     Cause,
     Effect)
 from change import Change
-from event import Event
+from event import AbstractEvent
 
-__all__ = [Event, Cause, Effect, Change, Implicator]
+__all__ = [AbstractEvent, Cause, Effect, Change, Implicator]

@@ -1764,7 +1764,8 @@ class Closet(object):
         """Return a ``property`` that gets and sets the attribute ``boneatt``
         of the bone with ``keys``.
 
-        Deletion of bone attributes is not supported.
+        Actually, it replaces the bone at its position in the skeleton
+        with a copy with the attribute changed.
 
         """
         return property(
