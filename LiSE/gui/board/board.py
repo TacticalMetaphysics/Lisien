@@ -7,7 +7,6 @@ from kivy.properties import (
     ObjectProperty)
 from kivy.uix.image import Image
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.clock import Clock
 from spot import Spot
@@ -198,19 +197,30 @@ class Board(FloatLayout):
             for bone in pawn.new_branch(parent, branch, tick):
                 yield bone
 
+    def on_touch_down(self, touch):
+        touch.push()
+        touch.apply_transform_2d(self.parent.to_local)
+        for sublayout in (
+                self.pawnlayout,
+                self.spotlayout,
+                self.arrowlayout):
+            r = sublayout.on_touch_down(touch)
+            if r:
+                touch.pop()
+                return r
+        touch.pop()
+        return super(Board, self).on_touch_down(touch)
+
     def on_touch_up(self, touch):
         touch.push()
         touch.apply_transform_2d(self.parent.to_local)
-        r = self.pawnlayout.on_touch_up(touch)
-        if r:
-            touch.pop()
-            return r
-        r = self.spotlayout.on_touch_up(touch)
-        if r:
-            touch.pop()
-            return r
-        r = self.arrowlayout.on_touch_up(touch)
-        if r:
-            touch.pop()
-            return r
-        return super(Board, self).on_touch_up(touch)
+        for sublayout in (
+                self.pawnlayout,
+                self.spotlayout,
+                self.arrowlayout):
+            r = sublayout.on_touch_up(touch)
+            if r:
+                touch.pop()
+                return r
+        touch.pop()
+        return super(Board, self).on_touch_down(touch)

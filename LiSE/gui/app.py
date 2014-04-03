@@ -126,8 +126,6 @@ class FrobSwatch(Button):
 
     def on_box(self, *args):
         """Bind the box's state to its ``upd_selection`` method"""
-        Logger.debug("FooSwatch: got box {}".format(
-            self.box))
         self.bind(state=self.box.upd_selection)
 
 
@@ -497,7 +495,6 @@ class LiSELayout(FloatLayout):
             if touch != self._touch:
                 return
             self.portal_d['dummyarrow'].canvas.clear()
-            self.remove_widget(self.portal_d['dummyspot'])
             self.board.remove_widget(self.portal_d['dummyarrow'])
             self.dismiss_prompt()
             destspot = self.board.on_touch_up(touch)
@@ -511,11 +508,7 @@ class LiSELayout(FloatLayout):
             portal = self.board.facade.observed.make_portal(
                 portalname, origplace, destplace,
                 host=self.board.host)
-            arrow = Arrow(
-                board=self.board, portal=portal)
-            self.board.arrowdict[unicode(portal)] = arrow
-            self.board.arrowlayout.add_widget(arrow)
-            arrow.trigger_repoint()
+            Arrow(board=self.board, portal=portal)
         else:
             return super(LiSELayout, self).on_touch_up(touch)
 
