@@ -110,8 +110,8 @@ class Character(object):
         "SELECT character FROM portal);"]
 
     def __init__(self, closet, name,
-                 omitter_getter=lambda observer: [lambda: False],
-                 liar_getter=lambda observer: [lambda x: x]):
+                 omitter_getter=lambda observer: [lambda bone: False],
+                 liar_getter=lambda observer: [lambda bone: bone]):
         """Initialize a character from the data in the closet.
 
         A character is a collection of items in the game world that
