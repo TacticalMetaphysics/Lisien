@@ -4,6 +4,18 @@
 #: import solarized LiSE.gui.style.solarized
 #: import _ LiSE.util.passthru
 #: import sep os.sep
+<TimelineView>:
+    RelativeLayout:
+        Timeline:
+            id: timeline
+            charsheet: root.charsheet
+            keys: root.keys
+            field: root.field
+        TimelineCursor:
+            size_hint: (0, 0)
+            orientation: 'vertical' if timeline.orientation[0] in 'lr' else 'horizontal'
+            x: root.charsheet.facade.observed.closet.tick * ((timeline.max_tick - timeline.min_tick) / timeline.width) if self.orientation == 'vertical' else 0
+            y: root.charsheet.facade.observed.closet.tick * ((timeline.max_tick - timeline.min_tick) / timeline.height) if self.orientation == 'horizontal' else 0
 <Arrow>:
     canvas:
         Color:
