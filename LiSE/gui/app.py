@@ -34,7 +34,11 @@ from LiSE.gui.board import (
 from LiSE.gui.board.gamepiece import GamePiece
 from LiSE.gui.board.arrow import get_points
 
-from LiSE.gui.kivybits import TouchlessWidget, ClosetLabel
+from LiSE.gui.kivybits import (
+    TouchlessWidget,
+    ClosetLabel,
+    SaveableWidgetMetaclass
+)
 from LiSE.gui.charsheet import CharSheetAdder
 
 from LiSE.util import TimestreamException
@@ -371,7 +375,7 @@ class LiSELayout(FloatLayout):
     of those happen, the board handles touches on its own.
 
     """
-    __metaclass__ = LiSEWidgetMetaclass
+    __metaclass__ = SaveableWidgetMetaclass
     app = ObjectProperty()
     """The App instance that is running and thus holds the globals I need."""
     board = ObjectProperty()

@@ -22,25 +22,9 @@ from kivy.logger import Logger
 from kivy.graphics import Color, Line, Triangle
 
 from LiSE.util import CALENDAR_TYPES
-from LiSE.gui.kivybits import LiSEWidgetMetaclass
 
 
 class Cell(Label):
-    __metaclass__ = LiSEWidgetMetaclass
-    kv = """
-<Cell>:
-    valign: 'top'
-    text_size: self.size
-    color: solarized['base00']
-    text: self.closet.get_text(self.stringname)\
-    if self.closet and self.stringname else ''
-    canvas.before:
-        Color:
-            rgba: solarized['base2']
-        Rectangle:
-            pos: root.pos
-            size: root.size
-    """
     closet = ObjectProperty()
     stringname = StringProperty()
 
@@ -170,17 +154,6 @@ class Calendar(Layout):
     here. Look in CalendarView below.
 
     """
-    __metaclass__ = LiSEWidgetMetaclass
-    kv = """
-<Calendar>:
-    font_name: 'DroidSans'
-    font_size: 20
-    branches_wide: 2
-    spacing: (5, 5)
-    offscreen: (2, 2)
-    tick_height: 2
-    col_width: 100
-"""
     branches_wide = NumericProperty()
     """The number of columns in the calendar that are visible at
     once. Each represents a branch of the timestream."""

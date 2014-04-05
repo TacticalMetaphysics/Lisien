@@ -1,12 +1,13 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.gui.kivybits import LiSEWidgetMetaclass
+from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
     AliasProperty,
     DictProperty,
     ObjectProperty)
 from kivy.uix.image import Image
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.clock import Clock
 from spot import Spot
@@ -32,7 +33,7 @@ class BoardLayout(RelativeLayout):
 
 class Board(FloatLayout):
     """A graphical view onto a facade, resembling a game board."""
-    __metaclass__ = LiSEWidgetMetaclass
+    __metaclass__ = SaveableWidgetMetaclass
     demands = ["thing", "graphic_img"]
     tables = [
         ("board", {
@@ -197,30 +198,19 @@ class Board(FloatLayout):
             for bone in pawn.new_branch(parent, branch, tick):
                 yield bone
 
-    def on_touch_down(self, touch):
-        touch.push()
-        touch.apply_transform_2d(self.parent.to_local)
-        for sublayout in (
-                self.pawnlayout,
-                self.spotlayout,
-                self.arrowlayout):
-            r = sublayout.on_touch_down(touch)
-            if r:
-                touch.pop()
-                return r
-        touch.pop()
-        return super(Board, self).on_touch_down(touch)
-
     def on_touch_up(self, touch):
         touch.push()
         touch.apply_transform_2d(self.parent.to_local)
-        for sublayout in (
-                self.pawnlayout,
-                self.spotlayout,
-                self.arrowlayout):
-            r = sublayout.on_touch_up(touch)
-            if r:
-                touch.pop()
-                return r
-        touch.pop()
-        return super(Board, self).on_touch_down(touch)
+        r = self.pawnlayout.on_touch_up(touch)
+        if r:
+            touch.pop()
+            return r
+        r = self.spotlayout.on_touch_up(touch)
+        if r:
+            touch.pop()
+            return r
+        r = self.arrowlayout.on_touch_up(touch)
+        if r:
+            touch.pop()
+            return r
+        return super(Board, self).on_touch_up(touch)

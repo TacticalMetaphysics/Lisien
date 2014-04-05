@@ -374,9 +374,6 @@
                 closet: root.closet
                 stringname: _("Load")
                 on_release: root.load(filechooser.path, filechooser.selection)
-<MenuIntInput>:
-    padding: [12, 12, 12, 0]
-    font_size: 26
 <ConfirmOrCancel>:
     size_hint_y: None
     height: 30
@@ -465,14 +462,14 @@
         CueCard:
             closet: root.app.closet
             stringname: _("Branch:")
-        MenuIntInput:
+        MenuBranchInput:
             closet: root.app.closet
             stringname: '@branch'
             fun: root.go_to_branch
         CueCard:
             closet: root.app.closet
             stringname: _("Tick:")
-        MenuIntInput:
+        MenuTickInput:
             closet: root.app.closet
             stringname: '@tick'
             fun: root.go_to_tick

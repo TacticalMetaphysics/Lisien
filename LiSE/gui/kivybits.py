@@ -13,12 +13,8 @@ from kivy.properties import (
     StringProperty,
     BooleanProperty)
 from kivy.clock import Clock
-from kivy.lang import Builder
 
-import LiSE
 from LiSE.orm import SaveableMetaclass
-
-from os import sep
 
 
 class ClosetLabel(Label):
@@ -28,33 +24,11 @@ class ClosetLabel(Label):
     closet = ObjectProperty()
     symbolic = BooleanProperty(False)
 
-    def __init__(self, **kwargs):
-        super(ClosetLabel, self).__init__(**kwargs)
-        self.finalize()
-
-    def finalize(self, *args):
-        if not (self.stringname and self.closet):
-            Clock.schedule_once(self.finalize, 0)
-            return
-        self.closet.register_text_listener(self.stringname, self.retext)
-        self.retext()
-
-    def retext(self, *args):
-        self.text = self.closet.get_text(self.stringname)
-
-    def on_symbolic(self, *args):
-        if self.symbolic:
-            self.font_name = sep.join(
-                [LiSE.__path__[-1], 'gui', 'assets', 'Entypo.ttf'])
-            self.font_size = 30
-        else:
-            self.font_name = 'DroidSans'
-            self.font_size = 16
-
 
 class ClosetButton(Button, ClosetLabel):
     fun = ObjectProperty(None)
     arg = ObjectProperty(None)
+    pressed = BooleanProperty(False)
 
     def on_release(self, *args):
         if self.fun is None:
@@ -69,22 +43,6 @@ class ClosetToggleButton(ClosetButton, ToggleButtonBehavior):
     pass
 
 
-class LiSEWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
-    """A combination of :class:`~kivy.uix.widget.WidgetMetaclass`
-    and :class:`~LiSE.util.SaveableMetaclass`.
-
-    There is no additional functionality beyond what those metaclasses do."""
-    def __new__(metaclass, clas, parents, attrs):
-        q = WidgetMetaclass.__new__(
-            LiSEWidgetMetaclass, clas, parents, attrs)
-        r = SaveableMetaclass.__new__(
-            LiSEWidgetMetaclass, clas, parents, dict(q.__dict__))
-        if hasattr(r, 'kv') and not hasattr(r, 'kv_loaded'):
-            Builder.load_string(r.kv)
-            r.kv_loaded = True
-        return r
-
-
 class ClosetHintTextInput(TextInput):
     closet = ObjectProperty()
     failure_string = StringProperty()
@@ -97,12 +55,6 @@ class ClosetHintTextInput(TextInput):
     """Time after which to turn the hint_text back"""
     validator = ObjectProperty()
     """Boolean function for whether the input is acceptable"""
-    kv = """
-<ClosetHintTextInput>:
-    hint_text: self.closet.get_text(self.stringname)\
-    if self.closet and self.stringname else ''
-"""
-    __metaclass__ = LiSEWidgetMetaclass
 
     def validate(self):
         """If my text is valid, return True. Otherwise, communicate invalidity
@@ -129,6 +81,14 @@ class ClosetHintTextInput(TextInput):
                 self.hint_text = self.closet.get_text(self.stringname)
             Clock.schedule_once(unfail_text, self.failure_string_timeout)
             return False
+
+
+class SaveableWidgetMetaclass(WidgetMetaclass, SaveableMetaclass):
+    """A combination of :class:`~kivy.uix.widget.WidgetMetaclass`
+    and :class:`~LiSE.util.SaveableMetaclass`.
+
+    There is no additional functionality beyond what those metaclasses do."""
+    pass
 
 
 class TouchlessWidget(Widget):

@@ -1364,7 +1364,6 @@ class Closet(object):
         With kivy=True, I will use the kivybits module to load images.
 
         """
-        self.extraskels = extraskels
         global Place
         global Portal
         global Thing
@@ -1381,7 +1380,7 @@ class Closet(object):
         global Implicator
         import LiSE.model.event
         Implicator = LiSE.model.event.Implicator
-        if kivy:
+        if USE_KIVY:
             global Board
             global Spot
             global Pawn
