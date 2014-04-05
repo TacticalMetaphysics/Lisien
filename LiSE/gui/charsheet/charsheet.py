@@ -112,7 +112,7 @@ class PlaceListView(NounListView):
     """NounListView for Places"""
     @staticmethod
     def getiter(facade, branch=None, tick=None):
-        return facade.iter_places()
+        return facade.iter_places_hosted()
 
 
 class PortalListView(NounListView):

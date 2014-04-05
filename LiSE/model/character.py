@@ -190,7 +190,7 @@ class Character(object):
 
         """
         (branch, tick) = self.sanetime(branch, tick)
-        for placebone in self.iter_place_bones(
+        for placebone in self.iter_place_bones_hosted(
                 None, branch, tick):
             if (
                     "name" not in self.graph.vs.attributes() or
@@ -477,8 +477,8 @@ class Character(object):
         place = Place(self, name)
         return place
 
-    def iter_places(self):
-        for bone in self.closet.skeleton[u"place"].iterbones():
+    def iter_places_hosted(self, name=None, branch=None, tick=None):
+        for bone in self.iter_place_bones_hosted(name, branch, tick):
             try:
                 yield self.get_place(bone.place)
             except (KeyError, ValueError):
@@ -488,7 +488,7 @@ class Character(object):
         return self.closet.get_bone_timely(
             [u"place", self.name, name], branch, tick)
 
-    def iter_place_bones(self, name=None, branch=None, tick=None):
+    def iter_place_bones_hosted(self, name=None, branch=None, tick=None):
         self.closet.query_place()
         try:
             skel = self.closet.skeleton[u"place"][unicode(self)]
