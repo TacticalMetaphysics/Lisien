@@ -22,37 +22,36 @@
     When the stuff in a widget depends on *prior* user input, that
     widget should be constructed in pure Python, not kv.
 ** place things (w. pawns)
-** character shets
-*** Link items to characters and vice versa.
-*** Little nested list demonstrating containment hierarchy.
-    You can move things around in it, resulting in teleportation.
-*** Stat tables
-    Editable, sometimes--press a button to unlock it and labels turn
-    into inputs. Press again and they turn back.
-*** Calendars
-    Click an event once to highlight it. Drag it around to reschedule
-    it--this will result in resizing the events on either end, and
-    possibly switching the orders around.
+** character sheets
+*** Actually present the contents of facades.
+    Called "character sheets" anyway because that's what they LOOK like.
+*** Present said content in a default view that looks like a table.
+    In fact it's a list. Perchance, a ListView.
+*** Handles with which to reorder everything
+*** Button next to each variable that lets you turn it into a calendar and back again.
+    So that you can see what the variable was set to, and what it will
+    be.
 
-    In case of movement it doesn't really make sense to reorder it, so
-    it should refuse to move to where it makes another movement event
-    impossible.
+    Perhaps calendars should be resizeable, or perhaps pop-out-able,
+    or both?
+*** "Hide" button
+    In developer mode this just shunts the var into an item at the
+    bottom that you can click to see what you've hidden, and maybe
+    drag it back out again. In player mode that won't appear.
 
-    When highlit a handle for resizing appears at each end. For
-    tablet's sake I think these should be *outside* the event proper.
+    I guess it should be possible to reveal things at specific times,
+    but it would also be inconvenient for the charsheet to rearrange
+    itself while the developer's looking.
 
-    Doubletap an event to bring up a detail view. Includes all the
-    participants, the causes, event, and effects. You can't reassign
-    those *here* but may click through to the event builder.
-*** Pick a widget to add to the sheet
-    This uses a pop-in menu that covers the middle of the screen but
-    leaves the charsheet area visible.
+    I'll store the arrangement with branches and ticks, but set them
+    both to zero by default, and leave them there until I think of a
+    good way to do it.
+*** Pair of dropdowns to select the observed and the observer
+    Probably not gonna be visible in the player view.
 
-    It's triggered by a button on the right side of the character
-    sheet, additional to the edit buttons there now. [2013-12-27 Fri 06:29]
-*** Move widgets around within the sheet
-    Being able to simply drag them would be great! Perhaps use the
-    edit button as a handle?
+    Each combination gets its own charsheet, which might have to be
+    created when you select it. This specifically includes a
+    character's view on itself.
 ** build events
 *** How to get here?
     You can click through from an event on the calendar, or there's a
