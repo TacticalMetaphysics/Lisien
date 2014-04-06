@@ -38,35 +38,6 @@ class Portal(Container):
                 "character", "name", "key", "branch", "tick"),
             "foreign_keys": {
                 "character, name": (
-                    "portal", "character, name")}}),
-        ("portal_loc_facade", {
-            "columns": {
-                "observer": "text not null",
-                "observed": "text not null",
-                "name": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "origin": "text",
-                "destination": "text"},
-            "primary_key": (
-                "observer", "observed", "name", "branch", "tick"),
-            "foreign_keys": {
-                "observed, name": (
-                    "portal", "character, name")}}),
-        ("portal_stat_facade", {
-            "columns": {
-                "observer": "text not null",
-                "observed": "text not null",
-                "name": "text not null",
-                "key": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "value": "text"},
-            "primary_key": (
-                "observer", "observed", "name",
-                "key", "branch", "tick"),
-            "foreign_keys": {
-                "observed, name": (
                     "portal", "character, name")}})]
 
     @property
