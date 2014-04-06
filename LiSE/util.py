@@ -207,31 +207,3 @@ class Fabulator(object):
                              for (infun, inarg) in m])
         (outer, inner) = match("(.+)\((.+)\)", s).groups()
         return _call_recursively(outer, inner)
-
-
-class HandleHandler(object):
-    def mk_handles(self, *names):
-        for name in names:
-            self.mk_handle(name)
-
-    def mk_handle(self, name):
-        def register_listener(llist, listener):
-            if listener not in llist:
-                llist.append(listener)
-
-        def registrar(llist):
-            return lambda listener: register_listener(llist, listener)
-
-        def unregister_listener(llist, listener):
-            while listener in llist:
-                llist.remove(listener)
-
-        def unregistrar(llist):
-            return lambda listener: unregister_listener(llist, listener)
-
-        llist = []
-        setattr(self, '{}_listeners'.format(name), llist)
-        setattr(self, 'register_{}_listener'.format(name),
-                registrar(llist))
-        setattr(self, 'unregister_{}_listener'.format(name),
-                unregistrar(llist))

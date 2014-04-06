@@ -1260,6 +1260,155 @@ class SaveableMetaclass(type):
         return clas
 
 
+class Timestream(object):
+    """Tracks the genealogy of the various branches of time.
+
+
+    Branches of time each have one parent; branch zero is its own parent."""
+    __metaclass__ = SaveableMetaclass
+    # I think updating the start and end ticks of a branch using
+    # listeners might be a good idea
+    tables = [
+        ("timestream",
+         {"columns":
+          {"branch": "integer not null",
+           "parent": "integer not null"},
+          "primary_key": ("branch", "parent"),
+          "foreign_keys":
+          {"parent": ("timestream", "branch")},
+          "checks":
+          ["parent=0 or parent<>branch"]})
+        ]
+
+    def __init__(self, closet):
+        """Initialize hi_branch and hi_tick to 0, and their listeners to
+        empty.
+
+        """
+        self.closet = closet
+        self._branch = 0
+        self._tick = 0
+        self._hi_branch = 0
+        self._hi_tick = 0
+        self.tick_listeners = []
+
+        def set_branch(v):
+            self._branch = v
+            if self._branch > self._hi_branch:
+                self._hi_branch = self._branch
+            for listener in self.branch_listeners:
+                listener(v)
+
+        def set_tick(v):
+            self._tick = v
+            if self._tick > self._hi_tick:
+                self._hi_tick = self._tick
+            for listener in self.tick_listeners:
+                listener(v)
+
+        self.branch = property(lambda: self._branch, set_branch)
+        self.tick = property(lambda: self._tick, set_tick)
+
+    def register_branch_listener(self, fun):
+        self.branch_listeners.append(fun)
+
+    def unregister_branch_listener(self, fun):
+        self.branch_listeners.remove(fun)
+
+    def register_tick_listener(self, fun):
+        self.tick_listeners.append(fun)
+
+    def unregister_tick_listener(self, fun):
+        self.tick_listeners.remove(fun)
+
+    def min_branch(self, table=None):
+        """Return the lowest known branch.
+
+        With optional argument ``table``, consider only records in
+        that table.
+
+        """
+        lowest = None
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if hasattr(bone, 'branch') and (
+                    lowest is None or bone.branch < lowest):
+                lowest = bone.branch
+        return lowest
+
+    def max_branch(self, table=None):
+        """Return the highest known branch.
+
+        With optional argument ``table``, consider only records in
+        that table.
+
+        """
+        highest = 0
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if hasattr(bone, 'branch') and bone.branch > highest:
+                highest = bone.branch
+        return highest
+
+    def max_tick(self, branch=None, table=None):
+        """Return the highest recorded tick in the given branch, or every
+        branch if none given.
+
+        With optional argument table, consider only records in that table.
+
+        """
+        highest = 0
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if branch is None or (
+                    hasattr(bone, 'branch') and bone.branch == branch):
+                for attrn in ('tick_from', 'tick_to', 'tick'):
+                    if hasattr(bone, attrn):
+                        tick = getattr(bone, attrn)
+                        if tick is not None and tick > highest:
+                            highest = tick
+        return highest
+
+    def min_tick(self, branch=None, table=None):
+        """Return the lowest recorded tick in the given branch, or every
+        branch if none given.
+
+        With optional argument table, consider only records in that table.
+
+        """
+        lowest = None
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if branch is None or (
+                    hasattr(bone, 'branch') and bone.branch == branch):
+                for attrn in ('tick_from', 'tick'):
+                    if hasattr(bone, attrn):
+                        tick = getattr(bone, attrn)
+                        if tick is not None and (
+                                lowest is None or
+                                tick < lowest):
+                            lowest = tick
+        return lowest
+
+    def parent(self, branch):
+        """Return the parent of the branch"""
+        return self.closet.skeleton["timestream"][branch].parent
+
+    def children(self, branch):
+        """Generate all children of the branch"""
+        for bone in self.closet.skeleton["timestream"].iterbones():
+            if bone.parent == branch:
+                yield bone.branch
+
+
 def iter_character_query_bones_named(name):
     """Yield all the bones needed to query the database about all the data
     in a character."""
@@ -1626,10 +1775,6 @@ class Closet(object):
             Character(self, 'Omniscient')
         if 'load_charsheet' in kwargs:
             self.load_charsheet(kwargs['load_charsheet'])
-
-        self.branch_listeners = []
-        self.tick_listeners = []
-        self.time_listeners = []
 
         self.lisepath = __path__[-1]
         self.sep = os.sep
