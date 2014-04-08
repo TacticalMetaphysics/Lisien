@@ -36,13 +36,13 @@ Place = None
 Portal = None
 Thing = None
 DiegeticEventHandler = None
+Logger = None
 from LiSE.util import (
     ListItemIterator,
     unicode2pytype,
     pytype2unicode
 )
 from LiSE import __path__
-from kivy.logger import Logger
 
 
 class BoneMetaclass(type):
@@ -686,25 +686,6 @@ class Skeleton(MutableMapping):
         """Unregister a function previously given to register_listener."""
         self.unregister_set_listener(fun)
         self.unregister_del_listener(fun)
-
-    def _loud_toggle(self):
-        """Toggle overly verbose debugging messages"""
-        def skel_set_printer(skel, child, k, v):
-            """Debugging function to print out assignments to a skeleton"""
-            Logger.debug("%s: %s[%s]=%s", skel.name, child.name, k, v)
-
-        def skel_del_printer(skel, child, k):
-            """Debugging function to print out deletions from some skeleton"""
-            Logger.debug("%s: del %s[%s]", skel.name, child.name, k)
-
-        fru = (skel_set_printer, skel_del_printer)
-
-        if skel_set_printer in self._set_listeners:
-            for fun in fru:
-                self.unregister_listener(fun)
-        else:
-            for fun in fru:
-                self.register_listener(fun)
 
     def __iter__(self):
         """Iterate over my keys--which, if ``self.content`` is not a
@@ -2361,7 +2342,7 @@ class Closet(object):
         database.
 
         """
-        self.c.execute("SELECT host, place, branch, tick FROM place;")
+        self.c.execute("SELECT host, place FROM place;")
         if not update or u"place" not in self.skeleton:
             # empty it out if it exists, create it if it doesn't
             self.skeleton[u"place"] = {}
@@ -2433,16 +2414,9 @@ class Closet(object):
         if Thing and isinstance(bone, Thing.bonetypes[u"thing_loc"]):
             core = self.skeleton[u"thing"][bone.character][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
-        elif Thing and isinstance(bone, Thing.bonetypes[u"thing_loc_facade"]):
-            core = self.skeleton[u"thing"][bone.observed][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
         elif Portal and isinstance(bone, Portal.bonetypes[u"portal_loc"]):
             core = self.skeleton[u"portal"][bone.character][bone.name]
-            for loc in (bone.origin, bone.destination):
-                set_place_maybe(core.host, loc, bone.branch, bone.tick)
-        elif Portal and isinstance(
-                bone, Portal.bonetypes[u"portal_stat_facade"]):
-            core = self.skeleton[u"portal"][bone.observed][bone.name]
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif Place and isinstance(bone, Place.bonetypes[u"place_stat"]):
@@ -2605,6 +2579,20 @@ def defaults(c, kivy=False):
 def mkdb(DB_NAME, lisepath, kivy=False):
     """Initialize a database file and insert default values"""
     global Logger
+    global Place
+    global Portal
+    global Thing
+    global Character
+    global Facade
+    global DiegeticEventHandler
+    import LiSE.rules.event
+    import LiSE.model
+    Place = LiSE.model.Place
+    Portal = LiSE.model.Portal
+    Thing = LiSE.model.Thing
+    Character = LiSE.model.Character
+    Facade = LiSE.model.Facade
+    DiegeticEventHandler = LiSE.rules.event.DiegeticEventHandler
     img_qrystr = (
         "INSERT INTO img (name, path) "
         "VALUES (?, ?);")
@@ -2645,7 +2633,9 @@ def mkdb(DB_NAME, lisepath, kivy=False):
             Logger = kivy.logger.Logger
         else:
             import logging
+            logging.basicConfig()
             Logger = logging.getLogger()
+            Logger.setLevel(0)
     if kivy:
         # I just need these modules to fill in the relevant bits of
         # SaveableMetaclass, which they do when imported. They don't
