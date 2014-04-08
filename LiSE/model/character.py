@@ -103,11 +103,11 @@ class Character(object):
             "primary_key": (
                 "character", "key", "branch", "tick")})]
     postlude = [
-        "CREATE VIEW character AS ("
-        "SELECT character FROM character_stat) UNION ("
-        "SELECT character FROM thing) UNION ("
-        "SELECT character FROM place_stat) UNION ("
-        "SELECT character FROM portal);"]
+        "CREATE VIEW character AS "
+        "SELECT character FROM character_stat UNION "
+        "SELECT character FROM thing UNION "
+        "SELECT character FROM place_stat UNION "
+        "SELECT character FROM portal;"]
 
     def __init__(self, closet, name, facade_cls=None):
         """Initialize a character from the data in the closet.
