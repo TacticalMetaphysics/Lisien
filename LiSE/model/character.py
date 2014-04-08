@@ -109,9 +109,7 @@ class Character(object):
         "SELECT character FROM place_stat) UNION ("
         "SELECT character FROM portal);"]
 
-    def __init__(self, closet, name,
-                 omitter_getter=lambda observer: [lambda: False],
-                 liar_getter=lambda observer: [lambda x: x]):
+    def __init__(self, closet, name, facade_cls=Facade):
         """Initialize a character from the data in the closet.
 
         A character is a collection of items in the game world that
@@ -158,8 +156,7 @@ class Character(object):
         """
         self.closet = closet
         self.name = name
-        self.get_omitters = omitter_getter
-        self.get_liars = liar_getter
+        self.facade_cls = facade_cls
         if unicode(self) not in self.closet.skeleton[u"thing"]:
             self.closet.skeleton[u"thing"][unicode(self)] = {}
         if unicode(self) not in self.closet.skeleton[u"portal"]:
@@ -184,6 +181,19 @@ class Character(object):
 
     def __unicode__(self):
         return unicode(self.name)
+
+    def iter_triggers(self):
+        """Iterate over functions that take as arguments this object
+        and the present branch and tick.
+
+        When one of these functions returns a dictionary with data in,
+        said dictionary will be passed to an event constructor, thus
+        triggering the event.  Just which event class gets used for
+        this is defined in :class:`event.DiegeticEventHandler`.
+
+        """
+        raise NotImplementedError(
+            "iter_triggers should be implemented in a subclass")
 
     def update(self, branch=None, tick=None):
         """Update my graph.
@@ -237,12 +247,12 @@ class Character(object):
     def get_facade(self, observer):
         if observer is None:
             raise ValueError("Every facade must have an observer.")
+        if not isinstance(observer, Character):
+            raise TypeError("Only Characters observe Characters.")
         if unicode(observer) not in self.facade_d:
-            self.facade_d[unicode(observer)] = Facade(
+            self.facade_d[unicode(observer)] = self.facade_cls(
                 observer=observer,
-                observed=self,
-                omitters=self.get_omitters(observer),
-                liars=self.get_liars(observer))
+                observed=self)
         return self.facade_d[unicode(observer)]
 
     def sanetime(self, branch=None, tick=None):
