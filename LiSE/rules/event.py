@@ -38,13 +38,13 @@ class DiegeticEventHandler(object):
     """
     __metaclass__ = SaveableMetaclass
     demands = ["character"]
-    tables = (
+    tables = [(
         "ticks_evented", {
             "columns": {
                 "branch": "integer not null",
                 "tick": "integer not null"},
             "primary_key": ("branch", "tick"),
-            "checks": ["branch>=0", "tick>=0"]})
+            "checks": ["branch>=0", "tick>=0"]})]
 
     def __init__(self, closet, cause_event_d):
         """Set local variables, most of which are taken from ``closet``.
