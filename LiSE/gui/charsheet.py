@@ -237,6 +237,7 @@ class NameAndValue(BoxLayout):
     referent_name = StringProperty()
     """The name to use as a key for looking up the referent."""
     referent_type = OptionProperty(
+        'character',
         options=['thing', 'place', 'portal', 'character'])
     """What sort of item the referent is. This determines how to look up
     the value of the variable.
