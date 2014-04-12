@@ -35,8 +35,7 @@ Character = None
 Place = None
 Portal = None
 Thing = None
-Timestream = None
-Implicator = None
+DiegeticEventHandler = None
 from LiSE.util import (
     ListItemIterator,
     TimestreamException,
@@ -968,7 +967,52 @@ class Skeleton(MutableMapping):
                 for bone in self.content[i].iterbones():
                     yield bone
 
+    def iter_bones_bounded(self, branch_from=None, branch_to=None,
+                           tick_from=None, tick_to=None):
+        """Iterate over the bones within me that fall between the given
+        bounds, inclusive.
+
+        First, if branch_from or branch_to is given, iterate over the
+        bones in the branches; then, of those bones, yield the ones
+        that fall between tick_from and tick_to, if those are given.
+
+        tick_from is handled in the manner of value_during: if no bone
+        has that exact tick, the one with the latest tick before
+        tick_from will be the first bone yielded.
+
+        """
+        def tick_iter(it):
+            prev_bone = next(it)
+            if tick_from is None:
+                yield prev_bone
+            for bone in it:
+                if tick_to is not None and bone.tick > tick_to:
+                    return
+                cur_bone = next(it)
+                if tick_from is None:
+                    yield cur_bone
+                else:
+                    if cur_bone.tick == tick_from:
+                        yield cur_bone
+                    elif cur_bone.tick > tick_from:
+                        if prev_bone.tick < tick_from:
+                            yield prev_bone
+                        yield cur_bone
+                prev_bone = cur_bone
+
+        def branch_iter(it):
+            for bone in it:
+                if branch_from is not None and branch_from > bone.branch:
+                    continue
+                if branch_to is not None and branch_to < bone.branch:
+                    return
+                yield bone
+
+        for bone in tick_iter(branch_iter(self.iterbones())):
+            yield bone
+
     def get_timely(self, keys, branch, tick):
+
         """Recursively look up each of the ``keys`` in myself, and then the
         branch and tick.
 
@@ -1518,17 +1562,14 @@ class Closet(object):
         global Thing
         global Character
         global Facade
-        global Timestream
         import LiSE.model
         Place = LiSE.model.Place
         Portal = LiSE.model.Portal
         Thing = LiSE.model.Thing
         Character = LiSE.model.Character
         Facade = LiSE.model.Facade
-        Timestream = LiSE.model.Timestream
-        global Implicator
-        import LiSE.model.event
-        Implicator = LiSE.model.event.Implicator
+        global DiegeticEventHandler
+        from LiSE.rules.event import DiegeticEventHandler
         if USE_KIVY:
             global Board
             global Spot
