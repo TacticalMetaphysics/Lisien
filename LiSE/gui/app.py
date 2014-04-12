@@ -39,7 +39,6 @@ from LiSE.gui.kivybits import (
     ClosetLabel,
     SaveableWidgetMetaclass
 )
-from LiSE.gui.charsheet import CharSheetAdder
 
 from LiSE.util import TimestreamException
 from LiSE.model import Thing
