@@ -198,7 +198,9 @@ class Character(object):
                     "name" not in self.graph.vs.attributes() or
                     placename not in self.graph.vs["name"]):
                 self.make_place(placename)
-        for bone in self.iter_hosted_portal_loc_bones(branch, tick):
+        for bone in self.iter_portal_loc_bones(
+                branch_from=branch, branch_to=branch,
+                tick_from=tick, tick_to=tick):
             for placen in (bone.origin, bone.destination):
                 if (
                         "name" not in self.graph.vs.attributes() or
@@ -458,7 +460,7 @@ class Character(object):
         try:
             v = self.graph.vs.find(name=name)
             return v["place"]
-        except ValueError:
+        except (KeyError, ValueError):
             return self.make_place(name)
 
     def make_place(self, name):
@@ -639,32 +641,6 @@ class Character(object):
         port = Portal(self, name)
         return port
 
-    def iter_portal_loc_bones(self, name=None, branch=None, tick=None):
-        try:
-            skel = self.closet.skeleton[u"portal_loc"][unicode(self)]
-        except KeyError:
-            return
-
-        for nameskel in selectif(skel, name):
-            for branchskel in selectif(nameskel, branch):
-                if tick is None:
-                    for bone in branchskel.iterbones():
-                        yield bone
-                else:
-                    yield branchskel.value_during(tick)
-
-    def iter_hosted_portal_loc_bones(self, branch=None, tick=None):
-        for portalbone in self.closet.skeleton[u"portal"].iterbones():
-            if portalbone.host == self.name:
-                skel = self.closet.skeleton[u"portal_loc"][
-                    portalbone.character][portalbone.name]
-                for branchskel in selectif(skel, branch):
-                    if tick is None:
-                        for bone in branchskel.iterbones():
-                            yield bone
-                    else:
-                        yield branchskel.value_during(tick)
-
     def get_portal_bone(self, name):
         return self.closet.skeleton[u"portal"][unicode(self)][name]
 
@@ -679,30 +655,39 @@ class Character(object):
         return self.closet.skeleton[u"portal_loc"][unicode(self)][
             name][branch].value_during(tick)
 
-    def iter_portal_bones(self):
-        skel = self.closet.skeleton[u"portal"][unicode(self)]
-        for bone in skel.iterbones():
+    def iter_portal_loc_bones(
+            self, branch_from=None, branch_to=None,
+            tick_from=None, tick_to=None):
+        try:
+            skel = self.closet.skeleton[u"portal_loc"][unicode(self)]
+        except KeyError:
+            return
+        for bone in skel.iter_bones_bounded(
+                branch_from, branch_to, tick_from, tick_to):
             yield bone
 
-    def iter_portals(self, branch=None, tick=None):
-        accounted = set()
+    def portal_names(self, branch_from=None, branch_to=None,
+                     tick_from=None, tick_to=None):
+        r = set()
         for bone in self.iter_portal_loc_bones(
-                name=None, branch=branch, tick=tick):
-            if bone.name not in accounted:
-                yield self.get_portal(bone.name)
-                accounted.add(bone.name)
+                branch_from, branch_to, tick_from, tick_to):
+            r.add(bone.name)
+        return r
 
     ### Stat
 
-    def iter_stat_bones(self, keys=[], branches=[], ticks=[]):
+    def iter_stat_bones(self, keys=[], branch_from=None,
+                        branch_to=None, tick_from=None,
+                        tick_to=None):
         skel = self.closet.skeleton[u"character_stat"]
         if unicode(self) not in skel:
             return
         key_skel = skel[unicode(self)]
         for branch_skel in skel_filter_iter(key_skel, keys):
-            for tick_skel in skel_filter_iter(branch_skel, branches):
-                for bone in skel_filter_iter(tick_skel, ticks):
-                    yield bone
+            for bone in branch_skel.iter_bones_bounded(
+                    branch_from=branch_from, branch_to=branch_to,
+                    tick_from=tick_from, tick_to=tick_to):
+                yield bone
 
     def iter_stat_keys(self, branches=[], ticks=[]):
         skel = self.closet.skeleton[u"character_stat"]
@@ -1015,8 +1000,10 @@ class Facade(Character):
                 r[bone.tick] = bone
         return r
 
-    def iter_place_bones(self, name=None, branch=None, tick=None):
-        for bone in self.observed.iter_place_bones(name, branch, tick):
+    def iter_place_bones(self, place=None, branch_from=None, branch_to=None,
+                         tick_from=None, tick_to=None):
+        for bone in self.observed.iter_place_bones(
+                place, branch_from, branch_to, tick_from, tick_to):
             try:
                 yield self.deceive(bone)
             except KnowledgeException:
@@ -1057,9 +1044,11 @@ class Facade(Character):
         return self.distort(bone)
 
     # override
-    def iter_portal_loc_bones(self, name=None, branch=None, tick=None):
+    def iter_portal_loc_bones(
+            self, branch_from=None, branch_to=None, tick_from=None,
+            tick_to=None):
         for bone in super(Facade, self).iter_portal_loc_bones(
-                name, branch, tick):
+                branch_from, branch_to, tick_from, tick_to):
             try:
                 yield self.distort(bone)
             except KnowledgeException:
@@ -1089,8 +1078,10 @@ class Facade(Character):
         return self.distort(bone)
 
     # override
-    def iter_stat_bones(self, name=None, branch=None, tick=None):
-        for bone in super(Facade, self).iter_stat_bones(name, branch, tick):
+    def iter_stat_bones(self, keys=[], branch_from=None, branch_to=None,
+                        tick_from=None, tick_to=None):
+        for bone in super(Facade, self).iter_stat_bones(
+                keys, branch_from, branch_to, tick_from, tick_to):
             try:
                 yield self.distort(bone)
             except KnowledgeException:

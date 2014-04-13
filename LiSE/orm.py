@@ -2153,27 +2153,36 @@ class Closet(object):
             return name
         return self.get_characters([str(name)])[str(name)]
 
-    def get_effects(self, names):
-        """Return the named effects in a dict"""
-        r = {}
-        for name in names:
-            r[name] = Implicator.make_effect(name)
-        return r
+    def get_facade(self, observer, observed):
+        return self.get_character(observer).get_facade(
+            self.get_character(observed))
 
-    def get_effect(self, name):
-        """Return the named effect in a dict"""
-        return self.get_effects([name])[name]
-
-    def get_causes(self, names):
-        """Return the named causes in a dict"""
-        r = {}
-        for name in names:
-            r[name] = Implicator.make_cause(name)
-        return r
-
-    def get_cause(self, cause):
-        """Return the named cause in a dict"""
-        return self.get_causes([cause])[cause]
+    def character_names(self, branch_from=None, branch_to=None,
+                        tick_from=None, tick_to=None):
+        r = set()
+        if (
+                branch_from is None and
+                branch_to is None and
+                tick_from is None and
+                tick_to is None):
+            for charn in self.skeleton[u"character_stat"].iterkeys():
+                r.add(charn)
+            for charn in self.skeleton[u"thing"].iterkeys():
+                r.add(charn)
+            for charn in self.skeleton[u"place_stat"].iterkeys():
+                r.add(charn)
+            for charn in self.skeleton[u"portal"].iterkeys():
+                r.add(charn)
+            return r
+        else:
+            for skel in ("thing_loc", "thing_stat", "place_stat",
+                         "portal_loc", "portal_stat",
+                         "character_stat"):
+                for bone in self.skeleton[skel].iter_bones_bounded(
+                        branch_from=branch_from, branch_to=branch_to,
+                        tick_from=tick_from, tick_to=tick_to):
+                    r.add(bone.characterr)
+            return r
 
     def load_board(self, observer, observed, host):
         """Load and return a graphical board widget displaying the contents of

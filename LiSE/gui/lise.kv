@@ -118,10 +118,11 @@
         pos_hint: {'x': 0.1, 'top': 1}
         size_hint: (None, None)
         size: (400, 26)
-    CharSheet:
+    CharSheetView:
         id: charsheet
-        character: root.app.closet.get_character(root.app.observed_name)
-        observer: root.app.closet.get_character(root.app.observer_name)
+        closet: root.app.closet
+        observed: root.app.observed_name
+        observer: root.app.observer_name
         pos_hint: {'x': 0.7, 'y': 0.0}
         size_hint: (0.3, 1.0)
     BoxLayout:

@@ -8,6 +8,7 @@ from kivy.clock import Clock
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.dropdown import DropDown
 from kivy.uix.widget import Widget
 from kivy.properties import (
     BooleanProperty,
@@ -23,9 +24,11 @@ from kivy.graphics import (
     Color,
     Line,
     Triangle)
+from kivy.logger import Logger
 
 from LiSE.gui.kivybits import (
     ClosetLabel,
+    ClosetButton,
     SaveableWidgetMetaclass)
 
 
@@ -430,6 +433,10 @@ class CharSheet(StackLayout):
     showing the values for the key in the past and future.
 
     """
+    # TODO: Make another thing like this that's fully
+    # customizable--something that may contain CharSheets or
+    # information from multiple CharSheets, sorted how you like,
+    # filtered how you like, labeled how you like.
     __metaclass__ = SaveableWidgetMetaclass
     tables = [
         ("charsheet_timelines",
@@ -467,14 +474,23 @@ class CharSheet(StackLayout):
         if not self.facade:
             Clock.schedule_once(self.finalize, 0)
             return
+        for tab in (u"portal_loc", u"portal_stat", u"place_stat",
+                    u"thing_loc", u"thing_stat"):
+            skel = self.facade.closet.skeleton[tab]
+            if unicode(self.facade.observed) not in skel:
+                skel[unicode(self.facade.observed)] = {}
+            skel[unicode(self.facade.observed)].register_listener(
+                self._trigger_refresh)
         self._trigger_refresh()
 
     def refresh(self, *args):
         old_data = [list(self._thing_data),
                     list(self._place_data),
                     list(self._portal_data)]
+        Logger.debug("CharSheet: refreshing...")
         self._redata()
         if [self._thing_data, self._place_data, self._portal_data] != old_data:
+            Logger.debug("CharSheet: new data!")
             self.clear_widgets()
             _ = lambda x: x
             if len(self._character_data) > 0:
@@ -570,7 +586,9 @@ class CharSheet(StackLayout):
 
         self._place_data = [
             mk_place_data(place)
-            for place in self.facade.iter_places(branch, tick)]
+            for place in self.facade.places_hosted(
+                branch_from=branch, branch_to=branch,
+                tick_from=tick, tick_to=tick)]
 
         def iter_portal_stat_bones(portal):
             for stat_bone in self.facade.iter_portal_stat_bones(
@@ -592,7 +610,9 @@ class CharSheet(StackLayout):
 
         self._portal_data = [
             mk_portal_data(portal) for portal in
-            self.facade.iter_portals(branch, tick)]
+            self.facade.portal_names(
+                branch_from=branch, branch_to=branch,
+                tick_from=tick, tick_to=tick)]
 
     def _mk_cs_item(self, item_type, item_name, key, value):
         assert(item_type in (
@@ -606,3 +626,70 @@ class CharSheet(StackLayout):
             is_timeline=is_timeline,
             stat_name=key,
             stat_value=value)
+
+
+class CharSheetView(StackLayout):
+    closet = ObjectProperty()
+    character_names = ListProperty()
+    observer = StringProperty('Omniscient')
+    observed = StringProperty('Player')
+
+    def __init__(self, **kwargs):
+        self._trigger_refresh = Clock.create_trigger(self.refresh)
+        super(CharSheetView, self).__init__(**kwargs)
+        self.finalize()
+
+    def finalize(self, *args):
+        if not self.closet:
+            Clock.schedule_once(self.finalize, 0)
+            return
+        self.observer_selector = DropDown()
+        self.observer_selector_button = ClosetButton(
+            closet=self.closet, stringname=self.observer,
+            size_hint_y=None, height=30)
+        self.bind(observer=self.observer_selector_button.setter('stringname'))
+        self.observer_selector_button.bind(
+            on_release=self.observer_selector.open)
+        self.add_widget(self.observer_selector_button)
+        self.observed_selector = DropDown()
+        self.observed_selector_button = ClosetButton(
+            closet=self.closet, stringname=self.observed,
+            size_hint_y=None, height=30)
+        self.bind(observed=self.observed_selector_button.setter('stringname'))
+        self.observed_selector_button.bind(
+            on_release=self.observed_selector.open)
+        self.add_widget(self.observed_selector_button)
+        self.scroll_view = ScrollView()
+        self.charsheet = CharSheet(
+            facade=self.closet.get_facade(self.observer, self.observed))
+        self.scroll_view.add_widget(self.charsheet)
+
+        def upd_facade(*args):
+            self.charsheet.facade = self.closet.get_facade(
+                self.observer, self.observed)
+        self.bind(observer=upd_facade, observed=upd_facade)
+        self._trigger_refresh()
+
+    def refresh(self, *args):
+        character_names = sorted(self.closet.character_names(
+            branch_from=self.closet.branch,
+            branch_to=self.closet.branch,
+            tick_from=self.closet.tick,
+            tick_to=self.closet.tick))
+        if character_names == self.character_names:
+            return
+        self.character_names = character_names
+        self.ids.observer_selector.clear_widgets()
+        self.ids.observed_selector.clear_widgets()
+
+        def charsel(menu, charn):
+            def select_char(*args):
+                menu.select(charn)
+
+        for name in self.character_names:
+            for menu in (self.ids.observer_selector,
+                         self.ids.observed_selector):
+                menu.add_widget(ClosetButton(
+                    closet=self.closet,
+                    stringname=name,
+                    on_release=charsel(menu, name)))
