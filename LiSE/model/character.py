@@ -190,15 +190,19 @@ class Character(object):
 
         """
         (branch, tick) = self.sanetime(branch, tick)
-        for placebone in self.iter_place_bones(
-                None, branch, tick):
+        places = self.places_hosted(
+            branch_from=branch, branch_to=branch,
+            tick_from=tick, tick_to=tick)
+        for placename in places:
             if (
                     "name" not in self.graph.vs.attributes() or
-                    placebone.place not in self.graph.vs["name"]):
-                self.make_place(placebone.place)
+                    placename not in self.graph.vs["name"]):
+                self.make_place(placename)
         for bone in self.iter_hosted_portal_loc_bones(branch, tick):
             for placen in (bone.origin, bone.destination):
-                if placen not in self.graph.vs["name"]:
+                if (
+                        "name" not in self.graph.vs.attributes() or
+                        placen not in self.graph.vs["name"]):
                     self.make_place(placen)
             char = self.closet.get_character(bone.character)
             try:
@@ -223,9 +227,7 @@ class Character(object):
                     origv.index, destv.index,
                     name=bone.name, portals={bone.character: port})
         for v in self.graph.vs:
-            try:
-                self.get_place_bone(v["name"], branch, tick)
-            except (KeyError, KnowledgeException):
+            if v["name"] not in places:
                 self.graph.delete_vertices(v)
         for e in self.graph.es:
             try:
@@ -453,8 +455,11 @@ class Character(object):
     ### Place
 
     def get_place(self, name):
-        v = self.graph.vs.find(name=name)
-        return v["place"]
+        try:
+            v = self.graph.vs.find(name=name)
+            return v["place"]
+        except ValueError:
+            return self.make_place(name)
 
     def make_place(self, name):
         place = Place(self, name)

@@ -1336,6 +1336,7 @@ class Timestream(object):
         self._hi_tick = 0
         self.branch_listeners = []
         self.tick_listeners = []
+        self.time_listeners = []
 
     def _get_branch(self):
         return self._branch
@@ -1345,6 +1346,8 @@ class Timestream(object):
         self.upd_hi_branch(v)
         for listener in self.branch_listeners:
             listener(v)
+        for listener in self.time_listeners:
+            listener(*self.time)
 
     branch = property(_get_branch, _set_branch)
 
@@ -1356,6 +1359,8 @@ class Timestream(object):
         self.upd_hi_tick(v)
         for listener in self.tick_listeners:
             listener(v)
+        for listener in self.time_listeners:
+            listener(*self.time)
 
     tick = property(_get_tick, _set_tick)
 
@@ -1382,16 +1387,22 @@ class Timestream(object):
         self.upd_hi_tick(tick)
 
     def register_branch_listener(self, fun):
-        self.branch_listeners.append(fun)
+        if fun not in self.branch_listeners:
+            self.branch_listeners.append(fun)
 
     def unregister_branch_listener(self, fun):
         self.branch_listeners.remove(fun)
 
     def register_tick_listener(self, fun):
-        self.tick_listeners.append(fun)
+        if fun not in self.tick_listeners:
+            self.tick_listeners.append(fun)
 
     def unregister_tick_listener(self, fun):
         self.tick_listeners.remove(fun)
+
+    def register_time_listener(self, fun):
+        if fun not in self.time_listeners:
+            self.time_listeners.append(fun)
 
     def min_branch(self, table=None):
         """Return the lowest known branch.
@@ -1512,10 +1523,6 @@ class Closet(object):
     the ``Skeleton`` at the current branch and tick, given by the
     ``Closet``'s ``time`` property. For convenience, you can use the method
     ``timely_property`` to construct this kind of ``property``.
-
-    ``Closet`` also functions as an event handler. Use
-    ``register_time_listener`` for functions that need to be called
-    whenever the sim-time changes.
 
     """
     __metaclass__ = SaveableMetaclass
