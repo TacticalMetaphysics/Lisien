@@ -35,24 +35,41 @@ class TimelineCell(ClosetLabel):
 
     """
     timeline = ObjectProperty()
+    """Timeline that I am a part of"""
     stringname = StringProperty()
+    """Name of string to show"""
     orientation = OptionProperty(
-        'vertical', options=['horizontal', 'vertical'])
+        'horizontal', options=['horizontal', 'vertical'])
+    """Whether I extend downward ('vertical') or to the right ('horizontal')"""
     bg_r = BoundedNumericProperty(0., min=0., max=1.)
+    """Redness"""
     bg_g = BoundedNumericProperty(0., min=0., max=1.)
+    """Greenness"""
     bg_b = BoundedNumericProperty(0., min=0., max=1.)
+    """Blueness"""
     bg_a = BoundedNumericProperty(1., min=0., max=1.)
+    """Opacity"""
     bg_color = ReferenceListProperty(bg_r, bg_g, bg_b, bg_a)
+    """Background color"""
     tick_from = NumericProperty()
+    """Tick I begin at"""
     tick_to = NumericProperty()
+    """Tick I end at"""
 
 
 class TimelineCursor(Widget):
     """Line representing the present moment."""
     timeline = ObjectProperty()
+    """Timeline I'm on top of"""
     color = ListProperty()
+    """What color I am"""
     orientation = OptionProperty(
         'vertical', options=['horizontal', 'vertical'])
+    """Whether I extend downward ('vertical') or to the right ('horizontal')
+
+    Should be the opposite of the TimelineCells in the Timeline.
+
+    """
 
     def __init__(self, **kwargs):
         """Prepare instructions in a list before adding them to the canvas.
@@ -115,12 +132,14 @@ class TimelineCursor(Widget):
 class Timeline(StackLayout):
     """Blocks of time proceeding either left to right or top to bottom."""
     charsheet_item = ObjectProperty()
+    """The CharSheetItem that made me"""
     branch = NumericProperty(None, allownone=True)
     data_iter = ObjectProperty()
     ticks_wide = BoundedNumericProperty(75, min=2)
     cursor_tick = NumericProperty()
 
     def __init__(self, **kwargs):
+        """Make a trigger and finalize"""
         self._trigger_refresh = Clock.create_trigger(self.refresh)
         super(Timeline, self).__init__(**kwargs)
         self.finalize()
@@ -154,18 +173,26 @@ class Timeline(StackLayout):
 class TimelineView(ScrollView):
     """ScrollView with a Timeline and its cursor."""
     charsheet_item = ObjectProperty()
+    """CharSheetItem that made me"""
     data_iter = ObjectProperty()
+    """Iterator over what I'm to show"""
     orientation = OptionProperty(
         'lr-tb',
         options=['lr-tb', 'tb-lr', 'rl-tb', 'tb-rl',
                  'lr-bt', 'bt-lr', 'rl-bt', 'bt-rl'])
+    """I contain a StackLayout, and it will be laid out thus"""
     branch = NumericProperty(None, allownone=True)
+    """Branch to show, or, if None, the current branch."""
     curs_r = BoundedNumericProperty(1., min=0., max=1.)
+    """Cursor's redness"""
     curs_g = BoundedNumericProperty(0., min=0., max=1.)
+    """Cursor's greenness"""
     curs_b = BoundedNumericProperty(0., min=0., max=1.)
+    """Cursor's blueness"""
     curs_a = BoundedNumericProperty(1., min=0., max=1.)
+    """Cursor's opacity"""
     cursor_color = ReferenceListProperty(curs_r, curs_g, curs_b, curs_a)
-    cursor_tick = NumericProperty()
+    """Color of the cursor that indicates the present tick"""
 
 
 class NameAndValue(BoxLayout):
@@ -179,8 +206,8 @@ class NameAndValue(BoxLayout):
     - a Stat (possibly that of a Thing, or a Portal, or the Character itself)
 
     """
-    charsheet = ObjectProperty()
-    """The CharSheet I'm in"""
+    charsheet_item = ObjectProperty()
+    """The CharSheet item that made me"""
     referent_name = StringProperty()
     """The name to use as a key for looking up the referent."""
     referent_type = OptionProperty(
@@ -209,13 +236,15 @@ class NameAndValue(BoxLayout):
 
     def get_value(self, branch=None, tick=None):
         """Get the value in a Unicode string."""
+        facade = self.charsheet_item.charsheet.facade
+
         def _get_thing_loc(branch=None, tick=None):
             if self.referent_type != 'thing':
                 raise TypeError("I am not for thing")
             if self.variable_name != 'location':
                 raise TypeError("I am not for location")
             self.sanity_check()
-            return unicode(self.charsheet.facade.get_thing_location(
+            return unicode(facade.get_thing_location(
                 self.referent_name, branch, tick))
 
         def _get_portal_bone(branch=None, tick=None):
@@ -224,7 +253,7 @@ class NameAndValue(BoxLayout):
             if self.variable_name not in ("origin", "destination"):
                 raise TypeError("Portal doesn't have that variable_name")
             self.sanity_check()
-            return self.charsheet.facade.get_portal_loc_bone(
+            return facade.get_portal_loc_bone(
                 self.referent_name, branch, tick)
 
         def _get_portal_orig(branch=None, tick=None):
@@ -237,28 +266,28 @@ class NameAndValue(BoxLayout):
             if self.referent_type != 'thing':
                 raise TypeError("I am not for thing")
             self.sanity_check()
-            return unicode(self.charsheet.facade.get_thing_stat(
+            return unicode(facade.get_thing_stat(
                 self.referent_name, branch, tick))
 
         def _get_place_stat(branch=None, tick=None):
             if self.referent_type != 'place':
                 raise TypeError("I am not for place")
             self.sanity_check()
-            return unicode(self.charsheet.facade.get_place_stat(
+            return unicode(facade.get_place_stat(
                 self.referent_name, branch, tick))
 
         def _get_portal_stat(branch=None, tick=None):
             if self.referent_type != 'portal':
                 raise TypeError("I am not for portal")
             self.sanity_check()
-            return unicode(self.charsheet.facade.get_portal_stat(
+            return unicode(facade.get_portal_stat(
                 self.referent_name, branch, tick))
 
         def _get_character_stat(branch=None, tick=None):
             if self.referent_type != 'character':
                 raise TypeError("I am not for character")
             self.sanity_check()
-            return unicode(self.charsheet.facade.get_character_stat(
+            return unicode(facade.get_character_stat(
                 self.referent_name, branch, tick))
 
         if self.referent_type == 'thing':
@@ -309,7 +338,7 @@ class CharSheetItem(BoxLayout):
         if self.is_timeline:
             self.add_widget(self._mk_timeline())
         else:
-            self.add_name_and_value()
+            self.add_widget(self._mk_name_and_value())
         self.add_toggle()
 
     def _thing_loc_data_iter(self, branch, min_tick, max_tick):
@@ -401,6 +430,20 @@ class CharSheet(StackLayout):
     showing the values for the key in the past and future.
 
     """
+    __metaclass__ = SaveableWidgetMetaclass
+    tables = [
+        ("charsheet_timelines",
+         {"columns":
+          {"observer": "text not null",
+           "observed": "text not null",
+           "item_type": "text not null",
+           "item_name": "text not null",
+           "is_timeline": "boolean not null default 0"},
+          "primary_key": ("observer", "observed", "item_type", "item_name"),
+          "checks": [
+              "item_type IN ('thing_loc', 'thing_stat', 'place_stat', "
+              "'portal_orig', 'portal_dest', 'portal_stat', "
+              "'character_stat')"]})]
     facade = ObjectProperty()
     _character_data = ListProperty()
     _thing_data = ListProperty()

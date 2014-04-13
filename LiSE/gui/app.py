@@ -265,7 +265,7 @@ class MenuBranchInput(MenuTextInput):
         self.closet.register_branch_listener(reh)
 
     def hint_getter(self):
-        return str(self.closet.branch)
+        return self.closet.get_text('@branch')
 
     def value_setter(self, v):
         w = int(v)
@@ -279,7 +279,7 @@ class MenuTickInput(MenuTextInput):
         self.closet.register_tick_listener(reh)
 
     def hint_getter(self):
-        return str(self.closet.tick)
+        return self.closet.get_text('@tick')
 
     def value_setter(self, v):
         w = int(v)
@@ -868,7 +868,7 @@ class LiSEApp(App):
             load_gfx=True,
             load_characters=[self.observer_name, self.observed_name,
                              self.host_name],
-            load_charsheet=self.observed_name,
+            load_charsheet=(self.observer_name, self.observed_name),
             load_board=[self.observer_name, self.observed_name,
                         self.host_name])
         l = LiSELayout(app=self)

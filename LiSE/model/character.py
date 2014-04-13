@@ -103,11 +103,11 @@ class Character(object):
             "primary_key": (
                 "character", "key", "branch", "tick")})]
     postlude = [
-        "CREATE VIEW character AS ("
-        "SELECT character FROM character_stat) UNION ("
-        "SELECT character FROM thing) UNION ("
-        "SELECT character FROM place_stat) UNION ("
-        "SELECT character FROM portal);"]
+        "CREATE VIEW character AS "
+        "SELECT character FROM character_stat UNION "
+        "SELECT character FROM thing UNION "
+        "SELECT character FROM place_stat UNION "
+        "SELECT character FROM portal;"]
 
     def __init__(self, closet, name,
                  omitter_getter=lambda observer: [lambda bone: False],
@@ -190,7 +190,7 @@ class Character(object):
 
         """
         (branch, tick) = self.sanetime(branch, tick)
-        for placebone in self.iter_place_bones_hosted(
+        for placebone in self.iter_place_bones(
                 None, branch, tick):
             if (
                     "name" not in self.graph.vs.attributes() or
@@ -291,34 +291,15 @@ class Character(object):
             return r[branch]
         return r
 
-    def iter_thing_stat_bones(self, name, stats=[], branches=[], ticks=[]):
-        try:
-            skel = self.closet.skeleton[u"thing_stat"][unicode(self)][name]
-        except KeyError:
-            return
-        if stats:
-            outermost = iter(stats)
-        else:
-            outermost = skel.iterkeys()
-        for stat in outermost:
-            if branches:
-                def outer(sk):
-                    for branch in branches:
-                        yield sk[branch]
-            else:
-                def outer(sk):
-                    for branch in sk:
-                        yield sk[branch]
-            if ticks:
-                def inner(sk):
-                    for tick in ticks:
-                        yield sk.value_during(tick)
-            else:
-                def inner(sk):
-                    for tick in sk:
-                        yield sk.value_during(tick)
-            for bone in inner(outer(skel[stat])):
-                yield bone
+    def iter_thing_stat_bones(self, thing, stat=None,
+                              branch_from=None, branch_to=None,
+                              tick_from=None, tick_to=None):
+        skel = self.closet.skeleton[u"thing_stat"][unicode(self)][thing]
+        if stat:
+            skel = skel[stat]
+        for bone in skel.iter_bones_bounded(branch_from, branch_to,
+                                            tick_from, tick_to):
+            yield bone
 
     def get_thing_stat_bone(self, thing, stat, branch=None, tick=None):
         (branch, tick) = self.sanetime(branch, tick)
@@ -382,11 +363,13 @@ class Character(object):
             assert(r is not None)
             yield r
 
-    def iter_thing_loc_bones(self, thing=None, branch=None):
+    def iter_thing_loc_bones(self, thing=None, branch=None,
+                             min_tick=None, max_tick=None):
         skel = self.closet.skeleton[u"thing_loc"][unicode(self)]
         for thing_skel in selectif(skel, unicode(thing)):
             for branch_skel in selectif(thing_skel, branch):
-                for bone in branch_skel.iterbones():
+                for bone in branch_skel.iter_bones_bounded(
+                        tick_from=min_tick, tick_to=max_tick):
                     yield bone
 
     def get_thing_locations(self, name, branch=None):
@@ -477,32 +460,85 @@ class Character(object):
         place = Place(self, name)
         return place
 
-    def iter_places_hosted(self, name=None, branch=None, tick=None):
-        for bone in self.iter_place_bones_hosted(name, branch, tick):
-            try:
-                yield self.get_place(bone.place)
-            except (KeyError, ValueError):
-                return
-
-    def get_place_bone(self, name, branch=None, tick=None):
-        return self.closet.get_bone_timely(
-            [u"place", self.name, name], branch, tick)
-
-    def iter_place_bones_hosted(self, name=None, branch=None, tick=None):
-        self.closet.query_place()
+    def iter_place_stat_bones(self, place=None, stat=None,
+                              branch_from=None, branch_to=None,
+                              tick_from=None, tick_to=None):
         try:
-            skel = self.closet.skeleton[u"place"][unicode(self)]
+            skel = self.closet.skeleton[u"place_stat"][unicode(self)]
         except KeyError:
             return
-        for nameskel in selectif(skel, name):
-            for branchskel in selectif(nameskel, branch):
-                if tick is None:
-                    for bone in branchskel.itervalues():
-                        yield bone
-                else:
-                    r = branchskel.value_during(tick)
-                    if r is not None:
-                        yield r
+        if place:
+            skel = skel[place]
+        if stat:
+            skel = skel[stat]
+        for bone in skel.iter_bones_bounded(branch_from, branch_to,
+                                            tick_from, tick_to):
+            yield bone
+
+    def iter_place_bones(self, place=None, branch_from=None,
+                         branch_to=None, tick_from=None,
+                         tick_to=None):
+        """Iterate over all the bones that *refer to* a place that exists
+        here, and thereby might create it if it didn't exist by that
+        point.
+
+        """
+        for bone in self.iter_place_stat_bones(
+                place, branch_from, branch_to, tick_from, tick_to):
+            yield bone
+        for bone in self.closet.skeleton[u"thing"].iterbones():
+            if bone.host == unicode(self):
+                for subbone in self.closet.skeleton[u"thing_loc"][
+                        bone.character][bone.name].iter_bones_bounded(
+                        branch_from, branch_to, tick_from, tick_to):
+                    if place is None or unicode(place) == subbone.location:
+                        yield subbone
+        for bone in self.closet.skeleton[u"portal"].iterbones():
+            if bone.host == unicode(self):
+                for subbone in self.closet.skeleton[u"portal_loc"][
+                        bone.character][bone.name].iter_bones_bounded(
+                        branch_from, branch_to, tick_from, tick_to):
+                    if (
+                            place is None or unicode(place) in (
+                            subbone.origin, subbone.destination)):
+                        yield subbone
+        if u"spot" in self.closet.skeleton:
+            # pretty sure I'm going to change the data model for
+            # spots, soon, so not trying real hard
+            for observer in self.closet.skeleton[u"spot"]:
+                if unicode(self) in self.closet.skeleton[u"spot"][observer]:
+                    for place in self.closet.skeleton[
+                            u"spot"][observer][unicode(self)]:
+                        for bone in self.closet.skeleton[
+                                u"spot"][observer][unicode(self)][
+                                place].iter_bones_bounded(
+                                branch_from, branch_to, tick_from, tick_to):
+                            yield bone
+
+    def places_hosted(self, branch_from=None, branch_to=None,
+                      tick_from=None, tick_to=None):
+        from LiSE.model import Thing, Place, Portal
+        r = set()
+        Spot = None
+        if self.closet.kivy:
+            from LiSE.gui.board import Spot
+        for bone in self.iter_place_bones(
+                branch_from=branch_from,
+                tick_from=tick_from,
+                branch_to=branch_to,
+                tick_to=tick_to):
+            if isinstance(bone, Thing.bonetypes[u"thing_loc"]):
+                r.add(bone.location)
+            elif isinstance(bone, Portal.bonetypes[u"portal_loc"]):
+                r.add(bone.origin)
+                r.add(bone.destination)
+            elif isinstance(bone, Place.bonetype):
+                r.add(bone.name)
+            elif Spot and isinstance(bone, Spot.bonetype):
+                r.add(bone.place)
+            else:
+                raise TypeError("Unexpected bone type for placebone")
+        return r
 
     def iter_place_contents_bones(self, name, branch=None, tick=None):
         skel = self.closet.skeleton[u"thing_location"]

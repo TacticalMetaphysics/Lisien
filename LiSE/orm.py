@@ -1334,24 +1334,52 @@ class Timestream(object):
         self._tick = 0
         self._hi_branch = 0
         self._hi_tick = 0
+        self.branch_listeners = []
         self.tick_listeners = []
 
-        def set_branch(v):
-            self._branch = v
-            if self._branch > self._hi_branch:
-                self._hi_branch = self._branch
-            for listener in self.branch_listeners:
-                listener(v)
+    def _get_branch(self):
+        return self._branch
 
-        def set_tick(v):
-            self._tick = v
-            if self._tick > self._hi_tick:
-                self._hi_tick = self._tick
-            for listener in self.tick_listeners:
-                listener(v)
+    def _set_branch(self, v):
+        self._branch = v
+        self.upd_hi_branch(v)
+        for listener in self.branch_listeners:
+            listener(v)
 
-        self.branch = property(lambda: self._branch, set_branch)
-        self.tick = property(lambda: self._tick, set_tick)
+    branch = property(_get_branch, _set_branch)
+
+    def _get_tick(self):
+        return self._tick
+
+    def _set_tick(self, v):
+        self._tick = v
+        self.upd_hi_tick(v)
+        for listener in self.tick_listeners:
+            listener(v)
+
+    tick = property(_get_tick, _set_tick)
+
+    def _get_time(self):
+        return (self.branch, self.tick)
+
+    def _set_time(self, v):
+        (b, t) = v
+        self.branch = b
+        self.tick = t
+
+    time = property(_get_time, _set_time)
+
+    def upd_hi_branch(self, branch):
+        if branch > self._hi_branch:
+            self._hi_branch = branch
+
+    def upd_hi_tick(self, tick):
+        if tick > self._hi_tick:
+            self._hi_tick = tick
+
+    def upd_hi_time(self, branch, tick):
+        self.upd_hi_branch(branch)
+        self.upd_hi_tick(tick)
 
     def register_branch_listener(self, fun):
         self.branch_listeners.append(fun)
@@ -1539,17 +1567,6 @@ class Closet(object):
         else:
             raise AttributeError
 
-    def __setattr__(self, attrn, val):
-        """Handle updates to ``branch`` and ``tick``. Otherwise just
-        pass-thru."""
-        if attrn in ('branch', 'tick', 'hi_branch', 'hi_tick',
-                     'time', 'hi_time'):
-            if not isinstance(val, int):
-                raise TypeError('Time is integers.')
-            setattr(self.timestream, attrn, val)
-        else:
-            super(Closet, self).__setattr__(attrn, val)
-
     def __init__(self, connector, gettext=lambda _: _,
                  USE_KIVY=False, **kwargs):
         """Initialize a Closet for the given connector and path.
@@ -1570,6 +1587,20 @@ class Closet(object):
         Facade = LiSE.model.Facade
         global DiegeticEventHandler
         from LiSE.rules.event import DiegeticEventHandler
+        self.timestream = Timestream(self)
+        for wd in self.working_dicts:
+            setattr(self, wd, dict())
+        self.connector = connector
+        self.empty = Skeleton({"place": {}})
+        for tab in SaveableMetaclass.tabclas.iterkeys():
+            self.empty[tab] = {}
+        self.skeleton = self.empty.copy()
+        self.lisepath = __path__[-1]
+        self.sep = os.sep
+        self.entypo = self.sep.join(
+            [self.lisepath, 'gui', 'assets', 'Entypo.ttf'])
+        self.gettext = gettext
+
         if USE_KIVY:
             global Board
             global Spot
@@ -1788,16 +1819,8 @@ class Closet(object):
 
             self.kivy = True
 
-        for wd in self.working_dicts:
-            setattr(self, wd, dict())
-        self.connector = connector
         self.c = self.connector.cursor()
         self.c.execute("BEGIN;")
-        self.empty = Skeleton({"place": {}})
-        for tab in SaveableMetaclass.tabclas.iterkeys():
-            self.empty[tab] = {}
-        self.skeleton = self.empty.copy()
-        self.timestream = Timestream(self)
         for glub in ('branch', 'tick'):
             try:
                 self.get_global(glub)
@@ -1817,17 +1840,12 @@ class Closet(object):
         if 'load_charsheet' in kwargs:
             self.load_charsheet(kwargs['load_charsheet'])
 
-        self.lisepath = __path__[-1]
-        self.sep = os.sep
-        self.entypo = self.sep.join(
-            [self.lisepath, 'gui', 'assets', 'Entypo.ttf'])
-        self.gettext = gettext
-
         self.time_travel_history = [
             (self.get_global('branch'), self.get_global('tick'))]
         self.game_speed = 1
         self.new_branch_blank = set()
         self.updating = False
+
         for glob in self.globs:
             try:
                 setattr(self, glob, self.get_global(glob))
@@ -1846,6 +1864,30 @@ class Closet(object):
         self.connector.commit()
         self.c.close()
         self.connector.close()
+
+    def _get_branch(self):
+        return self.timestream.branch
+
+    def _set_branch(self, v):
+        self.timestream.branch = v
+
+    branch = property(_get_branch, _set_branch)
+
+    def _get_tick(self):
+        return self.timestream.tick
+
+    def _set_tick(self, v):
+        self.timestream.tick = v
+
+    tick = property(_get_tick, _set_tick)
+
+    def _get_time(self):
+        return self.timestream.time
+
+    def _set_time(self, v):
+        self.timestream.time = v
+
+    time = property(_get_time, _set_time)
 
     def get_bone_timely(self, keys, branch=None, tick=None):
         """Get the bone at the given keys and time"""
@@ -2019,8 +2061,8 @@ class Closet(object):
             (key, pytype2unicode[type(value)], unicode(value)))
 
     get_text_funs = {
-        "branch": lambda self: unicode(self.branch),
-        "tick": lambda self: unicode(self.tick)
+        "branch": lambda self: str(getattr(self, 'branch')),
+        "tick": lambda self: str(getattr(self, 'tick'))
         }
     """A dict of functions that return strings that may be presented to
     the user. Though they are not methods, they will nonetheless be
@@ -2062,23 +2104,15 @@ class Closet(object):
         ``GamePiece``s"""
         self.select_class_all(GamePiece)
 
-    def load_charsheet(self, character):
-        """Load records to do with the ``CharSheet`` representing the named
-        character"""
+    def load_charsheet(self, observer, observed):
         # if the character is not loaded yet, make it so
-        character = unicode(self.get_character(character))
         self.select_and_set(
-            bonetype._null()._replace(character=character)
+            bonetype._null()._replace(observer=observer, observed=observed)
             for bonetype in CharSheet.bonetypes.itervalues())
 
-    def get_charsheet(self, character):
-        """Return a CharSheet displaying the character specified, perhaps
-        loading it if necessary.
-
-        """
-        if character not in self.skeleton[u"character_sheet_item_type"]:
-            self.load_charsheet(character)
-        return CharSheet(character=self.get_character(character))
+    def get_charsheet(self, observer, observed):
+        facade = self.get_facade(observer, observed)
+        return CharSheet(facade=facade)
 
     def load_characters(self, names):
         """Load records to do with the named characters"""
@@ -2481,11 +2515,6 @@ class Closet(object):
             core = self.skeleton[u"portal"][bone.character][bone.name]
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
-        elif Portal and isinstance(
-                bone, Portal.bonetypes[u"portal_stat_facade"]):
-            core = self.skeleton[u"portal"][bone.observed][bone.name]
-            for loc in (bone.origin, bone.destination):
-                set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif Place and isinstance(bone, Place.bonetypes[u"place_stat"]):
             set_place_maybe(bone.host, bone.name, bone.branch, bone.tick)
         elif Spot and isinstance(bone, Spot.bonetypes[u"spot"]):
@@ -2503,7 +2532,7 @@ class Closet(object):
         # Timestream.hi_time is always supposed to = the latest branch
         # and tick on record. Make sure of this.
         if hasattr(bone, 'branch') and hasattr(bone, 'tick'):
-            self.timestream.upd_time(bone.branch, bone.tick)
+            self.timestream.upd_hi_time(bone.branch, bone.tick)
 
         # Initialize this place in the skeleton, as needed, and put
         # the bone into it.
@@ -2695,6 +2724,8 @@ def mkdb(DB_NAME, lisepath, kivy=False):
         del LiSE.gui.img
         import LiSE.gui.board
         del LiSE.gui.board
+        import LiSE.gui.charsheet
+        del LiSE.gui.charsheet
 
     try:
         os.remove(DB_NAME)
@@ -2813,7 +2844,7 @@ def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
     if load_characters:
         r.load_characters(load_characters)
     if load_charsheet:
-        r.load_charsheet(load_charsheet)
+        r.load_charsheet(*load_charsheet)
     if load_board:
         r.load_board(*load_board)
     return r
