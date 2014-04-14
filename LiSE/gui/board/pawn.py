@@ -34,7 +34,6 @@ will update its position appropriately.
         ("pawn", {
             "columns": {
                 "observer": "text not null default 'Omniscient'",
-                "observed": "text not null default 'Physical'",
                 "host": "text not null default 'Physical'",
                 "thing": "text not null",
                 "branch": "integer not null default 0",
@@ -42,13 +41,11 @@ will update its position appropriately.
                 "graphic": "text not null",
                 "interactive": "boolean default 1"},
             "primary_key": (
-                "observer", "observed", "host", "thing",
+                "observer", "host", "thing",
                 "branch", "tick"),
             "foreign_keys": {
-                "observer, observed, host": (
-                    "board", "observer, observed, host"),
-                "observed, host, thing": (
-                    "thing", "character, host, name"),
+                "observer, host": (
+                    "board", "observer, host"),
                 "graphic": ("graphic", "name")}})]
     board = ObjectProperty()
     thing = ObjectProperty()

@@ -39,7 +39,6 @@ class Board(FloatLayout):
         ("board", {
             "columns": {
                 "observer": "text not null default 'Omniscient'",
-                "observed": "text not null default 'Physical'",
                 "host": "text not null default 'Physical'",
                 "wallpaper": "text not null default 'default_wallpaper'",
                 "x": "float not null default 0.0",
@@ -48,7 +47,7 @@ class Board(FloatLayout):
                 "arrowhead_size": "integer not null default 10",
                 "arrow_bg": "text not null default 'black'",
                 "arrow_fg": "text not null default 'white'"},
-            "primary_key": ("observer", "observed", "host"),
+            "primary_key": ("observer", "host"),
             "foreign_keys": {
                 "arrow_bg": ("color", "name"),
                 "arrow_fg": ("color", "name")},

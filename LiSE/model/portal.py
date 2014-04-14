@@ -6,44 +6,27 @@ from LiSE.util import upbranch
 
 class Portal(Container):
     tables = [
-        ("portal", {
-            "columns": {
-                "character": "text not null default 'Physical'",
-                "name": "text not null",
-                "host": "text not null default 'Physical'"},
-            "primary_key": (
-                "character", "name")}),
         ("portal_loc", {
             "columns": {
-                "character": "text not null default 'Physical'",
+                "host": "text not null",
                 "name": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
+                "branch": "integer not null",
+                "tick": "integer not null",
                 "origin": "text",
                 "destination": "text"},
             "primary_key": (
-                "character", "name", "branch", "tick"),
-            "foreign_keys": {
-                "character, name": (
-                    "portal", "character, name")}}),
+                "host", "name", "branch", "tick")}),
         ("portal_stat", {
             "columns": {
                 "character": "text not null default 'Physical'",
+                "host": "text not null",
                 "name": "text not null",
-                "key": "text not null",
+                "key": "text",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
                 "value": "text"},
             "primary_key": (
-                "character", "name", "key", "branch", "tick"),
-            "foreign_keys": {
-                "character, name": (
-                    "portal", "character, name")}})]
-    postlude = [
-        "CREATE VIEW portal_host_orig_dest AS "
-        "SELECT host, origin, destination FROM portal JOIN portal_loc ON "
-        "portal.character=portal_loc.character AND "
-        "portal.name=portal_loc.name;"]
+                "character", "host", "name", "key", "branch", "tick")})]
 
     @property
     def e(self):

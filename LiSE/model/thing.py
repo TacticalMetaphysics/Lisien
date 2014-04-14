@@ -20,34 +20,26 @@ class Thing(Container):
     """
     demands = ["portal", "place_stat"]
     tables = [
-        ("thing", {
-            "columns": {
-                "character": "text not null default 'Physical'",
-                "name": "text not null",
-                "host": "text not null default 'Physical'"},
-            "primary_key": ("character", "name")}),
         ("thing_loc", {
             "columns": {
-                "character": "text not null default 'Physical'",
+                "host": "text not null default 'Physical'",
                 "name": "text not null",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
                 "location": "text"},
             "primary_key": (
-                "character", "name", "branch", "tick"),
-            "foreign_keys": {
-                "character, name": (
-                    "thing", "character, name")}}),
+                "host", "name", "branch", "tick")}),
         ("thing_stat", {
             "columns": {
                 "character": "text not null",
+                "host": "text not null",
                 "name": "text not null",
-                "key": "text not null",
+                "key": "text",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
                 "value": "text"},
             "primary_key": (
-                "character", "name", "key", "branch", "tick"),
+                "character", "host", "name", "key", "branch", "tick"),
             "foreign_keys": {
                 "character, name": (
                     "thing", "character, name")}})]

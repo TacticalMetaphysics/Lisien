@@ -84,7 +84,6 @@ class Spot(GamePiece):
                 "observer", "host", "place",
                 "branch", "tick"),
             "foreign_keys": {
-                "observer, host": ("board", "observer, observed"),
                 "graphic": ("graphic", "name")}}),
         ("spot_coords", {
             "columns": {
