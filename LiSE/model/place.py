@@ -30,18 +30,7 @@ class Place(Container):
                 "tick": "integer not null default 0",
                 "value": "text"},
             "primary_key": (
-                "character", "name", "key", "branch", "tick")}),
-        ("place_stat_facade", {
-            "columns": {
-                "observer": "text not null",
-                "observed": "text not null",
-                "name": "text not null",
-                "key": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "value": "text"},
-            "primary_key": (
-                "observer", "observed", "name", "key", "branch", "tick")})]
+                "character", "name", "key", "branch", "tick")})]
 
     @property
     def v(self):

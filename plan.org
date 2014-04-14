@@ -125,6 +125,8 @@
 ****** They may be world-states that the NPC is intimately concerned with, eg. a physician getting a call about a patient that they must immediately operate upon
 ****** The NPC should pretty much always wake up and pay attention whenever the player character interacts with them directly.
 ** Programming interface
+*** Event infrastructure
+**** TODO Turn existing Journeys into events
 * Extra features
 ** Stolen from Kudos 2
 *** the social web display

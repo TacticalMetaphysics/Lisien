@@ -6,7 +6,6 @@ from LiSE.util import (
 )
 
 from container import Container
-from kivy.logger import Logger
 
 
 class Thing(Container):
@@ -19,7 +18,7 @@ class Thing(Container):
     same.
 
     """
-    demands = ["portal"]
+    demands = ["portal", "place_stat"]
     tables = [
         ("thing", {
             "columns": {
@@ -51,35 +50,17 @@ class Thing(Container):
                 "character", "name", "key", "branch", "tick"),
             "foreign_keys": {
                 "character, name": (
-                    "thing", "character, name")}}),
-        ("thing_loc_facade", {
-            "columns": {
-                "observer": "text not null",
-                "observed": "text not null",
-                "name": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "location": "text"},
-            "primary_key": (
-                "observer", "observed", "name", "branch", "tick"),
-            "foreign_keys": {
-                "observed, name": (
-                    "thing", "character, name")}}),
-        ("thing_stat_facade", {
-            "columns": {
-                "observer": "text not null",
-                "observed": "text not null",
-                "name": "text not null",
-                "key": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "value": "text"},
-            "primary_key": (
-                "observer", "observed", "name",
-                "key", "branch", "tick"),
-            "foreign_keys": {
-                "observed, name": (
                     "thing", "character, name")}})]
+    postlude = [
+        "CREATE VIEW place AS "
+        "SELECT host, location AS place FROM "
+        "thing JOIN thing_loc ON thing.character=thing_loc.character AND "
+        "thing.name=thing_loc.name UNION "
+        "SELECT host, origin AS place "
+        "FROM portal_host_orig_dest UNION "
+        "SELECT host, destination AS place "
+        "FROM portal_host_orig_dest UNION "
+        "SELECT character AS host, name AS place FROM place_stat;"]
     """Things exist in particular places--but what exactly it *means* for
     a thing to be in a place will vary by context. Each of those
     contexts gets a "host," which is another character. Things are
@@ -255,8 +236,6 @@ class Thing(Container):
         # Attempt to follow the path based on how the graph is
         # actually laid out.
         try:
-            Logger.debug("Thing: attempting to follow path {}".format(
-                path))
             self.follow_path(path, branch, tick)
         except TimeParadox:
             tupme = (unicode(self.character), unicode(self))
@@ -321,12 +300,9 @@ class Thing(Container):
         the parent branch, to the child.
 
         """
-        Logger.debug("Thing: new branch {} from parent {}".format(
-            branch, parent))
         if (
                 unicode(self.character), unicode(self)
         ) in self.character.closet.new_branch_blank:
-            Logger.debug("Thing: new_branch_blank")
             start_loc = self.get_location(None, parent, tick)
             if hasattr(start_loc, 'destination'):
                 tick = self.locations[parent].key_after(tick)

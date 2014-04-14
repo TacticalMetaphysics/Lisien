@@ -1,7 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from math import sqrt, hypot, atan, pi, sin, cos
-from re import match, compile, findall
+from re import match, findall
 
 
 """Common utility functions and data structures.

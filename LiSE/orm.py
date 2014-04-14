@@ -35,16 +35,14 @@ Character = None
 Place = None
 Portal = None
 Thing = None
-Timestream = None
-Implicator = None
+DiegeticEventHandler = None
+Logger = None
 from LiSE.util import (
     ListItemIterator,
-    TimestreamException,
     unicode2pytype,
     pytype2unicode
 )
 from LiSE import __path__
-from kivy.logger import Logger
 
 
 class BoneMetaclass(type):
@@ -689,25 +687,6 @@ class Skeleton(MutableMapping):
         self.unregister_set_listener(fun)
         self.unregister_del_listener(fun)
 
-    def _loud_toggle(self):
-        """Toggle overly verbose debugging messages"""
-        def skel_set_printer(skel, child, k, v):
-            """Debugging function to print out assignments to a skeleton"""
-            Logger.debug("%s: %s[%s]=%s", skel.name, child.name, k, v)
-
-        def skel_del_printer(skel, child, k):
-            """Debugging function to print out deletions from some skeleton"""
-            Logger.debug("%s: del %s[%s]", skel.name, child.name, k)
-
-        fru = (skel_set_printer, skel_del_printer)
-
-        if skel_set_printer in self._set_listeners:
-            for fun in fru:
-                self.unregister_listener(fun)
-        else:
-            for fun in fru:
-                self.register_listener(fun)
-
     def __iter__(self):
         """Iterate over my keys--which, if ``self.content`` is not a
         :type:`dict`, should be taken from ``self.ikeys`` and sorted first."""
@@ -1260,6 +1239,159 @@ class SaveableMetaclass(type):
         return clas
 
 
+class Timestream(object):
+    """Tracks the genealogy of the various branches of time.
+
+
+    Branches of time each have one parent; branch zero is its own parent."""
+    __metaclass__ = SaveableMetaclass
+    # I think updating the start and end ticks of a branch using
+    # listeners might be a good idea
+    tables = [
+        ("timestream",
+         {"columns":
+          {"branch": "integer not null",
+           "parent": "integer not null"},
+          "primary_key": ("branch", "parent"),
+          "foreign_keys":
+          {"parent": ("timestream", "branch")},
+          "checks":
+          ["parent=0 or parent<>branch"]})
+        ]
+
+    def __init__(self, closet):
+        """Initialize hi_branch and hi_tick to 0, and their listeners to
+        empty.
+
+        """
+        self.closet = closet
+        self._branch = 0
+        self._tick = 0
+        self._hi_branch = 0
+        self._hi_tick = 0
+        self.tick_listeners = []
+
+        def set_branch(v):
+            self._branch = v
+            if self._branch > self._hi_branch:
+                self._hi_branch = self._branch
+            for listener in self.branch_listeners:
+                listener(v)
+
+        def set_tick(v):
+            self._tick = v
+            if self._tick > self._hi_tick:
+                self._hi_tick = self._tick
+            for listener in self.tick_listeners:
+                listener(v)
+
+        self.branch = property(lambda: self._branch, set_branch)
+        self.tick = property(lambda: self._tick, set_tick)
+
+    def register_branch_listener(self, fun):
+        self.branch_listeners.append(fun)
+
+    def unregister_branch_listener(self, fun):
+        self.branch_listeners.remove(fun)
+
+    def register_tick_listener(self, fun):
+        self.tick_listeners.append(fun)
+
+    def unregister_tick_listener(self, fun):
+        self.tick_listeners.remove(fun)
+
+    def min_branch(self, table=None):
+        """Return the lowest known branch.
+
+        With optional argument ``table``, consider only records in
+        that table.
+
+        """
+        lowest = None
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if hasattr(bone, 'branch') and (
+                    lowest is None or bone.branch < lowest):
+                lowest = bone.branch
+        return lowest
+
+    def max_branch(self, table=None):
+        """Return the highest known branch.
+
+        With optional argument ``table``, consider only records in
+        that table.
+
+        """
+        highest = 0
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if hasattr(bone, 'branch') and bone.branch > highest:
+                highest = bone.branch
+        return highest
+
+    def max_tick(self, branch=None, table=None):
+        """Return the highest recorded tick in the given branch, or every
+        branch if none given.
+
+        With optional argument table, consider only records in that table.
+
+        """
+        highest = 0
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if branch is None or (
+                    hasattr(bone, 'branch') and bone.branch == branch):
+                for attrn in ('tick_from', 'tick_to', 'tick'):
+                    if hasattr(bone, attrn):
+                        tick = getattr(bone, attrn)
+                        if tick is not None and tick > highest:
+                            highest = tick
+        return highest
+
+    def min_tick(self, branch=None, table=None):
+        """Return the lowest recorded tick in the given branch, or every
+        branch if none given.
+
+        With optional argument table, consider only records in that table.
+
+        """
+        lowest = None
+        skel = self.closet.skeleton
+        if table is not None:
+            skel = skel[table]
+        for bone in skel.iterbones():
+            if branch is None or (
+                    hasattr(bone, 'branch') and bone.branch == branch):
+                for attrn in ('tick_from', 'tick'):
+                    if hasattr(bone, attrn):
+                        tick = getattr(bone, attrn)
+                        if tick is not None and (
+                                lowest is None or
+                                tick < lowest):
+                            lowest = tick
+        return lowest
+
+    def parent(self, branch):
+        """Return the parent of the branch"""
+        return self.closet.skeleton["timestream"][branch].parent
+
+    def children(self, branch):
+        """Generate all children of the branch"""
+        for bone in self.closet.skeleton["timestream"].iterbones():
+            if bone.parent == branch:
+                yield bone.branch
+
+    def upd_time(self, branch, tick):
+        self.branch = branch
+        self.tick = tick
+
+
 def iter_character_query_bones_named(name):
     """Yield all the bones needed to query the database about all the data
     in a character."""
@@ -1351,6 +1483,8 @@ class Closet(object):
         pass-thru."""
         if attrn in ('branch', 'tick', 'hi_branch', 'hi_tick',
                      'time', 'hi_time'):
+            if not isinstance(val, int):
+                raise TypeError('Time is integers.')
             setattr(self.timestream, attrn, val)
         else:
             super(Closet, self).__setattr__(attrn, val)
@@ -1359,7 +1493,7 @@ class Closet(object):
                  USE_KIVY=False, **kwargs):
         """Initialize a Closet for the given connector and path.
 
-        With USE_KIVY, I will use the kivybits module to load images.
+        With kivy=True, I will use the kivybits module to load images.
 
         """
         global Place
@@ -1367,17 +1501,15 @@ class Closet(object):
         global Thing
         global Character
         global Facade
-        global Timestream
         import LiSE.model
         Place = LiSE.model.Place
         Portal = LiSE.model.Portal
         Thing = LiSE.model.Thing
         Character = LiSE.model.Character
         Facade = LiSE.model.Facade
-        Timestream = LiSE.model.Timestream
-        global Implicator
-        import LiSE.model.event
-        Implicator = LiSE.model.event.Implicator
+        global DiegeticEventHandler
+        import LiSE.rules.event
+        DiegeticEventHandler = LiSE.rules.event.DiegeticEventHandler
         if USE_KIVY:
             global Board
             global Spot
@@ -1386,8 +1518,6 @@ class Closet(object):
             from LiSE.gui.board import Board, Spot, Pawn, GamePiece
             global CharSheet
             from LiSE.gui.charsheet import CharSheet
-            global Menu
-            from LiSE.gui.menu import Menu
             global Img
             from LiSE.gui.img import Img
             global Atlas
@@ -1596,27 +1726,36 @@ class Closet(object):
             self.add_img_to_graphic = add_img_to_graphic
             self.rm_graphic_layer = rm_graphic_layer
 
-            self.USE_KIVY = True
+            self.kivy = True
+
+        for wd in self.working_dicts:
+            setattr(self, wd, dict())
+        self.connector = connector
+        self.c = self.connector.cursor()
+        self.c.execute("BEGIN;")
+        self.empty = Skeleton({"place": {}})
+        for tab in SaveableMetaclass.tabclas.iterkeys():
+            self.empty[tab] = {}
+        self.skeleton = self.empty.copy()
+        self.timestream = Timestream(self)
+        for glub in ('branch', 'tick'):
+            try:
+                self.get_global(glub)
+            except TypeError:
+                self.set_global(glub, 0)
 
         if 'load_img_tags' in kwargs:
             self.load_imgs_tagged(kwargs['load_img_tags'])
         if 'load_characters' in kwargs:
             self.load_characters(kwargs['load_characters'])
+        # two characters that always exist, though they may not play
+        # any role in the game
+        if 'Physical' not in self.character_d:
+            Character(self, 'Physical')
+        if 'Omniscient' not in self.character_d:
+            Character(self, 'Omniscient')
         if 'load_charsheet' in kwargs:
             self.load_charsheet(kwargs['load_charsheet'])
-
-        self.connector = connector
-        self.empty = Skeleton({"place": {}})
-        for tab in SaveableMetaclass.tabclas.iterkeys():
-            self.empty[tab] = {}
-        self.skeleton = self.empty.copy()
-
-        self.c = self.connector.cursor()
-        self.c.execute("BEGIN;")
-
-        self.branch_listeners = []
-        self.tick_listeners = []
-        self.time_listeners = []
 
         self.lisepath = __path__[-1]
         self.sep = os.sep
@@ -1624,15 +1763,6 @@ class Closet(object):
             [self.lisepath, 'gui', 'assets', 'Entypo.ttf'])
         self.gettext = gettext
 
-        for wd in self.working_dicts:
-            setattr(self, wd, dict())
-
-        self.timestream = Timestream(self)
-        for glub in ('branch', 'tick'):
-            try:
-                self.get_global(glub)
-            except TypeError:
-                self.set_global(glub, 0)
         self.time_travel_history = [
             (self.get_global('branch'), self.get_global('tick'))]
         self.game_speed = 1
@@ -1760,7 +1890,8 @@ class Closet(object):
         """Return a ``property`` that gets and sets the attribute ``boneatt``
         of the bone with ``keys``.
 
-        Deletion of bone attributes is not supported.
+        Actually, it replaces the bone at its position in the skeleton
+        with a copy with the attribute changed.
 
         """
         return property(
@@ -2211,7 +2342,7 @@ class Closet(object):
         database.
 
         """
-        self.c.execute("SELECT host, place, branch, tick FROM place;")
+        self.c.execute("SELECT host, place FROM place;")
         if not update or u"place" not in self.skeleton:
             # empty it out if it exists, create it if it doesn't
             self.skeleton[u"place"] = {}
@@ -2283,16 +2414,9 @@ class Closet(object):
         if Thing and isinstance(bone, Thing.bonetypes[u"thing_loc"]):
             core = self.skeleton[u"thing"][bone.character][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
-        elif Thing and isinstance(bone, Thing.bonetypes[u"thing_loc_facade"]):
-            core = self.skeleton[u"thing"][bone.observed][bone.name]
             set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
         elif Portal and isinstance(bone, Portal.bonetypes[u"portal_loc"]):
             core = self.skeleton[u"portal"][bone.character][bone.name]
-            for loc in (bone.origin, bone.destination):
-                set_place_maybe(core.host, loc, bone.branch, bone.tick)
-        elif Portal and isinstance(
-                bone, Portal.bonetypes[u"portal_stat_facade"]):
-            core = self.skeleton[u"portal"][bone.observed][bone.name]
             for loc in (bone.origin, bone.destination):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif Place and isinstance(bone, Place.bonetypes[u"place_stat"]):
@@ -2455,6 +2579,20 @@ def defaults(c, kivy=False):
 def mkdb(DB_NAME, lisepath, kivy=False):
     """Initialize a database file and insert default values"""
     global Logger
+    global Place
+    global Portal
+    global Thing
+    global Character
+    global Facade
+    global DiegeticEventHandler
+    import LiSE.rules.event
+    import LiSE.model
+    Place = LiSE.model.Place
+    Portal = LiSE.model.Portal
+    Thing = LiSE.model.Thing
+    Character = LiSE.model.Character
+    Facade = LiSE.model.Facade
+    DiegeticEventHandler = LiSE.rules.event.DiegeticEventHandler
     img_qrystr = (
         "INSERT INTO img (name, path) "
         "VALUES (?, ?);")
@@ -2495,7 +2633,9 @@ def mkdb(DB_NAME, lisepath, kivy=False):
             Logger = kivy.logger.Logger
         else:
             import logging
+            logging.basicConfig()
             Logger = logging.getLogger()
+            Logger.setLevel(0)
     if kivy:
         # I just need these modules to fill in the relevant bits of
         # SaveableMetaclass, which they do when imported. They don't
