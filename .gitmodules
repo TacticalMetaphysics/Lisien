@@ -1,3 +1,12 @@
 [submodule "igraph"]
 	path = igraph
 	url = https://github.com/igraph/igraph.git
+[submodule "kivy"]
+	path = kivy
+	url = git@github.com:LogicalDash/kivy.git
+[submodule "stiffscroll"]
+	path = stiffscroll
+	url = git@github.com:LogicalDash/stiffscroll.git
+[submodule "LiSE/gui/stiffscroll"]
+	path = LiSE/gui/stiffscroll
+	url = git@github.com:LogicalDash/stiffscroll.git
