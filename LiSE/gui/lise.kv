@@ -110,7 +110,7 @@
         effect_cls: stiffscroll
         Board:
             id: board
-            facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
+            facade: root.app.closet.get_facade(root.app.observer_name, root.app.observed_name)
             host: root.app.closet.get_character(root.app.host_name)
     CueCard:
         id: prompt

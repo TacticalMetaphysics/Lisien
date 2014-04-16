@@ -156,6 +156,7 @@ class Character(object):
         it would have its own intimidation stat, among others.
 
         """
+        print("{}.__init__".format(name))
         self.closet = closet
         self.name = name
         self.get_omitters = omitter_getter
@@ -177,66 +178,12 @@ class Character(object):
 
         """
         self.closet.character_d[unicode(self)] = self
-        self.update()
 
     def __str__(self):
         return str(self.name)
 
     def __unicode__(self):
         return unicode(self.name)
-
-    def update(self, branch=None, tick=None):
-        """Update my graph.
-
-        """
-        (branch, tick) = self.sanetime(branch, tick)
-        places = self.places_hosted(
-            branch_from=branch, branch_to=branch,
-            tick_from=tick, tick_to=tick)
-        for placename in places:
-            if (
-                    "name" not in self.graph.vs.attributes() or
-                    placename not in self.graph.vs["name"]):
-                self.make_place(placename)
-        for bone in self.iter_portal_loc_bones(
-                branch_from=branch, branch_to=branch,
-                tick_from=tick, tick_to=tick):
-            for placen in (bone.origin, bone.destination):
-                if (
-                        "name" not in self.graph.vs.attributes() or
-                        placen not in self.graph.vs["name"]):
-                    self.make_place(placen)
-            char = self.closet.get_character(bone.character)
-            try:
-                origv = self.graph.vs.find(name=bone.origin)
-            except ValueError:
-                destv = self.make_place(bone.origin).v
-            try:
-                destv = self.graph.vs.find(name=bone.destination)
-            except ValueError:
-                destv = self.make_place(bone.destination).v
-            try:
-                eid = self.graph.get_eid(origv.index, destv.index)
-                e = self.graph.es[eid]
-                e["portals"][bone.character] = Portal(char, bone.name)
-            except (KeyError, ValueError, InternalError):
-                # the portal goes in my graph, but it doesn't get
-                # constructed in me--it's merely hosted here. get its
-                # real character.
-                char = self.closet.get_character(bone.character)
-                port = Portal(char, bone.name)
-                self.graph.add_edge(
-                    origv.index, destv.index,
-                    name=bone.name, portals={bone.character: port})
-        for v in self.graph.vs:
-            if v["name"] not in places:
-                self.graph.delete_vertices(v)
-        for e in self.graph.es:
-            try:
-                for portal in e["portals"].itervalues():
-                    portal.get_loc_bone(None, branch, tick)
-            except (KeyError, ValueError, KnowledgeException):
-                self.graph.delete_edges(e)
 
     def get_facade(self, observer):
         if observer is None:
@@ -666,6 +613,10 @@ class Character(object):
                 branch_from, branch_to, tick_from, tick_to):
             yield bone
 
+    def iter_portal_loc_bones_hosted(
+            self, branch_from=None, branch_to=None,
+            tick_from=None
+
     def portal_names(self, branch_from=None, branch_to=None,
                      tick_from=None, tick_to=None):
         r = set()
@@ -1047,7 +998,7 @@ class Facade(Character):
     def iter_portal_loc_bones(
             self, branch_from=None, branch_to=None, tick_from=None,
             tick_to=None):
-        for bone in super(Facade, self).iter_portal_loc_bones(
+        for bone in self.observed.iter_portal_loc_bones(
                 branch_from, branch_to, tick_from, tick_to):
             try:
                 yield self.distort(bone)

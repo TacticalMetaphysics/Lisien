@@ -1,9 +1,83 @@
 * database
 ** DONE change loaders so they can handle the case where you try to load something that doesn't exist
 ** schema changes
+*** [2014-04-15 Tue]
+    While building the character sheet widget I noticed a discrepancy
+    between the widget and the data model it was supposed to
+    represent. You had to add things to the widget independently of
+    adding them to the world, yet things were always in characters,
+    regardless of whether they were in that character's widget.
+
+    At first I tried responding by rewriting the widget. Probably
+    needed to happen anyway because it was getting bloated. The idea
+    was to rewrite it so it was just a view onto a character, perhaps
+    filtered by a facade. But then I looked into the data model and
+    wondered why I needed everything part of a character anyway.
+
+    Characters are where graphs live, and everything that has a
+    location, has it in a graph. Those were my assumptions...though,
+    originally, graphs were separate from characters. They were called
+    "dimensions," remember that? I stopped using them because I'd
+    thought of a way to do without the distinction between a dimension
+    and a character. I still think it's good to do without if I can.
+
+    So these "character sheets," what do they show, exactly? Facades?
+    The idea with facades was to let you see someone or something
+    *from a particular point of view*. I'd done that by having one
+    character look at another character and generate data about them
+    based on whatever code, filtering what's in the observed
+    character. That approach would still work if things and places and
+    portals weren't inherently parts of characters, just grouped that
+    way by your code.
+
+    If characters aren't in the data model, and it's just dimensions
+    full of things, places, and portals... well, that's even simpler,
+    isn't it? Characters become SELECT, facades become WHERE, sort
+    of. I could still cache the stuff that's in a character in any
+    given tick. But it would no longer be a defining part of anything.
+*** Character centric model
+    Everything's part of exactly one Character, though possibly
+    located in another.
+
+    Characters act as namespaces and perhaps also fulfill the role of
+    objects, per OOP.
+**** Advantages
+     Permanent namespaces where you only code within one character
+     might be convenient...
+
+     Fewer distinct entities in the data model to keep track of.
+**** Disadvantages
+     Permanent namespaces are also limiting: think of how to transfer
+     part of one person's inventory to another.
+
+     Difficult to iterate over all the things located in a given
+     character but not *part of* that character.
+
+     Kind of confusing to distinguish "located in" from "part of".
+*** Dimension centric model
+    Dimensions are graphs. The nodes are Places. The edges are
+    Portals. Things move about on top.
+
+    Characters collect some of those every tick. Facades mess up
+    Characters into what somebody actually sees.
+**** Advantages
+     More customizable.
+
+     More convenient when you don't care about subjectivity.
+**** Disadvantages
+     Fewer integrity constraints; more opportunities to get confused
+     as to what's in a character.
+
+     Recording what's in a character at every tick, while implementing
+     foreign key constraints for the lot of it, means about double the
+     number of distinct tables.
+
+     If I *don't* record what's in a character every tick, and instead
+     query the underlying dimension every tick, that means requerying
+     every time I review the same tick. Makes it pretty important to
+     optimize that query.
 ** ORM
    In orm.py mostly. Note there is no actual *class* called "ORM".
-*** 
 * interface
 ** place places (w. spots)
 *** pick graphics

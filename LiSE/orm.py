@@ -988,17 +988,16 @@ class Skeleton(MutableMapping):
             for bone in it:
                 if tick_to is not None and bone.tick > tick_to:
                     return
-                cur_bone = next(it)
                 if tick_from is None:
-                    yield cur_bone
+                    yield bone
                 else:
-                    if cur_bone.tick == tick_from:
-                        yield cur_bone
-                    elif cur_bone.tick > tick_from:
+                    if bone.tick == tick_from:
+                        yield bone
+                    elif bone.tick > tick_from:
                         if prev_bone.tick < tick_from:
                             yield prev_bone
-                        yield cur_bone
-                prev_bone = cur_bone
+                        yield bone
+                prev_bone = bone
 
         def branch_iter(it):
             for bone in it:
@@ -1845,7 +1844,7 @@ class Closet(object):
         if 'Omniscient' not in self.character_d:
             Character(self, 'Omniscient')
         if 'load_charsheet' in kwargs:
-            self.load_charsheet(kwargs['load_charsheet'])
+            self.load_charsheet(*kwargs['load_charsheet'])
 
         self.time_travel_history = [
             (self.get_global('branch'), self.get_global('tick'))]
@@ -2154,8 +2153,7 @@ class Closet(object):
         return self.get_characters([str(name)])[str(name)]
 
     def get_facade(self, observer, observed):
-        return self.get_character(observer).get_facade(
-            self.get_character(observed))
+        return self.get_character(observed).get_facade(observer)
 
     def character_names(self, branch_from=None, branch_to=None,
                         tick_from=None, tick_to=None):

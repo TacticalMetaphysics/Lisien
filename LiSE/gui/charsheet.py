@@ -175,6 +175,7 @@ class Timeline(StackLayout):
 
 class TimelineView(ScrollView):
     """ScrollView with a Timeline and its cursor."""
+    # TODO put a proper timeline in here
     charsheet_item = ObjectProperty()
     """CharSheetItem that made me"""
     data_iter = ObjectProperty()
