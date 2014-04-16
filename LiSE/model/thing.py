@@ -43,48 +43,6 @@ class Thing(Container):
             "foreign_keys": {
                 "character, name": (
                     "thing", "character, name")}})]
-    postlude = [
-        "CREATE VIEW place AS "
-        "SELECT host, location AS place FROM "
-        "thing JOIN thing_loc ON thing.character=thing_loc.character AND "
-        "thing.name=thing_loc.name UNION "
-        "SELECT host, origin AS place "
-        "FROM portal_host_orig_dest UNION "
-        "SELECT host, destination AS place "
-        "FROM portal_host_orig_dest UNION "
-        "SELECT character AS host, name AS place FROM place_stat;"]
-    """Things exist in particular places--but what exactly it *means* for
-    a thing to be in a place will vary by context. Each of those
-    contexts gets a "host," which is another character. Things are
-    *in* their host, but are *part of* their character.
-
-    Each thing has only one record in the table ``thing``, but may
-    have several records in the table ``thing_facade``. The record in
-    ``thing`` is regarded as the true one for the purpose of resolving
-    the outcomes of events, but when characters make decisions, they
-    can only use the information from ``thing_facade``. This permits
-    you to hide information and lie to the player.
-
-    There are various methods here to get information on a thing's
-    status. Called with no arguments, they return the truth at the
-    present time. During simulation, they are always called with at
-    least the argument ``observer``, and will therefore respond with
-    the way the observer *understands* them.
-
-    """
-
-    @property
-    def location(self):
-        return self.get_location()
-
-    @property
-    def locations(self):
-        return self.get_locations()
-
-    @property
-    def host(self):
-        hostn = self.character.get_thing_bone(self.name).host
-        return self.character.closet.get_character(hostn)
 
     def __init__(self, character, name):
         self.character = character
@@ -103,84 +61,15 @@ class Thing(Container):
     def __contains__(self, that):
         return that.location is self
 
-    def get_bone(self, observer=None, branch=None, tick=None):
-        """Return a bone describing my status.
+    def get_location(self, branch=None, tick=None):
+        pass
 
-        With optional argument ``observer``, the bone will be munged
-        by a facade, possibly resulting in a deliberately misleading
-        KeyError.
-
-        """
-        if observer is None:
-            return self.character.get_thing_bone(self.name)
-        else:
-            facade = self.character.get_facade(observer)
-            return facade.get_thing_bone(branch, tick)
-
-    def get_location(self, observer=None, branch=None, tick=None):
-        """Return the thing, place, or portal I am in.
-
-        With optional argument ``observer``, return the thing, place,
-        or portal I *seem* to be in.
-
-        """
-        if observer is None:
-            return self.character.get_thing_location(self.name, branch, tick)
-        else:
-            facade = self.character.get_facade(observer)
-            return facade.get_thing_location(self.name, branch, tick)
-
-    def get_locations(self, observer=None, branch=None):
-        if observer is None:
-            return self.character.get_thing_locations(self.name, branch)
-        else:
-            facade = self.character.get_facade(observer)
-            return facade.get_thing_locations(self.name, branch)
-
-    def get_stats(self, observer=None, branch=None):
-        if observer is None:
-            return self.character.get_thing_stat_skel(self.name, branch)
-        else:
-            facade = self.character.get_facade(observer)
-            return facade.get_thing_stat_skel(self.name, branch)
-
-    def get_stat(self, stat, observer=None, branch=None, tick=None):
-        if observer is None:
-            return self.character.get_thing_stat(self.name, stat, branch, tick)
-        else:
-            facade = self.character.get_facade(observer)
-            return facade.get_thing_stat(self.name, stat, branch, tick)
-
-    def get_speed(self, observer=None, branch=None, tick=None):
-        lo = self.get_location(observer, branch, tick)
-        ticks = self.get_ticks_thru(lo, observer, branch, tick)
-        return float(lo.weight) / float(ticks)
-
-    def get_ticks_thru(
-            self, portal, observer=None, branch=None, tick=None):
-        """How many ticks would it take to get through that portal?"""
-        if observer is None:
-            observer = self.character
-        # placeholder
-        portal_weight = 1
-        return int(portal_weight / 0.1)
-
-    def get_progress(self, observer=None, branch=None, tick=None):
+    def get_progress(self, branch=None, tick=None):
         """Return a float representing the proportion of the portal I have
         passed through.
 
         """
-        (branch, tick) = self.character.sanetime(branch, tick)
-        bone = self.get_locations(observer, branch).value_during(tick)
-        # this is when I entered the portal
-        t1 = bone.tick
-        # this is when I will enter the destination
-        t2 = self.get_locations(observer, branch).key_after(tick)
-        if t2 is None:
-            return None
-        duration = float(t2 - t1)
-        passed = float(tick - t1)
-        return passed / duration
+        pass
 
     def journey_to(self, destplace, branch=None, tick=None):
         """Schedule myself to travel somewhere.
@@ -292,23 +181,20 @@ class Thing(Container):
         the parent branch, to the child.
 
         """
-        if (
-                unicode(self.character), unicode(self)
-        ) in self.character.closet.new_branch_blank:
-            start_loc = self.get_location(None, parent, tick)
+        if self.new_branch_blank:
+            start_loc = self.get_location(parent, tick)
             if hasattr(start_loc, 'destination'):
                 tick = self.locations[parent].key_after(tick)
                 start_loc = self.get_location(parent, tick)
             locb = self.bonetypes["thing_loc"](
-                character=unicode(self.character),
+                host=unicode(self.host),
                 name=self.name,
                 branch=branch,
                 tick=tick,
                 location=start_loc)
             yield locb
             return
-        for bone in self.character.iter_thing_loc_bones(
-                self, branch=parent):
+        for bone in self.iter_loc_bones(branch=parent):
             yield bone._replace(branch=branch)
         for bone in self.iter_stats_bones(branch=parent):
             yield bone._replace(branch=branch)
@@ -318,51 +204,3 @@ class Thing(Container):
             for bone in self.iter_stats_bones(
                     stats=[], observer=observer, branch=parent):
                 yield bone._replace(branch=branch)
-
-    def iter_loc_bones(self, observer=None, branch=None):
-        if observer is None:
-            for bone in self.character.iter_thing_loc_bones(self, branch):
-                yield bone
-        else:
-            facade = self.character.get_facade(observer)
-            for bone in facade.iter_thing_loc_bones(self, branch):
-                yield bone
-
-    def iter_stats_bones(self, stats=[], observer=None,
-                         branch=None, tick=None):
-        (branch, tick) = self.character.sanetime(branch, tick)
-        if observer is None:
-            try:
-                for bone in self.character.iter_thing_stat_bones(
-                        self.name, stats, [branch], [tick]):
-                    yield bone
-            except KeyError:
-                return
-        else:
-            facade = self.character.get_facade(observer)
-            for bone in facade.iter_thing_stat_bones(
-                    self.name, stats, [branch], [tick]):
-                yield bone
-
-    def branch_loc_bones_gen(self, branch=None):
-        """Iterate over all the location bones in the given branch, defaulting
-        to the current branch.
-
-        """
-        for bone in self.get_locations(branch=branch).iterbones():
-            yield bone
-
-    def restore_loc_bones(self, branch, bones):
-        """Delete all my location data in the given branch, and then set
-        location data from the bones.
-
-        """
-        self.character.del_thing_locations(self.name, branch)
-        for bone in bones:
-            self.character.closet.set_bone(bone)
-
-    def iter_stat_keys(self, observer=None, branch=None, tick=None):
-        (branch, tick) = self.character.sanetime(branch, tick)
-        for key in self.get_subjectively(
-                'iter_thing_stat_keys', observer, [branch, tick]):
-            yield key

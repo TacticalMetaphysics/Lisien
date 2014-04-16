@@ -1787,6 +1787,15 @@ class Closet(object):
         self.c.close()
         self.connector.close()
 
+    def sanetime(self, branch=None, tick=None):
+        """If branch or tick are None, replace with present branch or tick.
+
+        Return them in a pair.
+
+        """
+        return (branch if branch is not None else self.branch,
+                tick if tick is not None else self.tick)
+
     def get_bone_timely(self, keys, branch=None, tick=None):
         """Get the bone at the given keys and time"""
         if branch is None:
