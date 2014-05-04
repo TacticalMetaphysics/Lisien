@@ -1,71 +1,46 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from container import Container
+from place import Place, Container
 from LiSE.util import upbranch
 
 
 class Portal(Container):
     tables = [
-        ("portal", {
-            "columns": {
-                "character": "text not null default 'Physical'",
-                "name": "text not null",
-                "host": "text not null default 'Physical'"},
-            "primary_key": (
-                "character", "name")}),
         ("portal_loc", {
             "columns": {
-                "character": "text not null default 'Physical'",
+                "character": "text not null",
                 "name": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
+                "branch": "integer not null",
+                "tick": "integer not null",
                 "origin": "text",
                 "destination": "text"},
             "primary_key": (
-                "character", "name", "branch", "tick"),
-            "foreign_keys": {
-                "character, name": (
-                    "portal", "character, name")}}),
+                "character", "name", "branch", "tick")}),
         ("portal_stat", {
             "columns": {
-                "character": "text not null default 'Physical'",
+                "character": "text not null",
                 "name": "text not null",
-                "key": "text not null",
+                "key": "text",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
                 "value": "text"},
             "primary_key": (
                 "character", "name", "key", "branch", "tick"),
             "foreign_keys": {
-                "character, name": (
-                    "portal", "character, name")}})]
-
-    @property
-    def e(self):
-        return self.character.graph.es.find(name=self.name)
-
-    # @property
-    # def loc_bone(self):
-    #     return self.get_loc_bone()
-
-    @property
-    def host(self):
-        return self.character.closet.get_character(self.bone.host)
-
-    @property
-    def origin(self):
-        return self.get_origin()
-
-    @property
-    def destination(self):
-        return self.get_destination()
+                "character, name": ("portal_loc", "character, name")}})]
 
     def __init__(self, character, name):
         self.character = character
         self.name = name
-        self.closet = self.character.closet
-        self.bone = self.closet.skeleton[u"portal"][
-            self.character.name][self.name]
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Portal) and
+            self.character == other.character and
+            self.name == other.name)
+
+    def __hash__(self):
+        return hash((self.character, self.name))
 
     def __str__(self):
         return str(self.name)
@@ -78,30 +53,35 @@ class Portal(Container):
         return "{2}({0}->{1})".format(
             bone.origin, bone.destination, self.name)
 
-    def get_bone(self, observer=None):
-        if observer is None:
-            return self.character.get_portal_bone(self.name)
-        else:
-            facade = self.character.get_facade(observer)
-            return facade.get_portal_bone(self.name)
+    def __getitem__(self, key):
+        bone = self.loc_bone
+        return self.character.graph[bone.origin][bone.destination][key]
 
-    def get_loc_bone(self, observer=None, branch=None, tick=None):
-        if observer is None:
-            return self.character.get_portal_loc_bone(
-                self.name, branch, tick)
-        else:
-            facade = self.character.get_facade(observer)
-            return facade.get_portal_loc_bone(
-                self.name, branch, tick)
+    @property
+    def contents(self):
+        bone = self.loc_bone
+        return self.character.graph[bone.origin][bone.destination]['contents']
 
-    def get_origin(self, observer=None, branch=None, tick=None):
-        return self._get_origdest('origin', observer, branch, tick)
+    def _get_end(self, bprop):
+        bone = self.loc_bone
+        endn = getattr(bone, bprop)
+        if endn not in self.character.place_d:
+            self.character.place_d[endn] = Place(self.character, endn)
+        return self.character.place_d[endn]
 
-    def get_destination(self, observer=None, branch=None, tick=None):
-        return self._get_origdest('destination', observer, branch, tick)
+    @property
+    def origin(self):
+        return self._get_end('origin')
 
-    def _get_origdest(self, bone_att, observer, branch, tick):
-        return getattr(self.get_loc_bone(observer, branch, tick), bone_att)
+    @property
+    def destination(self):
+        return self._get_end('destination')
+
+    @property
+    def loc_bone(self):
+        (branch, tick) = self.character.closet.time
+        return self.character.closet.skeleton[u'portal_loc'][
+            self.character.name][self.name][branch].value_during(tick)
 
     def new_branch(self, parent, branch, tick):
         skel = self.character.closet.skeleton[u"portal_loc"][
@@ -109,15 +89,3 @@ class Portal(Container):
         for bone in upbranch(
                 self.character.closet, skel.iterbones(), branch, tick):
             yield bone
-
-    def iter_stat_keys(self, observer=None, branch=None, tick=None):
-        (branch, tick) = self.character.sanetime(branch, tick)
-        if observer is None:
-            for key in self.character.iter_portal_stat_keys(
-                    self.name, [branch], [tick]):
-                yield key
-        else:
-            facade = self.character.get_facade(observer)
-            for key in facade.iter_portal_stat_keys(
-                    self.name, [branch], [tick]):
-                yield key

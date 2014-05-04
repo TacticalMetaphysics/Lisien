@@ -19,39 +19,6 @@ class Spot(GamePiece):
     relative to its Board, not necessarily the window the Board is in.
 
     """
-    demands = ["board"]
-    provides = ["place"]
-    tables = [
-        ("spot", {
-            "columns": {
-                "observer": "text not null default 'Omniscient'",
-                "host": "text not null default 'Physical'",
-                "place": "text not null",
-                "layer": "integer not null default 0",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "graphic": "text not null default 'default_spot'",
-                "interactive": "boolean default 1"},
-            "primary_key": (
-                "observer", "host", "place",
-                "branch", "tick"),
-            "foreign_keys": {
-                "observer, host": ("board", "observer, observed"),
-                "graphic": ("graphic", "name")}}),
-        ("spot_coords", {
-            "columns": {
-                "observer": "text not null default 'Omniscient'",
-                "host": "text not null default 'Physical'",
-                "place": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "x": "float not null",
-                "y": "float not null"},
-            "primary_key": (
-                "observer", "host", "place", "branch", "tick"),
-            "foreign_keys": {
-                "observer, host, place": (
-                    "spot", "observer, host, place")}})]
     place = ObjectProperty()
     board = ObjectProperty()
     bone = ObjectProperty()

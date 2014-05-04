@@ -1,13 +1,11 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.gui.kivybits import SaveableWidgetMetaclass
 from kivy.properties import (
-    AliasProperty,
     DictProperty,
-    ObjectProperty)
+    ObjectProperty,
+    NumericProperty)
 from kivy.uix.image import Image
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.clock import Clock
 from spot import Spot
@@ -33,27 +31,6 @@ class BoardLayout(RelativeLayout):
 
 class Board(FloatLayout):
     """A graphical view onto a facade, resembling a game board."""
-    __metaclass__ = SaveableWidgetMetaclass
-    demands = ["thing", "graphic_img"]
-    tables = [
-        ("board", {
-            "columns": {
-                "observer": "text not null default 'Omniscient'",
-                "observed": "text not null default 'Physical'",
-                "host": "text not null default 'Physical'",
-                "wallpaper": "text not null default 'default_wallpaper'",
-                "x": "float not null default 0.0",
-                "y": "float not null default 0.0",
-                "arrow_width": "float not null default 1.4",
-                "arrowhead_size": "integer not null default 10",
-                "arrow_bg": "text not null default 'black'",
-                "arrow_fg": "text not null default 'white'"},
-            "primary_key": ("observer", "observed", "host"),
-            "foreign_keys": {
-                "arrow_bg": ("color", "name"),
-                "arrow_fg": ("color", "name")},
-            "checks": ("x>=0", "y>=0", "x<=1", "y<=1",
-                       "arrow_width>0", "arrowhead_size>0")})]
     facade = ObjectProperty()
     host = ObjectProperty()
     wallpaper = ObjectProperty()
@@ -63,32 +40,11 @@ class Board(FloatLayout):
     pawnlayout = ObjectProperty()
     arrowdict = DictProperty({})
     arrowlayout = ObjectProperty()
-    bone = ObjectProperty()
-
-    def _set_arrow_width(self, w):
-        self.bone = self.bone._replace(arrow_width=w)
-        self._trigger_set_bone()
-
-    arrow_width = AliasProperty(
-        lambda self: self.bone.arrow_width,
-        _set_arrow_width,
-        bind=('bone',))
-
-    def _set_arrowhead_size(self, v):
-        self.bone = self.bone._replace(arrowhead_size=v)
-        self._trigger_set_bone()
-
-    arrowhead_size = AliasProperty(
-        lambda self: self.bone.arrowhead_size,
-        _set_arrowhead_size,
-        bind=('bone',))
-
-    def _set_bone(self, *args):
-        self.host.closet.set_bone(self.bone)
+    arrow_width = NumericProperty()
+    arrowhead_size = NumericProperty()
 
     def __init__(self, **kwargs):
         kwargs['size_hint'] = (None, None)
-        self._trigger_set_bone = Clock.create_trigger(self._set_bone)
         return super(Board, self).__init__(**kwargs)
 
     def finalize(self, *args):

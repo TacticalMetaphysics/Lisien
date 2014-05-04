@@ -5,14 +5,14 @@ from LiSE.orm import SaveableMetaclass
 
 class AbstractEvent(object):
     """Something that can happen."""
-    def __init__(self, cause, branch, tick, **kwargs):
+    def __init__(self, character, cause, branch, tick, **kwargs):
+        # character may actually be of Facade class, but they have the
+        # same API so I'm using the name of the parent class by
+        # default
+        self.character = character
         self.cause = cause
         self.branch = branch
         self.tick = tick
-        # kwargs should really be handled by subclasses, but I'll
-        # store them in an instance var anyway to make debugging
-        # easier
-        self.kwargs = kwargs
 
     def iter_bones_to_set(self):
         """Implement an iterator over bones here. They will be set, and thus
@@ -23,13 +23,152 @@ class AbstractEvent(object):
             "Abstract class")
 
 
+class ThingEvent(AbstractEvent):
+    """Produces some change or other in a Thing.
+
+    Accepts optional kwargs:
+
+    name: the name of the Thing
+    host: the character to locate the Thing in
+    
+    Other (key, value) pairs in kwargs get interpreted as assignments
+    to the thing's stats.
+
+    In the case that it moves a Thing, the Thing in question will
+    teleport from one location to the next; no pathfinding happens
+    here. To destroy a Thing, set its location to None.
+
+    It is possible to change a thing's host with this event. This
+    probably isn't what you want; the thing's host defines whether,
+    eg., it's a physical item or a concept, so you should generally
+    only set that when you're creating a thing the first
+    time. ThingEvent does not enforce this, however.
+
+    """
+    def __init__(self, character, cause, branch, tick, **kwargs):
+        super(ThingEvent, self).__init__(
+            character, cause, branch, tick, **kwargs)
+        if 'name' in kwargs:
+            self.name = kwargs['name']
+            del kwargs['name']
+        else:
+            closet = self.character.closet
+            numeral = closet.get_global('top_generic_thing') + 1
+            closet.set_global('top_generic_thing', numeral)
+            self.name = 'generic_thing_{}'.format(numeral)
+        if 'location' in kwargs:
+            self.location = kwargs['location']
+            del kwargs['location']
+        if 'host' in kwargs:
+            self.host = kwargs['host']
+            del kwargs['host']
+        self.stats = kwargs
+
+    def iter_bones_to_set(self):
+        from LiSE.model import Thing
+        closet = self.character.closet
+        skel = closet.skeleton['thing']
+        charn = unicode(self.character)
+        name = unicode(self.name)
+        if (
+                charn not in skel or
+                self.name not in skel[charn] or
+                hasattr(self, 'host')):
+            yield Thing.bonetypes['thing'](
+                character=charn,
+                name=name,
+                host=unicode(self.host) if hasattr(
+                    self, 'host') else u'Physical')
+        if hasattr(self, 'location'):
+            yield Thing.bonetypes['thing_loc'](
+                character=charn,
+                name=name,
+                branch=int(self.branch),
+                tick=int(self.tick),
+                location=unicode(self.location))
+        for (key, value) in self.stats.iteritems():
+            yield Thing.bonetypes['thing_stat'](
+                character=charn,
+                name=name,
+                key=unicode(key),
+                branch=int(self.branch),
+                tick=int(self.tick),
+                value=unicode(value))
+
+
+class PortalEvent(AbstractEvent):
+    """Event to do something or other to a Portal, perhaps creating it in
+    the process.
+
+    """
+    def __init__(self, character, cause, branch, tick, **kwargs):
+        super(PortalEvent, self).__init__(
+            character, cause, branch, tick, **kwargs)
+        if 'name' in kwargs:
+            self.name = kwargs['name']
+            del kwargs['name']
+        else:
+            closet = self.character.closet
+            numeral = closet.get_global('top_generic_portal') + 1
+            closet.set_global('top_generic_portal', numeral)
+            self.name = 'generic_portal_{}'.format(numeral)
+        if 'origin' in kwargs:
+            self.origin = kwargs['origin']
+            del kwargs['origin']
+        if 'destination' in kwargs:
+            self.destination = kwargs['destination']
+            del kwargs['destination']
+        if 'host' in kwargs:
+            self.host = kwargs['host']
+            del kwargs['host']
+        self.stats = kwargs
+
+    def iter_bones_to_set(self):
+        # I am converting things to types I know sqlite3 to take.
+        # Doesn't sqlite3 already do that?  It might also be nice to
+        # check that the values are something sane, but the integrity
+        # constraints more or less do that already.
+        from LiSE.model import Portal
+        closet = self.character.closet
+        skel = closet.skeleton['portal']
+        charn = unicode(self.character)
+        name = unicode(self.name)
+        if (
+                charn not in skel or
+                self.name not in skel[charn] or
+                hasattr(self, 'host')):
+            yield Portal.bonetypes['portal'](
+                character=charn,
+                name=name,
+                host=unicode(self.host) if hasattr(
+                    self, 'host') else u'Physical')
+        if hasattr(self, 'origin') or hasattr(self, 'destination'):
+            yield Portal.bonetypes['portal_loc'](
+                character=charn,
+                name=name,
+                branch=int(self.branch),
+                tick=int(self.tick),
+                origin=unicode(self.origin) if hasattr(
+                    self, 'origin') else None,
+                destination=unicode(self.destination) if hasattr(
+                    self, 'destination') else None)
+        for (key, value) in self.stats.iteritems():
+            yield Portal.bonetypes['portal_stat'](
+                character=charn,
+                name=name,
+                key=unicode(key),
+                branch=int(self.branch),
+                tick=int(self.tick),
+                value=unicode(value))
+
+
 class DiegeticEventHandler(object):
     """An event handler for those events that take place in the simulated
     world.
 
     Whenever new ticks are added to a timeline, the Implicator will
     take a look at the world-state during each of them in
-    turn. Boolean functions called 'causes' will be called to evaluate
+    turn. Functions called 'causes' will be called to evaluate
     whether their associated Event should happen. When an Event
     happens, it is instantiated, and the instance is used to create
     bones describing the changes to the world state. The bones are set
@@ -71,6 +210,7 @@ class DiegeticEventHandler(object):
                     event_cls = self.cause_event_d[introspection]
                     kwargs['character'] = character
                     yield event_cls(
+                        character,
                         introspection,
                         branch,
                         tick,
@@ -82,6 +222,7 @@ class DiegeticEventHandler(object):
                         event_cls = self.cause_event_d[inquiry]
                         kwargs['facade'] = facade
                         yield event_cls(
+                            facade,
                             inquiry,
                             branch,
                             tick,

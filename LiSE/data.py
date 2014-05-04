@@ -37,7 +37,8 @@ globs = [('branch',   'int', '0'),
          ('observer', 'unicode', 'Omniscient'),
          ('observed', 'unicode', 'Player'),
          ('host',     'unicode', 'Physical'),
-         ('top_generic_graphic', 'int', '0')]
+         ('top_generic_graphic', 'int', '0'),
+         ('default_facade_cls', 'unicode', 'NullFacade')]
 """Default values for globals"""
 
 stackhs = [(10, ('block', 'brutalist')),
@@ -72,10 +73,6 @@ list of items, though it may be empty."""
 
 spot_coords = []
 """Pairs of spots with their coordinates"""
-
-boards = [('Omniscient', 'Player', 'Physical')]
-"""Boards, identified by triples: observer character, observed
-character, and host character"""
 
 things = {}
 """Thing names mapped to their locations"""

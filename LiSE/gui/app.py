@@ -24,6 +24,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.logger import Logger
+from kivy.factory import Factory
 
 from sqlite3 import connect, OperationalError
 
@@ -34,11 +35,8 @@ from LiSE.gui.board import (
 from LiSE.gui.board.gamepiece import GamePiece
 from LiSE.gui.board.arrow import get_points
 
-from LiSE.gui.kivybits import (
-    TouchlessWidget,
-    ClosetLabel,
-    SaveableWidgetMetaclass
-)
+from LiSE.gui.kivybits import TouchlessWidget, ClosetLabel
+from LiSE.gui.charsheet import CharSheetAdder
 
 from LiSE.util import TimestreamException
 from LiSE.model import Thing
@@ -129,6 +127,8 @@ class FrobSwatch(Button):
 
     def on_box(self, *args):
         """Bind the box's state to its ``upd_selection`` method"""
+        Logger.debug("FooSwatch: got box {}".format(
+            self.box))
         self.bind(state=self.box.upd_selection)
 
 
@@ -220,72 +220,19 @@ class SwatchBox(GridLayout):
             pass
 
 
-class MenuTextInput(TextInput):
-    closet = ObjectProperty()
+class DummySpot(Widget):
+    """This is at the end of the arrow that appears when you're drawing a
+    new portal. It's invisible, serving only to mark the pixel the
+    arrow ends at for the moment.
 
-    def __init__(self, **kwargs):
-        super(MenuTextInput, self).__init__(**kwargs)
-        self.finalize()
+    """
+    def collide_point(self, *args):
+        """This should be wherever you point, and therefore, always
+        collides."""
+        return True
 
-    def finalize(self, *args):
-        if not self.closet:
-            Clock.schedule_once(self.finalize, 0)
-            return
-        self.rehint_registrar(self.rehint)
-        self.rehint()
-
-    def rehint(self, *args):
-        self.text = ''
-        self.hint_text = self.hint_getter()
-
-    def on_focus(self, *args):
-        if not self.focus:
-            try:
-                self.value_setter(self.text)
-            except ValueError:
-                pass
-            self.rehint()
-        super(MenuTextInput, self).on_focus(*args)
-
-    def rehint_registrar(self, reh):
-        raise NotImplementedError(
-            "Abstract method")
-
-    def hint_getter(self):
-        raise NotImplementedError(
-            "Abstract method")
-
-    def value_setter(self, v):
-        raise NotImplementedError(
-            "Abstract method")
-
-
-class MenuBranchInput(MenuTextInput):
-    def rehint_registrar(self, reh):
-        self.closet.register_branch_listener(reh)
-
-    def hint_getter(self):
-        return self.closet.get_text('@branch')
-
-    def value_setter(self, v):
-        w = int(v)
-        if w < 0:
-            raise ValueError
-        self.closet.branch = w
-
-
-class MenuTickInput(MenuTextInput):
-    def rehint_registrar(self, reh):
-        self.closet.register_tick_listener(reh)
-
-    def hint_getter(self):
-        return self.closet.get_text('@tick')
-
-    def value_setter(self, v):
-        w = int(v)
-        if w < 0:
-            raise ValueError
-        self.closet.tick = w
+    def on_touch_move(self, touch):
+        self.center = touch.pos
 
 
 class DummyPawn(GamePiece):
@@ -374,7 +321,6 @@ class LiSELayout(FloatLayout):
     of those happen, the board handles touches on its own.
 
     """
-    __metaclass__ = SaveableWidgetMetaclass
     app = ObjectProperty()
     """The App instance that is running and thus holds the globals I need."""
     board = ObjectProperty()
@@ -393,6 +339,8 @@ class LiSELayout(FloatLayout):
     """Count how far along I am in the process of connecting two Places by
     creating a Portal between them."""
     playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
+    """How fast time is advancing. If negative, it's \'advancing\' into
+    the past."""
 
     def __init__(self, **kwargs):
         """Make a trigger for draw_arrow, then initialize as for
@@ -463,11 +411,13 @@ class LiSELayout(FloatLayout):
                 touch.ud['portaling'] = True
                 self.portal_d = {
                     'origspot': touch.ud['spot'],
+                    'dummyspot': DummySpot(pos=touch.pos),
                     'dummyarrow': TouchlessWidget()}
                 self.board.arrowlayout.add_widget(
                     self.portal_d['dummyarrow'])
+                self.add_widget(
+                    self.portal_d['dummyspot'])
                 self._touch = touch
-                del touch.ud['spot']
                 self.portaling = 2
             else:
                 self.portaling = 0
@@ -498,6 +448,7 @@ class LiSELayout(FloatLayout):
             if touch != self._touch:
                 return
             self.portal_d['dummyarrow'].canvas.clear()
+            self.remove_widget(self.portal_d['dummyspot'])
             self.board.remove_widget(self.portal_d['dummyarrow'])
             self.dismiss_prompt()
             destspot = self.board.on_touch_up(touch)
@@ -511,7 +462,10 @@ class LiSELayout(FloatLayout):
             portal = self.board.facade.observed.make_portal(
                 portalname, origplace, destplace,
                 host=self.board.host)
-            Arrow(board=self.board, portal=portal)
+            arrow = Arrow(
+                board=self.board, portal=portal)
+            self.board.arrowdict[unicode(portal)] = arrow
+            self.board.arrowlayout.add_widget(arrow)
         else:
             return super(LiSELayout, self).on_touch_up(touch)
 
@@ -816,6 +770,39 @@ class LiSELayout(FloatLayout):
         self.app.closet.time_travel(self.app.closet.branch, int(tstr))
 
 
+Factory.register('LiSELayout', cls=LiSELayout)
+
+
+class MenuIntInput(TextInput):
+    closet = ObjectProperty()
+    stringname = StringProperty()
+    attrname = StringProperty()
+
+    def __init__(self, **kwargs):
+        self._trigger_upd_time = Clock.create_trigger(self.upd_time)
+        super(MenuIntInput, self).__init__(**kwargs)
+
+    def insert_text(self, s, from_undo=False):
+        """Natural numbers only."""
+        return super(self, MenuIntInput).insert_text(
+            ''.join(c for c in s if c in '0123456789'),
+            from_undo)
+
+    def on_closet(self, *args):
+        if self.closet:
+            self.closet.register_time_listener(self._trigger_upd_time)
+
+    def on_text_validate(self, *args):
+        setattr(self.closet, self.attrname, int(self.text))
+
+    def upd_time(self, *args):
+        self.hint_text = str(getattr(self.closet, self.attrname))
+        self.text = ''
+
+
+Factory.register('MenuIntInput', cls=MenuIntInput)
+
+
 class LiSEApp(App):
     """LiSE, run as a standalone application, and not a library.
 
@@ -868,9 +855,7 @@ class LiSEApp(App):
             load_gfx=True,
             load_characters=[self.observer_name, self.observed_name,
                              self.host_name],
-            load_charsheet=(self.observer_name, self.observed_name),
-            load_board=[self.observer_name, self.observed_name,
-                        self.host_name])
+            load_charsheet=self.observed_name)
         l = LiSELayout(app=self)
         from kivy.core.window import Window
         from kivy.modules import inspector

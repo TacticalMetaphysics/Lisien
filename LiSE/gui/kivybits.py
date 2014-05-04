@@ -45,6 +45,7 @@ class ClosetToggleButton(ClosetButton, ToggleButtonBehavior):
 
 class ClosetHintTextInput(TextInput):
     closet = ObjectProperty()
+    stringname = StringProperty()
     failure_string = StringProperty()
     """String to use when the input failed to validate"""
     failure_color = ListProperty([1, 0, 0, 1])
@@ -53,8 +54,13 @@ class ClosetHintTextInput(TextInput):
     """Time after which to turn the color back"""
     failure_string_timeout = NumericProperty(3)
     """Time after which to turn the hint_text back"""
-    validator = ObjectProperty()
-    """Boolean function for whether the input is acceptable"""
+
+    def __init__(self, **kwargs):
+        super(ClosetHintTextInput, self).__init__(**kwargs)
+        self._trigger_rehint = Clock.create_trigger(self.rehint)
+
+    def rehint(self):
+        self.hint_text = self.closet.get_text(self.stringname)
 
     def validate(self):
         """If my text is valid, return True. Otherwise, communicate invalidity
