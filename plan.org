@@ -1,10 +1,7 @@
 * database
-** DONE change loaders so they can handle the case where you try to load something that doesn't exist
-** schema changes
 ** ORM
    In orm.py mostly. Note there is no actual *class* called "ORM".
-*** 
-* interface
+* user interface
 ** place places (w. spots)
 *** pick graphics
     Using SwatchBox.
@@ -80,7 +77,9 @@
 * AI
   Taking a page from... er, someone's *description of* Renderware AI
 ** Perception
-   Some ways to automagically construct and maintain dimensions representing a character's *perception of* the gameworld, rather than the model that the game resolves conflicts with.
+   Some ways to automagically construct and maintain graphs
+   representing a character's *perception of* the gameworld, rather
+   than the model that the game resolves conflicts with.
 ** Decision
    Algorithms acting on those perception graphs. Often this is just
    pathfinding--though it may operate on a graph representing
@@ -93,42 +92,12 @@
    changes but not so much that you have to start over. Some
    roadblocks may be bypassed by just waiting for them to go away, for
    instance.
-* Basic features
-  In my opinion, every life sim should have these.
-** Characters
-*** Body model
-**** Standard parts
-***** Humans
-***** Dogs, cats
-***** Mechanical bits
-*** Mind/spirit model
-**** NPC scripting
-**** NPC narrow AI
-**** Knowledge tracking
-*** Skill model
-*** Sense model
-**** Sight
-***** What's here
-***** What's inside
-***** What does it resemble
-**** Mistaken impressions
-**** Incomplete impressions
-** Day/night cycle
-*** Arbitrary number of day-periods, which are not necessarily the smallest meaningful units of time, but which are the smallest units that can be scheduled for
-*** NPCs follow no-thought scripts for each day, unless and until interrupted
-**** The behavior solver will need to know what of the NPC's interests have been served by that point
-**** To that effect, I will also need a need tracker
-***** This will take the NPC's current wishes as parameters and track how they're being served
-***** This information takes the same form that the solver will use
-***** It has conditions under which it instantiates a solver, taking the wishes and their need-states, and gives the solver control of the NPC
-****** These conditions may be thresholds that the need-states can pass
-****** They may be world-states that the NPC is intimately concerned with, eg. a physician getting a call about a patient that they must immediately operate upon
-****** The NPC should pretty much always wake up and pay attention whenever the player character interacts with them directly.
-** Programming interface
-*** Event infrastructure
-**** TODO Turn existing Journeys into events
-* Extra features
-** Stolen from Kudos 2
+* Programming interface
+** branch, tick [2014-04-30 Wed]
+   Every function that depends on the current diegetic time should
+   pull it from the closet. That means no functions but those in the
+   ORM should take (branch, tick) as parameters.
+* Features stolen from Kudos 2
 *** the social web display
 *** the kudos bar
 *** Significant Others
@@ -137,14 +106,14 @@ But not restricted to stuff you've "unlocked," just stuff you *know
 about* and which your character considers sensible.
 
 Actually this should just be a sorting priority for the action inventory.
-** Stolen from Redshirt
+* Features stolen from Redshirt
 *** the *navigable* social web display
 *** feeds of character activities
 **** per character
 **** per location
 **** text mode
      Calendar mode also. Redshirt doesn't have that!
-** Stolen from Dwarf Fortress
+* Features stolen from Dwarf Fortress
 * Gameplay cycle
 Depending on how many characters you control, and how far each will
 obey your instructions, it might be an rpg or a time/resource mgmt
@@ -196,64 +165,3 @@ cities. Abstraction is wonderful for that kind of thing.
    not really. Ticks and branches are more like axes on a Cartesian
    plane: you use the two of them together to identify when you want
    something.
-
-* switchover to character centric database
-
-** character
-*** thing
-**** get [3/3]
-***** DONE get_thing_bone
-***** DONE get_thing_locations
-***** DONE get_thing_location
-**** set [3/3]
-***** DONE set_thing_bone
-***** DONE set_thing_location
-***** DONE set_thing_idx
-*** place
-**** get [2/3]
-***** DONE get_place_bone
-***** DONE get_place_contents
-***** TODO get_place_incident
-      I guess that just means portals from/to?
-**** set [2/2]
-***** DONE set_place_bone
-***** DONE set_place_idx
-*** portal
-**** get [3/3]
-***** DONE get_portal_bone
-***** DONE get_portal_origin
-***** DONE get_portal_destination
-**** set [4/4]
-***** DONE set_portal_bone
-***** DONE set_portal_origin
-***** DONE set_portal_destination
-***** DONE set_portal_dimension
-*** stat
-**** get [2/2]
-***** DONE get_stat_bone
-***** DONE get_stat_val
-**** set [2/2]
-***** DONE set_stat_bone
-***** DONE set_stat_val
-** facade
-*** thing
-**** get [1/1]
-***** DONE get_thing_bone
-**** set [1/1]
-***** DONE set_thing_bone
-*** place
-**** get [1/1]
-***** DONE get_place_bone
-**** set [1/1]
-***** DONE set_place_bone
-*** portal
-**** get [1/1]
-***** DONE get_portal_bone
-**** set [1/1]
-***** DONE set_portal_bone
-*** stat
-**** get [1/1]
-***** DONE get_stat_bone
-**** set [1/1]
-***** DONE set_stat_bone
-

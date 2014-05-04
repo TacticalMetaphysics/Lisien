@@ -5,6 +5,7 @@ from kivy.properties import (
     AliasProperty,
     ObjectProperty,
     NumericProperty,
+    StringProperty,
     ReferenceListProperty)
 from kivy.logger import Logger
 from kivy.clock import Clock
@@ -29,24 +30,6 @@ some amount of game time. Whenever the game-time changes, the Pawn
 will update its position appropriately.
 
     """
-    demands = ["board"]
-    tables = [
-        ("pawn", {
-            "columns": {
-                "observer": "text not null default 'Omniscient'",
-                "host": "text not null default 'Physical'",
-                "thing": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "graphic": "text not null",
-                "interactive": "boolean default 1"},
-            "primary_key": (
-                "observer", "host", "thing",
-                "branch", "tick"),
-            "foreign_keys": {
-                "observer, host": (
-                    "board", "observer, host"),
-                "graphic": ("graphic", "name")}})]
     board = ObjectProperty()
     thing = ObjectProperty()
     bone = ObjectProperty()
@@ -55,35 +38,14 @@ will update its position appropriately.
     time = ReferenceListProperty(branch, tick)
     _touch = ObjectProperty(None, allownone=True)
     where_upon = ObjectProperty()
-    name = AliasProperty(
-        lambda self: self.bone.graphic if self.bone else '',
-        lambda self, v: None,
-        bind=('bone',))
-    character = AliasProperty(
-        lambda self: self.thing.character,
-        lambda self, v: None,
-        bind=('thing',))
-    closet = AliasProperty(
-        lambda self: self.thing.character.closet,
-        lambda self, v: None,
-        bind=('thing',))
+    name = StringProperty()
+    closet = ObjectProperty()
+    graphic_name = StringProperty()
     locskel = AliasProperty(
         lambda self: self.thing.character.closet.skeleton[u'thing_loc'][
             unicode(self.thing.character)][unicode(self.thing)],
         lambda self, v: None,
         bind=('thing',))
-    get_bone = AliasProperty(
-        lambda self: self.thing.character.closet.timely_bone_getter(
-            [u'pawn', unicode(self.board.facade.observer),
-             unicode(self.board.facade.observed),
-             unicode(self.thing.host), unicode(self.thing)])
-        if self.board else None,
-        lambda self, v: None,
-        bind=('board', 'time'))
-    graphic_name = AliasProperty(
-        lambda self: self.bone.graphic if self.bone else '',
-        lambda self, v: None,
-        bind=('bone',))
 
     def __init__(self, **kwargs):
         """Arrange to update my textures and my position whenever the relevant
@@ -117,38 +79,6 @@ will update its position appropriately.
 
     def get_loc_bone(self, branch=None, tick=None):
         return self.thing.get_bone(branch, tick)
-
-    def get_pawn_bone(self, branch=None, tick=None):
-        (branch, tick) = self.board.host.sanetime(branch, tick)
-        return self.board.host.closet.skeleton[u"pawn"][
-            unicode(self.board.facade.observer)][
-            unicode(self.board.facade.observed)][
-            unicode(self.thing.host)][
-            unicode(self.thing)][branch].value_during(tick)
-
-    def new_branch(self, parent, branch, tick):
-        """Update my part of the :class:`Skeleton` to have this new branch in
-        it. Where there is room, fill it with data from the parent branch."""
-        prev = None
-        started = False
-        imagery = self.board.host.closet.skeleton[u"pawn"][
-            unicode(self.board.facade.observer)][
-            unicode(self.thing.character)][
-            unicode(self.board.host)][
-            unicode(self.thing)]
-        for tick_from in imagery[parent]:
-            if tick_from >= tick:
-                bone2 = imagery[parent][tick_from]._replace(
-                    branch=branch)
-                yield bone2
-                if (
-                        not started and prev is not None and
-                        tick_from > tick and prev < tick):
-                    bone3 = imagery[parent][prev]._replace(
-                        branch=branch, tick_from=tick_from)
-                    yield bone3
-                    started = True
-                prev = tick_from
 
     def dropped(self, x, y, button, modifiers):
         """When dropped on a spot, if my :class:`Thing` doesn't have anything

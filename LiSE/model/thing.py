@@ -1,11 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.util import (
-    TimeParadox,
-    JourneyException
-)
-
-from container import Container
+from LiSE.util import TimeParadox
+from place import Place, Container
 
 
 class Thing(Container):
@@ -18,28 +14,27 @@ class Thing(Container):
     same.
 
     """
-    demands = ["portal", "place_stat"]
+    demands = ["portal_loc", "place_stat"]
     tables = [
         ("thing_loc", {
             "columns": {
-                "host": "text not null default 'Physical'",
+                "character": "text not null default 'Physical'",
                 "name": "text not null",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
                 "location": "text"},
             "primary_key": (
-                "host", "name", "branch", "tick")}),
+                "character", "name", "branch", "tick")}),
         ("thing_stat", {
             "columns": {
                 "character": "text not null",
-                "host": "text not null",
                 "name": "text not null",
                 "key": "text",
                 "branch": "integer not null default 0",
                 "tick": "integer not null default 0",
                 "value": "text"},
             "primary_key": (
-                "character", "host", "name", "key", "branch", "tick"),
+                "character", "name", "key", "branch", "tick"),
             "foreign_keys": {
                 "character, name": (
                     "thing", "character, name")}})]
@@ -61,83 +56,33 @@ class Thing(Container):
     def __contains__(self, that):
         return that.location is self
 
-    def get_location(self, branch=None, tick=None):
-        pass
-
-    def get_progress(self, branch=None, tick=None):
-        """Return a float representing the proportion of the portal I have
-        passed through.
-
-        """
-        pass
-
-    def journey_to(self, destplace, branch=None, tick=None):
-        """Schedule myself to travel somewhere.
-
-        I'll attempt to find a path from wherever I am at the moment
-        (or the time supplied) to the destination given. If I find
-        one, I'll schedule myself to be in the places and portals in
-        it at the appropriate times. Precisely what times are
-        'appropriate' depends on the effective lengths of the portals.
-
-        """
-        if unicode(destplace) == unicode(self.get_location(branch, tick)):
-            # Nothing to do
-            return
-        (branch, tick) = self.character.sanetime(branch, tick)
-        oloc = self.get_location(None, branch, tick)
-        otick = tick
-        if "Portal" in oloc.__class__.__name__:
-            loc = unicode(oloc.destination)
-            tick = self.get_locations(None, branch).key_after(otick)
+    def __getitem__(self, key):
+        if key == 'contents':
+            return self.character.thing_contents_d[self.name]
+        elif key == 'location':
+            return self.location
         else:
-            loc = oloc
-            tick = otick
-        # Get a shortest path based on my understanding of the graph,
-        # which may not match reality.  It would be weird to use some
-        # other character's understanding.
-        host = self.character.closet.get_character(self.get_bone().host)
-        host.update(branch, tick)
-        facade = host.get_facade(self.character)
-        facade.update(branch, tick)
-        ipath = facade.graph.get_shortest_paths(
-            unicode(loc), to=unicode(destplace), output=str("epath"))
-        path = None
-        for p in ipath:
-            if p == []:
-                continue
-            desti = facade.graph.es[p[-1]].target
-            if desti == destplace.v.index:
-                path = [facade.graph.es[i]["portals"][
-                    unicode(facade.observer)] for i in p]
-                break
-        if path is None:
-            raise JourneyException("Found no path to " + str(destplace))
-        locs = list(self.branch_loc_bones_gen(branch))
-        # Attempt to follow the path based on how the graph is
-        # actually laid out.
-        try:
-            self.follow_path(path, branch, tick)
-        except TimeParadox:
-            tupme = (unicode(self.character), unicode(self))
-            self.character.closet.new_branch_blank.add(tupme)
-            self.restore_loc_bones(branch, locs)
-            increment = 1
-            while branch + increment in self.locations:
-                increment += 1
-            self.character.closet.new_branch(branch, branch+increment, tick)
-            self.character.closet.time_travel(branch+increment, tick)
-            self.character.closet.new_branch_blank.remove(tupme)
-            if "Portal" in oloc.__class__.__name__:
-                loc = oloc.origin
-                tick = self.get_locations().key_after(otick)
-            else:
-                loc = oloc
-                tick = otick
-            self.follow_path(
-                path, self.character.closet.branch, tick+1)
+            return self.character.thing_stat_d[self.name][key]
 
-    def follow_path(self, path, branch, tick):
+    @property
+    def loc_bone(self):
+        (branch, tick) = self.character.closet.time
+        return self.character.closet.skeleton[u"thing_loc"][
+            self.character.name][self.name][branch].value_during(tick)
+
+    @property
+    def location(self):
+        bone = self.loc_bone
+        locn = bone.location
+        if locn in self.character.thing_d:
+            return self.character.thing_d[locn]
+        elif locn in self.character.portal_d:
+            return self.character.portal_d[locn]
+        elif locn not in self.character.place_d:
+            self.character.place_d[locn] = Place(self.character, locn)
+        return self.character.place_d[locn]
+
+    def follow_path(self, path):
         """Presupposing I'm in the given host, follow the path by scheduling
         myself to be located in the appropriate place or portal at the
         appropriate time.
@@ -149,6 +94,7 @@ class Thing(Container):
         already scheduled.
 
         """
+        (branch, tick) = self.character.closet.time
         try:
             aft = self.get_locations(
                 observer=None, branch=branch).key_after(tick)
@@ -173,6 +119,9 @@ class Thing(Container):
                 location=unicode(port.destination),
                 tick=prevtick)
             host.closet.set_bone(bone)
+            # Currently, a Thing will stay in each Place on a path for
+            # exactly one tick before leaving.  This may not always be
+            # appropriate.
             prevtick += 1
 
     def new_branch(self, parent, branch, tick):

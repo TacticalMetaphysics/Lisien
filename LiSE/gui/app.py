@@ -24,6 +24,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.logger import Logger
+from kivy.factory import Factory
 
 from sqlite3 import connect, OperationalError
 
@@ -769,6 +770,39 @@ class LiSELayout(FloatLayout):
         self.app.closet.time_travel(self.app.closet.branch, int(tstr))
 
 
+Factory.register('LiSELayout', cls=LiSELayout)
+
+
+class MenuIntInput(TextInput):
+    closet = ObjectProperty()
+    stringname = StringProperty()
+    attrname = StringProperty()
+
+    def __init__(self, **kwargs):
+        self._trigger_upd_time = Clock.create_trigger(self.upd_time)
+        super(MenuIntInput, self).__init__(**kwargs)
+
+    def insert_text(self, s, from_undo=False):
+        """Natural numbers only."""
+        return super(self, MenuIntInput).insert_text(
+            ''.join(c for c in s if c in '0123456789'),
+            from_undo)
+
+    def on_closet(self, *args):
+        if self.closet:
+            self.closet.register_time_listener(self._trigger_upd_time)
+
+    def on_text_validate(self, *args):
+        setattr(self.closet, self.attrname, int(self.text))
+
+    def upd_time(self, *args):
+        self.hint_text = str(getattr(self.closet, self.attrname))
+        self.text = ''
+
+
+Factory.register('MenuIntInput', cls=MenuIntInput)
+
+
 class LiSEApp(App):
     """LiSE, run as a standalone application, and not a library.
 
@@ -821,9 +855,7 @@ class LiSEApp(App):
             load_gfx=True,
             load_characters=[self.observer_name, self.observed_name,
                              self.host_name],
-            load_charsheet=self.observed_name,
-            load_board=[self.observer_name, self.observed_name,
-                        self.host_name])
+            load_charsheet=self.observed_name)
         l = LiSELayout(app=self)
         from kivy.core.window import Window
         from kivy.modules import inspector

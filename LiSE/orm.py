@@ -1269,7 +1269,9 @@ class Timestream(object):
         self._tick = 0
         self._hi_branch = 0
         self._hi_tick = 0
+        self.branch_listeners = []
         self.tick_listeners = []
+        self.time_listeners = []
 
         def set_branch(v):
             self._branch = v
@@ -1277,6 +1279,8 @@ class Timestream(object):
                 self._hi_branch = self._branch
             for listener in self.branch_listeners:
                 listener(v)
+            for listener in self.time_listeners:
+                listener(v, self._tick)
 
         def set_tick(v):
             self._tick = v
@@ -1284,6 +1288,8 @@ class Timestream(object):
                 self._hi_tick = self._tick
             for listener in self.tick_listeners:
                 listener(v)
+            for listener in self.time_listeners:
+                listener(self._branch, v)
 
         self.branch = property(lambda: self._branch, set_branch)
         self.tick = property(lambda: self._tick, set_tick)
@@ -1295,10 +1301,18 @@ class Timestream(object):
         self.branch_listeners.remove(fun)
 
     def register_tick_listener(self, fun):
-        self.tick_listeners.append(fun)
+        if fun not in self.tick_listeners:
+            self.tick_listeners.append(fun)
 
     def unregister_tick_listener(self, fun):
         self.tick_listeners.remove(fun)
+
+    def register_time_listener(self, fun):
+        if fun not in self.time_listeners:
+            self.time_listeners.append(fun)
+
+    def unregister_time_listener(self, fun):
+        self.time_listeners.remove(fun)
 
     def min_branch(self, table=None):
         """Return the lowest known branch.
@@ -1395,22 +1409,12 @@ class Timestream(object):
 def iter_character_query_bones_named(name):
     """Yield all the bones needed to query the database about all the data
     in a character."""
-    yield Thing.bonetypes["thing"]._null()._replace(
-        character=name)
-    yield Portal.bonetypes["portal"]._null()._replace(
-        character=name)
-    yield Place.bonetypes["place_stat"]._null()._replace(
-        character=name)
-    yield Character.bonetypes["character_stat"]._null()._replace(
-        character=name)
-    yield Portal.bonetypes["portal_loc"]._null()._replace(
-        character=name)
-    yield Portal.bonetypes["portal_stat"]._null()._replace(
-        character=name)
-    yield Thing.bonetypes["thing_loc"]._null()._replace(
-        character=name)
-    yield Thing.bonetypes["thing_stat"]._null()._replace(
-        character=name)
+    for bonetype in (
+            Thing.bonetypes.values() +
+            Portal.bonetypes.values() +
+            Place.bonetypes.values() +
+            Character.bonetypes.values()):
+        yield bonetype._null()._replace(character=name)
 
 
 class Closet(object):
@@ -1746,14 +1750,14 @@ class Closet(object):
 
         if 'load_img_tags' in kwargs:
             self.load_imgs_tagged(kwargs['load_img_tags'])
-        if 'load_characters' in kwargs:
-            self.load_characters(kwargs['load_characters'])
         # two characters that always exist, though they may not play
         # any role in the game
         if 'Physical' not in self.character_d:
-            Character(self, 'Physical')
+            self.character_d['Physical'] = Character(self, 'Physical')
         if 'Omniscient' not in self.character_d:
-            Character(self, 'Omniscient')
+            self.character_d['Omniscient'] = Character(self, 'Omniscient')
+        if 'load_characters' in kwargs:
+            self.load_characters(kwargs['load_characters'])
         if 'load_charsheet' in kwargs:
             self.load_charsheet(kwargs['load_charsheet'])
 
@@ -2060,60 +2064,6 @@ class Closet(object):
         if isinstance(name, Character):
             return name
         return self.get_characters([str(name)])[str(name)]
-
-    def get_effects(self, names):
-        """Return the named effects in a dict"""
-        r = {}
-        for name in names:
-            r[name] = Implicator.make_effect(name)
-        return r
-
-    def get_effect(self, name):
-        """Return the named effect in a dict"""
-        return self.get_effects([name])[name]
-
-    def get_causes(self, names):
-        """Return the named causes in a dict"""
-        r = {}
-        for name in names:
-            r[name] = Implicator.make_cause(name)
-        return r
-
-    def get_cause(self, cause):
-        """Return the named cause in a dict"""
-        return self.get_causes([cause])[cause]
-
-    def load_board(self, observer, observed, host):
-        """Load and return a graphical board widget displaying the contents of
-        the host that are parts of the observed character, as seen by
-        the observer character.
-
-        """
-        obsrvr = unicode(observer)
-        obsrvd = unicode(observed)
-        hst = unicode(host)
-        keybones = [
-            Board.bonetypes["board"]._null()._replace(
-                observer=obsrvr, observed=obsrvd, host=hst),
-            Spot.bonetypes["spot"]._null()._replace(
-                host=hst),
-            Spot.bonetypes["spot_coords"]._null()._replace(
-                host=hst),
-            Pawn.bonetypes["pawn"]._null()._replace(
-                host=hst)]
-        self.select_and_set(keybones)
-
-    def get_board(self, observer, observed, host):
-        """Return a graphical board widget displaying the contents of the host
-        that are parts of the observed character, as seen by the
-        observer character. Load it if needed.
-
-        """
-        observer = self.get_character(observer)
-        observed = self.get_character(observed)
-        host = self.get_character(host)
-        facade = observed.get_facade(observer)
-        return Board(facade=facade, host=host)
 
     def get_place(self, char, placen):
         """Get a place from a character"""
@@ -2430,10 +2380,6 @@ class Closet(object):
                 set_place_maybe(core.host, loc, bone.branch, bone.tick)
         elif Place and isinstance(bone, Place.bonetypes[u"place_stat"]):
             set_place_maybe(bone.host, bone.name, bone.branch, bone.tick)
-        elif Spot and isinstance(bone, Spot.bonetypes[u"spot"]):
-            set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
-        elif Spot and isinstance(bone, Spot.bonetypes[u"spot_coords"]):
-            set_place_maybe(bone.host, bone.place, bone.branch, bone.tick)
 
         # img_tag bones give the keys to be used in ``img_tag_d``,
         # which stores Img instances by their tag
@@ -2515,30 +2461,6 @@ def defaults(c, kivy=False):
                     ", ".join(["?"] * len(names))))
             qrytup = (height,) + names
             c.execute(qrystr, qrytup)
-        from LiSE.data import boards
-        for (obsrvr, obsrvd, hst) in boards:
-            c.execute(
-                "INSERT INTO board (observer, observed, host) "
-                "VALUES (?, ?, ?);",
-                (obsrvr, obsrvd, hst))
-        from LiSE.data import spot_coords
-        for (place, x, y) in spot_coords:
-            c.execute(
-                "INSERT INTO spot (place) VALUES (?);",
-                (place,))
-        c.executemany(
-            "INSERT INTO spot_coords (place, x, y) VALUES (?, ?, ?);",
-            spot_coords)
-        from LiSE.data import pawns
-        for observed in pawns:
-            for (thing, layers) in pawns[observed].iteritems():
-                i = 0
-                for layer in layers:
-                    c.execute(
-                        "INSERT INTO pawn (observed, thing, layer, img) "
-                        "VALUES (?, ?, ?, ?);",
-                        (observed, thing, i, layer))
-                    i += 1
     from LiSE.data import globs
     c.executemany(
         "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
@@ -2748,13 +2670,12 @@ def mkdb(DB_NAME, lisepath, kivy=False):
 
 
 def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
-                load_gfx=False, load_characters=[], load_charsheet=None,
-                load_board=[]):
+                load_gfx=False, load_characters=[], load_charsheet=None):
     """Return a Closet instance for the given database, maybe loading a
     few things before listening to the skeleton."""
     kivish = False
     for kive in (load_img, load_img_tags, load_gfx,
-                 load_charsheet, load_board):
+                 load_charsheet):
         if kive:
             kivish = True
             break
@@ -2772,6 +2693,4 @@ def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
         r.load_characters(load_characters)
     if load_charsheet:
         r.load_charsheet(load_charsheet)
-    if load_board:
-        r.load_board(*load_board)
     return r

@@ -1,16 +1,10 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from math import sqrt, hypot, atan, pi, sin, cos
-from re import match, findall
-
-
 """Common utility functions and data structures.
 
-The most important are Skeleton, a mapping used to store and maintain
-all game data; and SaveableMetaclass, which generates
-SQL from metadata declared as class atttributes.
-
 """
+from math import sqrt, hypot, atan, pi, sin, cos
+from re import match, findall
 
 ### Constants
 
