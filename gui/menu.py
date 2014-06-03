@@ -4,7 +4,8 @@ from kivy.properties import (
     BooleanProperty,
     StringProperty,
     ObjectProperty,
-    NumericProperty)
+    NumericProperty
+)
 from kivy.uix.widget import Widget
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout

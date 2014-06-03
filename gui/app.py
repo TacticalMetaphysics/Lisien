@@ -7,9 +7,7 @@ from kivy.properties import (
     ObjectProperty,
     OptionProperty,
     ListProperty,
-    StringProperty,
-    AliasProperty
-)
+    StringProperty)
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
 from kivy.uix.image import Image
@@ -29,14 +27,15 @@ from kivy.factory import Factory
 from sqlite3 import connect, OperationalError
 
 from LiSE.gui.board import (
+    Board,
     Pawn,
     Spot,
-    Arrow)
+    Arrow
+)
 from LiSE.gui.board.gamepiece import GamePiece
 from LiSE.gui.board.arrow import get_points
 
 from LiSE.gui.kivybits import TouchlessWidget, ClosetLabel
-from LiSE.gui.charsheet import CharSheetAdder
 
 from LiSE.util import TimestreamException
 from LiSE.model import Thing
@@ -57,24 +56,6 @@ def get_categorized_images(closet, tags):
 
 class BoardView(ScrollView):
     board = ObjectProperty()
-
-    def _set_scroll_x(self, x):
-        self.board.bone = self.board.bone._replace(x=x)
-        self.board._trigger_set_bone()
-
-    def _set_scroll_y(self, y):
-        self.board.bone = self.board.bone._replace(y=y)
-        self.board._trigger_set_bone()
-
-    scroll_x = AliasProperty(
-        lambda self: self.board.bone.x if self.board else 0,
-        _set_scroll_x,
-        cache=False)
-
-    scroll_y = AliasProperty(
-        lambda self: self.board.bone.y if self.board else 0,
-        _set_scroll_y,
-        cache=False)
 
     def on_touch_down(self, touch):
         for preemptor in 'menu', 'charsheet', 'portaling':
@@ -111,8 +92,9 @@ class FrobSwatch(Button):
 
     def upd_image(self, *args):
         """Make an ``Image`` to display ``self.img`` with."""
-        Logger.debug("FooSwatch: upd_image with img {}".format(
-            self.img))
+        Logger.debug(
+            "FooSwatch: upd_image with img {}".format(self.img)
+        )
         if not self.img:
             return
         if not self.box:
@@ -121,14 +103,16 @@ class FrobSwatch(Button):
         image = Image(
             texture=self.img.texture,
             center=self.center,
-            size=self.img.size)
+            size=self.img.size
+        )
         self.bind(center=image.setter('center'))
         self.add_widget(image)
 
     def on_box(self, *args):
         """Bind the box's state to its ``upd_selection`` method"""
-        Logger.debug("FooSwatch: got box {}".format(
-            self.box))
+        Logger.debug(
+            "FooSwatch: got box {}".format(self.box)
+        )
         self.bind(state=self.box.upd_selection)
 
 
@@ -206,7 +190,8 @@ class SwatchBox(GridLayout):
         if self.sellen > self.max_sel:
             if self.sellen != self.max_sel + 1:
                 raise ValueError(
-                    "Seems like you somehow selected >1 at once?")
+                    "Seems like you somehow selected >1 at once?"
+                )
             oldsel = self.selection.pop(0)
             oldsel.state = 'normal'
             self.sellen -= 1
@@ -276,13 +261,15 @@ class DummyPawn(GamePiece):
                 tinybone = Thing.bonetype(
                     character=obsrvd,
                     name=self.thing_name,
-                    host=hostn)
+                    host=hostn
+                )
                 bigbone = Thing.bonetypes["thing_loc"](
                     character=obsrvd,
                     name=self.thing_name,
                     branch=closet.branch,
                     tick=closet.tick,
-                    location=placen)
+                    location=placen
+                )
                 pawnbone = Pawn.bonetype(
                     observer=obsrvr,
                     observed=obsrvd,
@@ -290,7 +277,8 @@ class DummyPawn(GamePiece):
                     thing=self.thing_name,
                     branch=closet.branch,
                     tick=closet.tick,
-                    graphic=self.graphic_name)
+                    graphic=self.graphic_name
+                )
                 closet.set_bone(tinybone)
                 closet.set_bone(bigbone)
                 closet.set_bone(pawnbone)
@@ -348,11 +336,6 @@ class LiSELayout(FloatLayout):
         self._trigger_draw_arrow = Clock.create_trigger(self.draw_arrow)
         super(LiSELayout, self).__init__(**kwargs)
 
-    def handle_adbut(self, charsheet, i):
-        """Open the popup for adding something to the charsheet."""
-        adder = CharSheetAdder(charsheet=charsheet, insertion_point=i)
-        adder.open()
-
     def draw_arrow(self, *args):
         """Draw the arrow that you see when you're in the process of placing a
         portal.
@@ -394,7 +377,8 @@ class LiSELayout(FloatLayout):
         """
         _ = self.app.closet.get_text
         self.display_prompt(_(
-            "Draw a line between the places to connect with a portal."))
+            "Draw a line between the places to connect with a portal."
+        ))
         self.portaling = 1
 
     def on_touch_down(self, touch):
@@ -412,7 +396,8 @@ class LiSELayout(FloatLayout):
                 self.portal_d = {
                     'origspot': touch.ud['spot'],
                     'dummyspot': DummySpot(pos=touch.pos),
-                    'dummyarrow': TouchlessWidget()}
+                    'dummyarrow': TouchlessWidget()
+                }
                 self.board.arrowlayout.add_widget(
                     self.portal_d['dummyarrow'])
                 self.add_widget(
@@ -487,7 +472,7 @@ class LiSELayout(FloatLayout):
         be swatched under that header.
 
         """
-        hostn = unicode(self.board.host)
+        hostn = unicode(self.board.facade.observed)
         if hostn not in self.app.closet.skeleton[u"place"]:
             self.app.closet.skeleton[u"place"][hostn] = {}
         swatch_menu_scrollview = ScrollView(
@@ -499,13 +484,15 @@ class LiSELayout(FloatLayout):
             content = BoxLayout(orientation='vertical', size_hint_y=None)
             header = ClosetLabel(
                 closet=self.app.closet, stringname=headtxt,
-                size_hint_y=None, height=30)
+                size_hint_y=None, height=30
+            )
             content.add_widget(header)
             pallet = SwatchBox(
                 closet=self.app.closet,
                 tag=tag,
                 cols=cols,
-                size_hint_y=None)
+                size_hint_y=None
+            )
             content.add_widget(pallet)
             swatch_menu_swatches.add_widget(content)
             content.height = header.height + pallet.height
@@ -557,8 +544,11 @@ class LiSELayout(FloatLayout):
             """
             if text == '':
                 return _('You need to enter a thing name here')
-            elif text in self.app.closet.skeleton[u'thing'][
-                    unicode(self.board.facade.observed)]:
+            elif text in (
+                    self.app.closet.skeleton
+                    [u'thing']
+                    [unicode(self.board.facade.observed)]
+            ):
                 return _('That thing name is already used, choose another')
 
         obsrvd = unicode(self.board.facade.observed)
@@ -568,28 +558,48 @@ class LiSELayout(FloatLayout):
             self.app.closet.skeleton[u"thing_loc"][obsrvd] = {}
 
         namebox = TextInput(
-            hint_text=_('Enter a unique thing name'), multiline=False,
-            size_hint_y=None, height=34, font_size=20)
-        swatches = self.get_swatch_view([('Body', 'base'),
-                                         ('Clothes', 'body')])
+            hint_text=_('Enter a unique thing name'),
+            multiline=False,
+            size_hint_y=None,
+            height=34,
+            font_size=20
+        )
+        swatches = self.get_swatch_view(
+            [
+                ('Body', 'base'),
+                ('Clothes', 'body')
+            ]
+        )
         popcont = BoxLayout(orientation='vertical')
         popcont.add_widget(namebox)
         popcont.add_widget(swatches)
-        pawnmenu = Popup(title=_("Select Thing's Appearance"),
-                         content=popcont)
+        pawnmenu = Popup(
+            title=_("Select Thing's Appearance"),
+            content=popcont
+        )
 
         def confirmer(name, graphic):
             pawnmenu.dismiss()
             self.new_pawn_with_name_and_graphic(name, graphic)
-        popcont.add_widget(ConfirmOrCancel(
-            confirm=lambda: self.graphic_menu_confirm(
-                validator, confirmer, namebox, swatches),
-            cancel=lambda: pawnmenu.dismiss()))
+        popcont.add_widget(
+            ConfirmOrCancel(
+                confirm=lambda: self.graphic_menu_confirm(
+                    validator,
+                    confirmer,
+                    namebox,
+                    swatches
+                ),
+            cancel=lambda: pawnmenu.dismiss()
+            )
+        )
         pawnmenu.open()
         return pawnmenu
 
     def show_spot_menu(self):
         """Show the menu to pick the name and graphic for a new Spot."""
+        # Currently this assumes that the place will be recorded in a
+        # particular place in the skeleton. It may not be; it depends
+        # on how the facade is set up.
         def validator(text):
             """Make sure there's a name and it hasn't been used for a place
             already
@@ -597,32 +607,48 @@ class LiSELayout(FloatLayout):
             """
             if text == '':
                 return _('You need to enter a place name here')
-            elif text in self.app.closet.skeleton[u'place'][
-                    unicode(self.board.host)]:
+            elif text in (
+                    self.app.closet.skeleton
+                    [u'place']
+                    [unicode(self.board.facade.observed)]
+            ):
                 return _('That place name is already used, choose another')
 
-        hst = unicode(self.board.host)
+        hst = unicode(self.board.facade)
         if hst not in self.app.closet.skeleton[u"place"]:
             self.app.closet.skeleton[u"place"][hst] = {}
 
         namebox = TextInput(
-            hint_text=_('Enter a unique place name'), multiline=False,
-            size_hint_y=None, height=34, font_size=20)
+            hint_text=_('Enter a unique place name'),
+            multiline=False,
+            size_hint_y=None,
+            height=34,
+            font_size=20
+        )
         swatches = self.get_swatch_view([('', 'spot')], mode='frob')
         popcont = BoxLayout(orientation='vertical')
         popcont.add_widget(namebox)
         popcont.add_widget(swatches)
-        spotmenu = Popup(title=_("Select Place's Appearance"),
-                         content=popcont)
+        spotmenu = Popup(
+            title=_("Select Place's Appearance"),
+            content=popcont
+        )
 
         def confirmer(name, graphic):
             spotmenu.dismiss()
             self.new_spot_with_name_and_graphic(name, graphic)
 
-        popcont.add_widget(ConfirmOrCancel(
-            confirm=lambda: self.graphic_menu_confirm(
-                validator, confirmer, namebox, swatches),
-            cancel=lambda: spotmenu.dismiss()))
+        popcont.add_widget(
+            ConfirmOrCancel(
+                confirm=lambda: self.graphic_menu_confirm(
+                    validator,
+                    confirmer,
+                    namebox,
+                    swatches
+                ),
+                cancel=lambda: spotmenu.dismiss()
+            )
+        )
         spotmenu.open()
         return spotmenu
 
@@ -678,29 +704,36 @@ class LiSELayout(FloatLayout):
         it where they like.
 
         """
-        place = self.board.host.make_place(place_name)
-        (branch, tick) = self.app.closet.time
+        place = self.board.facade.make_place(place_name)
+        (branch, tick) = self.app.closet.timestream.time
         obsrvr = unicode(self.board.facade.observer)
-        hst = unicode(self.board.host)
-        self.app.closet.set_bone(Spot.bonetypes["spot"](
+        obsrvd = unicode(self.board.facade.observed)
+        (x, y) = self.center_of_view_on_board()
+        gfx_bone = Spot.bonetypes["spot_graphic"](
             observer=obsrvr,
-            host=hst,
+            observed=obsrvd,
             place=place_name,
             branch=branch,
             tick=tick,
-            graphic=graphic_name))
-        (x, y) = self.center_of_view_on_board()
-        self.app.closet.set_bone(Spot.bonetypes["spot_coords"](
+            graphic=graphic_name
+        )
+        coord_bone = Spot.bonetypes["spot_coords"](
             observer=obsrvr,
-            host=hst,
+            observed=obsrvd,
             place=place_name,
             branch=branch,
             tick=tick,
             x=x,
-            y=y))
+            y=y
+        )
+        self.app.closet.set_bone(gfx_bone)
+        self.app.closet.set_bone(coord_bone)
         self.board.spotlayout.add_widget(
             Spot(board=self.board,
-                 place=place))
+                 place=place,
+                 gfx_bone=gfx_bone,
+                 coord_bone=coord_bone)
+        )
 
     def center_of_view_on_board(self):
         """Get the point on the Board that is presently at the center of the
@@ -786,11 +819,14 @@ class MenuIntInput(TextInput):
         """Natural numbers only."""
         return super(self, MenuIntInput).insert_text(
             ''.join(c for c in s if c in '0123456789'),
-            from_undo)
+            from_undo
+        )
 
     def on_closet(self, *args):
         if self.closet:
-            self.closet.register_time_listener(self._trigger_upd_time)
+            self.closet.timestream.register_time_listener(
+                self._trigger_upd_time
+            )
 
     def on_text_validate(self, *args):
         setattr(self.closet, self.attrname, int(self.text))
@@ -816,9 +852,9 @@ class LiSEApp(App):
     """Name of the database file to use."""
     gettext = ObjectProperty()
     """gettext function"""
-    observer_name = StringProperty()
+    observer_name = StringProperty('Omniscient')
     """Name of the Character whose view on the world we display presently."""
-    observed_name = StringProperty()
+    observed_name = StringProperty('Physical')
     """Name of the Character we are presently observing.
 
     This character contains all the Portals and Things that may be
@@ -827,14 +863,7 @@ class LiSEApp(App):
     be shown.
 
     """
-    host_name = StringProperty()
-    """Name of the Character that shows all the Places we'll display.
-
-    This is influential: we can only display Portals that connect
-    Places herein; and we can only display Things that are in those
-    Portals or Places.
-
-    """
+    wallpaper_name = StringProperty('default_wallpaper')
 
     def build(self):
         """Make sure I can use the database, create the tables as needed, and
@@ -853,14 +882,13 @@ class LiSEApp(App):
             load_img=True,
             load_img_tags=['base', 'body'],
             load_gfx=True,
-            load_characters=[self.observer_name, self.observed_name,
-                             self.host_name],
-            load_charsheet=self.observed_name)
+            load_characters=[self.observer_name, self.observed_name],
+            load_board=[self.observer_name, self.observed_name]
+        )
         l = LiSELayout(app=self)
         from kivy.core.window import Window
         from kivy.modules import inspector
         inspector.create_inspector(Window, l)
-        l.board.finalize()
         return l
 
     def on_pause(self):

@@ -21,50 +21,69 @@ class Img(EventDispatcher):
     """
     __metaclass__ = SaveableMetaclass
     tables = [
-        ("img",
-         {"columns":
-          {"name": "text not null",
-           "path": "text not null",
-           "stacking_height": "integer not null default 0"},
-          "primary_key":
-          ("name",),
-          "checks":
-          ["stacking_height >= 0"]}),
-        ("img_tag",
-         {"columns":
-          {"img": "text not null",
-           "tag": "text not null"},
-          "primary_key":
-          ("img", "tag"),
-          "foreign_keys":
-          {"img": ("img", "name")}})]
+        (
+            "img",
+            {
+                "columns":
+                {
+                    "name": "text not null",
+                    "path": "text not null",
+                    "stacking_height": "integer not null default 0"
+                },
+                "primary_key":
+                ("name",),
+                "checks":
+                ["stacking_height >= 0"]
+            }
+        ),
+        (
+            "img_tag",
+            {
+                "columns":
+                {
+                    "img": "text not null",
+                    "tag": "text not null"
+                },
+                "primary_key":
+                ("img", "tag"),
+                "foreign_keys":
+                {"img": ("img", "name")}
+            }
+        )
+    ]
     closet = ObjectProperty()
     name = StringProperty()
     texture = ObjectProperty()
     bone = AliasProperty(
         lambda self: self._get_bone(),
-        lambda self, v: self._set_bone(v))
+        lambda self, v: self._set_bone(v)
+    )
     offx = AliasProperty(
         lambda self: self.bone.offset_x,
         lambda self, v: None,
-        bind=('bone',))
+        bind=('bone',)
+    )
     offy = AliasProperty(
         lambda self: self.bone.offset_y,
         lambda self, v: None,
-        bind=('bone',))
+        bind=('bone',)
+    )
     offset = ReferenceListProperty(offx, offy)
     stackh = AliasProperty(
         lambda self: self.bone.stacking_height,
         lambda self, v: None,
-        bind=('bone',))
+        bind=('bone',)
+    )
     width = AliasProperty(
         lambda self: self.texture.width,
         lambda self, v: None,
-        bind=('texture',))
+        bind=('texture',)
+    )
     height = AliasProperty(
-        lambda self: self.texture.width,
+        lambda self: self.texture.height,
         lambda self, v: None,
-        bind=('texture',))
+        bind=('texture',)
+    )
     size = ReferenceListProperty(width, height)
 
     def _get_bone(self):
@@ -82,8 +101,9 @@ class Img(EventDispatcher):
         data = self.texture.pixels
         (x, y) = (int(x), int(y))
         if not (0 <= x < self.width and 0 <= y < self.height):
-            raise IndexError("Position ({}, {}) is out of range.".format(
-                x, y))
+            raise IndexError(
+                "Position ({}, {}) is out of range.".format(x, y)
+            )
         index = y * self.width * 4 + x * 4
         raw = data[index:index+4]
         return [ord(c) / 255.0 for c in raw]

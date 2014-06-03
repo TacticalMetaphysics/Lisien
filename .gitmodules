@@ -7,6 +7,3 @@
 [submodule "stiffscroll"]
 	path = stiffscroll
 	url = git@github.com:LogicalDash/stiffscroll.git
-[submodule "LiSE/gui/stiffscroll"]
-	path = LiSE/gui/stiffscroll
-	url = git@github.com:LogicalDash/stiffscroll.git

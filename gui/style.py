@@ -17,7 +17,8 @@ solarized_hex = {
     'violet': (0x6c, 0x71, 0xc4),
     'blue': (0x26, 0x8b, 0xd2),
     'cyan': (0x2a, 0xa1, 0x98),
-    'green': (0x85, 0x99, 0x00)}
+    'green': (0x85, 0x99, 0x00)
+}
 """Color values for Solarized, a color scheme by Ethan Schoonover:
 http://ethanschoonover.com/solarized"""
 
@@ -27,8 +28,11 @@ macks = float(0xff)
 can use it to relativize colors given in 0-255 rather than 0.0-1.0."""
 
 
-solarized = dict([
-    (name, (r/macks, g/macks, b/macks, 1.0))
-    for (name, (r, g, b)) in solarized_hex.iteritems()])
+solarized = dict(
+    [
+        (name, (r/macks, g/macks, b/macks, 1.0))
+        for (name, (r, g, b)) in solarized_hex.iteritems()
+    ]
+)
 """Color values for Solarized, a color scheme by Ethan Schoonover:
 http://ethanschoonover.com/solarized"""

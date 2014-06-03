@@ -1,3 +1,4 @@
+
 #: kivy 1.8
 
 #: import lisepathl LiSE.__path__
@@ -391,6 +392,7 @@
     offset_y: self.graphic_bone.offset_y if self.graphic_bone else 0
 <LiSELayout>:
     #: import stiffscroll kivy.garden.stiffscroll.StiffScrollEffect
+    #: import Facade LiSE.model.Facade
     menu: menu
     charsheet: charsheet
     board: board
@@ -400,8 +402,7 @@
         effect_cls: stiffscroll
         Board:
             id: board
-            facade: root.app.closet.get_character(root.app.observed_name).get_facade(root.app.closet.get_character(root.app.observer_name))
-            host: root.app.closet.get_character(root.app.host_name)
+            facade: root.app.closet.get_facade(root.app.observer_name, root.app.observed_name)
     CueCard:
         id: prompt
         closet: root.app.closet

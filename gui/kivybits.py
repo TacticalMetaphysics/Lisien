@@ -5,13 +5,15 @@ from kivy.uix.togglebutton import ToggleButtonBehavior
 from kivy.uix.textinput import TextInput
 from kivy.uix.widget import (
     Widget,
-    WidgetMetaclass)
+    WidgetMetaclass
+)
 from kivy.properties import (
     NumericProperty,
     ListProperty,
     ObjectProperty,
     StringProperty,
-    BooleanProperty)
+    BooleanProperty
+)
 from kivy.clock import Clock
 
 from LiSE.orm import SaveableMetaclass

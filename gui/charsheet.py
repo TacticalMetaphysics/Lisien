@@ -19,17 +19,20 @@ from kivy.properties import (
     ReferenceListProperty,
     ListProperty,
     NumericProperty,
-    DictProperty)
+    DictProperty
+)
 from kivy.graphics import (
     Color,
     Line,
-    Triangle)
+    Triangle
+)
 from kivy.logger import Logger
 
 from LiSE.gui.kivybits import (
     ClosetLabel,
     ClosetButton,
-    SaveableWidgetMetaclass)
+    SaveableWidgetMetaclass
+)
 
 
 class TimelineCell(ClosetLabel):
@@ -42,7 +45,9 @@ class TimelineCell(ClosetLabel):
     stringname = StringProperty()
     """Name of string to show"""
     orientation = OptionProperty(
-        'horizontal', options=['horizontal', 'vertical'])
+        'horizontal',
+        options=['horizontal', 'vertical']
+    )
     """Whether I extend downward ('vertical') or to the right ('horizontal')"""
     bg_r = BoundedNumericProperty(0., min=0., max=1.)
     """Redness"""
@@ -67,7 +72,9 @@ class TimelineCursor(Widget):
     color = ListProperty()
     """What color I am"""
     orientation = OptionProperty(
-        'vertical', options=['horizontal', 'vertical'])
+        'vertical',
+        options=['horizontal', 'vertical']
+    )
     """Whether I extend downward ('vertical') or to the right ('horizontal')
 
     Should be the opposite of the TimelineCells in the Timeline.
@@ -85,7 +92,8 @@ class TimelineCursor(Widget):
         self.instructions = [
             Color(*self.color),
             Line(points=self.get_line_points()),
-            Triangle(points=self.get_triangle_points())]
+            Triangle(points=self.get_triangle_points())
+        ]
         for instr in self.instructions:
             self.canvas.add(instr)
 
@@ -101,11 +109,13 @@ class TimelineCursor(Widget):
         if self.orientation == 'vertical':
             return [self.x-8, self.y,
                     self.x+8, self.y,
-                    self.x, self.y-16]
+                    self.x, self.y-16
+            ]
         else:
             return [self.x, self.y+8,
                     self.x+16, self.y,
-                    self.x, self.y-8]
+                    self.x, self.y-8
+            ]
 
     def on_color(self, *args):
         """Set the ``rgba`` property of my :class:`Color` instruction to match
@@ -123,13 +133,15 @@ class TimelineCursor(Widget):
         if len(self.instructions) < 2:
             return
         self.instructions[1].points = [
-            self.x, self.y, self.x, self.y+self.timeline.height]
+            self.x, self.y, self.x, self.y+self.timeline.height
+        ]
         if len(self.instructions) < 3:
             return
         self.instructions[2].points = [
             self.x-8, self.y+self.timeline.height,
             self.x+8, self.y+self.timeline.height,
-            self.x, self.y+self.timeline.height-16]
+            self.x, self.y+self.timeline.height-16
+        ]
 
 
 class Timeline(StackLayout):
@@ -165,12 +177,16 @@ class Timeline(StackLayout):
         remainder = self.ticks_wide % 2
         latest = self.ticks_wide + remainder
         for (tick_from, tick_to, text) in self.data_iter(
-                branch, earliest, latest):
+                branch,
+                earliest,
+                latest
+        ):
             yield TimelineCell(
                 timeline=self,
                 stringname=text,
                 tick_from=tick_from,
-                tick_to=tick_to)
+                tick_to=tick_to
+            )
 
 
 class TimelineView(ScrollView):
@@ -182,8 +198,17 @@ class TimelineView(ScrollView):
     """Iterator over what I'm to show"""
     orientation = OptionProperty(
         'lr-tb',
-        options=['lr-tb', 'tb-lr', 'rl-tb', 'tb-rl',
-                 'lr-bt', 'bt-lr', 'rl-bt', 'bt-rl'])
+        options=[
+            'lr-tb',
+            'tb-lr',
+            'rl-tb',
+            'tb-rl',
+            'lr-bt',
+            'bt-lr',
+            'rl-bt',
+            'bt-rl'
+        ]
+    )
     """I contain a StackLayout, and it will be laid out thus"""
     branch = NumericProperty(None, allownone=True)
     """Branch to show, or, if None, the current branch."""
@@ -216,7 +241,8 @@ class NameAndValue(BoxLayout):
     """The name to use as a key for looking up the referent."""
     referent_type = OptionProperty(
         'character',
-        options=['thing', 'place', 'portal', 'character'])
+        options=['thing', 'place', 'portal', 'character']
+    )
     """What sort of item the referent is. This determines how to look up
     the value of the variable.
 
@@ -248,8 +274,13 @@ class NameAndValue(BoxLayout):
             if self.variable_name != 'location':
                 raise TypeError("I am not for location")
             self.sanity_check()
-            return unicode(facade.get_thing_location(
-                self.referent_name, branch, tick))
+            return unicode(
+                facade.get_thing_location(
+                    self.referent_name,
+                    branch,
+                    tick
+                )
+            )
 
         def _get_portal_bone(branch=None, tick=None):
             if self.referent_type != 'portal':
@@ -258,7 +289,10 @@ class NameAndValue(BoxLayout):
                 raise TypeError("Portal doesn't have that variable_name")
             self.sanity_check()
             return facade.get_portal_loc_bone(
-                self.referent_name, branch, tick)
+                self.referent_name,
+                branch,
+                tick
+            )
 
         def _get_portal_orig(branch=None, tick=None):
             return unicode(_get_portal_bone(branch, tick).origin)
@@ -270,29 +304,49 @@ class NameAndValue(BoxLayout):
             if self.referent_type != 'thing':
                 raise TypeError("I am not for thing")
             self.sanity_check()
-            return unicode(facade.get_thing_stat(
-                self.referent_name, branch, tick))
+            return unicode(
+                facade.get_thing_stat(
+                    self.referent_name,
+                    branch,
+                    tick
+                )
+            )
 
         def _get_place_stat(branch=None, tick=None):
             if self.referent_type != 'place':
                 raise TypeError("I am not for place")
             self.sanity_check()
-            return unicode(facade.get_place_stat(
-                self.referent_name, branch, tick))
+            return unicode(
+                facade.get_place_stat(
+                    self.referent_name,
+                    branch,
+                    tick
+                )
+            )
 
         def _get_portal_stat(branch=None, tick=None):
             if self.referent_type != 'portal':
                 raise TypeError("I am not for portal")
             self.sanity_check()
-            return unicode(facade.get_portal_stat(
-                self.referent_name, branch, tick))
+            return unicode(
+                facade.get_portal_stat(
+                    self.referent_name,
+                    branch,
+                    tick
+                )
+            )
 
         def _get_character_stat(branch=None, tick=None):
             if self.referent_type != 'character':
                 raise TypeError("I am not for character")
             self.sanity_check()
-            return unicode(facade.get_character_stat(
-                self.referent_name, branch, tick))
+            return unicode(
+                facade.get_character_stat(
+                    self.referent_name,
+                    branch,
+                    tick
+                )
+            )
 
         if self.referent_type == 'thing':
             if self.variable_name == 'location':
@@ -323,9 +377,13 @@ class CharSheetItem(BoxLayout):
     charsheet = ObjectProperty()
     item_type = OptionProperty(
         'character_stat',
-        options=['thing_loc', 'thing_stat', 'place_stat',
-                 'portal_orig', 'portal_dest', 'portal_stat',
-                 'character_stat'])
+        options=[
+            'thing_stat',
+            'place_stat',
+            'portal_stat',
+            'character_stat'
+        ]
+    )
     referent = StringProperty()
     stat_value = StringProperty()
     stat_name = StringProperty()
@@ -347,9 +405,13 @@ class CharSheetItem(BoxLayout):
 
     def _thing_loc_data_iter(self, branch, min_tick, max_tick):
         innit = self.charsheet.facade.iter_thing_loc_bones(
-            thing=self.referent, branch=branch,
-            branch_from=branch, branch_to=branch,
-            tick_from=min_tick, tick_to=max_tick)
+            thing=self.referent,
+            branch=branch,
+            branch_from=branch,
+            branch_to=branch,
+            tick_from=min_tick,
+            tick_to=max_tick
+        )
         prev_bone = next(innit)
         for bone in innit:
             # from, to, value
@@ -357,29 +419,45 @@ class CharSheetItem(BoxLayout):
 
     def _thing_stat_data_iter(self, branch, min_tick, max_tick):
         innit = self.charsheet.facade.iter_thing_stat_bones(
-            thing=self.referent, stat=self.stat_name,
-            branch_from=branch, branch_to=branch,
-            tick_from=min_tick, tick_to=max_tick)
+            thing=self.referent,
+            stat=self.stat_name,
+            branch_from=branch,
+            branch_to=branch,
+            tick_from=min_tick,
+            tick_to=max_tick
+        )
         prev_bone = next(innit)
         for bone in innit:
-            yield (prev_bone.tick, bone.tick,
-                   getattr(prev_bone, self.stat_name))
+            yield (
+                prev_bone.tick,
+                bone.tick,
+                getattr(prev_bone, self.stat_name)
+            )
 
     def _place_stat_data_iter(self, branch, min_tick, max_tick):
         innit = self.charsheet.facade.iter_place_stat_bones(
-            place=self.referent, stat=self.stat_name,
-            branch_from=branch, branch_to=branch,
-            tick_from=min_tick, tick_to=max_tick)
+            place=self.referent,
+            stat=self.stat_name,
+            branch_from=branch,
+            branch_to=branch,
+            tick_from=min_tick,
+            tick_to=max_tick
+        )
         prev_bone = next(innit)
         for bone in innit:
-            yield (prev_bone.tick, bone.tick,
-                   getattr(prev_bone, self.stat_name))
+            yield (
+                prev_bone.tick, bone.tick,
+                getattr(prev_bone, self.stat_name)
+            )
 
     def _portal_orig_data_iter(self, branch, min_tick, max_tick):
         innit = self.charsheet.facade.iter_portal_loc_bones(
             portal=self.referent,
-            branch_from=branch, branch_to=branch,
-            tick_from=min_tick, tick_to=max_tick)
+            branch_from=branch,
+            branch_to=branch,
+            tick_from=min_tick,
+            tick_to=max_tick
+        )
         prev_bone = next(innit)
         for bone in innit:
             yield (prev_bone.tick, bone.tick, prev_bone.origin)
@@ -387,43 +465,57 @@ class CharSheetItem(BoxLayout):
     def _portal_dest_data_iter(self, branch, min_tick, max_tick):
         innit = self.charsheet.facade.iter_portal_loc_bones(
             portal=self.referent,
-            branch_from=branch, branch_to=branch,
-            tick_from=min_tick, tick_to=max_tick)
+            branch_from=branch,
+            branch_to=branch,
+            tick_from=min_tick,
+            tick_to=max_tick
+        )
         prev_bone = next(innit)
         for bone in innit:
             yield (prev_bone.tick, bone.tick, prev_bone.destination)
 
     def _portal_stat_data_iter(self, branch, min_tick, max_tick):
         innit = self.charsheet.facade.iter_portal_stat_bones(
-            portal=self.referent, stat=self.stat_name,
-            branch_from=branch, branch_to=branch,
-            tick_from=min_tick, tick_to=max_tick)
+            portal=self.referent,
+            stat=self.stat_name,
+            branch_from=branch,
+            branch_to=branch,
+            tick_from=min_tick,
+            tick_to=max_tick
+        )
         prev_bone = next(innit)
         for bone in innit:
-            yield (prev_bone.tick, bone.tick,
-                   getattr(prev_bone, self.stat_name))
+            yield (
+                prev_bone.tick,
+                bone.tick,
+                getattr(prev_bone, self.stat_name)
+            )
 
     def _character_stat_data_iter(self, branch, min_tick, max_tick):
         innit = self.charsheet.facade.iter_stat_bones(
-            branch_from=branch, branch_to=branch,
-            tick_from=min_tick, tick_to=max_tick)
+            branch_from=branch,
+            branch_to=branch,
+            tick_from=min_tick,
+            tick_to=max_tick
+        )
         prev_bone = next(innit)
         for bone in innit:
-            yield (prev_bone.tick, bone.tick,
-                   getattr(prev_bone, self.stat_name))
+            yield (
+                prev_bone.tick,
+                bone.tick,
+                getattr(prev_bone, self.stat_name)
+            )
 
     def _mk_timeline(self):
         return TimelineView(
             charsheet_item=self,
             data_iter={
-                'thing_loc': self._thing_loc_data_iter,
                 'thing_stat': self._thing_stat_data_iter,
                 'place_stat': self._place_stat_data_iter,
-                'portal_orig': self._portal_orig_data_iter,
-                'portal_dest': self._portal_dest_data_iter,
                 'portal_stat': self._portal_stat_data_iter,
                 'character_stat': self._character_stat_data_iter
-            }[self.item_type])
+            }[self.item_type]
+        )
 
 
 class CharSheet(StackLayout):
@@ -458,13 +550,13 @@ class CharSheet(StackLayout):
     _place_data = ListProperty()
     _portal_data = ListProperty()
     timelineness = DictProperty(
-        {"thing_loc": set(),
-         "thing_stat": set(),
-         "place_stat": set(),
-         "portal_orig": set(),
-         "portal_dest": set(),
-         "portal_stat": set(),
-         "character_stat": set()})
+        {
+            "thing_stat": set(),
+            "place_stat": set(),
+            "portal_stat": set(),
+            "character_stat": set()
+        }
+    )
 
     def __init__(self, **kwargs):
         self._trigger_refresh = Clock.create_trigger(self.refresh)
@@ -475,19 +567,27 @@ class CharSheet(StackLayout):
         if not self.facade:
             Clock.schedule_once(self.finalize, 0)
             return
-        for tab in (u"portal_loc", u"portal_stat", u"place_stat",
-                    u"thing_loc", u"thing_stat"):
+        for tab in (
+                u"portal_loc",
+                u"portal_stat",
+                u"place_stat",
+                u"thing_loc",
+                u"thing_stat"
+        ):
             skel = self.facade.closet.skeleton[tab]
             if unicode(self.facade.observed) not in skel:
                 skel[unicode(self.facade.observed)] = {}
             skel[unicode(self.facade.observed)].register_listener(
-                self._trigger_refresh)
+                self._trigger_refresh
+            )
         self._trigger_refresh()
 
     def refresh(self, *args):
-        old_data = [list(self._thing_data),
-                    list(self._place_data),
-                    list(self._portal_data)]
+        old_data = [
+            list(self._thing_data),
+            list(self._place_data),
+            list(self._portal_data)
+        ]
         Logger.debug("CharSheet: refreshing...")
         self._redata()
         if [self._thing_data, self._place_data, self._portal_data] != old_data:
@@ -496,12 +596,21 @@ class CharSheet(StackLayout):
             _ = lambda x: x
             if len(self._character_data) > 0:
                 for (key, value) in self._character_data:
-                    self.add_widget(self._mk_cs_item(
-                        "character_stat", self.facade, key, value))
+                    self.add_widget(
+                        self._mk_cs_item(
+                            "character_stat",
+                            self.facade,
+                            key,
+                            value
+                        )
+                    )
             if len(self._thing_data) > 0:
-                self.add_widget(ClosetLabel(
-                    closet=self.facade.closet,
-                    stringname=_("Things:")))
+                self.add_widget(
+                    ClosetLabel(
+                        closet=self.facade.closet,
+                        stringname=_("Things:")
+                    )
+                )
                 for (thing, data) in self._thing_data:
                     # these should really have different format than
                     # the headers
@@ -509,28 +618,52 @@ class CharSheet(StackLayout):
                         closet=self.facade.closet,
                         stringname=unicode(thing)))
                     for (key, value) in data:
-                        self.add_widget(self._mk_cs_item(
-                            "thing_loc" if key == "location" else "thing_stat",
-                            thing, key, value))
+                        self.add_widget(
+                            self._mk_cs_item(
+                                "thing_loc" if key == "location"
+                                else "thing_stat",
+                                thing,
+                                key,
+                                value
+                            )
+                        )
             if len(self._place_data) > 0:
-                self.add_widget(ClosetLabel(
-                    closet=self.facade.closet,
-                    stringname=_("Places")))
+                self.add_widget(
+                    ClosetLabel(
+                        closet=self.facade.closet,
+                        stringname=_("Places")
+                    )
+                )
                 for (place, data) in self._place_data:
-                    self.add_widget(ClosetLabel(
-                        closet=self.facade.closet,
-                        stringname=unicode(place)))
+                    self.add_widget(
+                        ClosetLabel(
+                            closet=self.facade.closet,
+                            stringname=unicode(place)
+                        )
+                    )
                     for (key, value) in data:
-                        self.add_widget(self._mk_cs_item(
-                            "place_stat", place, key, value))
+                        self.add_widget(
+                            self._mk_cs_item(
+                                "place_stat",
+                                place,
+                                key,
+                                value
+                            )
+                        )
             if len(self._portal_data) > 0:
-                self.add_widget(ClosetLabel(
-                    closet=self.facade.closet,
-                    stringname=_("Portals")))
-                for (portal, data) in self._portal_data:
-                    self.add_widget(ClosetLabel(
+                self.add_widget(
+                    ClosetLabel(
                         closet=self.facade.closet,
-                        stringname=unicode(portal)))
+                        stringname=_("Portals")
+                    )
+                )
+                for (portal, data) in self._portal_data:
+                    self.add_widget(
+                        ClosetLabel(
+                            closet=self.facade.closet,
+                            stringname=unicode(portal)
+                        )
+                    )
                     for (key, value) in data:
                         if key == "origin":
                             a = "portal_orig"
@@ -538,8 +671,14 @@ class CharSheet(StackLayout):
                             a = "portal_dest"
                         else:
                             a = "portal_stat"
-                        self.add_widget(self._mk_cs_item(
-                            a, portal, key, value))
+                        self.add_widget(
+                            self._mk_cs_item(
+                                a,
+                                portal,
+                                key,
+                                value
+                            )
+                        )
 
     def _redata(self):
         _ = lambda x: x
@@ -548,21 +687,35 @@ class CharSheet(StackLayout):
         def iter_thing_stat_bones(thing):
             for stat_bone in self.facade.iter_thing_stat_bones(
                     unicode(thing),
-                    branch_from=branch, branch_to=branch,
-                    tick_from=tick, tick_to=tick):
+                    branch_from=branch,
+                    branch_to=branch,
+                    tick_from=tick,
+                    tick_to=tick
+            ):
                 yield stat_bone
 
         def mk_thing_data(thing):
             return (
                 unicode(thing),
-                [(_("location"), self.facade.get_thing_location(
-                    thing, branch, tick))] + [
+                [
+                    (
+                        _("location"),
+                        self.facade.get_thing_location(
+                            thing,
+                            branch,
+                            tick
+                        )
+                    )
+                ] + [
                     (bone.key, bone.value) for bone in
-                    iter_thing_stat_bones(thing)])
+                    iter_thing_stat_bones(thing)
+                ]
+            )
 
         self._thing_data = [
             mk_thing_data(thing) for thing in
-            self.facade.iter_things(branch, tick)]
+            self.facade.iter_things(branch, tick)
+        ]
 
         def iter_place_stat_bones(place):
             for stat_bone in self.facade.iter_place_stat_bones(
@@ -583,13 +736,19 @@ class CharSheet(StackLayout):
                 branch_from=branch,
                 branch_to=branch,
                 tick_from=tick,
-                tick_to=tick)]
+                tick_to=tick
+            )
+        ]
 
         self._place_data = [
             mk_place_data(place)
             for place in self.facade.places_hosted(
-                branch_from=branch, branch_to=branch,
-                tick_from=tick, tick_to=tick)]
+                    branch_from=branch,
+                    branch_to=branch,
+                    tick_from=tick,
+                    tick_to=tick
+            )
+        ]
 
         def iter_portal_stat_bones(portal):
             for stat_bone in self.facade.iter_portal_stat_bones(
@@ -597,28 +756,42 @@ class CharSheet(StackLayout):
                     branch_from=branch,
                     branch_to=branch,
                     tick_from=tick,
-                    tick_to=tick):
+                    tick_to=tick
+            ):
                 yield stat_bone
 
         def mk_portal_data(portal):
             locb = self.facade.get_portal_loc_bone(portal, branch, tick)
             return (
                 unicode(portal),
-                [(_("origin"), locb.origin),
-                 (_("destination"), locb.destination)] + [
+                [
+                    (_("origin"), locb.origin),
+                    (_("destination"), locb.destination)
+                ] + [
                     (bone.key, bone.value) for bone in
-                    iter_portal_stat_bones(portal)])
+                    iter_portal_stat_bones(portal)
+                ]
+            )
 
         self._portal_data = [
             mk_portal_data(portal) for portal in
             self.facade.portal_names(
-                branch_from=branch, branch_to=branch,
-                tick_from=tick, tick_to=tick)]
+                branch_from=branch,
+                branch_to=branch,
+                tick_from=tick,
+                tick_to=tick
+            )
+        ]
 
     def _mk_cs_item(self, item_type, item_name, key, value):
-        assert(item_type in (
-            "thing_loc", "thing_stat", "place_stat", "portal_orig",
-            "portal_dest", "portal_stat", "character_stat"))
+        assert(
+            item_type in (
+                "thing_stat",
+                "place_stat",
+                "portal_stat",
+                "character_stat"
+            )
+        )
         is_timeline = item_name in self.timelineness[item_type]
         return CharSheetItem(
             charsheet=self,
@@ -626,7 +799,8 @@ class CharSheet(StackLayout):
             referent=item_name,
             is_timeline=is_timeline,
             stat_name=key,
-            stat_value=value)
+            stat_value=value
+        )
 
 
 class CharSheetView(StackLayout):
@@ -646,37 +820,53 @@ class CharSheetView(StackLayout):
             return
         self.observer_selector = DropDown()
         self.observer_selector_button = ClosetButton(
-            closet=self.closet, stringname=self.observer,
-            size_hint_y=None, height=30)
-        self.bind(observer=self.observer_selector_button.setter('stringname'))
+            closet=self.closet,
+            stringname=self.observer,
+            size_hint_y=None,
+            height=30
+        )
+        self.bind(
+            observer=self.observer_selector_button.setter('stringname')
+        )
         self.observer_selector_button.bind(
-            on_release=self.observer_selector.open)
+            on_release=self.observer_selector.open
+        )
         self.add_widget(self.observer_selector_button)
         self.observed_selector = DropDown()
         self.observed_selector_button = ClosetButton(
-            closet=self.closet, stringname=self.observed,
-            size_hint_y=None, height=30)
+            closet=self.closet,
+            stringname=self.observed,
+            size_hint_y=None,
+            height=30
+        )
         self.bind(observed=self.observed_selector_button.setter('stringname'))
         self.observed_selector_button.bind(
-            on_release=self.observed_selector.open)
+            on_release=self.observed_selector.open
+        )
         self.add_widget(self.observed_selector_button)
         self.scroll_view = ScrollView()
         self.charsheet = CharSheet(
-            facade=self.closet.get_facade(self.observer, self.observed))
+            facade=self.closet.get_facade(self.observer, self.observed)
+        )
         self.scroll_view.add_widget(self.charsheet)
 
         def upd_facade(*args):
             self.charsheet.facade = self.closet.get_facade(
-                self.observer, self.observed)
+                self.observer,
+                self.observed
+            )
         self.bind(observer=upd_facade, observed=upd_facade)
         self._trigger_refresh()
 
     def refresh(self, *args):
-        character_names = sorted(self.closet.character_names(
-            branch_from=self.closet.branch,
-            branch_to=self.closet.branch,
-            tick_from=self.closet.tick,
-            tick_to=self.closet.tick))
+        character_names = sorted(
+            self.closet.character_names(
+                branch_from=self.closet.branch,
+                branch_to=self.closet.branch,
+                tick_from=self.closet.tick,
+                tick_to=self.closet.tick
+            )
+        )
         if character_names == self.character_names:
             return
         self.character_names = character_names
@@ -688,9 +878,14 @@ class CharSheetView(StackLayout):
                 menu.select(charn)
 
         for name in self.character_names:
-            for menu in (self.ids.observer_selector,
-                         self.ids.observed_selector):
-                menu.add_widget(ClosetButton(
-                    closet=self.closet,
-                    stringname=name,
-                    on_release=charsel(menu, name)))
+            for menu in (
+                    self.ids.observer_selector,
+                    self.ids.observed_selector
+            ):
+                menu.add_widget(
+                    ClosetButton(
+                        closet=self.closet,
+                        stringname=name,
+                        on_release=charsel(menu, name)
+                    )
+                )

@@ -18,7 +18,8 @@ from kivy.properties import (
     AliasProperty,
     ReferenceListProperty,
     ListProperty,
-    DictProperty)
+    DictProperty
+)
 from kivy.clock import Clock
 
 
@@ -55,9 +56,11 @@ class TextureStack(Widget):
     def __init__(self, **kwargs):
         super(TextureStack, self).__init__(**kwargs)
         self.trigger_upd_texs = Clock.create_trigger(
-            self.upd_texs, timeout=-1)
+            self.upd_texs, timeout=-1
+        )
         self.trigger_upd_pos = Clock.create_trigger(
-            self.upd_pos, timeout=-1)
+            self.upd_pos, timeout=-1
+        )
         self.bind(texs=self.trigger_upd_texs, pos=self.trigger_upd_pos)
         if len(self.texs) > 0:
             self.trigger_upd_texs()
@@ -97,7 +100,8 @@ class TextureStack(Widget):
         rect = Rectangle(
             pos=(x, y),
             size=tex.size,
-            texture=tex)
+            texture=tex
+        )
         self.width = max([self.width, tex.width])
         self.height = max([self.height, tex.height])
         self.texture_rectangles[tex] = rect
