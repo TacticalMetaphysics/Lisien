@@ -16,16 +16,26 @@ class Place(Container):
 
     """
     tables = [
-        ("place_stat", {
-            "columns": {
-                "character": "text not null",
-                "name": "text not null",
-                "key": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "value": "text"},
-            "primary_key": (
-                "character", "name", "key", "branch", "tick")})]
+        (
+            "place_stat",
+            {
+                "columns":
+                {
+                    "character": "text not null",
+                    "name": "text not null",
+                    "key": "text not null default 'exists'",
+                    "branch": "integer not null default 0",
+                    "tick": "integer not null default 0",
+                    "value": "text",
+                    "type": "text not null default 'text'"
+                },
+                "primary_key":
+                ("character", "name", "key", "branch", "tick"),
+                "checks":
+                ["type in ('text', 'real', 'boolean', 'integer')"]
+            }
+        )
+    ]
 
     def __init__(self, character, name):
         """Initialize a place in a character by a name"""
@@ -34,7 +44,7 @@ class Place(Container):
 
     def __contains__(self, that):
         """Is that here?"""
-        return that in self.character.graph[self.name].contents
+        return that in self.contents
 
     def __str__(self):
         return str(self.name)
@@ -44,11 +54,18 @@ class Place(Container):
 
     def __eq__(self, other):
         return (
+            hasattr(other, 'character') and
+            hasattr(other, 'name') and 
             self.character == other.character and
-            self.name == other.name)
+            self.name == other.name
+        )
 
     def __hash__(self):
         return hash((self.character, self.name))
 
     def __getitem__(self, key):
         return self.character.graph[self.name][key]
+
+    @property
+    def contents(self):
+        return self.character.graph.node[self.name]['contents']

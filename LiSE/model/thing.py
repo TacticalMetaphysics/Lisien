@@ -14,30 +14,28 @@ class Thing(Container):
     same.
 
     """
-    demands = ["portal_loc", "place_stat"]
     tables = [
-        ("thing_loc", {
-            "columns": {
-                "character": "text not null default 'Physical'",
-                "name": "text not null",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "location": "text"},
-            "primary_key": (
-                "character", "name", "branch", "tick")}),
-        ("thing_stat", {
-            "columns": {
-                "character": "text not null",
-                "name": "text not null",
-                "key": "text",
-                "branch": "integer not null default 0",
-                "tick": "integer not null default 0",
-                "value": "text"},
-            "primary_key": (
-                "character", "name", "key", "branch", "tick"),
-            "foreign_keys": {
-                "character, name": (
-                    "thing", "character, name")}})]
+        (
+            "thing_stat",
+            {
+                "columns":
+                {
+                    "character": "text not null",
+                    "name": "text not null",
+                    "key": "text not null",
+                    "branch": "integer not null default 0",
+                    "tick": "integer not null default 0",
+                    # null value means this key doesn't apply to me
+                    "value": "text",
+                    "type": "text not null default 'text'"
+                },
+                "primary_key":
+                ("character", "name", "key", "branch", "tick"),
+                "checks":
+                ["type in ('text', 'real', 'boolean', 'integer')"]
+            }
+        )
+    ]
 
     def __init__(self, character, name):
         self.character = character
@@ -51,10 +49,10 @@ class Thing(Container):
         return unicode(self.name)
 
     def __repr__(self):
-        return "Thing({})".format(self)
+        return "Thing({})".format(self.name)
 
     def __contains__(self, that):
-        return that.location is self
+        return that.location == self.name
 
     def __getitem__(self, key):
         if key == 'contents':
@@ -65,22 +63,16 @@ class Thing(Container):
             return self.character.thing_stat_d[self.name][key]
 
     @property
-    def loc_bone(self):
-        (branch, tick) = self.character.closet.time
-        return self.character.closet.skeleton[u"thing_loc"][
-            self.character.name][self.name][branch].value_during(tick)
-
-    @property
     def location(self):
-        bone = self.loc_bone
-        locn = bone.location
-        if locn in self.character.thing_d:
-            return self.character.thing_d[locn]
-        elif locn in self.character.portal_d:
-            return self.character.portal_d[locn]
-        elif locn not in self.character.place_d:
-            self.character.place_d[locn] = Place(self.character, locn)
-        return self.character.place_d[locn]
+        (branch, tick) = self.character.closet.timestream.time
+        return (
+            self.character.closet.skeleton
+            [u'thing_stat']
+            [self.character.name]
+            [self.name]
+            [u'location']
+            [branch].value_during(tick)
+        )
 
     def follow_path(self, path):
         """Presupposing I'm in the given host, follow the path by scheduling
@@ -94,35 +86,27 @@ class Thing(Container):
         already scheduled.
 
         """
-        (branch, tick) = self.character.closet.time
-        try:
-            aft = self.get_locations(
-                observer=None, branch=branch).key_after(tick)
-            raise TimeParadox(
-                "Tried to follow a path at tick {},"
-                " but I was scheduled to be elsewhere "
-                " at tick {}".format(tick, aft))
-        except ValueError:
-            pass
-        host = self.character.closet.get_character(self.get_bone().host)
-        bone = self.character.get_thing_locations(
-            self.name, branch).value_during(tick)
-        prevtick = tick + 1
-        for port in path:
-            bone = bone._replace(
-                location=port.name,
-                tick=prevtick)
-            host.closet.set_bone(bone)
-            prevtick += self.get_ticks_thru(
-                port, observer=None, branch=branch, tick=prevtick)
-            bone = bone._replace(
-                location=unicode(port.destination),
-                tick=prevtick)
-            host.closet.set_bone(bone)
-            # Currently, a Thing will stay in each Place on a path for
-            # exactly one tick before leaving.  This may not always be
-            # appropriate.
-            prevtick += 1
+        (branch, tick) = self.character.closet.timestream.time
+        locs = (
+            self.character.closet.skeleton
+            [u'thing_stat']
+            [self.character.name]
+            [self.name]
+            [self.location]
+        )
+        if branch in locs:
+            try:
+                aft = locs[branch].key_after(tick)
+                raise TimeParadox(
+                    "Tried to follow a path at tick {},"
+                    " but I was scheduled to be elsewhere "
+                    " at tick {}".format(tick, aft)
+                )
+            except ValueError:
+                pass
+        bone = locs[branch].value_during(tick)
+        prevtick = tick + self.ticks_to_leave(bone.value)
+        # TODO
 
     def new_branch(self, parent, branch, tick):
         """There's a new branch off of the parent branch, and it starts at the
@@ -140,7 +124,8 @@ class Thing(Container):
                 name=self.name,
                 branch=branch,
                 tick=tick,
-                location=start_loc)
+                location=start_loc
+            )
             yield locb
             return
         for bone in self.iter_loc_bones(branch=parent):
@@ -151,5 +136,8 @@ class Thing(Container):
             for bone in self.iter_loc_bones(observer, branch=parent):
                 yield bone._replace(branch=branch)
             for bone in self.iter_stats_bones(
-                    stats=[], observer=observer, branch=parent):
+                    stats=[],
+                    observer=observer,
+                    branch=parent
+            ):
                 yield bone._replace(branch=branch)
