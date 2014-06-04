@@ -32,6 +32,7 @@ GamePiece = None
 Atlas = None
 Logger = None
 Character = None
+Facade = None
 Place = None
 Portal = None
 Thing = None
@@ -40,6 +41,7 @@ Logger = None
 from LiSE.util import (
     ListItemIterator,
     unicode2pytype,
+    unicode2pytype_d,
     pytype2unicode
 )
 from LiSE import __path__
@@ -374,16 +376,6 @@ class Bone(tuple):
         d = {"_field_decls": decls,
              "_no_fmt": True}
         return type(name, (cls,), d)
-
-
-class PlaceBone(Bone):
-    """A Bone for Places, which have no actual database records, but are
-    created implicitly whenever something is in them or links to
-    them.
-
-    """
-    _field_decls = [("host", unicode, None), ("place", unicode, None),
-                    ("branch", int, 0), ("tick", int, 0)]
 
 
 class Skeleton(MutableMapping):
@@ -1125,7 +1117,7 @@ class SaveableMetaclass(type):
         for item in local_pkeys.items():
             (tablename, pkey) = item
             keynames[tablename] = list(pkey)
-        for item in coldecls.items():
+        for item in coldecls.iteritems():
             (tablename, coldict) = item
             coltypes[tablename] = {}
             coldefaults[tablename] = {}
@@ -1170,64 +1162,82 @@ class SaveableMetaclass(type):
             provides.add(tablename)
             pkey = SaveableMetaclass.primarykeys[tablename]
             fkeys = foreignkeys[tablename]
-            cks = ["CHECK(%s)" % ck for ck in checks[tablename]]
-            coldecs = [" ".join(it) for it in coldecls[tablename].iteritems()]
-            coldecstr = ", ".join(coldecs)
-            pkeycolstr = ", ".join(pkey)
+            coldecstr = ", ".join(" ".join(it) for it in coldecls[tablename].iteritems())
             SaveableMetaclass.colnamestr[tablename] = (
-                ", ".join(SaveableMetaclass.colnames[tablename]))
-            pkeystr = "PRIMARY KEY (%s)" % (pkeycolstr,)
+                ", ".join(SaveableMetaclass.colnames[tablename])
+            )
+            
             fkeystrs = []
             for item in fkeys.items():
-                if len(item[1]) == 2:
-                    fkeystrs.append(
-                        "FOREIGN KEY (%s) REFERENCES %s(%s)" %
-                        (item[0], item[1][0], item[1][1]))
-                elif len(item[1]) == 3:
-                    fkeystrs.append(
-                        "FOREIGN KEY ({0}) REFERENCES {1}({2}) {3}".format(
-                            item[0], item[1][0], item[1][1], item[1][2]))
-                else:
-                    raise Exception("Invalid foreign key: {0}".format(item))
+                s = "FOREIGN KEY ({our_key}) REFERENCES {table}({their_key})".format(
+                    our_key=item[0],
+                    table=item[1][0],
+                    their_key=item[1][1])
+                if len(item[1]) == 3:
+                    s += " " + item[1][2]
+                fkeystrs.append(s)
             fkeystr = ", ".join(fkeystrs)
-            chkstr = ", ".join(cks)
+
             table_decl_data = [coldecstr]
-            if len(pkey) > 0:
+            pkeystr = "PRIMARY KEY ({})".format(", ".join(pkey))
+            if pkeystr != "PRIMARY KEY ()":
                 table_decl_data.append(pkeystr)
             if len(fkeystrs) > 0:
                 table_decl_data.append(fkeystr)
-            if len(cks) > 0:
+            chkstr = ", ".join("CHECK({})".format(ck) for ck in checks[tablename])
+            if chkstr != "":
                 table_decl_data.append(chkstr)
             table_decl = ", ".join(table_decl_data)
             SaveableMetaclass.schemata[
                 tablename] = "CREATE TABLE {} ({})".format(
                 tablename, table_decl)
         SaveableMetaclass.saveables.append(
-            (tuple(demands),
-             tuple(provides),
-             tuple(prelude),
-             tuple(tablenames),
-             tuple(postlude)))
+            (
+                tuple(demands),
+                tuple(provides),
+                tuple(prelude),
+                tuple(tablenames),
+                tuple(postlude)
+            )
+        )
 
         atrdic = {
-            'colnames': dict([
-                (tabn, tuple(SaveableMetaclass.colnames[tabn]))
-                for tabn in tablenames]),
-            'colnamestr': dict([
-                (tabn, unicode(SaveableMetaclass.colnamestr[tabn]))
-                for tabn in tablenames]),
+            'colnames':
+            dict(
+                [
+                    (tabn, tuple(SaveableMetaclass.colnames[tabn]))
+                    for tabn in tablenames
+                ]
+            ),
+            'colnamestr':
+            dict(
+                [
+                    (tabn, unicode(SaveableMetaclass.colnamestr[tabn]))
+                    for tabn in tablenames
+                ]
+            ),
             'colnstr': SaveableMetaclass.colnamestr[tablenames[0]],
-            'keynames': dict([
-                (tabn, tuple(keynames[tabn])) for tabn in tablenames]),
-            'valnames': dict([
-                (tabn, tuple(valnames[tabn])) for tabn in tablenames]),
+            'keynames':
+            dict(
+                [
+                    (tabn, tuple(keynames[tabn]))
+                    for tabn in tablenames
+                ]
+            ),
+            'valnames':
+            dict(
+                [
+                    (tabn, tuple(valnames[tabn])) for tabn in tablenames
+                ]
+            ),
             'keyns': tuple(keynames[tablenames[0]]),
             'valns': tuple(valnames[tablenames[0]]),
             'colns': tuple(SaveableMetaclass.colnames[tablenames[0]]),
             'maintab': tablenames[0],
             'tablenames': tuple(tablenames),
             'bonetypes': bonetypes,
-            'bonetype': bonetypes[tablenames[0]]}
+            'bonetype': bonetypes[tablenames[0]]
+        }
         atrdic.update(attrs)
 
         clasn = clas
@@ -1242,22 +1252,29 @@ class SaveableMetaclass(type):
 class Timestream(object):
     """Tracks the genealogy of the various branches of time.
 
+    Branches of time each have one parent; branch zero is its own parent.
 
-    Branches of time each have one parent; branch zero is its own parent."""
+    """
     __metaclass__ = SaveableMetaclass
     # I think updating the start and end ticks of a branch using
     # listeners might be a good idea
     tables = [
-        ("timestream",
-         {"columns":
-          {"branch": "integer not null",
-           "parent": "integer not null"},
-          "primary_key": ("branch", "parent"),
-          "foreign_keys":
-          {"parent": ("timestream", "branch")},
-          "checks":
-          ["parent=0 or parent<>branch"]})
-        ]
+        (
+            "timestream",
+            {
+             "columns":
+                {
+                    "branch": "integer not null",
+                    "parent": "integer not null"
+                },
+                "primary_key": ("branch", "parent"),
+                "foreign_keys":
+                {"parent": ("timestream", "branch")},
+                "checks":
+                ["parent=0 or parent<>branch"]
+            }
+        )
+    ]
 
     def __init__(self, closet):
         """Initialize hi_branch and hi_tick to 0, and their listeners to
@@ -1434,10 +1451,11 @@ def iter_character_query_bones_named(name):
     """Yield all the bones needed to query the database about all the data
     in a character."""
     for bonetype in (
-            Thing.bonetypes.values() +
-            Portal.bonetypes.values() +
-            Place.bonetypes.values() +
-            Character.bonetypes.values()):
+            Thing.bonetypes["thing_stat"],
+            Portal.bonetypes["portal_stat"],
+            Place.bonetypes["place_stat"],
+            Character.bonetypes["character_stat"],
+            Character.bonetypes["character_avatar"]):
         yield bonetype._null()._replace(character=name)
 
 
@@ -1459,21 +1477,41 @@ class Closet(object):
     """
     __metaclass__ = SaveableMetaclass
     tables = [
-        ("globals", {
-            "columns": {
-                "key": "text not null",
-                "type": "text not null default 'unicode'",
-                "value": "text"},
-            "primary_key": ("key",),
-            "checks": ["type in ({})".format(", ".join([
-                "'{}'".format(typ) for typ in unicode2pytype]))]
-        }),
-        ("strings", {
-            "columns": {
-                "stringname": "text not null",
-                "language": "text not null default 'eng'",
-                "string": "text not null"},
-            "primary_key": ("stringname", "language")})]
+        (
+            "globals",
+            {
+                "columns":
+                {
+                    "key": "text not null",
+                    "type": "text not null default 'unicode'",
+                    "value": "text"
+                },
+                "primary_key": ("key",),
+                "checks": [
+                    "type in ({})".format(
+                        ", ".join(
+                            [
+                                "'{}'".format(typ)
+                                for typ in unicode2pytype_d
+                            ]
+                        )
+                    )
+                ]
+            }
+        ),
+        (
+            "strings",
+            {
+                "columns":
+                {
+                    "stringname": "text not null",
+                    "language": "text not null default 'eng'",
+                    "string": "text not null"
+                },
+            "primary_key": ("stringname", "language")
+            }
+        )
+    ]
     globs = ("branch", "tick", "observer", "observed", "host")
     """Names of global variables"""
     working_dicts = [
@@ -1747,7 +1785,7 @@ class Closet(object):
         for glub in ('branch', 'tick'):
             try:
                 self.get_global(glub)
-            except TypeError:
+            except (TypeError, sqlite3.OperationalError):
                 self.set_global(glub, 0)
 
         if 'load_img_tags' in kwargs:
@@ -1760,8 +1798,6 @@ class Closet(object):
             self.character_d['Omniscient'] = Character(self, 'Omniscient')
         if 'load_characters' in kwargs:
             self.load_characters(kwargs['load_characters'])
-        if 'load_charsheet' in kwargs:
-            self.load_charsheet(kwargs['load_charsheet'])
 
         self.lisepath = __path__[-1]
         self.sep = os.sep
@@ -1802,140 +1838,22 @@ class Closet(object):
         self.c.close()
         self.connector.close()
 
-    def sanetime(self, branch=None, tick=None):
-        """If branch or tick are None, replace with present branch or tick.
-
-        Return them in a pair.
-
-        """
-        return (branch if branch is not None else self.branch,
-                tick if tick is not None else self.tick)
-
-    def get_bone_timely(self, keys, branch=None, tick=None):
-        """Get the bone at the given keys and time"""
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        while branch > 0:
-            try:
-                return self.skeleton.get_timely(keys, branch, tick)
-            except KeyError:
-                try:
-                    branch = self.timestream.parent(branch)
-                except IndexError:
-                    break
-        # may throw KeyError
-        return self.skeleton.get_timely(keys, 0, tick)
-
-    def timely_bone_getter(self, keys):
-        """Return a function that gets the bone with the given keys, at the
-        sim-time when it's called."""
-        def r(branch=None, tick=None):
-            return self.get_bone_timely(keys, branch, tick)
-        return r
-
-    def set_bone_timely(self, keys, value, branch=None, tick=None):
-        """Set the bone ``value`` into the skeleton with the given keys and
-        sim-time."""
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        self.skeleton.set_timely(keys, value, branch, tick)
-
-    def timely_bone_setter(self, keys):
-        """Return a function that sets a bone into the skeleton at the present
-        sim-time, with the keys supplied to ``timely_bone_setter``.
-
-        """
-        def r(value, branch=None, tick=None):
-            self.set_timely(keys, value, branch, tick)
-        return r
-
-    def del_bone_timely(self, keys, branch=None, tick=None):
-        """Delete the bone at the given keys and sim-time, or the previous
-        bone if there's none at the precise tick given.
-
-        """
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        self.skeleton.del_timely(keys, branch, tick)
-
-    def timely_bone_deleter(self, keys):
-        """Return a function to delete the bone at or before the current time
-        with the keys supplied to ``timely_bone_deleter``.
-
-        """
-        def r(branch=None, tick=None):
-            self.del_timely(keys, branch, tick)
-        return r
-
-    def timely_bone_property(self, keys):
-        """Make a property for the most recent value of the bone with the given
-        keys."""
-        return property(
-            self.timely_getter(keys),
-            self.timely_setter(keys),
-            self.timely_deleter(keys),
-            "The value in {} at the current sim-time.".format(
-                repr(keys)))
-
-    def get_fact_timely(self, keys, boneatt, branch=None, tick=None):
-        """Get a particular attribute of the bone with the given keys at the
-        given time."""
-        bone = self.get_bone_timely(keys, branch, tick)
-        return getattr(bone, boneatt)
-
-    def timely_fact_getter(self, keys, boneatt):
-        """Return a function to get a particular attribute, of a particular
-        bone, with keys supplied to ``timely_fact_getter``, at the current
-        sim-time."""
-        def r(branch=None, tick=None):
-            return self.get_fact_timely(keys, boneatt, branch, tick)
-        return r
-
-    def set_fact_timely(self, keys, boneatt, val, branch=None, tick=None):
-        """Set a particular field of a bone with given keys and sim-time."""
-        former = self.get_bone_timely(keys, branch, tick)
-        latter = former._replace(**{boneatt: val})
-        self.set_bone_timely(keys, latter, branch, tick)
-
-    def timely_fact_setter(self, keys, boneatt):
-        """Return a function to set a predetermined attribute of the bone with
-        the given keys, at the present sim-time."""
-        def r(val, branch=None, tick=None):
-            self.set_fact_timely(keys, boneatt, val, branch, tick)
-        return r
-
-    def timely_fact_property(self, keys, boneatt):
-        """Return a ``property`` that gets and sets the attribute ``boneatt``
-        of the bone with ``keys``.
-
-        Actually, it replaces the bone at its position in the skeleton
-        with a copy with the attribute changed.
-
-        """
-        return property(
-            self.timely_fact_getter(keys, boneatt),
-            self.timely_fact_setter(keys, boneatt),
-            doc="Change the {} attribute of the bone at {}.".format(
-                boneatt, repr(keys)))
-
     def select_class_all(self, cls):
         """Load all the data from the database for the given class."""
-        self.select_and_set(bonetype._null() for bonetype in
-                            cls.bonetypes.itervalues())
+        self.select_and_set(
+            bonetype._null() for bonetype in
+            cls.bonetypes.itervalues()
+        )
 
     def select_keybone(self, kb):
         """Yield records from the database matching the bone."""
         qrystr = "SELECT {} FROM {} WHERE {};".format(
             ", ".join(kb._fields),
             kb.__class__.__name__,
-            " AND ".join("{}=?".format(field) for field in kb._fields
-                         if getattr(kb, field) is not None))
+            " AND ".join(
+                "{}=?".format(field) for field in kb._fields
+                if getattr(kb, field) is not None)
+        )
         if " WHERE ;" in qrystr:
             # keybone is null
             self.c.execute(qrystr.strip(" WHERE ;"))
@@ -1964,23 +1882,31 @@ class Closet(object):
             self.set_bone(bone)
             also_bone(bone)
 
-    def get_global(self, key):
+    def get_global(self, key, default=None):
         """Retrieve a global value from the database and return it.
 
         The returned value is not a bone. It is a scalar of one of the types
         in ``unicode2pytype`` and ``pytype2unicode``.
 
         """
-        self.c.execute("SELECT type, value FROM globals WHERE key=?;", (key,))
-        (typ_s, val_s) = self.c.fetchone()
-        return unicode2pytype[typ_s](val_s)
+        try:
+            self.c.execute(
+                "SELECT type, value FROM globals WHERE key=?;",
+                (key,))
+            (typ_s, val_s) = self.c.fetchone()
+            return unicode2pytype_d[typ_s](val_s)
+        except sqlite3.OperationalError as err:
+            if default:
+                return default
+            else:
+                raise err
 
     def set_global(self, key, value):
         """Set ``key``=``value`` in the database"""
         self.c.execute("DELETE FROM globals WHERE key=?;", (key,))
         self.c.execute(
             "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
-            (key, pytype2unicode[type(value)], unicode(value)))
+            (key, pytype2unicode(value), unicode(value)))
 
     get_text_funs = {
         "branch": lambda self: unicode(self.branch),
@@ -2029,23 +1955,8 @@ class Closet(object):
         ``GamePiece``s"""
         self.select_class_all(GamePiece)
 
-    def load_charsheet(self, character):
-        """Load records to do with the ``CharSheet`` representing the named
-        character"""
-        # if the character is not loaded yet, make it so
-        character = unicode(self.get_character(character))
-        self.select_and_set(
-            bonetype._null()._replace(character=character)
-            for bonetype in CharSheet.bonetypes.itervalues())
-
-    def get_charsheet(self, character):
-        """Return a CharSheet displaying the character specified, perhaps
-        loading it if necessary.
-
-        """
-        if character not in self.skeleton[u"character_sheet_item_type"]:
-            self.load_charsheet(character)
-        return CharSheet(character=self.get_character(character))
+    def get_charsheet(self, observer, observed):
+        return CharSheet(facade=self.get_facade(observer, observed))
 
     def load_characters(self, names):
         """Load records to do with the named characters"""
@@ -2062,7 +1973,8 @@ class Closet(object):
         for name in names:
             self.select_and_set(
                 bone for bone in iter_character_query_bones_named(name)
-                if name not in self.character_d)
+                if name not in self.character_d
+            )
             r[name] = Character(self, name)
         self.character_d.update(r)
         return r
@@ -2078,6 +1990,18 @@ class Closet(object):
         if isinstance(name, Character):
             return name
         return self.get_characters([str(name)])[str(name)]
+
+    def get_facade(self, observer, observed):
+        observer_u = unicode(observer)
+        observed_u = unicode(observed)
+        if observer_u not in self.facade_d:
+            self.facade_d[observer_u] = {}
+        if observed_u not in self.facade_d[observer_u]:
+            self.facade_d[observer_u][observed_u] = Facade(
+                self.get_character(observer_u),
+                self.get_character(observed_u)
+            )
+        return self.facade_d[observer_u][observed_u]
 
     def get_place(self, char, placen):
         """Get a place from a character"""
@@ -2124,8 +2048,9 @@ class Closet(object):
 
     def load_menu_items(self, menu):
         """Load a dictionary of menu item infos. Don't return anything."""
-        self.update_keybone(Menu.bonetypes["menu_item"]._null()._replace(
-            menu=menu))
+        self.update_keybone(
+            Menu.bonetypes["menu_item"]._null()._replace(menu=menu)
+        )
 
     def load_timestream(self):
         """Load and return the timestream"""
@@ -2180,7 +2105,9 @@ class Closet(object):
         if parent == child:
             raise TimestreamException(
                 "new_branch with child and parent both = {}".format(
-                    child))
+                    child
+                )
+            )
         for character in self.character_d.itervalues():
             for bone in character.new_branch(parent, child, tick):
                 self.set_bone(bone)
@@ -2315,23 +2242,6 @@ class Closet(object):
         elif stringn == "@tick" and listener not in self.tick_listeners:
             self.tick_listeners.append(listener)
 
-    def query_place(self, update=True):
-        """Query the 'place' view, resulting in an up-to-date record of what
-        places exist in the gameworld as it exists in the
-        database.
-
-        """
-        self.c.execute("SELECT host, place FROM place;")
-        if not update or u"place" not in self.skeleton:
-            # empty it out if it exists, create it if it doesn't
-            self.skeleton[u"place"] = {}
-        for (host, place, branch, tick) in self.c:
-            self.set_bone(PlaceBone(
-                host=host,
-                place=place,
-                branch=branch,
-                tick=tick))
-
     def have_place_bone(self, host, place, branch=None, tick=None):
         """Do I have a bone for that place? Time-sensitive."""
         if branch is None:
@@ -2339,8 +2249,14 @@ class Closet(object):
         if tick is None:
             tick = self.tick
         try:
-            return self.skeleton[u"place"][host][place][
-                branch].value_during(tick) is not None
+            return (
+                self.skeleton
+                [u"place"]
+                [host]
+                [place]
+                [branch].value_during(tick)
+                is not None
+            )
         except (KeyError, IndexError):
             return False
 
@@ -2355,10 +2271,6 @@ class Closet(object):
         """Take a bone of arbitrary type and put it in the right place in the
         skeleton.
 
-        Additionally, if the bone is of a kind that may implicitly
-        define a place, see if the place is a new one. If so, insert a
-        PlaceBone to describe it.
-
         """
         skeleton = self.skeleton
 
@@ -2371,39 +2283,9 @@ class Closet(object):
                 skeleton = skeleton[key]
             return skeleton
 
-        def set_place_bone(pbone):
-            init_keys(
-                skeleton,
-                [u"place", pbone.host, pbone.place, pbone.branch])
-            skeleton[u"place"][pbone.host][pbone.place][
-                pbone.branch][pbone.tick] = pbone
-
-        if isinstance(bone, PlaceBone):
-            set_place_bone(bone)
-            return
-
-        def set_place_maybe(host, place, branch, tick):
-            """Set a PlaceBone, but only if I don't have one for that place
-            already"""
-            if not self.have_place_bone(host, place, branch, tick):
-                set_place_bone(PlaceBone(
-                    host=host, place=place, branch=branch, tick=tick))
-
-        # Some bones implicitly declare a new place
-        if Thing and isinstance(bone, Thing.bonetypes[u"thing_loc"]):
-            core = self.skeleton[u"thing"][bone.character][bone.name]
-            set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
-            set_place_maybe(core.host, bone.location, bone.branch, bone.tick)
-        elif Portal and isinstance(bone, Portal.bonetypes[u"portal_loc"]):
-            core = self.skeleton[u"portal"][bone.character][bone.name]
-            for loc in (bone.origin, bone.destination):
-                set_place_maybe(core.host, loc, bone.branch, bone.tick)
-        elif Place and isinstance(bone, Place.bonetypes[u"place_stat"]):
-            set_place_maybe(bone.host, bone.name, bone.branch, bone.tick)
-
         # img_tag bones give the keys to be used in ``img_tag_d``,
         # which stores Img instances by their tag
-        elif Img and isinstance(bone, Img.bonetypes[u"img_tag"]):
+        if Img and isinstance(bone, Img.bonetypes[u"img_tag"]):
             if bone.tag not in self.img_tag_d:
                 self.img_tag_d[bone.tag] = set()
             self.img_tag_d[bone.tag].add(bone.img)
@@ -2425,8 +2307,12 @@ class Closet(object):
         # in the database, so update the database to make it so. The
         # change won't be committed until the next call to save_game.
         if hasattr(bone, 'sql_ins'):
-            self.c.execute(bone.sql_del, [getattr(bone, keyn)
-                                          for keyn in keynames])
+            self.c.execute(
+                bone.sql_del, [
+                    getattr(bone, keyn)
+                    for keyn in keynames
+                ]
+            )
             self.c.execute(bone.sql_ins, bone)
 
     def del_bone(self, bone):
@@ -2451,6 +2337,11 @@ class Closet(object):
             self.c.execute(bone.sql_del, [getattr(bone, keyn)
                                           for keyn in keynames])
 
+    def load_board(self, observer, observed):
+        self.select_class_all(Spot)  # should really be restricted to
+                                     # spots in the board
+        return Board(facade=self.get_facade(observer, observed))
+
 
 def defaults(c, kivy=False):
     """Retrieve default values from ``LiSE.data`` and insert them with the
@@ -2462,69 +2353,74 @@ def defaults(c, kivy=False):
         c.executemany(
             "INSERT INTO img (name, path, stacking_height) "
             "VALUES (?, ?, ?);",
-            whole_imgrows)
+            whole_imgrows
+        )
         from LiSE.data import graphics
         for (name, d) in graphics.iteritems():
             c.execute(
                 "INSERT INTO graphic (name, offset_x, offset_y) "
                 "VALUES (?, ?, ?);",
-                (name, d.get('offset_x', 0), d.get('offset_y', 0)))
+                (name, d.get('offset_x', 0), d.get('offset_y', 0))
+            )
             for i in xrange(0, len(d['imgs'])):
                 c.execute(
                     "INSERT INTO graphic_img (graphic, layer, img) "
                     "VALUES (?, ?, ?);",
-                    (name, i, d['imgs'][i]))
+                    (name, i, d['imgs'][i])
+                )
         from LiSE.data import stackhs
         for (height, names) in stackhs:
             qrystr = (
                 "UPDATE img SET stacking_height=? WHERE name IN ({});".format(
-                    ", ".join(["?"] * len(names))))
+                    ", ".join(["?"] * len(names))
+                )
+            )
             qrytup = (height,) + names
             c.execute(qrystr, qrytup)
     from LiSE.data import globs
     c.executemany(
         "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
-        globs)
+        globs
+    )
     c.execute(
         "INSERT INTO timestream (branch, parent) VALUES (?, ?);",
-        (0, 0))
+        (0, 0)
+    )
     from LiSE.data import things
     for character in things:
         for thing in things[character]:
             c.execute(
                 "INSERT INTO thing (character, name, host) VALUES (?, ?, ?);",
-                (character, thing, things[character][thing]["host"]))
+                (character, thing, things[character][thing]["host"])
+            )
             c.execute(
                 "INSERT INTO thing_loc (character, name, location) "
                 "VALUES (?, ?, ?);",
-                (character, thing, things[character][thing]["location"]))
+                (character, thing, things[character][thing]["location"])
+            )
     from LiSE.data import reciprocal_portals
     for (orig, dest) in reciprocal_portals:
         name1 = "{}->{}".format(orig, dest)
         name2 = "{}->{}".format(dest, orig)
         c.executemany(
             "INSERT INTO portal (name) VALUES (?);",
-            [(name1,), (name2,)])
+            [(name1,), (name2,)]
+        )
         c.executemany(
             "INSERT INTO portal_loc (name, origin, destination) VALUES "
-            "(?, ?, ?);", [(name1, orig, dest), (name2, dest, orig)])
+            "(?, ?, ?);", [(name1, orig, dest), (name2, dest, orig)]
+        )
     from LiSE.data import one_way_portals
     for (orig, dest) in one_way_portals:
         name = "{}->{}".format(orig, dest)
         c.execute(
             "INSERT INTO portal (name) VALUES (?);",
-            (name,))
+            (name,)
+        )
         c.execute(
             "INSERT INTO portal_loc (name, origin, destination) "
-            "VALUES (?, ?, ?);", (name, orig, dest))
-    from LiSE.data import charsheet_items
-    for character in charsheet_items:
-        i = 0
-        for (typ, key0) in charsheet_items[character]:
-            c.execute(
-                "INSERT INTO charsheet_item (character, type, idx, key0) "
-                "VALUES (?, ?, ?, ?);", (character, typ, i, key0))
-            i += 1
+            "VALUES (?, ?, ?);", (name, orig, dest)
+        )
 
 
 def mkdb(DB_NAME, lisepath, kivy=False):
@@ -2546,9 +2442,11 @@ def mkdb(DB_NAME, lisepath, kivy=False):
     DiegeticEventHandler = LiSE.rules.event.DiegeticEventHandler
     img_qrystr = (
         "INSERT INTO img (name, path) "
-        "VALUES (?, ?);")
+        "VALUES (?, ?);"
+    )
     tag_qrystr = (
-        "INSERT INTO img_tag (img, tag) VALUES (?, ?);")
+        "INSERT INTO img_tag (img, tag) VALUES (?, ?);"
+    )
 
     def ins_atlas(curs, path, qualify=False, tags=[]):
         """Grab all the images in an atlas and store them, optionally sticking
@@ -2566,8 +2464,11 @@ def mkdb(DB_NAME, lisepath, kivy=False):
         atlasn = path.split(sep)[-1][:-6]
         for tilen in lass.textures.iterkeys():
             imgn = atlasn + '.' + tilen if qualify else tilen
-            curs.execute(img_qrystr, (
-                imgn, "{}/{}".format(atlaspath, tilen)))
+            curs.execute(
+                img_qrystr, (
+                    imgn, "{}/{}".format(atlaspath, tilen)
+                )
+            )
             for tag in tags:
                 curs.execute(tag_qrystr, (imgn, tag))
 
@@ -2606,14 +2507,19 @@ def mkdb(DB_NAME, lisepath, kivy=False):
     done = set()
     saveables = list(SaveableMetaclass.saveables)
     while saveables != []:
-        (demands, provides, prelude,
-         tablenames, postlude) = saveables.pop(0)
+        (
+            demands, provides, prelude,
+            tablenames, postlude
+        ) = saveables.pop(0)
         breakout = False
         for demand in iter(demands):
             if demand not in done:
                 saveables.append(
-                    (demands, provides, prelude,
-                     tablenames, postlude))
+                    (
+                        demands, provides, prelude,
+                        tablenames, postlude
+                    )
+                )
                 breakout = True
                 break
         if breakout:
@@ -2642,7 +2548,8 @@ def mkdb(DB_NAME, lisepath, kivy=False):
                     c.execute(pre)
         except sqlite3.OperationalError as e:
             saveables.append(
-                (demands, provides, prelude_todo, tablenames, postlude))
+                (demands, provides, prelude_todo, tablenames, postlude)
+            )
             continue
         breakout = False
         tables_todo = list(tablenames)
@@ -2653,7 +2560,8 @@ def mkdb(DB_NAME, lisepath, kivy=False):
             done.add(tn)
         if breakout:
             saveables.append(
-                (demands, provides, prelude_todo, tables_todo, postlude))
+                (demands, provides, prelude_todo, tables_todo, postlude)
+            )
             continue
         postlude_todo = list(postlude)
         try:
@@ -2666,9 +2574,12 @@ def mkdb(DB_NAME, lisepath, kivy=False):
         except sqlite3.OperationalError as e:
             Logger.warning(
                 "Building {}: OperationalError during postlude: {}".format(
-                    tn, e))
+                    tn, e
+                )
+            )
             saveables.append(
-                (demands, provides, prelude_todo, tables_todo, postlude_todo))
+                (demands, provides, prelude_todo, tables_todo, postlude_todo)
+            )
             continue
         done.update(provides)
 
@@ -2678,24 +2589,39 @@ def mkdb(DB_NAME, lisepath, kivy=False):
     if kivy:
         Logger.debug("indexing the RLTiles")
         ins_atlas_dir(
-            c, "LiSE/gui/assets/rltiles/hominid", True,
-            ['hominid', 'rltile', 'pawn'])
+            c,
+            "LiSE/gui/assets/rltiles/hominid",
+            True,
+            ['hominid', 'rltile', 'pawn']
+        )
 
         Logger.debug("indexing Pixel City")
-        ins_atlas(c, "LiSE/gui/assets/pixel_city.atlas", False,
-                  ['spot', 'pixel_city'])
+        ins_atlas(
+            c,
+            "LiSE/gui/assets/pixel_city.atlas",
+            False,
+            ['spot', 'pixel_city']
+        )
 
     conn.commit()
     return conn
 
+# TODO: redo load_board so it does the new schema properly
 
-def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
-                load_gfx=False, load_characters=[], load_charsheet=None):
+
+def load_closet(
+        dbfn,
+        gettext=None,
+        load_img=False,
+        load_img_tags=[],
+        load_gfx=False,
+        load_characters=[u'Omniscient', u'Physical'],
+        load_board=(u'Omniscient', u'Physical')
+):
     """Return a Closet instance for the given database, maybe loading a
     few things before listening to the skeleton."""
     kivish = False
-    for kive in (load_img, load_img_tags, load_gfx,
-                 load_charsheet):
+    for kive in (load_img, load_img_tags, load_gfx):
         if kive:
             kivish = True
             break
@@ -2711,6 +2637,6 @@ def load_closet(dbfn, gettext=None, load_img=False, load_img_tags=[],
         r.load_gfx_metadata()
     if load_characters:
         r.load_characters(load_characters)
-    if load_charsheet:
-        r.load_charsheet(load_charsheet)
+    if load_board:
+        r.load_board(*load_board)
     return r
