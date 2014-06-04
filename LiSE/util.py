@@ -8,52 +8,44 @@ from re import match, findall
 
 ### Constants
 
-SHEET_ITEM_TYPES = [
-    'thing_tab',
-    'place_tab',
-    'portal_tab',
-    'char_tab',
-    'thing_cal',
-    'place_cal',
-    'portal_cal',
-    'char_cal']
-"""Type codes for CharSheetItems, those things that go in character
-sheets so that the character sheets actually show something"""
-
-
-TABLE_TYPES = [
-    'thing_tab',
-    'place_tab',
-    'portal_tab',
-    'char_tab']
-"""Those SHEET_ITEM_TYPES that represent tables"""
-
-
-CALENDAR_TYPES = [
-    'thing_cal',
-    'place_cal',
-    'portal_cal',
-    'char_cal']
-"""Those SHEET_ITEM_TYPES that represent calendars"""
-
-unicode2pytype = {
+unicode2pytype_d = {
     'bool': bool,
     'boolean': bool,
     'int': int,
     'integer': int,
     'float': float,
     'str': unicode,
+    'string': unicode,
     'unicode': unicode,
     'text': unicode}
 """Map the names of types to their types"""
 
-pytype2unicode = {
+
+def unicode2pytype(u):
+    """Take a Unicode string that names a type. Return the actual type."""
+    return unicode2pytype_d[u]
+
+pytype2unicode_d = {
     bool: 'bool',
     int: 'int',
     float: 'float',
     unicode: 'unicode',
     str: 'unicode'}
 """Map types to the names I'll use for them in the database"""
+
+
+def pytype2unicode(v):
+    """Take a Python type and return a Unicode string representing it.
+
+    If the argument is not a Python type, coerce it.
+
+    """
+    if isinstance(v, property):
+        v = v.fget()
+    if isinstance(v, type):
+        return pytype2unicode_d[v]
+    else:
+        return pytype2unicode_d[type(v)]
 
 phi = (1.0 + sqrt(5))/2.0
 """The golden ratio."""
@@ -319,8 +311,18 @@ class HandleHandler(object):
             return lambda listener: unregister_listener(llist, listener)
 
         llist = []
-        setattr(self, '{}_listeners'.format(name), llist)
-        setattr(self, 'register_{}_listener'.format(name),
-                registrar(llist))
-        setattr(self, 'unregister_{}_listener'.format(name),
-                unregistrar(llist))
+        setattr(
+            self,
+            '{}_listeners'.format(name),
+            llist
+        )
+        setattr(
+            self,
+            'register_{}_listener'.format(name),
+            registrar(llist)
+        )
+        setattr(
+            self,
+            'unregister_{}_listener'.format(name),
+            unregistrar(llist)
+        )
