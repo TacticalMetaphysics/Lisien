@@ -1,3 +1,91 @@
+* Programming interface
+** branch, tick [2014-04-30 Wed]
+   Every function that depends on the current diegetic time should
+   pull it from the closet. That means no functions but those in the
+   ORM should take (branch, tick) as parameters.
+* Graphical interface
+** verbs
+*** build characters
+**** place places (w. spots)
+**** place things (w. pawns)
+**** pick graphics for spots and pawns
+**** connect portals (w. arrows)
+**** apply stats
+***** to places
+***** to things
+***** to portals
+***** to the whole character
+*** build facades
+    The initial creation of a Facade is done separately from everything
+    to do with the characters involved, but later, if you are viewing
+    the observed character through the facade, the actions that would
+    normally alter the observed character may alter the Facade instead.
+**** pick any 2 characters
+**** pick a type
+     A good selection of Facade types will be crucial.
+
+     There should be some decent descriptive text for each of them. It
+     should mention whatever will change about the rest of the user
+     interface when this Facade type is active.
+
+     There should be other, redundant indicators too.
+**** any extra config for a particular Facade subclass
+     I suppose there should be a property on the subclasses with some
+     extra kv in a string. Or else a callback that adds extra widgets
+     to whatever's passed in.
+*** build events
+    Actually this is mostly done in Python but you can wire events
+    together, associate different causes
+*** control time
+**** by punching in numbers
+**** by a slider on one of the various timelines
+     So that it's easy to rewind time to when your health was full, for
+     instance.
+** nouns
+*** the map
+    A graph with stuff on top. It's graphical and skinnable so you can
+    make it look like the 2D worldmap from more o less any game that
+    has such a thing.
+
+    You can drag things about on top of places, drag places about just
+    to make them look better, and connect and disconnect portals.
+
+    Right clicking or long pressing anything brings up its pop-up profile.
+*** pop-up profiles
+    Display stats to do with one particular Thing, Place, or Portal.
+
+    You can add, change, and delete stats here. You can't do that
+    anywhere else--but any other place a stat is referenced, there
+    should be a shortcut to get you here.
+*** the hand
+**** cards
+***** with image
+***** without
+**** arrange cards manually or automatically
+**** push cards aside to provide a drop zone
+*** character sheet
+    Only one of it, only for the current Character. Displays every
+    single variable in the character -- well, everything the Facade
+    lets you see, anyway -- but gives special prominence to the parts
+    that you couldn't get at via the pop-up profiles.
+* AI
+  Taking a page from... er, someone's *description of* Renderware AI
+** Perception
+   Some ways to automagically construct and maintain graphs
+   representing a character's *perception of* the gameworld, rather
+   than the model that the game resolves conflicts with.
+** Decision
+   Algorithms acting on those perception graphs. Often this is just
+   pathfinding--though it may operate on a graph representing
+   *possible world states as perceived by the character*, with each
+   node on the graph containing a perception graph of its own. At that
+   point you're doing dynamic programming.
+** Action
+   The bit that executes the plans made by the decision part, and
+   perhaps makes small adjustments to those plans when the world
+   changes but not so much that you have to start over. Some
+   roadblocks may be bypassed by just waiting for them to go away, for
+   instance.
 * database
 ** DONE change loaders so they can handle the case where you try to load something that doesn't exist
 ** schema changes
@@ -78,101 +166,29 @@
      optimize that query.
 ** ORM
    In orm.py mostly. Note there is no actual *class* called "ORM".
-* interface
-** place places (w. spots)
-*** pick graphics
-    Using SwatchBox.
+** associating characters with parts of other characters
+   Right now characters are subsets of the data model that don't
+   overlap. To a point, this is appropriate, since one character's
+   skill tree isn't another character's, etc
 
-    This used to work but is now broken. Tracking down the exact
-    reason proves tricky because I used indirect methods of
-    instantiating the SwatchBox, its container, and the other widgets
-    thereabout. I think I was trying to keep things out of Python and
-    in Kivy. I no longer think this was a good idea, if I ever did.
+   But characters can sometimes stand next to one another and have a
+   conversation, and in that case they are each represented by Things
+   in some other Character. I'd like to somehow model the fact that a
+   Thing represents a Character it isn't inside of.
 
-    I want one method to make a pop-over that is appropriate to my
-    layout. It should take a FloatLayout or RelativeLayout for its
-    argument, and display the contents in the pop-over.
+   Actually, if characters are connected in a social graph, a
+   character could be represented by a place or portal, too.
 
-    When the stuff in a widget depends on *prior* user input, that
-    widget should be constructed in pure Python, not kv.
-** place things (w. pawns)
-** character sheets
-*** Actually present the contents of facades.
-    Called "character sheets" anyway because that's what they LOOK like.
-*** Present said content in a default view that looks like a table.
-    In fact it's a list. Perchance, a ListView.
-*** Handles with which to reorder everything
-*** Button next to each variable that lets you turn it into a calendar and back again.
-    So that you can see what the variable was set to, and what it will
-    be.
+   I suppose I'll call the thing, place, or portal that represents a
+   character an "avatar".
 
-    Perhaps calendars should be resizeable, or perhaps pop-out-able,
-    or both?
-*** "Hide" button
-    In developer mode this just shunts the var into an item at the
-    bottom that you can click to see what you've hidden, and maybe
-    drag it back out again. In player mode that won't appear.
-
-    I guess it should be possible to reveal things at specific times,
-    but it would also be inconvenient for the charsheet to rearrange
-    itself while the developer's looking.
-
-    I'll store the arrangement with branches and ticks, but set them
-    both to zero by default, and leave them there until I think of a
-    good way to do it.
-*** Pair of dropdowns to select the observed and the observer
-    Probably not gonna be visible in the player view.
-
-    Each combination gets its own charsheet, which might have to be
-    created when you select it. This specifically includes a
-    character's view on itself.
-** build events
-*** How to get here?
-    You can click through from an event on the calendar, or there's a
-    menu item for it
-*** How to pick the widgets herein?
-    Similar to a file selector but these aren't files... each gets
-    only one record in the database, which can participate in lots of
-    relations.
-*** causes
-    They get a card and an "outie"
-*** events
-    They don't get proper cards, just boxes for their names--because,
-    you see, players never see them. Also they need to be resized in a
-    way the others just don't.
-
-    Each starts with one "innie" and grows another when the last is filled in.
-*** effects
-    They get a card and an "innie"
-** the hand
-*** arrange cards manually or automatically
-*** push cards aside to provide a drop zone
-*** cards
-**** with image
-**** without
-* AI
-  Taking a page from... er, someone's *description of* Renderware AI
-** Perception
-   Some ways to automagically construct and maintain graphs
-   representing a character's *perception of* the gameworld, rather
-   than the model that the game resolves conflicts with.
-** Decision
-   Algorithms acting on those perception graphs. Often this is just
-   pathfinding--though it may operate on a graph representing
-   *possible world states as perceived by the character*, with each
-   node on the graph containing a perception graph of its own. At that
-   point you're doing dynamic programming.
-** Action
-   The bit that executes the plans made by the decision part, and
-   perhaps makes small adjustments to those plans when the world
-   changes but not so much that you have to start over. Some
-   roadblocks may be bypassed by just waiting for them to go away, for
-   instance.
-* Programming interface
-** branch, tick [2014-04-30 Wed]
-   Every function that depends on the current diegetic time should
-   pull it from the closet. That means no functions but those in the
-   ORM should take (branch, tick) as parameters.
+   It's easy to simply keep a list of items all throughout the data
+   model that represent a particular character. But: should that list
+   have (branch, tick) in the key, like most of the data model does?
+   No, I think it would be sufficient to delete the item that
+   represents the character. I can't think of a situation where it'd
+   be useful to make the item stop representing the character, yet
+   continue to exist.
 * Features stolen from Kudos 2
 *** the social web display
 *** the kudos bar
@@ -241,3 +257,8 @@ cities. Abstraction is wonderful for that kind of thing.
    not really. Ticks and branches are more like axes on a Cartesian
    plane: you use the two of them together to identify when you want
    something.
+* demo game
+  Dungeon University proper seems too big, so adopt an ant's eye view
+  of it. Works something like Redshirt but instead of jobs-per-se you
+  have classes to take. Or teach. Not honestly sure which would be
+  easier to implement.
