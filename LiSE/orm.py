@@ -1273,26 +1273,44 @@ class Timestream(object):
         self.tick_listeners = []
         self.time_listeners = []
 
-        def set_branch(v):
-            self._branch = v
-            if self._branch > self._hi_branch:
-                self._hi_branch = self._branch
-            for listener in self.branch_listeners:
-                listener(v)
-            for listener in self.time_listeners:
-                listener(v, self._tick)
 
-        def set_tick(v):
-            self._tick = v
-            if self._tick > self._hi_tick:
-                self._hi_tick = self._tick
-            for listener in self.tick_listeners:
-                listener(v)
-            for listener in self.time_listeners:
-                listener(self._branch, v)
+    @property
+    def branch(self):
+        return self._branch
 
-        self.branch = property(lambda: self._branch, set_branch)
-        self.tick = property(lambda: self._tick, set_tick)
+    @branch.setter
+    def set_branch(self, v):
+        self._branch = v
+        if self._branch > self._hi_branch:
+            self._hi_branch = self._branch
+        for listener in self.branch_listeners:
+            listener(v)
+        for listener in self.time_listeners:
+            listener(v, self._tick)
+
+    @property
+    def tick(self):
+        return self._tick
+
+    @tick.setter
+    def set_tick(self, v):
+        self._tick = v
+        if self._tick > self._hi_tick:
+            self._hi_tick = self._tick
+        for listener in self.tick_listeners:
+            listener(v)
+        for listener in self.time_listeners:
+            listener(self._branch, v)
+
+    @property
+    def time(self):
+        return (self._branch, self._tick)
+
+    @time.setter
+    def set_time(self, v):
+        (b, t) = v
+        self.set_branch(b)
+        self.set_tick(t)
 
     def register_branch_listener(self, fun):
         self.branch_listeners.append(fun)
@@ -1405,6 +1423,12 @@ class Timestream(object):
         self.branch = branch
         self.tick = tick
 
+    def upd_hi_time(self, branch, tick):
+        if branch > self._hi_branch:
+            self._hi_branch = branch
+        if tick > self._hi_tick:
+            self._hi_tick = tick
+
 
 def iter_character_query_bones_named(name):
     """Yield all the bones needed to query the database about all the data
@@ -1464,34 +1488,12 @@ class Closet(object):
         "style_d",
         "event_d",
         "character_d",
-        "facade_d"]
+        "facade_d"
+    ]
     """The names of dictionaries where I keep objects after
     instantiation.
 
     """
-
-    def __getattr__(self, attrn):
-        """Forward requests for time-related stuff to the timestream"""
-        if attrn in ('branch', 'tick', 'hi_branch', 'hi_tick',
-                     'time', 'hi_time', 'register_branch_listener',
-                     'register_tick_listener', 'register_time_listener',
-                     'register_hi_branch_listener',
-                     'register_hi_tick_listener',
-                     'register_hi_time_listener'):
-            return getattr(self.timestream, attrn)
-        else:
-            raise AttributeError
-
-    def __setattr__(self, attrn, val):
-        """Handle updates to ``branch`` and ``tick``. Otherwise just
-        pass-thru."""
-        if attrn in ('branch', 'tick', 'hi_branch', 'hi_tick',
-                     'time', 'hi_time'):
-            if not isinstance(val, int):
-                raise TypeError('Time is integers.')
-            setattr(self.timestream, attrn, val)
-        else:
-            super(Closet, self).__setattr__(attrn, val)
 
     def __init__(self, connector, gettext=lambda _: _,
                  USE_KIVY=False, **kwargs):
@@ -1773,15 +1775,24 @@ class Closet(object):
         self.new_branch_blank = set()
         self.updating = False
         for glob in self.globs:
-            try:
-                setattr(self, glob, self.get_global(glob))
-            except TypeError as ex:
-                if glob == 'observer':
-                    self.observer = 'Omniscient'
-                elif glob in ('observed', 'host'):
-                    setattr(self, glob, 'Physical')
-                else:
-                    raise ex
+            if glob == 'hi_branch':
+                self.timestream._hi_branch = self.get_global('hi_branch')
+            elif glob == 'hi_tick':
+                self.timestream._hi_tick = self.get_global('hi_tick')
+            elif glob == 'branch':
+                self.timestream._branch = self.get_global('branch')
+            elif glob == 'tick':
+                self.timestream._tick = self.get_global('tick')
+            else:
+                try:
+                    setattr(self, glob, self.get_global(glob))
+                except TypeError as ex:
+                    if glob == 'observer':
+                        self.observer = 'Omniscient'
+                    elif glob == 'observed':
+                        self.observed = 'Physical'
+                    else:
+                        raise ex
 
     def __del__(self):
         """Try to write changes to disk before dying.
@@ -2000,7 +2011,10 @@ class Closet(object):
         """Commit the current transaction and start a new one."""
         Logger.debug("Closet: beginning save_game")
         for glob in self.globs:
-            self.set_global(glob, getattr(self, glob))
+            if glob in ('branch', 'tick'):
+                self.set_global(glob, getattr(self.timestream, glob))
+            else:
+                self.set_global(glob, getattr(self, glob))
         self.connector.commit()
         self.c.execute("BEGIN TRANSACTION;")
         Logger.debug("Closet: saved game")
@@ -2184,7 +2198,9 @@ class Closet(object):
                 "Made a new branch, {}, which was supposed to be "
                 "the hi_branch, but instead the hi_branch is {}. "
                 "Has time been overwritten?".format(
-                    child, self.timestream.hi_branch))
+                    child, self.timestream.hi_branch
+                )
+            )
 
     def time_travel_inc_tick(self, ticks=1):
         """Go to the next tick on the same branch"""
@@ -2232,19 +2248,23 @@ class Closet(object):
         values for them"""
         if (
                 hasattr(bone, "branch") and
-                bone.branch > self.timestream.hi_branch):
+                bone.branch > self.timestream.hi_branch
+        ):
             self.timestream.hi_branch = bone.branch
         if (
                 hasattr(bone, "tick") and
-                bone.tick > self.timestream.hi_tick):
+                bone.tick > self.timestream.hi_tick
+        ):
             self.timestream.hi_tick = bone.tick
         if (
                 hasattr(bone, "tick_from") and
-                bone.tick_from > self.timestream.hi_tick):
+                bone.tick_from > self.timestream.hi_tick
+        ):
             self.timestream.hi_tick = bone.tick_from
         if (
                 hasattr(bone, "tick_to") and
-                bone.tick_to > self.timestream.hi_tick):
+                bone.tick_to > self.timestream.hi_tick
+        ):
             self.timestream.hi_tick = bone.tick_to
 
     def mi_show_popup(self, mi, name):
@@ -2391,7 +2411,7 @@ class Closet(object):
         # Timestream.hi_time is always supposed to = the latest branch
         # and tick on record. Make sure of this.
         if hasattr(bone, 'branch') and hasattr(bone, 'tick'):
-            self.timestream.upd_time(bone.branch, bone.tick)
+            self.timestream.upd_hi_time(bone.branch, bone.tick)
 
         # Initialize this place in the skeleton, as needed, and put
         # the bone into it.
