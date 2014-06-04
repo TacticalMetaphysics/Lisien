@@ -11,7 +11,7 @@ import argparse
 parser = argparse.ArgumentParser(
     description='Pick a database and UI')
 parser.add_argument('-f', '--file')
-parser.add_argument('--no-gui', action='store_false')
+parser.add_argument('--gui', action='store_true')
 parser.add_argument('maindotpy')
 
 
@@ -25,9 +25,9 @@ def lise():
     print(_("Starting LiSE with database {}, path {}".format(
         parsed.file, __path__[-1])))
 
-    if parsed.no_gui:
+    if parsed.gui:
         # start up the gui
-        from LiSE.gui.app import LiSEApp
+        from gui.app import LiSEApp
         LiSEApp(dbfn=parsed.file, gettext=_,
                 observer_name='Omniscient',
                 observed_name='Player',
@@ -35,24 +35,111 @@ def lise():
     else:
         print("I'll implement a proper command line interface eventually. "
               "For now, running unit tests.")
-        from LiSE.orm import mkdb, load_closet
-        dbfn = parsed.file if parsed.file else "lisetest.sqlite"
-        from sqlite3 import connect, OperationalError
+        import os
+        from LiSE.orm import mkdb, Closet
+        dbfn = parsed.file if parsed.file else ":memory:"
+        try:
+            os.remove(dbfn)
+        except OSError:
+            pass
 
-        with connect(dbfn) as conn:
-            try:
-                print("Testing database connectivity.")
-                for tab in "thing", "place", "portal":
-                    conn.execute("SELECT * FROM {};".format(tab))
-            except (IOError, OperationalError):
-                print("Database not ready; initializing it.")
-                mkdb(dbfn, __path__[-1], kivy=False)
+        print("Initializing database.")
+        conn = mkdb(dbfn, __path__[-1], kivy=False)
         print("Loading closet.")
-        closet = load_closet(
-            dbfn, _,
-            load_characters=['Omniscient', 'Player', 'Physical'])
+        closet = Closet(connector=conn)
+        closet.load_characters([
+            'Omniscient',
+            'Physical',
+            'Player'])
         print("Loaded successfully.")
+        print("Creating places and portals.")
+        phys = closet.get_character("Physical")
+        phys.make_place("Home")
+        phys.make_place("Work")
+        phys.make_portal("Home", "Work")
+        phys.make_portal("Work", "Home")
+        print("Created places and portals.")
+        print("Creating NPC.")
+        npc = closet.make_character("NonPlayer")
+        avatar = phys.make_thing("npc")
+        avatar["location"] = "Home"
+        npc.add_avatar(avatar)
+        print("Created avatar with location.")
+        closet.timestream.tick = 1
+        npc.avatars["Physical"].travel_to("Work")
+        closet.timestream.tick = 100
+        npc.avatars["Physical"].travel_to("Home")
+        print("Scheduled 1 commute")
+        for i in xrange(1, 110):
+            closet.timestream.tick = i
+            print("Location at tick {}: {}".format(
+                closet.timestream.tick,
+                npc.avatars["Physical"]["location"]))
+        # negative ticks are legal; they are intended for eg. world
+        # generation prior to game-start, but aren't treated specially
+        closet.timestream.tick = -1
+        closet.timestream.branch = 1
+        print("Switched to branch 1")
+        print("Creating rules for commute")
 
+        @npc.rule
+        def home2work(npc):
+            """Rule to schedule a new trip to work every day."""
+            # arrange to get to work by 9 o'clock
+            npc.avatars["Physical"].travel_to_by(
+                "Work",
+                npc.closet.timestream.tick+9)
+
+        h2w = npc.rules["home2work"]
+
+        @h2w.prereq
+        def daystart(npc, rule):
+            """Run at midnight only."""
+            return npc.closet.timestream.tick % 24 == 0
+
+        @h2w.prereq
+        def home_all_day(npc, rule):
+            """Run if I'm scheduled to be at Home for this tick and the
+            following twenty-four.
+
+            """
+            present = npc.closet.timestream.tick
+            for t in xrange(present, present+24):
+                # The branch and tick pointers will be reset by the
+                # event handler once this function returns, don't
+                # worry.
+                npc.closet.timestream.tick = t
+                if npc.avatars["Physical"]["location"] != "Home":
+                    return False
+            return True
+
+        @npc.rule
+        def work2home(npc):
+            """Rule to go home when work's over, at 5 o'clock."""
+            # Leave, go home, arrive whenever
+            npc.avatars["Physical"].travel_to("Home")
+
+        w2h = npc.rules["work2home"]
+
+        @w2h.prereq
+        def closing_time(npc, rule):
+            """Run at 5pm only."""
+            return npc.closet.timestream.tick % 24 == 17
+
+        @w2h.prereq
+        def at_work(npc, rule):
+            """Run only when I'm at Work."""
+            return npc.avatars["Physical"]["location"] == "Work"
+        print("Testing rules.\n---")
+        print("Ideal case:")
+        # Run the clock for a few days
+        for t in xrange(0, 72):
+            closet.timestream.tick = t
+            print("At tick {}, NPC's location is {}".format(
+                t, npc.avatars["Physical"]["location"]))
+        closet.timestream.tick = -1
+        closet.timestream.branch = 2
+        
 
 if __name__ == '__main__':
     lise()
