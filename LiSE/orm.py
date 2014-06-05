@@ -1552,8 +1552,8 @@ class Closet(object):
         Character = LiSE.model.Character
         Facade = LiSE.model.Facade
         global DiegeticEventHandler
-        import LiSE.rules.event
-        DiegeticEventHandler = LiSE.rules.event.DiegeticEventHandler
+        import LiSE.rules
+        DiegeticEventHandler = LiSE.rules.DiegeticEventHandler
         if USE_KIVY:
             global Board
             global Spot
@@ -2432,14 +2432,14 @@ def mkdb(DB_NAME, lisepath, kivy=False):
     global Character
     global Facade
     global DiegeticEventHandler
-    import LiSE.rules.event
+    import LiSE.rules
     import LiSE.model
     Place = LiSE.model.Place
     Portal = LiSE.model.Portal
     Thing = LiSE.model.Thing
     Character = LiSE.model.Character
     Facade = LiSE.model.Facade
-    DiegeticEventHandler = LiSE.rules.event.DiegeticEventHandler
+    DiegeticEventHandler = LiSE.rules.DiegeticEventHandler
     img_qrystr = (
         "INSERT INTO img (name, path) "
         "VALUES (?, ?);"
