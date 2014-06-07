@@ -1125,7 +1125,6 @@ class SaveableMetaclass(type):
                 if fieldname == "branch":
                     foreignkeys[tablename][fieldname] = (
                         "timestream", "branch")
-                    checks[tablename].append("branch>=0")
                 cooked = decl.split(" ")
                 typename = cooked[0]
                 coltypes[tablename][fieldname] = {
