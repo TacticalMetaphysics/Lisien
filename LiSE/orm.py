@@ -1534,8 +1534,6 @@ class Closet(object):
             }
         )
     ]
-    globs = ("branch", "tick", "observer", "observed", "host")
-    """Names of global variables"""
     working_dicts = [
         "boardhand_d",
         "calendar_d",
@@ -1832,25 +1830,12 @@ class Closet(object):
         self.game_speed = 1
         self.new_branch_blank = set()
         self.updating = False
-        for glob in self.globs:
-            if glob == 'hi_branch':
-                self.timestream._hi_branch = self.get_global('hi_branch')
-            elif glob == 'hi_tick':
-                self.timestream._hi_tick = self.get_global('hi_tick')
-            elif glob == 'branch':
-                self.timestream._branch = self.get_global('branch')
-            elif glob == 'tick':
-                self.timestream._tick = self.get_global('tick')
-            else:
-                try:
-                    setattr(self, glob, self.get_global(glob))
-                except TypeError as ex:
-                    if glob == 'observer':
-                        self.observer = 'Omniscient'
-                    elif glob == 'observed':
-                        self.observed = 'Physical'
-                    else:
-                        raise ex
+
+        # Set globals
+        self.timestream._hi_branch = self.get_global('hi_branch')
+        self.timestream._hi_tick = self.get_global('hi_tick')
+        self.timestream._branch = self.get_global('branch')
+        self.timestream._tick = self.get_global('tick')
 
     def __del__(self):
         """Try to write changes to disk before dying.
