@@ -501,7 +501,10 @@ class Skeleton(MutableMapping):
                 self[k] = v
             else:
                 self[k] = self.__class__(
-                    content=v, name=k, parent=self)
+                    content=v,
+                    name=k,
+                    parent=self
+                )
 
     def __contains__(self, k):
         """Check if I have the given key"""
@@ -587,7 +590,8 @@ class Skeleton(MutableMapping):
             if not isinstance(v, self.bonetype):
                 raise TypeError(
                     "Skeletons that contain one Bone type may "
-                    "only contain that type.")
+                    "only contain that type."
+                )
             if isinstance(self.content, array):
                 # Pad self.content with nulls until it's big enough.
                 diff = (k+1) * v.size - len(self.content)
@@ -1124,7 +1128,9 @@ class SaveableMetaclass(type):
             for (fieldname, decl) in coldict.iteritems():
                 if fieldname == "branch":
                     foreignkeys[tablename][fieldname] = (
-                        "timestream", "branch")
+                        "timestream",
+                        "branch"
+                    )
                 cooked = decl.split(" ")
                 typename = cooked[0]
                 coltypes[tablename][fieldname] = {
@@ -1133,25 +1139,33 @@ class SaveableMetaclass(type):
                     "integer": int,
                     "bool": bool,
                     "boolean": bool,
-                    "float": float}[typename.lower()]
+                    "float": float
+                }[typename.lower()]
                 try:
                     default_str = cooked[cooked.index("default") + 1]
                     default = coltypes[tablename][fieldname](default_str)
                 except ValueError:
                     default = None
                 coldefaults[tablename][fieldname] = default
-            valnames[tablename] = list(set(coldict.keys()) -
-                                       set(keynames[tablename]))
+            valnames[tablename] = list(
+                set(coldict.keys()) -
+                set(keynames[tablename])
+            )
         for tablename in coldecls.iterkeys():
             SaveableMetaclass.colnames[tablename] = (
                 keynames[tablename] + valnames[tablename])
         for tablename in tablenames:
             bonetypes[tablename] = Bone.subclass(
                 tablename,
-                [(colname,
-                  coltypes[tablename][colname],
-                  coldefaults[tablename][colname])
-                 for colname in SaveableMetaclass.colnames[tablename]])
+                [
+                    (
+                        colname,
+                        coltypes[tablename][colname],
+                        coldefaults[tablename][colname]
+                    )
+                    for colname in SaveableMetaclass.colnames[tablename]
+                ]
+            )
             # assigning keynames here is kind of redundant (you could
             # look them up in bonetype.cls) but mildly convenient, and
             # serves to indicate that this bonetype was constructed by
@@ -1161,7 +1175,9 @@ class SaveableMetaclass(type):
             provides.add(tablename)
             pkey = SaveableMetaclass.primarykeys[tablename]
             fkeys = foreignkeys[tablename]
-            coldecstr = ", ".join(" ".join(it) for it in coldecls[tablename].iteritems())
+            coldecstr = ", ".join(
+                " ".join(it) for it in coldecls[tablename].iteritems()
+            )
             SaveableMetaclass.colnamestr[tablename] = (
                 ", ".join(SaveableMetaclass.colnames[tablename])
             )
@@ -1171,7 +1187,8 @@ class SaveableMetaclass(type):
                 s = "FOREIGN KEY ({our_key}) REFERENCES {table}({their_key})".format(
                     our_key=item[0],
                     table=item[1][0],
-                    their_key=item[1][1])
+                    their_key=item[1][1]
+                )
                 if len(item[1]) == 3:
                     s += " " + item[1][2]
                 fkeystrs.append(s)
@@ -1183,13 +1200,18 @@ class SaveableMetaclass(type):
                 table_decl_data.append(pkeystr)
             if len(fkeystrs) > 0:
                 table_decl_data.append(fkeystr)
-            chkstr = ", ".join("CHECK({})".format(ck) for ck in checks[tablename])
+            chkstr = ", ".join(
+                "CHECK({})".format(ck) for ck in checks[tablename]
+            )
             if chkstr != "":
                 table_decl_data.append(chkstr)
             table_decl = ", ".join(table_decl_data)
-            SaveableMetaclass.schemata[
-                tablename] = "CREATE TABLE {} ({})".format(
-                tablename, table_decl)
+            SaveableMetaclass.schemata[tablename] = (
+                "CREATE TABLE {} ({})".format(
+                    tablename,
+                    table_decl
+                )
+            )
         SaveableMetaclass.saveables.append(
             (
                 tuple(demands),
@@ -1454,7 +1476,8 @@ def iter_character_query_bones_named(name):
             Portal.bonetypes["portal_stat"],
             Place.bonetypes["place_stat"],
             Character.bonetypes["character_stat"],
-            Character.bonetypes["character_avatar"]):
+            Character.bonetypes["character_avatar"]
+    ):
         yield bonetype._null()._replace(character=name)
 
 
@@ -2624,9 +2647,11 @@ def load_closet(
         if kive:
             kivish = True
             break
-    r = Closet(connector=sqlite3.connect(dbfn, isolation_level=None),
-               gettext=gettext,
-               USE_KIVY=kivish)
+    r = Closet(
+        connector=sqlite3.connect(dbfn, isolation_level=None),
+        gettext=gettext,
+        USE_KIVY=kivish
+    )
     r.load_timestream()
     if load_img:
         r.load_img_metadata()
