@@ -17,13 +17,8 @@ import shelve
 import os
 import sqlite3
 from collections import MutableMapping
-from LiSE.model import (
-    Place,
-    Portal,
-    Thing,
-    Character,
-    Facade
-)
+# forward imports
+Place = Portal = Thing = Character = Facade = None
 from LiSE.util import (
     ListItemIterator,
     unicode2pytype,
@@ -1615,6 +1610,18 @@ class Closet(object):
     ]
 
     def __init__(self, connector, shelf, gettext=None, logger=None, **kwargs):
+        global Place
+        global Portal
+        global Thing
+        global Character
+        global Facade
+        from LiSE.model import (
+            Place,
+            Portal,
+            Thing,
+            Character,
+            Facade
+        )
         if logger is None:
             import logging
             logging.basicConfig()
