@@ -278,9 +278,11 @@ class Character(AbstractCharacter):
         return hash(self.name)
 
     def __str__(self):
+        """``self.name``"""
         return str(self.name)
 
     def __unicode__(self):
+        """``self.name``"""
         return unicode(self.name)
 
     def current_bones(self):
@@ -309,6 +311,71 @@ class Character(AbstractCharacter):
             if branch in charskel[key]:
                 yield charskel[key][branch].value_during(tick)
 
+    def make_place(self, name):
+        if name in self.place_d:
+            raise ValueError(
+                "Place already made. Retrieve it from place_d."
+            )
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(
+            Place.bonetype(
+                character=self.name,
+                name=name,
+                key='exists',
+                branch=branch,
+                tick=tick,
+                value=True
+            )
+        )
+        self.place_d[name] = Place(self, name)
+        return self.place_d[name]
+
+    def make_portal(self, origin, destination):
+        o = unicode(origin)
+        d = unicode(destination)
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(
+            Portal.bonetype(
+                character=self.name,
+                origin=o,
+                destination=d,
+                key='exists',
+                branch=branch,
+                tick=tick,
+                value=True
+            )
+        )
+        if o not in self.portal_d:
+            self.portal_d[o] = {}
+        self.portal_d[o][d] = Portal(self, o, d)
+        return self.portal_d[o][d]
+
+    def make_thing(self, name, init_location=None):
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(
+            Thing.bonetype(
+                character=self.name,
+                name=name,
+                key='exists',
+                branch=branch,
+                tick=tick,
+                value=True
+            )
+        )
+        self.thing_d[name] = Thing(self, name)
+        if init_location:
+            il = unicode(init_location)
+            self.closet.set_bone(
+                Thing.bonetype(
+                    character=self.name,
+                    name=name,
+                    key='location',
+                    branch=branch,
+                    tick=tick,
+                    value=il
+                )
+            )
+        return self.thing_d[name]
 
 class Facade(AbstractCharacter):
     """View onto one Character as seen by another.
@@ -384,6 +451,9 @@ class Facade(AbstractCharacter):
 
     def __hash__(self):
         return hash((self.observer, self.observed))
+
+    def __string__(self):
+        return "Facade({},{})".format(self.observer, self.observed)
 
     def __unicode__(self):
         return u"Facade({},{})".format(self.observer, self.observed)
