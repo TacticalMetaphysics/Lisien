@@ -1,15 +1,26 @@
 from collections import defaultdict
 from LiSE.orm import Closet
+from LiSE.orm import load_closet
 from gui.img import Img
 from kivy.atlas import Atlas
 from kivy.logger import Logger
 from kivy.core.image import Image
-
+import sqlite3
+import shelve
 
 
 class KivyCloset(Closet):
     def __init__(self, connector, gettext=None, **kwargs):
         super(Closet, self).__init__(connector, gettext, Logger, **kwargs)
+        if 'load_img_tags' in kwargs:
+            self.load_imgs_tagged(kwargs['load_img_tags'])
+        self.boardhand_d = {}
+        self.calendar_d = {}
+        self.color_d = {}
+        self.board_d = {}
+        self.menu_d = {}
+        self.menuitem_d = {}
+        self.style_d = {}
         self.img_d = {}
         self.img_tag_d = defaultdict(set)
         self.game_piece_d = defaultdict(list)
@@ -44,6 +55,42 @@ class KivyCloset(Closet):
         self.img_d.update(r)
         return r
 
+    def get_imgs(self, imgnames):
+        """Return a dictionary full of images by the given names, loading
+        them as needed."""
+        r = {}
+        unloaded = set()
+        for imgn in imgnames:
+            if imgn in self.img_d:
+                r[imgn] = self.img_d[imgn]
+            else:
+                unloaded.add(imgn)
+        if len(unloaded) > 0:
+            r.update(self.load_imgs(unloaded))
+        return r
+
+    def get_img(self, imgn):
+        """Get an ``Img`` and return it, loading if needed"""
+        return self.get_imgs([imgn])[imgn]
+
+    def load_menus(self, names):
+        """Return a dictionary full of menus by the given names, loading them
+        as needed."""
+        r = {}
+        for name in names:
+            r[name] = self.load_menu(name)
+        return r
+
+    def load_menu(self, name):
+        """Load and return the named menu"""
+        self.load_menu_items(name)
+        return Menu(closet=self, name=name)
+
+    def load_menu_items(self, menu):
+        """Load a dictionary of menu item infos. Don't return anything."""
+        self.update_keybone(
+            Menu.bonetypes["menu_item"]._null()._replace(menu=menu)
+        )
 
     def get_imgs(self, names):
         """Return a dict of ``Img`` by name, loading as needed."""
@@ -214,3 +261,42 @@ class KivyCloset(Closet):
                 unhad.add(name)
         r.update(self.load_game_pieces(unhad))
         return r
+
+    def load_img_metadata(self):
+        """Get all the records to do with where images are, so maybe I can
+        load them later"""
+        self.select_class_all(Img)
+
+    def load_gfx_metadata(self):
+        """Get all the records to do with how to put ``Img``s together into
+        ``GamePiece``s"""
+        self.select_class_all(GamePiece)
+
+    def get_charsheet(self, observer, observed):
+        return CharSheet(facade=self.get_facade(observer, observed))
+
+
+
+def load_kivy_closet(
+        dbfn,
+        gettext=None,
+        load_characters=[u'Omniscient', u'Physical'],
+        load_board=('Omniscient', 'Physical'),
+        load_imgs_tagged=[],
+        load_gfx=[]
+):
+    r = KivyCloset(
+        connector=sqlite3.connect(dbfn, isolation_level=None),
+        shelf=shelve.open(dbfn),
+        gettext=gettext
+    )
+    r.load_timestream()
+    if load_characters:
+        r.load_characters(load_characters)
+    r.load_img_metadata()
+    r.load_board(*load_board)
+    if load_imgs_tagged:
+        r.load_imgs_tagged(load_img_tags)
+    if load_gfx:
+        r.load_gfx_metadata()
+    return r
