@@ -13,36 +13,23 @@ support.
 from operator import itemgetter
 from array import array
 import struct
+import shelve
 import os
-from os.path import sep
-from re import match
 import sqlite3
-from collections import (
-    defaultdict,
-    MutableMapping,
+from collections import MutableMapping
+from LiSE.model import (
+    Place,
+    Portal,
+    Thing,
+    Character,
+    Facade
 )
-# future imports
-Board = None
-Spot = None
-Pawn = None
-CharSheet = None
-Menu = None
-Img = None
-GamePiece = None
-Atlas = None
-Logger = None
-Character = None
-Facade = None
-Place = None
-Portal = None
-Thing = None
-DiegeticEventHandler = None
-Logger = None
 from LiSE.util import (
     ListItemIterator,
     unicode2pytype,
     unicode2pytype_d,
-    pytype2unicode
+    pytype2unicode,
+    TimestreamException
 )
 from LiSE import __path__
 
@@ -1269,6 +1256,92 @@ class SaveableMetaclass(type):
         SaveableMetaclass.clasd[clasn] = clas
         return clas
 
+    @classmethod
+    def initdb(cls, c):
+        done = set()
+        saveables = list(cls.saveables)
+        while saveables != []:
+            (
+                demands,
+                provides,
+                prelude,
+                tablenames,
+                postlude
+            ) = saveables.pop(0)
+            breakout = False
+            for demand in iter(demands):
+                if demand not in done:
+                    saveables.append(
+                        (
+                            demands,
+                            provides,
+                            prelude,
+                            tablenames,
+                            postlude
+                        )
+                    )
+                    breakout = True
+                    break
+            if breakout:
+                continue
+            prelude_todo = list(prelude)
+            while prelude_todo != []:
+                pre = prelude_todo.pop()
+                if isinstance(pre, tuple):
+                    c.execute(*pre)
+                else:
+                    c.execute(pre)
+            if len(tablenames) == 0:
+                for post in postlude:
+                    if isinstance(post, tuple):
+                        c.execute(*post)
+                    else:
+                        c.execute(post)
+                continue
+            prelude_todo = list(prelude)
+            try:
+                while prelude_todo != []:
+                    pre = prelude_todo.pop()
+                    if isinstance(pre, tuple):
+                        c.execute(*pre)
+                    else:
+                        c.execute(pre)
+            except sqlite3.OperationalError as e:
+                saveables.append(
+                    (demands, provides, prelude_todo, tablenames, postlude)
+                )
+                continue
+            breakout = False
+            tables_todo = list(tablenames)
+            while tables_todo != []:
+                tn = tables_todo.pop(0)
+                print("Building table: {}".format(tn))
+                c.execute(SaveableMetaclass.schemata[tn])
+                done.add(tn)
+            if breakout:
+                saveables.append(
+                    (demands, provides, prelude_todo, tables_todo, postlude)
+                )
+                continue
+            postlude_todo = list(postlude)
+            try:
+                while postlude_todo != []:
+                    post = postlude_todo.pop()
+                    if isinstance(post, tuple):
+                        c.execute(*post)
+                    else:
+                        c.execute(post)
+            except sqlite3.OperationalError as e:
+                print(
+                    "Building {}: OperationalError during postlude: {}".format(
+                        tn, e
+                    )
+                )
+                saveables.append(
+                    (demands, provides, prelude_todo, tables_todo, postlude_todo)
+                )
+                continue
+            done.update(provides)
 
 class Timestream(object):
     """Tracks the genealogy of the various branches of time.
@@ -1461,11 +1534,17 @@ class Timestream(object):
         self.branch = branch
         self.tick = tick
 
-    def upd_hi_time(self, branch, tick):
+    def upd_hi_branch(self, branch):
         if branch > self._hi_branch:
             self._hi_branch = branch
+
+    def upd_hi_tick(self, tick):
         if tick > self._hi_tick:
             self._hi_tick = tick
+
+    def upd_hi_time(self, branch, tick):
+        self.upd_hi_branch(branch)
+        self.upd_hi_tick(tick)
 
 
 def iter_character_query_bones_named(name):
@@ -1534,317 +1613,42 @@ class Closet(object):
             }
         )
     ]
-    working_dicts = [
-        "boardhand_d",
-        "calendar_d",
-        "cause_d",
-        "color_d",
-        "board_d",
-        "effect_d",
-        "menu_d",
-        "menuitem_d",
-        "style_d",
-        "event_d",
-        "character_d",
-        "facade_d"
-    ]
-    """The names of dictionaries where I keep objects after
-    instantiation.
 
-    """
-
-    def __init__(self, connector, gettext=lambda _: _,
-                 USE_KIVY=False, **kwargs):
-        """Initialize a Closet for the given connector and path.
-
-        With kivy=True, I will use the kivybits module to load images.
-
-        """
-        global Place
-        global Portal
-        global Thing
-        global Character
-        global Facade
-        import LiSE.model
-        Place = LiSE.model.Place
-        Portal = LiSE.model.Portal
-        Thing = LiSE.model.Thing
-        Character = LiSE.model.Character
-        Facade = LiSE.model.Facade
-        global DiegeticEventHandler
-        import LiSE.rules
-        DiegeticEventHandler = LiSE.rules.DiegeticEventHandler
-        if USE_KIVY:
-            global Board
-            global Spot
-            global Pawn
-            global GamePiece
-            from LiSE.gui.board import Board, Spot, Pawn, GamePiece
-            global CharSheet
-            from LiSE.gui.charsheet import CharSheet
-            global Img
-            from LiSE.gui.img import Img
-            global Atlas
-            from kivy.atlas import Atlas
-            global Logger
-            from kivy.logger import Logger
-            from kivy.core.image import Image
-            self.img_d = {}
-            self.img_tag_d = defaultdict(set)
-            self.game_piece_d = defaultdict(list)
-
-            def load_imgs(names):
-                """Load ``Img`` objects into my ``img_d``.
-
-                These contain texture data and some metadata."""
-                r = {}
-
-                def remember_img_bone(bone):
-                    """Construct the Img and keep it in ``r``"""
-                    r[bone.name] = Img(
-                        closet=self,
-                        name=bone.name,
-                        texture=Image(bone.path).texture)
-                self.select_and_set(
-                    (Img.bonetypes["img"]._null()._replace(name=n)
-                     for n in names), remember_img_bone)
-                self.select_and_set(
-                    Img.bonetypes["img_tag"]._null()._replace(name=n)
-                    for n in names)
-                self.img_d.update(r)
-                return r
-
-            def get_imgs(names):
-                """Return a dict of ``Img`` by name, loading as needed."""
-                r = {}
-
-                def iter_unhad():
-                    """Put the ones I have into ``r``; for each of the rest,
-                    yield a ``Bone`` to match it
-
-                    """
-                    for name in names:
-                        if name in self.img_d:
-                            r[name] = self.img_d[name]
-                        else:
-                            yield Img.bonetypes["img"]._null()._replace(
-                                name=name)
-
-                def remember_img_bone(bone):
-                    """Load the ``Img`` for ``bone`` and keep it in ``r``"""
-                    r[bone.name] = Img(
-                        closet=self,
-                        name=bone.name,
-                        texture=Image(bone.path).texture)
-
-                self.select_and_set(iter_unhad(), remember_img_bone)
-                self.select_and_set(
-                    Img.bonetypes["img_tag"]._null()._replace(img=n)
-                    for n in names if n not in self.img_tag_d)
-                return r
-
-            def load_imgs_tagged(tags):
-                """Load ``Img``s tagged thus, return as from ``get_imgs``"""
-                boned = set()
-                self.select_and_set(
-                    [Img.bonetypes["img_tag"]._null()._replace(
-                        tag=tag) for tag in tags],
-                    lambda bone: boned.add(bone.img))
-                return get_imgs(boned)
-
-            def get_imgs_with_tags(tags):
-                """Get ``Img``s tagged thus, return as from ``get_imgs``"""
-                r = {}
-                unhad = set()
-                for tag in tags:
-                    if tag in self.img_tag_d:
-                        r[tag] = get_imgs(self.img_tag_d[tag])
-                    else:
-                        unhad.add(tag)
-                r.update(load_imgs_tagged(unhad))
-                return r
-
-            def get_imgs_with_tag(tag):
-                return get_imgs_with_tags([tag])[tag]
-
-            def iter_graphic_keybones(names):
-                """Yield the ``graphic`` and ``graphic_img`` bones
-                for each name in turn."""
-                for name in names:
-                    yield GamePiece.bonetypes[
-                        u"graphic"]._null()._replace(name=name)
-                    yield GamePiece.bonetypes[
-                        u"graphic_img"]._null()._replace(graphic=name)
-
-            def create_graphic(name=None, offx=0, offy=0):
-                """Create a new graphic, but don't put any images in it yet.
-                Return its bone.
-
-                Graphics are really just headers that group imgs
-                together. They hold the offset of the img, being some
-                amount to move every img on each of the x and y axes
-                (default 0, 0) -- this is used so that a Spot and a
-                Pawn may have the same coordinates, yet neither will
-                entirely cover the other.
-
-                Every graphic has a unique name, which will be
-                assigned for you if you don't provide it. You can get
-                it from the bone returned.
-
-                """
-                if name is None:
-                    numeral = self.get_global(u'top_generic_graphic') + 1
-                    self.set_global(u'top_generic_graphic', numeral)
-                    name = "generic_graphic_{}".format(numeral)
-                grafbone = GamePiece.bonetypes[
-                    u"graphic"](name=name,
-                                offset_x=offx,
-                                offset_y=offy)
-                self.set_bone(grafbone)
-                return grafbone
-
-            def add_img_to_graphic(imgname, grafname, layer=None):
-                """Put the named img in the named graphic at the given layer,
-                or the new topmost layer if unspecified.
-
-                img must already be loaded, graphic must already exist--use
-                ``create_graphic`` if it does not.
-
-                """
-                if grafname not in self.skeleton[u"graphic"]:
-                    raise ValueError("No such graphic: {}".format(
-                        grafname))
-                if imgname not in self.skeleton[u"img"]:
-                    raise ValueError("No such img: {}".format(
-                        imgname))
-                if layer is None:
-                    layer = max(self.skeleton[u"graphic_img"].keys()) + 1
-                imggrafbone = GamePiece.bonetypes[
-                    u"graphic_img"](
-                    graphic=grafname,
-                    img=imgname,
-                    layer=layer)
-                self.set_bone(imggrafbone)
-
-            def rm_graphic_layer(grafname, layer):
-                """Delete the layer from the graphic.
-
-                The img on that layer won't be there anymore.
-
-                """
-                if grafname not in self.skeleton[u"graphic"]:
-                    raise ValueError(
-                        "No such graphic: {}".format(grafname))
-                if grafname not in self.skeleton[u"graphic_img"]:
-                    raise ValueError(
-                        "No imgs for graphic: {}".format(
-                            grafname))
-                if layer not in self.skeleton[
-                        u"graphic_img"][grafname]:
-                    raise ValueError(
-                        "Graphic {} does not have layer {}".format(
-                            grafname, layer))
-
-                self.del_bone(GamePiece.bonetypes[
-                    u"graphic_img"]._null()._replace(
-                    name=grafname,
-                    layer=layer))
-                if not self.skeleton[u"graphic_img"][grafname].keys():
-                    self.del_bone(GamePiece.bonetypes[
-                        u"graphic"]._null()._replace(
-                        name=grafname))
-
-            def load_game_pieces(names):
-                """Load graphics into game pieces. Return a dictionary
-                with one game piece per name."""
-                self.select_keybones(iter_graphic_keybones(names))
-                r = {}
-                for name in names:
-                    r[name] = GamePiece(closet=self, graphic_name=name)
-                self.game_piece_d.update(r)
-                return r
-
-            def get_game_pieces(names):
-                """Return a dictionary of one game piece per name,
-                loading as needed."""
-                r = {}
-                unhad = set()
-                for name in names:
-                    if name in self.game_piece_d:
-                        r[name] = self.game_piece_d[name]
-                    else:
-                        unhad.add(name)
-                r.update(self.load_game_pieces(unhad))
-                return r
-
-            self.load_imgs = load_imgs
-            self.get_imgs = get_imgs
-            self.load_imgs_tagged = load_imgs_tagged
-            self.get_imgs_with_tags = get_imgs_with_tags
-            self.get_imgs_with_tag = get_imgs_with_tag
-            self.load_game_pieces = load_game_pieces
-            self.load_game_piece = lambda name: load_game_pieces([name])[name]
-            self.get_game_pieces = get_game_pieces
-            self.get_game_piece = lambda name: get_game_pieces([name])[name]
-            self.create_graphic = create_graphic
-            self.add_img_to_graphic = add_img_to_graphic
-            self.rm_graphic_layer = rm_graphic_layer
-
-            self.kivy = True
-
-        for wd in self.working_dicts:
-            setattr(self, wd, dict())
+    def __init__(self, connector, shelf, gettext=None, logger=None, **kwargs):
+        if logger is None:
+            import logging
+            logging.basicConfig()
+            self.logger = logging.getLogger()
+        self.character_d = {}
+        self.facade_d = {}
         self.connector = connector
+        self.shelf = shelf
         self.c = self.connector.cursor()
         self.c.execute("BEGIN;")
-        self.empty = Skeleton({"place": {}})
+        self.empty = Skeleton({})
         for tab in SaveableMetaclass.tabclas.iterkeys():
             self.empty[tab] = {}
         self.skeleton = self.empty.copy()
-        self.timestream = Timestream(self)
-        for glub in ('branch', 'tick'):
-            try:
-                self.get_global(glub)
-            except (TypeError, sqlite3.OperationalError):
-                self.set_global(glub, 0)
+        self.lisepath = __path__[-1]
+        self.sep = os.sep
+        self.entypo = self.sep.join(
+            [self.lisepath, 'gui', 'assets', 'Entypo.ttf']
+        )
+        self.gettext = gettext
+        self.new_branch_blank = set()
 
-        if 'load_img_tags' in kwargs:
-            self.load_imgs_tagged(kwargs['load_img_tags'])
+        self.load_timestream()
+
         # two characters that always exist, though they may not play
         # any role in the game
         if 'Physical' not in self.character_d:
             self.character_d['Physical'] = Character(self, 'Physical')
         if 'Omniscient' not in self.character_d:
             self.character_d['Omniscient'] = Character(self, 'Omniscient')
+        # and anyone else you want to start with...
         if 'load_characters' in kwargs:
             self.load_characters(kwargs['load_characters'])
-
-        self.lisepath = __path__[-1]
-        self.sep = os.sep
-        self.entypo = self.sep.join(
-            [self.lisepath, 'gui', 'assets', 'Entypo.ttf'])
-        self.gettext = gettext
-
-        self.time_travel_history = [
-            (self.get_global('branch'), self.get_global('tick'))]
-        self.game_speed = 1
-        self.new_branch_blank = set()
-        self.updating = False
-
-        # Set globals
-        self.timestream._hi_branch = self.get_global('hi_branch')
-        self.timestream._hi_tick = self.get_global('hi_tick')
-        self.timestream._branch = self.get_global('branch')
-        self.timestream._tick = self.get_global('tick')
-
-    def __del__(self):
-        """Try to write changes to disk before dying.
-
-        """
-        self.connector.commit()
-        self.c.close()
-        self.connector.close()
-
+ 
     def select_class_all(self, cls):
         """Load all the data from the database for the given class."""
         self.select_and_set(
@@ -1859,7 +1663,8 @@ class Closet(object):
             kb.__class__.__name__,
             " AND ".join(
                 "{}=?".format(field) for field in kb._fields
-                if getattr(kb, field) is not None)
+                if getattr(kb, field) is not None
+            )
         )
         if " WHERE ;" in qrystr:
             # keybone is null
@@ -1884,8 +1689,7 @@ class Closet(object):
         to ``also_bone``, if specified.
 
         """
-        todo = list(self.select_keybones(kbs))
-        for bone in todo:
+        for bone in self.select_keybones(kbs):
             self.set_bone(bone)
             also_bone(bone)
 
@@ -1899,7 +1703,8 @@ class Closet(object):
         try:
             self.c.execute(
                 "SELECT type, value FROM globals WHERE key=?;",
-                (key,))
+                (key,)
+            )
             (typ_s, val_s) = self.c.fetchone()
             return unicode2pytype_d[typ_s](val_s)
         except sqlite3.OperationalError as err:
@@ -1913,17 +1718,8 @@ class Closet(object):
         self.c.execute("DELETE FROM globals WHERE key=?;", (key,))
         self.c.execute(
             "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
-            (key, pytype2unicode(value), unicode(value)))
-
-    get_text_funs = {
-        "branch": lambda self: unicode(self.branch),
-        "tick": lambda self: unicode(self.tick)
-        }
-    """A dict of functions that return strings that may be presented to
-    the user. Though they are not methods, they will nonetheless be
-    passed this Closet instance.
-
-    """
+            (key, pytype2unicode(value), unicode(value))
+        )
 
     def get_text(self, strname):
         """Get the string of the given name in the language set at startup.
@@ -1935,14 +1731,16 @@ class Closet(object):
         """
         if strname is None:
             return ""
-        elif strname[0] == "@" and strname[1:] in self.get_text_funs:
-            return self.get_text_funs[strname[1:]](self)
+        elif strname == "@branch":
+            return self.timestream.branch
+        elif strname == "@tick":
+            return self.timestream.tick
         else:
             return self.gettext(strname)
 
     def save_game(self):
         """Commit the current transaction and start a new one."""
-        Logger.debug("Closet: beginning save_game")
+        self.logger.debug("Closet: beginning save_game")
         for glob in self.globs:
             if glob in ('branch', 'tick'):
                 self.set_global(glob, getattr(self.timestream, glob))
@@ -1950,20 +1748,7 @@ class Closet(object):
                 self.set_global(glob, getattr(self, glob))
         self.connector.commit()
         self.c.execute("BEGIN TRANSACTION;")
-        Logger.debug("Closet: saved game")
-
-    def load_img_metadata(self):
-        """Get all the records to do with where images are, so maybe I can
-        load them later"""
-        self.select_class_all(Img)
-
-    def load_gfx_metadata(self):
-        """Get all the records to do with how to put ``Img``s together into
-        ``GamePiece``s"""
-        self.select_class_all(GamePiece)
-
-    def get_charsheet(self, observer, observed):
-        return CharSheet(facade=self.get_facade(observer, observed))
+        self.logger.debug("Closet: saved game")
 
     def load_characters(self, names):
         """Load records to do with the named characters"""
@@ -2022,52 +1807,21 @@ class Closet(object):
         """Get a thing from a character"""
         return self.get_character(char).get_thing(name)
 
-    def get_imgs(self, imgnames):
-        """Return a dictionary full of images by the given names, loading
-        them as needed."""
-        r = {}
-        unloaded = set()
-        for imgn in imgnames:
-            if imgn in self.img_d:
-                r[imgn] = self.img_d[imgn]
-            else:
-                unloaded.add(imgn)
-        if len(unloaded) > 0:
-            r.update(self.load_imgs(unloaded))
-        return r
-
-    def get_img(self, imgn):
-        """Get an ``Img`` and return it, loading if needed"""
-        return self.get_imgs([imgn])[imgn]
-
-    def load_menus(self, names):
-        """Return a dictionary full of menus by the given names, loading them
-        as needed."""
-        r = {}
-        for name in names:
-            r[name] = self.load_menu(name)
-        return r
-
-    def load_menu(self, name):
-        """Load and return the named menu"""
-        self.load_menu_items(name)
-        return Menu(closet=self, name=name)
-
-    def load_menu_items(self, menu):
-        """Load a dictionary of menu item infos. Don't return anything."""
-        self.update_keybone(
-            Menu.bonetypes["menu_item"]._null()._replace(menu=menu)
-        )
-
     def load_timestream(self):
         """Load and return the timestream"""
         self.select_class_all(Timestream)
         self.timestream = Timestream(self)
+        self.timestream._branch = self.get_global('branch', 0)
+        self.timestream._tick = self.get_global('tick', 0)
+        self.timestream._hi_branch = self.get_global(
+            'hi_branch',
+            self.timestream._branch
+        )
+        self.timestream._hi_tick = self.get_global(
+            'hi_tick',
+            self.timestream._tick
+        )
         return self.timestream
-
-    def time_travel_menu_item(self, mi, branch, tick):
-        """Tiny wrapper for ``time_travel``"""
-        return self.time_travel(branch, tick)
 
     def time_travel(self, branch, tick):
         """Set the diegetic time to the given branch and tick.
@@ -2077,14 +1831,10 @@ class Closet(object):
             "Tried to travel to too high a branch")
         # will need to take other games-stuff into account than the
         # thing_location
-        if tick < 0:
-            raise TimestreamException("Tick before start of time")
         # make it more general
         mintick = self.timestream.min_tick(branch, "thing_loc")
         if tick < mintick:
             raise TimestreamException("Tick before start of branch")
-        if branch < 0:
-            raise TimestreamException("Branch can't be less than zero")
         if tick > self.timestream.hi_tick:
             self.timestream.hi_tick = tick
         old = self.time
@@ -2132,7 +1882,8 @@ class Closet(object):
                 "Made a new branch, {}, which was supposed to be "
                 "the hi_branch, but instead the hi_branch is {}. "
                 "Has time been overwritten?".format(
-                    child, self.timestream.hi_branch
+                    child,
+                    self.timestream.hi_branch
                 )
             )
 
@@ -2144,33 +1895,12 @@ class Closet(object):
         """Go to the next branch on the same tick"""
         self.time_travel(self.branch+branches, self.tick)
 
-    def go(self, nope=None):
-        """Pass time"""
-        self.updating = True
-
-    def stop(self, nope=None):
-        """Stop time"""
-        self.updating = False
-
-    def set_speed(self, newspeed):
-        """Change the rate of time passage"""
-        self.game_speed = newspeed
-
-    def play_speed(self, mi, n):
-        """Set the rate of time passage, and start it passing"""
-        self.game_speed = int(n)
-        self.updating = True
-
-    def back_to_start(self, nope):
-        """Stop time and go back to the beginning"""
-        self.stop()
-        self.time_travel(self.branch, 0)
-
     def end_game(self):
         """Save everything and close the connection"""
         self.c.close()
         self.connector.commit()
         self.connector.close()
+        self.shelf.close()
 
     def checkpoint(self):
         """Store an image of the skeleton in its present state, to compare
@@ -2180,99 +1910,14 @@ class Closet(object):
     def upbone(self, bone):
         """Raise the timestream's hi_branch and hi_tick if the bone has new
         values for them"""
-        if (
-                hasattr(bone, "branch") and
-                bone.branch > self.timestream.hi_branch
-        ):
-            self.timestream.hi_branch = bone.branch
-        if (
-                hasattr(bone, "tick") and
-                bone.tick > self.timestream.hi_tick
-        ):
-            self.timestream.hi_tick = bone.tick
-        if (
-                hasattr(bone, "tick_from") and
-                bone.tick_from > self.timestream.hi_tick
-        ):
-            self.timestream.hi_tick = bone.tick_from
-        if (
-                hasattr(bone, "tick_to") and
-                bone.tick_to > self.timestream.hi_tick
-        ):
-            self.timestream.hi_tick = bone.tick_to
-
-    def mi_show_popup(self, mi, name):
-        """Get the root LiSELayout to show a popup of a kind appropriate to
-        the name given."""
-        root = mi.get_root_window().children[0]
-        new_thing_match = match("new_thing\((.+)+\)", name)
-        if new_thing_match:
-            return root.show_pawn_picker(
-                new_thing_match.groups()[0].split(", "))
-        new_place_match = match("new_place\((.+)\)", name)
-        if new_place_match:
-            return root.show_spot_picker(
-                new_place_match.groups()[0].split(", "))
-        character_match = match("character\((.+)\)", name)
-        if character_match:
-            argstr = character_match.groups()[0]
-            if len(argstr) == 0:
-                return root.show_charsheet_maker()
-
-    def mi_connect_portal(self, mi):
-        """Get the root LiSELayout to make an Arrow, representing a Portal."""
-        mi.get_root_window().children[0].make_arrow()
-
-    def register_img_listener(self, imgn, listener):
-        """``listener`` will be called when the image by the given name
-        changes"""
-        try:
-            skel = self.skeleton[u"img"][imgn]
-        except KeyError:
-            raise KeyError("Image unknown: {}".format(imgn))
-        skel.register_set_listener(listener)
-
-    def unregister_img_listener(self, imgn, listener):
-        """``listener`` will not be called when the image by the given name
-        changes"""
-        try:
-            skel = self.skeleton[u"img"][imgn]
-        except KeyError:
-            raise KeyError("Image unknown: {}".format(imgn))
-        skel.unregister_set_listener(listener)
-
-    def register_text_listener(self, stringn, listener):
-        """``listener`` will be called when there is a different string known
-        by the name ``stringn``"""
-        if stringn == "@branch" and listener not in self.branch_listeners:
-            self.branch_listeners.append(listener)
-        elif stringn == "@tick" and listener not in self.tick_listeners:
-            self.tick_listeners.append(listener)
-
-    def have_place_bone(self, host, place, branch=None, tick=None):
-        """Do I have a bone for that place? Time-sensitive."""
-        if branch is None:
-            branch = self.branch
-        if tick is None:
-            tick = self.tick
-        try:
-            return (
-                self.skeleton
-                [u"place"]
-                [host]
-                [place]
-                [branch].value_during(tick)
-                is not None
-            )
-        except (KeyError, IndexError):
-            return False
-
-    def iter_graphic_imgs(self, graphicn):
-        """Iterate over the ``Img``s in the graphic"""
-        if graphicn not in self.skeleton[u"graphic_img"]:
-            return
-        for bone in self.skeleton[u"graphic_img"][graphicn].iterbones():
-            yield self.get_img(bone.img)
+        if hasattr(bone, "branch"):
+            self.timestream.upd_hi_branch(bone.branch)
+        if hasattr(bone, "tick"):
+            self.timestream.upd_hi_tick(bone.tick)
+        if hasattr(bone, "tick_from"):
+            self.timsetream.upd_hi_tick(bone.tick_from)
+        if hasattr(bone, "tick_to"):
+            self.timestream.upd_hi_tick(bone.tick_to)
 
     def set_bone(self, bone):
         """Take a bone of arbitrary type and put it in the right place in the
@@ -2281,6 +1926,11 @@ class Closet(object):
         """
         skeleton = self.skeleton
 
+        # if the bone is time sensitive, inform the timestream of it
+        self.upbone(bone)
+
+        # Initialize this place in the skeleton, as needed, and put
+        # the bone into it.
         def init_keys(skeleton, keylst):
             """Make sure skeleton goes deep enough to put a value in, at the
             bottom of ``keylst``"""
@@ -2290,20 +1940,6 @@ class Closet(object):
                 skeleton = skeleton[key]
             return skeleton
 
-        # img_tag bones give the keys to be used in ``img_tag_d``,
-        # which stores Img instances by their tag
-        if Img and isinstance(bone, Img.bonetypes[u"img_tag"]):
-            if bone.tag not in self.img_tag_d:
-                self.img_tag_d[bone.tag] = set()
-            self.img_tag_d[bone.tag].add(bone.img)
-
-        # Timestream.hi_time is always supposed to = the latest branch
-        # and tick on record. Make sure of this.
-        if hasattr(bone, 'branch') and hasattr(bone, 'tick'):
-            self.timestream.upd_hi_time(bone.branch, bone.tick)
-
-        # Initialize this place in the skeleton, as needed, and put
-        # the bone into it.
         keynames = bone.keynames
         keys = [bone._name] + [getattr(bone, keyn) for keyn in keynames[:-1]]
         skelly = init_keys(skeleton, keys)
@@ -2344,308 +1980,23 @@ class Closet(object):
             self.c.execute(bone.sql_del, [getattr(bone, keyn)
                                           for keyn in keynames])
 
-    def load_board(self, observer, observed):
-        self.select_class_all(Spot)  # should really be restricted to
-                                     # spots in the board
-        return Board(facade=self.get_facade(observer, observed))
 
-
-def defaults(c, kivy=False):
-    """Retrieve default values from ``LiSE.data`` and insert them with the
-    cursor ``c``.
-
-    With ``kivy``==``True``, this will include data about graphics."""
-    if kivy:
-        from LiSE.data import whole_imgrows
-        c.executemany(
-            "INSERT INTO img (name, path, stacking_height) "
-            "VALUES (?, ?, ?);",
-            whole_imgrows
-        )
-        from LiSE.data import graphics
-        for (name, d) in graphics.iteritems():
-            c.execute(
-                "INSERT INTO graphic (name, offset_x, offset_y) "
-                "VALUES (?, ?, ?);",
-                (name, d.get('offset_x', 0), d.get('offset_y', 0))
-            )
-            for i in xrange(0, len(d['imgs'])):
-                c.execute(
-                    "INSERT INTO graphic_img (graphic, layer, img) "
-                    "VALUES (?, ?, ?);",
-                    (name, i, d['imgs'][i])
-                )
-        from LiSE.data import stackhs
-        for (height, names) in stackhs:
-            qrystr = (
-                "UPDATE img SET stacking_height=? WHERE name IN ({});".format(
-                    ", ".join(["?"] * len(names))
-                )
-            )
-            qrytup = (height,) + names
-            c.execute(qrystr, qrytup)
-    from LiSE.data import globs
-    c.executemany(
-        "INSERT INTO globals (key, type, value) VALUES (?, ?, ?);",
-        globs
-    )
-    c.execute(
-        "INSERT INTO timestream (branch, parent) VALUES (?, ?);",
-        (0, 0)
-    )
-    from LiSE.data import things
-    for character in things:
-        for thing in things[character]:
-            c.execute(
-                "INSERT INTO thing (character, name, host) VALUES (?, ?, ?);",
-                (character, thing, things[character][thing]["host"])
-            )
-            c.execute(
-                "INSERT INTO thing_loc (character, name, location) "
-                "VALUES (?, ?, ?);",
-                (character, thing, things[character][thing]["location"])
-            )
-    from LiSE.data import reciprocal_portals
-    for (orig, dest) in reciprocal_portals:
-        name1 = "{}->{}".format(orig, dest)
-        name2 = "{}->{}".format(dest, orig)
-        c.executemany(
-            "INSERT INTO portal (name) VALUES (?);",
-            [(name1,), (name2,)]
-        )
-        c.executemany(
-            "INSERT INTO portal_loc (name, origin, destination) VALUES "
-            "(?, ?, ?);", [(name1, orig, dest), (name2, dest, orig)]
-        )
-    from LiSE.data import one_way_portals
-    for (orig, dest) in one_way_portals:
-        name = "{}->{}".format(orig, dest)
-        c.execute(
-            "INSERT INTO portal (name) VALUES (?);",
-            (name,)
-        )
-        c.execute(
-            "INSERT INTO portal_loc (name, origin, destination) "
-            "VALUES (?, ?, ?);", (name, orig, dest)
-        )
-
-
-def mkdb(DB_NAME, lisepath, kivy=False):
-    """Initialize a database file and insert default values"""
-    global Logger
-    global Place
-    global Portal
-    global Thing
-    global Character
-    global Facade
-    global DiegeticEventHandler
-    import LiSE.rules
-    import LiSE.model
-    Place = LiSE.model.Place
-    Portal = LiSE.model.Portal
-    Thing = LiSE.model.Thing
-    Character = LiSE.model.Character
-    Facade = LiSE.model.Facade
-    DiegeticEventHandler = LiSE.rules.DiegeticEventHandler
-    img_qrystr = (
-        "INSERT INTO img (name, path) "
-        "VALUES (?, ?);"
-    )
-    tag_qrystr = (
-        "INSERT INTO img_tag (img, tag) VALUES (?, ?);"
-    )
-
-    def ins_atlas(curs, path, qualify=False, tags=[]):
-        """Grab all the images in an atlas and store them, optionally sticking
-        the name of the atlas on the start.
-
-        Apply the given tags if any.
-
-        """
-        global Atlas
-        if Atlas is None:
-            import kivy.atlas
-            Atlas = kivy.atlas.Atlas
-        lass = Atlas(path)
-        atlaspath = "atlas://{}".format(path[:-6])
-        atlasn = path.split(sep)[-1][:-6]
-        for tilen in lass.textures.iterkeys():
-            imgn = atlasn + '.' + tilen if qualify else tilen
-            curs.execute(
-                img_qrystr, (
-                    imgn, "{}/{}".format(atlaspath, tilen)
-                )
-            )
-            for tag in tags:
-                curs.execute(tag_qrystr, (imgn, tag))
-
-    def ins_atlas_dir(curs, dirname, qualify=False, tags=[]):
-        """Recurse into the directory and ins_atlas for all atlas therein."""
-        for fn in os.listdir(dirname):
-            if fn[-5:] == 'atlas':
-                path = dirname + sep + fn
-                ins_atlas(curs, path, qualify, [fn[:-6]] + tags)
-
-    if Logger is None:
-        if kivy:
-            import kivy.logger
-            Logger = kivy.logger.Logger
-        else:
-            import logging
-            logging.basicConfig()
-            Logger = logging.getLogger()
-            Logger.setLevel(0)
-    if kivy:
-        # I just need these modules to fill in the relevant bits of
-        # SaveableMetaclass, which they do when imported. They don't
-        # have to do anything else, so delete them.
-        import LiSE.gui.img
-        del LiSE.gui.img
-        import LiSE.gui.board
-        del LiSE.gui.board
-
-    try:
-        os.remove(DB_NAME)
-    except OSError:
-        pass
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-
-    done = set()
-    saveables = list(SaveableMetaclass.saveables)
-    while saveables != []:
-        (
-            demands, provides, prelude,
-            tablenames, postlude
-        ) = saveables.pop(0)
-        breakout = False
-        for demand in iter(demands):
-            if demand not in done:
-                saveables.append(
-                    (
-                        demands, provides, prelude,
-                        tablenames, postlude
-                    )
-                )
-                breakout = True
-                break
-        if breakout:
-            continue
-        prelude_todo = list(prelude)
-        while prelude_todo != []:
-            pre = prelude_todo.pop()
-            if isinstance(pre, tuple):
-                c.execute(*pre)
-            else:
-                c.execute(pre)
-        if len(tablenames) == 0:
-            for post in postlude:
-                if isinstance(post, tuple):
-                    c.execute(*post)
-                else:
-                    c.execute(post)
-            continue
-        prelude_todo = list(prelude)
-        try:
-            while prelude_todo != []:
-                pre = prelude_todo.pop()
-                if isinstance(pre, tuple):
-                    c.execute(*pre)
-                else:
-                    c.execute(pre)
-        except sqlite3.OperationalError as e:
-            saveables.append(
-                (demands, provides, prelude_todo, tablenames, postlude)
-            )
-            continue
-        breakout = False
-        tables_todo = list(tablenames)
-        while tables_todo != []:
-            tn = tables_todo.pop(0)
-            Logger.debug("Building table: {}".format(tn))
-            c.execute(SaveableMetaclass.schemata[tn])
-            done.add(tn)
-        if breakout:
-            saveables.append(
-                (demands, provides, prelude_todo, tables_todo, postlude)
-            )
-            continue
-        postlude_todo = list(postlude)
-        try:
-            while postlude_todo != []:
-                post = postlude_todo.pop()
-                if isinstance(post, tuple):
-                    c.execute(*post)
-                else:
-                    c.execute(post)
-        except sqlite3.OperationalError as e:
-            Logger.warning(
-                "Building {}: OperationalError during postlude: {}".format(
-                    tn, e
-                )
-            )
-            saveables.append(
-                (demands, provides, prelude_todo, tables_todo, postlude_todo)
-            )
-            continue
-        done.update(provides)
-
-    Logger.debug("inserting default values")
-    defaults(c, kivy)
-
-    if kivy:
-        Logger.debug("indexing the RLTiles")
-        ins_atlas_dir(
-            c,
-            "LiSE/gui/assets/rltiles/hominid",
-            True,
-            ['hominid', 'rltile', 'pawn']
-        )
-
-        Logger.debug("indexing Pixel City")
-        ins_atlas(
-            c,
-            "LiSE/gui/assets/pixel_city.atlas",
-            False,
-            ['spot', 'pixel_city']
-        )
-
-    conn.commit()
-    return conn
-
-# TODO: redo load_board so it does the new schema properly
 
 
 def load_closet(
         dbfn,
+        shelffn,
         gettext=None,
-        load_img=False,
-        load_img_tags=[],
-        load_gfx=False,
         load_characters=[u'Omniscient', u'Physical'],
-        load_board=(u'Omniscient', u'Physical')
 ):
     """Return a Closet instance for the given database, maybe loading a
     few things before listening to the skeleton."""
-    kivish = False
-    for kive in (load_img, load_img_tags, load_gfx):
-        if kive:
-            kivish = True
-            break
     r = Closet(
         connector=sqlite3.connect(dbfn, isolation_level=None),
-        gettext=gettext,
-        USE_KIVY=kivish
+        shelf=shelve.open(shelffn),
+        gettext=gettext
     )
     r.load_timestream()
-    if load_img:
-        r.load_img_metadata()
-    if load_img_tags:
-        r.load_imgs_tagged(load_img_tags)
-    if load_gfx:
-        r.load_gfx_metadata()
     if load_characters:
         r.load_characters(load_characters)
-    if load_board:
-        r.load_board(*load_board)
     return r
