@@ -37,14 +37,13 @@ graphics = {
 """Special graphics"""
 
 globs = [
-    ('branch',   'int', '0'),
-    ('tick',     'int', '0'),
-    ('language', 'unicode', 'eng'),
-    ('observer', 'unicode', 'Omniscient'),
-    ('observed', 'unicode', 'Player'),
-    ('host',     'unicode', 'Physical'),
-    ('top_generic_graphic', 'int', '0'),
-    ('default_facade_cls', 'unicode', 'NullFacade')
+    ('branch',   'integer', '0'),
+    ('tick',     'integer', '0'),
+    ('language', 'text', 'eng'),
+    ('observer', 'text', 'Omniscient'),
+    ('observed', 'text', 'Player'),
+    ('host',     'text', 'Physical'),
+    ('top_generic_graphic', 'integer', '0'),
 ]
 """Default values for globals"""
 
@@ -236,6 +235,7 @@ def mkdb(DB_NAME, lisepath, kivy=False):
 
     Logger.debug("initializing database")
     from LiSE.orm import SaveableMetaclass
+    SaveableMetaclass.initdb(c)
     # contains classes with table declarations in them. 
 
     Logger.debug("inserting default values")

@@ -225,27 +225,61 @@ class Character(AbstractCharacter):
             "character_stat",
             {
                 "columns":
-                {
-                    "character": "text not null",
-                    "key": "text not null",
-                    "branch": "integer not null default 0",
-                    "tick": "integer not null default 0",
-                    "value": "text"
-                },
+                [
+                    {
+                        'name': 'character',
+                        'type': 'text'
+                    }, {
+                        'name': 'key',
+                        'type': 'text'
+                    }, {
+                        'name': 'branch',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'tick',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'value',
+                        'type': 'text',
+                        'nullable': True
+                    }, {
+                        'name': 'type',
+                        'type': 'text'
+                    }
+                ],
                 "primary_key":
-                ("character", "key", "branch", "tick")
+                ("character", "key", "branch", "tick"),
+                "checks":
+                ["type IN ('text', 'integer', 'real', 'boolean')"]
             }
         ),
         (
             "character_avatar",
+                
             {
                 "columns":
-                {
-                    "character": "text not null",
-                    "host": "text not null default 'Physical'",
-                    "type": "text not null default 'thing'",
-                    "name": "text not null"
-                },
+                [
+                    {
+                        'name': 'character',
+                        'type': 'text'
+                    },
+                    {
+                        'name': 'host',
+                        'type': 'text',
+                        'default': 'Physical'
+                    },
+                    {
+                        'name': 'type',
+                        'type': 'text',
+                        'default': 'thing'
+                    },
+                    {
+                        'name': 'name',
+                        'type': 'text'
+                    }
+                ],
                 "primary_key":
                 ("character", "host", "type", "name"),
                 "checks":
@@ -401,14 +435,30 @@ class Facade(AbstractCharacter):
             "distorters",
             {
                 "columns":
-                {
-                    "observer": "text not null",
-                    "observed": "text not null",
-                    "idx": "integer not null",
-                    "branch": "integer not null",
-                    "tick": "integer not null",
-                    "function": "text"  # I'll just skip over any nulls
-                },
+                [
+                    {
+                        'name': 'observer',
+                        'type': 'text'
+                    }, {
+                        'name': 'observed',
+                        'type': 'text'
+                    }, {
+                        'name': 'idx',
+                        'type': 'integer'
+                    }, {
+                        'name': 'branch',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'tick',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'function',
+                        'type': 'text',
+                        'nullable': True
+                    }
+                ],
                 "primary_key":
                 ("observer", "observed", "idx", "branch", "tick")
             }
@@ -417,14 +467,30 @@ class Facade(AbstractCharacter):
             "fabricators",
             {
                 "columns":
-                {
-                    "observer": "text not null",
-                    "observed": "text not null",
-                    "idx": "integer not null",
-                    "branch": "integer not null",
-                    "tick": "integer not null",
-                    "function": "text"
-                },
+                [
+                    {
+                        'name': 'observer',
+                        'type': 'text'
+                    }, {
+                        'name': 'observed',
+                        'type': 'text'
+                    }, {
+                        'name': 'idx',
+                        'type': 'integer'
+                    }, {
+                        'name': 'branch',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'tick',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'function',
+                        'type': 'text',
+                        'nullable': True
+                    }
+                ],
                 "primary_key":
                 ("observer", "observed", "idx", "branch", "tick")
             }
@@ -553,13 +619,14 @@ class Facade(AbstractCharacter):
 
     def distorter(self, fun, i=None):
         """Decorate a distorter function that takes this Facade and one bone
-        from the observed character, and returns another bone of the
+        from the observed character, and yields another bone of the
         same class, possibly identical to the input, but possibly
         distorted, and possibly None to indicate that the bone should
-        be omitted altogether.
+        be omitted altogether. Sim-time-sensitive
 
-        It is also permissible to decorate a generator that yields
-        several bones in turn.
+        Either a generator (with ``yield``) or a plain function (with
+        ``return``) is acceptable. Returning or yielding ``None``
+        means the bone in question will not be included in the Facade.
 
         Bones will be passed through each distorter function in turn
         before being used to build the graph. If your function should

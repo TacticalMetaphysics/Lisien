@@ -10,15 +10,38 @@ class Portal(Container):
             "portal_stat",
             {
                 "columns":
-                {
-                    "character": "text not null",
-                    "origin": "text not null",
-                    "destination": "text not null",
-                    "key": "text not null default 'exists'",
-                    "branch": "integer not null default 0",
-                    "tick": "integer not null default 0",
-                    "value": "text",
-                    "type": "text not null default 'text'"},
+                [
+                    {
+                        'name': 'character',
+                        'type': 'text'
+                    }, {
+                        'name': 'origin',
+                        'type': 'text'
+                    }, {
+                        'name': 'destination',
+                        'type': 'text'
+                    }, {
+                        'name': 'key',
+                        'type': 'text',
+                        'default': 'exists'
+                    }, {
+                        'name': 'branch',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'tick',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'value',
+                        'type': 'text',
+                        'nullable': True
+                    }, {
+                        'name': 'type',
+                        'type': 'text',
+                        'default': 'text'
+                    }
+                ],
                 "primary_key":
                 (
                     "character",
@@ -75,21 +98,6 @@ class Portal(Container):
     @property
     def contents(self):
         return self.character.graph[self.origin][self.destination]['contents']
-
-    def _get_end(self, bprop):
-        bone = self.loc_bone
-        endn = getattr(bone, bprop)
-        if endn not in self.character.place_d:
-            self.character.place_d[endn] = Place(self.character, endn)
-        return self.character.place_d[endn]
-
-    @property
-    def origin(self):
-        return self._get_end('origin')
-
-    @property
-    def destination(self):
-        return self._get_end('destination')
 
     def new_branch(self, parent, branch, tick):
         skel = (

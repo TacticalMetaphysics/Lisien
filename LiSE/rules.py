@@ -122,10 +122,15 @@ class DiegeticEventHandler(object):
             "ticks_evented",
             {
                 "columns":
-                {
-                    "branch": "integer not null",
-                    "tick": "integer not null"
-                },
+                [
+                    {
+                        'name': 'branch',
+                        'type': 'integer'
+                    }, {
+                        'name': 'tick',
+                        'type': 'integer'
+                    }
+                ],
                 "primary_key": ("branch", "tick"),
                 "checks": ["branch>=0", "tick>=0"]
             }

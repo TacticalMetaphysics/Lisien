@@ -16,7 +16,7 @@ import struct
 import shelve
 import os
 import sqlite3
-from collections import MutableMapping
+from collections import MutableMapping, defaultdict
 # forward imports
 Place = Portal = Thing = Character = Facade = None
 from LiSE.util import (
@@ -231,33 +231,42 @@ class BoneMetaclass(type):
             # with a format code.
             fmt = bytearray('@')
             """I'll be a ``str`` soon"""
-            for (field_name, field_type, default) in atts["_field_decls"]:
-                if field_type in (unicode, str):
+            i = 0
+            for decl in atts['_field_decls']:
+                if decl['type'] == 'text':
                     fmt.extend('{}s'.format(BoneMetaclass.packed_str_len))
-                elif field_type is int:
+                elif decl['type'] == 'integer':
                     fmt.append('l')
-                elif field_type is float:
+                elif decl['type'] == 'real':
                     fmt.append('d')
-                elif field_type is bool:
+                elif decl['type'] == 'boolean':
                     fmt.append('b')
                 else:
                     raise TypeError(
                         "Trying to make a format string; "
                         "don't understand the type "
                         "{}".format(field_type))
+                atts['_fields'].append(decl['name'])
+                atts[decl['name']] = property(
+                    itemgetter(i),
+                    doc="Alias for field number {}".format(i)
+                )
+                atts["_types"][decl['name']] = {
+                    'text': unicode,
+                    'integer': int,
+                    'real': float,
+                    'boolean': bool
+                }[decl['type']]
+                if 'default' in decl:
+                    atts['_defaults'][decl['name']] = decl['default']
+                else:
+                    atts['_defaults'][decl['name']] = None
+                i += 1
+
             atts["structtyp"] = struct.Struct(str(fmt))
             atts["format"] = atts["structtyp"].format
             atts["size"] = atts["structtyp"].size
 
-        i = 0
-        for (field_name, field_type, default) in atts["_field_decls"]:
-            atts["_fields"].append(field_name)
-            atts[field_name] = property(
-                itemgetter(i),
-                doc="Alias for field number {}".format(i))
-            atts["_types"][field_name] = field_type
-            atts["_defaults"][field_name] = default
-            i += 1
         r = type.__new__(metaclass, clas, parents, atts)
         BoneMetaclass.tabbone[clas] = r
         return r
@@ -1049,116 +1058,112 @@ class SaveableMetaclass(type):
         """
         if clas in SaveableMetaclass.clasd:
             return SaveableMetaclass.clasd[clas]
-        tablenames = []
-        "Names of tables declared in the ``tables`` attribute of ``clas``."
-        foreignkeys = {}
-        """Keys: table names. Values: dictionaries with keys of table names
-        *linked to*, values of tuples of field names linked to."""
-        coldecls = {}
-        """Unprocessed column declarations, the 1th item of a tuple in a
-        ``tables`` attribute."""
-        checks = {}
-        """For each table, a list of Boolean expressions meant for a
-        CHECK(...) clause."""
-        if 'tables' in attrs:
-            tabdicts = attrs['tables']
-        else:
+        if 'tables' not in attrs:
             return type.__new__(metaclass, clas, parents, attrs)
-        if 'prelude' in attrs:
-            prelude = attrs["prelude"]
-        else:
-            prelude = []
-        if 'postlude' in attrs:
-            postlude = attrs["postlude"]
-        else:
-            postlude = []
-        if 'provides' in attrs:
-            provides = set(attrs["provides"])
-        else:
-            provides = set()
-        if 'demands' in attrs:
-            demands = set(attrs["demands"])
-        else:
-            demands = set()
-        local_pkeys = {}
-        """Primary keys per-table, for this class only"""
-        for (name, tabdict) in tabdicts:
-            tablenames.append(name)
-            coldecls[name] = tabdict["columns"]
-            local_pkeys[name] = tabdict["primary_key"]
-            SaveableMetaclass.primarykeys[name] = tabdict["primary_key"]
-            if "foreign_keys" in tabdict:
-                foreignkeys[name] = tabdict["foreign_keys"]
-            else:
-                foreignkeys[name] = {}
-            if "checks" in tabdict:
-                checks[name] = tabdict["checks"]
-            else:
-                checks[name] = []
-        keynames = {}
-        valnames = {}
-        coltypes = {}
-        coldefaults = {}
+
+        prelude = attrs['prelude'] if 'prelude' in attrs else []
+        postlude = attrs['postlude'] if 'postlude' in attrs else []
+        provides = set(attrs['provides']) if 'provides' in attrs else set()
+        demands = set(attrs['demands']) if 'demands' in attrs else set()
+        valnames = defaultdict(list)
+        coltypes = defaultdict(dict)
+        cols_nullable = defaultdict(list)
+        coldefaults = defaultdict(dict)
+        colextras = defaultdict(dict)
         bonetypes = {}
-        for item in local_pkeys.items():
-            (tablename, pkey) = item
-            keynames[tablename] = list(pkey)
-        for item in coldecls.iteritems():
-            (tablename, coldict) = item
-            coltypes[tablename] = {}
-            coldefaults[tablename] = {}
-            for (fieldname, decl) in coldict.iteritems():
-                if fieldname == "branch":
-                    foreignkeys[tablename][fieldname] = (
+        foreignkeys = defaultdict(dict)
+        checks = defaultdict(list)
+
+        def process_columns(tablename, tab):
+            for col in tab["columns"]:
+                SaveableMetaclass.colnames[tablename].append(col['name'])
+                if 'default' in col:
+                    coldefaults[tablename][col['name']] = col['default']
+                if 'extra' in col:
+                    colextras[tablename][col['name']] = None
+                if 'nullable' in col and col['nullable']:
+                    cols_nullable[tablename].append(col['name'])
+                if col['name'] == "branch":
+                    foreignkeys[tablename]["branch"] = (
                         "timestream",
                         "branch"
                     )
-                cooked = decl.split(" ")
-                typename = cooked[0]
-                coltypes[tablename][fieldname] = {
+                coltypes[tablename][col['name']] = {
                     "text": unicode,
-                    "int": int,
                     "integer": int,
-                    "bool": bool,
                     "boolean": bool,
-                    "float": float
-                }[typename.lower()]
-                try:
-                    default_str = cooked[cooked.index("default") + 1]
-                    default = coltypes[tablename][fieldname](default_str)
-                except ValueError:
-                    default = None
-                coldefaults[tablename][fieldname] = default
-            valnames[tablename] = list(
-                set(coldict.keys()) -
-                set(keynames[tablename])
+                    "real": float
+                }[col['type']]
+                if col['name'] not in SaveableMetaclass.primarykeys[tablename]:
+                    valnames[tablename].append(col['name'])
+
+        def default2str(default):
+            if isinstance(default, str) or isinstance(default, unicode):
+                return "'" + default + "'"
+            elif isinstance(default, int) or isinstance(default, float):
+                return unicode(default)
+            elif default is None:
+                return u'NULL'
+            else:
+                raise TypeError("Unsupported type: {}".format(type(default)))
+
+        def coldecstr(tablename, colname):
+            return colname + (
+                {
+                    int: " INTEGER",
+                    float: " REAL",
+                    bool: " BOOLEAN",
+                    unicode: " TEXT"
+                }[coltypes[tablename][colname]] + (
+                    " NOT NULL" if colname not in cols_nullable[tablename]
+                    else " "
+                ) + (
+                    " DEFAULT {}".format(
+                        default2str(coldefaults[tablename][colname])
+                    ) if colname in coldefaults[tablename]
+                    else ""
+                ) + (
+                    colextras[tablename][colname]
+                    if colname in colextras[tablename]
+                    else ""
+                )
             )
-        for tablename in coldecls.iterkeys():
-            SaveableMetaclass.colnames[tablename] = (
-                keynames[tablename] + valnames[tablename])
-        for tablename in tablenames:
-            bonetypes[tablename] = Bone.subclass(
-                tablename,
-                [
-                    (
-                        colname,
-                        coltypes[tablename][colname],
-                        coldefaults[tablename][colname]
-                    )
-                    for colname in SaveableMetaclass.colnames[tablename]
-                ]
-            )
+
+        for (tablename, tab) in attrs['tables']:
+            SaveableMetaclass.primarykeys[tablename] = tab["primary_key"]
+            valnames[tablename] = []
+            coltypes[tablename] = {}
+            coldefaults[tablename] = {}
+            colextras[tablename] = {}
+            foreignkeys[tablename] = {}
+            SaveableMetaclass.colnames[tablename] = []
+            process_columns(tablename, tab)
+            if "foreign_keys" in tab:
+                foreignkeys[tablename] = tab["foreign_keys"]
+            if "checks" in tab:
+                checks[tablename] = tab["checks"]
+            bonetypes[tablename] = Bone.subclass(tablename, tab['columns'])
+            #     [
+            #         (
+            #             colname,
+            #             coltypes[tablename][colname],
+            #             coldefaults[tablename][colname]
+            #         )
+            #         for colname in SaveableMetaclass.colnames[tablename]
+            #     ]
+            # )
             # assigning keynames here is kind of redundant (you could
             # look them up in bonetype.cls) but mildly convenient, and
             # serves to indicate that this bonetype was constructed by
             # SaveableMetaclass
-            bonetypes[tablename].keynames = keynames[tablename]
+            bonetypes[tablename].keynames = SaveableMetaclass.primarykeys[tablename]
             SaveableMetaclass.tabclas[tablename] = clas
             provides.add(tablename)
             pkey = SaveableMetaclass.primarykeys[tablename]
             fkeys = foreignkeys[tablename]
-            coldecstr = ", ".join(
-                " ".join(it) for it in coldecls[tablename].iteritems()
+            coldec = ", ".join(
+                coldecstr(tablename, d['name'])
+                for d in tab['columns']
             )
             SaveableMetaclass.colnamestr[tablename] = (
                 ", ".join(SaveableMetaclass.colnames[tablename])
@@ -1176,7 +1181,7 @@ class SaveableMetaclass(type):
                 fkeystrs.append(s)
             fkeystr = ", ".join(fkeystrs)
 
-            table_decl_data = [coldecstr]
+            table_decl_data = [coldec]
             pkeystr = "PRIMARY KEY ({})".format(", ".join(pkey))
             if pkeystr != "PRIMARY KEY ()":
                 table_decl_data.append(pkeystr)
@@ -1194,12 +1199,15 @@ class SaveableMetaclass(type):
                     table_decl
                 )
             )
+
+        tablenames = tuple(n for (n, decl) in attrs['tables'])
+
         SaveableMetaclass.saveables.append(
             (
                 tuple(demands),
                 tuple(provides),
                 tuple(prelude),
-                tuple(tablenames),
+                tablenames,
                 tuple(postlude)
             )
         )
@@ -1223,7 +1231,7 @@ class SaveableMetaclass(type):
             'keynames':
             dict(
                 [
-                    (tabn, tuple(keynames[tabn]))
+                    (tabn, tuple(SaveableMetaclass.primarykeys[tabn]))
                     for tabn in tablenames
                 ]
             ),
@@ -1233,7 +1241,7 @@ class SaveableMetaclass(type):
                     (tabn, tuple(valnames[tabn])) for tabn in tablenames
                 ]
             ),
-            'keyns': tuple(keynames[tablenames[0]]),
+            'keyns': tuple(SaveableMetaclass.primarykeys[tablenames[0]]),
             'valns': tuple(valnames[tablenames[0]]),
             'colns': tuple(SaveableMetaclass.colnames[tablenames[0]]),
             'maintab': tablenames[0],
@@ -1352,10 +1360,15 @@ class Timestream(object):
             "timestream",
             {
              "columns":
-                {
-                    "branch": "integer not null",
-                    "parent": "integer not null"
-                },
+                [
+                    {
+                        'name': 'branch',
+                        'type': 'integer'
+                    }, {
+                        'name': 'parent',
+                        'type': 'integer'
+                    }
+                ],
                 "primary_key": ("branch", "parent"),
                 "foreign_keys":
                 {"parent": ("timestream", "branch")},
@@ -1577,34 +1590,44 @@ class Closet(object):
             "globals",
             {
                 "columns":
-                {
-                    "key": "text not null",
-                    "type": "text not null default 'unicode'",
-                    "value": "text"
-                },
+                [
+                    {
+                        'name': 'key',
+                        'type': 'text',
+                    },
+                    {
+                        'name': 'type',
+                        'type': 'text',
+                        'default': 'text'
+                    },
+                    {
+                        'name': 'value',
+                        'type': 'text',
+                        'nullable': True
+                    }
+                ],
                 "primary_key": ("key",),
-                "checks": [
-                    "type in ({})".format(
-                        ", ".join(
-                            [
-                                "'{}'".format(typ)
-                                for typ in unicode2pytype_d
-                            ]
-                        )
-                    )
-                ]
+                "checks": ["type in ('text', 'real', 'integer', 'boolean')"]
             }
         ),
         (
             "strings",
             {
                 "columns":
-                {
-                    "stringname": "text not null",
-                    "language": "text not null default 'eng'",
-                    "string": "text not null"
-                },
-            "primary_key": ("stringname", "language")
+                [
+                    {
+                        'name': 'stringname',
+                        'type': 'text',
+                    }, {
+                        'name': 'language',
+                        'type': 'text',
+                        'default': 'eng'
+                    }, {
+                        'name': 'string',
+                        'type': 'text',
+                    }
+                ],
+                "primary_key": ("stringname", "language")
             }
         )
     ]
@@ -1714,8 +1737,8 @@ class Closet(object):
             )
             (typ_s, val_s) = self.c.fetchone()
             return unicode2pytype_d[typ_s](val_s)
-        except sqlite3.OperationalError as err:
-            if default:
+        except (sqlite3.OperationalError, TypeError) as err:
+            if default is not None:
                 return default
             else:
                 raise err
@@ -1816,8 +1839,8 @@ class Closet(object):
 
     def load_timestream(self):
         """Load and return the timestream"""
-        self.select_class_all(Timestream)
         self.timestream = Timestream(self)
+        self.select_class_all(Timestream)
         self.timestream._branch = self.get_global('branch', 0)
         self.timestream._tick = self.get_global('tick', 0)
         self.timestream._hi_branch = self.get_global(

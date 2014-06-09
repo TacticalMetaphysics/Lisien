@@ -6,11 +6,13 @@ from os.path import sep
 
 import gettext
 import argparse
+import shelve
 
 
 parser = argparse.ArgumentParser(
     description='Pick a database and UI')
-parser.add_argument('-f', '--file')
+parser.add_argument('-w', '--world')
+parser.add_argument('-s', '--shelf')
 parser.add_argument('--gui', action='store_true')
 parser.add_argument('maindotpy')
 
@@ -22,8 +24,8 @@ def lise():
                             ['en']).gettext
     parsed = parser.parse_args(argv)
 
-    print(_("Starting LiSE with database {}, path {}".format(
-        parsed.file, __path__[-1])))
+    print(_("Starting LiSE with world {}, shelf {}, path {}".format(
+        parsed.world, parsed.shelf, __path__[-1])))
 
     if parsed.gui:
         # start up the gui
@@ -36,17 +38,23 @@ def lise():
         print("I'll implement a proper command line interface eventually. "
               "For now, running unit tests.")
         import os
-        from LiSE.orm import mkdb, Closet
-        dbfn = parsed.file if parsed.file else ":memory:"
+        from LiSE.orm import Closet
+        from LiSE.data import mkdb
+        dbfn = parsed.world if parsed.world else "lise.world"
+        shfn = parsed.shelf if parsed.shelf else "lise.shelf"
         try:
             os.remove(dbfn)
+        except OSError:
+            pass
+        try:
+            os.remove(shfn)
         except OSError:
             pass
 
         print("Initializing database.")
         conn = mkdb(dbfn, __path__[-1], kivy=False)
         print("Loading closet.")
-        closet = Closet(connector=conn)
+        closet = Closet(connector=conn, shelf=shelve.open(shfn))
         closet.load_characters([
             'Omniscient',
             'Physical',

@@ -19,16 +19,35 @@ class Thing(Container):
             "thing_stat",
             {
                 "columns":
-                {
-                    "character": "text not null",
-                    "name": "text not null",
-                    "key": "text not null",
-                    "branch": "integer not null default 0",
-                    "tick": "integer not null default 0",
-                    # null value means this key doesn't apply to me
-                    "value": "text",
-                    "type": "text not null default 'text'"
-                },
+                [
+                    {
+                        'name': 'character',
+                        'type': 'text'
+                    }, {
+                        'name': 'name',
+                        'type': 'text'
+                    }, {
+                        'name': 'key',
+                        'type': 'text',
+                        'default': 'exists'
+                    }, {
+                        'name': 'branch',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'tick',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'value',
+                        'type': 'text',
+                        'nullable': True
+                    }, {
+                        'name': 'type',
+                        'type': 'text',
+                        'default': 'text'
+                    }
+                ],
                 "primary_key":
                 ("character", "name", "key", "branch", "tick"),
                 "checks":
