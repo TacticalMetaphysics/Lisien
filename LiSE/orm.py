@@ -1751,6 +1751,27 @@ class Closet(object):
             (key, pytype2unicode(value), unicode(value))
         )
 
+    def get_stat(self, skel_keys, stat):
+        def retrieve_stat(stat, skel, branch, tick):
+            if stat in skel and branch in skel[stat]:
+                return skel[stat][branch].value_during(tick).value
+            elif branch == 0:
+                return None
+            else:
+                return retrieve_stat(
+                    stat,
+                    skel,
+                    self.timestream.parent(branch),
+                    tick
+                )
+
+        (branch, tick) = self.timestream.time
+        skel = self.skeleton[skel_keys.pop(0)]
+        while skel_keys:
+            skel = skel[skel_keys.pop(0)]
+        return retrieve_stat(stat, skel, branch, tick)
+
+
     def get_text(self, strname):
         """Get the string of the given name in the language set at startup.
 
@@ -1812,6 +1833,18 @@ class Closet(object):
         if isinstance(name, Character):
             return name
         return self.get_characters([str(name)])[str(name)]
+
+    def make_character(self, name):
+        """Create a new Character and return it."""
+        if name in self.character_d:
+            raise ValueError(
+                "Character {} already created."
+                "Retrieve it from my ``character_d``".format(
+                    name
+                )
+            )
+        self.character_d[name] = Character(self, name)
+        return self.character_d[name]
 
     def get_facade(self, observer, observed):
         observer_u = unicode(observer)
