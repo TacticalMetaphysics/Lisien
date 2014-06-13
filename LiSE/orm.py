@@ -21,7 +21,6 @@ from collections import MutableMapping, defaultdict
 Place = Portal = Thing = Character = Facade = None
 from LiSE.util import (
     ListItemIterator,
-    unicode2pytype,
     unicode2pytype_d,
     pytype2unicode,
     TimestreamException
@@ -185,10 +184,9 @@ class BoneMetaclass(type):
         def _mksqlins(self):
             """Return an SQL command that inserts a record of me."""
             return "INSERT INTO {} ({}) VALUES ({});".format(
-                self._name, ", ".join(f for f in self._fields if
-                                      getattr(self, f) is not None),
-                ", ".join("?" for f in self._fields
-                          if getattr(self, f) is not None))
+                self._name, ", ".join(f for f in self._fields),
+                ", ".join("?" for f in self._fields)
+            )
 
         def _mksqldel(self):
             """Return an SQL command that deletes my record."""
@@ -245,7 +243,7 @@ class BoneMetaclass(type):
                     raise TypeError(
                         "Trying to make a format string; "
                         "don't understand the type "
-                        "{}".format(field_type))
+                        "{}".format(decl['type']))
                 atts['_fields'].append(decl['name'])
                 atts[decl['name']] = property(
                     itemgetter(i),
@@ -1392,12 +1390,31 @@ class Timestream(object):
         self.tick_listeners = []
         self.time_listeners = []
 
+    def __getattr__(self, attrn):
+        if attrn == 'branch':
+            return self.get_branch()
+        elif attrn == 'tick':
+            return self.get_tick()
+        elif attrn == 'time':
+            return self.get_time()
+        else:
+            raise AttributeError(
+                "No such attribute: {}".format(attrn)
+            )
 
-    @property
-    def branch(self):
+    def __setattr__(self, attrn, val):
+        if attrn == 'branch':
+            self.set_branch(val)
+        elif attrn == 'tick':
+            self.set_tick(val)
+        elif attrn == 'time':
+            self.set_time(val)
+        else:
+            super(Timestream, self).__setattr__(attrn, val)
+
+    def get_branch(self):
         return self._branch
 
-    @branch.setter
     def set_branch(self, v):
         self._branch = v
         if self._branch > self._hi_branch:
@@ -1407,11 +1424,9 @@ class Timestream(object):
         for listener in self.time_listeners:
             listener(v, self._tick)
 
-    @property
-    def tick(self):
+    def get_tick(self):
         return self._tick
 
-    @tick.setter
     def set_tick(self, v):
         self._tick = v
         if self._tick > self._hi_tick:
@@ -1421,11 +1436,9 @@ class Timestream(object):
         for listener in self.time_listeners:
             listener(self._branch, v)
 
-    @property
-    def time(self):
+    def get_time(self):
         return (self._branch, self._tick)
 
-    @time.setter
     def set_time(self, v):
         (b, t) = v
         self.set_branch(b)
@@ -1638,19 +1651,19 @@ class Closet(object):
         global Thing
         global Character
         global Facade
-        from LiSE.model import (
-            Place,
-            Portal,
-            Thing,
-            Character,
-            Facade
-        )
+        import LiSE.model
+        Place = LiSE.model.Place
+        Portal = LiSE.model.Portal
+        Thing = LiSE.model.Thing
+        Character = LiSE.model.Character
+        Facade = LiSE.model.Facade
         if logger is None:
             import logging
             logging.basicConfig()
             self.logger = logging.getLogger()
+        else:
+            self.logger = logger
         self.character_d = {}
-        self.facade_d = {}
         self.connector = connector
         self.shelf = shelf
         self.c = self.connector.cursor()
@@ -1660,8 +1673,7 @@ class Closet(object):
             self.empty[tab] = {}
         self.skeleton = self.empty.copy()
         self.lisepath = __path__[-1]
-        self.sep = os.sep
-        self.entypo = self.sep.join(
+        self.entypo = os.sep.join(
             [self.lisepath, 'gui', 'assets', 'Entypo.ttf']
         )
         self.gettext = gettext
@@ -1751,26 +1763,6 @@ class Closet(object):
             (key, pytype2unicode(value), unicode(value))
         )
 
-    def get_stat(self, skel_keys, stat):
-        def retrieve_stat(stat, skel, branch, tick):
-            if stat in skel and branch in skel[stat]:
-                return skel[stat][branch].value_during(tick).value
-            elif branch == 0:
-                return None
-            else:
-                return retrieve_stat(
-                    stat,
-                    skel,
-                    self.timestream.parent(branch),
-                    tick
-                )
-
-        (branch, tick) = self.timestream.time
-        skel = self.skeleton[skel_keys.pop(0)]
-        while skel_keys:
-            skel = skel[skel_keys.pop(0)]
-        return retrieve_stat(stat, skel, branch, tick)
-
 
     def get_text(self, strname):
         """Get the string of the given name in the language set at startup.
@@ -1803,6 +1795,14 @@ class Closet(object):
 
     def load_characters(self, names):
         """Load records to do with the named characters"""
+        for tabl in (
+                'thing_stat',
+                'place_stat',
+                'portal_stat',
+                'character_stat'
+        ):
+            for name in names:
+                self.skeleton[tabl][name] = {}
         def longway():
             for name in names:
                 for bone in iter_character_query_bones_named(name):
@@ -1845,30 +1845,6 @@ class Closet(object):
             )
         self.character_d[name] = Character(self, name)
         return self.character_d[name]
-
-    def get_facade(self, observer, observed):
-        observer_u = unicode(observer)
-        observed_u = unicode(observed)
-        if observer_u not in self.facade_d:
-            self.facade_d[observer_u] = {}
-        if observed_u not in self.facade_d[observer_u]:
-            self.facade_d[observer_u][observed_u] = Facade(
-                self.get_character(observer_u),
-                self.get_character(observed_u)
-            )
-        return self.facade_d[observer_u][observed_u]
-
-    def get_place(self, char, placen):
-        """Get a place from a character"""
-        return self.get_character(char).get_place(placen)
-
-    def get_portal(self, char, name):
-        """Get a portal from a character"""
-        return self.get_character(char).get_portal(name)
-
-    def get_thing(self, char, name):
-        """Get a thing from a character"""
-        return self.get_character(char).get_thing(name)
 
     def load_timestream(self):
         """Load and return the timestream"""
@@ -1920,7 +1896,7 @@ class Closet(object):
     def new_branch(self, parent, child, tick):
         """Copy records from the parent branch to the child, starting at
         tick."""
-        Logger.debug("orm: new branch {} from parent {}".format(
+        self.logger.debug("orm: new branch {} from parent {}".format(
             child, parent))
         if parent == child:
             raise TimestreamException(
