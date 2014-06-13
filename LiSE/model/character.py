@@ -1,8 +1,10 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+from collections import defaultdict
 from networkx import DiGraph
 from networkx import shortest_path as sp
 from LiSE.orm import SaveableMetaclass
+from LiSE.rules import Rule
 from thing import Thing
 from place import Place
 from portal import Portal
@@ -24,9 +26,6 @@ class AbstractCharacter(object):
 
     @property
     def graph(self):
-        return self.get_graph()
-
-    def get_graph(self):
         # It seems generally inefficient to regenerate the graph
         # whenever I look at it.
         #
@@ -50,12 +49,12 @@ class AbstractCharacter(object):
         Portals, and Things in me.
 
         To find what's in me, I iterate over
-        ``self.current_bones()``. Anything not yielded by that method
+        ``self.current_stat_bones()``. Anything not yielded by that method
         doesn't go in the graph.
 
         """
-        self.thing_contents_d = {}
-        self.thing_stat_d = {}
+        self.thing_contents_d = defaultdict(dict)
+        self.thing_stat_d = defaultdict(dict)
         r = DiGraph()
 
         def cast(b):
@@ -139,8 +138,8 @@ class AbstractCharacter(object):
                     if locn not in self.thing_contents_d:
                         self.thing_contents_d[locn] = set()
                     self.thing_contents_d[locn].add(thing)
-                elif thingn in r.node:
-                    r.node[locn].contents.add(thing)
+                elif things2b[thingn] in r.node:
+                    r.node[things2b[thingn]]['contents'].add(thing)
                 else:
                     r.add_node(
                         locn,
@@ -157,56 +156,7 @@ class AbstractCharacter(object):
         def process_character_stat_bone(b):
             r.graph[b.key] = cast(b)
 
-        def shortest_path(o, d, weight=''):
-            return sp(r, o, d, weight)
-        shortest_path.__doc__ = sp.__doc__
-        r.shortest_path = shortest_path
-
-        for bone in self.current_bones():
-            if isinstance(bone, Place.bonetype):
-                process_place_stat_bone(bone)
-            elif isinstance(bone, Portal.bonetype):
-                process_portal_stat_bone(bone)
-            elif isinstance(bone, Thing.bonetype):
-                process_thing_stat_bone(bone)
-            elif isinstance(bone, Character.bonetypes["character_stat"]):
-                process_character_stat_bone(bone)
-            else:
-                raise TypeError("Unknown bonetype")
-        postprocess_things()
-        return r
-
-    def transport_thing_to(self, thingn, destn, graph_for_pathfinding=None):
-        """Set the thing to travel along the shortest path to the destination.
-
-        It will spend however long it must in each of the places and
-        portals along the path.
-
-        With optional argument graph_for_pathfinding, it will try to
-        follow the shortest path it can find in the given graph--which
-        might cause it to stop moving earlier than expected, if the
-        path it finds doesn't exist within me.
-
-        """
-        movegraph = self.graph
-        pathgraph = (
-            graph_for_pathfinding
-            if graph_for_pathfinding else movegraph
-        )
-        o = self.thing_loc_d[thingn]
-        path_sl = pathgraph.shortest_path(o, destn)
-        placens = iter(path_sl)
-        placen = next(placens)
-        path_ports = []
-        for placenxt in placens:
-            try:
-                path_ports.append(movegraph[placen][placenxt]['portal'])
-                placen = placenxt
-            except KeyError:
-                break
-        self.thing_d[thingn].follow_path(path_ports)
-
-    def current_bones(self):
+    def current_stat_bones(self):
         raise NotImplementedError("Abstract class")
 
 
@@ -254,10 +204,8 @@ class Character(AbstractCharacter):
                 "checks":
                 ["type IN ('text', 'integer', 'real', 'boolean')"]
             }
-        ),
-        (
+        ), (
             "character_avatar",
-                
             {
                 "columns":
                 [
@@ -281,9 +229,37 @@ class Character(AbstractCharacter):
                     }
                 ],
                 "primary_key":
-                ("character", "host", "type", "name"),
+                ("character", "host", "name"),
                 "checks":
                 ["type in ('thing', 'place', 'portal')"]
+            }
+        ), (
+            "character_rule",
+            {
+                "columns":
+                [
+                    {
+                        'name': 'character',
+                        'type': 'text'
+                    }, {
+                        'name': 'idx',
+                        'type': 'integer'
+                    }, {
+                        'name': 'branch',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'tick',
+                        'type': 'integer',
+                        'default': 0
+                    }, {
+                        'name': 'rule',
+                        'type': 'text',
+                        'nullable': True
+                    }
+                ],
+                "primary_key": ("character", "idx"),
+                "checks": ["idx>=0"]
             }
         )
     ]
@@ -292,11 +268,10 @@ class Character(AbstractCharacter):
         self.closet = closet
         self.name = name
         self.thing_d = {}
-        self.thing_loc_d = {}
-        self.thing_contents_d = {}
-        self.thing_stat_d = {}
         self.place_d = {}
         self.portal_d = {}
+        self.avatar_d = {}
+        self.facade_d = {}
 
     def __eq__(self, other):
         """Compare based on the name and the closet"""
@@ -319,7 +294,26 @@ class Character(AbstractCharacter):
         """``self.name``"""
         return unicode(self.name)
 
-    def current_bones(self):
+    def add_avatar(self, avatar):
+        self.closet.set_bone(
+            self.bonetypes["character_avatar"](
+                character=self.name,
+                host=avatar.character.name,
+                type={
+                    Place: 'place',
+                    Portal: 'portal',
+                    Thing: 'thing'
+                }[avatar.__class__],
+                name=avatar.name
+            )
+        )
+        self.avatar_d[avatar.character.name] = avatar
+
+    def avatar_bones(self):
+        for bone in self.closet.skeleton['character_avatar'][self.name].iterbones():
+            yield bone
+
+    def current_stat_bones(self):
         (branch, tick) = self.closet.timestream.time
         skel = self.closet.skeleton
         thingskel = skel[u'thing_stat'][self.name]
@@ -345,10 +339,27 @@ class Character(AbstractCharacter):
             if branch in charskel[key]:
                 yield charskel[key][branch].value_during(tick)
 
+    def current_rules(self):
+        (branch, tick) = self.closet.timestream.time
+        skel = self.closet.skeleton['character_rule'][self.name]
+        for idx in skel:
+            if branch in skel[idx]:
+                r = skel[idx][branch].value_during(tick)
+                if r.value:
+                    yield Rule(self, self.closet.shelf[r.value])
+
+    def rule(self, effect):
+        if isinstance(effect, str) or isinstance(effect, unicode):
+            name = effect
+            effect = self.closet.shelf[name]
+        elif effect.__name__ not in self.closet.shelf:
+            name = effect.__name__
+            self.closet.shelf[name] = effect
+
     def make_place(self, name):
         if name in self.place_d:
             raise ValueError(
-                "Place already made. Retrieve it from place_d."
+                "Place already made. Retrieve it from ``place_d``."
             )
         (branch, tick) = self.closet.timestream.time
         self.closet.set_bone(
@@ -367,6 +378,10 @@ class Character(AbstractCharacter):
     def make_portal(self, origin, destination):
         o = unicode(origin)
         d = unicode(destination)
+        if o in self.portal_d and d in self.portal_d[o]:
+            raise ValueError(
+                "Portal already made. Retrieve it from ``portal_d``."
+            )
         (branch, tick) = self.closet.timestream.time
         self.closet.set_bone(
             Portal.bonetype(
@@ -385,6 +400,10 @@ class Character(AbstractCharacter):
         return self.portal_d[o][d]
 
     def make_thing(self, name, init_location=None):
+        if name in self.thing_d:
+            raise KeyError(
+                "Thing already made. Retrieve it from ``thing_d``."
+            )
         (branch, tick) = self.closet.timestream.time
         self.closet.set_bone(
             Thing.bonetype(
@@ -410,6 +429,19 @@ class Character(AbstractCharacter):
                 )
             )
         return self.thing_d[name]
+
+    def make_facade(self, observer):
+        if isinstance(observer, str) or isinstance(observer, unicode):
+            name = observer
+            observer = self.closet.character_d[name]
+        else:
+            name = observer.name
+        if observer in self.facade_d:
+            raise KeyError(
+                "Facade already made. Retrieve it from ``facade_d``."
+            )
+        self.facade_d[name] = Facade(observer, self)
+        return self.facade_d[observer]
 
 class Facade(AbstractCharacter):
     """View onto one Character as seen by another.
@@ -502,9 +534,6 @@ class Facade(AbstractCharacter):
         self.observed = observed
         self.closet = self.observed.closet
         self.thing_d = {}
-        self.thing_loc_d = {}
-        self.thing_contents_d = {}
-        self.thing_stat_d = {}
         self.place_d = {}
         self.portal_d = {}
 
@@ -513,12 +542,13 @@ class Facade(AbstractCharacter):
             hasattr(other, 'observer') and
             hasattr(other, 'observed') and
             self.observer == other.observer and
-            self.observed == other.observed)
+            self.observed == other.observed
+        )
 
     def __hash__(self):
         return hash((self.observer, self.observed))
 
-    def __string__(self):
+    def __str__(self):
         return "Facade({},{})".format(self.observer, self.observed)
 
     def __unicode__(self):
@@ -672,7 +702,7 @@ class Facade(AbstractCharacter):
                 yield bone
 
     def distortions(self):
-        for bone in self.observed.current_bones():
+        for bone in self.observed.current_stat_bones():
             r = self.distort(bone)
             for b in r:
                 yield b
@@ -721,7 +751,7 @@ class Facade(AbstractCharacter):
             else:
                 yield r
 
-    def current_bones(self):
+    def current_stat_bones(self):
         for fabrication in self.fabrications:
             yield fabrication
         for distortion in self.distortions:
