@@ -1,9 +1,11 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from container import Container
+from LiSE.orm import SaveableMetaclass
+from container import Contents
+from stats import Stats
 
 
-class Place(Container):
+class Place(object):
     """Places where things may be.
 
     Places are vertices in a character's graph where things can be,
@@ -15,6 +17,7 @@ class Place(Container):
     exist. Place bones are only for when a place needs stats.
 
     """
+    __metaclass__ = SaveableMetaclass
     tables = [
         (
             "place_stat",
@@ -59,6 +62,28 @@ class Place(Container):
 
     def __init__(self, character, name):
         """Initialize a place in a character by a name"""
+        def make_stat_bone(branch, tick, key, value):
+            return Place.bonetypes['place_stat'](
+                character=character.name,
+                name=name,
+                branch=branch,
+                tick=tick,
+                key=key,
+                value=value,
+                type={
+                    str: 'text',
+                    unicode: 'text',
+                    int: 'integer',
+                    float: 'real',
+                    bool: 'boolean'
+                }[type(value)]
+            )
+        self.stats = Stats(
+            character.closet,
+            ['place_stat', character.name, name],
+            make_stat_bone
+        )
+        self.contents = Contents(character, name)
         self.character = character
         self.name = name
 
@@ -84,8 +109,4 @@ class Place(Container):
         return hash((self.character, self.name))
 
     def __getitem__(self, key):
-        return self.character.graph[self.name][key]
-
-    @property
-    def contents(self):
-        return self.character.graph.node[self.name]['contents']
+        return self.stats[key]

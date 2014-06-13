@@ -5,6 +5,7 @@ from networkx import DiGraph
 from networkx import shortest_path as sp
 from LiSE.orm import SaveableMetaclass
 from LiSE.rules import Rule
+from stats import Stats
 from thing import Thing
 from place import Place
 from portal import Portal

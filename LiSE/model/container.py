@@ -1,28 +1,37 @@
-from LiSE.orm import SaveableMetaclass
+class Contents(set):
+    def __init__(self, character, name):
+        self.character = character
+        self.name = name
 
+    def __repr__(self):
+        return str([thing for thing in self])
 
-class Container(object):
-    __metaclass__ = SaveableMetaclass
+    def add(self, that):
+        that['location'] = self.name
 
-    def __contains__(self, it):
-        return it.location is self
+    def remove(self, that):
+        if that['location'] != self.name:
+            raise KeyError("{} not in {}".format(that.name, self.name))
+        self.discard(that)
 
-    def iter_contents(self, branch=None, tick=None):
-        skel = self.character.closet.skeleton[u"thing"][
-            unicode(self.character)
-        ]
-        for thingbone in skel.iterbones():
-            if thingbone.host == unicode(self.character):
-                locbone = self.character.closet.get_timely(
-                    [u"thing_loc", thingbone.character, thingbone.name],
-                    branch,
-                    tick
-                )
-                if locbone.location == unicode(self):
-                    char = self.character.closet.get_character(
-                        thingbone.character
-                    )
-                    yield char.get_thing(thingbone.name)
+    def discard(self, that):
+        that['location'] = None
 
-    def get_contents(self, branch=None, tick=None):
-        return set(self.iter_contents(branch, tick))
+    def __iter__(self):
+        (branch, tick) = self.closet.timestream.time
+        skel = (
+            self.character.closet.skeleton
+            ['thing_stat']
+            [self.character.name]
+        )
+        for thing in skel:
+            if (
+                    'location' in skel[thing] and
+                    branch in skel[thing]['location'] and
+                    skel[thing]['location']
+                    [branch].value_during(tick).value == self.name
+            ):
+                yield thing
+
+    def __contains__(self, that):
+        return that['location'] == self.name
