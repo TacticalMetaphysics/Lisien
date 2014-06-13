@@ -23,7 +23,22 @@ class AbstractCharacter(object):
     __metaclass__ = SaveableMetaclass
 
     def __getitem__(self, key):
-        return self.graph.graph[key]
+        """Use my ``stats`` attribute to return the present value for the
+        given key.
+
+        Subclasses are therefore obliged to assign a ``stats`` object
+        appropriately.
+
+        """
+        return self.stats[key]
+
+    def __setitem__(self, key, value):
+        """Assign the key in my ``stats`` attribute to the given value.
+
+        Subclasses must therefore implement a ``stats`` attribute.
+
+        """
+        self.stats[key] = value
 
     @property
     def graph(self):
@@ -266,6 +281,29 @@ class Character(AbstractCharacter):
     ]
 
     def __init__(self, closet, name):
+        def make_character_stat_bone(branch, tick, key, value):
+            return Character.bonetypes["character_stat"](
+                character=name,
+                key=key,
+                branch=branch,
+                tick=tick,
+                value=value,
+                type={
+                    int: 'integer',
+                    bool: 'boolean',
+                    float: 'real',
+                    str: 'text',
+                    unicode: 'text'
+                }[type(value)]
+            )
+
+        if ':' in name:
+            raise ValueError("Character ':' not allowed in name")
+        self.stats = Stats(
+            closet,
+            ["character_stat", name],
+            make_character_stat_bone
+        )
         self.closet = closet
         self.name = name
         self.thing_d = {}
@@ -444,6 +482,50 @@ class Character(AbstractCharacter):
         self.facade_d[name] = Facade(observer, self)
         return self.facade_d[observer]
 
+
+class FacadeStats(Stats):
+    def __init__(self, facade):
+        def make_override_bone(branch, tick, key, value):
+            return Character.bonetypes["character_stats"](
+                name=facade.name,
+                key=key,
+                branch=branch,
+                tick=tick,
+                value=value,
+                type={
+                    bool: 'boolean',
+                    int: 'integer',
+                    float: 'real',
+                    str: 'text',
+                    unicode: 'text'
+                }[type(value)]
+            )
+        self.overrides = Stats(
+            facade.observed.closet,
+            ["character_stats", facade.name],
+            make_override_bone
+        )
+        self.facade = facade
+
+    def __contains__(self, that):
+        return (
+            that in self.overrides or
+            that in self.observed.stats
+        )
+
+    def __getitem__(self, key):
+        if key in self.overrides:
+            return self.overrides[key]
+        else:
+            return self.facade.observed.stats[key]
+
+    def __setitem__(self, key, value):
+        self.overrides[key] = value
+
+    def __delitem__(self, key):
+        del self.overrides[key]
+
+
 class Facade(AbstractCharacter):
     """View onto one Character as seen by another.
 
@@ -534,6 +616,7 @@ class Facade(AbstractCharacter):
         self.observer = observer
         self.observed = observed
         self.closet = self.observed.closet
+        self.stats = FacadeStats(self)
         self.thing_d = {}
         self.place_d = {}
         self.portal_d = {}
@@ -549,11 +632,12 @@ class Facade(AbstractCharacter):
     def __hash__(self):
         return hash((self.observer, self.observed))
 
-    def __str__(self):
-        return "Facade({},{})".format(self.observer, self.observed)
+    def __repr__(self):
+        return "{}:{}".format(self.observer, self.observed)
 
-    def __unicode__(self):
-        return u"Facade({},{})".format(self.observer, self.observed)
+    @property
+    def name(self):
+        return repr(self)
 
     def _decorated_function_names(self, table):
         def get_function_name(skel, branch, tick):
