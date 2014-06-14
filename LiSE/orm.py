@@ -16,6 +16,7 @@ import struct
 import shelve
 import os
 import sqlite3
+from abc import ABCMeta
 from collections import MutableMapping, defaultdict
 # forward imports
 Place = Portal = Thing = Character = Facade = None
@@ -971,7 +972,7 @@ class Skeleton(MutableMapping):
         del ptr[branch][tick]
 
 
-class SaveableMetaclass(type):
+class SaveableMetaclass(ABCMeta):
     """SQL strings and methods relevant to the tables a class is about.
 
     Table declarations
