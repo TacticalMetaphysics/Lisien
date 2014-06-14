@@ -2,10 +2,10 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from LiSE.orm import SaveableMetaclass
 from container import Contents
-from stats import Stats
+from collections import MutableMapping
 
 
-class Place(object):
+class Place(MutableMapping):
     """Places where things may be.
 
     Places are vertices in a character's graph where things can be,
@@ -28,7 +28,7 @@ class Place(object):
                         'name': 'character',
                         'type': 'text'
                     }, {
-                        'name': 'name',
+                        'name': 'place',
                         'type': 'text'
                     }, {
                         'name': 'key',
@@ -62,27 +62,6 @@ class Place(object):
 
     def __init__(self, character, name):
         """Initialize a place in a character by a name"""
-        def make_stat_bone(branch, tick, key, value):
-            return Place.bonetypes['place_stat'](
-                character=character.name,
-                name=name,
-                branch=branch,
-                tick=tick,
-                key=key,
-                value=value,
-                type={
-                    str: 'text',
-                    unicode: 'text',
-                    int: 'integer',
-                    float: 'real',
-                    bool: 'boolean'
-                }[type(value)]
-            )
-        self.stats = Stats(
-            character.closet,
-            ['place_stat', character.name, name],
-            make_stat_bone
-        )
         self.contents = Contents(character, name)
         self.character = character
         self.name = name
@@ -109,4 +88,22 @@ class Place(object):
         return hash((self.character, self.name))
 
     def __getitem__(self, key):
-        return self.stats[key]
+        if key == 'name':
+            return unicode(self.name)
+        elif key == 'character':
+            return unicode(self.character)
+        else:
+            return self.character.get_place_stat(self.name, key)
+
+    def __setitem__(self, key, value):
+        self.character.set_place_stat(self.name, key, value)
+
+    def __delitem__(self, key):
+        self.character.del_place_stat(self.name, key)
+
+    def __iter__(self):
+        for stat in self.character.iter_place_stats(self.name):
+            yield stat
+
+    def __len__(self):
+        return self.character.len_place_stats(self.name)

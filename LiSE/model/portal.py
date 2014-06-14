@@ -2,10 +2,10 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 from LiSE.orm import SaveableMetaclass
 from container import Contents
-from stats import Stats
+from collections import MutableMapping
 
 
-class Portal(object):
+class Portal(MutableMapping):
     __metaclass__ = SaveableMetaclass
     tables = [
         (
@@ -62,30 +62,6 @@ class Portal(object):
     def __init__(self, character, origin, destination):
         origin = unicode(origin)
         destination = unicode(destination)
-
-        def make_stat_bone(branch, tick, key, value):
-            return self.bonetypes["portal_stat"](
-                character=character.name,
-                origin=origin,
-                destination=destination,
-                branch=branch,
-                tick=tick,
-                key=key,
-                value=value,
-                type={
-                    str: 'text',
-                    unicode: 'text',
-                    int: 'integer',
-                    float: 'real',
-                    bool: 'boolean'
-                }[type(value)]
-            )
-
-        self.stats = Stats(
-            character.closet,
-            ["portal_stat", character.name, origin, destination],
-            make_stat_bone
-        )
         self.contents = Contents(
             character,
             '{}->{}'.format(origin, destination)
@@ -127,7 +103,17 @@ class Portal(object):
         elif key == 'character':
             return unicode(self.character)
         else:
-            return self.stats[key]
+            return self.character.get_portal_stat(self.name, key)
 
     def __setitem__(self, key, value):
-        self.stats[key] = value
+        self.character.set_portal_stat(self['origin'], self['destination'], key, value)
+
+    def __delitem__(self, key):
+        self.character.del_portal_stat(self['origin'], self['destination'], key)
+
+    def __iter__(self):
+        for stat in self.character.iter_portal_stats(self['origin'], self['destination']):
+            yield stat
+
+    def __len__(self):
+        return self.character.len_portal_stats(self['origin'], self['destination'])

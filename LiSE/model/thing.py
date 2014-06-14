@@ -1,12 +1,11 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from LiSE.util import TimeParadox
 from LiSE.orm import SaveableMetaclass
 from container import Contents
-from stats import Stats
+from collections import MutableMapping
 
 
-class Thing(object):
+class Thing(MutableMapping):
     """The sort of item that has a particular location at any given time.
 
     If a Thing is in a Place, it is standing still. If it is in a
@@ -27,7 +26,7 @@ class Thing(object):
                         'name': 'character',
                         'type': 'text'
                     }, {
-                        'name': 'name',
+                        'name': 'thing',
                         'type': 'text'
                     }, {
                         'name': 'key',
@@ -60,28 +59,6 @@ class Thing(object):
     ]
 
     def __init__(self, character, name):
-        def make_stat_bone(branch, tick, key, value):
-            return Thing.bonetypes['thing_stat'](
-                character=character.name,
-                name=name,
-                key=key,
-                branch=branch,
-                tick=tick,
-                value=value,
-                type={
-                    str: 'text',
-                    unicode: 'text',
-                    bool: 'boolean',
-                    int: 'integer',
-                    float: 'real'
-                }[type(value)]
-            )
-
-        self.stats = Stats(
-            character.closet,
-            ['thing_stat', character.name, name],
-            make_stat_bone
-        )
         self.contents = Contents(character, name)
         self.character = character
         self.name = name
@@ -101,7 +78,7 @@ class Thing(object):
         elif key == 'character':
             return unicode(self.character)
         else:
-            return self.stats[key]
+            return self.character.get_thing_stat(self.name, key)
 
     def __setitem__(self, key, value):
         if key == 'contents':
@@ -120,4 +97,14 @@ class Thing(object):
                     thing['location'] = self.name
             self.character.thing_contents_d[self.name] = value
         else:
-            self.stats[key] = value
+            self.character.set_thing_stat(self.name, key, value)
+
+    def __delitem__(self, key):
+        self.character.del_thing_stat(self.name, key)
+
+    def __iter__(self):
+        for stat in self.character.iter_thing_stats(self.name):
+            yield stat
+
+    def __len__(self):
+        return self.character.len_thing_stats(self.name)

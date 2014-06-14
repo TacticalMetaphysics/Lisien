@@ -1,17 +1,47 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from collections import defaultdict
+from collections import (
+    defaultdict,
+    MutableMapping
+)
 from networkx import DiGraph
 from networkx import shortest_path as sp
 from LiSE.orm import SaveableMetaclass
 from LiSE.rules import Rule
-from stats import Stats
 from thing import Thing
 from place import Place
 from portal import Portal
 
 
-class AbstractCharacter(object):
+def get_stat_recursive(parent_fun, branch, tick, skel):
+    if branch in skel:
+        return skel[branch].value_during(tick)
+    elif branch == 0:
+        raise KeyError("Stat not applicable")
+    else:
+        return get_stat_recursive(
+            parent_fun(branch),
+            tick,
+            skel
+        )
+
+def iter_stats_recursive(parent_fun, branch, tick, skel):
+    def inner(branch, tick, skel):
+        for stat in skel:
+            if branch in skel[stat]:
+                if skel[stat][branch].value_during(tick) is not None:
+                    yield stat
+            elif branch != 0:
+                yield inner(
+                    parent_fun(branch),
+                    tick,
+                    skel
+                )
+    for stat in inner:
+        if stat is not None:
+            yield stat
+
+class AbstractCharacter(MutableMapping):
     """Basis for classes implementing the Character API.
 
     The Character API is a graph structure built to reflect the state
@@ -22,23 +52,235 @@ class AbstractCharacter(object):
     """
     __metaclass__ = SaveableMetaclass
 
+    @property
+    def _placeskel(self):
+        return self.closet.skeleton["place_stat"][self.name]
+
+    @property
+    def _portalskel(self):
+        return self.closet.skeleton["portal_stat"][self.name]
+
+    @property
+    def _thingskel(self):
+        return self.closet.skeleton["thing_stat"][self.name]
+
+    @property
+    def _charskel(self):
+        return self.closet.skeleton["character_stat"][self.name]
+
     def __getitem__(self, key):
-        """Use my ``stats`` attribute to return the present value for the
-        given key.
-
-        Subclasses are therefore obliged to assign a ``stats`` object
-        appropriately.
-
-        """
-        return self.stats[key]
+        skel = self._charskel
+        if key not in skel:
+            raise KeyError("Stat not applicable to character")
+        (branch, tick) = self.closet.timestream.time
+        return get_stat_recursive(
+            self.closet.timestream.parent,
+            branch,
+            tick,
+            skel[key]
+        )
 
     def __setitem__(self, key, value):
-        """Assign the key in my ``stats`` attribute to the given value.
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(Character.bonetypes["character_stat"](
+            character=self.name,
+            key=key,
+            branch=branch,
+            tick=tick,
+            value=value,
+            type={
+                bool: 'boolean',
+                int: 'integer',
+                float: 'real',
+                str: 'text',
+                unicode: 'text'
+            }[type(value)]
+        ))
 
-        Subclasses must therefore implement a ``stats`` attribute.
+    def __delitem__(self, key):
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(Character.bonetypes["character_stat"](
+            character=self.name,
+            key=key,
+            branch=branch,
+            tick=tick,
+            value=None,
+            type='text'
+        ))
 
-        """
-        self.stats[key] = value
+    def get_place_stat(self, placename, key):
+        (branch, tick) = self.closet.timestream.time
+        skel = self._placeskel[placename]
+        if key not in skel:
+            raise KeyError(
+                "Stat {} does not apply to place {}".format(
+                    key,
+                    placename
+                )
+            )
+        return get_stat_recursive(
+            self.closet.timestream.parent,
+            branch,
+            tick,
+            skel[key]
+        )
+
+    def set_place_stat(self, placename, key, value):
+        (branch, tick) = self.closet.timestream.time
+        self.closet.setbone(Place.bonetypes["place_stat"](
+            character=self.name,
+            place=placename,
+            key=key,
+            branch=branch,
+            tick=tick,
+            value=value,
+            type={
+                bool: 'boolean',
+                int: 'integer',
+                float: 'real',
+                str: 'text',
+                unicode: 'text'
+            }[type(value)]
+        ))
+
+    def del_place_stat(self, placename, key):
+        (branch, tick) = self.closet.timestream.time
+        self.closet.setbone(Place.bonetypes["place_stat"](
+            character=self.name,
+            place=placename,
+            key=key,
+            branch=branch,
+            tick=tick,
+            value=None,
+            type='text'
+        ))
+
+    def iter_place_stats(self, placename):
+        (branch, tick) = self.closet.timestream.time
+        for stat in iter_stats_recursive(
+                self.closet.timestream.parent,
+                branch,
+                tick,
+                self._placeskel
+        ):
+            yield stat
+
+    def len_place_stats(self, placename):
+        return len(self.iter_place_stats(placename))
+
+    def get_portal_stat(self, o, d, key):
+        (branch, tick) = self.closet.timestream.time
+        skel = self._portalskel
+        if (
+                o not in skel or
+                d not in skel[o]
+        ):
+            raise KeyError("No such portal")
+        if key not in skel[o][d]:
+            raise KeyError("Stat not applicable to portal")
+        return get_stat_recursive(
+            self.closet.timestream.parent,
+            branch,
+            tick,
+            skel[o][d][key]
+        )
+
+    def set_portal_stat(self, o, d, key, value):
+        (branch, tick) = self.timestream.time
+        self.closet.set_bone(Portal.bonetypes["portal_stat"](
+            character=self.name,
+            origin=o,
+            destination=d,
+            key=key,
+            branch=branch,
+            tick=tick,
+            value=value,
+            type={
+                bool: 'boolean',
+                int: 'integer',
+                float: 'real',
+                str: 'text',
+                unicode: 'text'
+            }[type(value)]
+        ))
+
+    def del_portal_stat(self, o, d, key):
+        (branch, tick) = self.timestream.time
+        self.closet.set_bone(Portal.bonetypes["portal_stat"](
+            character=self.name,
+            origin=o,
+            destination=d,
+            key=key,
+            branch=branch,
+            tick=tick,
+            value=None,
+            type='text'
+        ))
+
+    def iter_portal_stats(self, o, d):
+        (branch, tick) = self.closet.timestream.time
+        for stat in iter_stats_recursive(
+                self.closet.timestream.parent,
+                branch,
+                tick,
+                self._portalskel[o][d]
+        ):
+            yield stat
+
+    def len_portal_stats(self, o, d):
+        return len(self.iter_portal_stats(o, d))
+
+    def get_thing_stat(self, thing, key):
+        skel = self._thingskel[thing]
+        if key not in skel:
+            raise KeyError("Stat not applicable to thing")
+        (branch, tick) = self.closet.timestream.time
+        return get_stat_recursive(
+            self.closet.timestream.parent,
+            branch,
+            tick,
+            skel[key]
+        )
+
+    def set_thing_stat(self, thing, key, value):
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(Thing.bonetypes["thing_stat"](
+            character=self.name,
+            thing=thing,
+            key=key,
+            branch=branch,
+            tick=tick,
+            value=value,
+            type={
+                bool: 'boolean',
+                int: 'integer',
+                float: 'real',
+                str: 'text',
+                unicode: 'text'
+            }[type(value)]
+        ))
+
+    def del_thing_stat(self, thing, key):
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(Thing.bonetypes["thing_stat"](
+            character=self.name,
+            thing=thing,
+            key=key,
+            branch=branch,
+            tick=tick,
+            value=None,
+            type='text'
+        ))
+
+    def iter_thing_stats(self, thing):
+        (branch, tick) = self.closet.timestream.time
+        for stat in iter_stats_recursive(
+                self.closet.timestream.parent,
+                branch,
+                tick,
+                self._thingskel[thing]
+        ):
+            yield stat
 
     @property
     def graph(self):
@@ -171,6 +413,80 @@ class AbstractCharacter(object):
 
         def process_character_stat_bone(b):
             r.graph[b.key] = cast(b)
+
+    def make_place(self, name):
+        if name in self.place_d:
+            raise ValueError(
+                "Place already made. Retrieve it from ``place_d``."
+            )
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(
+            Place.bonetype(
+                character=self.name,
+                name=name,
+                key='exists',
+                branch=branch,
+                tick=tick,
+                value=True
+            )
+        )
+        self.place_d[name] = Place(self, name)
+        return self.place_d[name]
+
+    def make_portal(self, origin, destination):
+        o = unicode(origin)
+        d = unicode(destination)
+        if o in self.portal_d and d in self.portal_d[o]:
+            raise ValueError(
+                "Portal already made. Retrieve it from ``portal_d``."
+            )
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(
+            Portal.bonetype(
+                character=self.name,
+                origin=o,
+                destination=d,
+                key='exists',
+                branch=branch,
+                tick=tick,
+                value=True
+            )
+        )
+        if o not in self.portal_d:
+            self.portal_d[o] = {}
+        self.portal_d[o][d] = Portal(self, o, d)
+        return self.portal_d[o][d]
+
+    def make_thing(self, name, init_location=None):
+        if name in self.thing_d:
+            raise KeyError(
+                "Thing already made. Retrieve it from ``thing_d``."
+            )
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(
+            Thing.bonetype(
+                character=self.name,
+                name=name,
+                key='exists',
+                branch=branch,
+                tick=tick,
+                value=True
+            )
+        )
+        self.thing_d[name] = Thing(self, name)
+        if init_location:
+            il = unicode(init_location)
+            self.closet.set_bone(
+                Thing.bonetype(
+                    character=self.name,
+                    name=name,
+                    key='location',
+                    branch=branch,
+                    tick=tick,
+                    value=il
+                )
+            )
+        return self.thing_d[name]
 
     def current_stat_bones(self):
         raise NotImplementedError("Abstract class")
@@ -395,79 +711,33 @@ class Character(AbstractCharacter):
             name = effect.__name__
             self.closet.shelf[name] = effect
 
-    def make_place(self, name):
-        if name in self.place_d:
-            raise ValueError(
-                "Place already made. Retrieve it from ``place_d``."
-            )
-        (branch, tick) = self.closet.timestream.time
-        self.closet.set_bone(
-            Place.bonetype(
-                character=self.name,
-                name=name,
-                key='exists',
-                branch=branch,
-                tick=tick,
-                value=True
-            )
+    def make_thing(self, name, init_location=None):
+        r = super(Character, self).make_thing(name, init_location)
+        r.stats = Stats(
+            self.closet,
+            ['thing_stat', self.name, name],
+            make_stat_bone
         )
-        self.place_d[name] = Place(self, name)
-        return self.place_d[name]
+        return r
+
+    def make_place(self, name):
+        r = super(Character, self).make_place(name)
+        r.stats = Stats(
+            self.closet,
+            ['place_stat', self.name, name],
+            make_stat_bone
+        )
+        return r
 
     def make_portal(self, origin, destination):
-        o = unicode(origin)
-        d = unicode(destination)
-        if o in self.portal_d and d in self.portal_d[o]:
-            raise ValueError(
-                "Portal already made. Retrieve it from ``portal_d``."
-            )
-        (branch, tick) = self.closet.timestream.time
-        self.closet.set_bone(
-            Portal.bonetype(
-                character=self.name,
-                origin=o,
-                destination=d,
-                key='exists',
-                branch=branch,
-                tick=tick,
-                value=True
-            )
+        origin = unicode(origin)
+        destination = unicode(destination)
+        r = super(Character, self).make_portal(origin, destination)
+        r.stats = Stats(
+            self.closet,
+            ["portal_stat", self.name, origin, destination],
+            make_stat_bone
         )
-        if o not in self.portal_d:
-            self.portal_d[o] = {}
-        self.portal_d[o][d] = Portal(self, o, d)
-        return self.portal_d[o][d]
-
-    def make_thing(self, name, init_location=None):
-        if name in self.thing_d:
-            raise KeyError(
-                "Thing already made. Retrieve it from ``thing_d``."
-            )
-        (branch, tick) = self.closet.timestream.time
-        self.closet.set_bone(
-            Thing.bonetype(
-                character=self.name,
-                name=name,
-                key='exists',
-                branch=branch,
-                tick=tick,
-                value=True
-            )
-        )
-        self.thing_d[name] = Thing(self, name)
-        if init_location:
-            il = unicode(init_location)
-            self.closet.set_bone(
-                Thing.bonetype(
-                    character=self.name,
-                    name=name,
-                    key='location',
-                    branch=branch,
-                    tick=tick,
-                    value=il
-                )
-            )
-        return self.thing_d[name]
 
     def make_facade(self, observer):
         if isinstance(observer, str) or isinstance(observer, unicode):
@@ -481,49 +751,6 @@ class Character(AbstractCharacter):
             )
         self.facade_d[name] = Facade(observer, self)
         return self.facade_d[observer]
-
-
-class FacadeStats(Stats):
-    def __init__(self, facade):
-        def make_override_bone(branch, tick, key, value):
-            return Character.bonetypes["character_stats"](
-                name=facade.name,
-                key=key,
-                branch=branch,
-                tick=tick,
-                value=value,
-                type={
-                    bool: 'boolean',
-                    int: 'integer',
-                    float: 'real',
-                    str: 'text',
-                    unicode: 'text'
-                }[type(value)]
-            )
-        self.overrides = Stats(
-            facade.observed.closet,
-            ["character_stats", facade.name],
-            make_override_bone
-        )
-        self.facade = facade
-
-    def __contains__(self, that):
-        return (
-            that in self.overrides or
-            that in self.observed.stats
-        )
-
-    def __getitem__(self, key):
-        if key in self.overrides:
-            return self.overrides[key]
-        else:
-            return self.facade.observed.stats[key]
-
-    def __setitem__(self, key, value):
-        self.overrides[key] = value
-
-    def __delitem__(self, key):
-        del self.overrides[key]
 
 
 class Facade(AbstractCharacter):
@@ -634,6 +861,34 @@ class Facade(AbstractCharacter):
 
     def __repr__(self):
         return "{}:{}".format(self.observer, self.observed)
+
+    def __getitem__(self, key):
+        try:
+            r = super(Facade, self).__getitem__(key)
+        except KeyError:
+            r = self.observed.__getitem__(key)
+        return self.distort(r)
+
+    def get_place_stat(self, place, key):
+        try:
+            r = super(Facade, self).get_place_stat(place, key)
+        except KeyError:
+            r = self.observed.get_place_stat(place, key)
+        return self.distort(r)
+
+    def get_portal_stat(self, o, d, key):
+        try:
+            r = super(Facade, self).get_portal_stat(o, d, key)
+        except KeyError:
+            r = self.observed.get_portal_stat(o, d, key)
+        return self.distort(r)
+
+    def get_thing_stat(self, thing, key):
+        try:
+            r = super(Facade, self).get_thing_stat(thing, key)
+        except KeyError:
+            r = self.observed.get_thing_stat(thing, key)
+        return self.distort(r)
 
     @property
     def name(self):
