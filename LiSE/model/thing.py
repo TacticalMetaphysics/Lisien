@@ -51,7 +51,7 @@ class Thing(MutableMapping):
                     }
                 ],
                 "primary_key":
-                ("character", "name", "key", "branch", "tick"),
+                ("character", "thing", "key", "branch", "tick"),
                 "checks":
                 ["type in ('text', 'real', 'boolean', 'integer')"]
             }
@@ -78,7 +78,7 @@ class Thing(MutableMapping):
         elif key == 'character':
             return unicode(self.character)
         else:
-            return self.character.get_thing_stat(self.name, key)
+            return self.closet.get_thing_stat(self.name, key)
 
     def __setitem__(self, key, value):
         if key == 'contents':

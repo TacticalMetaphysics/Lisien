@@ -41,6 +41,15 @@ def iter_stats_recursive(parent_fun, branch, tick, skel):
         if stat is not None:
             yield stat
 
+def stat_bone_value(bone):
+    return {
+        'boolean': bool,
+        'integer': int,
+        'real': float,
+        'text': unicode
+    }[bone.type.lower()](bone.value)
+
+
 class AbstractCharacter(MutableMapping):
     """Basis for classes implementing the Character API.
 
@@ -108,14 +117,15 @@ class AbstractCharacter(MutableMapping):
             type='text'
         ))
 
-    def get_place_stat(self, placename, key):
+    def get_place_stat_bone(self, place, key):
+        place = unicode(place)
         (branch, tick) = self.closet.timestream.time
-        skel = self._placeskel[placename]
+        skel = self._placeskel[place]
         if key not in skel:
             raise KeyError(
                 "Stat {} does not apply to place {}".format(
                     key,
-                    placename
+                    place
                 )
             )
         return get_stat_recursive(
@@ -125,11 +135,15 @@ class AbstractCharacter(MutableMapping):
             skel[key]
         )
 
-    def set_place_stat(self, placename, key, value):
+    def get_place_stat(self, place, key):
+        return stat_bone_value(self.get_place_stat_bone(place, key))
+
+    def set_place_stat(self, place, key, value):
+        place = unicode(place)
         (branch, tick) = self.closet.timestream.time
         self.closet.setbone(Place.bonetypes["place_stat"](
             character=self.name,
-            place=placename,
+            place=place,
             key=key,
             branch=branch,
             tick=tick,
@@ -143,11 +157,12 @@ class AbstractCharacter(MutableMapping):
             }[type(value)]
         ))
 
-    def del_place_stat(self, placename, key):
+    def del_place_stat(self, place, key):
+        place = unicode(place)
         (branch, tick) = self.closet.timestream.time
         self.closet.setbone(Place.bonetypes["place_stat"](
             character=self.name,
-            place=placename,
+            place=place,
             key=key,
             branch=branch,
             tick=tick,
@@ -155,7 +170,8 @@ class AbstractCharacter(MutableMapping):
             type='text'
         ))
 
-    def iter_place_stats(self, placename):
+    def iter_place_stats(self, place):
+        place = unicode(place)
         (branch, tick) = self.closet.timestream.time
         for stat in iter_stats_recursive(
                 self.closet.timestream.parent,
@@ -165,10 +181,12 @@ class AbstractCharacter(MutableMapping):
         ):
             yield stat
 
-    def len_place_stats(self, placename):
-        return len(self.iter_place_stats(placename))
+    def len_place_stats(self, place):
+        return len(self.iter_place_stats(place))
 
-    def get_portal_stat(self, o, d, key):
+    def get_portal_stat_bone(self, o, d, key):
+        o = unicode(o)
+        d = unicode(d)
         (branch, tick) = self.closet.timestream.time
         skel = self._portalskel
         if (
@@ -185,7 +203,12 @@ class AbstractCharacter(MutableMapping):
             skel[o][d][key]
         )
 
+    def get_portal_stat(self, o, d, key):
+        return stat_bone_value(self.get_portal_stat_bone(o, d, key))
+
     def set_portal_stat(self, o, d, key, value):
+        o = unicode(o)
+        d = unicode(d)
         (branch, tick) = self.timestream.time
         self.closet.set_bone(Portal.bonetypes["portal_stat"](
             character=self.name,
@@ -205,6 +228,8 @@ class AbstractCharacter(MutableMapping):
         ))
 
     def del_portal_stat(self, o, d, key):
+        o = unicode(o)
+        d = unicode(d)
         (branch, tick) = self.timestream.time
         self.closet.set_bone(Portal.bonetypes["portal_stat"](
             character=self.name,
@@ -218,6 +243,8 @@ class AbstractCharacter(MutableMapping):
         ))
 
     def iter_portal_stats(self, o, d):
+        o = unicode(o)
+        d = unicode(d)
         (branch, tick) = self.closet.timestream.time
         for stat in iter_stats_recursive(
                 self.closet.timestream.parent,
@@ -230,7 +257,8 @@ class AbstractCharacter(MutableMapping):
     def len_portal_stats(self, o, d):
         return len(self.iter_portal_stats(o, d))
 
-    def get_thing_stat(self, thing, key):
+    def get_thing_stat_bone(self, thing, key):
+        thing = unicode(thing)
         skel = self._thingskel[thing]
         if key not in skel:
             raise KeyError("Stat not applicable to thing")
@@ -242,7 +270,11 @@ class AbstractCharacter(MutableMapping):
             skel[key]
         )
 
+    def get_thing_stat(self, thing, key):
+        return stat_bone_value(self.get_thing_stat_bone(thing, key))
+
     def set_thing_stat(self, thing, key, value):
+        thing = unicode(thing)
         (branch, tick) = self.closet.timestream.time
         self.closet.set_bone(Thing.bonetypes["thing_stat"](
             character=self.name,
@@ -261,6 +293,7 @@ class AbstractCharacter(MutableMapping):
         ))
 
     def del_thing_stat(self, thing, key):
+        thing = unicode(thing)
         (branch, tick) = self.closet.timestream.time
         self.closet.set_bone(Thing.bonetypes["thing_stat"](
             character=self.name,
@@ -273,6 +306,7 @@ class AbstractCharacter(MutableMapping):
         ))
 
     def iter_thing_stats(self, thing):
+        thing = unicode(thing)
         (branch, tick) = self.closet.timestream.time
         for stat in iter_stats_recursive(
                 self.closet.timestream.parent,
@@ -334,10 +368,7 @@ class AbstractCharacter(MutableMapping):
             if name not in r.node:
                 r.add_node(
                     name,
-                    {
-                        "place": place,
-                        "contents": set()
-                    }
+                    place
                 )
             return place
 
@@ -354,10 +385,7 @@ class AbstractCharacter(MutableMapping):
                 r.add_edge(
                     origin,
                     destination,
-                    {
-                        "portal": portal,
-                        "contents": set()
-                    }
+                    portal
                 )
             return portal
 
@@ -401,10 +429,7 @@ class AbstractCharacter(MutableMapping):
                 else:
                     r.add_node(
                         locn,
-                        {
-                            "place": add_place(locn),
-                            "contents": set([thing])
-                        }
+                        add_place(locn)
                     )
 
         def process_place_stat_bone(b):
@@ -423,11 +448,12 @@ class AbstractCharacter(MutableMapping):
         self.closet.set_bone(
             Place.bonetype(
                 character=self.name,
-                name=name,
+                place=name,
                 key='exists',
                 branch=branch,
                 tick=tick,
-                value=True
+                value=True,
+                type='boolean'
             )
         )
         self.place_d[name] = Place(self, name)
@@ -449,7 +475,8 @@ class AbstractCharacter(MutableMapping):
                 key='exists',
                 branch=branch,
                 tick=tick,
-                value=True
+                value=True,
+                type='boolean'
             )
         )
         if o not in self.portal_d:
@@ -466,11 +493,12 @@ class AbstractCharacter(MutableMapping):
         self.closet.set_bone(
             Thing.bonetype(
                 character=self.name,
-                name=name,
+                thing=name,
                 key='exists',
                 branch=branch,
                 tick=tick,
-                value=True
+                value=True,
+                type='boolean'
             )
         )
         self.thing_d[name] = Thing(self, name)
@@ -483,7 +511,8 @@ class AbstractCharacter(MutableMapping):
                     key='location',
                     branch=branch,
                     tick=tick,
-                    value=il
+                    value=il,
+                    type='text'
                 )
             )
         return self.thing_d[name]
@@ -597,29 +626,8 @@ class Character(AbstractCharacter):
     ]
 
     def __init__(self, closet, name):
-        def make_character_stat_bone(branch, tick, key, value):
-            return Character.bonetypes["character_stat"](
-                character=name,
-                key=key,
-                branch=branch,
-                tick=tick,
-                value=value,
-                type={
-                    int: 'integer',
-                    bool: 'boolean',
-                    float: 'real',
-                    str: 'text',
-                    unicode: 'text'
-                }[type(value)]
-            )
-
         if ':' in name:
             raise ValueError("Character ':' not allowed in name")
-        self.stats = Stats(
-            closet,
-            ["character_stat", name],
-            make_character_stat_bone
-        )
         self.closet = closet
         self.name = name
         self.thing_d = {}
@@ -648,6 +656,64 @@ class Character(AbstractCharacter):
     def __unicode__(self):
         """``self.name``"""
         return unicode(self.name)
+
+    def __getitem__(self, key):
+        skel = self.closet.skeleton["character_stat"][self.name][key]
+        (branch, tick) = self.closet.timestream.time
+        bone = get_stat_recursive(
+            self.closet.timestream.parent,
+            branch,
+            tick,
+            skel
+        )
+        typ = {
+            'boolean': bool,
+            'integer': int,
+            'real': float,
+            'text': unicode
+        }[bone.type]
+        return typ(bone.value)
+
+    def __setitem__(self, key, value):
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(Character.bonetypes["character_stat"](
+            character=self.name,
+            key=key,
+            branch=branch,
+            tick=tick,
+            value=value,
+            type={
+                int: 'integer',
+                bool: 'boolean',
+                float: 'real',
+                str: 'text',
+                unicode: 'text'
+            }[type(value)]
+        ))
+
+    def __delitem__(self, key):
+        (branch, tick) = self.closet.timestream.time
+        self.closet.set_bone(Character.bonetypes["character_stat"](
+            character=self.name,
+            key=key,
+            branch=branch,
+            tick=tick,
+            value=None,
+            type='text'
+        ))
+
+    def __iter__(self):
+        (branch, tick) = self.closet.timestream.time
+        for bone in iter_stats_recursive(
+                self.closet.timestream.parent,
+                branch,
+                tick,
+                self.closet.skeleton["character_stat"][self.name]
+        ):
+            yield bone.key
+
+    def __len__(self):
+        return len(iter(self))
 
     def add_avatar(self, avatar):
         self.closet.set_bone(
@@ -710,34 +776,6 @@ class Character(AbstractCharacter):
         elif effect.__name__ not in self.closet.shelf:
             name = effect.__name__
             self.closet.shelf[name] = effect
-
-    def make_thing(self, name, init_location=None):
-        r = super(Character, self).make_thing(name, init_location)
-        r.stats = Stats(
-            self.closet,
-            ['thing_stat', self.name, name],
-            make_stat_bone
-        )
-        return r
-
-    def make_place(self, name):
-        r = super(Character, self).make_place(name)
-        r.stats = Stats(
-            self.closet,
-            ['place_stat', self.name, name],
-            make_stat_bone
-        )
-        return r
-
-    def make_portal(self, origin, destination):
-        origin = unicode(origin)
-        destination = unicode(destination)
-        r = super(Character, self).make_portal(origin, destination)
-        r.stats = Stats(
-            self.closet,
-            ["portal_stat", self.name, origin, destination],
-            make_stat_bone
-        )
 
     def make_facade(self, observer):
         if isinstance(observer, str) or isinstance(observer, unicode):

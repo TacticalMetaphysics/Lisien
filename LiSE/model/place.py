@@ -53,7 +53,7 @@ class Place(MutableMapping):
                     }
                 ],
                 "primary_key":
-                ("character", "name", "key", "branch", "tick"),
+                ("character", "place", "key", "branch", "tick"),
                 "checks":
                 ["type in ('text', 'real', 'boolean', 'integer')"]
             }
