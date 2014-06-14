@@ -977,35 +977,7 @@ class SaveableMetaclass(type):
     Table declarations
     ==================
 
-    Classes with this metaclass need to be declared with an attribute called
-    ``tables``. This is a sequence of tuples. Each of the tuples is of length
-    5. Each describes a table that records what's in the class.
 
-    The meaning of each tuple is thus:
-
-    ``(name, column_declarations, primary_key, foreign_keys, checks)``
-
-    ``name`` is the name of the table as sqlite3 will use it.
-
-    ``column_declarations`` is a dictionary. The keys are field names, aka
-    column names. Each value is the type for its field, perhaps including a
-    clause like DEFAULT 0.
-
-    ``primary_key`` is an iterable over strings that are column names as
-    declared in the previous argument. Together the columns so named form the
-    primary key for this table.
-
-    ``foreign_keys`` is a dictionary. Each foreign key is a key here, and its
-    value is a pair. The first element of the pair is the foreign table that
-    the foreign key refers to. The second element is the field or fields in
-    that table that the foreign key points to.
-
-    ``checks`` is an iterable over strings that will each end up in its own
-    CHECK(...)  clause in sqlite3.
-
-    A class of :class:`SaveableMetaclass` can have any number of such
-    table-tuples. The tables will be declared in the order they appear in the
-    tables attribute.
 
 
     Dependencies and Custom SQL
