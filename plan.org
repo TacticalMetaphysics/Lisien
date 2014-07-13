@@ -262,3 +262,27 @@ cities. Abstraction is wonderful for that kind of thing.
   of it. Works something like Redshirt but instead of jobs-per-se you
   have classes to take. Or teach. Not honestly sure which would be
   easier to implement.
+* Rule poller
+  Thing that goes over Characters and runs their rules, but only once
+  per tick per branch.
+** Do I actually want to track what I've rule polled lately?
+   The idea is I'd throw an exception when you try to poll the same
+   tick twice and then you could switch to a new branch.
+
+   Seems handy, yeah.
+** How much detail though?
+   Maybe I only want to say that the tick's been polled for, or maybe
+   I want to keep track of the specific rules polled, in case, eg.,
+   running some rules results in the creation of other rules on the
+   same tick.
+** Rules on only Characters or other stuff as well?
+   I feel like letting you hang Rules just anywhere would make the
+   iteration too evil to deal with. But where do I draw the line?
+
+   Anyway I will want SOME way to have Rules customized to run for
+   exactly one Thing. It could just be another argument passed to the
+   actions I guess? Or simply use the NAME of the rule...
+
+   I think I'll add some extra arguments, store them in char_rules,
+   and have the poller interpret those as keys to some
+   object, perhaps merely the character itself
