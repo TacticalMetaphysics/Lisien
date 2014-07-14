@@ -167,6 +167,7 @@ class LiSE(object):
         set up listeners; and start a transaction
 
         """
+        self.gettext = gettext
         self.orm = ORM(
             worlddb=connect(world_filename),
             codedb=anydbm.open(code_filename, 'c')
@@ -177,7 +178,6 @@ class LiSE(object):
             ).fetchall()
         except OperationalError:
             self.orm.initdb()
-        self.gettext = gettext
         self.on_branch = Listeners(self.orm, 'branch_listeners')
         self.on_tick = Listeners(self.orm, 'tick_listeners')
         self.on_time = Listeners(self.orm, 'time_listeners')
@@ -270,3 +270,6 @@ class LiSE(object):
 
     def del_character(self, name):
         return self.orm.del_character(name)
+
+    def close(self):
+        self.orm.close()
