@@ -52,7 +52,7 @@ class FunList(MutableSequence):
 
         """
         for funn in self._getlist():
-            yield self.orm.getfun(funn)
+            yield self.orm.function[funn]
 
     def __len__(self):
         """Return the length of the list (don't translate it to functions)"""
@@ -60,7 +60,7 @@ class FunList(MutableSequence):
 
     def __getitem__(self, i):
         """Get the function named by the ith item in the list"""
-        return self.orm.getfun(self._getlist()[i])
+        return self.orm.function[self._getlist()[i]]
 
     def __setitem__(self, i, v):
         """If ``v`` is a function, store it and get its name, otherwise it's
@@ -91,7 +91,18 @@ class FunList(MutableSequence):
 
 
 class Rule(object):
+    """A collection of actions, being functions that enact some change on
+    the world, which will be called each tick if and only if all of
+    the prereqs return True, they being boolean functions that do not
+    change the world.
+
+    """
     def __init__(self, orm, name, actions=[], prereqs=[]):
+        """Store the ORM and my name, make myself a record in the database if
+        needed, and instantiate FunList once for my actions and again
+        for my prereqs.
+
+        """
         self.orm = orm
         self.name = name
         self.orm.cursor.execute(
@@ -108,6 +119,13 @@ class Rule(object):
         self.prereqs = FunList(self, 'prereqs', prereqs)
 
     def __call__(self, lise, *args):
+        """First check the prereqs. If they all pass, execute the actions and
+        return a list of all their results.
+
+        After each call to a prereq or action, the sim-time is reset
+        to what it was before the rule was called.
+
+        """
         curtime = lise.time
         for prereq in self.prereqs:
             # in case one of them moves the time
