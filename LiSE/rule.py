@@ -118,7 +118,7 @@ class Rule(object):
         self.actions = FunList(self, 'actions', actions)
         self.prereqs = FunList(self, 'prereqs', prereqs)
 
-    def __call__(self, lise, *args):
+    def __call__(self, lise, character):
         """First check the prereqs. If they all pass, execute the actions and
         return a list of all their results.
 
@@ -129,12 +129,12 @@ class Rule(object):
         curtime = lise.time
         for prereq in self.prereqs:
             # in case one of them moves the time
-            if not prereq(lise, self, *args):
+            if not prereq(lise, character, self):
                 return []
             lise.time = curtime
         r = []
         for action in self.actions:
-            r.append(action(lise, self, *args))
+            r.append(action(lise, character, self))
             lise.time = curtime
         return r
 

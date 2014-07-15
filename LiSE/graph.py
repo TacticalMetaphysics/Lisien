@@ -54,7 +54,7 @@ class Thing(ThingPlace):
     """
     def __init__(self, character, name):
         self.character = character
-        self.orm = character.orm
+        self.worldview = character.worldview
         self.name = name
         super(Thing, self).__init__(character, name)
 
@@ -85,12 +85,6 @@ class Thing(ThingPlace):
             self._set_loc_and_next(*value)
         else:
             super(Thing, self).__setitem__(key, value)
-
-    def rule(self, v):
-        """Make a Rule on my Character that takes me as an argument.
-
-        """
-        self.character.rule(v, [self])
 
     @property
     def container(self):
@@ -158,8 +152,8 @@ class Thing(ThingPlace):
         raise ValueError("No location set")
 
     def _set_loc_and_next(self, loc, nextloc):
-        (branch, tick) = self.character.orm.time
-        self.character.orm.cursor.execute(
+        (branch, tick) = self.character.worldview.time
+        self.character.worldview.cursor.execute(
             "DELETE FROM things WHERE "
             "character=? AND "
             "thing=? AND "
@@ -172,7 +166,7 @@ class Thing(ThingPlace):
                 tick
             )
         )
-        self.character.orm.cursor.execute(
+        self.character.worldview.cursor.execute(
             "INSERT INTO things ("
             "character, "
             "thing, "
@@ -205,7 +199,7 @@ class Thing(ThingPlace):
         else:
             placen = place
         curloc = self["location"]
-        orm = self.character.orm
+        orm = self.character.worldview
         curtick = orm.tick
         if weight:
             ticks = self.character.portal[curloc][placen][weight]
@@ -225,7 +219,7 @@ class Thing(ThingPlace):
         Return the total number of ticks the travel will take.
 
         """
-        curtick = self.character.orm.tick
+        curtick = self.character.worldview.tick
         prevplace = path.pop(0)
         if prevplace != self['location']:
             raise ValueError("Path does not start at my present location")
@@ -242,8 +236,8 @@ class Thing(ThingPlace):
         for subplace in subpath:
             tick_inc = self.go_to_place(subplace, weight)
             ticks_total += tick_inc
-            self.character.orm.tick += tick_inc
-        self.character.orm.tick = curtick
+            self.character.worldview.tick += tick_inc
+        self.character.worldview.tick = curtick
         return ticks_total
 
     def travel_to(self, dest, weight=None, graph=None):
@@ -273,7 +267,7 @@ class Thing(ThingPlace):
         return self.follow_path(path, weight)
 
     def travel_to_by(self, dest, arrival_tick, weight=None, graph=None):
-        curtick = self.character.orm.tick
+        curtick = self.character.worldview.tick
         if arrival_tick <= curtick:
             raise ValueError("travel always takes positive amount of time")
         destn = dest.name if hasattr(dest, 'name') else dest
@@ -284,9 +278,9 @@ class Thing(ThingPlace):
         start_tick = arrival_tick - travel_time
         if start_tick <= curtick:
             raise self.TravelException("path too heavy to follow by the specified tick")
-        self.character.orm.tick = start_tick
+        self.character.worldview.tick = start_tick
         self.follow_path(path, weight)
-        self.character.orm.tick = curtick
+        self.character.worldview.tick = curtick
 
     class TravelException(Exception):
         """Exception for when a Thing travelling someplace doesn't work
@@ -325,10 +319,6 @@ class Place(ThingPlace):
         else:
             return super(Place, self).__getitem__(key)
 
-    def rule(self, v):
-        """Make a Rule on my Character that takes me as an argument."""
-        self.character.rule(v, [self])
-
 
 class Portal(GraphEdgeMapping.Edge):
     """Connection between two Places that Things may travel along.
@@ -362,10 +352,6 @@ class Portal(GraphEdgeMapping.Edge):
     @property
     def destination(self):
         return self.character.place[self._destination]
-
-    def rule(self, v):
-        """Make a new Rule on my Character that takes me as an argument."""
-        self.character.rule(v, [self])
 
     def _contents_names(self):
         r = set()

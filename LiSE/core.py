@@ -241,10 +241,9 @@ class LiSE(object):
 
         """
         (branch, tick) = self.time
-        for (rule, args) in self.orm._poll_rules():
-            s = rule(self, *args)
-            self.time = (branch, tick)  # in case the rule moved it
-            self.orm._char_rule_handled(args[0].name, rule.name)
+        for (character, rule) in self.orm._poll_rules():
+            s = rule(self, character)
+            self.orm._char_rule_handled(character.name, rule.name)
             yield (rule, s)
 
     def advance(self):

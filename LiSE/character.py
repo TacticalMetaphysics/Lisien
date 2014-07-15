@@ -30,23 +30,22 @@ class CharRules(Mapping):
     decorator, and add prerequisites with @rule.prereq
 
     """
-    def __init__(self, char):
+    def __init__(self, orm, char):
         """Store the character"""
+        self.orm = orm
         self.character = char
-        self.orm = char.orm
         self.name = char.name
 
-    def __call__(self, v, xargs=[]):
+    def __call__(self, v):
         """If passed a Rule, activate it. If passed a string, get the rule by
         that name and activate it. If passed a function (probably
         because I've been used as a decorator), make a rule with the
         same name as the function, with the function itself being the
-        first action of the rule, and activate that rule. With
-        optional ``xargs`` the rule will be called with those args.
+        first action of the rule, and activate that rule.
 
         """
         if isinstance(v, Rule):
-            self._activate_rule(v, xargs)
+            self._activate_rule(v)
         elif callable(v):
             # create a new rule performing the action v
             vname = self.orm.function(v)
@@ -55,14 +54,13 @@ class CharRules(Mapping):
                     self.orm,
                     vname,
                     actions=[vname]
-                ),
-                xargs
+                )
             )
         else:
             # v is the name of a rule. Maybe it's been created
             # previously or maybe it'll get initialized in Rule's
             # __init__.
-            self._activate_rule(Rule(self.orm, v), xargs)
+            self._activate_rule(Rule(self.orm, v))
 
     def __iter__(self):
         """Iterate over all rules presently in effect"""
@@ -196,13 +194,12 @@ class CharRules(Mapping):
                 ]
         return [self.character]
 
-    def _activate_rule(self, rule, args=[]):
+    def _activate_rule(self, rule):
         """Indicate that the rule is active and should be followed. Add the
         given arguments to whatever's there.
 
         """
         (branch, tick) = self.orm.time
-        args = self.args(rule) + args
         self.orm.cursor.execute(
             "DELETE FROM char_rules WHERE "
             "character=? AND "
@@ -218,17 +215,14 @@ class CharRules(Mapping):
         )
         self.orm.cursor.execute(
             "INSERT INTO char_rules "
-            "(character, rule, branch, tick, active, args) "
-            "VALUES (?, ?, ?, ?, ?, ?);",
+            "(character, rule, branch, tick, active) "
+            "VALUES (?, ?, ?, ?, ?);",
             (
                 self.character.name,
                 rule.name,
                 branch,
                 tick,
-                True,
-                jsonned(
-                    [self.character._arg_enc(arg) for arg in args]
-                )
+                True
             )
         )
 
@@ -269,7 +263,7 @@ class CharacterAvatarGraphMapping(Mapping):
     def __init__(self, char):
         """Remember my character"""
         self.char = char
-        self.orm = char.orm
+        self.worldview = char.worldview
         self.name = char.name
 
     def __call__(self, av):
@@ -281,8 +275,8 @@ class CharacterAvatarGraphMapping(Mapping):
     def _datadict(self):
         """Get avatar-ness data and return it"""
         d = {}
-        for (branch, rev) in self.orm._active_branches():
-            self.orm.cursor.execute(
+        for (branch, rev) in self.worldview._active_branches():
+            self.worldview.cursor.execute(
                 "SELECT "
                 "avatars.avatar_graph, "
                 "avatars.avatar_node, "
@@ -305,7 +299,7 @@ class CharacterAvatarGraphMapping(Mapping):
                     rev
                 )
             )
-            for (graph, node, avatar) in self.orm.cursor.fetchall():
+            for (graph, node, avatar) in self.worldview.cursor.fetchall():
                 is_avatar = bool(avatar)
                 if graph not in d:
                     d[graph] = {}
@@ -358,7 +352,7 @@ class CharacterAvatarGraphMapping(Mapping):
 
             """
             self.char = outer.char
-            self.orm = outer.orm
+            self.worldview = outer.worldview
             self.name = outer.name
             self.graph = graphn
 
@@ -378,8 +372,8 @@ class CharacterAvatarGraphMapping(Mapping):
 
             """
             seen = set()
-            for (branch, rev) in self.orm._active_branches():
-                self.orm.cursor.execute(
+            for (branch, rev) in self.worldview._active_branches():
+                self.worldview.cursor.execute(
                     "SELECT "
                     "avatars.avatar_node, "
                     "avatars.is_avatar FROM avatars JOIN ("
@@ -403,14 +397,14 @@ class CharacterAvatarGraphMapping(Mapping):
                         rev
                     )
                 )
-                for (node, extant) in self.orm.cursor.fetchall():
+                for (node, extant) in self.worldview.cursor.fetchall():
                     if extant and node not in seen:
                         yield node
                     seen.add(node)
 
         def __contains__(self, av):
-            for (branch, rev) in self.orm._active_branches():
-                self.orm.cursor.execute(
+            for (branch, rev) in self.worldview._active_branches():
+                self.worldview.cursor.execute(
                     "SELECT avatars.is_avatar FROM avatars JOIN ("
                     "SELECT character_graph, avatar_graph, avatar_node, "
                     "branch, MAX(tick) AS tick FROM avatars "
@@ -435,7 +429,7 @@ class CharacterAvatarGraphMapping(Mapping):
                     )
                 )
                 try:
-                    return bool(self.orm.cursor.fetchone()[0])
+                    return bool(self.worldview.cursor.fetchone()[0])
                 except (TypeError, IndexError):
                     continue
             return False
@@ -461,14 +455,14 @@ class CharacterAvatarGraphMapping(Mapping):
 
             """
             if av in self:
-                if self.orm._is_thing(self.graph, av):
+                if self.worldview._is_thing(self.graph, av):
                     return Thing(
-                        self.orm.get_character(self.graph),
+                        self.worldview.get_character(self.graph),
                         av
                     )
                 else:
                     return Place(
-                        self.orm.character[self.graph],
+                        self.worldview.character[self.graph],
                         av
                     )
             if len(self) == 1:
@@ -485,7 +479,7 @@ class CharacterAvatarGraphMapping(Mapping):
 class CharacterThingMapping(MutableMapping):
     def __init__(self, character):
         self.character = character
-        self.orm = character.orm
+        self.worldview = character.worldview
         self.name = character.name
 
     def __iter__(self):
@@ -494,8 +488,8 @@ class CharacterThingMapping(MutableMapping):
 
         """
         seen = set()
-        for (branch, tick) in self.orm._active_branches():
-            self.orm.cursor.execute(
+        for (branch, tick) in self.worldview._active_branches():
+            self.worldview.cursor.execute(
                 "SELECT things.node, things.location FROM things JOIN ("
                 "SELECT graph, node, branch, MAX(tick) AS tick FROM things "
                 "WHERE graph=? "
@@ -512,7 +506,7 @@ class CharacterThingMapping(MutableMapping):
                     tick
                 )
             )
-            for (node, loc) in self.orm.cursor.fetchall():
+            for (node, loc) in self.worldview.cursor.fetchall():
                 if loc and node not in seen:
                     yield node
                 seen.add(node)
@@ -524,8 +518,8 @@ class CharacterThingMapping(MutableMapping):
         return n
 
     def __getitem__(self, thing):
-        for (branch, rev) in self.orm._active_branches():
-            self.orm.cursor.execute(
+        for (branch, rev) in self.worldview._active_branches():
+            self.worldview.cursor.execute(
                 "SELECT things.node, things.location FROM things JOIN ("
                 "SELECT graph, node, branch, MAX(tick) AS tick FROM things "
                 "WHERE graph=? "
@@ -544,7 +538,7 @@ class CharacterThingMapping(MutableMapping):
                     rev
                 )
             )
-            for (thing, loc) in self.orm.cursor.fetchall():
+            for (thing, loc) in self.worldview.cursor.fetchall():
                 if not loc:
                     raise KeyError("Thing doesn't exist right now")
                 return Thing(self.character, thing)
@@ -566,14 +560,14 @@ class CharacterThingMapping(MutableMapping):
 class CharacterPlaceMapping(MutableMapping):
     def __init__(self, character):
         self.character = character
-        self.orm = character.orm
+        self.worldview = character.worldview
         self.name = character.name
 
     def __iter__(self):
         things = set()
         things_seen = set()
-        for (branch, rev) in self.orm._active_branches():
-            self.orm.cursor.execute(
+        for (branch, rev) in self.worldview._active_branches():
+            self.worldview.cursor.execute(
                 "SELECT things.node, things.location FROM things JOIN ("
                 "SELECT graph, node, branch, MAX(rev) AS rev FROM things "
                 "WHERE graph=? "
@@ -590,11 +584,11 @@ class CharacterPlaceMapping(MutableMapping):
                     rev
                 )
             )
-            for (thing, loc) in self.orm.cursor.fetchall():
+            for (thing, loc) in self.worldview.cursor.fetchall():
                 if thing not in things_seen and loc:
                     things.add(thing)
                 things_seen.add(thing)
-        for node in self.orm._iternodes(self.character.name):
+        for node in self.worldview._iternodes(self.character.name):
             if node not in things:
                 yield node
 
@@ -646,47 +640,18 @@ class Character(DiGraph):
     contained by whatever it's located in.
 
     """
-    def __init__(self, orm, name):
-        """Store orm and name, and set up mappings for Thing, Place, and
+    def __init__(self, worldview, name):
+        """Store worldview and name, and set up mappings for Thing, Place, and
         Portal
 
         """
-        super(Character, self).__init__(orm.gorm, name)
-        self.orm = orm
+        super(Character, self).__init__(worldview.gorm, name)
+        self.worldview = worldview
         self.thing = CharacterThingMapping(self)
         self.place = CharacterPlaceMapping(self)
         self.portal = CharacterPortalSuccessorsMapping(self)
         self.preportal = CharacterPortalPredecessorsMapping(self)
         self.avatar = CharacterAvatarGraphMapping(self)
-        self.rule = CharRules(self)
-
-    def _arg_parse(self, arg):
-        if arg == 'character':
-            return self
-        elif arg[:6] == 'thing:':
-            return self.thing[arg[6:]]
-        elif arg[:6] == 'place:':
-            return self.place[arg[6:]]
-        elif arg[:7] == 'portal:':
-            (a, b) = arg[7:].split("|")
-            return self.portal[a][b]
-        else:
-            raise ValueError("Can't parse arg {}".format(arg))
-
-    def _arg_enc(self, arg):
-        if arg is self:
-            return 'character'
-        elif isinstance(arg, Thing):
-            return 'thing:' + arg.name
-        elif isinstance(arg, Place):
-            return 'place:' + arg.name
-        elif isinstance(arg, Portal):
-            return 'portal:{}|{}'.format(
-                arg['origin'],
-                arg['destination']
-            )
-        else:
-            raise ValueError("Can't encode arg {}".format(arg))
 
     def add_place(self, name, **kwargs):
         """Create a new Place by the given name, and set its initial
@@ -709,8 +674,8 @@ class Character(DiGraph):
         next_location. It will keep all its attached Portals.
 
         """
-        (branch, tick) = self.orm.time
-        self.orm.cursor.execute(
+        (branch, tick) = self.worldview.time
+        self.worldview.cursor.execute(
             "INSERT INTO things ("
             "graph, node, branch, tick, location, next_location"
             ") VALUES ("
@@ -742,12 +707,12 @@ class Character(DiGraph):
         super(Character, self).add_edge(origin, destination, **kwargs)
 
     def add_avatar(self, name, host, location=None, next_location=None):
-        (branch, tick) = self.orm.time
+        (branch, tick) = self.worldview.time
         if isinstance(host, Character):
             host = host.name
         # This will create the node if it doesn't exist. Otherwise
         # it's redundant but harmless.
-        self.orm.cursor.execute(
+        self.worldview.cursor.execute(
             "INSERT INTO nodes (graph, node, branch, rev, extant) "
             "VALUES (?, ?, ?, ?, ?);",
             (
@@ -760,7 +725,7 @@ class Character(DiGraph):
         )
         if location:
             # This will convert the node into a Thing if it isn't already
-            self.orm.cursor.execute(
+            self.worldview.cursor.execute(
                 "INSERT INTO things ("
                 "character, thing, branch, tick, location, next_location"
                 ") VALUES (?, ?, ?, ?, ?, ?);",
@@ -774,7 +739,7 @@ class Character(DiGraph):
                 )
             )
         # Declare that the node is my avatar
-        self.orm.cursor.execute(
+        self.worldview.cursor.execute(
             "INSERT INTO avatars ("
             "character_graph, avatar_graph, avatar_node, "
             "branch, tick, is_avatar"

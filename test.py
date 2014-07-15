@@ -16,7 +16,7 @@ npc = lise.new_character("NonPlayer")
 npc.add_avatar("npc", "Physical", "Home")
 
 @npc.rule
-def home2work(engine, rule, npc):
+def home2work(engine, npc, rule):
     """Rule to schedule a new trip to work by 9 o'clock."""
     # arrange to get to work by 9 o'clock
     print("Will go to work in 9 hours")
@@ -27,12 +27,12 @@ def home2work(engine, rule, npc):
 h2w = npc.rule["home2work"]
 
 @h2w.prereq
-def daystart(engine, rule, npc):
+def daystart(engine, npc, rule):
     """Run at midnight only."""
     return engine.tick % 24 == 0
 
 @h2w.prereq
-def home_all_day(engine, rule, npc):
+def home_all_day(engine, npc, rule):
     """Run if I'm scheduled to be at Home for this tick and the
     following twenty-four.
 
@@ -53,7 +53,7 @@ def home_all_day(engine, rule, npc):
     return True
 
 @npc.rule
-def work2home(engine, rule, npc):
+def work2home(engine, npc, rule):
     """Rule to go home when work's over, at 5 o'clock."""
     # Leave, go home, arrive whenever
     print("Leaving work now.")
@@ -62,12 +62,12 @@ def work2home(engine, rule, npc):
 w2h = npc.rule["work2home"]
 
 @w2h.prereq
-def closing_time(engine, rule, npc):
+def closing_time(engine, npc, rule):
     """Run at 5pm only."""
     return engine.tick % 24 == 17
 
 @w2h.prereq
-def at_work(engine, rule, npc):
+def at_work(engine, npc, rule):
     """Run only when I'm at Work."""
     return npc.avatar["Physical"]["location"] == "Work"
 

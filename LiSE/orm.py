@@ -6,11 +6,13 @@ from collections import Mapping
 from sqlite3 import connect
 from marshal import dumps as marshalled
 from marshal import loads as unmarshalled
-from json import loads as unjsonned
 from types import FunctionType
 from gorm import ORM as gORM
 from rule import Rule
-from character import Character
+from character import (
+    Character,
+    CharRules
+)
 
 
 class Worldview(object):
@@ -29,6 +31,8 @@ class Worldview(object):
             c = worlddb.cursor()
             c.executemany(arg.cursor.iterdump())
             c.close()
+        else:
+            worlddb = arg
         self.gorm = gORM(worlddb, obranch=obranch, orev=otick)
         self.cursor = self.gorm.cursor
         self.cursor.execute("BEGIN;")
@@ -67,7 +71,6 @@ class Worldview(object):
     def close(self):
         self.cursor.connection.commit()
         self.cursor.close()
-        self.dbm.close()
 
     def initdb(self):
         """Set up the database schema, both for gorm and the special
@@ -274,6 +277,9 @@ class FunctionStore(Mapping):
         self.codecache[fun.__name__] = fun
         return fun.__name__
 
+    def close(self):
+        self.dbm.close()
+
 
 class ORM(object):
     def __init__(self, worlddb, codedb):
@@ -324,7 +330,6 @@ class ORM(object):
             "branch TEXT NOT NULL DEFAULT 'master', "
             "tick TEXT NOT NULL DEFAULT 0, "
             "active BOOLEAN NOT NULL DEFAULT 1, "
-            "args TEXT NOT NULL DEFAULT ['character'], "
             "PRIMARY KEY(character, rule, branch, tick), "
             "FOREIGN KEY(rule) REFERENCES rules(rule), "
             "FOREIGN KEY(character) REFERENCES graphs(graph))"
@@ -364,13 +369,17 @@ class ORM(object):
 
     def close(self):
         self.worldview.close()
-        self.codestore.close()
+        self.function.close()
 
     def new_character(self, name):
-        return self.worldview.new_character(name)
+        ch = self.worldview.new_character(name)
+        ch.rule = CharRules(self, ch)
+        return ch
 
     def get_character(self, name):
-        return self.worldview.get_character(name)
+        ch = self.worldview.get_character(name)
+        ch.rule = CharRules(self, ch)
+        return ch
 
     def del_character(self, name):
         self.worldview.del_character(name)
@@ -443,8 +452,7 @@ class ORM(object):
                 "char_rules.rule, "
                 "char_rules.branch, "
                 "char_rules.tick, "
-                "char_rules.active, "
-                "char_rules.args "
+                "char_rules.active "
                 "FROM char_rules JOIN ("
                 "SELECT character, rule, branch, MAX(tick) AS tick "
                 "FROM char_rules WHERE "
@@ -459,15 +467,11 @@ class ORM(object):
                     tick
                 )
             )
-            for (char, rule, b, t, act, args) in self.cursor.fetchall():
+            for (char, rule, b, t, act) in self.cursor.fetchall():
                 if (char, rule) in handled:
                     continue
                 if act:
-                    character = self.get_character(char)
-                    yield (
-                        self.get_rule(rule),
-                        [character._arg_parse(arg) for arg in unjsonned(args)]
-                    )
+                    yield (self.get_character(char), self.get_rule(rule))
                 handled.add((char, rule))
 
     def _char_rule_handled(self, character, rule):
