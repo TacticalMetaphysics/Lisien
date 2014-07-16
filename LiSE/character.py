@@ -5,8 +5,6 @@ from collections import (
     Mapping,
     MutableMapping
 )
-from json import dumps as jsonned
-from json import loads as unjsonned
 from gorm.graph import (
     DiGraph,
     GraphSuccessorsMapping,
@@ -153,46 +151,6 @@ class CharRules(Mapping):
                     raise KeyError("No such rule at the moment")
                 return Rule(self.orm, rulen)
         raise KeyError("No such rule, ever")
-
-    def args(self, rule):
-        """Return the arguments that the Rule should pass to its actions and
-        prereqs
-
-        """
-        if hasattr(rule, 'name'):
-            rule = rule.name
-        for (branch, tick) in self.orm._active_branches():
-            self.orm.cursor.execute(
-                "SELECT args FROM char_rules JOIN ("
-                "SELECT character, rule, branch, MAX(tick) AS tick "
-                "FROM char_rules WHERE "
-                "character=? AND "
-                "rule=? AND "
-                "branch=? AND "
-                "tick<=? GROUP BY character, rule, branch) "
-                "AS hitick ON "
-                "char_rules.character=hitick.character "
-                "AND char_rules.rule=hitick.rule "
-                "AND char_rules.branch=hitick.branch "
-                "AND char_rules.tick=hitick.tick;",
-                (
-                    self.character.name,
-                    rule,
-                    branch,
-                    tick
-                )
-            )
-            data = self.orm.cursor.fetchall()
-            if len(data) == 0:
-                continue
-            elif len(data) > 1:
-                raise ValueError("Silly data in char_rules table")
-            else:
-                return [
-                    self.character._arg_parse(self.character, arg)
-                    for arg in unjsonned(data[0][0])
-                ]
-        return [self.character]
 
     def _activate_rule(self, rule):
         """Indicate that the rule is active and should be followed. Add the
