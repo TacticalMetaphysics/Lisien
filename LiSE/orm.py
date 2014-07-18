@@ -317,53 +317,80 @@ class ORM(object):
         self.worldview.time = v
 
     def initdb(self):
+        facade = (
+            "CREATE TABLE {} ("
+            "observer_char TEXT NOT NULL, "
+            "observed_char TEXT NOT NULL, "
+            "facade TEXT NOT NULL DEFAULT 'perception', "
+            "branch TEXT NOT NULL DEFAULT 'master', "
+            "tick INTEGER NOT NULL DEFAULT 0, "
+            "mungers TEXT NOT NULL DEFAULT '[]', "
+            "PRIMARY KEY(observer_char, observed_char, branch, tick), "
+            "FOREIGN KEY(observer_char, observed_char, facade) "
+            "REFERENCES facades(observer_char, observed_char, facade))"
+            ";"
+        )
+        listener = (
+            "CREATE TABLE {} ("
+            "action TEXT NOT NULL, "
+            "branch TEXT NOT NULL DEFAULT 'master', "
+            "tick INTEGER NOT NULL DEFAULT 0, "
+            "active BOOLEAN NOT NULL DEFAULT 1, "
+            "PRIMARY KEY(action, branch, tick))"
+            ";"
+        )
+
         self.worldview.initdb()
         for stmt in [
-            "CREATE TABLE rules ("
-            "rule TEXT NOT NULL PRIMARY KEY, "
-            "actions TEXT NOT NULL DEFAULT '[]', "
-            "prereqs TEXT NOT NULL DEFAULT '[]')"
-            ";",
-            "CREATE TABLE char_rules ("
-            "character TEXT NOT NULL, "
-            "rule TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick TEXT NOT NULL DEFAULT 0, "
-            "active BOOLEAN NOT NULL DEFAULT 1, "
-            "PRIMARY KEY(character, rule, branch, tick), "
-            "FOREIGN KEY(rule) REFERENCES rules(rule), "
-            "FOREIGN KEY(character) REFERENCES graphs(graph))"
-            ";",
-            "CREATE TABLE branch_listeners ("
-            "action TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "active BOOLEAN NOT NULL DEFAULT 1, "
-            "PRIMARY KEY(action, branch, tick))"
-            ";",
-            "CREATE TABLE tick_listeners ("
-            "action TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "active BOOLEAN NOT NULL DEFAULT 1, "
-            "PRIMARY KEY(action, branch, tick))"
-            ";",
-            "CREATE TABLE time_listeners ("
-            "action TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "active BOOLEAN NOT NULL DEFAULT 1, "
-            "PRIMARY KEY(action, branch, tick))"
-            ";",
-            "CREATE TABLE rules_handled ("
-            "character TEXT NOT NULL, "
-            "rule TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0,"
-            "PRIMARY KEY(character, rule, branch, tick), "
-            "FOREIGN KEY(character) REFERENCES graphs(graph), "
-            "FOREIGN KEY(rule) REFERENCES rules(rule))"
-            ";"
+                "CREATE TABLE rules ("
+                "rule TEXT NOT NULL PRIMARY KEY, "
+                "actions TEXT NOT NULL DEFAULT '[]', "
+                "prereqs TEXT NOT NULL DEFAULT '[]')"
+                ";",
+                "CREATE TABLE char_rules ("
+                "character TEXT NOT NULL, "
+                "rule TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick TEXT NOT NULL DEFAULT 0, "
+                "active BOOLEAN NOT NULL DEFAULT 1, "
+                "PRIMARY KEY(character, rule, branch, tick), "
+                "FOREIGN KEY(rule) REFERENCES rules(rule), "
+                "FOREIGN KEY(character) REFERENCES graphs(graph))"
+                ";",
+                "CREATE TABLE rules_handled ("
+                "character TEXT NOT NULL, "
+                "rule TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0,"
+                "PRIMARY KEY(character, rule, branch, tick), "
+                "FOREIGN KEY(character) REFERENCES graphs(graph), "
+                "FOREIGN KEY(rule) REFERENCES rules(rule))"
+                ";",
+                "CREATE TABLE mungers ("
+                "munger TEXT NOT NULL PRIMARY KEY, "
+                "omitter TEXT NOT NULL DEFAULT '[]', "
+                "distorter TEXT NOT NULL DEFAULT '[]')"
+                ";",
+                "CREATE TABLE facades ("
+                "observer_char TEXT NOT NULL, "
+                "observed_char TEXT NOT NULL, "
+                "facade TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "active BOOLEAN NOT NULL DEFAULT 1, "
+                "PRIMARY KEY(observer_char, observed_char, facade, branch, tick), "
+                "FOREIGN KEY(observer_char) REFERENCES graphs(graph), "
+                "FOREIGN KEY(observed_char) REFERENCES graphs(graph))"
+                ";",
+                facade.format("facade_things"),
+                facade.format("facade_thing_stats"),
+                facade.format("facade_places"),
+                facade.format("facade_place_stats"),
+                facade.format("facade_portals"),
+                facade.format("facade_portal_stats"),
+                listener.format("branch_listeners"),
+                listener.format("tick_listeners"),
+                listener.format("time_listeners")
         ]:
             self.cursor.execute(stmt)
 

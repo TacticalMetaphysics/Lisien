@@ -16,6 +16,7 @@ from LiSE.graph import (
     Place,
     Portal
 )
+from LiSE.facade import Facade
 
 
 class CharRules(Mapping):
@@ -75,6 +76,7 @@ class CharRules(Mapping):
                 "ON char_rules.character=hitick.character "
                 "AND char_rules.rule=hitick.rule "
                 "AND char_rules.character=hitick.character "
+                "AND char_rules.branch=hitick.branch "
                 "AND char_rules.tick=hitick.tick;"
                 (
                     self.character.name,
@@ -82,38 +84,16 @@ class CharRules(Mapping):
                     tick
                 )
             )
-            for (rule, active) in self.orm.fetchall():
+            for (rule, active) in self.orm.cursor.fetchall():
                 if active and rule not in seen:
                     yield rule
                 seen.add(rule)
 
     def __len__(self):
         """Count the rules presently in effect"""
-        seen = set()
         n = 0
-        for (branch, tick) in self.orm._active_branches():
-            self.orm.cursor.execute(
-                "SELECT char_rules.rule, char_rules.active "
-                "FROM char_rules JOIN ("
-                "SELECT character, rule, branch, MAX(tick) AS tick "
-                "FROM char_rules WHERE "
-                "character=? AND "
-                "branch=? AND "
-                "tick<=? GROUP BY character, rule, branch) AS hitick "
-                "ON char_rules.character=hitick.character "
-                "AND char_rules.rule=hitick.rule "
-                "AND char_rules.character=hitick.character "
-                "AND char_rules.tick=hitick.tick;"
-                (
-                    self.character.name,
-                    branch,
-                    tick
-                )
-            )
-        for (rule, active) in self.orm.fetchall():
-            if active and rule not in seen:
-                n += 1
-            seen.add(rule)
+        for rule in self:
+            n += 1
         return n
 
     def __getitem__(self, rulen):
@@ -216,6 +196,142 @@ class CharRules(Mapping):
                 False
             )
         )
+
+
+class CharObservedFacades(Mapping):
+    def __init__(self, engine, observer, observed):
+        self.engine = engine
+        self.observer = observer
+        self.observed = observed
+
+    def __iter__(self):
+        seen = set()
+        for (branch, tick) in self.engine._active_branches():
+            self.engine.orm.cursor.execute(
+                "SELECT facades.facade, facades.active "
+                "FROM facades JOIN ("
+                "SELECT observer_char, observed_char, facade, branch, MAX(tick) AS tick "
+                "FROM facades WHERE "
+                "observer_char=? AND "
+                "observed_char=? AND "
+                "branch=? AND "
+                "tick<=? GROUP BY observer_char, observed_char, facade, branch) AS hitick "
+                "ON facades.observer_char=hitick.observer_char "
+                "AND facades.observed_char=hitick.observed_char "
+                "AND facades.facade=hitick.facade "
+                "AND facades.branch=hitick.branch "
+                "AND facades.tick=hitick.tick;",
+                (
+                    self.observer.name,
+                    self.observed.name,
+                    branch,
+                    tick
+                )
+            )
+            for (facade, active) in self.engine.orm.cursor.fetchall():
+                if active and facade not in seen:
+                    yield facade
+                seen.add(facade)
+
+    def __len__(self):
+        n = 0
+        for facade in self:
+            n += 1
+        return n
+
+    def __getitem__(self, facn):
+        for (branch, tick) in self.engine._active_branches():
+            self.engine.orm.cursor.execute(
+                "SELECT facades.active "
+                "FROM facades JOIN ("
+                "SELECT observer_char, observed_char, facade, branch, MAX(tick) AS tick "
+                "FROM facades WHERE "
+                "observer_char=? AND "
+                "observed_char=? AND "
+                "branch=? AND "
+                "tick<=? GROUP BY observer_char, observed_char, facade, branch) AS hitick "
+                "ON facades.observer_char=hitick.observer_char "
+                "AND facades.observed_char=hitick.observed_char "
+                "AND facades.facade=hitick.facade "
+                "AND facades.branch=hitick.branch "
+                "AND facades.tick=hitick.tick;",
+                (
+                    self.observer.name,
+                    self.observed.name,
+                    branch,
+                    tick
+                )
+            )
+            data = self.engine.orm.cursor.fetchall()
+            if len(data) == 0:
+                continue
+            elif len(data) > 1:
+                raise ValueError("Silly data in facades table")
+            else:
+                (active,) = data[0]
+                if not active:
+                    raise KeyError("Facade has been deleted")
+                return Facade(self.engine, self.observer, self.observed, facn)
+
+
+class CharObserved(Mapping):
+    def __init__(self, engine, char):
+        self.engine = engine
+        self.character = char
+        self.name = char.name
+
+    def __iter__(self):
+        seen = set()
+        yielded = set()
+        for (branch, tick) in self.engine.orm._active_branches():
+            self.engine.orm.cursor.execute(
+                "SELECT facades.observed_char, facades.facade, facades.active "
+                "FROM facades JOIN ("
+                "SELECT observer_char, observed_char, facade, branch, MAX(tick) AS tick "
+                "FROM facades WHERE "
+                "observer_char=? AND "
+                "branch=? AND "
+                "tick<=? GROUP BY observer_char, observed_char, facade, branch) AS hitick"
+                "ON facades.observer_char=hitick.observer_char "
+                "AND facades.observed_char=hitick.observed_char "
+                "AND facades.facade=hitick.facade "
+                "AND facades.branch=hitick.branch "
+                "AND facades.tick=hitick.tick;",
+                (
+                    self.character.name,
+                    branch,
+                    tick
+                )
+            )
+            for (observed, facade, active) in self.engine.orm.cursor.fetchall():
+                if active and (observed, facade) not in seen and observed not in yielded:
+                    yield observed
+                    yielded.add(observed)
+                seen.add((observed, facade))
+
+    def __len__(self):
+        n = 0
+        for obsrvd in self:
+            n += 1
+        return n
+
+    def __getitem__(self, observed):
+        if isinstance(observed, str) or isinstance(observed, unicode):
+            char = self.engine.orm.get_character(observed)
+        else:
+            char = observed
+        r = CharObservedFacades(self.engine, self.character, char)
+        lr = len(r)
+        if lr == 0:
+            raise KeyError("No facades onto {}".format(char.name))
+        elif lr == 1:
+            # When there is only one facade, there's no sense in
+            # letting the user specify which one they want, so just
+            # return the facade itself.
+            return r[next(r)]
+        else:
+            return r
+
 
 class CharacterAvatarGraphMapping(Mapping):
     def __init__(self, char):
@@ -424,7 +540,7 @@ class CharacterAvatarGraphMapping(Mapping):
                         av
                     )
             if len(self) == 1:
-                return self[next(iter(self))][av]
+                return self[next(self)][av]
             raise KeyError("No such avatar")
 
         def __repr__(self):
@@ -459,7 +575,7 @@ class CharacterThingMapping(MutableMapping):
                 "AND things.branch=hitick.branch "
                 "AND things.tick=hitick.tick;",
                 (
-                    self.character.name,
+                    self.name,
                     branch,
                     tick
                 )
@@ -490,7 +606,7 @@ class CharacterThingMapping(MutableMapping):
                 "AND things.branch=hitick.branch "
                 "AND things.tick=hitick.tick;",
                 (
-                    self.character.name,
+                    self.name,
                     thing,
                     branch,
                     rev
