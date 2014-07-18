@@ -7,6 +7,15 @@ from LiSE.util import path_len
 
 
 class ThingPlace(GraphNodeMapping.Node):
+    def __getitem__(self, name):
+        """For when I'm the only avatar in a Character, and so you don't need
+        my name to select me, but a name was provided anyway.
+
+        """
+        if name == self.name:
+            return self
+        raise KeyError("No such avatar")
+
     def _contents_names(self):
         r = set()
         things_seen = set()
