@@ -4,8 +4,8 @@
 """Object relational mapper that serves Characters."""
 from collections import Mapping
 from sqlite3 import connect, OperationalError
-import anydbm
-from orm import ORM
+import dbm
+from .orm import ORM
 
 class Listeners(Mapping):
     """Mapping and decorator for the functions that listen to the time"""
@@ -170,7 +170,7 @@ class LiSE(object):
         self.gettext = gettext
         self.orm = ORM(
             worlddb=connect(world_filename),
-            codedb=anydbm.open(code_filename, 'c')
+            codedb=dbm.open(code_filename, 'c')
         )
         try:
             self.orm.cursor.execute(
@@ -194,11 +194,11 @@ class LiSE(object):
         if v == self.orm.branch:
             return
         self.orm.branch = v
-        for listener in self.on_branch.values():
+        for listener in list(self.on_branch.values()):
             listener(self, v)
         if not hasattr(self, 'locktime'):
             t = self.tick
-            for time_listener in self.on_time.values():
+            for time_listener in list(self.on_time.values()):
                 time_listener(self, v, t)
 
     @property
@@ -212,11 +212,11 @@ class LiSE(object):
         if v == self.orm.tick:
             return
         self.orm.tick = v
-        for tick_listener in self.on_tick.values():
+        for tick_listener in list(self.on_tick.values()):
             tick_listener(self, v)
         if not hasattr(self, 'locktime'):
             b = self.branch
-            for time_listener in self.on_tick.values():
+            for time_listener in list(self.on_tick.values()):
                 time_listener(self, b, v)
 
     @property
@@ -229,7 +229,7 @@ class LiSE(object):
         self.locktime = True
         self.orm.time = v
         (b, t) = v
-        for time_listener in self.on_time.values():
+        for time_listener in list(self.on_time.values()):
             time_listener(self, b, t)
         del self.locktime
 

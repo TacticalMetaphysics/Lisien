@@ -106,13 +106,13 @@ def defaults(c, kivy=False):
             "VALUES (?, ?, ?);",
             whole_imgrows
         )
-        for (name, d) in graphics.iteritems():
+        for (name, d) in graphics.items():
             c.execute(
                 "INSERT INTO graphic (name, offset_x, offset_y) "
                 "VALUES (?, ?, ?);",
                 (name, d.get('offset_x', 0), d.get('offset_y', 0))
             )
-            for i in xrange(0, len(d['imgs'])):
+            for i in range(0, len(d['imgs'])):
                 c.execute(
                     "INSERT INTO graphic_img (graphic, layer, img) "
                     "VALUES (?, ?, ?);",
@@ -195,7 +195,7 @@ def mkdb(DB_NAME, lisepath, kivy=False):
         lass = Atlas(path)
         atlaspath = "atlas://{}".format(path[:-6])
         atlasn = path.split(sep)[-1][:-6]
-        for tilen in lass.textures.iterkeys():
+        for tilen in lass.textures.keys():
             imgn = atlasn + '.' + tilen if qualify else tilen
             curs.execute(
                 img_qrystr, (

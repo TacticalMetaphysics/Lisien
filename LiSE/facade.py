@@ -7,18 +7,18 @@ knowledge. Suitable for eg. deciding what to show the player.
 
 """
 from collections import Mapping
-from graph import (
+from LiSE.graph import (
     Thing,
     Place,
     Portal
 )
-from character import (
+from LiSE.mapping import (
     CharacterThingMapping,
     CharacterPlaceMapping,
     CharacterPortalSuccessorsMapping,
     CharacterPortalPredecessorsMapping
 )
-from funlist import FunList
+from LiSE.funlist import FunList
 
 
 class Munger(object):
@@ -72,7 +72,7 @@ class MungerList(FunList):
         return Munger(self.worldview, self._getlist()[i], self.getter)
 
     def __setitem__(self, i, v):
-        if isinstance(v, str) or isinstance(v, unicode):
+        if isinstance(v, str) or isinstance(v, str):
             munn = v
         else:
             munn = v.name

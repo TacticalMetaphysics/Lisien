@@ -38,7 +38,7 @@ def home_all_day(engine, npc, rule):
 
     """
     present = engine.tick
-    for t in xrange(present, present+24):
+    for t in range(present, present+24):
         # The branch and tick pointers will be reset by the
         # event handler once this function returns, don't
         # worry.
@@ -46,7 +46,7 @@ def home_all_day(engine, npc, rule):
         # I really only have one avatar, but doing it this way
         # I don't need to care what its name is, and it
         # handles the case where I have more than one avatar.
-        for avatar in npc.avatar["Physical"].values():
+        for avatar in list(npc.avatar["Physical"].values()):
             if avatar["location"] != "Home":
                 return False
     print("Home all day.")

@@ -8,8 +8,8 @@ from marshal import dumps as marshalled
 from marshal import loads as unmarshalled
 from types import FunctionType
 from gorm import ORM as gORM
-from rule import Rule
-from character import (
+from .rule import Rule
+from .character import (
     Character,
     CharRules
 )
@@ -185,7 +185,7 @@ class Timeline(Mapping):
         that has any data
 
         """
-        return xrange(self._parrev(), self._maxtick())
+        return range(self._parrev(), self._maxtick())
 
     def __len__(self):
         """Number of ticks from start of branch to the last that has data"""
@@ -269,11 +269,11 @@ class FunctionStore(Mapping):
         for it.
 
         """
-        if isinstance(fun, str) or isinstance(fun, unicode):
+        if isinstance(fun, str) or isinstance(fun, str):
             if fun not in self.dbm:
                 raise KeyError("No such function")
             return fun
-        self.dbm[fun.__name__] = marshalled(fun.func_code)
+        self.dbm[fun.__name__] = marshalled(fun.__code__)
         self.codecache[fun.__name__] = fun
         return fun.__name__
 
