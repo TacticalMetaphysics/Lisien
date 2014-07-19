@@ -59,14 +59,12 @@ def work2home(engine, npc, rule):
     print("Leaving work now.")
     npc.avatar["Physical"].travel_to("Home")
 
-w2h = npc.rule["work2home"]
-
-@w2h.prereq
+@npc.rule.work2home.prereq
 def closing_time(engine, npc, rule):
     """Run at 5pm only."""
     return engine.tick % 24 == 17
 
-@w2h.prereq
+@npc.rule.work2home.prereq
 def at_work(engine, npc, rule):
     """Run only when I'm at Work."""
     return npc.avatar["Physical"]["location"] == "Work"

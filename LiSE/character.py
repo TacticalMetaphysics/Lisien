@@ -133,6 +133,16 @@ class CharRules(Mapping):
                 return Rule(self.orm, rulen)
         raise KeyError("No such rule, ever")
 
+    def __getattr__(self, attrn):
+        """For easy use with decorators, allow accessing my contents like
+        attributes
+
+        """
+        try:
+            return self[attrn]
+        except KeyError as err:
+            raise AttributeError(err.message)
+
     def _activate_rule(self, rule):
         """Indicate that the rule is active and should be followed. Add the
         given arguments to whatever's there.
@@ -549,8 +559,6 @@ class CharacterAvatarGraphMapping(Mapping):
             for k in self:
                 d[k] = dict(self[k])
             return repr(d)
-
-
 
 
 
