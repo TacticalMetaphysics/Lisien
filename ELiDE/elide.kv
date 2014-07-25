@@ -1,0 +1,18 @@
+#: import solarized ELiDE.style.solarized
+<CharSheet>:
+    size_hint_x: 0.2
+<CueCard>:
+    Label:
+        id: l
+        text_size: root.size
+        color: solarized["base0"]
+        pos: root.pos
+        size: root.size
+        halign: 'center'
+        valign: 'middle'
+        canvas.before:
+            Color:
+                rgba: solarized["base02"]
+            Rectangle:
+                pos: l.pos
+                size: l.size

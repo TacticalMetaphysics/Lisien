@@ -31,7 +31,7 @@ can use it to relativize colors given in 0-255 rather than 0.0-1.0."""
 solarized = dict(
     [
         (name, (r/macks, g/macks, b/macks, 1.0))
-        for (name, (r, g, b)) in solarized_hex.iteritems()
+        for (name, (r, g, b)) in solarized_hex.items()
     ]
 )
 """Color values for Solarized, a color scheme by Ethan Schoonover:

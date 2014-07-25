@@ -22,10 +22,9 @@ from LiSE.funlist import FunList
 
 
 class Munger(object):
-    def __init__(self, worldview, name, getter=None, omitters=[], distorters=[]):
+    def __init__(self, worldview, name, omitters=[], distorters=[]):
         self.worldview = worldview
         self.name = name
-        self.getter = getter
         self.worldview.cursor.execute(
             "SELECT COUNT(*) FROM mungers WHERE munger=?;",
             (self.name,)
@@ -39,25 +38,22 @@ class Munger(object):
         self.omitters = FunList(self.worldview, 'mungers', ['munger'], [self.name], 'omitters', omitters)
         self.distorters = FunList(self.worldview, 'mungers', ['munger'], [self.name], 'distorters', distorters)
 
-    def omitted(self, facade, entity, *data):
-        curtime = facade.engine.time
+    def omitted(self, engine, facade, entity, *data):
+        curtime = engine.time
         for omitter in self.omitters:
-            if omitter(facade, entity, *data):
+            if omitter(engine, facade, entity, *data):
                 return True
-            facade.engine.time = curtime
+            engine.time = curtime
         return False
 
-    def distorted(self, facade, entity, data):
-        if self.getter is None:
-            raise AttributeError("No getter")
+    def distorted(self, engine, facade, entity, data):
         for distorter in self.distorters:
-            data = distorter(facade, entity, data)
+            data = distorter(engine, facade, entity, data)
         return data
 
 
 class MungerList(FunList):
-    def __init__(self, worldview, table, preset_fields, preset_values, field, getter):
-        self.getter = getter
+    def __init__(self, worldview, table, preset_fields, preset_values, field):
         self.worldview = worldview
         self.table = table
         self.preset_fields = tuple(preset_fields)
@@ -69,7 +65,7 @@ class MungerList(FunList):
             yield Munger(self.worldview, munn)
 
     def __getitem__(self, i):
-        return Munger(self.worldview, self._getlist()[i], self.getter)
+        return Munger(self.worldview, self._getlist()[i])
 
     def __setitem__(self, i, v):
         if isinstance(v, str) or isinstance(v, str):
@@ -81,7 +77,7 @@ class MungerList(FunList):
         self._setlist(l)
 
 
-def get_mungers(facade, table_name, field="mungers", getter=None):
+def get_mungers(facade, table_name, field="mungers"):
     (branch, tick) = facade.engine.time
     for (branch, tick) in facade.engine.orm._active_branches():
         facade.engine.orm.cursor.execute(
@@ -100,8 +96,7 @@ def get_mungers(facade, table_name, field="mungers", getter=None):
         table_name,
         ["observer_char", "observed_char", "facade", "branch", "tick"], 
         [facade.observer.name, facade.observed.name, facade.name, branch, tick],
-        field,
-        getter
+        field
     )
 
 
@@ -140,7 +135,6 @@ class FacadeThing(Thing, AbstractFacadeMapping):
         return get_mungers(
             self.facade,
             "facade_thing_stats",
-            getter=super(FacadeThing, self).__getitem__
         )
 
     def __iter__(self):
@@ -151,11 +145,11 @@ class FacadeThing(Thing, AbstractFacadeMapping):
     def __getitem__(self, k):
         mungers = self.mungers
         for munger in mungers:
-            if munger.omitted(self.facade, self, k):
+            if munger.omitted(self.facade.engine, self.facade, self, k):
                 raise KeyError("Omitted")
         r = super(FacadeThing, self)[k]
         for munger in mungers:
-            r = munger.distorted(self.facade, self, r)
+            r = munger.distorted(self.facade.engine, self.facade, self, r)
         return r
 
 
@@ -199,8 +193,7 @@ class FacadePlace(Place, AbstractFacadeMapping):
     def mungers(self):
         return get_mungers(
             self.facade,
-            "facade_place_stats",
-            getter=super(FacadePlace, self).__getitem__
+            "facade_place_stats"
         )
 
     def __iter__(self):

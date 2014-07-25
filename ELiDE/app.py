@@ -1,208 +1,46 @@
-from os import sep
-
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
     BoundedNumericProperty,
     ObjectProperty,
-    OptionProperty,
-    ListProperty,
-    StringProperty)
+    StringProperty,
+    DictProperty
+)
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
-from kivy.uix.image import Image
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.stacklayout import StackLayout
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
-from kivy.uix.popup import Popup
+from kivy.uix.image import Image
 
-from kivy.uix.button import Button
-from kivy.uix.togglebutton import ToggleButton
-from kivy.logger import Logger
 from kivy.factory import Factory
+from kivy.garden.stiffscroll import StiffScrollEffect
 
-from sqlite3 import connect, OperationalError
-
-from LiSE.gui.board import (
+from .board import (
     Board,
-    Pawn,
-    Spot,
     Arrow
 )
-from LiSE.gui.board.gamepiece import GamePiece
-from LiSE.gui.board.arrow import get_points
+from .board.arrow import get_points
+from .charsheet import CharSheet
+from .texturestack import ImageStack
 
-from LiSE.gui.kivybits import TouchlessWidget, ClosetLabel
-
-from LiSE.util import TimestreamException
-from LiSE.model import Thing
-from LiSE.orm import SaveableMetaclass, mkdb, load_closet
-from LiSE import __path__
+import LiSE
+import ELiDE
+import gettext
+import os
 
 _ = lambda x: x
 
 
-def get_categorized_images(closet, tags):
-    """Get images with the given tags, and return them in a dict keyed by
-    those tags."""
-    r = {}
-    for tag in tags:
-        r[tag] = closet.get_imgs_tagged([tag]).values()
-    return r
+class TouchlessWidget(Widget):
+    def on_touch_down(self, *args):
+        pass
 
+    def on_touch_move(self, *args):
+        pass
 
-class BoardView(ScrollView):
-    board = ObjectProperty()
-
-    def on_touch_down(self, touch):
-        for preemptor in 'menu', 'charsheet', 'portaling':
-            if preemptor in touch.ud:
-                self.do_scroll_x = self.do_scroll_y = False
-        if self.do_scroll_x:
-            self.do_scroll_x = self.do_scroll_y = (
-                not self.board.pawnlayout.on_touch_down(touch))
-        if self.do_scroll_x:
-            self.do_scroll_x = self.do_scroll_y = (
-                not self.board.spotlayout.on_touch_down(touch))
-        if self.board.on_touch_down(touch):
-            return True
-        return super(BoardView, self).on_touch_down(touch)
-
-    def on_touch_up(self, touch):
-        self.do_scroll_x = self.do_scroll_y = True
-        return super(BoardView, self).on_touch_up(touch)
-
-
-class FrobSwatch(Button):
-    """A :class:`Button` that contains both an :class:`Image` and
-    some text."""
-    box = ObjectProperty()
-    """The :class:`SwatchBox` that I belong to."""
-    img = ObjectProperty()
-    """Image to show"""
-
-    def __init__(self, **kwargs):
-        """Bind ``self.img`` to ``self.upd_img``"""
-        super(FrobSwatch, self).__init__(**kwargs)
-        self.trigger_upd_image = Clock.create_trigger(self.upd_image)
-        self.bind(img=self.trigger_upd_image)
-
-    def upd_image(self, *args):
-        """Make an ``Image`` to display ``self.img`` with."""
-        Logger.debug(
-            "FooSwatch: upd_image with img {}".format(self.img)
-        )
-        if not self.img:
-            return
-        if not self.box:
-            self.trigger_upd_image()
-            return
-        image = Image(
-            texture=self.img.texture,
-            center=self.center,
-            size=self.img.size
-        )
-        self.bind(center=image.setter('center'))
-        self.add_widget(image)
-
-    def on_box(self, *args):
-        """Bind the box's state to its ``upd_selection`` method"""
-        Logger.debug(
-            "FooSwatch: got box {}".format(self.box)
-        )
-        self.bind(state=self.box.upd_selection)
-
-
-class TogSwatch(ToggleButton, FrobSwatch):
-    pass
-
-
-class SwatchBox(GridLayout):
-    """A collection of :class:`Swatch` used to select several
-    graphics at once."""
-    closet = ObjectProperty()
-    """Closet to get data from"""
-    tag = StringProperty()
-    """Tag of the images to be displayed herein."""
-    max_sel = BoundedNumericProperty(1, min=1)
-    """How many swatches may the user select at once?
-
-    When exceeded, the oldest selection will wear off.
-
-    """
-    mode = OptionProperty('tog', options=['tog', 'frob'])
-    sellen = BoundedNumericProperty(0, min=0)
-    selection = ListProperty([])
-    pile = ListProperty([])  # TODO: display a preview using the imgs here
-
-    def __init__(self, **kwargs):
-        """Get the imgs for ``tag``, make a swatch for each, and add them to
-        me.
-
-        """
-        if 'tag' not in kwargs:
-            raise ValueError("img tag required")
-        kwargs['size_hint_y'] = None
-        super(SwatchBox, self).__init__(**kwargs)
-        swatch_cls = {
-            'frob': FrobSwatch,
-            'tog': TogSwatch
-            }[self.mode]
-        imgs = self.closet.get_imgs_with_tag(kwargs['tag'])
-        Logger.debug("SwatchBox: tag {} has {} imgs".format(
-            kwargs['tag'], len(imgs)))
-        for imgn in imgs:
-            img = self.closet.get_img(imgn)
-            swatch = swatch_cls(
-                box=self, img=img, size_hint_y=None)
-            swatch.bind(state=self.upd_selection)
-            self.add_widget(swatch)
-        self.height = self.children[0].height * (
-            (len(self.children) / self.cols) + 1)
-
-    def on_cols(self, *args):
-        assert(isinstance(self.cols, int))
-
-    def upd_selection(self, togswatch, state):
-        """Make sure self.selection has the togswatch in it if it's pressed,
-        and not if it isn't."""
-        if state == 'normal':
-            while togswatch in self.selection:
-                self.selection.remove(togswatch)
-        else:
-            if togswatch not in self.selection:
-                self.selection.append(togswatch)
-
-    def on_selection(self, *args):
-        """Make sure the pile stays sync'd with the selection"""
-        lv = len(self.selection)
-        if lv > self.sellen:
-            self.pile.append(self.selection[-1].img)
-        elif lv < self.sellen:
-            try:
-                self.pile.pop()
-            except IndexError:
-                pass
-        self.sellen = lv
-        if self.sellen > self.max_sel:
-            if self.sellen != self.max_sel + 1:
-                raise ValueError(
-                    "Seems like you somehow selected >1 at once?"
-                )
-            oldsel = self.selection.pop(0)
-            oldsel.state = 'normal'
-            self.sellen -= 1
-
-    def undo(self, *args):
-        """Put the last pressed swatch back to normal."""
-        try:
-            swatch = self.selection.pop()
-            swatch.state = 'normal'
-        except IndexError:
-            pass
+    def on_touch_up(self, *args):
+        pass
 
 
 class DummySpot(Widget):
@@ -220,7 +58,7 @@ class DummySpot(Widget):
         self.center = touch.pos
 
 
-class DummyPawn(GamePiece):
+class DummyPawn(ImageStack):
     """Looks like a Pawn, but doesn't have a Thing associated.
 
     This is meant to be used when the user is presently engaged with
@@ -251,52 +89,7 @@ class DummyPawn(GamePiece):
         """
         if 'pawn' not in touch.ud:
             return
-        closet = self.board.host.closet
-        for spot in self.board.spotlayout.children:
-            if self.collide_widget(spot):
-                obsrvr = unicode(self.board.facade.observer)
-                obsrvd = unicode(self.board.facade.observed)
-                hostn = unicode(self.board.host)
-                placen = unicode(spot.place)
-                tinybone = Thing.bonetype(
-                    character=obsrvd,
-                    name=self.thing_name,
-                    host=hostn
-                )
-                bigbone = Thing.bonetypes["thing_loc"](
-                    character=obsrvd,
-                    name=self.thing_name,
-                    branch=closet.branch,
-                    tick=closet.tick,
-                    location=placen
-                )
-                pawnbone = Pawn.bonetype(
-                    observer=obsrvr,
-                    observed=obsrvd,
-                    host=hostn,
-                    thing=self.thing_name,
-                    branch=closet.branch,
-                    tick=closet.tick,
-                    graphic=self.graphic_name
-                )
-                closet.set_bone(tinybone)
-                closet.set_bone(bigbone)
-                closet.set_bone(pawnbone)
-                th = self.board.facade.observed.make_thing(self.thing_name)
-                thingn = unicode(th)
-                pawn = Pawn(board=self.board, thing=th)
-                self.board.pawndict[thingn] = pawn
-                self.board.pawnlayout.add_widget(pawn)
-                self.callback()
-                return True
-
-
-class ConfirmOrCancel(BoxLayout):
-    """Show a confirm button and a cancel button. 30px high"""
-    cancel = ObjectProperty()
-    """To be called when my cancel button is pressed"""
-    confirm = ObjectProperty()
-    """To be called when my confirm button is pressed"""
+            pass  # TODO
 
 
 class LiSELayout(FloatLayout):
@@ -326,17 +119,16 @@ class LiSELayout(FloatLayout):
     portaling = BoundedNumericProperty(0, min=0, max=2)
     """Count how far along I am in the process of connecting two Places by
     creating a Portal between them."""
-    playspeed = BoundedNumericProperty(0, min=-0.999, max=0.999)
-    """How fast time is advancing. If negative, it's \'advancing\' into
-    the past."""
+    playspeed = BoundedNumericProperty(0, min=0)
 
     def __init__(self, **kwargs):
         """Make a trigger for draw_arrow, then initialize as for
         FloatLayout."""
-        self._trigger_draw_arrow = Clock.create_trigger(self.draw_arrow)
+        self._trigger_draw_arrow = Clock.create_trigger(self._draw_arrow)
         super(LiSELayout, self).__init__(**kwargs)
+        self.finalize()
 
-    def draw_arrow(self, *args):
+    def _draw_arrow(self, *args):
         """Draw the arrow that you see when you're in the process of placing a
         portal.
 
@@ -375,7 +167,7 @@ class LiSELayout(FloatLayout):
         one, it does nothing, and the operation is cancelled.
 
         """
-        _ = self.app.closet.get_text
+        _ = self.app.engine.get_text
         self.display_prompt(_(
             "Draw a line between the places to connect with a portal."
         ))
@@ -420,7 +212,7 @@ class LiSELayout(FloatLayout):
         if self.portaling == 2:
             self._touch = touch
             self._trigger_draw_arrow()
-        return super(LiSELayout, self).on_touch_move(touch)
+        return super().on_touch_move(touch)
 
     def on_touch_up(self, touch):
         """If I'm currently in the process of connecting two Places with a
@@ -452,7 +244,7 @@ class LiSELayout(FloatLayout):
             self.board.arrowdict[unicode(portal)] = arrow
             self.board.arrowlayout.add_widget(arrow)
         else:
-            return super(LiSELayout, self).on_touch_up(touch)
+            return super().on_touch_up(touch)
 
     def display_prompt(self, text):
         """Put the text in the cue card"""
@@ -461,279 +253,6 @@ class LiSELayout(FloatLayout):
     def dismiss_prompt(self, *args):
         """Blank out the cue card"""
         self.ids.prompt.text = ''
-
-    def get_swatch_view(self, sections, cols=5, mode='tog'):
-        """Return a ``ScrollView``, to be used in a popup, for the user to
-        select a graphic for something (not necessarily a Thing) that
-        they want to make.
-
-        ``sections`` is a list of pairs, in which the first item is a
-        section header, and the second is a list of tags of images to
-        be swatched under that header.
-
-        """
-        hostn = unicode(self.board.facade.observed)
-        if hostn not in self.app.closet.skeleton[u"place"]:
-            self.app.closet.skeleton[u"place"][hostn] = {}
-        swatch_menu_scrollview = ScrollView(
-            do_scroll_x=False)
-        swatch_menu_swatches = StackLayout(size_hint_y=None)
-        swatch_menu_scrollview.add_widget(swatch_menu_swatches)
-        h = 0
-        for (headtxt, tag) in sections:
-            content = BoxLayout(orientation='vertical', size_hint_y=None)
-            header = ClosetLabel(
-                closet=self.app.closet, stringname=headtxt,
-                size_hint_y=None, height=30
-            )
-            content.add_widget(header)
-            pallet = SwatchBox(
-                closet=self.app.closet,
-                tag=tag,
-                cols=cols,
-                size_hint_y=None
-            )
-            content.add_widget(pallet)
-            swatch_menu_swatches.add_widget(content)
-            content.height = header.height + pallet.height
-            h += content.height
-        swatch_menu_swatches.height = h
-        return swatch_menu_scrollview
-
-    def graphic_menu_confirm(self, validator, confirmer,
-                             namebox, swatches_view):
-        """Validate the name, compose a graphic from the selected
-        images, and pass those to the callback.
-
-        """
-        vmesg = validator(namebox.text)
-        # if the validator returns a message, it indicates failure
-        if vmesg:
-            old_color = namebox.background_color
-
-            def unred(*args):
-                """namebox has been turned red. turn it back."""
-                namebox.background_color = old_color
-
-            namebox.background_color = [1, 0, 0, 1]
-            namebox.hint_text = vmesg
-            Clock.schedule_once(unred, 0.5)
-        else:
-            def gen_selected_imgs():
-                # Children are in the reverse order they were
-                # added. Reverse them back again.
-                swatchboxboxen = list(swatches_view.children[0].children)
-                while swatchboxboxen:
-                    swatchboxen = list(swatchboxboxen.pop().children)
-                    while swatchboxen:
-                        swatchbox = swatchboxen.pop()
-                        if isinstance(swatchbox, SwatchBox):
-                            for swatch in swatchbox.selection:
-                                yield swatch.img
-            graphic = self.mk_graphic_from_imgs(gen_selected_imgs())
-            return confirmer(namebox.text, graphic)
-
-    def show_pawn_menu(self):
-        """Show the menu to pick what graphic to give to the Pawn the user
-        wants to make.
-
-        """
-        def validator(text):
-            """Make sure there's a name and it hasn't been used for a thing yet
-
-            """
-            if text == '':
-                return _('You need to enter a thing name here')
-            elif text in (
-                    self.app.closet.skeleton
-                    [u'thing']
-                    [unicode(self.board.facade.observed)]
-            ):
-                return _('That thing name is already used, choose another')
-
-        obsrvd = unicode(self.board.facade.observed)
-        if obsrvd not in self.app.closet.skeleton[u"thing"]:
-            self.app.closet.skeleton[u"thing"][obsrvd] = {}
-        if obsrvd not in self.app.closet.skeleton[u"thing_loc"]:
-            self.app.closet.skeleton[u"thing_loc"][obsrvd] = {}
-
-        namebox = TextInput(
-            hint_text=_('Enter a unique thing name'),
-            multiline=False,
-            size_hint_y=None,
-            height=34,
-            font_size=20
-        )
-        swatches = self.get_swatch_view(
-            [
-                ('Body', 'base'),
-                ('Clothes', 'body')
-            ]
-        )
-        popcont = BoxLayout(orientation='vertical')
-        popcont.add_widget(namebox)
-        popcont.add_widget(swatches)
-        pawnmenu = Popup(
-            title=_("Select Thing's Appearance"),
-            content=popcont
-        )
-
-        def confirmer(name, graphic):
-            pawnmenu.dismiss()
-            self.new_pawn_with_name_and_graphic(name, graphic)
-        popcont.add_widget(
-            ConfirmOrCancel(
-                confirm=lambda: self.graphic_menu_confirm(
-                    validator,
-                    confirmer,
-                    namebox,
-                    swatches
-                ),
-            cancel=lambda: pawnmenu.dismiss()
-            )
-        )
-        pawnmenu.open()
-        return pawnmenu
-
-    def show_spot_menu(self):
-        """Show the menu to pick the name and graphic for a new Spot."""
-        # Currently this assumes that the place will be recorded in a
-        # particular place in the skeleton. It may not be; it depends
-        # on how the facade is set up.
-        def validator(text):
-            """Make sure there's a name and it hasn't been used for a place
-            already
-
-            """
-            if text == '':
-                return _('You need to enter a place name here')
-            elif text in (
-                    self.app.closet.skeleton
-                    [u'place']
-                    [unicode(self.board.facade.observed)]
-            ):
-                return _('That place name is already used, choose another')
-
-        hst = unicode(self.board.facade)
-        if hst not in self.app.closet.skeleton[u"place"]:
-            self.app.closet.skeleton[u"place"][hst] = {}
-
-        namebox = TextInput(
-            hint_text=_('Enter a unique place name'),
-            multiline=False,
-            size_hint_y=None,
-            height=34,
-            font_size=20
-        )
-        swatches = self.get_swatch_view([('', 'spot')], mode='frob')
-        popcont = BoxLayout(orientation='vertical')
-        popcont.add_widget(namebox)
-        popcont.add_widget(swatches)
-        spotmenu = Popup(
-            title=_("Select Place's Appearance"),
-            content=popcont
-        )
-
-        def confirmer(name, graphic):
-            spotmenu.dismiss()
-            self.new_spot_with_name_and_graphic(name, graphic)
-
-        popcont.add_widget(
-            ConfirmOrCancel(
-                confirm=lambda: self.graphic_menu_confirm(
-                    validator,
-                    confirmer,
-                    namebox,
-                    swatches
-                ),
-                cancel=lambda: spotmenu.dismiss()
-            )
-        )
-        spotmenu.open()
-        return spotmenu
-
-    def mk_graphic_from_imgs(self, imgs, offx=0, offy=0):
-        """Make a new graphic from the iterable of imgs. Return its name.
-
-        The graphic may be assigned to a ``Spot`` or ``Pawn`` at its
-        creation.
-
-        """
-        grafbone = self.app.closet.create_graphic(offx=offx, offy=offy)
-        i = 0
-        for img in imgs:
-            Logger.debug("Graphic: {}[{}] = {}".format(
-                grafbone.name, i, img.name))
-            self.app.closet.add_img_to_graphic(img.name, grafbone.name, i)
-            i += 1
-        return grafbone.name
-
-    def new_pawn_with_name_and_graphic(self, thing_name, graphic_name):
-        """Finish positioning a newly created Pawn for a newly created Thing.
-
-        The user has requested a new Thing, given its name, and picked
-        a graphic. The Thing has been created, but not placed
-        anywhere. So make a Pawn for it, but don't put it on any
-        Spot. Let the user drag it there.
-
-        """
-        _ = self.app.closet.get_text
-        self.display_prompt(_(
-            "Drag this to a spot"))
-        dummy = DummyPawn(
-            thing_name=thing_name,
-            board=self.board,
-            graphic_name=graphic_name)
-
-        def cb():
-            """Throw out the dummy so it doesn't get in the way of the real
-            Pawn"""
-            self.board.pawnlayout.remove_widget(dummy)
-            self.dismiss_prompt()
-        dummy.callback = cb
-        dummy.pos = self.center_of_view_on_board()
-        self.board.pawnlayout.add_widget(dummy)
-
-    def new_spot_with_name_and_graphic(self, place_name, graphic_name):
-        """Place a new Spot for a newly created Place.
-
-        The user has requested a new Place, given it a name, and
-        picked a graphic for it. The Place has been created. It needs
-        a Spot, but we don't know where it should go exactly, so we'll
-        just put it in the middle of the viewport. The user may drag
-        it where they like.
-
-        """
-        place = self.board.facade.make_place(place_name)
-        (branch, tick) = self.app.closet.timestream.time
-        obsrvr = unicode(self.board.facade.observer)
-        obsrvd = unicode(self.board.facade.observed)
-        (x, y) = self.center_of_view_on_board()
-        gfx_bone = Spot.bonetypes["spot_graphic"](
-            observer=obsrvr,
-            observed=obsrvd,
-            place=place_name,
-            branch=branch,
-            tick=tick,
-            graphic=graphic_name
-        )
-        coord_bone = Spot.bonetypes["spot_coords"](
-            observer=obsrvr,
-            observed=obsrvd,
-            place=place_name,
-            branch=branch,
-            tick=tick,
-            x=x,
-            y=y
-        )
-        self.app.closet.set_bone(gfx_bone)
-        self.app.closet.set_bone(coord_bone)
-        self.board.spotlayout.add_widget(
-            Spot(board=self.board,
-                 place=place,
-                 gfx_bone=gfx_bone,
-                 coord_bone=coord_bone)
-        )
 
     def center_of_view_on_board(self):
         """Get the point on the Board that is presently at the center of the
@@ -749,14 +268,11 @@ class LiSELayout(FloatLayout):
         y = b.height / 2 + effective_h * (bv.scroll_y - 0.5)
         return (x, y)
 
-    def normal_speed(self, forward=True):
+    def normal_speed(self):
         """Advance time at a sensible rate.
 
         """
-        if forward:
-            self.playspeed = 0.1
-        else:
-            self.playspeed = -0.1
+        self.playspeed = 0.1
 
     def pause(self):
         """Halt the flow of time.
@@ -769,10 +285,10 @@ class LiSELayout(FloatLayout):
         """Advance time if possible. Otherwise pause.
 
         """
-        try:
-            self.app.closet.time_travel_inc_tick(ticks)
-        except TimestreamException:
-            self.pause()
+        target_tick = self.engine.tick + ticks
+        while self.engine.tick < target_tick:
+            self.engine.advance()
+        self.pause()
 
     def on_playspeed(self, *args):
         """Change the interval of updates to match the playspeed.
@@ -782,25 +298,19 @@ class LiSELayout(FloatLayout):
         if self.playspeed > 0:
             ticks = 1
             interval = self.playspeed
-        elif self.playspeed < 0:
-            ticks = -1
-            interval = -self.playspeed
         else:
             return
         self.updater = lambda dt: self.update(ticks)
         Clock.schedule_interval(self.updater, interval)
 
-    def go_to_branch(self, bstr):
-        """Switch to a different branch of the timestream.
-
-        """
-        self.app.closet.time_travel(int(bstr), self.app.closet.tick)
-
-    def go_to_tick(self, tstr):
-        """Go to a different tick of the current branch of the timestream.
-
-        """
-        self.app.closet.time_travel(self.app.closet.branch, int(tstr))
+    def finalize(self, *args):
+        if self.charsheet is None or self.board is None:
+            Clock.schedule_once(self.finalize, 0)
+            return
+        boardview = ScrollView(effect_cls=StiffScrollEffect)
+        boardview.add_widget(self.board)
+        self.add_widget(boardview)
+        self.add_widget(self.charsheet)
 
 
 Factory.register('LiSELayout', cls=LiSELayout)
@@ -839,53 +349,72 @@ class MenuIntInput(TextInput):
 Factory.register('MenuIntInput', cls=MenuIntInput)
 
 
-class LiSEApp(App):
+class ELiDEApp(App):
     """LiSE, run as a standalone application, and not a library.
 
     As it's a Kivy app, this implements the things required of the App
     class. I also keep \"globals\" here.
 
     """
-    closet = ObjectProperty()
-    """The interface to the ORM."""
-    dbfn = StringProperty(allownone=True)
-    """Name of the database file to use."""
-    gettext = ObjectProperty()
-    """gettext function"""
-    observer_name = StringProperty('Omniscient')
-    """Name of the Character whose view on the world we display presently."""
-    observed_name = StringProperty('Physical')
-    """Name of the Character we are presently observing.
+    engine = ObjectProperty()
+    cli_args = DictProperty({})
 
-    This character contains all the Portals and Things that may be
-    shown to the user presently. We will not necessarily show *all* of
-    these; but any that are not in the observed character will *not*
-    be shown.
+    def build_config(self, config):
+        for sec in 'LiSE', 'ELiDE':
+            config.adddefaultsection(sec)
+        config.setdefaults(
+            'LiSE',
+            {
+                'world': 'lise.world',
+                'code': 'lise.code',
+                'language': 'en'
+            }
+        )
+        config.setdefaults(
+            'ELiDE',
+            {
+                'wallpaper': ELiDE.__path__[0] + "/assets/wallpape.jpg",
+                'boardchar': 'physical',
+                'sheetchar': 'player'
+            }
+        )
+        for sec in self.cli_args:
+            for (k, v) in self.cli_args[sec].items():
+                config[sec][k] = v
+        config.write()
 
-    """
-    wallpaper_name = StringProperty('default_wallpaper')
 
     def build(self):
         """Make sure I can use the database, create the tables as needed, and
         return the root widget."""
-        if self.dbfn is None:
-            self.dbfn = self.user_data_dir + sep + "default.lise"
-            print("No database specified; defaulting to {}".format(self.dbfn))
-        try:
-            conn = connect(self.dbfn)
-            for tab in SaveableMetaclass.tabclas.iterkeys():
-                conn.execute("SELECT * FROM {};".format(tab))
-        except (IOError, OperationalError):
-            mkdb(self.dbfn, __path__[-1], True)
-        self.closet = load_closet(
-            self.dbfn, self.gettext,
-            load_img=True,
-            load_img_tags=['base', 'body'],
-            load_gfx=True,
-            load_characters=[self.observer_name, self.observed_name],
-            load_board=[self.observer_name, self.observed_name]
+        config = self.config
+        self.engine = LiSE.LiSE(
+            world_filename=config['LiSE']['world'],
+            code_filename=config['LiSE']['code'],
+            gettext=gettext.translation(
+                'LiSE',
+                os.sep.join([LiSE.__path__[0], 'localedir']),
+                [config['LiSE']['language']]
+            ).gettext
         )
-        l = LiSELayout(app=self)
+
+        for char in 'boardchar', 'sheetchar':
+            if config['ELiDE'][char] not in self.engine.character:
+                self.engine.add_character(config['ELiDE'][char])
+        boardchar = self.engine.character[config['ELiDE']['boardchar']]
+        sheetchar = self.engine.character[config['ELiDE']['sheetchar']]
+        l = LiSELayout(
+            app=self,
+            board=Board(
+                engine=self.engine,
+                character=boardchar,
+                wallpaper=Image(source=config['ELiDE']['wallpaper'])
+            ),
+            charsheet=CharSheet(
+                character=sheetchar,
+                engine=self.engine
+            )
+        )
         from kivy.core.window import Window
         from kivy.modules import inspector
         inspector.create_inspector(Window, l)
@@ -893,10 +422,9 @@ class LiSEApp(App):
 
     def on_pause(self):
         """Sync the database with the current state of the game."""
-        self.closet.save_game()
+        self.engine.commit()
 
     def stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
-        self.closet.save_game()
-        self.closet.end_game()
-        super(LiSEApp, self).stop(*largs)
+        self.engine.close()
+        super().stop(*largs)

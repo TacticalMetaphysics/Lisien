@@ -16,7 +16,10 @@ from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
 from kivy.properties import (
     ObjectProperty,
-    ListProperty)
+    NumericProperty,
+    ListProperty,
+    AliasProperty
+)
 from kivy.clock import Clock
 
 
@@ -92,7 +95,11 @@ class Arrow(Widget):
     """Pawns that are part-way through me. Each needs to present a
     'progress' property to let me know how far through me they ought to be
     repositioned."""
+    engine = ObjectProperty()
     pawns_here = ListProperty([])
+    points = ListProperty([])
+    slope = NumericProperty(0.0, allownone=True)
+    y_intercept = NumericProperty(0)
 
     def __init__(self, **kwargs):
         """Bind some properties, and put the relevant instructions into the
@@ -101,21 +108,25 @@ class Arrow(Widget):
         guaranteed to know the positions of our endpoints.
 
         """
-        Widget.__init__(self, **kwargs)
-        self.trigger_repoint = Clock.create_trigger(
-            self.repoint, timeout=-1)
-        self.board.arrowdict[unicode(self.portal)] = self
-        orign = unicode(self.portal.origin)
-        destn = unicode(self.portal.destination)
-        self.board.spotdict[orign].bind(
-            pos=self.trigger_repoint,
-            size=self.trigger_repoint)
-        self.board.spotdict[destn].bind(
-            pos=self.trigger_repoint,
-            size=self.trigger_repoint)
-        self.board.host.closet.register_time_listener(self.repawn)
-        self.bind(pos=self.trigger_repoint)
-        self.bind(size=self.trigger_repoint)
+        super().__init__(**kwargs)
+        self._trigger_repoint = Clock.create_trigger(
+            self._repoint,
+            timeout=-1
+        )
+        orign = self.portal["origin"]
+        destn = self.portal["destination"]
+        self.board.spot[orign].bind(
+            pos=self._trigger_repoint,
+            size=self._trigger_repoint
+        )
+        self.board.spot[destn].bind(
+            pos=self._trigger_repoint,
+            size=self._trigger_repoint
+        )
+        self.bind(
+            pos=self._trigger_repoint,
+            size=self._trigger_repoint
+        )
         self.bg_color = Color(0.25, 0.25, 0.25)
         self.fg_color = Color(1.0, 1.0, 1.0)
         self.bg_line = Line(width=self.w * 1.4)
@@ -125,57 +136,68 @@ class Arrow(Widget):
         self.canvas.add(self.fg_color)
         self.canvas.add(self.fg_line)
 
-    def __unicode__(self):
-        """Return Unicode name of my :class:`Portal`"""
-        return unicode(self.portal)
+    def on_points(self, *args):
+        self.bg_line.points = self.points
+        self.fg_line.points = self.points
 
-    def __str__(self):
-        """Return string name of my :class:`Portal`"""
-        return str(self.portal)
+    # I'm handling origin, destination, and reciprocal as Python
+    # @propertys and not Kivy AliasPropertys because Kivy's caching
+    # introduces problems in the case where eg. the portal doesn't
+    # have a reciprocal.
+
+    @property
+    def origin(self):
+        return self.board.spot[self.portal["origin"]]
+
+    @property
+    def destination(self):
+        return self.board.spot[self.portal["destination"]]
 
     @property
     def reciprocal(self):
-        """If it exists, return the edge of the :class:`Portal` that connects
-        the same two places that I do, but in the opposite
-        direction. Otherwise, return ``None``.
+        return self.board.arrow[self.portal["destination"]][self.portal["origin"]]
 
-        """
-        # Return the edge of the portal that connects the same two
-        # places in the opposite direction, supposing it exists
-        try:
-            return self.portal.reciprocal.arrow
-        except KeyError:
-            return None
+    def handle_time(self, *args):
+        for pawn in self.pawns_here:
+            t2 = pawn['next_arrival_time']
+            if t2 is None:
+                pawn.pos = self.center  # might be redundant
+                continue
+            else:
+                t1 = pawn['arrival_time']
+                duration = float(t2 - t1)
+                passed = float(self.engine.tick - t1)
+                progress = passed / duration
+            os = self.board.spot[self.portal['origin']]
+            ds = self.board.spot[self.portal['destination']]
+            (ox, oy) = os.pos
+            (dx, dy) = ds.pos
+            w = dx - ox
+            h = dy - oy
+            x = ox + w * progress
+            y = oy + h * progress
+            pawn.pos = (x, y)
 
-    def handle_time(self, b, t):
-        pass
-
-    def get_points(self):
+    def _get_points(self):
         """Return the coordinates of the points that describe my shape."""
-        orig = self.board.spotdict[unicode(self.portal.origin)]
-        dest = self.board.spotdict[unicode(self.portal.destination)]
+        orig = self.origin
+        dest = self.destination
         (ox, oy) = orig.pos
-        try:
-            (ow, oh) = orig.size
-        except AttributeError:
-            (ow, oh) = (0, 0)
+        ow = orig.width if hasattr(orig, 'width') else 0
         taillen = float(self.board.arrowhead_size)
         orx = ow / 2
         ory = ow / 2
         (dx, dy) = dest.pos
-        try:
-            (dw, dh) = dest.size
-        except AttributeError:
-            (dw, dh) = (0, 0)
+        (dw, dh) = dest.size if hasattr(dest, 'size') else (0, 0)
         drx = dw / 2
         dry = dh / 2
         return get_points(ox, orx, oy, ory, dx, drx, dy, dry, taillen)
 
-    def get_slope(self):
+    def _get_slope(self):
         """Return a float of the increase in y divided by the increase in x,
         both from left to right."""
-        orig = self.board.spotdict[unicode(self.portal.origin)]
-        dest = self.board.spotdict[unicode(self.portal.destination)]
+        orig = self.origin
+        dest = self.destination
         ox = orig.x
         oy = orig.y
         dx = dest.x
@@ -189,15 +211,15 @@ class Arrow(Widget):
             run = dx - ox
             return rise / run
 
-    def get_b(self):
+    def _get_b(self):
         """Return my Y-intercept.
 
         I probably don't really hit the left edge of the window, but
         this is where I would, if I were long enough.
 
         """
-        orig = self.board.spotdict[unicode(self.portal.origin)]
-        dest = self.board.spotdict[unicode(self.portal.destination)]
+        orig = self.origin
+        dest = self.destination
         (ox, oy) = orig.pos
         (dx, dy) = dest.pos
         denominator = dx - ox
@@ -205,17 +227,11 @@ class Arrow(Widget):
         y_numerator = denominator * oy
         return ((y_numerator - x_numerator), denominator)
 
-    def repoint(self, *args):
-        """Recalculate all my points and redraw. Reposition any pawns on
-        me."""
-        points = self.get_points()
-        self.bg_line.points = points
-        self.fg_line.points = points
-        origspot = self.board.spotdict[self.portal.origin.name]
-        destspot = self.board.spotdict[self.portal.destination.name]
-        (ox, oy) = origspot.pos
-        (dx, dy) = destspot.pos
-        (branch, tick) = self.board.host.sanetime(None, None)
+    def _repoint(self, *args):
+        """Recalculate points, y-intercept, and slope"""
+        self.points = self._get_points()
+        self.slope = self._get_slope()
+        self.y_intercept = self._get_b()
 
     def collide_point(self, x, y):
         """Return True iff the point falls sufficiently close to my core line
@@ -224,8 +240,8 @@ class Arrow(Widget):
         """
         if not super(Arrow, self).collide_point(x, y):
             return False
-        orig = self.board.spotdict[unicode(self.portal.origin)]
-        dest = self.board.spotdict[unicode(self.portal.destination)]
+        orig = self.origin
+        dest = self.destination
         (ox, oy) = orig.pos
         (dx, dy) = dest.pos
         if ox == dx:
@@ -239,32 +255,5 @@ class Arrow(Widget):
             error_seg_len = hypot(x, y)
             return sin(error_angle_a) * error_seg_len <= self.margin
 
-    def repawn(self, branch, tick):
-        for pawn in self.pawns_here:
-            locations = pawn.thing.get_locations(
-                self.board.facade.observer, branch)
-            bone = locations.value_during(tick)
-            t1 = bone.tick
-            try:
-                t2 = locations.key_after(tick)
-            except ValueError:
-                continue
-            if t2 is None:
-                continue
-            else:
-                duration = float(t2 - t1)
-                passed = float(tick - t1)
-                progress = passed / duration
-            os = self.board.spotdict[unicode(self.portal.origin)]
-            ds = self.board.spotdict[unicode(self.portal.destination)]
-            (ox, oy) = os.pos
-            (dx, dy) = ds.pos
-            w = dx - ox
-            h = dy - oy
-            x = ox + w * progress
-            y = oy + h * progress
-            pawn.pos = (x, y)
-
     def on_pawns_here(self, i, v):
-        (branch, tick) = self.board.host.sanetime(None, None)
-        self.repawn(branch, tick)
+        self.handle_time(*self.engine.time)

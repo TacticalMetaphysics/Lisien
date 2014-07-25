@@ -1,10 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from board import (
-    Board,
-    Spot,
-    Arrow,
-    Pawn)
-from gamepiece import GamePiece
+from .arrow import Arrow
+from .board import Board
+from .pawn import Pawn
+from .spot import Spot
 
-__all__ = [Board, Spot, Pawn, GamePiece, Arrow]
+__all__ = [Arrow, Board, Pawn, Spot]

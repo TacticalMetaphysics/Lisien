@@ -2,17 +2,86 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 """Object relational mapper that serves Characters and Rules."""
-from collections import Mapping
-from sqlite3 import connect
+from collections import Mapping, MutableMapping
+from sqlite3 import connect, OperationalError, IntegrityError
 from marshal import dumps as marshalled
 from marshal import loads as unmarshalled
 from types import FunctionType
 from gorm import ORM as gORM
-from .rule import Rule
-from .character import (
+from LiSE.rule import Rule
+from LiSE.character import (
     Character,
     CharRules
 )
+
+class GlobalVarMapping(MutableMapping):
+    def __init__(self, worldview):
+        self.worldview = worldview
+
+    def __iter__(self):
+        self.worldview.cursor.execute(
+            "SELECT key FROM global;"
+        )
+        for row in self.worldview.cursor.fetchall():
+            yield row[0]
+
+    def __len__(self):
+        self.worldview.cursor.execute(
+            "SELECT COUNT(*) FROM global;"
+        )
+        return self.worldview.cursor.fetchone()[0]
+
+    def __getitem__(self, k):
+        self.worldview.cursor.execute(
+            "SELECT value FROM global WHERE key=?;",
+            (k,)
+        )
+        try:
+            return self.worldview.cursor.fetchone()[0]
+        except TypeError:
+            raise KeyError("No value for {}".format(k))
+
+    def __setitem__(self, k, v):
+        del self[k]  # doesn't throw exception when k doesn't exist
+        self.worldview.cursor.execute(
+            "INSERT INTO global (key, value) VALUES (?, ?);",
+            (k, v)
+        )
+
+    def __delitem__(self, k):
+        self.worldview.cursor.execute(
+            "DELETE FROM global WHERE key=?;",
+            (k,)
+        )
+
+
+class CharacterMapping(Mapping):
+    def __init__(self, worldview, wrapper=lambda x: x):
+        self.worldview = worldview
+        self.wrapper = wrapper
+
+    def __iter__(self):
+        self.worldview.cursor.execute(
+            "SELECT graph FROM graphs;"
+        )
+        for row in self.worldview.cursor.fetchall():
+            yield row[0]
+
+    def __len__(self):
+        return self.worldview.cursor.execute(
+            "SELECT COUNT(*) FROM graphs;"
+        ).fetchone()[0]
+
+    def __contains__(self, name):
+        return bool(self.worldview.cursor.execute(
+            "SELECT COUNT(*) FROM graphs WHERE graph=?;",
+            (name,)
+        ).fetchone()[0])
+
+    def __getitem__(self, name):
+        if name not in self:
+            raise KeyError("No character named {}, maybe you want to add_character?".format(name))
+        return self.wrapper(Character(self.worldview, name))
 
 
 class Worldview(object):
@@ -35,6 +104,8 @@ class Worldview(object):
             worlddb = arg
         self.gorm = gORM(worlddb, obranch=obranch, orev=otick)
         self.cursor = self.gorm.cursor
+        self.eternal = GlobalVarMapping(self)
+        self.character = CharacterMapping(self)
         self.cursor.execute("BEGIN;")
 
     @property
@@ -67,6 +138,10 @@ class Worldview(object):
 
     def __del__(self):
         self.close()
+
+    def commit(self):
+        self.cursor.connection.commit()
+        self.cursor.execute("BEGIN;")
 
     def close(self):
         self.cursor.connection.commit()
@@ -112,18 +187,13 @@ class Worldview(object):
         """Alias for gorm's ``_active_branches``"""
         return self.gorm._active_branches()
 
-    def new_character(self, name):
-        """Create and return a Character by the given name"""
-        self.gorm.new_digraph(name)
-        return Character(self, name)
+    def _iternodes(self, graph):
+        """Alias for gorm's ``_iternodes``"""
+        return self.gorm._iternodes(graph)
 
-    def get_character(self, name):
-        """Return a previously created Character by the given name"""
-        try:
-            self.gorm.get_graph(name)
-        except ValueError:
-            raise ValueError("No character named {}".format(name))
-        return Character(self, name)
+    def add_character(self, name):
+        """Create the Character so it'll show up in my `character` dict"""
+        self.gorm.new_digraph(name)
 
     def del_character(self, name):
         """Remove the Character from the database entirely"""
@@ -243,16 +313,39 @@ class Branchspace(Mapping):
 
 
 class FunctionStore(Mapping):
-    """Manage a dbm database of marshalled functions, and a cache of the functions"""
     def __init__(self, codedb):
-        self.dbm = codedb
+        self.connection = codedb
+        self.cursor = self.connection.cursor()
+        try:
+            self.cursor.execute("SELECT COUNT(*) FROM function;")
+        except OperationalError:
+            self.cursor.execute(
+                "CREATE TABLE function ("
+                "name TEXT NOT NULL PRIMARY KEY, "
+                "code TEXT NOT NULL);"
+            )
+        self.cursor.execute("BEGIN;")
         self.codecache = {}
 
     def __len__(self):
-        return len(self.dbm)
+        self.cursor.execute(
+            "SELECT COUNT(*) FROM function;"
+        )
+        return self.cursor.fetchone()[0]
 
     def __iter__(self):
-        return iter(self.dbm)
+        self.cursor.execute(
+            "SELECT name FROM function ORDER BY name;"
+        )
+        for row in self.cursor.fetchall():
+            yield row[0]
+
+    def __contains__(self, name):
+        self.cursor.execute(
+            "SELECT COUNT(*) FROM function WHERE name=?;",
+            (name,)
+        )
+        return bool(self.cursor.fetchone()[0])
 
     def __getitem__(self, name):
         """Reconstruct the named function from its code string stored in the
@@ -260,7 +353,11 @@ class FunctionStore(Mapping):
 
         """
         if name not in self.codecache:
-            code = unmarshalled(self.dbm[str(name)])
+            self.cursor.execute(
+                "SELECT code FROM function WHERE name=?;",
+                (name,)
+            )
+            code = unmarshalled(self.cursor.fetchone()[0])
             self.codecache[name] = FunctionType(code, globals(), str(name))
         return self.codecache[name]
 
@@ -269,21 +366,39 @@ class FunctionStore(Mapping):
         for it.
 
         """
-        if isinstance(fun, str) or isinstance(fun, str):
-            if fun not in self.dbm:
+        if isinstance(fun, str):
+            if fun not in self:
                 raise KeyError("No such function")
             return fun
-        self.dbm[fun.__name__] = marshalled(fun.__code__)
+        try:
+            self.cursor.execute(
+                "INSERT INTO function (name, code) VALUES (?, ?);",
+                (fun.__name__, marshalled(fun.__code__))
+            )
+        except IntegrityError:  # already got a function by that name
+            if fun.__name__ not in self:
+                raise IntegrityError("Simultaneously have and don't have the function")
+            return fun.__name__
         self.codecache[fun.__name__] = fun
         return fun.__name__
 
     def close(self):
-        self.dbm.close()
+        self.connection.commit()
+        self.cursor.close()
+
+    def commit(self):
+        self.connection.commit()
+        self.cursor.execute("BEGIN;")
 
 
 class ORM(object):
     def __init__(self, worlddb, codedb):
         self.worldview = Worldview(worlddb)
+        self.eternal = self.worldview.eternal
+        self.character = CharacterMapping(
+            self.worldview,
+            self._wrap_character
+        )
         self.history = Branchspace(worlddb)
         self.function = FunctionStore(codedb)
         self.cursor = self.worldview.cursor
@@ -398,15 +513,8 @@ class ORM(object):
         self.worldview.close()
         self.function.close()
 
-    def new_character(self, name):
-        ch = self.worldview.new_character(name)
-        ch.rule = CharRules(self, ch)
-        return ch
-
-    def get_character(self, name):
-        ch = self.worldview.get_character(name)
-        ch.rule = CharRules(self, ch)
-        return ch
+    def add_character(self, name):
+        self.worldview.add_character(name)
 
     def del_character(self, name):
         self.worldview.del_character(name)
@@ -420,14 +528,15 @@ class ORM(object):
         """
         return Rule(self, name, actions, prereqs)
 
-    def get_rule(self, name):
-        return Rule(self, name)
-
     def del_rule(self, name):
         self.cursor.execute(
             "DELETE FROM rules WHERE rule=?;",
             (name,)
         )
+
+    def commit(self):
+        self.worldview.commit()
+        self.function.commit()
 
     def _active_branches(self):
         return self.worldview._active_branches()
@@ -498,7 +607,7 @@ class ORM(object):
                 if (char, rule) in handled:
                     continue
                 if act:
-                    yield (self.get_character(char), self.get_rule(rule))
+                    yield (self.character[char], Rule(self, rule))
                 handled.add((char, rule))
 
     def _char_rule_handled(self, character, rule):
@@ -514,3 +623,7 @@ class ORM(object):
                 tick
             )
         )
+
+    def _wrap_character(self, character):
+        character.rule = CharRules(self, character)
+        return character

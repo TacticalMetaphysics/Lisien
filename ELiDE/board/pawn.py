@@ -1,20 +1,17 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-from gamepiece import GamePiece
 from kivy.properties import (
-    AliasProperty,
-    ObjectProperty,
-    NumericProperty,
-    StringProperty,
-    ReferenceListProperty)
-from kivy.logger import Logger
+    BooleanProperty,
+    ObjectProperty
+)
 from kivy.clock import Clock
+from ELiDE.texturestack import ImageStack
 
 
 """Widget representing things that move about from place to place."""
 
 
-class Pawn(GamePiece):
+class Pawn(ImageStack):
     """A token to represent something that moves about between places.
 
 Pawns are graphical widgets made of one or more textures layered atop
@@ -32,98 +29,55 @@ will update its position appropriately.
     """
     board = ObjectProperty()
     thing = ObjectProperty()
-    bone = ObjectProperty()
-    branch = NumericProperty()
-    tick = NumericProperty()
-    time = ReferenceListProperty(branch, tick)
     _touch = ObjectProperty(None, allownone=True)
     where_upon = ObjectProperty()
-    name = StringProperty()
-    closet = ObjectProperty()
-    graphic_name = StringProperty()
-    locskel = AliasProperty(
-        lambda self: self.thing.character.closet.skeleton[u'thing_loc'][
-            unicode(self.thing.character)][unicode(self.thing)],
-        lambda self, v: None,
-        bind=('thing',))
+    engine = ObjectProperty()
+    travel_on_drop = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         """Arrange to update my textures and my position whenever the relevant
         data change.
 
         """
-        super(Pawn, self).__init__(**kwargs)
-        self.closet.register_time_listener(self.handle_time)
-        self.board.pawndict[unicode(self.thing)] = self
-        self.handle_time(*self.closet.time)
+        self._trigger_updata = Clock.create_trigger(self._updata)
+        self._trigger_recenter = Clock.create_trigger(self._recenter)
+        super().__init__(**kwargs)
+        def on_time(*args):
+            self._trigger_updata()
+        on_time.__name__ = self.thing.name + "_trigger_updata"
+        self.engine.on_time(on_time)
+        self.bind(where_upon=self._trigger_recenter)
+        self._trigger_updata()
 
-    def __str__(self):
-        return str(self.thing)
+    def handle_time(self, *args):
+        self._trigger_updata()
 
-    def __unicode__(self):
-        return unicode(self.thing)
+    def _updata(self, *args):
+        self.paths = self.thing["_image_paths"] if "_image_paths" in self.thing else []
+        self.stackhs = self.thing["_stacking_heights"] if "_stacking_heights" in self.thing else []
 
-    def reposskel(self, *args):
-        self.repos()
-
-    def handle_time(self, b, t):
-        try:
-            self.time = (b, t)
-        except KeyError:
-            Clock.schedule_once(lambda dt: self.handle_time(b, t), 0)
-            return
-        self.repos()
-
-    def on_board(self, *args):
-        self.repos()
-
-    def get_loc_bone(self, branch=None, tick=None):
-        return self.thing.get_bone(branch, tick)
+    def _recenter(self):
+        self.pos = self.where_upon.center
 
     def dropped(self, x, y, button, modifiers):
-        """When dropped on a spot, if my :class:`Thing` doesn't have anything
-        else to do, make it journey there.
-
-        If it DOES have anything else to do, make the journey in
-        another branch.
-
-        """
         spotto = None
-        for spot in self.board.spots:
+        for spot in self.board.spots():
             if (
                     self.window_left < spot.x and
                     spot.x < self.window_right and
                     self.window_bot < spot.y and
-                    spot.y < self.window_top):
+                    spot.y < self.window_top
+            ):
                 spotto = spot
                 break
         if spotto is not None:
-            self.thing.journey_to(spotto.place)
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
-
-    def repos(self, *args):
-        """Recalculate and reassign my position, based on the apparent
-        position of whatever widget I am located on--a :class:`Spot`
-        or an :class:`Arrow`.
-
-        """
-        (b, t) = self.time
-        thingloc = self.thing.get_location(
-            self.board.facade.observer, b, t)
-        if thingloc is None:
-            return
-        try:
-            new_where_upon = self.board.arrowdict[unicode(thingloc)]
-        except KeyError:
-            new_where_upon = self.board.spotdict[unicode(thingloc)]
-        if self.where_upon is not None:
-            self.where_upon.pawns_here.remove(self)
-        self.where_upon = new_where_upon
-        self.where_upon.pawns_here.append(self)
+            if self.travel_on_drop:
+                self.thing.travel_to(spotto.place)
+            else:
+                self.thing["location"] = spotto.place.name
 
     def check_spot_collision(self):
-        for spot in self.board.spotlayout.children:
+        for spot in self.board.spots():
             if self.collide_widget(spot):
                 return spot
 
@@ -143,15 +97,16 @@ will update its position appropriately.
             del touch.ud['pawn']
         if touch.grab_current is self:
             touch.ungrab(self)
-            new_spot = self.check_spot_collision()
+            new_spot = None
+            for spot in self.board.spots():
+                if self.collide_widget(spot):
+                    new_spot = spot
 
             if new_spot:
-                myplace = self.thing.location
-                theirplace = new_spot.place
+                myplace = self.thing["location"]
+                theirplace = new_spot.place.name
                 if myplace != theirplace:
-                    self.locskel.unregister_del_listener(self.reposskel)
-                    self.thing.journey_to(new_spot.place)
-                    self.locskel.register_del_listener(self.reposskel)
-            self.repos()
+                    self.thing.travel_to(new_spot.place.name)
+            self._handle_time(*self.engine.time)
             return self
-        return super(Pawn, self).on_touch_up(touch)
+        return super().on_touch_up(touch)

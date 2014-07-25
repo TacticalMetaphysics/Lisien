@@ -15,8 +15,6 @@ from kivy.graphics import (
     InstructionGroup
 )
 from kivy.properties import (
-    AliasProperty,
-    ReferenceListProperty,
     ListProperty,
     DictProperty
 )
@@ -54,7 +52,7 @@ class TextureStack(Widget):
     """
 
     def __init__(self, **kwargs):
-        super(TextureStack, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.trigger_upd_texs = Clock.create_trigger(
             self.upd_texs, timeout=-1
         )
@@ -81,7 +79,7 @@ class TextureStack(Widget):
         self.size = (w, h)
 
     def upd_pos(self, *args):
-        for rect in self.texture_rectangles.itervalues():
+        for rect in self.texture_rectangles.values():
             rect.pos = self.pos
 
     def clear(self):
@@ -90,8 +88,6 @@ class TextureStack(Widget):
         self.rectangle_groups = {}
         self.texture_rectangles = {}
         self.texs = []
-        self.offxs = []
-        self.offys = []
         self.bind(texs=self.upd_texs)
         self.stackhs = []
         self.size = [1, 1]
@@ -154,13 +150,13 @@ class ImageStack(TextureStack):
     paths = ListProperty()
 
     def on_paths(self, *args):
-        super(ImageStack, self).clear()
+        super().clear()
         for path in self.paths:
             self.append(Image.load(path))
 
     def clear(self):
         self.paths = []
-        super(ImageStack, self).clear()
+        super().clear()
 
     def insert(self, i, v):
         self.paths.insert(i, v)
@@ -169,9 +165,9 @@ class ImageStack(TextureStack):
         self.paths.append(v)
 
     def __delitem__(self, i):
-        super(ImageStack, self).__delitem__(i)
+        super().__delitem__(i)
         del self.paths[i]
 
     def pop(self, i=-1):
         self.paths.pop(i)
-        return super(ImageStack, self).pop(i)
+        return super().pop(i)

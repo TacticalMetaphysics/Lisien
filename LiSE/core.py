@@ -4,7 +4,6 @@
 """Object relational mapper that serves Characters."""
 from collections import Mapping
 from sqlite3 import connect, OperationalError
-import dbm
 from .orm import ORM
 
 class Listeners(Mapping):
@@ -168,9 +167,10 @@ class LiSE(object):
 
         """
         self.gettext = gettext
+        # avoid ndbm due to its lack of a sync method
         self.orm = ORM(
             worlddb=connect(world_filename),
-            codedb=dbm.open(code_filename, 'c')
+            codedb=connect(code_filename)
         )
         try:
             self.orm.cursor.execute(
@@ -181,7 +181,13 @@ class LiSE(object):
         self.on_branch = Listeners(self.orm, 'branch_listeners')
         self.on_tick = Listeners(self.orm, 'tick_listeners')
         self.on_time = Listeners(self.orm, 'time_listeners')
+        self.eternal = self.orm.eternal
+        self.character = self.orm.character
         self._rules_iter = self._follow_rules()
+
+    def commit(self):
+        """Commit all pending changes to everything"""
+        self.orm.commit()
 
     @property
     def branch(self):
@@ -261,14 +267,15 @@ class LiSE(object):
             self._rules_iter = self._follow_rules()
             return self.advance()
 
-    def new_character(self, name):
-        return self.orm.new_character(name)
+    def add_character(self, name):
+        self.orm.add_character(name)
 
-    def get_character(self, name):
-        return self.orm.get_character(name)
+    def new_character(self, name):
+        self.orm.add_character(name)
+        return self.character[name]
 
     def del_character(self, name):
-        return self.orm.del_character(name)
+        self.orm.del_character(name)
 
     def close(self):
         self.orm.close()

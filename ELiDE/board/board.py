@@ -3,156 +3,177 @@
 from kivy.properties import (
     DictProperty,
     ObjectProperty,
-    NumericProperty)
-from kivy.uix.image import Image
+    NumericProperty,
+    BooleanProperty
+)
+from kivy.clock import Clock
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.clock import Clock
-from spot import Spot
-from arrow import Arrow
-from pawn import Pawn
+from .spot import Spot
+from .arrow import Arrow
+from .pawn import Pawn
 
 
-class BoardLayout(RelativeLayout):
-    def add_widget(self, w):
-        super(BoardLayout, self).add_widget(w)
-        if hasattr(w, 'handle_time'):
-            w.handle_time(*self.parent.host.closet.time)
-        if hasattr(w, 'upd_texs'):
-            w.upd_texs()
-
-    def on_touch_up(self, touch):
-        r = None
-        for child in self.children:
-            r = child.on_touch_up(touch)
-            if r:
-                return r
-
-
-class Board(FloatLayout):
+class Board(RelativeLayout):
     """A graphical view onto a facade, resembling a game board."""
-    facade = ObjectProperty()
-    host = ObjectProperty()
+    character = ObjectProperty()
     wallpaper = ObjectProperty()
-    spotdict = DictProperty({})
+    wallpaperlayout = ObjectProperty()
+    spot = DictProperty({})
     spotlayout = ObjectProperty()
-    pawndict = DictProperty({})
+    pawn = DictProperty({})
     pawnlayout = ObjectProperty()
-    arrowdict = DictProperty({})
+    arrow = DictProperty({})
     arrowlayout = ObjectProperty()
     arrow_width = NumericProperty()
     arrowhead_size = NumericProperty()
+    engine = ObjectProperty()
+    finalized = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         kwargs['size_hint'] = (None, None)
-        return super(Board, self).__init__(**kwargs)
+        self._trigger_redata = Clock.create_trigger(self._redata)
+        super().__init__(**kwargs)
+        self.finalize()
+
+    def _make_pawn(self, thing):
+        if thing["location"] not in self.spot:
+            raise ValueError("Pawns should only be made after the Spot their Thing is on")
+        if thing["name"] in self.pawn:
+            raise KeyError("Already have a Pawn for this Thing")
+        r = Pawn(
+            board=self,
+            engine=self.engine,
+            thing=thing,
+            where_upon=self.spot[thing["location"]]
+        )
+        self.spot[thing["location"]].pawns_here.append(r)
+        self.pawn[thing["name"]] = r
+        return r
+
+    def _make_spot(self, place):
+        if place["name"] in self.spot:
+            raise KeyError("Already have a Spot for this Place")
+        r = Spot(
+            board=self,
+            engine=self.engine,
+            place=place
+        )
+        self.spot[place["name"]] = r
+        return r
+
+    def _make_arrow(self, portal):
+        if (
+                portal["origin"] not in self.spot or
+                portal["destination"] not in self.spot
+        ):
+            raise ValueError("Arrows should only be made after the Spots they connect")
+        if (
+                portal["origin"] in self.arrow and
+                portal["destination"] in self.arrow
+        ):
+            raise KeyError("Already have an Arrow for this Portal")
+        r = Arrow(
+            board=self,
+            engine=self.engine,
+            portal=portal
+        )
+        if portal["origin"] not in self.arrow:
+            self.arrow[portal["origin"]] = {}
+        self.arrow[portal["origin"]][portal["destination"]] = r
+        return r
+
+    def on_character(self, *args):
+        if not self.finalized:
+            Clock.schedule_once(self.on_character, 0)
+            return
+        def ontime():
+            self._trigger_redata()
+        ontime.__name__ = self.character.name + "_trigger_redata"
+        self.engine.on_time(ontime)
+        self._trigger_redata()
+
+    def _rmpawn(self, name):
+        if name not in self.pawn:
+            raise KeyError("No Pawn")
+        self.pawnlayout.remove_widget(self.pawn[name])
+        del self.pawn[name]
+
+    def _rmspot(self, name):
+        if name not in self.spot:
+            raise KeyError("No Spot")
+        self.spotlayout.remove_widget(self.pawn[name])
+        del self.spot[name]
+
+    def _rmarrow(self, orig, dest):
+        if (
+                orig not in self.arrow or
+                dest not in self.arrow[orig]
+        ):
+            raise KeyError("No Arrow")
+        self.spotlayout.remove_widget(self.arrow[orig][dest])
+        del self.arrow[orig][dest]
+
+    def _redata(self, *args):
+        # remove widgets that don't represent anything anymore
+        for pawn_name in self.pawn:
+            if pawn_name not in self.character.thing:
+                self._rmpawn(pawn_name)
+        for spot_name in self.spot:
+            if spot_name not in self.character.place:
+                self._rmspot(spot_name)
+        for arrow_origin in self.arrow:
+            for arrow_destination in self.arrow[arrow_origin]:
+                if (
+                        arrow_origin not in self.character.portal or
+                        arrow_destination not in self.character.portal[arrow_origin]
+                ):
+                    self._rmarrow(arrow_origin, arrow_destination)
+        # add widgets to represent new stuff
+        for place_name in self.character.place:
+            if place_name not in self.spot:
+                self.spotlayout.add_widget(self._make_spot(self.character.place[place_name]))
+        for arrow_orig in self.character.portal:
+            for arrow_dest in self.character.portal[arrow_orig]:
+                if (
+                        arrow_orig not in self.arrow or
+                        arrow_dest not in self.arrow[arrow_orig]
+                ):
+                    self.arrowlayout.add_widget(self._make_arrow(self.character.portal[arrow_orig][arrow_dest]))
+        for thing_name in self.character.thing:
+            if thing_name not in self.pawn:
+                self.pawn[thing_name] = self._make_pawn(self.character.thing[thing_name])
 
     def finalize(self, *args):
-        def repos_all(*args):
-            for each in (
-                    self.wallpaper,
-                    self.arrowlayout,
-                    self.spotlayout,
-                    self.pawnlayout):
-                each.pos = self.pos
-        if not self.facade and self.host:
+        if self.engine is None or self.wallpaper is None:
             Clock.schedule_once(self.finalize, 0)
             return
-        bone = self.host.closet.skeleton[u'board'][
-            unicode(self.facade.observer)][unicode(self.facade.observed)][
-            unicode(self.host)]
-        self.bone = bone
-        tex = self.host.closet.get_img(bone.wallpaper).texture
-        self.size = tex.size
-        self.wallpaper = Image(
-            texture=tex,
-            pos=self.pos,
-            size=self.size)
+        self.size = self.wallpaper.size = self.wallpaper.texture.size
         self.add_widget(self.wallpaper)
-        self.arrowlayout = BoardLayout(pos=self.pos, size=self.size)
+        self.arrowlayout = FloatLayout(
+            pos=self.wallpaper.pos,
+            size=self.wallpaper.size
+        )
         self.add_widget(self.arrowlayout)
-        self.spotlayout = BoardLayout(pos=self.pos, size=self.size)
+        self.spotlayout = FloatLayout(
+            pos=self.wallpaper.pos,
+            size=self.wallpaper.size
+        )
         self.add_widget(self.spotlayout)
-        self.pawnlayout = BoardLayout(pos=self.pos, size=self.size)
+        self.pawnlayout = FloatLayout(
+            pos=self.wallpaper.pos,
+            size=self.wallpaper.size
+        )
         self.add_widget(self.pawnlayout)
-        self.bind(pos=repos_all)
-        if bone.observer not in self.facade.closet.board_d:
-            self.facade.closet.board_d[bone.observer] = {}
-        if bone.observed not in self.facade.closet.board_d[bone.observer]:
-            self.facade.closet.board_d[bone.observer][bone.observed] = {}
-        self.facade.closet.board_d[bone.observer][bone.observed][
-            bone.host] = self
-        # Regardless of what the facade *shows*, create spots, pawns,
-        # and portals for everything in the host, just in case I need
-        # to show them.
-        for spotbone in self.facade.closet.skeleton[u"spot"].iterbones():
-            if (
-                    spotbone.host == bone.host and
-                    spotbone.place not in self.spotdict):
-                char = self.facade.closet.get_character(spotbone.host)
-                place = char.get_place(spotbone.place)
-                self.spotdict[spotbone.place] = Spot(board=self, place=place)
-        for portbone in self.facade.closet.skeleton[u"portal"][
-                bone.observed].iterbones():
-            if portbone.host == bone.host:
-                port = self.facade.observed.get_portal(portbone.name)
-                self.arrowdict[portbone.name] = Arrow(
-                    board=self, portal=port)
-        for pawnbone in self.facade.closet.skeleton[u"pawn"].iterbones():
-            if (
-                    pawnbone.host == bone.host and
-                    pawnbone.thing not in self.pawndict):
-                char = self.facade.closet.get_character(bone.observed)
-                try:
-                    thing = char.get_thing(pawnbone.thing)
-                except KeyError:
-                    thing = char.make_thing(pawnbone.thing)
-                self.pawndict[pawnbone.thing] = Pawn(board=self, thing=thing)
-        for arrow in self.arrowdict.itervalues():
-            self.arrowlayout.add_widget(arrow)
-        for spot in self.spotdict.itervalues():
-            self.spotlayout.add_widget(spot)
-        for pawn in self.pawndict.itervalues():
-            self.pawnlayout.add_widget(pawn)
 
-    def __str__(self):
-        return str(self.facade)
+        for layout in (self.arrowlayout, self.spotlayout, self.pawnlayout):
+            self.wallpaper.bind(pos=layout.setter('pos'))
 
-    def __unicode__(self):
-        return unicode(self.facade)
+        self.finalized = True
+
 
     def __repr__(self):
-        return "Board({})".format(self)
-
-    def get_texture(self):
-        return self.facade.closet.get_texture(self.bone.wallpaper)
-
-    def get_spot(self, loc):
-        if loc is None:
-            return None
-        if not hasattr(loc, 'v'):
-            # I think this isn't always raising when I expect it to
-            raise TypeError("Spots should only be made for Places")
-        if unicode(loc) not in self.spotdict:
-            self.spotdict[unicode(loc)] = Spot(board=self, place=loc)
-        return self.spotdict[unicode(loc)]
-
-    def get_arrow(self, loc):
-        if loc is None:
-            return None
-        if not hasattr(loc, 'origin'):
-            raise TypeError("Arrows should only be made for Portals")
-        if unicode(loc) not in self.arrowdict:
-            self.arrowdict[unicode(loc)] = Arrow(board=self, portal=loc)
-        return self.arrowdict[unicode(loc)]
-
-    def new_branch(self, parent, branch, tick):
-        for spot in self.spotdict.itervalues():
-            for bone in spot.new_branch(parent, branch, tick):
-                yield bone
-        for pawn in self.pawndict.itervalues():
-            for bone in pawn.new_branch(parent, branch, tick):
-                yield bone
+        return "Board({})".format(repr(self.character))
 
     def on_touch_up(self, touch):
         touch.push()
@@ -169,4 +190,4 @@ class Board(FloatLayout):
         if r:
             touch.pop()
             return r
-        return super(Board, self).on_touch_up(touch)
+        return super().on_touch_up(touch)

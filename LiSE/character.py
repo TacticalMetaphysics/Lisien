@@ -542,12 +542,12 @@ class CharacterAvatarGraphMapping(Mapping):
             if av in self:
                 if self.worldview._is_thing(self.graph, av):
                     return Thing(
-                        self.worldview.get_character(self.graph),
+                        self.char.worldview.character[self.graph],
                         av
                     )
                 else:
                     return Place(
-                        self.worldview.character[self.graph],
+                        self.char.worldview.character[self.graph],
                         av
                     )
             if len(self) == 1:
@@ -574,13 +574,25 @@ class Character(DiGraph):
     contained by whatever it's located in.
 
     """
-    def __init__(self, worldview, name):
+    def __init__(self, worldview, name, on_set_thing=[], on_del_thing=[], on_set_thing_item=[], on_del_thing_item=[], on_set_place=[], on_del_place=[], on_set_place_item=[], on_del_place_item=[], on_set_portal=[], on_del_portal=[], on_set_portal_item=[], on_del_portal_item=[]):
         """Store worldview and name, and set up mappings for Thing, Place, and
         Portal
 
         """
         super(Character, self).__init__(worldview.gorm, name)
         self.worldview = worldview
+        self.on_set_place = on_set_place
+        self.on_del_place = on_del_place
+        self.on_set_place_item = on_set_place_item
+        self.on_del_place_item = on_del_place_item
+        self.on_set_thing = on_set_thing
+        self.on_del_thing = on_del_thing
+        self.on_set_thing_item = on_set_thing_item
+        self.on_del_thing_item = on_del_thing_item
+        self.on_set_portal = on_set_portal
+        self.on_del_portal = on_del_portal
+        self.on_set_portal_item = on_set_portal_item
+        self.on_del_portal_item = on_del_portal_item
         self.thing = CharacterThingMapping(self)
         self.place = CharacterPlaceMapping(self)
         self.portal = CharacterPortalSuccessorsMapping(self)
@@ -639,6 +651,8 @@ class Character(DiGraph):
         if destination.__class__ in (Place, Thing):
             destination = destination.name
         super(Character, self).add_edge(origin, destination, **kwargs)
+        if 'symmetrical' in kwargs and kwargs['symmetrical']:
+            super().add_edge(destination, origin, is_mirror=True)
 
     def add_avatar(self, name, host, location=None, next_location=None):
         (branch, tick) = self.worldview.time
