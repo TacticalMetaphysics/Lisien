@@ -117,7 +117,7 @@ class TextureStack(Widget):
         self.texs.insert(i, tex)
 
     def append(self, tex):
-        TextureStack.insert(self, len(self.texs), tex)
+        self.insert(len(self.texs), tex)
 
     def __delitem__(self, i):
         tex = self.texs[i]
@@ -152,14 +152,17 @@ class ImageStack(TextureStack):
     def on_paths(self, *args):
         super().clear()
         for path in self.paths:
-            self.append(Image.load(path))
+            super().append(Image.load(path).texture)
 
     def clear(self):
         self.paths = []
         super().clear()
 
     def insert(self, i, v):
-        self.paths.insert(i, v)
+        if isinstance(v, str):
+            self.paths.insert(i, v)
+        else:
+            super().insert(i, v)
 
     def append(self, v):
         self.paths.append(v)

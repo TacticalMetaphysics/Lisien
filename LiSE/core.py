@@ -181,6 +181,7 @@ class LiSE(object):
         self.on_branch = Listeners(self.orm, 'branch_listeners')
         self.on_tick = Listeners(self.orm, 'tick_listeners')
         self.on_time = Listeners(self.orm, 'time_listeners')
+        self.function = self.orm.function
         self.eternal = self.orm.eternal
         self.character = self.orm.character
         self._rules_iter = self._follow_rules()

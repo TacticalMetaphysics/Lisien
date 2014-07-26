@@ -34,6 +34,13 @@ class Spot(ImageStack):
             pawns_here=self._trigger_upd_pawns_here,
             center=self._trigger_upd_pawns_here
         )
+        self.engine.on_time(
+            self.engine.function(
+                self.handle_time,
+                self.place.name + "_handle_time"
+            )
+        )
+        self.handle_time(*self.engine.time)
 
     def on_x(self, *args):
         if not self._ignore_place:

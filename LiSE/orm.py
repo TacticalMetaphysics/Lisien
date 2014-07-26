@@ -361,7 +361,7 @@ class FunctionStore(Mapping):
             self.codecache[name] = FunctionType(code, globals(), str(name))
         return self.codecache[name]
 
-    def __call__(self, fun):
+    def __call__(self, fun, name=None):
         """Remember the function in the code database. Return the name to use
         for it.
 
@@ -370,17 +370,19 @@ class FunctionStore(Mapping):
             if fun not in self:
                 raise KeyError("No such function")
             return fun
+        if name is None:
+            name = fun.__name__
         try:
             self.cursor.execute(
                 "INSERT INTO function (name, code) VALUES (?, ?);",
-                (fun.__name__, marshalled(fun.__code__))
+                (name, marshalled(fun.__code__))
             )
         except IntegrityError:  # already got a function by that name
-            if fun.__name__ not in self:
+            if name not in self:
                 raise IntegrityError("Simultaneously have and don't have the function")
-            return fun.__name__
-        self.codecache[fun.__name__] = fun
-        return fun.__name__
+            return name
+        self.codecache[name] = fun
+        return name
 
     def close(self):
         self.connection.commit()
