@@ -414,10 +414,6 @@ class ORM(object):
         self.worldview.branch = v
 
     @property
-    def branchhist(self):
-        return self.history[self.branch]
-
-    @property
     def tick(self):
         return self.worldview.tick
 
@@ -434,19 +430,6 @@ class ORM(object):
         self.worldview.time = v
 
     def initdb(self):
-        facade = (
-            "CREATE TABLE {} ("
-            "observer_char TEXT NOT NULL, "
-            "observed_char TEXT NOT NULL, "
-            "facade TEXT NOT NULL DEFAULT 'perception', "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "mungers TEXT NOT NULL DEFAULT '[]', "
-            "PRIMARY KEY(observer_char, observed_char, branch, tick), "
-            "FOREIGN KEY(observer_char, observed_char, facade) "
-            "REFERENCES facades(observer_char, observed_char, facade))"
-            ";"
-        )
         listener = (
             "CREATE TABLE {} ("
             "action TEXT NOT NULL, "
@@ -483,28 +466,6 @@ class ORM(object):
                 "FOREIGN KEY(character) REFERENCES graphs(graph), "
                 "FOREIGN KEY(rule) REFERENCES rules(rule))"
                 ";",
-                "CREATE TABLE mungers ("
-                "munger TEXT NOT NULL PRIMARY KEY, "
-                "omitter TEXT NOT NULL DEFAULT '[]', "
-                "distorter TEXT NOT NULL DEFAULT '[]')"
-                ";",
-                "CREATE TABLE facades ("
-                "observer_char TEXT NOT NULL, "
-                "observed_char TEXT NOT NULL, "
-                "facade TEXT NOT NULL, "
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "active BOOLEAN NOT NULL DEFAULT 1, "
-                "PRIMARY KEY(observer_char, observed_char, facade, branch, tick), "
-                "FOREIGN KEY(observer_char) REFERENCES graphs(graph), "
-                "FOREIGN KEY(observed_char) REFERENCES graphs(graph))"
-                ";",
-                facade.format("facade_things"),
-                facade.format("facade_thing_stats"),
-                facade.format("facade_places"),
-                facade.format("facade_place_stats"),
-                facade.format("facade_portals"),
-                facade.format("facade_portal_stats"),
                 listener.format("branch_listeners"),
                 listener.format("tick_listeners"),
                 listener.format("time_listeners")
