@@ -7,6 +7,7 @@ from collections import (
     Callable
 )
 from networkx import shortest_path
+from sqlite3 import connect
 from gorm.graph import (
     DiGraph,
     GraphNodeMapping,
@@ -16,6 +17,7 @@ from gorm.graph import (
 )
 from LiSE.util import path_len
 from LiSE.rule import Rule
+from LiSE.orm import Worldview
 
 
 class TravelException(Exception):
@@ -216,17 +218,6 @@ class Thing(ThingPlace):
             self._set_loc_and_next(*value)
         else:
             super(Thing, self).__setitem__(key, value)
-        if not hasattr(self, 'dontcall'):
-            (branch, tick) = self.character.worldview.time
-            for fun in self.character.on_set_thing_item:
-                fun(self, key, value, branch, tick)
-
-    def __delitem__(self, k):
-        super().__delitem__(k)
-        if not hasattr(self, 'dontcall'):
-            (branch, tick) = self.character.worldview.time
-            for fun in self.character.on_del_thing_item:
-                fun(self, k, branch, tick)
 
     @property
     def container(self):
@@ -519,20 +510,6 @@ class Place(ThingPlace):
         else:
             return super(Place, self).__getitem__(key)
 
-    def __setitem__(self, k, v):
-        super().__setitem__(k, v)
-        if not hasattr(self, 'dontcall'):
-            (branch, tick) = self.character.worldview.time
-            for fun in self.character.on_set_place_item:
-                fun(self, k, v, branch, tick)
-
-    def __delitem__(self, k):
-        super().__delitem__(k)
-        if not hasattr(self, 'dontcall'):
-            (branch, tick) = self.character.worldview.time
-            for fun in self.character.on_del_place_item:
-                fun(self, k, branch, tick)
-
 
 class Portal(GraphEdgeMapping.Edge):
     """Connection between two Places that Things may travel along.
@@ -593,17 +570,6 @@ class Portal(GraphEdgeMapping.Edge):
             except KeyError:
                 pass
         super().__setitem__(key, value)
-        if not hasattr(self, 'dontcall'):
-            (branch, tick) = self.character.worldview.time
-            for fun in self.character.on_set_portal_item:
-                fun(self, key, value, branch, tick)
-
-    def __delitem__(self, k):
-        super().__delitem__(k)
-        if not hasattr(self, 'dontcall'):
-            (branch, tick) = self.character.worldview.time
-            for fun in self.on_del_portal_item:
-                fun(self, k, branch, tick)
 
     @property
     def origin(self):
@@ -747,20 +713,12 @@ class CharacterThingMapping(MutableMapping):
 
     def __setitem__(self, thing, val):
         th = Thing(self.character, thing)
-        th.dontcall = True
         th.clear()
         th.exists = True
         th.update(val)
-        del th.dontcall
-        (branch, tick) = self.character.worldview.time
-        for fun in self.character.on_set_thing:
-            fun(thing, val, branch, tick)
 
     def __delitem__(self, thing):
         Thing(self.character, thing).clear()
-        (branch, tick) = self.character.worldview.time
-        for fun in self.character.on_del_thing:
-            fun(thing, branch, tick)
 
     def __repr__(self):
         return repr(dict(self))
@@ -814,20 +772,12 @@ class CharacterPlaceMapping(MutableMapping):
 
     def __setitem__(self, place, v):
         pl = Place(self.character, place)
-        pl.dontcall = True
         pl.clear()
         pl.exists = True
         pl.update(v)
-        del pl.dontcall
-        (branch, tick) = self.character.worldview.time
-        for fun in self.character.on_set_place:
-            fun(place, v, branch, tick)
 
     def __delitem__(self, place):
         Place(self.character, place).clear()
-        (branch, tick) = self.character.worldview.time
-        for fun in self.character.on_del_place:
-            fun(place, branch, tick)
 
     def __repr__(self):
         return repr(dict(self))
@@ -840,20 +790,9 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping):
 
         def __setitem__(self, nodeB, value):
             p = Portal(self.graph, self.nodeA, nodeB)
-            p.dontcall = True
             p.clear()
             p.exists = True
             p.update(value)
-            del p.dontcall
-            (branch, tick) = self.graph.worldview.time
-            for fun in self.graph.on_set_portal:
-                fun(self.nodeA, nodeB, value, branch, tick)
-
-        def __delitem__(self, nodeB):
-            super().__delitem__(nodeB)
-            (branch, tick) = self.graph.worldview.time
-            for fun in self.graph.on_del_portal:
-                fun(self.nodeA, nodeB, branch, tick)
 
 
 class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping):
@@ -863,14 +802,9 @@ class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping):
 
         def __setitem__(self, nodeA, value):
             p = Portal(self.graph, nodeA, self.nodeB)
-            p.dontcall = True
             p.clear()
             p.exists = True
             p.update(value)
-            del p.dontcall
-            (branch, tick) = self.graph.worldview.time
-            for fun in self.graph.on_set_portal:
-                fun(nodeA, self.nodeB, value, branch, tick)
 
         def __delitem__(self, nodeA):
             super().__delitem__(nodeA)
@@ -1298,25 +1232,13 @@ class Character(DiGraph):
     contained by whatever it's located in.
 
     """
-    def __init__(self, worldview, name, on_set_thing=[], on_del_thing=[], on_set_thing_item=[], on_del_thing_item=[], on_set_place=[], on_del_place=[], on_set_place_item=[], on_del_place_item=[], on_set_portal=[], on_del_portal=[], on_set_portal_item=[], on_del_portal_item=[]):
+    def __init__(self, worldview, name):
         """Store worldview and name, and set up mappings for Thing, Place, and
         Portal
 
         """
         super(Character, self).__init__(worldview.gorm, name)
         self.worldview = worldview
-        self.on_set_place = on_set_place
-        self.on_del_place = on_del_place
-        self.on_set_place_item = on_set_place_item
-        self.on_del_place_item = on_del_place_item
-        self.on_set_thing = on_set_thing
-        self.on_del_thing = on_del_thing
-        self.on_set_thing_item = on_set_thing_item
-        self.on_del_thing_item = on_del_thing_item
-        self.on_set_portal = on_set_portal
-        self.on_del_portal = on_del_portal
-        self.on_set_portal_item = on_set_portal_item
-        self.on_del_portal_item = on_del_portal_item
         self.thing = CharacterThingMapping(self)
         self.place = CharacterPlaceMapping(self)
         self.portal = CharacterPortalSuccessorsMapping(self)
