@@ -1219,7 +1219,6 @@ class CharacterAvatarGraphMapping(Mapping):
             return repr(d)
 
 
-
 class Character(DiGraph):
     """A graph that follows game rules and has a containment hierarchy.
 
@@ -1232,12 +1231,12 @@ class Character(DiGraph):
     contained by whatever it's located in.
 
     """
-    def __init__(self, worldview, name):
+    def __init__(self, worldview, name, data=None, **attr):
         """Store worldview and name, and set up mappings for Thing, Place, and
         Portal
 
         """
-        super(Character, self).__init__(worldview.gorm, name)
+        super().__init__(worldview.gorm, name, data=None, **attr)
         self.worldview = worldview
         self.thing = CharacterThingMapping(self)
         self.place = CharacterPlaceMapping(self)
@@ -1347,3 +1346,22 @@ class Character(DiGraph):
                 True
             )
         )
+
+    def copy(self):
+        return TransientCharacter(self.name, data=self)
+
+
+class TransientCharacter(Character):
+    """This is just a Character that uses a private in-memory database
+    rather than the database you save game-state to.
+
+    """
+    def __init__(self, name, data=None, **attr):
+        """Create a new temporary database and initialize as for Character
+        with it.
+
+        """
+        wv = Worldview(connect(":memory:"))
+        wv.initdb()
+        wv.add_character(name)
+        super().__init__(wv, name, data, attr)
