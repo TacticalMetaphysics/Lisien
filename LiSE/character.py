@@ -1556,8 +1556,8 @@ class SenseCharacterMapping(Mapping):
             test = self.fun(self.engine, self.observer, char)
             if test is None:  # The sense does not apply to the char
                 continue
-            elif not isinstance(test, TransientCharacter):
-                raise TypeError("Sense function did not return TransientCharacter")
+            elif not isinstance(test, CharacterImage):
+                raise TypeError("Sense function did not return CharacterImage")
             else:
                 yield char.name
 
@@ -1567,7 +1567,7 @@ class SenseCharacterMapping(Mapping):
     def __getitem__(self, name):
         observed = self.engine.character[name]
         r = self.fun(self.engine, self.observer, observed)
-        if not isinstance(r, TransientCharacter):
+        if not isinstance(r, CharacterImage):
             raise TypeError("Sense function did not return TransientCharacter")
         return r
 

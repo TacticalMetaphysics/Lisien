@@ -467,6 +467,15 @@ class ORM(object):
                 "FOREIGN KEY(character) REFERENCES graphs(graph), "
                 "FOREIGN KEY(rule) REFERENCES rules(rule))"
                 ";",
+                "CREATE TABLE senses ("
+                "character TEXT NOT NULL DEFAULT '', "  
+                # empty string means every character has this sense
+                "sense TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "active BOOLEAN NOT NULL DEFAULT 1, "
+                "PRIMARY KEY(character, sense, branch, tick))"
+                ";",
                 listener.format("branch_listeners"),
                 listener.format("tick_listeners"),
                 listener.format("time_listeners")
