@@ -432,11 +432,12 @@ class ORM(object):
     def initdb(self):
         listener = (
             "CREATE TABLE {} ("
-            "action TEXT NOT NULL, "
+            "rule TEXT NOT NULL, "
             "branch TEXT NOT NULL DEFAULT 'master', "
             "tick INTEGER NOT NULL DEFAULT 0, "
             "active BOOLEAN NOT NULL DEFAULT 1, "
-            "PRIMARY KEY(action, branch, tick))"
+            "PRIMARY KEY(rule, branch, tick), "
+            "FOREIGN KEY(rule) REFERENCES rules(rule))"
             ";"
         )
 

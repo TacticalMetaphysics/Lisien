@@ -1,9 +1,10 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 """Object relational mapper that serves Characters."""
-from collections import Mapping
+from collections import Mapping, Callable
 from sqlite3 import connect, OperationalError
 from .orm import ORM
+from .rule import Rule
 
 class Listeners(Mapping):
     """Mapping and decorator for the functions that listen to the time"""
@@ -12,49 +13,58 @@ class Listeners(Mapping):
         self.orm = orm
         self.tabn = tabn
 
-    def __call__(self, fun):
+    def __call__(self, v):
         """Store the function and activate it for the present (branch, tick)
 
         """
-        funn = self.orm.function(fun)
+        if isinstance(v, Rule):
+            self._activate_rule(v)
+        elif isinstance(v, Callable):
+            vname = self.orm.function(v)
+            self._activate_rule(
+                Rule(
+                    self.orm,
+                    vname,
+                    actions=[vname]
+                )
+            )
+        else:
+            self._activate_rule(Rule(self.orm, vname))
+
+    def _activate_rule(self, rule):
         (branch, tick) = self.orm.time
         self.orm.cursor.execute(
             "DELETE FROM {tab} WHERE "
             "branch=? AND "
             "tick=? AND "
-            "action=?;".format(
+            "rule=?;".format(
                 tab=self.tabn
             ),
             (
                 branch,
                 tick,
-                funn
+                rule.name
             )
         )
         self.orm.cursor.execute(
-            "INSERT INTO {tab} (action, branch, tick) "
-            "VALUES (?, ?, ?);".format(
+            "INSERT INTO {tab} (rule, branch, tick, active) VALUES (?, ?, ?, 1);".format(
                 tab=self.tabn
             ),
-            (
-                funn,
-                branch,
-                tick
-            )
+            (rule.name, branch, tick)
         )
 
     def __iter__(self):
-        """Iterate over the names of active functions"""
+        """Iterate over the names of active rules"""
         r = set()
         seen = set()
         for (branch, tick) in self.orm._active_branches():
             self.orm.cursor.execute(
-                "SELECT {tab}.action, {tab}.active FROM {tab} JOIN ("
-                "SELECT action, branch, MAX(tick) AS tick FROM {tab} "
+                "SELECT {tab}.rule, {tab}.active FROM {tab} JOIN ("
+                "SELECT rule, branch, MAX(tick) AS tick FROM {tab} "
                 "WHERE branch=? "
                 "AND tick<=? "
-                "GROUP BY action, branch) AS hitick "
-                "ON {tab}.action=hitick.action "
+                "GROUP BY rule, branch) AS hitick "
+                "ON {tab}.rule=hitick.rule "
                 "AND {tab}.branch=hitick.branch "
                 "AND {tab}.tick=hitick.tick;".format(
                     tab=self.tabn
@@ -64,24 +74,24 @@ class Listeners(Mapping):
                     tick
                 )
             )
-            for (action, active) in self.orm.cursor.fetchall():
-                if active and action not in seen:
-                    r.add(action)
+            for (rule, active) in self.orm.cursor.fetchall():
+                if active and rule not in seen:
+                    r.add(rule)
         for a in sorted(r):
             yield a
 
     def __len__(self):
-        """Number of functions active in this table presently"""
+        """Number of rules active in this table presently"""
         n = 0
         seen = set()
         for (branch, tick) in self.orm._active_branches():
             self.orm.cursor.execute(
-                "SELECT {tab}.action, {tab}.active FROM {tab} JOIN ("
-                "SELECT action, branch, MAX(tick) AS tick "
+                "SELECT {tab}.rule, {tab}.active FROM {tab} JOIN ("
+                "SELECT rule, branch, MAX(tick) AS tick "
                 "FROM {tab} WHERE "
                 "branch=? AND "
-                "tick<=? GROUP BY action, branch) AS hitick "
-                "ON {tab}.action=hitick.action "
+                "tick<=? GROUP BY rule, branch) AS hitick "
+                "ON {tab}.rule=hitick.rule "
                 "AND {tab}.branch=hitick.branch "
                 "AND {tab}.tick=hitick.tick;".format(
                     tab=self.tabn
@@ -91,32 +101,32 @@ class Listeners(Mapping):
                     tick
                 )
             )
-            for (action, active) in self.orm.cursor.fetchall():
-                if active and action not in seen:
+            for (rule, active) in self.orm.cursor.fetchall():
+                if active and rule not in seen:
                     n += 1
-                seen.add(action)
+                seen.add(rule)
         return n
 
-    def __getitem__(self, actn):
-        """Return the function by the given name if it's active at the
+    def __getitem__(self, rulen):
+        """Return the rule by the given name if it's active at the
         moment
 
         """
         for (branch, tick) in self.orm._active_branches():
             self.orm.cursor.execute(
                 "SELECT {tab}.active FROM {tab} JOIN ("
-                "SELECT action, branch, MAX(tick) AS tick "
+                "SELECT rule, branch, MAX(tick) AS tick "
                 "FROM {tab} WHERE "
-                "action=? AND "
+                "rule=? AND "
                 "branch=? AND "
                 "tick<=? GROUP BY action, branch) AS hitick "
-                "ON {tab}.action=hitick.action "
+                "ON {tab}.rulehitick.rule "
                 "AND {tab}.branch=hitick.branch "
                 "AND {tab}.tick=hitick.tick;".format(
                     tab=self.tabn
                 ),
                 (
-                    actn,
+                    rulen,
                     branch,
                     tick
                 )
@@ -129,30 +139,30 @@ class Listeners(Mapping):
             else:
                 active = data[0][0]
                 if active:
-                    return self.orm.getfun(actn)
+                    return Rule(self.orm, rulen)
                 else:
-                    raise KeyError("Listener {} disabled".format(actn))
-        raise KeyError("Listener {} doesn't exist".format(actn))
+                    raise KeyError("Listener {} disabled".format(rulen))
+        raise KeyError("Listener {} doesn't exist".format(rulen))
 
-    def __delitem__(self, actn):
-        """Deactivate the function by the given name"""
+    def __delitem__(self, rulen):
+        """Deactivate the rule by the given name"""
         (branch, tick) = self.orm.time
         self.orm.cursor.execute(
             "DELETE FROM {tab} WHERE "
-            "action=? AND "
+            "rule=? AND "
             "branch=? AND "
             "tick=?;".format(tab=self.tabn),
             (
-                actn,
+                rulen,
                 branch,
                 tick
             )
         )
         self.orm.cursor.execute(
-            "INSERT INTO {tab} (action, branch, tick, active) "
+            "INSERT INTO {tab} (rule, branch, tick, active) "
             "VALUES (?, ?, ?, ?);",
             (
-                actn,
+                rulen,
                 branch,
                 tick,
                 False
