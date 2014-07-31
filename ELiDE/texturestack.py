@@ -165,7 +165,10 @@ class ImageStack(TextureStack):
             super().insert(i, v)
 
     def append(self, v):
-        self.paths.append(v)
+        if isinstance(v, str):
+            self.paths.append(v)
+        else:
+            super().append(v)
 
     def __delitem__(self, i):
         super().__delitem__(i)
