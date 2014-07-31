@@ -6,8 +6,8 @@ from collections import (
     MutableMapping,
     Callable
 )
-from networkx import shortest_path
-from sqlite3 import connect
+import networkx as nx
+from sqlite3 import connect, IntegrityError
 from gorm.graph import (
     DiGraph,
     GraphNodeMapping,
@@ -17,7 +17,6 @@ from gorm.graph import (
 )
 from LiSE.util import path_len
 from LiSE.rule import Rule
-from LiSE.orm import Worldview
 
 
 class TravelException(Exception):
@@ -47,6 +46,107 @@ class TravelException(Exception):
         super().__init__(message)
 
 
+class EntityImage(dict):
+    def __init__(self, character, entity, branch, tick):
+        self.character = character
+        self.orig = entity
+        self.name = entity.name
+        self.branch = branch
+        self.tick = tick
+        self.time = (branch, tick)
+        self.update(entity)
+
+    def _copy(self, obj):
+        if isinstance(obj, Thing):
+            return ThingImage(self.character, obj, self.branch, self.tick)
+        elif isinstance(obj, Place):
+            return PlaceImage(self.character, obj, self.branch, self.tick)
+        elif isinstance(obj, Portal):
+            return PortalImage(self.character, obj, self.branch, self.tick)
+        elif obj is None:
+            return None
+        else:
+            return obj.copy()
+
+
+class PlaceImage(EntityImage):
+    def __init__(self, character, thingplace, branch, tick):
+        super().__init__(character, thingplace, branch, tick)
+        if isinstance(character, Character):
+            self.portals = [self._copy(port) for port in thingplace.portals()]
+            self.preportals = [self._copy(port) for port in thingplace.preportals()]
+
+
+class ThingImage(PlaceImage):
+    """How a Thing appeared at a given game-time"""
+    def __init__(self, character, thing, branch, tick):
+        super().__init__(character, thing, branch, tick)
+        if isinstance(character, Character):
+            self.container = self._copy(thing.container)
+            self.location = self._copy(thing.location)
+            self.next_location = self._copy(thing.next_location)
+
+
+class PortalImage(EntityImage):
+    def __init__(self, character, portal, branch, tick):
+        super().__init__(character, portal, branch, tick)
+        if isinstance(character, Character):
+            self.origin = self._copy(portal.origin)
+            self.destination = self._copy(portal.destination)
+            self.reciprocal = self._copy(portal.reciprocal)
+
+
+class CharacterImage(nx.DiGraph):
+    def __init__(self, character, branch, tick):
+        super().__init__(self, data=character)
+        self.branch = branch
+        self.tick = tick
+        self.character = character
+        self.place = {}
+        for place in character.place.values():
+            pli = PlaceImage(self, place, branch, tick)
+            pli.contents = []
+        self.portal = {}
+        self.preportal = {}
+        for o in character.portal:
+            if o not in self.portal:
+                self.portal[o] = {}
+            for (d, portal) in character.portal[o].items():
+                if d not in self.preportal:
+                    self.preportal[d] = {}
+                cp = PortalImage(self, portal, branch, tick)
+                cp.origin = self.place[portal['origin']]
+                cp.destination = self.place[portal['destination']]
+                cp.contents = []
+                self.portal[o][d] = cp
+                self.preportal[d][o] = cp
+        self.thing = {}
+        for thing in character.thing.values():
+            thi = ThingImage(self, thing, branch, tick)
+            (locn1, locn2) = thing['locations']
+            thi.contents = []
+            self.thing[thing.name] = thi
+        for thi in self.thing.values():
+            if thi['location'] in self.place:
+                thi.location = self.place[thi['location']]
+            elif thi['location'] in self.thing:
+                thi.location = self.thing[thi['location']]
+            else:
+                raise ValueError("Invalid location for thing")
+            if thi['next_location'] is None:
+                thi.next_location = None
+                thi.container = thi.location
+            elif thi['next_location'] in self.place:
+                thi.next_location = self.place['next_location']
+                thi.container = self.portal[thi['location']][thi['next_location']]
+            elif thi['location'] in self.thing:
+                thi.next_location = self.thing['next_location']
+                thi.container = self.portal[thi['location']][thi['next_location']]
+            else:
+                raise ValueError("Invalid next_location for thing")
+            thi.container.contents.append(thi)
+
+
 class ThingPlace(GraphNodeMapping.Node):
     def __getitem__(self, name):
         """For when I'm the only avatar in a Character, and so you don't need
@@ -55,8 +155,6 @@ class ThingPlace(GraphNodeMapping.Node):
         """
         if name == self.name:
             return self
-        elif name == "exists":
-            return self.exists
         return super().__getitem__(name)
 
     def __setitem__(self, k, v):
@@ -64,12 +162,9 @@ class ThingPlace(GraphNodeMapping.Node):
             raise KeyError("Can't set name")
         elif k == "character":
             raise KeyError("Can't set character")
-        elif k == "exists":
-            self.exists = v
         super().__setitem__(k, v)
 
     def _contents_names(self):
-        r = set()
         things_seen = set()
         for (branch, tick) in self.gorm._active_branches():
             self.gorm.cursor.execute(
@@ -93,14 +188,78 @@ class ThingPlace(GraphNodeMapping.Node):
             )
             for (thing,) in self.gorm.cursor.fetchall():
                 if thing not in things_seen:
-                    r.add(thing)
+                    yield thing
                 things_seen.add(thing)
-        return r
+
+    def _portal_dests(self):
+        seen = set()
+        for (branch, tick) in self.gorm._active_branches():
+            self.gorm.cursor.execute(
+                "SELECT edges.nodeB, edges.extant FROM edges JOIN "
+                "(SELECT graph, nodeA, nodeB, idx, branch, MAX(rev) AS rev FROM edges "
+                "WHERE graph=? "
+                "AND nodeA=? "
+                "AND branch=? "
+                "AND rev<=? "
+                "GROUP BY graph, nodeA, nodeB, idx, branch) AS hirev "
+                "ON edges.graph=hirev.graph "
+                "AND edges.nodeA=hirev.nodeA "
+                "AND edges.nodeB=hirev.nodeB "
+                "AND edges.idx=hirev.idx "
+                "AND edges.branch=hirev.branch "
+                "AND edges.rev=hirev.rev;",
+                (
+                    self.character.name,
+                    self.name,
+                    branch,
+                    tick
+                )
+            )
+            for (dest, exists) in self.gorm.cursor.fetchall():
+                if exists and dest not in seen:
+                    yield dest
+                seen.add(dest)
+
+    def _portal_origs(self):
+        seen = set()
+        for (branch, tick) in self.gorm._active_branches():
+            self.gorm.cursor.execute(
+                "SELECT edges.nodeA, edges.extant FROM edges JOIN "
+                "(SELECT graph, nodeA, nodeB, idx, branch, MAX(rev) AS rev FROM edges "
+                "WHERE graph=? "
+                "AND nodeB=? "
+                "AND branch=? "
+                "AND rev<=? "
+                "GROUP BY graph, nodeA, nodeB, idx, branch) AS hirev "
+                "ON edges.graph=hirev.graph "
+                "AND edges.nodeA=hirev.nodeA "
+                "AND edges.nodeB=hirev.nodeB "
+                "AND edges.idx=hirev.idx "
+                "AND edges.rev=hirev.rev;",
+                (
+                    self.character.name,
+                    self.name,
+                    branch,
+                    tick
+                )
+            )
+            for (orig, exists) in self.gorm.cursor.fetchall():
+                if exists and orig not in seen:
+                    yield orig
+                seen.add(orig)
 
     def contents(self):
         """Iterate over the Things that are located here."""
         for thingn in self._contents_names():
             yield self.character.thing[thingn]
+
+    def portals(self):
+        for destn in self._portal_dests():
+            yield self.character.portal[self.name][destn]
+
+    def preportals(self):
+        for orign in self._portal_origs():
+            yield self.character.preportal[self.name][orign]
 
 
 class Thing(ThingPlace):
@@ -118,7 +277,22 @@ class Thing(ThingPlace):
         self.character = character
         self.worldview = character.worldview
         self.name = name
-        super(Thing, self).__init__(character, name)
+        super().__init__(character, name)
+
+    def __iter__(self):
+        # I'm only going to iterate over *some* of the special keys
+        # implemented in __getitem__, the ones that are also writable
+        # in __setitem__. This is to make it easy to copy a Thing as
+        # though it's an ordinary Node.
+        for extrakey in (
+                'name',
+                'character',
+                'location',
+                'next_location'
+        ):
+            yield extrakey
+        for key in iter(super()):
+            yield key
 
     def __getitem__(self, key):
         """Return one of my attributes stored in the database, with a few special exceptions:
@@ -202,7 +376,7 @@ class Thing(ThingPlace):
         elif key == 'locations':
             return self._loc_and_next()
         else:
-            return super(Thing, self).__getitem__(key)
+            return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         """Set ``key``==``value`` for the present game-time."""
@@ -212,12 +386,16 @@ class Thing(ThingPlace):
             raise ValueError("Can't change characters")
         elif key == 'location':
             self._set_loc_and_next(value, self['next_location'])
+        elif key == 'arrival_time':
+            raise ValueError("Read-only")
         elif key == 'next_location':
             self._set_loc_and_next(self['location'], value)
+        elif key == 'next_arrival_time':
+            raise ValueError("Read-only")
         elif key == 'locations':
             self._set_loc_and_next(*value)
         else:
-            super(Thing, self).__setitem__(key, value)
+            super().__setitem__(key, value)
 
     @property
     def container(self):
@@ -246,7 +424,7 @@ class Thing(ThingPlace):
     @property
     def next_location(self):
         """If I'm not in transit, this is None. If I am, it's where I'm headed."""
-        locn = self['location']
+        locn = self['next_location']
         if not locn:
             return None
         try:
@@ -323,6 +501,10 @@ class Thing(ThingPlace):
                 nextloc
             )
         )
+
+    def copy(self):
+        (branch, tick) = self.worldview.time
+        return ThingImage(self.character, self, branch, tick)
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a Place that has a Portal direct to the given
@@ -451,7 +633,7 @@ class Thing(ThingPlace):
         """
         destn = dest.name if hasattr(dest, 'name') else dest
         graph = self.character if graph is None else graph
-        path = shortest_path(graph, self["location"], destn, weight)
+        path = nx.shortest_path(graph, self["location"], destn, weight)
         return self.follow_path(path, weight)
 
     def travel_to_by(self, dest, arrival_tick, weight='', graph=None):
@@ -472,7 +654,7 @@ class Thing(ThingPlace):
         destn = dest.name if hasattr(dest, 'name') else dest
         graph = self.character if graph is None else graph
         curloc = self["location"]
-        path = shortest_path(graph, curloc, destn, weight)
+        path = nx.shortest_path(graph, curloc, destn, weight)
         travel_time = path_len(graph, path, weight)
         start_tick = arrival_tick - travel_time
         if start_tick <= curtick:
@@ -486,11 +668,12 @@ class Thing(ThingPlace):
         self.character.worldview.tick = curtick
 
 
-class Place(ThingPlace):
+class Place(GraphNodeMapping.Node, ThingPlace):
     """The kind of node where a Thing might ultimately be located."""
     def __init__(self, character, name):
         """Initialize a place in a character by a name"""
         self.character = character
+        self.worldview = character.worldview
         self.name = name
         super(Place, self).__init__(character, name)
 
@@ -510,6 +693,10 @@ class Place(ThingPlace):
         else:
             return super(Place, self).__getitem__(key)
 
+    def copy(self):
+        (branch, tick) = self.worldview.time
+        return PlaceImage(self.character, self, branch, tick)
+
 
 class Portal(GraphEdgeMapping.Edge):
     """Connection between two Places that Things may travel along.
@@ -524,6 +711,7 @@ class Portal(GraphEdgeMapping.Edge):
         self._origin = origin
         self._destination = destination
         self.character = character
+        self.worldview = character.worldview
         super().__init__(character, self._origin, self._destination)
 
     def __getitem__(self, key):
@@ -641,6 +829,10 @@ class Portal(GraphEdgeMapping.Edge):
         for (k, v) in d.items():
             if self[k] != v:
                 self[k] = v
+
+    def copy(self):
+        (branch, tick) = self.worldview.time
+        return PortalImage(self.character, self, branch, tick)
 
 
 class CharacterThingMapping(MutableMapping):
@@ -806,14 +998,8 @@ class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping):
             p.exists = True
             p.update(value)
 
-        def __delitem__(self, nodeA):
-            super().__delitem__(nodeA)
-            (branch, tick) = self.graph.worldview.time
-            for fun in self.graph.on_del_portal:
-                fun(nodeA, self.nodeB, branch, tick)
 
-
-class CharRules(Mapping):
+class CharRules(MutableMapping):
     """Maps rule names to rules the Character is following, and is also a
     decorator to create said rules from action functions.
 
@@ -925,6 +1111,12 @@ class CharRules(Mapping):
                     raise KeyError("No such rule at the moment")
                 return Rule(self.orm, rulen)
         raise KeyError("No such rule, ever")
+
+    def __setitem__(self, k, v):
+        oldn = v.__name__
+        v.__name__ = k
+        self(v)
+        v.__name__ = oldn
 
     def __getattr__(self, attrn):
         """For easy use with decorators, allow accessing my contents like
@@ -1347,21 +1539,142 @@ class Character(DiGraph):
             )
         )
 
-    def copy(self):
-        return TransientCharacter(self.name, data=self)
+
+class SenseCharacterMapping(Mapping):
+    def __init__(self, container, sensename):
+        self.container = container
+        self.engine = self.container.engine
+        self.sensename = sensename
+        self.observer = self.container.character
+
+    @property
+    def fun(self):
+        return self.engine.function[self.sensename]
+
+    def __iter__(self):
+        for char in self.engine.character.values():
+            test = self.fun(self.engine, self.observer, char)
+            if test is None:  # The sense does not apply to the char
+                continue
+            elif not isinstance(test, TransientCharacter):
+                raise TypeError("Sense function did not return TransientCharacter")
+            else:
+                yield char.name
+
+    def __len__(self):
+        return len(self.engine.character)
+
+    def __getitem__(self, name):
+        observed = self.engine.character[name]
+        r = self.fun(self.engine, self.observer, observed)
+        if not isinstance(r, TransientCharacter):
+            raise TypeError("Sense function did not return TransientCharacter")
+        return r
 
 
-class TransientCharacter(Character):
-    """This is just a Character that uses a private in-memory database
-    rather than the database you save game-state to.
+class CharacterSenseMapping(MutableMapping, Callable):
+    """Used to view other Characters as seen by one, via a particular sense"""
+    def __init__(self, engine, character):
+        self.engine = engine
+        self.character = character
 
-    """
-    def __init__(self, name, data=None, **attr):
-        """Create a new temporary database and initialize as for Character
-        with it.
+    def __iter__(self):
+        seen = set()
+        for (branch, tick) in self.engine._active_branches():
+            self.engine.cursor.execute(
+                "SELECT sense, active FROM senses JOIN ("
+                "SELECT character, sense, branch, MAX(tick) AS tick "
+                "FROM senses WHERE "
+                "(character='' OR character=?) "
+                "AND branch=? "
+                "AND tick<=? "
+                "GROUP BY character, sense, branch) AS hitick "
+                "ON senses.character=hitick.character "
+                "AND senses.sense=hitick.sense "
+                "AND senses.branch=hitick.branch "
+                "AND senses.tick=hitick.tick;",
+                (
+                    self.character.name,
+                    branch,
+                    tick
+                )
+            )
+            for (sense, active) in self.engine.cursor.fetchall():
+                if active and sense not in seen:
+                    yield sense
+                seen.add(sense)
 
-        """
-        wv = Worldview(connect(":memory:"))
-        wv.initdb()
-        wv.add_character(name)
-        super().__init__(wv, name, data, attr)
+    def __len__(self):
+        n = 0
+        for sense in iter(self):
+            n += 1
+        return n
+
+    def __getitem__(self, k):
+        for (branch, tick) in self.engine._active_branches():
+            self.engine.cursor.execute(
+                "SELECT active FROM senses JOIN ("
+                "SELECT character, sense, branch, MAX(tick) AS tick "
+                "FROM senses WHERE "
+                "character IN ('', ?) "
+                "AND sense=? "
+                "AND branch=? "
+                "AND tick<=? "
+                "GROUP BY character, sense, branch) AS hitick "
+                "ON senses.character=hitick.character "
+                "AND senses.sense=hitick.sense "
+                "AND senses.branch=hitick.branch "
+                "AND senses.tick=hitick.tick;",
+                (
+                    self.character.name,
+                    k,
+                    branch,
+                    tick
+                )
+            )
+            data = self.engine.cursor.fetchall()
+            if len(data) == 0:
+                continue
+            elif len(data) > 1:
+                raise ValueError("Silly data in senses table")
+            else:
+                return SenseCharacterMapping(self, k)
+        raise KeyError("Sense isn't active or doesn't exist")
+
+    def __setitem__(self, k, v):
+        v.__name__ = k
+        self(v)
+
+    def __delitem__(self, k):
+        (branch, tick) = self.engine.time
+        self.engine.cursor.execute(
+            "INSERT INTO senses "
+            "(character, sense, branch, tick, active) "
+            "VALUES "
+            "(?, ?, ?, ?, 0);",
+            (
+                self.character.name,
+                k,
+                branch,
+                tick
+            )
+        )
+
+    def __call__(self, fun):
+        funn = self.engine.function(fun)
+        (branch, tick) = self.engine.time
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO senses "
+                "(character, sense, branch, tick, active) "
+                "VALUES "
+                "(?, ?, ?, ?, 1);",
+                (
+                    self.character.name,
+                    funn,
+                    branch,
+                    tick
+                )
+            )
+        except IntegrityError:
+            raise ValueError("Looks like this character already has that sense?")
