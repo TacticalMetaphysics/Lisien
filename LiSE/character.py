@@ -4,10 +4,11 @@
 from collections import (
     Mapping,
     MutableMapping,
+    MutableSequence,
     Callable
 )
 import networkx as nx
-from sqlite3 import connect, IntegrityError
+from sqlite3 import IntegrityError
 from gorm.graph import (
     DiGraph,
     GraphNodeMapping,
@@ -519,6 +520,16 @@ class Thing(ThingPlace):
             placen = place.name
         else:
             placen = place
+        for fun in self.character.travel_req:
+            if not fun(self.name, placen):
+                (branch, tick) = self.worldview.time
+                raise TravelException(
+                    "{} cannot travel through {}".format(self.name, placen),
+                    traveller=self,
+                    branch=branch,
+                    tick=tick,
+                    lastplace=self.location
+                )
         curloc = self["location"]
         orm = self.character.worldview
         curtick = orm.tick

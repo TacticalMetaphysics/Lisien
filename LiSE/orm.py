@@ -2,16 +2,18 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 """Object relational mapper that serves Characters and Rules."""
-from collections import Mapping, MutableMapping
+from collections import Mapping, MutableMapping, Callable
 from sqlite3 import connect, OperationalError, IntegrityError
 from marshal import dumps as marshalled
 from marshal import loads as unmarshalled
 from types import FunctionType
 from gorm import ORM as gORM
 from LiSE.rule import Rule
+from LiSE.funlist import FunList
 from LiSE.character import (
     Character,
-    CharRules
+    CharRules,
+    CharacterSenseMapping
 )
 
 class GlobalVarMapping(MutableMapping):
@@ -474,7 +476,17 @@ class ORM(object):
                 "branch TEXT NOT NULL DEFAULT 'master', "
                 "tick INTEGER NOT NULL DEFAULT 0, "
                 "active BOOLEAN NOT NULL DEFAULT 1, "
-                "PRIMARY KEY(character, sense, branch, tick))"
+                "PRIMARY KEY(character, sense, branch, tick),"
+                "FOREIGN KEY(character) REFERENCES graphs(graph))"
+                ";",
+                "CREATE TABLE travel_reqs ("
+                "character TEXT NOT NULL DEFAULT '', "
+                # empty string means these are required of every character
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "reqs TEXT NOT NULL DEFAULT '[]', "
+                "PRIMARY KEY(character, branch, tick), "
+                "FOREIGN KEY(character) REFERENCES graphs(graph))"
                 ";",
                 listener.format("branch_listeners"),
                 listener.format("tick_listeners"),
@@ -599,4 +611,7 @@ class ORM(object):
 
     def _wrap_character(self, character):
         character.rule = CharRules(self, character)
+        character.sense = CharacterSenseMapping(self, character)
+        character.travel_reqs = FunList(self, 'travel_reqs', ['character'], [character.name], 'reqs')
+        character.travel_req = lambda fun: character.travel_reqs.append(fun)
         return character
