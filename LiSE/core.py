@@ -1,4 +1,3 @@
-# coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 """Object relational mapper that serves Characters."""
@@ -160,7 +159,7 @@ class Listeners(Mapping):
             )
         )
 
-class LiSE(object):
+class Engine(object):
     def __init__(self, world_filename, code_filename, gettext=lambda s: s):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction

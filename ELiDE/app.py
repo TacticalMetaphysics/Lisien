@@ -388,7 +388,7 @@ class ELiDEApp(App):
         """Make sure I can use the database, create the tables as needed, and
         return the root widget."""
         config = self.config
-        self.engine = LiSE.LiSE(
+        self.engine = LiSE.Engine(
             world_filename=config['LiSE']['world'],
             code_filename=config['LiSE']['code'],
             gettext=gettext.translation(
