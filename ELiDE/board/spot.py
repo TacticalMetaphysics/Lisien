@@ -28,6 +28,7 @@ class Spot(ImageStack):
     def __init__(self, **kwargs):
         self._trigger_move_to_touch = Clock.create_trigger(self._move_to_touch)
         self._trigger_upd_pawns_here = Clock.create_trigger(self._upd_pawns_here)
+        kwargs['size_hint'] = (None, None)
         super().__init__(**kwargs)
         self.board.spot[self.place.name] = self
         self.bind(
@@ -72,12 +73,16 @@ class Spot(ImageStack):
         for pawn in self.pawns_here:
             pawn.pos = self.center
 
+    def collide_point(self, x, y):
+        return super().collide_point(*self.parent.to_local(x, y))
+
     def on_touch_down(self, touch):
         if (
                 not self.collide_point(*touch.pos)
                 or 'spot' in touch.ud
         ):
             return
+        print("touch at {} hit spot of size {} at {}".format(touch.pos, self.size, self.pos))
         touch.grab(self)
         touch.ud['spot'] = self
         self._touch = touch
@@ -96,7 +101,7 @@ class Spot(ImageStack):
 
     def _move_to_touch(self, *args):
         if self._touch:
-            self.center = self.board.parent.to_local(*self._touch.pos)
+            self.center = self._touch.pos
 
     def on_touch_up(self, touch):
         if self._touch:
