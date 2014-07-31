@@ -14,6 +14,18 @@ from .arrow import Arrow
 from .pawn import Pawn
 
 
+class BoardLayout(FloatLayout):
+    def on_touch_down(self, touch):
+        for child in self.children:
+            if child.on_touch_down(touch):
+                return child
+
+    def on_touch_up(self, touch):
+        for child in self.children:
+            if child.on_touch_up(touch):
+                return child
+
+
 class Board(RelativeLayout):
     """A graphical view onto a facade, resembling a game board."""
     character = ObjectProperty()
@@ -150,30 +162,50 @@ class Board(RelativeLayout):
             return
         self.size = self.wallpaper.size = self.wallpaper.texture.size
         self.add_widget(self.wallpaper)
-        self.arrowlayout = FloatLayout(
+        self.arrowlayout = BoardLayout(
             pos=self.wallpaper.pos,
             size=self.wallpaper.size
         )
         self.add_widget(self.arrowlayout)
-        self.spotlayout = FloatLayout(
+        self.spotlayout = BoardLayout(
             pos=self.wallpaper.pos,
             size=self.wallpaper.size
         )
         self.add_widget(self.spotlayout)
-        self.pawnlayout = FloatLayout(
+        self.pawnlayout = BoardLayout(
             pos=self.wallpaper.pos,
             size=self.wallpaper.size
         )
         self.add_widget(self.pawnlayout)
 
         for layout in (self.arrowlayout, self.spotlayout, self.pawnlayout):
-            self.wallpaper.bind(pos=layout.setter('pos'))
+            self.wallpaper.bind(
+                pos=layout.setter('pos'),
+                size=layout.setter('size')
+            )
 
         self.finalized = True
 
 
     def __repr__(self):
         return "Board({})".format(repr(self.character))
+
+    def on_touch_down(self, touch):
+        touch.push()
+        touch.apply_transform_2d(self.parent.to_local)
+        r = self.pawnlayout.on_touch_down(touch)
+        if r:
+            touch.pop()
+            return r
+        r = self.spotlayout.on_touch_down(touch)
+        if r:
+            touch.pop()
+            return r
+        r = self.arrowlayout.on_touch_down(touch)
+        if r:
+            touch.pop()
+            return r
+        return super().on_touch_down(touch)
 
     def on_touch_up(self, touch):
         touch.push()
