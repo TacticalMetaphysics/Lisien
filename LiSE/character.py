@@ -1554,17 +1554,17 @@ class Character(DiGraph):
 class SenseCharacterMapping(Mapping):
     def __init__(self, container, sensename):
         self.container = container
-        self.engine = self.container.engine
+        self.orm = self.container.orm
         self.sensename = sensename
         self.observer = self.container.character
 
     @property
     def fun(self):
-        return self.engine.function[self.sensename]
+        return self.orm.function[self.sensename]
 
     def __iter__(self):
-        for char in self.engine.character.values():
-            test = self.fun(self.engine, self.observer, char)
+        for char in self.orm.character.values():
+            test = self.fun(self.orm, self.observer, char)
             if test is None:  # The sense does not apply to the char
                 continue
             elif not isinstance(test, CharacterImage):
@@ -1573,11 +1573,11 @@ class SenseCharacterMapping(Mapping):
                 yield char.name
 
     def __len__(self):
-        return len(self.engine.character)
+        return len(self.orm.character)
 
     def __getitem__(self, name):
-        observed = self.engine.character[name]
-        r = self.fun(self.engine, self.observer, observed)
+        observed = self.orm.character[name]
+        r = self.fun(self.orm, self.observer, observed)
         if not isinstance(r, CharacterImage):
             raise TypeError("Sense function did not return TransientCharacter")
         return r
@@ -1585,14 +1585,14 @@ class SenseCharacterMapping(Mapping):
 
 class CharacterSenseMapping(MutableMapping, Callable):
     """Used to view other Characters as seen by one, via a particular sense"""
-    def __init__(self, engine, character):
-        self.engine = engine
+    def __init__(self, orm, character):
+        self.orm = orm
         self.character = character
 
     def __iter__(self):
         seen = set()
-        for (branch, tick) in self.engine._active_branches():
-            self.engine.cursor.execute(
+        for (branch, tick) in self.orm._active_branches():
+            self.orm.cursor.execute(
                 "SELECT sense, active FROM senses JOIN ("
                 "SELECT character, sense, branch, MAX(tick) AS tick "
                 "FROM senses WHERE "
@@ -1610,7 +1610,7 @@ class CharacterSenseMapping(MutableMapping, Callable):
                     tick
                 )
             )
-            for (sense, active) in self.engine.cursor.fetchall():
+            for (sense, active) in self.orm.cursor.fetchall():
                 if active and sense not in seen:
                     yield sense
                 seen.add(sense)
@@ -1622,8 +1622,8 @@ class CharacterSenseMapping(MutableMapping, Callable):
         return n
 
     def __getitem__(self, k):
-        for (branch, tick) in self.engine._active_branches():
-            self.engine.cursor.execute(
+        for (branch, tick) in self.orm._active_branches():
+            self.orm.cursor.execute(
                 "SELECT active FROM senses JOIN ("
                 "SELECT character, sense, branch, MAX(tick) AS tick "
                 "FROM senses WHERE "
@@ -1643,7 +1643,7 @@ class CharacterSenseMapping(MutableMapping, Callable):
                     tick
                 )
             )
-            data = self.engine.cursor.fetchall()
+            data = self.orm.cursor.fetchall()
             if len(data) == 0:
                 continue
             elif len(data) > 1:
@@ -1657,8 +1657,8 @@ class CharacterSenseMapping(MutableMapping, Callable):
         self(v)
 
     def __delitem__(self, k):
-        (branch, tick) = self.engine.time
-        self.engine.cursor.execute(
+        (branch, tick) = self.orm.time
+        self.orm.cursor.execute(
             "INSERT INTO senses "
             "(character, sense, branch, tick, active) "
             "VALUES "
@@ -1672,10 +1672,10 @@ class CharacterSenseMapping(MutableMapping, Callable):
         )
 
     def __call__(self, fun):
-        funn = self.engine.function(fun)
-        (branch, tick) = self.engine.time
+        funn = self.orm.function(fun)
+        (branch, tick) = self.orm.time
         try:
-            self.engine.cursor.execute(
+            self.orm.cursor.execute(
                 "INSERT INTO senses "
                 "(character, sense, branch, tick, active) "
                 "VALUES "
