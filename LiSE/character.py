@@ -4,7 +4,6 @@
 from collections import (
     Mapping,
     MutableMapping,
-    MutableSequence,
     Callable
 )
 import networkx as nx
@@ -1454,6 +1453,9 @@ class Character(DiGraph):
         """
         super(Character, self).add_node(name, **kwargs)
 
+    def add_places_from(self, seq):
+        super().add_nodes_from(seq)
+
     def add_thing(self, name, location, next_location=None, **kwargs):
         """Create a Thing, set its location and next_location (if provided),
         and set its initial attributes from the keyword arguments (if
@@ -1462,6 +1464,14 @@ class Character(DiGraph):
         """
         super(Character, self).add_node(name, **kwargs)
         self.place2thing(name, location)
+
+    def add_things_from(self, seq):
+        for tup in seq:
+            name = tup[0]
+            location = tup[1]
+            next_loc = tup[2] if len(tup) > 2 else None
+            kwargs = tup[3] if len(tup) > 3 else {}
+            self.add_thing(name, location, next_loc, **kwargs)
 
     def place2thing(self, name, location, next_location=None):
         """Turn a Place into a Thing with the given location and (if provided)
@@ -1502,23 +1512,35 @@ class Character(DiGraph):
         if 'symmetrical' in kwargs and kwargs['symmetrical']:
             super().add_edge(destination, origin, is_mirror=True)
 
+    def add_portals_from(self, seq, symmetrical=False):
+        for tup in seq:
+            orig = tup[0]
+            dest = tup[1]
+            kwargs = tup[2] if len(tup) > 2 else {}
+            if symmetrical:
+                kwargs['symmetrical'] = True
+            self.add_portal(orig, dest, **kwargs)
+
     def add_avatar(self, name, host, location=None, next_location=None):
         (branch, tick) = self.worldview.time
         if isinstance(host, Character):
             host = host.name
         # This will create the node if it doesn't exist. Otherwise
         # it's redundant but harmless.
-        self.worldview.cursor.execute(
-            "INSERT INTO nodes (graph, node, branch, rev, extant) "
-            "VALUES (?, ?, ?, ?, ?);",
-            (
-                host,
-                name,
-                branch,
-                tick,
-                True
+        try:
+            self.worldview.cursor.execute(
+                "INSERT INTO nodes (graph, node, branch, rev, extant) "
+                "VALUES (?, ?, ?, ?, ?);",
+                (
+                    host,
+                    name,
+                    branch,
+                    tick,
+                    True
+                )
             )
-        )
+        except IntegrityError:
+            pass
         if location:
             # This will convert the node into a Thing if it isn't already
             self.worldview.cursor.execute(
