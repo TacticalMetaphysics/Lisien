@@ -277,6 +277,13 @@ class Engine(object):
             self._rules_iter = self._follow_rules()
             return self.advance()
 
+    def next_tick(self):
+        curtick = self.tick
+        r = []
+        while self.tick == curtick:
+            r.append(self.advance())
+        return r
+
     def add_character(self, name):
         self.orm.add_character(name)
 
