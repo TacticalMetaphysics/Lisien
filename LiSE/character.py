@@ -17,6 +17,7 @@ from gorm.graph import (
 )
 from LiSE.util import path_len
 from LiSE.rule import Rule
+from LiSE.funlist import FunList
 
 
 class TravelException(Exception):
@@ -47,22 +48,20 @@ class TravelException(Exception):
 
 
 class EntityImage(dict):
-    def __init__(self, character, entity, branch, tick):
-        self.character = character
-        self.orig = entity
+    def __init__(self, entity, branch, tick):
         self.name = entity.name
         self.branch = branch
         self.tick = tick
         self.time = (branch, tick)
         self.update(entity)
 
-    def _copy(self, obj):
+    def _copy(self, character, obj):
         if isinstance(obj, Thing):
-            return ThingImage(self.character, obj, self.branch, self.tick)
+            return ThingImage(obj, self.branch, self.tick)
         elif isinstance(obj, Place):
-            return PlaceImage(self.character, obj, self.branch, self.tick)
+            return PlaceImage(character, obj, self.branch, self.tick)
         elif isinstance(obj, Portal):
-            return PortalImage(self.character, obj, self.branch, self.tick)
+            return PortalImage(character, obj, self.branch, self.tick)
         elif obj is None:
             return None
         else:
@@ -71,29 +70,29 @@ class EntityImage(dict):
 
 class PlaceImage(EntityImage):
     def __init__(self, character, thingplace, branch, tick):
-        super().__init__(character, thingplace, branch, tick)
+        super().__init__(thingplace, branch, tick)
         if isinstance(character, Character):
-            self.portals = [self._copy(port) for port in thingplace.portals()]
-            self.preportals = [self._copy(port) for port in thingplace.preportals()]
+            self.portals = [self._copy(character, port) for port in thingplace.portals()]
+            self.preportals = [self._copy(character, port) for port in thingplace.preportals()]
 
 
 class ThingImage(PlaceImage):
     """How a Thing appeared at a given game-time"""
     def __init__(self, character, thing, branch, tick):
-        super().__init__(character, thing, branch, tick)
+        super().__init__(thing, branch, tick)
         if isinstance(character, Character):
-            self.container = self._copy(thing.container)
-            self.location = self._copy(thing.location)
-            self.next_location = self._copy(thing.next_location)
+            self.container = self._copy(character, thing.container)
+            self.location = self._copy(character, thing.location)
+            self.next_location = self._copy(character, thing.next_location)
 
 
 class PortalImage(EntityImage):
     def __init__(self, character, portal, branch, tick):
-        super().__init__(character, portal, branch, tick)
+        super().__init__(portal, branch, tick)
         if isinstance(character, Character):
-            self.origin = self._copy(portal.origin)
-            self.destination = self._copy(portal.destination)
-            self.reciprocal = self._copy(portal.reciprocal)
+            self.origin = self._copy(character, portal.origin)
+            self.destination = self._copy(character, portal.destination)
+            self.reciprocal = self._copy(character, portal.reciprocal)
 
 
 class CharacterImage(nx.DiGraph):
@@ -248,6 +247,43 @@ class ThingPlace(GraphNodeMapping.Node):
                     yield orig
                 seen.add(orig)
 
+    def _user_names(self):
+        seen = set()
+        for (branch, tick) in self.engine._active_branches():
+            self.engine.cursor.execute(
+                "SELECT avatars.avatar_graph FROM avatars JOIN ("
+                "SELECT character_graph, avatar_graph, avatar_node, branch, MAX(tick) AS tick "
+                "FROM avatars WHERE "
+                "avatar_graph=? AND "
+                "avatar_node=? AND "
+                "branch=? AND "
+                "tick<=? GROUP BY "
+                "character_graph, avatar_graph, avatar_node, branch) AS hitick "
+                "ON avatars.character_graph=hitick.character_graph "
+                "AND avatars.avatar_graph=hitick.avatar_graph "
+                "AND avatars.avatar_node=hitick.avatar_node "
+                "AND avatars.branch=hitick.branch "
+                "AND avatars.tick=hitick.tick;",
+                (
+                    self.character.name,
+                    self.name,
+                    branch,
+                    tick
+                )
+            )
+            for row in self.engine.cursor.fetchall():
+                charn = row[0]
+                if charn not in seen:
+                    yield charn
+                    seen.add(charn)
+
+    def users(self):
+        """Iterate over characters this is an avatar of. Usually there will only be one.
+
+        """
+        for charn in self._user_names():
+            yield self.engine.character[charn]
+
     def contents(self):
         """Iterate over the Things that are located here."""
         for thingn in self._contents_names():
@@ -275,7 +311,7 @@ class Thing(ThingPlace):
     def __init__(self, character, name):
         """Initialize a Thing in a Character with a name"""
         self.character = character
-        self.worldview = character.worldview
+        self.engine = character.engine
         self.name = name
         super().__init__(character, name)
 
@@ -288,7 +324,9 @@ class Thing(ThingPlace):
                 'name',
                 'character',
                 'location',
-                'next_location'
+                'next_location',
+                'arrival_time',
+                'next_arrival_time'
         ):
             yield extrakey
         for key in iter(super()):
@@ -469,8 +507,8 @@ class Thing(ThingPlace):
 
     def _set_loc_and_next(self, loc, nextloc):
         """Private method to simultaneously set ``location`` and ``next_location``"""
-        (branch, tick) = self.character.worldview.time
-        self.character.worldview.cursor.execute(
+        (branch, tick) = self.character.engine.time
+        self.character.engine.cursor.execute(
             "DELETE FROM things WHERE "
             "character=? AND "
             "thing=? AND "
@@ -483,7 +521,7 @@ class Thing(ThingPlace):
                 tick
             )
         )
-        self.character.worldview.cursor.execute(
+        self.character.engine.cursor.execute(
             "INSERT INTO things ("
             "character, "
             "thing, "
@@ -503,7 +541,7 @@ class Thing(ThingPlace):
         )
 
     def copy(self):
-        (branch, tick) = self.worldview.time
+        (branch, tick) = self.engine.time
         return ThingImage(self.character, self, branch, tick)
 
     def go_to_place(self, place, weight=''):
@@ -519,9 +557,9 @@ class Thing(ThingPlace):
             placen = place.name
         else:
             placen = place
-        for fun in self.character.travel_req:
+        for fun in self.character.travel_reqs:
             if not fun(self.name, placen):
-                (branch, tick) = self.worldview.time
+                (branch, tick) = self.engine.time
                 raise TravelException(
                     "{} cannot travel through {}".format(self.name, placen),
                     traveller=self,
@@ -530,7 +568,7 @@ class Thing(ThingPlace):
                     lastplace=self.location
                 )
         curloc = self["location"]
-        orm = self.character.worldview
+        orm = self.character.engine
         curtick = orm.tick
         ticks = self.character.portal[curloc][placen].get(weight, 1)
         self['next_location'] = placen
@@ -550,7 +588,7 @@ class Thing(ThingPlace):
         scheduled to be somewhere else.
 
         """
-        curtick = self.character.worldview.tick
+        curtick = self.character.engine.tick
         prevplace = path.pop(0)
         if prevplace != self['location']:
             raise ValueError("Path does not start at my present location")
@@ -576,8 +614,8 @@ class Thing(ThingPlace):
         for subplace in subpath:
             if prevsubplace != self["location"]:
                 l = self["location"]
-                fintick = self.character.worldview.tick
-                self.character.worldview.tick = curtick
+                fintick = self.character.engine.tick
+                self.character.engine.tick = curtick
                 raise TravelException(
                     "When I tried traveling to {}, at tick {}, I ended up at {}".format(
                         prevsubplace,
@@ -586,18 +624,18 @@ class Thing(ThingPlace):
                     ),
                     path=subpath,
                     followed=subsubpath,
-                    branch=self.character.worldview.branch,
+                    branch=self.character.engine.branch,
                     tick=fintick,
                     lastplace=l,
                     traveller=self
                 )
             portal = self.character.portal[prevsubplace][subplace]
             tick_inc = portal.get(weight, 1)
-            self.character.worldview.tick += tick_inc
+            self.character.engine.tick += tick_inc
             if self["location"] not in (subplace, prevsubplace):
                 l = self["location"]
-                fintick = self.character.worldview.tick
-                self.character.worldview.tick = curtick
+                fintick = self.character.engine.tick
+                self.character.engine.tick = curtick
                 raise TravelException(
                     "I couldn't go to {} at tick {} because I was in {}".format(
                         subplace,
@@ -607,17 +645,17 @@ class Thing(ThingPlace):
                     path=subpath,
                     followed=subsubpath,
                     traveller=self,
-                    branch=self.character.worldview.branch,
+                    branch=self.character.engine.branch,
                     tick=fintick,
                     lastplace=l
                 )
-            self.character.worldview.tick -= tick_inc
+            self.character.engine.tick -= tick_inc
             self.go_to_place(subplace, weight)
-            self.character.worldview.tick += tick_inc
+            self.character.engine.tick += tick_inc
             ticks_total += tick_inc
             subsubpath.append(subplace)
             prevsubplace = subplace
-        self.character.worldview.tick = curtick
+        self.character.engine.tick = curtick
         return ticks_total
 
     def travel_to(self, dest, weight='', graph=None):
@@ -658,7 +696,7 @@ class Thing(ThingPlace):
         character does not, you'll get a TravelException.
 
         """
-        curtick = self.character.worldview.tick
+        curtick = self.character.engine.tick
         if arrival_tick <= curtick:
             raise ValueError("travel always takes positive amount of time")
         destn = dest.name if hasattr(dest, 'name') else dest
@@ -673,17 +711,17 @@ class Thing(ThingPlace):
                 path=path,
                 traveller=self
             )
-        self.character.worldview.tick = start_tick
+        self.character.engine.tick = start_tick
         self.follow_path(path, weight)
-        self.character.worldview.tick = curtick
+        self.character.engine.tick = curtick
 
 
-class Place(GraphNodeMapping.Node, ThingPlace):
+class Place(ThingPlace):
     """The kind of node where a Thing might ultimately be located."""
     def __init__(self, character, name):
         """Initialize a place in a character by a name"""
         self.character = character
-        self.worldview = character.worldview
+        self.engine = character.engine
         self.name = name
         super(Place, self).__init__(character, name)
 
@@ -704,7 +742,7 @@ class Place(GraphNodeMapping.Node, ThingPlace):
             return super(Place, self).__getitem__(key)
 
     def copy(self):
-        (branch, tick) = self.worldview.time
+        (branch, tick) = self.engine.time
         return PlaceImage(self.character, self, branch, tick)
 
 
@@ -721,7 +759,7 @@ class Portal(GraphEdgeMapping.Edge):
         self._origin = origin
         self._destination = destination
         self.character = character
-        self.worldview = character.worldview
+        self.engine = character.engine
         super().__init__(character, self._origin, self._destination)
 
     def __getitem__(self, key):
@@ -841,14 +879,14 @@ class Portal(GraphEdgeMapping.Edge):
                 self[k] = v
 
     def copy(self):
-        (branch, tick) = self.worldview.time
+        (branch, tick) = self.engine.time
         return PortalImage(self.character, self, branch, tick)
 
 
 class CharacterThingMapping(MutableMapping):
     def __init__(self, character):
         self.character = character
-        self.worldview = character.worldview
+        self.engine = character.engine
         self.name = character.name
 
     def __iter__(self):
@@ -857,8 +895,8 @@ class CharacterThingMapping(MutableMapping):
 
         """
         seen = set()
-        for (branch, tick) in self.worldview._active_branches():
-            self.worldview.cursor.execute(
+        for (branch, tick) in self.engine._active_branches():
+            self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
                 "SELECT character, thing, branch, MAX(tick) AS tick FROM things "
                 "WHERE character=? "
@@ -875,7 +913,7 @@ class CharacterThingMapping(MutableMapping):
                     tick
                 )
             )
-            for (node, loc) in self.worldview.cursor.fetchall():
+            for (node, loc) in self.engine.cursor.fetchall():
                 if loc and node not in seen:
                     yield node
                 seen.add(node)
@@ -887,8 +925,8 @@ class CharacterThingMapping(MutableMapping):
         return n
 
     def __getitem__(self, thing):
-        for (branch, rev) in self.worldview._active_branches():
-            self.worldview.cursor.execute(
+        for (branch, rev) in self.engine._active_branches():
+            self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
                 "SELECT character, thing, branch, MAX(tick) AS tick FROM things "
                 "WHERE character=? "
@@ -907,7 +945,7 @@ class CharacterThingMapping(MutableMapping):
                     rev
                 )
             )
-            for (thing, loc) in self.worldview.cursor.fetchall():
+            for (thing, loc) in self.engine.cursor.fetchall():
                 if not loc:
                     raise KeyError("Thing doesn't exist right now")
                 return Thing(self.character, thing)
@@ -929,14 +967,14 @@ class CharacterThingMapping(MutableMapping):
 class CharacterPlaceMapping(MutableMapping):
     def __init__(self, character):
         self.character = character
-        self.worldview = character.worldview
+        self.engine = character.engine
         self.name = character.name
 
     def __iter__(self):
         things = set()
         things_seen = set()
-        for (branch, rev) in self.worldview._active_branches():
-            self.worldview.cursor.execute(
+        for (branch, rev) in self.engine._active_branches():
+            self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
                 "SELECT character, thing, branch, MAX(tick) AS tick FROM things "
                 "WHERE character=? "
@@ -953,11 +991,11 @@ class CharacterPlaceMapping(MutableMapping):
                     rev
                 )
             )
-            for (thing, loc) in self.worldview.cursor.fetchall():
+            for (thing, loc) in self.engine.cursor.fetchall():
                 if thing not in things_seen and loc:
                     things.add(thing)
                 things_seen.add(thing)
-        for node in self.worldview._iternodes(self.character.name):
+        for node in self.engine._iternodes(self.character.name):
             if node not in things:
                 yield node
 
@@ -1019,10 +1057,10 @@ class CharRules(MutableMapping):
     decorator, and add prerequisites with @rule.prereq
 
     """
-    def __init__(self, orm, char):
+    def __init__(self, char):
         """Store the character"""
-        self.orm = orm
         self.character = char
+        self.engine = char.engine
         self.name = char.name
 
     def __call__(self, v):
@@ -1037,10 +1075,10 @@ class CharRules(MutableMapping):
             self._activate_rule(v)
         elif isinstance(v, Callable):
             # create a new rule performing the action v
-            vname = self.orm.function(v)
+            vname = self.engine.function(v)
             self._activate_rule(
                 Rule(
-                    self.orm,
+                    self.engine,
                     vname,
                     actions=[vname]
                 )
@@ -1049,13 +1087,13 @@ class CharRules(MutableMapping):
             # v is the name of a rule. Maybe it's been created
             # previously or maybe it'll get initialized in Rule's
             # __init__.
-            self._activate_rule(Rule(self.orm, v))
+            self._activate_rule(Rule(self.engine, v))
 
     def __iter__(self):
         """Iterate over all rules presently in effect"""
         seen = set()
-        for (branch, tick) in self.orm._active_branches():
-            self.orm.cursor.execute(
+        for (branch, tick) in self.engine._active_branches():
+            self.engine.cursor.execute(
                 "SELECT char_rules.rule, char_rules.active "
                 "FROM char_rules JOIN ("
                 "SELECT character, rule, branch, MAX(tick) AS tick "
@@ -1074,7 +1112,7 @@ class CharRules(MutableMapping):
                     tick
                 )
             )
-            for (rule, active) in self.orm.cursor.fetchall():
+            for (rule, active) in self.engine.cursor.fetchall():
                 if active and rule not in seen:
                     yield rule
                 seen.add(rule)
@@ -1089,8 +1127,8 @@ class CharRules(MutableMapping):
     def __getitem__(self, rulen):
         """Get the rule by the given name, if it is in effect"""
         # make sure the rule is active at the moment
-        for (branch, tick) in self.orm._active_branches():
-            self.orm.cursor.execute(
+        for (branch, tick) in self.engine._active_branches():
+            self.engine.cursor.execute(
                 "SELECT char_rules.active "
                 "FROM char_rules JOIN ("
                 "SELECT character, rule, branch, MAX(tick) AS tick "
@@ -1110,7 +1148,7 @@ class CharRules(MutableMapping):
                     tick
                 )
             )
-            data = self.orm.cursor.fetchall()
+            data = self.engine.cursor.fetchall()
             if len(data) == 0:
                 continue
             elif len(data) > 1:
@@ -1119,7 +1157,7 @@ class CharRules(MutableMapping):
                 (active,) = data[0]
                 if not active:
                     raise KeyError("No such rule at the moment")
-                return Rule(self.orm, rulen)
+                return Rule(self.engine, rulen)
         raise KeyError("No such rule, ever")
 
     def __setitem__(self, k, v):
@@ -1143,8 +1181,8 @@ class CharRules(MutableMapping):
         given arguments to whatever's there.
 
         """
-        (branch, tick) = self.orm.time
-        self.orm.cursor.execute(
+        (branch, tick) = self.engine.time
+        self.engine.cursor.execute(
             "DELETE FROM char_rules WHERE "
             "character=? AND "
             "rule=? AND "
@@ -1157,7 +1195,7 @@ class CharRules(MutableMapping):
                 tick
             )
         )
-        self.orm.cursor.execute(
+        self.engine.cursor.execute(
             "INSERT INTO char_rules "
             "(character, rule, branch, tick, active) "
             "VALUES (?, ?, ?, ?, ?);",
@@ -1175,9 +1213,9 @@ class CharRules(MutableMapping):
         if isinstance(rule, Rule):
             rulen = rule.name
         else:
-            rulen = self.orm.function(rule)
-        (branch, tick) = self.orm.time
-        self.orm.cursor.execute(
+            rulen = self.engine.function(rule)
+        (branch, tick) = self.engine.time
+        self.engine.cursor.execute(
             "DELETE FROM char_rules WHERE "
             "character=? AND "
             "rule=? AND "
@@ -1190,7 +1228,7 @@ class CharRules(MutableMapping):
                 tick
             )
         )
-        self.orm.cursor.execute(
+        self.engine.cursor.execute(
             "INSERT INTO char_rules "
             "(character, rule, branch, tick, active) "
             "VALUES (?, ?, ?, ?, ?);",
@@ -1208,7 +1246,7 @@ class CharacterAvatarGraphMapping(Mapping):
     def __init__(self, char):
         """Remember my character"""
         self.char = char
-        self.worldview = char.worldview
+        self.engine = char.engine
         self.name = char.name
 
     def __call__(self, av):
@@ -1220,8 +1258,8 @@ class CharacterAvatarGraphMapping(Mapping):
     def _datadict(self):
         """Get avatar-ness data and return it"""
         d = {}
-        for (branch, rev) in self.worldview._active_branches():
-            self.worldview.cursor.execute(
+        for (branch, rev) in self.engine._active_branches():
+            self.engine.cursor.execute(
                 "SELECT "
                 "avatars.avatar_graph, "
                 "avatars.avatar_node, "
@@ -1244,7 +1282,7 @@ class CharacterAvatarGraphMapping(Mapping):
                     rev
                 )
             )
-            for (graph, node, avatar) in self.worldview.cursor.fetchall():
+            for (graph, node, avatar) in self.engine.cursor.fetchall():
                 is_avatar = bool(avatar)
                 if graph not in d:
                     d[graph] = {}
@@ -1280,7 +1318,7 @@ class CharacterAvatarGraphMapping(Mapping):
         for node in d:
             if d[node]:
                 return self.CharacterAvatarMapping(self, g)
-        raise KeyError("No avatars in {}".format(g))
+        raise KeyError("No avatars in {}".fengineat(g))
 
     def __repr__(self):
         d = {}
@@ -1297,7 +1335,7 @@ class CharacterAvatarGraphMapping(Mapping):
 
             """
             self.char = outer.char
-            self.worldview = outer.worldview
+            self.engine = outer.engine
             self.name = outer.name
             self.graph = graphn
 
@@ -1317,8 +1355,8 @@ class CharacterAvatarGraphMapping(Mapping):
 
             """
             seen = set()
-            for (branch, rev) in self.worldview._active_branches():
-                self.worldview.cursor.execute(
+            for (branch, rev) in self.engine._active_branches():
+                self.engine.cursor.execute(
                     "SELECT "
                     "avatars.avatar_node, "
                     "avatars.is_avatar FROM avatars JOIN ("
@@ -1342,14 +1380,14 @@ class CharacterAvatarGraphMapping(Mapping):
                         rev
                     )
                 )
-                for (node, extant) in self.worldview.cursor.fetchall():
+                for (node, extant) in self.engine.cursor.fetchall():
                     if extant and node not in seen:
                         yield node
                     seen.add(node)
 
         def __contains__(self, av):
-            for (branch, rev) in self.worldview._active_branches():
-                self.worldview.cursor.execute(
+            for (branch, rev) in self.engine._active_branches():
+                self.engine.cursor.execute(
                     "SELECT avatars.is_avatar FROM avatars JOIN ("
                     "SELECT character_graph, avatar_graph, avatar_node, "
                     "branch, MAX(tick) AS tick FROM avatars "
@@ -1374,7 +1412,7 @@ class CharacterAvatarGraphMapping(Mapping):
                     )
                 )
                 try:
-                    return bool(self.worldview.cursor.fetchone()[0])
+                    return bool(self.engine.cursor.fetchone()[0])
                 except (TypeError, IndexError):
                     continue
             return False
@@ -1400,14 +1438,14 @@ class CharacterAvatarGraphMapping(Mapping):
 
             """
             if av in self:
-                if self.worldview._is_thing(self.graph, av):
+                if self.engine._is_thing(self.graph, av):
                     return Thing(
-                        self.char.worldview.character[self.graph],
+                        self.char.engine.character[self.graph],
                         av
                     )
                 else:
                     return Place(
-                        self.char.worldview.character[self.graph],
+                        self.char.engine.character[self.graph],
                         av
                     )
             if len(self) == 1:
@@ -1419,6 +1457,161 @@ class CharacterAvatarGraphMapping(Mapping):
             for k in self:
                 d[k] = dict(self[k])
             return repr(d)
+
+
+class SenseCharacterMapping(Mapping):
+    def __init__(self, container, sensename):
+        self.container = container
+        self.engine = self.container.engine
+        self.sensename = sensename
+        self.observer = self.container.character
+
+    @property
+    def fun(self):
+        return self.engine.function[self.sensename]
+
+    def __iter__(self):
+        for char in self.engine.character.values():
+            test = self.fun(self.engine, self.observer, char)
+            if test is None:  # The sense does not apply to the char
+                continue
+            elif not isinstance(test, CharacterImage):
+                raise TypeError("Sense function did not return CharacterImage")
+            else:
+                yield char.name
+
+    def __len__(self):
+        return len(self.engine.character)
+
+    def __getitem__(self, name):
+        observed = self.engine.character[name]
+        r = self.fun(self.engine, self.observer, observed)
+        if not isinstance(r, CharacterImage):
+            raise TypeError("Sense function did not return TransientCharacter")
+        return r
+
+
+class CharacterSenseMapping(MutableMapping, Callable):
+    """Used to view other Characters as seen by one, via a particular sense"""
+    def __init__(self, character):
+        self.character = character
+        self.engine = character.engine
+
+    def __iter__(self):
+        seen = set()
+        for (branch, tick) in self.engine._active_branches():
+            self.engine.cursor.execute(
+                "SELECT sense, active FROM senses JOIN ("
+                "SELECT character, sense, branch, MAX(tick) AS tick "
+                "FROM senses WHERE "
+                "(character='' OR character=?) "
+                "AND branch=? "
+                "AND tick<=? "
+                "GROUP BY character, sense, branch) AS hitick "
+                "ON senses.character=hitick.character "
+                "AND senses.sense=hitick.sense "
+                "AND senses.branch=hitick.branch "
+                "AND senses.tick=hitick.tick;",
+                (
+                    self.character.name,
+                    branch,
+                    tick
+                )
+            )
+            for (sense, active) in self.engine.cursor.fetchall():
+                if active and sense not in seen:
+                    yield sense
+                seen.add(sense)
+
+    def __len__(self):
+        n = 0
+        for sense in iter(self):
+            n += 1
+        return n
+
+    def __getitem__(self, k):
+        for (branch, tick) in self.engine._active_branches():
+            self.engine.cursor.execute(
+                "SELECT active FROM senses JOIN ("
+                "SELECT character, sense, branch, MAX(tick) AS tick "
+                "FROM senses WHERE "
+                "character IN ('', ?) "
+                "AND sense=? "
+                "AND branch=? "
+                "AND tick<=? "
+                "GROUP BY character, sense, branch) AS hitick "
+                "ON senses.character=hitick.character "
+                "AND senses.sense=hitick.sense "
+                "AND senses.branch=hitick.branch "
+                "AND senses.tick=hitick.tick;",
+                (
+                    self.character.name,
+                    k,
+                    branch,
+                    tick
+                )
+            )
+            data = self.engine.cursor.fetchall()
+            if len(data) == 0:
+                continue
+            elif len(data) > 1:
+                raise ValueError("Silly data in senses table")
+            else:
+                return SenseCharacterMapping(self, k)
+        raise KeyError("Sense isn't active or doesn't exist")
+
+    def __setitem__(self, k, v):
+        v.__name__ = k
+        self(v)
+
+    def __delitem__(self, k):
+        (branch, tick) = self.engine.time
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO senses "
+                "(character, sense, branch, tick, active) "
+                "VALUES "
+                "(?, ?, ?, ?, 0);",
+                (
+                    self.character.name,
+                    k,
+                    branch,
+                    tick
+                )
+            )
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE senses SET active=0 WHERE "
+                "character=? AND "
+                "sense=? AND "
+                "branch=? AND "
+                "tick=?;",
+                (
+                    self.character.name,
+                    k,
+                    branch,
+                    tick
+                )
+            )
+
+    def __call__(self, fun):
+        funn = self.engine.function(fun)
+        (branch, tick) = self.engine.time
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO senses "
+                "(character, sense, branch, tick, active) "
+                "VALUES "
+                "(?, ?, ?, ?, 1);",
+                (
+                    self.character.name,
+                    funn,
+                    branch,
+                    tick
+                )
+            )
+        except IntegrityError:
+            raise ValueError("Looks like this character already has that sense?")
 
 
 class Character(DiGraph):
@@ -1433,18 +1626,24 @@ class Character(DiGraph):
     contained by whatever it's located in.
 
     """
-    def __init__(self, worldview, name, data=None, **attr):
-        """Store worldview and name, and set up mappings for Thing, Place, and
+    def __init__(self, engine, name, data=None, **attr):
+        """Store engine and name, and set up mappings for Thing, Place, and
         Portal
 
         """
-        super().__init__(worldview.gorm, name, data=None, **attr)
-        self.worldview = worldview
+        super().__init__(engine.gorm, name, data=None, **attr)
+        self.engine = engine
         self.thing = CharacterThingMapping(self)
         self.place = CharacterPlaceMapping(self)
         self.portal = CharacterPortalSuccessorsMapping(self)
         self.preportal = CharacterPortalPredecessorsMapping(self)
         self.avatar = CharacterAvatarGraphMapping(self)
+        self.rule = CharRules(self)
+        self.sense = CharacterSenseMapping(self)
+        self.travel_reqs = FunList(self.engine, 'travel_reqs', ['character'], [name], 'reqs')
+
+    def travel_req(self, fun):
+        self.travel_reqs.append(fun)
 
     def add_place(self, name, **kwargs):
         """Create a new Place by the given name, and set its initial
@@ -1478,8 +1677,8 @@ class Character(DiGraph):
         next_location. It will keep all its attached Portals.
 
         """
-        (branch, tick) = self.worldview.time
-        self.worldview.cursor.execute(
+        (branch, tick) = self.engine.time
+        self.engine.cursor.execute(
             "INSERT INTO things ("
             "graph, node, branch, tick, location, next_location"
             ") VALUES ("
@@ -1510,7 +1709,7 @@ class Character(DiGraph):
             destination = destination.name
         super(Character, self).add_edge(origin, destination, **kwargs)
         if 'symmetrical' in kwargs and kwargs['symmetrical']:
-            super().add_edge(destination, origin, is_mirror=True)
+            self.add_portal(destination, origin, is_mirror=True)
 
     def add_portals_from(self, seq, symmetrical=False):
         for tup in seq:
@@ -1522,13 +1721,13 @@ class Character(DiGraph):
             self.add_portal(orig, dest, **kwargs)
 
     def add_avatar(self, name, host, location=None, next_location=None):
-        (branch, tick) = self.worldview.time
+        (branch, tick) = self.engine.time
         if isinstance(host, Character):
             host = host.name
         # This will create the node if it doesn't exist. Otherwise
         # it's redundant but harmless.
         try:
-            self.worldview.cursor.execute(
+            self.engine.cursor.execute(
                 "INSERT INTO nodes (graph, node, branch, rev, extant) "
                 "VALUES (?, ?, ?, ?, ?);",
                 (
@@ -1543,7 +1742,7 @@ class Character(DiGraph):
             pass
         if location:
             # This will convert the node into a Thing if it isn't already
-            self.worldview.cursor.execute(
+            self.engine.cursor.execute(
                 "INSERT INTO things ("
                 "character, thing, branch, tick, location, next_location"
                 ") VALUES (?, ?, ?, ?, ?, ?);",
@@ -1557,7 +1756,7 @@ class Character(DiGraph):
                 )
             )
         # Declare that the node is my avatar
-        self.worldview.cursor.execute(
+        self.engine.cursor.execute(
             "INSERT INTO avatars ("
             "character_graph, avatar_graph, avatar_node, "
             "branch, tick, is_avatar"
@@ -1571,143 +1770,3 @@ class Character(DiGraph):
                 True
             )
         )
-
-
-class SenseCharacterMapping(Mapping):
-    def __init__(self, container, sensename):
-        self.container = container
-        self.orm = self.container.orm
-        self.sensename = sensename
-        self.observer = self.container.character
-
-    @property
-    def fun(self):
-        return self.orm.function[self.sensename]
-
-    def __iter__(self):
-        for char in self.orm.character.values():
-            test = self.fun(self.orm, self.observer, char)
-            if test is None:  # The sense does not apply to the char
-                continue
-            elif not isinstance(test, CharacterImage):
-                raise TypeError("Sense function did not return CharacterImage")
-            else:
-                yield char.name
-
-    def __len__(self):
-        return len(self.orm.character)
-
-    def __getitem__(self, name):
-        observed = self.orm.character[name]
-        r = self.fun(self.orm, self.observer, observed)
-        if not isinstance(r, CharacterImage):
-            raise TypeError("Sense function did not return TransientCharacter")
-        return r
-
-
-class CharacterSenseMapping(MutableMapping, Callable):
-    """Used to view other Characters as seen by one, via a particular sense"""
-    def __init__(self, orm, character):
-        self.orm = orm
-        self.character = character
-
-    def __iter__(self):
-        seen = set()
-        for (branch, tick) in self.orm._active_branches():
-            self.orm.cursor.execute(
-                "SELECT sense, active FROM senses JOIN ("
-                "SELECT character, sense, branch, MAX(tick) AS tick "
-                "FROM senses WHERE "
-                "(character='' OR character=?) "
-                "AND branch=? "
-                "AND tick<=? "
-                "GROUP BY character, sense, branch) AS hitick "
-                "ON senses.character=hitick.character "
-                "AND senses.sense=hitick.sense "
-                "AND senses.branch=hitick.branch "
-                "AND senses.tick=hitick.tick;",
-                (
-                    self.character.name,
-                    branch,
-                    tick
-                )
-            )
-            for (sense, active) in self.orm.cursor.fetchall():
-                if active and sense not in seen:
-                    yield sense
-                seen.add(sense)
-
-    def __len__(self):
-        n = 0
-        for sense in iter(self):
-            n += 1
-        return n
-
-    def __getitem__(self, k):
-        for (branch, tick) in self.orm._active_branches():
-            self.orm.cursor.execute(
-                "SELECT active FROM senses JOIN ("
-                "SELECT character, sense, branch, MAX(tick) AS tick "
-                "FROM senses WHERE "
-                "character IN ('', ?) "
-                "AND sense=? "
-                "AND branch=? "
-                "AND tick<=? "
-                "GROUP BY character, sense, branch) AS hitick "
-                "ON senses.character=hitick.character "
-                "AND senses.sense=hitick.sense "
-                "AND senses.branch=hitick.branch "
-                "AND senses.tick=hitick.tick;",
-                (
-                    self.character.name,
-                    k,
-                    branch,
-                    tick
-                )
-            )
-            data = self.orm.cursor.fetchall()
-            if len(data) == 0:
-                continue
-            elif len(data) > 1:
-                raise ValueError("Silly data in senses table")
-            else:
-                return SenseCharacterMapping(self, k)
-        raise KeyError("Sense isn't active or doesn't exist")
-
-    def __setitem__(self, k, v):
-        v.__name__ = k
-        self(v)
-
-    def __delitem__(self, k):
-        (branch, tick) = self.orm.time
-        self.orm.cursor.execute(
-            "INSERT INTO senses "
-            "(character, sense, branch, tick, active) "
-            "VALUES "
-            "(?, ?, ?, ?, 0);",
-            (
-                self.character.name,
-                k,
-                branch,
-                tick
-            )
-        )
-
-    def __call__(self, fun):
-        funn = self.orm.function(fun)
-        (branch, tick) = self.orm.time
-        try:
-            self.orm.cursor.execute(
-                "INSERT INTO senses "
-                "(character, sense, branch, tick, active) "
-                "VALUES "
-                "(?, ?, ?, ?, 1);",
-                (
-                    self.character.name,
-                    funn,
-                    branch,
-                    tick
-                )
-            )
-        except IntegrityError:
-            raise ValueError("Looks like this character already has that sense?")
