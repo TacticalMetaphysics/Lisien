@@ -120,22 +120,24 @@ It's all very abstract. You could implement physics in this engine, if
 you wanted, but if that's your main concern, you might be happier with
 OpenSimulator.
 
-# Requirements
+# Status
 
-* [Python 2.7](http://python.org/download/releases/2.7.6/)
-* [igraph 0.6.5](http://igraph.sourceforge.net/download.html)
-* [python-igraph 0.6.5](http://python.org/pypi/python-igraph)
-* [Kivy 1.8](http://github.com/kivy/kivy)
+The graphical frontend, now called ELiDE, isn't usable yet. The core
+engine, in the ``LiSE`` module, has demonstrated some of its
+functionality as an ORM and rules engine, and you can see what that
+functionality is by viewing the file ``test.py``. They might be
+useful, but haven't been tested much, so don't expect a polished
+experience. Please report bugs in the Issues tab.
 
 # License Information
 wallpape.jpg is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stuff/), freely available under the terms of [Creative Commons BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 
 LiSE currently has two graphics sets, the [RLTiles](http://rltiles.sourceforge.net/) and [Pixel City](http://opengameart.org/content/pixel-city), both available under [CC0](http://creativecommons.org/publicdomain/zero/1.0/), being in the public domain where it exists.
 
-igraph and python-igraph are freely available under the [MIT license](http://opensource.org/licenses/MIT).
+networkx, which forms the basis of LiSE's data model, is available under [BSD](http://networkx.github.io/documentation/latest/reference/legal.html). My versions of the networkx graph classes are kept in a separate package, [gorm](https://github.com/LogicalDash/gorm), and released under the same license.
 
 The icons are [Entypo](http://entypo.com/), in the file Entypo.ttf, freely available at under the terms of [Creative Commons BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/).
 
 The LiSE source files themselves are licensed under the terms of the GNU General Public License version 3. See the text of the license in the file gpl-3.0.txt
 
-Copyright (C) 2013 Zachary Spector. Email: zacharyspector@gmail.com
+Copyright (C) 2013-2014 Zachary Spector. Email: zacharyspector@gmail.com
