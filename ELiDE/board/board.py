@@ -64,10 +64,9 @@ class Board(RelativeLayout):
     )
 
     def __init__(self, **kwargs):
-        kwargs['size_hint'] = (None, None)
         self._trigger_redata = Clock.create_trigger(self._redata)
         super().__init__(**kwargs)
-        self.finalize()
+        self._trigger_redata()
 
     def _make_pawn(self, thing):
         if thing["location"] not in self.spot:
@@ -76,7 +75,6 @@ class Board(RelativeLayout):
             raise KeyError("Already have a Pawn for this Thing")
         r = Pawn(
             board=self,
-            engine=self.engine,
             thing=thing,
             where_upon=self.spot[thing["location"]]
         )
@@ -89,7 +87,6 @@ class Board(RelativeLayout):
             raise KeyError("Already have a Spot for this Place")
         r = Spot(
             board=self,
-            engine=self.engine,
             place=place
         )
         self.spot[place["name"]] = r
@@ -117,13 +114,26 @@ class Board(RelativeLayout):
         return r
 
     def on_character(self, *args):
-        if not self.finalized:
-            Clock.schedule_once(self.on_character, 0)
-            return
         def ontime():
             self._trigger_redata()
-        ontime.__name__ = self.character.name + "_trigger_redata"
-        self.engine.on_time(ontime)
+
+        def updscrollx(*args):
+            self.character.stat['_scroll_x'] = self.parent.scroll_x
+        trigger_updscrollx = Clock.create_trigger(updscrollx)
+
+        def updscrolly(*args):
+            self.character.stat['_scroll_y'] = self.parent.scroll_y
+        trigger_updscrolly = Clock.create_trigger(updscrolly)
+
+        for prop in '_scroll_x', '_scroll_y':
+            if prop not in self.character.stat:
+                self.character.stat[prop] = 0.0
+
+        self.parent.scroll_x = self.character.stat['_scroll_x']
+        self.parent.scroll_y = self.character.stat['_scroll_y']
+        self.parent.bind(scroll_x=trigger_updscrollx)
+        self.parent.bind(scroll_y=trigger_updscrolly)
+        self.engine.on_time(ontime, name=self.character.name + "_trigger_redata")
         self._trigger_redata()
 
     def _rmpawn(self, name):
@@ -175,38 +185,7 @@ class Board(RelativeLayout):
                     self.arrowlayout.add_widget(self._make_arrow(self.character.portal[arrow_orig][arrow_dest]))
         for thing_name in self.character.thing:
             if thing_name not in self.pawn:
-                self.pawn[thing_name] = self._make_pawn(self.character.thing[thing_name])
-
-    def finalize(self, *args):
-        if self.engine is None or self.wallpaper is None:
-            Clock.schedule_once(self.finalize, 0)
-            return
-        self.size = self.wallpaper.size = self.wallpaper.texture.size
-        self.add_widget(self.wallpaper)
-        self.arrowlayout = BoardLayout(
-            pos=self.wallpaper.pos,
-            size=self.wallpaper.size
-        )
-        self.add_widget(self.arrowlayout)
-        self.spotlayout = BoardLayout(
-            pos=self.wallpaper.pos,
-            size=self.wallpaper.size
-        )
-        self.add_widget(self.spotlayout)
-        self.pawnlayout = BoardLayout(
-            pos=self.wallpaper.pos,
-            size=self.wallpaper.size
-        )
-        self.add_widget(self.pawnlayout)
-
-        for layout in (self.arrowlayout, self.spotlayout, self.pawnlayout):
-            self.wallpaper.bind(
-                pos=layout.setter('pos'),
-                size=layout.setter('size')
-            )
-
-        self.finalized = True
-
+                self.pawnlayout.add_widget(self._make_pawn(self.character.thing[thing_name]))
 
     def __repr__(self):
         return "Board({})".format(repr(self.character))
