@@ -129,6 +129,16 @@ def sickle_cell_test(
         size_m=6,
         size_n=6
 ):
+    """Natural Selection on Sickle Cell Anemia
+
+    If anyone carries a pair of sickle betaglobin genes, they die of
+    sickle cell anemia.
+
+    Individuals with 1x betaglobin, 1x sickle betaglobin are immune to
+    malaria.
+
+    """
+    # TODO: use selection coefficients
     engine.add_character("physical", data=nx.grid_2d_graph(size_m, size_n))
     species = engine.new_character("species")
     for n in range(0, n_creatures):
