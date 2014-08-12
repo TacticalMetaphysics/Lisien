@@ -1076,13 +1076,12 @@ class CharRules(MutableMapping):
         elif isinstance(v, Callable):
             # create a new rule performing the action v
             vname = self.engine.function(v)
-            self._activate_rule(
-                Rule(
+            rule = Rule(
                     self.engine,
-                    vname,
-                    actions=[vname]
-                )
+                    vname
             )
+            rule.actions.append(vname)
+            self._activate_rule(rule)
         else:
             # v is the name of a rule. Maybe it's been created
             # previously or maybe it'll get initialized in Rule's
@@ -1105,7 +1104,7 @@ class CharRules(MutableMapping):
                 "AND char_rules.rule=hitick.rule "
                 "AND char_rules.character=hitick.character "
                 "AND char_rules.branch=hitick.branch "
-                "AND char_rules.tick=hitick.tick;"
+                "AND char_rules.tick=hitick.tick;",
                 (
                     self.character.name,
                     branch,
@@ -1173,73 +1172,73 @@ class CharRules(MutableMapping):
         """
         try:
             return self[attrn]
-        except KeyError as err:
-            raise AttributeError(err.message)
+        except KeyError:
+            raise AttributeError
 
     def _activate_rule(self, rule):
-        """Indicate that the rule is active and should be followed. Add the
-        given arguments to whatever's there.
+        """Indicate that the rule is active and should be followed.
 
         """
         (branch, tick) = self.engine.time
-        self.engine.cursor.execute(
-            "DELETE FROM char_rules WHERE "
-            "character=? AND "
-            "rule=? AND "
-            "branch=? AND "
-            "tick=?;",
-            (
-                self.character.name,
-                rule.name,
-                branch,
-                tick
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO char_rules "
+                "(character, rule, branch, tick, active) "
+                "VALUES (?, ?, ?, ?, ?);",
+                (
+                    self.character.name,
+                    rule.name,
+                    branch,
+                    tick,
+                    True
+                )
             )
-        )
-        self.engine.cursor.execute(
-            "INSERT INTO char_rules "
-            "(character, rule, branch, tick, active) "
-            "VALUES (?, ?, ?, ?, ?);",
-            (
-                self.character.name,
-                rule.name,
-                branch,
-                tick,
-                True
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE char_rules SET active=1 WHERE "
+                "character=? AND "
+                "rule=? AND "
+                "branch=? AND "
+                "tick=?;",
+                (
+                    self.character.name,
+                    rule.name,
+                    branch,
+                    tick
+                )
             )
-        )
 
-    def __delitem__(self, rule):
+    def __delitem__(self, rulen):
         """Deactivate the rule"""
-        if isinstance(rule, Rule):
-            rulen = rule.name
-        else:
-            rulen = self.engine.function(rule)
         (branch, tick) = self.engine.time
-        self.engine.cursor.execute(
-            "DELETE FROM char_rules WHERE "
-            "character=? AND "
-            "rule=? AND "
-            "branch=? AND "
-            "tick=?;",
-            (
-                self.name,
-                rulen,
-                branch,
-                tick
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO char_rules "
+                "(character, rule, branch, tick, active) "
+                "VALUES (?, ?, ?, ?, ?);",
+                (
+                    self.name,
+                    rulen,
+                    branch,
+                    tick,
+                    False
+                )
             )
-        )
-        self.engine.cursor.execute(
-            "INSERT INTO char_rules "
-            "(character, rule, branch, tick, active) "
-            "VALUES (?, ?, ?, ?, ?);",
-            (
-                self.name,
-                rulen,
-                branch,
-                tick,
-                False
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE char_rules SET active=? "
+                "WHERE character=? "
+                "AND rule=? "
+                "AND branch=? "
+                "AND tick=?;",
+                (
+                    False,
+                    self.name,
+                    rulen,
+                    branch,
+                    tick
+                )
             )
-        )
 
 
 class CharacterAvatarGraphMapping(Mapping):

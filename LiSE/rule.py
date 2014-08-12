@@ -11,26 +11,26 @@ class Rule(object):
     change the world.
 
     """
-    def __init__(self, orm, name, actions=[], prereqs=[]):
-        """Store the ORM and my name, make myself a record in the database if
+    def __init__(self, engine, name):
+        """Store the ENGINE and my name, make myself a record in the database if
         needed, and instantiate FunList once for my actions and again
         for my prereqs.
 
         """
-        self.orm = orm
+        self.engine = engine
         self.name = name
-        self.orm.cursor.execute(
+        self.engine.cursor.execute(
             "SELECT COUNT(*) FROM rules WHERE rule=?;",
             (name,)
         )
-        (ct,) = self.orm.cursor.fetchone()
+        (ct,) = self.engine.cursor.fetchone()
         if ct == 0:
-            self.orm.cursor.execute(
+            self.engine.cursor.execute(
                 "INSERT INTO rules (rule) VALUES (?);",
                 (name,)
             )
-        self.actions = FunList(self.orm, 'rules', ['rule'], [self.name], 'actions', actions)
-        self.prereqs = FunList(self.orm, 'rules', ['rule'], [self.name], 'prereqs', prereqs)
+        self.actions = FunList(self.engine, 'rules', ['rule'], [self.name], 'actions')
+        self.prereqs = FunList(self.engine, 'rules', ['rule'], [self.name], 'prereqs')
 
     def __call__(self, lise, character):
         """First check the prereqs. If they all pass, execute the actions and
