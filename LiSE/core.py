@@ -642,7 +642,7 @@ class Engine(object):
     def time(self, v):
         """Set my gorm's ``branch`` and ``tick``, and call listeners"""
         self.locktime = True
-        self.gorm.time = v
+        (self.gorm.branch, self.gorm.rev) = v
         (b, t) = v
         for time_listener in self.on_time.values():
             time_listener(self, b, t)
@@ -655,18 +655,19 @@ class Engine(object):
         Yield the rules paired with their results.
 
         """
-        (branch, tick) = self.time
         for (character, rule) in self._poll_rules():
+            t = self.time
             s = rule(self, character)
+            self.time = t
             self._char_rule_handled(character.name, rule.name)
-            yield (rule, s)
+            yield (rule, character, s)
 
     def advance(self):
         """Follow the next rule, advancing to the next tick if necessary.
 
         """
         try:
-            return next(self._rules_iter)
+            r = next(self._rules_iter)
         except StopIteration:
             if not self._have_rules():
                 raise ValueError(
@@ -674,7 +675,8 @@ class Engine(object):
                 )
             self.tick += 1
             self._rules_iter = self._follow_rules()
-            return self.advance()
+            r = None
+        return r
 
     def next_tick(self):
         """Call ``advance`` repeatedly, appending its results to a list, until
@@ -686,7 +688,7 @@ class Engine(object):
         r = []
         while self.tick == curtick:
             r.append(self.advance())
-        return r
+        return r[:-1]
 
     def new_character(self, name):
         """Create and return a character"""
