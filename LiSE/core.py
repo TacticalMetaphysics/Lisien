@@ -170,6 +170,7 @@ class FunctionStoreDB(FunctionStore, MutableMapping):
         self.cursor.close()
 
     def commit(self):
+        """Alias for ``self.connection.commit()``"""
         self.connection.commit()
 
 
@@ -210,9 +211,11 @@ class FunctionStoreModule(FunctionStore, Mapping):
 class EternalVarMapping(MutableMapping):
     """Mapping for variables that aren't under revision control"""
     def __init__(self, engine):
+        """Store the engine"""
         self.engine = engine
 
     def __iter__(self):
+        """Iterate over the global keys"""
         self.engine.cursor.execute(
             "SELECT key FROM global;"
         )
@@ -220,12 +223,14 @@ class EternalVarMapping(MutableMapping):
             yield row[0]
 
     def __len__(self):
+        """Count the global keys"""
         self.engine.cursor.execute(
             "SELECT COUNT(*) FROM global;"
         )
         return self.engine.cursor.fetchone()[0]
 
     def __getitem__(self, k):
+        """Get the value for variable ``k``. It will always be a string."""
         self.engine.cursor.execute(
             "SELECT value FROM global WHERE key=?;",
             (k,)
@@ -236,6 +241,10 @@ class EternalVarMapping(MutableMapping):
             raise KeyError("No value for {}".format(k))
 
     def __setitem__(self, k, v):
+        """Set ``k`` to ``v``, possibly casting ``v`` to a string in the
+        process.
+
+        """
         del self[k]  # doesn't throw exception when k doesn't exist
         self.engine.cursor.execute(
             "INSERT INTO global (key, value) VALUES (?, ?);",
@@ -243,6 +252,7 @@ class EternalVarMapping(MutableMapping):
         )
 
     def __delitem__(self, k):
+        """Delete ``k``"""
         self.engine.cursor.execute(
             "DELETE FROM global WHERE key=?;",
             (k,)
@@ -252,7 +262,7 @@ class EternalVarMapping(MutableMapping):
 class Listeners(Mapping):
     """Mapping and decorator for the functions that listen to the time"""
     def __init__(self, engine, tabn):
-        """Store the ORM and the name of the table I'm about"""
+        """Store the engine and the name of the table I'm about"""
         self.engine = engine
         self.tabn = tabn
 
@@ -599,13 +609,17 @@ class Engine(object):
             setattr(self, listname, [])
 
     def commit(self):
+        """Commit to both the world and code databases, and begin a new
+        transaction for the world database
+
+        """
         self.worlddb.commit()
         self.function.commit()
         self.cursor.execute("BEGIN;")
 
     @property
     def branch(self):
-        """Alias for my gorm's branch"""
+        """Alias for my gorm's ``branch``"""
         return self.gorm.branch
 
     @branch.setter
@@ -623,6 +637,7 @@ class Engine(object):
 
     @property
     def tick(self):
+        """Alias for my gorm's ``rev``"""
         return self.gorm.rev
 
     @tick.setter
@@ -645,6 +660,7 @@ class Engine(object):
 
     @time.setter
     def time(self, v):
+        """Set my gorm's ``branch`` and ``tick``, and call listeners"""
         self.locktime = True
         self.gorm.time = v
         (b, t) = v
@@ -681,6 +697,11 @@ class Engine(object):
             return self.advance()
 
     def next_tick(self):
+        """Call ``advance`` repeatedly, appending its results to a list, until
+        it returns ``None``, at which point the tick has ended and
+        I'll return the list.
+
+        """
         curtick = self.tick
         r = []
         while self.tick == curtick:
@@ -688,10 +709,12 @@ class Engine(object):
         return r
 
     def new_character(self, name):
+        """Create and return a character"""
         self.add_character(name)
         return self.character[name]
 
     def close(self):
+        """Commit database transactions and close cursors"""
         self.worlddb.commit()
         self.function.commit()
         self.cursor.close()
@@ -935,6 +958,10 @@ class Engine(object):
                 handled.add((char, rule))
 
     def _char_rule_handled(self, character, rule):
+        """Declare that a rule has been handled for a character at this
+        time
+
+        """
         (branch, tick) = self.time
         self.cursor.execute(
             "INSERT INTO rules_handled "
