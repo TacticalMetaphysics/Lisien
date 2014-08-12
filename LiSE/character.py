@@ -1591,6 +1591,10 @@ class CharacterAvatarGraphMapping(Mapping):
 
 
 class SenseCharacterMapping(Mapping):
+    """Mapping for when you've selected a sense for a character to use
+    but haven't yet specified what character to look at
+
+    """
     def __init__(self, container, sensename):
         self.container = container
         self.engine = self.container.engine
@@ -1820,6 +1824,7 @@ class Character(DiGraph):
         super(Character, self).add_node(name, **kwargs)
 
     def add_places_from(self, seq):
+        """Take a series of place names and add the lot."""
         super().add_nodes_from(seq)
 
     def add_thing(self, name, location, next_location=None, **kwargs):
@@ -1879,6 +1884,18 @@ class Character(DiGraph):
             self.add_portal(destination, origin, is_mirror=True)
 
     def add_portals_from(self, seq, symmetrical=False):
+        """Take a sequence of (origin, destination) pairs and make a
+        :class:`Portal` for each.
+
+        Actually, triples are acceptable too, in which case the third
+        item is a dictionary of stats for the new :class:`Portal`.
+
+        If optional argument ``symmetrical`` is set to ``True``, all
+        the :class:`Portal` instances will have a mirror portal going
+        in the opposite direction, which will always have the same
+        stats.
+
+        """
         for tup in seq:
             orig = tup[0]
             dest = tup[1]
@@ -1888,6 +1905,10 @@ class Character(DiGraph):
             self.add_portal(orig, dest, **kwargs)
 
     def add_avatar(self, name, host, location=None, next_location=None):
+        """Add a :class:`Thing` to some other :class:`Character`, but keep
+        track of it in my ``avatar`` property.
+
+        """
         (branch, tick) = self.engine.time
         if isinstance(host, Character):
             host = host.name
