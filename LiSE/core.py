@@ -266,45 +266,38 @@ class Listeners(Mapping):
         self.engine = engine
         self.tabn = tabn
 
-    def __call__(self, v):
+    def __call__(self, v, name=None):
         """Store the function and activate it for the present (branch, tick)
 
         """
         if isinstance(v, Rule):
             self._activate_rule(v)
         elif isinstance(v, Callable):
-            vname = self.engine.function(v)
-            self._activate_rule(
-                Rule(
-                    self.engine,
-                    vname,
-                    actions=[vname]
-                )
-            )
+            vname = self.engine.function(v, name)
+            r = Rule(self.engine, vname)
+            r.action(vname)
+            self._activate_rule(r)
         else:
+            vname = self.engine.function(v, name)
             self._activate_rule(Rule(self.engine, vname))
 
     def _activate_rule(self, rule):
         (branch, tick) = self.engine.time
-        self.engine.cursor.execute(
-            "DELETE FROM {tab} WHERE "
-            "branch=? AND "
-            "tick=? AND "
-            "rule=?;".format(
-                tab=self.tabn
-            ),
-            (
-                branch,
-                tick,
-                rule.name
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO {tab} (rule, branch, tick, active) VALUES (?, ?, ?, 1);".format(
+                    tab=self.tabn
+                ),
+                (rule.name, branch, tick)
             )
-        )
-        self.engine.cursor.execute(
-            "INSERT INTO {tab} (rule, branch, tick, active) VALUES (?, ?, ?, 1);".format(
-                tab=self.tabn
-            ),
-            (rule.name, branch, tick)
-        )
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE {tab} SET active=1 WHERE "
+                "rule=? AND "
+                "branch=? AND "
+                "tick=?;".format(tab=self.tabn),
+                (rule.name, branch, tick)
+            )
 
     def __iter__(self):
         """Iterate over the names of active rules"""
