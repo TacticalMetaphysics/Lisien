@@ -314,35 +314,18 @@ class ELiDEApp(App):
 
     def build(self):
         """Make sure I can use the database, create the tables as needed, and
-        return the root widget."""
+        return the root widget.
+
+        """
         config = self.config
         self.engine = LiSE.Engine(
-            world_filename=config['LiSE']['world'],
-            code_filename=config['LiSE']['code'],
-            gettext=gettext.translation(
-                'LiSE',
-                os.sep.join([LiSE.__path__[0], 'localedir']),
-                [config['LiSE']['language']]
-            ).gettext
+            config['LiSE']['world'],
+            config['LiSE']['code']
         )
-
-        for char in 'boardchar', 'sheetchar':
-            if config['ELiDE'][char] not in self.engine.character:
-                self.engine.add_character(config['ELiDE'][char])
-        boardchar = self.engine.character[config['ELiDE']['boardchar']]
-        sheetchar = self.engine.character[config['ELiDE']['sheetchar']]
-        l = LiSELayout(
-            app=self,
-            board=Board(
-                engine=self.engine,
-                character=boardchar,
-                wallpaper=Image(source=config['ELiDE']['wallpaper'])
-            ),
-            charsheet=CharSheet(
-                character=sheetchar,
-                engine=self.engine
-            )
-        )
+        for char in config['ELiDE']['boardchar'], config['ELiDE']['sheetchar']:
+            if char not in self.engine.character:
+                self.engine.add_character(char)
+        l = ELiDELayout(app=self)
         from kivy.core.window import Window
         from kivy.modules import inspector
         inspector.create_inspector(Window, l)
