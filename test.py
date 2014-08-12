@@ -115,3 +115,24 @@ npc.avatar["physical"].travel_to("downtown", weight="km")
 
 while lise.tick < 142:
     test_advance(lise)
+
+lise.close()
+clear_off()
+# More complex test
+def sickle_cell_test(
+        engine,
+        n_creatures=100,
+        n_sickle_betaglobin=100,
+        malaria_chance=.05,
+        migrate_chance=.5,
+        mate_chance=.1,
+        size_m=6,
+        size_n=6
+):
+    engine.add_character("physical", data=nx.grid_2d_graph(size_m, size_n))
+    species = engine.new_character("species")
+    for n in range(0, n_creatures):
+        species.add_avatar("critter" + str(n), "physical")
+
+
+sickle_cell_test(mkengine())
