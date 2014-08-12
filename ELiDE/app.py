@@ -293,8 +293,8 @@ class ELiDEApp(App):
         config.setdefaults(
             'LiSE',
             {
-                'world': 'lise.world',
-                'code': 'lise.code',
+                'world': 'LiSEworld.db',
+                'code': 'LiSEcode.db',
                 'language': 'en'
             }
         )
