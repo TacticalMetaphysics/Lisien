@@ -9,27 +9,24 @@ from kivy.properties import (
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
-from kivy.uix.image import Image
 
 from kivy.factory import Factory
-from kivy.garden.stiffscroll import StiffScrollEffect
 
 from .board import (
     Board,
     Arrow
 )
-from .board.arrow import get_points
 from .charsheet import CharSheet
+from .board.arrow import get_points
 from .texturestack import ImageStack
 
 import LiSE
 import ELiDE
-import gettext
-import os
 
 _ = lambda x: x
+
+Factory.register('CharSheet', cls=CharSheet)
 
 
 class TouchlessWidget(Widget):
