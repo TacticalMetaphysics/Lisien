@@ -140,6 +140,9 @@ class Arrow(Widget):
             self._repoint,
             timeout=-1
         )
+        self._trigger_upd_pawns_here = Clock.create_trigger(
+            self._upd_pawns_here
+        )
         orign = self.portal["origin"]
         destn = self.portal["destination"]
         self.board.spot[orign].bind(
@@ -269,4 +272,27 @@ class Arrow(Widget):
             return sin(error_angle_a) * error_seg_len <= self.margin
 
     def on_pawns_here(self, i, v):
+        """When there's a different set of pawns here, reevaluate my
+        points and reposition pawns herein.
+
+        """
         self.handle_time(*self.engine.time)
+
+    def _upd_pawns_here(self):
+        """Make sure all the ``pawns_here`` are actually here. If they are
+        not, remove them.
+
+        """
+        pawns_here = list(self.pawns_here)
+        pawns_actually_here = []
+        for pawn in pawns_here:
+            if (
+                    'next_location' not in pawn.thing or
+                    pawn.thing['next_location'] != self.portal['destination'] or
+                    pawn.thing['location'] != self.portal['origin']
+            ):
+                continue
+            else:
+                pawns_actually_here.append(pawn)
+        if pawns_here != pawns_actually_here:
+            self.pawns_here = pawns_actually_here
