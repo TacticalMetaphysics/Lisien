@@ -54,64 +54,36 @@ class TravelException(Exception):
         super().__init__(message)
 
 
-class EntityImage(dict):
-    def __init__(self, entity, branch, tick):
-        self.name = entity.name
-        self.branch = branch
-        self.tick = tick
-        self.time = (branch, tick)
-        self.update(entity)
-
-    def _copy(self, character, obj):
-        if isinstance(obj, Thing):
-            return ThingImage(obj, self.branch, self.tick)
-        elif isinstance(obj, Place):
-            return PlaceImage(character, obj, self.branch, self.tick)
-        elif isinstance(obj, Portal):
-            return PortalImage(character, obj, self.branch, self.tick)
-        elif obj is None:
-            return None
-        else:
-            return obj.copy()
-
-
-class PlaceImage(EntityImage):
-    def __init__(self, character, thingplace, branch, tick):
-        super().__init__(thingplace, branch, tick)
-        if isinstance(character, Character):
-            self.portals = [self._copy(character, port) for port in thingplace.portals()]
-            self.preportals = [self._copy(character, port) for port in thingplace.preportals()]
-
-
-class ThingImage(PlaceImage):
-    """How a Thing appeared at a given game-time"""
-    def __init__(self, character, thing, branch, tick):
-        super().__init__(thing, branch, tick)
-        if isinstance(character, Character):
-            self.container = self._copy(character, thing.container)
-            self.location = self._copy(character, thing.location)
-            self.next_location = self._copy(character, thing.next_location)
-
-
-class PortalImage(EntityImage):
-    def __init__(self, character, portal, branch, tick):
-        super().__init__(portal, branch, tick)
-        if isinstance(character, Character):
-            self.origin = self._copy(character, portal.origin)
-            self.destination = self._copy(character, portal.destination)
-            self.reciprocal = self._copy(character, portal.reciprocal)
-
-
 class CharacterImage(nx.DiGraph):
     def __init__(self, character, branch, tick):
-        super().__init__(self, data=character)
+        class CompositeDict(Mapping):
+            def __init__(self, d1, d2):
+                self.d1 = d1
+                self.d2 = d2
+
+            def __iter__(self):
+                for k in self.d1:
+                    yield k
+                for k in self.d2:
+                    yield k
+
+            def __len__(self):
+                return len(self.d1) + len(self.d2)
+
+            def __getitem__(self, k):
+                try:
+                    return self.d1[k]
+                except KeyError:
+                    return self.d2[k]
         self.branch = branch
         self.tick = tick
         self.character = character
+        self.name = self.character.name
         self.place = {}
-        for place in character.place.values():
-            pli = PlaceImage(self, place, branch, tick)
+        for (name, place) in character.place.items():
+            pli = place if isinstance(place, dict) else place._json_dict
             pli.contents = []
+            self.place[name] = place
         self.portal = {}
         self.preportal = {}
         for o in character.portal:
@@ -1101,6 +1073,66 @@ class CharacterPlaceMapping(MutableMapping):
         return repr(dict(self))
 
 
+class CharacterThingPlaceMapping(MutableMapping):
+    """Replacement for gorm's GraphNodeMapping that does Place and Thing"""
+    def __init__(self, character):
+        self.character = character
+        self.engine = character.engine
+        self.name = character.name
+
+    def __iter__(self):
+        seen = set()
+        for (branch, rev) in self.engine._active_branches():
+            self.engine.cursor.execute(
+                "SELECT node, extant FROM nodes JOIN "
+                "(SELECT graph, node, branch, MAX(rev) AS rev "
+                "FROM nodes WHERE "
+                "graph=? AND "
+                "branch=? AND "
+                "rev<=? GROUP BY graph, node, branch) AS hirev "
+                "ON nodes.graph=hirev.graph "
+                "AND nodes.node=hirev.node "
+                "AND nodes.branch=hirev.branch "
+                "AND nodes.rev=hirev.rev;",
+                (
+                    self.name,
+                    branch,
+                    rev
+                )
+            )
+            for (node, extant) in self.engine.cursor.fetchall():
+                if extant and node not in seen:
+                    yield node
+                seen.add(node)
+
+    def __len__(self):
+        n = 0
+        for node in iter(self):
+            n += 1
+        return n
+
+    def __getitem__(self, k):
+        if k in self.character.place:
+            return self.character.place[k]
+        else:
+            try:
+                return self.character.thing[k]
+            except KeyError:
+                raise KeyError("No such Thing or Place in this Character")
+
+    def __setitem__(self, k, v):
+        self.character.place[k] = v
+
+    def __delitem__(self, k):
+        if k in self.character.place:
+            del self.character.place[k]
+        else:
+            try:
+                del self.character.thing[k]
+            except KeyError:
+                raise KeyError("No such Thing or Place in this Character")
+
+
 class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping):
     class Successors(GraphSuccessorsMapping.Successors):
         def _getsub(self, nodeB):
@@ -1564,7 +1596,7 @@ class SenseCharacterMapping(Mapping):
         observed = self.engine.character[name]
         r = self.fun(self.engine, self.observer, observed)
         if not isinstance(r, CharacterImage):
-            raise TypeError("Sense function did not return TransientCharacter")
+            raise TypeError("Sense function did not return CharacterImage")
         return r
 
 
@@ -1847,3 +1879,15 @@ class Character(DiGraph):
                 True
             )
         )
+
+    def copy(self):
+        """Return a :class:`CharacterImage` representing my status at the
+        moment.
+
+        Changes to the image won't hit the database. The image
+        contains only dictionaries representing Place, Portal, and
+        Thing, not actual instances of those classes.
+
+        """
+        (branch, tick) = self.engine.time
+        return CharacterImage(self, branch, tick)
