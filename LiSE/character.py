@@ -819,8 +819,11 @@ class Portal(GraphEdgeMapping.Edge):
         elif key == 'character':
             return self.character.name
         elif key == 'is_mirror':
-            return super().__getitem__(key)
-        elif 'is_mirror' in self and super().__getitem__('is_mirror'):
+            try:
+                return super().__getitem__(key)
+            except KeyError:
+                return False
+        elif 'is_mirror' in self and self['is_mirror']:
             return self.character.preportal[self._origin][self._destination][key]
         else:
             return super().__getitem__(key)
@@ -834,7 +837,7 @@ class Portal(GraphEdgeMapping.Edge):
         """
         if key in ('origin', 'destination', 'character'):
             raise KeyError("Can't change " + key)
-        if 'is_mirror' in self and super().__getitem__('is_mirror'):
+        elif 'is_mirror' in self and self['is_mirror']:
             self.reciprocal[key] = value
             return
         elif key == 'symmetrical' and value:
@@ -1862,7 +1865,7 @@ class Character(DiGraph):
         """Unset a Thing's location, and thus turn it into a Place."""
         self.place2thing(name, None)
 
-    def add_portal(self, origin, destination, **kwargs):
+    def add_portal(self, origin, destination, symmetrical=False, **kwargs):
         """Connect the origin to the destination with a Portal. Keyword
         arguments are the Portal's attributes.
 
@@ -1872,7 +1875,7 @@ class Character(DiGraph):
         if destination.__class__ in (Place, Thing):
             destination = destination.name
         super(Character, self).add_edge(origin, destination, **kwargs)
-        if 'symmetrical' in kwargs and kwargs['symmetrical']:
+        if symmetrical:
             self.add_portal(destination, origin, is_mirror=True)
 
     def add_portals_from(self, seq, symmetrical=False):
