@@ -716,6 +716,10 @@ class Engine(object):
             "FOREIGN KEY(rule) REFERENCES rules(rule))"
             ";"
         )
+        listener_idx = (
+            "CREATE INDEX {tbl}_idx ON {tbl}(rule)"
+            ";"
+        )
 
         self.gorm.initdb()
         statements = [
@@ -725,7 +729,8 @@ class Engine(object):
             "prereqs TEXT NOT NULL DEFAULT '[]')"
             ";",
             "CREATE TABLE char_rules ("
-            "character TEXT NOT NULL, "
+            "character TEXT, "
+            # null here means no particular character
             "rule TEXT NOT NULL, "
             "branch TEXT NOT NULL DEFAULT 'master', "
             "tick TEXT NOT NULL DEFAULT 0, "
@@ -734,8 +739,10 @@ class Engine(object):
             "FOREIGN KEY(rule) REFERENCES rules(rule), "
             "FOREIGN KEY(character) REFERENCES graphs(graph))"
             ";",
+            "CREATE INDEX char_rules_idx ON char_rules(character, rule)"
+            ";",
             "CREATE TABLE rules_handled ("
-            "character TEXT NOT NULL, "
+            "character TEXT, "
             "rule TEXT NOT NULL, "
             "branch TEXT NOT NULL DEFAULT 'master', "
             "tick INTEGER NOT NULL DEFAULT 0,"
@@ -743,15 +750,19 @@ class Engine(object):
             "FOREIGN KEY(character) REFERENCES graphs(graph), "
             "FOREIGN KEY(rule) REFERENCES rules(rule))"
             ";",
+            "CREATE INDEX rules_handled_idx ON rules_handled(character, rule)"
+            ";",
             "CREATE TABLE senses ("
-            "character TEXT NOT NULL DEFAULT '', "  
-            # empty string means every character has this sense
+            "character TEXT, "  
+            # null means every character has this sense
             "sense TEXT NOT NULL, "
             "branch TEXT NOT NULL DEFAULT 'master', "
             "tick INTEGER NOT NULL DEFAULT 0, "
             "active BOOLEAN NOT NULL DEFAULT 1, "
             "PRIMARY KEY(character, sense, branch, tick),"
             "FOREIGN KEY(character) REFERENCES graphs(graph))"
+            ";",
+            "CREATE INDEX senses_idx ON senses(character, sense)"
             ";",
             "CREATE TABLE travel_reqs ("
             "character TEXT NOT NULL DEFAULT '', "
@@ -761,6 +772,8 @@ class Engine(object):
             "reqs TEXT NOT NULL DEFAULT '[]', "
             "PRIMARY KEY(character, branch, tick), "
             "FOREIGN KEY(character) REFERENCES graphs(graph))"
+            ";",
+            "CREATE INDEX travel_reqs_idx ON travel_reqs(character)"
             ";",
             "CREATE TABLE things ("
             "character TEXT NOT NULL, "
@@ -776,6 +789,8 @@ class Engine(object):
             "FOREIGN KEY(character, thing) REFERENCES nodes(graph, node), "
             "FOREIGN KEY(character, location) REFERENCES nodes(graph, node))"
             ";",
+            "CREATE INDEX things_idx ON things(character, thing)"
+            ";",
             "CREATE TABLE avatars ("
             "character_graph TEXT NOT NULL, "
             "avatar_graph TEXT NOT NULL, "
@@ -787,9 +802,17 @@ class Engine(object):
             "FOREIGN KEY(character_graph) REFERENCES graphs(graph), "
             "FOREIGN KEY(avatar_graph, avatar_node) REFERENCES nodes(graph, node))"
             ";",
+            "CREATE INDEX avatars_idx ON avatars("
+            "character_graph, "
+            "avatar_graph, "
+            "avatar_node)"
+            ";",
             listener.format("branch_listeners"),
+            listener_idx.format(tbl="branch_listeners"),
             listener.format("tick_listeners"),
+            listener_idx.format(tbl="tick_listeners"),
             listener.format("time_listeners"),
+            listener_idx.format(tbl="time_listeners")
         ]
         for stmt in statements:
             self.cursor.execute(stmt)
