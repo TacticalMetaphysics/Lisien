@@ -167,13 +167,27 @@ class Arrow(Widget):
         self.canvas.add(self.fg_line)
 
     def on_points(self, *args):
+        """Propagate my points to both my lines"""
         self.bg_line.points = self.points
         self.fg_line.points = self.points
 
+    def pos_along(self, pct):
+        """Return coordinates for where a Pawn should be if it has travelled
+        along ``pct`` percent of my length.
 
+        Might get complex when I switch over to using beziers for
+        arrows, but for now this is quite simple, using distance along
+        a line segment.
 
+        """
+        (ox, oy) = self.origin.center
+        (dx, dy) = self.destination.center
+        xdist = (dx - ox) * pct
+        ydist = (dy - oy) * pct
+        return (ox + xdist, oy + ydist)
 
     def handle_time(self, *args):
+        """When the time changes, reposition all the pawns here."""
         for pawn in self.pawns_here:
             t2 = pawn['next_arrival_time']
             if t2 is None:
