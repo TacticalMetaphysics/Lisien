@@ -662,7 +662,7 @@ class Thing(ThingPlace):
         self.character.engine.tick = curtick
         return ticks_total
 
-    def travel_to(self, dest, weight='', graph=None):
+    def travel_to(self, dest, weight=None, graph=None):
         """Find the shortest path to the given Place from where I am now, and
         follow it.
 
@@ -685,10 +685,19 @@ class Thing(ThingPlace):
         """
         destn = dest.name if hasattr(dest, 'name') else dest
         graph = self.character if graph is None else graph
-        path = nx.shortest_path(graph, self["location"], destn, weight)
+        if graph is None and '_paths' in self.character.graph:
+            # use a cached path
+            paths = self.character._paths
+            path = paths[weight][self['location']][destn]
+        elif hasattr(graph, 'graph') and '_paths' in graph.graph:
+            # use a cached path from the given graph
+            paths = graph._paths
+            path = paths[weight][self['location']][destn]
+        else:
+            path = nx.shortest_path(graph, self["location"], destn, weight)
         return self.follow_path(path, weight)
 
-    def travel_to_by(self, dest, arrival_tick, weight='', graph=None):
+    def travel_to_by(self, dest, arrival_tick, weight=None, graph=None):
         """Arrange to travel to ``dest`` such that I arrive there at
         ``arrival_tick``.
 
@@ -843,6 +852,15 @@ class Portal(GraphEdgeMapping.Edge):
             except KeyError:
                 pass
         super().__setitem__(key, value)
+        if key in self.character._portal_traits:
+            del self.character.graph['_paths']
+            self.character._portal_traits = set()
+
+    def __delitem__(self, key):
+        super().__delitem__(key)
+        if key in self.character._portal_traits:
+            del self.character.graph['_paths']
+            self.character._portal_traits = set()
 
     @property
     def origin(self):
@@ -1143,6 +1161,9 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping):
             p.clear()
             p.exists = True
             p.update(value)
+            if '_paths' in self.graph.graph:
+                del self.graph.graph['_paths']
+                self.graph._paths = {}
 
 
 class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping):
@@ -1155,6 +1176,9 @@ class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping):
             p.clear()
             p.exists = True
             p.update(value)
+            if '_paths' in self.graph.graph:
+                del self.graph.graph['_paths']
+                self.graph._paths = {}
 
 
 class CharRules(MutableMapping):
@@ -1754,9 +1778,41 @@ class Character(DiGraph):
         self.rule = CharRules(self)
         self.sense = CharacterSenseMapping(self)
         self.travel_reqs = FunList(self.engine, 'travel_reqs', ['character'], [name], 'reqs')
+        self.stat = self.graph
+        self._portal_traits = set()
+        self._paths = self.graph['_paths'] if '_paths' in self.graph else {}
 
     def travel_req(self, fun):
+        """Decorator for tests that :class:`Thing`s have to pass before they
+        can go thru :class:`Portal's
+
+        """
         self.travel_reqs.append(fun)
+
+    def cache_paths(self):
+        """Calculate all shortest paths in me, and cache them, to avoid having
+        to do real pathfinding later.
+
+        The cache will be deleted when a Portal is added or removed,
+        or when any trait that all Portals have is changed or deleted
+        on any of them.
+
+        """
+        path_d = {}
+        # one set of shortest paths for every trait that all Portals have
+        self._portal_traits = set()
+        for (o, d, port) in self.in_edges_iter(data=True):
+            for trait in port:
+                self._portal_traits.add(trait)
+        for (o, d, port) in self.in_edges_iter(data=True):
+            for trait in self._portal_traits:
+                if trait not in port:
+                    self._portal_traits.remove(trait)
+        traits = self._portal_traits + set([None])
+        for trait in traits:
+            path_d[trait] = nx.shortest_path(self, weight=trait)
+        self._paths = path_d
+        self.graph['_paths'] = path_d
 
     def add_place(self, name, **kwargs):
         """Create a new Place by the given name, and set its initial
