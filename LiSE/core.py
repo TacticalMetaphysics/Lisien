@@ -579,7 +579,7 @@ class Engine(object):
         self.on_branch = Listeners(self, 'branch_listeners')
         self.on_tick = Listeners(self, 'tick_listeners')
         self.on_time = Listeners(self, 'time_listeners')
-        self.eternal = GlobalVarMapping(self)
+        self.eternal = EternalVarMapping(self)
         self.character = CharacterMapping(self)
         self._rules_iter = self._follow_rules()
         for listname in (
