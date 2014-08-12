@@ -337,7 +337,7 @@ class Thing(ThingPlace):
                 'next_arrival_time'
         ):
             yield extrakey
-        for key in iter(super()):
+        for key in super().__iter__():
             yield key
 
     def __getitem__(self, key):
@@ -367,7 +367,7 @@ class Thing(ThingPlace):
         elif key == 'arrival_time':
             curloc = self['location']
             for (branch, tick) in self.gorm._active_branches():
-                self.gorm.cursor.execute(
+                data = self.gorm.cursor.execute(
                     "SELECT MAX(tick) FROM things "
                     "WHERE character=? "
                     "AND thing=? "
@@ -381,8 +381,7 @@ class Thing(ThingPlace):
                         branch,
                         tick
                     )
-                )
-                data = self.engine.orm.cursor.fetchall()
+                ).fetchall()
                 if len(data) == 0:
                     continue
                 elif len(data) > 1:
@@ -397,7 +396,7 @@ class Thing(ThingPlace):
             if nextloc is None:
                 return None
             for (branch, tick) in self.engine.orm._active_branches():
-                self.engine.orm.cursor.execute(
+                data = self.engine.cursor.execute(
                     "SELECT MIN(tick) FROM things "
                     "WHERE character=? "
                     "AND thing=? "
@@ -411,8 +410,7 @@ class Thing(ThingPlace):
                         branch,
                         tick
                     )
-                )
-                data = self.engine.orm.cursor.fetchall()
+                ).fetchall()
                 if len(data) == 0:
                     continue
                 elif len(data) > 1:
@@ -1210,11 +1208,8 @@ class CharRules(MutableMapping):
         elif isinstance(v, Callable):
             # create a new rule performing the action v
             vname = self.engine.function(v)
-            rule = Rule(
-                    self.engine,
-                    vname
-            )
-            rule.actions.append(vname)
+            rule = Rule(self.engine, vname)
+            rule.action(vname)
             self._activate_rule(rule)
         else:
             # v is the name of a rule. Maybe it's been created
