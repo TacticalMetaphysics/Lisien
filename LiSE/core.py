@@ -877,21 +877,6 @@ class Engine(object):
                 return bool(data[0][0])
         return False
 
-    def new_rule(self, name, actions=[], prereqs=[]):
-        """Create a new Rule by this name, with these actions and prereqs.
-
-        It will be saved in the SQL database, and the actions and
-        prereqs will be saved in the dbm database.
-
-        """
-        return Rule(self, name, actions, prereqs)
-
-    def del_rule(self, name):
-        self.cursor.execute(
-            "DELETE FROM rules WHERE rule=?;",
-            (name,)
-        )
-
     def _have_rules(self):
         """Make sure there are rules to follow."""
         for (branch, tick) in self._active_branches():
