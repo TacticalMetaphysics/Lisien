@@ -1,17 +1,13 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 """Object relational mapper that serves Characters."""
-from types import FunctionType
+from types import FunctionType, ModuleType
 from collections import Mapping, MutableMapping, Callable
-from sqlite3 import connect, OperationalError, IntegrityError
+from sqlite3 import connect, OperationalError, IntegrityError, DatabaseError
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
 from gorm import ORM as gORM
-from .character import (
-    Character,
-    CharRules,
-    CharacterSenseMapping
-)
+from .character import Character
 from .rule import Rule
 
 
@@ -43,10 +39,39 @@ class CharacterMapping(Mapping):
         return Character(self.engine, name)
 
 
-class FunctionStore(Mapping):
+class FunctionStore(object):
+    def decompiled(self, name):
+        """Use unpyc3 to decompile the function named ``name`` and return the
+        resulting unpyc3.DefStatement.
+
+        unpyc3 is imported here, so if you never use this you don't
+        need unpyc3.
+
+        """
+        from unpyc3 import decompile
+        return decompile(self[name])
+
+    def definition(self, name):
+        """Return a string showing how the function named ``name`` was
+        originally defined.
+
+        It will be decompiled from the bytecode stored in the
+        database. Requires unpyc3.
+
+        """
+        return str(self.decompiled(name))
+
+
+class FunctionStoreDB(FunctionStore, MutableMapping):
+    """Store functions in a SQL database"""
     def __init__(self, codedb):
+        """Use ``codedb`` as a connection object. Connect to it, and
+        initialize the schema if needed.
+
+        """
         self.connection = codedb
         self.cursor = self.connection.cursor()
+        self.cache = {}
         try:
             self.cursor.execute("SELECT COUNT(*) FROM function;")
         except OperationalError:
@@ -55,16 +80,16 @@ class FunctionStore(Mapping):
                 "name TEXT NOT NULL PRIMARY KEY, "
                 "code TEXT NOT NULL);"
             )
-        self.cursor.execute("BEGIN;")
-        self.codecache = {}
 
     def __len__(self):
+        """SELECT COUNT(*) FROM function"""
         self.cursor.execute(
             "SELECT COUNT(*) FROM function;"
         )
         return self.cursor.fetchone()[0]
 
     def __iter__(self):
+        """SELECT name FROM function ORDER BY name"""
         self.cursor.execute(
             "SELECT name FROM function ORDER BY name;"
         )
@@ -72,6 +97,9 @@ class FunctionStore(Mapping):
             yield row[0]
 
     def __contains__(self, name):
+        """SELECT COUNT(*) FROM function WHERE name=?"""
+        if name in self.cache:
+            return True
         self.cursor.execute(
             "SELECT COUNT(*) FROM function WHERE name=?;",
             (name,)
@@ -83,18 +111,21 @@ class FunctionStore(Mapping):
         code database, and return it.
 
         """
-        if name not in self.codecache:
-            self.cursor.execute(
-                "SELECT code FROM function WHERE name=?;",
-                (name,)
-            )
-            code = unmarshalled(self.cursor.fetchone()[0])
-            self.codecache[name] = FunctionType(code, globals(), str(name))
-        return self.codecache[name]
+        if name in self.cache:
+            return self.cache[name]
+        bytecode = self.cursor.execute(
+            "SELECT code FROM function WHERE name=?;",
+            (name,)
+        ).fetchone()[0]
+        return FunctionType(unmarshalled(bytecode), globals())
 
     def __call__(self, fun, name=None):
         """Remember the function in the code database. Return the name to use
         for it.
+
+        This raises IntegrityError if you try to store a function on
+        top of an existing one. If you really want to do that, assign
+        it like I'm a dictionary.
 
         """
         if isinstance(fun, str):
@@ -103,28 +134,81 @@ class FunctionStore(Mapping):
             return fun
         if name is None:
             name = fun.__name__
+        self.cursor.execute(
+            "INSERT INTO function (name, code) VALUES (?, ?);",
+            (name, marshalled(fun.__code__))
+        )
+        self.cache[name] = fun
+        return name
+
+    def __setitem__(self, name, fun):
+        """Store the function, marshalled, under the name given."""
+        mcode = marshalled(fun.__code__)
         try:
             self.cursor.execute(
                 "INSERT INTO function (name, code) VALUES (?, ?);",
-                (name, marshalled(fun.__code__))
+                (name, mcode)
             )
-        except IntegrityError:  # already got a function by that name
-            if name not in self:
-                raise IntegrityError("Simultaneously have and don't have the function")
-            return name
-        self.codecache[name] = fun
-        return name
+        except IntegrityError:
+            self.cursor.execute(
+                "UPDATE function SET code=? WHERE name=?;",
+                (mcode, name)
+            )
+        self.cache[name] = fun
+
+    def __delitem__(self, name):
+        """DELETE FROM function WHERE name=?"""
+        self.cursor.execute(
+            "DELETE FROM function WHERE name=?;",
+            (name,)
+        )
+        del self.cache[name]
 
     def close(self):
+        """Commit the transaction and close the cursor"""
         self.connection.commit()
         self.cursor.close()
 
     def commit(self):
         self.connection.commit()
-        self.cursor.execute("BEGIN;")
 
 
-class GlobalVarMapping(MutableMapping):
+class FunctionStoreModule(FunctionStore, Mapping):
+    """Dict-like wrapper for a module object"""
+    def __init__(self, module):
+        """Store the module"""
+        self._mod = module
+
+    def __iter__(self):
+        """Iterate over the module's __all__ attribute"""
+        for it in self._mod.__all__:
+            yield repr(it)
+
+    def __len__(self):
+        """Return the length of the module's __all__ attribute"""
+        return len(self._mod.__all__)
+
+    def __getitem__(self, k):
+        """Return the ``k`` attribute of the module"""
+        return getattr(k, self._mod)
+
+    def __call__(self, k):
+        """If ``k`` is in the module's __all__ attribute, return a
+        representation of it. If ``k``'s representation is a
+        representation of something in the module's __all__ attribute,
+        do the same.
+
+        """
+        if k in self._mod.__all__:
+            return repr(k)
+        elif repr(k) in [repr(it) for it in self._mod.__all__]:
+            return repr(k)
+        else:
+            raise KeyError("{} is not a member of {}".format(k, self._mod))
+
+
+class EternalVarMapping(MutableMapping):
+    """Mapping for variables that aren't under revision control"""
     def __init__(self, engine):
         self.engine = engine
 
@@ -306,39 +390,181 @@ class Listeners(Mapping):
     def __delitem__(self, rulen):
         """Deactivate the rule by the given name"""
         (branch, tick) = self.engine.time
-        self.engine.cursor.execute(
-            "DELETE FROM {tab} WHERE "
-            "rule=? AND "
-            "branch=? AND "
-            "tick=?;".format(tab=self.tabn),
-            (
-                rulen,
-                branch,
-                tick
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO {tab} (rule, branch, tick, active) "
+                "VALUES (?, ?, ?, ?);".format(tab=self.tabn),
+                (
+                    rulen,
+                    branch,
+                    tick,
+                    False
+                )
             )
-        )
-        self.engine.cursor.execute(
-            "INSERT INTO {tab} (rule, branch, tick, active) "
-            "VALUES (?, ?, ?, ?);",
-            (
-                rulen,
-                branch,
-                tick,
-                False
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE {tab} SET active=? WHERE "
+                "rule=? AND "
+                "branch=? AND "
+                "tick=?;".format(tab=self.tabn),
+                (
+                    False,
+                    rulen,
+                    branch,
+                    tick
+                )
             )
-        )
+
+
+class GeneralRuleMapping(Mapping):
+    """Mapping for rules that aren't associated with any particular Character"""
+    def __init__(self, engine):
+        """Remember the engine"""
+        self.engine = engine
+
+    def __iter__(self):
+        """Iterate over active rules"""
+        seen = set()
+        for (branch, tick) in self.engine._active_branches():
+            for (rule, active) in self.engine.cursor.execute(
+                    "SELECT char_rules.rule, char_rules.active FROM char_rules JOIN "
+                    "(SELECT character, rule, branch, MAX(tick) AS tick "
+                    "FROM char_rules WHERE "
+                    "character IS NULL AND "
+                    "branch=? AND "
+                    "tick<=? GROUP BY character, rule, branch) AS hitick "
+                    "ON char_rules.character=hitick.character "
+                    "AND char_rules.rule=hitick.rule "
+                    "AND char_rules.branch=hitick.branch "
+                    "AND char_rules.tick=hitick.tick;",
+                    (branch, tick)
+            ).fetchall():
+                if active and rule not in seen:
+                    yield rule
+                seen.add(rule)
+
+    def __len__(self):
+        """Count active rules"""
+        n = 0
+        for rule in iter(self):
+            n += 1
+        return n
+
+    def __getitem__(self, k):
+        """Return rule named thus, if it is active"""
+        for (branch, tick) in self.engine._active_branches():
+            data = self.engine.cursor.execute(
+                "SELECT char_rules.rule, char_rules.active FROM char_rules JOIN "
+                "(SELECT character, rule, branch, MAX(tick) AS tick "
+                "FROM char_rules WHERE "
+                "character IS NULL AND "
+                "rule=? AND "
+                "branch=? AND "
+                "tick<=? GROUP BY character, rule, branch) AS hitick "
+                "ON char_rules.character=hitick.character "
+                "AND char_rules.rule=hitick.rule "
+                "AND char_rules.branch=hitick.branch "
+                "AND char_rules.tick=hitick.tick;",
+                (k, branch, tick)
+            ).fetchone()
+            if data is None:
+                continue
+            (rule, active) = data
+            if not active:
+                raise KeyError("Rule deactivated")
+            return Rule(self.engine, k)
+
+    def __call__(self, v):
+        """If passed a Rule, activate it. If passed a string, get the rule by
+        that name and activate it. If passed a function (probably
+        because I've been used as a decorator), make a rule with the
+        same name as the function, with the function itself being the
+        first action of the rule, and activate that rule.
+
+        """
+        if isinstance(v, Rule):
+            self._activate_rule(v)
+        elif isinstance(v, Callable):
+            vname = self.engine.function(v)
+            r = Rule(self.engine, vname)
+            r.action(vname)
+            self._activate_rule(r)
+        else:
+            self._activate_rule(Rule(self.engine, v))
+
+    def _activate_rule(self, v):
+        """Activate the rule"""
+        (branch, tick) = self.engine.time
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO char_rules "
+                "(rule, branch, tick, active) "
+                "VALUES (?, ?, ?, ?);",
+                (
+                    v.name,
+                    branch,
+                    tick,
+                    True
+                )
+            )
+        except IntegrityError:
+            self.engine.cursor.executee(
+                "UPDATE char_rules SET active=1 WHERE "
+                "character IS NULL AND "
+                "rule=? AND "
+                "branch=? AND "
+                "tick=?;",
+                (
+                    v.name,
+                    branch,
+                    tick
+                )
+            )
+
+    def __delitem__(self, rulen):
+        """Deactivate the rule"""
+        (branch, tick) = self.engine.time
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO char_rules "
+                "(rule, branch, tick, active) "
+                "VALUES (?, ?, ?, ?);",
+                (
+                    rulen,
+                    branch,
+                    tick,
+                    False
+                )
+            )
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE char_rules SET active=? "
+                "WHERE character IS NULL AND "
+                "rule=? AND "
+                "branch=? AND "
+                "tick=?;",
+                (
+                    False,
+                    rulen,
+                    branch,
+                    tick
+                )
+            )
 
 
 class Engine(object):
-    def __init__(self, world_filename, code_filename, gettext=lambda s: s):
+    def __init__(self, worlddb, codedb, gettext=lambda s: s):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
         """
         self.gettext = gettext
-        self.worlddb = connect(world_filename)
+        self.worlddb = connect(worlddb)
         self.gorm = gORM(self.worlddb)
-        self.function = FunctionStore(connect(code_filename))
+        if isinstance(codedb, ModuleType):
+            self.function = FunctionStoreModule(codedb)
+        else:
+            self.function = FunctionStoreDB(connect(codedb))
         self.cursor = self.worlddb.cursor()
         self.cursor.execute("BEGIN;")
         try:
