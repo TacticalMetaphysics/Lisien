@@ -1740,7 +1740,7 @@ class Character(DiGraph):
         Portal
 
         """
-        super().__init__(engine.gorm, name, data=None, **attr)
+        super().__init__(engine.gorm, name, data, **attr)
         self.engine = engine
         self.thing = CharacterThingMapping(self)
         self.place = CharacterPlaceMapping(self)
