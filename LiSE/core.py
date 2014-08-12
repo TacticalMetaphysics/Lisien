@@ -825,9 +825,9 @@ class Engine(object):
         """Alias for gorm's ``_iternodes``"""
         return self.gorm._iternodes(graph)
 
-    def add_character(self, name):
+    def add_character(self, name, data=None):
         """Create the Character so it'll show up in my `character` dict"""
-        self.gorm.new_digraph(name)
+        self.gorm.new_digraph(name, data)
 
     def del_character(self, name):
         """Remove the Character from the database entirely"""
