@@ -43,7 +43,8 @@ class FunList(MutableSequence):
                 self.preset_values
             )
         funns = [self.engine.function(fun) for fun in data]
-        self._setlist(funns)
+        if funns:
+            self._setlist(funns)
 
     def _setlist(self, l):
         """Update the rule's record with this new list of strings."""
