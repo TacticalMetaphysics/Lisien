@@ -92,14 +92,41 @@ class Arrow(Widget):
     """The board on which I am displayed."""
     portal = ObjectProperty()
     """The portal that I represent."""
-    """Pawns that are part-way through me. Each needs to present a
-    'progress' property to let me know how far through me they ought to be
-    repositioned."""
-    engine = ObjectProperty()
     pawns_here = ListProperty([])
     points = ListProperty([])
     slope = NumericProperty(0.0, allownone=True)
     y_intercept = NumericProperty(0)
+    engine = AliasProperty(
+        lambda self: self.board.engine if self.board else None,
+        lambda self, v: None,
+        bind=('board',)
+    )
+    origin = AliasProperty(
+        lambda self:
+        self.board.spot[self.portal['origin']]
+        if self.board and self.portal
+        else None,
+        lambda self, v: None,
+        bind=('board', 'portal')
+    )
+    destination = AliasProperty(
+        lambda self:
+        self.board.spot[self.portal['destination']]
+        if self.board and self.portal
+        else None,
+        lambda self, v: None,
+        bind=('board', 'portal')
+    )
+    reciprocal = AliasProperty(
+        lambda self:
+        self.board.arrow[self.portal['destination']][self.portal['origin']]
+        if self.board and self.portal and
+        self.portal['destination'] in self.board.arrow and
+        self.portal['origin'] in self.board.arrow[self.portal['destination']]
+        else None,
+        lambda self, v: None,
+        bind=('board', 'portal')
+    )
 
     def __init__(self, **kwargs):
         """Bind some properties, and put the relevant instructions into the
@@ -140,22 +167,8 @@ class Arrow(Widget):
         self.bg_line.points = self.points
         self.fg_line.points = self.points
 
-    # I'm handling origin, destination, and reciprocal as Python
-    # @propertys and not Kivy AliasPropertys because Kivy's caching
-    # introduces problems in the case where eg. the portal doesn't
-    # have a reciprocal.
 
-    @property
-    def origin(self):
-        return self.board.spot[self.portal["origin"]]
 
-    @property
-    def destination(self):
-        return self.board.spot[self.portal["destination"]]
-
-    @property
-    def reciprocal(self):
-        return self.board.arrow[self.portal["destination"]][self.portal["origin"]]
 
     def handle_time(self, *args):
         for pawn in self.pawns_here:
