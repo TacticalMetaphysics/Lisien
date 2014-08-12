@@ -576,6 +576,10 @@ class Engine(object):
             ).fetchall()
         except OperationalError:
             self.initdb()
+        # It wouldn't really make sense to store any sim rules in
+        # these things because they also get triggered when you
+        # investigate the past or schedule things for the future. So
+        # what are they for?
         self.on_branch = Listeners(self, 'branch_listeners')
         self.on_tick = Listeners(self, 'tick_listeners')
         self.on_time = Listeners(self, 'time_listeners')
