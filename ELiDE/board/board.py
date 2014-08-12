@@ -20,6 +20,10 @@ class BoardLayout(FloatLayout):
             if child.on_touch_down(touch):
                 return child
 
+    def on_touch_move(self, touch):
+        for child in self.children:
+            child.on_touch_move(touch)
+
     def on_touch_up(self, touch):
         for child in self.children:
             if child.on_touch_up(touch):
@@ -196,20 +200,33 @@ class Board(RelativeLayout):
         r = self.pawnlayout.on_touch_down(touch)
         if r:
             touch.pop()
+            self.layout.grabbed = r
             return r
         r = self.spotlayout.on_touch_down(touch)
         if r:
             touch.pop()
+            self.layout.grabbed = r
             return r
         r = self.arrowlayout.on_touch_down(touch)
         if r:
             touch.pop()
             return r
+        touch.pop()
         return super().on_touch_down(touch)
+
+    def on_touch_move(self, touch):
+        touch.push()
+        touch.apply_transform_2d(self.parent.to_local)
+        self.pawnlayout.on_touch_move(touch)
+        self.spotlayout.on_touch_move(touch)
+        self.arrowlayout.on_touch_move(touch)
+        touch.pop()
+        return super().on_touch_move(touch)
 
     def on_touch_up(self, touch):
         touch.push()
         touch.apply_transform_2d(self.parent.to_local)
+        self.layout.grabbed = None
         r = self.pawnlayout.on_touch_up(touch)
         if r:
             touch.pop()
@@ -222,4 +239,5 @@ class Board(RelativeLayout):
         if r:
             touch.pop()
             return r
+        touch.pop()
         return super().on_touch_up(touch)
