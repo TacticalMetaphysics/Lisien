@@ -1,6 +1,13 @@
-# coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+
+
+"""The basic data model of LiSE, based on NetworkX DiGraph objects
+with various additions and conveniences.
+
+"""
+
+import json
 from collections import (
     Mapping,
     MutableMapping,
@@ -113,18 +120,17 @@ class CharacterImage(nx.DiGraph):
             for (d, portal) in character.portal[o].items():
                 if d not in self.preportal:
                     self.preportal[d] = {}
-                cp = PortalImage(self, portal, branch, tick)
-                cp.origin = self.place[portal['origin']]
-                cp.destination = self.place[portal['destination']]
+                cp = portal if isinstance(portal, dict) else portal._json_dict
+                cp.origin = self.place[cp['origin']]
+                cp.destination = self.place[cp['destination']]
                 cp.contents = []
                 self.portal[o][d] = cp
                 self.preportal[d][o] = cp
         self.thing = {}
-        for thing in character.thing.values():
-            thi = ThingImage(self, thing, branch, tick)
-            (locn1, locn2) = thing['locations']
+        for (name, thing) in character.thing.items():
+            thi = thing if isinstance(thing, dict) else thing._json_dict
             thi.contents = []
-            self.thing[thing.name] = thi
+            self.thing[name] = thi
         for thi in self.thing.values():
             if thi['location'] in self.place:
                 thi.location = self.place[thi['location']]
@@ -136,14 +142,44 @@ class CharacterImage(nx.DiGraph):
                 thi.next_location = None
                 thi.container = thi.location
             elif thi['next_location'] in self.place:
-                thi.next_location = self.place['next_location']
+                thi.next_location = self.place[thi['next_location']]
                 thi.container = self.portal[thi['location']][thi['next_location']]
             elif thi['location'] in self.thing:
-                thi.next_location = self.thing['next_location']
+                thi.next_location = self.thing[thi['next_location']]
                 thi.container = self.portal[thi['location']][thi['next_location']]
             else:
                 raise ValueError("Invalid next_location for thing")
             thi.container.contents.append(thi)
+        self.node = CompositeDict(self.place, self.thing)
+        self.succ = self.edge = self.adj = self.portal
+        self.pred = self.preportal
+        self.graph = dict(character.graph)
+
+    @classmethod
+    def load(cls, s):
+        d = json.loads(s)
+        fakechar = d["stat"]
+        fakechar.place = d["place"]
+        fakechar.portal = d["portal"]
+        fakechar.thing = d["thing"]
+        return cls(fakechar, d["branch"], d["tick"])
+
+    @property
+    def _json_dict(self):
+        return {
+            "type": "Character",
+            "version": 0,
+            "branch": self.branch,
+            "tick": self.tick,
+            "name": self.name,
+            "place": self.place,
+            "portal": self.portal,
+            "thing": self.thing,
+            "stat": self.graph
+        }
+
+    def dump(self):
+        return json.dumps(self._json_dict)
 
 
 class ThingPlace(GraphNodeMapping.Node):
@@ -540,10 +576,6 @@ class Thing(ThingPlace):
             )
         )
 
-    def copy(self):
-        (branch, tick) = self.engine.time
-        return ThingImage(self.character, self, branch, tick)
-
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a Place that has a Portal direct to the given
         Place, schedule myself to travel to the given Place, taking an
@@ -715,6 +747,26 @@ class Thing(ThingPlace):
         self.follow_path(path, weight)
         self.character.engine.tick = curtick
 
+    @property
+    def _json_dict(self):
+        (branch, tick) = self.character.engine.time
+        return {
+            "type": "Thing",
+            "version": 0,
+            "character": self.character.name,
+            "name": self.name,
+            "branch": branch,
+            "tick": tick,
+            "stat": dict(self)
+        }
+
+    def dump(self):
+        """Return a JSON representation of my present state only, not any of
+        my history.
+
+        """
+        return json.dumps(self._json_dict)
+
 
 class Place(ThingPlace):
     """The kind of node where a Thing might ultimately be located."""
@@ -741,9 +793,22 @@ class Place(ThingPlace):
         else:
             return super(Place, self).__getitem__(key)
 
-    def copy(self):
+    @property
+    def _json_dict(self):
         (branch, tick) = self.engine.time
-        return PlaceImage(self.character, self, branch, tick)
+        return {
+            "type": "Place",
+            "version": 0,
+            "character": self["character"],
+            "name": self["name"],
+            "branch": branch,
+            "tick": tick,
+            "stat": dict(self)
+        }
+
+    def dump(self):
+        """Return a JSON representation of my present state"""
+        return json.dumps(self._json_dict)
 
 
 class Portal(GraphEdgeMapping.Edge):
@@ -875,12 +940,25 @@ class Portal(GraphEdgeMapping.Edge):
 
         """
         for (k, v) in d.items():
-            if self[k] != v:
+            if k not in self or self[k] != v:
                 self[k] = v
 
-    def copy(self):
+    @property
+    def _json_dict(self):
         (branch, tick) = self.engine.time
-        return PortalImage(self.character, self, branch, tick)
+        return {
+            "type": "Portal",
+            "version": 0,
+            "branch": branch,
+            "tick": tick,
+            "character": self.character.name,
+            "origin": self._origin,
+            "destination": self._destination,
+            "stat": dict(self)
+        }
+
+    def dump(self):
+        return json.dumps(self._json_dict)
 
 
 class CharacterThingMapping(MutableMapping):
