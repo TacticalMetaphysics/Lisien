@@ -582,24 +582,6 @@ class Engine(object):
         self.eternal = EternalVarMapping(self)
         self.character = CharacterMapping(self)
         self._rules_iter = self._follow_rules()
-        for listname in (
-                '_on_del_character',
-                '_on_set_character_stat',
-                '_on_del_character_stat',
-                '_on_add_thing',
-                '_on_del_thing',
-                '_on_set_thing_stat',
-                '_on_del_thing_stat',
-                '_on_add_place',
-                '_on_del_place',
-                '_on_set_place_stat',
-                '_on_del_place_stat',
-                '_on_add_portal',
-                '_on_del_portal',
-                '_on_set_portal_stat',
-                '_on_del_portal_stat'
-        ):
-            setattr(self, listname, [])
 
     def commit(self):
         """Commit to both the world and code databases, and begin a new
