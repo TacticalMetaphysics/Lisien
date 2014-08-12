@@ -1744,8 +1744,12 @@ class Character(DiGraph):
         self.engine = engine
         self.thing = CharacterThingMapping(self)
         self.place = CharacterPlaceMapping(self)
+        self.node = CharacterThingPlaceMapping(self)
         self.portal = CharacterPortalSuccessorsMapping(self)
+        self.adj = self.portal
+        self.succ = self.adj
         self.preportal = CharacterPortalPredecessorsMapping(self)
+        self.pred = self.preportal
         self.avatar = CharacterAvatarGraphMapping(self)
         self.rule = CharRules(self)
         self.sense = CharacterSenseMapping(self)
