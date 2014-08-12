@@ -4,7 +4,8 @@ from kivy.properties import (
     DictProperty,
     ObjectProperty,
     NumericProperty,
-    BooleanProperty
+    ListProperty,
+    AliasProperty
 )
 from kivy.clock import Clock
 from kivy.uix.floatlayout import FloatLayout
@@ -32,19 +33,35 @@ class BoardLayout(FloatLayout):
 
 class Board(RelativeLayout):
     """A graphical view onto a facade, resembling a game board."""
+    layout = ObjectProperty()
     character = ObjectProperty()
-    wallpaper = ObjectProperty()
-    wallpaperlayout = ObjectProperty()
     spot = DictProperty({})
-    spotlayout = ObjectProperty()
     pawn = DictProperty({})
-    pawnlayout = ObjectProperty()
     arrow = DictProperty({})
-    arrowlayout = ObjectProperty()
+    arrow_bg = ListProperty()
+    arrow_fg = ListProperty()
     arrow_width = NumericProperty()
     arrowhead_size = NumericProperty()
-    engine = ObjectProperty()
-    finalized = BooleanProperty(False)
+    spotlayout = AliasProperty(
+        lambda self: self.layout.ids.spotlayout,
+        lambda self, v: None
+    )
+    pawnlayout = AliasProperty(
+        lambda self: self.layout.ids.pawnlayout,
+        lambda self, v: None
+    )
+    arrowlayout = AliasProperty(
+        lambda self: self.layout.ids.arrowlayout,
+        lambda self, v: None
+    )
+    app = AliasProperty(
+        lambda self: self.layout.app,
+        lambda self, v: None
+    )
+    engine = AliasProperty(
+        lambda self: self.layout.app.engine,
+        lambda self, v: None
+    )
 
     def __init__(self, **kwargs):
         kwargs['size_hint'] = (None, None)
