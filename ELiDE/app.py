@@ -92,7 +92,7 @@ class DummyPawn(ImageStack):
             pass  # TODO
 
 
-class LiSELayout(FloatLayout):
+class ELiDELayout(FloatLayout):
     """A very tiny master layout that contains one board and some menus
     and charsheets.
 
@@ -104,14 +104,6 @@ class LiSELayout(FloatLayout):
     """
     app = ObjectProperty()
     """The App instance that is running and thus holds the globals I need."""
-    board = ObjectProperty()
-    """The Board instance that's visible at present."""
-    charsheet = ObjectProperty()
-    """The CharSheet object to show the stats and what-not for the
-    Character being inspected at present."""
-    menu = ObjectProperty()
-    """The menu on the left side of the screen. Composed only of buttons
-    with graphics on."""
     _touch = ObjectProperty(None, allownone=True)
     popover = ObjectProperty()
     """The modal view to use for the various menus that aren't visible by
@@ -120,13 +112,17 @@ class LiSELayout(FloatLayout):
     """Count how far along I am in the process of connecting two Places by
     creating a Portal between them."""
     playspeed = BoundedNumericProperty(0, min=0)
+    grabbed = ObjectProperty(None, allownone=True)
+
+    @property
+    def engine(self):
+        return self.app.engine
 
     def __init__(self, **kwargs):
         """Make a trigger for draw_arrow, then initialize as for
         FloatLayout."""
         self._trigger_draw_arrow = Clock.create_trigger(self._draw_arrow)
-        super(LiSELayout, self).__init__(**kwargs)
-        self.finalize()
+        super(ELiDELayout, self).__init__(**kwargs)
 
     def _draw_arrow(self, *args):
         """Draw the arrow that you see when you're in the process of placing a
@@ -145,7 +141,7 @@ class LiSELayout(FloatLayout):
             return
         ud = self.portal_d
         (ox, oy) = ud['origspot'].center
-        (dx, dy) = self.board.parent.to_local(*self._touch.pos)
+        (dx, dy) = self.ids.board.parent.to_local(*self._touch.pos)
         points = get_points(ox, 0, oy, 0, dx, 0, dy, 0, 10)
         ud['dummyarrow'].canvas.clear()
         with ud['dummyarrow'].canvas:
@@ -153,6 +149,23 @@ class LiSELayout(FloatLayout):
             Line(width=1.4, points=points)
             Color(1, 1, 1)
             Line(width=1, points=points)
+
+    def on_touch_down(self, touch):
+        self.grabbed = self.ids.charsheet.on_touch_down(touch)
+        if self.grabbed is None:
+            self.grabbed = self.ids.board.on_touch_down(touch)
+        if self.grabbed is None:
+            return self.ids.boardview.on_touch_down(touch)
+
+    def on_touch_move(self, touch):
+        if self.grabbed is None:
+            return self.ids.boardview.on_touch_move(touch)
+        else:
+            touch.push()
+            touch.apply_transform_2d(self.ids.boardview.to_local)
+            r = self.grabbed.on_touch_move(touch)
+            touch.pop()
+            return r
 
     def make_arrow(self, *args):
         """Start the process of connecting Places with a new Portal.
@@ -172,79 +185,6 @@ class LiSELayout(FloatLayout):
             "Draw a line between the places to connect with a portal."
         ))
         self.portaling = 1
-
-    def on_touch_down(self, touch):
-        """If make_arrow has been called (but not cancelled), an arrow has not
-        been made yet, and the touch collides with a Spot, start
-        drawing an arrow from the Spot to the touch coordinates.
-
-        The arrow will be redrawn until on_touch_up."""
-        if self.portaling == 1:
-            self.board.on_touch_down(touch)
-            if "spot" in touch.ud:
-                touch.grab(self)
-                touch.ungrab(touch.ud['spot'])
-                touch.ud['portaling'] = True
-                self.portal_d = {
-                    'origspot': touch.ud['spot'],
-                    'dummyspot': DummySpot(pos=touch.pos),
-                    'dummyarrow': TouchlessWidget()
-                }
-                self.board.arrowlayout.add_widget(
-                    self.portal_d['dummyarrow'])
-                self.add_widget(
-                    self.portal_d['dummyspot'])
-                self._touch = touch
-                self.portaling = 2
-            else:
-                self.portaling = 0
-                self.dismiss_prompt()
-            return True
-        else:
-            return super(LiSELayout, self).on_touch_down(touch)
-
-    def on_touch_move(self, touch):
-        """If I'm currently in the process of connecting two Places with a
-        Portal, draw the arrow between the place of origin and the
-        touch's current coordinates.
-
-        """
-        if self.portaling == 2:
-            self._touch = touch
-            self._trigger_draw_arrow()
-        return super().on_touch_move(touch)
-
-    def on_touch_up(self, touch):
-        """If I'm currently in the process of connecting two Places with a
-        Portal, check whether the touch collides a Spot that isn't the
-        one I started at. If so, make the Portal.
-
-        """
-        if self.portaling == 2:
-            self.portaling = 0
-            if touch != self._touch:
-                return
-            self.portal_d['dummyarrow'].canvas.clear()
-            self.remove_widget(self.portal_d['dummyspot'])
-            self.board.remove_widget(self.portal_d['dummyarrow'])
-            self.dismiss_prompt()
-            destspot = self.board.on_touch_up(touch)
-            if not destspot or 'origspot' not in self.portal_d:
-                self.portal_d['dummyarrow'].canvas.clear()
-                self.dismiss_prompt()
-                return True
-            origplace = self.portal_d['origspot'].place
-            destplace = destspot.place
-            portalname = "{}->{}".format(origplace, destplace)
-            portal = self.board.facade.observed.make_portal(
-                portalname, origplace, destplace,
-                host=self.board.host)
-            arrow = Arrow(
-                board=self.board, portal=portal)
-            self.board.arrowdict[unicode(portal)] = arrow
-            self.board.arrowlayout.add_widget(arrow)
-        else:
-            return super().on_touch_up(touch)
 
     def display_prompt(self, text):
         """Put the text in the cue card"""
@@ -303,17 +243,8 @@ class LiSELayout(FloatLayout):
         self.updater = lambda dt: self.update(ticks)
         Clock.schedule_interval(self.updater, interval)
 
-    def finalize(self, *args):
-        if self.charsheet is None or self.board is None:
-            Clock.schedule_once(self.finalize, 0)
-            return
-        boardview = ScrollView(effect_cls=StiffScrollEffect)
-        boardview.add_widget(self.board)
-        self.add_widget(boardview)
-        self.add_widget(self.charsheet)
 
-
-Factory.register('LiSELayout', cls=LiSELayout)
+Factory.register('ELiDELayout', cls=ELiDELayout)
 
 
 class MenuIntInput(TextInput):
