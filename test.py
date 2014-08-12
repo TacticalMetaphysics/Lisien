@@ -1,21 +1,27 @@
-from LiSE import LiSE
+import networkx as nx
+from LiSE import Engine
 from os import remove
 
 def test_advance(lise):
-    now = lise.tick
-    lise.advance()
-    if lise.tick != now:
+    r = lise.advance()
+    if r is None:
         print("Location at tick {}: {}".format(lise.tick, npc.avatar["physical"]["location"]))
 
-for fn in ('lise.world', 'lise.code'):
-    try:
-        remove(fn)
-    except OSError:
-        pass
-lise = LiSE(
-    world_filename='lise.world',
-    code_filename='lise.code'
-)
+def clear_off():
+    for fn in ('LiSEworld.db', 'LiSEcode.db'):
+        try:
+            remove(fn)
+        except OSError:
+            pass
+
+def mkengine():
+    return Engine(
+        worlddb='LiSEworld.db',
+        codedb='LiSEcode.db'
+    )
+
+clear_off()
+lise = mkengine()
 
 lise.tick = -1
 
@@ -88,9 +94,9 @@ while lise.tick < 76:
 
 lise.close()
 
-lise = LiSE(
-    world_filename='lise.world',
-    code_filename='lise.code'
+lise = Engine(
+    worlddb='LiSEworld.db',
+    codedb='LiSEcode.db'
 )
 npc = lise.character["nonplayer"]
 
