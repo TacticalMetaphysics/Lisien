@@ -585,6 +585,7 @@ class Engine(object):
         self.on_time = Listeners(self, 'time_listeners')
         self.eternal = EternalVarMapping(self)
         self.character = CharacterMapping(self)
+        self.rule = GeneralRuleMapping(self)
         self._rules_iter = self._follow_rules()
 
     def commit(self):
