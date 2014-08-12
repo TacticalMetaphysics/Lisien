@@ -43,24 +43,29 @@ class Board(RelativeLayout):
     arrow_width = NumericProperty()
     arrowhead_size = NumericProperty()
     spotlayout = AliasProperty(
-        lambda self: self.layout.ids.spotlayout,
-        lambda self, v: None
+        lambda self: self.layout.ids.spotlayout if self.layout else None,
+        lambda self, v: None,
+        bind=('layout',)
     )
     pawnlayout = AliasProperty(
-        lambda self: self.layout.ids.pawnlayout,
-        lambda self, v: None
+        lambda self: self.layout.ids.pawnlayout if self.layout else None,
+        lambda self, v: None,
+        bind=('layout',)
     )
     arrowlayout = AliasProperty(
-        lambda self: self.layout.ids.arrowlayout,
-        lambda self, v: None
+        lambda self: self.layout.ids.arrowlayout if self.layout else None,
+        lambda self, v: None,
+        bind=('layout',)
     )
     app = AliasProperty(
-        lambda self: self.layout.app,
-        lambda self, v: None
+        lambda self: self.layout.app if self.layout else None,
+        lambda self, v: None,
+        bind=('layout',)
     )
     engine = AliasProperty(
-        lambda self: self.layout.app.engine,
-        lambda self, v: None
+        lambda self: self.layout.app.engine if self.layout else None,
+        lambda self, v: None,
+        bind=('layout',)
     )
 
     def __init__(self, **kwargs):
