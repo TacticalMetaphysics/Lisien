@@ -698,7 +698,6 @@ class Engine(object):
     def close(self):
         """Commit database transactions and close cursors"""
         self.worlddb.commit()
-        self.function.commit()
         self.cursor.close()
         self.function.close()
 
