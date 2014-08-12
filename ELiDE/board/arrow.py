@@ -154,8 +154,8 @@ class Arrow(Widget):
             pos=self._trigger_repoint,
             size=self._trigger_repoint
         )
-        self.bg_color = Color(0.25, 0.25, 0.25)
-        self.fg_color = Color(1.0, 1.0, 1.0)
+        self.bg_color = Color(*self.board.arrow_bg)
+        self.fg_color = Color(*self.board.arrow_fg)
         self.bg_line = Line(width=self.w * 1.4)
         self.fg_line = Line(width=self.w)
         self.canvas.add(self.bg_color)
