@@ -44,7 +44,7 @@ class Rule(object):
         r = None
         for prereq in self.prereqs:
             # in case one of them moves the time
-            if not prereq(lise, character, self):
+            if not prereq(lise, character):
                 r = []
             lise.time = curtime
             if r is not None:
@@ -53,7 +53,7 @@ class Rule(object):
             return r
         r = []
         for action in self.actions:
-            r.append(action(lise, character, self))
+            r.append(action(lise, character))
             lise.time = curtime
         return r
 
