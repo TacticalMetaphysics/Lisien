@@ -111,13 +111,15 @@ class FunctionStoreDB(FunctionStore, MutableMapping):
         code database, and return it.
 
         """
-        if name in self.cache:
-            return self.cache[name]
-        bytecode = self.cursor.execute(
-            "SELECT code FROM function WHERE name=?;",
-            (name,)
-        ).fetchone()[0]
-        return FunctionType(unmarshalled(bytecode), globals())
+        if name not in self.cache:
+            bytecode = self.cursor.execute(
+                "SELECT code FROM function WHERE name=?;",
+                (name,)
+            ).fetchone()
+            if bytecode is None:
+                raise KeyError("No such function")
+            self.cache[name] = FunctionType(unmarshalled(bytecode[0]), globals())
+        return self.cache[name]
 
     def __call__(self, fun, name=None):
         """Remember the function in the code database. Return the name to use
