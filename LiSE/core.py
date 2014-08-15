@@ -271,6 +271,143 @@ class EternalVarMapping(MutableMapping):
         )
 
 
+class GlobalVarMapping(MutableMapping):
+    """Mapping for variables that are global but which I keep history for"""
+    def __init__(self, engine):
+        """Store the engine"""
+        self.engine = engine
+
+    def __iter__(self):
+        """Iterate over the global keys whose values aren't null at the moment.
+
+        The values may be None, however.
+
+        """
+        seen = set()
+        for (branch, tick) in self.engine._active_branches():
+            data = self.engine.cursor.execute(
+                "SELECT lise_globals.key, lise_globals.value FROM lise_globals JOIN "
+                "(SELECT key, branch, MAX(tick) AS tick "
+                "FROM lise_globals "
+                "WHERE branch=? "
+                "AND tick<=? "
+                "GROUP BY key, branch) AS hitick "
+                "ON lise_globals.key=hitick.key "
+                "AND lise_globals.branch=hitick.branch "
+                "AND lise_globals.tick=hitick.tick;",
+                (
+                    branch,
+                    tick
+                )
+            ).fetchall()
+            for (k, v) in data:
+                key = json_load(k)
+                if v is None:
+                    seen.add(key)
+                    continue
+                if key not in seen:
+                    yield key
+                seen.add(key)
+
+    def __len__(self):
+        """Just count while iterating"""
+        n = 0
+        for k in iter(self):
+            n += 1
+        return n
+
+    def __getitem__(self, k):
+        """Get the current value of this key"""
+        key = json_dump(k)
+        (branch, tick) = self.engine.time
+        data = self.engine.cursor.execute(
+            "SELECT lise_globals.value FROM lise_globals JOIN "
+            "(SELECT key, branch, MAX(tick) AS tick "
+            "FROM lise_globals "
+            "WHERE key=? "
+            "AND branch=? "
+            "AND tick<=? "
+            "GROUP BY key, branch) AS hitick "
+            "ON lise_globals.key=hitick.key "
+            "AND lise_globals.branch=hitick.branch "
+            "AND lise_globals.tick=hitick.tick;",
+            (
+                key,
+                branch,
+                tick
+            )
+        ).fetchall()
+        if len(data) == 0:
+            raise KeyError("Key not set")
+        elif len(data) > 1:
+            raise ValueError("Silly data in lise_globals table")
+        else:
+            v = data[0][0]
+            if v is None:  # not decoded yet
+                raise KeyError("Key not set right now")
+            return json_load(v)
+
+    def __setitem__(self, k, v):
+        """Set k=v at the current branch and tick"""
+        key = json_dump(k)
+        value = json_dump(v)
+        (branch, tick) = self.engine.time
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO lise_globals (key, branch, tick, value) "
+                "VALUES (?, ?, ?, ?);",
+                (
+                    key,
+                    branch,
+                    tick,
+                    value
+                )
+            )
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE lise_globals SET value=? WHERE "
+                "key=? AND "
+                "branch=? AND "
+                "tick=?;",
+                (
+                    value,
+                    key,
+                    branch,
+                    tick
+                )
+            )
+
+    def __delitem__(self, k):
+        """Unset this key for the present (branch, tick)"""
+        key = json_dump(k)
+        (branch, tick) = self.engine.time
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO lise_globals "
+                "(key, branch, tick, value) "
+                "VALUES (?, ?, ?, ?);",
+                (
+                    key,
+                    branch,
+                    tick,
+                    None
+                )
+            )
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE lise_globals SET value=? WHERE "
+                "key=? AND "
+                "branch=? AND "
+                "tick=?;",
+                (
+                    None,
+                    key,
+                    branch,
+                    tick
+                )
+            )
+
+
 class Listeners(Mapping):
     """Mapping and decorator for the functions that listen to the time"""
     def __init__(self, engine, tabn):
@@ -601,6 +738,7 @@ class Engine(object):
         self.on_tick = Listeners(self, 'tick_listeners')
         self.on_time = Listeners(self, 'time_listeners')
         self.eternal = EternalVarMapping(self)
+        self.globl = GlobalVarMapping(self)
         self.character = CharacterMapping(self)
         self.rule = GeneralRuleMapping(self)
         self._rules_iter = self._follow_rules()
@@ -740,6 +878,15 @@ class Engine(object):
 
         self.gorm.initdb()
         statements = [
+            "CREATE TABLE lise_globals ("
+            "key TEXT NOT NULL, "
+            "branch TEXT NOT NULL DEFAULT 'master', "
+            "tick INTEGER NOT NULL DEFAULT 0, "
+            "value TEXT, "
+            "PRIMARY KEY(key, branch, tick))"
+            ";",
+            "CREATE INDEX globals_idx ON lise_globals(key)"
+            ";",
             "CREATE TABLE rules ("
             "rule TEXT NOT NULL PRIMARY KEY, "
             "actions TEXT NOT NULL DEFAULT '[]', "
