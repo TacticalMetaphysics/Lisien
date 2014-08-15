@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 """Object relational mapper that serves Characters."""
+from random import Random
 from types import FunctionType, ModuleType
 from collections import Mapping, MutableMapping, Callable
 from sqlite3 import connect, OperationalError, IntegrityError, DatabaseError
@@ -710,7 +711,7 @@ class GeneralRuleMapping(Mapping):
 
 
 class Engine(object):
-    def __init__(self, worlddb, codedb, gettext=lambda s: s):
+    def __init__(self, worlddb, codedb, random_seed=None, gettext=lambda s: s):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
@@ -742,6 +743,31 @@ class Engine(object):
         self.character = CharacterMapping(self)
         self.rule = GeneralRuleMapping(self)
         self._rules_iter = self._follow_rules()
+        # set up the randomizer
+        self.rando = Random()
+        if 'rando_state' in self.globl:
+            self.rando.setstate(self.globl['rando_state'])
+        else:
+            self.rando.seed(random_seed)
+            self.globl['rando_state'] = self.rando.getstate()
+        self.betavariate = self.rando.betavariate
+        self.choice = self.rando.choice
+        self.expovariate = self.rando.expovariate
+        self.gammaraviate = self.rando.gammavariate
+        self.gauss = self.rando.gauss
+        self.getrandbits = self.rando.getrandbits
+        self.lognormvariate = self.rando.lognormvariate
+        self.normalvariate = self.rando.normalvariate
+        self.paretovariate = self.rando.paretovariate
+        self.randint = self.rando.randint
+        self.random = self.rando.random
+        self.randrange = self.rando.randrange
+        self.sample = self.rando.sample
+        self.shuffle = self.rando.shuffle
+        self.triangular = self.rando.triangular
+        self.uniform = self.rando.uniform
+        self.vonmisesvariate = self.rando.vonmisesvariate
+        self.weibullvariate = self.rando.weibullvariate
 
     def commit(self):
         """Commit to both the world and code databases, and begin a new
@@ -830,6 +856,7 @@ class Engine(object):
                 )
             self.tick += 1
             self._rules_iter = self._follow_rules()
+            self.globl['rando_state'] = self.rando.getstate()
             r = None
         return r
 
