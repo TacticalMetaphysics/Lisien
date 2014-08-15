@@ -7,7 +7,6 @@ with various additions and conveniences.
 
 """
 
-import json
 from collections import (
     Mapping,
     MutableMapping,
@@ -20,7 +19,9 @@ from gorm.graph import (
     GraphNodeMapping,
     GraphEdgeMapping,
     GraphSuccessorsMapping,
-    DiGraphPredecessorsMapping
+    DiGraphPredecessorsMapping,
+    json_dump,
+    json_load
 )
 from LiSE.util import path_len
 from LiSE.rule import Rule
@@ -129,7 +130,7 @@ class CharacterImage(nx.DiGraph):
 
     @classmethod
     def load(cls, s):
-        d = json.loads(s)
+        d = json_load(s)
         fakechar = d["stat"]
         fakechar.place = d["place"]
         fakechar.portal = d["portal"]
@@ -151,7 +152,7 @@ class CharacterImage(nx.DiGraph):
         }
 
     def dump(self):
-        return json.dumps(self._json_dict)
+        return json_dump(self._json_dict)
 
 
 class ThingPlace(GraphNodeMapping.Node):
@@ -187,13 +188,14 @@ class ThingPlace(GraphNodeMapping.Node):
                 "AND things.tick=hitick.tick "
                 "WHERE things.location=?;",
                 (
-                    self.character.name,
+                    json_dump(self.character.name),
                     branch,
                     tick,
-                    self.name
+                    json_dump(self.name)
                 )
             )
-            for (thing,) in self.gorm.cursor.fetchall():
+            for (th,) in self.gorm.cursor.fetchall():
+                thing = json_load(th)
                 if thing not in things_seen:
                     yield thing
                 things_seen.add(thing)
@@ -216,13 +218,14 @@ class ThingPlace(GraphNodeMapping.Node):
                 "AND edges.branch=hirev.branch "
                 "AND edges.rev=hirev.rev;",
                 (
-                    self.character.name,
-                    self.name,
+                    json_dump(self.character.name),
+                    json_dump(self.name),
                     branch,
                     tick
                 )
             )
-            for (dest, exists) in self.gorm.cursor.fetchall():
+            for (d, exists) in self.gorm.cursor.fetchall():
+                dest = json_load(d)
                 if exists and dest not in seen:
                     yield dest
                 seen.add(dest)
@@ -244,13 +247,14 @@ class ThingPlace(GraphNodeMapping.Node):
                 "AND edges.idx=hirev.idx "
                 "AND edges.rev=hirev.rev;",
                 (
-                    self.character.name,
-                    self.name,
+                    json_dump(self.character.name),
+                    json_dump(self.name),
                     branch,
                     tick
                 )
             )
-            for (orig, exists) in self.gorm.cursor.fetchall():
+            for (o, exists) in self.gorm.cursor.fetchall():
+                orig = json_load(o)
                 if exists and orig not in seen:
                     yield orig
                 seen.add(orig)
@@ -273,14 +277,14 @@ class ThingPlace(GraphNodeMapping.Node):
                 "AND avatars.branch=hitick.branch "
                 "AND avatars.tick=hitick.tick;",
                 (
-                    self.character.name,
-                    self.name,
+                    json_dump(self.character.name),
+                    json_dump(self.name),
                     branch,
                     tick
                 )
             )
             for row in self.engine.cursor.fetchall():
-                charn = row[0]
+                charn = json_load(row[0])
                 if charn not in seen:
                     yield charn
                     seen.add(charn)
@@ -365,7 +369,7 @@ class Thing(ThingPlace):
         elif key == 'location':
             return self._loc_and_next()[0]
         elif key == 'arrival_time':
-            curloc = self['location']
+            curloc = json_dump(self['location'])
             for (branch, tick) in self.gorm._active_branches():
                 data = self.gorm.cursor.execute(
                     "SELECT MAX(tick) FROM things "
@@ -375,8 +379,8 @@ class Thing(ThingPlace):
                     "AND branch=? "
                     "AND tick<=?;",
                     (
-                        self["character"],
-                        self.name,
+                        json_dump(self["character"]),
+                        json_dump(self.name),
                         curloc,
                         branch,
                         tick
@@ -392,7 +396,7 @@ class Thing(ThingPlace):
         elif key == 'next_location':
             return self._loc_and_next()[1]
         elif key == 'next_arrival_time':
-            nextloc = self['next_location']
+            nextloc = json_dump(self['next_location'])
             if nextloc is None:
                 return None
             for (branch, tick) in self.engine.orm._active_branches():
@@ -404,8 +408,8 @@ class Thing(ThingPlace):
                     "AND branch=? "
                     "AND tick>?;",
                     (
-                        self["character"],
-                        self.name,
+                        json_dump(self["character"]),
+                        json_dump(self.name),
                         nextloc,
                         branch,
                         tick
@@ -496,8 +500,8 @@ class Thing(ThingPlace):
                 "AND things.branch=hitick.branch "
                 "AND things.tick=hitick.tick;",
                 (
-                    self.character.name,
-                    self.name,
+                    json_dump(self.character.name),
+                    json_dump(self.name),
                     branch,
                     tick
                 )
@@ -508,43 +512,52 @@ class Thing(ThingPlace):
             elif len(data) > 1:
                 raise ValueError("Silly data in things table")
             else:
-                return data[0]
+                (l, nl) = data[0]
+                return (json_load(l), json_load(nl))
         raise ValueError("No location set")
 
     def _set_loc_and_next(self, loc, nextloc):
         """Private method to simultaneously set ``location`` and ``next_location``"""
         (branch, tick) = self.character.engine.time
-        self.character.engine.cursor.execute(
-            "DELETE FROM things WHERE "
-            "character=? AND "
-            "thing=? AND "
-            "branch=? AND "
-            "tick=?;",
-            (
-                self.character.name,
-                self.name,
-                branch,
-                tick
+        charn = json_dump(self.character.name)
+        myn = json_dump(self.name)
+        locn = json_dump(loc)
+        nextlocn = json_dump(nextloc)
+        try:
+            self.character.engine.cursor.execute(
+                "INSERT INTO things ("
+                "character, "
+                "thing, "
+                "branch, "
+                "tick, "
+                "location, "
+                "next_location) VALUES ("
+                "?, ?, ?, ?, ?, ?);",
+                (
+                    charn,
+                    myn,
+                    branch,
+                    tick,
+                    locn,
+                    nextlocn
+                )
             )
-        )
-        self.character.engine.cursor.execute(
-            "INSERT INTO things ("
-            "character, "
-            "thing, "
-            "branch, "
-            "tick, "
-            "location, "
-            "next_location) VALUES ("
-            "?, ?, ?, ?, ?, ?);",
-            (
-                self.character.name,
-                self.name,
-                branch,
-                tick,
-                loc,
-                nextloc
+        except IntegrityError:
+            self.character.engine.cursor.execute(
+                "UPDATE things SET location=?, next_location=? "
+                "WHERE character=? "
+                "AND thing=? "
+                "AND branch=? "
+                "AND tick=?;",
+                (
+                    locn,
+                    nextlocn,
+                    charn,
+                    myn,
+                    branch,
+                    tick
+                )
             )
-        )
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a Place that has a Portal direct to the given
@@ -744,7 +757,7 @@ class Thing(ThingPlace):
         my history.
 
         """
-        return json.dumps(self._json_dict)
+        return json_dump(self._json_dict)
 
 
 class Place(ThingPlace):
@@ -787,7 +800,7 @@ class Place(ThingPlace):
 
     def dump(self):
         """Return a JSON representation of my present state"""
-        return json.dumps(self._json_dict)
+        return json_dump(self._json_dict)
 
 
 class Portal(GraphEdgeMapping.Edge):
@@ -889,6 +902,9 @@ class Portal(GraphEdgeMapping.Edge):
         """Private method to iterate over the names of the Things that are
         travelling along me at the present."""
         r = set()
+        charn = json_dump(self.character.name)
+        orign = json_dump(self['origin'])
+        destn = json_dump(self['destination'])
         for (branch, tick) in self.gorm._active_branches():
             self.gorm.cursor.execute(
                 "SELECT things.node FROM things JOIN ("
@@ -905,14 +921,15 @@ class Portal(GraphEdgeMapping.Edge):
                 "WHERE location=? "
                 "AND next_location=?;",
                 (
-                    self.character.name,
+                    charn,
                     branch,
                     tick,
-                    self['origin'],
-                    self['destination']
+                    orign,
+                    destn
                 )
             )
-            for (thing,) in self.gorm.cursor.fetchall():
+            for (th,) in self.gorm.cursor.fetchall():
+                thing = json_load(th)
                 r.add(thing)
         return r
 
@@ -949,7 +966,7 @@ class Portal(GraphEdgeMapping.Edge):
         }
 
     def dump(self):
-        return json.dumps(self._json_dict)
+        return json_dump(self._json_dict)
 
 
 class CharacterThingMapping(MutableMapping):
@@ -964,6 +981,7 @@ class CharacterThingMapping(MutableMapping):
 
         """
         seen = set()
+        myn = json_dump(self.name)
         for (branch, tick) in self.engine._active_branches():
             self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
@@ -977,12 +995,14 @@ class CharacterThingMapping(MutableMapping):
                 "AND things.branch=hitick.branch "
                 "AND things.tick=hitick.tick;",
                 (
-                    self.name,
+                    myn,
                     branch,
                     tick
                 )
             )
-            for (node, loc) in self.engine.cursor.fetchall():
+            for (n, l) in self.engine.cursor.fetchall():
+                node = json_load(n)
+                loc = json_load(l)
                 if loc and node not in seen:
                     yield node
                 seen.add(node)
@@ -994,6 +1014,8 @@ class CharacterThingMapping(MutableMapping):
         return n
 
     def __getitem__(self, thing):
+        myn = json_dump(self.name)
+        thingn = json_dump(thing)
         for (branch, rev) in self.engine._active_branches():
             self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
@@ -1008,13 +1030,15 @@ class CharacterThingMapping(MutableMapping):
                 "AND things.branch=hitick.branch "
                 "AND things.tick=hitick.tick;",
                 (
-                    self.name,
-                    thing,
+                    myn,
+                    thingn,
                     branch,
                     rev
                 )
             )
-            for (thing, loc) in self.engine.cursor.fetchall():
+            for (th, l) in self.engine.cursor.fetchall():
+                thing = json_load(th)
+                loc = json_load(l)
                 if not loc:
                     raise KeyError("Thing doesn't exist right now")
                 return Thing(self.character, thing)
@@ -1042,6 +1066,7 @@ class CharacterPlaceMapping(MutableMapping):
     def __iter__(self):
         things = set()
         things_seen = set()
+        charn = json_dump(self.character.name)
         for (branch, rev) in self.engine._active_branches():
             self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
@@ -1055,12 +1080,14 @@ class CharacterPlaceMapping(MutableMapping):
                 "AND things.branch=hitick.branch "
                 "AND things.tick=hitick.tick;",
                 (
-                    self.character.name,
+                    charn,
                     branch,
                     rev
                 )
             )
-            for (thing, loc) in self.engine.cursor.fetchall():
+            for (th, l) in self.engine.cursor.fetchall():
+                thing = json_load(th)
+                loc = json_load(l)
                 if thing not in things_seen and loc:
                     things.add(thing)
                 things_seen.add(thing)
@@ -1101,6 +1128,7 @@ class CharacterThingPlaceMapping(MutableMapping):
 
     def __iter__(self):
         seen = set()
+        myn = json_dump(self.name)
         for (branch, rev) in self.engine._active_branches():
             self.engine.cursor.execute(
                 "SELECT node, extant FROM nodes JOIN "
@@ -1114,12 +1142,13 @@ class CharacterThingPlaceMapping(MutableMapping):
                 "AND nodes.branch=hirev.branch "
                 "AND nodes.rev=hirev.rev;",
                 (
-                    self.name,
+                    myn,
                     branch,
                     rev
                 )
             )
-            for (node, extant) in self.engine.cursor.fetchall():
+            for (n, extant) in self.engine.cursor.fetchall():
+                node = json_load(n)
                 if extant and node not in seen:
                     yield node
                 seen.add(node)
@@ -1223,6 +1252,7 @@ class CharRules(MutableMapping):
     def __iter__(self):
         """Iterate over all rules presently in effect"""
         seen = set()
+        charn = json_dump(self.character.name)
         for (branch, tick) in self.engine._active_branches():
             self.engine.cursor.execute(
                 "SELECT char_rules.rule, char_rules.active "
@@ -1238,12 +1268,13 @@ class CharRules(MutableMapping):
                 "AND char_rules.branch=hitick.branch "
                 "AND char_rules.tick=hitick.tick;",
                 (
-                    self.character.name,
+                    charn,
                     branch,
                     tick
                 )
             )
-            for (rule, active) in self.engine.cursor.fetchall():
+            for (r, active) in self.engine.cursor.fetchall():
+                rule = json_load(r)
                 if active and rule not in seen:
                     yield rule
                 seen.add(rule)
@@ -1259,7 +1290,7 @@ class CharRules(MutableMapping):
         """Get the rule by the given name, if it is in effect"""
         # make sure the rule is active at the moment
         for (branch, tick) in self.engine._active_branches():
-            self.engine.cursor.execute(
+            data = self.engine.cursor.execute(
                 "SELECT char_rules.active "
                 "FROM char_rules JOIN ("
                 "SELECT character, rule, branch, MAX(tick) AS tick "
@@ -1273,13 +1304,12 @@ class CharRules(MutableMapping):
                 "AND char_rules.branch=hitick.branch "
                 "AND char_rules.tick=hitick.tick;",
                 (
-                    self.character.name,
-                    rulen,
+                    json_dump(self.character.name),
+                    json_dump(rulen),
                     branch,
                     tick
                 )
-            )
-            data = self.engine.cursor.fetchall()
+            ).fetchall()
             if len(data) == 0:
                 continue
             elif len(data) > 1:
@@ -1311,6 +1341,8 @@ class CharRules(MutableMapping):
         """Indicate that the rule is active and should be followed.
 
         """
+        charn = json_dump(self.character.name)
+        rulen = json_dump(rule.name)
         (branch, tick) = self.engine.time
         try:
             self.engine.cursor.execute(
@@ -1318,8 +1350,8 @@ class CharRules(MutableMapping):
                 "(character, rule, branch, tick, active) "
                 "VALUES (?, ?, ?, ?, ?);",
                 (
-                    self.character.name,
-                    rule.name,
+                    charn,
+                    rulen,
                     branch,
                     tick,
                     True
@@ -1333,8 +1365,8 @@ class CharRules(MutableMapping):
                 "branch=? AND "
                 "tick=?;",
                 (
-                    self.character.name,
-                    rule.name,
+                    charn,
+                    rulen,
                     branch,
                     tick
                 )
@@ -1343,14 +1375,16 @@ class CharRules(MutableMapping):
     def __delitem__(self, rulen):
         """Deactivate the rule"""
         (branch, tick) = self.engine.time
+        charn = json_dump(self.character.name)
+        rule = json_dump(rulen)
         try:
             self.engine.cursor.execute(
                 "INSERT INTO char_rules "
                 "(character, rule, branch, tick, active) "
                 "VALUES (?, ?, ?, ?, ?);",
                 (
-                    self.name,
-                    rulen,
+                    charn,
+                    rule,
                     branch,
                     tick,
                     False
@@ -1365,8 +1399,8 @@ class CharRules(MutableMapping):
                 "AND tick=?;",
                 (
                     False,
-                    self.name,
-                    rulen,
+                    charn,
+                    rule,
                     branch,
                     tick
                 )
@@ -1408,17 +1442,19 @@ class CharacterAvatarGraphMapping(Mapping):
                 "avatars.branch=hitick.branch AND "
                 "avatars.tick=hitick.tick;",
                 (
-                    self.name,
+                    json_dump(self.name),
                     branch,
                     rev
                 )
             )
             for (graph, node, avatar) in self.engine.cursor.fetchall():
+                g = json_load(graph)
+                n = json_load(node)
                 is_avatar = bool(avatar)
-                if graph not in d:
-                    d[graph] = {}
-                if node not in d[graph]:
-                    d[graph][node] = is_avatar
+                if g not in d:
+                    d[g] = {}
+                if n not in d[g]:
+                    d[g][n] = is_avatar
         return d
 
     def __iter__(self):
@@ -1505,16 +1541,18 @@ class CharacterAvatarGraphMapping(Mapping):
                     "AND avatars.branch=hitick.branch "
                     "AND avatars.tick=hitick.tick;",
                     (
-                        self.name,
-                        self.graph,
+                        json_dump(self.name),
+                        json_dump(self.graph),
                         branch,
                         rev
                     )
                 )
                 for (node, extant) in self.engine.cursor.fetchall():
-                    if extant and node not in seen:
-                        yield node
-                    seen.add(node)
+                    n = json_load(node)
+                    x = bool(extant)
+                    if x and n not in seen:
+                        yield n
+                    seen.add(n)
 
         def __contains__(self, av):
             for (branch, rev) in self.engine._active_branches():
@@ -1535,9 +1573,9 @@ class CharacterAvatarGraphMapping(Mapping):
                     "AND avatars.branch=hitick.branch "
                     "AND avatars.tick=hitick.tick;",
                     (
-                        self.name,
-                        self.graph,
-                        av,
+                        json_dump(self.name),
+                        json_dump(self.graph),
+                        json_dump(av),
                         branch,
                         rev
                     )
@@ -1648,7 +1686,7 @@ class CharacterSenseMapping(MutableMapping, Callable):
                 "AND senses.branch=hitick.branch "
                 "AND senses.tick=hitick.tick;",
                 (
-                    self.character.name,
+                    json_dump(self.character.name),
                     branch,
                     tick
                 )
@@ -1666,7 +1704,7 @@ class CharacterSenseMapping(MutableMapping, Callable):
 
     def __getitem__(self, k):
         for (branch, tick) in self.engine._active_branches():
-            self.engine.cursor.execute(
+            data = self.engine.cursor.execute(
                 "SELECT active FROM senses JOIN ("
                 "SELECT character, sense, branch, MAX(tick) AS tick "
                 "FROM senses WHERE "
@@ -1680,13 +1718,12 @@ class CharacterSenseMapping(MutableMapping, Callable):
                 "AND senses.branch=hitick.branch "
                 "AND senses.tick=hitick.tick;",
                 (
-                    self.character.name,
-                    k,
+                    json_dump(self.character.name),
+                    json_dump(k),
                     branch,
                     tick
                 )
-            )
-            data = self.engine.cursor.fetchall()
+            ).fetchall()
             if len(data) == 0:
                 continue
             elif len(data) > 1:
@@ -1696,34 +1733,74 @@ class CharacterSenseMapping(MutableMapping, Callable):
         raise KeyError("Sense isn't active or doesn't exist")
 
     def __setitem__(self, k, v):
-        v.__name__ = k
-        self(v)
+        if isinstance(v, Callable):
+            funn = self.engine.function(v)
+        else:
+            funn = v
+        sense = json_dump(k)
+        charn = json_dump(self.character.name)
+        (branch, tick) = self.engine.time
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO senses "
+                "(character, sense, branch, tick, function, active) "
+                "VALUES "
+                "(?, ?, ?, ?, ?, ?);",
+                (
+                    charn,
+                    sense,
+                    branch,
+                    tick,
+                    funn,
+                    True
+                )
+            )
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE senses SET function=?, active=? "
+                "WHERE character=? "
+                "AND sense=? "
+                "AND branch=? "
+                "AND tick=?;",
+                (
+                    funn,
+                    True,
+                    charn,
+                    sense,
+                    branch,
+                    tick
+                )
+            )
 
     def __delitem__(self, k):
         (branch, tick) = self.engine.time
+        charn = json_dump(self.character.name)
+        sense = json_dump(k)
         try:
             self.engine.cursor.execute(
                 "INSERT INTO senses "
                 "(character, sense, branch, tick, active) "
                 "VALUES "
-                "(?, ?, ?, ?, 0);",
+                "(?, ?, ?, ?, ?);",
                 (
-                    self.character.name,
-                    k,
+                    charn,
+                    sense,
                     branch,
-                    tick
+                    tick,
+                    False
                 )
             )
         except IntegrityError:
             self.engine.cursor.execute(
-                "UPDATE senses SET active=0 WHERE "
+                "UPDATE senses SET active=? WHERE "
                 "character=? AND "
                 "sense=? AND "
                 "branch=? AND "
                 "tick=?;",
                 (
-                    self.character.name,
-                    k,
+                    False,
+                    charn,
+                    sense,
                     branch,
                     tick
                 )
@@ -1731,22 +1808,7 @@ class CharacterSenseMapping(MutableMapping, Callable):
 
     def __call__(self, fun):
         funn = self.engine.function(fun)
-        (branch, tick) = self.engine.time
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO senses "
-                "(character, sense, branch, tick, active) "
-                "VALUES "
-                "(?, ?, ?, ?, 1);",
-                (
-                    self.character.name,
-                    funn,
-                    branch,
-                    tick
-                )
-            )
-        except IntegrityError:
-            raise ValueError("Looks like this character already has that sense?")
+        self[funn] = funn
 
 
 class Character(DiGraph):
@@ -1912,6 +1974,8 @@ class Character(DiGraph):
         (branch, tick) = self.engine.time
         if isinstance(host, Character):
             host = host.name
+        h = json_dump(host)
+        n = json_dump(name)
         # This will create the node if it doesn't exist. Otherwise
         # it's redundant but harmless.
         try:
@@ -1919,8 +1983,8 @@ class Character(DiGraph):
                 "INSERT INTO nodes (graph, node, branch, rev, extant) "
                 "VALUES (?, ?, ?, ?, ?);",
                 (
-                    host,
-                    name,
+                    h,
+                    n,
                     branch,
                     tick,
                     True
@@ -1929,18 +1993,20 @@ class Character(DiGraph):
         except IntegrityError:
             pass
         if location:
+            l = json_dump(location)
+            nl = json_dump(next_location)
             # This will convert the node into a Thing if it isn't already
             self.engine.cursor.execute(
                 "INSERT INTO things ("
                 "character, thing, branch, tick, location, next_location"
                 ") VALUES (?, ?, ?, ?, ?, ?);",
                 (
-                    host,
-                    name,
+                    h,
+                    n,
                     branch,
                     tick,
-                    location,
-                    next_location
+                    l,
+                    nl
                 )
             )
         # Declare that the node is my avatar
@@ -1950,9 +2016,9 @@ class Character(DiGraph):
             "branch, tick, is_avatar"
             ") VALUES (?, ?, ?, ?, ?, ?);",
             (
-                self.name,
-                host,
-                name,
+                self._name,
+                h,
+                n,
                 branch,
                 tick,
                 True

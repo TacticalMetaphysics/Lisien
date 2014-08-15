@@ -7,6 +7,10 @@ from sqlite3 import connect, OperationalError, IntegrityError, DatabaseError
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
 from gorm import ORM as gORM
+from gorm.graph import (
+    json_dump,
+    json_load
+)
 from .character import Character
 from .rule import Rule
 
@@ -20,7 +24,7 @@ class CharacterMapping(Mapping):
             "SELECT graph FROM graphs;"
         )
         for row in self.engine.cursor.fetchall():
-            yield row[0]
+            yield json_load(row[0])
 
     def __len__(self):
         return self.engine.cursor.execute(
@@ -30,7 +34,7 @@ class CharacterMapping(Mapping):
     def __contains__(self, name):
         return bool(self.engine.cursor.execute(
             "SELECT COUNT(*) FROM graphs WHERE graph=?;",
-            (name,)
+            (json_dump(name),)
         ).fetchone()[0])
 
     def __getitem__(self, name):
@@ -222,7 +226,7 @@ class EternalVarMapping(MutableMapping):
             "SELECT key FROM global;"
         )
         for row in self.engine.cursor.fetchall():
-            yield row[0]
+            yield json_load(row[0])
 
     def __len__(self):
         """Count the global keys"""
@@ -235,10 +239,10 @@ class EternalVarMapping(MutableMapping):
         """Get the value for variable ``k``. It will always be a string."""
         self.engine.cursor.execute(
             "SELECT value FROM global WHERE key=?;",
-            (k,)
+            (json_dump(k),)
         )
         try:
-            return self.engine.cursor.fetchone()[0]
+            return json_load(self.engine.cursor.fetchone()[0])
         except TypeError:
             raise KeyError("No value for {}".format(k))
 
@@ -247,17 +251,23 @@ class EternalVarMapping(MutableMapping):
         process.
 
         """
-        del self[k]  # doesn't throw exception when k doesn't exist
-        self.engine.cursor.execute(
-            "INSERT INTO global (key, value) VALUES (?, ?);",
-            (k, v)
-        )
+        (ks, vs) = (json_dump(k), json_dump(v))
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO global (key, value) VALUES (?, ?);",
+                (ks, vs)
+            )
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE global SET value=? WHERE key=?;",
+                (vs, ks)
+            )
 
     def __delitem__(self, k):
         """Delete ``k``"""
         self.engine.cursor.execute(
             "DELETE FROM global WHERE key=?;",
-            (k,)
+            (json_dump(k),)
         )
 
 
@@ -431,7 +441,7 @@ class GeneralRuleMapping(Mapping):
         """Iterate over active rules"""
         seen = set()
         for (branch, tick) in self.engine._active_branches():
-            for (rule, active) in self.engine.cursor.execute(
+            for (r, a) in self.engine.cursor.execute(
                     "SELECT char_rules.rule, char_rules.active FROM char_rules JOIN "
                     "(SELECT character, rule, branch, MAX(tick) AS tick "
                     "FROM char_rules WHERE "
@@ -444,6 +454,8 @@ class GeneralRuleMapping(Mapping):
                     "AND char_rules.tick=hitick.tick;",
                     (branch, tick)
             ).fetchall():
+                rule = json_load(r)
+                active = bool(a)
                 if active and rule not in seen:
                     yield rule
                 seen.add(rule)
@@ -457,6 +469,7 @@ class GeneralRuleMapping(Mapping):
 
     def __getitem__(self, k):
         """Return rule named thus, if it is active"""
+        ks = json_dump(k)
         for (branch, tick) in self.engine._active_branches():
             data = self.engine.cursor.execute(
                 "SELECT char_rules.rule, char_rules.active FROM char_rules JOIN "
@@ -470,11 +483,11 @@ class GeneralRuleMapping(Mapping):
                 "AND char_rules.rule=hitick.rule "
                 "AND char_rules.branch=hitick.branch "
                 "AND char_rules.tick=hitick.tick;",
-                (k, branch, tick)
+                (ks, branch, tick)
             ).fetchone()
             if data is None:
                 continue
-            (rule, active) = data
+            active = data[1]
             if not active:
                 raise KeyError("Rule deactivated")
             return Rule(self.engine, k)
@@ -500,13 +513,14 @@ class GeneralRuleMapping(Mapping):
     def _activate_rule(self, v):
         """Activate the rule"""
         (branch, tick) = self.engine.time
+        vname = json_dump(v.name)
         try:
             self.engine.cursor.execute(
                 "INSERT INTO char_rules "
                 "(rule, branch, tick, active) "
                 "VALUES (?, ?, ?, ?);",
                 (
-                    v.name,
+                    vname,
                     branch,
                     tick,
                     True
@@ -520,15 +534,16 @@ class GeneralRuleMapping(Mapping):
                 "branch=? AND "
                 "tick=?;",
                 (
-                    v.name,
+                    vname,
                     branch,
                     tick
                 )
             )
 
-    def __delitem__(self, rulen):
+    def __delitem__(self, rule):
         """Deactivate the rule"""
         (branch, tick) = self.engine.time
+        rulen = json_dump(rule)
         try:
             self.engine.cursor.execute(
                 "INSERT INTO char_rules "
@@ -838,7 +853,7 @@ class Engine(object):
                 "DELETE FROM avatars WHERE character_graph=?;",
                 "DELETE FROM char_rules WHERE character=?;"
         ):
-            self.cursor.execute(stmt, (name,))
+            self.cursor.execute(stmt, (json_dump(name),))
         self.gorm.del_graph(name)
 
     def _is_thing(self, character, node):
@@ -864,8 +879,8 @@ class Engine(object):
                 "AND things.branch=hitick.branch "
                 "AND things.tick=hitick.tick;",
                 (
-                    character,
-                    node,
+                    json_dump(character),
+                    json_dump(node),
                     branch,
                     rev
                 )
@@ -912,20 +927,20 @@ class Engine(object):
 
         """
         (branch, tick) = self.time
-        self.cursor.execute(
+        data = self.cursor.execute(
             "SELECT character, rule FROM rules_handled "
             "WHERE branch=? "
-            "AND tick=?;",
+            "AND tick=;",
             (branch, tick)
-        )
-        handled = set(self.cursor.fetchall())
+        ).fetchall()
+        handled = set()
+        for (chars, rules) in data:
+            handled.add((json_load(chars), json_load(rules)))
         for (branch, tick) in self._active_branches():
             self.cursor.execute(
                 "SELECT "
                 "char_rules.character, "
                 "char_rules.rule, "
-                "char_rules.branch, "
-                "char_rules.tick, "
                 "char_rules.active "
                 "FROM char_rules JOIN ("
                 "SELECT character, rule, branch, MAX(tick) AS tick "
@@ -935,13 +950,17 @@ class Engine(object):
                 "ON char_rules.character=hitick.character "
                 "AND char_rules.rule=hitick.rule "
                 "AND char_rules.branch=hitick.branch "
-                "AND char_rules.tick=hitick.tick;",
+                "AND char_rules.tick=hitick.tick "
+                "JOIN rules ON rules.rule=char_rules.rule "
+                "ORDER BY rules.priority DESC, rules.rule DESC;",
                 (
                     branch,
                     tick
                 )
             )
-            for (char, rule, b, t, act) in self.cursor.fetchall():
+            for (c, r, act) in self.cursor.fetchall():
+                char = json_load(c)
+                rule = json_load(r)
                 if (char, rule) in handled:
                     continue
                 if act:
