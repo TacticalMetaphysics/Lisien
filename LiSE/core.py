@@ -743,7 +743,8 @@ class Engine(object):
             "CREATE TABLE rules ("
             "rule TEXT NOT NULL PRIMARY KEY, "
             "actions TEXT NOT NULL DEFAULT '[]', "
-            "prereqs TEXT NOT NULL DEFAULT '[]')"
+            "prereqs TEXT NOT NULL DEFAULT '[]', "
+            "priority INTEGER NOT NULL DEFAULT 0)"
             ";",
             "CREATE TABLE char_rules ("
             "character TEXT, "

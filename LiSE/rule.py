@@ -32,6 +32,36 @@ class Rule(object):
         self.actions = FunList(self.engine, 'rules', ['rule'], [self.name], 'actions')
         self.prereqs = FunList(self.engine, 'rules', ['rule'], [self.name], 'prereqs')
 
+    @property
+    def priority(self):
+        return self.engine.cursor.execute(
+            "SELECT priority FROM rules WHERE name=?;",
+            (self.name,)
+        ).fetchone()[0]
+
+    @priority.setter
+    def priority(self, v):
+        self.engine.cursor.execute(
+            "UPDATE rules SET priority=? WHERE name=?;",
+            (v, self.name)
+        )
+
+    def __cmp__(self, other):
+        """Enable sorting by priority"""
+        myprio = self.priority
+        oprio = other.priority
+        if myprio < oprio:
+            return -1
+        elif myprio == oprio:
+            if self.name < other.name:
+                return -1
+            elif self.name == other.name:
+                return 0
+            else:
+                return 1
+        else:
+            return 1
+
     def __call__(self, lise, character):
         """First check the prereqs. If they all pass, execute the actions and
         return a list of all their results.
