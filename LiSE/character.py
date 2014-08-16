@@ -324,8 +324,13 @@ class Thing(ThingPlace):
         """Initialize a Thing in a Character with a name"""
         self.character = character
         self.engine = character.engine
-        self.name = name
+        self._name = json_dump(name)
+        self._charname = json_dump(self.character.name)
         super().__init__(character, name)
+
+    @property
+    def name(self):
+        return json_load(self._name)
 
     def __iter__(self):
         # I'm only going to iterate over *some* of the special keys
@@ -379,8 +384,8 @@ class Thing(ThingPlace):
                     "AND branch=? "
                     "AND tick<=?;",
                     (
-                        json_dump(self["character"]),
-                        json_dump(self.name),
+                        self._charname,
+                        self._name,
                         curloc,
                         branch,
                         tick
@@ -500,8 +505,8 @@ class Thing(ThingPlace):
                 "AND things.branch=hitick.branch "
                 "AND things.tick=hitick.tick;",
                 (
-                    json_dump(self.character.name),
-                    json_dump(self.name),
+                    self._charname,
+                    self._name,
                     branch,
                     tick
                 )
@@ -513,7 +518,7 @@ class Thing(ThingPlace):
                 raise ValueError("Silly data in things table")
             else:
                 (l, nl) = data[0]
-                return (json_load(l), json_load(nl))
+                return (json_load(l), json_load(nl) if nl else None)
         raise ValueError("No location set")
 
     def _set_loc_and_next(self, loc, nextloc):
