@@ -4,7 +4,7 @@
 from random import Random
 from types import FunctionType, ModuleType
 from collections import Mapping, MutableMapping, Callable
-from sqlite3 import connect, OperationalError, IntegrityError, DatabaseError
+from sqlite3 import connect, OperationalError, IntegrityError
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
 from gorm import ORM as gORM
