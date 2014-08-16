@@ -950,6 +950,7 @@ class Engine(object):
             "sense TEXT NOT NULL, "
             "branch TEXT NOT NULL DEFAULT 'master', "
             "tick INTEGER NOT NULL DEFAULT 0, "
+            "function TEXT NOT NULL, "
             "active BOOLEAN NOT NULL DEFAULT 1, "
             "PRIMARY KEY(character, sense, branch, tick),"
             "FOREIGN KEY(character) REFERENCES graphs(graph))"
