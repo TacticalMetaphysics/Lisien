@@ -872,9 +872,9 @@ class Engine(object):
             r.append(self.advance())
         return r[:-1]
 
-    def new_character(self, name):
+    def new_character(self, name, **kwargs):
         """Create and return a character"""
-        self.add_character(name)
+        self.add_character(name, **kwargs)
         return self.character[name]
 
     def close(self):
@@ -1017,9 +1017,9 @@ class Engine(object):
         """Alias for gorm's ``_iternodes``"""
         return self.gorm._iternodes(graph)
 
-    def add_character(self, name, data=None):
+    def add_character(self, name, data=None, **kwargs):
         """Create the Character so it'll show up in my `character` dict"""
-        self.gorm.new_digraph(name, data)
+        self.gorm.new_digraph(name, data, **kwargs)
 
     def del_character(self, name):
         """Remove the Character from the database entirely"""
