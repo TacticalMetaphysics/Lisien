@@ -13,7 +13,7 @@ from gorm.graph import (
     json_load
 )
 from .character import Character
-from .rule import Rule
+from .rule import AllRules
 
 
 class CharacterMapping(Mapping):
@@ -126,27 +126,19 @@ class FunctionStoreDB(FunctionStore, MutableMapping):
             self.cache[name] = FunctionType(unmarshalled(bytecode[0]), globals())
         return self.cache[name]
 
-    def __call__(self, fun, name=None):
-        """Remember the function in the code database. Return the name to use
-        for it.
-
-        This raises IntegrityError if you try to store a function on
-        top of an existing one. If you really want to do that, assign
-        it like I'm a dictionary.
+    def __call__(self, fun):
+        """Remember the function in the code database. It will be keyed by its
+        ``__name__``.
 
         """
-        if isinstance(fun, str):
-            if fun not in self:
-                raise KeyError("No such function")
-            return fun
-        if name is None:
-            name = fun.__name__
-        self.cursor.execute(
-            "INSERT INTO function (name, code) VALUES (?, ?);",
-            (name, marshalled(fun.__code__))
-        )
-        self.cache[name] = fun
-        return name
+        try:
+            self.cursor.execute(
+                "INSERT INTO function (name, code) VALUES (?, ?);",
+                (fun.__name__, marshalled(fun.__code__))
+            )
+        except IntegrityError:
+            raise KeyError("Already have a function by that name")
+        self.cache[fun.__name__] = fun
 
     def __setitem__(self, name, fun):
         """Store the function, marshalled, under the name given."""
@@ -409,307 +401,6 @@ class GlobalVarMapping(MutableMapping):
             )
 
 
-class Listeners(Mapping):
-    """Mapping and decorator for the functions that listen to the time"""
-    def __init__(self, engine, tabn):
-        """Store the engine and the name of the table I'm about"""
-        self.engine = engine
-        self.tabn = tabn
-
-    def __call__(self, v, name=None):
-        """Store the function and activate it for the present (branch, tick)
-
-        """
-        if isinstance(v, Rule):
-            self._activate_rule(v)
-        elif isinstance(v, Callable):
-            vname = self.engine.function(v, name)
-            r = Rule(self.engine, vname)
-            r.action(vname)
-            self._activate_rule(r)
-        else:
-            vname = self.engine.function(v, name)
-            self._activate_rule(Rule(self.engine, vname))
-
-    def _activate_rule(self, rule):
-        (branch, tick) = self.engine.time
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO {tab} (rule, branch, tick, active) VALUES (?, ?, ?, 1);".format(
-                    tab=self.tabn
-                ),
-                (rule.name, branch, tick)
-            )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE {tab} SET active=1 WHERE "
-                "rule=? AND "
-                "branch=? AND "
-                "tick=?;".format(tab=self.tabn),
-                (rule.name, branch, tick)
-            )
-
-    def __iter__(self):
-        """Iterate over the names of active rules"""
-        r = set()
-        seen = set()
-        for (branch, tick) in self.engine._active_branches():
-            self.engine.cursor.execute(
-                "SELECT {tab}.rule, {tab}.active FROM {tab} JOIN ("
-                "SELECT rule, branch, MAX(tick) AS tick FROM {tab} "
-                "WHERE branch=? "
-                "AND tick<=? "
-                "GROUP BY rule, branch) AS hitick "
-                "ON {tab}.rule=hitick.rule "
-                "AND {tab}.branch=hitick.branch "
-                "AND {tab}.tick=hitick.tick;".format(
-                    tab=self.tabn
-                ),
-                (
-                    branch,
-                    tick
-                )
-            )
-            for (rule, active) in self.engine.cursor.fetchall():
-                if active and rule not in seen:
-                    r.add(rule)
-        for a in sorted(r):
-            yield a
-
-    def __len__(self):
-        """Number of rules active in this table presently"""
-        n = 0
-        seen = set()
-        for (branch, tick) in self.engine._active_branches():
-            self.engine.cursor.execute(
-                "SELECT {tab}.rule, {tab}.active FROM {tab} JOIN ("
-                "SELECT rule, branch, MAX(tick) AS tick "
-                "FROM {tab} WHERE "
-                "branch=? AND "
-                "tick<=? GROUP BY rule, branch) AS hitick "
-                "ON {tab}.rule=hitick.rule "
-                "AND {tab}.branch=hitick.branch "
-                "AND {tab}.tick=hitick.tick;".format(
-                    tab=self.tabn
-                ),
-                (
-                    branch,
-                    tick
-                )
-            )
-            for (rule, active) in self.engine.cursor.fetchall():
-                if active and rule not in seen:
-                    n += 1
-                seen.add(rule)
-        return n
-
-    def __getitem__(self, rulen):
-        """Return the rule by the given name if it's active at the
-        moment
-
-        """
-        for (branch, tick) in self.engine._active_branches():
-            self.engine.cursor.execute(
-                "SELECT {tab}.active FROM {tab} JOIN ("
-                "SELECT rule, branch, MAX(tick) AS tick "
-                "FROM {tab} WHERE "
-                "rule=? AND "
-                "branch=? AND "
-                "tick<=? GROUP BY action, branch) AS hitick "
-                "ON {tab}.rulehitick.rule "
-                "AND {tab}.branch=hitick.branch "
-                "AND {tab}.tick=hitick.tick;".format(
-                    tab=self.tabn
-                ),
-                (
-                    rulen,
-                    branch,
-                    tick
-                )
-            )
-            data = self.engine.cursor.fetchall()
-            if len(data) == 0:
-                continue
-            elif len(data) > 1:
-                raise ValueError("Silly data in {tab} table".format(self.tabn))
-            else:
-                active = data[0][0]
-                if active:
-                    return Rule(self.engine, rulen)
-                else:
-                    raise KeyError("Listener {} disabled".format(rulen))
-        raise KeyError("Listener {} doesn't exist".format(rulen))
-
-    def __delitem__(self, rulen):
-        """Deactivate the rule by the given name"""
-        (branch, tick) = self.engine.time
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO {tab} (rule, branch, tick, active) "
-                "VALUES (?, ?, ?, ?);".format(tab=self.tabn),
-                (
-                    rulen,
-                    branch,
-                    tick,
-                    False
-                )
-            )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE {tab} SET active=? WHERE "
-                "rule=? AND "
-                "branch=? AND "
-                "tick=?;".format(tab=self.tabn),
-                (
-                    False,
-                    rulen,
-                    branch,
-                    tick
-                )
-            )
-
-
-class GeneralRuleMapping(Mapping):
-    """Mapping for rules that aren't associated with any particular Character"""
-    def __init__(self, engine):
-        """Remember the engine"""
-        self.engine = engine
-
-    def __iter__(self):
-        """Iterate over active rules"""
-        seen = set()
-        for (branch, tick) in self.engine._active_branches():
-            for (r, a) in self.engine.cursor.execute(
-                    "SELECT char_rules.rule, char_rules.active FROM char_rules JOIN "
-                    "(SELECT character, rule, branch, MAX(tick) AS tick "
-                    "FROM char_rules WHERE "
-                    "character IS NULL AND "
-                    "branch=? AND "
-                    "tick<=? GROUP BY character, rule, branch) AS hitick "
-                    "ON char_rules.character=hitick.character "
-                    "AND char_rules.rule=hitick.rule "
-                    "AND char_rules.branch=hitick.branch "
-                    "AND char_rules.tick=hitick.tick;",
-                    (branch, tick)
-            ).fetchall():
-                rule = json_load(r)
-                active = bool(a)
-                if active and rule not in seen:
-                    yield rule
-                seen.add(rule)
-
-    def __len__(self):
-        """Count active rules"""
-        n = 0
-        for rule in iter(self):
-            n += 1
-        return n
-
-    def __getitem__(self, k):
-        """Return rule named thus, if it is active"""
-        ks = json_dump(k)
-        for (branch, tick) in self.engine._active_branches():
-            data = self.engine.cursor.execute(
-                "SELECT char_rules.rule, char_rules.active FROM char_rules JOIN "
-                "(SELECT character, rule, branch, MAX(tick) AS tick "
-                "FROM char_rules WHERE "
-                "character IS NULL AND "
-                "rule=? AND "
-                "branch=? AND "
-                "tick<=? GROUP BY character, rule, branch) AS hitick "
-                "ON char_rules.character=hitick.character "
-                "AND char_rules.rule=hitick.rule "
-                "AND char_rules.branch=hitick.branch "
-                "AND char_rules.tick=hitick.tick;",
-                (ks, branch, tick)
-            ).fetchone()
-            if data is None:
-                continue
-            active = data[1]
-            if not active:
-                raise KeyError("Rule deactivated")
-            return Rule(self.engine, k)
-
-    def __call__(self, v):
-        """If passed a Rule, activate it. If passed a string, get the rule by
-        that name and activate it. If passed a function (probably
-        because I've been used as a decorator), make a rule with the
-        same name as the function, with the function itself being the
-        first action of the rule, and activate that rule.
-
-        """
-        if isinstance(v, Rule):
-            self._activate_rule(v)
-        elif isinstance(v, Callable):
-            vname = self.engine.function(v)
-            r = Rule(self.engine, vname)
-            r.action(vname)
-            self._activate_rule(r)
-        else:
-            self._activate_rule(Rule(self.engine, v))
-
-    def _activate_rule(self, v):
-        """Activate the rule"""
-        (branch, tick) = self.engine.time
-        vname = json_dump(v.name)
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO char_rules "
-                "(rule, branch, tick, active) "
-                "VALUES (?, ?, ?, ?);",
-                (
-                    vname,
-                    branch,
-                    tick,
-                    True
-                )
-            )
-        except IntegrityError:
-            self.engine.cursor.executee(
-                "UPDATE char_rules SET active=1 WHERE "
-                "character IS NULL AND "
-                "rule=? AND "
-                "branch=? AND "
-                "tick=?;",
-                (
-                    vname,
-                    branch,
-                    tick
-                )
-            )
-
-    def __delitem__(self, rule):
-        """Deactivate the rule"""
-        (branch, tick) = self.engine.time
-        rulen = json_dump(rule)
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO char_rules "
-                "(rule, branch, tick, active) "
-                "VALUES (?, ?, ?, ?);",
-                (
-                    rulen,
-                    branch,
-                    tick,
-                    False
-                )
-            )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE char_rules SET active=? "
-                "WHERE character IS NULL AND "
-                "rule=? AND "
-                "branch=? AND "
-                "tick=?;",
-                (
-                    False,
-                    rulen,
-                    branch,
-                    tick
-                )
-            )
-
-
 class Engine(object):
     def __init__(self, worlddb, codedb, random_seed=None, gettext=lambda s: s):
         """Store the connections for the world database and the code database;
@@ -731,17 +422,11 @@ class Engine(object):
             ).fetchall()
         except OperationalError:
             self.initdb()
-        # It wouldn't really make sense to store any sim rules in
-        # these things because they also get triggered when you
-        # investigate the past or schedule things for the future. So
-        # what are they for?
-        self.on_branch = Listeners(self, 'branch_listeners')
-        self.on_tick = Listeners(self, 'tick_listeners')
-        self.on_time = Listeners(self, 'time_listeners')
+        self.time_listeners = []
+        self.rule = AllRules(self)
         self.eternal = EternalVarMapping(self)
         self.globl = GlobalVarMapping(self)
         self.character = CharacterMapping(self)
-        self.rule = GeneralRuleMapping(self)
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()
@@ -778,6 +463,17 @@ class Engine(object):
         self.function.commit()
         self.cursor.execute("BEGIN;")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.commit()
+
+    def on_time(self, v):
+        if not isinstance(v, Callable):
+            raise TypeError("This is a decorator")
+        self.time_listeners.append(v)
+
     @property
     def branch(self):
         """Alias for my gorm's ``branch``"""
@@ -789,11 +485,9 @@ class Engine(object):
         if v == self.gorm.branch:
             return
         self.gorm.branch = v
-        for listener in list(self.on_branch.values()):
-            listener(self, v)
         if not hasattr(self, 'locktime'):
             t = self.tick
-            for time_listener in list(self.on_time.values()):
+            for time_listener in self.time_listeners:
                 time_listener(self, v, t)
 
     @property
@@ -807,11 +501,9 @@ class Engine(object):
         if v == self.gorm.rev:
             return
         self.gorm.rev = v
-        for tick_listener in self.on_tick.values():
-            tick_listener(self, v)
         if not hasattr(self, 'locktime'):
             b = self.branch
-            for time_listener in self.on_tick.values():
+            for time_listener in self.time_listeners:
                 time_listener(self, b, v)
 
     @property
@@ -825,23 +517,122 @@ class Engine(object):
         self.locktime = True
         (self.gorm.branch, self.gorm.rev) = v
         (b, t) = v
-        for time_listener in self.on_time.values():
+        for time_listener in self.time_listeners:
             time_listener(self, b, t)
         del self.locktime
 
+    def _have_rules(self):
+        for rulemap in ('character', 'avatar', 'thing', 'place', 'portal'):
+            seen = set()
+            for (branch, tick) in self._active_branches():
+                data = self.cursor.execute(
+                    "SELECT {table}_rules.rule, {table}_rules.active FROM {table}_rules JOIN "
+                    "(SELECT rulebook, rule, branch, MAX(tick) AS tick "
+                    "FROM {table}_rules WHERE "
+                    "branch=? AND "
+                    "tick<=? GROUP BY rulebook, rule, branch) AS hitick "
+                    "ON {table}_rules.rulebook=hitick.rulebook "
+                    "AND {table}_rules.rule=hitick.rule "
+                    "AND {table}_rules.branch=hitick.branch "
+                    "AND {table}_rules.tick=hitick.tick;".format(table=rulemap),
+                    (branch, tick)
+                ).fetchall()
+                for (rule, active) in data:
+                    if rule not in seen and active:
+                        return True
+                    seen.add(rule)
+        return False
+
+    def _poll_rules(self):
+        for rulemap in ('character', 'avatar', 'thing', 'place', 'portal'):
+            seen = set()
+            for (branch, tick) in self._active_branches():
+                # get all the rules except those already handled
+                data = self.cursor.execute(
+                    "SELECT "
+                    "characters.character, "
+                    "characters.{rulemap}_rulebook, "
+                    "active_rules.rule, "
+                    "active_rules.active, "
+                    "handledness.handled "
+                    "FROM characters JOIN active_rules ON "
+                    "characters.{rulemap}_rulebook=active_rules.rulebook "
+                    "JOIN "
+                    "(SELECT rulebook, rule, branch, MAX(tick) AS tick "
+                    "FROM active_rules WHERE "
+                    "branch=? AND "
+                    "tick<=? GROUP BY rulebook, rule, branch) AS hitick "
+                    "ON active_rules.rulebook=hitick.rulebook "
+                    "AND active_rules.rule=hitick.rule "
+                    "AND active_rules.branch=hitick.branch "
+                    "AND active_rules.tick=hitick.tick "
+                    "LEFT OUTER JOIN rulebooks "
+                    "ON rulebooks.rulebook=characters.{rulemap}_rulebook "
+                    "AND rulebooks.rule=active_rules.rule "
+                    "LEFT OUTER JOIN "
+                    "(SELECT character, rulebook, rule, branch, tick, 1 as handled "
+                    "FROM {rulemap}_rules_handled) AS handledness "
+                    "ON handledness.character=characters.character "
+                    "AND handledness.rulebook=characters.{rulemap}_rulebook "
+                    "AND handledness.rule=active_rules.rule "
+                    "AND handledness.branch=? "
+                    "AND handledness.tick=?"
+                    "ORDER BY rulebooks.idx ASC"
+                    ";".format(rulemap=rulemap),
+                    (
+                        branch,
+                        tick,
+                        branch,
+                        tick
+                    )
+                ).fetchall()
+                for (c, rulebook, rule, active, handled) in data:
+                    character = json_load(c)
+                    if (character, rulebook, rule) in seen:
+                        continue
+                    seen.add((character, rulebook, rule))
+                    if active and not handled:
+                        yield (rulemap, character, rulebook, rule)
+
     def _follow_rules(self):
-        """Execute the rules for the present branch and tick, and record the
-        fact of it in the SQL database.
+        t = self.time
+        for (ruletyp, charname, rulebook, rulename) in self._poll_rules():
+            character = self.character[charname]
+            rule = self.rule[rulename]
 
-        Yield the rules paired with their results.
+            def handled(rule, arg):
+                s = rule(self, arg)
+                self.time = t
+                self.cursor.execute(
+                    "INSERT INTO {}_rules_handled "
+                    "(character, rulebook, rule, branch, tick) "
+                    "VALUES (?, ?, ?, ?, ?);".format(ruletyp),
+                    (
+                        charname,
+                        rulebook,
+                        rulename,
+                        t[0],
+                        t[1]
+                    )
+                )
+                return (rule, character, s)
 
-        """
-        for (character, rule) in self._poll_rules():
-            t = self.time
-            s = rule(self, character)
-            self.time = t
-            self._char_rule_handled(character.name, rule.name)
-            yield (rule, character, s)
+            if ruletyp == 'character':
+                yield handled(rule, character)
+            elif ruletyp == 'avatar':
+                for avatar in character.iter_avatars():
+                    yield handled(rule, avatar)
+            elif ruletyp == 'thing':
+                for thing in character.thing.values():
+                    yield handled(rule, thing)
+            elif ruletyp == 'place':
+                for place in character.place.values():
+                    yield handled(rule, place)
+            elif ruletyp == 'portal':
+                for portal in character.iter_portals():
+                    yield handled(rule, portal)
+            else:
+                raise TypeError("Unknown type of rule")
 
     def advance(self):
         """Follow the next rule, advancing to the next tick if necessary.
@@ -857,6 +648,7 @@ class Engine(object):
             self.tick += 1
             self._rules_iter = self._follow_rules()
             self.globl['rando_state'] = self.rando.getstate()
+            self.worlddb.commit()
             r = None
         return r
 
@@ -888,21 +680,6 @@ class Engine(object):
         extensions for LiSE
 
         """
-        listener = (
-            "CREATE TABLE {} ("
-            "rule TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "active BOOLEAN NOT NULL DEFAULT 1, "
-            "PRIMARY KEY(rule, branch, tick), "
-            "FOREIGN KEY(rule) REFERENCES rules(rule))"
-            ";"
-        )
-        listener_idx = (
-            "CREATE INDEX {tbl}_idx ON {tbl}(rule)"
-            ";"
-        )
-
         self.gorm.initdb()
         statements = [
             "CREATE TABLE lise_globals ("
@@ -917,32 +694,34 @@ class Engine(object):
             "CREATE TABLE rules ("
             "rule TEXT NOT NULL PRIMARY KEY, "
             "actions TEXT NOT NULL DEFAULT '[]', "
-            "prereqs TEXT NOT NULL DEFAULT '[]', "
-            "priority INTEGER NOT NULL DEFAULT 0)"
+            "prereqs TEXT NOT NULL DEFAULT '[]')"
             ";",
-            "CREATE TABLE char_rules ("
-            "character TEXT, "
-            # null here means no particular character
+            "CREATE TABLE rulebooks ("
+            "rulebook TEXT NOT NULL, "
+            "idx INTEGER NOT NULL, "
             "rule TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick TEXT NOT NULL DEFAULT 0, "
-            "active BOOLEAN NOT NULL DEFAULT 1, "
-            "PRIMARY KEY(character, rule, branch, tick), "
-            "FOREIGN KEY(rule) REFERENCES rules(rule), "
-            "FOREIGN KEY(character) REFERENCES graphs(graph))"
-            ";",
-            "CREATE INDEX char_rules_idx ON char_rules(character, rule)"
-            ";",
-            "CREATE TABLE rules_handled ("
-            "character TEXT, "
-            "rule TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0,"
-            "PRIMARY KEY(character, rule, branch, tick), "
-            "FOREIGN KEY(character) REFERENCES graphs(graph), "
+            "PRIMARY KEY(rulebook, idx), "
             "FOREIGN KEY(rule) REFERENCES rules(rule))"
             ";",
-            "CREATE INDEX rules_handled_idx ON rules_handled(character, rule)"
+            "CREATE TABLE active_rules ("
+            "rulebook TEXT NOT NULL, "
+            "rule TEXT NOT NULL, "
+            "branch TEXT NOT NULL DEFAULT 'master', "
+            "tick INTEGER NOT NULL DEFAULT 0, "
+            "active BOOLEAN NOT NULL DEFAULT 1, "
+            "PRIMARY KEY(rulebook, rule, branch, tick), "
+            "FOREIGN KEY(rulebook, rule) REFERENCES rulebooks(rulebook, rule))"
+            ";",
+            "CREATE INDEX active_rules_idx ON active_rules(rulebook, rule)"
+            ";",
+            "CREATE TABLE characters ("
+            "character TEXT NOT NULL PRIMARY KEY, "
+            "character_rulebook TEXT NOT NULL, "
+            "avatar_rulebook TEXT NOT NULL, "
+            "thing_rulebook TEXT NOT NULL, "
+            "place_rulebook TEXT NOT NULL, "
+            "portal_rulebook TEXT NOT NULL, "
+            "FOREIGN KEY(character) REFERENCES graphs(graph))"
             ";",
             "CREATE TABLE senses ("
             "character TEXT, "  
@@ -1000,13 +779,39 @@ class Engine(object):
             "avatar_graph, "
             "avatar_node)"
             ";",
-            listener.format("branch_listeners"),
-            listener_idx.format(tbl="branch_listeners"),
-            listener.format("tick_listeners"),
-            listener_idx.format(tbl="tick_listeners"),
-            listener.format("time_listeners"),
-            listener_idx.format(tbl="time_listeners")
         ]
+
+        handled = (
+            "CREATE TABLE {table}_rules_handled ("
+            "character TEXT NOT NULL, "
+            "rulebook TEXT NOT NULL, "
+            "rule TEXT NOT NULL, "
+            "branch TEXT NOT NULL DEFAULT 'master', "
+            "tick INTEGER NOT NULL DEFAULT 0, "
+            "PRIMARY KEY(character, rulebook, rule, branch, tick), "
+            "FOREIGN KEY(character, rulebook) "
+            "REFERENCES characters(character, {table}_rulebook))"
+            ";"
+        )
+        handled_idx = (
+            "CREATE INDEX {table}_rules_handled_idx ON "
+            "{table}_rules_handled(character, rulebook, rule)"
+            ";"
+        )
+        rulesview = (
+            "CREATE VIEW {table}_rules AS "
+            "SELECT character, rulebook, rule, branch, tick, active "
+            "FROM active_rules JOIN characters ON "
+            "active_rules.rulebook=characters.{table}_rulebook"
+            ";"
+        )
+        for tabn in ("character", "avatar", "thing", "place", "portal"):
+            statements.extend((
+                handled.format(table=tabn),
+                handled_idx.format(table=tabn),
+                rulesview.format(table=tabn)
+            ))
+
         for stmt in statements:
             self.cursor.execute(stmt)
 
@@ -1027,7 +832,6 @@ class Engine(object):
         for stmt in (
                 "DELETE FROM things WHERE graph=?;",
                 "DELETE FROM avatars WHERE character_graph=?;",
-                "DELETE FROM char_rules WHERE character=?;"
         ):
             self.cursor.execute(stmt, (json_dump(name),))
         self.gorm.del_graph(name)
@@ -1069,94 +873,3 @@ class Engine(object):
             else:
                 return bool(data[0][0])
         return False
-
-    def _have_rules(self):
-        """Make sure there are rules to follow."""
-        for (branch, tick) in self._active_branches():
-            self.cursor.execute(
-                "SELECT COUNT(*) FROM char_rules JOIN ("
-                "SELECT character, rule, branch, MAX(tick) AS tick "
-                "FROM char_rules WHERE "
-                "branch=? AND "
-                "tick<=? GROUP BY character, rule, branch) AS hitick "
-                "ON char_rules.character=hitick.character "
-                "AND char_rules.rule=hitick.rule "
-                "AND char_rules.branch=hitick.branch "
-                "AND char_rules.tick=hitick.tick;",
-                (
-                    branch,
-                    tick
-                )
-            )
-            if self.cursor.fetchone()[0] > 0:
-                return True
-        return False
-
-    def _poll_rules(self):
-        """Iterate over Rules that have been activated on Characters and
-        haven't already been followed in the present branch and
-        tick. Yield each in a pair with its intended arguments.
-
-        The Rules won't come in any particular order. I won't mark
-        them as "followed"--that's for the method that actually calls
-        them.
-
-        """
-        (branch, tick) = self.time
-        data = self.cursor.execute(
-            "SELECT character, rule FROM rules_handled "
-            "WHERE branch=? "
-            "AND tick=?;",
-            (branch, tick)
-        ).fetchall()
-        handled = set()
-        for (chars, rules) in data:
-            handled.add((json_load(chars), json_load(rules)))
-        for (branch, tick) in self._active_branches():
-            self.cursor.execute(
-                "SELECT "
-                "char_rules.character, "
-                "char_rules.rule, "
-                "char_rules.active "
-                "FROM char_rules JOIN ("
-                "SELECT character, rule, branch, MAX(tick) AS tick "
-                "FROM char_rules WHERE "
-                "branch=? AND "
-                "tick<=? GROUP BY character, rule, branch) AS hitick "
-                "ON char_rules.character=hitick.character "
-                "AND char_rules.rule=hitick.rule "
-                "AND char_rules.branch=hitick.branch "
-                "AND char_rules.tick=hitick.tick "
-                "JOIN rules ON rules.rule=char_rules.rule "
-                "ORDER BY rules.priority DESC, rules.rule DESC;",
-                (
-                    branch,
-                    tick
-                )
-            )
-            for (c, r, act) in self.cursor.fetchall():
-                char = json_load(c)
-                rule = json_load(r)
-                if (char, rule) in handled:
-                    continue
-                if act:
-                    yield (self.character[char], Rule(self, rule))
-                handled.add((char, rule))
-
-    def _char_rule_handled(self, character, rule):
-        """Declare that a rule has been handled for a character at this
-        time
-
-        """
-        (branch, tick) = self.time
-        self.cursor.execute(
-            "INSERT INTO rules_handled "
-            "(character, rule, branch, tick) "
-            "VALUES (?, ?, ?, ?);",
-            (
-                character,
-                rule,
-                branch,
-                tick
-            )
-        )

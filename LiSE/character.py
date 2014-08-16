@@ -24,8 +24,21 @@ from gorm.graph import (
     json_load
 )
 from LiSE.util import path_len
-from LiSE.rule import Rule
+from LiSE.rule import (
+    RuleBook,
+    CharRules,
+    ThingRules,
+    PlaceRules,
+    PortalRules,
+    AvatarRules
+)
 from LiSE.funlist import FunList
+
+
+def rulebook_check(v):
+    if not isinstance(v, str) or isinstance(v, RuleBook):
+        raise TypeError("Use a :class:`RuleBook` or the name of one")
+    return v.name if isinstance(v, RuleBook) else v
 
 
 class TravelException(Exception):
@@ -980,6 +993,26 @@ class CharacterThingMapping(MutableMapping):
         self.engine = character.engine
         self.name = character.name
 
+    @property
+    def rulebook(self):
+        n = self.engine.cursor.execute(
+            "SELECT thing_rulebook FROM characters WHERE character=?;",
+            (self.character._name,)
+        ).fetchone()[0]
+        return RuleBook(self.engine, n)
+
+    @rulebook.setter
+    def rulebook(self, v):
+        n = rulebook_check(v)
+        self.engine.cursor.execute(
+            "UPDATE characters SET thing_rulebook=? WHERE character=?;",
+            (n, self.character._name)
+        )
+
+    @property
+    def rule(self):
+        return ThingRules(self.character, self.rulebook)
+
     def __iter__(self):
         """Iterate over nodes that have locations, and are therefore
         Things. Yield their names.
@@ -1068,6 +1101,26 @@ class CharacterPlaceMapping(MutableMapping):
         self.engine = character.engine
         self.name = character.name
 
+    @property
+    def rulebook(self):
+        n = self.engine.cursor.execute(
+            "SELECT place_rulebook FROM characters WHERE character=?;",
+            (self.character._name,)
+        )
+        return RuleBook(self.engine, n)
+
+    @rulebook.setter
+    def rulebook(self, v):
+        n = rulebook_check(v)
+        self.engine.cursor.execute(
+            "UPDATE characters SET place_rulebook=? WHERE character=?;",
+            (n, self.character._name)
+        )
+
+    @property
+    def rule(self):
+        return PlaceRules(self.character, self.rulebook)
+
     def __iter__(self):
         things = set()
         things_seen = set()
@@ -1136,7 +1189,7 @@ class CharacterThingPlaceMapping(MutableMapping):
         myn = json_dump(self.name)
         for (branch, rev) in self.engine._active_branches():
             self.engine.cursor.execute(
-                "SELECT node, extant FROM nodes JOIN "
+                "SELECT nodes.node, nodes.extant FROM nodes JOIN "
                 "(SELECT graph, node, branch, MAX(rev) AS rev "
                 "FROM nodes WHERE "
                 "graph=? AND "
@@ -1186,7 +1239,29 @@ class CharacterThingPlaceMapping(MutableMapping):
                 raise KeyError("No such Thing or Place in this Character")
 
 
-class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping):
+class CharacterPortalMapping(object):
+    @property
+    def rulebook(self):
+        n = self.graph.engine.cursor.execute(
+            "SELECT portal_rulebook FROM characters WHERE character=?;",
+            (self.character._name,)
+        ).fetchone()[0]
+        return RuleBook(self.graph.engine, n)
+
+    @rulebook.setter
+    def rulebook(self, v):
+        n = rulebook_check(v)
+        self.engine.cursor.execute(
+            "UPDATE characters SET portal_rulebook=? WHERE character=?;",
+            (n, self.graph._name)
+        )
+
+    @property
+    def rule(self):
+        return PortalRules(self.character, self.rulebook)
+
+
+class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, CharacterPortalMapping):
     class Successors(GraphSuccessorsMapping.Successors):
         def _getsub(self, nodeB):
             return Portal(self.graph, self.nodeA, nodeB)
@@ -1201,7 +1276,7 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping):
                 self.graph._paths = {}
 
 
-class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping):
+class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping, CharacterPortalMapping):
     class Predecessors(DiGraphPredecessorsMapping.Predecessors):
         def _getsub(self, nodeA):
             return Portal(self.graph, nodeA, self.nodeB)
@@ -1214,202 +1289,6 @@ class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping):
             if '_paths' in self.graph.graph:
                 del self.graph.graph['_paths']
                 self.graph._paths = {}
-
-
-class CharRules(MutableMapping):
-    """Maps rule names to rules the Character is following, and is also a
-    decorator to create said rules from action functions.
-
-    Decorating a function with this turns the function into the
-    first action of a new rule of the same name, and applies the
-    rule to the character. Add more actions with the @rule.action
-    decorator, and add prerequisites with @rule.prereq
-
-    """
-    def __init__(self, char):
-        """Store the character"""
-        self.character = char
-        self.engine = char.engine
-        self.name = char.name
-
-    def __call__(self, v):
-        """If passed a Rule, activate it. If passed a string, get the rule by
-        that name and activate it. If passed a function (probably
-        because I've been used as a decorator), make a rule with the
-        same name as the function, with the function itself being the
-        first action of the rule, and activate that rule.
-
-        """
-        if isinstance(v, Rule):
-            self._activate_rule(v)
-        elif isinstance(v, Callable):
-            # create a new rule performing the action v
-            vname = self.engine.function(v)
-            rule = Rule(self.engine, vname)
-            rule.action(vname)
-            self._activate_rule(rule)
-        else:
-            # v is the name of a rule. Maybe it's been created
-            # previously or maybe it'll get initialized in Rule's
-            # __init__.
-            self._activate_rule(Rule(self.engine, v))
-
-    def __iter__(self):
-        """Iterate over all rules presently in effect"""
-        seen = set()
-        charn = json_dump(self.character.name)
-        for (branch, tick) in self.engine._active_branches():
-            self.engine.cursor.execute(
-                "SELECT char_rules.rule, char_rules.active "
-                "FROM char_rules JOIN ("
-                "SELECT character, rule, branch, MAX(tick) AS tick "
-                "FROM char_rules WHERE "
-                "character=? AND "
-                "branch=? AND "
-                "tick<=? GROUP BY character, rule, branch) AS hitick "
-                "ON char_rules.character=hitick.character "
-                "AND char_rules.rule=hitick.rule "
-                "AND char_rules.character=hitick.character "
-                "AND char_rules.branch=hitick.branch "
-                "AND char_rules.tick=hitick.tick;",
-                (
-                    charn,
-                    branch,
-                    tick
-                )
-            )
-            for (r, active) in self.engine.cursor.fetchall():
-                rule = json_load(r)
-                if active and rule not in seen:
-                    yield rule
-                seen.add(rule)
-
-    def __len__(self):
-        """Count the rules presently in effect"""
-        n = 0
-        for rule in self:
-            n += 1
-        return n
-
-    def __getitem__(self, rulen):
-        """Get the rule by the given name, if it is in effect"""
-        # make sure the rule is active at the moment
-        for (branch, tick) in self.engine._active_branches():
-            data = self.engine.cursor.execute(
-                "SELECT char_rules.active "
-                "FROM char_rules JOIN ("
-                "SELECT character, rule, branch, MAX(tick) AS tick "
-                "FROM char_rules WHERE "
-                "character=? AND "
-                "rule=? AND "
-                "branch=? AND "
-                "tick<=? GROUP BY character, rule, branch) AS hitick "
-                "ON char_rules.character=hitick.character "
-                "AND char_rules.rule=hitick.rule "
-                "AND char_rules.branch=hitick.branch "
-                "AND char_rules.tick=hitick.tick;",
-                (
-                    json_dump(self.character.name),
-                    json_dump(rulen),
-                    branch,
-                    tick
-                )
-            ).fetchall()
-            if len(data) == 0:
-                continue
-            elif len(data) > 1:
-                raise ValueError("Silly data in char_rules table")
-            else:
-                (active,) = data[0]
-                if not active:
-                    raise KeyError("No such rule at the moment")
-                return Rule(self.engine, rulen)
-        raise KeyError("No such rule, ever")
-
-    def __setitem__(self, k, v):
-        oldn = v.__name__
-        v.__name__ = k
-        self(v)
-        v.__name__ = oldn
-
-    def __getattr__(self, attrn):
-        """For easy use with decorators, allow accessing my contents like
-        attributes
-
-        """
-        try:
-            return self[attrn]
-        except KeyError:
-            raise AttributeError
-
-    def _activate_rule(self, rule):
-        """Indicate that the rule is active and should be followed.
-
-        """
-        charn = json_dump(self.character.name)
-        rulen = json_dump(rule.name)
-        (branch, tick) = self.engine.time
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO char_rules "
-                "(character, rule, branch, tick, active) "
-                "VALUES (?, ?, ?, ?, ?);",
-                (
-                    charn,
-                    rulen,
-                    branch,
-                    tick,
-                    True
-                )
-            )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE char_rules SET active=1 WHERE "
-                "character=? AND "
-                "rule=? AND "
-                "branch=? AND "
-                "tick=?;",
-                (
-                    charn,
-                    rulen,
-                    branch,
-                    tick
-                )
-            )
-
-    def __delitem__(self, rulen):
-        """Deactivate the rule"""
-        (branch, tick) = self.engine.time
-        charn = json_dump(self.character.name)
-        rule = json_dump(rulen)
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO char_rules "
-                "(character, rule, branch, tick, active) "
-                "VALUES (?, ?, ?, ?, ?);",
-                (
-                    charn,
-                    rule,
-                    branch,
-                    tick,
-                    False
-                )
-            )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE char_rules SET active=? "
-                "WHERE character=? "
-                "AND rule=? "
-                "AND branch=? "
-                "AND tick=?;",
-                (
-                    False,
-                    charn,
-                    rule,
-                    branch,
-                    tick
-                )
-            )
 
 
 class CharacterAvatarGraphMapping(Mapping):
@@ -1510,6 +1389,26 @@ class CharacterAvatarGraphMapping(Mapping):
             self.engine = outer.engine
             self.name = outer.name
             self.graph = graphn
+
+        @property
+        def rulebook(self):
+            bookname = self.engine.cursor.execute(
+                "SELECT avatar_rulebook FROM characters WHERE character=?;",
+                (self.char._name,)
+            ).fetchone()[0]
+            return RuleBook(self.engine, bookname)
+
+        @rulebook.setter
+        def rulebook(self, v):
+            n = rulebook_check(v)
+            self.engine.cursor.execute(
+                "UPDATE characters SET avatar_rulebook=? WHERE character=?;",
+                (n, self.char._name)
+            )
+
+        @property
+        def rules(self):
+            return AvatarRules(self.character, self.rulebook)
 
         def __getattr__(self, attrn):
             """If I don't have such an attribute, but I contain exactly one
@@ -1896,6 +1795,37 @@ class Character(DiGraph):
 
         """
         super().__init__(engine.gorm, name, data, **attr)
+        (ct,) = engine.cursor.execute(
+            "SELECT COUNT(*) FROM characters WHERE character=?;",
+            (self._name,)
+        ).fetchone()
+        if ct == 0:
+            d = {}
+            for mapp in ('character', 'avatar', 'thing', 'place', 'portal'):
+                if mapp + '_rulebook' in attr:
+                    rulebook = attr[mapp + 'rulebook']
+                    bookname = rulebook.name if isinstance(rulebook, RuleBook) else str(rulebook)
+                    d[mapp] = bookname
+                else:
+                    d[mapp] = mapp + ":" + self._name
+            engine.cursor.execute(
+                "INSERT INTO characters "
+                "(character, "
+                "character_rulebook, "
+                "avatar_rulebook, "
+                "thing_rulebook, "
+                "place_rulebook, "
+                "portal_rulebook) "
+                "VALUES (?, ?, ?, ?, ?, ?);",
+                (
+                    self._name,
+                    d['character'],
+                    d['avatar'],
+                    d['thing'],
+                    d['place'],
+                    d['portal']
+                )
+            )
         self.engine = engine
         self.thing = CharacterThingMapping(self)
         self.place = CharacterPlaceMapping(self)
@@ -1906,12 +1836,31 @@ class Character(DiGraph):
         self.preportal = CharacterPortalPredecessorsMapping(self)
         self.pred = self.preportal
         self.avatar = CharacterAvatarGraphMapping(self)
-        self.rule = CharRules(self)
         self.sense = CharacterSenseMapping(self)
         self.travel_reqs = FunList(self.engine, 'travel_reqs', ['character'], [name], 'reqs')
         self.stat = self.graph
         self._portal_traits = set()
         self._paths = self.graph['_paths'] if '_paths' in self.graph else {}
+
+    @property
+    def rule(self):
+        return CharRules(self, self.rulebook)
+
+    @property
+    def rulebook(self):
+        n = self.engine.cursor.execute(
+            "SELECT character_rulebook FROM characters WHERE character=?;",
+            (self._name,)
+        ).fetchone()[0]
+        return RuleBook(self.engine, n)
+
+    @rulebook.setter
+    def rulebook(self, v):
+        n = rulebook_check(v)
+        self.engine.cursor.execute(
+            "UPDATE characters SET character_rulebook=? WHERE character=?;",
+            (n, self._name)
+        )
 
     def travel_req(self, fun):
         """Decorator for tests that :class:`Thing`s have to pass before they
@@ -2020,8 +1969,15 @@ class Character(DiGraph):
         self.place2thing(name, None)
 
     def add_portal(self, origin, destination, symmetrical=False, **kwargs):
-        """Connect the origin to the destination with a Portal. Keyword
-        arguments are the Portal's attributes.
+        """Connect the origin to the destination with a :class:`Portal`.
+
+        Keyword arguments are the :class:`Portal`'s
+        attributes. Exception: if keyword ``symmetrical`` == ``True``,
+        a mirror-:class:`Portal` will be placed in the opposite
+        direction between the same nodes. It will always appear to
+        have the placed :class:`Portal`'s stats, and any change to the
+        mirror :class:`Portal`'s stats will affect the placed
+        :class:`Portal`.
 
         """
         if origin.__class__ in (Place, Thing):
@@ -2093,6 +2049,11 @@ class Character(DiGraph):
                 True
             )
         )
+
+    def iter_portals(self):
+        for o in self.portal:
+            for port in self.portal[o].values():
+                yield port
 
     def iter_avatars(self):
         """Iterate over all my avatars, regardless of what character they are in."""

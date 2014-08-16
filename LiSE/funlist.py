@@ -1,7 +1,7 @@
 # coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
-from collections import MutableSequence
+from collections import MutableSequence, Callable
 from json import dumps as jsonned
 from json import loads as unjsonned
 
@@ -45,6 +45,14 @@ class FunList(MutableSequence):
         funns = [self.engine.function(fun) for fun in data]
         if funns:
             self._setlist(funns)
+
+    def _funn(self, v):
+        funn = v.__name__ if isinstance(v, Callable) else v
+        if funn not in self.engine.function:
+            self.engine.function(v)
+        if funn not in self.engine.function:
+            raise Exception("Couldn't save function?")
+        return funn
 
     def _setlist(self, l):
         """Update the rule's record with this new list of strings."""
@@ -93,9 +101,8 @@ class FunList(MutableSequence):
         the name.
 
         """
-        funn = self.engine.function(v)
         l = self._getlist()
-        l[i] = funn
+        l[i] = self._funn(v)
         self._setlist(l)
 
     def __delitem__(self, i):
@@ -109,8 +116,6 @@ class FunList(MutableSequence):
         into position i
 
         """
-        funn = self.engine.function(v)
         l = self._getlist()
-        l.insert(i, funn)
+        l.insert(i, self._funn(v))
         self._setlist(l)
-
