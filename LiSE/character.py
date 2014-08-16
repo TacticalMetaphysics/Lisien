@@ -1636,12 +1636,74 @@ class SenseCharacterMapping(Mapping):
     def __init__(self, container, sensename):
         self.container = container
         self.engine = self.container.engine
-        self.sensename = sensename
+        self._sensename = json_dump(sensename)
         self.observer = self.container.character
+        self._obsname = json_dump(self.observer.name)
+
+    @property
+    def sensename(self):
+        return json_load(self._sensename)
 
     @property
     def fun(self):
-        return self.engine.function[self.sensename]
+        for (branch, tick) in self.engine._active_branches():
+            data = self.engine.cursor.execute(
+                "SELECT function FROM senses JOIN "
+                "(SELECT character, sense, branch, MAX(tick) AS tick "
+                "FROM senses WHERE "
+                "character=? AND "
+                "sense=? AND "
+                "branch=? AND "
+                "tick<=? GROUP BY character, sense, branch) AS hitick "
+                "ON senses.character=hitick.character "
+                "AND senses.sense=hitick.sense "
+                "AND senses.branch=hitick.branch "
+                "AND senses.tick=hitick.tick;",
+                (
+                    self._obsname,
+                    self._sensename,
+                    branch,
+                    tick
+                )
+            ).fetchone()
+            if data is None:
+                continue
+            return self.engine.function[data[0]]
+        return lambda x: x
+
+    @fun.setter
+    def fun(self, v):
+        funn = self.engine.function(v)
+        (branch, tick) = self.engine.time
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO senses (character, sense, branch, tick, function, active) "
+                "VALUES (?, ?, ?, ?, ?);",
+                (
+                    self._obsname,
+                    self._sensename,
+                    branch,
+                    tick,
+                    funn,
+                    True
+                )
+            )
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE senses SET function=?, active=? WHERE "
+                "character=? AND "
+                "sense=? AND "
+                "branch=? AND "
+                "tick=?;",
+                (
+                    funn,
+                    True,
+                    self._obsname,
+                    self._sensename,
+                    branch,
+                    tick
+                )
+            )
 
     def __iter__(self):
         for char in self.engine.character.values():
