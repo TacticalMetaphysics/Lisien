@@ -1985,11 +1985,10 @@ class Character(DiGraph):
         nlocn = json_dump(next_location) if next_location else None
         try:
             self.engine.cursor.execute(
-                "INSERT INTO things ("
-                "character, thing, branch, tick, location, next_location"
-                ") VALUES ("
-                "?, ?, ?, ?, ?, ?"
-                ");",
+                "INSERT INTO things "
+                "(character, thing, branch, tick, location, next_location) "
+                "VALUES "
+                "(?, ?, ?, ?, ?, ?);",
                 (
                     myname,
                     thingname,
