@@ -1106,7 +1106,7 @@ class Engine(object):
         data = self.cursor.execute(
             "SELECT character, rule FROM rules_handled "
             "WHERE branch=? "
-            "AND tick=;",
+            "AND tick=?;",
             (branch, tick)
         ).fetchall()
         handled = set()
