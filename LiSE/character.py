@@ -2054,9 +2054,8 @@ class Character(DiGraph):
                 kwargs['symmetrical'] = True
             self.add_portal(orig, dest, **kwargs)
 
-    def add_avatar(self, name, host, location=None, next_location=None):
-        """Add a :class:`Thing` to some other :class:`Character`, but keep
-        track of it in my ``avatar`` property.
+    def add_avatar(self, host, name):
+        """Start keeping track of a :class:`Thing` or :class:`Place` in a different :class:`Character`.
 
         """
         (branch, tick) = self.engine.time
@@ -2080,23 +2079,6 @@ class Character(DiGraph):
             )
         except IntegrityError:
             pass
-        if location:
-            l = json_dump(location)
-            nl = json_dump(next_location)
-            # This will convert the node into a Thing if it isn't already
-            self.engine.cursor.execute(
-                "INSERT INTO things ("
-                "character, thing, branch, tick, location, next_location"
-                ") VALUES (?, ?, ?, ?, ?, ?);",
-                (
-                    h,
-                    n,
-                    branch,
-                    tick,
-                    l,
-                    nl
-                )
-            )
         # Declare that the node is my avatar
         self.engine.cursor.execute(
             "INSERT INTO avatars ("
@@ -2112,6 +2094,37 @@ class Character(DiGraph):
                 True
             )
         )
+
+    def iter_avatars(self):
+        """Iterate over all my avatars, regardless of what character they are in."""
+        seen = set()
+        for (branch, tick) in self.engine._active_branches():
+            data = self.engine.cursor.execute(
+                "SELECT avatars.avatar_graph, avatars.avatar_node, is_avatar "
+                "FROM avatars JOIN "
+                "(SELECT character_graph, avatar_graph, avatar_node, branch, "
+                "MAX(tick) AS tick FROM avatars "
+                "WHERE character_graph=? "
+                "AND branch=? "
+                "AND tick<=? GROUP BY character_graph, avatar_graph, avatar_node, branch) "
+                "AS hitick "
+                "ON avatars.character_graph=hitick.character_graph "
+                "AND avatars.avatar_graph=hitick.avatar_graph "
+                "AND avatars.branch=hitick.branch "
+                "AND avatars.tick=hitick.tick;",
+                (
+                    self._name,
+                    branch,
+                    tick
+                )
+            ).fetchall()
+            for (g, n, a) in data:
+                graphn = json_load(g)
+                noden = json_load(n)
+                is_avatar = bool(a)
+                if (graphn, noden) not in seen and is_avatar:
+                    yield self.engine.character[graphn].node[noden]
+                seen.add((graphn, noden))
 
     def copy(self):
         """Return a :class:`CharacterImage` representing my status at the
