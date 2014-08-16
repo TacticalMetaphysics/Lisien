@@ -102,7 +102,7 @@ class FunctionStoreDB(FunctionStore, MutableMapping):
             yield row[0]
 
     def __contains__(self, name):
-        """SELECT COUNT(*) FROM function WHERE name=?"""
+        """Check if there's such a function in the database"""
         if name in self.cache:
             return True
         self.cursor.execute(
