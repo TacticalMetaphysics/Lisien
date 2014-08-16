@@ -1979,21 +1979,42 @@ class Character(DiGraph):
 
         """
         (branch, tick) = self.engine.time
-        self.engine.cursor.execute(
-            "INSERT INTO things ("
-            "graph, node, branch, tick, location, next_location"
-            ") VALUES ("
-            "?, ?, ?, ?, ?"
-            ");",
-            (
-                self.name,
-                name,
-                branch,
-                tick,
-                location,
-                next_location
+        myname = json_dump(self.name)
+        thingname = json_dump(name)
+        locn = json_dump(location)
+        nlocn = json_dump(next_location) if next_location else None
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO things ("
+                "character, thing, branch, tick, location, next_location"
+                ") VALUES ("
+                "?, ?, ?, ?, ?, ?"
+                ");",
+                (
+                    myname,
+                    thingname,
+                    branch,
+                    tick,
+                    locn,
+                    nlocn
+                )
             )
-        )
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE things SET location=?, next_location=? "
+                "WHERE character=? "
+                "AND thing=? "
+                "AND branch=? "
+                "AND tick=?;",
+                (
+                    locn,
+                    nlocn,
+                    myname,
+                    thingname,
+                    branch,
+                    tick
+                )
+            )
 
     def thing2place(self, name):
         """Unset a Thing's location, and thus turn it into a Place."""
