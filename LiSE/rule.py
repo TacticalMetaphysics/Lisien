@@ -35,7 +35,7 @@ class Rule(object):
         self.actions = FunList(self.engine, 'rules', ['rule'], [self.name], 'actions')
         self.prereqs = FunList(self.engine, 'rules', ['rule'], [self.name], 'prereqs')
 
-    def __call__(self, lise, entity):
+    def __call__(self, engine, *args):
         """First check the prereqs. If they all pass, execute the actions and
         return a list of all their results.
 
@@ -43,21 +43,21 @@ class Rule(object):
         to what it was before the rule was called.
 
         """
-        curtime = lise.time
+        curtime = engine.time
         r = None
         for prereq in self.prereqs:
             # in case one of them moves the time
-            if not prereq(lise, entity):
+            if not prereq(engine, *args):
                 r = []
-            lise.time = curtime
+            engine.time = curtime
             if r is not None:
                 break
         if r is not None:
             return r
         r = []
         for action in self.actions:
-            r.append(action(lise, entity))
-            lise.time = curtime
+            r.append(action(engine, *args))
+            engine.time = curtime
         return r
 
     def prereq(self, fun):
