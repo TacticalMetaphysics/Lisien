@@ -599,44 +599,39 @@ class Engine(object):
                         yield (rulemap, character, rulebook, rule)
 
     def _follow_rules(self):
-        t = self.time
+        (branch, tick) = self.time
         for (ruletyp, charname, rulebook, rulename) in self._poll_rules():
             character = self.character[charname]
             rule = self.rule[rulename]
 
-            def handled(rule, arg):
-                s = rule(self, arg)
-                self.time = t
-                self.cursor.execute(
-                    "INSERT INTO {}_rules_handled "
-                    "(character, rulebook, rule, branch, tick) "
-                    "VALUES (?, ?, ?, ?, ?);".format(ruletyp),
-                    (
-                        charname,
-                        rulebook,
-                        rulename,
-                        t[0],
-                        t[1]
-                    )
-                )
-                return (rule, character, s)
-
             if ruletyp == 'character':
-                yield handled(rule, character)
+                yield rule(self, character)
             elif ruletyp == 'avatar':
                 for avatar in character.iter_avatars():
-                    yield handled(rule, avatar)
+                    yield rule(self, character, avatar)
             elif ruletyp == 'thing':
                 for thing in character.thing.values():
-                    yield handled(rule, thing)
+                    yield rule(self, character, thing)
             elif ruletyp == 'place':
                 for place in character.place.values():
-                    yield handled(rule, place)
+                    yield rule(self, character, place)
             elif ruletyp == 'portal':
                 for portal in character.iter_portals():
-                    yield handled(rule, portal)
+                    yield rule(self, character, portal)
             else:
                 raise TypeError("Unknown type of rule")
+            self.cursor.execute(
+                "INSERT INTO {}_rules_handled "
+                "(character, rulebook, rule, branch, tick) "
+                "VALUES (?, ?, ?, ?, ?);".format(ruletyp),
+                (
+                    charname,
+                    rulebook,
+                    rulename,
+                    branch,
+                    tick
+                )
+            )
 
     def advance(self):
         """Follow the next rule, advancing to the next tick if necessary.
