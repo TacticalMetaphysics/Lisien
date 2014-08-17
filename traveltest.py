@@ -119,30 +119,4 @@ while lise.tick < 142:
 lise.close()
 clear_off()
 # More complex test
-def sickle_cell_test(
-        engine,
-        n_creatures=100,
-        n_sickle_betaglobin=100,
-        malaria_chance=.05,
-        migrate_chance=.5,
-        mate_chance=.1,
-        size_m=6,
-        size_n=6
-):
-    """Natural Selection on Sickle Cell Anemia
 
-    If anyone carries a pair of sickle betaglobin genes, they die of
-    sickle cell anemia.
-
-    Individuals with 1x betaglobin, 1x sickle betaglobin are immune to
-    malaria.
-
-    """
-    # TODO: use selection coefficients
-    engine.add_character("physical", data=nx.grid_2d_graph(size_m, size_n))
-    species = engine.new_character("species")
-    for n in range(0, n_creatures):
-        species.add_avatar("critter" + str(n), "physical")
-
-
-sickle_cell_test(mkengine())
