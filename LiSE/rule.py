@@ -142,10 +142,11 @@ class RuleBook(MutableSequence):
 
 
 class RuleMapping(MutableMapping):
-    def __init__(self, character, rulebook):
+    def __init__(self, character, rulebook, booktyp):
         self.character = character
         self.rulebook = rulebook
         self.engine = rulebook.engine
+        self.table = booktyp + "_rules"
 
     def _activate_rule(self, rule):
         (branch, tick) = self.engine.time
