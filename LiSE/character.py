@@ -24,21 +24,32 @@ from gorm.graph import (
     json_load
 )
 from LiSE.util import path_len
-from LiSE.rule import (
-    RuleBook,
-    CharRules,
-    ThingRules,
-    PlaceRules,
-    PortalRules,
-    AvatarRules
-)
+from LiSE.rule import RuleBook, RuleMapping
 from LiSE.funlist import FunList
 
 
-def rulebook_check(v):
-    if not isinstance(v, str) or isinstance(v, RuleBook):
-        raise TypeError("Use a :class:`RuleBook` or the name of one")
-    return v.name if isinstance(v, RuleBook) else v
+class RuleFollower(object):
+    @property
+    def rulebook(self):
+        n = self.engine.cursor.execute(
+            "SELECT {}_rulebook FROM characters WHERE character=?;".format(self._book),
+            (self.character._name,)
+        ).fetchone()[0]
+        return RuleBook(self.engine, n)
+
+    @rulebook.setter
+    def rulebook(self, v):
+        if not isinstance(v, str) or isinstance(v, RuleBook):
+            raise TypeError("Use a :class:`RuleBook` or the name of one")
+        n = v.name if isinstance(v, RuleBook) else v
+        self.engine.cursor.execute(
+            "UPDATE characters SET {}_rulebook=? WHERE character=?;".format(self._book),
+            (n, self.character._name)
+        )
+
+    @property
+    def rule(self):
+        return RuleMapping(self.character, self.rulebook, self._book)
 
 
 class TravelException(Exception):
@@ -987,31 +998,13 @@ class Portal(GraphEdgeMapping.Edge):
         return json_dump(self._json_dict)
 
 
-class CharacterThingMapping(MutableMapping):
+class CharacterThingMapping(MutableMapping, RuleFollower):
+    _book = "thing"
+
     def __init__(self, character):
         self.character = character
         self.engine = character.engine
         self.name = character.name
-
-    @property
-    def rulebook(self):
-        n = self.engine.cursor.execute(
-            "SELECT thing_rulebook FROM characters WHERE character=?;",
-            (self.character._name,)
-        ).fetchone()[0]
-        return RuleBook(self.engine, n)
-
-    @rulebook.setter
-    def rulebook(self, v):
-        n = rulebook_check(v)
-        self.engine.cursor.execute(
-            "UPDATE characters SET thing_rulebook=? WHERE character=?;",
-            (n, self.character._name)
-        )
-
-    @property
-    def rule(self):
-        return ThingRules(self.character, self.rulebook)
 
     def __iter__(self):
         """Iterate over nodes that have locations, and are therefore
@@ -1095,33 +1088,15 @@ class CharacterThingMapping(MutableMapping):
         return repr(dict(self))
 
 
-class CharacterPlaceMapping(MutableMapping):
+class CharacterPlaceMapping(MutableMapping, RuleFollower):
+    _book = "place"
+
     def __init__(self, character):
         self.character = character
         self.engine = character.engine
         self.name = character.name
 
-    @property
-    def rulebook(self):
-        n = self.engine.cursor.execute(
-            "SELECT place_rulebook FROM characters WHERE character=?;",
-            (self.character._name,)
-        )
-        return RuleBook(self.engine, n)
-
-    @rulebook.setter
-    def rulebook(self, v):
-        n = rulebook_check(v)
-        self.engine.cursor.execute(
-            "UPDATE characters SET place_rulebook=? WHERE character=?;",
-            (n, self.character._name)
-        )
-
-    @property
-    def rule(self):
-        return PlaceRules(self.character, self.rulebook)
-
-    def __iter__(self):
+    def _things(self):
         things = set()
         things_seen = set()
         charn = json_dump(self.character.name)
@@ -1239,29 +1214,8 @@ class CharacterThingPlaceMapping(MutableMapping):
                 raise KeyError("No such Thing or Place in this Character")
 
 
-class CharacterPortalMapping(object):
-    @property
-    def rulebook(self):
-        n = self.graph.engine.cursor.execute(
-            "SELECT portal_rulebook FROM characters WHERE character=?;",
-            (self.character._name,)
-        ).fetchone()[0]
-        return RuleBook(self.graph.engine, n)
-
-    @rulebook.setter
-    def rulebook(self, v):
-        n = rulebook_check(v)
-        self.engine.cursor.execute(
-            "UPDATE characters SET portal_rulebook=? WHERE character=?;",
-            (n, self.graph._name)
-        )
-
-    @property
-    def rule(self):
-        return PortalRules(self.character, self.rulebook)
-
-
-class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, CharacterPortalMapping):
+class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
+    _book = "portal"
     class Successors(GraphSuccessorsMapping.Successors):
         def _getsub(self, nodeB):
             return Portal(self.graph, self.nodeA, nodeB)
@@ -1276,7 +1230,8 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, CharacterPortalMa
                 self.graph._paths = {}
 
 
-class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping, CharacterPortalMapping):
+class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping, RuleFollower):
+    _book = "portal"
     class Predecessors(DiGraphPredecessorsMapping.Predecessors):
         def _getsub(self, nodeA):
             return Portal(self.graph, nodeA, self.nodeB)
@@ -1291,10 +1246,11 @@ class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping, CharacterPo
                 self.graph._paths = {}
 
 
-class CharacterAvatarGraphMapping(Mapping):
+class CharacterAvatarGraphMapping(Mapping, RuleFollower):
+    _book = "avatar"
     def __init__(self, char):
         """Remember my character"""
-        self.char = char
+        self.character = char
         self.engine = char.engine
         self.name = char.name
 
@@ -1302,7 +1258,7 @@ class CharacterAvatarGraphMapping(Mapping):
         """Add the avatar. It must be an instance of Place or Thing."""
         if av.__class__ not in (Place, Thing):
             raise TypeError("Only Things and Places may be avatars")
-        self.char.add_avatar(av.name, av.character.name)
+        self.character.add_avatar(av.name, av.character.name)
 
     def _datadict(self):
         """Get avatar-ness data and return it"""
@@ -1385,49 +1341,13 @@ class CharacterAvatarGraphMapping(Mapping):
             character.
 
             """
-            self.char = outer.char
+            self.character = outer.character
             self.engine = outer.engine
             self.name = outer.name
             self.graph = graphn
 
-        @property
-        def rulebook(self):
-            bookname = self.engine.cursor.execute(
-                "SELECT avatar_rulebook FROM characters WHERE character=?;",
-                (self.char._name,)
-            ).fetchone()[0]
-            return RuleBook(self.engine, bookname)
-
-        @rulebook.setter
-        def rulebook(self, v):
-            n = rulebook_check(v)
-            self.engine.cursor.execute(
-                "UPDATE characters SET avatar_rulebook=? WHERE character=?;",
-                (n, self.char._name)
-            )
-
-        @property
-        def rules(self):
-            return AvatarRules(self.character, self.rulebook)
-
-        def __getattr__(self, attrn):
-            """If I don't have such an attribute, but I contain exactly one
-            avatar, and *it* has the attribute, return the
-            avatar's attribute.
-
-            """
-            if len(self) == 1:
-                return getattr(self[next(iter(self))], attrn)
-            return super(Character.CharacterAvatarMapping, self).__getattr__(attrn)
-
-        def __iter__(self):
-            """Iterate over the names of all the presently existing nodes in the
-            graph that are avatars of the character
-
-            """
-            seen = set()
-            for (branch, rev) in self.engine._active_branches():
-                self.engine.cursor.execute(
+        def _branchdata(self, branch, rev):
+            return self.engine.cursor.execute(
                     "SELECT "
                     "avatars.avatar_node, "
                     "avatars.is_avatar FROM avatars JOIN ("
@@ -1630,8 +1550,10 @@ class SenseCharacterMapping(Mapping):
         return r
 
 
-class CharacterSenseMapping(MutableMapping, Callable):
+class CharacterSenseMapping(MutableMapping, Callable, RuleFollower):
     """Used to view other Characters as seen by one, via a particular sense"""
+    _book = "character"
+
     def __init__(self, character):
         self.character = character
         self.engine = character.engine
@@ -1777,7 +1699,7 @@ class CharacterSenseMapping(MutableMapping, Callable):
         self[funn] = funn
 
 
-class Character(DiGraph):
+class Character(DiGraph, RuleFollower):
     """A graph that follows game rules and has a containment hierarchy.
 
     Nodes in a Character are subcategorized into Things and
@@ -1789,12 +1711,15 @@ class Character(DiGraph):
     contained by whatever it's located in.
 
     """
+    _book = "character"
+
     def __init__(self, engine, name, data=None, **attr):
         """Store engine and name, and set up mappings for Thing, Place, and
         Portal
 
         """
         super().__init__(engine.gorm, name, data, **attr)
+        self.character = self
         (ct,) = engine.cursor.execute(
             "SELECT COUNT(*) FROM characters WHERE character=?;",
             (self._name,)
@@ -1841,26 +1766,6 @@ class Character(DiGraph):
         self.stat = self.graph
         self._portal_traits = set()
         self._paths = self.graph['_paths'] if '_paths' in self.graph else {}
-
-    @property
-    def rule(self):
-        return CharRules(self, self.rulebook)
-
-    @property
-    def rulebook(self):
-        n = self.engine.cursor.execute(
-            "SELECT character_rulebook FROM characters WHERE character=?;",
-            (self._name,)
-        ).fetchone()[0]
-        return RuleBook(self.engine, n)
-
-    @rulebook.setter
-    def rulebook(self, v):
-        n = rulebook_check(v)
-        self.engine.cursor.execute(
-            "UPDATE characters SET character_rulebook=? WHERE character=?;",
-            (n, self._name)
-        )
 
     def travel_req(self, fun):
         """Decorator for tests that :class:`Thing`s have to pass before they
