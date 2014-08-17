@@ -31,7 +31,8 @@ phys.add_place("work")
 phys.add_portal("home", "work")
 phys.add_portal("work", "home")
 npc = lise.new_character("nonplayer")
-npc.add_avatar("npc", "physical", "home")
+phys.add_thing("npc", "home")
+npc.add_avatar("physical", "npc")
 
 @npc.rule
 def home2work(engine, npc):
