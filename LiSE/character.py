@@ -204,6 +204,34 @@ class ThingPlace(GraphNodeMapping.Node):
             raise KeyError("Can't set character")
         super().__setitem__(k, v)
 
+    def _contents_names(self):
+        things_seen = set()
+        for (branch, tick) in self.gorm._active_branches():
+            self.gorm.cursor.execute(
+                "SELECT things.thing FROM things JOIN ("
+                "SELECT character, thing, branch, MAX(tick) AS tick FROM things "
+                "WHERE character=? "
+                "AND branch=? "
+                "AND tick<=? "
+                "GROUP BY character, thing, branch) AS hitick "
+                "ON things.character=hitick.character "
+                "AND things.thing=hitick.thing "
+                "AND things.branch=hitick.branch "
+                "AND things.tick=hitick.tick "
+                "WHERE things.location=?;",
+                (
+                    self.character._name,
+                    branch,
+                    tick,
+                    self._name
+                )
+            )
+            for (th,) in self.gorm.cursor.fetchall():
+                thing = json_load(th)
+                if thing not in things_seen:
+                    yield thing
+                things_seen.add(thing)
+
     def _portal_dests(self):
         seen = set()
         for (branch, tick) in self.gorm._active_branches():
@@ -302,9 +330,8 @@ class ThingPlace(GraphNodeMapping.Node):
 
     def contents(self):
         """Iterate over the Things that are located here."""
-        for thing in self.character.thing.values():
-            if thing['location'] == self.name:
-                yield thing
+        for thingn in self._contents_names():
+            yield self.character.thing[thingn]
 
     def portals(self):
         for destn in self._portal_dests():
@@ -331,7 +358,6 @@ class Thing(ThingPlace):
         self.engine = character.engine
         self._name = json_dump(name)
         self._charname = self.character._name
-        self._loc_and_next_cache = {}
         super().__init__(character, name)
 
     def __iter__(self):
@@ -492,10 +518,6 @@ class Thing(ThingPlace):
         to which I am presently travelling.
 
         """
-        now = self.engine.time
-        cache = self._loc_and_next_cache
-        if now[0] in cache and now[1] in cache[now[0]]:
-            return cache[now[0]][now[1]]
         for (branch, tick) in self.gorm._active_branches():
             self.gorm.cursor.execute(
                 "SELECT location, next_location FROM things JOIN ("
@@ -523,11 +545,7 @@ class Thing(ThingPlace):
                 raise ValueError("Silly data in things table")
             else:
                 (l, nl) = data[0]
-                r = (json_load(l), json_load(nl) if nl else None)
-                if now[0] not in cache:
-                    cache[now[0]] = {}
-                cache[now[0]][now[1]] = r
-                return r
+                return (json_load(l), json_load(nl) if nl else None)
         raise ValueError("No location set")
 
     def _set_loc_and_next(self, loc, nextloc):
@@ -537,10 +555,6 @@ class Thing(ThingPlace):
         myn = json_dump(self.name)
         locn = json_dump(loc)
         nextlocn = json_dump(nextloc)
-        cache = self._loc_and_next_cache
-        if branch not in cache:
-            cache[branch] = {}
-        cache[branch][tick] = (locn, nextlocn)
         try:
             self.character.engine.cursor.execute(
                 "INSERT INTO things ("
@@ -916,14 +930,48 @@ class Portal(GraphEdgeMapping.Edge):
         except KeyError:
             raise KeyError("This portal has no reciprocal")
 
+    def _contents_names(self):
+        """Private method to iterate over the names of the Things that are
+        travelling along me at the present."""
+        r = set()
+        charn = json_dump(self.character.name)
+        orign = json_dump(self['origin'])
+        destn = json_dump(self['destination'])
+        for (branch, tick) in self.gorm._active_branches():
+            self.gorm.cursor.execute(
+                "SELECT things.node FROM things JOIN ("
+                "SELECT graph, node, branch, MAX(tick) AS tick "
+                "FROM things WHERE "
+                "graph=? AND "
+                "branch=? AND "
+                "tick<=? "
+                "GROUP BY graph, node, branch) AS hitick "
+                "ON things.graph=hitick.graph "
+                "AND things.node=hitick.node "
+                "AND things.branch=hitick.branch "
+                "AND things.tick=hitick.tick "
+                "WHERE location=? "
+                "AND next_location=?;",
+                (
+                    charn,
+                    branch,
+                    tick,
+                    orign,
+                    destn
+                )
+            )
+            for (th,) in self.gorm.cursor.fetchall():
+                thing = json_load(th)
+                r.add(thing)
+        return r
+
     def contents(self):
         """Iterate over Thing instances that are presently travelling through
         me.
 
         """
-        for thing in self.character.thing.values():
-            if thing['location'] == self.name:
-                yield thing
+        for thingn in self._contents_names():
+            yield self.character.thing[thingn]
 
     def update(self, d):
         """Works like regular update, but only actually updates when the new
@@ -960,7 +1008,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         self.character = character
         self.engine = character.engine
         self.name = character.name
-        self._cache = {}
 
     def __iter__(self):
         """Iterate over nodes that have locations, and are therefore
@@ -1001,8 +1048,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         return n
 
     def __getitem__(self, thing):
-        if thing in self._cache:
-            return self._cache[thing]
         myn = json_dump(self.name)
         thingn = json_dump(thing)
         for (branch, rev) in self.engine._active_branches():
@@ -1030,9 +1075,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 loc = json_load(l)
                 if not loc:
                     raise KeyError("Thing doesn't exist right now")
-                r = Thing(self.character, thing)
-                self._cache[thing] = r
-                return r
+                return Thing(self.character, thing)
         raise KeyError("Thing has never existed")
 
     def __setitem__(self, thing, val):
@@ -1042,9 +1085,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         th.update(val)
 
     def __delitem__(self, thing):
-        th = self[thing]
-        th.clear()
-        del self._cache[thing]
+        Thing(self.character, thing).clear()
 
     def __repr__(self):
         return repr(dict(self))
