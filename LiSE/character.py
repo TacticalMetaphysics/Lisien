@@ -1986,20 +1986,74 @@ class Character(DiGraph, RuleFollower):
         except IntegrityError:
             pass
         # Declare that the node is my avatar
-        self.engine.cursor.execute(
-            "INSERT INTO avatars ("
-            "character_graph, avatar_graph, avatar_node, "
-            "branch, tick, is_avatar"
-            ") VALUES (?, ?, ?, ?, ?, ?);",
-            (
-                self._name,
-                h,
-                n,
-                branch,
-                tick,
-                True
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO avatars ("
+                "character_graph, avatar_graph, avatar_node, "
+                "branch, tick, is_avatar"
+                ") VALUES (?, ?, ?, ?, ?, ?);",
+                (
+                    self._name,
+                    h,
+                    n,
+                    branch,
+                    tick,
+                    True
+                )
             )
-        )
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE avatars SET is_avatar=? WHERE "
+                "character_graph=? AND "
+                "avatar_graph=? AND "
+                "avatar_node=? AND "
+                "branch=? AND "
+                "tick=?;",
+                (
+                    True,
+                    self._name,
+                    h,
+                    n,
+                    branch,
+                    tick
+                )
+            )
+
+    def del_avatar(self, host, name):
+        h = json_dump(host)
+        n = json_dump(name)
+        (branch, tick) = self.engine.time
+        try:
+            self.engine.cursor.execute(
+                "INSERT INTO avatars "
+                "(character_graph, avatar_graph, avatar_node, branch, tick, is_avatar) "
+                "VALUES (?, ?, ?, ?, ?, ?);",
+                (
+                    self._name,
+                    h,
+                    n,
+                    branch,
+                    tick,
+                    False
+                )
+            )
+        except IntegrityError:
+            self.engine.cursor.execute(
+                "UPDATE avatars SET is_avatar=? WHERE "
+                "character_graph=? AND "
+                "avatar_graph=? AND "
+                "avatar_node=? AND "
+                "branch=? AND "
+                "tick=?;",
+                (
+                    False,
+                    self._name,
+                    h,
+                    n,
+                    branch,
+                    tick
+                )
+            )
 
     def iter_portals(self):
         for o in self.portal:
@@ -2036,6 +2090,7 @@ class Character(DiGraph, RuleFollower):
                 if (graphn, noden) not in seen and is_avatar:
                     yield self.engine.character[graphn].node[noden]
                 seen.add((graphn, noden))
+
 
     def copy(self):
         """Return a :class:`CharacterImage` representing my status at the
