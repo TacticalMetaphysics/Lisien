@@ -14,9 +14,9 @@ def clear_off():
         except OSError:
             pass
 
-def mkengine():
+def mkengine(w='LiSEworld.db'):
     return Engine(
-        worlddb='LiSEworld.db',
+        worlddb=w,
         codedb='LiSEcode.db'
     )
 
