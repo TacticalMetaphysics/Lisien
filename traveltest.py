@@ -43,15 +43,12 @@ def home2work(engine, npc):
         "work",
         engine.tick+9)
 
-# access rules in dictionary style
-h2w = npc.rule["home2work"]
-
-@h2w.prereq
+@home2work.prereq
 def daystart(engine, npc):
     """Run at midnight only."""
     return engine.tick % 24 == 0
 
-@h2w.prereq
+@home2work.prereq
 def home_all_day(engine, npc):
     """Run if I'm scheduled to be at Home for this tick and the
     following twenty-four.
@@ -79,13 +76,12 @@ def work2home(engine, npc):
     print("Leaving work now.")
     npc.avatar["physical"].travel_to("home")
 
-# access rules in attribute style
-@npc.rule.work2home.prereq
+@work2home.prereq
 def closing_time(engine, npc):
     """Run at 5pm only."""
     return engine.tick % 24 == 17
 
-@npc.rule.work2home.prereq
+@work2home.prereq
 def at_work(engine, npc):
     """Run only when I'm at Work."""
     return npc.avatar["physical"]["location"] == "work"
