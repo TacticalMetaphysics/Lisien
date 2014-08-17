@@ -328,26 +328,6 @@ class RuleMapping(MutableMapping):
             )
 
 
-class CharRules(RuleMapping):
-    table = "character_rules"
-
-
-class ThingRules(RuleMapping):
-    table = "thing_rules"
-
-
-class PlaceRules(RuleMapping):
-    table = "place_rules"
-
-
-class PortalRules(RuleMapping):
-    table = "portal_rules"
-
-
-class AvatarRules(RuleMapping):
-    table = "avatar_rules"
-
-
 class AllRules(MutableMapping):
     def __init__(self, engine):
         self.engine = engine
