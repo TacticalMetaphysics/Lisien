@@ -402,7 +402,7 @@ class GlobalVarMapping(MutableMapping):
 
 
 class Engine(object):
-    def __init__(self, worlddb, codedb, random_seed=None, gettext=lambda s: s):
+    def __init__(self, worlddb, codedb, commit_modulus=None, random_seed=None, gettext=lambda s: s):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
@@ -415,6 +415,7 @@ class Engine(object):
         else:
             self.function = FunctionStoreDB(connect(codedb))
         self.cursor = self.worlddb.cursor()
+        self.commit_modulus = commit_modulus
         self.cursor.execute("BEGIN;")
         try:
             self.cursor.execute(
@@ -648,7 +649,8 @@ class Engine(object):
             self.tick += 1
             self._rules_iter = self._follow_rules()
             self.globl['rando_state'] = self.rando.getstate()
-            self.worlddb.commit()
+            if self.commit_modulus and self.tick % self.commit_modulus == 0:
+                self.worlddb.commit()
             r = None
         return r
 
