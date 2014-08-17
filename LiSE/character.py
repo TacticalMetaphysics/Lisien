@@ -103,7 +103,7 @@ class CharacterImage(nx.DiGraph):
         self.branch = branch
         self.tick = tick
         self.character = character
-        self.name = self.character.name
+        self._name = self.character._name
         self.place = {}
         for (name, place) in character.place.items():
             pli = place if isinstance(place, dict) else place._json_dict
@@ -152,6 +152,10 @@ class CharacterImage(nx.DiGraph):
         self.pred = self.preportal
         self.graph = dict(character.graph)
 
+    @property
+    def name(self):
+        return json_load(self._name)
+
     @classmethod
     def load(cls, s):
         d = json_load(s)
@@ -168,7 +172,7 @@ class CharacterImage(nx.DiGraph):
             "version": 0,
             "branch": self.branch,
             "tick": self.tick,
-            "name": self.name,
+            "name": self._name,
             "place": self.place,
             "portal": self.portal,
             "thing": self.thing,
@@ -180,6 +184,10 @@ class CharacterImage(nx.DiGraph):
 
 
 class ThingPlace(GraphNodeMapping.Node):
+    @property
+    def name(self):
+        return json_load(self._name)
+
     def __getitem__(self, name):
         """For when I'm the only avatar in a Character, and so you don't need
         my name to select me, but a name was provided anyway.
@@ -200,22 +208,22 @@ class ThingPlace(GraphNodeMapping.Node):
         things_seen = set()
         for (branch, tick) in self.gorm._active_branches():
             self.gorm.cursor.execute(
-                "SELECT things.node FROM things JOIN ("
-                "SELECT graph, node, branch, MAX(tick) AS rev FROM things "
-                "WHERE graph=? "
+                "SELECT things.thing FROM things JOIN ("
+                "SELECT character, thing, branch, MAX(tick) AS tick FROM things "
+                "WHERE character=? "
                 "AND branch=? "
                 "AND tick<=? "
-                "GROUP BY graph, node, branch) AS hitick "
-                "ON things.graph=hitick.graph "
-                "AND things.node=hitick.node "
+                "GROUP BY character, thing, branch) AS hitick "
+                "ON things.character=hitick.character "
+                "AND things.thing=hitick.thing "
                 "AND things.branch=hitick.branch "
                 "AND things.tick=hitick.tick "
                 "WHERE things.location=?;",
                 (
-                    json_dump(self.character.name),
+                    self.character._name,
                     branch,
                     tick,
-                    json_dump(self.name)
+                    self._name
                 )
             )
             for (th,) in self.gorm.cursor.fetchall():
@@ -242,8 +250,8 @@ class ThingPlace(GraphNodeMapping.Node):
                 "AND edges.branch=hirev.branch "
                 "AND edges.rev=hirev.rev;",
                 (
-                    json_dump(self.character.name),
-                    json_dump(self.name),
+                    self.character._name,
+                    self._name,
                     branch,
                     tick
                 )
@@ -271,8 +279,8 @@ class ThingPlace(GraphNodeMapping.Node):
                 "AND edges.idx=hirev.idx "
                 "AND edges.rev=hirev.rev;",
                 (
-                    json_dump(self.character.name),
-                    json_dump(self.name),
+                    self.character._name,
+                    self._name,
                     branch,
                     tick
                 )
@@ -301,8 +309,8 @@ class ThingPlace(GraphNodeMapping.Node):
                 "AND avatars.branch=hitick.branch "
                 "AND avatars.tick=hitick.tick;",
                 (
-                    json_dump(self.character.name),
-                    json_dump(self.name),
+                    self.character._name,
+                    self._name,
                     branch,
                     tick
                 )
@@ -349,12 +357,8 @@ class Thing(ThingPlace):
         self.character = character
         self.engine = character.engine
         self._name = json_dump(name)
-        self._charname = json_dump(self.character.name)
+        self._charname = self.character._name
         super().__init__(character, name)
-
-    @property
-    def name(self):
-        return json_load(self._name)
 
     def __iter__(self):
         # I'm only going to iterate over *some* of the special keys
@@ -370,8 +374,7 @@ class Thing(ThingPlace):
                 'next_arrival_time'
         ):
             yield extrakey
-        for key in super().__iter__():
-            yield key
+        yield from super().__iter__()
 
     def __getitem__(self, key):
         """Return one of my attributes stored in the database, with a few special exceptions:
@@ -428,7 +431,7 @@ class Thing(ThingPlace):
             nextloc = json_dump(self['next_location'])
             if nextloc is None:
                 return None
-            for (branch, tick) in self.engine.orm._active_branches():
+            for (branch, tick) in self.engine._active_branches():
                 data = self.engine.cursor.execute(
                     "SELECT MIN(tick) FROM things "
                     "WHERE character=? "
@@ -795,7 +798,7 @@ class Place(ThingPlace):
         """Initialize a place in a character by a name"""
         self.character = character
         self.engine = character.engine
-        self.name = name
+        self._name = json_dump(name)
         super(Place, self).__init__(character, name)
 
     def __getitem__(self, key):
@@ -1124,9 +1127,19 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
                 if thing not in things_seen and loc:
                     things.add(thing)
                 things_seen.add(thing)
+            return things
+
+    def __iter__(self):
+        things = self._things()
         for node in self.engine._iternodes(self.character.name):
             if node not in things:
                 yield node
+
+    def __contains__(self, k):
+        for node in self.engine._iternodes(self.character.name):
+            if node == k:
+                return json_dump(k) not in self._things()
+        return False
 
     def __len__(self):
         n = 0
@@ -1135,7 +1148,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         return n
 
     def __getitem__(self, place):
-        if place in iter(self):
+        if place in self:
             return Place(self.character, place)
         raise KeyError("No such place")
 
@@ -1193,11 +1206,11 @@ class CharacterThingPlaceMapping(MutableMapping):
         return n
 
     def __getitem__(self, k):
-        if k in self.character.place:
-            return self.character.place[k]
+        if k in self.character.thing:
+            return self.character.thing[k]
         else:
             try:
-                return self.character.thing[k]
+                return self.character.place[k]
             except KeyError:
                 raise KeyError("No such Thing or Place in this Character")
 
@@ -1370,8 +1383,41 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                         branch,
                         rev
                     )
-                )
-                for (node, extant) in self.engine.cursor.fetchall():
+            ).fetchall()
+
+        def __getattr__(self, attrn):
+            """If I don't have such an attribute, but I contain exactly one
+            avatar, and *it* has the attribute, return the
+            avatar's attribute.
+
+            """
+            seen = set()
+            counted = 0
+            for (branch, rev) in self.engine._active_branches():
+                if counted > 1:
+                    break
+                for (node, extant) in self._branchdata(branch, rev):
+                    if counted > 1:
+                        break
+                    n = json_load(node)
+                    x = bool(extant)
+                    if x and n not in seen:
+                        counted += 1
+                    seen.add(n)
+            if counted == 1:
+                node = self.engine.character[self.graph].node[seen.pop()]
+                if hasattr(node, attrn):
+                    return getattr(node, attrn)
+            raise AttributeError("No such attribute: " + attrn)
+
+        def __iter__(self):
+            """Iterate over the names of all the presently existing nodes in the
+            graph that are avatars of the character
+
+            """
+            seen = set()
+            for (branch, rev) in self.engine._active_branches():
+                for (node, extant) in self._branchdata(branch, rev):
                     n = json_load(node)
                     x = bool(extant)
                     if x and n not in seen:
@@ -1433,12 +1479,12 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             if av in self:
                 if self.engine._is_thing(self.graph, av):
                     return Thing(
-                        self.char.engine.character[self.graph],
+                        self.engine.character[self.graph],
                         av
                     )
                 else:
                     return Place(
-                        self.char.engine.character[self.graph],
+                        self.engine.character[self.graph],
                         av
                     )
             if len(self) == 1:
