@@ -455,6 +455,9 @@ class Engine(object):
         self.vonmisesvariate = self.rando.vonmisesvariate
         self.weibullvariate = self.rando.weibullvariate
 
+    def coinflip(self):
+        return self.choice((True, False))
+
     def commit(self):
         """Commit to both the world and code databases, and begin a new
         transaction for the world database
