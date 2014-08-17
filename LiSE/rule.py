@@ -293,6 +293,7 @@ class RuleMapping(MutableMapping):
 
     def __call__(self, v):
         self.__setitem__(v.__name__, v)
+        return self[v.__name__]
 
     def __delitem__(self, k):
         """Deactivate the rule"""
