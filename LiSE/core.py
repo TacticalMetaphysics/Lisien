@@ -423,6 +423,8 @@ class Engine(object):
             ).fetchall()
         except OperationalError:
             self.initdb()
+        self._branch = self.gorm.branch
+        self._tick = self.gorm.rev
         self.time_listeners = []
         self.rule = AllRules(self)
         self.eternal = EternalVarMapping(self)
@@ -463,6 +465,8 @@ class Engine(object):
         transaction for the world database
 
         """
+        self.gorm.branch = self._branch
+        self.gorm.rev = self._tick
         self.worlddb.commit()
         self.function.commit()
         self.cursor.execute("BEGIN;")
@@ -480,15 +484,15 @@ class Engine(object):
 
     @property
     def branch(self):
-        """Alias for my gorm's ``branch``"""
-        return self.gorm.branch
+        return self._branch
 
     @branch.setter
     def branch(self, v):
         """Set my gorm's branch and call listeners"""
-        if v == self.gorm.branch:
+        if v == self._branch:
             return
-        self.gorm.branch = v
+        self._branch = v
+        self.gorm._obranch = v
         if not hasattr(self, 'locktime'):
             t = self.tick
             for time_listener in self.time_listeners:
@@ -496,15 +500,15 @@ class Engine(object):
 
     @property
     def tick(self):
-        """Alias for my gorm's ``rev``"""
-        return self.gorm.rev
+        return self._tick
 
     @tick.setter
     def tick(self, v):
         """Update orm's tick, and call listeners"""
-        if v == self.gorm.rev:
+        if v == self._tick:
             return
-        self.gorm.rev = v
+        self._tick = v
+        self.gorm._orev = v
         if not hasattr(self, 'locktime'):
             b = self.branch
             for time_listener in self.time_listeners:
