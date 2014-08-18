@@ -233,8 +233,21 @@ class ThingPlace(GraphNodeMapping.Node):
             pass
 
     def _contents_names(self):
+        t = self.engine.time
+        if (
+                t[0] in self._contents_cache and
+                t[1] in self._contents_cache[t[0]]
+        ):
+            for name in self._contents_cache[t[0]][t[1]]:
+                yield name
+            return
+        else:
+            if t[0] not in self._contents_cache:
+                self._contents_cache[t[0]] = {}
+            self._contents_cache[t[0]][t[1]] = set()
+        cache = self._contents_cache[t[0]][t[1]]
         things_seen = set()
-        for (branch, tick) in self.gorm._active_branches():
+        for (branch, tick) in self.engine._active_branches():
             self.gorm.cursor.execute(
                 "SELECT things.thing FROM things JOIN ("
                 "SELECT character, thing, branch, MAX(tick) AS tick FROM things "
@@ -258,7 +271,26 @@ class ThingPlace(GraphNodeMapping.Node):
                 thing = json_load(th)
                 if thing not in things_seen:
                     yield thing
+                    cache.add(thing)
                 things_seen.add(thing)
+
+    def _do_cache(self):
+        (branch, tick) = self.engine.time
+        if (
+                branch in self._contents_cache and
+                tick in self._contents_cache[branch]
+        ):
+            return (branch, tick)
+
+    def _add_thing(self, thing):
+        t = self._do_cache()
+        if t:
+            self._contents_cache[t[0]][t[1]].add(thing)
+
+    def _discard_thing(self, thing):
+        t = self._do_cache
+        if t:
+            self._contents_cache[t[0]][t[1]].discard(thing)
 
     def _portal_dests(self):
         seen = set()
@@ -387,7 +419,13 @@ class Thing(ThingPlace):
         self._name = json_dump(name)
         self._charname = self.character._name
         self._statcache = {}
+        self._contents_cache = {}
         super().__init__(character, name)
+        l = self['location']
+        if l in self.character.thing:
+            self.character.thing[l]._add_thing(self.name)
+        elif l in self.character.place:
+            self.character.place[l]._add_thing(self.name)
 
     def __iter__(self):
         # I'm only going to iterate over *some* of the special keys
@@ -579,9 +617,13 @@ class Thing(ThingPlace):
 
     def _set_loc_and_next(self, loc, nextloc):
         """Private method to simultaneously set ``location`` and ``next_location``"""
+        if loc in self.character.thing:
+            self.character.thing[loc]._discard_thing(self.name)
+        elif loc in self.character.place:
+            self.character.place[loc]._discard_thing(self.name)
         (branch, tick) = self.character.engine.time
-        charn = json_dump(self.character.name)
-        myn = json_dump(self.name)
+        charn = self.character._name
+        myn = self._name
         locn = json_dump(loc)
         nextlocn = json_dump(nextloc)
         try:
@@ -829,6 +871,7 @@ class Place(ThingPlace):
         self.engine = character.engine
         self._name = json_dump(name)
         self._statcache = {}
+        self._contents_cache = {}
         super(Place, self).__init__(character, name)
 
     def __getitem__(self, key):
