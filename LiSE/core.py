@@ -16,34 +16,6 @@ from .character import Character
 from .rule import AllRules
 
 
-class CharacterMapping(Mapping):
-    def __init__(self, engine):
-        self.engine = engine
-
-    def __iter__(self):
-        self.engine.cursor.execute(
-            "SELECT graph FROM graphs;"
-        )
-        for row in self.engine.cursor.fetchall():
-            yield json_load(row[0])
-
-    def __len__(self):
-        return self.engine.cursor.execute(
-            "SELECT COUNT(*) FROM graphs;"
-        ).fetchone()[0]
-
-    def __contains__(self, name):
-        return bool(self.engine.cursor.execute(
-            "SELECT COUNT(*) FROM graphs WHERE graph=?;",
-            (json_dump(name),)
-        ).fetchone()[0])
-
-    def __getitem__(self, name):
-        if name not in self:
-            raise KeyError("No character named {}, maybe you want to add_character?".format(name))
-        return Character(self.engine, name)
-
-
 class FunctionStore(object):
     def decompiled(self, name):
         """Use unpyc3 to decompile the function named ``name`` and return the
@@ -429,7 +401,12 @@ class Engine(object):
         self.rule = AllRules(self)
         self.eternal = EternalVarMapping(self)
         self.globl = GlobalVarMapping(self)
-        self.character = CharacterMapping(self)
+        self.character = {}
+        for (charn,) in self.cursor.execute(
+                "SELECT character FROM characters;"
+        ):
+            n = json_load(charn)
+            self.character[n] = Character(self, n)
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()
@@ -830,6 +807,7 @@ class Engine(object):
     def add_character(self, name, data=None, **kwargs):
         """Create the Character so it'll show up in my `character` dict"""
         self.gorm.new_digraph(name, data, **kwargs)
+        self.character[name] = Character(self, name)
 
     def del_character(self, name):
         """Remove the Character from the database entirely"""
@@ -839,6 +817,7 @@ class Engine(object):
         ):
             self.cursor.execute(stmt, (json_dump(name),))
         self.gorm.del_graph(name)
+        del self.character[name]
 
     def _is_thing(self, character, node):
         """Private utility function to find out if a node is a Thing or not.
