@@ -200,6 +200,7 @@ class ThingPlace(GraphNodeMapping.Node):
                 name in self._statcache and
                 branch in self._statcache[name]
         ):
+            # cache invalidation
             d = self._statcache[name][branch]
             if tick not in d:
                 d[tick] = d[max(t for t in d.keys() if t < tick)]
@@ -222,7 +223,14 @@ class ThingPlace(GraphNodeMapping.Node):
             self._statcache[k] = {}
         if branch not in self._statcache[k]:
             self._statcache[k][branch] = {}
-        self._statcache[k][branch][tick] = v
+        for branch2 in list(self._statcache[k].keys()):
+            if self.engine.gorm.is_parent_of(branch, branch2):
+                del self._statcache[k][branch2]
+        d = self._statcache[k][branch]
+        for tick2 in list(d.keys()):
+            if tick2 > tick:
+                del d[tick2]
+        d[tick] = v
         super().__setitem__(k, v)
 
     def __delitem__(self, k):
@@ -973,7 +981,6 @@ class Portal(GraphEdgeMapping.Edge):
                     key in self._statcache and
                     branch in self._statcache[key]
             ):
-                d = self._statcache[key][branch]
                 if tick not in d:
                     d[tick] = d[max(t for t in d.keys() if t < tick)]
                 return d[tick]
