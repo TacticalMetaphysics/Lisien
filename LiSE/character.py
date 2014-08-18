@@ -1054,6 +1054,11 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         self.name = character.name
         self._cache = {}
 
+    def __contains__(self, k):
+        if k in self._cache:
+            return True
+        return super().__contains__(k)
+
     def __iter__(self):
         """Iterate over nodes that have locations, and are therefore
         Things. Yield their names.
@@ -1299,6 +1304,11 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self._cache = {}
+
+        def __contains__(self, k):
+            if k in self._cache:
+                return True
+            return super().__contains__(k)
 
         def _getsub(self, nodeB):
             if nodeB not in self._cache:
