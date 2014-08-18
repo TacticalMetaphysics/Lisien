@@ -1,6 +1,7 @@
 import networkx as nx
 from LiSE import Engine
 from os import remove
+from cProfile import run
 
 def clear_off():
     for fn in ('LiSEworld.db', 'LiSEcode.db'):
@@ -113,4 +114,4 @@ def sickle_cell_test(
 
 clear_off()
 with mkengine(':memory:') as engine:
-    sickle_cell_test(engine)
+    run('sickle_cell_test(engine)')
