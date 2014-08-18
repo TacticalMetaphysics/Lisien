@@ -242,9 +242,18 @@ class ThingPlace(GraphNodeMapping.Node):
                 yield name
             return
         else:
-            if t[0] not in self._contents_cache:
+            try:
+                d = self._contents_cache[t[0]]
+                k = max(tic for tic in d.keys() if tic < t[1])
+                d[t[1]] = set(d[k])  # copy the old stuff to avoid
+                                     # changing the past if the
+                                     # present contents change
+                for name in d[t[1]]:
+                    yield name
+                return
+            except (KeyError, ValueError):
                 self._contents_cache[t[0]] = {}
-            self._contents_cache[t[0]][t[1]] = set()
+                self._contents_cache[t[0]][t[1]] = set()
         cache = self._contents_cache[t[0]][t[1]]
         things_seen = set()
         for (branch, tick) in self.engine._active_branches():
@@ -280,6 +289,15 @@ class ThingPlace(GraphNodeMapping.Node):
                 branch in self._contents_cache and
                 tick in self._contents_cache[branch]
         ):
+            # invalidate all future caches
+            d = self._contents_cache[branch]
+            for k in d:
+                if k > tick:
+                    del d[k]
+            # future branches, too
+            for branch2 in list(self._contents_cache.keys()):
+                if self.engine.gorm.is_parent_of(branch, branch2):
+                    del self._contents_cache[branch2]
             return (branch, tick)
 
     def _add_thing(self, thing):
