@@ -198,10 +198,12 @@ class ThingPlace(GraphNodeMapping.Node):
         (branch, tick) = self.engine.time
         if (
                 name in self._statcache and
-                branch in self._statcache[name] and
-                tick in self._statcache[name][branch]
+                branch in self._statcache[name]
         ):
-            return self._statcache[name][branch][tick]
+            d = self._statcache[name][branch]
+            if tick not in d:
+                d[tick] = d[max(t for t in d.keys() if t < tick)]
+            return d[tick]
         r = super().__getitem__(name)
         if name not in self._statcache:
             self._statcache[name] = {}
@@ -877,6 +879,7 @@ class Portal(GraphEdgeMapping.Edge):
         self._destination = destination
         self.character = character
         self.engine = character.engine
+        self._statcache = {}
         super().__init__(character, self._origin, self._destination)
 
     def __getitem__(self, key):
@@ -899,7 +902,20 @@ class Portal(GraphEdgeMapping.Edge):
         elif 'is_mirror' in self and self['is_mirror']:
             return self.character.preportal[self._origin][self._destination][key]
         else:
-            return super().__getitem__(key)
+            (branch, tick) = self.engine.time
+            if (
+                    key in self._statcache and
+                    branch in self._statcache[key]
+            ):
+                d = self._statcache[key][branch]
+                if tick not in d:
+                    d[tick] = d[max(t for t in d.keys() if t < tick)]
+                return d[tick]
+            r = super().__getitem__(key)
+            if key not in self._statcache:
+                self._statcache[key] = {}
+            self._statcache[key][branch][tick] = r
+            return r
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` at the present game-time.
@@ -1280,8 +1296,14 @@ class CharacterThingPlaceMapping(MutableMapping):
 class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
     _book = "portal"
     class Successors(GraphSuccessorsMapping.Successors):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._cache = {}
+
         def _getsub(self, nodeB):
-            return Portal(self.graph, self.nodeA, nodeB)
+            if nodeB not in self._cache:
+                self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
+            return self._cache[nodeB]
 
         def __setitem__(self, nodeB, value):
             p = Portal(self.graph, self.nodeA, nodeB)
@@ -1291,22 +1313,51 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
             if '_paths' in self.graph.graph:
                 del self.graph.graph['_paths']
                 self.graph._paths = {}
+            self._cache[nodeB] = p
+
+        def __delitem__(self, nodeB):
+            if nodeB in self._cache:
+                n = self._cache[nodeB]
+                if not n.exists:
+                    raise KeyError("No such node")
+                n.clear()
+                del self._cache[nodeB]
+            else:
+                super().__delitem__(nodeB)
 
 
 class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping, RuleFollower):
     _book = "portal"
     class Predecessors(DiGraphPredecessorsMapping.Predecessors):
         def _getsub(self, nodeA):
+            if nodeA in self.graph.portal:
+                if self.nodeB not in self.graph.portal[nodeA]._cache:
+                    self.graph.portal[nodeA]._cache[self.nodeB] = Portal(self.graph, nodeA, self.nodeB)
+                return self.graph.portal[nodeA][self.nodeB]
             return Portal(self.graph, nodeA, self.nodeB)
 
         def __setitem__(self, nodeA, value):
-            p = Portal(self.graph, nodeA, self.nodeB)
+            if nodeA in self.graph.portal:
+                if self.nodeB not in self.graph.portal[nodeA]._cache:
+                    self.graph.portal[nodeA]._cache[self.nodeB] = Portal(self.graph, nodeA, self.nodeB)
+            p = self.graph.portal[nodeA][self.nodeB]
             p.clear()
             p.exists = True
             p.update(value)
             if '_paths' in self.graph.graph:
                 del self.graph.graph['_paths']
                 self.graph._paths = {}
+
+        def __delitem__(self, nodeA):
+            if (
+                    nodeA in self.graph.portal and
+                    self.nodeB in self.graph.portal[nodeA]
+            ):
+                n = self.graph.portal[nodeA]._cache[self.nodeB]
+                n.clear()
+                del self.graph.portal[nodeA].cache[self.nodeB]
+            else:
+                super().__delitem__(nodeA)
 
 
 class CharacterAvatarGraphMapping(Mapping, RuleFollower):
