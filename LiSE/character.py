@@ -617,10 +617,15 @@ class Thing(ThingPlace):
 
     def _set_loc_and_next(self, loc, nextloc):
         """Private method to simultaneously set ``location`` and ``next_location``"""
+        curloc = self['location']
+        if curloc in self.character.thing:
+            self.character.thing[curloc]._discard_thing(self.name)
+        elif curloc in self.character.place:
+            self.character.place[curloc]._discard_thing(self.name)
         if loc in self.character.thing:
-            self.character.thing[loc]._discard_thing(self.name)
+            self.character.thing[loc]._add_thing(self.name)
         elif loc in self.character.place:
-            self.character.place[loc]._discard_thing(self.name)
+            self.character.place[loc]._add_thing(self.name)
         (branch, tick) = self.character.engine.time
         charn = self.character._name
         myn = self._name
