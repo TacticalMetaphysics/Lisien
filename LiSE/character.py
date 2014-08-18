@@ -195,14 +195,40 @@ class ThingPlace(GraphNodeMapping.Node):
         """
         if name == self.name:
             return self
-        return super().__getitem__(name)
+        (branch, tick) = self.engine.time
+        if (
+                name in self._statcache and
+                branch in self._statcache[name] and
+                tick in self._statcache[name][branch]
+        ):
+            return self._statcache[name][branch][tick]
+        r = super().__getitem__(name)
+        if name not in self._statcache:
+            self._statcache[name] = {}
+        if branch not in self._statcache[name]:
+            self._statcache[name][branch] = {}
+        self._statcache[name][branch][tick] = r
+        return r
 
     def __setitem__(self, k, v):
         if k == "name":
             raise KeyError("Can't set name")
         elif k == "character":
             raise KeyError("Can't set character")
+        (branch, tick) = self.engine.time
+        if k not in self._statcache:
+            self._statcache[k] = {}
+        if branch not in self._statcache[k]:
+            self._statcache[k][branch] = {}
+        self._statcache[k][branch][tick] = v
         super().__setitem__(k, v)
+
+    def __delitem__(self, k):
+        (branch, tick) = self.engine.time
+        try:
+            del self._statcache[k][branch][tick]
+        except KeyError:
+            pass
 
     def _contents_names(self):
         things_seen = set()
@@ -358,6 +384,7 @@ class Thing(ThingPlace):
         self.engine = character.engine
         self._name = json_dump(name)
         self._charname = self.character._name
+        self._statcache = {}
         super().__init__(character, name)
 
     def __iter__(self):
@@ -799,6 +826,7 @@ class Place(ThingPlace):
         self.character = character
         self.engine = character.engine
         self._name = json_dump(name)
+        self._statcache = {}
         super(Place, self).__init__(character, name)
 
     def __getitem__(self, key):
@@ -1008,6 +1036,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         self.character = character
         self.engine = character.engine
         self.name = character.name
+        self._cache = {}
 
     def __iter__(self):
         """Iterate over nodes that have locations, and are therefore
@@ -1048,6 +1077,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         return n
 
     def __getitem__(self, thing):
+        if thing in self._cache:
+            return self._cache[thing]
         myn = json_dump(self.name)
         thingn = json_dump(thing)
         for (branch, rev) in self.engine._active_branches():
@@ -1075,7 +1106,9 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 loc = json_load(l)
                 if not loc:
                     raise KeyError("Thing doesn't exist right now")
-                return Thing(self.character, thing)
+                r = Thing(self.character, thing)
+                self._cache[thing] = r
+                return r
         raise KeyError("Thing has never existed")
 
     def __setitem__(self, thing, val):
@@ -1083,9 +1116,14 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         th.clear()
         th.exists = True
         th.update(val)
+        self._cache[thing] = th
 
     def __delitem__(self, thing):
-        Thing(self.character, thing).clear()
+        if thing in self._cache:
+            self._cache[thing].clear()
+            del self._cache[thing]
+        else:
+            Thing(self.character, thing).clear()
 
     def __repr__(self):
         return repr(dict(self))
@@ -1098,6 +1136,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         self.character = character
         self.engine = character.engine
         self.name = character.name
+        self._cache = {}
 
     def _things(self):
         things = set()
@@ -1136,6 +1175,8 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
                 yield node
 
     def __contains__(self, k):
+        if k in self._cache:
+            return True
         for node in self.engine._iternodes(self.character.name):
             if node == k:
                 return json_dump(k) not in self._things()
@@ -1148,8 +1189,12 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         return n
 
     def __getitem__(self, place):
+        if place in self._cache:
+            return self._cache[place]
         if place in self:
-            return Place(self.character, place)
+            r = Place(self.character, place)
+            self._cache[place] = r
+            return r
         raise KeyError("No such place")
 
     def __setitem__(self, place, v):
@@ -1157,9 +1202,14 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         pl.clear()
         pl.exists = True
         pl.update(v)
+        self._cache[place] = v
 
     def __delitem__(self, place):
-        Place(self.character, place).clear()
+        if place in self._cache:
+            self._cache[place].clear()
+            del self._cache[place]
+        else:
+            Place(self.character, place).clear()
 
     def __repr__(self):
         return repr(dict(self))
