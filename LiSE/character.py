@@ -32,7 +32,9 @@ class RuleFollower(object):
     @property
     def rulebook(self):
         n = self.engine.cursor.execute(
-            "SELECT {}_rulebook FROM characters WHERE character=?;".format(self._book),
+            "SELECT {}_rulebook FROM characters WHERE character=?;".format(
+                self._book
+            ),
             (self.character._name,)
         ).fetchone()[0]
         return RuleBook(self.engine, n)
@@ -43,7 +45,9 @@ class RuleFollower(object):
             raise TypeError("Use a :class:`RuleBook` or the name of one")
         n = v.name if isinstance(v, RuleBook) else v
         self.engine.cursor.execute(
-            "UPDATE characters SET {}_rulebook=? WHERE character=?;".format(self._book),
+            "UPDATE characters SET {}_rulebook=? WHERE character=?;".format(
+                self._book
+            ),
             (n, self.character._name)
         )
 
@@ -54,7 +58,16 @@ class RuleFollower(object):
 
 class TravelException(Exception):
     """Exception for problems with pathfinding"""
-    def __init__(self, message, path=None, followed=None, traveller=None, branch=None, tick=None, lastplace=None):
+    def __init__(
+            self,
+            message,
+            path=None,
+            followed=None,
+            traveller=None,
+            branch=None,
+            tick=None,
+            lastplace=None
+    ):
         """Store the message as usual, and also the optional arguments:
 
         ``path``: a list of Place names to show such a path as you found
@@ -65,7 +78,8 @@ class TravelException(Exception):
 
         ``branch``: branch during travel
 
-        ``tick``: tick at time of error (might not be the tick at the time this exception is raised)
+        ``tick``: tick at time of error (might not be the tick at the
+        time this exception is raised)
 
         ``lastplace``: where the traveller was, when the error happened
 
@@ -140,10 +154,18 @@ class CharacterImage(nx.DiGraph):
                 thi.container = thi.location
             elif thi['next_location'] in self.place:
                 thi.next_location = self.place[thi['next_location']]
-                thi.container = self.portal[thi['location']][thi['next_location']]
+                thi.container = self.portal[
+                    thi['location']
+                ][
+                    thi['next_location']
+                ]
             elif thi['location'] in self.thing:
                 thi.next_location = self.thing[thi['next_location']]
-                thi.container = self.portal[thi['location']][thi['next_location']]
+                thi.container = self.portal[
+                    thi['location']
+                ][
+                    thi['next_location']
+                ]
             else:
                 raise ValueError("Invalid next_location for thing")
             thi.container.contents.append(thi)
@@ -259,9 +281,9 @@ class ThingPlace(GraphNodeMapping.Node):
                 try:
                     d = self._contents_cache[t[0]]
                     k = max(tic for tic in d.keys() if tic < t[1])
-                    d[t[1]] = set(d[k])  # copy the old stuff to avoid
-                                         # changing the past if the
-                                         # present contents change
+                    d[t[1]] = set(d[k])
+                    # copy the old stuff to avoid changing the past if
+                    # the present contents change
                     for name in d[t[1]]:
                         yield name
                     return
@@ -273,7 +295,8 @@ class ThingPlace(GraphNodeMapping.Node):
         for (branch, tick) in self.engine._active_branches():
             self.gorm.cursor.execute(
                 "SELECT things.thing FROM things JOIN ("
-                "SELECT character, thing, branch, MAX(tick) AS tick FROM things "
+                "SELECT character, thing, branch, MAX(tick) AS tick "
+                "FROM things "
                 "WHERE character=? "
                 "AND branch=? "
                 "AND tick<=? "
@@ -334,7 +357,8 @@ class ThingPlace(GraphNodeMapping.Node):
         for (branch, tick) in self.gorm._active_branches():
             self.gorm.cursor.execute(
                 "SELECT edges.nodeB, edges.extant FROM edges JOIN "
-                "(SELECT graph, nodeA, nodeB, idx, branch, MAX(rev) AS rev FROM edges "
+                "(SELECT graph, nodeA, nodeB, idx, branch, MAX(rev) AS rev "
+                "FROM edges "
                 "WHERE graph=? "
                 "AND nodeA=? "
                 "AND branch=? "
@@ -364,7 +388,8 @@ class ThingPlace(GraphNodeMapping.Node):
         for (branch, tick) in self.gorm._active_branches():
             self.gorm.cursor.execute(
                 "SELECT edges.nodeA, edges.extant FROM edges JOIN "
-                "(SELECT graph, nodeA, nodeB, idx, branch, MAX(rev) AS rev FROM edges "
+                "(SELECT graph, nodeA, nodeB, idx, branch, MAX(rev) AS rev "
+                "FROM edges "
                 "WHERE graph=? "
                 "AND nodeB=? "
                 "AND branch=? "
@@ -393,13 +418,15 @@ class ThingPlace(GraphNodeMapping.Node):
         for (branch, tick) in self.engine._active_branches():
             self.engine.cursor.execute(
                 "SELECT avatars.avatar_graph FROM avatars JOIN ("
-                "SELECT character_graph, avatar_graph, avatar_node, branch, MAX(tick) AS tick "
+                "SELECT character_graph, avatar_graph, avatar_node, "
+                "branch, MAX(tick) AS tick "
                 "FROM avatars WHERE "
                 "avatar_graph=? AND "
                 "avatar_node=? AND "
                 "branch=? AND "
                 "tick<=? GROUP BY "
-                "character_graph, avatar_graph, avatar_node, branch) AS hitick "
+                "character_graph, avatar_graph, avatar_node, "
+                "branch) AS hitick "
                 "ON avatars.character_graph=hitick.character_graph "
                 "AND avatars.avatar_graph=hitick.avatar_graph "
                 "AND avatars.avatar_node=hitick.avatar_node "
@@ -419,7 +446,8 @@ class ThingPlace(GraphNodeMapping.Node):
                     seen.add(charn)
 
     def users(self):
-        """Iterate over characters this is an avatar of. Usually there will only be one.
+        """Iterate over characters this is an avatar of. Usually there will
+        only be one.
 
         """
         for charn in self._user_names():
@@ -466,10 +494,6 @@ class Thing(ThingPlace):
             self.character.place[l]._add_thing(self.name)
 
     def __iter__(self):
-        # I'm only going to iterate over *some* of the special keys
-        # implemented in __getitem__, the ones that are also writable
-        # in __setitem__. This is to make it easy to copy a Thing as
-        # though it's an ordinary Node.
         for extrakey in (
                 'name',
                 'character',
@@ -482,19 +506,23 @@ class Thing(ThingPlace):
         yield from super().__iter__()
 
     def __getitem__(self, key):
-        """Return one of my attributes stored in the database, with a few special exceptions:
+        """Return one of my attributes stored in the database, with a few
+        special exceptions:
 
-        ``name``: return the name that uniquely identifies me within my Character
+        ``name``: return the name that uniquely identifies me within
+        my Character
 
         ``character``: return the name of my character
 
         ``location``: return the name of my location
 
-        ``arrival_time``: return the tick when I arrived in the present location
+        ``arrival_time``: return the tick when I arrived in the
+        present location
 
         ``next_location``: if I'm in transit, return where to, else return None
 
-        ``next_arrival_time``: return the tick when I'm going to arrive at ``next_location``
+        ``next_arrival_time``: return the tick when I'm going to
+        arrive at ``next_location``
 
         ``locations``: return a pair of (``location``, ``next_location``)
 
@@ -526,7 +554,9 @@ class Thing(ThingPlace):
                 if len(data) == 0:
                     continue
                 elif len(data) > 1:
-                    raise ValueError("How do you get more than one record from that?")
+                    raise ValueError(
+                        "How do you get more than one record from that?"
+                    )
                 else:
                     return data[0]
             raise ValueError("I don't seem to have arrived where I am?")
@@ -555,7 +585,9 @@ class Thing(ThingPlace):
                 if len(data) == 0:
                     continue
                 elif len(data) > 1:
-                    raise ValueError("How do you get more than one record from that?")
+                    raise ValueError(
+                        "How do you get more than one record from that?"
+                    )
                 else:
                     return data[0]
         elif key == 'locations':
@@ -599,12 +631,18 @@ class Thing(ThingPlace):
 
     @property
     def location(self):
-        """The Thing or Place I'm in. If I'm in transit, it's where I started."""
+        """The Thing or Place I'm in. If I'm in transit, it's where I
+        started.
+
+        """
         return self.character.node[self['location']]
 
     @property
     def next_location(self):
-        """If I'm not in transit, this is None. If I am, it's where I'm headed."""
+        """If I'm not in transit, this is None. If I am, it's where I'm
+        headed.
+
+        """
         locn = self['next_location']
         if not locn:
             return None
@@ -622,7 +660,8 @@ class Thing(ThingPlace):
         for (branch, tick) in self.gorm._active_branches():
             self.gorm.cursor.execute(
                 "SELECT location, next_location FROM things JOIN ("
-                "SELECT character, thing, branch, MAX(tick) AS tick FROM things "
+                "SELECT character, thing, branch, MAX(tick) AS tick "
+                "FROM things "
                 "WHERE character=? "
                 "AND thing=? "
                 "AND branch=? "
@@ -650,7 +689,10 @@ class Thing(ThingPlace):
         raise ValueError("No location set")
 
     def _set_loc_and_next(self, loc, nextloc):
-        """Private method to simultaneously set ``location`` and ``next_location``"""
+        """Private method to simultaneously set ``location`` and
+        ``next_location``
+
+        """
         curloc = self['location']
         if curloc in self.character.thing:
             self.character.thing[curloc]._discard_thing(self.name)
@@ -774,7 +816,8 @@ class Thing(ThingPlace):
                 fintick = self.character.engine.tick
                 self.character.engine.tick = curtick
                 raise TravelException(
-                    "When I tried traveling to {}, at tick {}, I ended up at {}".format(
+                    "When I tried traveling to {}, at tick {}, "
+                    "I ended up at {}".format(
                         prevsubplace,
                         fintick,
                         l
@@ -794,7 +837,8 @@ class Thing(ThingPlace):
                 fintick = self.character.engine.tick
                 self.character.engine.tick = curtick
                 raise TravelException(
-                    "I couldn't go to {} at tick {} because I was in {}".format(
+                    "I couldn't go to {} at tick {}, "
+                    "because I was in {}".format(
                         subplace,
                         fintick,
                         l
@@ -957,7 +1001,10 @@ class Portal(GraphEdgeMapping.Edge):
 
     """
     def __init__(self, character, origin, destination):
-        """Initialize a Portal in a character from an origin to a destination"""
+        """Initialize a Portal in a character from an origin to a
+        destination
+
+        """
         self._origin = origin
         self._destination = destination
         self.character = character
@@ -969,8 +1016,9 @@ class Portal(GraphEdgeMapping.Edge):
     def __getitem__(self, key):
         """Get the present value of the key.
 
-        If I am a mirror of another Portal, return the value from that Portal instead.
-        
+        If I am a mirror of another Portal, return the value from that
+        Portal instead.
+
         """
         if key == 'origin':
             return self._origin
@@ -984,7 +1032,13 @@ class Portal(GraphEdgeMapping.Edge):
             except KeyError:
                 return False
         elif 'is_mirror' in self and self['is_mirror']:
-            return self.character.preportal[self._origin][self._destination][key]
+            return self.character.preportal[
+                self._origin
+            ][
+                self._destination
+            ][
+                key
+            ]
         else:
             (branch, tick) = self.engine.time
             try:
@@ -1018,13 +1072,26 @@ class Portal(GraphEdgeMapping.Edge):
         elif key == 'symmetrical' and value:
             if (
                     self._destination not in self.character.portal or
-                    self._origin not in self.character.portal[self._destination]
+                    self._origin not in
+                    self.character.portal[self._destination]
             ):
                 self.character.add_portal(self._destination, self._origin)
-                self.character.portal[self._destination][self._origin]["is_mirror"] = True
+                self.character.portal[
+                    self._destination
+                ][
+                    self._origin
+                ][
+                    "is_mirror"
+                ] = True
         elif key == 'symmetrical' and not value:
             try:
-                self.character.portal[self._destination][self._origin]["is_mirror"] = False
+                self.character.portal[
+                    self._destination
+                ][
+                    self._origin
+                ][
+                    "is_mirror"
+                ] = False
             except KeyError:
                 pass
         super().__setitem__(key, value)
@@ -1156,7 +1223,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         for (branch, tick) in self.engine._active_branches():
             self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
-                "SELECT character, thing, branch, MAX(tick) AS tick FROM things "
+                "SELECT character, thing, branch, MAX(tick) AS tick "
+                "FROM things "
                 "WHERE character=? "
                 "AND branch=? "
                 "AND tick<=? "
@@ -1195,7 +1263,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         for (branch, rev) in self.engine._active_branches():
             self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
-                "SELECT character, thing, branch, MAX(tick) AS tick FROM things "
+                "SELECT character, thing, branch, MAX(tick) AS tick "
+                "FROM things "
                 "WHERE character=? "
                 "AND thing=? "
                 "AND branch=? "
@@ -1264,7 +1333,8 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         for (branch, rev) in self.engine._active_branches():
             self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
-                "SELECT character, thing, branch, MAX(tick) AS tick FROM things "
+                "SELECT character, thing, branch, MAX(tick) AS tick "
+                "FROM things "
                 "WHERE character=? "
                 "AND branch=? "
                 "AND tick<=? "
@@ -1439,21 +1509,38 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
                 super().__delitem__(nodeB)
 
 
-class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping, RuleFollower):
+class CharacterPortalPredecessorsMapping(
+        DiGraphPredecessorsMapping,
+        RuleFollower
+):
     _book = "portal"
 
     class Predecessors(DiGraphPredecessorsMapping.Predecessors):
         def _getsub(self, nodeA):
             if nodeA in self.graph.portal:
-                if self.graph.engine.caching and self.nodeB not in self.graph.portal[nodeA]._cache:
-                    self.graph.portal[nodeA]._cache[self.nodeB] = Portal(self.graph, nodeA, self.nodeB)
+                if (
+                        self.graph.engine.caching and
+                        self.nodeB not in self.graph.portal[nodeA]._cache
+                ):
+                    self.graph.portal[nodeA]._cache[self.nodeB] = Portal(
+                        self.graph,
+                        nodeA,
+                        self.nodeB
+                    )
                 return self.graph.portal[nodeA][self.nodeB]
             return Portal(self.graph, nodeA, self.nodeB)
 
         def __setitem__(self, nodeA, value):
             if nodeA in self.graph.portal:
-                if self.graph.engine.caching and self.nodeB not in self.graph.portal[nodeA]._cache:
-                    self.graph.portal[nodeA]._cache[self.nodeB] = Portal(self.graph, nodeA, self.nodeB)
+                if (
+                        self.graph.engine.caching and
+                        self.nodeB not in self.graph.portal[nodeA]._cache
+                ):
+                    self.graph.portal[nodeA]._cache[self.nodeB] = Portal(
+                        self.graph,
+                        nodeA,
+                        self.nodeB
+                    )
             p = self.graph.portal[nodeA][self.nodeB]
             p.clear()
             p.exists = True
@@ -1478,6 +1565,7 @@ class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping, RuleFollowe
 
 class CharacterAvatarGraphMapping(Mapping, RuleFollower):
     _book = "avatar"
+
     def __init__(self, char):
         """Remember my character"""
         self.character = char
@@ -1563,7 +1651,6 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             d[k] = dict(self[k])
         return repr(d)
 
-
     class CharacterAvatarMapping(Mapping):
         """Mapping of avatars of one Character in another Character."""
         def __init__(self, outer, graphn):
@@ -1578,28 +1665,28 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
 
         def _branchdata(self, branch, rev):
             return self.engine.cursor.execute(
-                    "SELECT "
-                    "avatars.avatar_node, "
-                    "avatars.is_avatar FROM avatars JOIN ("
-                    "SELECT character_graph, avatar_graph, avatar_node, "
-                    "branch, MAX(tick) AS tick FROM avatars "
-                    "WHERE character_graph=? "
-                    "AND avatar_graph=? "
-                    "AND branch=? "
-                    "AND tick<=? GROUP BY "
-                    "character_graph, avatar_graph, avatar_node, branch"
-                    ") AS hitick ON "
-                    "avatars.character_graph=hitick.character_graph "
-                    "AND avatars.avatar_graph=hitick.avatar_graph "
-                    "AND avatars.avatar_node=hitick.avatar_node "
-                    "AND avatars.branch=hitick.branch "
-                    "AND avatars.tick=hitick.tick;",
-                    (
-                        json_dump(self.name),
-                        json_dump(self.graph),
-                        branch,
-                        rev
-                    )
+                "SELECT "
+                "avatars.avatar_node, "
+                "avatars.is_avatar FROM avatars JOIN ("
+                "SELECT character_graph, avatar_graph, avatar_node, "
+                "branch, MAX(tick) AS tick FROM avatars "
+                "WHERE character_graph=? "
+                "AND avatar_graph=? "
+                "AND branch=? "
+                "AND tick<=? GROUP BY "
+                "character_graph, avatar_graph, avatar_node, branch"
+                ") AS hitick ON "
+                "avatars.character_graph=hitick.character_graph "
+                "AND avatars.avatar_graph=hitick.avatar_graph "
+                "AND avatars.avatar_node=hitick.avatar_node "
+                "AND avatars.branch=hitick.branch "
+                "AND avatars.tick=hitick.tick;",
+                (
+                    json_dump(self.name),
+                    json_dump(self.graph),
+                    branch,
+                    rev
+                )
             ).fetchall()
 
         def __getattr__(self, attrn):
@@ -1764,7 +1851,8 @@ class SenseCharacterMapping(Mapping):
         (branch, tick) = self.engine.time
         try:
             self.engine.cursor.execute(
-                "INSERT INTO senses (character, sense, branch, tick, function, active) "
+                "INSERT INTO senses "
+                "(character, sense, branch, tick, function, active) "
                 "VALUES (?, ?, ?, ?, ?);",
                 (
                     self._obsname,
@@ -1992,7 +2080,10 @@ class Character(DiGraph, RuleFollower):
             for mapp in ('character', 'avatar', 'thing', 'place', 'portal'):
                 if mapp + '_rulebook' in attr:
                     rulebook = attr[mapp + 'rulebook']
-                    bookname = rulebook.name if isinstance(rulebook, RuleBook) else str(rulebook)
+                    bookname = rulebook.name if isinstance(
+                        rulebook,
+                        RuleBook
+                    ) else str(rulebook)
                     d[mapp] = bookname
                 else:
                     d[mapp] = mapp + ":" + self._name
@@ -2025,11 +2116,21 @@ class Character(DiGraph, RuleFollower):
         self.pred = self.preportal
         self.avatar = CharacterAvatarGraphMapping(self)
         self.sense = CharacterSenseMapping(self)
-        self.travel_reqs = FunList(self.engine, 'travel_reqs', ['character'], [name], 'reqs')
+        self.travel_reqs = FunList(
+            self.engine,
+            'travel_reqs',
+            ['character'],
+            [name],
+            'reqs'
+        )
         self.stat = self.graph
         self._portal_traits = set()
         if self.engine.caching:
-            self._paths = self.graph['_paths'] if '_paths' in self.graph else {}
+            self._paths = (
+                self.graph['_paths']
+                if '_paths' in self.graph
+                else {}
+            )
 
     def travel_req(self, fun):
         """Decorator for tests that :class:`Thing`s have to pass before they
@@ -2180,7 +2281,8 @@ class Character(DiGraph, RuleFollower):
             self.add_portal(orig, dest, **kwargs)
 
     def add_avatar(self, host, name):
-        """Start keeping track of a :class:`Thing` or :class:`Place` in a different :class:`Character`.
+        """Start keeping track of a :class:`Thing` or :class:`Place` in a
+        different :class:`Character`.
 
         """
         (branch, tick) = self.engine.time
@@ -2245,7 +2347,8 @@ class Character(DiGraph, RuleFollower):
         try:
             self.engine.cursor.execute(
                 "INSERT INTO avatars "
-                "(character_graph, avatar_graph, avatar_node, branch, tick, is_avatar) "
+                "(character_graph, avatar_graph, avatar_node, "
+                "branch, tick, is_avatar) "
                 "VALUES (?, ?, ?, ?, ?, ?);",
                 (
                     self._name,
@@ -2280,7 +2383,10 @@ class Character(DiGraph, RuleFollower):
                 yield port
 
     def iter_avatars(self):
-        """Iterate over all my avatars, regardless of what character they are in."""
+        """Iterate over all my avatars, regardless of what character they are
+        in.
+
+        """
         seen = set()
         for (branch, tick) in self.engine._active_branches():
             data = self.engine.cursor.execute(
@@ -2290,7 +2396,8 @@ class Character(DiGraph, RuleFollower):
                 "MAX(tick) AS tick FROM avatars "
                 "WHERE character_graph=? "
                 "AND branch=? "
-                "AND tick<=? GROUP BY character_graph, avatar_graph, avatar_node, branch) "
+                "AND tick<=? GROUP BY "
+                "character_graph, avatar_graph, avatar_node, branch) "
                 "AS hitick "
                 "ON avatars.character_graph=hitick.character_graph "
                 "AND avatars.avatar_graph=hitick.avatar_graph "
@@ -2309,7 +2416,6 @@ class Character(DiGraph, RuleFollower):
                 if (graphn, noden) not in seen and is_avatar:
                     yield self.engine.character[graphn].node[noden]
                 seen.add((graphn, noden))
-
 
     def copy(self):
         """Return a :class:`CharacterImage` representing my status at the
