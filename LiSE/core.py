@@ -500,7 +500,7 @@ class Engine(object):
     def time(self, v):
         """Set my gorm's ``branch`` and ``tick``, and call listeners"""
         self.locktime = True
-        (self.gorm.branch, self.gorm.rev) = v
+        (self.branch, self.tick) = v
         (b, t) = v
         for time_listener in self.time_listeners:
             time_listener(self, b, t)
