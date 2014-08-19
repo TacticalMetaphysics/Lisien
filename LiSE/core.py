@@ -374,11 +374,21 @@ class GlobalVarMapping(MutableMapping):
 
 
 class Engine(object):
-    def __init__(self, worlddb, codedb, commit_modulus=None, random_seed=None, gettext=lambda s: s):
+    def __init__(
+            self,
+            worlddb,
+            codedb,
+            caching=True,
+            commit_modulus=None,
+            random_seed=None,
+            gettext=lambda s: s
+    ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
 
         """
+        self.caching = caching
+        self.commit_modulus = commit_modulus
         self.gettext = gettext
         self.worlddb = connect(worlddb)
         self.gorm = gORM(self.worlddb)
@@ -387,7 +397,6 @@ class Engine(object):
         else:
             self.function = FunctionStoreDB(connect(codedb))
         self.cursor = self.worlddb.cursor()
-        self.commit_modulus = commit_modulus
         self.cursor.execute("BEGIN;")
         try:
             self.cursor.execute(
@@ -461,15 +470,21 @@ class Engine(object):
 
     @property
     def branch(self):
-        return self._branch
+        if self.caching:
+            return self._branch
+        else:
+            return self.gorm.branch
 
     @branch.setter
     def branch(self, v):
         """Set my gorm's branch and call listeners"""
-        if v == self._branch:
-            return
-        self._branch = v
-        self.gorm._obranch = v
+        if self.caching:
+            if v == self._branch:
+                return
+            self._branch = v
+            self.gorm._obranch = v
+        else:
+            self.gorm.branch = v
         if not hasattr(self, 'locktime'):
             t = self.tick
             for time_listener in self.time_listeners:
@@ -477,15 +492,21 @@ class Engine(object):
 
     @property
     def tick(self):
-        return self._tick
+        if self.caching:
+            return self._tick
+        else:
+            return self.gorm.rev
 
     @tick.setter
     def tick(self, v):
         """Update orm's tick, and call listeners"""
-        if v == self._tick:
-            return
-        self._tick = v
-        self.gorm._orev = v
+        if self.caching:
+            if v == self._tick:
+                return
+            self._tick = v
+            self.gorm._orev = v
+        else:
+            self.gorm.rev = v
         if not hasattr(self, 'locktime'):
             b = self.branch
             for time_listener in self.time_listeners:

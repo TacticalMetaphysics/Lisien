@@ -196,22 +196,25 @@ class ThingPlace(GraphNodeMapping.Node):
         if name == self.name:
             return self
         (branch, tick) = self.engine.time
-        if (
-                name in self._statcache and
-                branch in self._statcache[name]
-        ):
-            # cache invalidation
-            d = self._statcache[name][branch]
-            if tick not in d:
-                d[tick] = d[max(t for t in d.keys() if t < tick)]
-            return d[tick]
-        r = super().__getitem__(name)
-        if name not in self._statcache:
-            self._statcache[name] = {}
-        if branch not in self._statcache[name]:
-            self._statcache[name][branch] = {}
-        self._statcache[name][branch][tick] = r
-        return r
+        if self.engine.caching:
+            if (
+                    name in self._statcache and
+                    branch in self._statcache[name]
+            ):
+                # cache invalidation
+                d = self._statcache[name][branch]
+                if tick not in d:
+                    d[tick] = d[max(t for t in d.keys() if t < tick)]
+                return d[tick]
+            r = super().__getitem__(name)
+            if name not in self._statcache:
+                self._statcache[name] = {}
+            if branch not in self._statcache[name]:
+                self._statcache[name][branch] = {}
+            self._statcache[name][branch][tick] = r
+            return r
+        else:
+            return super().__getitem__(name)
 
     def __setitem__(self, k, v):
         if k == "name":
@@ -219,50 +222,53 @@ class ThingPlace(GraphNodeMapping.Node):
         elif k == "character":
             raise KeyError("Can't set character")
         (branch, tick) = self.engine.time
-        if k not in self._statcache:
-            self._statcache[k] = {}
-        if branch not in self._statcache[k]:
-            self._statcache[k][branch] = {}
-        for branch2 in list(self._statcache[k].keys()):
-            if self.engine.gorm.is_parent_of(branch, branch2):
-                del self._statcache[k][branch2]
-        d = self._statcache[k][branch]
-        for tick2 in list(d.keys()):
-            if tick2 > tick:
-                del d[tick2]
-        d[tick] = v
+        if self.engine.caching:
+            if k not in self._statcache:
+                self._statcache[k] = {}
+            if branch not in self._statcache[k]:
+                self._statcache[k][branch] = {}
+            for branch2 in list(self._statcache[k].keys()):
+                if self.engine.gorm.is_parent_of(branch, branch2):
+                    del self._statcache[k][branch2]
+            d = self._statcache[k][branch]
+            for tick2 in list(d.keys()):
+                if tick2 > tick:
+                    del d[tick2]
+            d[tick] = v
         super().__setitem__(k, v)
 
     def __delitem__(self, k):
         (branch, tick) = self.engine.time
-        try:
-            del self._statcache[k][branch][tick]
-        except KeyError:
-            pass
+        if self.engine.caching:
+            try:
+                del self._statcache[k][branch][tick]
+            except KeyError:
+                pass
 
     def _contents_names(self):
-        t = self.engine.time
-        if (
-                t[0] in self._contents_cache and
-                t[1] in self._contents_cache[t[0]]
-        ):
-            for name in self._contents_cache[t[0]][t[1]]:
-                yield name
-            return
-        else:
-            try:
-                d = self._contents_cache[t[0]]
-                k = max(tic for tic in d.keys() if tic < t[1])
-                d[t[1]] = set(d[k])  # copy the old stuff to avoid
-                                     # changing the past if the
-                                     # present contents change
-                for name in d[t[1]]:
+        if self.engine.caching:
+            t = self.engine.time
+            if (
+                    t[0] in self._contents_cache and
+                    t[1] in self._contents_cache[t[0]]
+            ):
+                for name in self._contents_cache[t[0]][t[1]]:
                     yield name
                 return
-            except (KeyError, ValueError):
-                self._contents_cache[t[0]] = {}
-                self._contents_cache[t[0]][t[1]] = set()
-        cache = self._contents_cache[t[0]][t[1]]
+            else:
+                try:
+                    d = self._contents_cache[t[0]]
+                    k = max(tic for tic in d.keys() if tic < t[1])
+                    d[t[1]] = set(d[k])  # copy the old stuff to avoid
+                                         # changing the past if the
+                                         # present contents change
+                    for name in d[t[1]]:
+                        yield name
+                    return
+                except (KeyError, ValueError):
+                    self._contents_cache[t[0]] = {}
+                    self._contents_cache[t[0]][t[1]] = set()
+            cache = self._contents_cache[t[0]][t[1]]
         things_seen = set()
         for (branch, tick) in self.engine._active_branches():
             self.gorm.cursor.execute(
@@ -288,10 +294,15 @@ class ThingPlace(GraphNodeMapping.Node):
                 thing = json_load(th)
                 if thing not in things_seen:
                     yield thing
-                    cache.add(thing)
+                    try:
+                        cache.add(thing)
+                    except NameError:
+                        pass
                 things_seen.add(thing)
 
     def _do_cache(self):
+        if not self.engine.caching:
+            return
         (branch, tick) = self.engine.time
         if (
                 branch in self._contents_cache and
@@ -444,8 +455,9 @@ class Thing(ThingPlace):
         self.engine = character.engine
         self._name = json_dump(name)
         self._charname = self.character._name
-        self._statcache = {}
-        self._contents_cache = {}
+        if self.engine.caching:
+            self._statcache = {}
+            self._contents_cache = {}
         super().__init__(character, name)
         l = self['location']
         if l in self.character.thing:
@@ -588,11 +600,7 @@ class Thing(ThingPlace):
     @property
     def location(self):
         """The Thing or Place I'm in. If I'm in transit, it's where I started."""
-        locn = self['location']
-        try:
-            return self.character.thing[locn]
-        except KeyError:
-            return self.character.place[locn]
+        return self.character.node[self['location']]
 
     @property
     def next_location(self):
@@ -901,8 +909,9 @@ class Place(ThingPlace):
         self.character = character
         self.engine = character.engine
         self._name = json_dump(name)
-        self._statcache = {}
-        self._contents_cache = {}
+        if self.engine.caching:
+            self._statcache = {}
+            self._contents_cache = {}
         super(Place, self).__init__(character, name)
 
     def __getitem__(self, key):
@@ -953,7 +962,8 @@ class Portal(GraphEdgeMapping.Edge):
         self._destination = destination
         self.character = character
         self.engine = character.engine
-        self._statcache = {}
+        if self.engine.caching:
+            self._statcache = {}
         super().__init__(character, self._origin, self._destination)
 
     def __getitem__(self, key):
@@ -977,18 +987,21 @@ class Portal(GraphEdgeMapping.Edge):
             return self.character.preportal[self._origin][self._destination][key]
         else:
             (branch, tick) = self.engine.time
-            if (
-                    key in self._statcache and
-                    branch in self._statcache[key]
-            ):
-                if tick not in d:
-                    d[tick] = d[max(t for t in d.keys() if t < tick)]
-                return d[tick]
-            r = super().__getitem__(key)
-            if key not in self._statcache:
-                self._statcache[key] = {}
-            self._statcache[key][branch][tick] = r
-            return r
+            try:
+                if (
+                        key in self._statcache and
+                        branch in self._statcache[key]
+                ):
+                    if tick not in d:
+                        d[tick] = d[max(t for t in d.keys() if t < tick)]
+                    return d[tick]
+                r = super().__getitem__(key)
+                if key not in self._statcache:
+                    self._statcache[key] = {}
+                self._statcache[key][branch][tick] = r
+                return r
+            except AttributeError:
+                return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` at the present game-time.
@@ -1125,10 +1138,11 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         self.character = character
         self.engine = character.engine
         self.name = character.name
-        self._cache = {}
+        if self.engine.caching:
+            self._cache = {}
 
     def __contains__(self, k):
-        if k in self._cache:
+        if hasattr(self, '_cache') and k in self._cache:
             return True
         return super().__contains__(k)
 
@@ -1171,8 +1185,11 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         return n
 
     def __getitem__(self, thing):
-        if thing in self._cache:
-            return self._cache[thing]
+        try:
+            if thing in self._cache:
+                return self._cache[thing]
+        except AttributeError:
+            pass
         myn = json_dump(self.name)
         thingn = json_dump(thing)
         for (branch, rev) in self.engine._active_branches():
@@ -1201,7 +1218,10 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 if not loc:
                     raise KeyError("Thing doesn't exist right now")
                 r = Thing(self.character, thing)
-                self._cache[thing] = r
+                try:
+                    self._cache[thing] = r
+                except AttributeError:
+                    pass
                 return r
         raise KeyError("Thing has never existed")
 
@@ -1210,14 +1230,18 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         th.clear()
         th.exists = True
         th.update(val)
-        self._cache[thing] = th
+        try:
+            self._cache[thing] = th
+        except AttributeError:
+            pass
 
     def __delitem__(self, thing):
-        if thing in self._cache:
-            self._cache[thing].clear()
+        if hasattr(self, 'cache') and thing in self._cache:
+            th = self._cache[thing]
             del self._cache[thing]
         else:
-            Thing(self.character, thing).clear()
+            th = Thing(self.character, thing)
+        th.clear()
 
     def __repr__(self):
         return repr(dict(self))
@@ -1230,7 +1254,8 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         self.character = character
         self.engine = character.engine
         self.name = character.name
-        self._cache = {}
+        if self.engine.caching:
+            self._cache = {}
 
     def _things(self):
         things = set()
@@ -1269,7 +1294,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
                 yield node
 
     def __contains__(self, k):
-        if k in self._cache:
+        if hasattr(self, '_cache') and k in self._cache:
             return True
         for node in self.engine._iternodes(self.character.name):
             if node == k:
@@ -1283,11 +1308,12 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         return n
 
     def __getitem__(self, place):
-        if place in self._cache:
+        if hasattr(self, '_cache') and place in self._cache:
             return self._cache[place]
         if place in self:
             r = Place(self.character, place)
-            self._cache[place] = r
+            if hasattr(self, '_cache'):
+                self._cache[place] = r
             return r
         raise KeyError("No such place")
 
@@ -1296,10 +1322,11 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         pl.clear()
         pl.exists = True
         pl.update(v)
-        self._cache[place] = v
+        if hasattr(self, '_cache'):
+            self._cache[place] = v
 
     def __delitem__(self, place):
-        if place in self._cache:
+        if hasattr(self, '_cache') and place in self._cache:
             self._cache[place].clear()
             del self._cache[place]
         else:
@@ -1373,10 +1400,12 @@ class CharacterThingPlaceMapping(MutableMapping):
 
 class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
     _book = "portal"
+
     class Successors(GraphSuccessorsMapping.Successors):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            self._cache = {}
+            if self.graph.engine.caching:
+                self._cache = {}
 
         def __contains__(self, k):
             if k in self._cache:
@@ -1384,7 +1413,7 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
             return super().__contains__(k)
 
         def _getsub(self, nodeB):
-            if nodeB not in self._cache:
+            if hasattr(self, '_cache') and nodeB not in self._cache:
                 self._cache[nodeB] = Portal(self.graph, self.nodeA, nodeB)
             return self._cache[nodeB]
 
@@ -1396,10 +1425,11 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
             if '_paths' in self.graph.graph:
                 del self.graph.graph['_paths']
                 self.graph._paths = {}
-            self._cache[nodeB] = p
+            if hasattr(self, '_cache'):
+                self._cache[nodeB] = p
 
         def __delitem__(self, nodeB):
-            if nodeB in self._cache:
+            if hasattr(self, '_cache') and nodeB in self._cache:
                 n = self._cache[nodeB]
                 if not n.exists:
                     raise KeyError("No such node")
@@ -1411,17 +1441,18 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
 
 class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping, RuleFollower):
     _book = "portal"
+
     class Predecessors(DiGraphPredecessorsMapping.Predecessors):
         def _getsub(self, nodeA):
             if nodeA in self.graph.portal:
-                if self.nodeB not in self.graph.portal[nodeA]._cache:
+                if self.graph.engine.caching and self.nodeB not in self.graph.portal[nodeA]._cache:
                     self.graph.portal[nodeA]._cache[self.nodeB] = Portal(self.graph, nodeA, self.nodeB)
                 return self.graph.portal[nodeA][self.nodeB]
             return Portal(self.graph, nodeA, self.nodeB)
 
         def __setitem__(self, nodeA, value):
             if nodeA in self.graph.portal:
-                if self.nodeB not in self.graph.portal[nodeA]._cache:
+                if self.graph.engine.caching and self.nodeB not in self.graph.portal[nodeA]._cache:
                     self.graph.portal[nodeA]._cache[self.nodeB] = Portal(self.graph, nodeA, self.nodeB)
             p = self.graph.portal[nodeA][self.nodeB]
             p.clear()
@@ -1429,10 +1460,12 @@ class CharacterPortalPredecessorsMapping(DiGraphPredecessorsMapping, RuleFollowe
             p.update(value)
             if '_paths' in self.graph.graph:
                 del self.graph.graph['_paths']
-                self.graph._paths = {}
+                if hasattr(self.graph, '_paths'):
+                    self.graph._paths = {}
 
         def __delitem__(self, nodeA):
             if (
+                    self.graph.engine.caching and
                     nodeA in self.graph.portal and
                     self.nodeB in self.graph.portal[nodeA]
             ):
@@ -1995,7 +2028,8 @@ class Character(DiGraph, RuleFollower):
         self.travel_reqs = FunList(self.engine, 'travel_reqs', ['character'], [name], 'reqs')
         self.stat = self.graph
         self._portal_traits = set()
-        self._paths = self.graph['_paths'] if '_paths' in self.graph else {}
+        if self.engine.caching:
+            self._paths = self.graph['_paths'] if '_paths' in self.graph else {}
 
     def travel_req(self, fun):
         """Decorator for tests that :class:`Thing`s have to pass before they
@@ -2026,7 +2060,8 @@ class Character(DiGraph, RuleFollower):
         traits = self._portal_traits + set([None])
         for trait in traits:
             path_d[trait] = nx.shortest_path(self, weight=trait)
-        self._paths = path_d
+        if self.engine.caching:
+            self._paths = path_d
         self.graph['_paths'] = path_d
 
     def add_place(self, name, **kwargs):
