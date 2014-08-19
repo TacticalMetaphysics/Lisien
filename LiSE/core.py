@@ -585,20 +585,23 @@ class Engine(object):
             character = self.character[charname]
             rule = self.rule[rulename]
 
+            def follow(*args):
+                return (rulebook, ruletyp, rulename, rule(self, *args))
+
             if ruletyp == 'character':
-                yield rule(self, character)
+                yield follow(character)
             elif ruletyp == 'avatar':
                 for avatar in character.iter_avatars():
-                    yield rule(self, character, avatar)
+                    yield follow(character, avatar)
             elif ruletyp == 'thing':
                 for thing in character.thing.values():
-                    yield rule(self, character, thing)
+                    yield follow(character, thing)
             elif ruletyp == 'place':
                 for place in character.place.values():
-                    yield rule(self, character, place)
+                    yield follow(character, place)
             elif ruletyp == 'portal':
                 for portal in character.iter_portals():
-                    yield rule(self, character, portal)
+                    yield follow(character, portal)
             else:
                 raise TypeError("Unknown type of rule")
             self.cursor.execute(
