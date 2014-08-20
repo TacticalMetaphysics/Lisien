@@ -1918,6 +1918,54 @@ class CharacterSenseMapping(MutableMapping, Callable, RuleFollower):
         self[funn] = funn
 
 
+class CharStatCache(MutableMapping):
+    def __init__(self, char):
+        self.character = char
+        self.engine = char.engine
+        self._real = char.graph
+        self._cache = {}
+
+    def __iter__(self):
+        return iter(self._real)
+
+    def __len__(self):
+        return len(self._real)
+
+    def __getitem__(self, k):
+        (branch, tick) = self.engine.time
+        if k not in self._cache:
+            self._cache[k] = {}
+        if branch not in self._cache[k]:
+            self._cache[k][branch] = {}
+        d = self._cache[k][branch]
+        if tick not in d:
+            try:
+                d[tick] = d[max(t for t in d if t < tick)]
+            except ValueError:
+                d[tick] = self._real[k]
+        return d[tick]
+
+    def __setitem__(self, k, v):
+        (branch, tick) = self.engine.time
+        if k not in self._cache:
+            self._cache[k] = {}
+        if branch not in self._cache[k]:
+            self._cache[k][branch] = {}
+        self._cache[k][branch][tick] = v
+        self._real[k] = v
+        self.__getitem__(k)
+
+    def __delitem__(self, k):
+        (branch, tick) = self.engine.time
+        if branch in self._cache[k]:
+            for staletick in list(
+                    t for t in self._cache[k][branch]
+                    if t < tick
+            ):
+                del self._cache[k][branch][staletick]
+        del self._real[k]
+
+
 class Character(DiGraph, RuleFollower):
     """A graph that follows game rules and has a containment hierarchy.
 
@@ -1991,7 +2039,10 @@ class Character(DiGraph, RuleFollower):
             [name],
             'reqs'
         )
-        self.stat = self.graph
+        if engine.caching:
+            self.stat = CharStatCache(self)
+        else:
+            self.stat = self.graph
         self._portal_traits = set()
         if self.engine.caching:
             self._paths = (
