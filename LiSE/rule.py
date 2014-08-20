@@ -34,6 +34,7 @@ class Rule(object):
             )
         self.actions = FunList(self.engine, 'rules', ['rule'], [self.name], 'actions')
         self.prereqs = FunList(self.engine, 'rules', ['rule'], [self.name], 'prereqs')
+        self.triggers = FunList(self.engine, 'rules', ['rule'], [self.name], 'triggers')
 
     def __call__(self, engine, *args):
         """First check the prereqs. If they all pass, execute the actions and
@@ -44,21 +45,34 @@ class Rule(object):
 
         """
         curtime = engine.time
-        r = None
+        triggered = False
+        allowed = True
+        for trigger in self.triggers:
+            if trigger(engine, *args):
+                triggered = True
+            engine.time = curtime
+            if triggered:
+                break
+        if not triggered:
+            return []
         for prereq in self.prereqs:
             # in case one of them moves the time
             if not prereq(engine, *args):
-                r = []
+                allowed = False
             engine.time = curtime
-            if r is not None:
+            if not allowed:
                 break
-        if r is not None:
-            return r
+        if not allowed:
+            return []  # maybe return something more informative here?
         r = []
         for action in self.actions:
             r.append(action(engine, *args))
             engine.time = curtime
         return r
+
+    def trigger(self, fun):
+        """Decorator to append the function to my triggers list."""
+        self.triggers.append(fun)
 
     def prereq(self, fun):
         """Decorator to append the function to my prereqs list."""

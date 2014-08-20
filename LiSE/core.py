@@ -714,7 +714,8 @@ class Engine(object):
             "CREATE TABLE rules ("
             "rule TEXT NOT NULL PRIMARY KEY, "
             "actions TEXT NOT NULL DEFAULT '[]', "
-            "prereqs TEXT NOT NULL DEFAULT '[]')"
+            "prereqs TEXT NOT NULL DEFAULT '[]', "
+            "triggers TEXT NOT NULL DEFAULT '[]')"
             ";",
             "CREATE TABLE rulebooks ("
             "rulebook TEXT NOT NULL, "
