@@ -225,9 +225,12 @@ class ThingPlace(GraphNodeMapping.Node):
             ):
                 # cache invalidation
                 d = self._statcache[name][branch]
-                if tick not in d:
-                    d[tick] = d[max(t for t in d.keys() if t < tick)]
-                return d[tick]
+                try:
+                    if tick not in d:
+                        d[tick] = d[max(t for t in d.keys() if t < tick)]
+                    return d[tick]
+                except ValueError:
+                    pass
             r = super().__getitem__(name)
             if name not in self._statcache:
                 self._statcache[name] = {}
@@ -266,91 +269,6 @@ class ThingPlace(GraphNodeMapping.Node):
                 del self._statcache[k][branch][tick]
             except KeyError:
                 pass
-
-    def _contents_names(self):
-        if self.engine.caching:
-            t = self.engine.time
-            if (
-                    t[0] in self._contents_cache and
-                    t[1] in self._contents_cache[t[0]]
-            ):
-                for name in self._contents_cache[t[0]][t[1]]:
-                    yield name
-                return
-            else:
-                try:
-                    d = self._contents_cache[t[0]]
-                    k = max(tic for tic in d.keys() if tic < t[1])
-                    d[t[1]] = set(d[k])
-                    # copy the old stuff to avoid changing the past if
-                    # the present contents change
-                    for name in d[t[1]]:
-                        yield name
-                    return
-                except (KeyError, ValueError):
-                    self._contents_cache[t[0]] = {}
-                    self._contents_cache[t[0]][t[1]] = set()
-            cache = self._contents_cache[t[0]][t[1]]
-        things_seen = set()
-        for (branch, tick) in self.engine._active_branches():
-            self.gorm.cursor.execute(
-                "SELECT things.thing FROM things JOIN ("
-                "SELECT character, thing, branch, MAX(tick) AS tick "
-                "FROM things "
-                "WHERE character=? "
-                "AND branch=? "
-                "AND tick<=? "
-                "GROUP BY character, thing, branch) AS hitick "
-                "ON things.character=hitick.character "
-                "AND things.thing=hitick.thing "
-                "AND things.branch=hitick.branch "
-                "AND things.tick=hitick.tick "
-                "WHERE things.location=?;",
-                (
-                    self.character._name,
-                    branch,
-                    tick,
-                    self._name
-                )
-            )
-            for (th,) in self.gorm.cursor.fetchall():
-                thing = json_load(th)
-                if thing not in things_seen:
-                    yield thing
-                    try:
-                        cache.add(thing)
-                    except NameError:
-                        pass
-                things_seen.add(thing)
-
-    def _do_cache(self):
-        if not self.engine.caching:
-            return
-        (branch, tick) = self.engine.time
-        if (
-                branch in self._contents_cache and
-                tick in self._contents_cache[branch]
-        ):
-            # invalidate all future caches
-            d = self._contents_cache[branch]
-            for k in d:
-                if k > tick:
-                    del d[k]
-            # future branches, too
-            for branch2 in list(self._contents_cache.keys()):
-                if self.engine.gorm.is_parent_of(branch, branch2):
-                    del self._contents_cache[branch2]
-            return (branch, tick)
-
-    def _add_thing(self, thing):
-        t = self._do_cache()
-        if t:
-            self._contents_cache[t[0]][t[1]].add(thing)
-
-    def _discard_thing(self, thing):
-        t = self._do_cache
-        if t:
-            self._contents_cache[t[0]][t[1]].discard(thing)
 
     def _portal_dests(self):
         seen = set()
@@ -453,11 +371,6 @@ class ThingPlace(GraphNodeMapping.Node):
         for charn in self._user_names():
             yield self.engine.character[charn]
 
-    def contents(self):
-        """Iterate over the Things that are located here."""
-        for thingn in self._contents_names():
-            yield self.character.thing[thingn]
-
     def portals(self):
         for destn in self._portal_dests():
             yield self.character.portal[self.name][destn]
@@ -465,6 +378,11 @@ class ThingPlace(GraphNodeMapping.Node):
     def preportals(self):
         for orign in self._portal_origs():
             yield self.character.preportal[self.name][orign]
+
+    def contents(self):
+        for thing in self.character.thing.values():
+            if thing['location'] == self.name:
+                yield thing
 
 
 class Thing(ThingPlace):
@@ -485,13 +403,7 @@ class Thing(ThingPlace):
         self._charname = self.character._name
         if self.engine.caching:
             self._statcache = {}
-            self._contents_cache = {}
         super().__init__(character, name)
-        l = self['location']
-        if l in self.character.thing:
-            self.character.thing[l]._add_thing(self.name)
-        elif l in self.character.place:
-            self.character.place[l]._add_thing(self.name)
 
     def __iter__(self):
         for extrakey in (
@@ -693,15 +605,6 @@ class Thing(ThingPlace):
         ``next_location``
 
         """
-        curloc = self['location']
-        if curloc in self.character.thing:
-            self.character.thing[curloc]._discard_thing(self.name)
-        elif curloc in self.character.place:
-            self.character.place[curloc]._discard_thing(self.name)
-        if loc in self.character.thing:
-            self.character.thing[loc]._add_thing(self.name)
-        elif loc in self.character.place:
-            self.character.place[loc]._add_thing(self.name)
         (branch, tick) = self.character.engine.time
         charn = self.character._name
         myn = self._name
@@ -955,7 +858,6 @@ class Place(ThingPlace):
         self._name = json_dump(name)
         if self.engine.caching:
             self._statcache = {}
-            self._contents_cache = {}
         super(Place, self).__init__(character, name)
 
     def __getitem__(self, key):
@@ -1127,48 +1029,14 @@ class Portal(GraphEdgeMapping.Edge):
         except KeyError:
             raise KeyError("This portal has no reciprocal")
 
-    def _contents_names(self):
-        """Private method to iterate over the names of the Things that are
-        travelling along me at the present."""
-        r = set()
-        charn = json_dump(self.character.name)
-        orign = json_dump(self['origin'])
-        destn = json_dump(self['destination'])
-        for (branch, tick) in self.gorm._active_branches():
-            self.gorm.cursor.execute(
-                "SELECT things.node FROM things JOIN ("
-                "SELECT graph, node, branch, MAX(tick) AS tick "
-                "FROM things WHERE "
-                "graph=? AND "
-                "branch=? AND "
-                "tick<=? "
-                "GROUP BY graph, node, branch) AS hitick "
-                "ON things.graph=hitick.graph "
-                "AND things.node=hitick.node "
-                "AND things.branch=hitick.branch "
-                "AND things.tick=hitick.tick "
-                "WHERE location=? "
-                "AND next_location=?;",
-                (
-                    charn,
-                    branch,
-                    tick,
-                    orign,
-                    destn
-                )
-            )
-            for (th,) in self.gorm.cursor.fetchall():
-                thing = json_load(th)
-                r.add(thing)
-        return r
-
     def contents(self):
         """Iterate over Thing instances that are presently travelling through
         me.
 
         """
-        for thingn in self._contents_names():
-            yield self.character.thing[thingn]
+        for thing in self.character.thing.values():
+            if thing['locations'] == (self._origin, self._destination):
+                yield thing
 
     def update(self, d):
         """Works like regular update, but only actually updates when the new
