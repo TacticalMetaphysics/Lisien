@@ -526,6 +526,10 @@ class Thing(ThingPlace):
         else:
             super().__setitem__(key, value)
 
+    def delete(self):
+        self.exists = False
+        self.clear()
+
     @property
     def container(self):
         """If I am in transit, this is the Portal I'm moving through. Otherwise
