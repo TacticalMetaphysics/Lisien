@@ -532,18 +532,32 @@ class Engine(object):
             seen = set()
             for (branch, tick) in self._active_branches():
                 data = self.cursor.execute(
-                    "SELECT {table}_rules.rule, {table}_rules.active FROM {table}_rules JOIN "
+                    "SELECT {table}_rules.rule, {table}_rules.active, "
+                    "handle.handled "
+                    "FROM {table}_rules JOIN "
                     "(SELECT rulebook, rule, branch, MAX(tick) AS tick "
                     "FROM {table}_rules WHERE "
                     "branch=? AND "
-                    "tick<=? GROUP BY rulebook, rule, branch) AS hitick "
-                    "ON {table}_rules.rulebook=hitick.rulebook "
-                    "AND {table}_rules.rule=hitick.rule "
-                    "AND {table}_rules.branch=hitick.branch "
-                    "AND {table}_rules.tick=hitick.tick;".format(table=rulemap),
-                    (branch, tick)
+                    "tick<=? GROUP BY rulebook, rule, branch) AS hitick ON "
+                    "{table}_rules.rulebook=hitick.rulebook AND "
+                    "{table}_rules.rule=hitick.rule AND "
+                    "{table}_rules.branch=hitick.branch AND "
+                    "{table}_rules.tick=hitick.tick "
+                    "JOIN characters ON "
+                    "characters.{table}_rulebook={table}_rules.rulebook "
+                    "LEFT OUTER JOIN "
+                    "(SELECT character, rulebook, rule, branch, tick, "
+                    "1 as handled FROM {table}_rules_handled "
+                    "WHERE branch=? AND tick=?) AS handle ON "
+                    "handle.character=characters.character AND "
+                    "handle.rulebook=hitick.rulebook AND "
+                    "handle.rule=hitick.rule "
+                    "WHERE handle.handled IS NULL"
+                    ";".format(table=rulemap),
+                    (branch, tick, branch, tick)
                 ).fetchall()
-                for (rule, active) in data:
+                for (rule, active, handled) in data:
+                    assert(handled is None)
                     if rule not in seen and active:
                         return True
                     seen.add(rule)
@@ -560,7 +574,7 @@ class Engine(object):
                     "characters.{rulemap}_rulebook, "
                     "active_rules.rule, "
                     "active_rules.active, "
-                    "handledness.handled "
+                    "handle.handled "
                     "FROM characters JOIN active_rules ON "
                     "characters.{rulemap}_rulebook=active_rules.rulebook "
                     "JOIN "
@@ -576,14 +590,14 @@ class Engine(object):
                     "ON rulebooks.rulebook=characters.{rulemap}_rulebook "
                     "AND rulebooks.rule=active_rules.rule "
                     "LEFT OUTER JOIN "
-                    "(SELECT character, rulebook, rule, branch, tick, 1 as handled "
-                    "FROM {rulemap}_rules_handled) AS handledness "
-                    "ON handledness.character=characters.character "
-                    "AND handledness.rulebook=characters.{rulemap}_rulebook "
-                    "AND handledness.rule=active_rules.rule "
-                    "AND handledness.branch=? "
-                    "AND handledness.tick=?"
-                    "ORDER BY rulebooks.idx ASC"
+                    "(SELECT character, rulebook, rule, "
+                    "1 AS handled FROM {rulemap}_rules_handled "
+                    "WHERE branch=? AND tick=?) "
+                    "AS handle ON "
+                    "handle.character=characters.character AND "
+                    "handle.rulebook=characters.{rulemap}_rulebook AND "
+                    "handle.rule=active_rules.rule "
+                    "WHERE handle.handled IS NULL"
                     ";".format(rulemap=rulemap),
                     (
                         branch,
@@ -593,11 +607,12 @@ class Engine(object):
                     )
                 ).fetchall()
                 for (c, rulebook, rule, active, handled) in data:
+                    assert(handled is None)
                     character = json_load(c)
                     if (character, rulebook, rule) in seen:
                         continue
                     seen.add((character, rulebook, rule))
-                    if active and not handled:
+                    if active:
                         yield (rulemap, character, rulebook, rule)
 
     def _follow_rules(self):
