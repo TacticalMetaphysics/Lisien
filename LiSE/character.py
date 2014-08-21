@@ -223,12 +223,12 @@ class ThingPlace(GraphNodeMapping.Node):
                     name in self._statcache and
                     branch in self._statcache[name]
             ):
-                # cache invalidation
                 d = self._statcache[name][branch]
                 try:
-                    if tick not in d:
-                        d[tick] = d[max(t for t in d.keys() if t < tick)]
-                    return d[tick]
+                    if tick in d:
+                        return d[tick]
+                    else:
+                        return d[max(t for t in d.keys() if t < tick)]
                 except ValueError:
                     pass
             r = super().__getitem__(name)
@@ -951,12 +951,19 @@ class Portal(GraphEdgeMapping.Edge):
                         key in self._statcache and
                         branch in self._statcache[key]
                 ):
-                    if tick not in d:
-                        d[tick] = d[max(t for t in d.keys() if t < tick)]
-                    return d[tick]
+                    if tick in d:
+                        return d[tick]
+                    else:
+                        try:
+                            return d[max(t for t in d.keys() if t < tick)]
+                        except ValueError:
+                            d[tick] = super().__getitem__(key)
+                            return d[tick]
                 r = super().__getitem__(key)
                 if key not in self._statcache:
                     self._statcache[key] = {}
+                if branch not in self._statcache:
+                    self._statcache[key][branch] = {}
                 self._statcache[key][branch][tick] = r
                 return r
             except AttributeError:
@@ -1981,12 +1988,17 @@ class CharStatCache(MutableMapping):
         if branch not in self._cache[k]:
             self._cache[k][branch] = {}
         d = self._cache[k][branch]
-        if tick not in d:
+        if tick in d:
+            return d[tick]
+        else:
             try:
-                d[tick] = d[max(t for t in d if t < tick)]
+                return d[max(t for t in d if t < tick)]
             except ValueError:
+                # This might cause issues when rewriting history,
+                # but I think that adequate discipline with the
+                # tracking of ticks-handled should take care of it
                 d[tick] = self._real[k]
-        return d[tick]
+                return d[tick]
 
     def __setitem__(self, k, v):
         (branch, tick) = self.engine.time
