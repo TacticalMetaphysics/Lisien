@@ -527,8 +527,7 @@ class Thing(ThingPlace):
             super().__setitem__(key, value)
 
     def delete(self):
-        self.exists = False
-        self.clear()
+        del self.character.thing[self.name]
 
     @property
     def container(self):
@@ -1104,8 +1103,25 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 "ON things.character=hitick.character "
                 "AND things.thing=hitick.thing "
                 "AND things.branch=hitick.branch "
-                "AND things.tick=hitick.tick;",
+                "AND things.tick=hitick.tick "
+                "LEFT OUTER JOIN "
+                "(SELECT nodes.graph, nodes.node, nodes.branch, nodes.rev, "
+                "nodes.extant FROM nodes JOIN "
+                "(SELECT graph, node, branch, MAX(rev) AS rev FROM nodes "
+                "WHERE graph=? "
+                "AND branch=? "
+                "AND rev<=? GROUP BY graph, node, branch) AS hirev ON "
+                "nodes.graph=hirev.graph AND "
+                "nodes.node=hirev.node AND "
+                "nodes.branch=hirev.branch AND "
+                "nodes.rev=hirev.rev) AS existence ON "
+                "things.character=existence.graph AND "
+                "things.thing=existence.node "
+                "WHERE existence.extant;",
                 (
+                    myn,
+                    branch,
+                    tick,
                     myn,
                     branch,
                     tick
@@ -1145,8 +1161,29 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 "ON things.character=hitick.character "
                 "AND things.thing=hitick.thing "
                 "AND things.branch=hitick.branch "
-                "AND things.tick=hitick.tick;",
+                "AND things.tick=hitick.tick "
+                "LEFT OUTER JOIN "
+                "(SELECT nodes.graph, nodes.node, nodes.branch, "
+                "nodes.rev, nodes.extant "
+                "FROM nodes JOIN "
+                "(SELECT graph, node, branch, MAX(rev) AS rev "
+                "FROM nodes "
+                "WHERE graph=? "
+                "AND node=? "
+                "AND branch=? "
+                "AND rev<=? GROUP BY graph, node, branch) AS hirev ON "
+                "nodes.graph=hirev.graph AND "
+                "nodes.node=hirev.node AND "
+                "nodes.branch=hirev.branch AND "
+                "nodes.rev=hirev.rev) AS existence ON "
+                "things.character=existence.graph AND "
+                "things.thing=existence.node "
+                "WHERE existence.extant;",
                 (
+                    myn,
+                    thingn,
+                    branch,
+                    rev,
                     myn,
                     thingn,
                     branch,
@@ -1177,12 +1214,14 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             pass
 
     def __delitem__(self, thing):
-        if hasattr(self, 'cache') and thing in self._cache:
+        if hasattr(self, '_cache') and thing in self._cache:
             th = self._cache[thing]
             del self._cache[thing]
         else:
             th = Thing(self.character, thing)
+        th.exists = False
         th.clear()
+        assert(thing not in self)
 
     def __repr__(self):
         return repr(dict(self))
@@ -1240,7 +1279,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             return True
         for node in self.engine._iternodes(self.character.name):
             if node == k:
-                return json_dump(k) not in self._things()
+                return k not in self._things()
         return False
 
     def __len__(self):
@@ -1265,7 +1304,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         pl.exists = True
         pl.update(v)
         if hasattr(self, '_cache'):
-            self._cache[place] = v
+            self._cache[place] = pl
 
     def __delitem__(self, place):
         if hasattr(self, '_cache') and place in self._cache:
@@ -2108,6 +2147,7 @@ class Character(DiGraph, RuleFollower):
         """
         super(Character, self).add_node(name, **kwargs)
         self.place2thing(name, location)
+        assert(name in self.thing and name not in self.place)
 
     def add_things_from(self, seq):
         for tup in seq:
@@ -2123,6 +2163,8 @@ class Character(DiGraph, RuleFollower):
 
         """
         (branch, tick) = self.engine.time
+        if name in self.place._cache:
+            del self.place._cache[name]
         myname = json_dump(self.name)
         thingname = json_dump(name)
         locn = json_dump(location)
@@ -2326,9 +2368,25 @@ class Character(DiGraph, RuleFollower):
                 "ON avatars.character_graph=hitick.character_graph "
                 "AND avatars.avatar_graph=hitick.avatar_graph "
                 "AND avatars.branch=hitick.branch "
-                "AND avatars.tick=hitick.tick;",
+                "AND avatars.tick=hitick.tick "
+                "LEFT OUTER JOIN "
+                "(SELECT nodes.graph, nodes.node, "
+                "nodes.branch, nodes.rev, nodes.extant FROM nodes JOIN "
+                "(SELECT graph, node, branch, MAX(rev) AS rev "
+                "FROM nodes WHERE "
+                "branch=? AND "
+                "rev<=? GROUP BY graph, node, branch) AS hirev ON "
+                "nodes.graph=hirev.graph AND "
+                "nodes.node=hirev.node AND "
+                "nodes.branch=hirev.branch AND "
+                "nodes.rev=hirev.rev) AS existence ON "
+                "avatars.avatar_graph=existence.graph AND "
+                "avatars.avatar_node=existence.node WHERE "
+                "existence.extant;",
                 (
                     self._name,
+                    branch,
+                    tick,
                     branch,
                     tick
                 )
