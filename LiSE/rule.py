@@ -105,6 +105,26 @@ class Rule(object):
         """Decorator to append the function to my actions list."""
         self.actions.append(fun)
 
+    def duplicate(self, newname):
+        """Return a new rule that's just like this one, but under a new
+        name.
+
+        """
+        # make sure it doesn't exist yet
+        (ct,) = self.engine.cursor.execute(
+            "SELECT COUNT(*) FROM rules WHERE rule=?;",
+            (newname,)
+        )
+        if ct > 0:
+            raise KeyError("Already have a rule called {}".format(newname))
+        return Rule(
+            self.engine,
+            newname,
+            list(self.triggers),
+            list(self.prereqs),
+            list(self.actions)
+        )
+
 
 class RuleBook(MutableSequence):
     def __init__(self, engine, name):
