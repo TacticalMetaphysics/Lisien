@@ -29,7 +29,9 @@ class FunList(MutableSequence):
         self.table = table
         self.preset_fields = tuple(preset_fields)
         self.preset_values = tuple(preset_values)
-        self.presets = " AND ".join("{}=?".format(f) for f in self.preset_fields)
+        self.presets = " AND ".join(
+            "{}=?".format(f) for f in self.preset_fields
+        )
         self.field = field
         self.engine = engine
         self.funcstore = funcstore
@@ -43,7 +45,8 @@ class FunList(MutableSequence):
         )
         if self.engine.cursor.fetchone()[0] == 0:
             self.engine.cursor.execute(
-                "INSERT INTO {table} ({fields}, {field}) VALUES ({qpreset}, '[]');".format(
+                "INSERT INTO {table} ({fields}, {field}) "
+                "VALUES ({qpreset}, '[]');".format(
                     table=self.table,
                     fields=", ".join(self.preset_fields),
                     field=self.field,

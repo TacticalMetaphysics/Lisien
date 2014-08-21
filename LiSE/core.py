@@ -225,7 +225,8 @@ class GlobalVarMapping(MutableMapping):
         seen = set()
         for (branch, tick) in self.engine._active_branches():
             data = self.engine.cursor.execute(
-                "SELECT lise_globals.key, lise_globals.value FROM lise_globals JOIN "
+                "SELECT lise_globals.key, lise_globals.value "
+                "FROM lise_globals JOIN "
                 "(SELECT key, branch, MAX(tick) AS tick "
                 "FROM lise_globals "
                 "WHERE branch=? "
@@ -721,7 +722,7 @@ class Engine(object):
             "FOREIGN KEY(character) REFERENCES graphs(graph))"
             ";",
             "CREATE TABLE senses ("
-            "character TEXT, "  
+            "character TEXT, "
             # null means every character has this sense
             "sense TEXT NOT NULL, "
             "branch TEXT NOT NULL DEFAULT 'master', "
@@ -767,9 +768,16 @@ class Engine(object):
             "branch TEXT NOT NULL DEFAULT 'master', "
             "tick INTEGER NOT NULL DEFAULT 0, "
             "is_avatar BOOLEAN NOT NULL, "
-            "PRIMARY KEY(character_graph, avatar_graph, avatar_node, branch, tick), "
+            "PRIMARY KEY("
+            "character_graph, "
+            "avatar_graph, "
+            "avatar_node, "
+            "branch, "
+            "tick"
+            "), "
             "FOREIGN KEY(character_graph) REFERENCES graphs(graph), "
-            "FOREIGN KEY(avatar_graph, avatar_node) REFERENCES nodes(graph, node))"
+            "FOREIGN KEY(avatar_graph, avatar_node) "
+            "REFERENCES nodes(graph, node))"
             ";",
             "CREATE INDEX avatars_idx ON avatars("
             "character_graph, "
