@@ -420,7 +420,15 @@ class Engine(object):
         self.weibullvariate = self.rando.weibullvariate
 
     def coinflip(self):
+        """Return True or False with equal probability."""
         return self.choice((True, False))
+
+    def dice(self, n, d):
+        """Roll ``n`` dice with ``d`` faces, and return a list of the
+        results.
+
+        """
+        return [self.randint(1, d) for i in range(0, n)]
 
     def commit(self):
         """Commit to both the world and code databases, and begin a new
