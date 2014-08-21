@@ -383,7 +383,7 @@ class Engine(object):
         self.time_listeners = []
         self.rule = AllRules(self)
         self.eternal = EternalVarMapping(self)
-        self.globl = GlobalVarMapping(self)
+        self.universal = GlobalVarMapping(self)
         self.character = {}
         for (charn,) in self.cursor.execute(
                 "SELECT character FROM characters;"
@@ -393,11 +393,11 @@ class Engine(object):
         self._rules_iter = self._follow_rules()
         # set up the randomizer
         self.rando = Random()
-        if 'rando_state' in self.globl:
-            self.rando.setstate(self.globl['rando_state'])
+        if 'rando_state' in self.universal:
+            self.rando.setstate(self.universal['rando_state'])
         else:
             self.rando.seed(random_seed)
-            self.globl['rando_state'] = self.rando.getstate()
+            self.universal['rando_state'] = self.rando.getstate()
         self.betavariate = self.rando.betavariate
         self.choice = self.rando.choice
         self.expovariate = self.rando.expovariate
@@ -642,7 +642,7 @@ class Engine(object):
                 )
             self.tick += 1
             self._rules_iter = self._follow_rules()
-            self.globl['rando_state'] = self.rando.getstate()
+            self.universal['rando_state'] = self.rando.getstate()
             if self.commit_modulus and self.tick % self.commit_modulus == 0:
                 self.worlddb.commit()
             r = None
