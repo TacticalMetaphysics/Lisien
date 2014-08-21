@@ -598,7 +598,7 @@ class Engine(object):
             rule = self.rule[rulename]
 
             def follow(*args):
-                return (rulebook, ruletyp, rulename, rule(self, *args))
+                return (rule(self, *args), rulename, ruletyp, rulebook)
 
             if ruletyp == 'character':
                 yield follow(character)
