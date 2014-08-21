@@ -2,8 +2,8 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 """Object relational mapper that serves Characters."""
 from random import Random
-from types import FunctionType, ModuleType
-from collections import Mapping, MutableMapping, Callable
+from types import FunctionType
+from collections import MutableMapping, Callable
 from sqlite3 import connect, OperationalError, IntegrityError
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
@@ -379,8 +379,9 @@ class Engine(object):
             ).fetchall()
         except OperationalError:
             self.initdb()
-        self._branch = self.gorm.branch
-        self._tick = self.gorm.rev
+        self.gorm._obranch = self.gorm.branch
+        self.gorm._orev = self.gorm.rev
+        self._active_branches_cache = []
         self.time_listeners = []
         self.rule = AllRules(self)
         self.eternal = EternalVarMapping(self)
@@ -426,8 +427,8 @@ class Engine(object):
         transaction for the world database
 
         """
-        self.gorm.branch = self._branch
-        self.gorm.rev = self._tick
+        self.gorm.branch = self.gorm._obranch
+        self.gorm.rev = self.gorm._orev
         self.worlddb.commit()
         self.action.commit()
         self.prereq.commit()
@@ -447,18 +448,14 @@ class Engine(object):
 
     @property
     def branch(self):
-        if self.caching:
-            return self._branch
-        else:
-            return self.gorm.branch
+        return self.gorm.branch
 
     @branch.setter
     def branch(self, v):
         """Set my gorm's branch and call listeners"""
         if self.caching:
-            if v == self._branch:
+            if v == self.branch:
                 return
-            self._branch = v
             self.gorm._obranch = v
         else:
             self.gorm.branch = v
@@ -469,18 +466,14 @@ class Engine(object):
 
     @property
     def tick(self):
-        if self.caching:
-            return self._tick
-        else:
-            return self.gorm.rev
+        return self.gorm.rev
 
     @tick.setter
     def tick(self, v):
         """Update orm's tick, and call listeners"""
         if self.caching:
-            if v == self._tick:
+            if v == self.tick:
                 return
-            self._tick = v
             self.gorm._orev = v
         else:
             self.gorm.rev = v
