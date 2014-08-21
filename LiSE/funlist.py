@@ -13,7 +13,15 @@ class FunList(MutableSequence):
     strings identify functions in the code database.
 
     """
-    def __init__(self, engine, table, preset_fields, preset_values, field, data=[]):
+    def __init__(
+            self,
+            engine,
+            funcstore,
+            table,
+            preset_fields,
+            preset_values,
+            field
+    ):
         """Store the rule and the name of the field to put the data in, then
         put the data in it.
 
@@ -24,6 +32,7 @@ class FunList(MutableSequence):
         self.presets = " AND ".join("{}=?".format(f) for f in self.preset_fields)
         self.field = field
         self.engine = engine
+        self.funcstore = funcstore
         # if I don't have a record yet, make one
         self.engine.cursor.execute(
             "SELECT COUNT(*) FROM {table} WHERE {presets};".format(
@@ -42,16 +51,13 @@ class FunList(MutableSequence):
                 ),
                 self.preset_values
             )
-        funns = [self.engine.function(fun) for fun in data]
-        if funns:
-            self._setlist(funns)
 
     def _funn(self, v):
         funn = v.__name__ if isinstance(v, Callable) else v
-        if funn not in self.engine.function:
-            self.engine.function(v)
-        if funn not in self.engine.function:
-            raise Exception("Couldn't save function?")
+        if funn not in self.funcstore:
+            if not isinstance(v, Callable):
+                raise KeyError("No such function: " + v)
+            self.funcstore[funn] = v
         return funn
 
     def _setlist(self, l):
@@ -85,7 +91,7 @@ class FunList(MutableSequence):
 
         """
         for funn in self._getlist():
-            yield self.engine.function[funn]
+            yield self.funcstore[funn]
 
     def __len__(self):
         """Return the length of the list (don't translate it to functions)"""
@@ -93,7 +99,7 @@ class FunList(MutableSequence):
 
     def __getitem__(self, i):
         """Get the function named by the ith item in the list"""
-        return self.engine.function[self._getlist()[i]]
+        return self.funcstore[self._getlist()[i]]
 
     def __setitem__(self, i, v):
         """If ``v`` is a function, store it and get its name, otherwise it's

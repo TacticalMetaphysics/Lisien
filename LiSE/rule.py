@@ -14,8 +14,15 @@ class Rule(object):
     change the world.
 
     """
-    def __init__(self, engine, name):
-        """Store the ENGINE and my name, make myself a record in the database if
+    def __init__(
+            self,
+            engine,
+            name,
+            triggers=None,
+            prereqs=None,
+            actions=None
+    ):
+        """Store the engine and my name, make myself a record in the database if
         needed, and instantiate FunList once for my actions and again
         for my prereqs.
 
@@ -32,9 +39,25 @@ class Rule(object):
                 "INSERT INTO rules (rule) VALUES (?);",
                 (name,)
             )
-        self.actions = FunList(self.engine, 'rules', ['rule'], [self.name], 'actions')
-        self.prereqs = FunList(self.engine, 'rules', ['rule'], [self.name], 'prereqs')
-        self.triggers = FunList(self.engine, 'rules', ['rule'], [self.name], 'triggers')
+
+        def funl(store, field):
+            return FunList(
+                self.engine,
+                store,
+                'rules',
+                ['rule'],
+                [self.name],
+                field
+            )
+        self.actions = funl(self.engine.action, 'actions')
+        self.prereqs = funl(self.engine.prereq, 'prereqs')
+        self.triggers = funl(self.engine.trigger, 'triggers')
+        if triggers:
+            self.triggers.extend(triggers)
+        if prereqs:
+            self.prereqs.extend(prereqs)
+        if actions:
+            self.actions.extend(actions)
 
     def __call__(self, engine, *args):
         """First check the prereqs. If they all pass, execute the actions and
@@ -283,19 +306,20 @@ class RuleMapping(MutableMapping):
             if k in self.engine.rule:
                 raise KeyError(
                     "Already have a rule named {k}. "
-                    "Set engine.rule[{k}] to a new value if you really mean to "
-                    "replace the old rule.".format(
+                    "Set engine.rule[{k}] to a new value "
+                    "if you really mean to replace "
+                    "the old rule.".format(
                         k=k
                     )
                 )
             funn = k
-            if funn in self.engine.function:
+            if funn in self.engine.action:
                 funn += "0"
             i = 1
-            while funn in self.engine.function:
+            while funn in self.engine.action:
                 funn = funn[:-1] + str(i)
                 i += 1
-            self.engine.function[funn] = v
+            self.engine.action[funn] = v
             rule = Rule(self.engine, k)
             rule.actions.append(funn)
             self._activate_rule(rule)

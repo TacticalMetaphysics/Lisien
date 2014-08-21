@@ -41,34 +41,35 @@ class FunctionStore(object):
 
 class FunctionStoreDB(FunctionStore, MutableMapping):
     """Store functions in a SQL database"""
-    def __init__(self, codedb):
+    def __init__(self, codedb, table):
         """Use ``codedb`` as a connection object. Connect to it, and
         initialize the schema if needed.
 
         """
         self.connection = codedb
+        self._tab = table
         self.cursor = self.connection.cursor()
         self.cache = {}
         try:
-            self.cursor.execute("SELECT COUNT(*) FROM function;")
+            self.cursor.execute("SELECT COUNT(*) FROM {};".format(self._tab))
         except OperationalError:
             self.cursor.execute(
-                "CREATE TABLE function ("
+                "CREATE TABLE {} ("
                 "name TEXT NOT NULL PRIMARY KEY, "
-                "code TEXT NOT NULL);"
+                "code TEXT NOT NULL);".format(self._tab)
             )
 
     def __len__(self):
-        """SELECT COUNT(*) FROM function"""
+        """SELECT COUNT(*) FROM {}""".format(self._tab)
         self.cursor.execute(
-            "SELECT COUNT(*) FROM function;"
+            "SELECT COUNT(*) FROM {};".format(self._tab)
         )
         return self.cursor.fetchone()[0]
 
     def __iter__(self):
-        """SELECT name FROM function ORDER BY name"""
+        """SELECT name FROM {} ORDER BY name""".format(self._tab)
         self.cursor.execute(
-            "SELECT name FROM function ORDER BY name;"
+            "SELECT name FROM {} ORDER BY name;".format(self._tab)
         )
         for row in self.cursor.fetchall():
             yield row[0]
@@ -78,7 +79,7 @@ class FunctionStoreDB(FunctionStore, MutableMapping):
         if name in self.cache:
             return True
         self.cursor.execute(
-            "SELECT COUNT(*) FROM function WHERE name=?;",
+            "SELECT COUNT(*) FROM {} WHERE name=?;".format(self._tab),
             (name,)
         )
         return bool(self.cursor.fetchone()[0])
@@ -90,12 +91,15 @@ class FunctionStoreDB(FunctionStore, MutableMapping):
         """
         if name not in self.cache:
             bytecode = self.cursor.execute(
-                "SELECT code FROM function WHERE name=?;",
+                "SELECT code FROM {} WHERE name=?;".format(self._tab),
                 (name,)
             ).fetchone()
             if bytecode is None:
                 raise KeyError("No such function")
-            self.cache[name] = FunctionType(unmarshalled(bytecode[0]), globals())
+            self.cache[name] = FunctionType(
+                unmarshalled(bytecode[0]),
+                globals()
+            )
         return self.cache[name]
 
     def __call__(self, fun):
@@ -105,11 +109,15 @@ class FunctionStoreDB(FunctionStore, MutableMapping):
         """
         try:
             self.cursor.execute(
-                "INSERT INTO function (name, code) VALUES (?, ?);",
+                "INSERT INTO {} (name, code) VALUES (?, ?);".format(self._tab),
                 (fun.__name__, marshalled(fun.__code__))
             )
         except IntegrityError:
-            raise KeyError("Already have a function by that name")
+            raise KeyError(
+                "Already have a function by that name. "
+                "If you want to swap it out for this one, "
+                "assign the new function to me like I'm a dictionary."
+            )
         self.cache[fun.__name__] = fun
 
     def __setitem__(self, name, fun):
@@ -117,20 +125,20 @@ class FunctionStoreDB(FunctionStore, MutableMapping):
         mcode = marshalled(fun.__code__)
         try:
             self.cursor.execute(
-                "INSERT INTO function (name, code) VALUES (?, ?);",
+                "INSERT INTO {} (name, code) VALUES (?, ?);".format(self._tab),
                 (name, mcode)
             )
         except IntegrityError:
             self.cursor.execute(
-                "UPDATE function SET code=? WHERE name=?;",
+                "UPDATE {} SET code=? WHERE name=?;".format(self._tab),
                 (mcode, name)
             )
         self.cache[name] = fun
 
     def __delitem__(self, name):
-        """DELETE FROM function WHERE name=?"""
+        """DELETE FROM {} WHERE name=?""".format(self._tab)
         self.cursor.execute(
-            "DELETE FROM function WHERE name=?;",
+            "DELETE FROM {} WHERE name=?;".format(self._tab),
             (name,)
         )
         del self.cache[name]
@@ -143,40 +151,6 @@ class FunctionStoreDB(FunctionStore, MutableMapping):
     def commit(self):
         """Alias for ``self.connection.commit()``"""
         self.connection.commit()
-
-
-class FunctionStoreModule(FunctionStore, Mapping):
-    """Dict-like wrapper for a module object"""
-    def __init__(self, module):
-        """Store the module"""
-        self._mod = module
-
-    def __iter__(self):
-        """Iterate over the module's __all__ attribute"""
-        for it in self._mod.__all__:
-            yield repr(it)
-
-    def __len__(self):
-        """Return the length of the module's __all__ attribute"""
-        return len(self._mod.__all__)
-
-    def __getitem__(self, k):
-        """Return the ``k`` attribute of the module"""
-        return getattr(k, self._mod)
-
-    def __call__(self, k):
-        """If ``k`` is in the module's __all__ attribute, return a
-        representation of it. If ``k``'s representation is a
-        representation of something in the module's __all__ attribute,
-        do the same.
-
-        """
-        if k in self._mod.__all__:
-            return repr(k)
-        elif repr(k) in [repr(it) for it in self._mod.__all__]:
-            return repr(k)
-        else:
-            raise KeyError("{} is not a member of {}".format(k, self._mod))
 
 
 class EternalVarMapping(MutableMapping):
@@ -391,11 +365,11 @@ class Engine(object):
         self.commit_modulus = commit_modulus
         self.gettext = gettext
         self.worlddb = connect(worlddb)
+        self.codedb = connect(codedb)
         self.gorm = gORM(self.worlddb)
-        if isinstance(codedb, ModuleType):
-            self.function = FunctionStoreModule(codedb)
-        else:
-            self.function = FunctionStoreDB(connect(codedb))
+        stores = ('action', 'prereq', 'trigger')
+        for store in stores:
+            setattr(self, store, FunctionStoreDB(self.codedb, store))
         self.cursor = self.worlddb.cursor()
         self.cursor.execute("BEGIN;")
         try:
@@ -454,7 +428,9 @@ class Engine(object):
         self.gorm.branch = self._branch
         self.gorm.rev = self._tick
         self.worlddb.commit()
-        self.function.commit()
+        self.action.commit()
+        self.prereq.commit()
+        self.trigger.commit()
         self.cursor.execute("BEGIN;")
 
     def __enter__(self):

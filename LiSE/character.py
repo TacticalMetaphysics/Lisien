@@ -2038,6 +2038,7 @@ class Character(DiGraph, RuleFollower):
         self.sense = CharacterSenseMapping(self)
         self.travel_reqs = FunList(
             self.engine,
+            self.engine.prereq,
             'travel_reqs',
             ['character'],
             [name],
