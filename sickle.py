@@ -27,7 +27,7 @@ def sickle_cell_test(
         n_sickles=3,
         malaria_chance=.05,
         mate_chance=.05,
-        mapsize=(1, 1),
+        mapsize=(5, 5),
         startpos=(0, 0),
         ticks=100
 ):
@@ -143,6 +143,17 @@ def sickle_cell_test(
             critter['from_malaria'] = True
         return r
 
+    # it would make more sense to keep using species.avatar.rule, this
+    # is just a test
+    @phys.thing.rule
+    def wander(engine, character, critter):
+        dest = engine.choice(list(character.place.keys()))
+        critter.travel_to(dest)
+
+    @wander.trigger
+    def not_travelling(engine, character, critter):
+        return critter['next_location'] is None
+
     print(
         "Starting with {} creatures, of which {} have "
         "at least one sickle betaglobin.".format(
@@ -183,4 +194,4 @@ def sickle_cell_test(
 
 clear_off()
 with mkengine('LiSEworld.db', seed=69105) as engine:
-    run('sickle_cell_test(engine)')
+    sickle_cell_test(engine)
