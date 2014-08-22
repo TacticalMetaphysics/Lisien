@@ -124,9 +124,8 @@ OpenSimulator.
 
 The graphical frontend, now called ELiDE, isn't usable yet. The core
 engine, in the ``LiSE`` module, has demonstrated some of its
-functionality as an ORM and rules engine, and you can see what that
-functionality is by viewing the file ``test.py``. They might be
-useful, but haven't been tested much, so don't expect a polished
+functionality as an ORM and rules engine. This might be
+useful, but it has't been tested much, so don't expect a polished
 experience. Please report bugs in the Issues tab.
 
 # License Information
