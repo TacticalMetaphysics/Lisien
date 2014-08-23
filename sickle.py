@@ -1,7 +1,6 @@
 import networkx as nx
 from LiSE import Engine
 from os import remove
-from cProfile import run
 
 
 def clear_off():
@@ -27,7 +26,7 @@ def sickle_cell_test(
         n_sickles=3,
         malaria_chance=.05,
         mate_chance=.05,
-        mapsize=(5, 5),
+        mapsize=(1, 1),
         startpos=(0, 0),
         ticks=100
 ):
