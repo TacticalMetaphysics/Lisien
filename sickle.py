@@ -50,22 +50,14 @@ def sickle_cell_test(
     )
     for n in range(0, n_creatures):
         name = "critter" + str(n)
-        stats = {
-            'sickle_a': n < n_sickles,
-            'sickle_b': False,
-            'male': engine.coinflip(),
-            'last_mate_tick': -1
-        }
         phys.add_thing(
-            name,
-            startpos,
-            **stats
+            name=name,
+            location=startpos,
+            sickle_a=(n < n_sickles),
+            sickle_b=False,
+            male=engine.coinflip(),
+            last_mate_tick=-1
         )
-        thing = phys.thing[name]
-        for stat in stats:
-            assert(stat in thing.keys())
-            assert(stat in thing)
-            assert(thing[stat] == stats[stat])
         species.add_avatar("physical", name)
 
 
