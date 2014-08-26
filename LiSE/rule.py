@@ -364,9 +364,10 @@ class RuleMapping(MutableMapping):
             # __init__.
             self._activate_rule(Rule(self.engine, v))
 
-    def __call__(self, v):
-        self.__setitem__(v.__name__, v)
-        return self[v.__name__]
+    def __call__(self, v, name=None):
+        name = name if name is not None else v.__name__
+        self.__setitem__(name, v)
+        return self[name]
 
     def __delitem__(self, k):
         """Deactivate the rule"""
