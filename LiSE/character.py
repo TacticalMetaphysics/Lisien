@@ -579,6 +579,8 @@ class Thing(ThingPlace):
         started.
 
         """
+        if not self['location']:
+            return None
         return self.character.node[self['location']]
 
     @property
