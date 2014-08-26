@@ -22,13 +22,14 @@ class Rule(object):
             prereqs=None,
             actions=None
     ):
-        """Store the engine and my name, make myself a record in the database if
-        needed, and instantiate FunList once for my actions and again
-        for my prereqs.
+        """Store the engine and my name, make myself a record in the database
+        if needed, and instantiate one FunList each for my triggers,
+        actions, and prereqs.
 
         """
         self.engine = engine
         self.name = name
+        # if I don't yet have a database record, make one
         self.engine.cursor.execute(
             "SELECT COUNT(*) FROM rules WHERE rule=?;",
             (name,)
@@ -41,6 +42,11 @@ class Rule(object):
             )
 
         def funl(store, field):
+            """Create a list of functions stored in ``store`` listed in field ``field``
+
+            That's a field in the world database, not the function store one.
+
+            """
             return FunList(
                 self.engine,
                 store,
@@ -127,6 +133,10 @@ class Rule(object):
 
 
 class RuleBook(MutableSequence):
+    """A list of rules to be followed for some Character, or a part of it
+    anyway.
+
+    """
     def __init__(self, engine, name):
         self.engine = engine
         self.name = name
