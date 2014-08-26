@@ -93,6 +93,32 @@ class TravelException(Exception):
         super().__init__(message)
 
 
+class PlaceImage(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.contents = []
+
+    def __getitem__(self, k):
+        try:
+            return super().__getitem__('stat').__getitem__(k)
+        except KeyError:
+            return super().__getitem__(k)
+
+
+class ThingImage(PlaceImage):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.location = None
+        self.container = None
+
+
+class PortalImage(PlaceImage):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.origin = None
+        self.destination = None
+
+
 class CharacterImage(nx.DiGraph):
     def __init__(self, character, branch, tick):
         class CompositeDict(Mapping):
@@ -120,9 +146,10 @@ class CharacterImage(nx.DiGraph):
         self._name = self.character._name
         self.place = {}
         for (name, place) in character.place.items():
-            pli = place if isinstance(place, dict) else place._json_dict
-            pli.contents = []
-            self.place[name] = place
+            pli = PlaceImage(
+                place if isinstance(place, dict) else place._json_dict
+            )
+            self.place[name] = pli
         self.portal = {}
         self.preportal = {}
         for o in character.portal:
@@ -131,16 +158,18 @@ class CharacterImage(nx.DiGraph):
             for (d, portal) in character.portal[o].items():
                 if d not in self.preportal:
                     self.preportal[d] = {}
-                cp = portal if isinstance(portal, dict) else portal._json_dict
+                cp = PortalImage(
+                    portal if isinstance(portal, dict) else portal._json_dict
+                )
                 cp.origin = self.place[cp['origin']]
                 cp.destination = self.place[cp['destination']]
-                cp.contents = []
                 self.portal[o][d] = cp
                 self.preportal[d][o] = cp
         self.thing = {}
         for (name, thing) in character.thing.items():
-            thi = thing if isinstance(thing, dict) else thing._json_dict
-            thi.contents = []
+            thi = ThingImage(
+                thing if isinstance(thing, dict) else thing._json_dict
+            )
             self.thing[name] = thi
         for thi in self.thing.values():
             if thi['location'] in self.place:
