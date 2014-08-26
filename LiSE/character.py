@@ -713,7 +713,7 @@ class Thing(ThingPlace):
         orm.tick = curtick
         return ticks
 
-    def follow_path(self, path, weight=''):
+    def follow_path(self, path, weight=None):
         """Go to several Places in succession, deciding how long to spend in
         each by consulting the ``weight`` attribute of the Portal
         connecting the one Place to the next.
