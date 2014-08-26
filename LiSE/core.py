@@ -411,7 +411,8 @@ class Engine(object):
             caching=True,
             commit_modulus=None,
             random_seed=None,
-            gettext=lambda s: s
+            gettext=lambda s: s,
+            dicecmp=lambda x, y: x <= y
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
@@ -420,10 +421,11 @@ class Engine(object):
         self.caching = caching
         self.commit_modulus = commit_modulus
         self.gettext = gettext
+        self.dicecmp = dicecmp
         self.worlddb = connect(worlddb)
         self.codedb = connect(codedb)
         self.gorm = gORM(self.worlddb)
-        stores = ('action', 'prereq', 'trigger')
+        stores = ('action', 'prereq', 'trigger', 'sense', 'function')
         for store in stores:
             setattr(self, store, FunctionStoreDB(self.codedb, store))
         self.cursor = self.worlddb.cursor()
