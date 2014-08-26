@@ -962,6 +962,7 @@ class Portal(GraphEdgeMapping.Edge):
                         key in self._statcache and
                         branch in self._statcache[key]
                 ):
+                    d = self._statcache[key][branch]
                     if tick in d:
                         return d[tick]
                     else:
@@ -1568,11 +1569,13 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
         avatars in it. Otherwise raise KeyError.
 
         """
-        d = self._datadict()[g]
-        for node in d:
-            if d[node]:
-                return self.CharacterAvatarMapping(self, g)
-        raise KeyError("No avatars in {}".fengineat(g))
+        d = self._datadict()
+        if g in d:
+            return self.CharacterAvatarMapping(self, g)
+        else:
+            if len(d.keys()) == 1:
+                return self.CharacterAvatarMapping(self, list(d.keys())[0])[g]
+        raise KeyError("No avatars in {}".format(g))
 
     def __repr__(self):
         d = {}
