@@ -1734,7 +1734,27 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             return repr(d)
 
 
-class SenseCharacterMapping(Mapping):
+class SenseFuncWrap(object):
+    """Wrapper for a sense function that looks it up in the code store if
+    provided with its name, and prefills the first two arguments.
+
+    """
+    def __init__(self, character, fun):
+        self.character = character
+        self.engine = character.engine
+        if isinstance(fun, str):
+            self.fun = self.engine.sense[fun]
+        else:
+            self.fun = fun
+        assert(isinstance(self.fun, Callable))
+
+    def __call__(self, observed):
+        if isinstance(observed, str):
+            observed = self.engine.character[observed]
+        return self.fun(self.engine, self.character, observed)
+
+
+class CharacterSense(object):
     """Mapping for when you've selected a sense for a character to use
     but haven't yet specified what character to look at
 
@@ -1744,14 +1764,13 @@ class SenseCharacterMapping(Mapping):
         self.engine = self.container.engine
         self._sensename = json_dump(sensename)
         self.observer = self.container.character
-        self._obsname = json_dump(self.observer.name)
 
     @property
     def sensename(self):
         return json_load(self._sensename)
 
     @property
-    def fun(self):
+    def func(self):
         for (branch, tick) in self.engine._active_branches():
             data = self.engine.cursor.execute(
                 "SELECT function FROM senses JOIN "
@@ -1766,7 +1785,7 @@ class SenseCharacterMapping(Mapping):
                 "AND senses.branch=hitick.branch "
                 "AND senses.tick=hitick.tick;",
                 (
-                    self._obsname,
+                    self.observer._name,
                     self._sensename,
                     branch,
                     tick
@@ -1774,66 +1793,22 @@ class SenseCharacterMapping(Mapping):
             ).fetchone()
             if data is None:
                 continue
-            return self.engine.function[data[0]]
-        return lambda x: x
+            return SenseFuncWrap(self.observer, data[0])
 
-    @fun.setter
-    def fun(self, v):
-        funn = self.engine.function(v)
-        (branch, tick) = self.engine.time
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO senses "
-                "(character, sense, branch, tick, function, active) "
-                "VALUES (?, ?, ?, ?, ?);",
-                (
-                    self._obsname,
-                    self._sensename,
-                    branch,
-                    tick,
-                    funn,
-                    True
-                )
+    def __call__(self, observed):
+        """Call my sense function and make sure it returns the right type,
+        then return that.
+
+        """
+        r = self.func(observed)
+        if not (isinstance(r, Character) or isinstance(r, CharacterImage)):
+            raise TypeError(
+                "Sense function did not return a character-like object"
             )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE senses SET function=?, active=? WHERE "
-                "character=? AND "
-                "sense=? AND "
-                "branch=? AND "
-                "tick=?;",
-                (
-                    funn,
-                    True,
-                    self._obsname,
-                    self._sensename,
-                    branch,
-                    tick
-                )
-            )
-
-    def __iter__(self):
-        for char in self.engine.character.values():
-            test = self.fun(self.engine, self.observer, char)
-            if test is None:  # The sense does not apply to the char
-                continue
-            elif not isinstance(test, CharacterImage):
-                raise TypeError("Sense function did not return CharacterImage")
-            else:
-                yield char.name
-
-    def __len__(self):
-        return len(self.engine.character)
-
-    def __getitem__(self, name):
-        observed = self.engine.character[name]
-        r = self.fun(self.engine, self.observer, observed)
-        if not isinstance(r, CharacterImage):
-            raise TypeError("Sense function did not return CharacterImage")
         return r
 
 
-class CharacterSenseMapping(MutableMapping, Callable, RuleFollower):
+class CharacterSenseMapping(MutableMapping, RuleFollower):
     """Used to view other Characters as seen by one, via a particular sense"""
     _book = "character"
 
@@ -1900,16 +1875,21 @@ class CharacterSenseMapping(MutableMapping, Callable, RuleFollower):
             elif len(data) > 1:
                 raise ValueError("Silly data in senses table")
             else:
-                return SenseCharacterMapping(self, k)
+                return CharacterSense(self.character, k)
         raise KeyError("Sense isn't active or doesn't exist")
 
     def __setitem__(self, k, v):
-        if isinstance(v, Callable):
-            funn = self.engine.function(v)
-        else:
+        """Use the function for the sense from here on out"""
+        if isinstance(v, str):
             funn = v
+        else:
+            funn = v.__name__
+        if funn not in self.engine.sense:
+            if not isinstance(v, Callable):
+                raise TypeError("Not a function")
+            self.engine.sense[funn] = v
         sense = json_dump(k)
-        charn = json_dump(self.character.name)
+        charn = self.character._name
         (branch, tick) = self.engine.time
         try:
             self.engine.cursor.execute(
@@ -1944,6 +1924,7 @@ class CharacterSenseMapping(MutableMapping, Callable, RuleFollower):
             )
 
     def __delitem__(self, k):
+        """Stop having the given sense"""
         (branch, tick) = self.engine.time
         charn = json_dump(self.character.name)
         sense = json_dump(k)
@@ -1977,9 +1958,14 @@ class CharacterSenseMapping(MutableMapping, Callable, RuleFollower):
                 )
             )
 
-    def __call__(self, fun):
-        funn = self.engine.function(fun)
-        self[funn] = funn
+    def __call__(self, fun, name=None):
+        if not isinstance(fun, Callable):
+            raise TypeError(
+                "I need a function here"
+            )
+        if name is None:
+            name = fun.__name__
+        self[name] = fun
 
 
 class CharStatCache(MutableMapping):
