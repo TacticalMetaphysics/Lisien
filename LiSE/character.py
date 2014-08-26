@@ -730,20 +730,20 @@ class Thing(ThingPlace):
             raise ValueError("Path does not start at my present location")
         subpath = [prevplace]
         for place in path:
-            place = place.name if hasattr(place, 'name') else place
             if (
                     prevplace not in self.character.portal or
                     place not in self.character.portal[prevplace]
             ):
                 raise TravelException(
                     "Couldn't follow portal from {} to {}".format(
-                        prevplace.name,
-                        place.name
+                        prevplace,
+                        place
                     ),
                     path=subpath,
                     traveller=self
                 )
             subpath.append(place)
+            prevplace = place
         ticks_total = 0
         prevsubplace = subpath.pop(0)
         subsubpath = [prevsubplace]
@@ -768,26 +768,6 @@ class Thing(ThingPlace):
                 )
             portal = self.character.portal[prevsubplace][subplace]
             tick_inc = portal.get(weight, 1)
-            self.character.engine.tick += tick_inc
-            if self["location"] not in (subplace, prevsubplace):
-                l = self["location"]
-                fintick = self.character.engine.tick
-                self.character.engine.tick = curtick
-                raise TravelException(
-                    "I couldn't go to {} at tick {}, "
-                    "because I was in {}".format(
-                        subplace,
-                        fintick,
-                        l
-                    ),
-                    path=subpath,
-                    followed=subsubpath,
-                    traveller=self,
-                    branch=self.character.engine.branch,
-                    tick=fintick,
-                    lastplace=l
-                )
-            self.character.engine.tick -= tick_inc
             self.go_to_place(subplace, weight)
             self.character.engine.tick += tick_inc
             ticks_total += tick_inc
