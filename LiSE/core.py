@@ -346,6 +346,63 @@ class GlobalVarMapping(MutableMapping):
             )
 
 
+class CharacterMapping(MutableMapping):
+    def __init__(self, engine):
+        self.engine = engine
+        if self.engine.caching:
+            self._cache = {}
+
+    def __iter__(self):
+        data = self.engine.cursor.execute(
+            "SELECT character FROM characters;"
+        ).fetchall()
+        for (charn,) in data:
+            yield charn
+
+    def __contains__(self, name):
+        return self.engine.cursor.execute(
+            "SELECT COUNT(*) FROM characters WHERE character=?;",
+            (json_dump(name),)
+        ).fetchone()[0] == 1
+
+    def __len__(self):
+        return self.engine.cursor.execute(
+            "SELECT COUNT(*) FROM characters;"
+        ).fetchone()[0]
+
+    def __getitem__(self, name):
+        if hasattr(self, '_cache'):
+            if name not in self._cache:
+                if name not in self:
+                    raise KeyError("No such character")
+                self._cache[name] = Character(self.engine, name)
+            return self._cache[name]
+        if name not in self:
+            raise KeyError("No such character")
+        return Character(self.engine, name)
+
+    def __setitem__(self, name, value):
+        Character(self.engine, name, data=value)
+
+    def __delitem__(self, name):
+        if hasattr(self, '_cache') and name in self._cache:
+            del self._cache[name]
+        _name = json_dump(name)
+        for tbl in (
+                "node_val",
+                "edge_val",
+                "edges",
+                "nodes",
+                "graph_val",
+                "characters",
+                "graph"
+        ):
+            self.engine.cursor.execute(
+                "DELETE FROM {} WHERE character=?;".format(tbl),
+                (_name,)
+            )
+
+
 class Engine(object):
     def __init__(
             self,
@@ -384,7 +441,7 @@ class Engine(object):
         self.rule = AllRules(self)
         self.eternal = EternalVarMapping(self)
         self.universal = GlobalVarMapping(self)
-        self.character = {}
+        self.character = CharacterMapping(self)
         for (charn,) in self.cursor.execute(
                 "SELECT character FROM characters;"
         ):
