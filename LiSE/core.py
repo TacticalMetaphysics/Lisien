@@ -917,7 +917,7 @@ class Engine(object):
     def add_character(self, name, data=None, **kwargs):
         """Create the Character so it'll show up in my `character` dict"""
         self.gorm.new_digraph(name, data, **kwargs)
-        self.character[name] = Character(self, name)
+        self.character._cache[name] = Character(self, name)
 
     def del_character(self, name):
         """Remove the Character from the database entirely"""
