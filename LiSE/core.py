@@ -487,6 +487,34 @@ class Engine(object):
         """
         return [self.randint(1, d) for i in range(0, n)]
 
+    def dice_check(self, n, d, target):
+        """Roll ``n`` dice with ``d`` sides, sum them, compare the total to
+        ``target``, and return the result.
+
+        The comparison operation defaults to <=. You can specify a
+        different one in the ``dicecmp`` argument to my
+        constructor. If you need a different comparison for a
+        particular roll, call ``sum(self.dice(n, d))`` and do your own
+        comparison on the result.
+
+        """
+        return self.dicecmp(sum(self.dice(n, d)), target)
+
+    def percent_chance(self, pct):
+        """Given a ``pct``% chance of something happening right now, decide at
+        random whether it actually happens, and return ``True`` or
+        ``False`` as appropriate.
+
+        Values not between 0 and 100 are treated as though they
+        were 0 or 100, whichever is nearer.
+
+        """
+        if pct <= 0:
+            return False
+        if pct >= 100:
+            return True
+        return pct / 100 < self.random()
+
     def commit(self):
         """Commit to both the world and code databases, and begin a new
         transaction for the world database
