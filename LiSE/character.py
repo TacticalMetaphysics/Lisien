@@ -499,7 +499,7 @@ class Thing(ThingPlace):
                         "How do you get more than one record from that?"
                     )
                 else:
-                    return data[0]
+                    return data[0][0]
             raise ValueError("I don't seem to have arrived where I am?")
         elif key == 'next_location':
             return self._loc_and_next()[1]
@@ -530,7 +530,7 @@ class Thing(ThingPlace):
                         "How do you get more than one record from that?"
                     )
                 else:
-                    return data[0]
+                    return data[0][0]
         elif key == 'locations':
             return self._loc_and_next()
         else:
