@@ -171,7 +171,8 @@ class RuleBook(MutableSequence):
             rule = Rule(self.engine, v)
         try:
             self.engine.cursor.execute(
-                "INSERT INTO rulebooks (rulebook, idx, rule) VALUES (?, ?, ?);",
+                "INSERT INTO rulebooks (rulebook, idx, rule) "
+                "VALUES (?, ?, ?);",
                 (
                     self.name,
                     i,
@@ -308,7 +309,9 @@ class RuleMapping(MutableMapping):
             if len(data) == 0:
                 continue
             elif len(data) > 1:
-                raise ValueError("Silly data in {tab} table".format(tab=self.table))
+                raise ValueError(
+                    "Silly data in {tab} table".format(tab=self.table)
+                )
             else:
                 return bool(data[0])
         return False
@@ -316,7 +319,9 @@ class RuleMapping(MutableMapping):
     def __getitem__(self, k):
         """Get the rule by the given name, if it is in effect"""
         if k not in self:
-            raise KeyError("Rule is not active at the moment, if it ever existed.")
+            raise KeyError(
+                "Rule is not active at the moment, if it ever was."
+            )
         return Rule(self.engine, k)
 
     def __getattr__(self, k):
