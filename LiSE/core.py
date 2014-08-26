@@ -16,30 +16,7 @@ from .character import Character
 from .rule import AllRules
 
 
-class FunctionStore(object):
-    def decompiled(self, name):
-        """Use unpyc3 to decompile the function named ``name`` and return the
-        resulting unpyc3.DefStatement.
-
-        unpyc3 is imported here, so if you never use this you don't
-        need unpyc3.
-
-        """
-        from unpyc3 import decompile
-        return decompile(self[name])
-
-    def definition(self, name):
-        """Return a string showing how the function named ``name`` was
-        originally defined.
-
-        It will be decompiled from the bytecode stored in the
-        database. Requires unpyc3.
-
-        """
-        return str(self.decompiled(name))
-
-
-class FunctionStoreDB(FunctionStore, MutableMapping):
+class FunctionStoreDB(MutableMapping):
     """Store functions in a SQL database"""
     def __init__(self, codedb, table):
         """Use ``codedb`` as a connection object. Connect to it, and
@@ -103,7 +80,7 @@ class FunctionStoreDB(FunctionStore, MutableMapping):
         return self.cache[name]
 
     def __call__(self, fun):
-        """Remember the function in the code database. It will be keyed by its
+        """Remember the function in the code database. Its key will be its
         ``__name__``.
 
         """
@@ -142,6 +119,27 @@ class FunctionStoreDB(FunctionStore, MutableMapping):
             (name,)
         )
         del self.cache[name]
+
+    def decompiled(self, name):
+        """Use unpyc3 to decompile the function named ``name`` and return the
+        resulting unpyc3.DefStatement.
+
+        unpyc3 is imported here, so if you never use this you don't
+        need unpyc3.
+
+        """
+        from unpyc3 import decompile
+        return decompile(self[name])
+
+    def definition(self, name):
+        """Return a string showing how the function named ``name`` was
+        originally defined.
+
+        It will be decompiled from the bytecode stored in the
+        database. Requires unpyc3.
+
+        """
+        return str(self.decompiled(name))
 
     def close(self):
         """Commit the transaction and close the cursor"""
