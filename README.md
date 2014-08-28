@@ -49,84 +49,79 @@ LiSE is a game engine in the latter sense. It assumes that there are
 certain problems any designer of life simulators will have, and
 provides powerful tools specialized to those problems.
 
-## Examples
+# Programming interface
 
-Many designers of this sort of game will not care very much how it
-looks. For them, there is a default interface style that will let
-people play their game, and requires no further customization.
+LiSE itself is a Python library. It has few external dependencies, and
+those it has are pure-Python libraries, so it can be used in any game
+engine that supports Python as a scripting language.
 
-Life simulators, being life-like, tend to have a lot of data in their
-world model, and should therefore be expected to have more problems
-structuring that data. So instead of the traditional flat save-files,
-LiSE stores its world-state in a relational database. Developers can
-use SQL to get reports on all kinds of things in the game world, and
-can edit the game world using any compatible database application, if
-the LiSE interface doesn't suit.
+The LiSE world model is a collection of graph structures called
+"Characters" that are customized so that some nodes are considered
+"Things" that can move about between "Places" over time. Characters
+may have "avatars" in other characters, so that eg. the same person may be
+represented by a skill tree, a pawn on a tactical grid, and a member
+of a party.
 
-Time control is handled by the core engine. This includes the ability
-to control the speed of the simulation, as is traditional in this
-genre, but also the ability to *rewind* time. Normally this would be
-accomplished by keeping a lot of save files, but the database features
-render multiple saves unnecessary.
+You can store arbitrary JSON-serializable data in these
+graphs, and it will be kept in a database with version
+control. "Loading a saved game" in LiSE just means setting the
+engine's clock back a while, so that it looks up data from earlier in
+the game.
 
-The engine provides a simple user interface
-for both playing and developing games. The distinction is only in how
-much control the user has over the world model--developers can
-arbitrarily create and delete anything, players generally can't.
+Game rules are ordinary Python functions that are attached to
+Characters using decorators:
 
-The interface metaphor is that of a board game. Developers put places
-on the board--these, and the other visual elements, could be made to
-look like anything, but are assumed to be dots or squares or other
-simple geometric shapes, the likes of which you might see used in a
-board game to distinguish the spots where you can put game
-pieces. They draw lines between the places, called "portals," which
-normally indicate that you can travel between two places. Then they
-drag and drop a variety of things into the places, many of which
-represent physical objects, such as the bodies of the characters in
-the game
+```
+# If the kobold is not in a shrubbery, it will try to get to one.
+# If it is, there's a chance it will try to get to another one, anyway.
+@kobold.avatar.rule
+def shrubsprint(engine, character, avatar):
+    """Sprint to a location, other than the one I'm in already, which has
+    a shrub in it.
 
-Characters may exist on several of these boards at once--more on that
-later.
+    """
+    # pregenerated list of places with shrubs in
+    shrub_places = character.stat['shrub_places']
+    if avatar['location'] in shrub_places:
+        shrub_places.remove(avatar['location'])
+    avatar.travel_to(engine.choice(shrub_places))
 
-# How does LiSE simulate life?
+@shrubsprint.trigger
+def uncovered(engine, character, avatar):
+    """Return True when I'm *not* in a place with a shrub in it."""
+    for shrub_candidate in avatar.location.contents():
+        if shrub_candidate.name[:5] == "shrub":
+            return False
+    return True
 
-There is an event handler for the purpose of managing changes to the
-world that occur at particular game-times. Events are resolved into a
-list of changes to the world. The triggers, event types, and changes
-are all wired together following rules stored in the database. This is
-similar to the concept of "reactions" that Dwarf Fortress uses.
+@shrubsprint.trigger
+def breakcover(engine, character, avatar):
+    """Return True when I *am* in a place with a shrub in it, but elect to
+    sprint anyway.
 
-One possible trigger for an event is that the player chose to trigger
-it. The usual ways of doing this are by dragging their character to a
-new place, thus triggering a movement event; picking an option from a
-menu; or playing a card.
+    """
+    # This is checked after uncovered so I don't need to re-check
+    # for shrubbery.
+    return engine.random() < character.stat['sprint_chance']
 
-Various places, things, and portals could represent the same person
-for the purposes of different game mechanics. They are grouped
-together in a "Character," along with whatever other information the
-game needs to have about the person. It's similar to the character
-sheets that are used in tabletop roleplaying games. The information in
-a character may be used to resolve the effects of any given event, and
-to decide how to schedule any event. The character is what determines
-how fast someone can move, whether in the physical world, the tech
-tree, or elsewhere.
+@shrubsprint.prereq
+def notsprinting(engine, character, avatar):
+    """Only start a new sprint when not already sprinting."""
+    return avatar['next_arrival_time'] is None
+```
 
-Each of those ways of looking at the game world gets its own
-board. They all use the same graph data structure, and events on all
-of them occur on the same timeline(s), but they may follow different
-rules in any other respect.
+The rules are likewise stored in the database, and can be activated,
+deactivated, and modified at particular times in the game, perhaps as
+an effect of some other rule.
 
-It's all very abstract. You could implement physics in this engine, if
-you wanted, but if that's your main concern, you might be happier with
-OpenSimulator.
+# Graphical development environment
 
-# Status
-
-The graphical frontend, now called ELiDE, isn't usable yet. The core
-engine, in the ``LiSE`` module, has demonstrated some of its
-functionality as an ORM and rules engine. This might be
-useful, but it has't been tested much, so don't expect a polished
-experience. Please report bugs in the Issues tab.
+ELiDE will be a graphical tool for developing this sort of game. It
+will provide an interface that lets you make arbitrary changes to the
+world state, then watch it run for a while to see what will happen
+before turning the clock back and trying something different. It will
+be scriptable in Python, hopefully to the point that you could build
+the actual interface to your game in ELiDE.
 
 # License Information
 wallpape.jpg is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stuff/), freely available under the terms of [Creative Commons BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
