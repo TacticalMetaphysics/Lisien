@@ -100,8 +100,7 @@ def breakcover(engine, character, avatar):
     sprint anyway.
 
     """
-    # This is checked after uncovered so I don't need to re-check
-    # for shrubbery.
+    # This is declared after uncovered, and is therefore checked later.
     return engine.random() < character.stat['sprint_chance']
 
 @shrubsprint.prereq
