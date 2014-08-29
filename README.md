@@ -20,11 +20,11 @@ but the player experiences this only as a strategic concern.
 Existing games that LiSE seeks to imitate include:
 
 * The Sims
-* Kudos
 * Redshirt
 * Animal Crossing
 * Monster Rancher
 * Dwarf Fortress
+* Democracy
 
 # Why should I use LiSE for this purpose?
 
