@@ -29,6 +29,10 @@ from LiSE.funlist import FunList
 
 
 class RuleFollower(object):
+    """Object that has a rulebook associated, which you can get a
+    RuleMapping into
+
+    """
     @property
     def rulebook(self):
         n = self.engine.cursor.execute(
@@ -94,48 +98,97 @@ class TravelException(Exception):
 
 
 class PlaceImage(dict):
-    def __init__(self, *args, **kwargs):
+    """Like a Place but disconnected from the database."""
+    def __init__(self, charimg, *args, **kwargs):
+        """Initialize contents list"""
         super().__init__(*args, **kwargs)
-        self.contents = []
+        self._charimg = charimg
 
     def __getitem__(self, k):
+        """Return item from my stats if possible"""
         try:
             return super().__getitem__('stat').__getitem__(k)
         except KeyError:
             return super().__getitem__(k)
 
+    def contents(self):
+        for thing in self._charimg.thing.values():
+            if thing.container is self:
+                yield thing
+
 
 class ThingImage(PlaceImage):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.location = None
-        self.container = None
+    """Like a Thing but disconnected from the database."""
+    @property
+    def location(self):
+        try:
+            return self._charimg.thing[self['location']]
+        except KeyError:
+            return self._charimg.place[self['location']]
+
+    @property
+    def next_location(self):
+        try:
+            return self._charimg.thing[self['next_location']]
+        except KeyError:
+            return self._charimg.place[self['next_location']]
+
+    @property
+    def container(self):
+        if self['next_location']:
+            return self._charimg.portal[self['location']][
+                self['next_location']
+            ]
+        else:
+            return self.location
 
 
 class PortalImage(PlaceImage):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.origin = None
-        self.destination = None
+    """Like a Portal but disconnected from the database."""
+    @property
+    def origin(self):
+        try:
+            return self._charimg.thing[self['origin']]
+        except KeyError:
+            return self._charimg.place[self['origin']]
+
+    @property
+    def destination(self):
+        try:
+            return self._charimg.thing[self['destination']]
+        except KeyError:
+            return self._charimg.place[self['destination']]
 
 
 class CharacterImage(nx.DiGraph):
+    """Like a Character but disconnected from the database."""
     def __init__(self, character, branch, tick):
+        """Copy the status of ``character`` at time ``(branch, tick)``."""
         class CompositeDict(Mapping):
+            """Read-only mapping that looks up values in a first dict if
+            available, then a second dict if possible.
+
+            Assumes the dicts have no overlap.
+
+            """
             def __init__(self, d1, d2):
+                """Store dictionaries"""
                 self.d1 = d1
                 self.d2 = d2
 
             def __iter__(self):
+                """Iterate over both dictionaries' keys"""
                 for k in self.d1:
                     yield k
                 for k in self.d2:
                     yield k
 
             def __len__(self):
+                """Sum the lengths of both dictionaries"""
                 return len(self.d1) + len(self.d2)
 
             def __getitem__(self, k):
+                """Get an item from ``d1`` if possible, then ``d2``"""
                 try:
                     return self.d1[k]
                 except KeyError:
@@ -146,10 +199,10 @@ class CharacterImage(nx.DiGraph):
         self._name = self.character._name
         self.place = {}
         for (name, place) in character.place.items():
-            pli = PlaceImage(
-                place if isinstance(place, dict) else place._json_dict
+            self.place[name] = (
+                place if isinstance(place, PlaceImage)
+                else PlaceImage(self, place._json_dict)
             )
-            self.place[name] = pli
         self.portal = {}
         self.preportal = {}
         for o in character.portal:
@@ -158,46 +211,18 @@ class CharacterImage(nx.DiGraph):
             for (d, portal) in character.portal[o].items():
                 if d not in self.preportal:
                     self.preportal[d] = {}
-                cp = PortalImage(
-                    portal if isinstance(portal, dict) else portal._json_dict
+                cp = (
+                    portal if isinstance(portal, PortalImage)
+                    else PortalImage(self, portal._json_dict)
                 )
-                cp.origin = self.place[cp['origin']]
-                cp.destination = self.place[cp['destination']]
                 self.portal[o][d] = cp
                 self.preportal[d][o] = cp
         self.thing = {}
         for (name, thing) in character.thing.items():
-            thi = ThingImage(
-                thing if isinstance(thing, dict) else thing._json_dict
+            self.thing[name] = (
+                thing if isinstance(thing, ThingImage)
+                else ThingImage(self, thing._json_dict)
             )
-            self.thing[name] = thi
-        for thi in self.thing.values():
-            if thi['location'] in self.place:
-                thi.location = self.place[thi['location']]
-            elif thi['location'] in self.thing:
-                thi.location = self.thing[thi['location']]
-            else:
-                raise ValueError("Invalid location for thing")
-            if thi['next_location'] is None:
-                thi.next_location = None
-                thi.container = thi.location
-            elif thi['next_location'] in self.place:
-                thi.next_location = self.place[thi['next_location']]
-                thi.container = self.portal[
-                    thi['location']
-                ][
-                    thi['next_location']
-                ]
-            elif thi['location'] in self.thing:
-                thi.next_location = self.thing[thi['next_location']]
-                thi.container = self.portal[
-                    thi['location']
-                ][
-                    thi['next_location']
-                ]
-            else:
-                raise ValueError("Invalid next_location for thing")
-            thi.container.contents.append(thi)
         self.node = CompositeDict(self.place, self.thing)
         self.succ = self.edge = self.adj = self.portal
         self.pred = self.preportal
@@ -209,6 +234,7 @@ class CharacterImage(nx.DiGraph):
 
     @classmethod
     def load(cls, s):
+        """Load a CharacterImage from a JSON description of one"""
         d = json_load(s)
         fakechar = d["stat"]
         fakechar.place = d["place"]
@@ -231,17 +257,38 @@ class CharacterImage(nx.DiGraph):
         }
 
     def dump(self):
+        """Return a JSON description of a CharacterImage"""
         return json_dump(self._json_dict)
 
 
 class ThingPlace(GraphNodeMapping.Node):
+    """Superclass for both Thing and Place"""
     @property
     def name(self):
         return json_load(self._name)
 
+    @property
+    def exists(self):
+        return self.engine._node_exists(self.graph.name, self.node)
+
+    @exists.setter
+    def exists(self, v):
+        GraphNodeMapping.Node.exists.fset(self, v)
+        if not self.engine.caching:
+            return
+        (branch, tick) = self.engine.time
+        if self.character.name not in self.engine._existence:
+            self.engine._existence[self.character.name] = {}
+        d = self.engine._existence[self.character.name]
+        if self.name not in d:
+            d[self.name] = {}
+        if branch not in d[self.name]:
+            d[self.name][branch] = {}
+        d[self.name][branch][tick] = v
+
     def __getitem__(self, name):
-        """For when I'm the only avatar in a Character, and so you don't need
-        my name to select me, but a name was provided anyway.
+        """Cache every stat you look up, on the assumption you're the only
+        user of the database.
 
         """
         if name == self.name:
@@ -271,6 +318,10 @@ class ThingPlace(GraphNodeMapping.Node):
             return super().__getitem__(name)
 
     def __setitem__(self, k, v):
+        """Cache every stat you set, on the assumption you're the only user of
+        the database.
+
+        """
         if k == "name":
             raise KeyError("Can't set name")
         elif k == "character":
@@ -292,14 +343,17 @@ class ThingPlace(GraphNodeMapping.Node):
         super().__setitem__(k, v)
 
     def __delitem__(self, k):
-        (branch, tick) = self.engine.time
+        """Delete it from the cache too"""
         if self.engine.caching:
+            (branch, tick) = self.engine.time
             try:
                 del self._statcache[k][branch][tick]
             except KeyError:
                 pass
+        super().__delitem__(k)
 
     def _portal_dests(self):
+        """Iterate over names of nodes you can get to from here"""
         seen = set()
         for (branch, tick) in self.gorm._active_branches():
             self.gorm.cursor.execute(
@@ -331,6 +385,7 @@ class ThingPlace(GraphNodeMapping.Node):
                 seen.add(dest)
 
     def _portal_origs(self):
+        """Iterate over names of nodes you can get here from"""
         seen = set()
         for (branch, tick) in self.gorm._active_branches():
             self.gorm.cursor.execute(
@@ -361,6 +416,7 @@ class ThingPlace(GraphNodeMapping.Node):
                 seen.add(orig)
 
     def _user_names(self):
+        """Iterate over names of characters that have me as an avatar"""
         seen = set()
         for (branch, tick) in self.engine._active_branches():
             self.engine.cursor.execute(
@@ -393,22 +449,22 @@ class ThingPlace(GraphNodeMapping.Node):
                     seen.add(charn)
 
     def users(self):
-        """Iterate over characters this is an avatar of. Usually there will
-        only be one.
-
-        """
+        """Iterate over characters this is an avatar of."""
         for charn in self._user_names():
             yield self.engine.character[charn]
 
     def portals(self):
+        """Iterate over :class:`Portal` objects that lead away from me"""
         for destn in self._portal_dests():
             yield self.character.portal[self.name][destn]
 
     def preportals(self):
+        """Iterate over :class:`Portal` objects that lead to me"""
         for orign in self._portal_origs():
             yield self.character.preportal[self.name][orign]
 
     def contents(self):
+        """Iterate over :class:`Thing` objects located in me"""
         for thing in self.character.thing.values():
             if thing['location'] == self.name:
                 yield thing
@@ -916,6 +972,29 @@ class Portal(GraphEdgeMapping.Edge):
     eg. ``character.add_portal(orig, dest, symmetrical=True)``
 
     """
+    @property
+    def exists(self):
+        if not self.engine.caching:
+            return GraphEdgeMapping.Edge.exists.fget(self)
+        (branch, rev) = self.engine.time
+        if branch not in self._existence:
+            self._existence[branch] = {}
+        if rev not in self._existence[branch]:
+            self._existence[branch][
+                rev
+            ] = GraphEdgeMapping.Edge.exists.fget(self)
+        return self._existence[branch][rev]
+
+    @exists.setter
+    def exists(self, v):
+        GraphEdgeMapping.Edge.exists.fset(self, v)
+        if not self.engine.caching:
+            return
+        (branch, rev) = self.engine.time
+        if branch not in self._existence:
+            self._existence[branch] = {}
+        self._existence[branch][rev] = v
+
     def __init__(self, character, origin, destination):
         """Initialize a Portal in a character from an origin to a
         destination
@@ -927,6 +1006,7 @@ class Portal(GraphEdgeMapping.Edge):
         self.engine = character.engine
         if self.engine.caching:
             self._statcache = {}
+            self._existence = {}
         super().__init__(character, self._origin, self._destination)
 
     def __getitem__(self, key):
@@ -1024,6 +1104,7 @@ class Portal(GraphEdgeMapping.Edge):
             self.character._portal_traits = set()
 
     def __delitem__(self, key):
+        """Invalidate my :class:`Character`'s cache of portal traits"""
         super().__delitem__(key)
         if key in self.character._portal_traits:
             del self.character.graph['_paths']
@@ -1085,13 +1166,16 @@ class Portal(GraphEdgeMapping.Edge):
         }
 
     def dump(self):
+        """Return a JSON representation of my present state"""
         return json_dump(self._json_dict)
 
 
 class CharacterThingMapping(MutableMapping, RuleFollower):
+    """:class:`Thing` objects that are in a :class:`Character`"""
     _book = "thing"
 
     def __init__(self, character):
+        """Store the character and initialize cache (if caching)"""
         self.character = character
         self.engine = character.engine
         self.name = character.name
@@ -1099,6 +1183,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             self._cache = {}
 
     def __contains__(self, k):
+        """Check the cache first, if it exists"""
         if hasattr(self, '_cache') and k in self._cache:
             return True
         return super().__contains__(k)
@@ -1154,12 +1239,17 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 seen.add(node)
 
     def __len__(self):
+        """Just iterate and count stuff"""
         n = 0
         for th in self:
             n += 1
         return n
 
     def __getitem__(self, thing):
+        """Check the cache first. If the key isn't there, try retrieving it
+        from the database.
+
+        """
         try:
             if thing in self._cache:
                 return self._cache[thing]
@@ -1223,6 +1313,10 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         raise KeyError("Thing has never existed")
 
     def __setitem__(self, thing, val):
+        """Clear out any existing :class:`Thing` by this name and make a new
+        one out of ``val`` (assumed to be a mapping of some kind)
+
+        """
         th = Thing(self.character, thing)
         th.clear()
         th.exists = True
@@ -1233,6 +1327,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             pass
 
     def __delitem__(self, thing):
+        """Delete the thing from the cache and the database"""
         if hasattr(self, '_cache') and thing in self._cache:
             th = self._cache[thing]
             del self._cache[thing]
@@ -1243,13 +1338,16 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         assert(thing not in self)
 
     def __repr__(self):
+        """Represent myself as a dict"""
         return repr(dict(self))
 
 
 class CharacterPlaceMapping(MutableMapping, RuleFollower):
+    """:class:`Place` objects that are in a :class:`Character`"""
     _book = "place"
 
     def __init__(self, character):
+        """Store the character and initialize the cache (if caching)"""
         self.character = character
         self.engine = character.engine
         self.name = character.name
@@ -1257,6 +1355,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             self._cache = {}
 
     def _things(self):
+        """Private method. Return a set of names of things in the character."""
         things = set()
         things_seen = set()
         charn = json_dump(self.character.name)
@@ -1288,12 +1387,17 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             return things
 
     def __iter__(self):
+        """Iterate over names of places."""
         things = self._things()
         for node in self.engine._iternodes(self.character.name):
             if node not in things:
                 yield node
 
     def __contains__(self, k):
+        """Check the cache first, then query the database to see if ``k`` is
+        the name of a place.
+
+        """
         if hasattr(self, '_cache') and k in self._cache:
             return True
         for node in self.engine._iternodes(self.character.name):
@@ -1302,12 +1406,17 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         return False
 
     def __len__(self):
+        """Iterate and count"""
         n = 0
         for place in self:
             n += 1
         return n
 
     def __getitem__(self, place):
+        """Get the place from the cache if I can, otherwise check that it
+        exists, and if it does, cache and return it
+
+        """
         if hasattr(self, '_cache') and place in self._cache:
             return self._cache[place]
         if place in self:
@@ -1318,6 +1427,10 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         raise KeyError("No such place")
 
     def __setitem__(self, place, v):
+        """Wipe out any existing place by that name, and replace it with one
+        described by ``v``
+
+        """
         pl = Place(self.character, place)
         pl.clear()
         pl.exists = True
@@ -1326,6 +1439,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             self._cache[place] = pl
 
     def __delitem__(self, place):
+        """Delete place from both cache and database"""
         if hasattr(self, '_cache') and place in self._cache:
             self._cache[place].clear()
             del self._cache[place]
@@ -1333,17 +1447,20 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             Place(self.character, place).clear()
 
     def __repr__(self):
+        """Represent myself as a dictionary"""
         return repr(dict(self))
 
 
 class CharacterThingPlaceMapping(MutableMapping):
     """Replacement for gorm's GraphNodeMapping that does Place and Thing"""
     def __init__(self, character):
+        """Store the character"""
         self.character = character
         self.engine = character.engine
         self.name = character.name
 
     def __iter__(self):
+        """Iterate over all nodes presently existing"""
         seen = set()
         myn = json_dump(self.name)
         for (branch, rev) in self.engine._active_branches():
@@ -1371,12 +1488,14 @@ class CharacterThingPlaceMapping(MutableMapping):
                 seen.add(node)
 
     def __len__(self):
+        """Count nodes that exist"""
         n = 0
         for node in iter(self):
             n += 1
         return n
 
     def __getitem__(self, k):
+        """Return a :class:`Thing` or :class:`Place` as appropriate"""
         if k in self.character.thing:
             return self.character.thing[k]
         else:
@@ -1386,9 +1505,11 @@ class CharacterThingPlaceMapping(MutableMapping):
                 raise KeyError("No such Thing or Place in this Character")
 
     def __setitem__(self, k, v):
+        """Assume you're trying to create a :class:`Place`"""
         self.character.place[k] = v
 
     def __delitem__(self, k):
+        """Delete place or thing"""
         if k in self.character.place:
             del self.character.place[k]
         else:
@@ -1578,6 +1699,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
         raise KeyError("No avatars in {}".format(g))
 
     def __repr__(self):
+        """Represent myself like a dictionary"""
         d = {}
         for k in self:
             d[k] = dict(self[k])
@@ -1728,6 +1850,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             raise KeyError("No such avatar")
 
         def __repr__(self):
+            """Represent myself like a dictionary"""
             d = {}
             for k in self:
                 d[k] = dict(self[k])
@@ -1740,6 +1863,10 @@ class SenseFuncWrap(object):
 
     """
     def __init__(self, character, fun):
+        """Store the character and the function, looking up the function if
+        needed
+
+        """
         self.character = character
         self.engine = character.engine
         if isinstance(fun, str):
@@ -1749,6 +1876,7 @@ class SenseFuncWrap(object):
         assert(isinstance(self.fun, Callable))
 
     def __call__(self, observed):
+        """Call the function, prefilling the engine and observer arguments"""
         if isinstance(observed, str):
             observed = self.engine.character[observed]
         return self.fun(self.engine, self.character, observed)
@@ -1760,6 +1888,7 @@ class CharacterSense(object):
 
     """
     def __init__(self, container, sensename):
+        """Store the container and the name of the sense"""
         self.container = container
         self.engine = self.container.engine
         self._sensename = json_dump(sensename)
@@ -1771,6 +1900,7 @@ class CharacterSense(object):
 
     @property
     def func(self):
+        """Return the function most recently associated with this sense"""
         for (branch, tick) in self.engine._active_branches():
             data = self.engine.cursor.execute(
                 "SELECT function FROM senses JOIN "
@@ -1813,10 +1943,12 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
     _book = "character"
 
     def __init__(self, character):
+        """Store the character"""
         self.character = character
         self.engine = character.engine
 
     def __iter__(self):
+        """Iterate over active sense names"""
         seen = set()
         for (branch, tick) in self.engine._active_branches():
             self.engine.cursor.execute(
@@ -1843,12 +1975,14 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
                 seen.add(sense)
 
     def __len__(self):
+        """Count active senses"""
         n = 0
         for sense in iter(self):
             n += 1
         return n
 
     def __getitem__(self, k):
+        """Get a :class:`CharacterSense` named ``k`` if it exists"""
         for (branch, tick) in self.engine._active_branches():
             data = self.engine.cursor.execute(
                 "SELECT active FROM senses JOIN ("
@@ -1959,6 +2093,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
             )
 
     def __call__(self, fun, name=None):
+        """Decorate the function so it's mine now"""
         if not isinstance(fun, Callable):
             raise TypeError(
                 "I need a function here"
@@ -1969,19 +2104,24 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
 
 
 class CharStatCache(MutableMapping):
+    """Caching dict-alike for character stats"""
     def __init__(self, char):
+        """Store character, initialize cache"""
         self.character = char
         self.engine = char.engine
         self._real = char.graph
         self._cache = {}
 
     def __iter__(self):
+        """Iterate over underlying keys"""
         return iter(self._real)
 
     def __len__(self):
+        """Length of underlying graph"""
         return len(self._real)
 
     def __getitem__(self, k):
+        """Use the cache if I can"""
         (branch, tick) = self.engine.time
         if k not in self._cache:
             self._cache[k] = {}
@@ -2001,6 +2141,7 @@ class CharStatCache(MutableMapping):
                 return d[tick]
 
     def __setitem__(self, k, v):
+        """Cache new value and set it the normal way"""
         (branch, tick) = self.engine.time
         if k not in self._cache:
             self._cache[k] = {}
@@ -2011,6 +2152,7 @@ class CharStatCache(MutableMapping):
         self.__getitem__(k)
 
     def __delitem__(self, k):
+        """Clear the cached value and delete the normal way"""
         (branch, tick) = self.engine.time
         if branch in self._cache[k]:
             for staletick in list(
@@ -2319,6 +2461,10 @@ class Character(DiGraph, RuleFollower):
             )
 
     def del_avatar(self, host, name):
+        """Way to delete avatars for if you don't want to do it in the avatar
+        mapping for some reason
+
+        """
         h = json_dump(host)
         n = json_dump(name)
         (branch, tick) = self.engine.time
@@ -2356,6 +2502,7 @@ class Character(DiGraph, RuleFollower):
             )
 
     def iter_portals(self):
+        """All portals"""
         for o in self.portal:
             for port in self.portal[o].values():
                 yield port
