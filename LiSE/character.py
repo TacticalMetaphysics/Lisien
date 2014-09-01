@@ -2573,8 +2573,8 @@ class Character(DiGraph, RuleFollower):
                 seen.add((graphn, noden))
 
     def _trashimg(self, branch, tick):
-        if branch in self._images and tick in self._images[branch]:
-            del self._images[branch][tick]
+        if branch in self._images:
+            self._images[branch][tick] = None
 
     def copy(self):
         """Return a :class:`CharacterImage` representing my status at the
@@ -2591,5 +2591,15 @@ class Character(DiGraph, RuleFollower):
         if branch not in self._images:
             self._images[branch] = {}
         if tick not in self._images[branch]:
+            try:
+                r = self._images[branch][
+                    max(k for k in self._images[branch].keys() if k < tick)
+                ]
+                if r is None:
+                    r = CharacterImage(self, branch, tick)
+            except ValueError:
+                r = CharacterImage(self, branch, tick)
+            self._images[branch][tick] = r
+        elif self._images[branch][tick] is None:
             self._images[branch][tick] = CharacterImage(self, branch, tick)
         return self._images[branch][tick]
