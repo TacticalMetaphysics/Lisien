@@ -475,6 +475,26 @@ class Engine(object):
         self.uniform = self.rando.uniform
         self.vonmisesvariate = self.rando.vonmisesvariate
         self.weibullvariate = self.rando.weibullvariate
+        self._existence = {}
+
+    def _node_exists(self, graph, node):
+        """Version of gorm's ``_node_exists`` that caches stuff"""
+        if not self.caching:
+            return super()._node_exists(graph, node)
+        (branch, rev) = self.time
+        if graph not in self._existence:
+            self._existence[graph] = {}
+        if node not in self._existence[graph]:
+            self._existence[graph][node] = {}
+        if branch not in self._existence[graph][node]:
+            self._existence[graph][node][branch] = {}
+        d = self._existence[graph][node][branch]
+        if rev not in d:
+            try:
+                d[rev] = d[max(k for k in d.keys() if k < rev)]
+            except ValueError:
+                d[rev] = super()._node_exists(graph, node)
+        return self._existence[graph][node][branch][rev]
 
     def coinflip(self):
         """Return True or False with equal probability."""

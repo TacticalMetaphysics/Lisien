@@ -983,9 +983,14 @@ class Portal(GraphEdgeMapping.Edge):
         if branch not in self._existence:
             self._existence[branch] = {}
         if rev not in self._existence[branch]:
-            self._existence[branch][
-                rev
-            ] = GraphEdgeMapping.Edge.exists.fget(self)
+            try:
+                self._existence[branch][rev] = self._existence[branch][
+                    max(k for k in self._existence[branch].keys() if k < rev)
+                ]
+            except ValueError:
+                self._existence[branch][
+                    rev
+                ] = GraphEdgeMapping.Edge.exists.fget(self)
         return self._existence[branch][rev]
 
     @exists.setter
