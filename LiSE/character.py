@@ -277,6 +277,7 @@ class ThingPlace(GraphNodeMapping.Node):
         if not self.engine.caching:
             return
         (branch, tick) = self.engine.time
+        self.character._trashimg(branch, tick)
         if self.character.name not in self.engine._existence:
             self.engine._existence[self.character.name] = {}
         d = self.engine._existence[self.character.name]
@@ -328,6 +329,7 @@ class ThingPlace(GraphNodeMapping.Node):
             raise KeyError("Can't set character")
         (branch, tick) = self.engine.time
         if self.engine.caching:
+            self.character._trashimg(branch, tick)
             if k not in self._statcache:
                 self._statcache[k] = {}
             if branch not in self._statcache[k]:
@@ -346,6 +348,7 @@ class ThingPlace(GraphNodeMapping.Node):
         """Delete it from the cache too"""
         if self.engine.caching:
             (branch, tick) = self.engine.time
+            self.character._trashimg(branch, tick)
             try:
                 del self._statcache[k][branch][tick]
             except KeyError:
@@ -991,6 +994,7 @@ class Portal(GraphEdgeMapping.Edge):
         if not self.engine.caching:
             return
         (branch, rev) = self.engine.time
+        self.character._trashimg(branch, rev)
         if branch not in self._existence:
             self._existence[branch] = {}
         self._existence[branch][rev] = v
@@ -1102,6 +1106,8 @@ class Portal(GraphEdgeMapping.Edge):
         if key in self.character._portal_traits:
             del self.character.graph['_paths']
             self.character._portal_traits = set()
+        if self.engine.caching:
+            self.character._trashimg(*self.engine.time)
 
     def __delitem__(self, key):
         """Invalidate my :class:`Character`'s cache of portal traits"""
@@ -1109,6 +1115,8 @@ class Portal(GraphEdgeMapping.Edge):
         if key in self.character._portal_traits:
             del self.character.graph['_paths']
             self.character._portal_traits = set()
+        if self.engine.caching:
+            self.character._trashimg(*self.engine.time)
 
     @property
     def origin(self):
@@ -2239,6 +2247,7 @@ class Character(DiGraph, RuleFollower):
         )
         if engine.caching:
             self.stat = CharStatCache(self)
+            self._images = {}
         else:
             self.stat = self.graph
         self._portal_traits = set()
@@ -2558,6 +2567,10 @@ class Character(DiGraph, RuleFollower):
                     yield self.engine.character[graphn].node[noden]
                 seen.add((graphn, noden))
 
+    def _trashimg(self, branch, tick):
+        if branch in self._images and tick in self._images[branch]:
+            del self._images[branch][tick]
+
     def copy(self):
         """Return a :class:`CharacterImage` representing my status at the
         moment.
@@ -2568,4 +2581,10 @@ class Character(DiGraph, RuleFollower):
 
         """
         (branch, tick) = self.engine.time
-        return CharacterImage(self, branch, tick)
+        if not self.engine.caching:
+            return CharacterImage(self, branch, tick)
+        if branch not in self._images:
+            self._images[branch] = {}
+        if tick not in self._images[branch]:
+            self._images[branch][tick] = CharacterImage(self, branch, tick)
+        return self._images[branch][tick]
