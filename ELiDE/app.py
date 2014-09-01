@@ -4,21 +4,16 @@ from kivy.properties import (
     BoundedNumericProperty,
     ObjectProperty,
     StringProperty,
-    DictProperty
+    DictProperty,
+    AliasProperty
 )
-from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
 
 from kivy.factory import Factory
 
-from .board import (
-    Board,
-    Arrow
-)
 from .charsheet import CharSheet
-from .board.arrow import get_points
 from .texturestack import ImageStack
 
 import LiSE
@@ -30,13 +25,17 @@ Factory.register('CharSheet', cls=CharSheet)
 
 
 class TouchlessWidget(Widget):
+    """Widget made not to interact with any touch"""
     def on_touch_down(self, *args):
+        """Nothing"""
         pass
 
     def on_touch_move(self, *args):
+        """Nothing"""
         pass
 
     def on_touch_up(self, *args):
+        """Nothing"""
         pass
 
 
@@ -52,6 +51,7 @@ class DummySpot(Widget):
         return True
 
     def on_touch_move(self, touch):
+        """Center to touch"""
         self.center = touch.pos
 
 
@@ -110,44 +110,17 @@ class ELiDELayout(FloatLayout):
     creating a Portal between them."""
     playspeed = BoundedNumericProperty(0, min=0)
     grabbed = ObjectProperty(None, allownone=True)
-
-    @property
-    def engine(self):
-        return self.app.engine
-
-    def __init__(self, **kwargs):
-        """Make a trigger for draw_arrow, then initialize as for
-        FloatLayout."""
-        self._trigger_draw_arrow = Clock.create_trigger(self._draw_arrow)
-        super(ELiDELayout, self).__init__(**kwargs)
-
-    def _draw_arrow(self, *args):
-        """Draw the arrow that you see when you're in the process of placing a
-        portal.
-
-        It looks like the arrows that represent portals, but it
-        doesn't represent a portal, because you haven't connected both
-        ends yet. If you had, real live Arrow object would be used to
-        draw the arrow.
-
-        """
-        # Sometimes this gets triggered, *just before* getting
-        # unbound, and ends up running one last time *just after*
-        # self.dummyspot = None
-        if self._touch is None:
-            return
-        ud = self.portal_d
-        (ox, oy) = ud['origspot'].center
-        (dx, dy) = self.ids.board.parent.to_local(*self._touch.pos)
-        points = get_points(ox, 0, oy, 0, dx, 0, dy, 0, 10)
-        ud['dummyarrow'].canvas.clear()
-        with ud['dummyarrow'].canvas:
-            Color(0.25, 0.25, 0.25)
-            Line(width=1.4, points=points)
-            Color(1, 1, 1)
-            Line(width=1, points=points)
+    engine = AliasProperty(
+        lambda self: self.app.engine,
+        lambda self, v: None,
+        bind=('app',)
+    )
 
     def on_touch_down(self, touch):
+        """Delegate first to the charsheet, then to the board, then to the
+        boardview.
+
+        """
         self.grabbed = self.ids.charsheet.on_touch_down(touch)
         if self.grabbed is None:
             self.grabbed = self.ids.board.on_touch_down(touch)
@@ -155,6 +128,11 @@ class ELiDELayout(FloatLayout):
             return self.ids.boardview.on_touch_down(touch)
 
     def on_touch_move(self, touch):
+        """If something's been grabbed, transform the touch to the boardview's
+        space and then delegate there.
+
+        """
+        # I think I should handle charsheet special
         if self.grabbed is None:
             return self.ids.boardview.on_touch_move(touch)
         else:
@@ -164,92 +142,18 @@ class ELiDELayout(FloatLayout):
             touch.pop()
             return r
 
-    def make_arrow(self, *args):
-        """Start the process of connecting Places with a new Portal.
-
-        This will temporarily disable the ability to drag spots around
-        and open the place detail view. The next touch will restore
-        that ability, or, if it is a touch-and-drag, will connect the
-        place where the touch-and-drag started with the one where it
-        ends.
-
-        If the touch-and-drag starts on a spot, but does not end on
-        one, it does nothing, and the operation is cancelled.
-
-        """
-        _ = self.app.engine.get_text
-        self.display_prompt(_(
-            "Draw a line between the places to connect with a portal."
-        ))
-        self.portaling = 1
-
-    def display_prompt(self, text):
-        """Put the text in the cue card"""
-        self.ids.prompt.ids.l.text = text
-
-    def dismiss_prompt(self, *args):
-        """Blank out the cue card"""
-        self.ids.prompt.text = ''
-
-    def center_of_view_on_board(self):
-        """Get the point on the Board that is presently at the center of the
-        screen.
-
-        """
-        b = self.board
-        bv = self.ids.board_view
-        # clamp to that part of the board where the view's center might be
-        effective_w = b.width - bv.width
-        effective_h = b.height - bv.height
-        x = b.width / 2 + effective_w * (bv.scroll_x - 0.5)
-        y = b.height / 2 + effective_h * (bv.scroll_y - 0.5)
-        return (x, y)
-
-    def normal_speed(self):
-        """Advance time at a sensible rate.
-
-        """
-        self.playspeed = 0.1
-
-    def pause(self):
-        """Halt the flow of time.
-
-        """
-        if hasattr(self, 'updater'):
-            Clock.unschedule(self.updater)
-
-    def update(self, ticks):
-        """Advance time if possible. Otherwise pause.
-
-        """
-        target_tick = self.engine.tick + ticks
-        while self.engine.tick < target_tick:
-            self.engine.advance()
-        self.pause()
-
-    def on_playspeed(self, *args):
-        """Change the interval of updates to match the playspeed.
-
-        """
-        self.pause()
-        if self.playspeed > 0:
-            ticks = 1
-            interval = self.playspeed
-        else:
-            return
-        self.updater = lambda dt: self.update(ticks)
-        Clock.schedule_interval(self.updater, interval)
-
 
 Factory.register('ELiDELayout', cls=ELiDELayout)
 
 
 class MenuIntInput(TextInput):
-    closet = ObjectProperty()
+    """Field for inputting an integer"""
+    engine = ObjectProperty()
     stringname = StringProperty()
     attrname = StringProperty()
 
     def __init__(self, **kwargs):
+        """Create trigger for upd_time, then delegate to super"""
         self._trigger_upd_time = Clock.create_trigger(self.upd_time)
         super(MenuIntInput, self).__init__(**kwargs)
 
@@ -260,17 +164,23 @@ class MenuIntInput(TextInput):
             from_undo
         )
 
-    def on_closet(self, *args):
-        if self.closet:
-            self.closet.timestream.register_time_listener(
+    def on_engine(self, *args):
+        """Arrange that I'll be updated every time the game-time changes"""
+        if self.engine:
+            self.engine.on_time(
                 self._trigger_upd_time
             )
 
     def on_text_validate(self, *args):
-        setattr(self.closet, self.attrname, int(self.text))
+        """Set the engine's attribute to my value cast as an int"""
+        setattr(self.engine, self.attrname, int(self.text))
 
     def upd_time(self, *args):
-        self.hint_text = str(getattr(self.closet, self.attrname))
+        """Change my hint text to the engine's attribute, then blank out my
+        regular text
+
+        """
+        self.hint_text = str(getattr(self.engine, self.attrname))
         self.text = ''
 
 
@@ -288,6 +198,7 @@ class ELiDEApp(App):
     cli_args = DictProperty({})
 
     def build_config(self, config):
+        """Set config defaults"""
         for sec in 'LiSE', 'ELiDE':
             config.adddefaultsection(sec)
         config.setdefaults(
@@ -310,7 +221,6 @@ class ELiDEApp(App):
             for (k, v) in self.cli_args[sec].items():
                 config[sec][k] = v
         config.write()
-
 
     def build(self):
         """Make sure I can use the database, create the tables as needed, and
