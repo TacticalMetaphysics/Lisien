@@ -251,8 +251,10 @@ class PlaceDict(CustomDict):
         deleted = self[k]
         for c in list(deleted.contents()):
             del self._charimg.thing[c['name']]
-        del self._charimg.portal[k]
-        del self._charimg.preportal[k]
+        if k in self._charimg.portal:
+            del self._charimg.portal[k]
+        if k in self._charimg.preportal:
+            del self._charimg.preportal[k]
         for o in self._charimg.portal:
             if k in self._charimg.portal[o]:
                 del self._charimg.portal[o][k]
@@ -305,6 +307,11 @@ class CharacterImage(nx.DiGraph):
         return json_load(self._name)
 
     def _get_json_dict(self):
+        portalcopy = {}
+        for o in self.portal:
+            portalcopy[o] = {}
+            for d in self.portal[o]:
+                portalcopy[o][d] = dict(self.portal[o][d])
         return {
             "type": "Character",
             "version": 0,
@@ -312,7 +319,7 @@ class CharacterImage(nx.DiGraph):
             "tick": self.tick,
             "name": self._name,
             "place": dict(self.place),
-            "portal": dict(self.portal),
+            "portal": portalcopy,
             "thing": dict(self.thing),
             "stat": dict(self.graph)
         }
@@ -340,6 +347,7 @@ class CharacterImage(nx.DiGraph):
                     self.preportal[dest] = {}
                 self.portal[o][dest] = image
                 self.preportal[dest][o] = image
+        self.graph.update(d['stat'])
         return self
 
     @classmethod
@@ -622,7 +630,7 @@ class Thing(ThingPlace):
                 value,
                 setter
             )
-            self.character.changes += 1
+            self.character.changect += 1
 
         if key == 'name':
             raise ValueError("Can't change names")
@@ -630,7 +638,7 @@ class Thing(ThingPlace):
             raise ValueError("Can't change characters")
         elif key == 'location':
             if not self.engine.caching:
-                self._set_loc_and_next(v, None)
+                self._set_loc_and_next(value, None)
                 return
             (branch, tick) = self.engine.time
             cache_set(
@@ -645,7 +653,7 @@ class Thing(ThingPlace):
             raise ValueError("Read-only")
         elif key == 'next_location':
             if not self.engine.caching:
-                self._set_loc_and_next(self['location'], v)
+                self._set_loc_and_next(self['location'], value)
                 return
             (branch, tick) = self.engine.time
             cache_set(
@@ -685,7 +693,7 @@ class Thing(ThingPlace):
             key,
             super().__delitem__
         )
-        self.character.changes += 1
+        self.character.changect += 1
 
     def _get_arrival_time(self):
         curloc = json_dump(self['location'])
@@ -883,7 +891,7 @@ class Thing(ThingPlace):
                     tick
                 )
             )
-        self.character.changes += 1
+        self.character.changect += 1
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a Place that has a Portal direct to the given
@@ -1105,7 +1113,7 @@ class Place(ThingPlace):
             value,
             super().__setitem__
         )
-        self.character.changes += 1
+        self.character.changect += 1
 
     def __delitem__(self, key):
         if not self.engine.caching:
@@ -1119,7 +1127,7 @@ class Place(ThingPlace):
             key,
             super().__delitem__
         )
-        self.character.changes += 1
+        self.character.changect += 1
 
     def _get_json_dict(self):
         (branch, tick) = self.engine.time
@@ -1274,7 +1282,7 @@ class Portal(GraphEdgeMapping.Edge):
             value,
             super().__setitem__
         )
-        self.character.changes += 1
+        self.character.changect += 1
 
     def __delitem__(self, key):
         """Invalidate my :class:`Character`'s cache of portal traits"""
@@ -1292,7 +1300,7 @@ class Portal(GraphEdgeMapping.Edge):
             key,
             super().__delitem__
         )
-        self.character.changes += 1
+        self.character.changect += 1
 
     @property
     def origin(self):
@@ -1504,7 +1512,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         th.clear()
         th.exists = True
         th.update(val)
-        self.character.changes += 1
+        self.character.changect += 1
         try:
             self._cache[thing] = th
         except AttributeError:
@@ -1519,7 +1527,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             th = Thing(self.character, thing)
         th.exists = False
         th.clear()
-        self.character.changes += 1
+        self.character.changect += 1
         assert(thing not in self)
 
     def __repr__(self):
@@ -1620,7 +1628,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         pl.clear()
         pl.exists = True
         pl.update(v)
-        self.character.changes += 1
+        self.character.changect += 1
         if hasattr(self, '_cache'):
             self._cache[place] = pl
 
@@ -1629,7 +1637,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         if hasattr(self, '_cache') and place in self._cache:
             self._cache[place].clear()
             del self._cache[place]
-            self.character.changes += 1
+            self.character.changect += 1
         else:
             Place(self.character, place).clear()
 
@@ -1732,7 +1740,7 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
             p.clear()
             p.exists = True
             p.update(value)
-            self.graph.changes += 1
+            self.graph.changect += 1
             if '_paths' in self.graph.graph:
                 del self.graph.graph['_paths']
                 self.graph._paths = {}
@@ -1746,7 +1754,7 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
                     raise KeyError("No such node")
                 n.clear()
                 del self._cache[nodeB]
-                self.graph.changes += 1
+                self.graph.changect += 1
             else:
                 super().__delitem__(nodeB)
 
@@ -1787,7 +1795,7 @@ class CharacterPortalPredecessorsMapping(
             p.clear()
             p.exists = True
             p.update(value)
-            self.graph.changes += 1
+            self.graph.changect += 1
             if '_paths' in self.graph.graph:
                 del self.graph.graph['_paths']
                 if hasattr(self.graph, '_paths'):
@@ -1804,7 +1812,7 @@ class CharacterPortalPredecessorsMapping(
                 del self.graph.portal[nodeA].cache[self.nodeB]
             else:
                 super().__delitem__(nodeA)
-            self.graph.changes += 1
+            self.graph.changect += 1
 
 
 class CharacterAvatarGraphMapping(Mapping, RuleFollower):
@@ -2368,7 +2376,7 @@ class CharStatCache(MutableMapping):
         self._cache[k][branch][tick] = v
         self._real[k] = v
         self.__getitem__(k)
-        self.character.changes += 1
+        self.character.changect += 1
 
     def __delitem__(self, k):
         """Clear the cached value and delete the normal way"""
@@ -2380,7 +2388,7 @@ class CharStatCache(MutableMapping):
             ):
                 del self._cache[k][branch][staletick]
         del self._real[k]
-        self.character.changes += 1
+        self.character.changect += 1
 
 
 class Character(DiGraph, RuleFollower):
@@ -2457,7 +2465,9 @@ class Character(DiGraph, RuleFollower):
             [name],
             'reqs'
         )
-        self._copychanges = self.changes = 0
+        self.changect = 0
+        self._copychanges = {}
+        self._copies = {}
         if engine.caching:
             self.stat = CharStatCache(self)
         else:
@@ -2680,7 +2690,7 @@ class Character(DiGraph, RuleFollower):
                     tick
                 )
             )
-        self.changes += 1
+        self.changect += 1
 
     def del_avatar(self, host, name):
         """Way to delete avatars for if you don't want to do it in the avatar
@@ -2722,7 +2732,7 @@ class Character(DiGraph, RuleFollower):
                     tick
                 )
             )
-        self.changes += 1
+        self.changect += 1
 
     def iter_portals(self):
         """All portals"""
@@ -2789,21 +2799,51 @@ class Character(DiGraph, RuleFollower):
         contains only images representing Place, Portal, and
         Thing, not actual instances of those classes.
 
-        This has a caching mechanism that assumes time will always
-        move forwards. If that's not the case, create a CharacterImage
-        manually.
-
         """
         (branch, tick) = self.engine.time
         if not self.engine.caching:
-            return CharacterImage(self, branch, tick)
+            return CharacterImage.copychar(self, branch, tick)
         if (
-                self.changes == self._copychanges and
-                hasattr(self, '_copy')
+                branch in self._copychanges and
+                tick in self._copychanges[branch] and
+                self.changect == self._copychanges[branch][tick]
         ):
-            return CharacterImage._from_json_dict(self._copy)
-        self._copy = CharacterImage.copychar(
-            self, branch, tick
-        )._get_json_dict()
-        self._copychanges = self.changes
-        return CharacterImage._from_json_dict(self._copy)
+            return CharacterImage._from_json_dict(
+                self._copies[branch][tick]
+            )
+        if (
+                branch in self._copychanges and
+                tick not in self._copychanges
+        ):
+            ts = [t for t in self._copychanges[branch] if t < tick]
+            if ts:
+                hi_t = max(ts)
+                if self.changect == self._copychanges[branch][hi_t]:
+                    r = CharacterImage._from_json_dict(
+                        self._copies[branch][hi_t]
+                    )
+                    self._copychanges[branch][tick] = self.changect
+                    # roundabout way of copying but copy.deepcopy
+                    # seemed not to work, idk
+                    self._copies[branch][tick] = r._get_json_dict()
+                    allkey = ['thing', 'place', 'portal']
+                    for k in allkey:
+                        allkeykey = set(
+                            self._copies[branch][tick][k].keys()
+                        ).union(
+                            set(self._copies[branch][hi_t][k].keys())
+                        )
+                        for kk in allkeykey:
+                            assert(
+                                self._copies[branch][tick][k][kk] ==
+                                self._copies[branch][hi_t][k][kk]
+                            )
+                    return r
+        if branch not in self._copychanges:
+            self._copychanges[branch] = {}
+        if branch not in self._copies:
+            self._copies[branch] = {}
+        self._copychanges[branch][tick] = self.changect
+        r = CharacterImage.copychar(self, branch, tick)
+        self._copies[branch][tick] = r._get_json_dict()
+        return r
