@@ -555,11 +555,38 @@ class Thing(ThingPlace):
         elif key == 'location':
             return self['locations'][0]
         elif key == 'arrival_time':
-            return self._get_arrival_time()
+            if not self.engine.caching:
+                return self._get_arrival_time()
+            (branch, tick) = self.engine.time
+            arrt = lambda: max(
+                t for t in
+                self._statcache['locations'][branch]
+                if t <= tick
+            )
+            try:
+                return arrt()
+            except ValueError:
+                getcache(lambda k: self._loc_and_next())
+                return arrt()
         elif key == 'next_location':
             return self['locations'][1]
         elif key == 'next_arrival_time':
-            return self._get_next_arrival_time()
+            if not self.engine.caching:
+                return self._get_next_arrival_time()
+            (branch, tick) = self.engine.time
+            narrt = lambda: min(
+                t for t in
+                self._statcache['locations'][branch]
+                if t > tick
+            )
+            try:
+                return narrt()
+            except ValueError:
+                try:
+                    getcache(lambda k: self._loc_and_next())
+                    return narrt()
+                except ValueError:
+                    return None
         elif key == 'locations':
             return getcache(lambda k: self._loc_and_next())
         else:
