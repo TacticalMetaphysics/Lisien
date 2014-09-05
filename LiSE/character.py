@@ -126,76 +126,6 @@ class TravelException(Exception):
         super().__init__(message)
 
 
-class PlaceImage(dict):
-    """Like a Place but disconnected from the database."""
-    def __init__(self, charimg, *args, **kwargs):
-        """Initialize contents list"""
-        super().__init__(*args, **kwargs)
-        self._charimg = charimg
-
-    def __getitem__(self, k):
-        """Return item from my stats if possible"""
-        try:
-            return super().__getitem__('stat').__getitem__(k)
-        except KeyError:
-            return super().__getitem__(k)
-
-    @property
-    def name(self):
-        return self['name']
-
-    def contents(self):
-        for thing in self._charimg.thing.values():
-            if thing.container is self:
-                yield thing
-
-
-class ThingImage(PlaceImage):
-    """Like a Thing but disconnected from the database."""
-    @property
-    def location(self):
-        try:
-            return self._charimg.thing[self['location']]
-        except KeyError:
-            return self._charimg.place[self['location']]
-
-    @property
-    def next_location(self):
-        try:
-            return self._charimg.thing[self['next_location']]
-        except KeyError:
-            return self._charimg.place[self['next_location']]
-
-    @property
-    def container(self):
-        if self['next_location']:
-            try:
-                return self._charimg.portal[self['location']][
-                    self['next_location']
-                ]
-            except KeyError:
-                return self.location
-        else:
-            return self.location
-
-
-class PortalImage(PlaceImage):
-    """Like a Portal but disconnected from the database."""
-    @property
-    def origin(self):
-        try:
-            return self._charimg.thing[self['origin']]
-        except KeyError:
-            return self._charimg.place[self['origin']]
-
-    @property
-    def destination(self):
-        try:
-            return self._charimg.thing[self['destination']]
-        except KeyError:
-            return self._charimg.place[self['destination']]
-
-
 class CompositeDict(Mapping):
     """Read-only mapping that looks up values in a first dict if
     available, then a second dict if possible.
@@ -225,135 +155,6 @@ class CompositeDict(Mapping):
             return self.d1[k]
         except KeyError:
             return self.d2[k]
-
-
-class CustomDict(dict):
-    def __init__(self, charimg, *args, **kwargs):
-        """Store charimg"""
-        self._charimg = charimg
-        super().__init__(*args, **kwargs)
-
-
-class ThingDict(CustomDict):
-    def __delitem__(self, k):
-        """Convert :class:`ThingImage` into :class:`PlaceImage` when it's
-        deleted
-
-        """
-        deleted = self[k]
-        self._charimg.place[k] = PlaceImage(self._charimg, deleted)
-        super().__delitem__(k)
-
-
-class PlaceDict(CustomDict):
-    def __delitem__(self, k):
-        """Delete contents and portals as well"""
-        deleted = self[k]
-        for c in list(deleted.contents()):
-            del self._charimg.thing[c['name']]
-        if k in self._charimg.portal:
-            del self._charimg.portal[k]
-        if k in self._charimg.preportal:
-            del self._charimg.preportal[k]
-        for o in self._charimg.portal:
-            if k in self._charimg.portal[o]:
-                del self._charimg.portal[o][k]
-        for d in self._charimg.preportal:
-            if k in self._charimg.preportal[d]:
-                del self._charimg.preportal[d][k]
-
-
-class CharacterImage(nx.DiGraph):
-    """Like a Character but disconnected from the database."""
-    def __init__(self):
-        self.thing = ThingDict(self)
-        self.place = PlaceDict(self)
-        self.node = CompositeDict(self.thing, self.place)
-        self.portal = self.succ = self.edge = self.adj = {}
-        self.preportal = self.pred = {}
-        self.graph = {}
-
-    @classmethod
-    def copychar(cls, character, branch, tick):
-        """Copy the status of ``character`` at time ``(branch, tick)``."""
-        self = cls()
-        self.branch = branch
-        self.tick = tick
-        self.character = character
-        self._name = self.character._name
-        for (k, v) in self.character.place.items():
-            self.place[k] = PlaceImage(self, v._get_json_dict())
-        for o in self.character.portal:
-            if o not in self.portal:
-                self.portal[o] = {}
-            for (d, portal) in character.portal[o].items():
-                if d not in self.preportal:
-                    self.preportal[d] = {}
-                cp = (
-                    portal if isinstance(portal, PortalImage)
-                    else PortalImage(self, portal._get_json_dict())
-                )
-                self.portal[o][d] = cp
-                self.preportal[d][o] = cp
-        for (name, thing) in character.thing.items():
-            self.thing[name] = (
-                thing if isinstance(thing, ThingImage)
-                else ThingImage(self, thing._get_json_dict())
-            )
-        return self
-
-    @property
-    def name(self):
-        return json_load(self._name)
-
-    def _get_json_dict(self):
-        portalcopy = {}
-        for o in self.portal:
-            portalcopy[o] = {}
-            for d in self.portal[o]:
-                portalcopy[o][d] = dict(self.portal[o][d])
-        return {
-            "type": "Character",
-            "version": 0,
-            "branch": self.branch,
-            "tick": self.tick,
-            "name": self._name,
-            "place": dict(self.place),
-            "portal": portalcopy,
-            "thing": dict(self.thing),
-            "stat": dict(self.graph)
-        }
-
-    def dump(self):
-        """Return a JSON description of a CharacterImage"""
-        return json_dump(self._get_json_dict())
-
-    @classmethod
-    def _from_json_dict(cls, d):
-        self = cls()
-        self.branch = d['branch']
-        self.tick = d['tick']
-        self._name = d['name']
-        for (k, v) in d['thing'].items():
-            self.thing[k] = ThingImage(self, v)
-        for (k, v) in d['place'].items():
-            self.place[k] = PlaceImage(self, v)
-        for o in d['portal'].keys():
-            for (dest, v) in d['portal'][o].items():
-                image = PortalImage(self, v)
-                if o not in self.portal:
-                    self.portal[o] = {}
-                if dest not in self.preportal:
-                    self.preportal[dest] = {}
-                self.portal[o][dest] = image
-                self.preportal[dest][o] = image
-        self.graph.update(d['stat'])
-        return self
-
-    @classmethod
-    def load(cls, json):
-        """Return a CharacterImage from a JSON description of one"""
-        return cls._from_json_dict(json_load(json))
 
 
 class ThingPlace(GraphNodeMapping.Node):
@@ -2105,7 +1906,7 @@ class SenseFuncWrap(object):
         """Call the function, prefilling the engine and observer arguments"""
         if isinstance(observed, str):
             observed = self.engine.character[observed]
-        return self.fun(self.engine, self.character, observed.copy())
+        return self.fun(self.engine, self.character, Facade(observed))
 
 
 class CharacterSense(object):
@@ -2157,7 +1958,10 @@ class CharacterSense(object):
 
         """
         r = self.func(observed)
-        if not (isinstance(r, Character) or isinstance(r, CharacterImage)):
+        if not (
+                isinstance(r, Character) or
+                isinstance(r, Facade)
+        ):
             raise TypeError(
                 "Sense function did not return a character-like object"
             )
@@ -2327,6 +2131,271 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
         if name is None:
             name = fun.__name__
         self[name] = fun
+
+
+class FacadePlace(MutableMapping):
+    @property
+    def name(self):
+        return self['name']
+
+    def contents(self):
+        for thing in self.facade.thing.values():
+            if thing.container is self:
+                yield thing
+
+    def __init__(self, facade, real):
+        self.facade = facade
+        self._real = real
+        self._patch = {}
+        self._masked = set()
+
+    def __iter__(self):
+        seen = set()
+        for k in self._real:
+            if k not in self._masked:
+                yield k
+            seen.add(k)
+        for k in self._patch:
+            if (
+                    k not in self._masked and
+                    k not in seen
+            ):
+                yield k
+
+    def __len__(self):
+        n = 0
+        for k in self:
+            n += 1
+        return n
+
+    def __getitem__(self, k):
+        if k in self._masked:
+            raise KeyError("masked")
+        if k in self._patch:
+            return self._patch[k]
+        return self._real[k]
+
+    def __setitem__(self, k, v):
+        self._masked.discard(k)
+        self._patch[k] = v
+
+    def __delitem__(self, k):
+        self._masked.add(k)
+
+
+class FacadeThing(FacadePlace):
+    @property
+    def location(self):
+        try:
+            return self.facade.node[self['location']]
+        except KeyError:
+            return None
+
+    @property
+    def next_location(self):
+        try:
+            return self.facade.node[self['next_location']]
+        except KeyError:
+            return None
+
+    @property
+    def container(self):
+        try:
+            return self.facade.portal[self['location']][
+                self['next_location']]
+        except KeyError:
+            return self.location
+
+
+class FacadePortal(FacadePlace):
+    @property
+    def origin(self):
+        return self.facade.node[self['origin']]
+
+    @property
+    def destination(self):
+        return self.facade.node[self['destination']]
+
+
+class FacadeEntityMapping(MutableMapping):
+    def __init__(self, facade):
+        self.facade = facade
+        self._patch = {}
+        self._masked = set()
+
+    def __contains__(self, k):
+        return (
+            k not in self._masked and (
+                k in self._patch or
+                k in self._get_inner_map()
+            )
+        )
+
+    def __iter__(self):
+        seen = set()
+        for k in self._get_inner_map():
+            if k not in self._masked:
+                yield k
+            seen.add(k)
+        for k in self._patch:
+            if k not in seen:
+                yield k
+
+    def __len__(self):
+        n = 0
+        for k in self:
+            n += 1
+        return n
+
+    def __getitem__(self, k):
+        if k in self._masked:
+            raise KeyError("masked")
+        if k in self._patch:
+            return self._patch[k]
+        return self.facadecls(self.facade, self._get_inner_map()[k])
+
+    def __setitem__(self, k, v):
+        if not isinstance(v, self.facadecls):
+            if not isinstance(v, self.innercls):
+                raise TypeError(
+                    "Need :class:``Thing`` or :class:``FacadeThing``"
+                )
+            v = self.facadecls(self.facade, v)
+        self._masked.discard(k)
+        self._patch[k] = v
+
+    def __delitem__(self, k):
+        self._masked.add(k)
+
+
+class FacadeThingMapping(FacadeEntityMapping):
+    facadecls = FacadeThing
+    innercls = Thing
+
+    def _get_inner_map(self):
+        return self.facade.character.thing
+
+
+class FacadePlaceMapping(FacadeEntityMapping):
+    facadecls = FacadePlace
+    innercls = Place
+
+    def _get_inner_map(self):
+        return self.facade.character.place
+
+
+class FacadePortalSuccessors(FacadeEntityMapping):
+    facadecls = FacadePortal
+    innercls = Portal
+
+    def __init__(self, facade, origname):
+        super().__init__(facade)
+        self._origname = origname
+
+    def _get_inner_map(self):
+        return self.facade.character.portal[self._origname]
+
+
+class FacadePortalPredecessors(FacadeEntityMapping):
+    facadecls = FacadePortal
+    innercls = Portal
+
+    def __init__(self, facade, destname):
+        super().__init__(facade)
+        self._destname = destname
+
+    def _get_inner_map(self):
+        return self.facade.character.preportal[self._destname]
+
+
+class FacadePortalMapping(FacadeEntityMapping):
+    def __getitem__(self, node):
+        if node in self._masked:
+            raise KeyError("masked")
+        if node in self._patch:
+            return self._patch[node]
+        return self.cls(self.facade, node)
+
+    def __setitem__(self, node, value):
+        self._masked.discard(node)
+        v = self.cls(self.facade, node)
+        v.update(value)
+        self._patch[node] = v
+
+    def __delitem__(self, node):
+        self._masked.add(node)
+
+
+class FacadePortalSuccessorsMapping(FacadePortalMapping):
+    cls = FacadePortalSuccessors
+
+    def _get_inner_map(self):
+        return self.facade.character.portal
+
+
+class FacadePortalPredecessorsMapping(FacadePortalMapping):
+    cls = FacadePortalPredecessors
+
+    def _get_inner_map(self):
+        return self.facade.character.preportal
+
+
+class FacadeStatsMapping(MutableMapping):
+    def __init__(self, facade):
+        self.facade = facade
+        self._patch = {}
+        self._masked = set()
+
+    def __iter__(self):
+        seen = set()
+        for k in self.facade.graph:
+            if k not in self._masked:
+                yield k
+            seen.add(k)
+        for k in self._patch:
+            if k not in seen:
+                yield k
+
+    def __len__(self):
+        n = 0
+        for k in self:
+            n += 1
+        return n
+
+    def __contains__(self, k):
+        if k in self._masked:
+            return False
+        return (
+            k in self._patch or
+            k in self.facade.graph
+        )
+
+    def __getitem__(self, k):
+        if k in self._masked:
+            raise KeyError("masked")
+        if k in self._patch:
+            return self._patch[k]
+        return self.facade.graph[k]
+
+    def __setitem__(self, k, v):
+        self._masked.discard(k)
+        self._patch[k] = v
+
+    def __delitem__(self, k):
+        self._masked.add(k)
+
+
+class Facade(nx.DiGraph):
+    def __init__(self, character):
+        self.character = character
+        self.thing = FacadeThingMapping(self)
+        self.place = FacadePlaceMapping(self)
+        self.node = CompositeDict(self.thing, self.place)
+        self.portal = FacadePortalSuccessorsMapping(self)
+        self.succ = self.edge = self.adj = self.portal
+        self.preportal = FacadePortalPredecessorsMapping(self)
+        self.pred = self.preportal
+        self.graph = FacadeStatsMapping(self)
 
 
 class CharStatCache(MutableMapping):
@@ -2790,60 +2859,3 @@ class Character(DiGraph, RuleFollower):
                 if (graphn, noden) not in seen and is_avatar:
                     yield self.engine.character[graphn].node[noden]
                 seen.add((graphn, noden))
-
-    def copy(self):
-        """Return a :class:`CharacterImage` representing my status at the
-        moment.
-
-        Changes to the image won't hit the database. The image
-        contains only images representing Place, Portal, and
-        Thing, not actual instances of those classes.
-
-        """
-        (branch, tick) = self.engine.time
-        if not self.engine.caching:
-            return CharacterImage.copychar(self, branch, tick)
-        if (
-                branch in self._copychanges and
-                tick in self._copychanges[branch] and
-                self.changect == self._copychanges[branch][tick]
-        ):
-            return CharacterImage._from_json_dict(
-                self._copies[branch][tick]
-            )
-        if (
-                branch in self._copychanges and
-                tick not in self._copychanges
-        ):
-            ts = [t for t in self._copychanges[branch] if t < tick]
-            if ts:
-                hi_t = max(ts)
-                if self.changect == self._copychanges[branch][hi_t]:
-                    r = CharacterImage._from_json_dict(
-                        self._copies[branch][hi_t]
-                    )
-                    self._copychanges[branch][tick] = self.changect
-                    # roundabout way of copying but copy.deepcopy
-                    # seemed not to work, idk
-                    self._copies[branch][tick] = r._get_json_dict()
-                    allkey = ['thing', 'place', 'portal']
-                    for k in allkey:
-                        allkeykey = set(
-                            self._copies[branch][tick][k].keys()
-                        ).union(
-                            set(self._copies[branch][hi_t][k].keys())
-                        )
-                        for kk in allkeykey:
-                            assert(
-                                self._copies[branch][tick][k][kk] ==
-                                self._copies[branch][hi_t][k][kk]
-                            )
-                    return r
-        if branch not in self._copychanges:
-            self._copychanges[branch] = {}
-        if branch not in self._copies:
-            self._copies[branch] = {}
-        self._copychanges[branch][tick] = self.changect
-        r = CharacterImage.copychar(self, branch, tick)
-        self._copies[branch][tick] = r._get_json_dict()
-        return r
