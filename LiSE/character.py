@@ -2534,9 +2534,6 @@ class Character(DiGraph, RuleFollower):
             [name],
             'reqs'
         )
-        self.changect = 0
-        self._copychanges = {}
-        self._copies = {}
         if engine.caching:
             self.stat = CharStatCache(self)
         else:
