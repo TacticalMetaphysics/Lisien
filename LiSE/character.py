@@ -1824,16 +1824,38 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
 
     def __getitem__(self, g):
         """Get the CharacterAvatarMapping for the given graph, if I have any
-        avatars in it. Otherwise raise KeyError.
+        avatars in it.
+
+        If I have avatars in only one graph, behave as a proxy to that
+        graph's CharacterAvatarMapping.
+
+        Unless I have only one avatar anywhere, in which case be a
+        proxy to that.
 
         """
         d = self._datadict()
         if g in d:
             return self.CharacterAvatarMapping(self, g)
-        else:
-            if len(d.keys()) == 1:
-                return self.CharacterAvatarMapping(self, list(d.keys())[0])[g]
-        raise KeyError("No avatars in {}".format(g))
+        elif len(d.keys()) == 1:
+            avm = self.CharacterAvatarMapping(self, list(d.keys())[0])
+            if len(avm.keys()) == 1:
+                return avm[list(avm.keys())[0]][g]
+            else:
+                return avm[g]
+        raise KeyError("No avatar in {}".format(g))
+
+    def __getattr__(self, attr):
+        """If I've got only one avatar, return its attribute"""
+        d = self._datadict()
+        if len(d.keys()) == 1:
+            avs = self.CharacterAvatarMapping(self, list(d.keys())[0])
+            if len(avs) == 1:
+                av = list(avs.keys())[0]
+                if attr == av:
+                    return avs[attr]
+                else:
+                    return getattr(avs[list(avs.keys())[0]], attr)
+        raise AttributeError
 
     def __repr__(self):
         """Represent myself like a dictionary"""
@@ -1852,7 +1874,9 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             self.character = outer.character
             self.engine = outer.engine
             self.name = outer.name
+            self._name = outer._name
             self.graph = graphn
+            self._graph = json_dump(graphn)
 
         def _branchdata(self, branch, rev):
             return self.engine.cursor.execute(
@@ -1915,7 +1939,11 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                 for (node, extant) in self._branchdata(branch, rev):
                     n = json_load(node)
                     x = bool(extant)
-                    if x and n not in seen:
+                    if (
+                            x and
+                            n not in seen and
+                            self.engine._node_exists(self.graph, n)
+                    ):
                         yield n
                     seen.add(n)
 
@@ -1946,7 +1974,10 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                     )
                 )
                 try:
-                    return bool(self.engine.cursor.fetchone()[0])
+                    return (
+                        self.engine.cursor.fetchone()[0] and
+                        self.engine._node_exists(av)
+                    )
                 except (TypeError, IndexError):
                     continue
             return False
@@ -1972,18 +2003,10 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
 
             """
             if av in self:
-                if self.engine._is_thing(self.graph, av):
-                    return Thing(
-                        self.engine.character[self.graph],
-                        av
-                    )
-                else:
-                    return Place(
-                        self.engine.character[self.graph],
-                        av
-                    )
-            if len(self) == 1:
-                return self[next(iter(self))][av]
+                return self.engine.character[self.graph].node[av]
+            if len(self.keys()) == 1:
+                k = list(self.keys())[0]
+                return self.engine.character[self.graph].node[k]
             raise KeyError("No such avatar")
 
         def __repr__(self):
