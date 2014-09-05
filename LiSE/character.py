@@ -2033,13 +2033,14 @@ class SenseFuncWrap(object):
             self.fun = self.engine.sense[fun]
         else:
             self.fun = fun
-        assert(isinstance(self.fun, Callable))
+        if not isinstance(self.fun, Callable):
+            raise TypeError("Function is not callable")
 
     def __call__(self, observed):
         """Call the function, prefilling the engine and observer arguments"""
         if isinstance(observed, str):
             observed = self.engine.character[observed]
-        return self.fun(self.engine, self.character, observed)
+        return self.fun(self.engine, self.character, observed.copy())
 
 
 class CharacterSense(object):
