@@ -431,7 +431,6 @@ class Thing(ThingPlace):
                 value,
                 setter
             )
-            self.character.changect += 1
 
         if key == 'name':
             raise ValueError("Can't change names")
@@ -494,7 +493,6 @@ class Thing(ThingPlace):
             key,
             super().__delitem__
         )
-        self.character.changect += 1
 
     def _get_arrival_time(self):
         curloc = json_dump(self['location'])
@@ -692,7 +690,6 @@ class Thing(ThingPlace):
                     tick
                 )
             )
-        self.character.changect += 1
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a Place that has a Portal direct to the given
@@ -914,7 +911,6 @@ class Place(ThingPlace):
             value,
             super().__setitem__
         )
-        self.character.changect += 1
 
     def __delitem__(self, key):
         if not self.engine.caching:
@@ -928,7 +924,6 @@ class Place(ThingPlace):
             key,
             super().__delitem__
         )
-        self.character.changect += 1
 
     def _get_json_dict(self):
         (branch, tick) = self.engine.time
@@ -1083,7 +1078,6 @@ class Portal(GraphEdgeMapping.Edge):
             value,
             super().__setitem__
         )
-        self.character.changect += 1
 
     def __delitem__(self, key):
         """Invalidate my :class:`Character`'s cache of portal traits"""
@@ -1101,7 +1095,6 @@ class Portal(GraphEdgeMapping.Edge):
             key,
             super().__delitem__
         )
-        self.character.changect += 1
 
     @property
     def origin(self):
@@ -1313,7 +1306,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         th.clear()
         th.exists = True
         th.update(val)
-        self.character.changect += 1
         try:
             self._cache[thing] = th
         except AttributeError:
@@ -1328,7 +1320,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             th = Thing(self.character, thing)
         th.exists = False
         th.clear()
-        self.character.changect += 1
         assert(thing not in self)
 
     def __repr__(self):
@@ -1429,7 +1420,6 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         pl.clear()
         pl.exists = True
         pl.update(v)
-        self.character.changect += 1
         if hasattr(self, '_cache'):
             self._cache[place] = pl
 
@@ -1438,7 +1428,6 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         if hasattr(self, '_cache') and place in self._cache:
             self._cache[place].clear()
             del self._cache[place]
-            self.character.changect += 1
         else:
             Place(self.character, place).clear()
 
@@ -1541,7 +1530,6 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
             p.clear()
             p.exists = True
             p.update(value)
-            self.graph.changect += 1
             if '_paths' in self.graph.graph:
                 del self.graph.graph['_paths']
                 self.graph._paths = {}
@@ -1555,7 +1543,6 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
                     raise KeyError("No such node")
                 n.clear()
                 del self._cache[nodeB]
-                self.graph.changect += 1
             else:
                 super().__delitem__(nodeB)
 
@@ -1596,7 +1583,6 @@ class CharacterPortalPredecessorsMapping(
             p.clear()
             p.exists = True
             p.update(value)
-            self.graph.changect += 1
             if '_paths' in self.graph.graph:
                 del self.graph.graph['_paths']
                 if hasattr(self.graph, '_paths'):
@@ -1613,7 +1599,6 @@ class CharacterPortalPredecessorsMapping(
                 del self.graph.portal[nodeA].cache[self.nodeB]
             else:
                 super().__delitem__(nodeA)
-            self.graph.changect += 1
 
 
 class CharacterAvatarGraphMapping(Mapping, RuleFollower):
@@ -2445,7 +2430,6 @@ class CharStatCache(MutableMapping):
         self._cache[k][branch][tick] = v
         self._real[k] = v
         self.__getitem__(k)
-        self.character.changect += 1
 
     def __delitem__(self, k):
         """Clear the cached value and delete the normal way"""
@@ -2457,7 +2441,6 @@ class CharStatCache(MutableMapping):
             ):
                 del self._cache[k][branch][staletick]
         del self._real[k]
-        self.character.changect += 1
 
 
 class Character(DiGraph, RuleFollower):
@@ -2756,7 +2739,6 @@ class Character(DiGraph, RuleFollower):
                     tick
                 )
             )
-        self.changect += 1
 
     def del_avatar(self, host, name):
         """Way to delete avatars for if you don't want to do it in the avatar
@@ -2798,7 +2780,6 @@ class Character(DiGraph, RuleFollower):
                     tick
                 )
             )
-        self.changect += 1
 
     def iter_portals(self):
         """All portals"""
