@@ -20,11 +20,11 @@ but the player experiences this only as a strategic concern.
 Existing games that LiSE seeks to imitate include:
 
 * The Sims
-* Kudos
 * Redshirt
 * Animal Crossing
 * Monster Rancher
 * Dwarf Fortress
+* Democracy
 
 # Why should I use LiSE for this purpose?
 
@@ -100,8 +100,7 @@ def breakcover(engine, character, avatar):
     sprint anyway.
 
     """
-    # This is checked after uncovered so I don't need to re-check
-    # for shrubbery.
+    # This is declared after uncovered, and is therefore checked later.
     return engine.random() < character.stat['sprint_chance']
 
 @shrubsprint.prereq
@@ -128,7 +127,7 @@ wallpape.jpg is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stu
 
 LiSE currently has two graphics sets, the [RLTiles](http://rltiles.sourceforge.net/) and [Pixel City](http://opengameart.org/content/pixel-city), both available under [CC0](http://creativecommons.org/publicdomain/zero/1.0/), being in the public domain where it exists.
 
-networkx, which forms the basis of LiSE's data model, is available under [BSD](http://networkx.github.io/documentation/latest/reference/legal.html). My versions of the networkx graph classes are kept in a separate package, [gorm](https://github.com/LogicalDash/gorm), and released under the same license.
+[networkx](http://networkx.github.io/), which forms the basis of LiSE's data model, is available under [BSD](http://networkx.github.io/documentation/latest/reference/legal.html). My versions of the networkx graph classes are kept in a separate package, [gorm](https://github.com/LogicalDash/gorm), and released under the same license.
 
 The icons are [Entypo](http://entypo.com/), in the file Entypo.ttf, freely available at under the terms of [Creative Commons BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/).
 
