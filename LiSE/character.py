@@ -2458,6 +2458,8 @@ class Character(DiGraph, RuleFollower):
             'reqs'
         )
         self._copychanges = self.changes = 0
+        (self._copybranch, self._copytick) = self.engine.time
+        self._copies = {}
         if engine.caching:
             self.stat = CharStatCache(self)
         else:
@@ -2790,8 +2792,8 @@ class Character(DiGraph, RuleFollower):
         Thing, not actual instances of those classes.
 
         This has a caching mechanism that assumes time will always
-        move forwards. If that's not the case, create a CharacterImage
-        manually.
+        move forwards tick-by-tick. If that's not the case, create a
+        CharacterImage manually.
 
         """
         (branch, tick) = self.engine.time
@@ -2799,11 +2801,21 @@ class Character(DiGraph, RuleFollower):
             return CharacterImage(self, branch, tick)
         if (
                 self.changes == self._copychanges and
-                hasattr(self, '_copy')
+                self._copybranch == branch and
+                [t for t in self._copies if t < tick]
         ):
-            return CharacterImage._from_json_dict(self._copy)
-        self._copy = CharacterImage.copychar(
+            try:
+                return CharacterImage._from_json_dict(self._copies[tick])
+            except KeyError:
+                self._copies[tick] = self._copies[
+                    max(t for t in self._copies if t < tick)
+                ]
+                return CharacterImage._from_json_dict(self._copies[tick])
+        if self._copybranch != branch:
+            self._copybranch = branch
+            self._copies = {}
+        self._copies[tick] = CharacterImage.copychar(
             self, branch, tick
         )._get_json_dict()
         self._copychanges = self.changes
-        return CharacterImage._from_json_dict(self._copy)
+        return CharacterImage._from_json_dict(self._copies[tick])
