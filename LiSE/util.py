@@ -3,14 +3,105 @@
 """Common utility functions and data structures.
 
 """
+from collections import Mapping
 from math import sqrt, hypot, atan, pi, sin, cos
 
-### Constants
+
 phi = (1.0 + sqrt(5))/2.0
 """The golden ratio."""
 
-### End constants
-### Begin functions
+
+class CompositeDict(Mapping):
+    """Read-only mapping that looks up values in a first dict if
+    available, then a second dict if possible.
+
+    Assumes the dicts have no overlap.
+
+    """
+    def __init__(self, d1, d2):
+        """Store dictionaries"""
+        self.d1 = d1
+        self.d2 = d2
+
+    def __iter__(self):
+        """Iterate over both dictionaries' keys"""
+        for k in self.d1:
+            yield k
+        for k in self.d2:
+            yield k
+
+    def __len__(self):
+        """Sum the lengths of both dictionaries"""
+        return len(self.d1) + len(self.d2)
+
+    def __getitem__(self, k):
+        """Get an item from ``d1`` if possible, then ``d2``"""
+        try:
+            return self.d1[k]
+        except KeyError:
+            return self.d2[k]
+
+
+# ==Caching==
+def keycache_iter(keycache, branch, tick, get_iterator):
+    if branch not in keycache:
+        keycache[branch] = {}
+    if tick not in keycache[branch]:
+        keycache[branch][tick] = set(get_iterator())
+    yield from keycache[branch][tick]
+
+
+def cache_get(cache, keycache, branch, tick, key, getter):
+    """Utility function to retrieve something from a branch/tick-indexed
+    cache if possible, and if not, retrieve it using ``getter`` (and
+    add it to the cache).
+
+    """
+    if key not in cache:
+        cache[key] = {}
+    if branch not in cache[key]:
+        cache[key][branch] = {}
+    if tick not in cache[key][branch]:
+        cache[key][branch][tick] = getter(key)
+    return cache[key][branch][tick]
+
+
+def cache_set(cache, keycache, branch, tick, key, value, setter):
+    """Utility function to both set ``key = value`` using ``setter`` and
+    add ``value`` to the cache, indexed with ``branch`` and then
+    ``tick``.
+
+    """
+    if key not in cache:
+        cache[key] = {}
+    if branch not in cache[key]:
+        cache[key][branch] = {}
+    cache[key][branch][tick] = value
+    if (
+            branch in keycache and
+            tick in keycache[branch]
+    ):
+        keycache[branch][tick].add(key)
+    setter(key, value)
+
+
+def cache_del(cache, keycache, branch, tick, key, deleter):
+    """Utility function to both delete the key from the
+    branch/tick-indexed cache, and delete it using ``deleter``.
+
+    """
+    if (
+            key in cache and
+            branch in cache[key] and
+            tick in cache[key][branch]
+    ):
+        del cache[key][branch][tick]
+    if (
+            branch in keycache and
+            tick in keycache[branch]
+    ):
+        keycache[branch][tick].remove(key)
+    deleter(key)
 
 
 def passthru(_):
@@ -34,6 +125,7 @@ def path_len(graph, path, weight=None):
         n += edge[weight] if weight and hasattr(edge, weight) else 1
         prevnode = nextnode
     return n
+
 
 def slope_theta_rise_run(rise, run):
     """Return a radian value expressing the angle at the lower-left corner
