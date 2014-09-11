@@ -4,7 +4,8 @@
 from kivy.properties import (
     ListProperty,
     ObjectProperty,
-    BooleanProperty
+    BooleanProperty,
+    AliasProperty
 )
 from kivy.clock import Clock
 from ..texturestack import ImageStack
@@ -20,14 +21,25 @@ class Spot(ImageStack):
     """
     place = ObjectProperty()
     board = ObjectProperty()
-    engine = ObjectProperty()
+    engine = AliasProperty(
+        lambda self: self.board.engine if self.board else None,
+        lambda self, v: None,
+        bind=('board',)
+    )
     _ignore_place = BooleanProperty(False)
-    _touch = ObjectProperty(None, allownone=True)
+    _touchpos = ListProperty([])
     pawns_here = ListProperty([])
 
     def __init__(self, **kwargs):
+        """Deal with triggers and bindings, and arrange to take care of
+        changes in game-time.
+
+        """
         self._trigger_move_to_touch = Clock.create_trigger(self._move_to_touch)
-        self._trigger_upd_pawns_here = Clock.create_trigger(self._upd_pawns_here)
+        self._trigger_upd_pawns_here = Clock.create_trigger(
+            self._upd_pawns_here
+        )
+        self._trigger_update = Clock.create_trigger(self._update)
         kwargs['size_hint'] = (None, None)
         super().__init__(**kwargs)
         self.board.spot[self.place.name] = self
@@ -35,78 +47,87 @@ class Spot(ImageStack):
             pawns_here=self._trigger_upd_pawns_here,
             center=self._trigger_upd_pawns_here
         )
-        self.engine.on_time(
-            self.engine.function(
-                self.handle_time,
-                self.place.name + "_handle_time"
-            )
+        self._ignore_place = True
+        self.pos = (
+            self.place['_x'] * self.board.width,
+            self.place['_y'] * self.board.height
         )
-        self.handle_time(*self.engine.time)
+        self._ignore_place = False
+        self.paths = self.place['_image_paths']
 
-    def on_x(self, *args):
-        if not self._ignore_place:
-            self.place["_x"] = self.x
-
-    def on_y(self, *args):
-        if not self._ignore_place:
-            self.place["_y"] = self.y
+    def _update(self, *args):
+        if self not in self.board.spots_to_update:
+            return
+        if self.place['_image_paths'] != self.paths:
+            self.paths = self.place['_image_paths']
+        if (
+                self.place['_x'] != self.x / self.board.width or
+                self.place['_y'] != self.y / self.board.height
+        ):
+            self._ignore_place = True
+            self.pos = (
+                self.place['_x'] * self.board.width,
+                self.place['_y'] * self.board.height
+            )
+            self._ignore_place = False
+        self.board.spots_to_update.remove(self)
 
     def on_paths(self, *args):
+        """When I get different imagery, save it in my :class:`Place`"""
         if not self._ignore_place:
             self.place["_image_paths"] = self.paths
         super().on_paths(*args)
 
-    def handle_time(self, *args):
-        self._ignore_place = True
-        try:
-            self.pos = (self.place["_x"], self.place["_y"])
-        except KeyError:
-            self.pos = (100, 100)
-        try:
-            self.paths = self.place["_image_paths"]
-        except KeyError:
-            import ELiDE
-            self.paths = [ELiDE.__path__[0] + "/assets/orb.png"]
-        self._ignore_place = False
+    def on_x(self, *args):
+        if self._ignore_place:
+            return
+        self.place['_x'] = self.x / self.board.width
+
+    def on_y(self, *args):
+        if self._ignore_place:
+            return
+        self.place['_y'] = self.y / self.board.height
 
     def _upd_pawns_here(self, *args):
+        """Move any :class:`Pawn` atop me so it still *is* on top of me,
+        presumably after I've moved.
+
+        """
         for pawn in self.pawns_here:
             pawn.pos = self.center
 
-    def collide_point(self, x, y):
-        return super().collide_point(*self.parent.to_local(x, y))
-
     def on_touch_down(self, touch):
+        """If the touch hits me, grab it and put myself in its userdict"""
         if (
                 not self.collide_point(*touch.pos)
                 or 'spot' in touch.ud
+                or 'portaling' in touch.ud
         ):
             return
-        print("touch at {} hit spot of size {} at {}".format(touch.pos, self.size, self.pos))
         touch.grab(self)
         touch.ud['spot'] = self
         self._touch = touch
         return self
 
     def on_touch_move(self, touch):
-        if 'portaling' in touch.ud or 'pawn' in touch.ud:
-            touch.ungrab(self)
+        """If I'm being dragged, move to follow the touch."""
+        if (
+                'spot' not in touch.ud or
+                touch.ud['spot'] is not self
+        ):
             return
-        elif 'spot' in touch.ud:
-            if touch.ud['spot'] is not self:
-                return
-            self._touch = touch
-            self._trigger_move_to_touch()
-            return self
+        self._touchpos = touch.pos
+        self._trigger_move_to_touch()
+        return self
 
     def _move_to_touch(self, *args):
-        if self._touch:
-            self.center = self._touch.pos
+        if self._touchpos != []:
+            self.center = self._touchpos
 
     def on_touch_up(self, touch):
-        if self._touch:
+        if self._touchpos:
             self.coords = self.pos
-        self._touch = None
+        self._touchpos = []
         if self.collide_point(*touch.pos):
             return self
 

@@ -1,11 +1,11 @@
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
+    NumericProperty,
     BoundedNumericProperty,
     ObjectProperty,
     StringProperty,
-    DictProperty,
-    AliasProperty
+    DictProperty
 )
 from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
@@ -14,6 +14,7 @@ from kivy.uix.textinput import TextInput
 from kivy.factory import Factory
 
 from .charsheet import CharSheet
+from .board import Board
 from .texturestack import ImageStack
 
 import LiSE
@@ -22,6 +23,7 @@ import ELiDE
 _ = lambda x: x
 
 Factory.register('CharSheet', cls=CharSheet)
+Factory.register('Board', cls=Board)
 
 
 class TouchlessWidget(Widget):
@@ -110,37 +112,100 @@ class ELiDELayout(FloatLayout):
     creating a Portal between them."""
     playspeed = BoundedNumericProperty(0, min=0)
     grabbed = ObjectProperty(None, allownone=True)
-    engine = AliasProperty(
-        lambda self: self.app.engine,
-        lambda self, v: None,
-        bind=('app',)
-    )
+    engine = ObjectProperty()
+    tick_results = DictProperty({})
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
+
+    def on_branch(self, *args):
+        self.ids.board._trigger_update()
+
+    def advance(self):
+        if self.branch != self.engine.branch:
+            self.branch = self.engine.branch
+        if self.tick != self.engine.tick:
+            self.tick = self.engine.tick
+        if self.branch not in self.tick_results:
+            self.tick_results[self.branch] = {}
+        if self.tick not in self.tick_results[self.branch]:
+            self.tick_results[self.branch][self.tick] = []
+        r = self.tick_results[self.branch][self.tick]
+        try:
+            r.append(next(self.engine._rules_iter))
+        except StopIteration:
+            if not self.engine._have_rules():
+                raise ValueError(
+                    "No rules available; can't advance."
+                )
+            self.tick += 1
+            self.engine.tick += 1
+            assert(self.tick == self.engine.tick)
+            self.tick_results[self.branch][self.tick] = []
+            self.engine.universal['rando_state'] = (
+                self.engine.rando.getstate()
+            )
+            if (
+                    self.engine.commit_modulus and
+                    self.tick % self.engine.commit_modulus == 0
+            ):
+                self.engine.worlddb.commit()
+            r = self.tick_results[self.branch][self.tick]
+            self.ids.board._trigger_update()
+
+    def next_tick(self, *args):
+        curtick = self.tick
+        self.advance()
+        if self.tick == curtick:
+            Clock.schedule_once(self.next_tick, 0)
 
     def on_touch_down(self, touch):
         """Delegate first to the charsheet, then to the board, then to the
         boardview.
 
         """
-        self.grabbed = self.ids.charsheet.on_touch_down(touch)
+        if self.ids.menu.collide_point(*touch.pos):
+            touch.grab(self.ids.menu)
+            return self.ids.menu.on_touch_down(touch)
+        self.grabbed = self.ids.charsheetview.on_touch_down(touch)
         if self.grabbed is None:
+            touch.push()
+            touch.apply_transform_2d(self.ids.boardview.to_local)
             self.grabbed = self.ids.board.on_touch_down(touch)
+            touch.pop()
         if self.grabbed is None:
             return self.ids.boardview.on_touch_down(touch)
+        else:
+            return self.grabbed
 
     def on_touch_move(self, touch):
         """If something's been grabbed, transform the touch to the boardview's
         space and then delegate there.
 
         """
+        if touch.grab_current == self.ids.menu:
+            return self.ids.menu.on_touch_move(touch)
         # I think I should handle charsheet special
+        touch.push()
+        touch.apply_transform_2d(self.ids.boardview.to_local)
         if self.grabbed is None:
+            touch.pop()
             return self.ids.boardview.on_touch_move(touch)
         else:
-            touch.push()
-            touch.apply_transform_2d(self.ids.boardview.to_local)
             r = self.grabbed.on_touch_move(touch)
             touch.pop()
             return r
+
+    def on_touch_up(self, touch):
+        if touch.grab_current == self.ids.menu:
+            return self.ids.menu.on_touch_up(touch)
+        self.ids.boardview.on_touch_up(touch)
+        self.ids.charsheetview.on_touch_up(touch)
+        touch.push()
+        touch.apply_transform_2d(self.ids.boardview.to_local)
+        self.ids.board.on_touch_up(touch)
+        touch.pop()
+        self.grabbed = None
+        return True
 
 
 Factory.register('ELiDELayout', cls=ELiDELayout)
@@ -234,7 +299,9 @@ class ELiDEApp(App):
         )
         for char in config['ELiDE']['boardchar'], config['ELiDE']['sheetchar']:
             if char not in self.engine.character:
+                print("adding character: {}".format(char))
                 self.engine.add_character(char)
+        self.engine.character['dwarf'].stat._not_null('sight_radius')
         l = ELiDELayout(app=self)
         from kivy.core.window import Window
         from kivy.modules import inspector

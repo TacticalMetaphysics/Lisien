@@ -382,7 +382,10 @@ class CharacterMapping(MutableMapping):
         return Character(self.engine, name)
 
     def __setitem__(self, name, value):
-        Character(self.engine, name, data=value)
+        if isinstance(value, Character):
+            self._cache[name] = value
+            return
+        self._cache[name] = Character(self.engine, name, data=value)
 
     def __delitem__(self, name):
         if hasattr(self, '_cache') and name in self._cache:
@@ -422,9 +425,16 @@ class Engine(object):
         self.commit_modulus = commit_modulus
         self.gettext = gettext
         self.dicecmp = dicecmp
+        self.random_seed = random_seed
         self.worlddb = connect(worlddb)
         self.codedb = connect(codedb)
         self.gorm = gORM(self.worlddb)
+        self.time_listeners = []
+        self.rule = AllRules(self)
+        self.eternal = EternalVarMapping(self)
+        self.universal = GlobalVarMapping(self)
+        self.character = CharacterMapping(self)
+        # start the database
         stores = ('action', 'prereq', 'trigger', 'sense', 'function')
         for store in stores:
             setattr(self, store, FunctionStoreDB(self.codedb, store))
@@ -436,14 +446,10 @@ class Engine(object):
             ).fetchall()
         except OperationalError:
             self.initdb()
-        self.gorm._obranch = self.gorm.branch
-        self.gorm._orev = self.gorm.rev
-        self._active_branches_cache = []
-        self.time_listeners = []
-        self.rule = AllRules(self)
-        self.eternal = EternalVarMapping(self)
-        self.universal = GlobalVarMapping(self)
-        self.character = CharacterMapping(self)
+        if self.caching:
+            self.gorm._obranch = self.gorm.branch
+            self.gorm._orev = self.gorm.rev
+            self._active_branches_cache = []
         for (charn,) in self.cursor.execute(
                 "SELECT character FROM characters;"
         ):
@@ -455,7 +461,7 @@ class Engine(object):
         if 'rando_state' in self.universal:
             self.rando.setstate(self.universal['rando_state'])
         else:
-            self.rando.seed(random_seed)
+            self.rando.seed(self.random_seed)
             self.universal['rando_state'] = self.rando.getstate()
         self.betavariate = self.rando.betavariate
         self.choice = self.rando.choice
@@ -480,7 +486,7 @@ class Engine(object):
     def _node_exists(self, graph, node):
         """Version of gorm's ``_node_exists`` that caches stuff"""
         if not self.caching:
-            return super()._node_exists(graph, node)
+            return self.gorm._node_exists(graph, node)
         (branch, rev) = self.time
         if graph not in self._existence:
             self._existence[graph] = {}
@@ -493,7 +499,7 @@ class Engine(object):
             try:
                 d[rev] = d[max(k for k in d.keys() if k < rev)]
             except ValueError:
-                d[rev] = super()._node_exists(graph, node)
+                d[rev] = self.gorm._node_exists(graph, node)
         return self._existence[graph][node][branch][rev]
 
     def coinflip(self):
@@ -540,8 +546,9 @@ class Engine(object):
         transaction for the world database
 
         """
-        self.gorm.branch = self.gorm._obranch
-        self.gorm.rev = self.gorm._orev
+        if self.caching:
+            self.gorm.branch = self.gorm._obranch
+            self.gorm.rev = self.gorm._orev
         self.worlddb.commit()
         self.action.commit()
         self.prereq.commit()
@@ -737,7 +744,8 @@ class Engine(object):
             )
 
     def advance(self):
-        """Follow the next rule, advancing to the next tick if necessary.
+        """Follow the next rule, or if there isn't one, advance to the next
+        tick.
 
         """
         try:
@@ -756,9 +764,8 @@ class Engine(object):
         return r
 
     def next_tick(self):
-        """Call ``advance`` repeatedly, appending its results to a list, until
-        it returns ``None``, at which point the tick has ended and
-        I'll return the list.
+        """Call ``advance`` repeatedly, appending its results to a list until
+        the tick has ended.  Return the list.
 
         """
         curtick = self.tick
@@ -774,8 +781,11 @@ class Engine(object):
 
     def close(self):
         """Commit database transactions and close cursors"""
-        self.worlddb.commit()
+        if self.caching:
+            self.gorm.branch = self.gorm._obranch
+            self.gorm.rev = self.gorm._orev
         self.cursor.close()
+        self.gorm.close()  # also commits
         self.function.close()
 
     def initdb(self):
@@ -937,7 +947,16 @@ class Engine(object):
     def add_character(self, name, data=None, **kwargs):
         """Create the Character so it'll show up in my `character` dict"""
         self.gorm.new_digraph(name, data, **kwargs)
-        self.character._cache[name] = Character(self, name)
+        ch = Character(self, name)
+        if data is not None:
+            for a in data.adj:
+                for b in data.adj[a]:
+                    assert(
+                        a in ch.adj and
+                        b in ch.adj[a]
+                    )
+        if hasattr(self.character, '_cache'):
+            self.character._cache[name] = ch
 
     def del_character(self, name):
         """Remove the Character from the database entirely"""

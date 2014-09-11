@@ -18,12 +18,20 @@ from kivy.properties import (
     ObjectProperty,
     NumericProperty,
     ListProperty,
-    AliasProperty
+    AliasProperty,
+    BooleanProperty
 )
 from kivy.clock import Clock
 
 
 def get_points(ox, orx, oy, ory, dx, drx, dy, dry, taillen):
+    """Return points to use for an arrow from ``ox,oy`` to ``dx,dy`` where
+    the origin has dimensions ``2*orx,2*ory``, the destination has
+    dimensions ``2*drx,2*dry``, and the bits of the arrow not actually
+    connecting the ends of it--the edges of the arrowhead--have length
+    ``taillen``.
+
+    """
     ox += orx
     oy += ory
     dx += drx
@@ -96,37 +104,27 @@ class Arrow(Widget):
     points = ListProperty([])
     slope = NumericProperty(0.0, allownone=True)
     y_intercept = NumericProperty(0)
+    origin = ObjectProperty()
+    destination = ObjectProperty()
+    reciprocal = ObjectProperty(None, allownone=True)
     engine = AliasProperty(
         lambda self: self.board.engine if self.board else None,
         lambda self, v: None,
         bind=('board',)
     )
-    origin = AliasProperty(
-        lambda self:
-        self.board.spot[self.portal['origin']]
-        if self.board and self.portal
-        else None,
-        lambda self, v: None,
-        bind=('board', 'portal')
-    )
-    destination = AliasProperty(
-        lambda self:
-        self.board.spot[self.portal['destination']]
-        if self.board and self.portal
-        else None,
-        lambda self, v: None,
-        bind=('board', 'portal')
-    )
-    reciprocal = AliasProperty(
-        lambda self:
-        self.board.arrow[self.portal['destination']][self.portal['origin']]
-        if self.board and self.portal and
-        self.portal['destination'] in self.board.arrow and
-        self.portal['origin'] in self.board.arrow[self.portal['destination']]
-        else None,
-        lambda self, v: None,
-        bind=('board', 'portal')
-    )
+    repointed = BooleanProperty(True)
+
+    @property
+    def reciprocal(self):
+        orign = self.portal['origin']
+        destn = self.portal['destination']
+        if (
+                destn in self.board.arrow and
+                orign in self.board.arrow[destn]
+        ):
+            return self.board.arrow[destn][orign]
+        else:
+            return None
 
     def __init__(self, **kwargs):
         """Bind some properties, and put the relevant instructions into the
@@ -140,20 +138,34 @@ class Arrow(Widget):
             self._repoint,
             timeout=-1
         )
-        self._trigger_upd_pawns_here = Clock.create_trigger(
-            self._upd_pawns_here
+        self._trigger_update = Clock.create_trigger(
+            self._update
         )
+        self.finalize()
+
+    def finalize(self, *args):
+        if None in (
+                self.board,
+                self.engine,
+                self.portal
+        ):
+            Clock.schedule_once(self.finalize, 0)
+            if self.board is None:
+                print("no board")
+            if self.engine is None:
+                print("no engine")
+            if self.portal is None:
+                print("no portal")
+            return
         orign = self.portal["origin"]
         destn = self.portal["destination"]
-        self.board.spot[orign].bind(
+        self.origin = self.board.spot[orign]
+        self.origin.bind(
             pos=self._trigger_repoint,
             size=self._trigger_repoint
         )
-        self.board.spot[destn].bind(
-            pos=self._trigger_repoint,
-            size=self._trigger_repoint
-        )
-        self.bind(
+        self.destination = self.board.spot[destn]
+        self.destination.bind(
             pos=self._trigger_repoint,
             size=self._trigger_repoint
         )
@@ -165,6 +177,7 @@ class Arrow(Widget):
         self.canvas.add(self.bg_line)
         self.canvas.add(self.fg_color)
         self.canvas.add(self.fg_line)
+        self._trigger_repoint()
 
     def on_points(self, *args):
         """Propagate my points to both my lines"""
@@ -186,15 +199,21 @@ class Arrow(Widget):
         ydist = (dy - oy) * pct
         return (ox + xdist, oy + ydist)
 
-    def handle_time(self, *args):
-        """When the time changes, reposition all the pawns here."""
+    def _update(self, *args):
+        if (
+                len(self.board.spots_to_update) +
+                len(self.board.pawns_to_update) > 0 or
+                not self.repointed
+        ):
+            Clock.schedule_once(self._update, 0)
+            return
         for pawn in self.pawns_here:
-            t2 = pawn['next_arrival_time']
+            t2 = pawn.thing['next_arrival_time']
             if t2 is None:
                 pawn.pos = self.center  # might be redundant
                 continue
             else:
-                t1 = pawn['arrival_time']
+                t1 = pawn.thing['arrival_time']
                 duration = float(t2 - t1)
                 passed = float(self.engine.tick - t1)
                 progress = passed / duration
@@ -259,9 +278,13 @@ class Arrow(Widget):
 
     def _repoint(self, *args):
         """Recalculate points, y-intercept, and slope"""
+        if None in (self.origin, self.destination):
+            Clock.schedule_once(self._repoint, 0)
+            return
         self.points = self._get_points()
         self.slope = self._get_slope()
         self.y_intercept = self._get_b()
+        self.repointed = True
 
     def collide_point(self, x, y):
         """Return True iff the point falls sufficiently close to my core line
@@ -269,6 +292,8 @@ class Arrow(Widget):
 
         """
         if not super(Arrow, self).collide_point(x, y):
+            return False
+        if None in (self.board, self.portal):
             return False
         orig = self.origin
         dest = self.destination
@@ -284,29 +309,3 @@ class Arrow(Widget):
             error_angle_a = abs(observed_angle_a - correct_angle_a)
             error_seg_len = hypot(x, y)
             return sin(error_angle_a) * error_seg_len <= self.margin
-
-    def on_pawns_here(self, i, v):
-        """When there's a different set of pawns here, reevaluate my
-        points and reposition pawns herein.
-
-        """
-        self.handle_time(*self.engine.time)
-
-    def _upd_pawns_here(self):
-        """Make sure all the ``pawns_here`` are actually here. If they are
-        not, remove them.
-
-        """
-        pawns_here = list(self.pawns_here)
-        pawns_actually_here = []
-        for pawn in pawns_here:
-            if (
-                    'next_location' not in pawn.thing or
-                    pawn.thing['next_location'] != self.portal['destination'] or
-                    pawn.thing['location'] != self.portal['origin']
-            ):
-                continue
-            else:
-                pawns_actually_here.append(pawn)
-        if pawns_here != pawns_actually_here:
-            self.pawns_here = pawns_actually_here

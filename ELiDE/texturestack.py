@@ -52,47 +52,51 @@ class TextureStack(Widget):
     """
 
     def __init__(self, **kwargs):
+        """Make triggers, bind, and if I have something to show, show it."""
+        kwargs['size_hint'] = (None, None)
         super().__init__(**kwargs)
-        self.trigger_upd_texs = Clock.create_trigger(
-            self.upd_texs, timeout=-1
+        self._trigger_upd_texs = Clock.create_trigger(
+            self._upd_texs, timeout=-1
         )
-        self.trigger_upd_pos = Clock.create_trigger(
-            self.upd_pos, timeout=-1
+        self._trigger_upd_pos = Clock.create_trigger(
+            self._upd_pos, timeout=-1
         )
-        self.bind(texs=self.trigger_upd_texs, pos=self.trigger_upd_pos)
-        if len(self.texs) > 0:
-            self.trigger_upd_texs()
-            self.trigger_upd_pos()
+        self.bind(pos=self._trigger_upd_pos)
 
-    def upd_texs(self, *args):
+    def on_texs(self, *args):
+        if len(self.texs) > 0:
+            self._trigger_upd_texs()
+            self._trigger_upd_pos()
+
+    def _upd_texs(self, *args):
         if not self.canvas:
             Clock.schedule_once(self.upd_texs, 0)
             return
         self.canvas.clear()
         w = h = 0
         for tex in self.texs:
-            self.canvas.add(self.rectify(tex, self.x, self.y))
+            self.canvas.add(self._rectify(tex, self.x, self.y))
             if tex.width > w:
                 w = tex.width
             if tex.height > h:
                 h = tex.height
         self.size = (w, h)
 
-    def upd_pos(self, *args):
+    def _upd_pos(self, *args):
         for rect in self.texture_rectangles.values():
             rect.pos = self.pos
 
     def clear(self):
         self.canvas.clear()
-        self.unbind(texs=self.upd_texs)
+        self.unbind(texs=self._upd_texs)
         self.rectangle_groups = {}
         self.texture_rectangles = {}
         self.texs = []
-        self.bind(texs=self.upd_texs)
+        self.bind(texs=self._upd_texs)
         self.stackhs = []
         self.size = [1, 1]
 
-    def rectify(self, tex, x, y):
+    def _rectify(self, tex, x, y):
         rect = Rectangle(
             pos=(x, y),
             size=tex.size,
@@ -134,9 +138,9 @@ class TextureStack(Widget):
 
     def __setitem__(self, i, v):
         if len(self.texs) > 0:
-            self.unbind(texs=self.upd_texs)
+            self.unbind(texs=self._upd_texs)
             self.__delitem__(i)
-            self.bind(texs=self.upd_texs)
+            self.bind(texs=self._upd_texs)
         self.insert(i, v)
 
     def pop(self, i=-1):

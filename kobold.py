@@ -1,26 +1,27 @@
 import networkx as nx
 from LiSE import Engine
 from os import remove
+from cProfile import run
 
 
 def clear_off():
-    for fn in ('LiSEWorld.db', 'LiSEcode.db'):
+    for fn in ('LiSEworld.db', 'LiSEcode.db'):
         try:
             remove(fn)
         except OSError:
             pass
 
 
-def mkengine(w='LiSEworld.db', caching=True, seed=None):
+def mkengine(w='LiSEworld.db', *args, **kwargs):
     return Engine(
         worlddb=w,
         codedb='LiSEcode.db',
-        caching=caching,
-        random_seed=seed
+        *args,
+        **kwargs
     )
 
 
-def kobold_hunt_test(
+def inittest(
         engine,
         mapsize=(10, 10),
         dwarf_pos=(0, 0),
@@ -55,6 +56,7 @@ def kobold_hunt_test(
     n = 0
     locs = list(phys.place.keys())
     engine.shuffle(locs)
+    shrub_places = []
     while n < shrubberies:
         loc = locs.pop()
         phys.add_thing(
@@ -62,9 +64,9 @@ def kobold_hunt_test(
             loc,
             cover=1
         )
-        # I suspect this might not save the list correctly
-        kobold.stat['shrub_places'].append(loc)
+        shrub_places.append(loc)
         n += 1
+    kobold.stat['shrub_places'] = shrub_places
 
     # If the kobold is not in a shrubbery, it will try to get to one.
     # If it is, there's a chance it will try to get to another one, anyway.
@@ -74,7 +76,7 @@ def kobold_hunt_test(
         a shrub in it.
 
         """
-        shrub_places = character.stat['shrub_places']
+        shrub_places = list(character.stat['shrub_places'])
         if avatar['location'] in shrub_places:
             shrub_places.remove(avatar['location'])
         avatar.travel_to(engine.choice(shrub_places))
@@ -104,43 +106,35 @@ def kobold_hunt_test(
 
     # The dwarf's eyesight is not very good.
     @dwarf.sense
-    def sight(engine, observer, observed):
+    def sight(engine, observer, seen):
+        """A sense to simulate short-range vision that can't see anything
+        hiding in a shrubbery.
+
+        This gives poor performance and is overkill for this purpose,
+        but demonstrates the concept of a sense adequately.
+
+        """
+        observer.stat._not_null('sight_radius')
         from math import hypot
-        r = observer.stat['sight_radius']
-        seen = observed.copy()
         (dwarfx, dwarfy) = observer.avatar['location']
         for place in list(seen.place.keys()):
             (x, y) = place
             dx = dwarfx - x
             dy = dwarfy - y
-            if hypot(dx, dy) > r:
-                # Ought to remove any things here, and any connected portals.
-                # Ought to cancel any movement destined here.
+            if hypot(dx, dy) > observer.stat['sight_radius']:
                 del seen.place[place]
             else:
-                cont = list(observed.place[place].contents())
-                # is there a shrub?
-                shrub = False
-                for thing in cont:
-                    if thing.name[:5] == "shrub":
-                        shrub = True
+                del_kobold = False
+                for thing in seen.place[place].contents():
+                    if thing['name'][:5] == "shrub":
+                        for thing in seen.place[place].contents():
+                            if thing['name'] == "kobold":
+                                del_kobold = True
+                                break
                         break
-                # is there a kobold?
-                kobold = False
-                for thing in cont:
-                    if thing.name == "kobold":
-                        kobold = True
-                        break
-                if shrub:
-                    if kobold:
-                        if 'kobold' in seen.thing:
-                            del seen.thing['kobold']
-                    # when the kobold disappears into shrubbery the
-                    # dwarf forgets it was ever there
-                    observer.stat['seen_kobold'] = False
-                else:
-                    if kobold:
-                        observer.stat['seen_kobold'] = True
+                if del_kobold:
+                    del seen.thing['kobold']
+                    break
         return seen
 
     # If the dwarf is on the same spot as the kobold, and is aware of
@@ -150,6 +144,7 @@ def kobold_hunt_test(
         # the avatar's character is 'physical', and not 'dwarf';
         # character 'dwarf' merely tracks the avatar
         del avatar.character.thing['kobold']
+        print("===KOBOLD DIES===")
 
     @kill.trigger
     def alive(engine, character, avatar):
@@ -191,18 +186,31 @@ def kobold_hunt_test(
     def notmoving(engine, character, avatar):
         return avatar['next_location'] is None
 
+
+def runtest(engine):
     # run sim for 100 tick
     for n in range(0, 100):
         engine.next_tick()
         kobold_alive = 'kobold' in engine.character['physical'].thing
         print(
-            "On tick {}, the kobold is {}".format(
+            "On tick {}, the dwarf is at {}, "
+            "and the kobold is {}{}{}".format(
                 n,
-                "alive" if kobold_alive else "dead"
+                engine.character['dwarf'].avatar['location'],
+                "alive" if kobold_alive else "dead",
+                " at " + str(engine.character['kobold'].avatar['location'])
+                if kobold_alive else "",
+                " (in a shrubbery)" if kobold_alive and len([
+                    th for th in
+                    engine.character['kobold'].avatar.location.contents()
+                    if th.name[:5] == "shrub"
+                ]) > 0 else ""
             )
         )
 
 
 if __name__ == '__main__':
     clear_off()
-    kobold_hunt_test(mkengine(seed=69105))
+    with mkengine(random_seed=69107, caching=True) as engine:
+        inittest(engine)
+        run('runtest(engine)')

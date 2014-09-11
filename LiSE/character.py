@@ -2458,20 +2458,13 @@ class CharStatCache(MutableMapping):
         if branch not in self._cache[k]:
             self._cache[k][branch] = {}
         d = self._cache[k][branch]
-        if tick in d:
-            return d[tick]
-        else:
-            try:
-                return d[max(t for t in d if t < tick)]
-            except ValueError:
-                # This might cause issues when rewriting history,
-                # but I think that adequate discipline with the
-                # tracking of ticks-handled should take care of it
-                d[tick] = self._real[k]
-                return d[tick]
+        if tick not in d:
+            d[tick] = self._real[k]
+        return d[tick]
 
     def __setitem__(self, k, v):
         """Cache new value and set it the normal way"""
+        assert(v is not None)
         (branch, tick) = self.engine.time
         if k not in self._cache:
             self._cache[k] = {}
@@ -2479,10 +2472,19 @@ class CharStatCache(MutableMapping):
             self._cache[k][branch] = {}
         self._cache[k][branch][tick] = v
         self._real[k] = v
-        self.__getitem__(k)
+
+    def _not_null(self, k):
+        (v,) = self.engine.cursor.execute(
+            "SELECT value FROM graph_val WHERE "
+            "graph=? AND "
+            "key=?;",
+            (self.character._name, json_dump(k))
+        ).fetchone()
+        assert(v is not None)
 
     def __delitem__(self, k):
         """Clear the cached value and delete the normal way"""
+        assert(False)
         (branch, tick) = self.engine.time
         if branch in self._cache[k]:
             for staletick in list(
@@ -2569,15 +2571,16 @@ class Character(DiGraph, RuleFollower):
         )
         if engine.caching:
             self.stat = CharStatCache(self)
-        else:
-            self.stat = self.graph
-        self._portal_traits = set()
-        if self.engine.caching:
             self._paths = (
                 self.graph['_paths']
                 if '_paths' in self.graph
                 else {}
             )
+        else:
+            self.stat = self.graph
+        self._portal_traits = set()
+        for stat in self.stat:
+            assert(stat in self.stat)
 
     def travel_req(self, fun):
         """Decorator for tests that :class:`Thing`s have to pass before they
