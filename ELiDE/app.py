@@ -187,21 +187,19 @@ class ELiDELayout(FloatLayout):
             Clock.schedule_once(self.next_tick, 0)
 
     def on_touch_down(self, touch):
-        """Delegate first to the charsheet, then to the board, then to the
-        boardview.
+        """Delegate first to the menu, then to the charsheet, then to the
+        board, then to the boardview.
 
         """
-        if self.ids.menu.collide_point(*touch.pos):
-            touch.grab(self.ids.menu)
-            return self.ids.menu.on_touch_down(touch)
-        self.grabbed = self.ids.charsheetview.on_touch_down(touch)
+        self.ids.charmenu.dispatch('on_touch_down', touch)
+        self.ids.timemenu.dispatch('on_touch_down', touch)
         if self.grabbed is None:
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
-            self.grabbed = self.ids.board.on_touch_down(touch)
+            self.grabbed = self.ids.board.dispatch('on_touch_down', touch)
             touch.pop()
         if self.grabbed is None:
-            return self.ids.boardview.on_touch_down(touch)
+            return self.ids.boardview.dispatch('on_touch_down', touch)
         else:
             return self.grabbed
 
@@ -210,27 +208,25 @@ class ELiDELayout(FloatLayout):
         space and then delegate there.
 
         """
-        if touch.grab_current == self.ids.menu:
-            return self.ids.menu.on_touch_move(touch)
-        # I think I should handle charsheet special
+        self.ids.charmenu.dispatch('on_touch_move', touch)
+        self.ids.timemenu.dispatch('on_touch_move', touch)
         touch.push()
         touch.apply_transform_2d(self.ids.boardview.to_local)
         if self.grabbed is None:
             touch.pop()
-            return self.ids.boardview.on_touch_move(touch)
+            return self.ids.boardview.dispatch('on_touch_move', touch)
         else:
-            r = self.grabbed.on_touch_move(touch)
+            r = self.grabbed.dispatch('on_touch_move', touch)
             touch.pop()
             return r
 
     def on_touch_up(self, touch):
-        if touch.grab_current == self.ids.menu:
-            return self.ids.menu.on_touch_up(touch)
-        self.ids.boardview.on_touch_up(touch)
-        self.ids.charsheetview.on_touch_up(touch)
+        self.ids.charmenu.dispatch('on_touch_up', touch)
+        self.ids.timemenu.dispatch('on_touch_up', touch)
+        self.ids.boardview.dispatch('on_touch_up', touch)
         touch.push()
         touch.apply_transform_2d(self.ids.boardview.to_local)
-        self.ids.board.on_touch_up(touch)
+        self.ids.board.dispatch('on_touch_up', touch)
         touch.pop()
         self.grabbed = None
         return True
