@@ -19,6 +19,7 @@ from kivy.properties import (
     DictProperty
 )
 from kivy.clock import Clock
+from kivy.resources import resource_find
 
 
 class TextureStack(Widget):
@@ -156,7 +157,7 @@ class ImageStack(TextureStack):
     def on_paths(self, *args):
         super().clear()
         for path in self.paths:
-            super().append(Image.load(path).texture)
+            super().append(Image.load(resource_find(path)).texture)
 
     def clear(self):
         self.paths = []

@@ -8,6 +8,7 @@ from kivy.properties import (
     StringProperty,
     DictProperty
 )
+from kivy.resources import resource_add_path
 from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
@@ -20,6 +21,8 @@ from .texturestack import ImageStack
 
 import LiSE
 import ELiDE
+
+resource_add_path(ELiDE.__path__[0] + "/assets")
 
 _ = lambda x: x
 
@@ -283,7 +286,7 @@ class ELiDEApp(App):
         config.setdefaults(
             'ELiDE',
             {
-                'wallpaper': ELiDE.__path__[0] + "/assets/wallpape.jpg",
+                'wallpaper': "wallpape.jpg",
                 'boardchar': 'physical',
                 'sheetchar': 'player'
             }
