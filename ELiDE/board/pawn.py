@@ -44,7 +44,6 @@ will update its position appropriately.
 
         """
         self._trigger_update = Clock.create_trigger(self._update)
-        self._trigger_recenter = Clock.create_trigger(self._recenter)
         super().__init__(**kwargs)
         try:
             self.where_upon = self.board.arrow[
@@ -58,30 +57,13 @@ will update its position appropriately.
             ]
         self.stackhs = self.thing['_stacking_heights']
         self.paths = self.thing['_image_paths']
-        self._trigger_recenter()
-        self.bind(where_upon=self._trigger_recenter)
 
     def _update(self, *args):
-        if self not in self.board.pawns_to_update:
-            return
+        print('pawn update!')
         if self.paths != self.thing["_image_paths"]:
             self.paths = self.thing["_image_paths"]
-        # (
-        #     self.thing["_image_paths"]
-        #     if "_image_paths" in self.thing
-        #     else [
-        #         "atlas://" +
-        #         ELiDE.__path__[0] +
-        #         "/assets/rltiles/base/unseen"
-        #     ]
-        # )
         if self.stackhs != self.thing["_stacking_heights"]:
             self.stackhs = self.thing["_stacking_heights"]
-        # (
-        #     self.thing["_stacking_heights"]
-        #     if "_stacking_heights" in self.thing
-        #     else [0]
-        # )
         if (
                 (
                     hasattr(self.where_upon, 'place') and
@@ -106,16 +88,6 @@ will update its position appropriately.
             except KeyError:
                 self.where_upon = self.board.spot[self.thing["location"]]
             self.where_upon.pawns_here.append(self)
-            self._trigger_recenter()
-        self.board.pawns_to_update.remove(self)
-
-    def _recenter(self, *args):
-        """If on a :class:`Spot`, move to its center. If on an :class:`Arrow`,
-        move to a position along it representing how much of my time
-        here has passed already.
-
-        """
-        self.pos = self.where_upon.center
 
     def on_touch_down(self, touch):
         """If the touch hits me, grab it, and put myself in its userdict.

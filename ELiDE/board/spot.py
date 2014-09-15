@@ -56,8 +56,6 @@ class Spot(ImageStack):
         self.paths = self.place['_image_paths']
 
     def _update(self, *args):
-        if self not in self.board.spots_to_update:
-            return
         if self.place['_image_paths'] != self.paths:
             self.paths = self.place['_image_paths']
         if (
@@ -70,7 +68,6 @@ class Spot(ImageStack):
                 self.place['_y'] * self.board.height
             )
             self._ignore_place = False
-        self.board.spots_to_update.remove(self)
 
     def on_paths(self, *args):
         """When I get different imagery, save it in my :class:`Place`"""

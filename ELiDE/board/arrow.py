@@ -138,9 +138,6 @@ class Arrow(Widget):
             self._repoint,
             timeout=-1
         )
-        self._trigger_update = Clock.create_trigger(
-            self._update
-        )
         self.finalize()
 
     def finalize(self, *args):
@@ -198,34 +195,6 @@ class Arrow(Widget):
         xdist = (dx - ox) * pct
         ydist = (dy - oy) * pct
         return (ox + xdist, oy + ydist)
-
-    def _update(self, *args):
-        if (
-                len(self.board.spots_to_update) +
-                len(self.board.pawns_to_update) > 0 or
-                not self.repointed
-        ):
-            Clock.schedule_once(self._update, 0)
-            return
-        for pawn in self.pawns_here:
-            t2 = pawn.thing['next_arrival_time']
-            if t2 is None:
-                pawn.pos = self.center  # might be redundant
-                continue
-            else:
-                t1 = pawn.thing['arrival_time']
-                duration = float(t2 - t1)
-                passed = float(self.engine.tick - t1)
-                progress = passed / duration
-            os = self.board.spot[self.portal['origin']]
-            ds = self.board.spot[self.portal['destination']]
-            (ox, oy) = os.pos
-            (dx, dy) = ds.pos
-            w = dx - ox
-            h = dy - oy
-            x = ox + w * progress
-            y = oy + h * progress
-            pawn.pos = (x, y)
 
     def _get_points(self):
         """Return the coordinates of the points that describe my shape."""

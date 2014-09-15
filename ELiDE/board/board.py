@@ -55,8 +55,6 @@ class Board(RelativeLayout):
     app = ObjectProperty()
     engine = ObjectProperty()
     redatad = BooleanProperty(False)
-    spots_to_update = ListProperty([])
-    pawns_to_update = ListProperty([])
 
     def __init__(self, **kwargs):
         """Make a trigger for ``_redata`` and run it"""
@@ -231,15 +229,23 @@ class Board(RelativeLayout):
         if not self.redatad:
             Clock.schedule_once(self._update, 0)
             return
-        for spot in self.spot.values():
-            self.spots_to_update.append(spot)
-            spot._trigger_update()
+        self.spots_to_update = list(self.spot.values())
+        if self.spots_to_update:
+            Clock.schedule_once(self._update_spot, 0)
+        self._update_pawns()
+
+    def _update_spot(self, *args):
+        if not self.spots_to_update:
+            return
+        self.spots_to_update.pop()._update()
+        Clock.schedule_once(self._update_spot, 0)
+
+    def _update_pawns(self, *args):
+        if self.spots_to_update:
+            Clock.schedule_once(self._update_pawns, 0)
+            return
         for pawn in self.pawn.values():
-            self.pawns_to_update.append(pawn)
             pawn._trigger_update()
-        for k in self.arrow:
-            for arrow in self.arrow[k].values():
-                arrow._trigger_update()
 
     def __repr__(self):
         """Look like a :class:`Character` wrapped in ``Board(...)```"""
