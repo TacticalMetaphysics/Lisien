@@ -176,6 +176,18 @@ class Arrow(Widget):
         self.canvas.add(self.fg_line)
         self._trigger_repoint()
 
+    def on_pawns_here(self, *args):
+        for pawn in self.pawns_here:
+            pawn.pos = self.pos_along(
+                (
+                    self.engine.tick -
+                    pawn.thing['arrival_time']
+                ) / (
+                    pawn.thing['next_arrival_time'] -
+                    pawn.thing['arrival_time']
+                )
+            )
+
     def on_points(self, *args):
         """Propagate my points to both my lines"""
         self.bg_line.points = self.points
@@ -183,13 +195,15 @@ class Arrow(Widget):
 
     def pos_along(self, pct):
         """Return coordinates for where a Pawn should be if it has travelled
-        along ``pct`` percent of my length.
+        along ``pct`` of my length (between 0 and 1).
 
         Might get complex when I switch over to using beziers for
         arrows, but for now this is quite simple, using distance along
         a line segment.
 
         """
+        if pct < 0 or pct > 1:
+            raise ValueError("Invalid portion")
         (ox, oy) = self.origin.center
         (dx, dy) = self.destination.center
         xdist = (dx - ox) * pct

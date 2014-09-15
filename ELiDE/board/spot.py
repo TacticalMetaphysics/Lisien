@@ -69,6 +69,10 @@ class Spot(ImageStack):
             )
             self._ignore_place = False
 
+    def on_pawns_here(self, *args):
+        for pawn in self.pawns_here:
+            pawn.pos = self.center
+
     def on_paths(self, *args):
         """When I get different imagery, save it in my :class:`Place`"""
         if not self._ignore_place:
