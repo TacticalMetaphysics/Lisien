@@ -1,5 +1,6 @@
 #: import solarized ELiDE.style.solarized
 #: import StiffScrollEffect kivy.garden.stiffscroll.StiffScrollEffect
+#: import resource_find kivy.resources.resource_find
 <ELiDELayout>:
     engine: self.app.engine
     ScrollView:
@@ -23,7 +24,7 @@
             arrowhead_size: 10
             Image:
                 id: wallpaper
-                source: root.app.config['ELiDE']['wallpaper']
+                source: resource_find(root.app.config['ELiDE']['wallpaper'])
                 size_hint: (None, None)
                 size: self.texture_size
             BoardLayout:
@@ -87,5 +88,5 @@
         Button:
             text: "Connect places"
         Button:
-            halighn: "center"
+            halign: "center"
             text: "Add thing\nto place"
