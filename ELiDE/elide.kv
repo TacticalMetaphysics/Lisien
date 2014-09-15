@@ -5,7 +5,8 @@
     ScrollView:
         effect_cls: StiffScrollEffect
         id: boardview
-        size_hint_x: 0.9
+        size_hint: (0.85, 0.9)
+        pos_hint: {'left': 0, 'top': 1}
         Board:
             id: board
             layout: root
@@ -31,22 +32,60 @@
                 id: spotlayout
             BoardLayout:
                 id: pawnlayout
-    FloatLayout:
-        id: charsheetview
-        size_hint_x: 0.2
-    StackLayout:
-        id: menu
-        size_hint_x: 0.1
+    BoxLayout:
+        id: timemenu
+        pos_hint: {'bot': 0}
+        size_hint: (0.85, 0.1)
+        orientation: 'horizontal'
+        BoxLayout:
+            orientation: 'vertical'
+            Label:
+                text: 'Simulate'
+            BoxLayout:
+                orientation: 'horizontal'
+                ToggleButton:
+                    text: 'Play'
+                Button:
+                    text: 'Step'
+                    on_press: root.next_tick()
+        BoxLayout:
+            orientation: 'vertical'
+            Label:
+                text: 'Branch'
+            MenuTextInput:
+                setter: root.set_branch
+                hint_text: root.branch
+        BoxLayout:
+            orientation: 'vertical'
+            Label:
+                text: 'Tick'
+            MenuIntInput:
+                setter: root.set_tick
+                hint_text: str(root.tick)
+    BoxLayout:
+        id: charmenu
+        orientation: 'vertical'
+        size_hint_x: 0.15
         pos_hint: {'right': 1}
         Button:
-            text: "next_tick"
-            on_press: root.next_tick()
-            size_hint_y: 0.33
+            # click this to change the active character
+            text: 'Character:\n' + root.app.config['ELiDE']['boardchar']
         Button:
-            text: ">|"
-            on_press: root.timewarp(1)
-            size_hint_y: 0.33
+            # opens a popover where you view the rules active on this
+            # character now, and may click one to edit it
+            text: "Rules"
         Button:
-            text: "|<"
-            on_press: root.timewarp(-1)
-            size_hint_y: 0.34
+            # deletes whatever you've got selected
+            text: "Delete"
+        Button:
+            # This doesn't interact with the time travel, it's
+            # strictly a way to go back on erroneous inputs from this
+            # same tick. As such it grays out when you change the time.
+            text: "Undo"
+        Button:
+            text: "Add place"
+        Button:
+            text: "Connect places"
+        Button:
+            halighn: "center"
+            text: "Add thing\nto place"

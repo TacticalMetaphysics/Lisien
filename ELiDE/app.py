@@ -235,42 +235,24 @@ class ELiDELayout(FloatLayout):
 Factory.register('ELiDELayout', cls=ELiDELayout)
 
 
-class MenuIntInput(TextInput):
-    """Field for inputting an integer"""
-    engine = ObjectProperty()
-    stringname = StringProperty()
-    attrname = StringProperty()
+class MenuTextInput(TextInput):
+    setter = ObjectProperty()
 
-    def __init__(self, **kwargs):
-        """Create trigger for upd_time, then delegate to super"""
-        self._trigger_upd_time = Clock.create_trigger(self.upd_time)
-        super(MenuIntInput, self).__init__(**kwargs)
+    def on_text_validate(self, *args):
+        self.setter(self.text)
+        self.text = ''
 
+
+Factory.register('MenuTextInput', cls=MenuTextInput)
+
+
+class MenuIntInput(MenuTextInput):
     def insert_text(self, s, from_undo=False):
         """Natural numbers only."""
-        return super(self, MenuIntInput).insert_text(
+        return super().insert_text(
             ''.join(c for c in s if c in '0123456789'),
             from_undo
         )
-
-    def on_engine(self, *args):
-        """Arrange that I'll be updated every time the game-time changes"""
-        if self.engine:
-            self.engine.on_time(
-                self._trigger_upd_time
-            )
-
-    def on_text_validate(self, *args):
-        """Set the engine's attribute to my value cast as an int"""
-        setattr(self.engine, self.attrname, int(self.text))
-
-    def upd_time(self, *args):
-        """Change my hint text to the engine's attribute, then blank out my
-        regular text
-
-        """
-        self.hint_text = str(getattr(self.engine, self.attrname))
-        self.text = ''
 
 
 Factory.register('MenuIntInput', cls=MenuIntInput)
