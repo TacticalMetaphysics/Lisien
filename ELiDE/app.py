@@ -1,6 +1,7 @@
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
+    BooleanProperty,
     NumericProperty,
     BoundedNumericProperty,
     ObjectProperty,
@@ -110,21 +111,43 @@ class ELiDELayout(FloatLayout):
     portaling = BoundedNumericProperty(0, min=0, max=2)
     """Count how far along I am in the process of connecting two Places by
     creating a Portal between them."""
-    playspeed = BoundedNumericProperty(0, min=0)
     grabbed = ObjectProperty(None, allownone=True)
     engine = ObjectProperty()
     tick_results = DictProperty({})
     branch = StringProperty('master')
     tick = NumericProperty(0)
+    initialized = BooleanProperty(False)
+    rules_per_frame = BoundedNumericProperty(1, min=1)
+
+    def on_engine(self, *args):
+        if self.engine is None:
+            return
+        self.branch = self.engine.branch
+        self.tick = self.engine.tick
+        self.initialized = True
+
+    def set_branch(self, b):
+        self.branch = b
+
+    def set_tick(self, ts):
+        t = int(ts)
+        self.tick = t
 
     def on_branch(self, *args):
+        if not self.initialized:
+            return
+        if self.engine.branch != self.branch:
+            self.engine.branch = self.branch
+        self.ids.board._trigger_update()
+
+    def on_tick(self, *args):
+        if not self.initialized:
+            return
+        if self.engine.tick != self.tick:
+            self.engine.tick = self.tick
         self.ids.board._trigger_update()
 
     def advance(self):
-        if self.branch != self.engine.branch:
-            self.branch = self.engine.branch
-        if self.tick != self.engine.tick:
-            self.tick = self.engine.tick
         if self.branch not in self.tick_results:
             self.tick_results[self.branch] = {}
         if self.tick not in self.tick_results[self.branch]:
@@ -138,7 +161,6 @@ class ELiDELayout(FloatLayout):
                     "No rules available; can't advance."
                 )
             self.tick += 1
-            self.engine.tick += 1
             assert(self.tick == self.engine.tick)
             self.tick_results[self.branch][self.tick] = []
             self.engine.universal['rando_state'] = (
@@ -154,7 +176,13 @@ class ELiDELayout(FloatLayout):
 
     def next_tick(self, *args):
         curtick = self.tick
-        self.advance()
+        n = 0
+        while (
+                curtick == self.tick and
+                n < self.rules_per_frame
+        ):
+            self.advance()
+            n += 1
         if self.tick == curtick:
             Clock.schedule_once(self.next_tick, 0)
 
