@@ -51,7 +51,6 @@ class Board(RelativeLayout):
     arrowhead_size = NumericProperty()
     arrowlayout = ObjectProperty()
     spotlayout = ObjectProperty()
-    pawnlayout = ObjectProperty()
     app = ObjectProperty()
     engine = ObjectProperty()
     redatad = BooleanProperty(False)
@@ -63,19 +62,12 @@ class Board(RelativeLayout):
 
     def _make_pawn(self, thing):
         """Make a :class:`Pawn` to represent a :class:`Thing`"""
-        if thing["location"] not in self.spot:
-            raise ValueError(
-                "Pawns should only be made after "
-                "the :class:`Spot` their :class:`Thing` is on"
-            )
         if thing["name"] in self.pawn:
             raise KeyError("Already have a Pawn for this Thing")
         r = Pawn(
             board=self,
             thing=thing,
-            where_upon=self.spot[thing["location"]]
         )
-        self.spot[thing["location"]].pawns_here.append(r)
         self.pawn[thing["name"]] = r
         return r
 
@@ -146,15 +138,16 @@ class Board(RelativeLayout):
 
         @self.engine.on_time
         def ontime(*args):
-            self._trigger_redata()
+            self._trigger_update()
 
-        self._trigger_redata()
+        self._trigger_update()
 
     def _rmpawn(self, name):
         """Remove the :class:`Pawn` by the given name"""
         if name not in self.pawn:
             raise KeyError("No Pawn")
-        self.pawnlayout.remove_widget(self.pawn[name])
+        pwn = self.pawn[name]
+        pwn.parent.remove(pwn)
         del self.pawn[name]
 
     def _rmspot(self, name):
@@ -210,9 +203,17 @@ class Board(RelativeLayout):
                     )
         for thing_name in self.character.thing:
             if thing_name not in self.pawn:
-                self.pawnlayout.add_widget(
-                    self._make_pawn(self.character.thing[thing_name])
-                )
+                pwn = self._make_pawn(self.character.thing[thing_name])
+                try:
+                    whereat = self.arrow[
+                        pwn.thing['location']
+                    ][
+                        pwn.thing['next_location']
+                    ]
+                except KeyError:
+                    whereat = self.spot[pwn.thing['location']]
+                whereat.add_widget(pwn)
+                self.pawn[thing_name] = pwn
         self.redatad = True
 
     def _trigger_update(self, *args):
@@ -229,39 +230,25 @@ class Board(RelativeLayout):
         if not self.redatad:
             Clock.schedule_once(self._update, 0)
             return
-        self.spots_to_update = list(self.spot.values())
-        if self.spots_to_update:
-            Clock.schedule_once(self._update_spot, 0)
-        self._update_pawns()
-
-    def _update_spot(self, *args):
-        if not self.spots_to_update:
-            return
-        self.spots_to_update.pop()._update()
-        Clock.schedule_once(self._update_spot, 0)
-
-    def _update_pawns(self, *args):
-        if self.spots_to_update:
-            Clock.schedule_once(self._update_pawns, 0)
-            return
+        for spot in self.spot.values():
+            spot._update()
         for pawn in self.pawn.values():
-            pawn._trigger_update()
+            pawn._update()
 
     def __repr__(self):
         """Look like a :class:`Character` wrapped in ``Board(...)```"""
         return "Board({})".format(repr(self.character))
 
     def on_touch_down(self, touch):
-        """Check ``pawnlayout``, ``spotlayout``, and ``arrowlayout`` in turn,
+        """Check pawns, ``spotlayout``, and ``arrowlayout`` in turn,
         stopping and returning the first true result I get.
 
         Assign the result to my layout's ``grabbed`` attribute.
 
         """
-        r = self.pawnlayout.on_touch_down(touch)
-        if r:
-            self.layout.grabbed = r
-            return r
+        for pawn in self.pawn.values():
+            if pawn.dispatch('on_touch_down', touch):
+                return pawn
         r = self.spotlayout.on_touch_down(touch)
         if r:
             self.layout.grabbed = r
@@ -271,27 +258,3 @@ class Board(RelativeLayout):
             self.layout.grabbed = r
             return r
         return super().on_touch_down(touch)
-
-    def on_touch_move(self, touch):
-        """Dispatch to all layouts"""
-        self.pawnlayout.on_touch_move(touch)
-        self.spotlayout.on_touch_move(touch)
-        self.arrowlayout.on_touch_move(touch)
-        return super().on_touch_move(touch)
-
-    def on_touch_up(self, touch):
-        """Reset my layout's ``grabbed`` to ``None``, dispatch the touch to
-        each of my layouts in turn, and return the first result
-
-        """
-        self.layout.grabbed = None
-        r = self.pawnlayout.on_touch_up(touch)
-        if r:
-            return r
-        r = self.spotlayout.on_touch_up(touch)
-        if r:
-            return r
-        r = self.arrowlayout.on_touch_up(touch)
-        if r:
-            return r
-        return super().on_touch_up(touch)

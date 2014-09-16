@@ -73,7 +73,7 @@ class TextureStack(Widget):
         if not self.canvas:
             Clock.schedule_once(self.upd_texs, 0)
             return
-        self.canvas.clear()
+        self._clear_rects()
         w = h = 0
         for tex in self.texs:
             self.canvas.add(self._rectify(tex, self.x, self.y))
@@ -87,13 +87,15 @@ class TextureStack(Widget):
         for rect in self.texture_rectangles.values():
             rect.pos = self.pos
 
-    def clear(self):
-        self.canvas.clear()
-        self.unbind(texs=self._upd_texs)
+    def _clear_rects(self):
+        for group in self.rectangle_groups.values():
+            self.canvas.remove(group)
         self.rectangle_groups = {}
         self.texture_rectangles = {}
+
+    def clear(self):
+        self._clear_rects()
         self.texs = []
-        self.bind(texs=self._upd_texs)
         self.stackhs = []
         self.size = [1, 1]
 

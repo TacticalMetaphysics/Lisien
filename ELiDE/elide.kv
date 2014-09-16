@@ -16,7 +16,6 @@
             character: self.engine.character[self.app.config['ELiDE']['boardchar']]
             arrowlayout: arrowlayout
             spotlayout: spotlayout
-            pawnlayout: pawnlayout
             size_hint: (None, None)
             size: wallpaper.size
             arrow_bg: (0.5, 0.5, 0.5, 0.5)
@@ -31,8 +30,6 @@
                 id: arrowlayout
             BoardLayout:
                 id: spotlayout
-            BoardLayout:
-                id: pawnlayout
     BoxLayout:
         id: timemenu
         pos_hint: {'bot': 0}

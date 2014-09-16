@@ -28,7 +28,6 @@ class Spot(ImageStack):
     )
     _ignore_place = BooleanProperty(False)
     _touchpos = ListProperty([])
-    pawns_here = ListProperty([])
 
     def __init__(self, **kwargs):
         """Deal with triggers and bindings, and arrange to take care of
@@ -44,7 +43,6 @@ class Spot(ImageStack):
         super().__init__(**kwargs)
         self.board.spot[self.place.name] = self
         self.bind(
-            pawns_here=self._trigger_upd_pawns_here,
             center=self._trigger_upd_pawns_here
         )
         self._ignore_place = True
@@ -69,9 +67,9 @@ class Spot(ImageStack):
             )
             self._ignore_place = False
 
-    def on_pawns_here(self, *args):
-        for pawn in self.pawns_here:
-            pawn.pos = self.center
+    def add_widget(self, pawn, index=0, canvas='after'):
+        super().add_widget(pawn, index, canvas)
+        pawn.pos = self.center
 
     def on_paths(self, *args):
         """When I get different imagery, save it in my :class:`Place`"""
@@ -94,7 +92,7 @@ class Spot(ImageStack):
         presumably after I've moved.
 
         """
-        for pawn in self.pawns_here:
+        for pawn in self.children:
             pawn.pos = self.center
 
     def on_touch_down(self, touch):
