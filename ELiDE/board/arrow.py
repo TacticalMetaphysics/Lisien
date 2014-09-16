@@ -282,6 +282,11 @@ class Arrow(Widget):
         dest = self.destination
         (ox, oy) = orig.pos
         (dx, dy) = dest.pos
+        if 0 in (ox, dx, oy, dy):
+            ox += 1
+            oy += 1
+            dx += 1
+            dy += 1
         if ox == dx:
             return abs(y - dy) <= self.w
         elif oy == dy:
