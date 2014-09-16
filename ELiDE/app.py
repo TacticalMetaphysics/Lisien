@@ -189,6 +189,17 @@ class ELiDELayout(FloatLayout):
         if self.tick == curtick:
             Clock.schedule_once(self.next_tick, 0)
 
+    def dispatch2board(self, event, touch):
+        """Translate the touch to the boardview space, then dispatch the touch
+        event
+
+        """
+        touch.push()
+        touch.apply_transform_2d(self.ids.boardview.to_local)
+        r = self.ids.board.dispatch(event, touch)
+        touch.pop()
+        return r
+
     def on_touch_down(self, touch):
         """Delegate first to the menu, then to the charsheet, then to the
         board, then to the boardview.
@@ -197,10 +208,7 @@ class ELiDELayout(FloatLayout):
         self.ids.charmenu.dispatch('on_touch_down', touch)
         self.ids.timemenu.dispatch('on_touch_down', touch)
         if self.grabbed is None:
-            touch.push()
-            touch.apply_transform_2d(self.ids.boardview.to_local)
-            self.grabbed = self.ids.board.dispatch('on_touch_down', touch)
-            touch.pop()
+            self.grabbed = self.dispatch2board('on_touch_down', touch)
         if self.grabbed is None:
             return self.ids.boardview.dispatch('on_touch_down', touch)
         else:
@@ -211,26 +219,16 @@ class ELiDELayout(FloatLayout):
         space and then delegate there.
 
         """
-        self.ids.charmenu.dispatch('on_touch_move', touch)
-        self.ids.timemenu.dispatch('on_touch_move', touch)
-        touch.push()
-        touch.apply_transform_2d(self.ids.boardview.to_local)
         if self.grabbed is None:
-            touch.pop()
             return self.ids.boardview.dispatch('on_touch_move', touch)
         else:
-            r = self.grabbed.dispatch('on_touch_move', touch)
-            touch.pop()
-            return r
+            return self.grabbed.dispatch('on_touch_move', touch)
 
     def on_touch_up(self, touch):
         self.ids.charmenu.dispatch('on_touch_up', touch)
         self.ids.timemenu.dispatch('on_touch_up', touch)
         self.ids.boardview.dispatch('on_touch_up', touch)
-        touch.push()
-        touch.apply_transform_2d(self.ids.boardview.to_local)
-        self.ids.board.dispatch('on_touch_up', touch)
-        touch.pop()
+        self.dispatch2board('on_touch_up', touch)
         self.grabbed = None
         return True
 
