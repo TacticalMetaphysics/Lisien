@@ -176,22 +176,16 @@ class Arrow(Widget):
         self.canvas.add(self.fg_line)
         self._trigger_repoint()
 
-    def on_pawns_here(self, *args):
-        for pawn in self.pawns_here:
-            pawn.pos = self.pos_along(
-                (
-                    self.engine.tick -
-                    pawn.thing['arrival_time']
-                ) / (
-                    pawn.thing['next_arrival_time'] -
-                    pawn.thing['arrival_time']
-                )
-            )
+    def add_widget(self, pawn, index=0, canvas=None):
+        super().add_widget(pawn, index, canvas)
+        self.pospawn(pawn)
 
     def on_points(self, *args):
         """Propagate my points to both my lines"""
         self.bg_line.points = self.points
         self.fg_line.points = self.points
+        for pawn in self.children:
+            self.pospawn(pawn)
 
     def pos_along(self, pct):
         """Return coordinates for where a Pawn should be if it has travelled
@@ -209,6 +203,21 @@ class Arrow(Widget):
         xdist = (dx - ox) * pct
         ydist = (dy - oy) * pct
         return (ox + xdist, oy + ydist)
+
+    def pospawn(self, pawn):
+        """Position a :class:`Pawn` that is my child so as to reflect how far
+        its :class:`Thing` has gone along my :class:`Portal`.
+
+        """
+        pawn.pos = self.pos_along(
+            (
+                self.engine.tick -
+                pawn.thing['arrival_time']
+            ) / (
+                pawn.thing['next_arrival_time'] -
+                pawn.thing['arrival_time']
+            )
+        )
 
     def _get_points(self):
         """Return the coordinates of the points that describe my shape."""

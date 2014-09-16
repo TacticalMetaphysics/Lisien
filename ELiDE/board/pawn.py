@@ -7,7 +7,6 @@ from kivy.properties import (
     AliasProperty
 )
 from kivy.clock import Clock
-import ELiDE
 from ELiDE.texturestack import ImageStack
 
 
@@ -30,7 +29,6 @@ will update its position appropriately.
     board = ObjectProperty()
     thing = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
-    where_upon = ObjectProperty()
     travel_on_drop = BooleanProperty(False)
     engine = AliasProperty(
         lambda self: self.board.engine if self.board else None,
@@ -45,62 +43,55 @@ will update its position appropriately.
         """
         self._trigger_update = Clock.create_trigger(self._update)
         super().__init__(**kwargs)
-        try:
-            self.where_upon = self.board.arrow[
-                self.thing['location']
-            ][
-                self.thing['next_location']
-            ]
-        except KeyError:
-            self.where_upon = self.board.spot[
-                self.thing['location']
-            ]
-        self.stackhs = self.thing['_stacking_heights']
-        self.paths = self.thing['_image_paths']
 
     def _update(self, *args):
-        print('pawn update!')
         if self.paths != self.thing["_image_paths"]:
             self.paths = self.thing["_image_paths"]
         if self.stackhs != self.thing["_stacking_heights"]:
             self.stackhs = self.thing["_stacking_heights"]
         if (
                 (
-                    hasattr(self.where_upon, 'place') and
-                    self.where_upon.place.name != self.thing["location"]
+                    hasattr(self.parent, 'place') and
+                    self.parent.place.name != self.thing["location"]
                 ) or (
-                    hasattr(self.where_upon, 'origin') and
+                    hasattr(self.parent, 'origin') and
                     (
-                        self.where_upon.origin.place.name !=
+                        self.parent.origin.place.name !=
                         self.thing['location'] or
-                        self.where_upon.destination.place.name !=
+                        self.parent.destination.place.name !=
                         self.thing['next_location']
                     )
                 )
         ):
-            self.where_upon.pawns_here.remove(self)
             try:
-                self.where_upon = self.board.arrow[
+                whereat = self.board.arrow[
                     self.thing["location"]
                     ][
                         self.thing["next_location"]
                     ]
             except KeyError:
-                self.where_upon = self.board.spot[self.thing["location"]]
-            self.where_upon.pawns_here.append(self)
+                whereat = self.board.spot[self.thing["location"]]
+            self.parent.remove_widget(self)
+            whereat.add_widget(self)
+
+    def add_widget(self, pawn, index=0, canvas='after'):
+        super().add_widget(pawn, index, canvas)
+        pawn.pos = self.center
+        self.bind(center=pawn.setter('pos'))
+
+    def remove_widget(self, pawn):
+        self.unbind(center=pawn.setter('pos'))
+        super().remove_widget(pawn)
 
     def on_touch_down(self, touch):
         """If the touch hits me, grab it, and put myself in its userdict.
 
         """
         if (
-                not self.collide_point(*touch.pos) or
-                "pawn" in touch.ud or
-                "spot" in touch.ud or
-                "portaling" in touch.ud
+                not self.collide_point(*touch.pos)
         ):
             return
-        touch.ud["pawn"] = self
+        self.board.layout.grabbed = self
         touch.grab(self)
         return self
 
@@ -115,10 +106,7 @@ will update its position appropriately.
         there.
 
         """
-        if 'pawn' in touch.ud:
-            del touch.ud['pawn']
-        if touch.grab_current is self:
-            touch.ungrab(self)
+        if self.board.layout.grabbed is self:
             new_spot = None
             for spot in self.board.spot.values():
                 if self.collide_widget(spot):
