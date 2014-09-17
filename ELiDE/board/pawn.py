@@ -84,16 +84,7 @@ will update its position appropriately.
         super().remove_widget(pawn)
 
     def on_touch_down(self, touch):
-        """If the touch hits me, grab it, and put myself in its userdict.
-
-        """
-        if (
-                not self.collide_point(*touch.pos)
-        ):
-            return
-        self.board.layout.grabbed = self
-        touch.grab(self)
-        return self
+        return self.collide_point(*touch.pos)
 
     def on_touch_move(self, touch):
         """Move with the touch if I'm grabbed."""

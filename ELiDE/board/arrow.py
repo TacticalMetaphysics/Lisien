@@ -306,3 +306,9 @@ class Arrow(Widget):
             error_angle_a = abs(observed_angle_a - correct_angle_a)
             error_seg_len = hypot(x, y)
             return sin(error_angle_a) * error_seg_len <= self.margin
+
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            self._touch = touch
+            return True
+        return False

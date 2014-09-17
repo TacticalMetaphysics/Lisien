@@ -97,30 +97,21 @@ class Spot(ImageStack):
 
     def on_touch_down(self, touch):
         """If the touch hits me, grab it and put myself in its userdict"""
-        if (
-                not self.collide_point(*touch.pos)
-                or 'spot' in touch.ud
-                or 'portaling' in touch.ud
-        ):
-            return
-        touch.grab(self)
-        touch.ud['spot'] = self
-        self._touch = touch
-        return self
+        if self.collide_point(*touch.pos):
+            self._touch = touch
+            return True
+        return False
 
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""
-        if (
-                'spot' not in touch.ud or
-                touch.ud['spot'] is not self
-        ):
+        if self.board.layout.grabbed is not self:
             return
         self._touchpos = touch.pos
         self._trigger_move_to_touch()
         return self
 
     def _move_to_touch(self, *args):
-        if self._touchpos != []:
+        if self._touchpos != [] and self.center != self._touchpos:
             self.center = self._touchpos
 
     def on_touch_up(self, touch):

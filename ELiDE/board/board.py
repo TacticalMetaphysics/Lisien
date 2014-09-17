@@ -15,29 +15,6 @@ from .arrow import Arrow
 from .pawn import Pawn
 
 
-class BoardLayout(FloatLayout):
-    """Simplistic handling of touch events, just loop over the children"""
-    def on_touch_down(self, touch):
-        """Check each child in turn and if one of them catches the touch,
-        return it
-
-        """
-        for child in self.children:
-            if child.on_touch_down(touch):
-                return child
-
-    def on_touch_move(self, touch):
-        """Move all children"""
-        for child in self.children:
-            child.on_touch_move(touch)
-
-    def on_touch_up(self, touch):
-        """Return the first child that handles the touch"""
-        for child in self.children:
-            if child.on_touch_up(touch):
-                return child
-
-
 class Board(RelativeLayout):
     """A graphical view onto a facade, resembling a game board."""
     layout = ObjectProperty()
@@ -248,13 +225,16 @@ class Board(RelativeLayout):
         """
         for pawn in self.pawn.values():
             if pawn.dispatch('on_touch_down', touch):
-                return pawn
-        r = self.spotlayout.on_touch_down(touch)
-        if r:
-            self.layout.grabbed = r
-            return r
-        r = self.arrowlayout.on_touch_down(touch)
-        if r:
-            self.layout.grabbed = r
-            return r
-        return super().on_touch_down(touch)
+                touch.grab(pawn)
+                self.layout.grabbed = pawn
+                return True
+        for child in self.spotlayout.children:
+            if child.dispatch('on_touch_down', touch):
+                touch.grab(child)
+                self.layout.grabbed = child
+                return True
+        for child in self.arrowlayout.children:
+            if child.dispatch('on_touch_down', touch):
+                touch.grab(child)
+                self.layout.grabbed = child
+                return True

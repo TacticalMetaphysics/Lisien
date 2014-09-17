@@ -208,11 +208,11 @@ class ELiDELayout(FloatLayout):
         self.ids.charmenu.dispatch('on_touch_down', touch)
         self.ids.timemenu.dispatch('on_touch_down', touch)
         if self.grabbed is None:
-            self.grabbed = self.dispatch2board('on_touch_down', touch)
+            self.dispatch2board('on_touch_down', touch)
         if self.grabbed is None:
             return self.ids.boardview.dispatch('on_touch_down', touch)
         else:
-            return self.grabbed
+            return self.grabbed is not None
 
     def on_touch_move(self, touch):
         """If something's been grabbed, transform the touch to the boardview's
