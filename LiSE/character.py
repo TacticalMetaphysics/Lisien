@@ -1109,6 +1109,14 @@ class Portal(GraphEdgeMapping.Edge):
         """Return a JSON representation of my present state"""
         return json_dump(self._get_json_dict())
 
+    def delete(self):
+        """Remove myself from my :class:`Character`.
+
+        For symmetry with :class:`Thing` and :class`Place`.
+
+        """
+        del self.character.portal[self.origin][self.destination]
+
 
 class CharacterThingMapping(MutableMapping, RuleFollower):
     """:class:`Thing` objects that are in a :class:`Character`"""
