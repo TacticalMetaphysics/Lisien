@@ -129,7 +129,7 @@ LiSE currently has two graphics sets, the [RLTiles](http://rltiles.sourceforge.n
 
 [networkx](http://networkx.github.io/), which forms the basis of LiSE's data model, is available under [BSD](http://networkx.github.io/documentation/latest/reference/legal.html). My versions of the networkx graph classes are kept in a separate package, [gorm](https://github.com/LogicalDash/gorm), and released under the same license.
 
-The icons are [Entypo](http://entypo.com/), in the file Entypo.ttf, freely available at under the terms of [Creative Commons BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/).
+The icons are [Symbola](http://users.teilar.gr/~g1951d/), by George Douros, in the public domain.
 
 The LiSE source files themselves are licensed under the terms of the GNU General Public License version 3. See the text of the license in the file gpl-3.0.txt
 
