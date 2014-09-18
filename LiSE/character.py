@@ -255,6 +255,15 @@ class ThingPlace(GraphNodeMapping.Node):
             if thing['location'] == self.name:
                 yield thing
 
+    def delete(self):
+        del self.character.place[self.name]
+        if self.name in self.character.portal:
+            del self.character.portal[self.name]
+        if self.name in self.character.preportal:
+            del self.character.preportal[self.name]
+        for user in self.users():
+            user.del_avatar(self.character.name, self.name)
+
 
 class Thing(ThingPlace):
     """The sort of item that has a particular location at any given time.
@@ -505,6 +514,7 @@ class Thing(ThingPlace):
 
     def delete(self):
         del self.character.thing[self.name]
+        super().delete()
 
     def clear(self):
         for k in self:
@@ -1386,11 +1396,12 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         """
         if not self.engine.caching:
             return self._getplace(place)
+        if place not in self:
+            raise KeyError("No such place")
         # not using cache_get because creating Place objects is expensive
-        if place in self:
-            if place not in self._cache:
-                self._cache[place] = Place(self.character, place)
-            return self._cache[place]
+        if place not in self._cache:
+            self._cache[place] = Place(self.character, place)
+        return self._cache[place]
 
     def __setitem__(self, place, v):
         """Wipe out any existing place by that name, and replace it with one
@@ -1418,7 +1429,8 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             (branch, tick) = self.engine.time
             if (
                     branch in self._keycache and
-                    tick in self._keycache[branch]
+                    tick in self._keycache[branch] and
+                    place in self._keycache[branch][tick]
             ):
                 self._keycache[branch][tick].remove(place)
         else:
@@ -1501,13 +1513,15 @@ class CharacterThingPlaceMapping(MutableMapping):
 
     def __delitem__(self, k):
         """Delete place or thing"""
+        if (
+                k not in self.character.thing and
+                k not in self.character.place
+        ):
+            raise KeyError("No such thing or place")
+        if k in self.character.thing:
+            del self.character.thing[k]
         if k in self.character.place:
             del self.character.place[k]
-        else:
-            try:
-                del self.character.thing[k]
-            except KeyError:
-                raise KeyError("No such Thing or Place in this Character")
 
 
 class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
@@ -1628,9 +1642,6 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
         self.engine = char.engine
         self.name = char.name
         self._name = char._name
-        if self.engine.caching:
-            self._datacache = {}
-            self._active_branches_cache = []
 
     def __call__(self, av):
         """Add the avatar. It must be an instance of Place or Thing."""
@@ -1638,7 +1649,37 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             raise TypeError("Only Things and Places may be avatars")
         self.character.add_avatar(av.name, av.character.name)
 
-    def _avatarness(self):
+    def _datadict(self):
+        if self.engine.caching:
+            return self._avatarness_cache()
+        else:
+            return self._avatarness_db()
+
+    def _avatarness_cache(self):
+        ac = self.character._avatar_cache
+        d = {}
+        for (branch, rev) in self.engine._active_branches():
+            for g in ac:
+                if g not in d:
+                    d[g] = {}
+                for n in ac[g]:
+                    if n in d[g]:
+                        continue
+                    if branch in ac[g][n]:
+                        try:
+                            if g not in d:
+                                d[g] = {}
+                            d[g][n] = ac[g][n][branch][
+                                max(
+                                    t for t in ac[g][n][branch]
+                                    if t <= rev
+                                )
+                            ]
+                        except KeyError:
+                            pass
+        return d
+
+    def _avatarness_db(self):
         """Get avatar-ness data and return it"""
         d = {}
         for (branch, rev) in self.engine._active_branches():
@@ -1675,15 +1716,6 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                     d[g][n] = is_avatar
         return d
 
-    def _datadict(self):
-        if not self.engine.caching:
-            return self._avatarness()
-        actbranch = list(self.engine._active_branches())
-        if actbranch != self._active_branches_cache:
-            self._datacache = self._avatarness()
-            self._active_branches_cache = actbranch
-        return self._datacache
-
     def __iter__(self):
         """Iterate over every avatar graph that has at least one avatar node
         in it presently
@@ -1714,7 +1746,11 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
         proxy to that.
 
         """
-        d = self._datadict()
+        d = (
+            self.character._avatar_cache
+            if self.engine.caching
+            else self._datadict()
+        )
         if g in d:
             return self.CharacterAvatarMapping(self, g)
         elif len(d.keys()) == 1:
@@ -1756,10 +1792,32 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             self.engine = outer.engine
             self.name = outer.name
             self._name = outer._name
-            self.graph = graphn
-            self._graph = json_dump(graphn)
+            self._graph = graphn
+            self.graph = json_load(graphn)
 
         def _branchdata(self, branch, rev):
+            if self.engine.caching:
+                return self._branchdata_cache(branch, rev)
+            else:
+                return self._branchdata_db(branch, rev)
+
+        def _branchdata_cache(self, branch, rev):
+            ac = self.character._avatar_cache
+            return [
+                (
+                    node,
+                    ac[self._graph][node][branch][
+                        max(
+                            t for t in ac[self._graph][node][branch]
+                            if t <= rev
+                        )
+                    ]
+                )
+                for node in ac[self._graph]
+                if branch in ac[self._graph][node]
+            ]
+
+        def _branchdata_db(self, branch, rev):
             return self.engine.cursor.execute(
                 "SELECT "
                 "avatars.avatar_node, "
@@ -1829,39 +1887,69 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                     seen.add(n)
 
         def __contains__(self, av):
-            for (branch, rev) in self.engine._active_branches():
-                self.engine.cursor.execute(
-                    "SELECT avatars.is_avatar FROM avatars JOIN ("
-                    "SELECT character_graph, avatar_graph, avatar_node, "
-                    "branch, MAX(tick) AS tick FROM avatars "
-                    "WHERE character_graph=? "
-                    "AND avatar_graph=? "
-                    "AND avatar_node=? "
-                    "AND branch=? "
-                    "AND tick<=? GROUP BY "
-                    "character_graph, avatar_graph, avatar_node, "
-                    "branch) AS hitick ON "
-                    "avatars.character_graph=hitick.character_graph "
-                    "AND avatars.avatar_graph=hitick.avatar_graph "
-                    "AND avatars.avatar_node=hitick.avatar_node "
-                    "AND avatars.branch=hitick.branch "
-                    "AND avatars.tick=hitick.tick;",
-                    (
-                        json_dump(self.name),
-                        json_dump(self.graph),
-                        json_dump(av),
-                        branch,
-                        rev
-                    )
-                )
-                try:
-                    return (
-                        self.engine.cursor.fetchone()[0] and
-                        self.engine._node_exists(av)
-                    )
-                except (TypeError, IndexError):
+            fun = (
+                self._contains_when_cache
+                if self.engine.caching
+                else self._contains_when_db
+            )
+            for (branch, tick) in self.engine._active_branches():
+                r = fun(av, branch, tick)
+                if r is None:
                     continue
+                return r
             return False
+
+        def _contains_when_cache(self, av, branch, rev):
+            ac = self.character._avatar_cache
+            if av not in ac:
+                return False
+            for node in ac[av]:
+                try:
+                    if ac[av][branch][
+                            max(
+                                t for t in ac[av][branch]
+                                if t <= rev
+                            )
+                    ]:
+                        return True
+                except KeyError:
+                    continue
+
+        def _contains_when_db(self, av, branch, rev):
+            self.engine.cursor.execute(
+                "SELECT avatars.is_avatar FROM avatars JOIN ("
+                "SELECT character_graph, avatar_graph, avatar_node, "
+                "branch, MAX(tick) AS tick FROM avatars "
+                "WHERE character_graph=? "
+                "AND avatar_graph=? "
+                "AND avatar_node=? "
+                "AND branch=? "
+                "AND tick<=? GROUP BY "
+                "character_graph, avatar_graph, avatar_node, "
+                "branch) AS hitick ON "
+                "avatars.character_graph=hitick.character_graph "
+                "AND avatars.avatar_graph=hitick.avatar_graph "
+                "AND avatars.avatar_node=hitick.avatar_node "
+                "AND avatars.branch=hitick.branch "
+                "AND avatars.tick=hitick.tick;",
+                (
+                    json_dump(self.name),
+                    json_dump(self.graph),
+                    json_dump(av),
+                    branch,
+                    rev
+                )
+            )
+            data = self.engine.cursor.fetchone()
+            if data is None:
+                return None
+            try:
+                return (
+                    data[0] and
+                    self.engine._node_exists(av)
+                )
+            except (TypeError, IndexError):
+                return False
 
         def __len__(self):
             """Number of presently existing nodes in the graph that are avatars of
@@ -2553,6 +2641,22 @@ class Character(DiGraph, RuleFollower):
         )
         if engine.caching:
             self.stat = CharStatCache(self)
+            self._avatar_cache = ac = {}
+            # I'll cache this ONE table in full, because iterating
+            # over avatars seems to take a lot of time.
+            for (g, n, b, t, a) in engine.cursor.execute(
+                "SELECT avatar_graph, avatar_node, branch, tick, is_avatar "
+                "FROM avatars WHERE "
+                "character_graph=?;",
+                (self._name,)
+            ).fetchall():
+                if g not in ac:
+                    ac[g] = {}
+                if n not in ac[g]:
+                    ac[g][n] = {}
+                if b not in ac[g][n]:
+                    ac[g][n][b] = {}
+                ac[g][n][b][t] = a
         else:
             self.stat = self.graph
         self._portal_traits = set()
@@ -2682,16 +2786,25 @@ class Character(DiGraph, RuleFollower):
                 kwargs['symmetrical'] = True
             self.add_portal(orig, dest, **kwargs)
 
-    def add_avatar(self, host, name):
+    def add_avatar(self, graph, name):
         """Start keeping track of a :class:`Thing` or :class:`Place` in a
         different :class:`Character`.
 
         """
         (branch, tick) = self.engine.time
-        if isinstance(host, Character):
-            host = host.name
-        h = json_dump(host)
+        if isinstance(graph, Character):
+            graph = graph.name
+        g = json_dump(graph)
         n = json_dump(name)
+        if self.engine.caching:
+            ac = self._avatar_cache
+            if g not in ac:
+                ac[g] = {}
+            if n not in ac[g]:
+                ac[g][n] = {}
+            if branch not in ac[g][n]:
+                ac[g][n][branch] = {}
+            ac[g][n][branch][tick] = True
         # This will create the node if it doesn't exist. Otherwise
         # it's redundant but harmless.
         try:
@@ -2699,7 +2812,7 @@ class Character(DiGraph, RuleFollower):
                 "INSERT INTO nodes (graph, node, branch, rev, extant) "
                 "VALUES (?, ?, ?, ?, ?);",
                 (
-                    h,
+                    g,
                     n,
                     branch,
                     tick,
@@ -2717,7 +2830,7 @@ class Character(DiGraph, RuleFollower):
                 ") VALUES (?, ?, ?, ?, ?, ?);",
                 (
                     self._name,
-                    h,
+                    g,
                     n,
                     branch,
                     tick,
@@ -2735,21 +2848,30 @@ class Character(DiGraph, RuleFollower):
                 (
                     True,
                     self._name,
-                    h,
+                    g,
                     n,
                     branch,
                     tick
                 )
             )
 
-    def del_avatar(self, host, name):
+    def del_avatar(self, graph, name):
         """Way to delete avatars for if you don't want to do it in the avatar
         mapping for some reason
 
         """
-        h = json_dump(host)
+        g = json_dump(graph)
         n = json_dump(name)
         (branch, tick) = self.engine.time
+        if self.engine.caching:
+            ac = self._avatar_cache
+            if g not in ac:
+                ac[g] = {}
+            if n not in ac[g]:
+                ac[g][n] = {}
+            if branch not in ac[g][n]:
+                ac[g][n][branch] = {}
+            ac[g][n][branch][tick] = False
         try:
             self.engine.cursor.execute(
                 "INSERT INTO avatars "
@@ -2758,7 +2880,7 @@ class Character(DiGraph, RuleFollower):
                 "VALUES (?, ?, ?, ?, ?, ?);",
                 (
                     self._name,
-                    h,
+                    g,
                     n,
                     branch,
                     tick,
@@ -2776,7 +2898,7 @@ class Character(DiGraph, RuleFollower):
                 (
                     False,
                     self._name,
-                    h,
+                    g,
                     n,
                     branch,
                     tick
@@ -2794,6 +2916,39 @@ class Character(DiGraph, RuleFollower):
         in.
 
         """
+        if not self.engine.caching:
+            for (g, n, a) in self._db_iter_avatar_rows():
+                if a:
+                    graphn = json_load(g)
+                    noden = json_load(n)
+                    yield self.engine.character[graphn].node[noden]
+            return
+        ac = self._avatar_cache
+        seen = set()
+        for (branch, tick) in self.engine._active_branches():
+            for g in ac:
+                for n in ac[g]:
+                    if (
+                            (g, n) not in seen and
+                            branch in ac[g][n]
+                    ):
+                        seen.add((g, n))
+                        if ac[g][n][branch][
+                                max(t for t in ac[g][n][branch] if t <= tick)
+                        ]:
+                            graphn = json_load(g)
+                            noden = json_load(n)
+                            # the character or avatar may have been
+                            # deleted from the world. It remains
+                            # "mine" in case it comes back, but don't
+                            # yield things that don't exist.
+                            if (
+                                    graphn in self.engine.character and
+                                    noden in self.engine.character[graphn]
+                            ):
+                                yield self.engine.character[graphn].node[noden]
+
+    def _db_iter_avatar_rows(self):
         seen = set()
         for (branch, tick) in self.engine._active_branches():
             data = self.engine.cursor.execute(
@@ -2833,9 +2988,6 @@ class Character(DiGraph, RuleFollower):
                 )
             ).fetchall()
             for (g, n, a) in data:
-                graphn = json_load(g)
-                noden = json_load(n)
-                is_avatar = bool(a)
-                if (graphn, noden) not in seen and is_avatar:
-                    yield self.engine.character[graphn].node[noden]
-                seen.add((graphn, noden))
+                if (g, n) not in seen:
+                    yield (g, n, a)
+                seen.add(g, n)

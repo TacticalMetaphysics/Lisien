@@ -143,7 +143,7 @@ def inittest(
     def kill(engine, character, avatar):
         # the avatar's character is 'physical', and not 'dwarf';
         # character 'dwarf' merely tracks the avatar
-        del avatar.character.thing['kobold']
+        avatar.character.thing['kobold'].delete()
         print("===KOBOLD DIES===")
 
     @kill.trigger
