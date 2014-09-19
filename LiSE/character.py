@@ -1300,6 +1300,9 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             self._cache[thing] = th
             (branch, tick) = self.engine.time
             if branch in self._keycache:
+                for t in list(self._keycache[branch].keys()):
+                    if t > tick:
+                        del self._keycache[branch][t]
                 if tick in self._keycache[branch]:
                     self._keycache[branch][tick].add(self.name)
                     return
@@ -1325,6 +1328,9 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 th = Thing(self.character, thing)
             (branch, tick) = self.engine.time
             if branch in self._keycache:
+                for t in list(self._keycache[branch].keys()):
+                    if t > tick:
+                        del self._keycache[branch][t]
                 if tick in self._keycache[branch]:
                     self._keycache[branch][tick].remove(thing)
                     return

@@ -77,11 +77,18 @@ def cache_set(cache, keycache, branch, tick, key, value, setter):
     if branch not in cache[key]:
         cache[key][branch] = {}
     cache[key][branch][tick] = value
-    if (
-            branch in keycache and
-            tick in keycache[branch]
-    ):
-        keycache[branch][tick].add(key)
+    if branch in keycache:
+        try:
+            if tick not in keycache[branch]:
+                keycache[branch][tick] = set(
+                    keycache[branch][
+                        max(t for t in keycache[branch]
+                            if t < tick)
+                    ]
+                )
+            keycache[branch][tick].add(key)
+        except ValueError:
+            pass
     setter(key, value)
 
 
@@ -96,11 +103,18 @@ def cache_del(cache, keycache, branch, tick, key, deleter):
             tick in cache[key][branch]
     ):
         del cache[key][branch][tick]
-    if (
-            branch in keycache and
-            tick in keycache[branch]
-    ):
-        keycache[branch][tick].remove(key)
+    if branch in keycache:
+        try:
+            if tick not in keycache[branch]:
+                keycache[branch][tick] = set(
+                    keycache[branch][
+                        max(t for t in keycache[branch]
+                            if t < tick)
+                        ]
+                )
+            keycache[branch][tick].remove(key)
+        except ValueError:
+            pass
     deleter(key)
 
 
