@@ -717,7 +717,7 @@ class Engine(object):
             if ruletyp == 'character':
                 yield follow(character)
             elif ruletyp == 'avatar':
-                for avatar in character.iter_avatars():
+                for avatar in character.avatars():
                     yield follow(character, avatar)
             elif ruletyp == 'thing':
                 for thing in character.thing.values():
@@ -726,7 +726,7 @@ class Engine(object):
                 for place in character.place.values():
                     yield follow(character, place)
             elif ruletyp == 'portal':
-                for portal in character.iter_portals():
+                for portal in character.portals():
                     yield follow(character, portal)
             else:
                 raise TypeError("Unknown type of rule")
