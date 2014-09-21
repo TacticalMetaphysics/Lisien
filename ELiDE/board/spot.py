@@ -5,6 +5,7 @@ from kivy.properties import (
     ListProperty,
     ObjectProperty,
     BooleanProperty,
+    NumericProperty,
     AliasProperty
 )
 from kivy.clock import Clock
@@ -26,6 +27,7 @@ class Spot(ImageStack):
         lambda self, v: None,
         bind=('board',)
     )
+    offset = NumericProperty(4)
     _ignore_place = BooleanProperty(False)
     _touchpos = ListProperty([])
 
@@ -67,9 +69,15 @@ class Spot(ImageStack):
             )
             self._ignore_place = False
 
-    def add_widget(self, pawn, index=0, canvas='after'):
-        super().add_widget(pawn, index, canvas)
-        pawn.pos = self.center
+    def _repos_pawn(self, pawn):
+        i = 0
+        for child in self.children:
+            if child is pawn:
+                break
+            i += 1
+        off = i * self.offset
+        (x, y) = self.center
+        pawn.pos = (x+off, y+off)
 
     def on_paths(self, *args):
         """When I get different imagery, save it in my :class:`Place`"""
@@ -93,7 +101,7 @@ class Spot(ImageStack):
 
         """
         for pawn in self.children:
-            pawn.pos = self.center
+            self._repos_pawn(pawn)
 
     def on_touch_down(self, touch):
         """If the touch hits me, grab it and put myself in its userdict"""

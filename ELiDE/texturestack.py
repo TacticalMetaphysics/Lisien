@@ -16,7 +16,8 @@ from kivy.graphics import (
 )
 from kivy.properties import (
     ListProperty,
-    DictProperty
+    DictProperty,
+    BooleanProperty,
 )
 from kivy.clock import Clock
 from kivy.resources import resource_find
@@ -35,8 +36,20 @@ class TextureStack(Widget):
     texs = ListProperty([])
     """Texture objects"""
     stackhs = ListProperty([])
-    """Stacking heights. These are how high (in the y dimension) above the
-    previous texture a texture at the same index in ``texs`` should be."""
+    """Stacking heights. All textures following one with a nonzero
+    stacking height are moved up by that number of pixels (cumulative).
+
+    """
+    offxs = ListProperty([])
+    """x-offsets. The texture at the same index will be moved to the right
+    by the number of pixels in this list.
+
+    """
+    offys = ListProperty([])
+    """y-offsets. The texture at the same index will be moved upward by
+    the number of pixels in this list.
+
+    """
     texture_rectangles = DictProperty({})
     """Private.
 
@@ -44,95 +57,114 @@ class TextureStack(Widget):
     texture.
 
     """
-    rectangle_groups = DictProperty({})
-    """Private.
-
-    InstructionGroups for each Rectangle--including the BindTexture
-    instruction that goes with it. Keyed by the Rectangle.
-
-    """
+    _no_tex_upd = BooleanProperty(False)
+    _no_use_canvas = BooleanProperty(False)
 
     def __init__(self, **kwargs):
-        """Make triggers, bind, and if I have something to show, show it."""
+        """Make triggers and bind."""
         kwargs['size_hint'] = (None, None)
+        self.group = InstructionGroup()
         super().__init__(**kwargs)
-        self._trigger_upd_texs = Clock.create_trigger(
-            self._upd_texs, timeout=-1
-        )
-        self._trigger_upd_pos = Clock.create_trigger(
-            self._upd_pos, timeout=-1
-        )
-        self.bind(pos=self._trigger_upd_pos)
 
     def on_texs(self, *args):
-        if len(self.texs) > 0:
-            self._trigger_upd_texs()
-            self._trigger_upd_pos()
+        """Make rectangles for each of the textures and add them to the
+        canvas, taking their stacking heights into account.
 
-    def _upd_texs(self, *args):
-        if not self.canvas:
-            Clock.schedule_once(self.upd_texs, 0)
+        """
+        if self._no_tex_upd:
             return
+        if not self.canvas or not self.texs:
+            Clock.schedule_once(self.on_texs, 0)
+            return
+        texlen = len(self.texs)
+        props = ('stackhs', 'offxs', 'offys')
+        # Ensure each property is the same length as my texs, padding
+        # with 0 as needed
+        for prop in props:
+            proplen = len(getattr(self, prop))
+            if proplen > texlen:
+                setattr(self, prop, getattr(self, prop)[:proplen-texlen])
+            if texlen > proplen:
+                propval = list(getattr(self, prop))
+                propval += [0] * (texlen - proplen)
+                setattr(self, prop, propval)
         self._clear_rects()
         w = h = 0
+        stackh = 0
+        i = 0
+        (x, y) = self.pos
+        if self.group in self.canvas.children:
+            self.canvas.remove(self.group)
         for tex in self.texs:
-            self.canvas.add(self._rectify(tex, self.x, self.y))
-            if tex.width > w:
-                w = tex.width
-            if tex.height > h:
-                h = tex.height
+            offx = self.offxs[i] if self.offxs[i] > 0 else 0
+            offy = self.offys[i] if self.offys[i] > 0 else 0
+            rect = Rectangle(
+                pos=(x+offx, y+offy+stackh),
+                size=tex.size,
+                texture=tex
+            )
+            self.texture_rectangles[tex] = rect
+            self.group.add(rect)
+            tw = tex.width + offx
+            th = tex.height + offy + stackh
+            if tw > w:
+                w = tw
+            if th > h:
+                h = th
+            stackh += self.stackhs[i] if self.stackhs[i] > 0 else 0
+            i += 1
+        if not self._no_use_canvas:
+            self.canvas.add(self.group)
         self.size = (w, h)
 
-    def _upd_pos(self, *args):
+    def on_pos(self, *args):
+        """Move all the rectangles within this widget to reflect the widget's
+        position. Take stacking height into account.
+
+        """
+        stackh = 0
+        i = 0
+        (x, y) = self.pos
         for rect in self.texture_rectangles.values():
-            rect.pos = self.pos
+            rect.pos = (x, y+stackh)
+            stackh += self.stackhs[i]
+            i += 1
 
     def _clear_rects(self):
-        for group in self.rectangle_groups.values():
-            self.canvas.remove(group)
-        self.rectangle_groups = {}
+        """Get rid of all my rectangles (but not those of my children)."""
+        for rect in self.texture_rectangles.values():
+            self.canvas.remove(rect)
         self.texture_rectangles = {}
 
     def clear(self):
+        """Clear my rectangles, ``texs``, and ``stackhs``."""
         self._clear_rects()
         self.texs = []
         self.stackhs = []
         self.size = [1, 1]
 
-    def _rectify(self, tex, x, y):
-        rect = Rectangle(
-            pos=(x, y),
-            size=tex.size,
-            texture=tex
-        )
-        self.width = max([self.width, tex.width])
-        self.height = max([self.height, tex.height])
-        self.texture_rectangles[tex] = rect
-        group = InstructionGroup()
-        group.add(rect)
-        self.rectangle_groups[rect] = group
-        return group
-
     def insert(self, i, tex):
+        """Insert the texture into my ``texs``, waiting for the creation of
+        the canvas if necessary.
+
+        """
         if not self.canvas:
             Clock.schedule_once(
                 lambda dt: TextureStack.insert(
                     self, i, tex), 0)
             return
-        if len(self.stackhs) < len(self.texs):
-            self.stackhs.extend([0] * (len(self.texs) - len(self.stackhs)))
         self.texs.insert(i, tex)
 
     def append(self, tex):
+        """``self.insert(len(self.texs), tex)``"""
         self.insert(len(self.texs), tex)
 
     def __delitem__(self, i):
+        """Remove a texture, its rectangle, and its stacking height"""
         tex = self.texs[i]
         try:
             rect = self.texture_rectangles[tex]
-            group = self.rectangle_groups[rect]
-            self.canvas.remove(group)
-            del self.rectangle_groups[rect]
+            self.canvas.remove(rect)
             del self.texture_rectangles[tex]
         except KeyError:
             pass
@@ -140,47 +172,64 @@ class TextureStack(Widget):
         del self.texs[i]
 
     def __setitem__(self, i, v):
+        """First delete at ``i``, then insert there"""
         if len(self.texs) > 0:
-            self.unbind(texs=self._upd_texs)
+            self._no_upd_texs = True
             self.__delitem__(i)
-            self.bind(texs=self._upd_texs)
+            self._no_upd_texs = False
         self.insert(i, v)
 
     def pop(self, i=-1):
+        """Delete the stacking height and texture at ``i``, returning the
+        texture.
+
+        """
         self.stackhs.pop(i)
         return self.texs.pop(i)
+
+    def add_widget(self, wid, index=0, canvas='after'):
+        super().add_widget(wid, index, canvas)
 
 
 class ImageStack(TextureStack):
     """Instead of supplying textures themselves, supply paths to where the
     texture may be loaded from."""
-    paths = ListProperty()
+    paths = ListProperty([])
+    pathtexs = DictProperty({})
 
     def on_paths(self, *args):
-        super().clear()
+        """Make textures from the paths and assign them at the same index"""
+        i = 0
         for path in self.paths:
-            super().append(Image.load(resource_find(path)).texture)
+            if path in self.pathtexs:
+                if self.texs.indexof(self.pathtexs[path]) == i:
+                    continue
+            else:
+                self.pathtexs[path] = Image.load(resource_find(path)).texture
+            if i == len(self.texs):
+                self.texs.append(self.pathtexs[path])
+            else:
+                self.texs[i] = self.pathtexs[path]
+            i += 1
 
     def clear(self):
+        """Clear paths, textures, rectangles"""
         self.paths = []
         super().clear()
 
     def insert(self, i, v):
-        if isinstance(v, str):
-            self.paths.insert(i, v)
-        else:
-            super().insert(i, v)
-
-    def append(self, v):
-        if isinstance(v, str):
-            self.paths.append(v)
-        else:
-            super().append(v)
+        """Insert a string to my paths"""
+        if not isinstance(v, str):
+            raise TypeError("Paths only")
+        self.paths.insert(i, v)
 
     def __delitem__(self, i):
+        """Delete texture, rectangle, path"""
         super().__delitem__(i)
         del self.paths[i]
 
     def pop(self, i=-1):
-        self.paths.pop(i)
-        return super().pop(i)
+        """Delete and return a path"""
+        r = self.paths[i]
+        del self[i]
+        return r
