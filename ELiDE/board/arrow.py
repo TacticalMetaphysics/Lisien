@@ -7,11 +7,7 @@ points from the origin to the destination, regardless of where on the
 screen they are at the moment.
 
 """
-from math import cos, sin, hypot, atan
-from LiSE.util import (
-    wedge_offsets_rise_run,
-    truncated_line,
-    fortyfive)
+from math import cos, sin, hypot, atan, pi
 from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
 from kivy.properties import (
@@ -23,8 +19,14 @@ from kivy.properties import (
 )
 from kivy.clock import Clock
 
+ninety = pi / 2
+"""pi / 2"""
 
-def get_points(ox, orx, oy, ory, dx, drx, dy, dry, taillen):
+fortyfive = pi / 4
+"""pi / 4"""
+
+
+def get_points(ox, oy, ro, dx, dy, rd, taillen):
     """Return points to use for an arrow from ``ox,oy`` to ``dx,dy`` where
     the origin has dimensions ``2*orx,2*ory``, the destination has
     dimensions ``2*drx,2*dry``, and the bits of the arrow not actually
@@ -32,52 +34,79 @@ def get_points(ox, orx, oy, ory, dx, drx, dy, dry, taillen):
     ``taillen``.
 
     """
-    ox += orx
-    oy += ory
-    dx += drx
-    dy += dry
-    if drx > dry:
-        dr = drx
-    else:
-        dr = dry
-    if dy < oy:
-        yco = -1
-    else:
-        yco = 1
-    if dx < ox:
+    # handle special cases;
+    # flip the arrow, if needed, to make it point up and right;
+    # store coefficients to flip it back again
+    if ox < dx:
+        leftx = ox
+        rightx = dx
+        xco = 1
+    elif ox > dx:
+        leftx = ox * -1
+        rightx = dx * -1
         xco = -1
     else:
-        xco = 1
-    (leftx, boty, rightx, topy) = truncated_line(
-        float(ox * xco), float(oy * yco),
-        float(dx * xco), float(dy * yco),
-        dr + 1)
+        off1 = cos(fortyfive) * taillen
+        off2 = sin(fortyfive) * taillen
+        x0 = ox
+        y0 = oy + ro if oy < dy else oy - ro
+        endx = dx
+        endy = dy - rd if oy < dy else dy + rd
+        x1 = endx - off1
+        x2 = endx + off1
+        y1 = y2 = endy - off2 if oy < dy else endy + off2
+        return [x0, y0, endx, endy, x1, y1, endx, endy, x2, y2, endx, endy]
+    if oy < dy:
+        boty = oy
+        topy = dy
+        yco = 1
+    elif oy > dy:
+        boty = oy * -1
+        topy = dy * -1
+        yco = -1
+    else:
+        off1 = cos(fortyfive) * taillen
+        off2 = sin(fortyfive) * taillen
+        x0 = ox + ro if ox < dx else ox - ro
+        y0 = oy
+        endx = dx - rd if ox < dx else dx + rd
+        endy = dy
+        y1 = endy - off1
+        y2 = endy + off1
+        x1 = x2 = endx - off2 if ox < dx else endx + off2
+        return [x0, y0, endx, endy, x1, y1, endx, endy, x2, y2, endx, endy]
+
     rise = topy - boty
     run = rightx - leftx
-    if rise == 0:
-        xoff1 = cos(fortyfive) * taillen
-        yoff1 = xoff1
-        xoff2 = xoff1
-        yoff2 = -1 * yoff1
-    elif run == 0:
-        xoff1 = sin(fortyfive) * taillen
-        yoff1 = xoff1
-        xoff2 = -1 * xoff1
-        yoff2 = yoff1
-    else:
-        (xoff1, yoff1, xoff2, yoff2) = wedge_offsets_rise_run(
-            rise, run, taillen)
+
+    # truncate the end so it just touches the destination circle.
+    # truncate the start so it's at the very edge of the origin circle.
+    start_theta = atan(rise/run)
+    end_theta = atan(run/rise)
+    length = hypot(run, rise) - rd
+    rightx = leftx + cos(start_theta) * length
+    topy = boty + sin(start_theta) * length
+    length -= ro
+    leftx = rightx - sin(end_theta) * length
+    boty = topy - cos(end_theta) * length
+
+    # make the little wedge at the end so you can tell which way the
+    # arrow's pointing, and flip it all back around to the way it was
+    top_theta = start_theta - fortyfive
+    bot_theta = pi - fortyfive - end_theta
+    xoff1 = cos(top_theta) * taillen
+    yoff1 = sin(top_theta) * taillen
+    xoff2 = cos(bot_theta) * taillen
+    yoff2 = sin(bot_theta) * taillen
     x1 = (rightx - xoff1) * xco
     x2 = (rightx - xoff2) * xco
     y1 = (topy - yoff1) * yco
     y2 = (topy - yoff2) * yco
+    startx = leftx * xco
+    starty = boty * yco
     endx = rightx * xco
     endy = topy * yco
-    r = [ox, oy,
-         endx, endy, x1, y1,
-         endx, endy, x2, y2,
-         endx, endy]
-    return r
+    return [startx, starty, endx, endy, x1, y1, endx, endy, x2, y2, endx, endy]
 
 
 class Arrow(Widget):
@@ -176,9 +205,51 @@ class Arrow(Widget):
         self.canvas.add(self.fg_line)
         self._trigger_repoint()
 
-    def add_widget(self, pawn, index=0, canvas=None):
-        super().add_widget(pawn, index, canvas)
-        self.pospawn(pawn)
+    def add_widget(self, wid, index=0, canvas=None):
+        super().add_widget(wid, index, canvas)
+        mycanvas = (
+            self.canvas.before if canvas == 'before' else
+            self.canvas.after if canvas == 'after' else
+            self.canvas
+        )
+        mycanvas.remove(wid.canvas)
+        # put it in either the origin or the destination canvas
+        # depending on which is closest
+        pct = (
+            self.engine.tick -
+            wid.thing['arrival_time']
+        ) / (
+            wid.thing['next_arrival_time'] -
+            wid.thing['arrival_time']
+        )
+        spot = self.destination if pct >= 0.5 else self.origin
+        spotcanvas = (
+            spot.canvas.before if canvas == 'before' else
+            spot.canvas.after if canvas == 'after' else
+            spot.canvas
+        )
+        wid._no_use_canvas = True
+        childs = list(spotcanvas.children)
+        for child in childs:
+            spotcanvas.remove(child)
+        childs.insert(index, wid.group)
+        for child in childs:
+            spotcanvas.add(child)
+        self.pospawn(wid)
+
+    def remove_widget(self, wid):
+        super().remove_widget(wid)
+        for canvas in (
+                self.origin.canvas,
+                self.origin.canvas.before,
+                self.origin.canvas.after,
+                self.destination.canvas,
+                self.destination.canvas.before,
+                self.destination.canvas.after
+        ):
+            if wid.group in canvas.children:
+                canvas.remove(wid.group)
+        wid._no_use_canvas = False
 
     def on_points(self, *args):
         """Propagate my points to both my lines"""
@@ -223,16 +294,14 @@ class Arrow(Widget):
         """Return the coordinates of the points that describe my shape."""
         orig = self.origin
         dest = self.destination
-        (ox, oy) = orig.pos
+        (ox, oy) = orig.center
         ow = orig.width if hasattr(orig, 'width') else 0
         taillen = float(self.board.arrowhead_size)
-        orx = ow / 2
         ory = ow / 2
-        (dx, dy) = dest.pos
+        (dx, dy) = dest.center
         (dw, dh) = dest.size if hasattr(dest, 'size') else (0, 0)
-        drx = dw / 2
         dry = dh / 2
-        return get_points(ox, orx, oy, ory, dx, drx, dy, dry, taillen)
+        return get_points(ox, oy, ory, dx, dy, dry, taillen)
 
     def _get_slope(self):
         """Return a float of the increase in y divided by the increase in x,
