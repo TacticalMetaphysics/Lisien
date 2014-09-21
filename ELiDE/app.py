@@ -115,6 +115,9 @@ class ELiDELayout(FloatLayout):
     """Count how far along I am in the process of connecting two Places by
     creating a Portal between them."""
     grabbed = ObjectProperty(None, allownone=True)
+    """Thing being grabbed"""
+    selected = ObjectProperty(None, allownone=True)
+    """Thing that's selected and highlighted for some operation"""
     engine = ObjectProperty()
     tick_results = DictProperty({})
     branch = StringProperty('master')

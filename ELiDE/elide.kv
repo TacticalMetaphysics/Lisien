@@ -1,4 +1,13 @@
 #: import StiffScrollEffect kivy.garden.stiffscroll.StiffScrollEffect
+<Spot>:
+    engine: self.board.layout.app.engine
+    selected: self.board.layout.selected is self
+<Pawn>:
+    engine: self.board.layout.app.engine
+    selected: self.board.layout.selected is self
+<Arrow>:
+    engine: self.board.layout.app.engine
+    selected: self.board.layout.selected is self
 <ELiDELayout>:
     engine: self.app.engine
     ScrollView:

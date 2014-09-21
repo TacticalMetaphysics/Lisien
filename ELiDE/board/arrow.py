@@ -14,7 +14,6 @@ from kivy.properties import (
     ObjectProperty,
     NumericProperty,
     ListProperty,
-    AliasProperty,
     BooleanProperty
 )
 from kivy.clock import Clock
@@ -80,12 +79,12 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
     run = rightx - leftx
 
     # truncate the end so it just touches the destination circle.
-    # truncate the start so it's at the very edge of the origin circle.
     start_theta = atan(rise/run)
     end_theta = atan(run/rise)
     length = hypot(run, rise) - rd
     rightx = leftx + cos(start_theta) * length
     topy = boty + sin(start_theta) * length
+    # truncate the start so it's at the very edge of the origin circle.
     length -= ro
     leftx = rightx - sin(end_theta) * length
     boty = topy - cos(end_theta) * length
@@ -136,11 +135,8 @@ class Arrow(Widget):
     origin = ObjectProperty()
     destination = ObjectProperty()
     reciprocal = ObjectProperty(None, allownone=True)
-    engine = AliasProperty(
-        lambda self: self.board.engine if self.board else None,
-        lambda self, v: None,
-        bind=('board',)
-    )
+    engine = ObjectProperty()
+    selected = BooleanProperty()
     repointed = BooleanProperty(True)
 
     @property

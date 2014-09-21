@@ -5,8 +5,7 @@ from kivy.properties import (
     ListProperty,
     ObjectProperty,
     BooleanProperty,
-    NumericProperty,
-    AliasProperty
+    NumericProperty
 )
 from kivy.clock import Clock
 from ..texturestack import ImageStack
@@ -22,11 +21,8 @@ class Spot(ImageStack):
     """
     place = ObjectProperty()
     board = ObjectProperty()
-    engine = AliasProperty(
-        lambda self: self.board.engine if self.board else None,
-        lambda self, v: None,
-        bind=('board',)
-    )
+    engine = ObjectProperty()
+    selected = BooleanProperty()
     offset = NumericProperty(4)
     _ignore_place = BooleanProperty(False)
     _touchpos = ListProperty([])
