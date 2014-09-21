@@ -239,9 +239,15 @@ Factory.register('ELiDELayout', cls=ELiDELayout)
 class MenuTextInput(TextInput):
     setter = ObjectProperty()
 
-    def on_text_validate(self, *args):
+    def __init__(self, **kwargs):
+        kwargs['multiline'] = False
+        super().__init__(**kwargs)
+        self.bind(on_text_validate=self.on_enter)
+
+    def on_enter(self, *args):
         self.setter(self.text)
         self.text = ''
+        self.focus = False
 
 
 Factory.register('MenuTextInput', cls=MenuTextInput)
