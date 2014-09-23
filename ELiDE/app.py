@@ -96,7 +96,7 @@ class DummyPawn(ImageStack):
 
 
 class ELiDELayout(FloatLayout):
-    """A very tiny master layout that contains one board and some menus
+    """A master layout that contains one board and some menus
     and charsheets.
 
     This contains three elements: a board, a menu, and a character
@@ -122,38 +122,40 @@ class ELiDELayout(FloatLayout):
     tick_results = DictProperty({})
     branch = StringProperty('master')
     tick = NumericProperty(0)
-    initialized = BooleanProperty(False)
     rules_per_frame = BoundedNumericProperty(1, min=1)
 
     def on_engine(self, *args):
+        """Set my branch and tick to that of my engine, and bind them so that
+        when you change my branch or tick, you also change my
+        engine's.
+
+        """
         if self.engine is None:
             return
         self.branch = self.engine.branch
         self.tick = self.engine.tick
-        self.initialized = True
+        self.bind(
+            branch=self.branchupd,
+            tick=self.tickupd
+        )
 
-    def set_branch(self, b):
-        self.branch = b
-
-    def set_tick(self, ts):
-        t = int(ts)
-        self.tick = t
-
-    def on_branch(self, *args):
-        if not self.initialized:
-            return
+    def branchupd(self, *args):
+        """Inform my engine of the new branch, and update the board widget."""
         if self.engine.branch != self.branch:
             self.engine.branch = self.branch
         self.ids.board._trigger_update()
 
-    def on_tick(self, *args):
-        if not self.initialized:
-            return
+    def tickupd(self, *args):
+        """Inform my engine of the new tick, and update the board widget."""
         if self.engine.tick != self.tick:
             self.engine.tick = self.tick
         self.ids.board._trigger_update()
 
     def advance(self):
+        """Resolve one rule and store the results in a list at
+        ``self.tick_results[self.branch][self.tick]```.
+
+        """
         if self.branch not in self.tick_results:
             self.tick_results[self.branch] = {}
         if self.tick not in self.tick_results[self.branch]:
@@ -181,6 +183,10 @@ class ELiDELayout(FloatLayout):
             self.ids.board._trigger_update()
 
     def next_tick(self, *args):
+        """Call ``self.advance()``, and if the tick hasn't changed, schedule
+        it to happen again.
+
+        """
         curtick = self.tick
         n = 0
         while (
@@ -228,6 +234,7 @@ class ELiDELayout(FloatLayout):
             return self.grabbed.dispatch('on_touch_move', touch)
 
     def on_touch_up(self, touch):
+        """Dispatch everywhere, and set my ``grabbed`` to ``None``"""
         self.ids.charmenu.dispatch('on_touch_up', touch)
         self.ids.timemenu.dispatch('on_touch_up', touch)
         self.ids.boardview.dispatch('on_touch_up', touch)
@@ -240,14 +247,21 @@ Factory.register('ELiDELayout', cls=ELiDELayout)
 
 
 class MenuTextInput(TextInput):
+    """Special text input for setting the branch"""
     setter = ObjectProperty()
 
     def __init__(self, **kwargs):
+        """Disable multiline, and bind ``on_text_validate`` to ``on_enter``"""
         kwargs['multiline'] = False
         super().__init__(**kwargs)
         self.bind(on_text_validate=self.on_enter)
 
     def on_enter(self, *args):
+        """Call the setter and blank myself out so that my hint text shows
+        up. It will be the same you just entered if everything's
+        working.
+
+        """
         self.setter(self.text)
         self.text = ''
         self.focus = False
@@ -257,6 +271,7 @@ Factory.register('MenuTextInput', cls=MenuTextInput)
 
 
 class MenuIntInput(MenuTextInput):
+    """Special text input for setting the tick"""
     def insert_text(self, s, from_undo=False):
         """Natural numbers only."""
         return super().insert_text(
