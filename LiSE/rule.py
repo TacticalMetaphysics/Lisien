@@ -2,8 +2,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 from collections import MutableMapping, MutableSequence, Callable
-from sqlite3 import IntegrityError
-from gorm.json import json_dump, json_load
 from .funlist import FunList
 
 
@@ -30,16 +28,8 @@ class Rule(object):
         self.engine = engine
         self.name = name
         # if I don't yet have a database record, make one
-        self.engine.cursor.execute(
-            "SELECT COUNT(*) FROM rules WHERE rule=?;",
-            (name,)
-        )
-        (ct,) = self.engine.cursor.fetchone()
-        if ct == 0:
-            self.engine.cursor.execute(
-                "INSERT INTO rules (rule) VALUES (?);",
-                (name,)
-            )
+        if not self.engine.db.haverule(name):
+            self.engine.db.ruleins(name)
 
         def funl(store, field):
             """Create a list of functions stored in ``store`` listed in field ``field``
@@ -116,12 +106,7 @@ class Rule(object):
         name.
 
         """
-        # make sure it doesn't exist yet
-        (ct,) = self.engine.cursor.execute(
-            "SELECT COUNT(*) FROM rules WHERE rule=?;",
-            (newname,)
-        )
-        if ct > 0:
+        if self.engine.db.haverule(newname):
             raise KeyError("Already have a rule called {}".format(newname))
         return Rule(
             self.engine,
@@ -139,28 +124,18 @@ class RuleBook(MutableSequence):
     """
     def __init__(self, engine, name):
         self.engine = engine
+        assert(isinstance(name, str))
         self.name = name
 
     def __iter__(self):
-        data = self.engine.cursor.execute(
-            "SELECT rule FROM rulebooks WHERE rulebook=? ORDER BY idx ASC;",
-            (self.name,)
-        )
-        for (rulen,) in data:
-            yield self.engine.rule[rulen]
+        for rule in self.engine.db.rulebook_rules(self.name):
+            yield self.engine.rule[rule]
 
     def __len__(self):
-        return self.engine.cursor.execute(
-            "SELECT COUNT(*) FROM rulebooks WHERE rulebook=?;",
-            (self.name,)
-        ).fetchone()[0]
+        return self.engine.db.ct_rulebook_rules(self.name)
 
     def __getitem__(self, i):
-        rulen = self.engine.cursor.execute(
-            "SELECT rule FROM rulebooks WHERE rulebook=? AND idx=?;",
-            (self.name, i)
-        ).fetchone()[0]
-        return self.engine.rule[rulen]
+        return self.engine.rule[self.engine.db.rulebook_get(self.name, i)]
 
     def __setitem__(self, i, v):
         if isinstance(v, Rule):
@@ -169,44 +144,14 @@ class RuleBook(MutableSequence):
             rule = self.engine.rule[v]
         else:
             rule = Rule(self.engine, v)
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO rulebooks (rulebook, idx, rule) "
-                "VALUES (?, ?, ?);",
-                (
-                    self.name,
-                    i,
-                    rule.name
-                )
-            )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE rulebooks SET rule=? WHERE rulebook=? AND idx=?;",
-                (
-                    rule.name,
-                    self.name,
-                    i
-                )
-            )
+        self.engine.db.rulebook_set(self.name, i, rule.name)
 
     def insert(self, i, v):
-        self.engine.cursor.execute(
-            "UPDATE rulebooks SET idx=idx+1 WHERE "
-            "rulebook=? AND "
-            "idx>=?;",
-            (self.name, i)
-        )
+        self.engine.db.rulebook_decr(self.name, i)
         self[i] = v
 
     def __delitem__(self, i):
-        self.engine.cursor.execute(
-            "DELETE FROM rulebooks WHERE rulebook=? AND idx=?;",
-            (self.name, i)
-        )
-        self.engine.cursor.execute(
-            "UPDATE rulebooks SET idx=idx-1 WHERE rulebook=? AND idx>?;",
-            (self.name, i)
-        )
+        self.engine.db.rulebook_del(self.name, i)
 
 
 class RuleMapping(MutableMapping):
@@ -214,66 +159,27 @@ class RuleMapping(MutableMapping):
         self.character = character
         self.rulebook = rulebook
         self.engine = rulebook.engine
-        self.table = booktyp + "_rules"
+        self._table = booktyp + "_rules"
 
     def _activate_rule(self, rule):
         (branch, tick) = self.engine.time
         if rule not in self.rulebook:
             self.rulebook.append(rule)
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO active_rules "
-                "(rulebook, rule, branch, tick, active) "
-                "VALUES (?, ?, ?, ?, ?);",
-                (
-                    self.rulebook.name,
-                    rule.name,
-                    branch,
-                    tick,
-                    True
-                )
-            )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE active_rules SET active=? WHERE "
-                "rulebook=? AND "
-                "rule=? AND "
-                "branch=? AND "
-                "tick=?;",
-                (
-                    self.rulebook.name,
-                    rule.name,
-                    branch,
-                    tick
-                )
-            )
+        self.engine.db.rule_set(
+            self.rulebook.name,
+            rule.name,
+            branch,
+            tick,
+            True
+        )
 
     def __iter__(self):
-        seen = set()
-        for (branch, tick) in self.engine.gorm._active_branches():
-            data = self.engine.cursor.execute(
-                "SELECT active_rules.rule, active_rules.active "
-                "FROM active_rules JOIN "
-                "(SELECT rulebook, rule, branch, MAX(tick) AS tick "
-                "FROM {tab} WHERE "
-                "character=? AND "
-                "rulebook=? AND "
-                "branch=? AND "
-                "tick<=? GROUP BY rulebook, rule, branch) AS hitick "
-                "ON active_rules.rulebook=hitick.rulebook "
-                "AND active_rules.branch=hitick.branch "
-                "AND active_rules.tick=hitick.tick;",
-                (
-                    json_dump(self.character.name),
-                    self.rulebook.name,
-                    branch,
-                    tick
-                )
-            ).fetchall()
-            for (r, active) in data:
-                if active and r not in seen:
-                    yield r
-                seen.add(r)
+        yield from self.engine.db.active_rules(
+            self._table,
+            self.character.name,
+            self.rulebook.name,
+            *self.engine.time
+        )
 
     def __len__(self):
         """Count the rules presently in effect"""
@@ -283,37 +189,13 @@ class RuleMapping(MutableMapping):
         return n
 
     def __contains__(self, k):
-        for (branch, tick) in self.engine.gorm._active_branches():
-            data = self.engine.cursor.execute(
-                "SELECT active_rules.active FROM active_rules JOIN ("
-                "SELECT rulebook, rule, branch, MAX(tick) AS tick "
-                "FROM {tab} WHERE "
-                "character=? AND "
-                "rulebook=? AND "
-                "rule=? AND "
-                "branch=? AND "
-                "tick<=? GROUP BY rulebook, rule, branch) AS hitick "
-                "ON active_rules.rulebook=hitick.rulebook "
-                "AND active_rules.rule=hitick.rule "
-                "AND active_rules.branch=hitick.branch "
-                "AND active_rules.tick=hitick.tick;".format(tab=self.table),
-                (
-                    json_dump(self.character.name),
-                    self.rulebook.name,
-                    k,
-                    branch,
-                    tick
-                )
-            ).fetchall()
-            if len(data) == 0:
-                continue
-            elif len(data) > 1:
-                raise ValueError(
-                    "Silly data in {tab} table".format(tab=self.table)
-                )
-            else:
-                return bool(data[0])
-        return False
+        return self.engine.db.active_rule(
+            self._table,
+            self.character.name,
+            self.rulebook.name,
+            k,
+            *self.engine.time
+        )
 
     def __getitem__(self, k):
         """Get the rule by the given name, if it is in effect"""
@@ -371,34 +253,13 @@ class RuleMapping(MutableMapping):
     def __delitem__(self, k):
         """Deactivate the rule"""
         (branch, tick) = self.engine.time
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO {tab} "
-                "(rulebook, rule, branch, tick, active) "
-                "VALUES (?, ?, ?, ?, ?);".format(tab=self.table),
-                (
-                    self.rulebook.name,
-                    k,
-                    branch,
-                    tick,
-                    False
-                )
-            )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE {tab} SET active=? WHERE "
-                "rulebook=? AND "
-                "rule=? AND "
-                "branch=? AND "
-                "tick=?;".format(tab=self.table),
-                (
-                    False,
-                    self.rulebook.name,
-                    k,
-                    branch,
-                    tick
-                )
-            )
+        self.engine.db.rule_set(
+            self.rulebook.name,
+            k,
+            branch,
+            tick,
+            False
+        )
 
 
 class AllRules(MutableMapping):
@@ -406,22 +267,13 @@ class AllRules(MutableMapping):
         self.engine = engine
 
     def __iter__(self):
-        for (rule,) in self.engine.cursor.execute(
-            "SELECT rule FROM rules;"
-        ).fetchall():
-            yield rule
+        yield from self.engine.db.allrules()
 
     def __len__(self):
-        return self.engine.cursor.execute(
-            "SELECT COUNT(*) FROM rules;"
-        ).fetchone()[0]
+        return self.engine.db.ctrules()
 
     def __contains__(self, k):
-        n = self.engine.cursor.execute(
-            "SELECT COUNT(*) FROM rules WHERE rule=?;",
-            (k,)
-        ).fetchone()[0]
-        return n > 0
+        return self.engine.db.haverule(k)
 
     def __getitem__(self, k):
         if k in self:
@@ -435,10 +287,7 @@ class AllRules(MutableMapping):
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such rule")
-        self.engine.cursor.execute(
-            "DELETE FROM rules WHERE rule=?;",
-            (k,)
-        )
+        self.engine.db.ruledel(k)
 
     def __call__(self, v):
         new = Rule(self.engine, v if isinstance(v, str) else v.__name__)

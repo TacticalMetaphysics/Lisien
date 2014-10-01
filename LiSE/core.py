@@ -2,18 +2,13 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 """Object relational mapper that serves Characters."""
 from random import Random
-from types import FunctionType
 from collections import MutableMapping, Callable
 from sqlite3 import connect
-from marshal import loads as unmarshalled
-from marshal import dumps as marshalled
 from gorm import ORM as gORM
-from gorm.json import (
-    json_dump,
-    json_load
-)
 from .character import Character
 from .rule import AllRules
+from .query import QueryEngine
+
 
 alchemyOpError = None
 try:
@@ -34,48 +29,30 @@ IntegrityError = (alchemyIntegError, liteIntegError)
 
 class FunctionStoreDB(MutableMapping):
     """Store functions in a SQL database"""
-    def __init__(self, codedb, table):
+    def __init__(self, engine, codedb, table):
         """Use ``codedb`` as a connection object. Connect to it, and
         initialize the schema if needed.
 
         """
+        self.engine = engine
         self.connection = codedb
         self._tab = table
-        self.cursor = self.connection.cursor()
         self.cache = {}
-        try:
-            self.cursor.execute("SELECT COUNT(*) FROM {};".format(self._tab))
-        except OperationalError:
-            self.cursor.execute(
-                "CREATE TABLE {} ("
-                "name TEXT NOT NULL PRIMARY KEY, "
-                "code TEXT NOT NULL);".format(self._tab)
-            )
+        self.engine.db.init_func_table(table)
 
     def __len__(self):
         """SELECT COUNT(*) FROM {}""".format(self._tab)
-        self.cursor.execute(
-            "SELECT COUNT(*) FROM {};".format(self._tab)
-        )
-        return self.cursor.fetchone()[0]
+        return self.engine.db.count_all_table(self._tab)
 
     def __iter__(self):
         """SELECT name FROM {} ORDER BY name""".format(self._tab)
-        self.cursor.execute(
-            "SELECT name FROM {} ORDER BY name;".format(self._tab)
-        )
-        for row in self.cursor.fetchall():
-            yield row[0]
+        yield from self.engine.db.func_table_items(self._tab)
 
     def __contains__(self, name):
         """Check if there's such a function in the database"""
         if name in self.cache:
             return True
-        self.cursor.execute(
-            "SELECT COUNT(*) FROM {} WHERE name=?;".format(self._tab),
-            (name,)
-        )
-        return bool(self.cursor.fetchone()[0])
+        return self.engine.db.func_table_contains(self._tab, name)
 
     def __getitem__(self, name):
         """Reconstruct the named function from its code string stored in the
@@ -83,16 +60,7 @@ class FunctionStoreDB(MutableMapping):
 
         """
         if name not in self.cache:
-            bytecode = self.cursor.execute(
-                "SELECT code FROM {} WHERE name=?;".format(self._tab),
-                (name,)
-            ).fetchone()
-            if bytecode is None:
-                raise KeyError("No such function")
-            self.cache[name] = FunctionType(
-                unmarshalled(bytecode[0]),
-                globals()
-            )
+            self.cache[name] = self.db.func_table_get(self._Tab, name)
         return self.cache[name]
 
     def __call__(self, fun):
@@ -100,40 +68,22 @@ class FunctionStoreDB(MutableMapping):
         ``__name__``.
 
         """
-        try:
-            self.cursor.execute(
-                "INSERT INTO {} (name, code) VALUES (?, ?);".format(self._tab),
-                (fun.__name__, marshalled(fun.__code__))
-            )
-        except IntegrityError:
+        if fun in self:
             raise KeyError(
                 "Already have a function by that name. "
                 "If you want to swap it out for this one, "
                 "assign the new function to me like I'm a dictionary."
             )
+        self.engine.db.func_table_set(self._tbl, fun.__name__, fun.__code__)
         self.cache[fun.__name__] = fun
 
     def __setitem__(self, name, fun):
         """Store the function, marshalled, under the name given."""
-        mcode = marshalled(fun.__code__)
-        try:
-            self.cursor.execute(
-                "INSERT INTO {} (name, code) VALUES (?, ?);".format(self._tab),
-                (name, mcode)
-            )
-        except IntegrityError:
-            self.cursor.execute(
-                "UPDATE {} SET code=? WHERE name=?;".format(self._tab),
-                (mcode, name)
-            )
+        self.engine.db.func_table_set(self._tab, name, fun.__code__)
         self.cache[name] = fun
 
     def __delitem__(self, name):
-        """DELETE FROM {} WHERE name=?""".format(self._tab)
-        self.cursor.execute(
-            "DELETE FROM {} WHERE name=?;".format(self._tab),
-            (name,)
-        )
+        self.engine.db.func_table_del(self._tab, name)
         del self.cache[name]
 
     def decompiled(self, name):
@@ -157,72 +107,6 @@ class FunctionStoreDB(MutableMapping):
         """
         return str(self.decompiled(name))
 
-    def close(self):
-        """Commit the transaction and close the cursor"""
-        self.connection.commit()
-        self.cursor.close()
-
-    def commit(self):
-        """Alias for ``self.connection.commit()``"""
-        self.connection.commit()
-
-
-class EternalVarMapping(MutableMapping):
-    """Mapping for variables that aren't under revision control"""
-    def __init__(self, engine):
-        """Store the engine"""
-        self.engine = engine
-
-    def __iter__(self):
-        """Iterate over the global keys"""
-        self.engine.cursor.execute(
-            "SELECT key FROM global;"
-        )
-        for row in self.engine.cursor.fetchall():
-            yield json_load(row[0])
-
-    def __len__(self):
-        """Count the global keys"""
-        self.engine.cursor.execute(
-            "SELECT COUNT(*) FROM global;"
-        )
-        return self.engine.cursor.fetchone()[0]
-
-    def __getitem__(self, k):
-        """Get the value for variable ``k``. It will always be a string."""
-        self.engine.cursor.execute(
-            "SELECT value FROM global WHERE key=?;",
-            (json_dump(k),)
-        )
-        try:
-            return json_load(self.engine.cursor.fetchone()[0])
-        except TypeError:
-            raise KeyError("No value for {}".format(k))
-
-    def __setitem__(self, k, v):
-        """Set ``k`` to ``v``, possibly casting ``v`` to a string in the
-        process.
-
-        """
-        (ks, vs) = (json_dump(k), json_dump(v))
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO global (key, value) VALUES (?, ?);",
-                (ks, vs)
-            )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE global SET value=? WHERE key=?;",
-                (vs, ks)
-            )
-
-    def __delitem__(self, k):
-        """Delete ``k``"""
-        self.engine.cursor.execute(
-            "DELETE FROM global WHERE key=?;",
-            (json_dump(k),)
-        )
-
 
 class GlobalVarMapping(MutableMapping):
     """Mapping for variables that are global but which I keep history for"""
@@ -236,32 +120,8 @@ class GlobalVarMapping(MutableMapping):
         The values may be None, however.
 
         """
-        seen = set()
-        for (branch, tick) in self.engine._active_branches():
-            data = self.engine.cursor.execute(
-                "SELECT lise_globals.key, lise_globals.value "
-                "FROM lise_globals JOIN "
-                "(SELECT key, branch, MAX(tick) AS tick "
-                "FROM lise_globals "
-                "WHERE branch=? "
-                "AND tick<=? "
-                "GROUP BY key, branch) AS hitick "
-                "ON lise_globals.key=hitick.key "
-                "AND lise_globals.branch=hitick.branch "
-                "AND lise_globals.tick=hitick.tick;",
-                (
-                    branch,
-                    tick
-                )
-            ).fetchall()
-            for (k, v) in data:
-                key = json_load(k)
-                if v is None:
-                    seen.add(key)
-                    continue
-                if key not in seen:
-                    yield key
-                seen.add(key)
+        for (k, v) in self.engine.db.universal_items(*self.engine.time):
+            yield k
 
     def __len__(self):
         """Just count while iterating"""
@@ -272,94 +132,16 @@ class GlobalVarMapping(MutableMapping):
 
     def __getitem__(self, k):
         """Get the current value of this key"""
-        key = json_dump(k)
-        (branch, tick) = self.engine.time
-        data = self.engine.cursor.execute(
-            "SELECT lise_globals.value FROM lise_globals JOIN "
-            "(SELECT key, branch, MAX(tick) AS tick "
-            "FROM lise_globals "
-            "WHERE key=? "
-            "AND branch=? "
-            "AND tick<=? "
-            "GROUP BY key, branch) AS hitick "
-            "ON lise_globals.key=hitick.key "
-            "AND lise_globals.branch=hitick.branch "
-            "AND lise_globals.tick=hitick.tick;",
-            (
-                key,
-                branch,
-                tick
-            )
-        ).fetchall()
-        if len(data) == 0:
-            raise KeyError("Key not set")
-        elif len(data) > 1:
-            raise ValueError("Silly data in lise_globals table")
-        else:
-            v = data[0][0]
-            if v is None:  # not decoded yet
-                raise KeyError("Key not set right now")
-            return json_load(v)
+        return self.engine.db.universal_get(k, *self.engine.time)
 
     def __setitem__(self, k, v):
         """Set k=v at the current branch and tick"""
-        key = json_dump(k)
-        value = json_dump(v)
         (branch, tick) = self.engine.time
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO lise_globals (key, branch, tick, value) "
-                "VALUES (?, ?, ?, ?);",
-                (
-                    key,
-                    branch,
-                    tick,
-                    value
-                )
-            )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE lise_globals SET value=? WHERE "
-                "key=? AND "
-                "branch=? AND "
-                "tick=?;",
-                (
-                    value,
-                    key,
-                    branch,
-                    tick
-                )
-            )
+        self.engine.db.universal_set(k, branch, tick, v)
 
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
-        key = json_dump(k)
-        (branch, tick) = self.engine.time
-        try:
-            self.engine.cursor.execute(
-                "INSERT INTO lise_globals "
-                "(key, branch, tick, value) "
-                "VALUES (?, ?, ?, ?);",
-                (
-                    key,
-                    branch,
-                    tick,
-                    None
-                )
-            )
-        except IntegrityError:
-            self.engine.cursor.execute(
-                "UPDATE lise_globals SET value=? WHERE "
-                "key=? AND "
-                "branch=? AND "
-                "tick=?;",
-                (
-                    None,
-                    key,
-                    branch,
-                    tick
-                )
-            )
+        self.engine.db.universal_del(k)
 
 
 class CharacterMapping(MutableMapping):
@@ -369,22 +151,13 @@ class CharacterMapping(MutableMapping):
             self._cache = {}
 
     def __iter__(self):
-        data = self.engine.cursor.execute(
-            "SELECT character FROM characters;"
-        ).fetchall()
-        for (charn,) in data:
-            yield charn
+        yield from self.engine.db.characters()
 
     def __contains__(self, name):
-        return self.engine.cursor.execute(
-            "SELECT COUNT(*) FROM characters WHERE character=?;",
-            (json_dump(name),)
-        ).fetchone()[0] == 1
+        return self.engine.db.have_character(name)
 
     def __len__(self):
-        return self.engine.cursor.execute(
-            "SELECT COUNT(*) FROM characters;"
-        ).fetchone()[0]
+        return self.engine.db.ct_characters()
 
     def __getitem__(self, name):
         if hasattr(self, '_cache'):
@@ -406,19 +179,7 @@ class CharacterMapping(MutableMapping):
     def __delitem__(self, name):
         if hasattr(self, '_cache') and name in self._cache:
             del self._cache[name]
-        for tbl in (
-                "node_val",
-                "edge_val",
-                "edges",
-                "nodes",
-                "graph_val",
-                "characters",
-                "graph"
-        ):
-            self.engine.cursor.execute(
-                "DELETE FROM {} WHERE character=?;".format(tbl),
-                (name,)
-            )
+        self.engine.db.del_character(name)
 
 
 class Engine(object):
@@ -426,7 +187,8 @@ class Engine(object):
             self,
             worlddb,
             codedb,
-            worlddb_connect_args={},
+            connect_args={},
+            alchemy={},
             caching=True,
             commit_modulus=None,
             random_seed=None,
@@ -443,32 +205,32 @@ class Engine(object):
         self.dicecmp = dicecmp
         self.random_seed = random_seed
         self.codedb = connect(codedb)
-        self.gorm = gORM(worlddb, connect_args=worlddb_connect_args)
+        self.gorm = gORM(
+            worlddb,
+            connect_args=connect_args,
+            alchemy=alchemy,
+            query_engine_class=QueryEngine
+        )
+        self.db = self.gorm.db
         self.time_listeners = []
         self.rule = AllRules(self)
-        self.eternal = EternalVarMapping(self)
+        self.eternal = self.db.globl
         self.universal = GlobalVarMapping(self)
         self.character = CharacterMapping(self)
         # start the database
         stores = ('action', 'prereq', 'trigger', 'sense', 'function')
         for store in stores:
-            setattr(self, store, FunctionStoreDB(self.codedb, store))
+            setattr(self, store, FunctionStoreDB(self, self.codedb, store))
         if hasattr(self.gorm.db, 'alchemist'):
             self.worlddb = self.gorm.db.alchemist.conn.connection
-            self.cursor = self.worlddb.cursor()
         else:
-            self.worlddb = self.gorm.connection
-            self.cursor = self.worlddb.cursor()
-        self.cursor.execute('BEGIN;')
-        self.initdb()
+            self.worlddb = self.gorm.db.connection
+        self.db.initdb()
         if self.caching:
             self.gorm._obranch = self.gorm.branch
             self.gorm._orev = self.gorm.rev
             self._active_branches_cache = []
-        for (charn,) in self.cursor.execute(
-                "SELECT character FROM characters;"
-        ):
-            n = json_load(charn)
+        for n in self.db.characters():
             self.character[n] = Character(self, n)
         self._rules_iter = self._follow_rules()
         # set up the randomizer
@@ -514,7 +276,7 @@ class Engine(object):
             try:
                 d[rev] = d[max(k for k in d.keys() if k < rev)]
             except ValueError:
-                d[rev] = self.gorm._node_exists(graph, node)
+                d[rev] = self.db.node_exists(graph, node, branch, rev)
         return self._existence[graph][node][branch][rev]
 
     def coinflip(self):
@@ -564,17 +326,19 @@ class Engine(object):
         if self.caching:
             self.gorm.branch = self.gorm._obranch
             self.gorm.rev = self.gorm._orev
-        self.worlddb.commit()
-        self.action.commit()
-        self.prereq.commit()
-        self.trigger.commit()
-        self.cursor.execute("BEGIN;")
+        self.gorm.commit()
+
+    def close(self):
+        if self.caching:
+            self.gorm.branch = self.gorm._obranch
+            self.gorm.rev = self.gorm._orev
+        self.gorm.close()
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
-        self.commit()
+        self.close()
 
     def on_time(self, v):
         if not isinstance(v, Callable):
@@ -632,93 +396,11 @@ class Engine(object):
             time_listener(self, b, t)
         del self.locktime
 
-    def _have_rules(self):
-        for rulemap in ('character', 'avatar', 'thing', 'place', 'portal'):
-            seen = set()
-            for (branch, tick) in self.gorm._active_branches():
-                data = self.cursor.execute(
-                    "SELECT {table}_rules.rule, {table}_rules.active, "
-                    "handle.handled "
-                    "FROM {table}_rules JOIN "
-                    "(SELECT rulebook, rule, branch, MAX(tick) AS tick "
-                    "FROM {table}_rules WHERE "
-                    "branch=? AND "
-                    "tick<=? GROUP BY rulebook, rule, branch) AS hitick ON "
-                    "{table}_rules.rulebook=hitick.rulebook AND "
-                    "{table}_rules.rule=hitick.rule AND "
-                    "{table}_rules.branch=hitick.branch AND "
-                    "{table}_rules.tick=hitick.tick "
-                    "JOIN characters ON "
-                    "characters.{table}_rulebook={table}_rules.rulebook "
-                    "LEFT OUTER JOIN "
-                    "(SELECT character, rulebook, rule, branch, tick, "
-                    "1 as handled FROM {table}_rules_handled "
-                    "WHERE branch=? AND tick=?) AS handle ON "
-                    "handle.character=characters.character AND "
-                    "handle.rulebook=hitick.rulebook AND "
-                    "handle.rule=hitick.rule "
-                    "WHERE handle.handled IS NULL"
-                    ";".format(table=rulemap),
-                    (branch, tick, branch, tick)
-                ).fetchall()
-                for (rule, active, handled) in data:
-                    assert(handled is None)
-                    if rule not in seen and active:
-                        return True
-                    seen.add(rule)
-        return False
+    def _active_branches(self):
+        yield from self.gorm._active_branches()
 
     def _poll_rules(self):
-        for rulemap in ('character', 'avatar', 'thing', 'place', 'portal'):
-            seen = set()
-            for (branch, tick) in self.gorm._active_branches():
-                # get all the rules except those already handled
-                data = self.cursor.execute(
-                    "SELECT "
-                    "characters.character, "
-                    "characters.{rulemap}_rulebook, "
-                    "active_rules.rule, "
-                    "active_rules.active, "
-                    "handle.handled "
-                    "FROM characters JOIN active_rules ON "
-                    "characters.{rulemap}_rulebook=active_rules.rulebook "
-                    "JOIN "
-                    "(SELECT rulebook, rule, branch, MAX(tick) AS tick "
-                    "FROM active_rules WHERE "
-                    "branch=? AND "
-                    "tick<=? GROUP BY rulebook, rule, branch) AS hitick "
-                    "ON active_rules.rulebook=hitick.rulebook "
-                    "AND active_rules.rule=hitick.rule "
-                    "AND active_rules.branch=hitick.branch "
-                    "AND active_rules.tick=hitick.tick "
-                    "LEFT OUTER JOIN rulebooks "
-                    "ON rulebooks.rulebook=characters.{rulemap}_rulebook "
-                    "AND rulebooks.rule=active_rules.rule "
-                    "LEFT OUTER JOIN "
-                    "(SELECT character, rulebook, rule, "
-                    "1 AS handled FROM {rulemap}_rules_handled "
-                    "WHERE branch=? AND tick=?) "
-                    "AS handle ON "
-                    "handle.character=characters.character AND "
-                    "handle.rulebook=characters.{rulemap}_rulebook AND "
-                    "handle.rule=active_rules.rule "
-                    "WHERE handle.handled IS NULL"
-                    ";".format(rulemap=rulemap),
-                    (
-                        branch,
-                        tick,
-                        branch,
-                        tick
-                    )
-                ).fetchall()
-                for (c, rulebook, rule, active, handled) in data:
-                    assert(handled is None)
-                    character = json_load(c)
-                    if (character, rulebook, rule) in seen:
-                        continue
-                    seen.add((character, rulebook, rule))
-                    if active:
-                        yield (rulemap, character, rulebook, rule)
+        yield from self.db.poll_rules(*self.time)
 
     def _follow_rules(self):
         (branch, tick) = self.time
@@ -745,17 +427,8 @@ class Engine(object):
                     yield follow(character, portal)
             else:
                 raise TypeError("Unknown type of rule")
-            self.cursor.execute(
-                "INSERT INTO {}_rules_handled "
-                "(character, rulebook, rule, branch, tick) "
-                "VALUES (?, ?, ?, ?, ?);".format(ruletyp),
-                (
-                    charname,
-                    rulebook,
-                    rulename,
-                    branch,
-                    tick
-                )
+            self.db.handled_rule(
+                ruletyp, charname, rulebook, rulename, branch, tick
             )
 
     def advance(self):
@@ -766,15 +439,15 @@ class Engine(object):
         try:
             r = next(self._rules_iter)
         except StopIteration:
-            if not self._have_rules():
-                raise ValueError(
-                    "No rules available; can't advance."
-                )
+            # if not self._have_rules():
+            #     raise ValueError(
+            #         "No rules available; can't advance."
+            #     )
             self.tick += 1
             self._rules_iter = self._follow_rules()
             self.universal['rando_state'] = self.rando.getstate()
             if self.commit_modulus and self.tick % self.commit_modulus == 0:
-                self.worlddb.commit()
+                self.gorm.commit()
             r = None
         return r
 
@@ -794,219 +467,6 @@ class Engine(object):
         self.add_character(name, **kwargs)
         return self.character[name]
 
-    def close(self):
-        """Commit database transactions and close cursors"""
-        if self.caching:
-            self.gorm.branch = self.gorm._obranch
-            self.gorm.rev = self.gorm._orev
-        self.cursor.close()
-        self.gorm.close()  # also commits
-        self.function.close()
-
-    def initdb(self):
-        """Set up the database schema, both for gorm and the special
-        extensions for LiSE
-
-        """
-        self.gorm.initdb()
-        try:
-            self.cursor.execute('SELECT * FROM lise_globals;')
-        except OperationalError:
-            self.cursor.execute(
-                "CREATE TABLE lise_globals ("
-                "key TEXT NOT NULL, "
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "value TEXT, "
-                "PRIMARY KEY(key, branch, tick))"
-                ";"
-            )
-        try:
-            self.cursor.execute('SELECT * FROM rules;')
-        except OperationalError:
-            self.cursor.execute(
-                "CREATE TABLE rules ("
-                "rule TEXT NOT NULL PRIMARY KEY, "
-                "actions TEXT NOT NULL DEFAULT '[]', "
-                "prereqs TEXT NOT NULL DEFAULT '[]', "
-                "triggers TEXT NOT NULL DEFAULT '[]')"
-                ";"
-            )
-        try:
-            self.cursor.execute('SELECT * FROM rulebooks;')
-        except OperationalError:
-            self.cursor.execute(
-                "CREATE TABLE rulebooks ("
-                "rulebook TEXT NOT NULL, "
-                "idx INTEGER NOT NULL, "
-                "rule TEXT NOT NULL, "
-                "PRIMARY KEY(rulebook, idx), "
-                "FOREIGN KEY(rule) REFERENCES rules(rule))"
-                ";"
-            )
-        try:
-            self.cursor.execute('SELECT * FROM active_rules;')
-        except OperationalError:
-            self.cursor.execute(
-                "CREATE TABLE active_rules ("
-                "rulebook TEXT NOT NULL, "
-                "rule TEXT NOT NULL, "
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "active BOOLEAN NOT NULL DEFAULT 1, "
-                "PRIMARY KEY(rulebook, rule, branch, tick), "
-                "FOREIGN KEY(rulebook, rule) REFERENCES rulebooks(rulebook, rule))"
-                ";"
-            )
-            self.cursor.execute(
-                "CREATE INDEX active_rules_idx ON active_rules(rulebook, rule)"
-                ";"
-            )
-        try:
-            self.cursor.execute('SELECT * FROM characters;')
-        except OperationalError:
-            self.cursor.execute(
-                "CREATE TABLE characters ("
-                "character TEXT NOT NULL PRIMARY KEY, "
-                "character_rulebook TEXT NOT NULL, "
-                "avatar_rulebook TEXT NOT NULL, "
-                "thing_rulebook TEXT NOT NULL, "
-                "place_rulebook TEXT NOT NULL, "
-                "portal_rulebook TEXT NOT NULL, "
-                "FOREIGN KEY(character) REFERENCES graphs(graph))"
-                ";"
-            )
-        try:
-            self.cursor.execute('SELECT * FROM senses;')
-        except OperationalError:
-            self.cursor.execute(
-                "CREATE TABLE senses ("
-                "character TEXT, "
-                # null means every character has this sense
-                "sense TEXT NOT NULL, "
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "function TEXT NOT NULL, "
-                "active BOOLEAN NOT NULL DEFAULT 1, "
-                "PRIMARY KEY(character, sense, branch, tick),"
-                "FOREIGN KEY(character) REFERENCES graphs(graph))"
-                ";"
-            )
-            self.cursor.execute(
-                "CREATE INDEX senses_idx ON senses(character, sense)"
-                ";"
-            )
-        try:
-            self.cursor.execute('SELECT * FROM travel_reqs;')
-        except OperationalError:
-            self.cursor.execute(
-                "CREATE TABLE travel_reqs ("
-                "character TEXT NOT NULL DEFAULT '', "
-                # empty string means these are required of every character
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "reqs TEXT NOT NULL DEFAULT '[]', "
-                "PRIMARY KEY(character, branch, tick), "
-                "FOREIGN KEY(character) REFERENCES graphs(graph))"
-                ";"
-            )
-            self.cursor.execute(
-                "CREATE INDEX travel_reqs_idx ON travel_reqs(character)"
-                ";"
-            )
-        try:
-            self.cursor.execute('SELECT * FROM things;')
-        except OperationalError:
-            self.cursor.execute(
-                "CREATE TABLE things ("
-                "character TEXT NOT NULL, "
-                "thing TEXT NOT NULL, "
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "location TEXT, "  # when null, I'm not a thing; treat
-                # me like any other node
-                "next_location TEXT, "  # when set, indicates that I'm
-                # en route between location and
-                # next_location
-                "PRIMARY KEY(character, thing, branch, tick), "
-                "FOREIGN KEY(character, thing) REFERENCES nodes(graph, node), "
-                "FOREIGN KEY(character, location) REFERENCES nodes(graph, node))"
-                ";"
-            )
-            self.cursor.execute(
-                "CREATE INDEX things_idx ON things(character, thing)"
-                ";"
-            )
-        try:
-            self.cursor.execute('SELECT * FROM avatars;')
-        except OperationalError:
-            self.cursor.execute(
-                "CREATE TABLE avatars ("
-                "character_graph TEXT NOT NULL, "
-                "avatar_graph TEXT NOT NULL, "
-                "avatar_node TEXT NOT NULL, "
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "is_avatar BOOLEAN NOT NULL, "
-                "PRIMARY KEY("
-                "character_graph, "
-                "avatar_graph, "
-                "avatar_node, "
-                "branch, "
-                "tick"
-                "), "
-                "FOREIGN KEY(character_graph) REFERENCES graphs(graph), "
-                "FOREIGN KEY(avatar_graph, avatar_node) "
-                "REFERENCES nodes(graph, node))"
-                ";"
-            )
-            self.cursor.execute(
-                "CREATE INDEX avatars_idx ON avatars("
-                "character_graph, "
-                "avatar_graph, "
-                "avatar_node)"
-                ";"
-            )
-        handled = (
-            "CREATE TABLE {table}_rules_handled ("
-            "character TEXT NOT NULL, "
-            "rulebook TEXT NOT NULL, "
-            "rule TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "PRIMARY KEY(character, rulebook, rule, branch, tick), "
-            "FOREIGN KEY(character, rulebook) "
-            "REFERENCES characters(character, {table}_rulebook))"
-            ";"
-        )
-        handled_idx = (
-            "CREATE INDEX {table}_rules_handled_idx ON "
-            "{table}_rules_handled(character, rulebook, rule)"
-            ";"
-        )
-        rulesview = (
-            "CREATE VIEW {table}_rules AS "
-            "SELECT character, rulebook, rule, branch, tick, active "
-            "FROM active_rules JOIN characters ON "
-            "active_rules.rulebook=characters.{table}_rulebook"
-            ";"
-        )
-        for tabn in ("character", "avatar", "thing", "place", "portal"):
-            try:
-                self.cursor.execute(
-                    'SELECT * FROM {tab}_rules_handled;'.format(tab=tabn)
-                )
-            except OperationalError:
-                self.cursor.execute(
-                    handled.format(table=tabn)
-                )
-                self.cursor.execute(
-                    handled_idx.format(table=tabn)
-                )
-                self.cursor.execute(
-                    rulesview.format(table=tabn)
-                )
-
     def add_character(self, name, data=None, **kwargs):
         """Create the Character so it'll show up in my `character` dict"""
         self.gorm.new_digraph(name, data, **kwargs)
@@ -1023,11 +483,7 @@ class Engine(object):
 
     def del_character(self, name):
         """Remove the Character from the database entirely"""
-        for stmt in (
-                "DELETE FROM things WHERE graph=?;",
-                "DELETE FROM avatars WHERE character_graph=?;",
-        ):
-            self.cursor.execute(stmt, (json_dump(name),))
+        self.db.del_character(name)
         self.gorm.del_graph(name)
         del self.character[name]
 
@@ -1039,32 +495,4 @@ class Engine(object):
         ID.
 
         """
-        for (branch, rev) in self._active_branches():
-            self.cursor.execute(
-                "SELECT location FROM things JOIN ("
-                "SELECT character, thing, branch, MAX(tick) AS tick "
-                "FROM things WHERE "
-                "character=? "
-                "AND thing=? "
-                "AND branch=? "
-                "AND tick<=? "
-                "GROUP BY character, thing, branch) AS hitick "
-                "ON things.character=hitick.character "
-                "AND things.thing=hitick.thing "
-                "AND things.branch=hitick.branch "
-                "AND things.tick=hitick.tick;",
-                (
-                    json_dump(character),
-                    json_dump(node),
-                    branch,
-                    rev
-                )
-            )
-            data = self.cursor.fetchall()
-            if len(data) == 0:
-                continue
-            elif len(data) > 1:
-                raise ValueError("Silly data in things table")
-            else:
-                return bool(data[0][0])
-        return False
+        return self.db.node_is_thing(character, node, *self.time)

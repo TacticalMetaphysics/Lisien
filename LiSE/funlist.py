@@ -36,15 +36,15 @@ class FunList(MutableSequence):
         self.engine = engine
         self.funcstore = funcstore
         # if I don't have a record yet, make one
-        self.engine.cursor.execute(
+        cursor = self.engine.db.connection.cursor()
+        if cursor.execute(
             "SELECT COUNT(*) FROM {table} WHERE {presets};".format(
                 table=self.table,
                 presets=self.presets
             ),
             self.preset_values
-        )
-        if self.engine.cursor.fetchone()[0] == 0:
-            self.engine.cursor.execute(
+        ).fetchone()[0] == 0:
+            cursor.execute(
                 "INSERT INTO {table} ({fields}, {field}) "
                 "VALUES ({qpreset}, '[]');".format(
                     table=self.table,
@@ -65,7 +65,7 @@ class FunList(MutableSequence):
 
     def _setlist(self, l):
         """Update the rule's record with this new list of strings."""
-        self.engine.cursor.execute(
+        self.engine.db.connection.cursor().execute(
             "UPDATE {table} SET {field}=? WHERE {presets};".format(
                 table=self.table,
                 field=self.field,
@@ -78,15 +78,16 @@ class FunList(MutableSequence):
         actual functions, just their names.
 
         """
-        self.engine.cursor.execute(
-            "SELECT {field} FROM {table} WHERE {presets};".format(
-                field=self.field,
-                table=self.table,
-                presets=self.presets
-            ),
-            self.preset_values
+        return unjsonned(
+            self.engine.db.connection.cursor().execute(
+                "SELECT {field} FROM {table} WHERE {presets};".format(
+                    field=self.field,
+                    table=self.table,
+                    presets=self.presets
+                ),
+                self.preset_values
+            ).fetchone()[0]
         )
-        return unjsonned(self.engine.cursor.fetchone()[0])
 
     def __iter__(self):
         """Yield a function from the code database for each item in the
