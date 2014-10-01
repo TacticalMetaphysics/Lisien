@@ -15,11 +15,13 @@ from collections import (
 import networkx as nx
 from sqlite3 import IntegrityError
 from gorm.graph import (
+    Node,
+    Edge,
     DiGraph,
-    GraphNodeMapping,
-    GraphEdgeMapping,
     GraphSuccessorsMapping,
-    DiGraphPredecessorsMapping,
+    DiGraphPredecessorsMapping
+)
+from gorm.json import (
     json_dump,
     json_load
 )
@@ -46,7 +48,7 @@ class RuleFollower(object):
             "SELECT {}_rulebook FROM characters WHERE character=?;".format(
                 self._book
             ),
-            (self.character._name,)
+            (json_dump(self.character.name),)
         ).fetchone()[0]
         return RuleBook(self.engine, n)
 
@@ -59,7 +61,7 @@ class RuleFollower(object):
             "UPDATE characters SET {}_rulebook=? WHERE character=?;".format(
                 self._book
             ),
-            (n, self.character._name)
+            (n, json_dump(self.character.name))
         )
 
     @property
@@ -104,43 +106,22 @@ class TravelException(Exception):
         super().__init__(message)
 
 
-class ThingPlace(GraphNodeMapping.Node):
+class ThingPlace(Node):
     """Superclass for both Thing and Place"""
     def __init__(self, character, name):
         self.character = character
         self.engine = character.engine
+        self.name = name
         self._name = json_dump(name)
         if self.engine.caching:
             self._keycache = {}
             self._statcache = {}
         super().__init__(character, name)
 
-    @property
-    def name(self):
-        return json_load(self._name)
-
-    @property
-    def exists(self):
-        return self.engine._node_exists(self.graph.name, self.node)
-
-    @exists.setter
-    def exists(self, v):
-        GraphNodeMapping.Node.exists.fset(self, v)
-        if not self.engine.caching:
-            return
-        (branch, tick) = self.engine.time
-        if self.character.name not in self.engine._existence:
-            self.engine._existence[self.character.name] = {}
-        d = self.engine._existence[self.character.name]
-        if self.name not in d:
-            d[self.name] = {}
-        if branch not in d[self.name]:
-            d[self.name][branch] = {}
-        d[self.name][branch][tick] = v
-
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
         seen = set()
+        _name = json_dump(self.name)
         for (branch, tick) in self.gorm._active_branches():
             self.gorm.cursor.execute(
                 "SELECT edges.nodeB, edges.extant FROM edges JOIN "
@@ -158,8 +139,8 @@ class ThingPlace(GraphNodeMapping.Node):
                 "AND edges.branch=hirev.branch "
                 "AND edges.rev=hirev.rev;",
                 (
-                    self.character._name,
-                    self._name,
+                    json_dump(self.character.name),
+                    _name,
                     branch,
                     tick
                 )
@@ -189,7 +170,7 @@ class ThingPlace(GraphNodeMapping.Node):
                 "AND edges.idx=hirev.idx "
                 "AND edges.rev=hirev.rev;",
                 (
-                    self.character._name,
+                    json_dump(self.character.name),
                     self._name,
                     branch,
                     tick
@@ -204,7 +185,7 @@ class ThingPlace(GraphNodeMapping.Node):
     def _user_names(self):
         """Iterate over names of characters that have me as an avatar"""
         seen = set()
-        for (branch, tick) in self.engine._active_branches():
+        for (branch, tick) in self.engine.gorm._active_branches():
             self.engine.cursor.execute(
                 "SELECT avatars.avatar_graph FROM avatars JOIN ("
                 "SELECT character_graph, avatar_graph, avatar_node, "
@@ -222,7 +203,7 @@ class ThingPlace(GraphNodeMapping.Node):
                 "AND avatars.branch=hitick.branch "
                 "AND avatars.tick=hitick.tick;",
                 (
-                    self.character._name,
+                    json_dump(self.character.name),
                     self._name,
                     branch,
                     tick
@@ -262,7 +243,7 @@ class ThingPlace(GraphNodeMapping.Node):
         if self.name in self.character.preportal:
             del self.character.preportal[self.name]
         for user in self.users():
-            user.del_avatar(self.character.name, self.name)
+            user.del_avatar(json_dump(self.character.name), self._name)
 
 
 class Thing(ThingPlace):
@@ -376,7 +357,7 @@ class Thing(ThingPlace):
             return getcache(super().__getitem__)
 
     def __setitem__(self, key, value):
-        """Set ``key``==``value`` for the present game-time."""
+        """Set ``key``=``value`` for the present game-time."""
         def setcache(setter):
             if not self.engine.caching:
                 setter(key, value)
@@ -457,6 +438,7 @@ class Thing(ThingPlace):
 
     def _get_arrival_time(self):
         curloc = json_dump(self['location'])
+        _name = json_dump(self.name)
         for (branch, tick) in self.gorm._active_branches():
             data = self.gorm.cursor.execute(
                 "SELECT MAX(tick) FROM things "
@@ -466,8 +448,8 @@ class Thing(ThingPlace):
                 "AND branch=? "
                 "AND tick<=?;",
                 (
-                    self.character._name,
-                    self._name,
+                    json_dump(self.character.name),
+                    _name,
                     curloc,
                     branch,
                     tick
@@ -487,7 +469,7 @@ class Thing(ThingPlace):
         nextloc = json_dump(self['next_location'])
         if nextloc is None:
             return None
-        for (branch, tick) in self.engine._active_branches():
+        for (branch, tick) in self.engine.gorm._active_branches():
             data = self.engine.cursor.execute(
                 "SELECT MIN(tick) FROM things "
                 "WHERE character=? "
@@ -496,7 +478,7 @@ class Thing(ThingPlace):
                 "AND branch=? "
                 "AND tick>?;",
                 (
-                    json_dump(self["character"]),
+                    self['character'],
                     json_dump(self.name),
                     nextloc,
                     branch,
@@ -577,7 +559,7 @@ class Thing(ThingPlace):
 
         """
         for (branch, tick) in self.gorm._active_branches():
-            self.gorm.cursor.execute(
+            data = self.engine.cursor.execute(
                 "SELECT location, next_location FROM things JOIN ("
                 "SELECT character, thing, branch, MAX(tick) AS tick "
                 "FROM things "
@@ -591,13 +573,12 @@ class Thing(ThingPlace):
                 "AND things.branch=hitick.branch "
                 "AND things.tick=hitick.tick;",
                 (
-                    self.character._name,
+                    json_dump(self.character.name),
                     self._name,
                     branch,
                     tick
                 )
-            )
-            data = self.gorm.cursor.fetchall()
+            ).fetchall()
             if len(data) == 0:
                 continue
             elif len(data) > 1:
@@ -613,7 +594,6 @@ class Thing(ThingPlace):
 
         """
         (branch, tick) = self.character.engine.time
-        charn = self.character._name
         myn = self._name
         locn = json_dump(loc)
         nextlocn = json_dump(nextloc)
@@ -628,7 +608,7 @@ class Thing(ThingPlace):
                 "next_location) VALUES ("
                 "?, ?, ?, ?, ?, ?);",
                 (
-                    charn,
+                    json_dump(self.character.name),
                     myn,
                     branch,
                     tick,
@@ -646,7 +626,7 @@ class Thing(ThingPlace):
                 (
                     locn,
                     nextlocn,
-                    charn,
+                    json_dump(self.character.name),
                     myn,
                     branch,
                     tick
@@ -898,7 +878,7 @@ class Place(ThingPlace):
         return json_dump(self._get_json_dict())
 
 
-class Portal(GraphEdgeMapping.Edge):
+class Portal(Edge):
     """Connection between two Places that Things may travel along.
 
     Portals are one-way, but you can make one appear two-way by
@@ -906,28 +886,6 @@ class Portal(GraphEdgeMapping.Edge):
     eg. ``character.add_portal(orig, dest, symmetrical=True)``
 
     """
-    @property
-    def exists(self):
-        if not self.engine.caching:
-            return GraphEdgeMapping.Edge.exists.fget(self)
-        (branch, rev) = self.engine.time
-        if branch not in self._existence:
-            self._existence[branch] = {}
-        if rev not in self._existence[branch]:
-            self._existence[branch][
-                rev
-            ] = GraphEdgeMapping.Edge.exists.fget(self)
-        return self._existence[branch][rev]
-
-    @exists.setter
-    def exists(self, v):
-        GraphEdgeMapping.Edge.exists.fset(self, v)
-        if not self.engine.caching:
-            return
-        (branch, rev) = self.engine.time
-        if branch not in self._existence:
-            self._existence[branch] = {}
-        self._existence[branch][rev] = v
 
     def __init__(self, character, origin, destination):
         """Initialize a Portal in a character from an origin to a
@@ -1152,7 +1110,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
     def _iter_thing_names(self):
         """Iterate over the names of things *in the database*."""
         seen = set()
-        for (branch, tick) in self.engine._active_branches():
+        for (branch, tick) in self.engine.gorm._active_branches():
             self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
                 "SELECT character, thing, branch, MAX(tick) AS tick "
@@ -1180,10 +1138,10 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 "things.thing=existence.node "
                 "WHERE existence.extant;",
                 (
-                    self.character._name,
+                    json_dump(self.character.name),
                     branch,
                     tick,
-                    self.character._name,
+                    json_dump(self.character.name),
                     branch,
                     tick
                 )
@@ -1232,9 +1190,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         """
         if self.engine.caching and thing in self and thing in self._cache:
             return self._cache[thing]
-        myn = self.character._name
         thingn = json_dump(thing)
-        for (branch, rev) in self.engine._active_branches():
+        for (branch, rev) in self.engine.gorm._active_branches():
             self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
                 "SELECT character, thing, branch, MAX(tick) AS tick "
@@ -1266,11 +1223,11 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 "things.thing=existence.node "
                 "WHERE existence.extant;",
                 (
-                    myn,
+                    json_dump(self.character.name),
                     thingn,
                     branch,
                     rev,
-                    myn,
+                    json_dump(self.character.name),
                     thingn,
                     branch,
                     rev
@@ -1346,7 +1303,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                     pass
         else:
             th = Thing(self.character, thing)
-        th.exists = False
         th.clear()
 
     def __repr__(self):
@@ -1371,8 +1327,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         """Private method. Return a set of names of things in the character."""
         things = set()
         things_seen = set()
-        charn = json_dump(self.character.name)
-        for (branch, rev) in self.engine._active_branches():
+        for (branch, rev) in self.engine.gorm._active_branches():
             self.engine.cursor.execute(
                 "SELECT things.thing, things.location FROM things JOIN ("
                 "SELECT character, thing, branch, MAX(tick) AS tick "
@@ -1386,7 +1341,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
                 "AND things.branch=hitick.branch "
                 "AND things.tick=hitick.tick;",
                 (
-                    charn,
+                    json_dump(self.character.name),
                     branch,
                     rev
                 )
@@ -1401,9 +1356,31 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
 
     def _iter_place_names(self):
         things = self._things()
-        for node in self.engine._iternodes(self.character.name):
-            if node not in things:
-                yield node
+        seen = set()
+        for (branch, rev) in self.engine.gorm._active_branches():
+            data = self.engine.cursor.execute(
+                "SELECT nodes.node, nodes.extant FROM nodes JOIN ("
+                "SELECT graph, node, branch, MAX(rev) AS rev "
+                "FROM nodes "
+                "WHERE graph=? "
+                "AND branch=? "
+                "AND rev<=? "
+                "GROUP BY graph, node, branch) AS hitick ON "
+                "nodes.graph=hitick.graph "
+                "AND nodes.node=hitick.node "
+                "AND nodes.branch=hitick.branch "
+                "AND nodes.rev=hitick.rev;",
+                (
+                    json_dump(self.character.name),
+                    branch,
+                    rev
+                )
+            )
+            for (n, x) in data:
+                node = json_load(n)
+                if node not in things and node not in seen and x:
+                    yield node
+                seen.add(node)
 
     def __iter__(self):
         """Iterate over names of places."""
@@ -1434,7 +1411,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         return n
 
     def _getplace(self, place):
-        nodenames = set(self.engine._iternodes(self.character.name))
+        nodenames = set(self.character.node.keys())
         thingnames = self._things()
         if place in nodenames.difference(thingnames):
             return Place(self.character, place)
@@ -1471,23 +1448,26 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
 
     def __delitem__(self, place):
         """Delete place from both cache and database"""
+        (branch, tick) = self.engine.time
         if self.engine.caching:
             if place in self._cache:
                 pl = self._cache[place]
                 del self._cache[place]
             else:
                 pl = Place(self.character, place)
-            (branch, tick) = self.engine.time
             if (
                     branch in self._keycache and
                     tick in self._keycache[branch] and
                     place in self._keycache[branch][tick]
             ):
                 self._keycache[branch][tick].remove(place)
-        else:
-            pl = Place(self.character, place)
-        pl.clear()
-        pl.exists = False
+        self.engine.gorm.db.exist_node(
+            self.character.name,
+            place,
+            branch,
+            tick,
+            False
+        )
 
     def __repr__(self):
         """Represent myself as a dictionary"""
@@ -1507,8 +1487,7 @@ class CharacterThingPlaceMapping(MutableMapping):
     def _iter_extant_nodes(self):
         """Iterate over all nodes presently existing"""
         seen = set()
-        myn = self.character._name
-        for (branch, rev) in self.engine._active_branches():
+        for (branch, rev) in self.engine.gorm._active_branches():
             self.engine.cursor.execute(
                 "SELECT nodes.node, nodes.extant FROM nodes JOIN "
                 "(SELECT graph, node, branch, MAX(rev) AS rev "
@@ -1521,7 +1500,7 @@ class CharacterThingPlaceMapping(MutableMapping):
                 "AND nodes.branch=hirev.branch "
                 "AND nodes.rev=hirev.rev;",
                 (
-                    myn,
+                    json_dump(self.character.name),
                     branch,
                     rev
                 )
@@ -1708,7 +1687,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
     def _avatarness_cache(self):
         ac = self.character._avatar_cache
         d = {}
-        for (branch, rev) in self.engine._active_branches():
+        for (branch, rev) in self.engine.gorm._active_branches():
             for g in ac:
                 if g not in d:
                     d[g] = {}
@@ -1732,7 +1711,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
     def _avatarness_db(self):
         """Get avatar-ness data and return it"""
         d = {}
-        for (branch, rev) in self.engine._active_branches():
+        for (branch, rev) in self.engine.gorm._active_branches():
             self.engine.cursor.execute(
                 "SELECT "
                 "avatars.avatar_graph, "
@@ -1751,7 +1730,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                 "avatars.branch=hitick.branch AND "
                 "avatars.tick=hitick.tick;",
                 (
-                    json_dump(self.name),
+                    self.name,
                     branch,
                     rev
                 )
@@ -1841,9 +1820,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             self.character = outer.character
             self.engine = outer.engine
             self.name = outer.name
-            self._name = outer._name
-            self._graph = graphn
-            self.graph = json_load(graphn)
+            self.graph = graphn
 
         def _branchdata(self, branch, rev):
             if self.engine.caching:
@@ -1886,7 +1863,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                 "AND avatars.branch=hitick.branch "
                 "AND avatars.tick=hitick.tick;",
                 (
-                    json_dump(self.name),
+                    self.name,
                     json_dump(self.graph),
                     branch,
                     rev
@@ -1901,7 +1878,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
             """
             seen = set()
             counted = 0
-            for (branch, rev) in self.engine._active_branches():
+            for (branch, rev) in self.engine.gorm_active_branches():
                 if counted > 1:
                     break
                 for (node, extant) in self._branchdata(branch, rev):
@@ -1924,7 +1901,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
 
             """
             seen = set()
-            for (branch, rev) in self.engine._active_branches():
+            for (branch, rev) in self.engine.gorm._active_branches():
                 for (node, extant) in self._branchdata(branch, rev):
                     n = json_load(node)
                     x = bool(extant)
@@ -1942,7 +1919,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                 if self.engine.caching
                 else self._contains_when_db
             )
-            for (branch, tick) in self.engine._active_branches():
+            for (branch, tick) in self.engine.gorm._active_branches():
                 r = fun(av, branch, tick)
                 if r is None:
                     continue
@@ -1983,7 +1960,7 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
                 "AND avatars.branch=hitick.branch "
                 "AND avatars.tick=hitick.tick;",
                 (
-                    json_dump(self.name),
+                    self.name,
                     json_dump(self.graph),
                     json_dump(av),
                     branch,
@@ -2071,17 +2048,13 @@ class CharacterSense(object):
         """Store the container and the name of the sense"""
         self.container = container
         self.engine = self.container.engine
-        self._sensename = json_dump(sensename)
+        self.sensename = sensename
         self.observer = self.container.character
-
-    @property
-    def sensename(self):
-        return json_load(self._sensename)
 
     @property
     def func(self):
         """Return the function most recently associated with this sense"""
-        for (branch, tick) in self.engine._active_branches():
+        for (branch, tick) in self.engine.gorm._active_branches():
             data = self.engine.cursor.execute(
                 "SELECT function FROM senses JOIN "
                 "(SELECT character, sense, branch, MAX(tick) AS tick "
@@ -2095,8 +2068,8 @@ class CharacterSense(object):
                 "AND senses.branch=hitick.branch "
                 "AND senses.tick=hitick.tick;",
                 (
-                    self.observer._name,
-                    self._sensename,
+                    json_dump(self.observer.name),
+                    json_dump(self.sensename),
                     branch,
                     tick
                 )
@@ -2133,7 +2106,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
     def __iter__(self):
         """Iterate over active sense names"""
         seen = set()
-        for (branch, tick) in self.engine._active_branches():
+        for (branch, tick) in self.engine.gorm._active_branches():
             self.engine.cursor.execute(
                 "SELECT sense, active FROM senses JOIN ("
                 "SELECT character, sense, branch, MAX(tick) AS tick "
@@ -2166,7 +2139,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
 
     def __getitem__(self, k):
         """Get a :class:`CharacterSense` named ``k`` if it exists"""
-        for (branch, tick) in self.engine._active_branches():
+        for (branch, tick) in self.engine.gorm._active_branches():
             data = self.engine.cursor.execute(
                 "SELECT active FROM senses JOIN ("
                 "SELECT character, sense, branch, MAX(tick) AS tick "
@@ -2206,7 +2179,7 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
                 raise TypeError("Not a function")
             self.engine.sense[funn] = v
         sense = json_dump(k)
-        charn = self.character._name
+        charn = json_dump(self.character.name)
         (branch, tick) = self.engine.time
         try:
             self.engine.cursor.execute(
@@ -2243,8 +2216,8 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
     def __delitem__(self, k):
         """Stop having the given sense"""
         (branch, tick) = self.engine.time
-        charn = json_dump(self.character.name)
         sense = json_dump(k)
+        charn = json_dump(self.character.name)
         try:
             self.engine.cursor.execute(
                 "INSERT INTO senses "
@@ -2598,7 +2571,7 @@ class CharStatCache(MutableMapping):
             "SELECT value FROM graph_val WHERE "
             "graph=? AND "
             "key=?;",
-            (self.character._name, json_dump(k))
+            (json_dump(self.character.name), json_dump(k))
         ).fetchone()
         assert(v is not None)
 
@@ -2638,7 +2611,7 @@ class Character(DiGraph, RuleFollower):
         self.character = self
         (ct,) = engine.cursor.execute(
             "SELECT COUNT(*) FROM characters WHERE character=?;",
-            (self._name,)
+            (json_dump(self.name),)
         ).fetchone()
         if ct == 0:
             d = {}
@@ -2662,7 +2635,7 @@ class Character(DiGraph, RuleFollower):
                 "portal_rulebook) "
                 "VALUES (?, ?, ?, ?, ?, ?);",
                 (
-                    self._name,
+                    json_dump(self.name),
                     d['character'],
                     d['avatar'],
                     d['thing'],
@@ -2974,7 +2947,7 @@ class Character(DiGraph, RuleFollower):
             return
         ac = self._avatar_cache
         seen = set()
-        for (branch, tick) in self.engine._active_branches():
+        for (branch, tick) in self.engine.gorm._active_branches():
             for g in ac:
                 for n in ac[g]:
                     if (
@@ -2999,7 +2972,7 @@ class Character(DiGraph, RuleFollower):
 
     def _db_iter_avatar_rows(self):
         seen = set()
-        for (branch, tick) in self.engine._active_branches():
+        for (branch, tick) in self.engine.gorm._active_branches():
             data = self.engine.cursor.execute(
                 "SELECT avatars.avatar_graph, avatars.avatar_node, is_avatar "
                 "FROM avatars JOIN "
@@ -3039,4 +3012,4 @@ class Character(DiGraph, RuleFollower):
             for (g, n, a) in data:
                 if (g, n) not in seen:
                     yield (g, n, a)
-                seen.add(g, n)
+                seen.add((g, n))

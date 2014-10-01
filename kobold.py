@@ -12,7 +12,7 @@ def clear_off():
             pass
 
 
-def mkengine(w='LiSEworld.db', *args, **kwargs):
+def mkengine(w='sqlite:///LiSEworld.db', *args, **kwargs):
     return Engine(
         worlddb=w,
         codedb='LiSEcode.db',
@@ -114,7 +114,7 @@ def inittest(
         but demonstrates the concept of a sense adequately.
 
         """
-        observer.stat._not_null('sight_radius')
+        assert('sight_radius' in observer.stat)
         from math import hypot
         (dwarfx, dwarfy) = observer.avatar['location']
         for place in list(seen.place.keys()):
@@ -211,6 +211,7 @@ def runtest(engine):
 
 if __name__ == '__main__':
     clear_off()
-    with mkengine(random_seed=69107, caching=True) as engine:
+    with mkengine(random_seed=69107, caching=False) as engine:
         inittest(engine)
+        engine.commit()
         run('runtest(engine)')

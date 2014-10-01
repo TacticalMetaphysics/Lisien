@@ -3,7 +3,7 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 from collections import MutableMapping, MutableSequence, Callable
 from sqlite3 import IntegrityError
-from gorm.graph import json_dump, json_load
+from gorm.json import json_dump, json_load
 from .funlist import FunList
 
 
@@ -250,7 +250,7 @@ class RuleMapping(MutableMapping):
 
     def __iter__(self):
         seen = set()
-        for (branch, tick) in self.engine._active_branches():
+        for (branch, tick) in self.engine.gorm._active_branches():
             data = self.engine.cursor.execute(
                 "SELECT active_rules.rule, active_rules.active "
                 "FROM active_rules JOIN "
@@ -264,17 +264,16 @@ class RuleMapping(MutableMapping):
                 "AND active_rules.branch=hitick.branch "
                 "AND active_rules.tick=hitick.tick;",
                 (
-                    self.character._name,
+                    json_dump(self.character.name),
                     self.rulebook.name,
                     branch,
                     tick
                 )
             ).fetchall()
             for (r, active) in data:
-                rulen = json_load(r)
-                if active and rulen not in seen:
-                    yield rulen
-                seen.add(rulen)
+                if active and r not in seen:
+                    yield r
+                seen.add(r)
 
     def __len__(self):
         """Count the rules presently in effect"""
@@ -284,7 +283,7 @@ class RuleMapping(MutableMapping):
         return n
 
     def __contains__(self, k):
-        for (branch, tick) in self.engine._active_branches():
+        for (branch, tick) in self.engine.gorm._active_branches():
             data = self.engine.cursor.execute(
                 "SELECT active_rules.active FROM active_rules JOIN ("
                 "SELECT rulebook, rule, branch, MAX(tick) AS tick "
@@ -299,7 +298,7 @@ class RuleMapping(MutableMapping):
                 "AND active_rules.branch=hitick.branch "
                 "AND active_rules.tick=hitick.tick;".format(tab=self.table),
                 (
-                    self.character._name,
+                    json_dump(self.character.name),
                     self.rulebook.name,
                     k,
                     branch,
@@ -333,7 +332,7 @@ class RuleMapping(MutableMapping):
 
     def __setitem__(self, k, v):
         if isinstance(v, Rule):
-            if v._name != json_dump(k):
+            if v.name != k:
                 raise KeyError("That rule doesn't go by that name")
             self._activate_rule(v)
         elif isinstance(v, Callable):

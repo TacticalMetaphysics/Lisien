@@ -4,16 +4,32 @@
 from random import Random
 from types import FunctionType
 from collections import MutableMapping, Callable
-from sqlite3 import connect, OperationalError, IntegrityError
+from sqlite3 import connect
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
 from gorm import ORM as gORM
-from gorm.graph import (
+from gorm.json import (
     json_dump,
     json_load
 )
 from .character import Character
 from .rule import AllRules
+
+alchemyOpError = None
+try:
+    from sqlalchemy.exc import OperationalError as alchemyOpError
+except ImportError:
+    pass
+from sqlite3 import OperationalError as liteOpError
+OperationalError = (alchemyOpError, liteOpError)
+
+alchemyIntegError = None
+try:
+    from sqlalchemy.exc import IntegrityError as alchemyIntegError
+except ImportError:
+    pass
+from sqlite3 import IntegrityError as liteIntegError
+IntegrityError = (alchemyIntegError, liteIntegError)
 
 
 class FunctionStoreDB(MutableMapping):
@@ -390,7 +406,6 @@ class CharacterMapping(MutableMapping):
     def __delitem__(self, name):
         if hasattr(self, '_cache') and name in self._cache:
             del self._cache[name]
-        _name = json_dump(name)
         for tbl in (
                 "node_val",
                 "edge_val",
@@ -402,7 +417,7 @@ class CharacterMapping(MutableMapping):
         ):
             self.engine.cursor.execute(
                 "DELETE FROM {} WHERE character=?;".format(tbl),
-                (_name,)
+                (name,)
             )
 
 
@@ -411,6 +426,7 @@ class Engine(object):
             self,
             worlddb,
             codedb,
+            worlddb_connect_args={},
             caching=True,
             commit_modulus=None,
             random_seed=None,
@@ -426,9 +442,8 @@ class Engine(object):
         self.gettext = gettext
         self.dicecmp = dicecmp
         self.random_seed = random_seed
-        self.worlddb = connect(worlddb)
         self.codedb = connect(codedb)
-        self.gorm = gORM(self.worlddb)
+        self.gorm = gORM(worlddb, connect_args=worlddb_connect_args)
         self.time_listeners = []
         self.rule = AllRules(self)
         self.eternal = EternalVarMapping(self)
@@ -438,14 +453,14 @@ class Engine(object):
         stores = ('action', 'prereq', 'trigger', 'sense', 'function')
         for store in stores:
             setattr(self, store, FunctionStoreDB(self.codedb, store))
-        self.cursor = self.worlddb.cursor()
-        self.cursor.execute("BEGIN;")
-        try:
-            self.cursor.execute(
-                "SELECT * FROM things;"
-            ).fetchall()
-        except OperationalError:
-            self.initdb()
+        if hasattr(self.gorm.db, 'alchemist'):
+            self.worlddb = self.gorm.db.alchemist.conn.connection
+            self.cursor = self.worlddb.cursor()
+        else:
+            self.worlddb = self.gorm.connection
+            self.cursor = self.worlddb.cursor()
+        self.cursor.execute('BEGIN;')
+        self.initdb()
         if self.caching:
             self.gorm._obranch = self.gorm.branch
             self.gorm._orev = self.gorm.rev
@@ -486,7 +501,7 @@ class Engine(object):
     def _node_exists(self, graph, node):
         """Version of gorm's ``_node_exists`` that caches stuff"""
         if not self.caching:
-            return self.gorm._node_exists(graph, node)
+            return node in self.gorm.get_graph(graph).node
         (branch, rev) = self.time
         if graph not in self._existence:
             self._existence[graph] = {}
@@ -620,7 +635,7 @@ class Engine(object):
     def _have_rules(self):
         for rulemap in ('character', 'avatar', 'thing', 'place', 'portal'):
             seen = set()
-            for (branch, tick) in self._active_branches():
+            for (branch, tick) in self.gorm._active_branches():
                 data = self.cursor.execute(
                     "SELECT {table}_rules.rule, {table}_rules.active, "
                     "handle.handled "
@@ -656,7 +671,7 @@ class Engine(object):
     def _poll_rules(self):
         for rulemap in ('character', 'avatar', 'thing', 'place', 'portal'):
             seen = set()
-            for (branch, tick) in self._active_branches():
+            for (branch, tick) in self.gorm._active_branches():
                 # get all the rules except those already handled
                 data = self.cursor.execute(
                     "SELECT "
@@ -794,114 +809,164 @@ class Engine(object):
 
         """
         self.gorm.initdb()
-        statements = [
-            "CREATE TABLE lise_globals ("
-            "key TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "value TEXT, "
-            "PRIMARY KEY(key, branch, tick))"
-            ";",
-            "CREATE INDEX globals_idx ON lise_globals(key)"
-            ";",
-            "CREATE TABLE rules ("
-            "rule TEXT NOT NULL PRIMARY KEY, "
-            "actions TEXT NOT NULL DEFAULT '[]', "
-            "prereqs TEXT NOT NULL DEFAULT '[]', "
-            "triggers TEXT NOT NULL DEFAULT '[]')"
-            ";",
-            "CREATE TABLE rulebooks ("
-            "rulebook TEXT NOT NULL, "
-            "idx INTEGER NOT NULL, "
-            "rule TEXT NOT NULL, "
-            "PRIMARY KEY(rulebook, idx), "
-            "FOREIGN KEY(rule) REFERENCES rules(rule))"
-            ";",
-            "CREATE TABLE active_rules ("
-            "rulebook TEXT NOT NULL, "
-            "rule TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "active BOOLEAN NOT NULL DEFAULT 1, "
-            "PRIMARY KEY(rulebook, rule, branch, tick), "
-            "FOREIGN KEY(rulebook, rule) REFERENCES rulebooks(rulebook, rule))"
-            ";",
-            "CREATE INDEX active_rules_idx ON active_rules(rulebook, rule)"
-            ";",
-            "CREATE TABLE characters ("
-            "character TEXT NOT NULL PRIMARY KEY, "
-            "character_rulebook TEXT NOT NULL, "
-            "avatar_rulebook TEXT NOT NULL, "
-            "thing_rulebook TEXT NOT NULL, "
-            "place_rulebook TEXT NOT NULL, "
-            "portal_rulebook TEXT NOT NULL, "
-            "FOREIGN KEY(character) REFERENCES graphs(graph))"
-            ";",
-            "CREATE TABLE senses ("
-            "character TEXT, "
-            # null means every character has this sense
-            "sense TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "function TEXT NOT NULL, "
-            "active BOOLEAN NOT NULL DEFAULT 1, "
-            "PRIMARY KEY(character, sense, branch, tick),"
-            "FOREIGN KEY(character) REFERENCES graphs(graph))"
-            ";",
-            "CREATE INDEX senses_idx ON senses(character, sense)"
-            ";",
-            "CREATE TABLE travel_reqs ("
-            "character TEXT NOT NULL DEFAULT '', "
-            # empty string means these are required of every character
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "reqs TEXT NOT NULL DEFAULT '[]', "
-            "PRIMARY KEY(character, branch, tick), "
-            "FOREIGN KEY(character) REFERENCES graphs(graph))"
-            ";",
-            "CREATE INDEX travel_reqs_idx ON travel_reqs(character)"
-            ";",
-            "CREATE TABLE things ("
-            "character TEXT NOT NULL, "
-            "thing TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "location TEXT, "  # when null, I'm not a thing; treat me
-                               # like any other node
-            "next_location TEXT, "  # when set, indicates that I'm en
-                                    # route between location and
-                                    # next_location
-            "PRIMARY KEY(character, thing, branch, tick), "
-            "FOREIGN KEY(character, thing) REFERENCES nodes(graph, node), "
-            "FOREIGN KEY(character, location) REFERENCES nodes(graph, node))"
-            ";",
-            "CREATE INDEX things_idx ON things(character, thing)"
-            ";",
-            "CREATE TABLE avatars ("
-            "character_graph TEXT NOT NULL, "
-            "avatar_graph TEXT NOT NULL, "
-            "avatar_node TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "is_avatar BOOLEAN NOT NULL, "
-            "PRIMARY KEY("
-            "character_graph, "
-            "avatar_graph, "
-            "avatar_node, "
-            "branch, "
-            "tick"
-            "), "
-            "FOREIGN KEY(character_graph) REFERENCES graphs(graph), "
-            "FOREIGN KEY(avatar_graph, avatar_node) "
-            "REFERENCES nodes(graph, node))"
-            ";",
-            "CREATE INDEX avatars_idx ON avatars("
-            "character_graph, "
-            "avatar_graph, "
-            "avatar_node)"
-            ";",
-        ]
-
+        try:
+            self.cursor.execute('SELECT * FROM lise_globals;')
+        except OperationalError:
+            self.cursor.execute(
+                "CREATE TABLE lise_globals ("
+                "key TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "value TEXT, "
+                "PRIMARY KEY(key, branch, tick))"
+                ";"
+            )
+        try:
+            self.cursor.execute('SELECT * FROM rules;')
+        except OperationalError:
+            self.cursor.execute(
+                "CREATE TABLE rules ("
+                "rule TEXT NOT NULL PRIMARY KEY, "
+                "actions TEXT NOT NULL DEFAULT '[]', "
+                "prereqs TEXT NOT NULL DEFAULT '[]', "
+                "triggers TEXT NOT NULL DEFAULT '[]')"
+                ";"
+            )
+        try:
+            self.cursor.execute('SELECT * FROM rulebooks;')
+        except OperationalError:
+            self.cursor.execute(
+                "CREATE TABLE rulebooks ("
+                "rulebook TEXT NOT NULL, "
+                "idx INTEGER NOT NULL, "
+                "rule TEXT NOT NULL, "
+                "PRIMARY KEY(rulebook, idx), "
+                "FOREIGN KEY(rule) REFERENCES rules(rule))"
+                ";"
+            )
+        try:
+            self.cursor.execute('SELECT * FROM active_rules;')
+        except OperationalError:
+            self.cursor.execute(
+                "CREATE TABLE active_rules ("
+                "rulebook TEXT NOT NULL, "
+                "rule TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "active BOOLEAN NOT NULL DEFAULT 1, "
+                "PRIMARY KEY(rulebook, rule, branch, tick), "
+                "FOREIGN KEY(rulebook, rule) REFERENCES rulebooks(rulebook, rule))"
+                ";"
+            )
+            self.cursor.execute(
+                "CREATE INDEX active_rules_idx ON active_rules(rulebook, rule)"
+                ";"
+            )
+        try:
+            self.cursor.execute('SELECT * FROM characters;')
+        except OperationalError:
+            self.cursor.execute(
+                "CREATE TABLE characters ("
+                "character TEXT NOT NULL PRIMARY KEY, "
+                "character_rulebook TEXT NOT NULL, "
+                "avatar_rulebook TEXT NOT NULL, "
+                "thing_rulebook TEXT NOT NULL, "
+                "place_rulebook TEXT NOT NULL, "
+                "portal_rulebook TEXT NOT NULL, "
+                "FOREIGN KEY(character) REFERENCES graphs(graph))"
+                ";"
+            )
+        try:
+            self.cursor.execute('SELECT * FROM senses;')
+        except OperationalError:
+            self.cursor.execute(
+                "CREATE TABLE senses ("
+                "character TEXT, "
+                # null means every character has this sense
+                "sense TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "function TEXT NOT NULL, "
+                "active BOOLEAN NOT NULL DEFAULT 1, "
+                "PRIMARY KEY(character, sense, branch, tick),"
+                "FOREIGN KEY(character) REFERENCES graphs(graph))"
+                ";"
+            )
+            self.cursor.execute(
+                "CREATE INDEX senses_idx ON senses(character, sense)"
+                ";"
+            )
+        try:
+            self.cursor.execute('SELECT * FROM travel_reqs;')
+        except OperationalError:
+            self.cursor.execute(
+                "CREATE TABLE travel_reqs ("
+                "character TEXT NOT NULL DEFAULT '', "
+                # empty string means these are required of every character
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "reqs TEXT NOT NULL DEFAULT '[]', "
+                "PRIMARY KEY(character, branch, tick), "
+                "FOREIGN KEY(character) REFERENCES graphs(graph))"
+                ";"
+            )
+            self.cursor.execute(
+                "CREATE INDEX travel_reqs_idx ON travel_reqs(character)"
+                ";"
+            )
+        try:
+            self.cursor.execute('SELECT * FROM things;')
+        except OperationalError:
+            self.cursor.execute(
+                "CREATE TABLE things ("
+                "character TEXT NOT NULL, "
+                "thing TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "location TEXT, "  # when null, I'm not a thing; treat
+                # me like any other node
+                "next_location TEXT, "  # when set, indicates that I'm
+                # en route between location and
+                # next_location
+                "PRIMARY KEY(character, thing, branch, tick), "
+                "FOREIGN KEY(character, thing) REFERENCES nodes(graph, node), "
+                "FOREIGN KEY(character, location) REFERENCES nodes(graph, node))"
+                ";"
+            )
+            self.cursor.execute(
+                "CREATE INDEX things_idx ON things(character, thing)"
+                ";"
+            )
+        try:
+            self.cursor.execute('SELECT * FROM avatars;')
+        except OperationalError:
+            self.cursor.execute(
+                "CREATE TABLE avatars ("
+                "character_graph TEXT NOT NULL, "
+                "avatar_graph TEXT NOT NULL, "
+                "avatar_node TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "is_avatar BOOLEAN NOT NULL, "
+                "PRIMARY KEY("
+                "character_graph, "
+                "avatar_graph, "
+                "avatar_node, "
+                "branch, "
+                "tick"
+                "), "
+                "FOREIGN KEY(character_graph) REFERENCES graphs(graph), "
+                "FOREIGN KEY(avatar_graph, avatar_node) "
+                "REFERENCES nodes(graph, node))"
+                ";"
+            )
+            self.cursor.execute(
+                "CREATE INDEX avatars_idx ON avatars("
+                "character_graph, "
+                "avatar_graph, "
+                "avatar_node)"
+                ";"
+            )
         handled = (
             "CREATE TABLE {table}_rules_handled ("
             "character TEXT NOT NULL, "
@@ -927,22 +992,20 @@ class Engine(object):
             ";"
         )
         for tabn in ("character", "avatar", "thing", "place", "portal"):
-            statements.extend((
-                handled.format(table=tabn),
-                handled_idx.format(table=tabn),
-                rulesview.format(table=tabn)
-            ))
-
-        for stmt in statements:
-            self.cursor.execute(stmt)
-
-    def _active_branches(self):
-        """Alias for gorm's ``_active_branches``"""
-        return self.gorm._active_branches()
-
-    def _iternodes(self, graph):
-        """Alias for gorm's ``_iternodes``"""
-        return self.gorm._iternodes(graph)
+            try:
+                self.cursor.execute(
+                    'SELECT * FROM {tab}_rules_handled;'.format(tab=tabn)
+                )
+            except OperationalError:
+                self.cursor.execute(
+                    handled.format(table=tabn)
+                )
+                self.cursor.execute(
+                    handled_idx.format(table=tabn)
+                )
+                self.cursor.execute(
+                    rulesview.format(table=tabn)
+                )
 
     def add_character(self, name, data=None, **kwargs):
         """Create the Character so it'll show up in my `character` dict"""
