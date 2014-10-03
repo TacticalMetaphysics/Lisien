@@ -60,7 +60,7 @@ class FunctionStoreDB(MutableMapping):
 
         """
         if name not in self.cache:
-            self.cache[name] = self.db.func_table_get(self._Tab, name)
+            self.cache[name] = self.engine.db.func_table_get(self._tab, name)
         return self.cache[name]
 
     def __call__(self, fun):
@@ -188,7 +188,7 @@ class Engine(object):
             worlddb,
             codedb,
             connect_args={},
-            alchemy={},
+            alchemy=False,
             caching=True,
             commit_modulus=None,
             random_seed=None,

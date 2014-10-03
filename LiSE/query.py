@@ -435,7 +435,7 @@ class QueryEngine(gorm.query.QueryEngine):
             json_dump, (character, thing, location)
         )
         for (b, t) in self.active_branches(branch, tick):
-            for hitick in self.sql(
+            for (hitick,) in self.sql(
                     'next_arrival_time_get',
                     character,
                     thing,
