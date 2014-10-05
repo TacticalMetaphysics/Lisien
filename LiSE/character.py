@@ -27,7 +27,8 @@ from LiSE.util import (
     cache_get,
     cache_set,
     cache_del,
-    keycache_iter
+    keycache_iter,
+    CacheError
 )
 from LiSE.rule import RuleBook, RuleMapping
 from LiSE.funlist import FunList
@@ -170,6 +171,10 @@ class Thing(ThingPlace):
     same.
 
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._loccache = {}
+
     def __iter__(self):
         extrakeys = [
             'name',
@@ -214,18 +219,6 @@ class Thing(ThingPlace):
         ``locations``: return a pair of (``location``, ``next_location``)
 
         """
-        def getcache(getter):
-            if not self.engine.caching:
-                return getter(key)
-            (branch, tick) = self.engine.time
-            return cache_get(
-                self._statcache,
-                self._keycache,
-                branch,
-                tick,
-                key,
-                getter
-            )
         if key == 'name':
             return self.name
         elif key == 'character':
@@ -235,32 +228,78 @@ class Thing(ThingPlace):
         elif key == 'arrival_time':
             if not self.engine.caching:
                 return self._get_arrival_time()
-            (branch, tick) = self.engine.time
-            arrt = lambda: max(
-                t for t in
-                self._statcache['locations'][branch]
-                if t <= tick
-            )
-            try:
-                return arrt()
-            except ValueError:
-                getcache(lambda k: self._loc_and_next())
-                return arrt()
+            for (branch, tick) in self.engine._active_branches():
+                self._load_locs_branch(branch)
+                try:
+                    return max(
+                        t for t in self._loccache[branch]
+                        if t <= tick
+                    )
+                except ValueError:
+                    continue
+            raise CacheError("Locations not cached correctly")
         elif key == 'next_location':
             return self['locations'][1]
         elif key == 'next_arrival_time':
-            # TODO cache this
-            return self._get_next_arrival_time()
+            if not self.engine.caching:
+                return self._get_next_arrival_time()
+            for (branch, tick) in self.engine._active_branches():
+                self._load_locs_branch(branch)
+                try:
+                    return min(
+                        t for t in self._loccache[branch]
+                        if t > tick
+                    )
+                except ValueError:
+                    continue
+            return None
         elif key == 'locations':
-            return getcache(lambda k: self._loc_and_next())
+            if not self.engine.caching:
+                return self._loc_and_next()
+            for (branch, tick) in self.engine._active_branches():
+                self._load_locs_branch(branch)
+                try:
+                    return self._loccache[branch][self['arrival_time']]
+                except ValueError:
+                    continue
+            raise CacheError("Locations not cached correctly")
         else:
-            return getcache(super().__getitem__)
+            if not self.engine.caching:
+                return super().__getitem__(key)
+            (branch, tick) = self.engine.time
+            return cache_get(
+                self._statcache,
+                self._keycache,
+                branch,
+                tick,
+                key,
+                super().__getitem__
+            )
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` for the present game-time."""
-        def setcache(setter):
+        if key == 'name':
+            raise ValueError("Can't change names")
+        elif key == 'character':
+            raise ValueError("Can't change characters")
+        elif key == 'location':
+            self['locations'] = (value, None)
+        elif key == 'arrival_time':
+            raise ValueError("Read-only")
+        elif key == 'next_location':
+            self['locations'] = (self['location'], value)
+        elif key == 'next_arrival_time':
+            raise ValueError("Read-only")
+        elif key == 'locations':
+            self._set_loc_and_next(*value)
             if not self.engine.caching:
-                setter(key, value)
+                return
+            (branch, tick) = self.engine.time
+            self._load_locs_branch(branch)
+            self._loccache[branch][tick] = value
+        else:
+            if not self.engine.caching:
+                super().__setitem__(key, value)
                 return
             (branch, tick) = self.engine.time
             cache_set(
@@ -270,48 +309,8 @@ class Thing(ThingPlace):
                 tick,
                 key,
                 value,
-                setter
+                super().__setitem__
             )
-
-        if key == 'name':
-            raise ValueError("Can't change names")
-        elif key == 'character':
-            raise ValueError("Can't change characters")
-        elif key == 'location':
-            if not self.engine.caching:
-                self._set_loc_and_next(value, None)
-                return
-            (branch, tick) = self.engine.time
-            cache_set(
-                branch,
-                tick,
-                self._statcache,
-                'locations',
-                (value, None),
-                lambda k, v: self._set_loc_and_next(*v)
-            )
-        elif key == 'arrival_time':
-            raise ValueError("Read-only")
-        elif key == 'next_location':
-            if not self.engine.caching:
-                self._set_loc_and_next(self['location'], value)
-                return
-            (branch, tick) = self.engine.time
-            cache_set(
-                self._statcache,
-                self._keycache,
-                branch,
-                tick,
-                'locations',
-                (self['location'], value),
-                lambda k, v: self._set_loc_and_next(*v)
-            )
-        elif key == 'next_arrival_time':
-            raise ValueError("Read-only")
-        elif key == 'locations':
-            setcache(lambda k, v: self._set_loc_and_next(*v))
-        else:
-            setcache(super().__setitem__)
 
     def __delitem__(self, key):
         if key in (
@@ -335,6 +334,17 @@ class Thing(ThingPlace):
             key,
             super().__delitem__
         )
+
+    def _load_locs_branch(self, branch):
+        if branch in self._loccache:
+            return
+        self._loccache[branch] = {}
+        for (tick, loc, nloc) in self.engine.db.thing_locs_data(
+                self.character.name,
+                self.name,
+                branch
+        ):
+            self._loccache[branch][tick] = (loc, nloc)
 
     def _get_arrival_time(self):
         loc = self['location']
@@ -964,8 +974,10 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             thing,
             *self.engine.time
         )
-        assert(l in self.character.place)
-        return Thing(self.character, th)
+        r = Thing(self.character, th)
+        if self.engine.caching:
+            self._cache[thing] = r
+        return r
 
     def __setitem__(self, thing, val):
         """Clear out any existing :class:`Thing` by this name and make a new
