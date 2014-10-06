@@ -107,6 +107,7 @@ class ELiDELayout(FloatLayout):
     """
     app = ObjectProperty()
     """The App instance that is running and thus holds the globals I need."""
+    board = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
     popover = ObjectProperty()
     """The modal view to use for the various menus that aren't visible by
