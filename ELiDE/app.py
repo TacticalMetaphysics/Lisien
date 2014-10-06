@@ -121,9 +121,9 @@ class ELiDELayout(FloatLayout):
     """Thing that's selected and highlighted for some operation"""
     engine = ObjectProperty()
     tick_results = DictProperty({})
-    branch = StringProperty('master')
-    tick = NumericProperty(0)
-    rules_per_frame = BoundedNumericProperty(1, min=1)
+    branch = StringProperty()
+    tick = NumericProperty()
+    rules_per_frame = BoundedNumericProperty(10, min=1)
 
     def on_engine(self, *args):
         """Set my branch and tick to that of my engine, and bind them so that
