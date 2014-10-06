@@ -173,7 +173,8 @@ class Thing(ThingPlace):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._loccache = {}
+        if self.engine.caching:
+            self._loccache = {}
 
     def __iter__(self):
         extrakeys = [
