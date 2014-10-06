@@ -6,6 +6,10 @@
 from collections import Mapping
 
 
+class CacheError(ValueError):
+    pass
+
+
 class CompositeDict(Mapping):
     """Read-only mapping that looks up values in a first dict if
     available, then a second dict if possible.
