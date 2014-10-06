@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
-    BooleanProperty,
     NumericProperty,
     BoundedNumericProperty,
     ObjectProperty,
