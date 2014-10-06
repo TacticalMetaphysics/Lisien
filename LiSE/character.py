@@ -98,6 +98,7 @@ class TravelException(Exception):
 class ThingPlace(Node):
     """Superclass for both Thing and Place"""
     def __init__(self, character, name):
+        """Store character and name, and maybe initialize a couple caches"""
         self.character = character
         self.engine = character.engine
         self.name = name
@@ -152,6 +153,13 @@ class ThingPlace(Node):
                 yield thing
 
     def delete(self):
+        """Get rid of this, starting now.
+
+        Apart from deleting the node, this also informs all its users
+        that it doesn't exist and therefore can't be their avatar
+        anymore.
+
+        """
         del self.character.place[self.name]
         if self.name in self.character.portal:
             del self.character.portal[self.name]
@@ -172,11 +180,18 @@ class Thing(ThingPlace):
 
     """
     def __init__(self, *args, **kwargs):
+        """If caching, initialize the cache."""
         super().__init__(*args, **kwargs)
         if self.engine.caching:
             self._loccache = {}
 
     def __iter__(self):
+        """Iterate over a cached set of keys if possible and caching's
+        enabled.
+
+        Iterate over some special keys too.
+
+        """
         extrakeys = [
             'name',
             'character',
@@ -199,8 +214,8 @@ class Thing(ThingPlace):
         yield from self._keycache[branch][tick]
 
     def __getitem__(self, key):
-        """Return one of my attributes stored in the database, with a few
-        special exceptions:
+        """Return one of my stats stored in the database, or a few
+        special cases:
 
         ``name``: return the name that uniquely identifies me within
         my Character
@@ -217,7 +232,7 @@ class Thing(ThingPlace):
         ``next_arrival_time``: return the tick when I'm going to
         arrive at ``next_location``
 
-        ``locations``: return a pair of (``location``, ``next_location``)
+        ``locations``: return a pair of ``(location, next_location)``
 
         """
         if key == 'name':
@@ -314,6 +329,7 @@ class Thing(ThingPlace):
             )
 
     def __delitem__(self, key):
+        """As of now, this key isn't mine."""
         if key in (
                 'name',
                 'character',
@@ -337,6 +353,7 @@ class Thing(ThingPlace):
         )
 
     def _load_locs_branch(self, branch):
+        """Private method. Cache stored location data for this branch."""
         if branch in self._loccache:
             return
         self._loccache[branch] = {}
@@ -348,6 +365,7 @@ class Thing(ThingPlace):
             self._loccache[branch][tick] = (loc, nloc)
 
     def _get_arrival_time(self):
+        """Query the database for when I arrive at my present location."""
         loc = self['location']
         return self.engine.db.arrival_time_get(
             self.character.name,
@@ -357,6 +375,10 @@ class Thing(ThingPlace):
         )
 
     def _get_next_arrival_time(self):
+        """Query the database for when I will arrive at my next location, or
+        ``None`` if I'm not traveling.
+
+        """
         nextloc = self['next_location']
         if nextloc is None:
             return None
@@ -368,10 +390,12 @@ class Thing(ThingPlace):
         )
 
     def delete(self):
+        """Delete every reference to me."""
         del self.character.thing[self.name]
         super().delete()
 
     def clear(self):
+        """Unset everything."""
         for k in self:
             if k not in (
                     'name',
@@ -452,10 +476,11 @@ class Thing(ThingPlace):
         )
 
     def go_to_place(self, place, weight=''):
-        """Assuming I'm in a Place that has a Portal direct to the given
-        Place, schedule myself to travel to the given Place, taking an
-        amount of time indicated by the ``weight`` stat on the Portal,
-        if given; else 1 tick.
+        """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
+        to the given :class:`Place`, schedule myself to travel to the
+        given :class:`Place`, taking an amount of time indicated by
+        the ``weight`` stat on the :class:`Portal`, if given; else 1
+        tick.
 
         Return the number of ticks to travel.
 
@@ -485,13 +510,13 @@ class Thing(ThingPlace):
         return ticks
 
     def follow_path(self, path, weight=None):
-        """Go to several Places in succession, deciding how long to spend in
-        each by consulting the ``weight`` attribute of the Portal
-        connecting the one Place to the next.
+        """Go to several :class:`Place`s in succession, deciding how long to
+        spend in each by consulting the ``weight`` stat of the
+        :class:`Portal` connecting the one :class:`Place` to the next.
 
         Return the total number of ticks the travel will take. Raise
-        TravelException if I can't follow the whole path, either
-        because some of its nodes don't exist, or because I'm
+        :class:`TravelException` if I can't follow the whole path,
+        either because some of its nodes don't exist, or because I'm
         scheduled to be somewhere else.
 
         """
@@ -548,22 +573,22 @@ class Thing(ThingPlace):
         return ticks_total
 
     def travel_to(self, dest, weight=None, graph=None):
-        """Find the shortest path to the given Place from where I am now, and
-        follow it.
+        """Find the shortest path to the given :class:`Place` from where I am
+        now, and follow it.
 
-        If supplied, the ``weight`` stat of the Portals along the path
-        will be used in pathfinding, and for deciding how long to stay
-        in each Place along the way.
+        If supplied, the ``weight`` stat of the :class:`Portal`s along
+        the path will be used in pathfinding, and for deciding how
+        long to stay in each Place along the way.
 
         The ``graph`` argument may be any NetworkX-style graph. It
         will be used for pathfinding if supplied, otherwise I'll use
-        my Character. In either case, however, I will attempt to
-        actually follow the path using my Character, which might not
-        be possible if the supplied ``graph`` and my Character are too
-        different. If it's not possible, I'll raise a TravelException,
-        whose ``subpath`` attribute holds the part of the path that I
-        *can* follow. To make me follow it, pass it to my
-        ``follow_path`` method.
+        my :class:`Character`. In either case, however, I will attempt
+        to actually follow the path using my :class:`Character`, which
+        might not be possible if the supplied ``graph`` and my
+        :class:`Character` are too different. If it's not possible,
+        I'll raise a :class:`TravelException`, whose ``subpath``
+        attribute holds the part of the path that I *can* follow. To
+        make me follow it, pass it to my ``follow_path`` method.
 
         Return value is the number of ticks the travel will take.
 
@@ -627,9 +652,9 @@ class Thing(ThingPlace):
 class Place(ThingPlace):
     """The kind of node where a Thing might ultimately be located."""
     def __getitem__(self, key):
-        """Return my name if ``key``=='name', my character's name if
-        ``key``=='character', the names of everything located in me if
-        ``key``=='contents', or the value of the stat named ``key``
+        """Return my name if ``key=='name'``, my character's name if
+        ``key=='character'``, the names of everything located in me if
+        ``key=='contents'``, or the value of the stat named ``key``
         otherwise.
 
         """
