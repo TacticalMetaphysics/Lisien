@@ -179,13 +179,7 @@ class ELiDELayout(FloatLayout):
         try:
             r.append(next(self.engine._rules_iter))
         except StopIteration:
-            if not self.engine._have_rules():
-                raise ValueError(
-                    "No rules available; can't advance."
-                )
             self.tick += 1
-            assert(self.tick == self.engine.tick)
-            self.tick_results[self.branch][self.tick] = []
             self.engine.universal['rando_state'] = (
                 self.engine.rando.getstate()
             )
@@ -194,7 +188,7 @@ class ELiDELayout(FloatLayout):
                     self.tick % self.engine.commit_modulus == 0
             ):
                 self.engine.worlddb.commit()
-            r = self.tick_results[self.branch][self.tick]
+            self.engine._rules_iter = self.engine._follow_rules()
             self.ids.board._trigger_update()
 
     def next_tick(self, *args):
