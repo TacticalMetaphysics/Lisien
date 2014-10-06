@@ -712,3 +712,10 @@ class QueryEngine(gorm.query.QueryEngine):
                 'avatar_branch_data', character, graph, branch, tick
         ):
             yield (json_load(node), bool(isav))
+
+    def thing_locs_data(self, character, thing, branch):
+        (character, thing) = map(json_dump, (character, thing))
+        for (tick, loc, nextloc) in self.sql(
+                'thing_locs_data', character, thing, branch
+        ):
+            yield (tick, json_load(loc), json_load(nextloc))

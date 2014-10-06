@@ -472,3 +472,9 @@ avatar_branch_data = (
     "AND avatars.branch=hitick.branch "
     "AND avatars.tick=hitick.tick;"
 )
+thing_locs_data = (
+    "SELECT tick, location, next_location FROM things "
+    "WHERE character=? "
+    "AND thing=? "
+    "AND branch=?;"
+)
