@@ -439,10 +439,6 @@ class Engine(object):
         try:
             r = next(self._rules_iter)
         except StopIteration:
-            # if not self._have_rules():
-            #     raise ValueError(
-            #         "No rules available; can't advance."
-            #     )
             self.tick += 1
             self._rules_iter = self._follow_rules()
             self.universal['rando_state'] = self.rando.getstate()
