@@ -161,11 +161,17 @@ class ELiDELayout(FloatLayout):
             self.engine.branch = self.branch
         self.ids.board._trigger_update()
 
+    def set_branch(self, b):
+        self.branch = b
+
     def tickupd(self, *args):
         """Inform my engine of the new tick, and update the board widget."""
         if self.engine.tick != self.tick:
             self.engine.tick = self.tick
         self.ids.board._trigger_update()
+
+    def set_tick(self, t):
+        self.tick = t
 
     def advance(self):
         """Resolve one rule and store the results in a list at
