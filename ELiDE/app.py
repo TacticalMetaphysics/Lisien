@@ -17,7 +17,6 @@ from kivy.uix.textinput import TextInput
 
 from kivy.factory import Factory
 
-from .charsheet import CharSheet
 from .board import Board
 from .texturestack import ImageStack
 
@@ -28,7 +27,6 @@ resource_add_path(ELiDE.__path__[0] + "/assets")
 
 _ = lambda x: x
 
-Factory.register('CharSheet', cls=CharSheet)
 Factory.register('Board', cls=Board)
 
 
