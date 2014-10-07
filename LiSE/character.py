@@ -95,7 +95,47 @@ class TravelException(Exception):
         super().__init__(message)
 
 
-class ThingPlace(Node):
+class StatSet(object):
+    """Mixin class for those that should call listeners when stats are set
+    or deleted. Assumes they will have an attribute ``_on_stat_set``
+    that is a list of listener functions to call.
+
+    Does not automatically call the listeners. Use methods
+    ``_stat_set`` and ``_stat_del`` to do so.
+
+    """
+
+    def on_stat_set(self, fun):
+        """Decorator for functions that should be called whenever one of my
+        stats is set to a new value or deleted.
+
+        If there's a new value, the arguments will be ``self, key,
+        value``. If the stat is getting deleted, the arguments will be
+        just ``self, key``.
+
+        Note that the function will NOT be called if a stat appears to
+        change value due to time travel.
+
+        This only works when caching's enabled. If it isn't then you
+        should implement a trigger in your database instead.
+
+        """
+        if not hasattr(self, '_on_stat_set'):
+            raise CacheError("Caching disabled")
+        self._on_stat_set.append(fun)
+
+    def _stat_set(self, k, v):
+        if hasattr(self, '_on_stat_set'):
+            for fun in self._on_stat_set:
+                fun(self, k, v)
+
+    def _stat_del(self, k):
+        if hasattr(self, '_on_stat_set'):
+            for fun in self._on_stat_set:
+                fun(self, k)
+
+
+class ThingPlace(Node, StatSet):
     """Superclass for both Thing and Place"""
     def __init__(self, character, name):
         """Store character and name, and maybe initialize a couple caches"""
@@ -105,6 +145,7 @@ class ThingPlace(Node):
         if self.engine.caching:
             self._keycache = {}
             self._statcache = {}
+            self._on_stat_set = []
         super().__init__(character, name)
 
     def _portal_dests(self):
@@ -313,6 +354,7 @@ class Thing(ThingPlace):
             (branch, tick) = self.engine.time
             self._load_locs_branch(branch)
             self._loccache[branch][tick] = value
+            self._stat_set('locations', value)
         else:
             if not self.engine.caching:
                 super().__setitem__(key, value)
@@ -327,6 +369,7 @@ class Thing(ThingPlace):
                 value,
                 super().__setitem__
             )
+            self._stat_set(key, value)
 
     def __delitem__(self, key):
         """As of now, this key isn't mine."""
@@ -351,6 +394,7 @@ class Thing(ThingPlace):
             key,
             super().__delitem__
         )
+        self._stat_del(key)
 
     def _load_locs_branch(self, branch):
         """Private method. Cache stored location data for this branch."""
@@ -689,6 +733,7 @@ class Place(ThingPlace):
             value,
             super().__setitem__
         )
+        self._stat_set(key, value)
 
     def __delitem__(self, key):
         if not self.engine.caching:
@@ -703,6 +748,7 @@ class Place(ThingPlace):
             key,
             super().__delitem__
         )
+        self._stat_del(key)
 
     def _get_json_dict(self):
         (branch, tick) = self.engine.time
@@ -721,7 +767,7 @@ class Place(ThingPlace):
         return json_dump(self._get_json_dict())
 
 
-class Portal(Edge):
+class Portal(Edge, StatSet):
     """Connection between two Places that Things may travel along.
 
     Portals are one-way, but you can make one appear two-way by
@@ -743,6 +789,7 @@ class Portal(Edge):
             self._keycache = {}
             self._statcache = {}
             self._existence = {}
+            self._on_stat_set = []
         super().__init__(character, self._origin, self._destination)
 
     def __getitem__(self, key):
@@ -803,13 +850,14 @@ class Portal(Edge):
                     self.character.portal[self._destination]
             ):
                 self.character.add_portal(self._destination, self._origin)
-                self.character.portal[
-                    self._destination
-                ][
-                    self._origin
-                ][
-                    "is_mirror"
-                ] = True
+            self.character.portal[
+                self._destination
+            ][
+                self._origin
+            ][
+                "is_mirror"
+            ] = True
+            return
         elif key == 'symmetrical' and not value:
             try:
                 self.character.portal[
@@ -821,6 +869,7 @@ class Portal(Edge):
                 ] = False
             except KeyError:
                 pass
+            return
         if not self.engine.caching:
             super().__setitem__(key, value)
             return
@@ -835,6 +884,7 @@ class Portal(Edge):
             value,
             super().__setitem__
         )
+        self._stat_set(key, value)
 
     def __delitem__(self, key):
         """Invalidate my :class:`Character`'s cache of portal traits"""
@@ -851,6 +901,7 @@ class Portal(Edge):
             key,
             super().__delitem__
         )
+        self._stat_del(key)
 
     @property
     def origin(self):
@@ -2100,7 +2151,7 @@ class CharStatCache(MutableMapping):
         del self._real[k]
 
 
-class Character(DiGraph, RuleFollower):
+class Character(DiGraph, RuleFollower, StatSet):
     """A graph that follows game rules and has a containment hierarchy.
 
     Nodes in a Character are subcategorized into Things and
@@ -2160,6 +2211,7 @@ class Character(DiGraph, RuleFollower):
             'reqs'
         )
         if engine.caching:
+            self._on_stat_set = []
             self.stat = CharStatCache(self)
             self._avatar_cache = ac = {}
             # I'll cache this ONE table in full, because iterating
@@ -2177,6 +2229,14 @@ class Character(DiGraph, RuleFollower):
         self._portal_traits = set()
         for stat in self.stat:
             assert(stat in self.stat)
+
+    def __setitem__(self, k, v):
+        super().__setitem__(k, v)
+        self._stat_set(k, v)
+
+    def __delitem__(self, k):
+        super().__delitem__(k)
+        self._stat_del(k)
 
     def travel_req(self, fun):
         """Decorator for tests that :class:`Thing`s have to pass before they
