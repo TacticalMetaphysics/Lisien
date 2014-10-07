@@ -12,6 +12,7 @@
     selected: self.board.layout.selected is self
 <ELiDELayout>:
     engine: self.app.engine
+    board: board
     ScrollView:
         effect_cls: StiffScrollEffect
         id: boardview
@@ -22,9 +23,10 @@
             layout: root
             app: root.app
             engine: root.app.engine
-            character: self.engine.character[self.app.config['ELiDE']['boardchar']]
+            character: root.app.engine.character[root.app.config['ELiDE']['boardchar']]
             arrowlayout: arrowlayout
             spotlayout: spotlayout
+            pawnlayout: pawnlayout
             size_hint: (None, None)
             size: wallpaper.size
             arrow_bg: (0.5, 0.5, 0.5, 0.5)
@@ -39,6 +41,8 @@
                 id: arrowlayout
             FloatLayout:
                 id: spotlayout
+            Widget:
+                id: pawnlayout
     BoxLayout:
         id: timemenu
         pos_hint: {'bot': 0}
