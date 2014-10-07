@@ -1,5 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
-# Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+# Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 """Constants for use in kv files. Mostly colors."""
 solarized_hex = {
     'base03': (0x00, 0x2b, 0x36),
