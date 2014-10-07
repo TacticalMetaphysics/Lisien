@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
+from kivy.logger import Logger
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
@@ -206,6 +207,17 @@ class ELiDELayout(FloatLayout):
             n += 1
         if self.tick == curtick:
             Clock.schedule_once(self.next_tick, 0)
+        else:
+            Logger.info(
+                "Followed {n} rules on tick {ct}:\n{r}".format(
+                    n=n,
+                    ct=curtick,
+                    r="\n".join(
+                        str(tup) for tup in
+                        self.tick_results[self.branch][curtick]
+                    )
+                )
+            )
 
     def dispatch2board(self, event, touch):
         """Translate the touch to the boardview space, then dispatch the touch
