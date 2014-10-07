@@ -12,88 +12,20 @@ from kivy.properties import (
     DictProperty
 )
 from kivy.resources import resource_add_path
-from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
 
 from kivy.factory import Factory
 
 from .board import Board
-from .texturestack import ImageStack
 
 import LiSE
 import ELiDE
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
 
-_ = lambda x: x
 
 Factory.register('Board', cls=Board)
-
-
-class TouchlessWidget(Widget):
-    """Widget made not to interact with any touch"""
-    def on_touch_down(self, *args):
-        """Nothing"""
-        pass
-
-    def on_touch_move(self, *args):
-        """Nothing"""
-        pass
-
-    def on_touch_up(self, *args):
-        """Nothing"""
-        pass
-
-
-class DummySpot(Widget):
-    """This is at the end of the arrow that appears when you're drawing a
-    new portal. It's invisible, serving only to mark the pixel the
-    arrow ends at for the moment.
-
-    """
-    def collide_point(self, *args):
-        """This should be wherever you point, and therefore, always
-        collides."""
-        return True
-
-    def on_touch_move(self, touch):
-        """Center to touch"""
-        self.center = touch.pos
-
-
-class DummyPawn(ImageStack):
-    """Looks like a Pawn, but doesn't have a Thing associated.
-
-    This is meant to be used when the user is presently engaged with
-    deciding where a Thing should be. The Thing in question
-    doesn't exist yet, but you know what it should look like.
-
-    """
-    thing_name = StringProperty()
-    board = ObjectProperty()
-    callback = ObjectProperty()
-
-    def on_touch_down(self, touch):
-        """Grab the touch if it hits me."""
-        if self.collide_point(touch.x, touch.y):
-            touch.grab(self)
-            touch.ud['pawn'] = self
-            return True
-
-    def on_touch_move(self, touch):
-        """If I've been grabbed, move to the touch."""
-        if 'pawn' in touch.ud and touch.ud['pawn'] is self:
-            self.center = touch.pos
-
-    def on_touch_up(self, touch):
-        """Create a real Pawn on top of the Spot I am likewise on top of,
-        along with a Thing for it to represent.
-
-        """
-        if 'pawn' not in touch.ud:
-            return
-            pass  # TODO
 
 
 class ELiDELayout(FloatLayout):
@@ -235,6 +167,9 @@ class ELiDELayout(FloatLayout):
         r = self.ids.board.dispatch(event, touch)
         touch.pop()
         return r
+
+    def on_grabbed(self, *args):
+        Logger.info('grabbed: ' + str(self.grabbed))
 
     def on_touch_down(self, touch):
         """Delegate first to the menu, then to the charsheet, then to the
