@@ -65,7 +65,29 @@ class Spot(ImageStack):
             )
             self._ignore_place = False
 
-    def _repos_pawn(self, pawn):
+    def add_widget(self, wid, i=0, canvas=None):
+        super().add_widget(wid, i, canvas)
+        if not hasattr(wid, 'group'):
+            return
+        wid._no_use_canvas = True
+        mycanvas = (
+            self.canvas.after if canvas == 'after' else
+            self.canvas.before if canvas == 'before' else
+            self.canvas
+        )
+        pawncanvas = (
+            self.board.pawnlayout.canvas.after if canvas == 'after' else
+            self.board.pawnlayout.canvas.before if canvas == 'before' else
+            self.board.pawnlayout.canvas
+        )
+        mycanvas.remove(wid.canvas)
+        for child in self.children:
+            if hasattr(child, 'group') and child.group in pawncanvas.children:
+                pawncanvas.remove(child.group)
+            pawncanvas.add(child.group)
+        self.pospawn(wid)
+
+    def pospawn(self, pawn):
         i = 0
         for child in self.children:
             if child is pawn:
@@ -97,7 +119,7 @@ class Spot(ImageStack):
 
         """
         for pawn in self.children:
-            self._repos_pawn(pawn)
+            self.pospawn(pawn)
 
     def on_touch_down(self, touch):
         """If the touch hits me, grab it and put myself in its userdict"""
