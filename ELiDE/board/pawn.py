@@ -4,7 +4,8 @@
 from kivy.properties import (
     BooleanProperty,
     ObjectProperty,
-    AliasProperty
+    NumericProperty,
+    ReferenceListProperty
 )
 from kivy.clock import Clock
 from ELiDE.texturestack import ImageStack
@@ -29,12 +30,15 @@ will update its position appropriately.
     board = ObjectProperty()
     thing = ObjectProperty()
     _touch = ObjectProperty(None, allownone=True)
+    _touch_ox_diff = NumericProperty()
+    _touch_oy_diff = NumericProperty()
+    _touch_opos_diff = ReferenceListProperty(_touch_ox_diff, _touch_oy_diff)
+    _startx = NumericProperty()
+    _starty = NumericProperty()
+    _start = ReferenceListProperty(_startx, _starty)
     travel_on_drop = BooleanProperty(False)
-    engine = AliasProperty(
-        lambda self: self.board.engine if self.board else None,
-        lambda self, v: None,
-        bind=('board',)
-    )
+    engine = ObjectProperty()
+    selected = BooleanProperty()
 
     def __init__(self, **kwargs):
         """Arrange to update my textures and my position whenever the relevant
@@ -45,6 +49,10 @@ will update its position appropriately.
         super().__init__(**kwargs)
 
     def _update(self, *args):
+        """Private use. Update my ``paths`` and ``stackhs`` with what's in my
+        :class:`Thing`.
+
+        """
         if self.paths != self.thing["_image_paths"]:
             self.paths = self.thing["_image_paths"]
         if self.stackhs != self.thing["_stacking_heights"]:
@@ -75,21 +83,49 @@ will update its position appropriately.
             whereat.add_widget(self)
 
     def add_widget(self, pawn, index=0, canvas='after'):
+        """Apart from the normal behavior, bind my ``center`` so that the
+        child's lower left corner will always be there, so long as
+        it's my child.
+
+        """
         super().add_widget(pawn, index, canvas)
         pawn.pos = self.center
         self.bind(center=pawn.setter('pos'))
 
     def remove_widget(self, pawn):
+        """Unbind my ``center`` from the child before removing it."""
+        if pawn not in self.children:
+            raise ValueError("Not my child")
         self.unbind(center=pawn.setter('pos'))
         super().remove_widget(pawn)
 
     def on_touch_down(self, touch):
-        return self.collide_point(*touch.pos)
+        """Check collision, and record my starting position for in case I need
+        to snap back to it.
+
+        """
+        if not self.collide_point(*touch.pos):
+            return
+        self._touch = touch
+        touch.grab(self)
+        self.board.layout.grabbed = self
+        self._start = self.pos
+        (x, y) = self.pos
+        self._touch_opos_diff = (x - touch.x, y - touch.y)
+        return True
 
     def on_touch_move(self, touch):
         """Move with the touch if I'm grabbed."""
-        # TODO
-        pass
+        if not self._touch:
+            return
+        if touch is not self._touch:
+            return
+        if self.board.layout.grabbed is not self:
+            return
+        self.pos = (
+            touch.x + self._touch_ox_diff,
+            touch.y + self._touch_oy_diff
+        )
 
     def on_touch_up(self, touch):
         """See if I've been dropped on a :class:`Spot`. If so, command the
@@ -97,16 +133,23 @@ will update its position appropriately.
         there.
 
         """
-        if self.board.layout.grabbed is self:
-            new_spot = None
-            for spot in self.board.spot.values():
-                if self.collide_widget(spot):
-                    new_spot = spot
+        if not self._touch:
+            return
+        new_spot = None
+        for spot in self.board.spot.values():
+            if self.collide_widget(spot):
+                new_spot = spot
 
-            if new_spot:
-                myplace = self.thing["location"]
-                theirplace = new_spot.place.name
-                if myplace != theirplace:
+        if new_spot:
+            myplace = self.thing["location"]
+            theirplace = new_spot.place.name
+            if myplace != theirplace:
+                if self.travel_on_drop:
                     self.thing.travel_to(new_spot.place.name)
-            return self
-        return super().on_touch_up(touch)
+                else:
+                    self.thing["location"] = new_spot.place.name
+                    self._update()
+        else:
+            self.pos = self._start
+        self._touch = None
+        return self
