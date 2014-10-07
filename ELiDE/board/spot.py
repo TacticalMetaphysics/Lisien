@@ -44,12 +44,30 @@ class Spot(ImageStack):
             center=self._trigger_upd_pawns_here
         )
         self._ignore_place = True
-        self.pos = (
-            self.place['_x'] * self.board.width,
-            self.place['_y'] * self.board.height
-        )
+        try:
+            self.pos = (
+                self.place['_x'] * self.board.width,
+                self.place['_y'] * self.board.height
+            )
+        except KeyError:
+            (x, y) = self._default_pos()
+            self.place['_x'] = x
+            self.place['_y'] = y
+            self.pos = (
+                x * self.board.width,
+                y * self.board.height
+            )
         self._ignore_place = False
-        self.paths = self.place['_image_paths']
+        try:
+            self.paths = self.place['_image_paths']
+        except KeyError:
+            self.place['_image_paths'] = self.paths = self._default_paths()
+
+    def _default_pos(self):
+        return (0.5, 0.5)
+
+    def _default_paths(self):
+        return ['orb.png']
 
     def _update(self, *args):
         if self.place['_image_paths'] != self.paths:

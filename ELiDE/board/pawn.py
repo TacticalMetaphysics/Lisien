@@ -53,6 +53,10 @@ will update its position appropriately.
         :class:`Thing`.
 
         """
+        if '_image_paths' not in self.thing:
+            self.thing['_image_paths'] = self._default_paths()
+        if '_stacking_heights' not in self.thing:
+            self.thing['_stacking_heights'] = self._default_stackhs()
         if self.paths != self.thing["_image_paths"]:
             self.paths = self.thing["_image_paths"]
         if self.stackhs != self.thing["_stacking_heights"]:
@@ -81,6 +85,12 @@ will update its position appropriately.
                 whereat = self.board.spot[self.thing["location"]]
             self.parent.remove_widget(self)
             whereat.add_widget(self)
+
+    def _default_paths(self):
+        return ['atlas://rltiles/base.atlas/unseen']
+
+    def _default_stackhs(self):
+        return [0]
 
     def add_widget(self, pawn, index=0, canvas='after'):
         """Apart from the normal behavior, bind my ``center`` so that the
