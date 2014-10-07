@@ -123,14 +123,30 @@ be scriptable in Python, hopefully to the point that you could build
 the actual interface to your game in ELiDE.
 
 # License Information
-wallpape.jpg is copyright [Fantastic Maps](http://www.fantasticmaps.com/free-stuff/), freely available under the terms of [Creative Commons BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 
-LiSE currently has two graphics sets, the [RLTiles](http://rltiles.sourceforge.net/) and [Pixel City](http://opengameart.org/content/pixel-city), both available under [CC0](http://creativecommons.org/publicdomain/zero/1.0/), being in the public domain where it exists.
+wallpape.jpg is copyright [Fantastic
+Maps](http://www.fantasticmaps.com/free-stuff/), freely available
+under the terms of [Creative Commons
+BY-NC-SA](https://creativecommons.org/licenses/by-nc-sa/3.0/).
 
-[networkx](http://networkx.github.io/), which forms the basis of LiSE's data model, is available under [BSD](http://networkx.github.io/documentation/latest/reference/legal.html). My versions of the networkx graph classes are kept in a separate package, [gorm](https://github.com/LogicalDash/gorm), and released under the same license.
+ELiDE currently has two graphics sets, the
+[RLTiles](http://rltiles.sourceforge.net/) and [Pixel
+City](http://opengameart.org/content/pixel-city), both available under
+[CC0](http://creativecommons.org/publicdomain/zero/1.0/), being in the
+public domain where it exists.
 
-The icons are [Symbola](http://users.teilar.gr/~g1951d/), by George Douros, in the public domain.
+[networkx](http://networkx.github.io/), which forms the basis of
+LiSE's data model, is available under
+[BSD](http://networkx.github.io/documentation/latest/reference/legal.html). My
+versions of the networkx graph classes are kept in a separate package,
+[gorm](https://github.com/LogicalDash/gorm), and released under the
+same license.
 
-The LiSE source files themselves are licensed under the terms of the GNU General Public License version 3. See the text of the license in the file gpl-3.0.txt
+The icons are [Symbola](http://users.teilar.gr/~g1951d/), by George
+Douros, in the public domain.
+
+The LiSE source files themselves are licensed under the terms of the
+GNU General Public License version 3. See the text of the license in
+the file gpl-3.0.txt
 
 Copyright (C) 2013-2014 Zachary Spector. Email: zacharyspector@gmail.com
