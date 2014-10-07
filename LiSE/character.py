@@ -125,12 +125,14 @@ class StatSet(object):
         self._on_stat_set.append(fun)
 
     def _stat_set(self, k, v):
+        """Notify listeners"""
         if hasattr(self, '_on_stat_set'):
             (branch, tick) = self.engine.time
             for fun in self._on_stat_set:
                 fun(self, branch, tick, k, v)
 
     def _stat_del(self, k):
+        """Notify listeners"""
         if hasattr(self, '_on_stat_set'):
             (branch, tick) = self.engine.time
             for fun in self._on_stat_set:
