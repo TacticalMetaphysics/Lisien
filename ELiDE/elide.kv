@@ -100,9 +100,11 @@
             # same tick. As such it grays out when you change the time.
             text: "Undo"
         Button:
-            text: "Add place"
+            # Should have orb.png in it and if you drag that elsewhere it creates a new place there
+            id: placeadder
+        ToggleButton:
+            # While this is active, dragging between two spots creates a portal
+            id: portaladder
         Button:
-            text: "Connect places"
-        Button:
-            halign: "center"
-            text: "Add thing\nto place"
+            # Has the generic thing-graphic in it, drag it on top of a spot and you get a new thing
+            id: thingadder
