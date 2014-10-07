@@ -230,7 +230,7 @@ class ELiDELayout(FloatLayout):
         if self.grabbed is None:
             return self.ids.boardview.dispatch('on_touch_down', touch)
         else:
-            return self.grabbed is not None
+            return True
 
     def on_touch_move(self, touch):
         """If something's been grabbed, transform the touch to the boardview's
@@ -309,7 +309,7 @@ class ELiDEApp(App):
         config.setdefaults(
             'LiSE',
             {
-                'world': 'LiSEworld.db',
+                'world': 'sqlite:///LiSEworld.db',
                 'code': 'LiSEcode.db',
                 'language': 'en'
             }
@@ -341,7 +341,6 @@ class ELiDEApp(App):
             if char not in self.engine.character:
                 print("adding character: {}".format(char))
                 self.engine.add_character(char)
-        self.engine.character['dwarf'].stat._not_null('sight_radius')
         l = ELiDELayout(app=self)
         from kivy.core.window import Window
         from kivy.modules import inspector
