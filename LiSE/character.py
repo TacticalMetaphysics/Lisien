@@ -126,13 +126,15 @@ class StatSet(object):
 
     def _stat_set(self, k, v):
         if hasattr(self, '_on_stat_set'):
+            (branch, tick) = self.engine.time
             for fun in self._on_stat_set:
-                fun(self, k, v)
+                fun(self, branch, tick, k, v)
 
     def _stat_del(self, k):
         if hasattr(self, '_on_stat_set'):
+            (branch, tick) = self.engine.time
             for fun in self._on_stat_set:
-                fun(self, k)
+                fun(self, branch, tick, k)
 
 
 class ThingPlace(Node, StatSet):
