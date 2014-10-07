@@ -4,11 +4,9 @@ from kivy.properties import (
     DictProperty,
     ObjectProperty,
     NumericProperty,
-    ListProperty,
-    BooleanProperty
+    ListProperty
 )
 from kivy.clock import Clock
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.relativelayout import RelativeLayout
 from .spot import Spot
 from .arrow import Arrow
@@ -28,13 +26,13 @@ class Board(RelativeLayout):
     arrowhead_size = NumericProperty()
     arrowlayout = ObjectProperty()
     spotlayout = ObjectProperty()
+    pawnlayout = ObjectProperty()
     app = ObjectProperty()
     engine = ObjectProperty()
-    redatad = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         """Make a trigger for ``_redata`` and run it"""
-        self._trigger_redata = Clock.create_trigger(self._redata)
+        self._trigger_update = Clock.create_trigger(self._update)
         super().__init__(**kwargs)
 
     def _make_pawn(self, thing):
@@ -43,7 +41,7 @@ class Board(RelativeLayout):
             raise KeyError("Already have a Pawn for this Thing")
         r = Pawn(
             board=self,
-            thing=thing,
+            thing=thing
         )
         self.pawn[thing["name"]] = r
         return r
@@ -124,7 +122,7 @@ class Board(RelativeLayout):
         if name not in self.pawn:
             raise KeyError("No Pawn")
         pwn = self.pawn[name]
-        pwn.parent.remove(pwn)
+        pwn.parent.remove_widget(pwn)
         del self.pawn[name]
 
     def _rmspot(self, name):
@@ -144,17 +142,17 @@ class Board(RelativeLayout):
         self.spotlayout.remove_widget(self.arrow[orig][dest])
         del self.arrow[orig][dest]
 
-    def _redata(self, *args):
+    def _update(self, *args):
         """Refresh myself from the database"""
         # remove widgets that don't represent anything anymore
-        for pawn_name in self.pawn:
+        for pawn_name in list(self.pawn.keys()):
             if pawn_name not in self.character.thing:
                 self._rmpawn(pawn_name)
-        for spot_name in self.spot:
+        for spot_name in list(self.spot.keys()):
             if spot_name not in self.character.place:
                 self._rmspot(spot_name)
-        for arrow_origin in self.arrow:
-            for arrow_destination in self.arrow[arrow_origin]:
+        for arrow_origin in list(self.arrow.keys()):
+            for arrow_destination in list(self.arrow[arrow_origin].keys()):
                 if (
                         arrow_origin not in self.character.portal or
                         arrow_destination not in
@@ -191,26 +189,10 @@ class Board(RelativeLayout):
                     whereat = self.spot[pwn.thing['location']]
                 whereat.add_widget(pwn)
                 self.pawn[thing_name] = pwn
-        self.redatad = True
-
-    def _trigger_update(self, *args):
-        """Make sure that _redata happens before _update, otherwise just a
-        trigger.
-
-        """
-        self.redatad = False
-        self._trigger_redata()
-        Clock.schedule_once(self._update, 0)
-
-    def _update(self, *args):
-        """trigger all entities to refresh themselves"""
-        if not self.redatad:
-            Clock.schedule_once(self._update, 0)
-            return
         for spot in self.spot.values():
-            spot._update()
+            spot._trigger_update()
         for pawn in self.pawn.values():
-            pawn._update()
+            pawn._trigger_update()
 
     def __repr__(self):
         """Look like a :class:`Character` wrapped in ``Board(...)```"""
@@ -225,7 +207,10 @@ class Board(RelativeLayout):
         """
         for pawn in self.pawn.values():
             if pawn.dispatch('on_touch_down', touch):
+                return True
+            if pawn.collide_point(*touch.pos):
                 touch.grab(pawn)
+                pawn._touch = touch
                 self.layout.grabbed = pawn
                 return True
         for child in self.spotlayout.children:
