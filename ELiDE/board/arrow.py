@@ -203,45 +203,32 @@ class Arrow(Widget):
 
     def add_widget(self, wid, index=0, canvas=None):
         super().add_widget(wid, index, canvas)
+        if not hasattr(wid, 'group'):
+            return
+        wid._no_use_canvas = True
         mycanvas = (
             self.canvas.before if canvas == 'before' else
             self.canvas.after if canvas == 'after' else
             self.canvas
         )
         mycanvas.remove(wid.canvas)
-        # put it in either the origin or the destination canvas
-        # depending on which is closest
-        pct = (
-            self.engine.tick -
-            wid.thing['arrival_time']
-        ) / (
-            wid.thing['next_arrival_time'] -
-            wid.thing['arrival_time']
+        pawncanvas = (
+            self.board.pawnlayout.canvas.before if canvas == 'before' else
+            self.board.pawnlayout.canvas.after if canvas == 'after' else
+            self.board.pawnlayout.canvas
         )
-        spot = self.destination if pct >= 0.5 else self.origin
-        spotcanvas = (
-            spot.canvas.before if canvas == 'before' else
-            spot.canvas.after if canvas == 'after' else
-            spot.canvas
-        )
-        wid._no_use_canvas = True
-        childs = list(spotcanvas.children)
-        for child in childs:
-            spotcanvas.remove(child)
-        childs.insert(index, wid.group)
-        for child in childs:
-            spotcanvas.add(child)
+        for child in self.children:
+            if hasattr(child, 'group') and child.group in pawncanvas.children:
+                pawncanvas.remove(child.group)
+            pawncanvas.add(child.group)
         self.pospawn(wid)
 
     def remove_widget(self, wid):
         super().remove_widget(wid)
         for canvas in (
-                self.origin.canvas,
-                self.origin.canvas.before,
-                self.origin.canvas.after,
-                self.destination.canvas,
-                self.destination.canvas.before,
-                self.destination.canvas.after
+                self.board.pawnlayout.canvas.before,
+                self.board.pawnlayout.canvas.after,
+                self.board.pawnlayout.canvas
         ):
             if wid.group in canvas.children:
                 canvas.remove(wid.group)
