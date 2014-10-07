@@ -189,13 +189,12 @@ class TextureStack(Widget):
         self.stackhs.pop(i)
         return self.texs.pop(i)
 
-    def add_widget(self, wid, index=0, canvas='after'):
-        super().add_widget(wid, index, canvas)
-
 
 class ImageStack(TextureStack):
     """Instead of supplying textures themselves, supply paths to where the
-    texture may be loaded from."""
+    textures may be loaded from.
+
+    """
     paths = ListProperty([])
     pathtexs = DictProperty({})
 
