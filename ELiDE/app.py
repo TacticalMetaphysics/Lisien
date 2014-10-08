@@ -94,6 +94,7 @@ class ELiDELayout(FloatLayout):
         self.ids.board._trigger_update()
 
     def set_branch(self, b):
+        """``self.branch = b``"""
         self.branch = b
 
     def tickupd(self, *args):
@@ -103,6 +104,7 @@ class ELiDELayout(FloatLayout):
         self.ids.board._trigger_update()
 
     def set_tick(self, t):
+        """``self.tick = t``"""
         self.tick = t
 
     def advance(self):
