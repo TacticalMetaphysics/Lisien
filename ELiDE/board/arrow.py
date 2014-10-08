@@ -339,25 +339,27 @@ class Arrow(Widget):
             return False
         if None in (self.board, self.portal):
             return False
-        orig = self.origin
-        dest = self.destination
-        (ox, oy) = orig.pos
-        (dx, dy) = dest.pos
-        if 0 in (ox, dx, oy, dy):
-            ox += 1
-            oy += 1
-            dx += 1
-            dy += 1
-        if ox == dx:
-            return abs(y - dy) <= self.w
-        elif oy == dy:
-            return abs(x - dx) <= self.w
-        else:
-            correct_angle_a = atan(dy / dx)
-            observed_angle_a = atan(y / x)
-            error_angle_a = abs(observed_angle_a - correct_angle_a)
-            error_seg_len = hypot(x, y)
-            return sin(error_angle_a) * error_seg_len <= self.margin
+        return False
+        # This doesn't seem to work as intended.
+        # orig = self.origin
+        # dest = self.destination
+        # (ox, oy) = orig.pos
+        # (dx, dy) = dest.pos
+        # if 0 in (ox, dx, oy, dy):
+        #     ox += 1
+        #     oy += 1
+        #     dx += 1
+        #     dy += 1
+        # if ox == dx:
+        #     return abs(y - dy) <= self.w
+        # elif oy == dy:
+        #     return abs(x - dx) <= self.w
+        # else:
+        #     correct_angle_a = atan(dy / dx)
+        #     observed_angle_a = atan(y / x)
+        #     error_angle_a = abs(observed_angle_a - correct_angle_a)
+        #     error_seg_len = hypot(x, y)
+        #     return sin(error_angle_a) * error_seg_len <= self.margin
 
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
