@@ -64,6 +64,9 @@ class Spot(ImageStack):
             self.place['_image_paths'] = self.paths = self._default_paths()
 
     def _default_pos(self):
+        # If one spot is without a position, maybe the rest of them
+        # are too, and so maybe the board should do a full layout.
+        self.board.spots_unposd += 1
         return (0.5, 0.5)
 
     def _default_paths(self):

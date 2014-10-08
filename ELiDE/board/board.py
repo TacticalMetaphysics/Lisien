@@ -29,6 +29,7 @@ class Board(RelativeLayout):
     pawnlayout = ObjectProperty()
     app = ObjectProperty()
     engine = ObjectProperty()
+    spots_unposd = NumericProperty(0)
 
     def __init__(self, **kwargs):
         """Make a trigger for ``_redata`` and run it"""
@@ -142,6 +143,10 @@ class Board(RelativeLayout):
         self.spotlayout.remove_widget(self.arrow[orig][dest])
         del self.arrow[orig][dest]
 
+    def nx_layout(self, graph):
+        from networkx import spectral_layout
+        return spectral_layout(graph)
+
     def _update(self, *args):
         """Refresh myself from the database"""
         # remove widgets that don't represent anything anymore
@@ -164,6 +169,18 @@ class Board(RelativeLayout):
             if place_name not in self.spot:
                 self.spotlayout.add_widget(
                     self._make_spot(self.character.place[place_name])
+                )
+        if self.spots_unposd == len(self.spot):
+            # No spots have positions;
+            # do a layout.
+            spots_only = self.character.facade()
+            for thing in list(spots_only.thing.keys()):
+                del spots_only.thing[thing]
+            l = self.nx_layout(spots_only)
+            for (spot, (x, y)) in l.items():
+                self.spot[spot].pos = (
+                    int(x * self.width),
+                    int(y * self.height)
                 )
         for arrow_orig in self.character.portal:
             for arrow_dest in self.character.portal[arrow_orig]:
