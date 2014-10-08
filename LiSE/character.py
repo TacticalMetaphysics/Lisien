@@ -2242,6 +2242,9 @@ class Character(DiGraph, RuleFollower, StatSet):
         super().__delitem__(k)
         self._stat_del(k)
 
+    def facade(self):
+        return Facade(self)
+
     def travel_req(self, fun):
         """Decorator for tests that :class:`Thing`s have to pass before they
         can go thru :class:`Portal's
