@@ -81,7 +81,7 @@ def shrubsprint(engine, character, avatar):
 
     """
     # pregenerated list of places with shrubs in
-    shrub_places = character.stat['shrub_places']
+    shrub_places = list(character.stat['shrub_places'])
     if avatar['location'] in shrub_places:
         shrub_places.remove(avatar['location'])
     avatar.travel_to(engine.choice(shrub_places))
