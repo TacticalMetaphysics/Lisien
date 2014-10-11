@@ -116,6 +116,12 @@ class Rule(object):
             list(self.actions)
         )
 
+    def always_run(self):
+        """Arrange to be triggered every tick, regardless of circumstance."""
+        def truth(*args):
+            return True
+        self.triggers = [truth]
+
 
 class RuleBook(MutableSequence):
     """A list of rules to be followed for some Character, or a part of it
