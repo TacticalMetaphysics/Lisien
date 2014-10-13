@@ -43,8 +43,7 @@ class QueryEngine(gorm.query.QueryEngine):
             return self.sql('func_store_create_table_fmt', tbl=tbl)
 
     def func_table_items(self, tbl):
-        for row in self.sql('func_table_items_fmt', tbl=tbl):
-            yield row[0]
+        return self.sql('func_table_items_fmt', tbl=tbl)
 
     def func_table_contains(self, tbl, key):
         for row in self.sql('func_table_get_fmt', key, tbl=tbl):
@@ -68,6 +67,28 @@ class QueryEngine(gorm.query.QueryEngine):
 
     def func_table_del(self, tbl, key):
         return self.sql('func_table_del_fmt', key, tbl=tbl)
+
+    def init_string_table(self, tbl):
+        try:
+            return self.sql('count_all_fmt', tbl=tbl)
+        except OperationalError:
+            return self.sql('string_store_create_table_fmt', tbl=tbl)
+
+    def string_table_lang_items(self, tbl, lang):
+        return self.sql('string_table_lang_items_fmt', lang, tbl=tbl)
+
+    def string_table_get(self, tbl, lang, key):
+        for row in self.sql('string_table_get_fmt', lang, key, tbl=tbl):
+            return row[0]
+
+    def string_table_set(self, tbl, lang, key, value):
+        try:
+            self.sql('string_table_ins_fmt', key, lang, value, tbl=tbl)
+        except IntegrityError:
+            self.sql('string_table_upd_fmt', value, lang, key, tbl=tbl)
+
+    def string_table_del(self, tbl, lang, key):
+        self.sql('string_table_del_fmt', lang, key, tbl=tbl)
 
     def universal_items(self, branch, tick):
         seen = set()

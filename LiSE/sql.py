@@ -9,6 +9,37 @@ func_table_get_fmt = "SELECT code FROM {tbl} WHERE name=?;"
 func_table_ins_fmt = "INSERT INTO {tbl} (name, code) VALUES (?, ?);"
 func_table_upd_fmt = "UPDATE {tbl} SET code=? WHERE name=?;"
 func_table_del_fmt = "DELETE FROM {tbl} wHERE name=?;"
+string_store_create_table_fmt = (
+    "CREATE TABLE {tbl} ("
+    "id TEXT NOT NULL, "
+    "language TEXT NOT NULL DEFAULT 'eng', "
+    "string TEXT NOT NULL DEFAULT '', "
+    "PRIMARY KEY(id, language)"
+    ");"
+)
+string_table_lang_items_fmt = (
+    "SELECT id, string FROM {tbl} "
+    "WHERE language=? ORDER BY id;"
+)
+string_table_get_fmt = (
+    "SELECT string FROM {tbl} WHERE "
+    "language=? AND "
+    "id=?;"
+)
+string_table_ins_fmt = (
+    "INSERT INTO {tbl} (id, language, string) "
+    "VALUES (?, ?, ?);"
+)
+string_table_upd_fmt = (
+    "UPDATE {tbl} SET string=? WHERE "
+    "language=? AND "
+    "id=?;"
+)
+string_table_del_fmt = (
+    "DELETE FROM {tbl} WHERE "
+    "language=? AND "
+    "id=?;"
+)
 universal_items = (
     "SELECT lise_globals.key, lise_globals.value "
     "FROM lise_globals JOIN "

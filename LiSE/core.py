@@ -2,7 +2,7 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 """Object relational mapper that serves Characters."""
 from random import Random
-from collections import MutableMapping, Callable
+from collections import Mapping, MutableMapping, Callable
 from sqlite3 import connect
 from gorm import ORM as gORM
 from .character import Character
@@ -27,6 +27,91 @@ from sqlite3 import IntegrityError as liteIntegError
 IntegrityError = (alchemyIntegError, liteIntegError)
 
 
+class NotThatMap(Mapping):
+    """Wraps another mapping and conceals exactly one of its keys."""
+    def __init__(self, inner, k):
+        self.inner = inner
+        self.k = k
+
+    def __iter__(self):
+        for key in self.inner:
+            if key != self.k:
+                yield key
+
+    def __len__(self):
+        return len(self.inner) - 1
+
+    def __getitem__(self, key):
+        if key == self.k:
+            raise KeyError("masked")
+        return self.inner[key]
+
+
+class StringStore(MutableMapping):
+    """Store strings in database, and format them with one another upon retrieval.
+
+    In any one string, putting the key of another string in curly
+    braces will cause the other string to be substituted in.
+
+    """
+    def __init__(self, engine, table='strings', lang='eng'):
+        """Store the engine, the name of the database table to use, and the
+        language code.
+
+        """
+        self.engine = engine
+        self.table = table
+        self._language = lang
+        self.cache = {}
+        self.engine.db.init_string_table(table)
+
+    @property
+    def language(self):
+        return self._language
+
+    @language.setter
+    def language(self, v):
+        """Invalidate the cache upon changing the language."""
+        self._language = v
+        self.cache = {}
+
+    def __iter__(self):
+        """First cache, then iterate over all string IDs for the current
+        language.
+
+        """
+        for (k, v) in self.engine.db.string_table_lang_items(
+                self.table, self.language
+        ):
+            self.cache[k] = v
+        return iter(self.cache.keys())
+
+    def __len__(self):
+        """"Count strings in the current language."""
+        return self.engine.db.count_all_table(self.table)
+
+    def __getitem__(self, k):
+        """Get the string and format it with other strings here."""
+        if k not in self.cache:
+            self.cache[k] = self.engine.db.string_table_get(
+                self.table, self.language, k
+            )
+        return self.cache[k].format_map(NotThatMap(self, k))
+
+    def __setitem__(self, k, v):
+        """Set the value of a string for the current language."""
+        self.cache[k] = v
+        self.engine.db.string_table_set(self.table, self.language, k, v)
+
+    def __delitem__(self, k):
+        """Delete the string from the current language, and remove it from the
+        cache.
+
+        """
+        del self.cache[k]
+        self.engine.db.string_table_del(self.table, self.language, k)
+
+
 class FunctionStoreDB(MutableMapping):
     """Store functions in a SQL database"""
     def __init__(self, engine, codedb, table):
@@ -46,7 +131,8 @@ class FunctionStoreDB(MutableMapping):
 
     def __iter__(self):
         """SELECT name FROM {} ORDER BY name""".format(self._tab)
-        yield from self.engine.db.func_table_items(self._tab)
+        for (k, v) in self.engine.db.func_table_items(self._tab):
+            yield k
 
     def __contains__(self, name):
         """Check if there's such a function in the database"""
@@ -151,7 +237,7 @@ class CharacterMapping(MutableMapping):
             self._cache = {}
 
     def __iter__(self):
-        yield from self.engine.db.characters()
+        return self.engine.db.characters()
 
     def __contains__(self, name):
         return self.engine.db.have_character(name)
@@ -211,8 +297,9 @@ class Engine(object):
             alchemy=alchemy,
             query_engine_class=QueryEngine
         )
-        self.db = self.gorm.db
         self.time_listeners = []
+        self.db = self.gorm.db
+        self.string = StringStore(self)
         self.rule = AllRules(self)
         self.eternal = self.db.globl
         self.universal = GlobalVarMapping(self)
