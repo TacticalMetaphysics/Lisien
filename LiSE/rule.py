@@ -160,7 +160,7 @@ class RuleBook(MutableSequence):
         self.engine.db.rulebook_del(self.name, i)
 
 
-class RuleMapping(MutableMapping):
+class CharRuleMapping(MutableMapping):
     def __init__(self, character, rulebook, booktyp):
         self.character = character
         self.rulebook = rulebook

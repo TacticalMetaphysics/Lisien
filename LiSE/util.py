@@ -10,6 +10,43 @@ class CacheError(ValueError):
     pass
 
 
+class TravelException(Exception):
+    """Exception for problems with pathfinding"""
+    def __init__(
+            self,
+            message,
+            path=None,
+            followed=None,
+            traveller=None,
+            branch=None,
+            tick=None,
+            lastplace=None
+    ):
+        """Store the message as usual, and also the optional arguments:
+
+        ``path``: a list of Place names to show such a path as you found
+
+        ``followed``: the portion of the path actually followed
+
+        ``traveller``: the Thing doing the travelling
+
+        ``branch``: branch during travel
+
+        ``tick``: tick at time of error (might not be the tick at the
+        time this exception is raised)
+
+        ``lastplace``: where the traveller was, when the error happened
+
+        """
+        self.path = path
+        self.followed = followed
+        self.traveller = traveller
+        self.branch = branch
+        self.tick = tick
+        self.lastplace = lastplace
+        super().__init__(message)
+
+
 class CompositeDict(Mapping):
     """Read-only mapping that looks up values in a first dict if
     available, then a second dict if possible.
