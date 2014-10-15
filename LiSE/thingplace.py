@@ -1,10 +1,10 @@
 import networkx as nx
 from gorm.graph import Node
 from gorm.json import json_dump
-from .statset import StatSet
 from .util import (
     CacheError,
     TravelException,
+    StatSet,
     cache_get,
     cache_set,
     cache_del,
