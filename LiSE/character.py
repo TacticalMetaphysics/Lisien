@@ -20,6 +20,7 @@ from gorm.graph import (
 )
 from .util import (
     CompositeDict,
+    StatSet,
     keycache_iter
 )
 from .rule import RuleBook
@@ -41,7 +42,10 @@ class RuleFollower(object):
     def rulebook(self):
         return RuleBook(
             self.engine,
-            self.engine.db.get_rulebook(self._book, self.character.name)
+            self.engine.db.get_rulebook_char(
+                self._book,
+                self.character.name
+            )
         )
 
     @rulebook.setter
@@ -49,11 +53,13 @@ class RuleFollower(object):
         if not isinstance(v, str) or isinstance(v, RuleBook):
             raise TypeError("Use a :class:`RuleBook` or the name of one")
         n = v.name if isinstance(v, RuleBook) else v
-        self.engine.db.upd_rulebook(self._book, n, self.character.name)
+        self.engine.db.upd_rulebook_char(self._book, n, self.character.name)
 
     @property
     def rule(self):
-        return RuleMapping(self.character, self.rulebook, self._book)
+        return RuleMapping(
+            self.character, self.rulebook, self._book
+        )
 
 
 class CharacterThingMapping(MutableMapping, RuleFollower):

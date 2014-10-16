@@ -10,15 +10,40 @@ from .util import (
     cache_del,
     path_len
 )
+from .rule import RuleBook, RuleMapping
 
 
 class ThingPlace(Node, StatSet):
     """Superclass for both Thing and Place"""
+    @property
+    def rulebook(self):
+        return RuleBook(
+            self.engine,
+            self._rulebook_name
+        )
+        if not hasattr(self, '_rulebook'):
+            self._rulebook = RuleBook(
+                self.engine,
+                self._rulebook_name
+            )
+        return self._rulebook
+
+    @rulebook.setter
+    def rulebook(self, v):
+        if not isinstance(v, str) or isinstance(v, RuleBook):
+            raise TypeError("Use a :class:`RuleBook` or the name of one")
+        self._rulebook_name = v.name if isinstance(v, RuleBook) else v
+
+    @property
+    def rule(self):
+        return RuleMapping(self.engine, self.rulebook)
+
     def __init__(self, character, name):
         """Store character and name, and maybe initialize a couple caches"""
         self.character = character
         self.engine = character.engine
         self.name = name
+        self._rulebook_name = str(name) + "_rulebook"
         if self.engine.caching:
             self._keycache = {}
             self._statcache = {}

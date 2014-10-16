@@ -168,12 +168,10 @@ class RuleBook(MutableSequence):
         self.engine.db.rulebook_del(self.name, i)
 
 
-class CharRuleMapping(MutableMapping):
-    def __init__(self, character, rulebook, booktyp):
-        self.character = character
+class RuleMapping(MutableMapping):
+    def __init__(self, engine, rulebook):
+        self.engine = engine
         self.rulebook = rulebook
-        self.engine = rulebook.engine
-        self._table = booktyp + "_rules"
 
     def _activate_rule(self, rule):
         (branch, tick) = self.engine.time
@@ -188,39 +186,30 @@ class CharRuleMapping(MutableMapping):
         )
 
     def __iter__(self):
-        yield from self.engine.db.active_rules(
-            self._table,
-            self.character.name,
+        return self.engine.db.active_rules_rulebook(
             self.rulebook.name,
             *self.engine.time
         )
 
     def __len__(self):
-        """Count the rules presently in effect"""
         n = 0
         for rule in self:
             n += 1
         return n
 
     def __contains__(self, k):
-        return self.engine.db.active_rule(
-            self._table,
-            self.character.name,
+        return self.engine.db.active_rule_rulebook(
             self.rulebook.name,
             k,
             *self.engine.time
         )
 
     def __getitem__(self, k):
-        """Get the rule by the given name, if it is in effect"""
         if k not in self:
-            raise KeyError(
-                "Rule is not active at the moment, if it ever was."
-            )
+            raise KeyError("Rule is not in effect")
         return Rule(self.engine, k)
 
     def __getattr__(self, k):
-        """Alias for ``__getitem__`` for the convenience of decorators."""
         try:
             return self[k]
         except KeyError:
@@ -229,16 +218,17 @@ class CharRuleMapping(MutableMapping):
     def __setitem__(self, k, v):
         if isinstance(v, Rule):
             if v.name != k:
-                raise KeyError("That rule doesn't go by that name")
+                raise ValueError("That rule doesn't go by that name")
             self._activate_rule(v)
         elif isinstance(v, Callable):
-            # create a new rule, named k, performing action v
+            # create a new rule, named k, performing ation v
             if k in self.engine.rule:
                 raise KeyError(
                     "Already have a rule named {k}. "
-                    "Set engine.rule[{k}] to a new value "
+                    "Set {engine}.rule[{k}] to a new value "
                     "if you really mean to replace "
                     "the old rule.".format(
+                        engine=self.engine.__name__,
                         k=k
                     )
                 )
@@ -261,7 +251,7 @@ class CharRuleMapping(MutableMapping):
 
     def __call__(self, v, name=None):
         name = name if name is not None else v.__name__
-        self.__setitem__(name, v)
+        self[name] = v
         return self[name]
 
     def __delitem__(self, k):
@@ -273,6 +263,31 @@ class CharRuleMapping(MutableMapping):
             branch,
             tick,
             False
+        )
+
+
+class CharRuleMapping(RuleMapping):
+    def __init__(self, character, rulebook, booktyp):
+        self.character = character
+        self.rulebook = rulebook
+        self.engine = rulebook.engine
+        self._table = booktyp + "_rules"
+
+    def __iter__(self):
+        return self.engine.db.active_rules_char(
+            self._table,
+            self.character.name,
+            self.rulebook.name,
+            *self.engine.time
+        )
+
+    def __contains__(self, k):
+        return self.engine.db.active_rule_char(
+            self._table,
+            self.character.name,
+            self.rulebook.name,
+            k,
+            *self.engine.time
         )
 
 
