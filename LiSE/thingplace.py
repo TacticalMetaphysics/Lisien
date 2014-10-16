@@ -52,7 +52,7 @@ class ThingPlace(Node, StatSet):
 
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
-        yield from self.engine.db.nodeBs(
+        return self.engine.db.nodeBs(
             self.character.name,
             self.name,
             *self.engine.time
@@ -60,7 +60,7 @@ class ThingPlace(Node, StatSet):
 
     def _portal_origs(self):
         """Iterate over names of nodes you can get here from"""
-        yield from self.engine.db.nodeAs(
+        return self.engine.db.nodeAs(
             self.character.name,
             self.name,
             *self.engine.time
@@ -68,7 +68,7 @@ class ThingPlace(Node, StatSet):
 
     def _user_names(self):
         """Iterate over names of characters that have me as an avatar"""
-        yield from self.engine.db.avatar_users(
+        return self.engine.db.avatar_users(
             self.character.name,
             self.name,
             *self.engine.time
