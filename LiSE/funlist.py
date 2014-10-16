@@ -7,7 +7,7 @@ from json import loads as unjsonned
 
 
 class FunList(MutableSequence):
-    """Persistent list of functions associated with a rule.
+    """Persistent list of functions.
 
     Stored as JSON lists of strings in the world database. Said
     strings identify functions in the code database.
@@ -63,8 +63,7 @@ class FunList(MutableSequence):
             self.funcstore[funn] = v
         return funn
 
-    def _setlist(self, l):
-        """Update the rule's record with this new list of strings."""
+    def _send_list(self, l):
         self.engine.db.connection.cursor().execute(
             "UPDATE {table} SET {field}=? WHERE {presets};".format(
                 table=self.table,
@@ -73,11 +72,14 @@ class FunList(MutableSequence):
             ), (jsonned(l),) + self.preset_values
         )
 
-    def _getlist(self):
-        """Return the list, decoded from JSON, but not yet translated to
-        actual functions, just their names.
+    def _setlist(self, l):
+        """Update the rule's record with this new list of strings."""
+        self._send_list(l)
+        if not self.engine.caching:
+            return
+        self._cache = l
 
-        """
+    def _fetch_list(self):
         return unjsonned(
             self.engine.db.connection.cursor().execute(
                 "SELECT {field} FROM {table} WHERE {presets};".format(
@@ -88,6 +90,17 @@ class FunList(MutableSequence):
                 self.preset_values
             ).fetchone()[0]
         )
+
+    def _getlist(self):
+        """Return the list, decoded from JSON, but not yet translated to
+        actual functions, just their names.
+
+        """
+        if not self.engine.caching:
+            return self._fetch_list()
+        if not hasattr(self, '_cache'):
+            self._cache = self._fetch_list()
+        return self._cache
 
     def __iter__(self):
         """Yield a function from the code database for each item in the
