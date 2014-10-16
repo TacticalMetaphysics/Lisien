@@ -1351,6 +1351,10 @@ class Character(DiGraph, RuleFollower, StatSet):
         """Take a series of place names and add the lot."""
         super().add_nodes_from(seq)
 
+    def new_place(self, name, **kwargs):
+        self.add_place(name, **kwargs)
+        return self.place[name]
+
     def add_thing(self, name, location, next_location=None, **kwargs):
         """Create a Thing, set its location and next_location (if provided),
         and set its initial attributes from the keyword arguments (if
@@ -1367,6 +1371,10 @@ class Character(DiGraph, RuleFollower, StatSet):
             next_loc = tup[2] if len(tup) > 2 else None
             kwargs = tup[3] if len(tup) > 3 else {}
             self.add_thing(name, location, next_loc, **kwargs)
+
+    def new_thing(self, name, location, next_location=None, **kwargs):
+        self.add_thing(name, location, next_location, **kwargs)
+        return self.thing[name]
 
     def place2thing(self, name, location, next_location=None):
         """Turn a Place into a Thing with the given location and (if provided)
