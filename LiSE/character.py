@@ -20,6 +20,7 @@ from gorm.graph import (
 )
 from .util import (
     CompositeDict,
+    StatSet,
     keycache_iter
 )
 from .rule import RuleBook

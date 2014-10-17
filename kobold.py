@@ -79,7 +79,7 @@ def inittest(
         shrub_places = list(character.stat['shrub_places'])
         if avatar['location'] in shrub_places:
             shrub_places.remove(avatar['location'])
-        assert(shrub_places != character.stat['shrub_places'])
+            assert(shrub_places != character.stat['shrub_places'])
         avatar.travel_to(engine.choice(shrub_places))
 
     @shrubsprint.trigger
