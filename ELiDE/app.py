@@ -32,6 +32,8 @@ Factory.register('Board', cls=Board)
 
 class Dummy(ImageStack):
     _touch = ObjectProperty(None, allownone=True)
+    board = ObjectProperty()
+    name = StringProperty()
     x_down = NumericProperty()
     y_down = NumericProperty()
     pos_down = ReferenceListProperty(x_down, y_down)
@@ -75,14 +77,50 @@ class Dummy(ImageStack):
         return True
 
 
+class SpotDummy(Dummy):
+    def on_pos_up(self, *args):
+        (x, y) = self.board.parent.to_local(*self.pos_up)
+        self.board.spotlayout.add_widget(
+            self.board._make_spot(
+                self.board.character.new_place(
+                    self.name,
+                    _x=x,
+                    _y=y,
+                    _image_paths=self.paths
+                )
+            )
+        )
+
+
+class PawnDummy(Dummy):
+    def on_pos_up(self, *args):
+        (x, y) = self.board.parent.to_local(*self.center_up)
+        for spot in self.board.spot.values():
+            if spot.collide_point(x, y):
+                whereat = spot
+                break
+        else:
+            return
+        whereat.add_widget(
+            self.board._make_pawn(
+                self.board.character.new_thing(
+                    self.name,
+                    whereat.place.name,
+                    _image_paths=self.paths
+                )
+            )
+        )
+
+
 class ELiDELayout(FloatLayout):
     """A master layout that contains one board and some menus
     and charsheets.
 
-    This contains three elements: a board, a menu, and a character
-    sheet. This class has some support methods for handling
-    interactions with the menu and the character sheet, but if neither
-    of those happen, the board handles touches on its own.
+    This contains three elements: a scrollview (containing the board),
+    a menu, and the time control panel. This class has some support methods
+    for handling interactions with the menu and the character sheet,
+    but if neither of those happen, the scrollview handles touches on its
+    own.
 
     """
     app = ObjectProperty()
