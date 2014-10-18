@@ -115,7 +115,33 @@ handled_rule_fmt = (
     "(character, rulebook, rule, branch, tick) "
     "VALUES (?, ?, ?, ?, ?);"
 )
-active_rules_fmt = (
+active_rules_rulebook = (
+    "SELECT active_rules.rule, active_rules.active "
+    "FROM active_rules JOIN "
+    "(SELECT rulebook, rule, branch, MAX(tick) AS tick "
+    "FROM active_rules WHERE "
+    "rulebook=? AND "
+    "branch=? AND "
+    "tick<=? GROUP BY rulebook, rule, branch) AS hitick "
+    "ON active_rules.rulebook=hitick.rulebook "
+    "AND active_rules.rule=hitick.rule "
+    "AND active_rules.branch=hitick.branch "
+    "AND active_rules.tick=hitick.tick;"
+)
+active_rule_rulebook = (
+    "SELECT active_rules.active FROM active_rules JOIN "
+    "(SELECT rulebook, rule, branch, MAX(tick) AS tick "
+    "FROM active_rules WHERE "
+    "rulebook=? AND "
+    "rule=? AND "
+    "branch=? AND "
+    "tick<=? GROUP BY rulebook, rule, branch) AS hitick "
+    "ON active_rules.rulebook=hitick.rulebook "
+    "AND active_rules.rule=hitick.rule "
+    "AND active_rules.branch=hitick.branch "
+    "AND active_rules.tick=hitick.tick;"
+)
+active_rules_char_fmt = (
     "SELECT active_rules.rule, active_rules.active "
     "FROM active_rules JOIN "
     "(SELECT rulebook, rule, branch, MAX(tick) AS tick "
@@ -128,7 +154,7 @@ active_rules_fmt = (
     "AND active_rules.branch=hitick.branch "
     "AND active_rules.tick=hitick.tick;"
 )
-active_rule_fmt = (
+active_rule_char_fmt = (
     "SELECT active_rules.active FROM active_rules JOIN ("
     "SELECT rulebook, rule, branch, MAX(tick) AS tick "
     "FROM {tbl} WHERE "
@@ -170,10 +196,10 @@ node_is_thing = (
     "AND things.branch=hitick.branch "
     "AND things.tick=hitick.tick;"
 )
-rulebook_get_fmt = (
+rulebook_get_char_fmt = (
     "SELECT {rulemap}_rulebook FROM characters WHERE character=?;"
 )
-upd_rulebook_fmt = (
+upd_rulebook_char_fmt = (
     "UPDATE characters SET {rulemap}_ruleboook=? WHERE character=?"
 )
 avatar_users = (

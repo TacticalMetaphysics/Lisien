@@ -31,20 +31,9 @@ class Rule(object):
         if not self.engine.db.haverule(name):
             self.engine.db.ruleins(name)
 
-        def funl(store, field):
-            """Create a list of functions stored in ``store`` listed in field ``field``
-
-            That's a field in the world database, not the function store one.
-
-            """
-            return FunList(
-                self.engine,
-                store,
-                'rules',
-                ['rule'],
-                [self.name],
-                field
-            )
+        funl = lambda store, field: FunList(
+            self.engine, store, 'rules', ['rule'], [self.name], field
+        )
         self.actions = funl(self.engine.action, 'actions')
         self.prereqs = funl(self.engine.prereq, 'prereqs')
         self.triggers = funl(self.engine.trigger, 'triggers')
@@ -56,38 +45,20 @@ class Rule(object):
             self.actions.extend(actions)
 
     def __call__(self, engine, *args):
-        """First check the prereqs. If they all pass, execute the actions and
-        return a list of all their results.
+        """If at least one trigger fires, check the prereqs. If all the
+        prereqs pass, perform the actions.
 
-        After each call to a prereq or action, the sim-time is reset
-        to what it was before the rule was called.
+        After each call to a trigger, prereq, or action, the sim-time
+        is reset to what it was before the rule was called.
 
         """
-        curtime = engine.time
-        triggered = False
-        allowed = True
-        for trigger in self.triggers:
-            if trigger(engine, *args):
-                triggered = True
-            engine.time = curtime
-            if triggered:
-                break
-        if not triggered:
+        if not self.check_triggers(engine, *args):
             return []
-        for prereq in self.prereqs:
-            # in case one of them moves the time
-            if not prereq(engine, *args):
-                allowed = False
-            engine.time = curtime
-            if not allowed:
-                break
-        if not allowed:
-            return []  # maybe return something more informative here?
-        r = []
-        for action in self.actions:
-            r.append(action(engine, *args))
-            engine.time = curtime
-        return r
+        if not self.check_prereqs(engine, *args):
+            return []
+            # maybe a result object that informs you as to why I
+            # didn't run?
+        return self.run_actions(engine, *args)
 
     def trigger(self, fun):
         """Decorator to append the function to my triggers list."""
@@ -121,6 +92,43 @@ class Rule(object):
         def truth(*args):
             return True
         self.triggers = [truth]
+
+    def check_triggers(self, engine, *args):
+        """Run each trigger in turn. If one returns True, return True
+        myself. If none do, return False.
+
+        """
+        curtime = engine.time
+        for trigger in self.triggers:
+            result = trigger(engine, *args)
+            engine.time = curtime
+            if result:
+                return True
+        return False
+
+    def check_prereqs(self, engine, *args):
+        """Run each prereq in turn. If all return True, return True myself. If
+        one doesn't, return False.
+
+        """
+        curtime = engine.time
+        for prereq in self.prereqs:
+            result = prereq(engine, *args)
+            engine.time = curtime
+            if not result:
+                return False
+        return True
+
+    def run_actions(self, engine, *args):
+        """Run all my actions and return a list of their results.
+
+        """
+        curtime = engine.time
+        r = []
+        for action in self.actions:
+            r.append(action(engine, *args))
+            engine.time = curtime
+        return r
 
 
 class RuleBook(MutableSequence):
@@ -160,12 +168,10 @@ class RuleBook(MutableSequence):
         self.engine.db.rulebook_del(self.name, i)
 
 
-class CharRuleMapping(MutableMapping):
-    def __init__(self, character, rulebook, booktyp):
-        self.character = character
+class RuleMapping(MutableMapping):
+    def __init__(self, engine, rulebook):
+        self.engine = engine
         self.rulebook = rulebook
-        self.engine = rulebook.engine
-        self._table = booktyp + "_rules"
 
     def _activate_rule(self, rule):
         (branch, tick) = self.engine.time
@@ -180,39 +186,30 @@ class CharRuleMapping(MutableMapping):
         )
 
     def __iter__(self):
-        yield from self.engine.db.active_rules(
-            self._table,
-            self.character.name,
+        return self.engine.db.active_rules_rulebook(
             self.rulebook.name,
             *self.engine.time
         )
 
     def __len__(self):
-        """Count the rules presently in effect"""
         n = 0
         for rule in self:
             n += 1
         return n
 
     def __contains__(self, k):
-        return self.engine.db.active_rule(
-            self._table,
-            self.character.name,
+        return self.engine.db.active_rule_rulebook(
             self.rulebook.name,
             k,
             *self.engine.time
         )
 
     def __getitem__(self, k):
-        """Get the rule by the given name, if it is in effect"""
         if k not in self:
-            raise KeyError(
-                "Rule is not active at the moment, if it ever was."
-            )
+            raise KeyError("Rule is not in effect")
         return Rule(self.engine, k)
 
     def __getattr__(self, k):
-        """Alias for ``__getitem__`` for the convenience of decorators."""
         try:
             return self[k]
         except KeyError:
@@ -221,16 +218,17 @@ class CharRuleMapping(MutableMapping):
     def __setitem__(self, k, v):
         if isinstance(v, Rule):
             if v.name != k:
-                raise KeyError("That rule doesn't go by that name")
+                raise ValueError("That rule doesn't go by that name")
             self._activate_rule(v)
         elif isinstance(v, Callable):
-            # create a new rule, named k, performing action v
+            # create a new rule, named k, performing ation v
             if k in self.engine.rule:
                 raise KeyError(
                     "Already have a rule named {k}. "
-                    "Set engine.rule[{k}] to a new value "
+                    "Set {engine}.rule[{k}] to a new value "
                     "if you really mean to replace "
                     "the old rule.".format(
+                        engine=self.engine.__name__,
                         k=k
                     )
                 )
@@ -253,7 +251,7 @@ class CharRuleMapping(MutableMapping):
 
     def __call__(self, v, name=None):
         name = name if name is not None else v.__name__
-        self.__setitem__(name, v)
+        self[name] = v
         return self[name]
 
     def __delitem__(self, k):
@@ -265,6 +263,31 @@ class CharRuleMapping(MutableMapping):
             branch,
             tick,
             False
+        )
+
+
+class CharRuleMapping(RuleMapping):
+    def __init__(self, character, rulebook, booktyp):
+        self.character = character
+        self.rulebook = rulebook
+        self.engine = rulebook.engine
+        self._table = booktyp + "_rules"
+
+    def __iter__(self):
+        return self.engine.db.active_rules_char(
+            self._table,
+            self.character.name,
+            self.rulebook.name,
+            *self.engine.time
+        )
+
+    def __contains__(self, k):
+        return self.engine.db.active_rule_char(
+            self._table,
+            self.character.name,
+            self.rulebook.name,
+            k,
+            *self.engine.time
         )
 
 

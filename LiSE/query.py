@@ -146,22 +146,46 @@ class QueryEngine(gorm.query.QueryEngine):
         ):
             self.sql('char_del_fmt', name, tbl=tbl)
 
-    def active_rules(self, tbl, character, rulebook, branch, tick):
-        character = json_dump(character)
+    def active_rules_rulebook(self, rulebook, branch, tick):
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (rule, active) in self.sql(
-                    'active_rules_fmt', character, rulebook, b, t, tbl=tbl
+                    'active_rules_rulebook', rulebook, branch, tick
             ):
                 if active and rule not in seen:
                     yield rule
                 seen.add(rule)
 
-    def active_rule(self, tbl, character, rulebook, rule, branch, tick):
+    def active_rule_rulebook(self, rulebook, rule, branch, tick):
+        for (b, t) in self.active_branches(branch, tick):
+            for (active,) in self.sql(
+                    'active_rule_rulebook', rulebook, rule, branch, tick
+            ):
+                return bool(active)
+        return False
+
+    def active_rules_char(self, tbl, character, rulebook, branch, tick):
+        character = json_dump(character)
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (rule, active) in self.sql(
+                    'active_rules_char_fmt', character, rulebook, b, t, tbl=tbl
+            ):
+                if active and rule not in seen:
+                    yield rule
+                seen.add(rule)
+
+    def active_rule_char(self, tbl, character, rulebook, rule, branch, tick):
         character = json_dump(character)
         for (b, t) in self.active_branches(branch, tick):
             for (active,) in self.sql(
-                    'active_rule_fmt', character, rulebook, rule, b, t, tbl=tbl
+                    'active_rule_char_fmt',
+                    character,
+                    rulebook,
+                    rule,
+                    b,
+                    t,
+                    tbl=tbl
             ):
                 return bool(active)
         return False
@@ -211,221 +235,16 @@ class QueryEngine(gorm.query.QueryEngine):
                 return bool(loc)
         return False
 
-    def initdb(self):
-        """Set up the database schema, both for gorm and the special
-        extensions for LiSE
-
-        """
-        super().initdb()
-        cursor = self.connection.cursor()
-        try:
-            cursor.execute('SELECT * FROM lise_globals;')
-        except OperationalError:
-            cursor.execute(
-                "CREATE TABLE lise_globals ("
-                "key TEXT NOT NULL, "
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "value TEXT, "
-                "PRIMARY KEY(key, branch, tick))"
-                ";"
-            )
-        try:
-            cursor.execute('SELECT * FROM rules;')
-        except OperationalError:
-            cursor.execute(
-                "CREATE TABLE rules ("
-                "rule TEXT NOT NULL PRIMARY KEY, "
-                "actions TEXT NOT NULL DEFAULT '[]', "
-                "prereqs TEXT NOT NULL DEFAULT '[]', "
-                "triggers TEXT NOT NULL DEFAULT '[]')"
-                ";"
-            )
-        try:
-            cursor.execute('SELECT * FROM rulebooks;')
-        except OperationalError:
-            cursor.execute(
-                "CREATE TABLE rulebooks ("
-                "rulebook TEXT NOT NULL, "
-                "idx INTEGER NOT NULL, "
-                "rule TEXT NOT NULL, "
-                "PRIMARY KEY(rulebook, idx), "
-                "FOREIGN KEY(rule) REFERENCES rules(rule))"
-                ";"
-            )
-        try:
-            cursor.execute('SELECT * FROM active_rules;')
-        except OperationalError:
-            cursor.execute(
-                "CREATE TABLE active_rules ("
-                "rulebook TEXT NOT NULL, "
-                "rule TEXT NOT NULL, "
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "active BOOLEAN NOT NULL DEFAULT 1, "
-                "PRIMARY KEY(rulebook, rule, branch, tick), "
-                "FOREIGN KEY(rulebook, rule) REFERENCES rulebooks(rulebook, rule))"
-                ";"
-            )
-            cursor.execute(
-                "CREATE INDEX active_rules_idx ON active_rules(rulebook, rule)"
-                ";"
-            )
-        try:
-            cursor.execute('SELECT * FROM characters;')
-        except OperationalError:
-            cursor.execute(
-                "CREATE TABLE characters ("
-                "character TEXT NOT NULL PRIMARY KEY, "
-                "character_rulebook TEXT NOT NULL, "
-                "avatar_rulebook TEXT NOT NULL, "
-                "thing_rulebook TEXT NOT NULL, "
-                "place_rulebook TEXT NOT NULL, "
-                "portal_rulebook TEXT NOT NULL, "
-                "FOREIGN KEY(character) REFERENCES graphs(graph))"
-                ";"
-            )
-        try:
-            cursor.execute('SELECT * FROM senses;')
-        except OperationalError:
-            cursor.execute(
-                "CREATE TABLE senses ("
-                "character TEXT, "
-                # null means every character has this sense
-                "sense TEXT NOT NULL, "
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "function TEXT NOT NULL, "
-                "active BOOLEAN NOT NULL DEFAULT 1, "
-                "PRIMARY KEY(character, sense, branch, tick),"
-                "FOREIGN KEY(character) REFERENCES graphs(graph))"
-                ";"
-            )
-            cursor.execute(
-                "CREATE INDEX senses_idx ON senses(character, sense)"
-                ";"
-            )
-        try:
-            cursor.execute('SELECT * FROM travel_reqs;')
-        except OperationalError:
-            cursor.execute(
-                "CREATE TABLE travel_reqs ("
-                "character TEXT NOT NULL DEFAULT '', "
-                # empty string means these are required of every character
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "reqs TEXT NOT NULL DEFAULT '[]', "
-                "PRIMARY KEY(character, branch, tick), "
-                "FOREIGN KEY(character) REFERENCES graphs(graph))"
-                ";"
-            )
-            cursor.execute(
-                "CREATE INDEX travel_reqs_idx ON travel_reqs(character)"
-                ";"
-            )
-        try:
-            cursor.execute('SELECT * FROM things;')
-        except OperationalError:
-            cursor.execute(
-                "CREATE TABLE things ("
-                "character TEXT NOT NULL, "
-                "thing TEXT NOT NULL, "
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "location TEXT, "  # when null, I'm not a thing; treat
-                # me like any other node
-                "next_location TEXT, "  # when set, indicates that I'm
-                # en route between location and
-                # next_location
-                "PRIMARY KEY(character, thing, branch, tick), "
-                "FOREIGN KEY(character, thing) REFERENCES nodes(graph, node), "
-                "FOREIGN KEY(character, location) REFERENCES nodes(graph, node))"
-                ";"
-            )
-            cursor.execute(
-                "CREATE INDEX things_idx ON things(character, thing)"
-                ";"
-            )
-        try:
-            cursor.execute('SELECT * FROM avatars;')
-        except OperationalError:
-            cursor.execute(
-                "CREATE TABLE avatars ("
-                "character_graph TEXT NOT NULL, "
-                "avatar_graph TEXT NOT NULL, "
-                "avatar_node TEXT NOT NULL, "
-                "branch TEXT NOT NULL DEFAULT 'master', "
-                "tick INTEGER NOT NULL DEFAULT 0, "
-                "is_avatar BOOLEAN NOT NULL, "
-                "PRIMARY KEY("
-                "character_graph, "
-                "avatar_graph, "
-                "avatar_node, "
-                "branch, "
-                "tick"
-                "), "
-                "FOREIGN KEY(character_graph) REFERENCES graphs(graph), "
-                "FOREIGN KEY(avatar_graph, avatar_node) "
-                "REFERENCES nodes(graph, node))"
-                ";"
-            )
-            cursor.execute(
-                "CREATE INDEX avatars_idx ON avatars("
-                "character_graph, "
-                "avatar_graph, "
-                "avatar_node)"
-                ";"
-            )
-        handled = (
-            "CREATE TABLE {table}_rules_handled ("
-            "character TEXT NOT NULL, "
-            "rulebook TEXT NOT NULL, "
-            "rule TEXT NOT NULL, "
-            "branch TEXT NOT NULL DEFAULT 'master', "
-            "tick INTEGER NOT NULL DEFAULT 0, "
-            "PRIMARY KEY(character, rulebook, rule, branch, tick), "
-            "FOREIGN KEY(character, rulebook) "
-            "REFERENCES characters(character, {table}_rulebook))"
-            ";"
-        )
-        handled_idx = (
-            "CREATE INDEX {table}_rules_handled_idx ON "
-            "{table}_rules_handled(character, rulebook, rule)"
-            ";"
-        )
-        rulesview = (
-            "CREATE VIEW {table}_rules AS "
-            "SELECT character, rulebook, rule, branch, tick, active "
-            "FROM active_rules JOIN characters ON "
-            "active_rules.rulebook=characters.{table}_rulebook"
-            ";"
-        )
-        for tabn in ("character", "avatar", "thing", "place", "portal"):
-            try:
-                cursor.execute(
-                    'SELECT * FROM {tab}_rules_handled;'.format(tab=tabn)
-                )
-            except OperationalError:
-                cursor.execute(
-                    handled.format(table=tabn)
-                )
-                cursor.execute(
-                    handled_idx.format(table=tabn)
-                )
-                cursor.execute(
-                    rulesview.format(table=tabn)
-                )
-
-    def get_rulebook(self, rulemap, character):
+    def get_rulebook_char(self, rulemap, character):
         character = json_dump(character)
         for (book,) in self.sql(
-                'rulebook_get_fmt', character, rulemap=rulemap
+                'rulebook_get_char_fmt', character, rulemap=rulemap
         ):
             return book
         raise KeyError("No rulebook")
 
-    def upd_rulebook(self, rulemap, character):
-        return self.sql('upd_rulebook_fmt', character, rulemap=rulemap)
+    def upd_rulebook_char(self, rulemap, character):
+        return self.sql('upd_rulebook_char_fmt', character, rulemap=rulemap)
 
     def avatar_users(self, graph, node, branch, tick):
         (graph, node) = map(json_dump, (graph, node))
@@ -740,3 +559,222 @@ class QueryEngine(gorm.query.QueryEngine):
                 'thing_locs_data', character, thing, branch
         ):
             yield (tick, json_load(loc), json_load(nextloc))
+
+    def initdb(self):
+        """Set up the database schema, both for gorm and the special
+        extensions for LiSE
+
+        """
+        super().initdb()
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute('SELECT * FROM lise_globals;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE lise_globals ("
+                "key TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "value TEXT, "
+                "PRIMARY KEY(key, branch, tick))"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM rules;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE rules ("
+                "rule TEXT NOT NULL PRIMARY KEY, "
+                "actions TEXT NOT NULL DEFAULT '[]', "
+                "prereqs TEXT NOT NULL DEFAULT '[]', "
+                "triggers TEXT NOT NULL DEFAULT '[]')"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM rulebooks;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE rulebooks ("
+                "rulebook TEXT NOT NULL, "
+                "idx INTEGER NOT NULL, "
+                "rule TEXT NOT NULL, "
+                "PRIMARY KEY(rulebook, idx), "
+                "FOREIGN KEY(rule) REFERENCES rules(rule))"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM active_rules;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE active_rules ("
+                "rulebook TEXT NOT NULL, "
+                "rule TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "active BOOLEAN NOT NULL DEFAULT 1, "
+                "PRIMARY KEY(rulebook, rule, branch, tick), "
+                "FOREIGN KEY(rulebook, rule) "
+                "REFERENCES rulebooks(rulebook, rule))"
+                ";"
+            )
+            cursor.execute(
+                "CREATE INDEX active_rules_idx ON active_rules(rulebook, rule)"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM characters;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE characters ("
+                "character TEXT NOT NULL PRIMARY KEY, "
+                "character_rulebook TEXT NOT NULL, "
+                "avatar_rulebook TEXT NOT NULL, "
+                "thing_rulebook TEXT NOT NULL, "
+                "place_rulebook TEXT NOT NULL, "
+                "portal_rulebook TEXT NOT NULL, "
+                "FOREIGN KEY(character) REFERENCES graphs(graph))"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM senses;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE senses ("
+                "character TEXT, "
+                # null means every character has this sense
+                "sense TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "function TEXT NOT NULL, "
+                "active BOOLEAN NOT NULL DEFAULT 1, "
+                "PRIMARY KEY(character, sense, branch, tick),"
+                "FOREIGN KEY(character) REFERENCES graphs(graph))"
+                ";"
+            )
+            cursor.execute(
+                "CREATE INDEX senses_idx ON senses(character, sense)"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM travel_reqs;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE travel_reqs ("
+                "character TEXT NOT NULL DEFAULT '', "
+                # empty string means these are required of every character
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "reqs TEXT NOT NULL DEFAULT '[]', "
+                "PRIMARY KEY(character, branch, tick), "
+                "FOREIGN KEY(character) REFERENCES graphs(graph))"
+                ";"
+            )
+            cursor.execute(
+                "CREATE INDEX travel_reqs_idx ON travel_reqs(character)"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM things;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE things ("
+                "character TEXT NOT NULL, "
+                "thing TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "location TEXT, "  # when null, I'm not a thing; treat
+                # me like any other node
+                "next_location TEXT, "  # when set, indicates that I'm
+                # en route between location and
+                # next_location
+                "PRIMARY KEY(character, thing, branch, tick), "
+                "FOREIGN KEY(character, thing) REFERENCES nodes(graph, node), "
+                "FOREIGN KEY(character, location) "
+                "REFERENCES nodes(graph, node))"
+                ";"
+            )
+            cursor.execute(
+                "CREATE INDEX things_idx ON things(character, thing)"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM node_rulebook;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE node_rulebook ("
+                "character TEXT NOT NULL, "
+                "node TEXT NOT NULL, "
+                "rulebook TEXT NOT NULL, "
+                "PRIMARY KEY(character, node), "
+                "FOREIGN KEY(character, node) REFERENCES nodes(graph, node))"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM avatars;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE avatars ("
+                "character_graph TEXT NOT NULL, "
+                "avatar_graph TEXT NOT NULL, "
+                "avatar_node TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "is_avatar BOOLEAN NOT NULL, "
+                "PRIMARY KEY("
+                "character_graph, "
+                "avatar_graph, "
+                "avatar_node, "
+                "branch, "
+                "tick"
+                "), "
+                "FOREIGN KEY(character_graph) REFERENCES graphs(graph), "
+                "FOREIGN KEY(avatar_graph, avatar_node) "
+                "REFERENCES nodes(graph, node))"
+                ";"
+            )
+            cursor.execute(
+                "CREATE INDEX avatars_idx ON avatars("
+                "character_graph, "
+                "avatar_graph, "
+                "avatar_node)"
+                ";"
+            )
+        handled = (
+            "CREATE TABLE {table}_rules_handled ("
+            "character TEXT NOT NULL, "
+            "rulebook TEXT NOT NULL, "
+            "rule TEXT NOT NULL, "
+            "branch TEXT NOT NULL DEFAULT 'master', "
+            "tick INTEGER NOT NULL DEFAULT 0, "
+            "PRIMARY KEY(character, rulebook, rule, branch, tick), "
+            "FOREIGN KEY(character, rulebook) "
+            "REFERENCES characters(character, {table}_rulebook))"
+            ";"
+        )
+        handled_idx = (
+            "CREATE INDEX {table}_rules_handled_idx ON "
+            "{table}_rules_handled(character, rulebook, rule)"
+            ";"
+        )
+        rulesview = (
+            "CREATE VIEW {table}_rules AS "
+            "SELECT character, rulebook, rule, branch, tick, active "
+            "FROM active_rules JOIN characters ON "
+            "active_rules.rulebook=characters.{table}_rulebook"
+            ";"
+        )
+        for tabn in ("character", "avatar", "thing", "place", "portal"):
+            try:
+                cursor.execute(
+                    'SELECT * FROM {tab}_rules_handled;'.format(tab=tabn)
+                )
+            except OperationalError:
+                cursor.execute(
+                    handled.format(table=tabn)
+                )
+                cursor.execute(
+                    handled_idx.format(table=tabn)
+                )
+                cursor.execute(
+                    rulesview.format(table=tabn)
+                )

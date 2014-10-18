@@ -10,15 +10,40 @@ from .util import (
     cache_del,
     path_len
 )
+from .rule import RuleBook, RuleMapping
 
 
 class ThingPlace(Node, StatSet):
     """Superclass for both Thing and Place"""
+    @property
+    def rulebook(self):
+        return RuleBook(
+            self.engine,
+            self._rulebook_name
+        )
+        if not hasattr(self, '_rulebook'):
+            self._rulebook = RuleBook(
+                self.engine,
+                self._rulebook_name
+            )
+        return self._rulebook
+
+    @rulebook.setter
+    def rulebook(self, v):
+        if not isinstance(v, str) or isinstance(v, RuleBook):
+            raise TypeError("Use a :class:`RuleBook` or the name of one")
+        self._rulebook_name = v.name if isinstance(v, RuleBook) else v
+
+    @property
+    def rule(self):
+        return RuleMapping(self.engine, self.rulebook)
+
     def __init__(self, character, name):
         """Store character and name, and maybe initialize a couple caches"""
         self.character = character
         self.engine = character.engine
         self.name = name
+        self._rulebook_name = str(name) + "_rulebook"
         if self.engine.caching:
             self._keycache = {}
             self._statcache = {}
@@ -27,7 +52,7 @@ class ThingPlace(Node, StatSet):
 
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""
-        yield from self.engine.db.nodeBs(
+        return self.engine.db.nodeBs(
             self.character.name,
             self.name,
             *self.engine.time
@@ -35,7 +60,7 @@ class ThingPlace(Node, StatSet):
 
     def _portal_origs(self):
         """Iterate over names of nodes you can get here from"""
-        yield from self.engine.db.nodeAs(
+        return self.engine.db.nodeAs(
             self.character.name,
             self.name,
             *self.engine.time
@@ -43,7 +68,7 @@ class ThingPlace(Node, StatSet):
 
     def _user_names(self):
         """Iterate over names of characters that have me as an avatar"""
-        yield from self.engine.db.avatar_users(
+        return self.engine.db.avatar_users(
             self.character.name,
             self.name,
             *self.engine.time
