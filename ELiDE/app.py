@@ -9,7 +9,8 @@ from kivy.properties import (
     BoundedNumericProperty,
     ObjectProperty,
     StringProperty,
-    DictProperty
+    DictProperty,
+    ReferenceListProperty
 )
 from kivy.resources import resource_add_path
 from kivy.uix.floatlayout import FloatLayout
@@ -21,11 +22,57 @@ from .board import Board
 
 import LiSE
 import ELiDE
+from ELiDE.texturestack import ImageStack
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
 
 
 Factory.register('Board', cls=Board)
+
+
+class Dummy(ImageStack):
+    _touch = ObjectProperty(None, allownone=True)
+    x_down = NumericProperty()
+    y_down = NumericProperty()
+    pos_down = ReferenceListProperty(x_down, y_down)
+    x_up = NumericProperty()
+    y_up = NumericProperty()
+    pos_up = ReferenceListProperty(x_up, y_up)
+    x_center_up = NumericProperty()
+    y_center_up = NumericProperty()
+    center_up = ReferenceListProperty(x_center_up, y_center_up)
+    right_up = NumericProperty()
+    top_up = NumericProperty()
+
+    def on_pos_up(self, *args):
+        self.x_center_up = self.x_up + self.width / 2
+        self.y_center_up = self.y_up + self.height / 2
+        self.right_up = self.x_up + self.width
+        self.top_up = self.y_up + self.height
+
+    def on_touch_down(self, touch):
+        if not self.collide_point(*touch.pos):
+            return False
+        self.pos_down = self.pos
+        self._touch = touch
+        return True
+
+    def on_touch_move(self, touch):
+        if touch is not self._touch:
+            return False
+        self.pos = (
+            self.x_down + touch.dx,
+            self.ydown + touch.dy
+        )
+        return True
+
+    def on_touch_up(self, touch):
+        if touch is not self._touch:
+            return False
+        self.pos_up = self.pos
+        self.pos = self.pos_down
+        self._touch = None
+        return True
 
 
 class ELiDELayout(FloatLayout):
