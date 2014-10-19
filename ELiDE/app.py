@@ -10,6 +10,7 @@ from kivy.properties import (
     ObjectProperty,
     StringProperty,
     DictProperty,
+    ListProperty,
     ReferenceListProperty
 )
 from kivy.resources import resource_add_path
@@ -34,6 +35,11 @@ class Dummy(ImageStack):
     _touch = ObjectProperty(None, allownone=True)
     board = ObjectProperty()
     name = StringProperty()
+    prefix = StringProperty()
+    num = NumericProperty()
+    x_start = NumericProperty()
+    y_start = NumericProperty()
+    pos_start = ReferenceListProperty(x_start, y_start)
     x_down = NumericProperty()
     y_down = NumericProperty()
     pos_down = ReferenceListProperty(x_down, y_down)
@@ -55,7 +61,12 @@ class Dummy(ImageStack):
     def on_touch_down(self, touch):
         if not self.collide_point(*touch.pos):
             return False
-        self.pos_down = self.pos
+        self.pos_start = self.pos
+        self.pos_down = (
+            self.x - touch.x,
+            self.y - touch.y
+        )
+        touch.grab(self)
         self._touch = touch
         return True
 
@@ -63,8 +74,8 @@ class Dummy(ImageStack):
         if touch is not self._touch:
             return False
         self.pos = (
-            self.x_down + touch.dx,
-            self.ydown + touch.dy
+            touch.x + self.x_down,
+            touch.y + self.y_down
         )
         return True
 
@@ -72,44 +83,9 @@ class Dummy(ImageStack):
         if touch is not self._touch:
             return False
         self.pos_up = self.pos
-        self.pos = self.pos_down
+        self.pos = self.pos_start
         self._touch = None
         return True
-
-
-class SpotDummy(Dummy):
-    def on_pos_up(self, *args):
-        (x, y) = self.board.parent.to_local(*self.pos_up)
-        self.board.spotlayout.add_widget(
-            self.board._make_spot(
-                self.board.character.new_place(
-                    self.name,
-                    _x=x,
-                    _y=y,
-                    _image_paths=self.paths
-                )
-            )
-        )
-
-
-class PawnDummy(Dummy):
-    def on_pos_up(self, *args):
-        (x, y) = self.board.parent.to_local(*self.center_up)
-        for spot in self.board.spot.values():
-            if spot.collide_point(x, y):
-                whereat = spot
-                break
-        else:
-            return
-        whereat.add_widget(
-            self.board._make_pawn(
-                self.board.character.new_thing(
-                    self.name,
-                    whereat.place.name,
-                    _image_paths=self.paths
-                )
-            )
-        )
 
 
 class ELiDELayout(FloatLayout):
@@ -126,6 +102,7 @@ class ELiDELayout(FloatLayout):
     app = ObjectProperty()
     """The App instance that is running and thus holds the globals I need."""
     board = ObjectProperty()
+    dummies = ListProperty()
     _touch = ObjectProperty(None, allownone=True)
     popover = ObjectProperty()
     """The modal view to use for the various menus that aren't visible by
@@ -142,6 +119,59 @@ class ELiDELayout(FloatLayout):
     branch = StringProperty()
     tick = NumericProperty()
     rules_per_frame = BoundedNumericProperty(10, min=1)
+
+    def on_dummies(self, *args):
+        if self.board is None or self.board.character is None:
+            Clock.schedule_once(self.on_dummies, 0)
+            return
+        for dummy in self.dummies:
+            if hasattr(dummy, '_numbered'):
+                continue
+            num = 0
+            for nodename in self.board.character.node:
+                nodename = str(nodename)
+                if not nodename.startswith(dummy.prefix):
+                    continue
+                try:
+                    nodenum = int(nodename.lstrip(dummy.prefix))
+                except ValueError:
+                    continue
+                num = max((nodenum, num))
+            dummy.num = num + 1
+            dummy._numbered = True
+
+    def spot_from_dummy(self, dummy):
+        (x, y) = self.ids.boardview.to_local(*dummy.pos_up)
+        x /= self.board.width
+        y /= self.board.height
+        self.board.spotlayout.add_widget(
+            self.board.make_spot(
+                self.board.character.new_place(
+                    dummy.name,
+                    _x=x,
+                    _y=y,
+                    _image_paths=dummy.paths
+                )
+            )
+        )
+
+    def pawn_from_dummy(self, dummy):
+        (x, y) = self.ids.boardview.to_local(*dummy.pos_up)
+        for spot in self.board.spotlayout.children:
+            if spot.collide_point(x, y):
+                whereat = spot
+                break
+        else:
+            return
+        whereat.add_widget(
+            self.board.make_pawn(
+                self.board.character.new_thing(
+                    dummy.name,
+                    whereat.place.name,
+                    _image_paths=dummy.paths
+                )
+            )
+        )
 
     def on_engine(self, *args):
         """Set my branch and tick to that of my engine, and bind them so that
@@ -393,5 +423,6 @@ class ELiDEApp(App):
 
     def stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
+        self.engine.commit()
         self.engine.close()
         super().stop(*largs)

@@ -306,6 +306,21 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
                 self._cache[place] = Place(self.character, place)
             pl = self._cache[place]
         (branch, tick) = self.engine.time
+        if branch not in self._keycache:
+            self._keycache[branch] = {}
+        if tick in self._keycache[branch]:
+            self._keycache[branch][tick].add(place)
+        else:
+            try:
+                self._keycache[branch][tick] = set(
+                    self._keycache[branch][max(
+                        t for t in self._keycache[branch]
+                        if t < tick
+                    )]
+                )
+                self._keycache[branch][tick].add(place)
+            except ValueError:
+                pass
         self.engine.db.exist_node(
             self.character.name,
             place,

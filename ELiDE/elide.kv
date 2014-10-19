@@ -10,9 +10,12 @@
 <Arrow>:
     engine: self.board.layout.app.engine
     selected: self.board.layout.selected is self
+<Dummy>:
+    name: "".join((self.prefix, str(self.num)))
 <ELiDELayout>:
     engine: self.app.engine
     board: board
+    dummies: [dummything, dummyplace]
     ScrollView:
         effect_cls: StiffScrollEffect
         id: boardview
@@ -101,10 +104,24 @@
             text: "Undo"
         Button:
             # Should have orb.png in it and if you drag that elsewhere it creates a new place there
-            id: placeadder
+            id: placeaddbut
+            Dummy:
+                id: dummyplace
+                board: board
+                center: placeaddbut.center
+                prefix: 'place'
+                paths: ['orb.png']
+                on_pos_up: root.spot_from_dummy(self)
         ToggleButton:
             # While this is active, dragging between two spots creates a portal
-            id: portaladder
+            id: portaladdbut
         Button:
             # Has the generic thing-graphic in it, drag it on top of a spot and you get a new thing
-            id: thingadder
+            id: thingaddbut
+            Dummy:
+                id: dummything
+                board: board
+                center: thingaddbut.center
+                prefix: 'thing'
+                paths: ['atlas://rltiles/base.atlas/unseen']
+                on_pos_up: root.pawn_from_dummy(self)
