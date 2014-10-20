@@ -72,7 +72,7 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
         endy = dy
         y1 = endy - off1
         y2 = endy + off1
-        x1 = x2 = endx + off2 if ox < dx else endx - off2
+        x1 = x2 = endx - off2 if ox < dx else endx + off2
         return [x0, y0, endx, endy, x1, y1, endx, endy, x2, y2, endx, endy]
 
     rise = topy - boty
