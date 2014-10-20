@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-w', '--world')
 parser.add_argument('-c', '--code')
 parser.add_argument('-l', '--language')
+parser.add_argument('-d', '--debug', action='store_true')
 parser.add_argument('maindotpy')
 
 
@@ -39,6 +40,9 @@ def lise():
     app = ELiDEApp(
         cli_args=cli_args
     )
+    if getattr(parsed, 'debug'):
+        import pdb
+        pdb.set_trace()
     app.run()
 
 if __name__ == '__main__':
