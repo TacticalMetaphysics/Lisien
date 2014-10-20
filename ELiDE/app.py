@@ -157,9 +157,9 @@ class ELiDELayout(FloatLayout):
         dummy.num += 1
 
     def pawn_from_dummy(self, dummy):
-        (x, y) = self.ids.boardview.to_local(*dummy.pos_up)
+        dummy.pos = self.ids.boardview.to_local(*dummy.pos)
         for spot in self.board.spotlayout.children:
-            if spot.collide_point(x, y):
+            if spot.collide_widget(dummy):
                 whereat = spot
                 break
         else:
