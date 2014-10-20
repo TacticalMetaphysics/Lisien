@@ -174,12 +174,6 @@ class ArrowWidget(Widget):
                 self.portal
         ):
             Clock.schedule_once(self.on_board, 0)
-            if self.board is None:
-                print("no board")
-            if self.engine is None:
-                print("no engine")
-            if self.portal is None:
-                print("no portal")
             return
         self._trigger_repoint()
 

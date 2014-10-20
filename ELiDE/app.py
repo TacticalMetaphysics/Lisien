@@ -33,7 +33,6 @@ Factory.register('Board', cls=Board)
 
 class Dummy(ImageStack):
     _touch = ObjectProperty(None, allownone=True)
-    board = ObjectProperty()
     name = StringProperty()
     prefix = StringProperty()
     num = NumericProperty()
