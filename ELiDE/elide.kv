@@ -8,19 +8,19 @@
     engine: self.board.layout.app.engine
     selected: self.board.layout.selected is self
 <ArrowWidget>:
-    engine: self.board.layout.app.engine
-    selected: self.board.layout.selected is self
+    engine: self.board.layout.app.engine if self.board and self.board.layout else None
+    selected: self.board.layout.selected is self if self.board and self.board.layout else False
     canvas:
         Color:
             id: bg_color
-            rgba: root.board.arrow_bg
+            rgba: root.board.arrow_bg if root.board else [0,0,0,0]
         Line:
             id: bg_line
             width: root.w * 1.4
             points: root.points
         Color:
             id: fg_color
-            rgba: root.board.arrow_fg
+            rgba: root.board.arrow_fg if root.board else [0,0,0,0]
         Line:
             id: fg_line
             width: root.w
@@ -132,6 +132,18 @@
         ToggleButton:
             # While this is active, dragging between two spots creates a portal
             id: portaladdbut
+            ArrowWidget:
+                board: board
+                origin: emptyleft
+                destination: emptyright
+                Widget:
+                    id: emptyleft
+                    center_x: portaladdbut.x + portaladdbut.width / 3
+                    center_y: portaladdbut.center_y
+                Widget:
+                    id: emptyright
+                    center_x: portaladdbut.right - portaladdbut.width / 3
+                    center_y: portaladdbut.center_y
         Button:
             # Has the generic thing-graphic in it, drag it on top of a spot and you get a new thing
             id: thingaddbut
