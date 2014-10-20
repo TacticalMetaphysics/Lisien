@@ -154,6 +154,7 @@ class ELiDELayout(FloatLayout):
                 )
             )
         )
+        dummy.num += 1
 
     def pawn_from_dummy(self, dummy):
         (x, y) = self.ids.boardview.to_local(*dummy.pos_up)
@@ -172,6 +173,8 @@ class ELiDELayout(FloatLayout):
                 )
             )
         )
+        self.board.pawn[dummy.name]._trigger_update()
+        dummy.num += 1
 
     def on_engine(self, *args):
         """Set my branch and tick to that of my engine, and bind them so that
