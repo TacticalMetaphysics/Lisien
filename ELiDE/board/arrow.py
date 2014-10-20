@@ -137,10 +137,8 @@ class ArrowWidget(Widget):
     repointed = BooleanProperty(True)
 
     def __init__(self, **kwargs):
-        """Bind some properties, and put the relevant instructions into the
-        canvas--but don't put any point data into the instructions
-        just yet. For that, wait until ``on_parent``, when we are
-        guaranteed to know the positions of our endpoints.
+        """Create trigger for my _repoint method, otherwise delegate to parent
+        class
 
         """
         self._trigger_repoint = Clock.create_trigger(
