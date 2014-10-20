@@ -107,6 +107,7 @@ class Spot(ImageStack):
                 pawncanvas.remove(child.group)
             pawncanvas.add(child.group)
         self.pospawn(wid)
+        wid._trigger_update()
 
     def pospawn(self, pawn):
         i = 0

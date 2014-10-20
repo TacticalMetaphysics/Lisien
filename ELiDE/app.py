@@ -173,7 +173,6 @@ class ELiDELayout(FloatLayout):
                 )
             )
         )
-        self.board.pawn[dummy.name]._trigger_update()
         dummy.num += 1
 
     def on_engine(self, *args):
