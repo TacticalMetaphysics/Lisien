@@ -8,9 +8,9 @@ screen they are at the moment.
 
 """
 from math import cos, sin, hypot, atan, pi
-from kivy.graphics import Line, Color
 from kivy.uix.widget import Widget
 from kivy.properties import (
+    AliasProperty,
     ObjectProperty,
     NumericProperty,
     ListProperty,
@@ -108,7 +108,7 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
     return [startx, starty, endx, endy, x1, y1, endx, endy, x2, y2, endx, endy]
 
 
-class Arrow(Widget):
+class ArrowWidget(Widget):
     """A widget that points from one :class:`~LiSE.gui.board.Spot` to
     another.
 
@@ -118,38 +118,23 @@ class Arrow(Widget):
     its destination.
 
     """
-    margin = 10
+    margin = NumericProperty(10)
     """When deciding whether a touch collides with me, how far away can
     the touch get before I should consider it a miss?"""
-    w = 1
+    w = NumericProperty(1)
     """The width of the inner, brighter portion of the :class:`Arrow`. The
     whole :class:`Arrow` will end up thicker."""
     board = ObjectProperty()
     """The board on which I am displayed."""
-    portal = ObjectProperty()
-    """The portal that I represent."""
     pawns_here = ListProperty([])
     points = ListProperty([])
     slope = NumericProperty(0.0, allownone=True)
     y_intercept = NumericProperty(0)
     origin = ObjectProperty()
     destination = ObjectProperty()
-    reciprocal = ObjectProperty(None, allownone=True)
     engine = ObjectProperty()
     selected = BooleanProperty()
     repointed = BooleanProperty(True)
-
-    @property
-    def reciprocal(self):
-        orign = self.portal['origin']
-        destn = self.portal['destination']
-        if (
-                destn in self.board.arrow and
-                orign in self.board.arrow[destn]
-        ):
-            return self.board.arrow[destn][orign]
-        else:
-            return None
 
     def __init__(self, **kwargs):
         """Bind some properties, and put the relevant instructions into the
@@ -158,20 +143,37 @@ class Arrow(Widget):
         guaranteed to know the positions of our endpoints.
 
         """
-        super().__init__(**kwargs)
         self._trigger_repoint = Clock.create_trigger(
             self._repoint,
             timeout=-1
         )
-        self.finalize()
+        super().__init__(**kwargs)
 
-    def finalize(self, *args):
+    def on_origin(self, *args):
+        if self.origin is None:
+            Clock.schedule_once(self.on_origin, 0)
+            return
+        self.origin.bind(
+            pos=self._trigger_repoint,
+            size=self._trigger_repoint
+        )
+
+    def on_destination(self, *args):
+        if self.destination is None:
+            Clock.schedule_once(self.on_destination, 0)
+            return
+        self.destination.bind(
+            pos=self._trigger_repoint,
+            size=self._trigger_repoint
+        )
+
+    def on_board(self, *args):
         if None in (
                 self.board,
                 self.engine,
                 self.portal
         ):
-            Clock.schedule_once(self.finalize, 0)
+            Clock.schedule_once(self.on_board, 0)
             if self.board is None:
                 print("no board")
             if self.engine is None:
@@ -179,26 +181,6 @@ class Arrow(Widget):
             if self.portal is None:
                 print("no portal")
             return
-        orign = self.portal["origin"]
-        destn = self.portal["destination"]
-        self.origin = self.board.spot[orign]
-        self.origin.bind(
-            pos=self._trigger_repoint,
-            size=self._trigger_repoint
-        )
-        self.destination = self.board.spot[destn]
-        self.destination.bind(
-            pos=self._trigger_repoint,
-            size=self._trigger_repoint
-        )
-        self.bg_color = Color(*self.board.arrow_bg)
-        self.fg_color = Color(*self.board.arrow_fg)
-        self.bg_line = Line(width=self.w * 1.4)
-        self.fg_line = Line(width=self.w)
-        self.canvas.add(self.bg_color)
-        self.canvas.add(self.bg_line)
-        self.canvas.add(self.fg_color)
-        self.canvas.add(self.fg_line)
         self._trigger_repoint()
 
     def add_widget(self, wid, index=0, canvas=None):
@@ -236,8 +218,6 @@ class Arrow(Widget):
 
     def on_points(self, *args):
         """Propagate my points to both my lines"""
-        self.bg_line.points = self.points
-        self.fg_line.points = self.points
         for pawn in self.children:
             self.pospawn(pawn)
 
@@ -330,15 +310,17 @@ class Arrow(Widget):
         self.y_intercept = self._get_b()
         self.repointed = True
 
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            self._touch = touch
+            return True
+        return False
+
     def collide_point(self, x, y):
         """Return True iff the point falls sufficiently close to my core line
         segment to count as a hit.
 
         """
-        if not super(Arrow, self).collide_point(x, y):
-            return False
-        if None in (self.board, self.portal):
-            return False
         return False
         # This doesn't seem to work as intended.
         # orig = self.origin
@@ -361,8 +343,26 @@ class Arrow(Widget):
         #     error_seg_len = hypot(x, y)
         #     return sin(error_angle_a) * error_seg_len <= self.margin
 
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            self._touch = touch
-            return True
-        return False
+
+
+class Arrow(ArrowWidget):
+    """ArrowWidget that represents Portal"""
+    portal = ObjectProperty()
+    """The portal that I represent."""
+    reciprocal = AliasProperty(
+        lambda self: self._get_reciprocal()
+        if None not in (self.board, self.portal) else None,
+        lambda self, v: None,
+        bind=('portal',)
+    )
+
+    def _get_reciprocal(self):
+        orign = self.portal['origin']
+        destn = self.portal['destination']
+        if (
+                destn in self.board.arrow and
+                orign in self.board.arrow[destn]
+        ):
+            return self.board.arrow[destn][orign]
+        else:
+            return None

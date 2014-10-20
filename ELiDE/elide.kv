@@ -7,9 +7,27 @@
 <Pawn>:
     engine: self.board.layout.app.engine
     selected: self.board.layout.selected is self
-<Arrow>:
+<ArrowWidget>:
     engine: self.board.layout.app.engine
     selected: self.board.layout.selected is self
+    canvas:
+        Color:
+            id: bg_color
+            rgba: root.board.arrow_bg
+        Line:
+            id: bg_line
+            width: root.w * 1.4
+            points: root.points
+        Color:
+            id: fg_color
+            rgba: root.board.arrow_fg
+        Line:
+            id: fg_line
+            width: root.w
+            points: root.points
+<Arrow>:
+    origin: self.board.spot[self.portal['origin']]
+    destination: self.board.spot[self.portal['destination']]
 <Dummy>:
     name: "".join((self.prefix, str(self.num)))
 <ELiDELayout>:
