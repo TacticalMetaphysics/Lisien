@@ -58,7 +58,7 @@ class Board(RelativeLayout):
         self.spot[place["name"]] = r
         return r
 
-    def _make_arrow(self, portal):
+    def make_arrow(self, portal):
         """Make an :class:`Arrow` to represent a :class:`Portal`"""
         if (
                 portal["origin"] not in self.spot or
@@ -189,7 +189,7 @@ class Board(RelativeLayout):
                         arrow_dest not in self.arrow[arrow_orig]
                 ):
                     self.arrowlayout.add_widget(
-                        self._make_arrow(
+                        self.make_arrow(
                             self.character.portal[arrow_orig][arrow_dest]
                         )
                     )
@@ -226,17 +226,14 @@ class Board(RelativeLayout):
             if pawn.dispatch('on_touch_down', touch):
                 return True
             if pawn.collide_point(*touch.pos):
-                touch.grab(pawn)
                 pawn._touch = touch
                 self.layout.grabbed = pawn
                 return True
         for child in self.spotlayout.children:
             if child.dispatch('on_touch_down', touch):
-                touch.grab(child)
                 self.layout.grabbed = child
                 return True
         for child in self.arrowlayout.children:
             if child.dispatch('on_touch_down', touch):
-                touch.grab(child)
                 self.layout.grabbed = child
                 return True

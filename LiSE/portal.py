@@ -118,9 +118,10 @@ class Portal(Edge, StatSet):
             self.character._portal_traits = set()
         (branch, tick) = self.engine.time
         cache_set(
+            self._statcache,
+            self._keycache,
             branch,
             tick,
-            self._statcache,
             key,
             value,
             super().__setitem__

@@ -5,6 +5,7 @@ from kivy.logger import Logger
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
+    BooleanProperty,
     NumericProperty,
     BoundedNumericProperty,
     ObjectProperty,
@@ -16,10 +17,12 @@ from kivy.properties import (
 from kivy.resources import resource_add_path
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
+from kivy.uix.widget import Widget
 
 from kivy.factory import Factory
 
 from .board import Board
+from .board.arrow import ArrowWidget
 
 import LiSE
 import ELiDE
@@ -29,6 +32,14 @@ resource_add_path(ELiDE.__path__[0] + "/assets")
 
 
 Factory.register('Board', cls=Board)
+
+
+class MouseFollower(Widget):
+    boardview = ObjectProperty()
+
+    def on_touch_move(self, touch):
+        self.center = self.boardview.to_local(*touch.pos)
+        return True
 
 
 class Dummy(ImageStack):
@@ -109,6 +120,7 @@ class ELiDELayout(FloatLayout):
     portaling = BoundedNumericProperty(0, min=0, max=2)
     """Count how far along I am in the process of connecting two Places by
     creating a Portal between them."""
+    reciprocal_portal = BooleanProperty(False)
     grabbed = ObjectProperty(None, allownone=True)
     """Thing being grabbed"""
     selected = ObjectProperty(None, allownone=True)
@@ -173,6 +185,23 @@ class ELiDELayout(FloatLayout):
             )
         )
         dummy.num += 1
+
+    def arrow_from_wid(self, wid):
+        for spot in self.board.spotlayout.children:
+            if spot.collide_widget(wid):
+                whereto = spot
+                break
+        else:
+            return
+        self.board.arrowlayout.add_widget(
+            self.board.make_arrow(
+                self.board.character.new_portal(
+                    self.grabbed.place.name,
+                    whereto.place.name,
+                    reciprocal=self.reciprocal_portal
+                )
+            )
+        )
 
     def on_engine(self, *args):
         """Set my branch and tick to that of my engine, and bind them so that
@@ -301,6 +330,22 @@ class ELiDELayout(FloatLayout):
         if self.grabbed is None:
             return self.ids.boardview.dispatch('on_touch_down', touch)
         else:
+            if (
+                    hasattr(self.grabbed, 'place') and
+                    self.ids.portaladdbut.state == 'down'
+            ):
+                self.mouse_follower = Widget(
+                    size_hint=(None, None),
+                    size=(1, 1),
+                    pos=self.ids.boardview.to_local(*touch.pos)
+                )
+                self.board.add_widget(self.mouse_follower)
+                self.dummy_arrow = ArrowWidget(
+                    board=self.board,
+                    origin=self.grabbed,
+                    destination=self.mouse_follower
+                )
+                self.board.add_widget(self.dummy_arrow)
             return True
 
     def on_touch_move(self, touch):
@@ -310,11 +355,22 @@ class ELiDELayout(FloatLayout):
         """
         if self.grabbed is None:
             return self.ids.boardview.dispatch('on_touch_move', touch)
+        elif hasattr(self, 'mouse_follower'):
+            self.mouse_follower.pos = self.ids.boardview.to_local(
+                *touch.pos
+            )
+            return True
         else:
             return self.grabbed.dispatch('on_touch_move', touch)
 
     def on_touch_up(self, touch):
         """Dispatch everywhere, and set my ``grabbed`` to ``None``"""
+        if hasattr(self, 'mouse_follower'):
+            self.arrow_from_wid(self.mouse_follower)
+            self.board.remove_widget(self.dummy_arrow)
+            self.board.remove_widget(self.mouse_follower)
+            del self.dummy_arrow
+            del self.mouse_follower
         self.ids.charmenu.dispatch('on_touch_up', touch)
         self.ids.timemenu.dispatch('on_touch_up', touch)
         self.ids.boardview.dispatch('on_touch_up', touch)
