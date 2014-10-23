@@ -361,7 +361,13 @@ class ELiDELayout(FloatLayout):
             )
             return True
         else:
-            return self.grabbed.dispatch('on_touch_move', touch)
+            if hasattr(self.grabbed, 'use_boardspace'):
+                touch.push()
+                touch.apply_transform_2d(self.ids.boardview.to_local)
+            r = self.grabbed.dispatch('on_touch_move', touch)
+            if hasattr(self.grabbed, 'use_boardspace'):
+                touch.pop()
+            return r
 
     def on_touch_up(self, touch):
         """Dispatch everywhere, and set my ``grabbed`` to ``None``"""

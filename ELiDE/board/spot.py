@@ -24,6 +24,7 @@ class Spot(ImageStack):
     engine = ObjectProperty()
     selected = BooleanProperty()
     offset = NumericProperty(4)
+    use_boardspace = True
     _ignore_place = BooleanProperty(False)
     _touchpos = ListProperty([])
 

@@ -39,6 +39,7 @@ will update its position appropriately.
     travel_on_drop = BooleanProperty(False)
     engine = ObjectProperty()
     selected = BooleanProperty()
+    use_boardspace = True
 
     def __init__(self, **kwargs):
         """Arrange to update my textures and my position whenever the relevant
