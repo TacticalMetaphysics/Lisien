@@ -16,18 +16,14 @@
         Line:
             width: root.w * 1.4
             points: root.trunk_points
-        Color:
-            rgba: root.board.arrow_fg if root.board else [0,0,0,0]
-        Line:
-            width: root.w
-            points: root.trunk_points
-        Color:
-            rgba: root.board.arrow_bg if root.board else [0,0,0,0]
         Line:
             width: root.w * 1.4
             points: root.head_points
         Color:
             rgba: root.board.arrow_fg if root.board else [0,0,0,0]
+        Line:
+            width: root.w
+            points: root.trunk_points
         Line:
             width: root.w
             points: root.head_points
