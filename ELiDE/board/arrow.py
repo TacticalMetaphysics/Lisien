@@ -10,6 +10,7 @@ screen they are at the moment.
 from math import cos, sin, hypot, atan, pi
 from kivy.uix.widget import Widget
 from kivy.properties import (
+    ReferenceListProperty,
     AliasProperty,
     ObjectProperty,
     NumericProperty,
@@ -73,7 +74,10 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
         y1 = endy - off1
         y2 = endy + off1
         x1 = x2 = endx - off2 if ox < dx else endx + off2
-        return [x0, y0, endx, endy, x1, y1, endx, endy, x2, y2, endx, endy]
+        return [
+            [x0, y0, endx, endy],
+            [x1, y1, endx, endy, x2, y2]
+        ]
 
     rise = topy - boty
     run = rightx - leftx
@@ -105,7 +109,10 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
     starty = boty * yco
     endx = rightx * xco
     endy = topy * yco
-    return [startx, starty, endx, endy, x1, y1, endx, endy, x2, y2, endx, endy]
+    return [
+        [startx, starty, endx, endy],
+        [x1, y1, endx, endy, x2, y2]
+    ]
 
 
 class ArrowWidget(Widget):
@@ -127,7 +134,9 @@ class ArrowWidget(Widget):
     board = ObjectProperty()
     """The board on which I am displayed."""
     pawns_here = ListProperty([])
-    points = ListProperty([])
+    trunk_points = ListProperty([])
+    head_points = ListProperty([])
+    points = ReferenceListProperty(trunk_points, head_points)
     slope = NumericProperty(0.0, allownone=True)
     y_intercept = NumericProperty(0)
     origin = ObjectProperty()
