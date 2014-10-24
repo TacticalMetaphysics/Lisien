@@ -110,7 +110,7 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
     endx = rightx * xco
     endy = topy * yco
     return [
-        [startx, starty, endx, endy],
+        [startx, starty, endx - xco, endy - yco],
         [x1, y1, endx, endy, x2, y2]
     ]
 
