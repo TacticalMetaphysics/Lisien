@@ -18,6 +18,8 @@ from kivy.properties import (
     BooleanProperty
 )
 from kivy.clock import Clock
+from kivy.garden.collider import Collide2DPoly
+from kivy.logger import Logger
 
 ninety = pi / 2
 """pi / 2"""
@@ -26,7 +28,71 @@ fortyfive = pi / 4
 """pi / 4"""
 
 
-def get_points(ox, oy, ro, dx, dy, rd, taillen):
+def get_collider(ox, oy, dx, dy, w):
+    r = w / 2
+    if ox < dx:
+        leftx = ox
+        rightx = dx
+        xco = 1
+    elif ox > dx:
+        leftx = ox * -1
+        rightx = dx * -1
+        xco = -1
+    else:
+        return Collide2DPoly(
+            [
+                ox - r, oy,
+                ox + r, oy,
+                ox + r, dy,
+                ox - r, dy
+            ],
+            cache=False
+        )
+    if oy < dy:
+        boty = oy
+        topy = dy
+        yco = 1
+    elif oy > dy:
+        boty = oy * -1
+        topy = dy * -1
+        yco = -1
+    else:
+        return Collide2DPoly(
+            [
+                ox, oy - r,
+                dx, oy - r,
+                dx, oy + r,
+                ox, oy + r
+            ],
+            cache=False
+        )
+
+    rise = topy - boty
+    run = rightx - leftx
+    theta = atan(rise/run)
+    theta_prime = ninety - theta
+    xoff = sin(theta_prime) * r
+    yoff = cos(theta_prime) * r
+    x1 = leftx + xoff
+    y1 = boty - yoff
+    x2 = rightx + xoff
+    y2 = topy - yoff
+    x3 = rightx - xoff
+    y3 = topy + yoff
+    x4 = leftx - xoff
+    y4 = boty + yoff
+    return Collide2DPoly(
+        [
+            x1 * xco, y1 * yco,
+            x2 * xco, y2 * yco,
+            x3 * xco, y3 * yco,
+            x4 * xco, y4 * yco
+        ],
+        cache=True
+    )
+
+
+def get_points(ox, oy, ro, dx, dy, rd, taillen, w):
     """Return points to use for an arrow from ``ox,oy`` to ``dx,dy`` where
     the origin has dimensions ``2*orx,2*ory``, the destination has
     dimensions ``2*drx,2*dry``, and the bits of the arrow not actually
@@ -55,7 +121,11 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
         x1 = endx - off1
         x2 = endx + off1
         y1 = y2 = endy - off2 if oy < dy else endy + off2
-        return [x0, y0, endx, endy, x1, y1, endx, endy, x2, y2, endx, endy]
+        return (
+            get_collider(x0, y0, endx, endy, w),
+            [x0, y0, endx, endy],
+            [x1, y1, endx, endy, x2, y2]
+        )
     if oy < dy:
         boty = oy
         topy = dy
@@ -74,10 +144,11 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
         y1 = endy - off1
         y2 = endy + off1
         x1 = x2 = endx - off2 if ox < dx else endx + off2
-        return [
+        return (
+            get_collider(x0, y0, endx, endy, w),
             [x0, y0, endx, endy],
             [x1, y1, endx, endy, x2, y2]
-        ]
+        )
 
     rise = topy - boty
     run = rightx - leftx
@@ -109,10 +180,11 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen):
     starty = boty * yco
     endx = rightx * xco
     endy = topy * yco
-    return [
+    return (
+        get_collider(startx, starty, endx, endy, w),
         [startx, starty, endx, endy],
         [x1, y1, endx, endy, x2, y2]
-    ]
+    )
 
 
 class ArrowWidget(Widget):
@@ -144,6 +216,13 @@ class ArrowWidget(Widget):
     engine = ObjectProperty()
     selected = BooleanProperty()
     repointed = BooleanProperty(True)
+    bgscale = NumericProperty(1.4)
+    collider = ObjectProperty()
+
+    def collide_point(self, x, y):
+        if not self.collider:
+            return False
+        return (x, y) in self.collider
 
     def __init__(self, **kwargs):
         """Create trigger for my _repoint method, otherwise delegate to parent
@@ -269,7 +348,9 @@ class ArrowWidget(Widget):
         (dx, dy) = dest.center
         (dw, dh) = dest.size if hasattr(dest, 'size') else (0, 0)
         dry = dh / 2
-        return get_points(ox, oy, ory, dx, dy, dry, taillen)
+        return get_points(
+            ox, oy, ory, dx, dy, dry, taillen, self.w * self.bgscale
+        )
 
     def _get_slope(self):
         """Return a float of the increase in y divided by the increase in x,
@@ -310,9 +391,15 @@ class ArrowWidget(Widget):
         if None in (self.origin, self.destination):
             Clock.schedule_once(self._repoint, 0)
             return
-        self.points = self._get_points()
+        (
+            self.collider,
+            self.trunk_points,
+            self.head_points
+        ) = self._get_points()
         self.slope = self._get_slope()
         self.y_intercept = self._get_b()
+        (ox, oy) = self.origin.center
+        (dx, dy) = self.destination.center
         self.repointed = True
 
     def on_touch_down(self, touch):
@@ -320,34 +407,6 @@ class ArrowWidget(Widget):
             self._touch = touch
             return True
         return False
-
-    def collide_point(self, x, y):
-        """Return True iff the point falls sufficiently close to my core line
-        segment to count as a hit.
-
-        """
-        return False
-        # This doesn't seem to work as intended.
-        # orig = self.origin
-        # dest = self.destination
-        # (ox, oy) = orig.pos
-        # (dx, dy) = dest.pos
-        # if 0 in (ox, dx, oy, dy):
-        #     ox += 1
-        #     oy += 1
-        #     dx += 1
-        #     dy += 1
-        # if ox == dx:
-        #     return abs(y - dy) <= self.w
-        # elif oy == dy:
-        #     return abs(x - dx) <= self.w
-        # else:
-        #     correct_angle_a = atan(dy / dx)
-        #     observed_angle_a = atan(y / x)
-        #     error_angle_a = abs(observed_angle_a - correct_angle_a)
-        #     error_seg_len = hypot(x, y)
-        #     return sin(error_angle_a) * error_seg_len <= self.margin
-
 
 
 class Arrow(ArrowWidget):

@@ -10,14 +10,15 @@
 <ArrowWidget>:
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
     selected: self.board.layout.selected is self if self.board and self.board.layout else False
+    bgscale: 1.4
     canvas:
         Color:
             rgba: root.board.arrow_bg if root.board else [0,0,0,0]
         Line:
-            width: root.w * 1.4
+            width: root.w * root.bgscale
             points: root.trunk_points
         Line:
-            width: root.w * 1.4
+            width: root.w * root.bgscale
             points: root.head_points
         Color:
             rgba: root.board.arrow_fg if root.board else [0,0,0,0]
