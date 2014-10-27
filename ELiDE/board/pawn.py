@@ -29,7 +29,6 @@ will update its position appropriately.
     """
     board = ObjectProperty()
     thing = ObjectProperty()
-    _touch = ObjectProperty(None, allownone=True)
     _touch_ox_diff = NumericProperty()
     _touch_oy_diff = NumericProperty()
     _touch_opos_diff = ReferenceListProperty(_touch_ox_diff, _touch_oy_diff)
@@ -111,6 +110,11 @@ will update its position appropriately.
         super().remove_widget(pawn)
 
     def hit(self, x, y):
+        """To be called when I'm hit with a touch. Records the relative
+        position of the touch wrt my center, as well as my position at
+        time of touch.
+
+        """
         self._touch_opos_diff = (
             self.x - x,
             self.y - y
@@ -146,5 +150,4 @@ will update its position appropriately.
                     self._update()
         else:
             self.pos = self._start
-        self._touch = None
         return self
