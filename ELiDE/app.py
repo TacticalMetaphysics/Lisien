@@ -304,17 +304,6 @@ class ELiDELayout(FloatLayout):
                 )
             )
 
-    def dispatch2board(self, event, touch):
-        """Translate the touch to the boardview space, then dispatch the touch
-        event
-
-        """
-        touch.push()
-        touch.apply_transform_2d(self.ids.boardview.to_local)
-        r = self.ids.board.dispatch(event, touch)
-        touch.pop()
-        return r
-
     def on_grabbed(self, *args):
         Logger.info('grabbed: ' + str(self.grabbed))
 
@@ -326,10 +315,19 @@ class ELiDELayout(FloatLayout):
         self.ids.charmenu.dispatch('on_touch_down', touch)
         self.ids.timemenu.dispatch('on_touch_down', touch)
         if self.grabbed is None:
-            self.dispatch2board('on_touch_down', touch)
-        if self.grabbed is None:
-            return self.ids.boardview.dispatch('on_touch_down', touch)
-        else:
+            touch.push()
+            touch.apply_transform_2d(self.ids.boardview.to_local)
+            for hit in self.board.hits(*touch.pos):
+                self.grabbed = hit
+                touch.grab(self.grabbed)
+                if hasattr(self.grabbed, 'hit'):
+                    self.grabbed.hit(*touch.pos)
+                touch.pop()
+                return True
+            else:
+                touch.pop()
+                self.ids.boardview.dispatch('on_touch_down', touch)
+        if self.grabbed is not None:
             if (
                     hasattr(self.grabbed, 'place') and
                     self.ids.portaladdbut.state == 'down'
@@ -347,6 +345,7 @@ class ELiDELayout(FloatLayout):
                 )
                 self.board.add_widget(self.dummy_arrow)
             return True
+        return False
 
     def on_touch_move(self, touch):
         """If something's been grabbed, transform the touch to the boardview's
@@ -380,7 +379,6 @@ class ELiDELayout(FloatLayout):
         self.ids.charmenu.dispatch('on_touch_up', touch)
         self.ids.timemenu.dispatch('on_touch_up', touch)
         self.ids.boardview.dispatch('on_touch_up', touch)
-        self.dispatch2board('on_touch_up', touch)
         self.grabbed = None
         return True
 

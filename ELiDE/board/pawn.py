@@ -110,29 +110,15 @@ will update its position appropriately.
         self.unbind(center=pawn.setter('pos'))
         super().remove_widget(pawn)
 
-    def on_touch_down(self, touch):
-        """Check collision, and record my starting position for in case I need
-        to snap back to it.
-
-        """
-        if not self.collide_point(*touch.pos):
-            return
-        self._touch = touch
-        touch.grab(self)
-        self.board.layout.grabbed = self
+    def hit(self, x, y):
+        self._touch_opos_diff = (
+            self.x - x,
+            self.y - y
+        )
         self._start = self.pos
-        (x, y) = self.pos
-        self._touch_opos_diff = (x - touch.x, y - touch.y)
-        return True
 
     def on_touch_move(self, touch):
         """Move with the touch if I'm grabbed."""
-        if not self._touch:
-            return
-        if touch is not self._touch:
-            return
-        if self.board.layout.grabbed is not self:
-            return
         self.pos = (
             touch.x + self._touch_ox_diff,
             touch.y + self._touch_oy_diff
@@ -144,8 +130,6 @@ will update its position appropriately.
         there.
 
         """
-        if not self._touch:
-            return
         new_spot = None
         for spot in self.board.spot.values():
             if self.collide_widget(spot):

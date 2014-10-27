@@ -215,25 +215,27 @@ class Board(RelativeLayout):
         """Look like a :class:`Character` wrapped in ``Board(...)```"""
         return "Board({})".format(repr(self.character))
 
-    def on_touch_down(self, touch):
-        """Check pawns, ``spotlayout``, and ``arrowlayout`` in turn,
-        stopping and returning the first true result I get.
+    def arrows(self):
+        for o in self.arrow:
+            for arro in self.arrow[o].values():
+                yield arro
 
-        Assign the result to my layout's ``grabbed`` attribute.
-
-        """
+    def pawns_at(self, x, y):
         for pawn in self.pawn.values():
-            if pawn.dispatch('on_touch_down', touch):
-                return True
-            if pawn.collide_point(*touch.pos):
-                pawn._touch = touch
-                self.layout.grabbed = pawn
-                return True
-        for child in self.spotlayout.children:
-            if child.dispatch('on_touch_down', touch):
-                self.layout.grabbed = child
-                return True
-        for child in self.arrowlayout.children:
-            if child.dispatch('on_touch_down', touch):
-                self.layout.grabbed = child
-                return True
+            if pawn.collide_point(x, y):
+                yield pawn
+
+    def spots_at(self, x, y):
+        for spot in self.spot.values():
+            if spot.collide_point(x, y):
+                yield spot
+
+    def arrows_at(self, x, y):
+        for arrow in self.arrows():
+            if arrow.collide_point(x, y):
+                yield arrow
+
+    def hits(self, x, y):
+        yield from self.pawns_at(x, y)
+        yield from self.spots_at(x, y)
+        yield from self.arrows_at(x, y)

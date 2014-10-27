@@ -165,17 +165,8 @@ class Spot(ImageStack):
             return False
         return (x, y) in self.collider
 
-    def on_touch_down(self, touch):
-        """If the touch hits me, grab it and put myself in its userdict"""
-        if self.collide_point(*touch.pos):
-            self._touch = touch
-            return True
-        return False
-
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""
-        if self.board.layout.grabbed is not self:
-            return
         self._touchpos = touch.pos
         self._trigger_move_to_touch()
         return self
@@ -189,8 +180,6 @@ class Spot(ImageStack):
         if self._touchpos:
             self.coords = self.pos
         self._touchpos = []
-        if self.collide_point(*touch.pos):
-            return self
 
     def __repr__(self):
         return "{}@({},{})".format(self.place.name, self.x, self.y)
