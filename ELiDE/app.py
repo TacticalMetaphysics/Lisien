@@ -323,6 +323,8 @@ class ELiDELayout(FloatLayout):
                 if hasattr(self.grabbed, 'hit'):
                     self.grabbed.hit(*touch.pos)
                 touch.pop()
+                if hasattr(self.grabbed, 'selected'):
+                    self.grabbed.selected = True
                 return True
             else:
                 touch.pop()
@@ -379,6 +381,8 @@ class ELiDELayout(FloatLayout):
         self.ids.charmenu.dispatch('on_touch_up', touch)
         self.ids.timemenu.dispatch('on_touch_up', touch)
         self.ids.boardview.dispatch('on_touch_up', touch)
+        if hasattr(self.grabbed, 'selected'):
+            self.grabbed.selected = False
         self.grabbed = None
         return True
 

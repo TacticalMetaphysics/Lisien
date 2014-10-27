@@ -6,6 +6,7 @@ from kivy.properties import (
     NumericProperty,
     ListProperty
 )
+from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.uix.relativelayout import RelativeLayout
 from .spot import Spot
@@ -20,16 +21,15 @@ class Board(RelativeLayout):
     spot = DictProperty({})
     pawn = DictProperty({})
     arrow = DictProperty({})
-    arrow_bg = ListProperty()
-    arrow_fg = ListProperty()
-    arrow_width = NumericProperty()
-    arrowhead_size = NumericProperty()
     arrowlayout = ObjectProperty()
     spotlayout = ObjectProperty()
     pawnlayout = ObjectProperty()
     app = ObjectProperty()
     engine = ObjectProperty()
     spots_unposd = NumericProperty(0)
+
+    def on_selection(self, *args):
+        Logger.info('selection: {}'.format(self.selection))
 
     def __init__(self, **kwargs):
         """Make a trigger for ``_redata`` and run it"""

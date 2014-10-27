@@ -3,25 +3,28 @@
 #: import StiffScrollEffect kivy.garden.stiffscroll.StiffScrollEffect
 <Spot>:
     engine: self.board.layout.app.engine
-    selected: self.board.layout.selected is self
 <Pawn>:
     engine: self.board.layout.app.engine
-    selected: self.board.layout.selected is self
 <ArrowWidget>:
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
-    selected: self.board.layout.selected is self if self.board and self.board.layout else False
-    bgscale: 1.4
+    bg_color_unselected: [0.5, 0.5, 0.5, 0.5]
+    bg_color_selected: [0.0, 1.0, 1.0, 1.0]
+    fg_color_unselected: [1.0, 1.0, 1.0, 1.0]
+    fg_color_selected: [1.0, 1.0, 1.0, 1.0]
+    bg_color: self.bg_color_selected if self.selected else self.bg_color_unselected
+    fg_color: self.fg_color_selected if self.selected else self.fg_color_unselected
+    bg_scale: 2.0 if self.selected else 1.4
     canvas:
         Color:
-            rgba: root.board.arrow_bg if root.board else [0,0,0,0]
+            rgba: root.bg_color
         Line:
-            width: root.w * root.bgscale
+            width: root.w * root.bg_scale
             points: root.trunk_points
         Line:
-            width: root.w * root.bgscale
+            width: root.w * root.bg_scale
             points: root.head_points
         Color:
-            rgba: root.board.arrow_fg if root.board else [0,0,0,0]
+            rgba: root.fg_color
         Line:
             width: root.w
             points: root.trunk_points
@@ -53,8 +56,6 @@
             pawnlayout: pawnlayout
             size_hint: (None, None)
             size: wallpaper.size
-            arrow_bg: (0.5, 0.5, 0.5, 0.5)
-            arrow_fg: (1.0, 1.0, 1.0, 1.0)
             arrowhead_size: 10
             Image:
                 id: wallpaper

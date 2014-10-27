@@ -17,6 +17,7 @@ from kivy.properties import (
     ListProperty,
     BooleanProperty
 )
+from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.garden.collider import Collide2DPoly
 
@@ -214,9 +215,20 @@ class ArrowWidget(Widget):
     engine = ObjectProperty()
     selected = BooleanProperty()
     repointed = BooleanProperty(True)
-    bgscale = NumericProperty(1.4)
+    bg_scale = NumericProperty(1.4)
+    selected = BooleanProperty(False)
+    bg_color_unselected = ListProperty()
+    bg_color_selected = ListProperty()
+    bg_color = ListProperty()
+    fg_color_unselected = ListProperty()
+    fg_color_selected = ListProperty()
+    fg_color = ListProperty()
+    arrowhead_size = NumericProperty(10)
     collide_radius = NumericProperty(3)
     collider = ObjectProperty()
+
+    def on_selected(self, *args):
+        Logger.info("selected: {}->{}".format(self.origin, self.destination))
 
     def collide_point(self, x, y):
         if not self.collider:
@@ -342,7 +354,7 @@ class ArrowWidget(Widget):
         dest = self.destination
         (ox, oy) = orig.center
         ow = orig.width if hasattr(orig, 'width') else 0
-        taillen = float(self.board.arrowhead_size)
+        taillen = float(self.arrowhead_size)
         ory = ow / 2
         (dx, dy) = dest.center
         (dw, dh) = dest.size if hasattr(dest, 'size') else (0, 0)
