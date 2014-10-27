@@ -8,6 +8,7 @@ from kivy.properties import (
     NumericProperty
 )
 from kivy.clock import Clock
+from kivy.garden.collider import CollideEllipse
 from ..texturestack import ImageStack
 
 
@@ -24,6 +25,7 @@ class Spot(ImageStack):
     engine = ObjectProperty()
     selected = BooleanProperty()
     offset = NumericProperty(4)
+    collider = ObjectProperty()
     use_boardspace = True
     _ignore_place = BooleanProperty(False)
     _touchpos = ListProperty([])
@@ -33,6 +35,7 @@ class Spot(ImageStack):
         changes in game-time.
 
         """
+        self._trigger_upd_collider = Clock.create_trigger(self._upd_collider)
         self._trigger_move_to_touch = Clock.create_trigger(self._move_to_touch)
         self._trigger_upd_pawns_here = Clock.create_trigger(
             self._upd_pawns_here
@@ -86,6 +89,7 @@ class Spot(ImageStack):
                 self.place['_y'] * self.board.height
             )
             self._ignore_place = False
+            self._trigger_upd_collider()
 
     def add_widget(self, wid, i=0, canvas=None):
         super().add_widget(wid, i, canvas)
@@ -130,19 +134,36 @@ class Spot(ImageStack):
         if self._ignore_place:
             return
         self.place['_x'] = self.x / self.board.width
+        self._trigger_upd_collider()
 
     def on_y(self, *args):
         if self._ignore_place:
             return
         self.place['_y'] = self.y / self.board.height
+        self._trigger_upd_collider()
+
+    def _upd_collider(self, *args):
+        (x, y) = self.center
+        (w, h) = self.size
+        rx = w / 2
+        ry = h / 2
+        self.collider = CollideEllipse(
+            x=x, y=y, rx=rx, ry=ry
+        )
 
     def _upd_pawns_here(self, *args):
         """Move any :class:`Pawn` atop me so it still *is* on top of me,
         presumably after I've moved.
 
         """
+        self._trigger_upd_collider()
         for pawn in self.children:
             self.pospawn(pawn)
+
+    def collide_point(self, x, y):
+        if not self.collider:
+            return False
+        return (x, y) in self.collider
 
     def on_touch_down(self, touch):
         """If the touch hits me, grab it and put myself in its userdict"""
@@ -162,6 +183,7 @@ class Spot(ImageStack):
     def _move_to_touch(self, *args):
         if self._touchpos != [] and self.center != self._touchpos:
             self.center = self._touchpos
+            self._trigger_upd_collider()
 
     def on_touch_up(self, touch):
         if self._touchpos:
