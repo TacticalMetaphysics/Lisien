@@ -28,8 +28,7 @@ fortyfive = pi / 4
 """pi / 4"""
 
 
-def get_collider(ox, oy, dx, dy, w):
-    r = w / 2
+def get_collider(ox, oy, dx, dy, r):
     if ox < dx:
         leftx = ox
         rightx = dx
@@ -92,7 +91,7 @@ def get_collider(ox, oy, dx, dy, w):
     )
 
 
-def get_points(ox, oy, ro, dx, dy, rd, taillen, w):
+def get_points(ox, oy, ro, dx, dy, rd, taillen, r):
     """Return points to use for an arrow from ``ox,oy`` to ``dx,dy`` where
     the origin has dimensions ``2*orx,2*ory``, the destination has
     dimensions ``2*drx,2*dry``, and the bits of the arrow not actually
@@ -122,7 +121,7 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen, w):
         x2 = endx + off1
         y1 = y2 = endy - off2 if oy < dy else endy + off2
         return (
-            get_collider(x0, y0, endx, endy, w),
+            get_collider(x0, y0, endx, endy, r),
             [x0, y0, endx, endy],
             [x1, y1, endx, endy, x2, y2]
         )
@@ -145,7 +144,7 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen, w):
         y2 = endy + off1
         x1 = x2 = endx - off2 if ox < dx else endx + off2
         return (
-            get_collider(x0, y0, endx, endy, w),
+            get_collider(x0, y0, endx, endy, r),
             [x0, y0, endx, endy],
             [x1, y1, endx, endy, x2, y2]
         )
@@ -181,7 +180,7 @@ def get_points(ox, oy, ro, dx, dy, rd, taillen, w):
     endx = rightx * xco
     endy = topy * yco
     return (
-        get_collider(startx, starty, endx, endy, w),
+        get_collider(startx, starty, endx, endy, r),
         [startx, starty, endx, endy],
         [x1, y1, endx, endy, x2, y2]
     )
@@ -217,6 +216,7 @@ class ArrowWidget(Widget):
     selected = BooleanProperty()
     repointed = BooleanProperty(True)
     bgscale = NumericProperty(1.4)
+    collide_radius = NumericProperty(3)
     collider = ObjectProperty()
 
     def collide_point(self, x, y):
@@ -349,7 +349,7 @@ class ArrowWidget(Widget):
         (dw, dh) = dest.size if hasattr(dest, 'size') else (0, 0)
         dry = dh / 2
         return get_points(
-            ox, oy, ory, dx, dy, dry, taillen, self.w * self.bgscale
+            ox, oy, ory, dx, dy, dry, taillen, self.collide_radius
         )
 
     def _get_slope(self):
