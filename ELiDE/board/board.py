@@ -234,8 +234,3 @@ class Board(RelativeLayout):
         for arrow in self.arrows():
             if arrow.collide_point(x, y):
                 yield arrow
-
-    def hits(self, x, y):
-        yield from self.pawns_at(x, y)
-        yield from self.spots_at(x, y)
-        yield from self.arrows_at(x, y)

@@ -110,21 +110,13 @@ class ELiDELayout(FloatLayout):
 
     """
     app = ObjectProperty()
-    """The App instance that is running and thus holds the globals I need."""
     board = ObjectProperty()
     dummies = ListProperty()
     _touch = ObjectProperty(None, allownone=True)
     popover = ObjectProperty()
-    """The modal view to use for the various menus that aren't visible by
-    default."""
-    portaling = BoundedNumericProperty(0, min=0, max=2)
-    """Count how far along I am in the process of connecting two Places by
-    creating a Portal between them."""
-    reciprocal_portal = BooleanProperty(False)
     grabbed = ObjectProperty(None, allownone=True)
-    """Thing being grabbed"""
     selected = ObjectProperty(None, allownone=True)
-    """Thing that's selected and highlighted for some operation"""
+    selection_candidates = ListProperty([])
     engine = ObjectProperty()
     tick_results = DictProperty({})
     branch = StringProperty()
@@ -304,32 +296,33 @@ class ELiDELayout(FloatLayout):
                 )
             )
 
-    def on_grabbed(self, *args):
-        Logger.info('grabbed: ' + str(self.grabbed))
-
     def on_touch_down(self, touch):
         """Delegate first to the menu, then to the charsheet, then to the
         board, then to the boardview.
 
         """
-        self.ids.charmenu.dispatch('on_touch_down', touch)
-        self.ids.timemenu.dispatch('on_touch_down', touch)
+        if self.ids.charmenu.dispatch('on_touch_down', touch):
+            return True
+        if self.ids.timemenu.dispatch('on_touch_down', touch):
+            return True
         if self.grabbed is None:
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
-            for hit in self.board.hits(*touch.pos):
-                self.grabbed = hit
-                touch.grab(self.grabbed)
-                if hasattr(self.grabbed, 'hit'):
-                    self.grabbed.hit(*touch.pos)
-                touch.pop()
-                if hasattr(self.grabbed, 'selected'):
-                    self.grabbed.selected = True
+            if not self.selection_candidates:
+                self.selection_candidates = list(
+                    self.board.pawns_at(*touch.pos)
+                ) + list(
+                    self.board.spots_at(*touch.pos)
+                ) + list(
+                    self.board.arrows_at(*touch.pos)
+                )
+            touch.pop()
+            if self.ids.boardview.dispatch('on_touch_down', touch):
+                self.scrolling = True
                 return True
             else:
-                touch.pop()
-                self.ids.boardview.dispatch('on_touch_down', touch)
-        if self.grabbed is not None:
+                return False
+        else:  # self.grabbed is not None
             if (
                     hasattr(self.grabbed, 'place') and
                     self.ids.portaladdbut.state == 'down'
@@ -354,14 +347,16 @@ class ELiDELayout(FloatLayout):
         space and then delegate there.
 
         """
-        if self.grabbed is None:
+        if self.grabbed or self.selection_candidates:
+            if hasattr(self, 'scrolling'):
+                del self.scrolling
+        if hasattr(self, 'scrolling'):
             return self.ids.boardview.dispatch('on_touch_move', touch)
-        elif hasattr(self, 'mouse_follower'):
+        if hasattr(self, 'mouse_follower'):
             self.mouse_follower.pos = self.ids.boardview.to_local(
                 *touch.pos
             )
-            return True
-        else:
+        if self.grabbed:
             if hasattr(self.grabbed, 'use_boardspace'):
                 touch.push()
                 touch.apply_transform_2d(self.ids.boardview.to_local)
@@ -381,9 +376,20 @@ class ELiDELayout(FloatLayout):
         self.ids.charmenu.dispatch('on_touch_up', touch)
         self.ids.timemenu.dispatch('on_touch_up', touch)
         self.ids.boardview.dispatch('on_touch_up', touch)
-        if hasattr(self.grabbed, 'selected'):
-            self.grabbed.selected = False
-        self.grabbed = None
+        if hasattr(self, 'scrolling'):
+            del self.scrolling
+            return True
+        elif self.selection_candidates:
+            if hasattr(self.grabbed, 'selected'):
+                self.grabbed.selected = False
+            self.grabbed = self.selection_candidates.pop(0)
+            if hasattr(self.grabbed, 'selected'):
+                self.grabbed.selected = True
+        else:
+            if hasattr(self.grabbed, 'selected'):
+                self.grabbed.selected = False
+            self.grabbed = None
+            self.selection_candidates = []
         return True
 
 
