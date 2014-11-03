@@ -2,9 +2,9 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 #: import StiffScrollEffect kivy.garden.stiffscroll.StiffScrollEffect
 <Spot>:
-    engine: self.board.layout.app.engine
+    engine: self.board.layout.app.engine if self.board and self.board.layout else None
 <Pawn>:
-    engine: self.board.layout.app.engine
+    engine: self.board.layout.app.engine if self.board and self.board.layout else None
 <ArrowWidget>:
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
     bg_color_unselected: [0.5, 0.5, 0.5, 0.5]
