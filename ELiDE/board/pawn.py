@@ -55,6 +55,10 @@ will update its position appropriately.
         """
         if '_image_paths' not in self.thing:
             self.thing['_image_paths'] = self._default_paths()
+        if '_offxs' not in self.thing:
+            self.thing['_offxs'] = self._default_offxs()
+        if '_offys' not in self.thing:
+            self.thing['_offys'] = self._default_offys()
         if '_stacking_heights' not in self.thing:
             self.thing['_stacking_heights'] = self._default_stackhs()
         if self.paths != self.thing["_image_paths"]:
@@ -88,6 +92,12 @@ will update its position appropriately.
 
     def _default_paths(self):
         return ['atlas://rltiles/base.atlas/unseen']
+
+    def _default_offxs(self):
+        return [0]
+
+    def _default_offys(self):
+        return [0]
 
     def _default_stackhs(self):
         return [0]
