@@ -17,7 +17,8 @@ parser.add_argument('maindotpy')
 
 
 def lise():
-    print(sys.argv)
+    print("args: {}".format(sys.argv))
+    print("path: {}".format(sys.path))
 
     parsed = parser.parse_args(sys.argv)
 

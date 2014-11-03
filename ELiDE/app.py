@@ -5,8 +5,8 @@ from kivy.logger import Logger
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import (
-    BooleanProperty,
     NumericProperty,
+    BooleanProperty,
     BoundedNumericProperty,
     ObjectProperty,
     StringProperty,
@@ -26,7 +26,7 @@ from .board.arrow import ArrowWidget
 
 import LiSE
 import ELiDE
-from ELiDE.texturestack import ImageStack
+from ELiDE.kivygarden.texturestack import ImageStack
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
 
@@ -114,6 +114,8 @@ class ELiDELayout(FloatLayout):
     dummies = ListProperty()
     _touch = ObjectProperty(None, allownone=True)
     popover = ObjectProperty()
+    grabbing = BooleanProperty()
+    reciprocal_portal = BooleanProperty()
     grabbed = ObjectProperty(None, allownone=True)
     selected = ObjectProperty(None, allownone=True)
     selection_candidates = ListProperty([])
@@ -305,7 +307,7 @@ class ELiDELayout(FloatLayout):
             return True
         if self.ids.timemenu.dispatch('on_touch_down', touch):
             return True
-        if self.grabbed is None:
+        if self.grabbing:
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
             if not self.selection_candidates:
@@ -322,7 +324,7 @@ class ELiDELayout(FloatLayout):
                 return True
             else:
                 return False
-        else:  # self.grabbed is not None
+        if self.grabbed is not None:
             if (
                     hasattr(self.grabbed, 'place') and
                     self.ids.portaladdbut.state == 'down'

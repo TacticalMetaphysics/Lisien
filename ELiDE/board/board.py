@@ -3,8 +3,7 @@
 from kivy.properties import (
     DictProperty,
     ObjectProperty,
-    NumericProperty,
-    ListProperty
+    NumericProperty
 )
 from kivy.logger import Logger
 from kivy.clock import Clock
@@ -143,7 +142,7 @@ class Board(RelativeLayout):
         self.spotlayout.remove_widget(self.arrow[orig][dest])
         del self.arrow[orig][dest]
 
-    def nx_layout(self, graph):
+    def grid_layout(self, graph):
         from networkx import spectral_layout
         return spectral_layout(graph)
 
@@ -176,7 +175,7 @@ class Board(RelativeLayout):
             spots_only = self.character.facade()
             for thing in list(spots_only.thing.keys()):
                 del spots_only.thing[thing]
-            l = self.nx_layout(spots_only)
+            l = self.grid_layout(spots_only)
             for (spot, (x, y)) in l.items():
                 self.spot[spot].pos = (
                     int(x * self.width),

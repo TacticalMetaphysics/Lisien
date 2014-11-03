@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
-#: import StiffScrollEffect kivy.garden.stiffscroll.StiffScrollEffect
+#: import StiffScrollEffect ELiDE.kivygarden.stiffscroll.StiffScrollEffect
 <Spot>:
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
 <Pawn>:
@@ -40,6 +40,8 @@
     engine: self.app.engine
     board: board
     dummies: [dummything, dummyplace]
+    grabbing: self.grabbed is None
+    reciprocal_portal: False
     ScrollView:
         effect_cls: StiffScrollEffect
         id: boardview

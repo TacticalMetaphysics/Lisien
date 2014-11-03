@@ -8,7 +8,7 @@ from kivy.properties import (
     ReferenceListProperty
 )
 from kivy.clock import Clock
-from ELiDE.texturestack import ImageStack
+from ELiDE.kivygarden.texturestack import ImageStack
 
 
 class Pawn(ImageStack):

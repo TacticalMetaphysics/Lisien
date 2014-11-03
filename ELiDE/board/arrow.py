@@ -19,7 +19,7 @@ from kivy.properties import (
 )
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.garden.collider import Collide2DPoly
+from ELiDE.kivygarden.collider import Collide2DPoly
 
 ninety = pi / 2
 """pi / 2"""

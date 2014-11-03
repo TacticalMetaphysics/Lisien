@@ -8,8 +8,8 @@ from kivy.properties import (
     NumericProperty
 )
 from kivy.clock import Clock
-from kivy.garden.collider import CollideEllipse
-from ..texturestack import ImageStack
+from ELiDE.kivygarden.collider import CollideEllipse
+from ELiDE.kivygarden.texturestack import ImageStack
 
 
 class Spot(ImageStack):

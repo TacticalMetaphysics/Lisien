@@ -11,7 +11,9 @@ try:
 except ImportError:
     pass
 from sqlite3 import OperationalError as liteOpError
-OperationalError = (alchemyOpError, liteOpError)
+OperationalError = (
+    alchemyOpError, liteOpError
+) if alchemyOpError is not None else liteOpError
 
 alchemyIntegError = None
 try:
@@ -19,7 +21,9 @@ try:
 except ImportError:
     pass
 from sqlite3 import IntegrityError as liteIntegError
-IntegrityError = (alchemyIntegError, liteIntegError)
+IntegrityError = (
+    alchemyIntegError, liteIntegError
+) if alchemyIntegError is not None else liteIntegError
 
 import gorm.query
 import LiSE.sql
