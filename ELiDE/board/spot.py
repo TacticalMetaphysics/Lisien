@@ -8,6 +8,8 @@ from kivy.properties import (
     NumericProperty
 )
 from kivy.clock import Clock
+from kivy.logger import Logger
+from kivy.graphics import InstructionGroup, Color, Line
 from ELiDE.kivygarden.collider import CollideEllipse
 from ELiDE.kivygarden.texturestack import ImageStack
 
@@ -26,6 +28,9 @@ class Spot(ImageStack):
     selected = BooleanProperty()
     offset = NumericProperty(4)
     collider = ObjectProperty()
+    selected = BooleanProperty(False)
+    grabbed = BooleanProperty(False)
+    linecolor = ObjectProperty()
     use_boardspace = True
     _ignore_place = BooleanProperty(False)
     _touchpos = ListProperty([])
@@ -66,6 +71,32 @@ class Spot(ImageStack):
             self.paths = self.place['_image_paths']
         except KeyError:
             self.place['_image_paths'] = self.paths = self._default_paths()
+
+    def on_linecolor(self, *args):
+        if hasattr(self, 'color'):
+            self.color.rgba = self.linecolor
+            return
+
+        def upd_box_points(*args):
+            self.box.points = [
+                self.x, self.y,
+                self.right, self.y,
+                self.right, self.top,
+                self.x, self.top,
+                self.x, self.y
+            ]
+        self.grp = InstructionGroup()
+        self.color = Color(*self.linecolor)
+        self.grp.add(self.color)
+        self.box = Line()
+        upd_box_points()
+        self.bind(
+            pos=upd_box_points,
+            size=upd_box_points
+        )
+        self.grp.add(self.box)
+        self.grp.add(Color(1., 1., 1.))
+        self.canvas.after.add(self.grp)
 
     def _default_pos(self):
         # If one spot is without a position, maybe the rest of them
@@ -167,9 +198,12 @@ class Spot(ImageStack):
 
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""
+        if not self.selected:
+            return False
+        Logger.debug('moving: {}'.format(self))
         self._touchpos = touch.pos
         self._trigger_move_to_touch()
-        return self
+        return True
 
     def _move_to_touch(self, *args):
         if self._touchpos != [] and self.center != self._touchpos:
@@ -177,9 +211,12 @@ class Spot(ImageStack):
             self._trigger_upd_collider()
 
     def on_touch_up(self, touch):
+        if not self.selected:
+            return
         if self._touchpos:
             self.coords = self.pos
         self._touchpos = []
+        return True
 
     def __repr__(self):
         return "{}@({},{})".format(self.place.name, self.x, self.y)

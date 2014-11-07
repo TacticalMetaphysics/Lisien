@@ -7,6 +7,7 @@ from kivy.properties import (
     NumericProperty,
     ReferenceListProperty
 )
+from kivy.graphics import Color, Line, InstructionGroup
 from kivy.clock import Clock
 from ELiDE.kivygarden.texturestack import ImageStack
 
@@ -35,9 +36,21 @@ will update its position appropriately.
     _startx = NumericProperty()
     _starty = NumericProperty()
     _start = ReferenceListProperty(_startx, _starty)
+    selectbox_r = NumericProperty(0)
+    selectbox_g = NumericProperty(1)
+    selectbox_b = NumericProperty(1)
+    selectbox_a = NumericProperty(1)
+    selectbox_rgba = ReferenceListProperty(
+        selectbox_r,
+        selectbox_g,
+        selectbox_b,
+        selectbox_a
+    )
     travel_on_drop = BooleanProperty(False)
     engine = ObjectProperty()
     selected = BooleanProperty()
+    box = ObjectProperty()
+    grabbed = BooleanProperty(False)
     use_boardspace = True
 
     def __init__(self, **kwargs):
@@ -47,6 +60,32 @@ will update its position appropriately.
         """
         self._trigger_update = Clock.create_trigger(self._update)
         super().__init__(**kwargs)
+
+    def on_selected(self, *args):
+        if self.selected:
+            self.box = InstructionGroup()
+            self.box.add(Color(rgba=self.selectbox_rgba))
+            self.boxline = Line()
+
+            def upd_boxline(*args):
+                self.boxline.points = [
+                    self.x, self.y,
+                    self.x, self.right,
+                    self.top, self.right,
+                    self.top, self.x,
+                    self.x, self.y
+                ]
+
+            upd_boxline()
+            self.bind(
+                pos=upd_boxline,
+                size=upd_boxline
+            )
+            self.box.add(self.boxline)
+            self.canvas.add(self.box)
+        else:
+            if self.box in self.canvas.children:
+                self.canvas.remove(self.box)
 
     def _update(self, *args):
         """Private use. Update my ``paths`` and ``stackhs`` with what's in my
@@ -133,6 +172,8 @@ will update its position appropriately.
 
     def on_touch_move(self, touch):
         """Move with the touch if I'm grabbed."""
+        if not self.grabbed:
+            return
         self.pos = (
             touch.x + self._touch_ox_diff,
             touch.y + self._touch_oy_diff
@@ -144,6 +185,8 @@ will update its position appropriately.
         there.
 
         """
+        if not self.grabbed:
+            return
         new_spot = None
         for spot in self.board.spot.values():
             if self.collide_widget(spot):
@@ -160,4 +203,6 @@ will update its position appropriately.
                     self._update()
         else:
             self.pos = self._start
-        return self
+
+        self.grabbed = False
+        return True

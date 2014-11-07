@@ -18,11 +18,11 @@ from kivy.resources import resource_add_path
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.widget import Widget
+from kivy.uix.scrollview import ScrollView
 
 from kivy.factory import Factory
 
 from .board import Board
-from .board.arrow import ArrowWidget
 
 import LiSE
 import ELiDE
@@ -98,6 +98,10 @@ class Dummy(ImageStack):
         return True
 
 
+class BoardView(ScrollView):
+    pass
+
+
 class ELiDELayout(FloatLayout):
     """A master layout that contains one board and some menus
     and charsheets.
@@ -114,16 +118,86 @@ class ELiDELayout(FloatLayout):
     dummies = ListProperty()
     _touch = ObjectProperty(None, allownone=True)
     popover = ObjectProperty()
-    grabbing = BooleanProperty()
+    grabbing = BooleanProperty(True)
     reciprocal_portal = BooleanProperty()
     grabbed = ObjectProperty(None, allownone=True)
-    selected = ObjectProperty(None, allownone=True)
+    selection = ObjectProperty(None, allownone=True)
     selection_candidates = ListProperty([])
+    keep_selection = BooleanProperty(False)
     engine = ObjectProperty()
     tick_results = DictProperty({})
     branch = StringProperty()
     tick = NumericProperty()
     rules_per_frame = BoundedNumericProperty(10, min=1)
+
+    def on_touch_down(self, touch):
+        if (
+                self.ids.boardview.collide_point(*touch.pos)
+                and not self.selection_candidates
+        ):
+            # if the board itself handles the touch, let it be
+            touch.push()
+            touch.apply_transform_2d(self.ids.boardview.to_local)
+            pawns = list(self.board.pawns_at(*touch.pos))
+            if pawns:
+                self.selection_candidates = pawns
+                return True
+            spots = list(self.board.spots_at(*touch.pos))
+            if spots:
+                self.selection_candidates = spots
+                return True
+            arrows = list(self.board.arrows_at(*touch.pos))
+            if arrows:
+                self.selection_candidates = arrows
+                return True
+            # the board did not handle the touch, so let the view scroll
+            touch.pop()
+            return self.ids.boardview.dispatch('on_touch_down', touch)
+        for dummy in self.dummies:
+            if dummy.collide_point(*touch.pos):
+                self.selection = dummy
+                return True
+        # the menu widgets can handle things themselves
+        if self.ids.timemenu.dispatch('on_touch_down', touch):
+            return True
+        if self.ids.charmenu.dispatch('on_touch_down', touch):
+            return True
+
+    def on_touch_move(self, touch):
+        # For now, there's no way to select things by dragging.
+        # However, if something's already selected, you can move it.
+        if self.selection:
+            touch.push()
+            if hasattr(self.selection, 'use_boardspace'):
+                touch.apply_transform_2d(self.ids.boardview.to_local)
+            r = self.selection.dispatch('on_touch_move', touch)
+            touch.pop()
+            self.keep_selection = True
+            return r
+        return super().on_touch_move(touch)
+
+    def on_touch_up(self, touch):
+        # If there are selection candidates, select the next one that
+        # collides the touch.
+        if self.selection_candidates:
+            touch.push()
+            touch.apply_transform_2d(self.ids.boardview.to_local)
+            while self.selection_candidates:
+                candidate = self.selection_candidates.pop(0)
+                if candidate.collide_point(*touch.pos):
+                    if hasattr(self.selection, 'selected'):
+                        self.selection.selected = False
+                    self.selection = candidate
+                    self.selection.selected = True
+                    touch.pop()
+                    return True
+            touch.pop()
+        if not self.keep_selection:
+            if hasattr(self.selection, 'selected'):
+                self.selection.selected = False
+            self.selection = None
+        self.keep_selection = False
+        return super().on_touch_up(touch)
 
     def on_dummies(self, *args):
         if self.board is None or self.board.character is None:
@@ -297,102 +371,6 @@ class ELiDELayout(FloatLayout):
                     )
                 )
             )
-
-    def on_touch_down(self, touch):
-        """Delegate first to the menu, then to the charsheet, then to the
-        board, then to the boardview.
-
-        """
-        if self.ids.charmenu.dispatch('on_touch_down', touch):
-            return True
-        if self.ids.timemenu.dispatch('on_touch_down', touch):
-            return True
-        if self.grabbing:
-            touch.push()
-            touch.apply_transform_2d(self.ids.boardview.to_local)
-            if not self.selection_candidates:
-                self.selection_candidates = list(
-                    self.board.pawns_at(*touch.pos)
-                ) + list(
-                    self.board.spots_at(*touch.pos)
-                ) + list(
-                    self.board.arrows_at(*touch.pos)
-                )
-            touch.pop()
-            if self.ids.boardview.dispatch('on_touch_down', touch):
-                self.scrolling = True
-                return True
-            else:
-                return False
-        if self.grabbed is not None:
-            if (
-                    hasattr(self.grabbed, 'place') and
-                    self.ids.portaladdbut.state == 'down'
-            ):
-                self.mouse_follower = Widget(
-                    size_hint=(None, None),
-                    size=(1, 1),
-                    pos=self.ids.boardview.to_local(*touch.pos)
-                )
-                self.board.add_widget(self.mouse_follower)
-                self.dummy_arrow = ArrowWidget(
-                    board=self.board,
-                    origin=self.grabbed,
-                    destination=self.mouse_follower
-                )
-                self.board.add_widget(self.dummy_arrow)
-            return True
-        return False
-
-    def on_touch_move(self, touch):
-        """If something's been grabbed, transform the touch to the boardview's
-        space and then delegate there.
-
-        """
-        if self.grabbed or self.selection_candidates:
-            if hasattr(self, 'scrolling'):
-                del self.scrolling
-        if hasattr(self, 'scrolling'):
-            return self.ids.boardview.dispatch('on_touch_move', touch)
-        if hasattr(self, 'mouse_follower'):
-            self.mouse_follower.pos = self.ids.boardview.to_local(
-                *touch.pos
-            )
-        if self.grabbed:
-            if hasattr(self.grabbed, 'use_boardspace'):
-                touch.push()
-                touch.apply_transform_2d(self.ids.boardview.to_local)
-            r = self.grabbed.dispatch('on_touch_move', touch)
-            if hasattr(self.grabbed, 'use_boardspace'):
-                touch.pop()
-            return r
-
-    def on_touch_up(self, touch):
-        """Dispatch everywhere, and set my ``grabbed`` to ``None``"""
-        if hasattr(self, 'mouse_follower'):
-            self.arrow_from_wid(self.mouse_follower)
-            self.board.remove_widget(self.dummy_arrow)
-            self.board.remove_widget(self.mouse_follower)
-            del self.dummy_arrow
-            del self.mouse_follower
-        self.ids.charmenu.dispatch('on_touch_up', touch)
-        self.ids.timemenu.dispatch('on_touch_up', touch)
-        self.ids.boardview.dispatch('on_touch_up', touch)
-        if hasattr(self, 'scrolling'):
-            del self.scrolling
-            return True
-        elif self.selection_candidates:
-            if hasattr(self.grabbed, 'selected'):
-                self.grabbed.selected = False
-            self.grabbed = self.selection_candidates.pop(0)
-            if hasattr(self.grabbed, 'selected'):
-                self.grabbed.selected = True
-        else:
-            if hasattr(self.grabbed, 'selected'):
-                self.grabbed.selected = False
-            self.grabbed = None
-            self.selection_candidates = []
-        return True
 
 
 Factory.register('ELiDELayout', cls=ELiDELayout)

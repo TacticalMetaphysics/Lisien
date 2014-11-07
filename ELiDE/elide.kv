@@ -3,6 +3,7 @@
 #: import StiffScrollEffect ELiDE.kivygarden.stiffscroll.StiffScrollEffect
 <Spot>:
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
+    linecolor: [0.0, 1.0, 1.0, 1.0] if self.selected else [0.0, 0.0, 0.0, 0.0]
 <Pawn>:
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
 <ArrowWidget>:
@@ -43,13 +44,14 @@
     grabbing: self.grabbed is None
     reciprocal_portal: False
     ScrollView:
-        effect_cls: StiffScrollEffect
         id: boardview
+        effect_cls: StiffScrollEffect
         size_hint: (0.85, 0.9)
         pos_hint: {'left': 0, 'top': 1}
         Board:
             id: board
             layout: root
+            selection: root.selection
             app: root.app
             engine: root.app.engine
             character: root.app.engine.character[root.app.config['ELiDE']['boardchar']]
@@ -82,7 +84,8 @@
         BoxLayout:
             orientation: 'vertical'
             Label:
-                text: 'Step'
+                font_name: 'Symbola.ttf'
+                text: ''.join((chr(0x25b6), chr(0x25ae)))
             BoxLayout:
                 orientation: 'horizontal'
                 Button:

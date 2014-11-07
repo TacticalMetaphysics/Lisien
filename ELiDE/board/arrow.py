@@ -413,12 +413,6 @@ class ArrowWidget(Widget):
         (dx, dy) = self.destination.center
         self.repointed = True
 
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            self._touch = touch
-            return True
-        return False
-
 
 class Arrow(ArrowWidget):
     """ArrowWidget that represents Portal"""
@@ -430,6 +424,7 @@ class Arrow(ArrowWidget):
         lambda self, v: None,
         bind=('portal',)
     )
+    grabbed = BooleanProperty(False)
 
     def _get_reciprocal(self):
         orign = self.portal['origin']

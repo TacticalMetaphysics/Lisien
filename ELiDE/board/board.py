@@ -26,6 +26,7 @@ class Board(RelativeLayout):
     app = ObjectProperty()
     engine = ObjectProperty()
     spots_unposd = NumericProperty(0)
+    selection = ObjectProperty(None, allownone=True)
 
     def on_selection(self, *args):
         Logger.info('selection: {}'.format(self.selection))
