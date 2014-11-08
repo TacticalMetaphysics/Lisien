@@ -147,12 +147,29 @@ class Board(RelativeLayout):
     def _update(self, *args):
         """Refresh myself from the database"""
         # remove widgets that don't represent anything anymore
+        pawns_removed = []
         for pawn_name in list(self.pawn.keys()):
             if pawn_name not in self.character.thing:
+                pawns_removed.append(pawn_name)
                 self._rmpawn(pawn_name)
+        Logger.debug(
+            "board: removed {} pawns from {}'s board".format(
+                len(pawns_removed),
+                self.character.name
+            )
+        )
+        spots_removed = []
         for spot_name in list(self.spot.keys()):
             if spot_name not in self.character.place:
+                spots_removed.append(spot_name)
                 self._rmspot(spot_name)
+        Logger.debug(
+            "board: removed {} spots from {}'s board".format(
+                len(spots_removed),
+                self.character.name
+            )
+        )
+        arrows_removed = []
         for arrow_origin in list(self.arrow.keys()):
             for arrow_destination in list(self.arrow[arrow_origin].keys()):
                 if (
@@ -160,13 +177,28 @@ class Board(RelativeLayout):
                         arrow_destination not in
                         self.character.portal[arrow_origin]
                 ):
+                    arrows_removed.append((arrow_origin, arrow_destination))
                     self._rmarrow(arrow_origin, arrow_destination)
+        Logger.debug(
+            "board: removed {} arrows from {}'s board".format(
+                len(arrows_removed),
+                self.character.name
+            )
+        )
         # add widgets to represent new stuff
+        spots_added = []
         for place_name in self.character.place:
             if place_name not in self.spot:
+                spots_added.append(place_name)
                 self.spotlayout.add_widget(
                     self.make_spot(self.character.place[place_name])
                 )
+        Logger.debug(
+            "board: added {} spots to {}'s board".format(
+                len(spots_added),
+                self.character.name
+            )
+        )
         if self.spots_unposd == len(self.spot):
             # No spots have positions;
             # do a layout.
@@ -179,19 +211,37 @@ class Board(RelativeLayout):
                     int(x * self.width),
                     int(y * self.height)
                 )
+            Logger.debug(
+                "board: auto layout of spots"
+            )
+        arrows_added = []
         for arrow_orig in self.character.portal:
             for arrow_dest in self.character.portal[arrow_orig]:
                 if (
                         arrow_orig not in self.arrow or
                         arrow_dest not in self.arrow[arrow_orig]
                 ):
+                    arrows_added.append(
+                        (
+                            arrow_orig,
+                            arrow_dest
+                        )
+                    )
                     self.arrowlayout.add_widget(
                         self.make_arrow(
                             self.character.portal[arrow_orig][arrow_dest]
                         )
                     )
+        Logger.debug(
+            "board: added {} arrows to {}'s board".format(
+                len(arrows_added),
+                self.character.name
+            )
+        )
+        pawns_added = []
         for thing_name in self.character.thing:
             if thing_name not in self.pawn:
+                pawns_added.append(thing_name)
                 pwn = self.make_pawn(self.character.thing[thing_name])
                 try:
                     whereat = self.arrow[
@@ -203,6 +253,12 @@ class Board(RelativeLayout):
                     whereat = self.spot[pwn.thing['location']]
                 whereat.add_widget(pwn)
                 self.pawn[thing_name] = pwn
+        Logger.debug(
+            "board: added {} pawns to {}'s board".format(
+                len(pawns_added),
+                self.character.name
+            )
+        )
         for spot in self.spot.values():
             spot._trigger_update()
         for pawn in self.pawn.values():
