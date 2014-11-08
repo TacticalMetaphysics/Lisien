@@ -179,6 +179,8 @@ class ELiDELayout(FloatLayout):
     def on_touch_up(self, touch):
         # If there are selection candidates, select the next one that
         # collides the touch.
+        if hasattr(self.selection, 'on_touch_up'):
+            self.selection.dispatch('on_touch_up', touch)
         if self.selection_candidates:
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
@@ -187,10 +189,25 @@ class ELiDELayout(FloatLayout):
                 if candidate.collide_point(*touch.pos):
                     if hasattr(self.selection, 'selected'):
                         self.selection.selected = False
+                    if hasattr(self.selection, '_start'):
+                        Logger.debug(
+                            "selection: moving {} back to {} from {}".format(
+                                self.selection,
+                                self.selection._start,
+                                self.selection.pos
+                            )
+                        )
+                        self.selection.pos = self.selection._start
+                        del self.selection._start
                     self.selection = candidate
                     self.selection.selected = True
-                    touch.pop()
-                    return True
+                    if (
+                            hasattr(self.selection, 'thing')
+                            and not hasattr(self.selection, '_start')
+                    ):
+                        self.selection._start = tuple(self.selection.pos)
+                    self.keep_selection = True
+                    break
             touch.pop()
         if not self.keep_selection:
             if hasattr(self.selection, 'selected'):

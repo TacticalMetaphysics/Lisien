@@ -28,9 +28,6 @@ class Board(RelativeLayout):
     spots_unposd = NumericProperty(0)
     selection = ObjectProperty(None, allownone=True)
 
-    def on_selection(self, *args):
-        Logger.info('selection: {}'.format(self.selection))
-
     def __init__(self, **kwargs):
         """Make a trigger for ``_redata`` and run it"""
         self._trigger_update = Clock.create_trigger(self._update)

@@ -9,12 +9,11 @@ from kivy.properties import (
 )
 from kivy.clock import Clock
 from kivy.logger import Logger
-from kivy.graphics import InstructionGroup, Color, Line
 from ELiDE.kivygarden.collider import CollideEllipse
-from ELiDE.kivygarden.texturestack import ImageStack
+from .pawnspot import PawnSpot
 
 
-class Spot(ImageStack):
+class Spot(PawnSpot):
     """The icon that represents a Place.
 
     The Spot is located on the Board that represents the same
@@ -23,15 +22,8 @@ class Spot(ImageStack):
 
     """
     place = ObjectProperty()
-    board = ObjectProperty()
-    engine = ObjectProperty()
-    selected = BooleanProperty()
     offset = NumericProperty(4)
     collider = ObjectProperty()
-    selected = BooleanProperty(False)
-    grabbed = BooleanProperty(False)
-    linecolor = ObjectProperty()
-    use_boardspace = True
     _ignore_place = BooleanProperty(False)
     _touchpos = ListProperty([])
 
@@ -71,32 +63,6 @@ class Spot(ImageStack):
             self.paths = self.place['_image_paths']
         except KeyError:
             self.place['_image_paths'] = self.paths = self._default_paths()
-
-    def on_linecolor(self, *args):
-        if hasattr(self, 'color'):
-            self.color.rgba = self.linecolor
-            return
-
-        def upd_box_points(*args):
-            self.box.points = [
-                self.x, self.y,
-                self.right, self.y,
-                self.right, self.top,
-                self.x, self.top,
-                self.x, self.y
-            ]
-        self.grp = InstructionGroup()
-        self.color = Color(*self.linecolor)
-        self.grp.add(self.color)
-        self.box = Line()
-        upd_box_points()
-        self.bind(
-            pos=upd_box_points,
-            size=upd_box_points
-        )
-        self.grp.add(self.box)
-        self.grp.add(Color(1., 1., 1.))
-        self.canvas.after.add(self.grp)
 
     def _default_pos(self):
         # If one spot is without a position, maybe the rest of them
@@ -200,7 +166,6 @@ class Spot(ImageStack):
         """If I'm being dragged, move to follow the touch."""
         if not self.selected:
             return False
-        Logger.debug('moving: {}'.format(self))
         self._touchpos = touch.pos
         self._trigger_move_to_touch()
         return True

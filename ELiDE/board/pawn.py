@@ -7,12 +7,12 @@ from kivy.properties import (
     NumericProperty,
     ReferenceListProperty
 )
-from kivy.graphics import Color, Line, InstructionGroup
 from kivy.clock import Clock
-from ELiDE.kivygarden.texturestack import ImageStack
+from kivy.logger import Logger
+from .pawnspot import PawnSpot
 
 
-class Pawn(ImageStack):
+class Pawn(PawnSpot):
     """A token to represent something that moves about between places.
 
 Pawns are graphical widgets made of one or more textures layered atop
@@ -28,30 +28,11 @@ some amount of game time. Whenever the game-time changes, the Pawn
 will update its position appropriately.
 
     """
-    board = ObjectProperty()
     thing = ObjectProperty()
     _touch_ox_diff = NumericProperty()
     _touch_oy_diff = NumericProperty()
     _touch_opos_diff = ReferenceListProperty(_touch_ox_diff, _touch_oy_diff)
-    _startx = NumericProperty()
-    _starty = NumericProperty()
-    _start = ReferenceListProperty(_startx, _starty)
-    selectbox_r = NumericProperty(0)
-    selectbox_g = NumericProperty(1)
-    selectbox_b = NumericProperty(1)
-    selectbox_a = NumericProperty(1)
-    selectbox_rgba = ReferenceListProperty(
-        selectbox_r,
-        selectbox_g,
-        selectbox_b,
-        selectbox_a
-    )
     travel_on_drop = BooleanProperty(False)
-    engine = ObjectProperty()
-    selected = BooleanProperty()
-    box = ObjectProperty()
-    grabbed = BooleanProperty(False)
-    use_boardspace = True
 
     def __init__(self, **kwargs):
         """Arrange to update my textures and my position whenever the relevant
@@ -61,31 +42,8 @@ will update its position appropriately.
         self._trigger_update = Clock.create_trigger(self._update)
         super().__init__(**kwargs)
 
-    def on_selected(self, *args):
-        if self.selected:
-            self.box = InstructionGroup()
-            self.box.add(Color(rgba=self.selectbox_rgba))
-            self.boxline = Line()
-
-            def upd_boxline(*args):
-                self.boxline.points = [
-                    self.x, self.y,
-                    self.x, self.right,
-                    self.top, self.right,
-                    self.top, self.x,
-                    self.x, self.y
-                ]
-
-            upd_boxline()
-            self.bind(
-                pos=upd_boxline,
-                size=upd_boxline
-            )
-            self.box.add(self.boxline)
-            self.canvas.add(self.box)
-        else:
-            if self.box in self.canvas.children:
-                self.canvas.remove(self.box)
+    def __repr__(self):
+        return '{}-in-{}'.format(self.thing.name, self.thing.location.name)
 
     def _update(self, *args):
         """Private use. Update my ``paths`` and ``stackhs`` with what's in my
@@ -158,26 +116,12 @@ will update its position appropriately.
         self.unbind(center=pawn.setter('pos'))
         super().remove_widget(pawn)
 
-    def hit(self, x, y):
-        """To be called when I'm hit with a touch. Records the relative
-        position of the touch wrt my center, as well as my position at
-        time of touch.
-
-        """
-        self._touch_opos_diff = (
-            self.x - x,
-            self.y - y
-        )
-        self._start = self.pos
-
     def on_touch_move(self, touch):
         """Move with the touch if I'm grabbed."""
-        if not self.grabbed:
-            return
-        self.pos = (
-            touch.x + self._touch_ox_diff,
-            touch.y + self._touch_oy_diff
-        )
+        if not self.selected:
+            return False
+        self.center = touch.pos
+        return True
 
     def on_touch_up(self, touch):
         """See if I've been dropped on a :class:`Spot`. If so, command the
@@ -185,24 +129,28 @@ will update its position appropriately.
         there.
 
         """
-        if not self.grabbed:
-            return
-        new_spot = None
+        if not self.selected:
+            return False
         for spot in self.board.spot.values():
             if self.collide_widget(spot):
+                Logger.debug(
+                    "pawn: {} will go from {} to {}".format(
+                        self.thing.name,
+                        self.thing.location.name,
+                        spot.place.name
+                    )
+                )
                 new_spot = spot
-
-        if new_spot:
-            myplace = self.thing["location"]
-            theirplace = new_spot.place.name
-            if myplace != theirplace:
-                if self.travel_on_drop:
-                    self.thing.travel_to(new_spot.place.name)
-                else:
-                    self.thing["location"] = new_spot.place.name
-                    self._update()
+                break
         else:
-            self.pos = self._start
+            return True
 
-        self.grabbed = False
+        myplace = self.thing["location"]
+        theirplace = new_spot.place.name
+        if myplace != theirplace:
+            if self.travel_on_drop:
+                self.thing.travel_to(new_spot.place.name)
+            else:
+                self.thing["location"] = new_spot.place.name
+                self._update()
         return True
