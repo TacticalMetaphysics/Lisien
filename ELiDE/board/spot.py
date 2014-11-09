@@ -14,11 +14,12 @@ from .pawnspot import PawnSpot
 
 
 class Spot(PawnSpot):
-    """The icon that represents a Place.
+    """The icon that represents a :class:`Place`.
 
-    The Spot is located on the Board that represents the same
-    Dimension that the underlying Place is in. Its coordinates are
-    relative to its Board, not necessarily the window the Board is in.
+    Each :class:`Spot` is located on the Board that represents the
+    :class:`Character` that the underlying :class:`Place` is in. Its
+    coordinates are relative to its :class:`Board`, not necessarily
+    the window the :class:`Board` is in.
 
     """
     place = ObjectProperty()
@@ -65,15 +66,24 @@ class Spot(PawnSpot):
             self.place['_image_paths'] = self.paths = self._default_paths()
 
     def _default_pos(self):
+        """Return the position on the board to use when I don't have
+        one. Given as a pair of floats between 0 and 1.
+
+        """
         # If one spot is without a position, maybe the rest of them
         # are too, and so maybe the board should do a full layout.
         self.board.spots_unposd += 1
         return (0.5, 0.5)
 
     def _default_paths(self):
+        """Return a list of paths to use for my graphics by default."""
         return ['orb.png']
 
     def _update(self, *args):
+        """Private use. Update my ``paths`` and ``pos`` with what's in my
+        ``place``.
+
+        """
         if self.place['_image_paths'] != self.paths:
             self.paths = self.place['_image_paths']
         if (
@@ -89,6 +99,15 @@ class Spot(PawnSpot):
             self._trigger_upd_collider()
 
     def add_widget(self, wid, i=0, canvas=None):
+        """Put the widget's canvas in my ``board``'s ``pawnlayout`` rather
+        than my own canvas.
+
+        The idea is that all my child widgets are to be instances of
+        :class:`Pawn`, and should therefore be drawn after every
+        non-:class:`Pawn` widget, so that pawns are on top of spots
+        and arrows.
+
+        """
         super().add_widget(wid, i, canvas)
         if not hasattr(wid, 'group'):
             return
@@ -115,6 +134,11 @@ class Spot(PawnSpot):
         wid._trigger_update()
 
     def pospawn(self, pawn):
+        """Given some :class:`Pawn` instance that's to be on top of me, set
+        its ``pos`` so that it looks like it's on top of me but
+        doesn't cover me so much that you can't select me.
+
+        """
         i = 0
         for child in self.children:
             if child is pawn:
@@ -131,18 +155,25 @@ class Spot(PawnSpot):
         super().on_paths(*args)
 
     def on_x(self, *args):
+        """When my ``x`` changes, save it relativized to the board."""
         if self._ignore_place:
             return
         self.place['_x'] = self.x / self.board.width
         self._trigger_upd_collider()
 
     def on_y(self, *args):
+        """When my ``y`` changes, save it relativized to the board."""
         if self._ignore_place:
             return
         self.place['_y'] = self.y / self.board.height
         self._trigger_upd_collider()
 
     def _upd_collider(self, *args):
+        """Update my collider to match my present position. and size.
+
+        Assumes that I am an ellipse.
+
+        """
         (x, y) = self.center
         (w, h) = self.size
         rx = w / 2
@@ -161,6 +192,7 @@ class Spot(PawnSpot):
             self.pospawn(pawn)
 
     def collide_point(self, x, y):
+        """Check my collider."""
         if not self.collider:
             return False
         return (x, y) in self.collider
@@ -174,11 +206,16 @@ class Spot(PawnSpot):
         return True
 
     def _move_to_touch(self, *args):
+        """Move so I'm centered at my ``touchpos``, and trigger an update of
+        my collider.
+
+        """
         if self._touchpos != [] and self.center != self._touchpos:
             self.center = self._touchpos
             self._trigger_upd_collider()
 
     def on_touch_up(self, touch):
+        """Unset ``touchpos``"""
         if not self.selected:
             return
         if self._touchpos:
@@ -187,4 +224,5 @@ class Spot(PawnSpot):
         return True
 
     def __repr__(self):
+        """Give my place's name and my position."""
         return "{}@({},{})".format(self.place.name, self.x, self.y)

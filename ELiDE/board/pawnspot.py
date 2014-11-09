@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
+"""Code that draws the box around a Pawn or Spot when it's selected"""
 from kivy.properties import (
     ObjectProperty,
     BooleanProperty,
@@ -14,6 +15,10 @@ from ELiDE.kivygarden.texturestack import ImageStack
 
 
 class PawnSpot(ImageStack):
+    """The kind of ImageStack that represents a :class:`Thing` or
+    :class:`Place`.
+
+    """
     board = ObjectProperty()
     engine = ObjectProperty()
     selected = BooleanProperty(False)
@@ -21,6 +26,11 @@ class PawnSpot(ImageStack):
     use_boardspace = True
 
     def on_linecolor(self, *args):
+        """If I don't yet have the instructions for drawing the selection box
+        in my canvas, put them there. In any case, set the
+        :class:`Color` instruction to match my current ``linecolor``.
+
+        """
         if hasattr(self, 'color'):
             self.color.rgba = self.linecolor
             return
@@ -35,6 +45,7 @@ class PawnSpot(ImageStack):
             ]
         boxgrp = InstructionGroup()
         self.color = Color(*self.linecolor)
+
         boxgrp.add(self.color)
         self.box = Line()
         upd_box_points()

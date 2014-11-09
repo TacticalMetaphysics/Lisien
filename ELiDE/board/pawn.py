@@ -13,19 +13,19 @@ from .pawnspot import PawnSpot
 
 
 class Pawn(PawnSpot):
-    """A token to represent something that moves about between places.
+    """A token to represent a :class:`Thing`.
 
-Pawns are graphical widgets made of one or more textures layered atop
-one another. The textures are assumed to be 32x32 pixels.
-
-Pawns represent Things in those cases where a Thing is located
-directly in a Place or a Portal. The corresponding Pawn will appear
-atop the Place's Spot or the Portal's Arrow.
-
-If a Pawn is currently interactive, it may be dragged to a new Spot,
-which has the effect of ordering its Thing to travel there. This takes
-some amount of game time. Whenever the game-time changes, the Pawn
-will update its position appropriately.
+    :class:`Thing` is the LiSE class to represent items that are
+    located in some :class:`Place` or other. Accordingly,
+    :class:`Pawn`'s coordinates are never set directly; they are
+    instead derived from the location of the :class:`Thing`
+    represented. That means a :class:`Pawn` will appear next to the
+    :class:`Spot` representing the :class:`Place` that its
+    :class:`Thing` is in. The exception is if the :class:`Thing` is
+    currently moving from its current :class:`Place` to another one,
+    in which case the :class:`Pawn` will appear some distance along
+    the :class:`Arrow` that represents the :class:`Portal` it's moving
+    through.
 
     """
     thing = ObjectProperty()
@@ -43,11 +43,12 @@ will update its position appropriately.
         super().__init__(**kwargs)
 
     def __repr__(self):
+        """Give my ``thing``'s name and its location's name."""
         return '{}-in-{}'.format(self.thing.name, self.thing.location.name)
 
     def _update(self, *args):
         """Private use. Update my ``paths`` and ``stackhs`` with what's in my
-        :class:`Thing`.
+        ``thing``.
 
         """
         if '_image_paths' not in self.thing:
@@ -88,15 +89,22 @@ will update its position appropriately.
             whereat.add_widget(self)
 
     def _default_paths(self):
+        """Return a list of paths to use for my graphics by default."""
         return ['atlas://rltiles/base.atlas/unseen']
 
     def _default_offxs(self):
+        """Return a list of integers to use for my x-offsets by default."""
         return [0]
 
     def _default_offys(self):
+        """Return a list of integers to use for my y-offsets by default."""
         return [0]
 
     def _default_stackhs(self):
+        """Return a list of integers to use for my stacking heights by
+        default.
+
+        """
         return [0]
 
     def add_widget(self, pawn, index=0, canvas='after'):
