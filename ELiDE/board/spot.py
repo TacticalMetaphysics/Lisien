@@ -105,9 +105,12 @@ class Spot(PawnSpot):
         )
         mycanvas.remove(wid.canvas)
         for child in self.children:
-            if hasattr(child, 'group') and child.group in pawncanvas.children:
-                pawncanvas.remove(child.group)
-            pawncanvas.add(child.group)
+            if hasattr(child, 'group'):
+                if child.group in pawncanvas.children:
+                    pawncanvas.remove(child.group)
+                pawncanvas.add(child.group)
+            else:
+                pawncanvas.add(child.canvas)
         self.pospawn(wid)
         wid._trigger_update()
 

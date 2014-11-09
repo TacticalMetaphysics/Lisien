@@ -33,15 +33,15 @@ class PawnSpot(ImageStack):
                 self.x, self.top,
                 self.x, self.y
             ]
-        self.grp = InstructionGroup()
+        boxgrp = InstructionGroup()
         self.color = Color(*self.linecolor)
-        self.grp.add(self.color)
+        boxgrp.add(self.color)
         self.box = Line()
         upd_box_points()
         self.bind(
             pos=upd_box_points,
             size=upd_box_points
         )
-        self.grp.add(self.box)
-        self.grp.add(Color(1., 1., 1.))
-        self.canvas.after.add(self.grp)
+        boxgrp.add(self.box)
+        boxgrp.add(Color(1., 1., 1.))
+        self.group.add(boxgrp)

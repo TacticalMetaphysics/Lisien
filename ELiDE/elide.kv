@@ -1,11 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 #: import StiffScrollEffect ELiDE.kivygarden.stiffscroll.StiffScrollEffect
-<Spot>:
+<PawnSpot>:
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
-    linecolor: [0.0, 1.0, 1.0, 1.0] if self.selected else [0.0, 0.0, 0.0, 0.0]
-<Pawn>:
-    engine: self.board.layout.app.engine if self.board and self.board.layout else None
+    linecolor: [0., 1., 1., 1.] if self.selected else [0., 0., 0., 0.]
 <ArrowWidget>:
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
     bg_color_unselected: [0.5, 0.5, 0.5, 0.5]
