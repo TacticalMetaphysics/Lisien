@@ -216,12 +216,7 @@ class Spot(PawnSpot):
 
     def on_touch_up(self, touch):
         """Unset ``touchpos``"""
-        if not self.selected:
-            return
-        if self._touchpos:
-            self.coords = self.pos
         self._touchpos = []
-        return True
 
     def __repr__(self):
         """Give my place's name and my position."""
