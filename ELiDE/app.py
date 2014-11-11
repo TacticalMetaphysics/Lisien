@@ -31,6 +31,9 @@ from ELiDE.kivygarden.texturestack import ImageStack
 resource_add_path(ELiDE.__path__[0] + "/assets")
 
 
+# I don't really need to register Board, that happens when it's
+# imported, but registering it is literally the only reason why I
+# imported it so do it explicitly for clarity.
 Factory.register('Board', cls=Board)
 
 
