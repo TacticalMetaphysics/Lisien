@@ -154,8 +154,7 @@ class ELiDELayout(FloatLayout):
             touch.pop()
             return self.ids.boardview.dispatch('on_touch_down', touch)
         for dummy in self.dummies:
-            if dummy.collide_point(*touch.pos):
-                self.selection = dummy
+            if dummy.dispatch('on_touch_down', touch):
                 return True
         # the menu widgets can handle things themselves
         if self.ids.timemenu.dispatch('on_touch_down', touch):
