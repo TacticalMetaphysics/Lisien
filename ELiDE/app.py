@@ -38,6 +38,10 @@ Factory.register('Board', cls=Board)
 
 
 class Dummy(ImageStack):
+    """A widget that looks like the ones on the board, which, when dragged
+    onto the board, creates one of them.
+
+    """
     _touch = ObjectProperty(None, allownone=True)
     name = StringProperty()
     prefix = StringProperty()
@@ -58,6 +62,11 @@ class Dummy(ImageStack):
     top_up = NumericProperty(0)
 
     def on_touch_down(self, touch):
+        """If hit, record my starting position, that I may return to it in
+        ``on_touch_up`` after creating a real :class:`board.Spot` or
+        :class:`board.Pawn` instance.
+
+        """
         if not self.collide_point(*touch.pos):
             return False
         self.pos_start = self.pos
@@ -70,6 +79,7 @@ class Dummy(ImageStack):
         return True
 
     def on_touch_move(self, touch):
+        """Follow the touch"""
         if touch is not self._touch:
             return False
         self.pos = (
@@ -79,6 +89,11 @@ class Dummy(ImageStack):
         return True
 
     def on_touch_up(self, touch):
+        """Return to ``pos_start``, but first, save my current ``pos`` into
+        ``pos_up``, so that the layout knows where to put the real
+        :class:`board.Spot` or :class:`board.Pawn` instance.
+
+        """
         if touch is not self._touch:
             return False
         self.pos_up = self.pos
@@ -116,6 +131,10 @@ class ELiDELayout(FloatLayout):
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
     def on_touch_down(self, touch):
+        """Dispatch the touch to the board, then its :class:`ScrollView`, then
+        the dummies, then the menus.
+
+        """
         if (
                 self.ids.boardview.collide_point(*touch.pos)
                 and not self.selection_candidates
@@ -148,6 +167,11 @@ class ELiDELayout(FloatLayout):
             return True
 
     def on_touch_move(self, touch):
+        """If something's selected, it's on the board, so transform the touch
+        to the boardview's space before dispatching it to the
+        selection. Otherwise dispatch normally.
+
+        """
         # For now, there's no way to select things by dragging.
         # However, if something's already selected, you can move it.
         if self.selection:
@@ -161,8 +185,12 @@ class ELiDELayout(FloatLayout):
         return super().on_touch_move(touch)
 
     def on_touch_up(self, touch):
-        # If there are selection candidates, select the next one that
-        # collides the touch.
+        """If there's a selection, dispatch the touch to it. Then, if there
+        are selection candidates, select the next one that collides
+        the touch. Otherwise, if something is selected, unselect
+        it.
+
+        """
         if hasattr(self.selection, 'on_touch_up'):
             self.selection.dispatch('on_touch_up', touch)
         if self.selection_candidates:
@@ -201,6 +229,11 @@ class ELiDELayout(FloatLayout):
         return super().on_touch_up(touch)
 
     def on_dummies(self, *args):
+        """Give the dummies numbers such that, when appended to their names,
+        they give a unique name for the resulting new
+        :class:`board.Pawn` or :class:`board.Spot`.
+
+        """
         if self.board is None or self.board.character is None:
             Clock.schedule_once(self.on_dummies, 0)
             return
@@ -221,6 +254,11 @@ class ELiDELayout(FloatLayout):
             dummy._numbered = True
 
     def spot_from_dummy(self, dummy):
+        """Create a new :class:`board.Spot` instance, along with the
+        underlying :class:`LiSE.Place` instance, and give it the name,
+        position, and imagery of the provided dummy.
+
+        """
         (x, y) = self.ids.boardview.to_local(*dummy.pos_up)
         x /= self.board.width
         y /= self.board.height
@@ -237,6 +275,11 @@ class ELiDELayout(FloatLayout):
         dummy.num += 1
 
     def pawn_from_dummy(self, dummy):
+        """Create a new :class:`board.Pawn` instance, along with the
+        underlying :class:`LiSE.Place` instance, and give it the name,
+        location, and imagery of the provided dummy.
+
+        """
         dummy.pos = self.ids.boardview.to_local(*dummy.pos)
         for spot in self.board.spotlayout.children:
             if spot.collide_widget(dummy):
@@ -350,6 +393,12 @@ class ELiDELayout(FloatLayout):
         """Call ``self.advance()``, and if the tick hasn't changed, schedule
         it to happen again.
 
+        This is sort of a hack to fake parallel programming. Until I
+        work out how to pass messages between an ELiDE process and a
+        LiSE-core process, I'll just assume that each individual rule
+        will be quick enough to resolve that the UI won't appear to
+        lock up.
+
         """
         curtick = self.tick
         n = 0
@@ -415,7 +464,7 @@ Factory.register('MenuIntInput', cls=MenuIntInput)
 
 
 class ELiDEApp(App):
-    """LiSE, run as a standalone application, and not a library.
+    """Extensible LiSE Development Environment.
 
     As it's a Kivy app, this implements the things required of the App
     class. I also keep \"globals\" here.
