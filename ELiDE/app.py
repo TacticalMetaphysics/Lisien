@@ -87,10 +87,6 @@ class Dummy(ImageStack):
         return True
 
 
-class BoardView(ScrollView):
-    pass
-
-
 class ELiDELayout(FloatLayout):
     """A master layout that contains one board and some menus
     and charsheets.
