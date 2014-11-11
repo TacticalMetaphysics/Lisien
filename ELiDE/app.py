@@ -47,26 +47,20 @@ class Dummy(ImageStack):
     name = StringProperty()
     prefix = StringProperty()
     num = NumericProperty()
-    x_start = NumericProperty()
-    y_start = NumericProperty()
+    x_start = NumericProperty(0)
+    y_start = NumericProperty(0)
     pos_start = ReferenceListProperty(x_start, y_start)
-    x_down = NumericProperty()
-    y_down = NumericProperty()
+    x_down = NumericProperty(0)
+    y_down = NumericProperty(0)
     pos_down = ReferenceListProperty(x_down, y_down)
-    x_up = NumericProperty()
-    y_up = NumericProperty()
+    x_up = NumericProperty(0)
+    y_up = NumericProperty(0)
     pos_up = ReferenceListProperty(x_up, y_up)
-    x_center_up = NumericProperty()
-    y_center_up = NumericProperty()
+    x_center_up = NumericProperty(0)
+    y_center_up = NumericProperty(0)
     center_up = ReferenceListProperty(x_center_up, y_center_up)
-    right_up = NumericProperty()
-    top_up = NumericProperty()
-
-    def on_pos_up(self, *args):
-        self.x_center_up = self.x_up + self.width / 2
-        self.y_center_up = self.y_up + self.height / 2
-        self.right_up = self.x_up + self.width
-        self.top_up = self.y_up + self.height
+    right_up = NumericProperty(0)
+    top_up = NumericProperty(0)
 
     def on_touch_down(self, touch):
         if not self.collide_point(*touch.pos):

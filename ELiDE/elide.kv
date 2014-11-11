@@ -35,6 +35,10 @@
     destination: self.board.spot[self.portal['destination']]
 <Dummy>:
     name: "".join((self.prefix, str(self.num)))
+    x_center_up: self.x_up + self.width / 2
+    y_center_up: self.y_up + self.height / 2
+    right_up: self.x_up + self.width
+    top_up: self.y_up + self.height
 <ELiDELayout>:
     engine: self.app.engine
     board: board
