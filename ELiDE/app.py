@@ -37,14 +37,6 @@ resource_add_path(ELiDE.__path__[0] + "/assets")
 Factory.register('Board', cls=Board)
 
 
-class MouseFollower(Widget):
-    boardview = ObjectProperty()
-
-    def on_touch_move(self, touch):
-        self.center = self.boardview.to_local(*touch.pos)
-        return True
-
-
 class Dummy(ImageStack):
     _touch = ObjectProperty(None, allownone=True)
     name = StringProperty()
