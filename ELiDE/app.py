@@ -17,8 +17,6 @@ from kivy.properties import (
 from kivy.resources import resource_add_path
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
-from kivy.uix.widget import Widget
-from kivy.uix.scrollview import ScrollView
 
 from kivy.factory import Factory
 
