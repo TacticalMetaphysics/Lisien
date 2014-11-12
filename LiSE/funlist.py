@@ -7,7 +7,7 @@ from collections import (
 )
 from json import dumps as jsonned
 from json import loads as unjsonned
-from util import listen
+from .util import listen
 
 
 class FunList(MutableSequence):

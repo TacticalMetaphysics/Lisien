@@ -6,7 +6,7 @@
 from collections import Mapping
 
 
-def dispatch(d, key, args):
+def dispatch(d, key, *args):
     if key in d:
         for f in d[key]:
             f(*args)

@@ -278,7 +278,6 @@ class Thing(ThingPlace):
             (branch, tick) = self.engine.time
             self._load_locs_branch(branch)
             self._loccache[branch][tick] = value
-            self._stat_set('locations', value)
         else:
             if not self.engine.caching:
                 super().__setitem__(key, value)
@@ -293,7 +292,6 @@ class Thing(ThingPlace):
                 value,
                 super().__setitem__
             )
-            self._stat_set(key, value)
 
     def __delitem__(self, key):
         """As of now, this key isn't mine."""
@@ -318,7 +316,6 @@ class Thing(ThingPlace):
             key,
             super().__delitem__
         )
-        self._stat_del(key)
 
     def _load_locs_branch(self, branch):
         """Private method. Cache stored location data for this branch."""
@@ -657,7 +654,6 @@ class Place(ThingPlace):
             value,
             super().__setitem__
         )
-        self._stat_set(key, value)
 
     def __delitem__(self, key):
         if not self.engine.caching:
@@ -672,7 +668,6 @@ class Place(ThingPlace):
             key,
             super().__delitem__
         )
-        self._stat_del(key)
 
     def _get_json_dict(self):
         (branch, tick) = self.engine.time
