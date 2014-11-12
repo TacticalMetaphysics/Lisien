@@ -13,7 +13,7 @@ from gorm import ORM as gORM
 from .character import Character
 from .rule import AllRules
 from .query import QueryEngine
-from .util import dispatch
+from .util import dispatch, listen
 
 
 alchemyOpError = None
@@ -77,8 +77,14 @@ class StringStore(MutableMapping):
         for f in self._lang_listeners:
             f(self, v)
 
+    def lang_listener(self, f):
+        listen(self._lang_listeners, f)
+
     def _dispatch_str(self, k, v):
         dispatch(self._str_listeners, k, self, k, v)
+
+    def str_listener(self, f, string=None):
+        listen(self._str_listeners, f, string)
 
     @property
     def language(self):
@@ -129,16 +135,6 @@ class StringStore(MutableMapping):
         self.engine.db.string_table_del(self.table, self.language, k)
         self._dispatch_str(k, None)
 
-    def lang_listener(self, f):
-        """Register f to be called whenever my language changes"""
-        if f not in self._lang_listeners:
-            self._lang_listeners.append(f)
-
-    def str_listener(self, f, s=None):
-        """Register f to be called when string s is set or deleted."""
-        if f not in self._str_listeners[s]:
-            self._str_listeners[s]
-
 
 class FunctionStoreDB(MutableMapping):
     """Store functions in a SQL database"""
@@ -156,6 +152,9 @@ class FunctionStoreDB(MutableMapping):
 
     def _dispatch(self, name, fun):
         dispatch(self._listeners, name, self, name, fun)
+
+    def listener(self, f, name=None):
+        listen(self._listeners, f, name)
 
     def __len__(self):
         """SELECT COUNT(*) FROM {}""".format(self._tab)
@@ -207,10 +206,6 @@ class FunctionStoreDB(MutableMapping):
         del self.cache[name]
         self._dispatch(name, None)
 
-    def listener(self, fun, name=None):
-        if fun not in self._listeners[name]:
-            self._listeners[name].append(fun)
-
     def decompiled(self, name):
         """Use unpyc3 to decompile the function named ``name`` and return the
         resulting unpyc3.DefStatement.
@@ -242,6 +237,9 @@ class GlobalVarMapping(MutableMapping):
 
     def _dispatch(self, k, v):
         dispatch(self._listeners, k, self, k, v)
+
+    def listener(self, f, key=None):
+        listen(self._listeners, f, key)
 
     def __iter__(self):
         """Iterate over the global keys whose values aren't null at the moment.
@@ -283,6 +281,9 @@ class CharacterMapping(MutableMapping):
 
     def _dispatch(self, k, v):
         dispatch(self._listeners, k, self, k, v)
+
+    def listener(self, f, char=None):
+        listen(self._listeners, f, char)
 
     def __iter__(self):
         return self.engine.db.characters()

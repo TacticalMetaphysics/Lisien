@@ -7,6 +7,7 @@ from collections import (
 )
 from json import dumps as jsonned
 from json import loads as unjsonned
+from util import listen
 
 
 class FunList(MutableSequence):
@@ -62,6 +63,9 @@ class FunList(MutableSequence):
     def _dispatch(self):
         for f in self._listeners:
             f(self)
+
+    def listener(self, f):
+        listen(self._listeners, f)
 
     def _funn(self, v):
         funn = v.__name__ if isinstance(v, Callable) else v

@@ -6,6 +6,7 @@ from .util import (
     CacheError,
     TravelException,
     dispatch,
+    listen,
     cache_get,
     cache_set,
     cache_del,
@@ -56,6 +57,12 @@ class ThingPlace(Node):
 
     def _dispatch_stat(self, k, v):
         dispatch(self._stat_listeners, k, self, k, v)
+
+    def listener(self, f, stat=None):
+        listen(self._stat_listeners, f, stat)
+
+    def rulebook_listener(self, f):
+        listen(self._rulebook_listeners, f)
 
     def __setitem__(self, k, v):
         super().__setitem__(k, v)
