@@ -1,7 +1,10 @@
 # coding: utf-8
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
-from collections import MutableSequence, Callable
+from collections import (
+    MutableSequence,
+    Callable
+)
 from json import dumps as jsonned
 from json import loads as unjsonned
 
@@ -54,6 +57,11 @@ class FunList(MutableSequence):
                 ),
                 self.preset_values
             )
+        self._listeners = []
+
+    def _dispatch(self):
+        for f in self._listeners:
+            f(self)
 
     def _funn(self, v):
         funn = v.__name__ if isinstance(v, Callable) else v
@@ -114,12 +122,14 @@ class FunList(MutableSequence):
         l = self._getlist()
         l[i] = self._funn(v)
         self._setlist(l)
+        self._dispatch()
 
     def __delitem__(self, i):
         """Delete item i and save the list"""
         l = self._getlist()
         del l[i]
         self._setlist(l)
+        self._dispatch()
 
     def insert(self, i, v):
         """Insert the name of function ``v`` (or just ``v`` if it's a string)
@@ -129,3 +139,4 @@ class FunList(MutableSequence):
         l = self._getlist()
         l.insert(i, self._funn(v))
         self._setlist(l)
+        self._dispatch()

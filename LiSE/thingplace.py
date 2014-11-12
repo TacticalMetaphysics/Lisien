@@ -1,10 +1,11 @@
+from collections import defaultdict
 import networkx as nx
 from gorm.graph import Node
 from gorm.json import json_dump
 from .util import (
     CacheError,
     TravelException,
-    StatSet,
+    dispatch,
     cache_get,
     cache_set,
     cache_del,
@@ -13,7 +14,7 @@ from .util import (
 from .rule import RuleBook, RuleMapping
 
 
-class ThingPlace(Node, StatSet):
+class ThingPlace(Node):
     """Superclass for both Thing and Place"""
     @property
     def rulebook(self):
@@ -33,6 +34,7 @@ class ThingPlace(Node, StatSet):
         if not isinstance(v, str) or isinstance(v, RuleBook):
             raise TypeError("Use a :class:`RuleBook` or the name of one")
         self._rulebook_name = v.name if isinstance(v, RuleBook) else v
+        dispatch(self._rulebook_listeners, self._rulebook_name, self, v)
 
     @property
     def rule(self):
@@ -44,11 +46,24 @@ class ThingPlace(Node, StatSet):
         self.engine = character.engine
         self.name = name
         self._rulebook_name = str(name) + "_rulebook"
+        self._rulebook_listeners = []
+        self._stat_listeners = defaultdict(list)
         if self.engine.caching:
             self._keycache = {}
             self._statcache = {}
             self._on_stat_set = []
         super().__init__(character, name)
+
+    def _dispatch_stat(self, k, v):
+        dispatch(self._stat_listeners, k, self, k, v)
+
+    def __setitem__(self, k, v):
+        super().__setitem__(k, v)
+        self._dispatch_stat(k, v)
+
+    def __delitem__(self, k):
+        super().__delitem__(k)
+        self._dispatch_stat(k, None)
 
     def _portal_dests(self):
         """Iterate over names of nodes you can get to from here"""

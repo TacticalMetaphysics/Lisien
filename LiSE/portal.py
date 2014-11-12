@@ -1,14 +1,15 @@
+from collections import defaultdict
 from gorm.graph import Edge
 from gorm.json import json_dump
 from .util import (
-    StatSet,
+    dispatch,
     cache_get,
     cache_set,
     cache_del
 )
 
 
-class Portal(Edge, StatSet):
+class Portal(Edge):
     """Connection between two Places that Things may travel along.
 
     Portals are one-way, but you can make one appear two-way by
@@ -24,14 +25,17 @@ class Portal(Edge, StatSet):
         """
         self._origin = origin
         self._destination = destination
+        self._stat_listeners = defaultdict(list)
         self.character = character
         self.engine = character.engine
         if self.engine.caching:
             self._keycache = {}
             self._statcache = {}
             self._existence = {}
-            self._on_stat_set = []
         super().__init__(character, self._origin, self._destination)
+
+    def _dispatch_stat(self, k, v):
+        dispatch(self._stat_listeners, k, self, k, v)
 
     def __getitem__(self, key):
         """Get the present value of the key.
@@ -126,7 +130,7 @@ class Portal(Edge, StatSet):
             value,
             super().__setitem__
         )
-        self._stat_set(key, value)
+        self._dispatch_stat(key, value)
 
     def __delitem__(self, key):
         """Invalidate my :class:`Character`'s cache of portal traits"""
@@ -143,7 +147,7 @@ class Portal(Edge, StatSet):
             key,
             super().__delitem__
         )
-        self._stat_del(key)
+        self._dispatch_stat(key, None)
 
     @property
     def origin(self):

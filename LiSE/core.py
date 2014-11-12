@@ -2,12 +2,18 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 """Object relational mapper that serves Characters."""
 from random import Random
-from collections import Mapping, MutableMapping, Callable
+from collections import (
+    defaultdict,
+    Mapping,
+    MutableMapping,
+    Callable
+)
 from sqlite3 import connect
 from gorm import ORM as gORM
 from .character import Character
 from .rule import AllRules
 from .query import QueryEngine
+from .util import dispatch
 
 
 alchemyOpError = None
@@ -62,8 +68,17 @@ class StringStore(MutableMapping):
         self.engine = engine
         self.table = table
         self._language = lang
+        self._lang_listeners = []
         self.cache = {}
+        self._str_listeners = defaultdict(list)
         self.engine.db.init_string_table(table)
+
+    def _dispatch_lang(self, v):
+        for f in self._lang_listeners:
+            f(self, v)
+
+    def _dispatch_str(self, k, v):
+        dispatch(self._str_listeners, k, self, k, v)
 
     @property
     def language(self):
@@ -73,6 +88,7 @@ class StringStore(MutableMapping):
     def language(self, v):
         """Invalidate the cache upon changing the language."""
         self._language = v
+        self._dispatch_lang(v)
         self.cache = {}
 
     def __iter__(self):
@@ -102,6 +118,7 @@ class StringStore(MutableMapping):
         """Set the value of a string for the current language."""
         self.cache[k] = v
         self.engine.db.string_table_set(self.table, self.language, k, v)
+        self._dispatch_str(k, v)
 
     def __delitem__(self, k):
         """Delete the string from the current language, and remove it from the
@@ -110,6 +127,17 @@ class StringStore(MutableMapping):
         """
         del self.cache[k]
         self.engine.db.string_table_del(self.table, self.language, k)
+        self._dispatch_str(k, None)
+
+    def lang_listener(self, f):
+        """Register f to be called whenever my language changes"""
+        if f not in self._lang_listeners:
+            self._lang_listeners.append(f)
+
+    def str_listener(self, f, s=None):
+        """Register f to be called when string s is set or deleted."""
+        if f not in self._str_listeners[s]:
+            self._str_listeners[s]
 
 
 class FunctionStoreDB(MutableMapping):
@@ -122,8 +150,12 @@ class FunctionStoreDB(MutableMapping):
         self.engine = engine
         self.connection = codedb
         self._tab = table
+        self._listeners = defaultdict(list)
         self.cache = {}
         self.engine.db.init_func_table(table)
+
+    def _dispatch(self, name, fun):
+        dispatch(self._listeners, name, self, name, fun)
 
     def __len__(self):
         """SELECT COUNT(*) FROM {}""".format(self._tab)
@@ -162,15 +194,22 @@ class FunctionStoreDB(MutableMapping):
             )
         self.engine.db.func_table_set(self._tbl, fun.__name__, fun.__code__)
         self.cache[fun.__name__] = fun
+        self._dispatch(fun.__name__, fun)
 
     def __setitem__(self, name, fun):
         """Store the function, marshalled, under the name given."""
         self.engine.db.func_table_set(self._tab, name, fun.__code__)
         self.cache[name] = fun
+        self._dispatch(name, fun)
 
     def __delitem__(self, name):
         self.engine.db.func_table_del(self._tab, name)
         del self.cache[name]
+        self._dispatch(name, None)
+
+    def listener(self, fun, name=None):
+        if fun not in self._listeners[name]:
+            self._listeners[name].append(fun)
 
     def decompiled(self, name):
         """Use unpyc3 to decompile the function named ``name`` and return the
@@ -199,6 +238,10 @@ class GlobalVarMapping(MutableMapping):
     def __init__(self, engine):
         """Store the engine"""
         self.engine = engine
+        self._listeners = {}
+
+    def _dispatch(self, k, v):
+        dispatch(self._listeners, k, self, k, v)
 
     def __iter__(self):
         """Iterate over the global keys whose values aren't null at the moment.
@@ -224,17 +267,22 @@ class GlobalVarMapping(MutableMapping):
         """Set k=v at the current branch and tick"""
         (branch, tick) = self.engine.time
         self.engine.db.universal_set(k, branch, tick, v)
+        self._dispatch(k, v)
 
     def __delitem__(self, k):
         """Unset this key for the present (branch, tick)"""
         self.engine.db.universal_del(k)
+        self._dispatch(k, None)
 
 
 class CharacterMapping(MutableMapping):
     def __init__(self, engine):
         self.engine = engine
-        if self.engine.caching:
-            self._cache = {}
+        self._listeners = {}
+        self._cache = {}
+
+    def _dispatch(self, k, v):
+        dispatch(self._listeners, k, self, k, v)
 
     def __iter__(self):
         return self.engine.db.characters()
@@ -261,11 +309,13 @@ class CharacterMapping(MutableMapping):
             self._cache[name] = value
             return
         self._cache[name] = Character(self.engine, name, data=value)
+        self._dispatch(name, self._cache[name])
 
     def __delitem__(self, name):
         if hasattr(self, '_cache') and name in self._cache:
             del self._cache[name]
         self.engine.db.del_character(name)
+        self._dispatch(name, None)
 
 
 class Engine(object):
