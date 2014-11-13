@@ -276,14 +276,14 @@ class GlobalVarMapping(MutableMapping):
 class CharacterMapping(MutableMapping):
     def __init__(self, engine):
         self.engine = engine
-        self._listeners = {}
+        self._listeners = defaultdict(list)
         self._cache = {}
 
     def _dispatch(self, k, v):
         dispatch(self._listeners, k, self, k, v)
 
-    def listener(self, f, char=None):
-        listen(self._listeners, f, char)
+    def listener(self, f=None, char=None):
+        return listener(self._listeners, f, char)
 
     def __iter__(self):
         return self.engine.db.characters()
