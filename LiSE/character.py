@@ -38,19 +38,26 @@ from .portal import Portal
 
 
 class RuleFollower(object):
-    """Object that has a rulebook associated, which you can get a
+    """Mixin class that has a rulebook associated, which you can get a
     RuleMapping into
 
     """
 
-    def __init__(self, *args, **kwargs):
-        self._rulebook_listeners = []
+    @property
+    def _rulebook_listeners(self):
+        if not hasattr(self, '_rbl'):
+            self._rbl = []
+        return self._rbl
+
+    @_rulebook_listeners.setter
+    def _rulebook_listeners(self, v):
+        self._rbl = v
 
     def _dispatch_rulebook(self, v):
         for f in self._rulebook_listeners:
             f(self, v)
 
-    def listener(self, f):
+    def rulebook_listener(self, f):
         listen(self._rulebook_listeners, f)
 
     @property
@@ -84,7 +91,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
 
     def __init__(self, character):
         """Store the character and initialize cache (if caching)"""
-        super().__init__()
         self.character = character
         self.engine = character.engine
         self.name = character.name
@@ -464,6 +470,56 @@ class CharacterThingPlaceMapping(MutableMapping):
 class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
     _book = "portal"
 
+    @property
+    def _cache(self):
+        if not hasattr(self, '_c'):
+            self._c = {}
+        return self._c
+
+    @property
+    def _portal_listeners(self):
+        if not hasattr(self, '_pl'):
+            self._pl = defaultdict(list)
+        return self._pl
+
+    def _dispatch_portal(self, o, d, p):
+        dispatch(
+            self._portal_listeners,
+            o,
+            self,
+            self.graph.node[o],
+            self.graph.node[d],
+            p
+        )
+
+    def listener(self, f=None, place=None):
+        return listener(self._portal_listeners, f, place)
+
+    def __getitem__(self, nodeA):
+        if self.gorm.db.node_exists(
+                self.graph.name,
+                nodeA,
+                self.gorm.branch,
+                self.gorm.rev
+        ):
+            if nodeA not in self._cache:
+                self._cache[nodeA] = self.Successors(self, nodeA)
+            return self._cache[nodeA]
+        raise KeyError("No such node")
+
+    def __setitem__(self, nodeA, val):
+        if nodeA not in self._cache:
+            self._cache[nodeA] = self.Successors(self, nodeA)
+        sucs = self._cache[nodeA]
+        sucs.clear()
+        sucs.update(val)
+
+    def __delitem__(self, nodeA):
+        bs = list(self[nodeA].keys())
+        super().__delitem__(nodeA)
+        for b in bs:
+            self._dispatch_portal(nodeA, b, None)
+
     class Successors(GraphSuccessorsMapping.Successors):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -478,10 +534,11 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
                 self._portal_listeners,
                 nodeB,
                 self,
-                self.nodeA,
-                nodeB,
+                self.container.graph.node[self.nodeA],
+                self.container.graph.node[nodeB],
                 portal
             )
+            self.container._dispatch_portal(self.nodeA, nodeB, portal)
 
         def listener(self, f=None, nodeB=None):
             return listener(self._portal_listeners, f, nodeB)

@@ -164,5 +164,78 @@ class BindingTestCase(unittest.TestCase):
         )
         self.assertEqual(inert.call_count, 0)
 
+    def test_bind_char_place(self):
+        """Test binding to the place mapping of a character"""
+        self.engine.character['spam'] = DiGraph()
+        ch = self.engine.character['spam']
+        general = MagicMock()
+        specific = MagicMock()
+        inert = MagicMock()
+        ch.place.listener(general)
+        ch.place.listener(place='plate')(specific)
+        ch.place.listener(inert, 'floor')
+        ch.place['plate'] = {'flat': True}
+        pl = ch.place['plate']
+        self.assertTrue(pl['flat'])
+        general.assert_called_once_with(
+            ch.place,
+            'plate',
+            pl
+        )
+        specific.assert_called_once_with(
+            ch.place,
+            'plate',
+            pl
+        )
+        self.assertEqual(inert.call_count, 0)
+
+    def test_bind_char_portal(self):
+        """Test binding to character's portal mapping"""
+        self.engine.character['spam'] = DiGraph()
+        ch = self.engine.character['spam']
+        ch.place['kitchen'] = {'smell': 'yummy'}
+        ch.place['porch'] = {'rustic': True}
+        nodeA = ch.place['kitchen']
+        nodeB = ch.place['porch']
+        generalA = MagicMock()
+        specificA = MagicMock()
+        inert = MagicMock()
+        ch.portal.listener(generalA)
+        ch.portal.listener(specificA, 'kitchen')
+        ch.portal.listener(inert, 'living_room')
+        generalB = MagicMock()
+        specificB = MagicMock()
+        ch.portal['kitchen'].listener(generalB)
+        ch.portal['kitchen'].listener(specificB, 'porch')
+        ch.portal['kitchen'].listener(inert, 'balcony')
+        ch.portal['kitchen']['porch'] = {'locked': False}
+        port = ch.portal['kitchen']['porch']
+        generalB.assert_called_once_with(
+            ch.portal['kitchen'],
+            nodeA,
+            nodeB,
+            port
+        )
+        specificB.assert_called_once_with(
+            ch.portal['kitchen'],
+            nodeA,
+            nodeB,
+            port
+        )
+        self.assertFalse(port['locked'])
+        generalA.assert_called_once_with(
+            ch.portal,
+            nodeA,
+            nodeB,
+            port
+        )
+        specificA.assert_called_once_with(
+            ch.portal,
+            nodeA,
+            nodeB,
+            port
+        )
+        self.assertEqual(inert.call_count, 0)
+
 if __name__ == '__main__':
     unittest.main()
