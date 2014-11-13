@@ -145,9 +145,10 @@ class Portal(Edge):
             self.character._portal_traits = set()
         (branch, tick) = self.engine.time
         cache_del(
+            self._statcache,
+            self._keycache,
             branch,
             tick,
-            self._statcache,
             key,
             super().__delitem__
         )

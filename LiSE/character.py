@@ -177,6 +177,10 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         one out of ``val`` (assumed to be a mapping of some kind)
 
         """
+        if not isinstance(val, Mapping):
+            raise TypeError('Things are made from Mappings')
+        if 'location' not in val:
+            raise ValueError('Thing needs location')
         self.engine.gorm.db.exist_node(
             self.character.name,
             thing,
@@ -479,8 +483,8 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
                 portal
             )
 
-        def listener(self, f, nodeB=None):
-            listen(self._portal_listeners, f, nodeB)
+        def listener(self, f=None, nodeB=None):
+            return listener(self._portal_listeners, f, nodeB)
 
         def _getsub(self, nodeB):
             if hasattr(self, '_cache'):
