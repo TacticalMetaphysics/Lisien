@@ -59,6 +59,7 @@ class FunList(MutableSequence):
                 self.preset_values
             )
         self._listeners = []
+        cursor.close()
 
     def _dispatch(self):
         for f in self._listeners:
