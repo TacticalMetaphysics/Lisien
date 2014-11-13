@@ -1489,10 +1489,17 @@ class Character(DiGraph, RuleFollower):
         return listener(self._stat_listeners, f, stat)
 
     def _dispatch_avatar(self, k, v, ex):
-        dispatch(self._avatar_listeners, k, self, k, v, ex)
+        dispatch(
+            self._avatar_listeners,
+            k,
+            self,
+            self.engine.character[k],
+            self.engine.character[k].node[v],
+            ex
+        )
 
-    def avatar_listener(self, f):
-        listen(self._avatar_listeners, f)
+    def avatar_listener(self, f=None, graph=None):
+        return listener(self._avatar_listeners, f, graph)
 
     def __setitem__(self, k, v):
         super().__setitem__(k, v)
@@ -1616,14 +1623,42 @@ class Character(DiGraph, RuleFollower):
                 kwargs['symmetrical'] = True
             self.add_portal(orig, dest, **kwargs)
 
-    def add_avatar(self, g, n):
+    def add_avatar(self, a, b=None):
         """Start keeping track of a :class:`Thing` or :class:`Place` in a
         different :class:`Character`.
 
         """
+        if b is None:
+            if not (
+                    isinstance(a, Place) or
+                    isinstance(a, Thing)
+            ):
+                raise TypeError(
+                    'when called with one argument, '
+                    'it must be a place or thing'
+                )
+            g = a.character.name
+            n = a.name
+        else:
+            if isinstance(a, Character):
+                g = a.name
+            elif not isinstance(a, str):
+                raise TypeError(
+                    'when called with two arguments, '
+                    'the first is a character or its name'
+                )
+            else:
+                g = a
+            if isinstance(b, Place) or isinstance(b, Thing):
+                n = b.name
+            elif not isinstance(b, str):
+                raise TypeError(
+                    'when called with two arguments, '
+                    'the second is a thing/place or its name'
+                )
+            else:
+                n = b
         (branch, tick) = self.engine.time
-        if isinstance(g, Character):
-            g = g.name
         if self.engine.caching:
             ac = self._avatar_cache
             if g not in ac:
@@ -1653,8 +1688,10 @@ class Character(DiGraph, RuleFollower):
         )
         self._dispatch_avatar(g, n, True)
 
-    def del_avatar(self, g, n):
+    def del_avatar(self, node):
         """This is no longer my avatar, though it still exists on its own"""
+        g = node.character.name
+        n = node.name
         (branch, tick) = self.engine.time
         if self.engine.caching:
             ac = self._avatar_cache

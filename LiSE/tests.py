@@ -237,5 +237,50 @@ class BindingTestCase(unittest.TestCase):
         )
         self.assertEqual(inert.call_count, 0)
 
+    def test_bind_char_avatar(self):
+        """Test binding to ``add_avatar``"""
+        general = MagicMock()
+        specific = MagicMock()
+        inert = MagicMock()
+        if 'a' not in self.engine.character:
+            self.engine.add_character('a')
+        if 'b' not in self.engine.character:
+            self.engine.add_character('b')
+        chara = self.engine.character['a']
+        charb = self.engine.character['b']
+        chara.avatar_listener(general)
+        chara.avatar_listener(specific, 'b')
+        chara.avatar_listener(inert, 'z')
+        pl = charb.new_place('q')
+        chara.add_avatar(pl)
+        general.assert_called_once_with(
+            chara,
+            charb,
+            pl,
+            True
+        )
+        specific.assert_called_once_with(
+            chara,
+            charb,
+            pl,
+            True
+        )
+        chara.del_avatar(pl)
+        general.assert_called_with(
+            chara,
+            charb,
+            pl,
+            False
+        )
+        specific.assert_called_with(
+            chara,
+            charb,
+            pl,
+            False
+        )
+        self.assertEqual(general.call_count, 2)
+        self.assertEqual(specific.call_count, 2)
+        self.assertEqual(inert.call_count, 0)
+
 if __name__ == '__main__':
     unittest.main()
