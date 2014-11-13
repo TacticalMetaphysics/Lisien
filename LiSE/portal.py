@@ -3,7 +3,7 @@ from gorm.graph import Edge
 from gorm.json import json_dump
 from .util import (
     dispatch,
-    listen,
+    listener,
     cache_get,
     cache_set,
     cache_del
@@ -38,8 +38,8 @@ class Portal(Edge):
     def _dispatch_stat(self, k, v):
         dispatch(self._stat_listeners, k, self, k, v)
 
-    def listener(self, f, stat=None):
-        listen(self._stat_listeners, f, stat)
+    def listener(self, f=None, stat=None):
+        return listener(self._stat_listeners, f, stat)
 
     def __getitem__(self, key):
         """Get the present value of the key.

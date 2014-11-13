@@ -24,7 +24,8 @@ from .util import (
     keycache_iter,
     cache_del,
     dispatch,
-    listen
+    listen,
+    listener
 )
 from .rule import RuleBook
 from .rule import CharRuleMapping as RuleMapping
@@ -95,8 +96,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
     def _dispatch_thing(self, k, v):
         dispatch(self._thing_listeners, k, self, k, v)
 
-    def listener(self, f, thing=None):
-        listen(self._thing_listeners, f, thing)
+    def listener(self, f=None, thing=None):
+        return listener(self._thing_listeners, f, thing)
 
     def __contains__(self, k):
         """Check the cache first, if it exists"""
@@ -255,8 +256,8 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
     def _dispatch_place(self, k, v):
         dispatch(self._place_listeners, k, self, k, v)
 
-    def listener(self, f, place=None):
-        listen(self._place_listeners, f, place)
+    def listener(self, f=None, place=None):
+        return listener(self._place_listeners, f, place)
 
     def _things(self):
         """Private method. Return a set of names of things in the character."""
@@ -927,8 +928,8 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
     def _dispatch(self, k, v):
         dispatch(self._listeners, k, self, k, v)
 
-    def listener(self, f, sense=None):
-        listen(self._listeners, f, sense)
+    def listener(self, f=None, sense=None):
+        return listener(self._listeners, f, sense)
 
     def __iter__(self):
         """Iterate over active sense names"""
@@ -1017,8 +1018,8 @@ class FacadePlace(MutableMapping):
     def _dispatch(self, k, v):
         dispatch(self._listeners, k, self, k, v)
 
-    def listener(self, f, stat=None):
-        listen(self._listeners, f, stat)
+    def listener(self, f=None, stat=None):
+        return listener(self._listeners, f, stat)
 
     def __iter__(self):
         seen = set()
@@ -1101,6 +1102,9 @@ class FacadeEntityMapping(MutableMapping):
 
     def dispatch(self, k, v):
         dispatch(self._listeners, k, self, k, v)
+
+    def listener(self, f=None, stat=None):
+        return listener(self._listeners, f, stat)
 
     def __contains__(self, k):
         return (
@@ -1415,8 +1419,8 @@ class Character(DiGraph, RuleFollower):
     def _dispatch_stat(self, k, v):
         dispatch(self._stat_listeners, k, self, k, v)
 
-    def stat_listener(self, f, stat=None):
-        listen(self._stat_listeners, f, stat)
+    def stat_listener(self, f=None, stat=None):
+        return listener(self._stat_listeners, f, stat)
 
     def _dispatch_avatar(self, k, v, ex):
         dispatch(self._avatar_listeners, k, self, k, v, ex)

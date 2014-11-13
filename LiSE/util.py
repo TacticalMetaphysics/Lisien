@@ -24,6 +24,13 @@ def listen(l, f, k=None):
         l.append(f)
 
 
+def listener(l, f=None, k=None):
+    if f:
+        listen(l, f, k)
+        return
+    return lambda fun: listen(l, fun, k)
+
+
 class CacheError(ValueError):
     pass
 

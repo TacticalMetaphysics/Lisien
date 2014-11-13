@@ -13,7 +13,7 @@ from gorm import ORM as gORM
 from .character import Character
 from .rule import AllRules
 from .query import QueryEngine
-from .util import dispatch, listen
+from .util import dispatch, listen, listener
 
 
 alchemyOpError = None
@@ -83,8 +83,8 @@ class StringStore(MutableMapping):
     def _dispatch_str(self, k, v):
         dispatch(self._str_listeners, k, self, k, v)
 
-    def listener(self, f, string=None):
-        listen(self._str_listeners, f, string)
+    def listener(self, fun=None, string=None):
+        return listener(self._str_listeners, fun, string)
 
     @property
     def language(self):
@@ -153,8 +153,8 @@ class FunctionStoreDB(MutableMapping):
     def _dispatch(self, name, fun):
         dispatch(self._listeners, name, self, name, fun)
 
-    def listener(self, f, name=None):
-        listen(self._listeners, f, name)
+    def listener(self, f=None, name=None):
+        return listener(self._listeners, f, name)
 
     def __len__(self):
         """SELECT COUNT(*) FROM {}""".format(self._tab)
@@ -356,8 +356,8 @@ class Engine(object):
         self.universal = GlobalVarMapping(self)
         self.character = CharacterMapping(self)
         # start the database
-        stores = ('action', 'prereq', 'trigger', 'sense', 'function')
-        for store in stores:
+        self.stores = ('action', 'prereq', 'trigger', 'sense', 'function')
+        for store in self.stores:
             setattr(self, store, FunctionStoreDB(self, self.codedb, store))
         if hasattr(self.gorm.db, 'alchemist'):
             self.worlddb = self.gorm.db.alchemist.conn.connection
