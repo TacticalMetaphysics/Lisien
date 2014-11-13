@@ -233,13 +233,13 @@ class GlobalVarMapping(MutableMapping):
     def __init__(self, engine):
         """Store the engine"""
         self.engine = engine
-        self._listeners = {}
+        self._listeners = defaultdict(list)
 
     def _dispatch(self, k, v):
         dispatch(self._listeners, k, self, k, v)
 
-    def listener(self, f, key=None):
-        listen(self._listeners, f, key)
+    def listener(self, f=None, key=None):
+        return listener(self._listeners, f, key)
 
     def __iter__(self):
         """Iterate over the global keys whose values aren't null at the moment.
