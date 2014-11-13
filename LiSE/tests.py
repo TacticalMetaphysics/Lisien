@@ -22,11 +22,13 @@ class BindingTestCase(unittest.TestCase):
         """Test binding to the string store, and to a particular string"""
         general = MagicMock()
         specific = MagicMock()
+        inert = MagicMock()
 
         # these would normally be called using decorators but I don't
         # think I can do mocks that way
         self.engine.string.listener(general)
         self.engine.string.listener(specific, 'spam')
+        self.engine.string.listener(string='ham')(inert)
 
         self.engine.string['spam'] = 'eggs'
         general.assert_called_once_with(self.engine.string, 'spam', 'eggs')
@@ -38,19 +40,24 @@ class BindingTestCase(unittest.TestCase):
         del self.engine.string['spam']
         general.assert_called_once_with(self.engine.string, 'spam', None)
         specific.assert_called_once_with(self.engine.string, 'spam', None)
-
-    def test_bind_lang(self):
+        self.assertEqual(inert.call_count, 0)
         bound = MagicMock()
         self.engine.string.lang_listener(bound)
         self.engine.string.language = 'jpn'
         bound.assert_called_once_with(self.engine.string, 'jpn')
 
     def test_bind_func_store(self):
+        """Test binding to the function store, and to a specific function
+        name
+
+        """
         for store in self.engine.stores:
             general = MagicMock()
             specific = MagicMock()
+            inert = MagicMock()
             getattr(self.engine, store).listener(general)
             getattr(self.engine, store).listener(name='spam')(specific)
+            getattr(self.engine, store).listener(name='ham')(inert)
 
             def nothing():
                 pass
@@ -78,6 +85,31 @@ class BindingTestCase(unittest.TestCase):
             )
             self.assertEqual(general.call_count, 2)
             self.assertEqual(specific.call_count, 2)
+            self.assertEqual(inert.call_count, 0)
+
+    def test_bind_univ_var(self):
+        """Test binding to the universal variable store, and to a specific
+        var
+
+        """
+        general = MagicMock()
+        specific = MagicMock()
+        inert = MagicMock()
+        self.engine.universal.listener(general)
+        self.engine.universal.listener(key='spam')(specific)
+        self.engine.universal.listener(key='ham')(inert)
+        self.engine.universal['spam'] = 'eggs'
+        general.assert_called_once_with(
+            self.engine.universal,
+            'spam',
+            'eggs'
+        )
+        specific.assert_called_once_with(
+            self.engine.universal,
+            'spam',
+            'eggs'
+        )
+        self.assertEqual(inert.call_count, 0)
 
 if __name__ == '__main__':
     unittest.main()
