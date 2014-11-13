@@ -177,11 +177,17 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         one out of ``val`` (assumed to be a mapping of some kind)
 
         """
+        self.engine.gorm.db.exist_node(
+            self.character.name,
+            thing,
+            self.engine.branch,
+            self.engine.tick,
+            True
+        )
         th = Thing(self.character, thing)
         th.clear()
-        th.exists = True
         th.update(val)
-        self._dispatch_thing(thing, val)
+        self._dispatch_thing(thing, th)
         if self.engine.caching:
             self._cache[thing] = th
             (branch, tick) = self.engine.time
@@ -580,7 +586,6 @@ class CharacterPortalPredecessorsMapping(
                     )
             p = self.graph.portal[nodeA][self.nodeB]
             p.clear()
-            p.exists = True
             p.update(value)
 
 

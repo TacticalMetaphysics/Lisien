@@ -53,7 +53,6 @@ class ThingPlace(Node):
         if self.engine.caching:
             self._keycache = {}
             self._statcache = {}
-            self._on_stat_set = []
         super().__init__(character, name)
 
     def _dispatch_stat(self, k, v):
@@ -311,9 +310,10 @@ class Thing(ThingPlace):
             return
         (branch, tick) = self.engine.time
         cache_del(
+            self._statcache,
+            self._keycache,
             branch,
             tick,
-            self._statcache,
             key,
             super().__delitem__
         )
@@ -362,7 +362,7 @@ class Thing(ThingPlace):
 
     def clear(self):
         """Unset everything."""
-        for k in self:
+        for k in list(self.keys()):
             if k not in (
                     'name',
                     'character',
@@ -373,8 +373,6 @@ class Thing(ThingPlace):
                     'locations'
             ):
                 del self[k]
-        self['locations'] = (None, None)
-        self.exists = False
 
     @property
     def container(self):
