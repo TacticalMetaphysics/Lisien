@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
+from networkx import DiGraph
 from LiSE.core import Engine
 
 
@@ -108,6 +109,58 @@ class BindingTestCase(unittest.TestCase):
             self.engine.universal,
             'spam',
             'eggs'
+        )
+        self.assertEqual(inert.call_count, 0)
+
+    def test_bind_char_map(self):
+        """Test binding to the CharacterMapping, and to a specific character"""
+        general = MagicMock()
+        specific = MagicMock()
+        inert = MagicMock()
+        self.engine.character.listener(general)
+        self.engine.character.listener(specific, 'spam')
+        self.engine.character.listener(inert, 'ham')
+        self.engine.character['spam'] = DiGraph(eggs=True)
+        general.assert_called_once_with(
+            self.engine.character,
+            'spam',
+            self.engine.character['spam']
+        )
+        specific.assert_called_once_with(
+            self.engine.character,
+            'spam',
+            self.engine.character['spam']
+        )
+        self.assertEqual(inert.call_count, 0)
+        self.assertTrue(self.engine.character['spam'].stat['eggs'])
+
+    def test_bind_char_thing(self):
+        """Test binding to a character's thing mapping, and to a specific
+        thing
+
+        """
+        general = MagicMock()
+        specific = MagicMock()
+        inert = MagicMock()
+        self.engine.character['spam'] = DiGraph(eggs=True)
+        char = self.engine.character['spam']
+        self.assertTrue(char.stat['eggs'])
+        # I have to put the thing someplace
+        char.place['plate'] = {'flat': True}
+        char.thing.listener(general)
+        char.thing.listener(specific, 'baked_beans')
+        char.thing['baked_beans'] = {'location': 'plate'}
+        th = char.thing['baked_beans']
+        self.assertEqual(th['location'], 'plate')
+        general.assert_called_once_with(
+            char.thing,
+            'baked_beans',
+            th
+        )
+        specific.assert_called_once_with(
+            char.thing,
+            'baked_beans',
+            th
         )
         self.assertEqual(inert.call_count, 0)
 
