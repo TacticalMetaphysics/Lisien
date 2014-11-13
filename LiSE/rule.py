@@ -4,9 +4,14 @@
 from collections import (
     MutableMapping,
     MutableSequence,
-    Callable
+    Callable,
+    defaultdict
 )
 from .funlist import FunList
+from .util import (
+    dispatch,
+    listener
+)
 
 
 class Rule(object):
@@ -176,6 +181,14 @@ class RuleMapping(MutableMapping):
     def __init__(self, engine, rulebook):
         self.engine = engine
         self.rulebook = rulebook
+        self._listeners = defaultdict(list)
+        self._rule_cache = {}
+
+    def listener(self, f=None, rule=None):
+        return listener(self._listeners, f, rule)
+
+    def _dispatch(self, rule, active):
+        dispatch(self._listeners, rule.name, self, rule, active)
 
     def _activate_rule(self, rule):
         (branch, tick) = self.engine.time
@@ -188,6 +201,7 @@ class RuleMapping(MutableMapping):
             tick,
             True
         )
+        self._dispatch(rule, True)
 
     def __iter__(self):
         return self.engine.db.active_rules_rulebook(
@@ -210,8 +224,10 @@ class RuleMapping(MutableMapping):
 
     def __getitem__(self, k):
         if k not in self:
-            raise KeyError("Rule is not in effect")
-        return Rule(self.engine, k)
+            raise KeyError("Rule '{}' is not in effect".format(k))
+        if k not in self._rule_cache:
+            self._rule_cache[k] = Rule(self.engine, k)
+        return self._rule_cache[k]
 
     def __getattr__(self, k):
         try:
@@ -229,10 +245,9 @@ class RuleMapping(MutableMapping):
             if k in self.engine.rule:
                 raise KeyError(
                     "Already have a rule named {k}. "
-                    "Set {engine}.rule[{k}] to a new value "
+                    "Set engine.rule[{k}] to a new value "
                     "if you really mean to replace "
                     "the old rule.".format(
-                        engine=self.engine.__name__,
                         k=k
                     )
                 )
@@ -245,13 +260,15 @@ class RuleMapping(MutableMapping):
                 i += 1
             self.engine.action[funn] = v
             rule = Rule(self.engine, k)
+            self._rule_cache[k] = rule
             rule.actions.append(funn)
             self._activate_rule(rule)
         else:
             # v is the name of a rule. Maybe it's been created
             # previously or maybe it'll get initialized in Rule's
             # __init__.
-            self._activate_rule(Rule(self.engine, v))
+            self._rule_cache[k] = Rule(self.engine, v)
+            self._activate_rule(self._rule_cache[k])
 
     def __call__(self, v, name=None):
         name = name if name is not None else v.__name__
@@ -261,6 +278,7 @@ class RuleMapping(MutableMapping):
     def __delitem__(self, k):
         """Deactivate the rule"""
         (branch, tick) = self.engine.time
+        rule = self[k]
         self.engine.db.rule_set(
             self.rulebook.name,
             k,
@@ -268,13 +286,13 @@ class RuleMapping(MutableMapping):
             tick,
             False
         )
+        self._dispatch(rule, False)
 
 
 class CharRuleMapping(RuleMapping):
     def __init__(self, character, rulebook, booktyp):
+        super().__init__(rulebook.engine, rulebook)
         self.character = character
-        self.rulebook = rulebook
-        self.engine = rulebook.engine
         self._table = booktyp + "_rules"
 
     def __iter__(self):

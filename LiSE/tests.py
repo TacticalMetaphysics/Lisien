@@ -282,5 +282,73 @@ class BindingTestCase(unittest.TestCase):
         self.assertEqual(specific.call_count, 2)
         self.assertEqual(inert.call_count, 0)
 
+    def test_bind_rule(self):
+        """Test binding to a rulemap and a rule therein"""
+        general = MagicMock()
+        specific = MagicMock()
+        inert = MagicMock()
+        if 'a' not in self.engine.character:
+            self.engine.add_character('a')
+        char = self.engine.character['a']
+        char.rule.listener(general)
+        char.rule.listener(specific, 'spam')
+        char.rule.listener(inert, 'eggs')
+
+        @char.rule
+        def spam(*args):
+            pass
+
+        general.assert_called_once_with(
+            char.rule,
+            spam,
+            True
+        )
+        specific.assert_called_once_with(
+            char.rule,
+            spam,
+            True
+        )
+        del char.rule['spam']
+        general.assert_called_with(
+            char.rule,
+            spam,
+            False
+        )
+        specific.assert_called_with(
+            char.rule,
+            spam,
+            False
+        )
+        self.assertEqual(general.call_count, 2)
+        self.assertEqual(specific.call_count, 2)
+        self.assertEqual(inert.call_count, 0)
+
+    def test_bind_rule_funlist(self):
+        """Test binding to each of the function lists of a rule"""
+        trig = MagicMock()
+        preq = MagicMock()
+        act = MagicMock()
+        if 'a' not in self.engine.character:
+            self.engine.add_character('a')
+        ch = self.engine.character['a']
+
+        @ch.rule
+        def nothing(*args):
+            pass
+
+        nothing.triggers.listener(trig)
+        nothing.prereqs.listener(preq)
+        nothing.actions.listener(act)
+
+        def something(*args):
+            pass
+
+        nothing.trigger(something)
+        nothing.prereq(something)
+        nothing.action(something)
+        trig.assert_called_once_with(nothing.triggers)
+        preq.assert_called_once_with(nothing.prereqs)
+        act.assert_called_once_with(nothing.actions)
+
 if __name__ == '__main__':
     unittest.main()

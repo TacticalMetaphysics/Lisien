@@ -80,9 +80,11 @@ class RuleFollower(object):
 
     @property
     def rule(self):
-        return RuleMapping(
-            self.character, self.rulebook, self._book
-        )
+        if not hasattr(self, '_rule_mapping'):
+            self._rule_mapping = RuleMapping(
+                self.character, self.rulebook, self._book
+            )
+        return self._rule_mapping
 
 
 class CharacterThingMapping(MutableMapping, RuleFollower):
