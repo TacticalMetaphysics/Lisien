@@ -83,7 +83,7 @@ class StringStore(MutableMapping):
     def _dispatch_str(self, k, v):
         dispatch(self._str_listeners, k, self, k, v)
 
-    def str_listener(self, f, string=None):
+    def listener(self, f, string=None):
         listen(self._str_listeners, f, string)
 
     @property
