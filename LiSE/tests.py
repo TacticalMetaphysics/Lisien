@@ -319,8 +319,35 @@ class BindingTestCase(unittest.TestCase):
             spam,
             False
         )
-        self.assertEqual(general.call_count, 2)
-        self.assertEqual(specific.call_count, 2)
+        self.engine.rule.listener(general)
+        self.engine.rule.listener(specific, 'ham')
+        self.engine.rule.listener(inert, 'eggs')
+        @self.engine.rule
+        def ham(*args):
+            pass
+        general.assert_called_with(
+            self.engine.rule,
+            ham,
+            True
+        )
+        specific.assert_called_with(
+            self.engine.rule,
+            ham,
+            True
+        )
+        del self.engine.rule['ham']
+        general.assert_called_with(
+            self.engine.rule,
+            ham,
+            False
+        )
+        specific.assert_called_with(
+            self.engine.rule,
+            ham,
+            False
+        )
+        self.assertEqual(general.call_count, 4)
+        self.assertEqual(specific.call_count, 4)
         self.assertEqual(inert.call_count, 0)
 
     def test_bind_rule_funlist(self):

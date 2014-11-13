@@ -316,6 +316,14 @@ class CharRuleMapping(RuleMapping):
 class AllRules(MutableMapping):
     def __init__(self, engine):
         self.engine = engine
+        self._cache = {}
+        self._listeners = defaultdict(list)
+
+    def listener(self, f=None, rule=None):
+        return listener(self._listeners, f, rule)
+
+    def _dispatch(self, rule, active):
+        dispatch(self._listeners, rule.name, self, rule, active)
 
     def __iter__(self):
         yield from self.engine.db.allrules()
@@ -327,19 +335,32 @@ class AllRules(MutableMapping):
         return self.engine.db.haverule(k)
 
     def __getitem__(self, k):
-        if k in self:
-            return Rule(self.engine, k)
+        if k not in self:
+            raise KeyError("No such rule: {}".format(k))
+        if k not in self._cache:
+            self._cache[k] = Rule(self.engine, k)
+        return self._cache[k]
 
     def __setitem__(self, k, v):
-        new = Rule(self.engine, k)
-        new.actions = v.actions
-        new.prereqs = v.prereqs
+        if k not in self._cache:
+            self._cache[k] = Rule(self.engine, k)
+        new = self._cache[k]
+        new.actions = [v]
+        self._dispatch(new, True)
 
     def __delitem__(self, k):
         if k not in self:
             raise KeyError("No such rule")
+        old = self[k]
         self.engine.db.ruledel(k)
+        self._dispatch(old, False)
 
-    def __call__(self, v):
-        new = Rule(self.engine, v if isinstance(v, str) else v.__name__)
-        new.action(v)
+    def __call__(self, v=None, name=None):
+        if v is None and name is not None:
+            def r(f):
+                self[name] = f
+                return self[name]
+            return r
+        k = name if name is not None else v.__name__
+        self[k] = v
+        return self[k]
