@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 #: import StiffScrollEffect ELiDE.kivygarden.stiffscroll.StiffScrollEffect
+#: import CharacterStatGridLayout ELiDE.statgrid.CharacterStatGridLayout
 <PawnSpot>:
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
     linecolor: [0., 1., 1., 1.] if self.selected else [0., 0., 0., 0.]
@@ -39,6 +40,17 @@
     y_center_up: self.y_up + self.height / 2
     right_up: self.x_up + self.width
     top_up: self.y_up + self.height
+<CharacterStatGridLayout>:
+    entity: self.character.stat if self.character is not None else None
+<ThingStatGridLayout>:
+    entity: self.thing
+<PlaceStatGridLayout>:
+    entity: self.place
+<PortalStatGridLayout>:
+    entity: self.portal
+<SymbolLabel@Label>:
+    font_name: "Symbola.ttf"
+    font_size: 50
 <SymbolButton@Button>:
     font_name: "Symbola.ttf"
     font_size: 50
@@ -77,6 +89,12 @@
                 id: spotlayout
             Widget:
                 id: pawnlayout
+    CharacterStatGridLayout:
+        id: charsheet
+        pos_hint: {'left': 0, 'top': 1}
+        size_hint: (0.2, 0.9)
+        character: board.character
+        rows: len(self.children)
     BoxLayout:
         id: timemenu
         pos_hint: {'bot': 0}

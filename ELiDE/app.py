@@ -133,6 +133,13 @@ class ELiDELayout(FloatLayout):
         the dummies, then the menus.
 
         """
+        # the menu widgets can handle things themselves
+        if self.ids.timemenu.dispatch('on_touch_down', touch):
+            return True
+        if self.ids.charmenu.dispatch('on_touch_down', touch):
+            return True
+        if self.ids.charsheet.dispatch('on_touch_down', touch):
+            return True
         if (
                 self.ids.boardview.collide_point(*touch.pos)
                 and not self.selection_candidates
@@ -158,11 +165,6 @@ class ELiDELayout(FloatLayout):
         for dummy in self.dummies:
             if dummy.dispatch('on_touch_down', touch):
                 return True
-        # the menu widgets can handle things themselves
-        if self.ids.timemenu.dispatch('on_touch_down', touch):
-            return True
-        if self.ids.charmenu.dispatch('on_touch_down', touch):
-            return True
 
     def on_touch_move(self, touch):
         """If something's selected, it's on the board, so transform the touch
@@ -191,6 +193,12 @@ class ELiDELayout(FloatLayout):
         """
         if hasattr(self.selection, 'on_touch_up'):
             self.selection.dispatch('on_touch_up', touch)
+        if self.ids.timemenu.dispatch('on_touch_up', touch):
+            return True
+        if self.ids.charmenu.dispatch('on_touch_up', touch):
+            return True
+        if self.ids.charsheet.dispatch('on_touch_up', touch):
+            return True
         if self.selection_candidates:
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
@@ -224,7 +232,6 @@ class ELiDELayout(FloatLayout):
                 self.selection.selected = False
             self.selection = None
         self.keep_selection = False
-        return super().on_touch_up(touch)
 
     def on_dummies(self, *args):
         """Give the dummies numbers such that, when appended to their names,
