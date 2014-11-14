@@ -394,6 +394,53 @@ class BindingTestCase(unittest.TestCase):
         preq.assert_called_once_with(nothing.prereqs)
         act.assert_called_once_with(nothing.actions)
 
+    def test_bind_char_stat(self):
+        """Test binding to a character's stat and to all of its stats"""
+        general = MagicMock()
+        specific = MagicMock()
+        inert = MagicMock()
+        char = self.engine.new_character('c')
+        char.stat.listener(general)
+        char.stat.listener(stat='spam')(specific)
+        char.stat.listener(inert, 'ham')
+        char.stat['spam'] = 'tasty'
+        general.assert_called_with(
+            char,
+            'spam',
+            'tasty'
+        )
+        specific.assert_called_with(
+            char,
+            'spam',
+            'tasty'
+        )
+        char.stat['eggs'] = 'eggy'
+        general.assert_called_with(
+            char,
+            'eggs',
+            'eggy'
+        )
+        del char.stat['spam']
+        general.assert_called_with(
+            char,
+            'spam',
+            None
+        )
+        specific.assert_called_with(
+            char,
+            'spam',
+            None
+        )
+        del char.stat['eggs']
+        general.assert_called_with(
+            char,
+            'eggs',
+            None
+        )
+        self.assertEqual(general.call_count, 4)
+        self.assertEqual(specific.call_count, 2)
+        self.assertEqual(inert.call_count, 0)
+
     def test_bind_place_stat(self):
         """Test binding to one of a place's stats, and to all of them"""
         general = MagicMock()

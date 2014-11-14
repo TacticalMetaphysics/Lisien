@@ -662,6 +662,10 @@ class CharacterAvatarGraphMapping(Mapping, RuleFollower):
         self.name = char.name
         self._name = char._name
 
+    @property
+    def listener(self, f=None, graph=None):
+        return self.character.avatar_listener(f, graph)
+
     def __call__(self, av):
         """Add the avatar. It must be an instance of Place or Thing."""
         if av.__class__ not in (Place, Thing):
@@ -1360,6 +1364,12 @@ class CharStatCache(MutableMapping):
         self._real = char.graph
         self._cache = {}
 
+    def listener(self, f=None, stat=None):
+        return self.character.stat_listener(f, stat)
+
+    def _dispatch(self, k, v):
+        dispatch(self.character._stat_listeners, k, self.character, k, v)
+
     def __iter__(self):
         """Iterate over underlying keys"""
         return iter(self._real)
@@ -1390,10 +1400,10 @@ class CharStatCache(MutableMapping):
             self._cache[k][branch] = {}
         self._cache[k][branch][tick] = v
         self._real[k] = v
+        self._dispatch(k, v)
 
     def __delitem__(self, k):
         """Clear the cached value and delete the normal way"""
-        assert(False)
         (branch, tick) = self.engine.time
         if branch in self._cache[k]:
             for staletick in list(
@@ -1402,6 +1412,7 @@ class CharStatCache(MutableMapping):
             ):
                 del self._cache[k][branch][staletick]
         del self._real[k]
+        self._dispatch(k, None)
 
 
 class Character(DiGraph, RuleFollower):
