@@ -278,7 +278,16 @@ class BindingTestCase(unittest.TestCase):
             pl,
             False
         )
-        self.assertEqual(general.call_count, 2)
+        charc = self.engine.new_character('c')
+        plc = charc.new_place('c')
+        chara.add_avatar(plc)
+        general.assert_called_with(
+            chara,
+            charc,
+            plc,
+            True
+        )
+        self.assertEqual(general.call_count, 3)
         self.assertEqual(specific.call_count, 2)
         self.assertEqual(inert.call_count, 0)
 
@@ -346,7 +355,15 @@ class BindingTestCase(unittest.TestCase):
             ham,
             False
         )
-        self.assertEqual(general.call_count, 4)
+        @self.engine.rule
+        def baked_beans(*args):
+            pass
+        general.assert_called_with(
+            self.engine.rule,
+            baked_beans,
+            True
+        )
+        self.assertEqual(general.call_count, 5)
         self.assertEqual(specific.call_count, 4)
         self.assertEqual(inert.call_count, 0)
 
@@ -376,6 +393,48 @@ class BindingTestCase(unittest.TestCase):
         trig.assert_called_once_with(nothing.triggers)
         preq.assert_called_once_with(nothing.prereqs)
         act.assert_called_once_with(nothing.actions)
+
+    def test_bind_place_stat(self):
+        """Test binding to one of a place's stats, and to all of them"""
+        general = MagicMock()
+        specific = MagicMock()
+        inert = MagicMock()
+        char = self.engine.new_character('c')
+        pl = char.new_place('p')
+        pl.listener(general)
+        pl.listener(stat='spam')(specific)
+        pl.listener(inert, 'eggs')
+        pl['spam'] = 'tasty'
+        general.assert_called_once_with(
+            pl,
+            'spam',
+            'tasty'
+        )
+        specific.assert_called_once_with(
+            pl,
+            'spam',
+            'tasty'
+        )
+        pl['baked_beans'] = 'tastier'
+        general.assert_called_with(
+            pl,
+            'baked_beans',
+            'tastier'
+        )
+        del pl['spam']
+        general.assert_called_with(
+            pl,
+            'spam',
+            None
+        )
+        specific.assert_called_with(
+            pl,
+            'spam',
+            None
+        )
+        self.assertEqual(general.call_count, 3)
+        self.assertEqual(specific.call_count, 2)
+        self.assertEqual(inert.call_count, 0)
 
 if __name__ == '__main__':
     unittest.main()
