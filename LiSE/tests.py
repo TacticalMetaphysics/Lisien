@@ -436,5 +436,48 @@ class BindingTestCase(unittest.TestCase):
         self.assertEqual(specific.call_count, 2)
         self.assertEqual(inert.call_count, 0)
 
+    def test_bind_thing_stat(self):
+        """Test binding to a thing's stat"""
+        general = MagicMock()
+        specific = MagicMock()
+        inert = MagicMock()
+        char = self.engine.new_character('c')
+        char.add_place('pl')
+        th = char.new_thing('th', location='pl')
+        th.listener(general)
+        th.listener(specific, 'spam')
+        th.listener(inert, 'ham')
+        th['spam'] = 'tasty'
+        general.assert_called_once_with(
+            th,
+            'spam',
+            'tasty'
+        )
+        specific.assert_called_once_with(
+            th,
+            'spam',
+            'tasty'
+        )
+        th['eggs'] = 'less_tasty'
+        general.assert_called_with(
+            th,
+            'eggs',
+            'less_tasty'
+        )
+        del th['spam']
+        general.assert_called_with(
+            th,
+            'spam',
+            None
+        )
+        specific.assert_called_with(
+            th,
+            'spam',
+            None
+        )
+        self.assertEqual(general.call_count, 3)
+        self.assertEqual(specific.call_count, 2)
+        self.assertEqual(inert.call_count, 0)
+
 if __name__ == '__main__':
     unittest.main()
