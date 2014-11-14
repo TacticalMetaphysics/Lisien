@@ -39,6 +39,9 @@
     y_center_up: self.y_up + self.height / 2
     right_up: self.x_up + self.width
     top_up: self.y_up + self.height
+<SymbolButton@Button>:
+    font_name: "Symbola.ttf"
+    font_size: 50
 <ELiDELayout>:
     engine: self.app.engine
     board: board
@@ -123,14 +126,14 @@
             # opens a popover where you view the rules active on this
             # character now, and may click one to edit it
             text: "Rules"
-        Button:
+        SymbolButton:
             # deletes whatever you've got selected
-            text: "Delete"
-        Button:
+            text: chr(0x2327)
+        SymbolButton:
             # This doesn't interact with the time travel, it's
             # strictly a way to go back on erroneous inputs from this
             # same tick. As such it grays out when you change the time.
-            text: "Undo"
+            text: chr(0x238c)
         Button:
             # Should have orb.png in it and if you drag that elsewhere it creates a new place there
             id: placeaddbut
