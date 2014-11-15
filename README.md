@@ -30,10 +30,9 @@ Existing games that LiSE seeks to imitate include:
 
 Most game engines--the ones that are called "game engines"
 anyhow--provide graphics, networking, file system access, scripting,
-and perhaps physics, since most games need these things. They usually
-do not include anything you'd call a "game mechanic", so if you want
-your game to include a common mechanic like a day/night cycle or a
-crafting system, you need to script those things yourself.
+and perhaps physics, since most games need these things. For the
+actual game logic, they tend to provide little more than a scripting
+interface.
 
 There are exceptions. RPG Maker provides a battle framework, inventory
 management, and other things that designers of Japanese-style computer
@@ -51,9 +50,9 @@ provides powerful tools specialized to those problems.
 
 # Programming interface
 
-LiSE itself is a Python library. It has few external dependencies, and
-those it has are pure-Python libraries, so it can be used in any game
-engine that supports Python as a scripting language.
+LiSE itself is a Python library with few external dependencies. It
+should work wherever you have a Python interpreter, including
+eg. other game engines like Panda3D that have Python compiled in.
 
 The LiSE world model is a collection of graph structures called
 "Characters" that are customized so that some nodes are considered
