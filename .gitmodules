@@ -7,3 +7,6 @@
 [submodule "stiffscroll"]
 	path = stiffscroll
 	url = git@github.com:LogicalDash/stiffscroll.git
+[submodule "ELiDE/kivygarden/texturestack"]
+	path = ELiDE/kivygarden/texturestack
+	url = git@github.com:kivy-garden/garden.texturestack.git
