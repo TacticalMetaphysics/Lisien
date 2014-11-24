@@ -1,4 +1,18 @@
-from setuptools import setup
+from setuptools import setup, Extension
+from Cython.Distutils import build_ext
+
+setup(
+    name="ELiDE.kivygarden.collider",
+    ext_modules=[
+        Extension(
+            name="collider",
+            depends=["ELiDE/kivygarden/collider/__init__.py"],
+            sources=["ELiDE/kivygarden/collider/collider.pyx"]
+        )
+    ],
+    cmdclass={'build_ext': build_ext},
+)
+
 
 setup(
     name="LiSEkit",
@@ -8,16 +22,19 @@ setup(
         "ELiDE",
         "ELiDE.board",
         "ELiDE.kivygarden.stiffscroll",
-        "ELiDE.kivygarden.collider",
         "ELiDE.kivygarden.texturestack"
     ],
     package_dir={
         'ELiDE.kivygarden.stiffscroll': 'ELiDE/kivygarden/stiffscroll',
-        'ELiDE.kivygarden.collider': 'ELiDE/kivygarden/collider',
         'ELiDE.kivygarden.texturestack':
         'ELiDE/kivygarden/texturestack'
     },
-    install_requires=["kivy", "gorm>=0.5", "numpy>=1.9"],
+    install_requires=[
+        "kivy",
+        "ELiDE.kivygarden.collider",
+        "gorm>=0.5",
+        "numpy>=1.9"
+    ],
     author="Zachary Spector",
     author_email="zacharyspector@gmail.com",
     description="Life simulator construction kit with graphical frontend",
