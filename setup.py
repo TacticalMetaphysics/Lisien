@@ -2,6 +2,24 @@ from setuptools import setup, Extension
 from Cython.Distutils import build_ext
 
 setup(
+    name="LiSE",
+    description="Rules engine for life simulation games",
+    author="Zachary Spector",
+    author_email="zacharyspector@gmail.com",
+    license="GPL3",
+    keywords="game simulation IDE",
+    url="https://github.com/LogicalDash/LiSE",
+    packages=[
+        "LiSE",
+    ],
+    install_requires=[
+        "gorm>=0.5",
+        "numpy>=1.9"
+    ],
+)
+
+
+setup(
     name="ELiDE.kivygarden.collider",
     ext_modules=[
         Extension(
@@ -15,10 +33,8 @@ setup(
 
 
 setup(
-    name="LiSEkit",
-    version="0.0",
+    name="ELiDE",
     packages=[
-        "LiSE",
         "ELiDE",
         "ELiDE.board",
         "ELiDE.kivygarden.stiffscroll",
@@ -30,17 +46,10 @@ setup(
         'ELiDE/kivygarden/texturestack'
     },
     install_requires=[
+        "LiSE",
         "kivy",
-        "ELiDE.kivygarden.collider",
-        "gorm>=0.5",
-        "numpy>=1.9"
+        "ELiDE.kivygarden.collider"
     ],
-    author="Zachary Spector",
-    author_email="zacharyspector@gmail.com",
-    description="Life simulator construction kit with graphical frontend",
-    license="GPL3",
-    keywords="game simulation IDE",
-    url="https://github.com/LogicalDash/LiSE",
     package_data={
         "ELiDE": [
             "elide.kv",
