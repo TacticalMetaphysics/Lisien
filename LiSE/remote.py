@@ -14,10 +14,10 @@ class AbstractRemoteMapping(MutableMapping):
         self._listeners = defaultdict(list)
 
     def __iter__(self):
-        return iter(self._remote)
+        return iter(self._remote_data)
 
     def __len__(self):
-        return len(self._remote)
+        return len(self._remote_data)
 
     def __getitem__(self, k):
         if k not in self._current_data:
@@ -42,8 +42,12 @@ class AbstractRemoteMapping(MutableMapping):
         self._listeners[key].append(func)
         return func
 
+    def unlisten(self, func, key=None):
+        if func in self._listeners[key]:
+            self._listeners[key].remove(func)
+
     def fetch(self, k):
-        old = self._current_data[k]
+        old = self._current_data[k] if k in self._current_data else None
         self._current_data[k] = self._remote_data[k]
         if old != self._current_data[k]:
             for f in self._listeners[k]:

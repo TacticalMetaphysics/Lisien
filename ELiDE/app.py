@@ -33,6 +33,8 @@ resource_add_path(ELiDE.__path__[0] + "/assets")
 # imported, but registering it is literally the only reason why I
 # imported it so do it explicitly for clarity.
 Factory.register('Board', cls=Board)
+from .statgrid import CharacterStatListView
+Factory.register('CharacterStatListView', cls=CharacterStatListView)
 
 
 class Dummy(ImageStack):
