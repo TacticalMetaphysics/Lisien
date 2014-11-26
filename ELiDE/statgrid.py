@@ -33,12 +33,14 @@ class StatRowKey(TextInput):
     def on_text_validate(self, *args):
         if hasattr(self, '_former_key'):
             self.parent.parent.del_key(self._former_key)
+        self.parent.key = self.text
         self.parent.set_value()
         self.text = ''
 
 
 class StatRowValue(TextInput):
     def on_text_validate(self, *args):
+        self.parent.value = self.text
         self.parent.set_value()
         self.text = ''
 
