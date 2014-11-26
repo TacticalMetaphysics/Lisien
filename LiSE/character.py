@@ -1222,7 +1222,7 @@ class FacadeEntityMapping(MutableMapping):
 
     def __delitem__(self, k):
         self._masked.add(k)
-        self._dispatch(k, None)
+        self.dispatch(k, None)
 
 
 class FacadeThingMapping(FacadeEntityMapping):
