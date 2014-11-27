@@ -1380,6 +1380,8 @@ class CharStatCache(MutableMapping):
 
     def __getitem__(self, k):
         """Use the cache if I can"""
+        if not self.engine.caching:
+            return self._real[k]
         (branch, tick) = self.engine.time
         if k not in self._cache:
             self._cache[k] = {}
@@ -1393,17 +1395,23 @@ class CharStatCache(MutableMapping):
     def __setitem__(self, k, v):
         """Cache new value and set it the normal way"""
         assert(v is not None)
+        self._real[k] = v
+        self._dispatch(k, v)
+        if not self.engine.caching:
+            return
         (branch, tick) = self.engine.time
         if k not in self._cache:
             self._cache[k] = {}
         if branch not in self._cache[k]:
             self._cache[k][branch] = {}
         self._cache[k][branch][tick] = v
-        self._real[k] = v
-        self._dispatch(k, v)
 
     def __delitem__(self, k):
         """Clear the cached value and delete the normal way"""
+        del self._real[k]
+        self._dispatch(k, None)
+        if not self.engine.caching:
+            return
         (branch, tick) = self.engine.time
         if branch in self._cache[k]:
             for staletick in list(
@@ -1411,8 +1419,6 @@ class CharStatCache(MutableMapping):
                     if t < tick
             ):
                 del self._cache[k][branch][staletick]
-        del self._real[k]
-        self._dispatch(k, None)
 
 
 class Character(DiGraph, RuleFollower):
@@ -1474,8 +1480,8 @@ class Character(DiGraph, RuleFollower):
             [name],
             'reqs'
         )
+        self.stat = CharStatCache(self)
         if engine.caching:
-            self.stat = CharStatCache(self)
             self._avatar_cache = ac = {}
             # I'll cache this ONE table in full, because iterating
             # over avatars seems to take a lot of time.
@@ -1487,8 +1493,6 @@ class Character(DiGraph, RuleFollower):
                 if b not in ac[g][n]:
                     ac[g][n][b] = {}
                 ac[g][n][b][t] = a
-        else:
-            self.stat = self.graph
         self._stat_listeners = defaultdict(list)
         self._avatar_listeners = defaultdict(list)
         self._portal_traits = set()
