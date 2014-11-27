@@ -449,9 +449,19 @@ class MenuTextInput(TextInput):
         working.
 
         """
+        if self.text == '':
+            return
         self.setter(self.text)
         self.text = ''
         self.focus = False
+
+    def on_focus(self, *args):
+        if not self.focus:
+            self.on_enter(*args)
+        super().on_focus(*args)
+
+    def on_text_validate(self, *args):
+        self.on_enter()
 
 
 Factory.register('MenuTextInput', cls=MenuTextInput)
