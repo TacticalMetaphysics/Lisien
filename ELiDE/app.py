@@ -368,8 +368,8 @@ class ELiDELayout(FloatLayout):
         self.ids.board._trigger_update()
 
     def set_tick(self, t):
-        """``self.tick = t``"""
-        self.tick = t
+        """``self.tick = int(t)``"""
+        self.tick = int(t)
 
     def advance(self):
         """Resolve one rule and store the results in a list at
