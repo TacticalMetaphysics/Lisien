@@ -18,23 +18,11 @@ from kivy.resources import resource_add_path
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
 
-from kivy.factory import Factory
-
-from .board import Board
-
 import LiSE
 import ELiDE
 from ELiDE.kivygarden.texturestack import ImageStack
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
-
-
-# I don't really need to register Board, that happens when it's
-# imported, but registering it is literally the only reason why I
-# imported it so do it explicitly for clarity.
-Factory.register('Board', cls=Board)
-from .statgrid import CharacterStatListView
-Factory.register('CharacterStatListView', cls=CharacterStatListView)
 
 
 class Dummy(ImageStack):
@@ -430,9 +418,6 @@ class ELiDELayout(FloatLayout):
             )
 
 
-Factory.register('ELiDELayout', cls=ELiDELayout)
-
-
 class MenuTextInput(TextInput):
     """Special text input for setting the branch"""
     setter = ObjectProperty()
@@ -464,9 +449,6 @@ class MenuTextInput(TextInput):
         self.on_enter()
 
 
-Factory.register('MenuTextInput', cls=MenuTextInput)
-
-
 class MenuIntInput(MenuTextInput):
     """Special text input for setting the tick"""
     def insert_text(self, s, from_undo=False):
@@ -475,9 +457,6 @@ class MenuIntInput(MenuTextInput):
             ''.join(c for c in s if c in '0123456789'),
             from_undo
         )
-
-
-Factory.register('MenuIntInput', cls=MenuIntInput)
 
 
 class ELiDEApp(App):
