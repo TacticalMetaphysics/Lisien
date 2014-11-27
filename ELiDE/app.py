@@ -14,6 +14,7 @@ from kivy.properties import (
     ListProperty,
     ReferenceListProperty
 )
+from kivy.lang import Builder
 from kivy.resources import resource_add_path
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
@@ -523,3 +524,28 @@ class ELiDEApp(App):
         self.engine.commit()
         self.engine.close()
         super().stop(*largs)
+
+
+kv = """
+<Dummy>:
+    name: "".join((self.prefix, str(self.num)))
+    x_center_up: self.x_up + self.width / 2
+    y_center_up: self.y_up + self.height / 2
+    right_up: self.x_up + self.width
+    top_up: self.y_up + self.height
+<SymbolLabel@Label>:
+    font_name: "Symbola.ttf"
+    font_size: 50
+<SymbolButton@Button>:
+    font_name: "Symbola.ttf"
+    font_size: 50
+<StatRowListItem>:
+    orientation: 'horizontal'
+    StatRowKey:
+        hint_text: str(root.key)
+        multiline: False
+    StatRowValue:
+        hint_text: str(root.value)
+        multiline: False
+"""
+Builder.load_string(kv)

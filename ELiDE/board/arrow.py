@@ -17,8 +17,10 @@ from kivy.properties import (
     ListProperty,
     BooleanProperty
 )
-from kivy.logger import Logger
+from kivy.lang import Builder
 from kivy.clock import Clock
+from kivy.logger import Logger
+
 from ELiDE.kivygarden.collider import Collide2DPoly
 
 ninety = pi / 2
@@ -436,3 +438,37 @@ class Arrow(ArrowWidget):
             return self.board.arrow[destn][orign]
         else:
             return None
+
+
+kv = """
+<ArrowWidget>:
+    engine: self.board.layout.app.engine if self.board and self.board.layout else None
+    bg_color_unselected: [0.5, 0.5, 0.5, 0.5]
+    bg_color_selected: [0.0, 1.0, 1.0, 1.0]
+    fg_color_unselected: [1.0, 1.0, 1.0, 1.0]
+    fg_color_selected: [1.0, 1.0, 1.0, 1.0]
+    bg_color: self.bg_color_selected if self.selected else self.bg_color_unselected
+    fg_color: self.fg_color_selected if self.selected else self.fg_color_unselected
+    bg_scale: 2.0 if self.selected else 1.4
+    canvas:
+        Color:
+            rgba: root.bg_color
+        Line:
+            width: root.w * root.bg_scale
+            points: root.trunk_points
+        Line:
+            width: root.w * root.bg_scale
+            points: root.head_points
+        Color:
+            rgba: root.fg_color
+        Line:
+            width: root.w
+            points: root.trunk_points
+        Line:
+            width: root.w
+            points: root.head_points
+<Arrow>:
+    origin: self.board.spot[self.portal['origin']]
+    destination: self.board.spot[self.portal['destination']]
+"""
+Builder.load_string(kv)

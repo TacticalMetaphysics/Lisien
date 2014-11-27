@@ -11,6 +11,7 @@ from kivy.graphics import (
     Color,
     Line
 )
+from kivy.lang import Builder
 from ELiDE.kivygarden.texturestack import ImageStack
 
 
@@ -56,3 +57,11 @@ class PawnSpot(ImageStack):
         boxgrp.add(self.box)
         boxgrp.add(Color(1., 1., 1.))
         self.group.add(boxgrp)
+
+
+kv = """
+<PawnSpot>:
+    engine: self.board.layout.app.engine if self.board and self.board.layout else None
+    linecolor: [0., 1., 1., 1.] if self.selected else [0., 0., 0., 0.]
+"""
+Builder.load_string(kv)
