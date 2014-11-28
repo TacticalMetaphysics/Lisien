@@ -181,9 +181,11 @@ def inittest(
     kobold = phys.new_thing("kobold", kobold_pos)
     kobold['shrub_places'] = []
     kobold['sprint_chance'] = kobold_sprint_chance
+    kobold['_image_paths'] = ['atlas://rltiles/base.atlas/kobold_m']
     dwarf = phys.new_thing("dwarf", dwarf_pos)
     dwarf['sight_radius'] = dwarf_sight_radius
     dwarf['seen_kobold'] = False
+    dwarf['_image_paths'] = ['atlas://rltiles/base.atlas/dwarf_m']
     # randomly place the shrubberies and add their locations to shrub_places
     n = 0
     locs = list(phys.place.keys())
@@ -193,7 +195,8 @@ def inittest(
         phys.add_thing(
             "shrub" + str(n),
             loc,
-            cover=1
+            cover=1,
+            _image_paths=['atlas://rltiles/dc-mon.atlas/fungus']
         )
         kobold['shrub_places'].append(loc)
         n += 1
