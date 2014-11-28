@@ -322,39 +322,26 @@ class ELiDELayout(FloatLayout):
         self.branch = self.engine.branch
         self.tick = self.engine.tick
         self.bind(
-            branch=self.branchupd,
-            tick=self.tickupd
+            branch=self.timeupd,
+            tick=self.timeupd
         )
 
         @self.engine.on_time
-        def pulltime(e, b, t):
-            self.unbind(
-                branch=self.branchupd,
-                tick=self.tickupd
-            )
+        def pulltime(e, b_old, t_old, b, t):
             self.branch = b
             self.tick = t
-            self.bind(
-                branch=self.branchupd,
-                tick=self.tickupd
-            )
-            self.ids.board._trigger_update()
 
-    def branchupd(self, *args):
-        """Inform my engine of the new branch, and update the board widget."""
+    def timeupd(self, *args):
         if self.engine.branch != self.branch:
             self.engine.branch = self.branch
+        if self.engine.tick != self.tick:
+            self.engine.tick = self.tick
         self.ids.board._trigger_update()
+        self.ids.charsheet._trigger_poll()
 
     def set_branch(self, b):
         """``self.branch = b``"""
         self.branch = b
-
-    def tickupd(self, *args):
-        """Inform my engine of the new tick, and update the board widget."""
-        if self.engine.tick != self.tick:
-            self.engine.tick = self.tick
-        self.ids.board._trigger_update()
 
     def set_tick(self, t):
         """``self.tick = int(t)``"""

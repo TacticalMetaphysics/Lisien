@@ -1364,6 +1364,71 @@ class CharStatCache(MutableMapping):
         self._real = char.graph
         self._cache = {}
 
+        def fillcache(cache, branch, tick):
+            assert(self.engine.time == (branch, tick))
+            if branch not in cache:
+                cache[branch] = {}
+                for k, v in self._real.items():
+                    cache[branch][k] = {tick: v}
+            else:
+                for k in cache[branch]:
+                    if tick not in cache[branch][k]:
+                        try:
+                            cache[branch][k][tick] = cache[branch][k][
+                                max(t for t in cache[branch][k] if t < tick)
+                            ]
+                        except ValueError:
+                            # probably shouldn't happen so much
+                            cache[branch][k][tick] = self._real[k]
+
+        @self.engine.on_time
+        def time_travel_triggers(
+                engine,
+                branch_then,
+                tick_then,
+                branch_now,
+                tick_now
+        ):
+            """Fire such triggers as needed for time travel from
+            the given time to the present moment.
+
+            """
+            then = (branch_then, tick_then)
+            now = (branch_now, tick_now)
+            # prevent recursion
+            self.engine.locktime = True
+            # use a local cache if not really caching
+            cache = self._cache if self.engine.caching else {}
+            self.engine.time = then
+            fillcache(cache, *then)
+            self.engine.time = now
+            fillcache(cache, *now)
+            # Anything that differs between these two times
+            # is cause for a trigger to fire.
+            for k in cache[branch_then]:
+                existed = (
+                    tick_then in cache[branch_then][k] and
+                    cache[branch_then][k][tick_then] is not None
+                )
+                exists = (
+                    tick_now in cache[branch_now][k] and
+                    cache[branch_now][k][tick_now] is not None
+                )
+                if existed and not exists:
+                    # deleted
+                    self._dispatch(k, None)
+                elif exists and not existed:
+                    # added
+                    self._dispatch(k, cache[branch_now][k][tick_now])
+                elif exists and existed:
+                    if (
+                            cache[branch_then][k][tick_then] !=
+                            cache[branch_now][k][tick_now]
+                    ):
+                        # changed
+                        self._dispatch(k, cache[branch_now][k][tick_now])
+            del self.engine.locktime
+
     def listener(self, f=None, stat=None):
         return self.character.stat_listener(f, stat)
 
@@ -1390,6 +1455,8 @@ class CharStatCache(MutableMapping):
         d = self._cache[k][branch]
         if tick not in d:
             d[tick] = self._real[k]
+        if d[tick] is None:
+            raise KeyError('Not set now')
         return d[tick]
 
     def __setitem__(self, k, v):
@@ -1419,6 +1486,7 @@ class CharStatCache(MutableMapping):
                     if t < tick
             ):
                 del self._cache[k][branch][staletick]
+            self._cache[k][branch][tick] = None
 
 
 class Character(DiGraph, RuleFollower):

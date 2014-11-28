@@ -515,9 +515,9 @@ class Engine(object):
         else:
             self.gorm.rev = v
         if not hasattr(self, 'locktime'):
-            b = self.branch
+            (branch_then, tick_then) = self.time
             for time_listener in self.time_listeners:
-                time_listener(self, b, v)
+                time_listener(self, branch_then, tick_then, branch_then, v)
 
     @property
     def time(self):
@@ -527,12 +527,16 @@ class Engine(object):
     @time.setter
     def time(self, v):
         """Set my gorm's ``branch`` and ``tick``, and call listeners"""
+        (branch_then, tick_then) = self.time
+        relock = hasattr(self, 'locktime')
         self.locktime = True
         (self.branch, self.tick) = v
+        if not relock:
+            del self.locktime
         (b, t) = v
-        for time_listener in self.time_listeners:
-            time_listener(self, b, t)
-        del self.locktime
+        if not hasattr(self, 'locktime'):
+            for time_listener in self.time_listeners:
+                time_listener(self, branch_then, tick_then, b, t)
 
     def _active_branches(self):
         yield from self.gorm._active_branches()

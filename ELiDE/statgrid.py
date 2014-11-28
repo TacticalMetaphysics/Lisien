@@ -5,11 +5,7 @@ user. Autoupdates when there's a change for any reason.
 
 """
 from functools import partial
-from kivy.properties import (
-    AliasProperty,
-    ObjectProperty,
-    StringProperty
-)
+from kivy.properties import ObjectProperty
 from kivy.clock import Clock
 from kivy.logger import Logger
 from kivy.uix.textinput import TextInput
@@ -86,6 +82,7 @@ class CharacterStatListView(ListView):
             allow_empty_selection=True
         )
         super().__init__(**kwargs)
+        self._trigger_poll = Clock.create_trigger(self.poll)
 
     def on_character(self, *args):
         if self.character is None:
@@ -104,9 +101,17 @@ class CharacterStatListView(ListView):
                 self._listed[k] = v
                 self.adapter.data.append((k, v))
 
+    def fetch_key(self, k):
+        Logger.debug('CharacterStatListView: fetching {}'.format(k))
+        self._remote_map.fetch(k)
+
+    def poll(self, *args):
+        Logger.debug('CharacterStatListView: polling keys...')
+        for k in self._listeners:
+            Logger.debug('CharacterStatListView: {}'.format(k))
+            self.fetch_key(k)
+
     def _reg_widget(self, w):
-        if w not in self.children:
-            return
         if not hasattr(self, '_remote_map'):
             Clock.schedule_once(partial(self._reg_widget, w), 0)
             return
@@ -115,6 +120,7 @@ class CharacterStatListView(ListView):
         def listen(k, v):
             assert(k == w.key)
             w.value = v
+        Logger.debug('CharacterStatListView: registering listener to {}'.format(w.key))
         self._listeners[w.key] = listen
 
     def _unreg_widget(self, w):
