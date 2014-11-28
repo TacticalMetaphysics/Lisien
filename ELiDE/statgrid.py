@@ -88,7 +88,11 @@ class CharacterStatListView(ListView):
         if self.character is None:
             return
         self._remote_map = CharacterRemoteMapping(self.character)
-        self.adapter.data = list(self._remote_map.items())
+        self.adapter.data = list(
+            (k, v) for (k, v) in
+            self._remote_map.items()
+            if not (isinstance(k, str) and k[0] == '_')
+        )
         self._listed = {}
         self._listeners = {}
 
