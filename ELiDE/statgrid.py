@@ -64,8 +64,8 @@ class StatRowListItem(CompositeListItem):
             self.reg(self)
 
 
-class CharacterStatListView(ListView):
-    character = ObjectProperty()
+class AbstractStatListView(ListView):
+    remote_map = ObjectProperty()
 
     def __init__(self, **kwargs):
         kwargs['adapter'] = ListAdapter(
@@ -82,21 +82,19 @@ class CharacterStatListView(ListView):
             allow_empty_selection=True
         )
         super().__init__(**kwargs)
-        self._trigger_poll = Clock.create_trigger(self.poll)
-
-    def on_character(self, *args):
-        if self.character is None:
-            return
-        self._remote_map = CharacterRemoteMapping(self.character)
-        self.adapter.data = list(
-            (k, v) for (k, v) in
-            self._remote_map.items()
-            if not (isinstance(k, str) and k[0] == '_')
-        )
         self._listed = {}
         self._listeners = {}
+        self._trigger_poll = Clock.create_trigger(self.poll)
 
-        @self._remote_map.listener
+    def on_remote_map(self, *args):
+        if self.remote_map is None:
+            return
+        self.adapter.data = list(
+            (k, v) for (k, v) in self.remote_map.items()
+            if not (isinstance(k, str) and k[0] == '_')
+        )
+
+        @self.remote_map.listener
         def listen(k, v):
             if v is None:
                 self.adapter.data.remove((k, self._listed[k]))
@@ -105,33 +103,34 @@ class CharacterStatListView(ListView):
                 self._listed[k] = v
                 self.adapter.data.append((k, v))
 
-    def fetch_key(self, k):
-        Logger.debug('CharacterStatListView: fetching {}'.format(k))
-        self._remote_map.fetch(k)
-
     def poll(self, *args):
-        Logger.debug('CharacterStatListView: polling keys...')
         for k in self._listeners:
-            Logger.debug('CharacterStatListView: {}'.format(k))
-            self.fetch_key(k)
+            self.remote_map.fetch(k)
 
-    def _reg_widget(self, w):
-        if not hasattr(self, '_remote_map'):
+    def _reg_widget(self, w, *args):
+        if self.remote_map is None:
             Clock.schedule_once(partial(self._reg_widget, w), 0)
             return
 
-        @self._remote_map.listener(key=w.key)
+        @self.remote_map.listener(key=w.key)
         def listen(k, v):
             assert(k == w.key)
             w.value = v
-        Logger.debug('CharacterStatListView: registering listener to {}'.format(w.key))
         self._listeners[w.key] = listen
 
     def _unreg_widget(self, w):
-        if not hasattr(self, '_remote_map'):
-            return
+        assert(self.remote_map is not None)
         if w.key in self._listeners:
-            self._remote_map.unlisten(self._listeners[w.key], key=w.key)
+            self.remote_map.unlisten(self._listeners[w.key], key=w.key)
 
     def _set_value(self, k, v):
-        self._remote_map[k] = v
+        self.remote_map[k] = v
+
+
+class CharacterStatListView(AbstractStatListView):
+    character = ObjectProperty()
+
+    def on_character(self, *args):
+        if self.character is None:
+            return
+        self.remote_map = CharacterRemoteMapping(self.character)
