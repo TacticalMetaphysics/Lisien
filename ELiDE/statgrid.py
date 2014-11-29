@@ -64,7 +64,7 @@ class StatRowListItem(CompositeListItem):
             self.reg(self)
 
 
-class AbstractStatListView(ListView):
+class StatListView(ListView):
     remote_map = ObjectProperty()
 
     def __init__(self, **kwargs):
@@ -125,12 +125,3 @@ class AbstractStatListView(ListView):
 
     def _set_value(self, k, v):
         self.remote_map[k] = v
-
-
-class CharacterStatListView(AbstractStatListView):
-    character = ObjectProperty()
-
-    def on_character(self, *args):
-        if self.character is None:
-            return
-        self.remote_map = CharacterRemoteMapping(self.character)

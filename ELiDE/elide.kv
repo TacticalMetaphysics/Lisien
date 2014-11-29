@@ -1,6 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 #: import StiffScrollEffect ELiDE.kivygarden.stiffscroll.StiffScrollEffect
+#: import CharacterRemoteMapping LiSE.remote.CharacterRemoteMapping
+#: import EntityRemoteMapping LiSE.remote.EntityRemoteMapping
 <ELiDELayout>:
     engine: self.app.engine
     board: board
@@ -36,11 +38,11 @@
                 id: spotlayout
             Widget:
                 id: pawnlayout
-    CharacterStatListView:
+    StatListView:
         id: charsheet
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.2, 0.9)
-        character: board.character
+        remote_map: None if board.character is None else CharacterRemoteMapping(board.character) if root.selection is None else EntityRemoteMapping(root.selection.thing) if hasattr(root.selection, 'thing') else EntityRemoteMapping(root.selection.place)
     BoxLayout:
         id: timemenu
         pos_hint: {'bot': 0}
