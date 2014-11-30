@@ -5,16 +5,16 @@ user. Autoupdates when there's a change for any reason.
 
 """
 from functools import partial
-from kivy.properties import ObjectProperty
+from kivy.properties import (
+    ObjectProperty,
+    NumericProperty,
+    StringProperty
+)
 from kivy.clock import Clock
-from kivy.logger import Logger
 from kivy.uix.textinput import TextInput
 from kivy.uix.listview import ListView, CompositeListItem
 from kivy.adapters.listadapter import ListAdapter
-from LiSE.remote import (
-    CharacterRemoteMapping,
-    EntityRemoteMapping
-)
+from kivy.lang import Builder
 from gorm.json import json_load
 
 
@@ -47,6 +47,8 @@ class StatRowListItem(CompositeListItem):
     reg = ObjectProperty()
     unreg = ObjectProperty()
     setter = ObjectProperty()
+    font_name = StringProperty('DroidSans')
+    font_size = NumericProperty(10)
 
     def __init__(self, **kwargs):
         super(CompositeListItem, self).__init__(**kwargs)
@@ -125,3 +127,23 @@ class StatListView(ListView):
 
     def _set_value(self, k, v):
         self.remote_map[k] = v
+
+
+kv = """
+<StatRowListItem>:
+    orientation: 'horizontal'
+    height: max((keycell.minimum_height, valcell.minimum_height))
+    StatRowKey:
+        id: keycell
+        font_name: root.font_name
+        font_size: root.font_size
+        hint_text: str(root.key)
+        multiline: False
+    StatRowValue:
+        id: valcell
+        font_name: root.font_name
+        font_size: root.font_size
+        hint_text: str(root.value)
+        multiline: False
+"""
+Builder.load_string(kv)

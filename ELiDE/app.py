@@ -526,13 +526,5 @@ kv = """
 <SymbolButton@Button>:
     font_name: "Symbola.ttf"
     font_size: 50
-<StatRowListItem>:
-    orientation: 'horizontal'
-    StatRowKey:
-        hint_text: str(root.key)
-        multiline: False
-    StatRowValue:
-        hint_text: str(root.value)
-        multiline: False
 """
 Builder.load_string(kv)
