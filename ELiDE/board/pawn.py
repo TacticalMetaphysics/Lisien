@@ -8,6 +8,7 @@ from kivy.properties import (
     ReferenceListProperty
 )
 from kivy.clock import Clock
+from kivy.lang import Builder
 from kivy.logger import Logger
 from .pawnspot import PawnSpot
 
@@ -33,79 +34,34 @@ class Pawn(PawnSpot):
     _touch_oy_diff = NumericProperty()
     _touch_opos_diff = ReferenceListProperty(_touch_ox_diff, _touch_oy_diff)
     travel_on_drop = BooleanProperty(False)
+    loc_name = ObjectProperty()
+    next_loc_name = ObjectProperty()
 
     def __init__(self, **kwargs):
-        """Arrange to update my textures and my position whenever the relevant
-        data change.
-
-        """
-        self._trigger_update = Clock.create_trigger(self._update)
+        self._trigger_upd_remote_location = Clock.create_trigger(
+            self.upd_remote_location
+        )
+        self._trigger_upd_remote_next_location = Clock.create_trigger(
+            self.upd_remote_next_location
+        )
         super().__init__(**kwargs)
 
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""
-        return '{}-in-{}'.format(self.thing.name, self.thing.location.name)
+        return '{}-in-{}'.format(
+            self.name,
+            self.loc_name
+        )
 
-    def _update(self, *args):
-        """Private use. Update my ``paths`` and ``stackhs`` with what's in my
-        ``thing``.
-
-        """
-        if '_image_paths' not in self.thing:
-            self.thing['_image_paths'] = self._default_paths()
-        if '_offxs' not in self.thing:
-            self.thing['_offxs'] = self._default_offxs()
-        if '_offys' not in self.thing:
-            self.thing['_offys'] = self._default_offys()
-        if '_stacking_heights' not in self.thing:
-            self.thing['_stacking_heights'] = self._default_stackhs()
-        if self.paths != self.thing["_image_paths"]:
-            self.paths = self.thing["_image_paths"]
-        if self.stackhs != self.thing["_stacking_heights"]:
-            self.stackhs = self.thing["_stacking_heights"]
-        if (
-                (
-                    hasattr(self.parent, 'place') and
-                    self.parent.place.name != self.thing["location"]
-                ) or (
-                    hasattr(self.parent, 'origin') and
-                    (
-                        self.parent.origin.place.name !=
-                        self.thing['location'] or
-                        self.parent.destination.place.name !=
-                        self.thing['next_location']
-                    )
-                )
-        ):
-            try:
-                whereat = self.board.arrow[
-                    self.thing["location"]
-                    ][
-                        self.thing["next_location"]
-                    ]
-            except KeyError:
-                whereat = self.board.spot[self.thing["location"]]
-            self.parent.remove_widget(self)
-            whereat.add_widget(self)
-
-    def _default_paths(self):
-        """Return a list of paths to use for my graphics by default."""
-        return ['atlas://rltiles/base.atlas/unseen']
-
-    def _default_offxs(self):
-        """Return a list of integers to use for my x-offsets by default."""
-        return [0]
-
-    def _default_offys(self):
-        """Return a list of integers to use for my y-offsets by default."""
-        return [0]
-
-    def _default_stackhs(self):
-        """Return a list of integers to use for my stacking heights by
-        default.
+    def on_name(self, *args):
+        """Reindex myself in my board's pawn dict, for when my thing gets
+        renamed.
 
         """
-        return [0]
+        if hasattr(self, '_oldname'):
+            del self.board.pawn[self._oldname]
+        self.board.pawn[self.name] = self
+        self._oldname = self.name
 
     def add_widget(self, pawn, index=0, canvas='after'):
         """Apart from the normal behavior, bind my ``center`` so that the
@@ -143,9 +99,9 @@ class Pawn(PawnSpot):
             if self.collide_widget(spot):
                 Logger.debug(
                     "pawn: {} will go from {} to {}".format(
-                        self.thing.name,
-                        self.thing.location.name,
-                        spot.place.name
+                        self.name,
+                        self.loc_name,
+                        spot.name
                     )
                 )
                 new_spot = spot
@@ -153,12 +109,77 @@ class Pawn(PawnSpot):
         else:
             return True
 
-        myplace = self.thing["location"]
-        theirplace = new_spot.place.name
+        myplace = self.loc_name
+        theirplace = new_spot.name
         if myplace != theirplace:
             if self.travel_on_drop:
-                self.thing.travel_to(new_spot.place.name)
+                self.thing.travel_to(new_spot.name)
             else:
-                self.thing["location"] = new_spot.place.name
+                self.loc_name = new_spot.name
                 self._update()
         return True
+
+    def on_loc_name(self, *args):
+        """Move myself to the widget representing my new location."""
+        if (
+                (
+                    hasattr(self.parent, 'place') and
+                    self.parent.name != self.loc_name
+                ) or (
+                    hasattr(self.parent, 'origin') and
+                    (
+                        self.parent.origin.name !=
+                        self.loc_name or
+                        self.parent.destination.name !=
+                        self.loc_name
+                    )
+                )
+        ):
+            try:
+                whereat = self.board.arrow[
+                    self.loc_name
+                    ][
+                        self.next_loc_name
+                    ]
+            except KeyError:
+                whereat = self.board.spot[self.loc_name]
+            self.parent.remove_widget(self)
+            whereat.add_widget(self)
+
+    def on_remote_map(self, *args):
+        if not PawnSpot.on_remote_map(self, *args):
+            return
+        self.loc_name = self.remote_map['location']
+        self.next_loc_name = self.remote_map['next_location']
+
+        @self.remote_map.listener(key='location')
+        def listen_loc(k, v):
+            self.unbind(loc_name=self._trigger_upd_remote_location)
+            self.loc_name = v
+            self.bind(loc_name=self._trigger_upd_remote_location)
+
+        @self.remote_map.listener(key='next_location')
+        def listen_next_loc(k, v):
+            self.unbind(next_loc_name=self._trigger_upd_remote_next_location)
+            self.next_loc_name = v
+            self.bind(next_loc_name=self._trigger_upd_remote_next_location)
+
+        self.bind(
+            loc_name=self._trigger_upd_remote_location,
+            next_loc_name=self._trigger_upd_remote_next_location,
+        )
+
+        return True
+
+    def upd_remote_location(self, *args):
+        self.remote_map['location'] = self.loc_name
+
+    def upd_remote_next_location(self, *args):
+        self.remote_map['next_location'] = self.next_loc_name
+
+
+kv = """
+<Pawn>:
+    remote_map: EntityRemoteMapping(self.thing) if self.thing else None
+"""
+Builder.load_string(kv)

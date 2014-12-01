@@ -259,10 +259,6 @@ class Board(RelativeLayout):
                 self.character.name
             )
         )
-        for spot in self.spot.values():
-            spot._trigger_update()
-        for pawn in self.pawn.values():
-            pawn._trigger_update()
 
     def __repr__(self):
         """Look like a :class:`Character` wrapped in ``Board(...)```"""

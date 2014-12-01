@@ -8,6 +8,7 @@ from kivy.properties import (
     NumericProperty
 )
 from kivy.clock import Clock
+from kivy.lang import Builder
 from kivy.logger import Logger
 from ELiDE.kivygarden.collider import CollideEllipse
 from .pawnspot import PawnSpot
@@ -38,32 +39,13 @@ class Spot(PawnSpot):
         self._trigger_upd_pawns_here = Clock.create_trigger(
             self._upd_pawns_here
         )
-        self._trigger_update = Clock.create_trigger(self._update)
+        self._trigger_upd_remote_x = Clock.create_trigger(self.upd_remote_x)
+        self._trigger_upd_remote_y = Clock.create_trigger(self.upd_remote_y)
         kwargs['size_hint'] = (None, None)
         super().__init__(**kwargs)
-        self.board.spot[self.place.name] = self
         self.bind(
             center=self._trigger_upd_pawns_here
         )
-        self._ignore_place = True
-        try:
-            self.pos = (
-                self.place['_x'] * self.board.width,
-                self.place['_y'] * self.board.height
-            )
-        except KeyError:
-            (x, y) = self._default_pos()
-            self.place['_x'] = x
-            self.place['_y'] = y
-            self.pos = (
-                x * self.board.width,
-                y * self.board.height
-            )
-        self._ignore_place = False
-        try:
-            self.paths = self.place['_image_paths']
-        except KeyError:
-            self.place['_image_paths'] = self.paths = self._default_paths()
 
     def _default_pos(self):
         """Return the position on the board to use when I don't have
@@ -84,19 +66,17 @@ class Spot(PawnSpot):
         ``place``.
 
         """
-        if self.place['_image_paths'] != self.paths:
-            self.paths = self.place['_image_paths']
         if (
-                self.place['_x'] != self.x / self.board.width or
-                self.place['_y'] != self.y / self.board.height
+                self.remote_map['_x'] != self.x / self.board.width or
+                self.remote_map['_y'] != self.y / self.board.height
         ):
             self._ignore_place = True
             self.pos = (
-                self.place['_x'] * self.board.width,
-                self.place['_y'] * self.board.height
+                self.remote_map['_x'] * self.board.width,
+                self.remote_map['_y'] * self.board.height
             )
             self._ignore_place = False
-            self._trigger_upd_collider()
+
 
     def add_widget(self, wid, i=0, canvas=None):
         """Put the widget's canvas in my ``board``'s ``pawnlayout`` rather
@@ -131,7 +111,6 @@ class Spot(PawnSpot):
             else:
                 pawncanvas.add(child.canvas)
         self.pospawn(wid)
-        wid._trigger_update()
 
     def pospawn(self, pawn):
         """Given some :class:`Pawn` instance that's to be on top of me, set
@@ -148,25 +127,6 @@ class Spot(PawnSpot):
         (x, y) = self.center
         pawn.pos = (x+off, y+off)
 
-    def on_paths(self, *args):
-        """When I get different imagery, save it in my :class:`Place`"""
-        if not self._ignore_place:
-            self.place["_image_paths"] = self.paths
-        super().on_paths(*args)
-
-    def on_x(self, *args):
-        """When my ``x`` changes, save it relativized to the board."""
-        if self._ignore_place:
-            return
-        self.place['_x'] = self.x / self.board.width
-        self._trigger_upd_collider()
-
-    def on_y(self, *args):
-        """When my ``y`` changes, save it relativized to the board."""
-        if self._ignore_place:
-            return
-        self.place['_y'] = self.y / self.board.height
-        self._trigger_upd_collider()
 
     def _upd_collider(self, *args):
         """Update my collider to match my present position. and size.
@@ -221,3 +181,50 @@ class Spot(PawnSpot):
     def __repr__(self):
         """Give my place's name and my position."""
         return "{}@({},{})".format(self.place.name, self.x, self.y)
+
+    def on_remote_map(self, *args):
+        if not PawnSpot.on_remote_map(self, *args):
+            return
+        try:
+            self.pos = (
+                self.remote_map['_x'] * self.board.width,
+                self.remote_map['_y'] * self.board.height
+            )
+        except KeyError:
+            (x, y) = self._default_pos()
+            self.remote_map['_x'] = x
+            self.remote_map['_y'] = y
+            self.pos = (
+                x * self.board.width,
+                y * self.board.height
+            )
+
+        @self.remote_map.listener(key='_x')
+        def listen_x(k, v):
+            self.unbind(x=self._trigger_upd_remote_x)
+            self.x = v * self.board.width
+            self.bind(x=self._trigger_upd_remote_x)
+
+        @self.remote_map.listener(key='_y')
+        def listen_y(k, v):
+            self.unbind(y=self._trigger_upd_remote_y)
+            self.y = v * self.board.height
+            self.bind(y=self._trigger_upd_remote_y)
+
+        self.bind(
+            x=self._trigger_upd_remote_x,
+            y=self._trigger_upd_remote_y,
+            pos=self._trigger_upd_collider
+        )
+
+    def upd_remote_x(self, *args):
+        self.remote_map['_x'] = self.x / self.board.width
+
+    def upd_remote_y(self, *args):
+        self.remote_map['_y'] = self.y / self.board.height
+
+kv = """
+<Spot>:
+    remote_map: EntityRemoteMapping(self.place) if self.place else None
+"""
+Builder.load_string(kv)

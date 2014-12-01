@@ -88,9 +88,15 @@ class StatListView(ListView):
         self._listeners = {}
         self._trigger_poll = Clock.create_trigger(self.poll)
 
+    def unlisten_all(self):
+        for (k, listener) in self._listeners.items():
+            self.remote_map.unlisten(listener, key=k)
+        self._listeners = {}
+
     def on_remote_map(self, *args):
         if self.remote_map is None:
             return
+        self.unlisten_all()
         self.adapter.data = list(
             (k, v) for (k, v) in self.remote_map.items()
             if not (isinstance(k, str) and k[0] == '_')
@@ -132,7 +138,7 @@ class StatListView(ListView):
 kv = """
 <StatRowListItem>:
     orientation: 'horizontal'
-    height: max((keycell.minimum_height, valcell.minimum_height))
+    height: 30
     StatRowKey:
         id: keycell
         font_name: root.font_name
