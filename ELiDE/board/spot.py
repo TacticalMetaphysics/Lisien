@@ -8,10 +8,10 @@ from kivy.properties import (
     NumericProperty
 )
 from kivy.clock import Clock
-from kivy.lang import Builder
 from kivy.logger import Logger
 from ELiDE.kivygarden.collider import CollideEllipse
 from .pawnspot import PawnSpot
+from LiSE.remote import EntityRemoteMapping
 
 
 class Spot(PawnSpot):
@@ -26,7 +26,6 @@ class Spot(PawnSpot):
     place = ObjectProperty()
     offset = NumericProperty(4)
     collider = ObjectProperty()
-    _ignore_place = BooleanProperty(False)
     _touchpos = ListProperty([])
 
     def __init__(self, **kwargs):
@@ -60,23 +59,6 @@ class Spot(PawnSpot):
     def _default_paths(self):
         """Return a list of paths to use for my graphics by default."""
         return ['orb.png']
-
-    def _update(self, *args):
-        """Private use. Update my ``paths`` and ``pos`` with what's in my
-        ``place``.
-
-        """
-        if (
-                self.remote_map['_x'] != self.x / self.board.width or
-                self.remote_map['_y'] != self.y / self.board.height
-        ):
-            self._ignore_place = True
-            self.pos = (
-                self.remote_map['_x'] * self.board.width,
-                self.remote_map['_y'] * self.board.height
-            )
-            self._ignore_place = False
-
 
     def add_widget(self, wid, i=0, canvas=None):
         """Put the widget's canvas in my ``board``'s ``pawnlayout`` rather
@@ -126,7 +108,6 @@ class Spot(PawnSpot):
         off = i * self.offset
         (x, y) = self.center
         pawn.pos = (x+off, y+off)
-
 
     def _upd_collider(self, *args):
         """Update my collider to match my present position. and size.
@@ -182,8 +163,17 @@ class Spot(PawnSpot):
         """Give my place's name and my position."""
         return "{}@({},{})".format(self.place.name, self.x, self.y)
 
+    def on_place(self, *args):
+        if self.place is None:
+            return
+        self.name = self.place['name']
+        self.remote_map = EntityRemoteMapping(self.place)
+
     def on_remote_map(self, *args):
-        if not PawnSpot.on_remote_map(self, *args):
+        if not super().on_remote_map(*args):
+            return
+        if not self.board:
+            Clock.schedule_once(self.on_remote_map, 0)
             return
         try:
             self.pos = (
@@ -222,9 +212,3 @@ class Spot(PawnSpot):
 
     def upd_remote_y(self, *args):
         self.remote_map['_y'] = self.y / self.board.height
-
-kv = """
-<Spot>:
-    remote_map: EntityRemoteMapping(self.place) if self.place else None
-"""
-Builder.load_string(kv)

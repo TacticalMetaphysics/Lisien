@@ -96,7 +96,7 @@ class Pawn(PawnSpot):
         if not self.selected:
             return False
         for spot in self.board.spot.values():
-            if self.collide_widget(spot):
+            if self.collide_widget(spot) and spot.name != self.loc_name:
                 Logger.debug(
                     "pawn: {} will go from {} to {}".format(
                         self.name,
@@ -116,7 +116,6 @@ class Pawn(PawnSpot):
                 self.thing.travel_to(new_spot.name)
             else:
                 self.loc_name = new_spot.name
-                self._update()
         return True
 
     def on_loc_name(self, *args):

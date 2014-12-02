@@ -48,6 +48,7 @@ class Board(RelativeLayout):
         """Make a :class:`Spot` to represent a :class:`Place`"""
         if place["name"] in self.spot:
             raise KeyError("Already have a Spot for this Place")
+        Logger.debug('Board: making Spot for {}'.format(place['name']))
         r = Spot(
             board=self,
             place=place
@@ -144,6 +145,24 @@ class Board(RelativeLayout):
         from networkx import spectral_layout
         return spectral_layout(graph)
 
+    def on_spots_unposd(self, *args):
+        if self.spots_unposd == len(self.spot):
+            # No spots have positions;
+            # do a layout.
+            spots_only = self.character.facade()
+            for thing in list(spots_only.thing.keys()):
+                del spots_only.thing[thing]
+            l = self.grid_layout(spots_only)
+            for (spot, (x, y)) in l.items():
+                self.spot[spot].pos = (
+                    int(x * self.width),
+                    int(y * self.height)
+                )
+            Logger.debug(
+                "board: auto layout of spots"
+            )
+            self.spots_unposd = 0
+
     def _update(self, *args):
         """Refresh myself from the database"""
         # remove widgets that don't represent anything anymore
@@ -194,26 +213,11 @@ class Board(RelativeLayout):
                     self.make_spot(self.character.place[place_name])
                 )
         Logger.debug(
-            "board: added {} spots to {}'s board".format(
+            "Board: added {} spots to {}'s board".format(
                 len(spots_added),
                 self.character.name
             )
         )
-        if self.spots_unposd == len(self.spot):
-            # No spots have positions;
-            # do a layout.
-            spots_only = self.character.facade()
-            for thing in list(spots_only.thing.keys()):
-                del spots_only.thing[thing]
-            l = self.grid_layout(spots_only)
-            for (spot, (x, y)) in l.items():
-                self.spot[spot].pos = (
-                    int(x * self.width),
-                    int(y * self.height)
-                )
-            Logger.debug(
-                "board: auto layout of spots"
-            )
         arrows_added = []
         for arrow_orig in self.character.portal:
             for arrow_dest in self.character.portal[arrow_orig]:
