@@ -542,35 +542,56 @@ class Engine(object):
         yield from self.gorm._active_branches()
 
     def _poll_rules(self):
-        yield from self.db.poll_rules(*self.time)
+        for (
+                rulemap, character, rulebook, rule
+        ) in self.db.poll_char_rules(*self.time):
+            yield (
+                rulemap,
+                self.character[character],
+                None,
+                rulebook,
+                self.rule[rulename]
+            )
+        for (
+                character, node, rulebook, rule
+        ) in self.db.poll_node_rules(*self.time):
+            c = self.character[character]
+            n = c.node[node]
+            typ = 'thing' if hasattr(n, 'location') else 'place'
+            yield typ, c, n, rulebook, self.rule[rulename]
+        for (
+                character, a, b, i, rulebook, rule
+        ) in self.db.poll_portal_rules(*self.time):
+            c = self.character[character]
+            yield 'portal', c.portal[a][b], rulebook, self.rule[rulename]
 
     def _follow_rules(self):
         (branch, tick) = self.time
-        for (ruletyp, charname, rulebook, rulename) in self._poll_rules():
-            character = self.character[charname]
-            rule = self.rule[rulename]
-
+        for (typ, character, entity, rulebook, rulename) in self._poll_rules():
             def follow(*args):
+                print('Following {}...'.format(rule))
                 return (rule(self, *args), rulename, ruletyp, rulebook)
 
-            if ruletyp == 'character':
+            if typ == 'character':
                 yield follow(character)
-            elif ruletyp == 'avatar':
+            elif typ == 'avatar':
                 for avatar in character.avatars():
                     yield follow(character, avatar)
-            elif ruletyp == 'thing':
+            elif typ == 'character_thing':
                 for thing in character.thing.values():
                     yield follow(character, thing)
-            elif ruletyp == 'place':
+            elif typ == 'character_place':
                 for place in character.place.values():
                     yield follow(character, place)
-            elif ruletyp == 'portal':
+            elif typ == 'character_portal':
                 for portal in character.portals():
                     yield follow(character, portal)
+            elif typ in 'thing', 'place', 'portal':
+                yield follow(character, entity)
             else:
                 raise TypeError("Unknown type of rule")
             self.db.handled_rule(
-                ruletyp, charname, rulebook, rulename, branch, tick
+                typ, charname, rulebook, rule.name, branch, tick
             )
 
     def advance(self):

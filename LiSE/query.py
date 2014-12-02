@@ -204,19 +204,65 @@ class QueryEngine(gorm.query.QueryEngine):
                 'rule_upd_fmt', active, rulebook, rule, branch, tick
             )
 
-    def poll_rules(self, branch, tick):
-        for rulemap in ('character', 'avatar', 'thing', 'place', 'portal'):
+    def poll_char_rules(self, branch, tick):
+        """Poll character-wide rules for all the entity types."""
+        for rulemap in (
+                'character',
+                'avatar',
+                'character_thing',
+                'character_place',
+                'character_portal'
+        ):
             seen = set()
             for (b, t) in self.active_branches(branch, tick):
                 for (c, rulebook, rule, active, handled) in self.sql(
-                        'poll_rules_fmt', b, t, b, t, tbl=rulemap
+                        'poll_char_rules_fmt', b, t, b, t, tbl=rulemap
                 ):
                     if (c, rulebook, rule) in seen:
                         continue
                     seen.add((c, rulebook, rule))
-                    character = json_load(c)
                     if active:
-                        yield (rulemap, character, rulebook, rule)
+                        yield (rulemap, json_load(c), rulebook, rule)
+
+    def poll_node_rules(self, branch, tick):
+        """Poll rules assigned to particular Places or Things."""
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (char, n, rulebook, rule, active, handled) in self.sql(
+                    'poll_node_rules', b, t, b, t
+            ):
+                if (char, n, rulebook, rule) in seen:
+                    continue
+                seen.add((char, n, rulebook, rule))
+                if active:
+                    yield (
+                        'node',
+                        json_load(char),
+                        json_load(n),
+                        rulebook,
+                        rule
+                    )
+
+    def poll_portal_rules(self, branch, tick):
+        """Poll rules assigned to particular portals."""
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (char, a, b, i, rulebook, rule, active, handled) in self.sql(
+                    'poll_portal_rules', b, t, b, t
+            ):
+                if (char, a, b, i, rulebook, rule) in seen:
+                    continue
+                seen.add((char, a, b, i, rulebook, rule))
+                if active:
+                    yield (
+                        'portal',
+                        json_load(char),
+                        json_load(a),
+                        json_load(b),
+                        i,
+                        rulebook,
+                        rule
+                    )
 
     def handled_rule(self, ruletyp, character, rulebook, rule, branch, tick):
         character = json_dump(character)
@@ -710,7 +756,24 @@ class QueryEngine(gorm.query.QueryEngine):
                 "node TEXT NOT NULL, "
                 "rulebook TEXT NOT NULL, "
                 "PRIMARY KEY(character, node), "
-                "FOREIGN KEY(character, node) REFERENCES nodes(graph, node))"
+                "FOREIGN KEY(character, node) REFERENCES nodes(graph, node),"
+                "FOREIGN KEY(rulebook) REFERENCES rulebooks(rulebook))"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM portal_rulebook;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE edge_rulebook ("
+                "character TEXT NOT NULL, "
+                "nodeA TEXT NOT NULL, "
+                "nodeB TEXT NOT NULL, "
+                "idx INTEGER NOT NULL DEFAULT 0, "
+                "rulebook TEXT NOT NULL, "
+                "PRIMARY KEY(character, nodeA, nodeB, idx), "
+                "FOREIGN KEY(character, nodeA, nodeB, idx) "
+                "REFERENCES edges(graph, nodeA, nodeB, idx), "
+                "FOREIGN KEY(rulebook) REFERENCES rulebooks(rulebook))"
                 ";"
             )
         try:
@@ -760,14 +823,13 @@ class QueryEngine(gorm.query.QueryEngine):
             "{table}_rules_handled(character, rulebook, rule)"
             ";"
         )
-        rulesview = (
-            "CREATE VIEW {table}_rules AS "
-            "SELECT character, rulebook, rule, branch, tick, active "
-            "FROM active_rules JOIN characters ON "
-            "active_rules.rulebook=characters.{table}_rulebook"
-            ";"
-        )
-        for tabn in ("character", "avatar", "thing", "place", "portal"):
+        for tabn in (
+                "character",
+                "avatar",
+                "character_thing",
+                "character_place",
+                "character_portal"
+        ):
             try:
                 cursor.execute(
                     'SELECT * FROM {tab}_rules_handled;'.format(tab=tabn)
@@ -778,7 +840,4 @@ class QueryEngine(gorm.query.QueryEngine):
                 )
                 cursor.execute(
                     handled_idx.format(table=tabn)
-                )
-                cursor.execute(
-                    rulesview.format(table=tabn)
                 )

@@ -69,6 +69,9 @@ class Rule(object):
             # didn't run?
         return self.run_actions(engine, *args)
 
+    def __repr__(self):
+        return 'Rule({})'.format(self.name)
+
     def trigger(self, fun):
         """Decorator to append the function to my triggers list."""
         self.triggers.append(fun)
@@ -202,6 +205,9 @@ class RuleMapping(MutableMapping):
             True
         )
         self._dispatch(rule, True)
+
+    def __repr__(self):
+        return 'RuleMapping({})'.format([k for k in self])
 
     def __iter__(self):
         return self.engine.db.active_rules_rulebook(

@@ -12,13 +12,13 @@ def runtest(engine):
             "On tick {}, the dwarf is at {}, "
             "and the kobold is {}{}{}".format(
                 n,
-                engine.character['dwarf'].avatar['location'],
+                engine.character['physical'].thing['dwarf']['location'],
                 "alive" if kobold_alive else "dead",
-                " at " + str(engine.character['kobold'].avatar['location'])
+                " at " + str(engine.character['physical'].thing['kobold']['location'])
                 if kobold_alive else "",
                 " (in a shrubbery)" if kobold_alive and len([
                     th for th in
-                    engine.character['kobold'].avatar.location.contents()
+                    engine.character['physical'].thing['kobold'].location.contents()
                     if th.name[:5] == "shrub"
                 ]) > 0 else ""
             )
@@ -30,4 +30,5 @@ if __name__ == '__main__':
     with mkengine(random_seed=seed, caching=caching) as engine:
         inittest(engine)
         engine.commit()
-        run('runtest(engine)')
+        print(engine.character['physical'].thing['dwarf'].rule)
+        runtest(engine)

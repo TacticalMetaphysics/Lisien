@@ -5,7 +5,7 @@ def inittest_old(
         engine,
         mapsize=(10, 10),
         dwarf_pos=(0, 0),
-        kobold_pos=(9, 9),
+        kobold_pos=(2, 2),
         shrubberies=20,
         dwarf_sight_radius=2,
         kobold_sprint_chance=.1
