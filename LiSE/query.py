@@ -236,7 +236,6 @@ class QueryEngine(gorm.query.QueryEngine):
                 seen.add((char, n, rulebook, rule))
                 if active:
                     yield (
-                        'node',
                         json_load(char),
                         json_load(n),
                         rulebook,
@@ -255,7 +254,6 @@ class QueryEngine(gorm.query.QueryEngine):
                 seen.add((char, a, b, i, rulebook, rule))
                 if active:
                     yield (
-                        'portal',
                         json_load(char),
                         json_load(a),
                         json_load(b),
@@ -679,9 +677,9 @@ class QueryEngine(gorm.query.QueryEngine):
                 "character TEXT NOT NULL PRIMARY KEY, "
                 "character_rulebook TEXT NOT NULL, "
                 "avatar_rulebook TEXT NOT NULL, "
-                "thing_rulebook TEXT NOT NULL, "
-                "place_rulebook TEXT NOT NULL, "
-                "portal_rulebook TEXT NOT NULL, "
+                "character_thing_rulebook TEXT NOT NULL, "
+                "character_place_rulebook TEXT NOT NULL, "
+                "character_portal_rulebook TEXT NOT NULL, "
                 "FOREIGN KEY(character) REFERENCES graphs(graph))"
                 ";"
             )
@@ -764,7 +762,7 @@ class QueryEngine(gorm.query.QueryEngine):
             cursor.execute('SELECT * FROM portal_rulebook;')
         except OperationalError:
             cursor.execute(
-                "CREATE TABLE edge_rulebook ("
+                "CREATE TABLE portal_rulebook ("
                 "character TEXT NOT NULL, "
                 "nodeA TEXT NOT NULL, "
                 "nodeB TEXT NOT NULL, "
@@ -828,7 +826,7 @@ class QueryEngine(gorm.query.QueryEngine):
                 "avatar",
                 "character_thing",
                 "character_place",
-                "character_portal"
+                "character_portal",
         ):
             try:
                 cursor.execute(
@@ -841,3 +839,99 @@ class QueryEngine(gorm.query.QueryEngine):
                 cursor.execute(
                     handled_idx.format(table=tabn)
                 )
+        try:
+            cursor.execute(
+                'SELECT * FROM thing_rules_handled;'
+            )
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE thing_rules_handled ("
+                "character TEXT NOT NULL, "
+                "thing TEXT NOT NULL , "
+                "rulebook TEXT NOT NULL, "
+                "rule TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "PRIMARY KEY(character, thing, rulebook, rule, branch, tick), "
+                "FOREIGN KEY(character, thing, rulebook) "
+                "REFERENCES node_rulebook(character, node, rulebook))"
+                ";"
+            )
+        try:
+            cursor.execute(
+                'SELECT * FROM place_rules_handled;'
+            )
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE place_rules_handled ("
+                "character TEXT NOT NULL, "
+                "place TEXT NOT NULL, "
+                "rulebook TEXT NOT NULL, "
+                "rule TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "PRIMARY KEY(character, place, rulebook, rule, branch, tick), "
+                "FOREIGN KEY(character, place, rulebook) "
+                "REFERENCES node_rulebook(character, node, rulebook))"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM node_rules_handled;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE VIEW node_rules_handled AS "
+                "SELECT "
+                "character, "
+                "place AS node, "
+                "rulebook, "
+                "rule, "
+                "branch, "
+                "tick FROM place_rules_handled "
+                "UNION "
+                "SELECT "
+                "character, "
+                "thing AS node, "
+                "rulebook, "
+                "rule, "
+                "branch, "
+                "tick FROM thing_rules_handled"
+                ";"
+            )
+        try:
+            cursor.execute('SELECT * FROM portal_rules_handled;')
+        except OperationalError:
+            cursor.execute(
+                "CREATE TABLE portal_rules_handled ("
+                "character TEXT NOT NULL, "
+                "nodeA TEXT NOT NULL, "
+                "nodeB TEXT NOT NULL, "
+                "idx INTEGER NOT NULL DEFAULT 0, "
+                "rulebook TEXT NOT NULL, "
+                "rule TEXT NOT NULL, "
+                "branch TEXT NOT NULL DEFAULT 'master', "
+                "tick INTEGER NOT NULL DEFAULT 0, "
+                "PRIMARY KEY("
+                "character, "
+                "nodeA, "
+                "nodeB, "
+                "idx, "
+                "rulebook, "
+                "rule, "
+                "branch, "
+                "tick), "
+                "FOREIGN KEY("
+                "character, "
+                "nodeA, "
+                "nodeB, "
+                "idx, "
+                "rulebook, "
+                "rule) "
+                "REFERENCES portal_rulebook("
+                "character, "
+                "nodeA, "
+                "nodeB, "
+                "idx, "
+                "rulebook, "
+                "rule))"
+                ";"
+            )

@@ -586,7 +586,7 @@ class Engine(object):
             elif typ == 'character_portal':
                 for portal in character.portals():
                     yield follow(character, portal)
-            elif typ in 'thing', 'place', 'portal':
+            elif typ in ('thing', 'place', 'portal'):
                 yield follow(character, entity)
             else:
                 raise TypeError("Unknown type of rule")
