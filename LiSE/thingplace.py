@@ -20,10 +20,6 @@ class ThingPlace(Node):
     """Superclass for both Thing and Place"""
     @property
     def rulebook(self):
-        return RuleBook(
-            self.engine,
-            self._rulebook_name
-        )
         if not hasattr(self, '_rulebook'):
             self._rulebook = RuleBook(
                 self.engine,
@@ -39,6 +35,29 @@ class ThingPlace(Node):
         dispatch(self._rulebook_listeners, self._rulebook_name, self, v)
 
     @property
+    def _rulebook_name(self):
+        try:
+            return self.engine.db.node_rulebook(
+                self.character.name,
+                self.name
+            )
+        except KeyError:
+            self.engine.db.set_node_rulebook(
+                self.character.name,
+                self.name,
+                (self.character.name, self.name)
+            )
+            return (self.character.name, self.name)
+
+    @_rulebook_name.setter
+    def _rulebook_name(self, v):
+        self.engine.db.set_node_rulebook(
+            self.character.name,
+            self.name,
+            v
+        )
+
+    @property
     def rule(self):
         return RuleMapping(self.engine, self.rulebook)
 
@@ -47,7 +66,6 @@ class ThingPlace(Node):
         self.character = character
         self.engine = character.engine
         self.name = name
-        self._rulebook_name = str(name) + "_rulebook"
         self._rulebook_listeners = []
         self._stat_listeners = defaultdict(list)
         if self.engine.caching:
@@ -245,17 +263,9 @@ class Thing(ThingPlace):
                     continue
             raise CacheError("Locations not cached correctly")
         else:
-            if not self.engine.caching:
-                return super().__getitem__(key)
-            (branch, tick) = self.engine.time
-            return cache_get(
-                self._statcache,
-                self._keycache,
-                branch,
-                tick,
-                key,
-                super().__getitem__
-            )
+            # I think I need some new class that's like
+            # gorm.xjson.JSONWrapper but does real caching.
+            return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` for the present game-time."""
@@ -320,8 +330,6 @@ class Thing(ThingPlace):
 
     def _load_locs_branch(self, branch):
         """Private method. Cache stored location data for this branch."""
-        if branch in self._loccache:
-            return
         self._loccache[branch] = {}
         for (tick, loc, nloc) in self.engine.db.thing_locs_data(
                 self.character.name,

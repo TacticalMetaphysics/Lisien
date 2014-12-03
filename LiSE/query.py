@@ -30,6 +30,9 @@ import LiSE.sql
 
 
 class QueryEngine(gorm.query.QueryEngine):
+    IntegrityError = IntegrityError
+    OperationalError = OperationalError
+
     def sql(self, stringname, *args, **kwargs):
         if hasattr(LiSE.sql, stringname):
             return self.connection.cursor().execute(
@@ -151,6 +154,7 @@ class QueryEngine(gorm.query.QueryEngine):
             self.sql('char_del_fmt', name, tbl=tbl)
 
     def active_rules_rulebook(self, rulebook, branch, tick):
+        rulebook = json_dump(rulebook)
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (rule, active) in self.sql(
@@ -161,12 +165,73 @@ class QueryEngine(gorm.query.QueryEngine):
                 seen.add(rule)
 
     def active_rule_rulebook(self, rulebook, rule, branch, tick):
+        rulebook = json_dump(rulebook)
         for (b, t) in self.active_branches(branch, tick):
             for (active,) in self.sql(
                     'active_rule_rulebook', rulebook, rule, branch, tick
             ):
                 return bool(active)
         return False
+
+    def node_rulebook(self, character, node):
+        (character, node) = map(json_dump, (character, node))
+        r = self.sql('node_rulebook', character, node).fetchone()
+        if r is None:
+            raise KeyError(
+                'No rulebook for node {} in character {}'.format(
+                    node, character
+                )
+            )
+        return json_load(r[0])
+
+    def set_node_rulebook(self, character, node, rulebook):
+        (character, node, rulebook) = map(
+            json_dump, (character, node, rulebook)
+        )
+        try:
+            return self.sql('ins_node_rulebook', character, node, rulebook)
+        except IntegrityError:
+            return self.sql('upd_node_rulebook', rulebook, character, node)
+
+    def portal_rulebook(self, character, nodeA, nodeB):
+        (character, nodeA, nodeB) = map(json_dump, (character, nodeA, nodeB))
+        r = self.sql(
+            'portal_rulebook',
+            character,
+            nodeA,
+            nodeB,
+            0
+        ).fetchone()
+        if r is None:
+            raise KeyError(
+                "No rulebook for portal {}->{} in character {}".format(
+                    nodeA, nodeB, character
+                )
+            )
+        return json_load(r[0])
+
+    def set_portal_rulebook(self, character, nodeA, nodeB, rulebook):
+        (character, nodeA, nodeB, rulebook) = map(
+            json_dump, (character, nodeA, nodeB, rulebook)
+        )
+        try:
+            return self.sql(
+                'ins_portal_rulebook',
+                character,
+                nodeA,
+                nodeB,
+                0,
+                rulebook
+            )
+        except IntegrityError:
+            return self.sql(
+                'upd_portal_rulebook',
+                rulebook,
+                character,
+                nodeA,
+                nodeB,
+                0
+            )
 
     def active_rules_char(self, tbl, character, rulebook, branch, tick):
         character = json_dump(character)
@@ -195,6 +260,7 @@ class QueryEngine(gorm.query.QueryEngine):
         return False
 
     def rule_set(self, rulebook, rule, branch, tick, active):
+        rulebook = json_dump(rulebook)
         try:
             self.sql(
                 'rule_ins_fmt', rulebook, rule, branch, tick, active
@@ -262,16 +328,66 @@ class QueryEngine(gorm.query.QueryEngine):
                         rule
                     )
 
-    def handled_rule(self, ruletyp, character, rulebook, rule, branch, tick):
-        character = json_dump(character)
+    def handled_character_rule(
+            self, ruletyp, character, rulebook, rule, branch, tick
+    ):
+        (character, rulebook) = map(json_dump, (character, rulebook))
         return self.sql(
-            'handled_rule_fmt',
+            'handled_character_rule_fmt',
             character,
             rulebook,
             rule,
             branch,
             tick,
             ruletyp=ruletyp
+        )
+
+    def handled_thing_rule(
+            self, character, thing, rulebook, rule, branch, tick
+    ):
+        (character, thing, rulebook) = map(
+            json_dump, (character, thing, rulebook)
+        )
+        return self.sql(
+            'handled_thing_rule',
+            character,
+            thing,
+            rulebook,
+            rule,
+            branch,
+            tick
+        )
+
+    def handled_place_rule(
+            self, character, place, rulebook, rule, branch, tick
+    ):
+        (character, place, rulebook) = map(json_dump, (character, rulebook))
+        return self.sql(
+            'handled_place_rule',
+            character,
+            place,
+            rulebook,
+            rule,
+            branch,
+            tick
+        )
+
+    def handled_portal_rule(
+            self, character, nodeA, nodeB, rulebook, rule, branch, tick
+    ):
+        (character, nodeA, nodeB, rulebook) = map(
+            json_dump, (character, nodeA, nodeB, rulebook)
+        )
+        return self.sql(
+            'handled_portal_rule',
+            character,
+            nodeA,
+            nodeB,
+            0,
+            rulebook,
+            rule,
+            branch,
+            tick
         )
 
     def node_is_thing(self, character, node, branch, tick):
@@ -554,27 +670,29 @@ class QueryEngine(gorm.query.QueryEngine):
             )
 
     def rulebook_set(self, rulebook, idx, rule):
+        rulebook = json_dump(rulebook)
         try:
             return self.sql('rulebook_ins', rulebook, idx, rule)
         except IntegrityError:
             return self.sql('rulebook_upd', rule, rulebook, idx)
 
     def rulebook_decr(self, rulebook, idx):
-        self.sql('rulebook_dec', rulebook, idx)
+        self.sql('rulebook_dec', json_dump(rulebook), idx)
 
     def rulebook_del(self, rulebook, idx):
+        rulebook = json_dump(rulebook)
         self.sql('rulebook_del', rulebook, idx)
         self.sql('rulebook_dec', rulebook, idx)
 
     def rulebook_rules(self, rulebook):
-        for (rule,) in self.sql('rulebook_rules', rulebook):
+        for (rule,) in self.sql('rulebook_rules', json_dump(rulebook)):
             yield rule
 
     def ct_rulebook_rules(self, rulebook):
-        return self.sql('ct_rulebook_rules', rulebook).fetchone()[0]
+        return self.sql('ct_rulebook_rules', json_dump(rulebook)).fetchone()[0]
 
     def rulebook_get(self, rulebook, idx):
-        return self.sql('rulebook_get', rulebook, idx).fetchone()[0]
+        return self.sql('rulebook_get', json_dump(rulebook), idx).fetchone()[0]
 
     def allrules(self):
         for (rule,) in self.sql('allrules'):

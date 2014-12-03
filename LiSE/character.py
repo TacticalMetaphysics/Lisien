@@ -101,8 +101,45 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
             self._cache = {}
             self._keycache = {}
 
+            @self.engine.on_time
+            def recache(eng, branch_then, tick_then, b, t):
+                if b not in self._keycache:
+                    self._keycache[b] = {}
+                self._keycache[b][t] = set(
+                    self._iter_thing_names()
+                )
+
     def _dispatch_thing(self, k, v):
         dispatch(self._thing_listeners, k, self, k, v)
+        (b, t) = self.engine.time
+        if v is None:
+            if b in self._keycache:
+                try:
+                    self._keycache[b][t].remove(k)
+                except KeyError:
+                    self._keycache[b][t] = set(
+                        self._iter_thing_names()
+                    )
+            else:
+                self._keycache[b] = {
+                    t: set(
+                        self._iter_thing_names()
+                    )
+                }
+        else:
+            if b in self._keycache:
+                try:
+                    self._keycache[b][t].add(k)
+                except KeyError:
+                    self._keycache[b][t] = set(
+                        self._iter_thing_names()
+                    )
+            else:
+                self._keycache[b] = {
+                    t: set(
+                        self._iter_thing_names()
+                    )
+                }
 
     def listener(self, f=None, thing=None):
         return listener(self._thing_listeners, f, thing)
@@ -115,13 +152,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         if branch not in self._keycache:
             self._keycache[branch] = {}
         try:
-            self._keycache[branch][tick] = set(
-                self._keycache[branch][
-                    max(t for t in self._keycache[branch]
-                        if t <= tick)
-                ]
-            )
-        except ValueError:
+            return k in self._keycache[branch][tick]
+        except KeyError:
             self._keycache[branch][tick] = set(self._iter_thing_names())
         return k in self._keycache[branch][tick]
 
@@ -145,14 +177,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         if branch not in self._keycache:
             self._keycache[branch] = {}
         if tick not in self._keycache[branch]:
-            try:
-                self._keycache[branch][tick] = set(
-                    self._keycache[branch][
-                        max(t for t in self._keycache[branch]
-                            if t <= tick)
-                    ]
-                )
-            except ValueError:
                 self._keycache[branch][tick] = set(self._iter_thing_names())
         yield from self._keycache[branch][tick]
 
@@ -302,9 +326,15 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             yield from self._iter_place_names()
             return
         (branch, tick) = self.engine.time
-        yield from keycache_iter(
-            self._keycache, branch, tick, self._iter_place_names
-        )
+        if branch not in self._keycache:
+            self._keycache[branch] = {
+                tick: set(self._iter_place_names())
+            }
+        elif tick not in self._keycache[branch]:
+            self._keycache[branch][tick] = set(
+                self._iter_place_names()
+            )
+        yield from self._keycache[branch][tick]
 
     def __contains__(self, k):
         """Check the cache first, if it exists"""
@@ -358,21 +388,6 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             pl = self._cache[place]
         self._dispatch_place(place, v)
         (branch, tick) = self.engine.time
-        if branch not in self._keycache:
-            self._keycache[branch] = {}
-        if tick in self._keycache[branch]:
-            self._keycache[branch][tick].add(place)
-        else:
-            try:
-                self._keycache[branch][tick] = set(
-                    self._keycache[branch][max(
-                        t for t in self._keycache[branch]
-                        if t < tick
-                    )]
-                )
-                self._keycache[branch][tick].add(place)
-            except ValueError:
-                pass
         self.engine.db.exist_node(
             self.character.name,
             place,
@@ -382,6 +397,14 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         )
         pl.clear()
         pl.update(v)
+        if not self.engine.caching:
+            return
+        if branch not in self._keycache:
+            self._keycache[branch] = {}
+        if tick in self._keycache[branch]:
+            self._keycache[branch][tick].add(place)
+        else:
+            self._keycache[branch][tick] = set(self._iter_place_names())
 
     def __delitem__(self, place):
         """Delete place from both cache and database"""
@@ -1609,7 +1632,7 @@ class Character(DiGraph, RuleFollower):
         attributes based on the keyword arguments (if any).
 
         """
-        super(Character, self).add_node(name, **kwargs)
+        self.place[name] = kwargs
 
     def add_places_from(self, seq):
         """Take a series of place names and add the lot."""
@@ -1625,8 +1648,8 @@ class Character(DiGraph, RuleFollower):
         any).
 
         """
-        super(Character, self).add_node(name, **kwargs)
-        self.place2thing(name, location)
+        super().add_node(name, **kwargs)
+        self.place2thing(name, location, next_location)
 
     def add_things_from(self, seq):
         for tup in seq:
@@ -1654,11 +1677,27 @@ class Character(DiGraph, RuleFollower):
             location,
             next_location
         )
+        if not self.engine.caching:
+            return
+        if (
+                branch in self.place._keycache and
+                tick in self.place._keycache[branch]
+        ):
+            self.place._keycache[branch][tick].discard(name)
+        cache = self.thing._keycache
+        if branch in cache and tick in cache[branch]:
+            cache[branch][tick].add(name)
+        else:
+            if branch not in cache:
+                cache[branch] = {}
+            cache[branch][tick] = set(
+                self.thing._iter_thing_names()
+            )
 
     def thing2place(self, name):
         """Unset a Thing's location, and thus turn it into a Place."""
         self.engine.db.thing_loc_and_next_del(
-            self.namee,
+            self.name,
             name,
             *self.engine.time
         )

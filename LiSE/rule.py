@@ -150,7 +150,6 @@ class RuleBook(MutableSequence):
     """
     def __init__(self, engine, name):
         self.engine = engine
-        assert(isinstance(name, str))
         self.name = name
 
     def __iter__(self):
@@ -161,7 +160,12 @@ class RuleBook(MutableSequence):
         return self.engine.db.ct_rulebook_rules(self.name)
 
     def __getitem__(self, i):
-        return self.engine.rule[self.engine.db.rulebook_get(self.name, i)]
+        return self.engine.rule[
+            self.engine.db.rulebook_get(
+                self.name,
+                i
+            )
+        ]
 
     def __setitem__(self, i, v):
         if isinstance(v, Rule):

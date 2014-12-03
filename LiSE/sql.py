@@ -206,10 +206,25 @@ poll_char_rules_fmt = (
     "ASC"
     ";"
 )
-handled_rule_fmt = (
+handled_character_rule_fmt = (
     "INSERT INTO {ruletyp}_rules_handled "
     "(character, rulebook, rule, branch, tick) "
     "VALUES (?, ?, ?, ?, ?);"
+)
+handled_thing_rule = (
+    "INSERT INTO thing_rules_handled "
+    "(character, thing, rulebook, rule, branch, tick) "
+    "VALUES (?, ?, ?, ?, ?, ?);"
+)
+handled_place_rule = (
+    "INSERT INTO place_rules_handled "
+    "(character, place, rulebook, rule, branch, tick) "
+    "VALUES (?, ?, ?, ?, ?, ?);"
+)
+handled_portal_rule = (
+    "INSERT INTO portal_rules_handled "
+    "(character, nodeA, nodeB, idx, rulebook, rule, branch, tick) "
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
 )
 active_rules_rulebook = (
     "SELECT active_rules.rule, active_rules.active "
@@ -630,4 +645,37 @@ thing_locs_data = (
     "WHERE character=? "
     "AND thing=? "
     "AND branch=?;"
+)
+node_rulebook = (
+    "SELECT rulebook "
+    "FROM node_rulebook WHERE character=? AND node=?;"
+)
+ins_node_rulebook = (
+    "INSERT INTO node_rulebook "
+    "(character, node, rulebook) "
+    "VALUES (?, ?, ?);"
+)
+upd_node_rulebook = (
+    "UPDATE node_rulebook SET rulebook=? "
+    "WHERE character=? AND node=?;"
+)
+portal_rulebook = (
+    "SELECT rulebook "
+    "FROM portal_rulebook WHERE "
+    "character=? AND "
+    "nodeA=? AND "
+    "nodeB=? AND "
+    "idx=?;"
+)
+ins_portal_rulebook = (
+    "INSERT INTO portal_rulebook "
+    "(character, nodeA, nodeB, idx, rulebook) "
+    "VALUES (?, ?, ?, ?, ?);"
+)
+upd_portal_rulebook = (
+    "UPDATE portal_rulebook SET rulebook=? "
+    "WHERE character=? "
+    "AND nodeA=? "
+    "AND nodeB=? "
+    "AND idx=?;"
 )

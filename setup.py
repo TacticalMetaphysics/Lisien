@@ -14,7 +14,6 @@ setup(
     ],
     install_requires=[
         "gorm>=0.5",
-        "numpy>=1.9"
     ],
 )
 
@@ -47,6 +46,7 @@ setup(
     },
     install_requires=[
         "LiSE",
+        "numpy",
         "kivy",
         "ELiDE.kivygarden.collider"
     ],
