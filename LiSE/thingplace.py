@@ -70,7 +70,6 @@ class ThingPlace(Node):
         self._stat_listeners = defaultdict(list)
         if self.engine.caching:
             self._keycache = {}
-            self._statcache = {}
         super().__init__(character, name)
 
     def _dispatch_stat(self, k, v):
@@ -289,19 +288,16 @@ class Thing(ThingPlace):
             self._load_locs_branch(branch)
             self._loccache[branch][tick] = value
         else:
+            super().__setitem__(key, value)
             if not self.engine.caching:
-                super().__setitem__(key, value)
                 return
             (branch, tick) = self.engine.time
-            cache_set(
-                self._statcache,
-                self._keycache,
-                branch,
-                tick,
-                key,
-                value,
-                super().__setitem__
-            )
+            if branch not in self._keycache:
+                self._keycache[branch] = {
+                    tick: set(self.keys())
+                }
+            elif tick not in self._keycache[branch]:
+                self._keycache[branch][tick] = set(self.keys())
 
     def __delitem__(self, key):
         """As of now, this key isn't mine."""
@@ -315,18 +311,15 @@ class Thing(ThingPlace):
                 'locations'
         ):
             raise ValueError("Read-only")
+        super().__delitem__(key)
         if not self.engine.caching:
-            super().__delitem__(key)
             return
         (branch, tick) = self.engine.time
-        cache_del(
-            self._statcache,
-            self._keycache,
-            branch,
-            tick,
-            key,
-            super().__delitem__
-        )
+        if branch in self._keycache and tick in self._keycache[branch]:
+            try:
+                self._keycache[branch][tick].remove(key)
+            except KeyError:  # key not cached, cache invalid
+                del self._keycache[branch][tick]
 
     def _load_locs_branch(self, branch):
         """Private method. Cache stored location data for this branch."""
@@ -446,6 +439,8 @@ class Thing(ThingPlace):
             loc,
             nextloc
         )
+        self._dispatch_stat('location', loc)
+        self._dispatch_stat('next_location', nextloc)
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
@@ -635,46 +630,29 @@ class Place(ThingPlace):
         elif key == 'character':
             return self.character.name
         else:
-            if not self.engine.caching:
-                return super().__getitem__(key)
-            (branch, tick) = self.engine.time
-            return cache_get(
-                self._statcache,
-                self._keycache,
-                branch,
-                tick,
-                key,
-                super().__getitem__
-            )
+            return super().__getitem__(key)
 
     def __setitem__(self, key, value):
+        super().__setitem__(key, value)
         if not self.engine.caching:
-            super().__setitem__(key, value)
             return
         (branch, tick) = self.engine.time
-        cache_set(
-            self._statcache,
-            self._keycache,
-            branch,
-            tick,
-            key,
-            value,
-            super().__setitem__
-        )
+        if (
+                branch in self._keycache and
+                tick in self._keycache[branch]
+        ):
+            self._keycache[branch][tick].add(key)
 
     def __delitem__(self, key):
         if not self.engine.caching:
             super().__delitem__(key)
             return
         (branch, tick) = self.engine.time
-        cache_del(
-            self._statcache,
-            self._keycache,
-            branch,
-            tick,
-            key,
-            super().__delitem__
-        )
+        if (
+                branch in self._keycache and
+                tick in self._keycache[branch]
+        ):
+            self._keycache[branch][tick].remove(key)
 
     def _get_json_dict(self):
         (branch, tick) = self.engine.time

@@ -68,10 +68,7 @@ class CharacterRemoteMapping(AbstractRemoteMapping):
 
         @character.stat.listener(stat=stat)
         def listen(char, k, v):
-            if v is None:
-                del self._current_data[k]
-            else:
-                self._current_data[k] = v
+            self.fetch(k)
 
 
 class EntityRemoteMapping(AbstractRemoteMapping):
@@ -80,7 +77,4 @@ class EntityRemoteMapping(AbstractRemoteMapping):
 
         @ent.listener(stat=stat)
         def listen(ent, k, v):
-            if v is None:
-                del self._current_data[k]
-            else:
-                self._current_data[k] = v
+            self.fetch(k)

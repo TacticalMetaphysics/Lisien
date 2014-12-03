@@ -35,7 +35,7 @@ class Pawn(PawnSpot):
     _touch_opos_diff = ReferenceListProperty(_touch_ox_diff, _touch_oy_diff)
     travel_on_drop = BooleanProperty(False)
     loc_name = ObjectProperty()
-    next_loc_name = ObjectProperty()
+    next_loc_name = ObjectProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
         self._trigger_upd_remote_location = Clock.create_trigger(
