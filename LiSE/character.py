@@ -1025,7 +1025,8 @@ class CharacterSenseMapping(MutableMapping, RuleFollower):
         self._listeners = defaultdict(list)
 
     def _dispatch(self, k, v):
-        dispatch(self._listeners, k, self, k, v)
+        (branch, tick) = self.engine.time
+        dispatch(self._listeners, k, branch, tick, self, k, v)
 
     def listener(self, f=None, sense=None):
         return listener(self._listeners, f, sense)
@@ -1460,7 +1461,16 @@ class CharStatCache(MutableMapping):
         return self.character.stat_listener(f, stat)
 
     def _dispatch(self, k, v):
-        dispatch(self.character._stat_listeners, k, self.character, k, v)
+        (branch, tick) = self.engine.time
+        dispatch(
+            self.character._stat_listeners,
+            k,
+            branch,
+            tick,
+            self.character,
+            k,
+            v
+        )
 
     def __iter__(self):
         """Iterate over underlying keys"""

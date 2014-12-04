@@ -41,7 +41,8 @@
         id: charsheet
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.2, 0.9)
-        mirrormap: None if board.character is None else MirrorMapping(remote=board.character.stat) if root.selection is None else MirrorMapping(remote=root.selection.thing) if hasattr(root.selection, 'thing') else MirrorMapping(remote=root.selection.place) if hasattr(root.selection, 'place') else MirrorMapping(remote=root.selection.portal)
+        layout: root
+        remote: None if board.character is None else board.character.stat if root.selection is None else root.selection.thing if hasattr(root.selection, 'thing') else root.selection.place if hasattr(root.selection, 'place') else root.selection.portal
     BoxLayout:
         id: timemenu
         pos_hint: {'bot': 0}

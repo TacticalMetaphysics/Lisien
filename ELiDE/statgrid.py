@@ -10,12 +10,14 @@ from kivy.properties import (
     NumericProperty,
     StringProperty
 )
+from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.uix.textinput import TextInput
 from kivy.uix.listview import ListView, CompositeListItem
 from kivy.adapters.listadapter import ListAdapter
 from kivy.lang import Builder
 from gorm.json import json_load
+from ELiDE.remote import MirrorMapping
 
 
 def try_json_load(obj):
@@ -66,9 +68,7 @@ class StatRowListItem(CompositeListItem):
             self.reg(self)
 
 
-class StatListView(ListView):
-    mirrormap = ObjectProperty()
-
+class StatListView(ListView, MirrorMapping):
     def __init__(self, **kwargs):
         kwargs['adapter'] = ListAdapter(
             data=[],
@@ -83,45 +83,65 @@ class StatListView(ListView):
             selection_mode='multiple',
             allow_empty_selection=True
         )
+        self._trigger_upd_data = Clock.create_trigger(
+            self.upd_data
+        )
         super().__init__(**kwargs)
         self._listed = {}
         self._listeners = {}
+        self.bind(mirror=self._trigger_upd_data)
 
-    def on_mirrormap(self, *args):
-        def listen(mir, *args):
-            for (k, v) in self.mirrormap.mirror:
-                if v is None:
-                    if k not in self._listed:
-                        return
-                    self.adapter.data.remove((k, self._listed[k]))
-                    del self._listed[k]
-                elif k not in self._listed:
-                    self._listed[k] = v
-                    self.adapter.data.append((k, v))
-                else:
-                    already = (k, self._listed[k])
-                    i = self.adapter.data.index(already)
-                    self.adapter.data[i] = (k, v)
-                    self._listed[k] = v
-
-        self.mirrormap.bind(mirror=listen)
+    def upd_data(self, *args):
+        Logger.debug(
+            'StatListView: updating to {}'.format(self.mirror)
+        )
+        newdata = list(self.adapter.data)
+        for (k, v) in list(self._listed.items()):
+            if k not in self.mirror:
+                newdata.remove((k, v))
+                del self._listed[k]
+        for (k, v) in self.mirror.items():
+            if v is None:
+                Logger.debug('StatListView: {} deleted'.format(k))
+                if k not in self._listed:
+                    continue
+                newdata.remove((k, self._listed[k]))
+                del self._listed[k]
+            elif k not in self._listed:
+                Logger.debug('StatListView: {}={} added'.format(k, v))
+                self._listed[k] = v
+                newdata.append((k, v))
+            elif self._listed[k] == v:
+                continue
+            else:
+                Logger.debug('StatListView: {} changed to {}'.format(k, v))
+                already = (k, self._listed[k])
+                newdata[newdata.index(already)] = (k, v)
+                self._listed[k] = v
+        self.adapter.data = newdata
 
     def _reg_widget(self, w, *args):
-        if self.mirrormap is None:
+        if not self.mirror:
             Clock.schedule_once(partial(self._reg_widget, w), 0)
             return
 
-        def listen(mir, *args):
-            w.value = self.mirrormap.mirror[w.key]
+        def listen(*args):
+            if w.key not in self.mirror:
+                Logger.debug(
+                    'StatListView: waiting for {} to propagate'.format(w.key)
+                )
+                Clock.schedule_once(listen, 0)
+                return
+            w.value = self.mirror[w.key]
         self._listeners[w.key] = listen
-        self.mirrormap.bind(mirror=listen)
+        self.bind(mirror=listen)
 
     def _unreg_widget(self, w):
-        if w.key in self.listeners:
-            self.mirrormap.unbind(mirror=self._listeners[w.key])
+        if w.key in self._listeners:
+            self.unbind(mirror=self._listeners[w.key])
 
     def _set_value(self, k, v):
-        self.mirror.remote[k] = v
+        self.remote[k] = v
 
 
 kv = """
