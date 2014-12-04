@@ -78,9 +78,6 @@ class Spot(PawnSpot):
         if (
                 '_x' not in self.mirror or '_y' not in self.mirror
         ):
-            Logger.debug(
-                'Spot: mirror present but unready'
-            )
             Clock.schedule_once(self.on_mirror, 0)
             return
         if self.x != self.mirror['_x'] or self.y != self.mirror['_y']:
@@ -90,6 +87,8 @@ class Spot(PawnSpot):
     def upd_from_mirror_pos(self, *args):
         if not self.mirror:
             Clock.schedule_once(self.upd_from_mirror_pos, 0)
+            return
+        if self._touchpos:
             return
         self.unbind(
             pos=self._trigger_upd_to_remote_pos
@@ -210,6 +209,11 @@ class Spot(PawnSpot):
             return False
         return (x, y) in self.collider
 
+    def on_touch_down(self, touch):
+        self.unbind(
+            pos=self._trigger_upd_to_remote_pos
+        )
+
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""
         if not self.selected:
@@ -228,9 +232,11 @@ class Spot(PawnSpot):
 
     def on_touch_up(self, touch):
         """Unset ``touchpos``"""
+        self.bind(
+            pos=self._trigger_upd_to_remote_pos
+        )
         self._touchpos = []
-        self.remote['_x'] = self.x / self.board.width
-        self.remote['_y'] = self.y / self.board.height
+        self._trigger_upd_to_remote_pos()
 
     def __repr__(self):
         """Give my place's name and my position."""

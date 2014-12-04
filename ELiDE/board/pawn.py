@@ -32,6 +32,7 @@ class Pawn(PawnSpot):
     _touch_ox_diff = NumericProperty()
     _touch_oy_diff = NumericProperty()
     _touch_opos_diff = ReferenceListProperty(_touch_ox_diff, _touch_oy_diff)
+    _touch = ObjectProperty(None, allownone=True)
     travel_on_drop = BooleanProperty(False)
     loc_name = ObjectProperty()
     next_loc_name = ObjectProperty()
@@ -60,6 +61,7 @@ class Pawn(PawnSpot):
             kwargs['remote'] = kwargs['thing']
             del kwargs['thing']
         super().__init__(**kwargs)
+        self.bind(mirror=self.upd_from_mirror)
 
     def on_remote(self, *args):
         if not super().on_remote(*args):
@@ -77,17 +79,12 @@ class Pawn(PawnSpot):
         )
         return True
 
-    def on_mirror(self, *args):
-        if not super().on_mirror(*args):
-            return
+    def upd_from_mirror(self, *args):
         if (
                 'location' not in self.mirror or
                 'next_location' not in self.mirror
         ):
-            Logger.debug(
-                'Pawn: mirror present but unready'
-            )
-            Clock.schedule_once(self.on_mirror, 0)
+            Clock.schedule_once(self.upd_from_mirror, 0)
             return
         if self.loc_name != self.mirror['location']:
             self._trigger_upd_from_mirror_location()
@@ -99,6 +96,12 @@ class Pawn(PawnSpot):
         if not self.mirror:
             Clock.schedule_once(self.upd_from_mirror_location, 0)
             return
+        Logger.debug(
+            "Pawn: updating {}'s location from mirror's {}".format(
+                self.name,
+                self.mirror['location']
+            )
+        )
         self.unbind(
             loc_name=self._trigger_upd_to_remote_location
         )
@@ -120,6 +123,12 @@ class Pawn(PawnSpot):
         )
 
     def upd_to_remote_location(self, *args):
+        Logger.debug(
+            "Pawn: updating {}'s remote location to {}".format(
+                self.name,
+                self.loc_name
+            )
+        )
         self.remote['location'] = self.loc_name
 
     def upd_to_remote_next_location(self, *args):
@@ -190,6 +199,8 @@ class Pawn(PawnSpot):
         myplace = self.loc_name
         theirplace = new_spot.name
         if myplace != theirplace:
+            if hasattr(self, '_start'):
+                del self._start
             if self.travel_on_drop:
                 self.thing.travel_to(new_spot.name)
             else:
@@ -198,6 +209,9 @@ class Pawn(PawnSpot):
 
     def move_to_loc(self, *args):
         """Move myself to the widget representing my new location."""
+        self.unbind(
+            mirror=self.upd_from_mirror
+        )
         if (
                 (
                     hasattr(self.parent, 'place') and
@@ -230,6 +244,18 @@ class Pawn(PawnSpot):
                     whereat.name
                 )
             )
+
+        def doublecheck(*args):
+            """Wait for my new location to propagate to the databaase and back
+            before listening to the database again.
+
+            """
+            if self.mirror['location'] != self.loc_name:
+                Clock.schedule_once(doublecheck, 0)
+                return
+            self.bind(mirror=self.upd_from_mirror)
+
+        Clock.schedule_once(doublecheck, 0)
 
     def __repr__(self):
         """Give my ``thing``'s name and its location's name."""
