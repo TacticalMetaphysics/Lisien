@@ -110,8 +110,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 )
 
     def _dispatch_thing(self, k, v):
-        dispatch(self._thing_listeners, k, self, k, v)
         (b, t) = self.engine.time
+        dispatch(self._thing_listeners, k, b, t, self, k, v)
         if v is None:
             if b in self._keycache:
                 try:
@@ -296,7 +296,8 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
             self._keycache = {}
 
     def _dispatch_place(self, k, v):
-        dispatch(self._place_listeners, k, self, k, v)
+        (branch, tick) = self.engine.time
+        dispatch(self._place_listeners, k, branch, tick, self, k, v)
 
     def listener(self, f=None, place=None):
         return listener(self._place_listeners, f, place)
@@ -508,9 +509,12 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
         return self._pl
 
     def _dispatch_portal(self, o, d, p):
+        (branch, tick) = self.engine.time
         dispatch(
             self._portal_listeners,
             o,
+            branch,
+            tick,
             self,
             self.graph.node[o],
             self.graph.node[d],

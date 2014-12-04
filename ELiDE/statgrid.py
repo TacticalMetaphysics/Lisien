@@ -67,7 +67,7 @@ class StatRowListItem(CompositeListItem):
 
 
 class StatListView(ListView):
-    remote_map = ObjectProperty()
+    mirrormap = ObjectProperty()
 
     def __init__(self, **kwargs):
         kwargs['adapter'] = ListAdapter(
@@ -86,53 +86,42 @@ class StatListView(ListView):
         super().__init__(**kwargs)
         self._listed = {}
         self._listeners = {}
-        self._trigger_poll = Clock.create_trigger(self.poll)
 
-    def unlisten_all(self):
-        for (k, listener) in self._listeners.items():
-            self.remote_map.unlisten(listener, key=k)
-        self._listeners = {}
+    def on_mirrormap(self, *args):
+        def listen(mir, *args):
+            for (k, v) in self.mirrormap.mirror:
+                if v is None:
+                    if k not in self._listed:
+                        return
+                    self.adapter.data.remove((k, self._listed[k]))
+                    del self._listed[k]
+                elif k not in self._listed:
+                    self._listed[k] = v
+                    self.adapter.data.append((k, v))
+                else:
+                    already = (k, self._listed[k])
+                    i = self.adapter.data.index(already)
+                    self.adapter.data[i] = (k, v)
+                    self._listed[k] = v
 
-    def on_remote_map(self, *args):
-        if self.remote_map is None:
-            return
-        self.unlisten_all()
-        self.adapter.data = list(
-            (k, v) for (k, v) in self.remote_map.items()
-            if not (isinstance(k, str) and k[0] == '_')
-        )
-
-        @self.remote_map.listener
-        def listen(k, v):
-            if v is None:
-                self.adapter.data.remove((k, self._listed[k]))
-                del self._listed[k]
-            else:
-                self._listed[k] = v
-                self.adapter.data.append((k, v))
-
-    def poll(self, *args):
-        for k in self._listeners:
-            self.remote_map.fetch(k)
+        self.mirrormap.bind(mirror=listen)
 
     def _reg_widget(self, w, *args):
-        if self.remote_map is None:
+        if self.mirrormap is None:
             Clock.schedule_once(partial(self._reg_widget, w), 0)
             return
 
-        @self.remote_map.listener(key=w.key)
-        def listen(k, v):
-            assert(k == w.key)
-            w.value = v
+        def listen(mir, *args):
+            w.value = self.mirrormap.mirror[w.key]
         self._listeners[w.key] = listen
+        self.mirrormap.bind(mirror=listen)
 
     def _unreg_widget(self, w):
-        assert(self.remote_map is not None)
-        if w.key in self._listeners:
-            self.remote_map.unlisten(self._listeners[w.key], key=w.key)
+        if w.key in self.listeners:
+            self.mirrormap.unbind(mirror=self._listeners[w.key])
 
     def _set_value(self, k, v):
-        self.remote_map[k] = v
+        self.mirror.remote[k] = v
 
 
 kv = """

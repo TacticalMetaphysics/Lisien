@@ -4,19 +4,24 @@
 from kivy.properties import (
     ObjectProperty,
     BooleanProperty,
-    ListProperty
+    ListProperty,
+    StringProperty,
+    NumericProperty,
+    ReferenceListProperty
 )
 from kivy.graphics import (
     InstructionGroup,
     Color,
     Line
 )
+from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.lang import Builder
 from ELiDE.kivygarden.texturestack import ImageStack
+from ..remote import MirrorMapping
 
 
-class PawnSpot(ImageStack):
+class PawnSpot(ImageStack, MirrorMapping):
     """The kind of ImageStack that represents a :class:`Thing` or
     :class:`Place`.
 
@@ -25,27 +30,153 @@ class PawnSpot(ImageStack):
     engine = ObjectProperty()
     selected = BooleanProperty(False)
     linecolor = ListProperty()
-    remote_map = ObjectProperty()
     name = ObjectProperty()
+    listen_branch = StringProperty('master')
+    listen_tick = NumericProperty(0)
+    listen_time = ReferenceListProperty(listen_branch, listen_tick)
     use_boardspace = True
 
     def __init__(self, **kwargs):
-        self._trigger_upd_remote_name = Clock.create_trigger(
-            self.upd_remote_name
+        self._trigger_upd_from_mirror_image_paths = Clock.create_trigger(
+            self.upd_from_mirror_image_paths
         )
-        self._trigger_upd_remote_image_paths = Clock.create_trigger(
-            self.upd_remote_image_paths
+        self._trigger_upd_to_remote_image_paths = Clock.create_trigger(
+            self.upd_to_remote_image_paths
         )
-        self._trigger_upd_remote_offxs = Clock.create_trigger(
-            self.upd_remote_offxs
+        self._trigger_upd_from_mirror_offxs = Clock.create_trigger(
+            self.upd_from_mirror_offxs
         )
-        self._trigger_upd_remote_offys = Clock.create_trigger(
-            self.upd_remote_offys
+        self._trigger_upd_to_remote_offxs = Clock.create_trigger(
+            self.upd_to_remote_offxs
         )
-        self._trigger_upd_remote_stacking_heights = Clock.create_trigger(
-            self.upd_remote_stacking_heights
+        self._trigger_upd_from_mirror_offys = Clock.create_trigger(
+            self.upd_from_mirror_offys
+        )
+        self._trigger_upd_to_remote_offys = Clock.create_trigger(
+            self.upd_to_remote_offys
+        )
+        self._trigger_upd_from_mirror_stackhs = Clock.create_trigger(
+            self.upd_from_mirror_stackhs
+        )
+        self._trigger_upd_to_remote_stackhs = Clock.create_trigger(
+            self.upd_to_remote_stackhs
         )
         super().__init__(**kwargs)
+
+    def on_remote(self, *args):
+        if not super().on_remote(*args):
+            return
+        if (
+                self.remote is None or
+                'name' not in self.remote
+        ):
+            Logger.debug('PawnSpot: bad remote {}'.format(self.remote))
+            return
+        self._trigger_upd_from_mirror_image_paths()
+        self._trigger_upd_from_mirror_offxs()
+        self._trigger_upd_from_mirror_offys()
+        self._trigger_upd_from_mirror_stackhs()
+        self.bind(
+            paths=self._trigger_upd_to_remote_image_paths,
+            offxs=self._trigger_upd_to_remote_offxs,
+            offys=self._trigger_upd_to_remote_offys,
+            stackhs=self._trigger_upd_to_remote_stackhs
+        )
+        self.name = self.remote['name']
+        if '_image_paths' not in self.remote:
+            self.remote['_image_paths'] = self._default_image_paths()
+        if '_offxs' not in self.remote:
+            self.remote['_offxs'] = self._default_offxs()
+        if '_offys' not in self.remote:
+            self.remote['_offys'] = self._default_offys()
+        if '_stackhs' not in self.remote:
+            self.remote['_stackhs'] = self._default_stackhs()
+        return True
+
+    def on_mirror(self, *args):
+        if not self.mirror:
+            return
+        for k in (
+                'name',
+                '_image_paths',
+                '_offxs',
+                '_offys',
+                '_stackhs'
+        ):
+            if k not in self.mirror:
+                return
+        if self.paths != self.mirror['_image_paths']:
+            self._trigger_upd_from_mirror_image_paths()
+        if self.offxs != self.mirror['_offxs']:
+            self._trigger_upd_from_mirror_offxs()
+        if self.offys != self.mirror['_offys']:
+            self._trigger_upd_from_mirror_offys()
+        if self.stackhs != self.mirror['_stackhs']:
+            self._trigger_upd_from_mirror_stackhs()
+        return True
+
+    def upd_from_mirror_image_paths(self, *args):
+        if not self.mirror:
+            if self.remote:
+                Logger.debug(
+                    'PawnSpot: no mirror of {}'.format(self.remote['name'])
+                )
+            Clock.schedule_once(self.upd_from_mirror_image_paths, 0)
+            return
+        self.unbind(
+            paths=self._trigger_upd_to_remote_image_paths
+        )
+        self.paths = self.mirror['_image_paths']
+        self.bind(
+            paths=self._trigger_upd_to_remote_image_paths
+        )
+
+    def upd_to_remote_image_paths(self, *args):
+        self.remote['_image_paths'] = self.paths
+
+    def upd_from_mirror_offxs(self, *args):
+        if not self.mirror:
+            Clock.schedule_once(self.upd_from_mirror_offxs, 0)
+            return
+        self.unbind(
+            offxs=self._trigger_upd_to_remote_offxs
+        )
+        self.offxs = self.mirror['_offxs']
+        self.bind(
+            offxs=self._trigger_upd_to_remote_offxs
+        )
+
+    def upd_to_remote_offxs(self, *args):
+        self.remote['_offxs'] = self.offxs
+
+    def upd_from_mirror_offys(self, *args):
+        if not self.mirror:
+            Clock.schedule_once(self.upd_from_mirror_offys, 0)
+        self.unbind(
+            offys=self._trigger_upd_to_remote_offys
+        )
+        self.offys = self.mirror['_offys']
+        self.bind(
+            offys=self._trigger_upd_to_remote_offys
+        )
+
+    def upd_to_remote_offys(self, *args):
+        self.remote['_offys'] = self.offys
+
+    def upd_from_mirror_stackhs(self, *args):
+        if not self.mirror:
+            Clock.schedule_once(self.upd_from_mirror_stackhs, 0)
+            return
+        self.unbind(
+            stackhs=self._trigger_upd_to_remote_stackhs
+        )
+        self.stackhs = self.mirror['_stackhs']
+        self.bind(
+            stackhs=self._trigger_upd_to_remote_stackhs
+        )
+
+    def upd_to_remote_stackhs(self, *args):
+        self.remote['_stackhs'] = self.stackhs
 
     def on_linecolor(self, *args):
         """If I don't yet have the instructions for drawing the selection box
@@ -79,85 +210,7 @@ class PawnSpot(ImageStack):
         boxgrp.add(Color(1., 1., 1.))
         self.group.add(boxgrp)
 
-    def on_remote_map(self, *args):
-        if self.remote_map is None:
-            return
-        self.name = self.remote_map['name']
-        self._oldname = self.name
-
-        if '_image_paths' not in self.remote_map:
-            self.remote_map['_image_paths'] = self._default_paths()
-        if '_offxs' not in self.remote_map:
-            self.remote_map['_offxs'] = self._default_offxs()
-        if '_offys' not in self.remote_map:
-            self.remote_map['_offys'] = self._default_offys()
-        if '_stacking_heights' not in self.remote_map:
-            self.remote_map['_stacking_heights'] = self._default_stackhs()
-        if self.paths != self.remote_map["_image_paths"]:
-            self.paths = self.remote_map["_image_paths"]
-        if self.offxs != self.remote_map['_offxs']:
-            self.offxs = self.remote_map['_offxs']
-        if self.offys != self.remote_map['_offys']:
-            self.offys = self.remote_map['_offys']
-        if self.stackhs != self.remote_map["_stacking_heights"]:
-            self.stackhs = self.remote_map["_stacking_heights"]
-
-        @self.remote_map.listener(key='name')
-        def listen_name(k, v):
-            self.unbind(name=self._trigger_upd_remote_name)
-            self.name = v
-            self.bind(name=self._trigger_upd_remote_name)
-
-        @self.remote_map.listener(key='_image_paths')
-        def listen_paths(k, v):
-            self.unbind(paths=self._trigger_upd_remote_image_paths)
-            self.paths = v
-            self.bind(paths=self._trigger_upd_remote_image_paths)
-
-        @self.remote_map.listener(key='_offxs')
-        def listen_offxs(k, v):
-            self.unbind(offxs=self._trigger_upd_remote_offxs)
-            self.offxs = v
-            self.bind(offxs=self._trigger_upd_remote_offxs)
-
-        @self.remote_map.listener(key='_offys')
-        def listen_offys(k, v):
-            self.unbind(offys=self._trigger_upd_remote_offys)
-            self.offys = v
-            self.bind(offys=self._trigger_upd_remote_offys)
-
-        @self.remote_map.listener(key='_stacking_heights')
-        def listen_stackhs(k, v):
-            self.unbind(stackhs=self._trigger_upd_remote_stacking_heights)
-            self.stackhs = v
-            self.bind(stackhs=self._trigger_upd_remote_stacking_heights)
-
-        self.bind(
-            name=self._trigger_upd_remote_name,
-            paths=self._trigger_upd_remote_image_paths,
-            offxs=self._trigger_upd_remote_offxs,
-            offys=self._trigger_upd_remote_offys,
-            stackhs=self._trigger_upd_remote_stacking_heights
-        )
-
-        return True
-
-    def upd_remote_name(self, *args):
-        self.remote_map['name'] = self.name
-
-    def upd_remote_image_paths(self, *args):
-        self.remote_map['_image_paths'] = self.paths
-
-    def upd_remote_offxs(self, *args):
-        self.remote_map['_offxs'] = self.offxs
-
-    def upd_remote_offys(self, *args):
-        self.remote_map['_offys'] = self.offys
-
-    def upd_remote_stacking_heights(self, *args):
-        self.remote_map['_stacking_heights'] = self.stackhs
-
-    def _default_paths(self):
+    def _default_image_paths(self):
         """Return a list of paths to use for my graphics by default."""
         return ['atlas://rltiles/base.atlas/unseen']
 
@@ -179,6 +232,7 @@ class PawnSpot(ImageStack):
 
 kv = """
 <PawnSpot>:
+    layout: self.board.layout if self.board else None
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
     linecolor: [0., 1., 1., 1.] if self.selected else [0., 0., 0., 0.]
 """

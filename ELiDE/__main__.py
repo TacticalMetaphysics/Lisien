@@ -3,47 +3,13 @@
 import LiSE
 import sys
 
-import argparse
-
-
-parser = argparse.ArgumentParser(
-    description='Pick a database and language'
-)
-parser.add_argument('-w', '--world')
-parser.add_argument('-c', '--code')
-parser.add_argument('-l', '--language')
-parser.add_argument('-d', '--debug', action='store_true')
-parser.add_argument('maindotpy')
-
-
 def lise():
     print("args: {}".format(sys.argv))
     print("path: {}".format(sys.path))
 
-    parsed = parser.parse_args(sys.argv)
-
-    print("Starting ELiDE with world {}, code {}, path {}".format(
-        parsed.world, parsed.code, LiSE.__path__[-1]))
-
-    cli_args = {'LiSE': {}, 'ELiDE': {}}
-    for arg in 'world', 'code', 'language':
-        if getattr(parsed, arg):
-            cli_args[arg]['LiSE'] = getattr(parsed, arg)
-    argv = list(sys.argv)
-    for o in '-w', '--world', '-c', '--code', '-l', '--language':
-        try:
-            i = argv.index(o)
-            del argv[i:i+1]
-        except ValueError:
-            pass
-    sys.argv = argv
     from ELiDE.app import ELiDEApp
-    app = ELiDEApp(
-        cli_args=cli_args
-    )
-    if getattr(parsed, 'debug'):
-        import pdb
-        pdb.set_trace()
+    app = ELiDEApp()
+    sys.setrecursionlimit(10000)
     app.run()
 
 if __name__ == '__main__':

@@ -73,7 +73,8 @@ class ThingPlace(Node):
         super().__init__(character, name)
 
     def _dispatch_stat(self, k, v):
-        dispatch(self._stat_listeners, k, self, k, v)
+        (branch, tick) = self.engine.time
+        dispatch(self._stat_listeners, k, branch, tick, self, k, v)
 
     def listener(self, f=None, stat=None):
         return listener(self._stat_listeners, f, stat)
@@ -150,6 +151,9 @@ class ThingPlace(Node):
         for user in self.users():
             user.del_avatar(self.character.name, self.name)
 
+    def __bool__(self):
+        return self.name in self.character.node
+
 
 class Thing(ThingPlace):
     """The sort of item that has a particular location at any given time.
@@ -194,6 +198,19 @@ class Thing(ThingPlace):
                 extrakeys + list(super().__iter__())
             )
         yield from self._keycache[branch][tick]
+
+    def __contains__(self, key):
+        if key in (
+                'name',
+                'character',
+                'location',
+                'next_location',
+                'arrival_time',
+                'next_arrival_time',
+                'locations'
+        ):
+            return True
+        return super().__contains__(key)
 
     def __getitem__(self, key):
         """Return one of my stats stored in the database, or a few
@@ -287,6 +304,7 @@ class Thing(ThingPlace):
             (branch, tick) = self.engine.time
             self._load_locs_branch(branch)
             self._loccache[branch][tick] = value
+            self._dispatch_stat('locations', value)
         else:
             super().__setitem__(key, value)
             if not self.engine.caching:
@@ -310,7 +328,7 @@ class Thing(ThingPlace):
                 'next_arrival_time',
                 'locations'
         ):
-            raise ValueError("Read-only")
+            raise ValueError("Can't delete {}".format(key))
         super().__delitem__(key)
         if not self.engine.caching:
             return
@@ -439,8 +457,6 @@ class Thing(ThingPlace):
             loc,
             nextloc
         )
-        self._dispatch_stat('location', loc)
-        self._dispatch_stat('next_location', nextloc)
 
     def go_to_place(self, place, weight=''):
         """Assuming I'm in a :class:`Place` that has a :class:`Portal` direct
@@ -618,6 +634,17 @@ class Thing(ThingPlace):
 
 class Place(ThingPlace):
     """The kind of node where a Thing might ultimately be located."""
+
+    def __iter__(self):
+        yield 'name'
+        yield 'character'
+        yield from super().__iter__()
+
+    def __contains__(self, key):
+        if key in ('name', 'character'):
+            return True
+        return super().__contains__(key)
+
     def __getitem__(self, key):
         """Return my name if ``key=='name'``, my character's name if
         ``key=='character'``, the names of everything located in me if

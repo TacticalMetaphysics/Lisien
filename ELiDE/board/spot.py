@@ -2,16 +2,15 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 """Widgets to represent places. Pawns move around on top of these."""
 from kivy.properties import (
+    AliasProperty,
     ListProperty,
     ObjectProperty,
-    BooleanProperty,
     NumericProperty
 )
 from kivy.clock import Clock
 from kivy.logger import Logger
 from ELiDE.kivygarden.collider import CollideEllipse
 from .pawnspot import PawnSpot
-from LiSE.remote import EntityRemoteMapping
 
 
 class Spot(PawnSpot):
@@ -23,9 +22,13 @@ class Spot(PawnSpot):
     the window the :class:`Board` is in.
 
     """
-    place = ObjectProperty()
     offset = NumericProperty(4)
     collider = ObjectProperty()
+    place = AliasProperty(
+        lambda self: self.remote,
+        lambda self, v: self.remote.setter()(v),
+        bind=('remote',)
+    )
     _touchpos = ListProperty([])
 
     def __init__(self, **kwargs):
@@ -33,18 +36,94 @@ class Spot(PawnSpot):
         changes in game-time.
 
         """
-        self._trigger_upd_collider = Clock.create_trigger(self._upd_collider)
+        self._trigger_renamed = Clock.create_trigger(self.renamed)
         self._trigger_move_to_touch = Clock.create_trigger(self._move_to_touch)
         self._trigger_upd_pawns_here = Clock.create_trigger(
             self._upd_pawns_here
         )
-        self._trigger_upd_remote_x = Clock.create_trigger(self.upd_remote_x)
-        self._trigger_upd_remote_y = Clock.create_trigger(self.upd_remote_y)
-        kwargs['size_hint'] = (None, None)
-        super().__init__(**kwargs)
-        self.bind(
-            center=self._trigger_upd_pawns_here
+        self._trigger_upd_from_mirror_pos = Clock.create_trigger(
+            self.upd_from_mirror_pos
         )
+        self._trigger_upd_to_remote_pos = Clock.create_trigger(
+            self.upd_to_remote_pos
+        )
+        kwargs['size_hint'] = (None, None)
+        if 'place' in kwargs:
+            kwargs['remote'] = kwargs['place']
+            del kwargs['place']
+        super().__init__(**kwargs)
+
+    def on_remote(self, *args):
+        if not super().on_remote(*args):
+            return
+        self.bind(
+            pos=self._trigger_upd_pawns_here
+        )
+        self.bind(
+            pos=self._trigger_upd_to_remote_pos
+        )
+        if '_x' not in self.remote or '_y' not in self.remote:
+            self.pos = self._default_pos()
+        return True
+
+    def on_mirror(self, *args):
+        if not super().on_mirror(*args):
+            if 'name' in self.remote:
+                Logger.debug(
+                    'Spot: have remote {} but not its mirror'.format(
+                        self.remote['name']
+                    )
+                )
+            return
+        if (
+                '_x' not in self.mirror or '_y' not in self.mirror
+        ):
+            Logger.debug(
+                'Spot: mirror present but unready'
+            )
+            Clock.schedule_once(self.on_mirror, 0)
+            return
+        if self.x != self.mirror['_x'] or self.y != self.mirror['_y']:
+            self._trigger_upd_from_mirror_pos()
+        return True
+
+    def upd_from_mirror_pos(self, *args):
+        if not self.mirror:
+            Clock.schedule_once(self.upd_from_mirror_pos, 0)
+            return
+        self.unbind(
+            pos=self._trigger_upd_to_remote_pos
+        )
+        self.pos = (
+            self.mirror['_x'] * self.board.width,
+            self.mirror['_y'] * self.board.height
+        )
+        (x, y) = self.center
+        (w, h) = self.size
+        rx = w / 2
+        ry = h / 2
+        self.collider = CollideEllipse(
+            x=x, y=y, rx=rx, ry=ry
+        )
+        self.bind(
+            pos=self._trigger_upd_to_remote_pos
+        )
+
+    def upd_to_remote_pos(self, *args):
+        self.remote['_x'] = self.x / self.board.width
+        self.remote['_y'] = self.y / self.board.height
+
+    def renamed(self, *args):
+        if not self.board:
+            Clock.schedule_once(self.renamed, 0)
+            return
+        Logger.debug('Spot: renamed to {}'.format(self.name))
+        if hasattr(self, '_oldname'):
+            del self.board.spot[self._oldname]
+        self.board.spot[self.name] = self
+        self._oldname = self.name
+        self.mirror = {}
+        self.remote = self.board.character.place[self.name]
 
     def _default_pos(self):
         """Return the position on the board to use when I don't have
@@ -53,10 +132,18 @@ class Spot(PawnSpot):
         """
         # If one spot is without a position, maybe the rest of them
         # are too, and so maybe the board should do a full layout.
-        self.board.spots_unposd += 1
+        if not hasattr(self, '_unposd'):
+            self.board.spots_unposd += 1
+            Logger.debug(
+                'Spot: {} unpositioned ({} total)'.format(
+                    self.remote['name'],
+                    self.board.spots_unposd
+                )
+            )
+            self._unposd = True
         return (0.5, 0.5)
 
-    def _default_paths(self):
+    def _default_image_paths(self):
         """Return a list of paths to use for my graphics by default."""
         return ['orb.png']
 
@@ -109,26 +196,11 @@ class Spot(PawnSpot):
         (x, y) = self.center
         pawn.pos = (x+off, y+off)
 
-    def _upd_collider(self, *args):
-        """Update my collider to match my present position. and size.
-
-        Assumes that I am an ellipse.
-
-        """
-        (x, y) = self.center
-        (w, h) = self.size
-        rx = w / 2
-        ry = h / 2
-        self.collider = CollideEllipse(
-            x=x, y=y, rx=rx, ry=ry
-        )
-
     def _upd_pawns_here(self, *args):
         """Move any :class:`Pawn` atop me so it still *is* on top of me,
         presumably after I've moved.
 
         """
-        self._trigger_upd_collider()
         for pawn in self.children:
             self.pospawn(pawn)
 
@@ -153,62 +225,13 @@ class Spot(PawnSpot):
         """
         if self._touchpos != [] and self.center != self._touchpos:
             self.center = self._touchpos
-            self._trigger_upd_collider()
 
     def on_touch_up(self, touch):
         """Unset ``touchpos``"""
         self._touchpos = []
+        self.remote['_x'] = self.x / self.board.width
+        self.remote['_y'] = self.y / self.board.height
 
     def __repr__(self):
         """Give my place's name and my position."""
         return "{}@({},{})".format(self.place.name, self.x, self.y)
-
-    def on_place(self, *args):
-        if self.place is None:
-            return
-        self.name = self.place['name']
-        self.remote_map = EntityRemoteMapping(self.place)
-
-    def on_remote_map(self, *args):
-        if not super().on_remote_map(*args):
-            return
-        if not self.board:
-            Clock.schedule_once(self.on_remote_map, 0)
-            return
-        try:
-            self.pos = (
-                self.remote_map['_x'] * self.board.width,
-                self.remote_map['_y'] * self.board.height
-            )
-        except KeyError:
-            (x, y) = self._default_pos()
-            self.remote_map['_x'] = x
-            self.remote_map['_y'] = y
-            self.pos = (
-                x * self.board.width,
-                y * self.board.height
-            )
-
-        @self.remote_map.listener(key='_x')
-        def listen_x(k, v):
-            self.unbind(x=self._trigger_upd_remote_x)
-            self.x = v * self.board.width
-            self.bind(x=self._trigger_upd_remote_x)
-
-        @self.remote_map.listener(key='_y')
-        def listen_y(k, v):
-            self.unbind(y=self._trigger_upd_remote_y)
-            self.y = v * self.board.height
-            self.bind(y=self._trigger_upd_remote_y)
-
-        self.bind(
-            x=self._trigger_upd_remote_x,
-            y=self._trigger_upd_remote_y,
-            pos=self._trigger_upd_collider
-        )
-
-    def upd_remote_x(self, *args):
-        self.remote_map['_x'] = self.x / self.board.width
-
-    def upd_remote_y(self, *args):
-        self.remote_map['_y'] = self.y / self.board.height

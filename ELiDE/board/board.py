@@ -48,7 +48,6 @@ class Board(RelativeLayout):
         """Make a :class:`Spot` to represent a :class:`Place`"""
         if place["name"] in self.spot:
             raise KeyError("Already have a Spot for this Place")
-        Logger.debug('Board: making Spot for {}'.format(place['name']))
         r = Spot(
             board=self,
             place=place
@@ -145,24 +144,6 @@ class Board(RelativeLayout):
         from networkx import spectral_layout
         return spectral_layout(graph)
 
-    def on_spots_unposd(self, *args):
-        if self.spots_unposd == len(self.spot):
-            # No spots have positions;
-            # do a layout.
-            spots_only = self.character.facade()
-            for thing in list(spots_only.thing.keys()):
-                del spots_only.thing[thing]
-            l = self.grid_layout(spots_only)
-            for (spot, (x, y)) in l.items():
-                self.spot[spot].pos = (
-                    int(x * self.width),
-                    int(y * self.height)
-                )
-            Logger.debug(
-                "board: auto layout of spots"
-            )
-            self.spots_unposd = 0
-
     def _update(self, *args):
         """Refresh myself from the database"""
         # remove widgets that don't represent anything anymore
@@ -172,7 +153,7 @@ class Board(RelativeLayout):
                 pawns_removed.append(pawn_name)
                 self._rmpawn(pawn_name)
         Logger.debug(
-            "board: removed {} pawns from {}'s board".format(
+            "Board: removed {} pawns from {}'s board".format(
                 len(pawns_removed),
                 self.character.name
             )
@@ -183,7 +164,7 @@ class Board(RelativeLayout):
                 spots_removed.append(spot_name)
                 self._rmspot(spot_name)
         Logger.debug(
-            "board: removed {} spots from {}'s board".format(
+            "Board: removed {} spots from {}'s board".format(
                 len(spots_removed),
                 self.character.name
             )
@@ -199,7 +180,7 @@ class Board(RelativeLayout):
                     arrows_removed.append((arrow_origin, arrow_destination))
                     self._rmarrow(arrow_origin, arrow_destination)
         Logger.debug(
-            "board: removed {} arrows from {}'s board".format(
+            "Board: removed {} arrows from {}'s board".format(
                 len(arrows_removed),
                 self.character.name
             )
@@ -218,6 +199,9 @@ class Board(RelativeLayout):
                 self.character.name
             )
         )
+        self._new_spots = spots_added
+        self._layout_tries = 5
+        Clock.schedule_once(self.maybe_layout, 0)
         arrows_added = []
         for arrow_orig in self.character.portal:
             for arrow_dest in self.character.portal[arrow_orig]:
@@ -237,7 +221,7 @@ class Board(RelativeLayout):
                         )
                     )
         Logger.debug(
-            "board: added {} arrows to {}'s board".format(
+            "Board: added {} arrows to {}'s board".format(
                 len(arrows_added),
                 self.character.name
             )
@@ -258,11 +242,52 @@ class Board(RelativeLayout):
                 whereat.add_widget(pwn)
                 self.pawn[thing_name] = pwn
         Logger.debug(
-            "board: added {} pawns to {}'s board".format(
+            "Board: added {} pawns to {}'s board".format(
                 len(pawns_added),
                 self.character.name
             )
         )
+
+    def maybe_layout(self, *args):
+        if self._layout_tries <= 0:
+            return
+        if self.spots_unposd == 0:
+            return
+        if self.spots_unposd < len(self._new_spots):
+            Logger.debug(
+                'Board: {} spots of {} unpositioned, no layout'.format(
+                    self.spots_unposd,
+                    self._new_spots
+                )
+            )
+            if self._layout_tries > 0:
+                self._layout_tries = self._layout_tries - 1
+                Clock.schedule_once(self.maybe_layout, 0)
+            return
+        # No spots have positions;
+        # do a layout.
+        Logger.debug('Board: layout!')
+        from functools import partial
+        spots_only = self.character.facade()
+        for thing in list(spots_only.thing.keys()):
+            del spots_only.thing[thing]
+        l = self.grid_layout(spots_only)
+
+        def position_spot(spot, x, y, *args):
+            if not (spot.name and spot.remote and spot.mirror):
+                Clock.schedule_once(partial(position_spot, spot, x, y), 0)
+                return
+            spot.pos = (
+                int(x * self.width),
+                int(y * self.height)
+            )
+            spot._trigger_upd_to_remote_pos()
+        for spot in self.spot.values():
+            position_spot(spot, *l[spot.name])
+        Logger.debug(
+            "Board: auto layout of spots"
+        )
+        self.spots_unposd = 0
 
     def __repr__(self):
         """Look like a :class:`Character` wrapped in ``Board(...)```"""

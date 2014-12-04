@@ -15,13 +15,15 @@ from kivy.properties import (
     ObjectProperty,
     NumericProperty,
     ListProperty,
-    BooleanProperty
+    BooleanProperty,
+    StringProperty
 )
 from kivy.lang import Builder
 from kivy.clock import Clock
 from kivy.logger import Logger
 
 from ELiDE.kivygarden.collider import Collide2DPoly
+from ELiDE.remote import MirrorMapping
 
 ninety = pi / 2
 """pi / 2"""
@@ -89,7 +91,7 @@ def get_collider(ox, oy, dx, dy, r):
             x3 * xco, y3 * yco,
             x4 * xco, y4 * yco
         ],
-        cache=True
+        cache=False
     )
 
 
@@ -198,6 +200,7 @@ class ArrowWidget(Widget):
     its destination.
 
     """
+    name = StringProperty()
     margin = NumericProperty(10)
     """When deciding whether a touch collides with me, how far away can
     the touch get before I should consider it a miss?"""
@@ -228,9 +231,25 @@ class ArrowWidget(Widget):
     arrowhead_size = NumericProperty(10)
     collide_radius = NumericProperty(3)
     collider = ObjectProperty()
+    portal = ObjectProperty()
+    mirrormap = ObjectProperty()
 
-    def on_selected(self, *args):
-        Logger.info("selected: {}->{}".format(self.origin, self.destination))
+    def on_portal(self, *args):
+        if not (
+                self.board and
+                self.origin and
+                self.destination and
+                self.origin.name in self.board.character.portal and
+                self.destination.name in self.board.character.portal
+        ):
+            Clock.schedule_once(self.on_portal, 0)
+            return
+        self.mirrormap = MirrorMapping(
+            remote=self.board.character.portal[self.origin.name][
+                self.destination.name
+            ]
+        )
+        self.name = '{}->{}'.format(self.origin.name, self.destination.name)
 
     def collide_point(self, x, y):
         if not self.collider:

@@ -2,13 +2,13 @@
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
 """Widget representing things that move about from place to place."""
 from kivy.properties import (
+    AliasProperty,
     BooleanProperty,
     ObjectProperty,
     NumericProperty,
     ReferenceListProperty
 )
 from kivy.clock import Clock
-from kivy.lang import Builder
 from kivy.logger import Logger
 from .pawnspot import PawnSpot
 
@@ -29,39 +29,117 @@ class Pawn(PawnSpot):
     through.
 
     """
-    thing = ObjectProperty()
     _touch_ox_diff = NumericProperty()
     _touch_oy_diff = NumericProperty()
     _touch_opos_diff = ReferenceListProperty(_touch_ox_diff, _touch_oy_diff)
     travel_on_drop = BooleanProperty(False)
     loc_name = ObjectProperty()
-    next_loc_name = ObjectProperty(None, allownone=True)
+    next_loc_name = ObjectProperty()
+    thing = AliasProperty(
+        lambda self: self.remote,
+        lambda self, v: self.remote.setter()(v),
+        bind=('remote',)
+    )
 
     def __init__(self, **kwargs):
-        self._trigger_upd_remote_location = Clock.create_trigger(
-            self.upd_remote_location
+        self._trigger_renamed = Clock.create_trigger(self.renamed)
+        self._trigger_move_to_loc = Clock.create_trigger(self.move_to_loc)
+        self._trigger_upd_from_mirror_location = Clock.create_trigger(
+            self.upd_from_mirror_location
         )
-        self._trigger_upd_remote_next_location = Clock.create_trigger(
-            self.upd_remote_next_location
+        self._trigger_upd_from_mirror_next_location = Clock.create_trigger(
+            self.upd_from_mirror_next_location
         )
+        self._trigger_upd_to_remote_location = Clock.create_trigger(
+            self.upd_to_remote_location
+        )
+        self._trigger_upd_to_remote_next_location = Clock.create_trigger(
+            self.upd_to_remote_next_location
+        )
+        if 'thing' in kwargs:
+            kwargs['remote'] = kwargs['thing']
+            del kwargs['thing']
         super().__init__(**kwargs)
 
-    def __repr__(self):
-        """Give my ``thing``'s name and its location's name."""
-        return '{}-in-{}'.format(
-            self.name,
-            self.loc_name
+    def on_remote(self, *args):
+        if not super().on_remote(*args):
+            return
+        self._trigger_upd_from_mirror_location()
+        self._trigger_upd_from_mirror_next_location()
+        self.bind(
+            name=self._trigger_renamed,
+            loc_name=self._trigger_upd_to_remote_location,
+            next_loc_name=self._trigger_upd_to_remote_next_location,
+        )
+        self.bind(
+            loc_name=self._trigger_move_to_loc,
+            next_loc_name=self._trigger_move_to_loc
+        )
+        return True
+
+    def on_mirror(self, *args):
+        if not super().on_mirror(*args):
+            return
+        if (
+                'location' not in self.mirror or
+                'next_location' not in self.mirror
+        ):
+            Logger.debug(
+                'Pawn: mirror present but unready'
+            )
+            Clock.schedule_once(self.on_mirror, 0)
+            return
+        if self.loc_name != self.mirror['location']:
+            self._trigger_upd_from_mirror_location()
+        if self.next_loc_name != self.mirror['next_location']:
+            self._trigger_upd_from_mirror_next_location()
+        return True
+
+    def upd_from_mirror_location(self, *args):
+        if not self.mirror:
+            Clock.schedule_once(self.upd_from_mirror_location, 0)
+            return
+        self.unbind(
+            loc_name=self._trigger_upd_to_remote_location
+        )
+        self.loc_name = self.mirror['location']
+        self.bind(
+            loc_name=self._trigger_upd_to_remote_location
         )
 
-    def on_name(self, *args):
-        """Reindex myself in my board's pawn dict, for when my thing gets
-        renamed.
+    def upd_from_mirror_next_location(self, *args):
+        if not self.mirror:
+            Clock.schedule_once(self.upd_from_mirror_next_location, 0)
+            return
+        self.unbind(
+            next_loc_name=self._trigger_upd_to_remote_next_location
+        )
+        self.next_loc_name = self.remote['next_location']
+        self.bind(
+            next_loc_name=self._trigger_upd_to_remote_next_location
+        )
+
+    def upd_to_remote_location(self, *args):
+        self.remote['location'] = self.loc_name
+
+    def upd_to_remote_next_location(self, *args):
+        self.remote['next_location'] = self.next_loc_name
+
+    def renamed(self, *args):
+        """Reindex myself in my board's pawn dict, and replace my thing with
+        the one named thus.
 
         """
+        if not self.board:
+            Clock.schedule_once(self.renamed, 0)
+            return
+        Logger.debug('Pawn: renamed to {}'.format(self.name))
         if hasattr(self, '_oldname'):
             del self.board.pawn[self._oldname]
         self.board.pawn[self.name] = self
         self._oldname = self.name
+        self.mirror = {}
+        self.remote = self.board.character.thing[self.name]
 
     def add_widget(self, pawn, index=0, canvas='after'):
         """Apart from the normal behavior, bind my ``center`` so that the
@@ -118,7 +196,7 @@ class Pawn(PawnSpot):
                 self.loc_name = new_spot.name
         return True
 
-    def on_loc_name(self, *args):
+    def move_to_loc(self, *args):
         """Move myself to the widget representing my new location."""
         if (
                 (
@@ -142,43 +220,20 @@ class Pawn(PawnSpot):
                     ]
             except KeyError:
                 whereat = self.board.spot[self.loc_name]
+            parent_name = self.parent.name
             self.parent.remove_widget(self)
             whereat.add_widget(self)
+            Logger.debug(
+                'Pawn: removed {} from {}, added to {}'.format(
+                    self.name,
+                    parent_name,
+                    whereat.name
+                )
+            )
 
-    def on_remote_map(self, *args):
-        if not PawnSpot.on_remote_map(self, *args):
-            return
-        self.loc_name = self.remote_map['location']
-        self.next_loc_name = self.remote_map['next_location']
-
-        @self.remote_map.listener(key='location')
-        def listen_loc(k, v):
-            self.unbind(loc_name=self._trigger_upd_remote_location)
-            self.loc_name = v
-            self.bind(loc_name=self._trigger_upd_remote_location)
-
-        @self.remote_map.listener(key='next_location')
-        def listen_next_loc(k, v):
-            self.unbind(next_loc_name=self._trigger_upd_remote_next_location)
-            self.next_loc_name = v
-            self.bind(next_loc_name=self._trigger_upd_remote_next_location)
-
-        self.bind(
-            loc_name=self._trigger_upd_remote_location,
-            next_loc_name=self._trigger_upd_remote_next_location,
+    def __repr__(self):
+        """Give my ``thing``'s name and its location's name."""
+        return '{}-in-{}'.format(
+            self.name,
+            self.loc_name
         )
-
-        return True
-
-    def upd_remote_location(self, *args):
-        self.remote_map['location'] = self.loc_name
-
-    def upd_remote_next_location(self, *args):
-        self.remote_map['next_location'] = self.next_loc_name
-
-
-kv = """
-<Pawn>:
-    remote_map: EntityRemoteMapping(self.thing) if self.thing else None
-"""
-Builder.load_string(kv)

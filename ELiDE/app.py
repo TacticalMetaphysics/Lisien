@@ -117,6 +117,7 @@ class ELiDELayout(FloatLayout):
     tick_results = DictProperty({})
     branch = StringProperty()
     tick = NumericProperty()
+    time = ReferenceListProperty(branch, tick)
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
     def on_touch_down(self, touch):
@@ -326,18 +327,12 @@ class ELiDELayout(FloatLayout):
             tick=self.timeupd
         )
 
-        @self.engine.on_time
-        def pulltime(e, b_old, t_old, b, t):
-            self.branch = b
-            self.tick = t
-
     def timeupd(self, *args):
         if self.engine.branch != self.branch:
             self.engine.branch = self.branch
         if self.engine.tick != self.tick:
             self.engine.tick = self.tick
         self.ids.board._trigger_update()
-        self.ids.charsheet._trigger_poll()
 
     def set_branch(self, b):
         """``self.branch = b``"""
@@ -447,6 +442,9 @@ class MenuIntInput(MenuTextInput):
         )
 
 
+debug = False
+
+
 class ELiDEApp(App):
     """Extensible LiSE Development Environment.
 
@@ -455,7 +453,6 @@ class ELiDEApp(App):
 
     """
     engine = ObjectProperty()
-    cli_args = DictProperty({})
 
     def build_config(self, config):
         """Set config defaults"""
@@ -474,12 +471,10 @@ class ELiDEApp(App):
             {
                 'wallpaper': "wallpape.jpg",
                 'boardchar': 'physical',
-                'sheetchar': 'player'
+                'sheetchar': 'player',
+                'debug': 'no'
             }
         )
-        for sec in self.cli_args:
-            for (k, v) in self.cli_args[sec].items():
-                config[sec][k] = v
         config.write()
 
     def build(self):
@@ -488,6 +483,17 @@ class ELiDEApp(App):
 
         """
         config = self.config
+        Logger.debug(
+            "ELiDEApp: starting with world {}, code {}, path {}".format(
+                config['LiSE']['world'],
+                config['LiSE']['code'],
+                LiSE.__path__[-1]
+            )
+        )
+        if config['ELiDE']['debug'] == 'yes':
+            import pdb
+            pdb.set_trace()
+
         self.engine = LiSE.Engine(
             config['LiSE']['world'],
             config['LiSE']['code']
