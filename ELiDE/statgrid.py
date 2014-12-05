@@ -14,7 +14,7 @@ from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.uix.textinput import TextInput
 from kivy.uix.listview import ListView, CompositeListItem
-from kivy.adapters.listadapter import ListAdapter
+from kivy.adapters.dictadapter import DictAdapter
 from kivy.lang import Builder
 from gorm.json import json_load
 from ELiDE.remote import MirrorMapping
@@ -70,8 +70,8 @@ class StatRowListItem(CompositeListItem):
 
 class StatListView(ListView, MirrorMapping):
     def __init__(self, **kwargs):
-        kwargs['adapter'] = ListAdapter(
-            data=[],
+        kwargs['adapter'] = DictAdapter(
+            data={},
             cls=StatRowListItem,
             args_converter=lambda i, kv: {
                 'key': kv[0],
@@ -83,42 +83,27 @@ class StatListView(ListView, MirrorMapping):
             selection_mode='multiple',
             allow_empty_selection=True
         )
-        self._trigger_upd_data = Clock.create_trigger(
-            self.upd_data
-        )
+        self._trigger_sortkeys = Clock.create_trigger(self.sortkeys)
+        self._trigger_upd_data = Clock.create_trigger(self.upd_data)
         super().__init__(**kwargs)
-        self._listed = {}
-        self._listeners = {}
+        self.bind(mirror=self._trigger_sortkeys)
         self.bind(mirror=self._trigger_upd_data)
+        self._listeners = {}
 
     def upd_data(self, *args):
-        Logger.debug(
-            'StatListView: updating to {}'.format(self.mirror)
+        self.adapter.data = dict(
+            (k, (k, v)) for (k, v) in self.mirror.items()
         )
-        newdata = list(self.adapter.data)
-        for (k, v) in list(self._listed.items()):
-            if k not in self.mirror:
-                newdata.remove((k, v))
-                del self._listed[k]
-        for (k, v) in self.mirror.items():
-            if v is None:
-                Logger.debug('StatListView: {} deleted'.format(k))
-                if k not in self._listed:
-                    continue
-                newdata.remove((k, self._listed[k]))
-                del self._listed[k]
-            elif k not in self._listed:
-                Logger.debug('StatListView: {}={} added'.format(k, v))
-                self._listed[k] = v
-                newdata.append((k, v))
-            elif self._listed[k] == v:
-                continue
-            else:
-                Logger.debug('StatListView: {} changed to {}'.format(k, v))
-                already = (k, self._listed[k])
-                newdata[newdata.index(already)] = (k, v)
-                self._listed[k] = v
-        self.adapter.data = newdata
+
+    def sortkeys(self, *args):
+        for key in self.mirror.keys():
+            if key not in self.adapter.sorted_keys:
+                self.adapter.sorted_keys = sorted(self.mirror.keys())
+                return
+        for k in set(
+                k for k in self.adapter.sorted_keys if k not in self.mirror
+        ):
+            self.adapter.sorted_keys.remove(k)
 
     def _reg_widget(self, w, *args):
         if not self.mirror:
