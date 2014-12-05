@@ -1,4 +1,5 @@
 from collections import defaultdict
+from copy import deepcopy
 import networkx as nx
 from gorm.graph import Node
 from gorm.json import json_dump
@@ -72,12 +73,12 @@ class ThingPlace(Node):
             self._keycache = {}
         super().__init__(character, name)
 
+    def listener(self, f=None, stat=None):
+        return listener(self._stat_listeners, f, stat)
+
     def _dispatch_stat(self, k, v):
         (branch, tick) = self.engine.time
         dispatch(self._stat_listeners, k, branch, tick, self, k, v)
-
-    def listener(self, f=None, stat=None):
-        return listener(self._stat_listeners, f, stat)
 
     def rulebook_listener(self, f):
         listen(self._rulebook_listeners, f)

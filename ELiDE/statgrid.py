@@ -100,6 +100,7 @@ class StatListView(ListView, MirrorMapping):
                     'name',
                     'location',
                     'next_location',
+                    'locations',
                     'arrival_time',
                     'next_arrival_time'
                 )

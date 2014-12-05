@@ -646,6 +646,14 @@ thing_locs_data = (
     "AND thing=? "
     "AND branch=?;"
 )
+node_var_data_branch = (
+    "SELECT key, rev, value FROM node_val "
+    "WHERE graph=? "
+    "AND node=? "
+    "AND branch=? "
+    "ORDER BY rev ASC"
+    ";"
+)
 node_rulebook = (
     "SELECT rulebook "
     "FROM node_rulebook WHERE character=? AND node=?;"

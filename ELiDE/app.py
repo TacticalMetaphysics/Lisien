@@ -115,8 +115,8 @@ class ELiDELayout(FloatLayout):
     keep_selection = BooleanProperty(False)
     engine = ObjectProperty()
     tick_results = DictProperty({})
-    branch = StringProperty()
-    tick = NumericProperty()
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
     time = ReferenceListProperty(branch, tick)
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
@@ -426,7 +426,6 @@ class MenuTextInput(TextInput):
     def on_focus(self, *args):
         if not self.focus:
             self.on_enter(*args)
-        super().on_focus(*args)
 
     def on_text_validate(self, *args):
         self.on_enter()

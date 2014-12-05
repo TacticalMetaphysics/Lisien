@@ -546,6 +546,17 @@ class QueryEngine(gorm.query.QueryEngine):
                 return (json_load(th), json_load(l))
         raise KeyError("Thing never existed")
 
+    def node_stats_branch(self, character, node, branch):
+        (character, node) = map(json_dump, (character, node))
+        for (key, tick, value) in self.sql(
+                'node_var_data_branch', character, node, branch
+        ):
+            yield (
+                json_load(key),
+                tick,
+                json_load(value)
+            )
+
     def character_things_items(self, character, branch, tick):
         character = json_dump(character)
         seen = set()

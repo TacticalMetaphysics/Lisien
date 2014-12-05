@@ -37,12 +37,18 @@
                 id: spotlayout
             Widget:
                 id: pawnlayout
-    StatListView:
-        id: charsheet
+    BoxLayout:
+        orientation: 'vertical'
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.2, 0.9)
-        layout: root
-        remote: None if board.character is None else board.character.stat if root.selection is None else root.selection.thing if hasattr(root.selection, 'thing') else root.selection.place if hasattr(root.selection, 'place') else root.selection.portal
+        Label:
+            size_hint_y: 0.05
+            text: str(board.character.name) if board.character and root.selection is None else str(root.selection.name) if root.selection else ''
+        StatListView:
+            id: charsheet
+            size_hint_y: 0.95
+            layout: root
+            remote: None if board.character is None else board.character.stat if root.selection is None else root.selection.thing if hasattr(root.selection, 'thing') else root.selection.place if hasattr(root.selection, 'place') else root.selection.portal
     BoxLayout:
         id: timemenu
         pos_hint: {'bot': 0}

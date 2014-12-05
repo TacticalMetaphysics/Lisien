@@ -62,8 +62,6 @@ class Spot(PawnSpot):
         self.bind(
             pos=self._trigger_upd_to_remote_pos
         )
-        if '_x' not in self.remote or '_y' not in self.remote:
-            self.pos = self._default_pos()
         return True
 
     def on_mirror(self, *args):
