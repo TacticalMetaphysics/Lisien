@@ -89,14 +89,6 @@ class Board(RelativeLayout):
             Clock.schedule_once(self.on_character, 0)
             return
 
-        def updscrollx(*args):
-            self.character.stat['_scroll_x'] = self.parent.scroll_x
-        trigger_updscrollx = Clock.create_trigger(updscrollx)
-
-        def updscrolly(*args):
-            self.character.stat['_scroll_y'] = self.parent.scroll_y
-        trigger_updscrolly = Clock.create_trigger(updscrolly)
-
         for prop in '_scroll_x', '_scroll_y':
             if (
                     prop not in self.character.stat or
@@ -106,14 +98,49 @@ class Board(RelativeLayout):
 
         self.parent.scroll_x = self.character.stat['_scroll_x']
         self.parent.scroll_y = self.character.stat['_scroll_y']
-        self.parent.bind(scroll_x=trigger_updscrollx)
-        self.parent.bind(scroll_y=trigger_updscrolly)
+
+        self.track_xvel = False
+        self.track_yvel = False
+        self.parent.effect_x.bind(velocity=self.track_x_vel)
+        self.parent.effect_y.bind(velocity=self.track_y_vel)
 
         @self.engine.on_time
         def ontime(*args):
             self._trigger_update()
 
         self._trigger_update()
+
+    def upd_x_when_scrolling_stops(self, *args):
+        if self.parent.effect_x.velocity < self.parent.effect_x.min_velocity:
+            self.character.stat['_scroll_x'] = self.parent.scroll_x
+            self.track_xvel = False
+            return
+        Clock.schedule_once(self.upd_x_when_scrolling_stops, 0.001)
+
+    def track_x_vel(self, *args):
+        if (
+                not self.track_xvel and
+                self.parent.effect_x.velocity >
+                self.parent.effect_x.min_velocity
+        ):
+            self.upd_x_when_scrolling_stops()
+            self.track_xvel = True
+
+    def upd_y_when_scrolling_stops(self, *args):
+        if self.parent.effect_y.velocity < self.parent.effect_y.min_velocity:
+            self.character.stat['_scroll_y'] = self.parent.scroll_y
+            self.track_yvel = False
+            return
+        Clock.schedule_once(self.upd_y_when_scrolling_stops, 0.001)
+
+    def track_y_vel(self, *args):
+        if (
+                not self.track_yvel and
+                self.parent.effect_y.velocity >
+                self.parent.effect_y.min_velocity
+        ):
+            self.upd_y_when_scrolling_stops()
+            self.track_yvel = True
 
     def _rmpawn(self, name):
         """Remove the :class:`Pawn` by the given name"""
