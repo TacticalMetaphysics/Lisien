@@ -27,14 +27,12 @@ class MirrorMapping(EventDispatcher):
 
         @self.remote.listener
         def when_changed(branch, tick, what, k, v):
-            if branch == self.layout.branch and tick == self.layout.tick:
-                self.mirror[k] = v
-            else:
-                Logger.debug(
-                    'changed {}, but not mirroring because {} != {}'.format(
-                        k,
-                        (branch, tick),
-                        (self.layout.branch, self.layout.tick)
+            if (
+                    branch == self.layout.branch and
+                    tick == self.layout.tick and (
+                        k not in self.mirror or
+                        self.mirror[k] != v
                     )
-                )
+            ):
+                self.mirror[k] = v
         return True
