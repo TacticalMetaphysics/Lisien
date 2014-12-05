@@ -93,6 +93,17 @@ class StatListView(ListView, MirrorMapping):
     def upd_data(self, *args):
         self.adapter.data = dict(
             (k, (k, v)) for (k, v) in self.mirror.items()
+            if not isinstance(k, str) or (
+                k[0] != '_' and
+                k not in (
+                    'character',
+                    'name',
+                    'location',
+                    'next_location',
+                    'arrival_time',
+                    'next_arrival_time'
+                )
+            )
         )
 
     def sortkeys(self, *args):
@@ -112,12 +123,9 @@ class StatListView(ListView, MirrorMapping):
 
         def listen(*args):
             if w.key not in self.mirror:
-                Logger.debug(
-                    'StatListView: waiting for {} to propagate'.format(w.key)
-                )
-                Clock.schedule_once(listen, 0)
                 return
-            w.value = self.mirror[w.key]
+            if w.value != self.mirror[w.key]:
+                w.value = self.mirror[w.key]
         self._listeners[w.key] = listen
         self.bind(mirror=listen)
 
