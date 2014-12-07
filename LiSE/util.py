@@ -31,12 +31,41 @@ def listener(l, f=None, k=None):
     return lambda fun: listen(l, fun, k)
 
 
+try:
+    from sqlalchemy.exc import OperationalError as alchemyOpError
+    from sqlite3 import OperationalError as liteOpError
+    OperationalError = (alchemyOpError, liteOpError)
+except ImportError:
+    from sqlite3 import OperationalError
+
+
+alchemyIntegError = None
+try:
+    from sqlalchemy.exc import IntegrityError as alchemyIntegError
+    from sqlite3 import IntegrityError as liteIntegError
+    IntegrityError = (alchemyIntegError, liteIntegError)
+except ImportError:
+    from sqlite3 import IntegrityError
+
+
+class RedundantRuleError(IntegrityError):
+    """Error condition for when you try to run a rule on a (branch,
+    tick) it's already been executed.
+
+    """
+    pass
+
+
 class CacheError(ValueError):
+    """Error condition for something going wrong with a cache"""
     pass
 
 
 class TravelException(Exception):
-    """Exception for problems with pathfinding"""
+    """Exception for problems with pathfinding. Not necessarily an error
+    because sometimes somebody SHOULD get confused finding a path.
+
+    """
     def __init__(
             self,
             message,

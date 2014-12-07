@@ -4,26 +4,7 @@ from types import FunctionType
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
 from gorm.json import json_dump, json_load
-
-alchemyOpError = None
-try:
-    from sqlalchemy.exc import OperationalError as alchemyOpError
-except ImportError:
-    pass
-from sqlite3 import OperationalError as liteOpError
-OperationalError = (
-    alchemyOpError, liteOpError
-) if alchemyOpError is not None else liteOpError
-
-alchemyIntegError = None
-try:
-    from sqlalchemy.exc import IntegrityError as alchemyIntegError
-except ImportError:
-    pass
-from sqlite3 import IntegrityError as liteIntegError
-IntegrityError = (
-    alchemyIntegError, liteIntegError
-) if alchemyIntegError is not None else liteIntegError
+from .util import IntegrityError, RedundantRuleError
 
 import gorm.query
 import LiSE.sql
@@ -332,15 +313,27 @@ class QueryEngine(gorm.query.QueryEngine):
             self, ruletyp, character, rulebook, rule, branch, tick
     ):
         (character, rulebook) = map(json_dump, (character, rulebook))
-        return self.sql(
-            'handled_character_rule_fmt',
-            character,
-            rulebook,
-            rule,
-            branch,
-            tick,
-            ruletyp=ruletyp
-        )
+        try:
+            return self.sql(
+                'handled_character_rule_fmt',
+                character,
+                rulebook,
+                rule,
+                branch,
+                tick,
+                ruletyp=ruletyp
+            )
+        except IntegrityError:
+            raise RedundantRuleError(
+                "Already handled rule {rule} in rulebook {book} "
+                "for character {ch} at tick {t} of branch {b}".format(
+                    ch=character,
+                    book=rulebook,
+                    rule=rule,
+                    b=branch,
+                    t=tick
+                )
+            )
 
     def handled_thing_rule(
             self, character, thing, rulebook, rule, branch, tick
@@ -348,29 +341,54 @@ class QueryEngine(gorm.query.QueryEngine):
         (character, thing, rulebook) = map(
             json_dump, (character, thing, rulebook)
         )
-        return self.sql(
-            'handled_thing_rule',
-            character,
-            thing,
-            rulebook,
-            rule,
-            branch,
-            tick
-        )
+        try:
+            return self.sql(
+                'handled_thing_rule',
+                character,
+                thing,
+                rulebook,
+                rule,
+                branch,
+                tick
+            )
+        except IntegrityError:
+            raise RedundantRuleError(
+                "Already handled rule {r} in rulebook {book} "
+                "for thing {th} "
+                "at tick {t} of branch {b}".format(
+                    r=rule,
+                    book=rulebook,
+                    th=thing,
+                    b=branch,
+                    t=tick
+                )
+            )
 
     def handled_place_rule(
             self, character, place, rulebook, rule, branch, tick
     ):
         (character, place, rulebook) = map(json_dump, (character, rulebook))
-        return self.sql(
-            'handled_place_rule',
-            character,
-            place,
-            rulebook,
-            rule,
-            branch,
-            tick
-        )
+        try:
+            return self.sql(
+                'handled_place_rule',
+                character,
+                place,
+                rulebook,
+                rule,
+                branch,
+                tick
+            )
+        except IntegrityError:
+            raise RedundantRuleError(
+                "Already handled rule {rule} in rulebook {book} "
+                "for place {place} at tick {tick} of branch {branch}".format(
+                    place=place,
+                    rulebook=rulebook,
+                    rule=rule,
+                    branch=branch,
+                    tick=tick
+                )
+            )
 
     def handled_portal_rule(
             self, character, nodeA, nodeB, rulebook, rule, branch, tick
@@ -378,17 +396,31 @@ class QueryEngine(gorm.query.QueryEngine):
         (character, nodeA, nodeB, rulebook) = map(
             json_dump, (character, nodeA, nodeB, rulebook)
         )
-        return self.sql(
-            'handled_portal_rule',
-            character,
-            nodeA,
-            nodeB,
-            0,
-            rulebook,
-            rule,
-            branch,
-            tick
-        )
+        try:
+            return self.sql(
+                'handled_portal_rule',
+                character,
+                nodeA,
+                nodeB,
+                0,
+                rulebook,
+                rule,
+                branch,
+                tick
+            )
+        except IntegrityError:
+            raise RedundantRuleError(
+                "Already handled rule {rule} in rulebook {book} "
+                "for portal from {nodeA} to {nodeB} "
+                "at tick {tick} of branch {branch}".format(
+                    nodeA=nodeA,
+                    nodeB=nodeB,
+                    book=rulebook,
+                    rule=rule,
+                    branch=branch,
+                    tick=tick
+                )
+            )
 
     def node_is_thing(self, character, node, branch, tick):
         (character, node) = map(json_dump, (character, node))
