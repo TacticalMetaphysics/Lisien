@@ -48,7 +48,7 @@ except ImportError:
     from sqlite3 import IntegrityError
 
 
-class RedundantRuleError(IntegrityError):
+class RedundantRuleError(ValueError):
     """Error condition for when you try to run a rule on a (branch,
     tick) it's already been executed.
 

@@ -20,6 +20,8 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
 
 import LiSE
+from LiSE.util import RedundantRuleError
+
 import ELiDE
 from ELiDE.kivygarden.texturestack import ImageStack
 
@@ -365,7 +367,8 @@ class ELiDELayout(FloatLayout):
             ):
                 self.engine.worlddb.commit()
             self.engine._rules_iter = self.engine._follow_rules()
-            self.ids.board._trigger_update()
+        except RedundantRuleError:
+            self.tick += 1
 
     def next_tick(self, *args):
         """Call ``self.advance()``, and if the tick hasn't changed, schedule

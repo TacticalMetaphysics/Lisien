@@ -13,24 +13,7 @@ from gorm import ORM as gORM
 from .character import Character
 from .rule import AllRules
 from .query import QueryEngine
-from .util import dispatch, listen, listener
-
-
-alchemyOpError = None
-try:
-    from sqlalchemy.exc import OperationalError as alchemyOpError
-except ImportError:
-    pass
-from sqlite3 import OperationalError as liteOpError
-OperationalError = (alchemyOpError, liteOpError)
-
-alchemyIntegError = None
-try:
-    from sqlalchemy.exc import IntegrityError as alchemyIntegError
-except ImportError:
-    pass
-from sqlite3 import IntegrityError as liteIntegError
-IntegrityError = (alchemyIntegError, liteIntegError)
+from .util import dispatch, listen, listener, RedundantRuleError
 
 
 class NotThatMap(Mapping):
