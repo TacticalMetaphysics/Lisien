@@ -119,7 +119,7 @@ class ELiDELayout(FloatLayout):
     tick_results = DictProperty({})
     branch = StringProperty('master')
     tick = NumericProperty(0)
-    time = ReferenceListProperty(branch, tick)
+    time = ListProperty(['master', 0])
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
     def on_touch_down(self, touch):
@@ -326,15 +326,29 @@ class ELiDELayout(FloatLayout):
         self.tick = self.engine.tick
         self.bind(
             branch=self.timeupd,
-            tick=self.timeupd
+            tick=self.timeupd,
         )
 
     def timeupd(self, *args):
+        Logger.debug('ELiDELayout: timeupd')
         if self.engine.branch != self.branch:
             self.engine.branch = self.branch
         if self.engine.tick != self.tick:
             self.engine.tick = self.tick
-        self.ids.board._trigger_update()
+
+        def timeprop(*args):
+            if not (
+                    self.engine.branch == self.branch and
+                    self.engine.tick == self.tick
+            ):
+                Logger.debug('timeprop: cycling')
+                Clock.schedule_once(timeprop, 0.001)
+                return
+            Logger.debug('timeprop: time {}->{}'.format(self.time, self.engine.time))
+            self.time = self.engine.time
+            self.ids.board._trigger_update()
+
+        Clock.schedule_once(timeprop, 0)
 
     def set_branch(self, b):
         """``self.branch = b``"""
