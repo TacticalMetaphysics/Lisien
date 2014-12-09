@@ -35,7 +35,7 @@ class Pawn(PawnSpot):
     _touch = ObjectProperty(None, allownone=True)
     travel_on_drop = BooleanProperty(False)
     loc_name = ObjectProperty()
-    next_loc_name = ObjectProperty()
+    next_loc_name = ObjectProperty(None, allownone=True)
     thing = AliasProperty(
         lambda self: self.remote,
         lambda self, v: self.remote.setter()(v),
