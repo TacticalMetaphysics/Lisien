@@ -473,6 +473,7 @@ class Engine(object):
     @branch.setter
     def branch(self, v):
         """Set my gorm's branch and call listeners"""
+        b = self.branch
         if self.caching:
             if v == self.branch:
                 return
@@ -482,7 +483,7 @@ class Engine(object):
         if not hasattr(self, 'locktime'):
             t = self.tick
             for time_listener in self.time_listeners:
-                time_listener(self, v, t)
+                time_listener(self, b, t, v, t)
 
     @property
     def tick(self):
