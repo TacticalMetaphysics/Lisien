@@ -509,12 +509,11 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
         return self._pl
 
     def _dispatch_portal(self, o, d, p):
-        (branch, tick) = self.engine.time
         dispatch(
             self._portal_listeners,
             o,
-            branch,
-            tick,
+            self.gorm.branch,
+            self.gorm.rev,
             self,
             self.graph.node[o],
             self.graph.node[d],
@@ -612,7 +611,7 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
             else:
                 p = Portal(self.graph, self.nodeA, nodeB)
             self.engine.db.exist_edge(
-                self.graph,
+                self.graph.name,
                 self.nodeA,
                 nodeB,
                 0,

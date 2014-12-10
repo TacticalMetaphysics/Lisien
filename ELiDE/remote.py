@@ -15,7 +15,7 @@ from kivy.logger import Logger
 
 class MirrorMapping(EventDispatcher):
     layout = ObjectProperty()
-    remote = ObjectProperty()
+    remote = ObjectProperty(None, allownone=True)
     mirror = DictProperty()
 
     def on_layout(self, *args):
@@ -32,6 +32,9 @@ class MirrorMapping(EventDispatcher):
             return
 
         self.mirror = dict(self.remote)
+
+        if not hasattr(self.remote, 'listener'):
+            return
 
         @self.remote.listener
         def when_changed(branch, tick, what, k, v):

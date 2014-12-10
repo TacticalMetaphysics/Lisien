@@ -24,6 +24,7 @@ from LiSE.util import RedundantRuleError
 
 import ELiDE
 from ELiDE.kivygarden.texturestack import ImageStack
+from ELiDE.board.arrow import ArrowWidget
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
 
@@ -148,6 +149,21 @@ class ELiDELayout(FloatLayout):
             spots = list(self.board.spots_at(*touch.pos))
             if spots:
                 self.selection_candidates = spots
+                if self.ids.portaladdbut.state == 'down':
+                    self.origspot = self.selection_candidates.pop(0)
+                    self.protodest = Dummy(
+                        pos=touch.pos,
+                        size=(0, 0)
+                    )
+                    self.board.add_widget(self.protodest)
+                    self.selection = self.protodest
+                    # why do I need this next?
+                    self.protodest.on_touch_down(touch)
+                    self.protoportal = ArrowWidget(
+                        origin=self.origspot,
+                        destination=self.protodest
+                    )
+                    self.board.add_widget(self.protoportal)
                 return True
             arrows = list(self.board.arrows_at(*touch.pos))
             if arrows:
@@ -166,8 +182,6 @@ class ELiDELayout(FloatLayout):
         selection. Otherwise dispatch normally.
 
         """
-        # For now, there's no way to select things by dragging.
-        # However, if something's already selected, you can move it.
         if self.selection:
             touch.push()
             if hasattr(self.selection, 'use_boardspace'):
@@ -185,6 +199,31 @@ class ELiDELayout(FloatLayout):
         it.
 
         """
+        if hasattr(self, 'protodest'):
+            touch.push()
+            touch.apply_transform_2d(self.ids.boardview.to_local)
+            try:
+                destspot = next(self.board.spots_at(*touch.pos))
+                orig = self.origspot.remote
+                dest = destspot.remote
+                port = self.board.character.new_portal(
+                    orig.name,
+                    dest.name
+                )
+                Logger.debug(
+                    "ELiDELayout: new arrow for {}->{}".format(
+                        orig.name,
+                        dest.name
+                    )
+                )
+                self.board.add_widget(self.board.make_arrow(port))
+            except StopIteration:
+                pass
+            self.board.remove_widget(self.protoportal)
+            self.board.remove_widget(self.protodest)
+            del self.protoportal
+            del self.protodest
+            touch.pop()
         if hasattr(self.selection, 'on_touch_up'):
             self.selection.dispatch('on_touch_up', touch)
         if self.ids.timemenu.dispatch('on_touch_up', touch):
