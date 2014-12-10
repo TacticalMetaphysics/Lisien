@@ -142,10 +142,36 @@ class Board(RelativeLayout):
             self.upd_y_when_scrolling_stops()
             self.track_yvel = True
 
+    def _rm_arrows_to_and_from(self, name):
+        if name in self.arrow:
+            l = list(self.arrow[name].keys())
+            Logger.debug(
+                "Board: removing arrows from {} to: {}".format(
+                    name,
+                    l
+                )
+            )
+            for dest in l:
+                self._rmarrow(name, dest)
+        l = []
+        for orig in list(self.arrow.keys()):
+            if name in self.arrow[orig]:
+                l.append(orig)
+                self._rmarrow(orig, name)
+        Logger.debug(
+            "Board: removed arrows to {} from: {}".format(
+                name,
+                l
+            )
+        )
+
     def _rmpawn(self, name):
         """Remove the :class:`Pawn` by the given name"""
         if name not in self.pawn:
-            raise KeyError("No Pawn")
+            raise KeyError("No Pawn named {}".format(name))
+        # Currently there's no way to connect Pawns with Arrows but I
+        # think there will be, so, insurance
+        self._rm_arrows_to_and_from(name)
         pwn = self.pawn[name]
         pwn.parent.remove_widget(pwn)
         del self.pawn[name]
@@ -153,7 +179,8 @@ class Board(RelativeLayout):
     def _rmspot(self, name):
         """Remove the :class:`Spot` by the given name"""
         if name not in self.spot:
-            raise KeyError("No Spot")
+            raise KeyError("No Spot named {}".format(name))
+        self._rm_arrows_to_and_from(name)
         self.spotlayout.remove_widget(self.spot[name])
         del self.spot[name]
 
@@ -163,8 +190,8 @@ class Board(RelativeLayout):
                 orig not in self.arrow or
                 dest not in self.arrow[orig]
         ):
-            raise KeyError("No Arrow")
-        self.spotlayout.remove_widget(self.arrow[orig][dest])
+            raise KeyError("No Arrow from {} to {}".format(orig, dest))
+        self.arrowlayout.remove_widget(self.arrow[orig][dest])
         del self.arrow[orig][dest]
 
     def grid_layout(self, graph):
