@@ -154,7 +154,7 @@ class Board(RelativeLayout):
         """Remove the :class:`Spot` by the given name"""
         if name not in self.spot:
             raise KeyError("No Spot")
-        self.spotlayout.remove_widget(self.pawn[name])
+        self.spotlayout.remove_widget(self.spot[name])
         del self.spot[name]
 
     def _rmarrow(self, orig, dest):
