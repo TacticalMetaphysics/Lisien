@@ -460,6 +460,7 @@ class Arrow(ArrowWidget):
 
 
 kv = """
+#: import Dummy ELiDE.app.Dummy
 <ArrowWidget>:
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
     bg_color_unselected: [0.5, 0.5, 0.5, 0.5]
@@ -487,7 +488,7 @@ kv = """
             width: root.w
             points: root.head_points
 <Arrow>:
-    origin: self.board.spot[self.portal['origin']]
-    destination: self.board.spot[self.portal['destination']]
+    origin: self.board.spot[self.portal['origin']] if self.portal['origin'] in self.board.spot else Dummy()
+    destination: self.board.spot[self.portal['destination']] if self.portal['destination'] in self.board.spot else Dummy()
 """
 Builder.load_string(kv)
