@@ -7,38 +7,32 @@ from gorm.json import json_dump, json_load
 from .util import IntegrityError, OperationalError, RedundantRuleError
 
 import gorm.query
-import LiSE.sql
+import LiSE
 
 
 class QueryEngine(gorm.query.QueryEngine):
+    json_path = LiSE.__path__[0]
     IntegrityError = IntegrityError
     OperationalError = OperationalError
 
-    def sql(self, stringname, *args, **kwargs):
-        if hasattr(LiSE.sql, stringname):
-            return self.connection.cursor().execute(
-                getattr(LiSE.sql, stringname).format_map(kwargs), args
-            )
-        return super().sql(stringname, *args)
-
     def count_all_table(self, tbl):
-        return self.sql('count_all_fmt', tbl=tbl).fetchone()[0]
+        return self.sql('count_all_{}'.format(tbl)).fetchone()[0]
 
     def init_func_table(self, tbl):
         try:
-            return self.sql('count_all_fmt', tbl=tbl)
+            return self.count_all_table(tbl)
         except OperationalError:
-            return self.sql('func_store_create_table_fmt', tbl=tbl)
+            return self.sql('create_{}'.format(tbl))
 
     def func_table_items(self, tbl):
-        return self.sql('func_table_items_fmt', tbl=tbl)
+        return self.sql('func_{}_items'.format(tbl))
 
     def func_table_contains(self, tbl, key):
-        for row in self.sql('func_table_get_fmt', key, tbl=tbl):
+        for row in self.sql('func_{}_get'.format(tbl), key):
             return True
 
     def func_table_get(self, tbl, key):
-        bytecode = self.sql('func_table_get_fmt', key, tbl=tbl).fetchone()
+        bytecode = self.sql('func_{}_get'.format(tbl), key).fetchone()
         if bytecode is None:
             raise KeyError("No such function")
         return FunctionType(
@@ -49,24 +43,24 @@ class QueryEngine(gorm.query.QueryEngine):
     def func_table_set(self, tbl, key, code):
         m = marshalled(code)
         try:
-            return self.sql('func_table_ins_fmt', key, m, tbl=tbl)
+            return self.sql('func_{}_ins'.format(tbl), key, m)
         except IntegrityError:
-            return self.sql('func_table_upd_fmt', m, key, tbl=tbl)
+            return self.sql('func_{}_upd'.format(tbl), m, key)
 
     def func_table_del(self, tbl, key):
-        return self.sql('func_table_del_fmt', key, tbl=tbl)
+        return self.sql('func_{}_del'.format(tbl), key)
 
     def init_string_table(self, tbl):
         try:
-            return self.sql('count_all_fmt', tbl=tbl)
+            return self.count_all_table(tbl)
         except OperationalError:
-            return self.sql('string_store_create_table_fmt', tbl=tbl)
+            return self.sql('create_{}'.format(tbl))
 
     def string_table_lang_items(self, tbl, lang):
-        return self.sql('string_table_lang_items_fmt', lang, tbl=tbl)
+        return self.sql('string_lang_items_fmt', lang)
 
     def string_table_get(self, tbl, lang, key):
-        for row in self.sql('string_table_get_fmt', lang, key, tbl=tbl):
+        for row in self.sql('string_get', lang, key, tbl=tbl):
             return row[0]
 
     def string_table_set(self, tbl, lang, key, value):
@@ -244,11 +238,11 @@ class QueryEngine(gorm.query.QueryEngine):
         rulebook = json_dump(rulebook)
         try:
             self.sql(
-                'rule_ins_fmt', rulebook, rule, branch, tick, active
+                'rule_ins', rulebook, rule, branch, tick, active
             )
         except IntegrityError:
             self.sql(
-                'rule_upd_fmt', active, rulebook, rule, branch, tick
+                'rule_upd', active, rulebook, rule, branch, tick
             )
 
     def poll_char_rules(self, branch, tick):
@@ -263,7 +257,7 @@ class QueryEngine(gorm.query.QueryEngine):
             seen = set()
             for (b, t) in self.active_branches(branch, tick):
                 for (c, rulebook, rule, active, handled) in self.sql(
-                        'poll_char_rules_fmt', b, t, b, t, tbl=rulemap
+                        'poll_{}_rules'.format(rulemap), b, t, b, t
                 ):
                     if (c, rulebook, rule) in seen:
                         continue
@@ -275,7 +269,7 @@ class QueryEngine(gorm.query.QueryEngine):
         """Poll rules assigned to particular Places or Things."""
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
-            for (char, n, rulebook, rule, active, handled) in self.sql(
+            for (char, n, rulebook, rule, active) in self.sql(
                     'poll_node_rules', b, t, b, t
             ):
                 if (char, n, rulebook, rule) in seen:
@@ -551,9 +545,9 @@ class QueryEngine(gorm.query.QueryEngine):
                     character,
                     b,
                     t,
+                    t,
                     character,
-                    b,
-                    t
+                    b
             ):
                 if l is not None and n not in seen:
                     yield (json_load(n), json_load(l))
@@ -568,10 +562,10 @@ class QueryEngine(gorm.query.QueryEngine):
                     thing,
                     b,
                     t,
+                    t,
                     character,
                     thing,
-                    b,
-                    t
+                    b
             ):
                 if l is None:
                     raise KeyError("Thing does not exist")
@@ -753,7 +747,7 @@ class QueryEngine(gorm.query.QueryEngine):
         return False
 
     def ruleins(self, rule):
-        self.sql('ruleins', rule)
+        self.sql('ruleins', rule, '[]', '[]', '[]')
 
     def avatar_branch_data(self, character, graph, branch, tick):
         (character, graph) = map(json_dump, (character, graph))
@@ -869,8 +863,8 @@ class QueryEngine(gorm.query.QueryEngine):
         except OperationalError:
             cursor.execute(
                 "CREATE TABLE travel_reqs ("
-                "character TEXT NOT NULL DEFAULT '', "
-                # empty string means these are required of every character
+                "character TEXT, "
+                # null means these are required of every character
                 "branch TEXT NOT NULL DEFAULT 'master', "
                 "tick INTEGER NOT NULL DEFAULT 0, "
                 "reqs TEXT NOT NULL DEFAULT '[]', "

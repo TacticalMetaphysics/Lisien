@@ -3,7 +3,8 @@
 from kivy.properties import (
     DictProperty,
     ObjectProperty,
-    NumericProperty
+    NumericProperty,
+    ListProperty
 )
 from kivy.logger import Logger
 from kivy.clock import Clock
@@ -25,7 +26,9 @@ class Board(RelativeLayout):
     pawnlayout = ObjectProperty()
     app = ObjectProperty()
     engine = ObjectProperty()
-    spots_unposd = NumericProperty(0)
+    spots_unposd = ListProperty([])
+    layout_tries = NumericProperty(5)
+    new_spots = ListProperty([])
     selection = ObjectProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
@@ -240,22 +243,20 @@ class Board(RelativeLayout):
             )
         )
         # add widgets to represent new stuff
+        self.spots_unposd = []
         spots_added = []
         for place_name in self.character.place:
             if place_name not in self.spot:
-                spots_added.append(place_name)
-                self.spotlayout.add_widget(
-                    self.make_spot(self.character.place[place_name])
-                )
+                spot = self.make_spot(self.character.place[place_name])
+                self.spotlayout.add_widget(spot)
+                spots_added.append(spot)
         Logger.debug(
             "Board: added {} spots to {}'s board".format(
                 len(spots_added),
                 self.character.name
             )
         )
-        self._new_spots = spots_added
-        self._layout_tries = 5
-        Clock.schedule_once(self.maybe_layout, 0)
+        self.new_spots = spots_added
         arrows_added = []
         for arrow_orig in self.character.portal:
             for arrow_dest in self.character.portal[arrow_orig]:
@@ -302,25 +303,18 @@ class Board(RelativeLayout):
             )
         )
 
-    def maybe_layout(self, *args):
-        if self._layout_tries <= 0:
+    def on_spots_unposd(self, *args):
+        if len(self.spots_unposd) != len(self.new_spots):
             return
-        if self.spots_unposd == 0:
-            return
-        if self.spots_unposd < len(self._new_spots):
-            Logger.debug(
-                'Board: {} spots of {} unpositioned, no layout'.format(
-                    self.spots_unposd,
-                    self._new_spots
-                )
-            )
-            if self._layout_tries > 0:
-                self._layout_tries = self._layout_tries - 1
-                Clock.schedule_once(self.maybe_layout, 0)
-            return
+        for spot in self.new_spots:
+            if spot not in self.spots_unposd:
+                self.new_spots = self.spots_unposd = []
+                return
         # No spots have positions;
         # do a layout.
-        Logger.debug('Board: layout!')
+        Clock.schedule_once(self.nx_layout, 0)
+
+    def nx_layout(self, *args):
         from functools import partial
         spots_only = self.character.facade()
         for thing in list(spots_only.thing.keys()):
@@ -335,13 +329,9 @@ class Board(RelativeLayout):
                 int(x * self.width),
                 int(y * self.height)
             )
-            spot._trigger_upd_to_remote_pos()
-        for spot in self.spot.values():
+        for spot in self.new_spots:
             position_spot(spot, *l[spot.name])
-        Logger.debug(
-            "Board: auto layout of spots"
-        )
-        self.spots_unposd = 0
+        self.new_spots = self.spots_unposd = []
 
     def __repr__(self):
         """Look like a :class:`Character` wrapped in ``Board(...)```"""

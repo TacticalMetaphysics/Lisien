@@ -66,19 +66,11 @@ class Spot(PawnSpot):
 
     def on_mirror(self, *args):
         if not super().on_mirror(*args):
-            if 'name' in self.remote:
-                Logger.debug(
-                    'Spot: have remote {} but not its mirror'.format(
-                        self.remote['name']
-                    )
-                )
             return
         if (
-                '_x' not in self.mirror or '_y' not in self.mirror
+                '_x' not in self.mirror or '_y' not in self.mirror or
+                self.x != self.mirror['_x'] or self.y != self.mirror['_y']
         ):
-            Clock.schedule_once(self.on_mirror, 0)
-            return
-        if self.x != self.mirror['_x'] or self.y != self.mirror['_y']:
             self._trigger_upd_from_mirror_pos()
         return True
 
@@ -91,10 +83,17 @@ class Spot(PawnSpot):
         self.unbind(
             pos=self._trigger_upd_to_remote_pos
         )
-        self.pos = (
-            self.mirror['_x'] * self.board.width,
-            self.mirror['_y'] * self.board.height
-        )
+        if ('_x' in self.mirror and '_y' in self.mirror):
+            self.pos = (
+                self.mirror['_x'] * self.board.width,
+                self.mirror['_y'] * self.board.height
+            )
+        else:
+            (x, y) = self._default_pos()
+            self.pos = (
+                x * self.board.width,
+                y * self.board.height
+            )
         (x, y) = self.center
         (w, h) = self.size
         rx = w / 2
@@ -114,7 +113,6 @@ class Spot(PawnSpot):
         if not self.board:
             Clock.schedule_once(self.renamed, 0)
             return
-        Logger.debug('Spot: renamed to {}'.format(self.name))
         if hasattr(self, '_oldname'):
             del self.board.spot[self._oldname]
         self.board.spot[self.name] = self
@@ -130,13 +128,7 @@ class Spot(PawnSpot):
         # If one spot is without a position, maybe the rest of them
         # are too, and so maybe the board should do a full layout.
         if not hasattr(self, '_unposd'):
-            self.board.spots_unposd += 1
-            Logger.debug(
-                'Spot: {} unpositioned ({} total)'.format(
-                    self.remote['name'],
-                    self.board.spots_unposd
-                )
-            )
+            self.board.spots_unposd.append(self)
             self._unposd = True
         return (0.5, 0.5)
 

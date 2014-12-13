@@ -45,17 +45,5 @@ class MirrorMapping(EventDispatcher):
                         self.mirror[k] != v
                     )
             ):
-                if k in self.mirror:
-                    Logger.debug(
-                        "MirrorMapping: changing {} from {} to {}".format(
-                            k, self.mirror[k], v
-                        )
-                    )
-                else:
-                    Logger.debug(
-                        "MirrorMapping: setting {} to {}".format(
-                            k, v
-                        )
-                    )
                 self.mirror[k] = v
         return True
