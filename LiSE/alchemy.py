@@ -29,6 +29,18 @@ length = 50
 
 TEXT = String(length)
 
+functyps = (
+    'action',
+    'prereq',
+    'trigger',
+    'sense',
+    'function'
+)
+
+strtyps = (
+    'strings',
+)
+
 
 def tables_for_meta(meta):
     def handled_table(prefix):
@@ -57,10 +69,26 @@ def tables_for_meta(meta):
             Column('string', TEXT, default='')
         )
 
+    def func_store_table(name):
+        return Table(
+            name, meta,
+            Column('name', TEXT, primary_key=True),
+            Column('bytecode', TEXT),
+            Column('plaincode', TEXT, nullable=True),
+            Column('version', Integer, nullable=True),
+            Column('author', TEXT, nullable=True),
+            Column('remarks', TEXT, nullable=True)
+        )
+
     r = gorm.alchemy.tables_for_meta(meta)
 
+    for functyp in functyps:
+        r[functyp] = func_store_table(functyp)
+
+    for strtyp in strtyps:
+        r[strtyp] = string_store_table(strtyp)
+
     for tab in (
-        string_store_table('strings'),
         Table(
             'lise_globals', meta,
             Column('key', TEXT, primary_key=True),
@@ -378,12 +406,12 @@ def queries(table, view):
 
     def func_table_items(t):
         return select(
-            [t.c.name, t.c.code]
+            [t.c.name, t.c.bytecode]
         ).order_by(t.c.name)
 
     def func_table_get(t):
         return select(
-            [t.c.code]
+            [t.c.bytecode]
         ).where(
             t.c.name == bindparam('name')
         )
@@ -391,12 +419,12 @@ def queries(table, view):
     def func_table_ins(t):
         return t.insert().values(
             name=bindparam('name'),
-            code=bindparam('code')
+            bytecode=bindparam('bytecode')
         )
 
     def func_table_upd(t):
         return t.update().values(
-            code=bindparam('code')
+            bytecode=bindparam('bytecode')
         ).where(
             t.c.name == bindparam('name')
         )
@@ -452,11 +480,20 @@ def queries(table, view):
 
     r = gorm.alchemy.queries_for_table_dict(table)
 
-    r['string_lang_items'] = string_table_lang_items(table['strings'])
-    r['string_get'] = string_table_get(table['strings'])
-    r['string_ins'] = string_table_ins(table['strings'])
-    r['string_upd'] = string_table_upd(table['strings'])
-    r['string_del'] = string_table_del(table['strings'])
+    for functyp in functyps:
+        r['func_{}_get'.format(functyp)] = func_table_get(table[functyp])
+        r['func_{}_ins'.format(functyp)] = func_table_ins(table[functyp])
+        r['func_{}_upd'.format(functyp)] = func_table_upd(table[functyp])
+        r['func_{}_del'.format(functyp)] = func_table_del(table[functyp])
+
+    for strtyp in strtyps:
+        r['string_{}_lang_items'.format(strtyp)] = string_table_lang_items(
+            table[strtyp]
+        )
+        r['string_{}_get'.format(strtyp)] = string_table_get(table[strtyp])
+        r['string_{}_ins'.format(strtyp)] = string_table_ins(table[strtyp])
+        r['string_{}_upd'.format(strtyp)] = string_table_upd(table[strtyp])
+        r['string_{}_del'.format(strtyp)] = string_table_del(table[strtyp])
 
     def universal_hitick(*columns):
         whereclause = [
@@ -580,27 +617,26 @@ def queries(table, view):
             node_rulebook.c.character,
             node_rulebook.c.node,
             node_rulebook.c.rulebook,
-            active_rules.c.rule,
-            active_rules.c.active,
+            current_active_rules.c.rule,
+            current_active_rules.c.active,
         ]
     ).select_from(
         node_rulebook.join(
-            current_active_rules,
-            node_rulebook.c.rulebook == current_active_rules.c.rulebook
-        ).join(
             rulebooks,
+            rulebooks.c.rulebook == node_rulebook.c.rulebook,
+        ).join(
+            current_active_rules,
             and_(
-                rulebooks.c.rulebook == node_rulebook.c.rulebook,
+                rulebooks.c.rulebook == current_active_rules.c.rulebook,
                 rulebooks.c.rule == current_active_rules.c.rule
-            ),
-            isouter=True
+            )
         ).join(
             nrhandle,
             and_(
                 node_rulebook.c.character == nrhandle.c.character,
                 node_rulebook.c.node == nrhandle.c.node,
                 node_rulebook.c.rulebook == nrhandle.c.rulebook,
-                active_rules.c.rule == nrhandle.c.rule
+                current_active_rules.c.rule == nrhandle.c.rule
             ),
             isouter=True
         )
@@ -716,7 +752,7 @@ def queries(table, view):
                 rules_handled.c.branch == bindparam('branch'),
                 rules_handled.c.tick == bindparam('tick')
             )
-        )
+        ).alias('handle')
         return select(
             [
                 characters.c.character,
@@ -1068,44 +1104,54 @@ def queries(table, view):
 
     nodes = table['nodes']
 
-    hirev_nodes_extant = select(
-        [
-            nodes.c.graph,
-            nodes.c.node,
-            nodes.c.branch,
-            func.MAX(nodes.c.rev).label('rev')
+    def hirev_nodes_extant_cols(*cols):
+        wheres = [
+            getattr(nodes.c, col) == bindparam(col)
+            for col in cols
         ]
-    ).where(
-        and_(
-            nodes.c.graph == bindparam('graph'),
-            nodes.c.branch == bindparam('branch'),
-            nodes.c.rev <= bindparam('rev')
-        )
-    ).group_by(
-        nodes.c.graph,
-        nodes.c.node,
-        nodes.c.branch
-    )
-
-    nodes_existence = select(
-        [
-            nodes.c.graph,
-            nodes.c.node,
-            nodes.c.branch,
-            nodes.c.rev,
-            nodes.c.extant
-        ]
-    ).select_from(
-        nodes.join(
-            hirev_nodes_extant,
+        return select(
+            [
+                nodes.c.graph,
+                nodes.c.node,
+                nodes.c.branch,
+                func.MAX(nodes.c.rev).label('rev')
+            ]
+        ).where(
             and_(
-                nodes.c.graph == hirev_nodes_extant.c.graph,
-                nodes.c.node == hirev_nodes_extant.c.node,
-                nodes.c.branch == hirev_nodes_extant.c.branch,
-                nodes.c.rev == hirev_nodes_extant.c.rev
+                nodes.c.rev <= bindparam('rev'),
+                *wheres
             )
-        )
-    ).alias('existence')
+        ).group_by(
+            nodes.c.graph,
+            nodes.c.node,
+            nodes.c.branch
+        ).alias('ext_hirev')
+
+    def nodes_existence_cols(*cols):
+        hirev = hirev_nodes_extant_cols(*cols)
+        return select(
+            [
+                nodes.c.graph,
+                nodes.c.node,
+                nodes.c.branch,
+                nodes.c.rev,
+                nodes.c.extant
+            ]
+        ).select_from(
+            nodes.join(
+                hirev,
+                and_(
+                    nodes.c.graph == hirev.c.graph,
+                    nodes.c.node == hirev.c.node,
+                    nodes.c.branch == hirev.c.branch,
+                    nodes.c.rev == hirev.c.rev
+                )
+            )
+        ).alias('existence')
+
+    nodes_existence = nodes_existence_cols('graph', 'branch')
+
+    node_existence = nodes_existence_cols('graph', 'node', 'branch')
 
     cb_hitick = things_hitick('character', 'branch')
 
@@ -1173,14 +1219,14 @@ def queries(table, view):
                 things.c.tick == ctb_hitick.c.tick
             )
         ).join(
-            nodes_existence,
+            node_existence,
             and_(
-                things.c.character == nodes_existence.c.graph,
-                things.c.thing == nodes_existence.c.node
+                things.c.character == node_existence.c.graph,
+                things.c.thing == node_existence.c.node
             ),
             isouter=True
         )
-    ).where(nodes_existence.c.extant)
+    ).where(node_existence.c.extant)
 
     r['character_things_items'] = select(
         [
@@ -1485,7 +1531,7 @@ def queries(table, view):
     )
 
     r['rulebook_dec'] = rulebooks.update().values(
-        idx=rulebooks.c.idx-1
+        idx=rulebooks.c.idx-column('1')
     ).where(
         and_(
             rulebooks.c.rulebook == bindparam('rulebook'),
@@ -1532,6 +1578,11 @@ def queries(table, view):
             )
         )
     )
+
+    for (n, t) in table.items():
+        r['count_all_{}'.format(n)] = select(
+            [getattr(t.c, col) for col in t.c.keys()]
+        ).count()
 
     return r
 
