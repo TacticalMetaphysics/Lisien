@@ -37,7 +37,6 @@ class Spot(PawnSpot):
 
         """
         self._trigger_renamed = Clock.create_trigger(self.renamed)
-        self._trigger_move_to_touch = Clock.create_trigger(self._move_to_touch)
         self._trigger_upd_pawns_here = Clock.create_trigger(
             self._upd_pawns_here
         )
@@ -80,9 +79,6 @@ class Spot(PawnSpot):
             return
         if self._touchpos:
             return
-        self.unbind(
-            pos=self._trigger_upd_to_remote_pos
-        )
         if ('_x' in self.mirror and '_y' in self.mirror):
             self.pos = (
                 self.mirror['_x'] * self.board.width,
@@ -100,9 +96,6 @@ class Spot(PawnSpot):
         ry = h / 2
         self.collider = CollideEllipse(
             x=x, y=y, rx=rx, ry=ry
-        )
-        self.bind(
-            pos=self._trigger_upd_to_remote_pos
         )
 
     def upd_to_remote_pos(self, *args):
@@ -200,33 +193,27 @@ class Spot(PawnSpot):
         return (x, y) in self.collider
 
     def on_touch_down(self, touch):
-        self.unbind(
-            pos=self._trigger_upd_to_remote_pos
-        )
+        if self.collide_point(*touch.pos):
+            touch.grab(self)
 
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""
         if not self.selected:
             return False
         self._touchpos = touch.pos
-        self._trigger_move_to_touch()
+        self.center = self._touchpos
         return True
-
-    def _move_to_touch(self, *args):
-        """Move so I'm centered at my ``touchpos``, and trigger an update of
-        my collider.
-
-        """
-        if self._touchpos != [] and self.center != self._touchpos:
-            self.center = self._touchpos
 
     def on_touch_up(self, touch):
         """Unset ``touchpos``"""
-        self.bind(
-            pos=self._trigger_upd_to_remote_pos
+        if self._touchpos:
+            self.center = self._touchpos
+            self._touchpos = []
+            self._trigger_upd_to_remote_pos()
+        (x, y) = self.center
+        self.collider = CollideEllipse(
+            x=x, y=y, rx=self.width/2, ry=self.height/2
         )
-        self._touchpos = []
-        self._trigger_upd_to_remote_pos()
 
     def __repr__(self):
         """Give my place's name and my position."""
