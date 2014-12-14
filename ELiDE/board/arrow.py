@@ -20,7 +20,6 @@ from kivy.properties import (
 )
 from kivy.lang import Builder
 from kivy.clock import Clock
-from kivy.logger import Logger
 
 from ELiDE.kivygarden.collider import Collide2DPoly
 from ELiDE.remote import MirrorMapping
@@ -460,7 +459,7 @@ class Arrow(ArrowWidget):
 
 
 kv = """
-#: import Dummy ELiDE.app.Dummy
+#: import Dummy ELiDE.dummy.Dummy
 <ArrowWidget>:
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
     bg_color_unselected: [0.5, 0.5, 0.5, 0.5]

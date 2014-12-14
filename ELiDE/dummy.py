@@ -1,0 +1,85 @@
+from kivy.properties import (
+    NumericProperty,
+    ObjectProperty,
+    ReferenceListProperty,
+    StringProperty
+)
+from kivy.lang import Builder
+
+from .kivygarden.texturestack import ImageStack
+
+
+class Dummy(ImageStack):
+    """A widget that looks like the ones on the board, which, when dragged
+    onto the board, creates one of them.
+
+    """
+    _touch = ObjectProperty(None, allownone=True)
+    name = StringProperty()
+    prefix = StringProperty()
+    num = NumericProperty()
+    x_start = NumericProperty(0)
+    y_start = NumericProperty(0)
+    pos_start = ReferenceListProperty(x_start, y_start)
+    x_down = NumericProperty(0)
+    y_down = NumericProperty(0)
+    pos_down = ReferenceListProperty(x_down, y_down)
+    x_up = NumericProperty(0)
+    y_up = NumericProperty(0)
+    pos_up = ReferenceListProperty(x_up, y_up)
+    x_center_up = NumericProperty(0)
+    y_center_up = NumericProperty(0)
+    center_up = ReferenceListProperty(x_center_up, y_center_up)
+    right_up = NumericProperty(0)
+    top_up = NumericProperty(0)
+
+    def on_touch_down(self, touch):
+        """If hit, record my starting position, that I may return to it in
+        ``on_touch_up`` after creating a real :class:`board.Spot` or
+        :class:`board.Pawn` instance.
+
+        """
+        if not self.collide_point(*touch.pos):
+            return False
+        self.pos_start = self.pos
+        self.pos_down = (
+            self.x - touch.x,
+            self.y - touch.y
+        )
+        touch.grab(self)
+        self._touch = touch
+        return True
+
+    def on_touch_move(self, touch):
+        """Follow the touch"""
+        if touch is not self._touch:
+            return False
+        self.pos = (
+            touch.x + self.x_down,
+            touch.y + self.y_down
+        )
+        return True
+
+    def on_touch_up(self, touch):
+        """Return to ``pos_start``, but first, save my current ``pos`` into
+        ``pos_up``, so that the layout knows where to put the real
+        :class:`board.Spot` or :class:`board.Pawn` instance.
+
+        """
+        if touch is not self._touch:
+            return False
+        self.pos_up = self.pos
+        self.pos = self.pos_start
+        self._touch = None
+        return True
+
+
+kv = """
+<Dummy>:
+    name: "".join((self.prefix, str(self.num)))
+    x_center_up: self.x_up + self.width / 2
+    y_center_up: self.y_up + self.height / 2
+    right_up: self.x_up + self.width
+    top_up: self.y_up + self.height
+"""
+Builder.load_string(kv)
