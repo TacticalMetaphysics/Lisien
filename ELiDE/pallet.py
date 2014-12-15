@@ -18,13 +18,13 @@ from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.stacklayout import StackLayout
 
 
-class PalletButton(ToggleButton):
+class SwatchButton(ToggleButton):
     name = StringProperty()
     texture = ObjectProperty()
 
 
 kv = """
-<PalletButton>:
+<SwatchButton>:
     Image:
         center_x: root.center_x
         texture: root.texture
@@ -58,7 +58,7 @@ class Pallet(StackLayout):
             if name in self.swatches and self.swatches[name] != tex:
                 self.remove_widget(self.swatches[name])
             if name not in self.swatches or self.swatches[name] != tex:
-                self.swatches[name] = PalletButton(
+                self.swatches[name] = SwatchButton(
                     name=name,
                     texture=tex,
                     size_hint=(None, None),
