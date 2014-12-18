@@ -1,6 +1,9 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-"""Widgets to represent places. Pawns move around on top of these."""
+"""Widgets to represent :class:`Place`s. :class:`Pawn`s move around on
+top of these.
+
+"""
 from kivy.properties import (
     AliasProperty,
     ListProperty,
@@ -22,7 +25,7 @@ class Spot(PawnSpot):
     the window the :class:`Board` is in.
 
     """
-    offset = NumericProperty(4)
+    offset = NumericProperty(3)
     collider = ObjectProperty()
     place = AliasProperty(
         lambda self: self.remote,
@@ -51,19 +54,10 @@ class Spot(PawnSpot):
             kwargs['remote'] = kwargs['place']
             del kwargs['place']
         super().__init__(**kwargs)
-
-    def on_remote(self, *args):
-        if not super().on_remote(*args):
-            return
-        self.bind(
-            pos=self._trigger_upd_pawns_here
-        )
-        self.bind(
-            pos=self._trigger_upd_to_remote_pos
-        )
-        return True
+        self.bind(pos=self._trigger_upd_pawns_here)
 
     def on_mirror(self, *args):
+        """When my mirror judges my position to have changed, change it."""
         if not super().on_mirror(*args):
             return
         if (
@@ -74,22 +68,23 @@ class Spot(PawnSpot):
         return True
 
     def upd_from_mirror_pos(self, *args):
+        """Set my position to that given by my ``mirror`` property, and update
+        my ``collider`` to match.
+
+        """
         if not self.mirror:
             Clock.schedule_once(self.upd_from_mirror_pos, 0)
             return
         if self._touchpos:
             return
-        if ('_x' in self.mirror and '_y' in self.mirror):
-            self.pos = (
-                self.mirror['_x'] * self.board.width,
-                self.mirror['_y'] * self.board.height
-            )
-        else:
+        if not ('_x' in self.mirror and '_y' in self.mirror):
             (x, y) = self._default_pos()
-            self.pos = (
-                x * self.board.width,
-                y * self.board.height
-            )
+            self.mirror['_x'] = self.remote['_x'] = x
+            self.mirror['_y'] = self.remote['_y'] = y
+        self.pos = (
+            int(self.mirror['_x'] * self.board.width),
+            int(self.mirror['_y'] * self.board.height)
+        )
         (x, y) = self.center
         (w, h) = self.size
         rx = w / 2
@@ -99,10 +94,17 @@ class Spot(PawnSpot):
         )
 
     def upd_to_remote_pos(self, *args):
+        """Set my current position, expressed as proportions of the board's
+        width and height, into the ``_x`` and ``_y`` keys of the
+        entity in my ``remote`` property, such that it will be
+        recorded in the database.
+
+        """
         self.remote['_x'] = self.x / self.board.width
         self.remote['_y'] = self.y / self.board.height
 
     def renamed(self, *args):
+        """When my ``remote`` has been renamed, reindex everything."""
         if not self.board:
             Clock.schedule_once(self.renamed, 0)
             return
@@ -216,5 +218,5 @@ class Spot(PawnSpot):
         )
 
     def __repr__(self):
-        """Give my place's name and my position."""
-        return "{}@({},{})".format(self.place.name, self.x, self.y)
+        """Give my name and position."""
+        return "{}@({},{})".format(self.name, self.x, self.y)
