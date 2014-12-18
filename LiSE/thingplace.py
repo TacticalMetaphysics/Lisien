@@ -670,6 +670,7 @@ class Place(ThingPlace):
                 tick in self._keycache[branch]
         ):
             self._keycache[branch][tick].add(key)
+        dispatch(self._stat_listeners, key, branch, tick, self, key, value)
 
     def __delitem__(self, key):
         if not self.engine.caching:
