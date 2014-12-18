@@ -203,10 +203,6 @@ def tables_for_meta(meta):
             Column(
                 'character', TEXT, primary_key=True, nullable=True
             ),
-            Column(
-                'branch', TEXT, primary_key=True, default='master'
-            ),
-            Column('tick', Integer, primary_key=True, default=0),
             Column('reqs', TEXT, default='[]'),
             ForeignKeyConstraint(['character'], ['graphs.graph'])
         ),
