@@ -25,15 +25,14 @@ from .util import (
     cache_del,
     dispatch,
     listen,
-    listener
+    listener,
+    fire_time_travel_triggers
 )
 from .rule import RuleBook
 from .rule import CharRuleMapping as RuleMapping
 from .funlist import FunList
-from .thingplace import (
-    Thing,
-    Place
-)
+from .thing import Thing
+from .place import Place
 from .portal import Portal
 
 
@@ -258,16 +257,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                 if tick in self._keycache[branch]:
                     self._keycache[branch][tick].remove(thing)
                     return
-                try:
-                    self._keycache[branch][tick] = set(
-                        self._keycache[branch][
-                            max(t for t in self._keycache[branch]
-                                if t < tick)
-                        ]
-                    )
-                    self._keycache[branch][tick].remove(self.name)
-                except ValueError:
-                    pass
+                else:
+                    self._keycache[branch] = set(self._real.keys())
         self.engine.db.thing_loc_and_next_del(
             self.character.name,
             self.name,
@@ -628,14 +619,27 @@ class CharacterPortalSuccessorsMapping(GraphSuccessorsMapping, RuleFollower):
                 super().__delitem__(nodeB)
                 return
             (branch, tick) = self.engine.time
-            cache_del(
-                self._cache,
-                self._keycache,
-                branch,
-                tick,
-                nodeB,
-                super().__delitem__
-            )
+            if (
+                    nodeB in self._cache and
+                    branch in self._cache[nodeB] and
+                    tick in self._cache[nodeB][branch]
+            ):
+                del self._cache[nodeB][branch][tick]
+            if branch in self._keycache:
+                try:
+                    if tick not in self._keycache[branch]:
+                        self._keycache[branch][tick] = set(
+                            self._keycache[branch][
+                                max(
+                                    t for t in self._keycache[branch]
+                                    if t < tick
+                                )
+                            ]
+                        )
+                    self._keycache[branch][tick].remove(nodeB)
+                except ValueError:
+                    pass
+            super().__delitem__(nodeB)
             self._dispatch_portal(nodeB, None)
 
 
@@ -1391,23 +1395,6 @@ class CharStatCache(MutableMapping):
         self._real = char.graph
         self._cache = {}
 
-        def fillcache(cache, branch, tick):
-            assert(self.engine.time == (branch, tick))
-            if branch not in cache:
-                cache[branch] = {}
-                for k, v in self._real.items():
-                    cache[branch][k] = {tick: v}
-            else:
-                for k in cache[branch]:
-                    if tick not in cache[branch][k]:
-                        try:
-                            cache[branch][k][tick] = cache[branch][k][
-                                max(t for t in cache[branch][k] if t < tick)
-                            ]
-                        except ValueError:
-                            # probably shouldn't happen so much
-                            cache[branch][k][tick] = self._real[k]
-
         @self.engine.on_time
         def time_travel_triggers(
                 engine,
@@ -1420,41 +1407,16 @@ class CharStatCache(MutableMapping):
             the given time to the present moment.
 
             """
-            then = (branch_then, tick_then)
-            now = (branch_now, tick_now)
-            # prevent recursion
-            self.engine.locktime = True
-            # use a local cache if not really caching
-            cache = self._cache if self.engine.caching else {}
-            self.engine.time = then
-            fillcache(cache, *then)
-            self.engine.time = now
-            fillcache(cache, *now)
-            # Anything that differs between these two times
-            # is cause for a trigger to fire.
-            for k in cache[branch_then]:
-                existed = (
-                    tick_then in cache[branch_then][k] and
-                    cache[branch_then][k][tick_then] is not None
-                )
-                exists = (
-                    tick_now in cache[branch_now][k] and
-                    cache[branch_now][k][tick_now] is not None
-                )
-                if existed and not exists:
-                    # deleted
-                    self._dispatch(k, None)
-                elif exists and not existed:
-                    # added
-                    self._dispatch(k, cache[branch_now][k][tick_now])
-                elif exists and existed:
-                    if (
-                            cache[branch_then][k][tick_then] !=
-                            cache[branch_now][k][tick_now]
-                    ):
-                        # changed
-                        self._dispatch(k, cache[branch_now][k][tick_now])
-            del self.engine.locktime
+            fire_time_travel_triggers(
+                engine,
+                self._real,
+                self._cache,
+                self._dispatch,
+                branch_then,
+                tick_then,
+                branch_now,
+                tick_now
+            )
 
     def listener(self, f=None, stat=None):
         return self.character.stat_listener(f, stat)

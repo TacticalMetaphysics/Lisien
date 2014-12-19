@@ -5,7 +5,8 @@ import gorm.graph
 from .util import (
     dispatch,
     listen,
-    listener
+    listener,
+    fire_time_travel_triggers
 )
 from .rule import RuleBook, RuleMapping
 
@@ -64,6 +65,26 @@ class Node(gorm.graph.Node):
         self._stat_listeners = defaultdict(list)
         if self.engine.caching:
             self._keycache = {}
+            self._cache = {}
+
+        @self.engine.on_time
+        def time_travel_triggers(
+                engine,
+                branch_then,
+                tick_then,
+                branch_now,
+                tick_now
+        ):
+            fire_time_travel_triggers(
+                engine,
+                self,
+                self._cache,
+                self._dispatch_stat,
+                branch_then,
+                tick_then,
+                branch_now,
+                tick_now
+            )
         super().__init__(character, name)
 
     def listener(self, f=None, stat=None):
