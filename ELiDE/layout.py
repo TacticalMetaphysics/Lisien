@@ -183,8 +183,13 @@ class ELiDELayout(FloatLayout):
                     self.keep_selection = True
                     break
             touch.pop()
-        if not self.keep_selection:
+        if not self.keep_selection and not (
+                self.ids.timemenu.collide_point(*touch.pos) or
+                self.ids.charmenu.collide_point(*touch.pos) or
+                self.ids.charsheet.collide_point(*touch.pos)
+        ):
             if hasattr(self.selection, 'selected'):
+                Logger.debug('ELiDELayout: unselecting')
                 self.selection.selected = False
             self.selection = None
         self.keep_selection = False
