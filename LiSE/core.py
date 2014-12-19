@@ -492,6 +492,7 @@ class Engine(object):
     @tick.setter
     def tick(self, v):
         """Update orm's tick, and call listeners"""
+        (branch_then, tick_then) = self.time
         if self.caching:
             if v == self.tick:
                 return
@@ -499,7 +500,6 @@ class Engine(object):
         else:
             self.gorm.rev = v
         if not hasattr(self, 'locktime'):
-            (branch_then, tick_then) = self.time
             for time_listener in self.time_listeners:
                 time_listener(self, branch_then, tick_then, branch_then, v)
 
