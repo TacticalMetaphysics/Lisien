@@ -32,6 +32,10 @@ fortyfive = pi / 4
 
 
 def get_collider(ox, oy, dx, dy, r):
+    """Given the starting and ending points, and the width, return a
+    :class:`Collide2DPoly` that detects touches that hit me.
+
+    """
     if ox < dx:
         leftx = ox
         rightx = dx
@@ -234,6 +238,10 @@ class ArrowWidget(Widget):
     mirrormap = ObjectProperty()
 
     def on_portal(self, *args):
+        """Set my ``name`` and instantiate my ``mirrormap`` as soon as I have
+        the properties I need to do so.
+
+        """
         if not (
                 self.board and
                 self.origin and
@@ -251,13 +259,17 @@ class ArrowWidget(Widget):
         self.name = '{}->{}'.format(self.origin.name, self.destination.name)
 
     def collide_point(self, x, y):
+        """Delegate to my ``collider``, or return ``False`` if I don't have
+        one.
+
+        """
         if not self.collider:
             return False
         return (x, y) in self.collider
 
     def __init__(self, **kwargs):
-        """Create trigger for my _repoint method, otherwise delegate to parent
-        class
+        """Create trigger for my _repoint method. Delegate to parent for
+        everything else.
 
         """
         self._trigger_repoint = Clock.create_trigger(
@@ -267,6 +279,7 @@ class ArrowWidget(Widget):
         super().__init__(**kwargs)
 
     def on_origin(self, *args):
+        """Make sure to redraw whenever the origin moves."""
         if self.origin is None:
             Clock.schedule_once(self.on_origin, 0)
             return
@@ -276,6 +289,7 @@ class ArrowWidget(Widget):
         )
 
     def on_destination(self, *args):
+        """Make sure to redraw whenever the destination moves."""
         if self.destination is None:
             Clock.schedule_once(self.on_destination, 0)
             return
@@ -285,6 +299,10 @@ class ArrowWidget(Widget):
         )
 
     def on_board(self, *args):
+        """Draw myself for the first time as soon as I have the properties I
+        need to do so.
+
+        """
         if None in (
                 self.board,
                 self.engine,
@@ -296,6 +314,12 @@ class ArrowWidget(Widget):
         self._trigger_repoint()
 
     def add_widget(self, wid, index=0, canvas=None):
+        """Put the :class:`Pawn` at a point along my length proportionate to
+        how close it is to finishing its travel through me.
+
+        Only :class:`Pawn` should ever be added as a child of :class:`Arrow`.
+
+        """
         super().add_widget(wid, index, canvas)
         if not hasattr(wid, 'group'):
             return
@@ -318,6 +342,10 @@ class ArrowWidget(Widget):
         self.pospawn(wid)
 
     def remove_widget(self, wid):
+        """Remove the special :class:`InstructionGroup` I was using to draw
+        this :class:`Pawn`.
+
+        """
         super().remove_widget(wid)
         for canvas in (
                 self.board.pawnlayout.canvas.before,
@@ -329,7 +357,7 @@ class ArrowWidget(Widget):
         wid._no_use_canvas = False
 
     def on_points(self, *args):
-        """Propagate my points to both my lines"""
+        """Reposition my children when I have new points."""
         if self.engine is None:
             Clock.schedule_once(self.on_points, 0)
             return
@@ -435,7 +463,13 @@ class ArrowWidget(Widget):
 
 
 class Arrow(ArrowWidget):
-    """ArrowWidget that represents Portal"""
+    """An :class:`ArrowWidget` that represents a LiSE :class:`Portal` object.
+
+    This subclass is much more often used than :class:`ArrowWidget`,
+    which is only seen on its own when the user is in the process of
+    creating a new :class:`Portal`.
+
+    """
     portal = ObjectProperty()
     """The portal that I represent."""
     reciprocal = AliasProperty(
@@ -447,6 +481,10 @@ class Arrow(ArrowWidget):
     grabbed = BooleanProperty(False)
 
     def _get_reciprocal(self):
+        """Return the :class:`Arrow` that connects my origin and destination
+        in the opposite direction, if it exists.
+
+        """
         orign = self.portal['origin']
         destn = self.portal['destination']
         if (

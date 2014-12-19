@@ -315,6 +315,10 @@ class Board(RelativeLayout):
         Clock.schedule_once(self.nx_layout, 0)
 
     def nx_layout(self, *args):
+        """Use my ``grid_layout`` method to decide where all my spots should
+        go, and move them there.
+
+        """
         from functools import partial
         spots_only = self.character.facade()
         for thing in list(spots_only.thing.keys()):
