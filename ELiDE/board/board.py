@@ -325,6 +325,8 @@ class Board(RelativeLayout):
             if not (spot.name and spot.remote and spot.mirror):
                 Clock.schedule_once(partial(position_spot, spot, x, y), 0)
                 return
+            spot.mirror['_x'] = spot.remote['_x'] = x
+            spot.mirror['_y'] = spot.remote['_y'] = y
             spot.pos = (
                 int(x * self.width),
                 int(y * self.height)
