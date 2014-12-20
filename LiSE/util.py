@@ -150,14 +150,11 @@ def fillcache(engine, real, cache):
     (branch, tick) = engine.time
     if branch not in cache:
         cache[branch] = {}
-    for (k, v) in real.items():
+    for k in real:
         if k not in cache[branch]:
-            cache[branch][k] = {tick: unjson(v)}
-        elif (
-            tick not in cache[branch][k] or
-            cache[branch][k][tick] != unjson(v)
-        ):
-            cache[branch][k][tick] = unjson(v)
+            cache[branch][k] = {tick: unjson(real[k])}
+        elif tick not in cache[branch][k]:
+            cache[branch][k][tick] = unjson(real[k])
 
 
 def fire_time_travel_triggers(
@@ -195,6 +192,8 @@ def fire_time_travel_triggers(
                     dispatcher(k, val_now)
             else:
                 # key deleted between then and now
+                if tick_now not in cache[branch_now][k]:
+                    cache[branch_now][k][tick_now] = None
                 dispatcher(k, None)
         else:
             # key was not set then
