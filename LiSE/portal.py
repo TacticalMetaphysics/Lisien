@@ -1,10 +1,11 @@
 from collections import defaultdict
 from gorm.graph import Edge
-from gorm.json import json_dump
+from gorm.xjson import json_dump, JSONWrapper, JSONListWrapper
 from .util import (
     dispatch,
     listener,
-    encache
+    encache,
+    needcache
 )
 
 
@@ -27,10 +28,9 @@ class Portal(Edge):
         self._stat_listeners = defaultdict(list)
         self.character = character
         self.engine = character.engine
-        if self.engine.caching:
-            self._keycache = {}
-            self._statcache = {}
-            self._existence = {}
+        self._keycache = {}
+        self._cache = {}
+        self._existence = {}
         super().__init__(character, self._origin, self._destination)
 
     def _dispatch_stat(self, k, v):
@@ -66,7 +66,14 @@ class Portal(Edge):
                 key
             ]
         else:
-            return super().__getitem__(key)
+            if not self.engine.caching:
+                return super().__getitem__(key)
+            (branch, tick) = self.engine.time
+            if needcache(self._cache, key, branch, tick):
+                encache(
+                    self._cache, key, super().__getitem__(key), branch, tick
+                )
+            return self._cache[key][branch][tick]
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` at the present game-time.
@@ -114,6 +121,10 @@ class Portal(Edge):
             self.character._portal_traits = set()
         super().__setitem__(key, value)
         (branch, tick) = self.engine.time
+        if isinstance(value, list):
+            value = JSONListWrapper(self, key)
+        elif isinstance(value, dict):
+            value = JSONWrapper(self, key)
         encache(self._cache, key, value, branch, tick)
         if branch in self._keycache and tick in self._keycache[branch]:
             self._keycache[branch][tick].add(key)

@@ -135,13 +135,70 @@ class CompositeDict(Mapping):
 
 # ==Caching==
 from gorm.xjson import JSONWrapper, JSONListWrapper
+from collections import MutableMapping, MutableSequence
+
+
+class JSONReWrapper(MutableMapping):
+    def __init__(self, inner):
+        self._inner = inner
+        self._v = dict(inner)
+
+    def __iter__(self):
+        return iter(self._v)
+
+    def __len__(self):
+        return len(self._v)
+
+    def __getitem__(self, k):
+        return self._v[k]
+
+    def __setitem__(self, k, v):
+        self._inner[k] = v
+        self._v[k] = v
+
+    def __delitem__(self, k):
+        del self._inner[k]
+        del self._v[k]
+
+    def __repr__(self):
+        return repr(self._v)
+
+
+class JSONListReWrapper(MutableSequence):
+    def __init__(self, inner):
+        self._inner = inner
+        self._v = list(inner)
+
+    def __iter__(self):
+        return iter(self._v)
+
+    def __len__(self):
+        return len(self._v)
+
+    def __getitem__(self, i):
+        return self._v[i]
+
+    def __setitem__(self, i, v):
+        self._inner[i] = v
+        self._v[i] = v
+
+    def __delitem__(self, i, v):
+        del self._inner[i]
+        del self._v[i]
+
+    def insert(self, i, v):
+        self._inner.insert(i, v)
+        self._v.insert(i, v)
+
+    def __repr__(self):
+        return repr(self._v)
 
 
 def unjson(v):
     if isinstance(v, JSONListWrapper):
-        return list(v)
+        return JSONListReWrapper(v)
     elif isinstance(v, JSONWrapper):
-        return dict(v)
+        return JSONReWrapper(v)
     else:
         return v
 
@@ -155,6 +212,14 @@ def encache(cache, k, v, branch, tick):
         if t > tick:
             del cache[k][branch][t]
     cache[k][branch][tick] = unjson(v)
+
+
+def needcache(cache, k, branch, tick):
+    return (
+        k not in cache or
+        branch not in cache[k] or
+        tick not in cache[k][branch]
+    )
 
 
 def fillcache(engine, real, cache):

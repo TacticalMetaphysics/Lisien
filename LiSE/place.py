@@ -1,8 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
-from gorm.xjson import json_dump
+from gorm.xjson import json_dump, JSONWrapper, JSONListWrapper
 from .node import Node
-from .util import dispatch, encache
+from .util import dispatch, needcache, encache
 
 
 class Place(Node):
@@ -30,7 +30,14 @@ class Place(Node):
         elif key == 'character':
             return self.character.name
         else:
-            return super().__getitem__(key)
+            if not self.engine.caching:
+                return super().__getitem__(key)
+            (branch, tick) = self.engine.time
+            if needcache(self._cache, key, branch, tick):
+                encache(
+                    self._cache, key, super().__getitem__(key), branch, tick
+                )
+            return self._cache[key][branch][tick]
 
     def __setitem__(self, key, value):
         super().__setitem__(key, value)
@@ -42,6 +49,10 @@ class Place(Node):
                 tick in self._keycache[branch]
         ):
             self._keycache[branch][tick].add(key)
+        if isinstance(value, list):
+            value = JSONListWrapper(self, key)
+        elif isinstance(value, dict):
+            value = JSONWrapper(self, key)
         encache(self._cache, key, value, branch, tick)
         dispatch(self._stat_listeners, key, branch, tick, self, key, value)
 

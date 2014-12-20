@@ -2,6 +2,10 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 from collections import defaultdict
 import gorm.graph
+from gorm.xjson import (
+    JSONWrapper,
+    JSONListWrapper
+)
 from .util import (
     dispatch,
     listen,
@@ -102,6 +106,10 @@ class Node(gorm.graph.Node):
         super().__setitem__(k, v)
         if self.engine.caching:
             (branch, tick) = self.engine.time
+            if isinstance(v, list):
+                v = JSONListWrapper(self, k)
+            elif isinstance(v, dict):
+                v = JSONWrapper(self, k)
             encache(self._cache, k, v, branch, tick)
             if branch in self._keycache and tick in self._keycache[branch]:
                 self._keycache[branch][tick].add(k)

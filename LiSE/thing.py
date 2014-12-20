@@ -1,13 +1,14 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 import networkx as nx
-from gorm.xjson import json_dump
+from gorm.xjson import json_dump, JSONListWrapper, JSONWrapper
 from .node import Node
 from .util import (
     path_len,
     CacheError,
     TravelException,
-    encache
+    encache,
+    needcache
 )
 
 
@@ -135,9 +136,14 @@ class Thing(Node):
                     continue
             raise CacheError("Locations not cached correctly")
         else:
-            # I think I need some new class that's like
-            # gorm.xjson.JSONWrapper but does real caching.
-            return super().__getitem__(key)
+            if not self.engine.caching:
+                return super().__getitem__(key)
+            (branch, tick) = self.engine.time
+            if needcache(self._cache, key, branch, tick):
+                encache(
+                    self._cache, key, super().__getitem__(key), branch, tick
+                )
+            return self._cache[key][branch][tick]
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` for the present game-time."""
@@ -170,6 +176,10 @@ class Thing(Node):
             (branch, tick) = self.engine.time
             if branch in self._keycache and tick in self._keycache[branch]:
                 self._keycache[branch][tick].add(key)
+            if isinstance(value, list):
+                value = JSONListWrapper(self, key)
+            elif isinstance(value, dict):
+                value = JSONWrapper(self, key)
             encache(self._cache, key, value, branch, tick)
 
     def __delitem__(self, key):

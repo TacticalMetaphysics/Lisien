@@ -19,10 +19,12 @@ from gorm.graph import (
     GraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
+from gorm.xjson import JSONWrapper, JSONListWrapper
 from .util import (
     CompositeDict,
     keycache_iter,
     dispatch,
+    needcache,
     encache,
     listen,
     listener,
@@ -1442,7 +1444,12 @@ class CharStatCache(MutableMapping):
         return len(self._real)
 
     def __getitem__(self, k):
-        return self._real[k]
+        if not self.engine.caching:
+            return self._real[k]
+        (branch, tick) = self.engine.time
+        if needcache(self._cache, k, branch, tick):
+            encache(self._cache, k, self._real[k], branch, tick)
+        return self._cache[k][branch][tick]
 
     def __setitem__(self, k, v):
         """Cache new value and set it the normal way"""
@@ -1451,7 +1458,13 @@ class CharStatCache(MutableMapping):
         self._dispatch(k, v)
         if not self.engine.caching:
             return
-        encache(self._cache, k, v, *self.engine.time)
+        if isinstance(v, list):
+            v = JSONListWrapper(self, k)
+        elif isinstance(v, dict):
+            v = JSONWrapper(self, k)
+        encache(
+            self._cache, k, v, *self.engine.time
+        )
 
     def __delitem__(self, k):
         """Clear the cached value and delete the normal way"""
