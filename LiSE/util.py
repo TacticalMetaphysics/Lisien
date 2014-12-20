@@ -133,6 +133,7 @@ class CompositeDict(Mapping):
             return self.d2[k]
 
 
+# ==Caching==
 from gorm.xjson import JSONWrapper, JSONListWrapper
 
 
@@ -145,16 +146,26 @@ def unjson(v):
         return v
 
 
-# ==Caching==
+def encache(cache, k, v, branch, tick):
+    if k not in cache:
+        cache[k] = {}
+    if branch not in cache[k]:
+        cache[k][branch] = {}
+    for t in list(cache[k][branch].keys()):
+        if t > tick:
+            del cache[k][branch][t]
+    cache[k][branch][tick] = unjson(v)
+
+
 def fillcache(engine, real, cache):
     (branch, tick) = engine.time
-    if branch not in cache:
-        cache[branch] = {}
     for k in real:
-        if k not in cache[branch]:
-            cache[branch][k] = {tick: unjson(real[k])}
-        elif tick not in cache[branch][k]:
-            cache[branch][k][tick] = unjson(real[k])
+        if k not in cache:
+            cache[k] = {}
+        if branch not in cache[k]:
+            cache[k][branch] = {}
+        if tick not in cache[k][branch]:
+            cache[k][branch][tick] = unjson(real[k])
 
 
 def fire_time_travel_triggers(
@@ -171,38 +182,40 @@ def fire_time_travel_triggers(
     now = (branch_now, tick_now)
     engine.locktime = True
     engine.time = then
+    cache = cache if engine.caching else {}
     fillcache(engine, real, cache)
     engine.time = now
     fillcache(engine, real, cache)
-    for k in set(cache[branch_then].keys()).union(cache[branch_now].keys()):
+    for k in cache:
         if (
-                tick_then in cache[branch_then][k] and
-                cache[branch_then][k][tick_then] is not None
+                branch_then in cache[k] and
+                tick_then in cache[k][branch_then] and
+                cache[k][branch_then][tick_then] is not None
         ):
             # key was set then
             if (
-                    tick_now in cache[branch_now][k] and
-                    cache[branch_now][k][tick_now] is not None
+                    branch_now in cache[k] and
+                    tick_now in cache[k][branch_now] and
+                    cache[k][branch_now][tick_now] is not None
             ):
                 # key is set now
-                val_then = cache[branch_then][k][tick_then]
-                val_now = cache[branch_now][k][tick_now]
+                val_then = cache[k][branch_then][tick_then]
+                val_now = cache[k][branch_now][tick_now]
                 if val_then != val_now:
                     # key's value changed between then and now
                     dispatcher(k, val_now)
             else:
-                # key deleted between then and now
-                if tick_now not in cache[branch_now][k]:
-                    cache[branch_now][k][tick_now] = None
+                # key was deleted between then and now
                 dispatcher(k, None)
         else:
             # key was not set then
             if (
-                    tick_now in cache[branch_now][k] and
-                    cache[branch_now][k][tick_now] is not None
+                    branch_now in cache[k] and
+                    tick_now in cache[k][branch_now] and
+                    cache[k][branch_now][tick_now] is not None
             ):
                 # key is set now
-                dispatcher(k, cache[branch_now][k][tick_now])
+                dispatcher(k, cache[k][branch_now][tick_now])
     del engine.locktime
 
 

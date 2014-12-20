@@ -6,7 +6,8 @@ from .util import (
     dispatch,
     listen,
     listener,
-    fire_time_travel_triggers
+    fire_time_travel_triggers,
+    encache
 )
 from .rule import RuleBook, RuleMapping
 
@@ -99,10 +100,20 @@ class Node(gorm.graph.Node):
 
     def __setitem__(self, k, v):
         super().__setitem__(k, v)
+        if self.engine.caching:
+            (branch, tick) = self.engine.time
+            encache(self._cache, k, v, branch, tick)
+            if branch in self._keycache and tick in self._keycache[branch]:
+                self._keycache[branch][tick].add(k)
         self._dispatch_stat(k, v)
 
     def __delitem__(self, k):
         super().__delitem__(k)
+        if self.engine.caching:
+            (branch, tick) = self.engine.time
+            encache(self._cache, k, None, branch, tick)
+            if branch in self._keycache and tick in self._keycache[branch]:
+                self._keycache[branch][tick].remove(k)
         self._dispatch_stat(k, None)
 
     def _portal_dests(self):

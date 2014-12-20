@@ -2,7 +2,7 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 from gorm.xjson import json_dump
 from .node import Node
-from .util import dispatch
+from .util import dispatch, encache
 
 
 class Place(Node):
@@ -42,11 +42,12 @@ class Place(Node):
                 tick in self._keycache[branch]
         ):
             self._keycache[branch][tick].add(key)
+        encache(self._cache, key, value, branch, tick)
         dispatch(self._stat_listeners, key, branch, tick, self, key, value)
 
     def __delitem__(self, key):
+        super().__delitem__(key)
         if not self.engine.caching:
-            super().__delitem__(key)
             return
         (branch, tick) = self.engine.time
         if (
@@ -54,6 +55,7 @@ class Place(Node):
                 tick in self._keycache[branch]
         ):
             self._keycache[branch][tick].remove(key)
+        encache(self._cache, key, None, branch, tick)
 
     def _get_json_dict(self):
         (branch, tick) = self.engine.time

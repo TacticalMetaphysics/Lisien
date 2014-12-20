@@ -6,7 +6,8 @@ from .node import Node
 from .util import (
     path_len,
     CacheError,
-    TravelException
+    TravelException,
+    encache
 )
 
 
@@ -154,6 +155,8 @@ class Thing(Node):
             raise ValueError("Read-only")
         elif key == 'locations':
             self._set_loc_and_next(*value)
+            if hasattr(self._cache, '_fresh'):
+                del self._cache._fresh
             if not self.engine.caching:
                 return
             (branch, tick) = self.engine.time
@@ -165,12 +168,9 @@ class Thing(Node):
             if not self.engine.caching:
                 return
             (branch, tick) = self.engine.time
-            if branch not in self._keycache:
-                self._keycache[branch] = {
-                    tick: set(self.keys())
-                }
-            elif tick not in self._keycache[branch]:
-                self._keycache[branch][tick] = set(self.keys())
+            if branch in self._keycache and tick in self._keycache[branch]:
+                self._keycache[branch][tick].add(key)
+            encache(self._cache, key, value, branch, tick)
 
     def __delitem__(self, key):
         """As of now, this key isn't mine."""
@@ -189,10 +189,8 @@ class Thing(Node):
             return
         (branch, tick) = self.engine.time
         if branch in self._keycache and tick in self._keycache[branch]:
-            try:
-                self._keycache[branch][tick].remove(key)
-            except KeyError:  # key not cached, cache invalid
-                del self._keycache[branch][tick]
+            self._keycache[branch][tick].remove(key)
+        encache(self._cache, key, None, branch, tick)
 
     def _load_locs_branch(self, branch):
         """Private method. Cache stored location data for this branch."""

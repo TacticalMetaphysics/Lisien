@@ -4,9 +4,7 @@ from gorm.json import json_dump
 from .util import (
     dispatch,
     listener,
-    cache_get,
-    cache_set,
-    cache_del
+    encache
 )
 
 
@@ -68,17 +66,7 @@ class Portal(Edge):
                 key
             ]
         else:
-            if not self.engine.caching:
-                return super().__getitem__(key)
-            (branch, tick) = self.engine.time
-            cache_get(
-                self._statcache,
-                self._keycache,
-                branch,
-                tick,
-                key,
-                super().__getitem__
-            )
+            return super().__getitem__(key)
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` at the present game-time.
@@ -124,16 +112,11 @@ class Portal(Edge):
             return
         if key in self.character._portal_traits:
             self.character._portal_traits = set()
+        super().__setitem__(key, value)
         (branch, tick) = self.engine.time
-        cache_set(
-            self._statcache,
-            self._keycache,
-            branch,
-            tick,
-            key,
-            value,
-            super().__setitem__
-        )
+        encache(self._cache, key, value, branch, tick)
+        if branch in self._keycache and tick in self._keycache[branch]:
+            self._keycache[branch][tick].add(key)
         self._dispatch_stat(key, value)
 
     def __delitem__(self, key):
@@ -144,14 +127,9 @@ class Portal(Edge):
         if key in self.character._portal_traits:
             self.character._portal_traits = set()
         (branch, tick) = self.engine.time
-        cache_del(
-            self._statcache,
-            self._keycache,
-            branch,
-            tick,
-            key,
-            super().__delitem__
-        )
+        encache(self._cache, key, None, branch, tick)
+        if branch in self._keycache and tick in self._keycache[branch]:
+            self._keycache[branch][tick].remove(key)
         self._dispatch_stat(key, None)
 
     @property

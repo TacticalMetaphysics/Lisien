@@ -22,8 +22,8 @@ from gorm.graph import (
 from .util import (
     CompositeDict,
     keycache_iter,
-    cache_del,
     dispatch,
+    encache,
     listen,
     listener,
     fire_time_travel_triggers
@@ -1442,20 +1442,7 @@ class CharStatCache(MutableMapping):
         return len(self._real)
 
     def __getitem__(self, k):
-        """Use the cache if I can"""
-        if not self.engine.caching:
-            return self._real[k]
-        (branch, tick) = self.engine.time
-        if k not in self._cache:
-            self._cache[k] = {}
-        if branch not in self._cache[k]:
-            self._cache[k][branch] = {}
-        d = self._cache[k][branch]
-        if tick not in d:
-            d[tick] = self._real[k]
-        if d[tick] is None:
-            raise KeyError('Not set now')
-        return d[tick]
+        return self._real[k]
 
     def __setitem__(self, k, v):
         """Cache new value and set it the normal way"""
@@ -1464,12 +1451,7 @@ class CharStatCache(MutableMapping):
         self._dispatch(k, v)
         if not self.engine.caching:
             return
-        (branch, tick) = self.engine.time
-        if k not in self._cache:
-            self._cache[k] = {}
-        if branch not in self._cache[k]:
-            self._cache[k][branch] = {}
-        self._cache[k][branch][tick] = v
+        encache(self._cache, k, v, *self.engine.time)
 
     def __delitem__(self, k):
         """Clear the cached value and delete the normal way"""
@@ -1477,14 +1459,7 @@ class CharStatCache(MutableMapping):
         self._dispatch(k, None)
         if not self.engine.caching:
             return
-        (branch, tick) = self.engine.time
-        if branch in self._cache[k]:
-            for staletick in list(
-                    t for t in self._cache[k][branch]
-                    if t < tick
-            ):
-                del self._cache[k][branch][staletick]
-            self._cache[k][branch][tick] = None
+        encache(self._cache, k, None, *self.engine.time)
 
 
 class Character(DiGraph, RuleFollower):
