@@ -133,24 +133,31 @@ class CompositeDict(Mapping):
             return self.d2[k]
 
 
+from gorm.xjson import JSONWrapper, JSONListWrapper
+
+
+def unjson(v):
+    if isinstance(v, JSONListWrapper):
+        return list(v)
+    elif isinstance(v, JSONWrapper):
+        return dict(v)
+    else:
+        return v
+
+
 # ==Caching==
 def fillcache(engine, real, cache):
-    from gorm.xjson import JSONWrapper, JSONListWrapper
     (branch, tick) = engine.time
     if branch not in cache:
         cache[branch] = {}
     for (k, v) in real.items():
-        if isinstance(v, JSONListWrapper):
-            v = list(v)
-        elif isinstance(v, JSONWrapper):
-            v = dict(v)
         if k not in cache[branch]:
-            cache[branch][k] = {tick: v}
+            cache[branch][k] = {tick: unjson(v)}
         elif (
             tick not in cache[branch][k] or
-            cache[branch][k][tick] != v
+            cache[branch][k][tick] != unjson(v)
         ):
-            cache[branch][k][tick] = v
+            cache[branch][k][tick] = unjson(v)
 
 
 def fire_time_travel_triggers(
