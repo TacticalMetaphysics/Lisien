@@ -139,9 +139,13 @@ from collections import MutableMapping, MutableSequence
 
 
 class JSONReWrapper(MutableMapping):
-    def __init__(self, inner):
-        self._inner = inner
-        self._v = dict(inner)
+    def __init__(self, outer, key, initval=None):
+        self._inner = JSONWrapper(outer, key)
+        self._v = initval if initval else dict(self._inner)
+        if not isinstance(self._v, dict):
+            raise TypeError(
+                "JSONReWrapper only wraps dicts"
+            )
 
     def __iter__(self):
         return iter(self._v)
@@ -165,9 +169,13 @@ class JSONReWrapper(MutableMapping):
 
 
 class JSONListReWrapper(MutableSequence):
-    def __init__(self, inner):
-        self._inner = inner
-        self._v = list(inner)
+    def __init__(self, outer, key, initval=None):
+        self._inner = JSONListWrapper(outer, key)
+        self._v = initval if initval else list(self._inner)
+        if not isinstance(self._v, list):
+            raise TypeError(
+                "JSONListReWrapper only wraps lists"
+            )
 
     def __iter__(self):
         return iter(self._v)
@@ -194,15 +202,6 @@ class JSONListReWrapper(MutableSequence):
         return repr(self._v)
 
 
-def unjson(v):
-    if isinstance(v, JSONListWrapper):
-        return JSONListReWrapper(v)
-    elif isinstance(v, JSONWrapper):
-        return JSONReWrapper(v)
-    else:
-        return v
-
-
 def encache(cache, k, v, branch, tick):
     if k not in cache:
         cache[k] = {}
@@ -211,7 +210,7 @@ def encache(cache, k, v, branch, tick):
     for t in list(cache[k][branch].keys()):
         if t > tick:
             del cache[k][branch][t]
-    cache[k][branch][tick] = unjson(v)
+    cache[k][branch][tick] = v
 
 
 def needcache(cache, k, branch, tick):
@@ -230,7 +229,7 @@ def fillcache(engine, real, cache):
         if branch not in cache[k]:
             cache[k][branch] = {}
         if tick not in cache[k][branch]:
-            cache[k][branch][tick] = unjson(real[k])
+            cache[k][branch][tick] = real[k]
 
 
 def fire_time_travel_triggers(
@@ -243,14 +242,6 @@ def fire_time_travel_triggers(
         branch_now,
         tick_now
 ):
-    then = (branch_then, tick_then)
-    now = (branch_now, tick_now)
-    engine.locktime = True
-    engine.time = then
-    cache = cache if engine.caching else {}
-    fillcache(engine, real, cache)
-    engine.time = now
-    fillcache(engine, real, cache)
     for k in cache:
         if (
                 branch_then in cache[k] and
@@ -270,18 +261,45 @@ def fire_time_travel_triggers(
                     # key's value changed between then and now
                     dispatcher(k, val_now)
             else:
-                # key was deleted between then and now
-                dispatcher(k, None)
+                # No cached info on the value right now; account for
+                # the common case that a single tick has passed and
+                # nothing has changed
+                if (
+                    branch_then == branch_now and
+                    tick_then + 1 == tick_now
+                ):
+                    cache[k][branch_now][tick_now] \
+                        = cache[k][branch_now][tick_then]
+                    continue
+                # otherwise, fetch from db
+                try:
+                    if branch_now not in cache[k]:
+                        cache[k][branch_now] = {}
+                    cache[k][branch_now][tick_now] = real[k]
+                    if (
+                        cache[k][branch_then][tick_then] !=
+                        cache[k][branch_now][tick_now]
+                    ):
+                        dispatcher(k, cache[k][branch_now][tick_now])
+                except KeyError:
+                    dispatcher(k, None)
         else:
-            # key was not set then
+            # key might not have been set then -- if it was, our
+            # listeners never heard of it, or it'd be cached
             if (
                     branch_now in cache[k] and
-                    tick_now in cache[k][branch_now] and
-                    cache[k][branch_now][tick_now] is not None
+                    tick_now in cache[k][branch_now]
             ):
-                # key is set now
+                if cache[k][branch_now][tick_now] is None:
+                    # and they still never heard of it
+                    continue
+                else:
+                    # key is set now
+                    dispatcher(k, cache[k][branch_now][tick_now])
+            else:
+                # no information; cache and dispatch to be safe
+                encache(cache, k, real[k], branch_now, tick_now)
                 dispatcher(k, cache[k][branch_now][tick_now])
-    del engine.locktime
 
 
 def keycache_iter(keycache, branch, tick, get_iterator):

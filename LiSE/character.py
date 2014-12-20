@@ -19,7 +19,6 @@ from gorm.graph import (
     GraphSuccessorsMapping,
     DiGraphPredecessorsMapping
 )
-from gorm.xjson import JSONWrapper, JSONListWrapper
 from .util import (
     CompositeDict,
     keycache_iter,
@@ -28,7 +27,9 @@ from .util import (
     encache,
     listen,
     listener,
-    fire_time_travel_triggers
+    fire_time_travel_triggers,
+    JSONListReWrapper,
+    JSONReWrapper
 )
 from .rule import RuleBook
 from .rule import CharRuleMapping as RuleMapping
@@ -1448,7 +1449,12 @@ class CharStatCache(MutableMapping):
             return self._real[k]
         (branch, tick) = self.engine.time
         if needcache(self._cache, k, branch, tick):
-            encache(self._cache, k, self._real[k], branch, tick)
+            value = self._real[k]
+            if isinstance(value, dict):
+                value = JSONReWrapper(self._real, k, value)
+            elif isinstance(value, list):
+                value = JSONListReWrapper(self._real, k, value)
+            encache(self._cache, k, value, branch, tick)
         return self._cache[k][branch][tick]
 
     def __setitem__(self, k, v):
@@ -1459,9 +1465,9 @@ class CharStatCache(MutableMapping):
         if not self.engine.caching:
             return
         if isinstance(v, list):
-            v = JSONListWrapper(self, k)
+            v = JSONListReWrapper(self, k, v)
         elif isinstance(v, dict):
-            v = JSONWrapper(self, k)
+            v = JSONReWrapper(self, k, v)
         encache(
             self._cache, k, v, *self.engine.time
         )

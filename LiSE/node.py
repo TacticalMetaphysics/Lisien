@@ -2,16 +2,14 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 from collections import defaultdict
 import gorm.graph
-from gorm.xjson import (
-    JSONWrapper,
-    JSONListWrapper
-)
 from .util import (
     dispatch,
     listen,
     listener,
     fire_time_travel_triggers,
-    encache
+    encache,
+    JSONReWrapper,
+    JSONListReWrapper
 )
 from .rule import RuleBook, RuleMapping
 
@@ -68,9 +66,8 @@ class Node(gorm.graph.Node):
         self.name = name
         self._rulebook_listeners = []
         self._stat_listeners = defaultdict(list)
-        if self.engine.caching:
-            self._keycache = {}
-            self._cache = {}
+        self._keycache = {}
+        self._cache = {}
 
         @self.engine.on_time
         def time_travel_triggers(
@@ -90,6 +87,7 @@ class Node(gorm.graph.Node):
                 branch_now,
                 tick_now
             )
+
         super().__init__(character, name)
 
     def listener(self, f=None, stat=None):
@@ -107,9 +105,9 @@ class Node(gorm.graph.Node):
         if self.engine.caching:
             (branch, tick) = self.engine.time
             if isinstance(v, list):
-                v = JSONListWrapper(self, k)
+                v = JSONListReWrapper(self, k, v)
             elif isinstance(v, dict):
-                v = JSONWrapper(self, k)
+                v = JSONReWrapper(self, k, v)
             encache(self._cache, k, v, branch, tick)
             if branch in self._keycache and tick in self._keycache[branch]:
                 self._keycache[branch][tick].add(k)

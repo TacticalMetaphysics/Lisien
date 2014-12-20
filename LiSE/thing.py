@@ -1,14 +1,16 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 import networkx as nx
-from gorm.xjson import json_dump, JSONListWrapper, JSONWrapper
+from gorm.xjson import json_dump
 from .node import Node
 from .util import (
     path_len,
     CacheError,
     TravelException,
     encache,
-    needcache
+    needcache,
+    JSONReWrapper,
+    JSONListReWrapper
 )
 
 
@@ -25,8 +27,7 @@ class Thing(Node):
     def __init__(self, *args, **kwargs):
         """If caching, initialize the cache."""
         super().__init__(*args, **kwargs)
-        if self.engine.caching:
-            self._loccache = {}
+        self._loccache = {}
 
     def __iter__(self):
         """Iterate over a cached set of keys if possible and caching's
@@ -140,8 +141,13 @@ class Thing(Node):
                 return super().__getitem__(key)
             (branch, tick) = self.engine.time
             if needcache(self._cache, key, branch, tick):
+                value = super().__getitem__(key)
+                if isinstance(value, list):
+                    value = JSONListReWrapper(self, key, value)
+                elif isinstance(value, dict):
+                    value = JSONReWrapper(self, key, value)
                 encache(
-                    self._cache, key, super().__getitem__(key), branch, tick
+                    self._cache, key, value, branch, tick
                 )
             return self._cache[key][branch][tick]
 
@@ -177,9 +183,9 @@ class Thing(Node):
             if branch in self._keycache and tick in self._keycache[branch]:
                 self._keycache[branch][tick].add(key)
             if isinstance(value, list):
-                value = JSONListWrapper(self, key)
+                value = JSONListReWrapper(self, key, value)
             elif isinstance(value, dict):
-                value = JSONWrapper(self, key)
+                value = JSONReWrapper(self, key, value)
             encache(self._cache, key, value, branch, tick)
 
     def __delitem__(self, key):

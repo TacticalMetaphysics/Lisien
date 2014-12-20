@@ -1,8 +1,10 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
-from gorm.xjson import json_dump, JSONWrapper, JSONListWrapper
+from gorm.xjson import json_dump
 from .node import Node
-from .util import dispatch, needcache, encache
+from .util import (
+    dispatch, needcache, encache, JSONReWrapper, JSONListReWrapper
+)
 
 
 class Place(Node):
@@ -34,8 +36,13 @@ class Place(Node):
                 return super().__getitem__(key)
             (branch, tick) = self.engine.time
             if needcache(self._cache, key, branch, tick):
+                value = super().__getitem__(key)
+                if isinstance(value, dict):
+                    value = JSONReWrapper(self, key, value)
+                elif isinstance(value, list):
+                    value = JSONListReWrapper(self, key, value)
                 encache(
-                    self._cache, key, super().__getitem__(key), branch, tick
+                    self._cache, key, value, branch, tick
                 )
             return self._cache[key][branch][tick]
 
@@ -50,9 +57,9 @@ class Place(Node):
         ):
             self._keycache[branch][tick].add(key)
         if isinstance(value, list):
-            value = JSONListWrapper(self, key)
+            value = JSONListReWrapper(self, key, value)
         elif isinstance(value, dict):
-            value = JSONWrapper(self, key)
+            value = JSONReWrapper(self, key, value)
         encache(self._cache, key, value, branch, tick)
         dispatch(self._stat_listeners, key, branch, tick, self, key, value)
 

@@ -1,11 +1,13 @@
 from collections import defaultdict
 from gorm.graph import Edge
-from gorm.xjson import json_dump, JSONWrapper, JSONListWrapper
+from gorm.xjson import json_dump
 from .util import (
     dispatch,
     listener,
     encache,
-    needcache
+    needcache,
+    JSONReWrapper,
+    JSONListReWrapper
 )
 
 
@@ -70,8 +72,13 @@ class Portal(Edge):
                 return super().__getitem__(key)
             (branch, tick) = self.engine.time
             if needcache(self._cache, key, branch, tick):
+                value = super().__getitem__(key)
+                if isinstance(value, dict):
+                    value = JSONReWrapper(self, key, value)
+                elif isinstance(value, list):
+                    value = JSONListReWrapper(self, key, value)
                 encache(
-                    self._cache, key, super().__getitem__(key), branch, tick
+                    self._cache, key, value, branch, tick
                 )
             return self._cache[key][branch][tick]
 
@@ -122,9 +129,9 @@ class Portal(Edge):
         super().__setitem__(key, value)
         (branch, tick) = self.engine.time
         if isinstance(value, list):
-            value = JSONListWrapper(self, key)
+            value = JSONListReWrapper(self, key, value)
         elif isinstance(value, dict):
-            value = JSONWrapper(self, key)
+            value = JSONReWrapper(self, key, value)
         encache(self._cache, key, value, branch, tick)
         if branch in self._keycache and tick in self._keycache[branch]:
             self._keycache[branch][tick].add(key)
