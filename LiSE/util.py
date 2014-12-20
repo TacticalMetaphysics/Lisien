@@ -331,11 +331,7 @@ def cache_set(cache, keycache, branch, tick, key, value, setter):
     ``tick``.
 
     """
-    if key not in cache:
-        cache[key] = {}
-    if branch not in cache[key]:
-        cache[key][branch] = {}
-    cache[key][branch][tick] = value
+    encache(cache, key, value, branch, tick)
     if branch in keycache:
         try:
             if tick not in keycache[branch]:
@@ -356,12 +352,7 @@ def cache_del(cache, keycache, branch, tick, key, deleter):
     branch/tick-indexed cache, and delete it using ``deleter``.
 
     """
-    if (
-            key in cache and
-            branch in cache[key] and
-            tick in cache[key][branch]
-    ):
-        del cache[key][branch][tick]
+    encache(cache, key, None, branch, tick)
     if branch in keycache:
         try:
             if tick not in keycache[branch]:
