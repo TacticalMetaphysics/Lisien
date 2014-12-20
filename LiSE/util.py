@@ -7,6 +7,7 @@ from collections import Mapping
 
 
 def dispatch(d, key, *args):
+    assert(isinstance(d, Mapping))
     if key in d:
         for f in d[key]:
             f(*args)
@@ -133,6 +134,72 @@ class CompositeDict(Mapping):
 
 
 # ==Caching==
+def fillcache(engine, real, cache):
+    from gorm.xjson import JSONWrapper, JSONListWrapper
+    (branch, tick) = engine.time
+    if branch not in cache:
+        cache[branch] = {}
+    for (k, v) in real.items():
+        if isinstance(v, JSONListWrapper):
+            v = list(v)
+        elif isinstance(v, JSONWrapper):
+            v = dict(v)
+        if k not in cache[branch]:
+            cache[branch][k] = {tick: v}
+        elif (
+            tick not in cache[branch][k] or
+            cache[branch][k][tick] != v
+        ):
+            cache[branch][k][tick] = v
+
+
+def fire_time_travel_triggers(
+        engine,
+        real,
+        cache,
+        dispatcher,
+        branch_then,
+        tick_then,
+        branch_now,
+        tick_now
+):
+    then = (branch_then, tick_then)
+    now = (branch_now, tick_now)
+    engine.locktime = True
+    engine.time = then
+    fillcache(engine, real, cache)
+    engine.time = now
+    fillcache(engine, real, cache)
+    for k in set(cache[branch_then].keys()).union(cache[branch_now].keys()):
+        if (
+                tick_then in cache[branch_then][k] and
+                cache[branch_then][k][tick_then] is not None
+        ):
+            # key was set then
+            if (
+                    tick_now in cache[branch_now][k] and
+                    cache[branch_now][k][tick_now] is not None
+            ):
+                # key is set now
+                val_then = cache[branch_then][k][tick_then]
+                val_now = cache[branch_now][k][tick_now]
+                if val_then != val_now:
+                    # key's value changed between then and now
+                    dispatcher(k, val_now)
+            else:
+                # key deleted between then and now
+                dispatcher(k, None)
+        else:
+            # key was not set then
+            if (
+                    tick_now in cache[branch_now][k] and
+                    cache[branch_now][k][tick_now] is not None
+            ):
+                # key is set now
+                dispatcher(k, cache[branch_now][k][tick_now])
+    del engine.locktime
+
+
 def keycache_iter(keycache, branch, tick, get_iterator):
     if branch not in keycache:
         keycache[branch] = {}
