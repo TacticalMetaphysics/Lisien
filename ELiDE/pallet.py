@@ -9,6 +9,8 @@ from kivy.properties import (
     DictProperty,
     NumericProperty,
     ObjectProperty,
+    OptionProperty,
+    ListProperty,
     ReferenceListProperty,
     StringProperty
 )
@@ -19,8 +21,23 @@ from kivy.uix.stacklayout import StackLayout
 
 
 class SwatchButton(ToggleButton):
+    """Toggle button containing a texture and its name, which, when
+    toggled, will report the fact to the :class:`Pallet` it's in.
+
+    """
     name = StringProperty()
     texture = ObjectProperty()
+
+    def on_state(self, *args):
+        if self.state == 'down':
+            assert(self not in self.parent.selection)
+            if self.parent.selection_mode == 'single':
+                self.parent.selection = [self]
+            else:
+                self.parent.selection.append(self)
+        else:
+            assert(self in self.parent.selection)
+            self.parent.selection.remove(self)
 
 
 kv = """
@@ -42,6 +59,8 @@ class Pallet(StackLayout):
     swatch_width = NumericProperty(100)
     swatch_height = NumericProperty(100)
     swatch_size = ReferenceListProperty(swatch_width, swatch_height)
+    selection = ListProperty([])
+    selection_mode = OptionProperty('single', options=['single', 'multiple'])
 
     def on_atlas(self, *args):
         if self.atlas is None:
