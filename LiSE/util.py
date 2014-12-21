@@ -154,7 +154,12 @@ class JSONReWrapper(MutableMapping):
         return len(self._v)
 
     def __getitem__(self, k):
-        return self._v[k]
+        r = self._v[k]
+        if isinstance(r, dict):
+            return JSONReWrapper(self, k, r)
+        if isinstance(r, list):
+            return JSONListReWrapper(self, k, r)
+        return r
 
     def __setitem__(self, k, v):
         self._inner[k] = v
@@ -184,7 +189,12 @@ class JSONListReWrapper(MutableSequence):
         return len(self._v)
 
     def __getitem__(self, i):
-        return self._v[i]
+        r = self._v[i]
+        if isinstance(r, dict):
+            return JSONReWrapper(self, i, r)
+        if isinstance(r, list):
+            return JSONListReWrapper(self, i, r)
+        return r
 
     def __setitem__(self, i, v):
         self._inner[i] = v
