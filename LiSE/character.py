@@ -94,14 +94,14 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
     _book = "thing"
 
     def __init__(self, character):
-        """Store the character and initialize cache (if caching)"""
+        """Store the character and initialize cache"""
         self.character = character
         self.engine = character.engine
         self.name = character.name
         self._thing_listeners = defaultdict(list)
+        self._cache = {}
+        self._keycache = {}
         if self.engine.caching:
-            self._cache = {}
-            self._keycache = {}
 
             @self.engine.on_time
             def recache(eng, branch_then, tick_then, b, t):
@@ -114,6 +114,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
     def _dispatch_thing(self, k, v):
         (b, t) = self.engine.time
         dispatch(self._thing_listeners, k, b, t, self, k, v)
+        if not self.engine.caching:
+            return
         if v is None:
             if b in self._keycache:
                 try:

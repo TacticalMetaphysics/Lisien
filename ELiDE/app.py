@@ -12,13 +12,11 @@ import ELiDE
 import ELiDE.layout
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
+resource_add_path(ELiDE.__path__[0] + "/assets/freepik_svg")
 
 
 class ELiDEApp(App):
     """Extensible LiSE Development Environment.
-
-    As it's a Kivy app, this implements the things required of the App
-    class. I also keep \"globals\" here.
 
     """
     engine = ObjectProperty()

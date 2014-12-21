@@ -27,8 +27,7 @@ def runtest(engine):
 
 if __name__ == '__main__':
     clear_off()
-    with mkengine(random_seed=seed, caching=caching) as engine:
+    with mkengine(':memory:', random_seed=seed, caching=caching) as engine:
         inittest(engine)
         engine.commit()
-        print(engine.character['physical'].thing['dwarf'].rule)
-        runtest(engine)
+        run('runtest(engine)')

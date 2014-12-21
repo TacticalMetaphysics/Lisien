@@ -232,7 +232,7 @@ class PawnSpot(ImageStack, MirrorMapping):
 
 kv = """
 <PawnSpot>:
-    layout: self.board.layout if self.board else None
+    time: self.board.layout.time if self.board and self.board.layout else ['master', 0]
     engine: self.board.layout.app.engine if self.board and self.board.layout else None
     linecolor: [0., 1., 1., 1.] if self.selected else [0., 0., 0., 0.]
 """

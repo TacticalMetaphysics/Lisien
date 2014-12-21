@@ -25,10 +25,12 @@ class MenuTextInput(TextInput):
         self.focus = False
 
     def on_focus(self, *args):
+        """If I've lost focus, treat it as if the user hit Enter."""
         if not self.focus:
             self.on_enter(*args)
 
     def on_text_validate(self, *args):
+        """Equivalent to hitting Enter."""
         self.on_enter()
 
 

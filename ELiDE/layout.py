@@ -47,6 +47,11 @@ class ELiDELayout(FloatLayout):
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
     def toggle_reciprocal(self):
+        """Flip my ``reciprocal_portal`` boolean, and draw (or stop drawing)
+        an extra arrow on the appropriate button to indicate the
+        fact.
+
+        """
         self.reciprocal_portal = not self.reciprocal_portal
         if self.reciprocal_portal:
             assert(not hasattr(self, 'revarrow'))

@@ -40,7 +40,6 @@ except ImportError:
     from sqlite3 import OperationalError
 
 
-alchemyIntegError = None
 try:
     from sqlalchemy.exc import IntegrityError as alchemyIntegError
     from sqlite3 import IntegrityError as liteIntegError

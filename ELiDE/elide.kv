@@ -47,7 +47,7 @@
         StatListView:
             id: charsheet
             size_hint_y: 0.95
-            layout: root
+            time: root.time
             remote: {} if board.character is None else board.character.stat if root.selection is None else root.selection.thing if hasattr(root.selection, 'thing') else root.selection.place if hasattr(root.selection, 'place') else root.selection.portal if hasattr(root.selection, 'portal') else {}
     BoxLayout:
         id: timemenu
