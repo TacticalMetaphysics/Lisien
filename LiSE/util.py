@@ -139,6 +139,7 @@ from collections import MutableMapping, MutableSequence
 
 
 class JSONReWrapper(MutableMapping):
+    """Like JSONWrapper with a cache."""
     def __init__(self, outer, key, initval=None):
         self._inner = JSONWrapper(outer, key)
         self._v = initval if initval else dict(self._inner)
@@ -174,6 +175,7 @@ class JSONReWrapper(MutableMapping):
 
 
 class JSONListReWrapper(MutableSequence):
+    """Like JSONListWrapper with a cache."""
     def __init__(self, outer, key, initval=None):
         self._inner = JSONListWrapper(outer, key)
         self._v = initval if initval else list(self._inner)
@@ -213,6 +215,7 @@ class JSONListReWrapper(MutableSequence):
 
 
 def encache(cache, k, v, branch, tick):
+    """Put ``k=v`` into ``cache`` and delete anything later than it"""
     if k not in cache:
         cache[k] = {}
     if branch not in cache[k]:
@@ -224,6 +227,10 @@ def encache(cache, k, v, branch, tick):
 
 
 def needcache(cache, k, branch, tick):
+    """Return whether ``k`` lacks a value in ``cache`` for the given
+    ``branch`` and ``tick``.
+
+    """
     return (
         k not in cache or
         branch not in cache[k] or
@@ -232,6 +239,10 @@ def needcache(cache, k, branch, tick):
 
 
 def fillcache(engine, real, cache):
+    """Copy all the present values in ``real`` into ``cache``, indexed
+    appropriately.
+
+    """
     (branch, tick) = engine.time
     for k in real:
         if k not in cache:
@@ -252,6 +263,18 @@ def fire_time_travel_triggers(
         branch_now,
         tick_now
 ):
+    """For each key in ``cache`` whose value has changed between the two
+    times given, call ``dispatcher`` with the key and its current value.
+
+    ``real`` is the mapping whose values ``cache`` caches. It will be
+    used when the key is in the cache, but not at either of the times
+    given.
+
+    If a key has never been cached, it won't trigger any of its
+    listeners, but this is unlikely, because caching happens whenever
+    the key is used for any purpose.
+
+    """
     for k in cache:
         if (
                 branch_then in cache[k] and
