@@ -31,7 +31,9 @@ class MirrorMapping(EventDispatcher):
             Clock.schedule_once(self.on_remote, 0)
             return
 
-        self.mirror = dict(self.remote)
+        for (k, v) in self.remote.items():
+            if v:
+                self.mirror[k] = v
 
         if not hasattr(self.remote, 'listener'):
             return
@@ -45,5 +47,9 @@ class MirrorMapping(EventDispatcher):
                         self.mirror[k] != v
                     )
             ):
-                self.mirror[k] = v
+                if v is None:
+                    if k in self.mirror:
+                        del self.mirror[k]
+                else:
+                    self.mirror[k] = v
         return True

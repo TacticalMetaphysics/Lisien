@@ -154,6 +154,9 @@ class JSONReWrapper(MutableMapping):
     def __len__(self):
         return len(self._v)
 
+    def __eq__(self, other):
+        return self._v == other
+
     def __getitem__(self, k):
         r = self._v[k]
         if isinstance(r, dict):
@@ -190,6 +193,9 @@ class JSONListReWrapper(MutableSequence):
     def __len__(self):
         return len(self._v)
 
+    def __eq__(self, other):
+        return self._v == other
+
     def __getitem__(self, i):
         r = self._v[i]
         if isinstance(r, dict):
@@ -223,6 +229,10 @@ def encache(cache, k, v, branch, tick):
     for t in list(cache[k][branch].keys()):
         if t > tick:
             del cache[k][branch][t]
+    if isinstance(v, JSONListWrapper):
+        v = JSONListReWrapper(v.outer, v.outkey, list(v))
+    elif isinstance(v, JSONWrapper):
+        v = JSONReWrapper(v.outer, v.outkey, dict(v))
     cache[k][branch][tick] = v
 
 
@@ -329,10 +339,6 @@ def fire_time_travel_triggers(
                 else:
                     # key is set now
                     dispatcher(k, cache[k][branch_now][tick_now])
-            else:
-                # no information; cache and dispatch to be safe
-                encache(cache, k, real[k], branch_now, tick_now)
-                dispatcher(k, cache[k][branch_now][tick_now])
 
 
 def keycache_iter(keycache, branch, tick, get_iterator):

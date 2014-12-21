@@ -44,7 +44,10 @@ class Place(Node):
                 encache(
                     self._cache, key, value, branch, tick
                 )
-            return self._cache[key][branch][tick]
+            r = self._cache[key][branch][tick]
+            if r is None:
+                raise KeyError("Key {} not set now".format(key))
+            return r
 
     def __setitem__(self, key, value):
         super().__setitem__(key, value)

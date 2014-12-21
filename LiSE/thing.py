@@ -149,7 +149,10 @@ class Thing(Node):
                 encache(
                     self._cache, key, value, branch, tick
                 )
-            return self._cache[key][branch][tick]
+            r = self._cache[key][branch][tick]
+            if r is None:
+                raise KeyError("Key {} is not set now".format(key))
+            return r
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` for the present game-time."""
