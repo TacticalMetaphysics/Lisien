@@ -13,7 +13,6 @@ def inittest(
     # initialize world
     phys = engine.new_character('physical', data=nx.grid_2d_graph(*mapsize))
     kobold = phys.new_thing("kobold", kobold_pos)
-    kobold['shrub_places'] = []
     kobold['sprint_chance'] = kobold_sprint_chance
     kobold['_image_paths'] = ['atlas://rltiles/base.atlas/kobold_m']
     dwarf = phys.new_thing("dwarf", dwarf_pos)
@@ -21,10 +20,12 @@ def inittest(
     dwarf['seen_kobold'] = False
     dwarf['_image_paths'] = ['atlas://rltiles/base.atlas/dwarf_m']
     # randomly place the shrubberies and add their locations to shrub_places
-    n = 5
-    locs = list(phys.place.keys())
+    n = 0
+    # these are sorted as a way to make them shuffle the same whether
+    # I'm using the cache or not
+    locs = sorted(list(phys.place.keys()))
     engine.shuffle(locs)
-    print('{} shrubberies'.format(n))
+    shrub_places = []
     while n < shrubberies:
         loc = locs.pop()
         phys.add_thing(
@@ -33,16 +34,17 @@ def inittest(
             cover=1,
             _image_paths=['atlas://rltiles/dc-mon.atlas/fungus']
         )
-        kobold['shrub_places'].append(loc)
-        assert(loc in kobold['shrub_places'])
+        shrub_places.append(loc)
         n += 1
+    print('{} shrubberies: {}'.format(n, shrub_places))
+    kobold['shrub_places'] = shrub_places
 
     # If the kobold is not in a shrubbery, it will try to get to one.
     # If it is, there's a chance it will try to get to another.
     @kobold.rule
     def shrubsprint(engine, character, thing):
         print('shrub_places: {}'.format(thing['shrub_places']))
-        shrub_places = list(thing['shrub_places'])
+        shrub_places = sorted(list(thing['shrub_places']))
         if thing['location'] in shrub_places:
             shrub_places.remove(thing['location'])
         print('shrub_places after: {}'.format(thing['shrub_places']))
@@ -104,7 +106,7 @@ def inittest(
 
     @dwarf.rule
     def wander(engine, character, thing):
-        dests = list(character.place.keys())
+        dests = sorted(list(character.place.keys()))
         dests.remove(thing['location'])
         thing.travel_to(engine.choice(dests))
 

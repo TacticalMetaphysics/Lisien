@@ -1,6 +1,6 @@
 from cProfile import run
 from initbold import inittest
-from utiltest import mkengine, clear_off, seed, caching
+from utiltest import mkengine, clear_off, seed
 
 
 def runtest(engine):
@@ -27,7 +27,7 @@ def runtest(engine):
 
 if __name__ == '__main__':
     clear_off()
-    with mkengine(':memory:', random_seed=seed, caching=caching) as engine:
+    with mkengine(':memory:', random_seed=seed, caching=False) as engine:
         inittest(engine)
         engine.commit()
-        run('runtest(engine)')
+        runtest(engine)
