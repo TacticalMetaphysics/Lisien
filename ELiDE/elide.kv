@@ -2,6 +2,7 @@
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 #: import StiffScrollEffect ELiDE.kivygarden.stiffscroll.StiffScrollEffect
 #: import MirrorMapping ELiDE.remote.MirrorMapping
+#: import resource_find kivy.resources.resource_find
 <ELiDELayout>:
     engine: self.app.engine
     board: board
@@ -101,11 +102,6 @@
         SymbolButton:
             # deletes whatever you've got selected
             text: chr(0x2327)
-        SymbolButton:
-            # This doesn't interact with the time travel, it's
-            # strictly a way to go back on erroneous inputs from this
-            # same tick. As such it grays out when you change the time.
-            text: chr(0x238c)
         Button:
             # Should have orb.png in it and if you drag that elsewhere it creates a new place there
             id: placeaddbut
@@ -132,12 +128,23 @@
                     center_x: portaladdbut.right - portaladdbut.width / 3
                     center_y: portaladdbut.center_y
                     size: (0, 0)
-        Button:
+        BoxLayout:
             # Has the generic thing-graphic in it, drag it on top of a spot and you get a new thing
-            id: thingaddbut
-            Dummy:
-                id: dummything
-                center: thingaddbut.center
-                prefix: 'thing'
-                paths: ['atlas://rltiles/base.atlas/unseen']
-                on_pos_up: root.pawn_from_dummy(self)
+            Widget:
+                id: thingtab
+                canvas:
+                    Color:
+                        rgba: 0,0,0,1
+                    Rectangle:
+                        pos: thingtab.pos
+                        size: thingtab.size
+                    Color:
+                        rgba: 1,1,1,1
+                Dummy:
+                    id: dummything
+                    center: thingtab.center
+                    prefix: 'thing'
+                    on_pos_up: root.pawn_from_dummy(self)
+            Button:
+                id: thingcfgbut
+                text: 'cfg'
