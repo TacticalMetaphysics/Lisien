@@ -34,7 +34,7 @@ class ELiDELayout(FloatLayout):
     _touch = ObjectProperty(None, allownone=True)
     popover = ObjectProperty()
     grabbing = BooleanProperty(True)
-    reciprocal_portal = BooleanProperty()
+    reciprocal_portal = BooleanProperty(False)
     grabbed = ObjectProperty(None, allownone=True)
     selection = ObjectProperty(None, allownone=True)
     selection_candidates = ListProperty([])
@@ -45,6 +45,21 @@ class ELiDELayout(FloatLayout):
     tick = NumericProperty(0)
     time = ListProperty(['master', 0])
     rules_per_frame = BoundedNumericProperty(10, min=1)
+
+    def toggle_reciprocal(self):
+        self.reciprocal_portal = not self.reciprocal_portal
+        if self.reciprocal_portal:
+            assert(not hasattr(self, 'revarrow'))
+            self.revarrow = ArrowWidget(
+                board=self.board,
+                origin=self.ids.emptyright,
+                destination=self.ids.emptyleft
+            )
+            self.ids.portaladdbut.add_widget(self.revarrow)
+        else:
+            if hasattr(self, 'revarrow'):
+                self.ids.portaladdbut.remove_widget(self.revarrow)
+                del self.revarrow
 
     def on_touch_down(self, touch):
         """Dispatch the touch to the board, then its :class:`ScrollView`, then
@@ -87,6 +102,12 @@ class ELiDELayout(FloatLayout):
                         destination=self.protodest
                     )
                     self.board.add_widget(self.protoportal)
+                    if self.reciprocal_portal:
+                        self.protoportal2 = ArrowWidget(
+                            destination=self.origspot,
+                            origin=self.protodest
+                        )
+                        self.board.add_widget(self.protoportal2)
                 return True
             arrows = list(self.board.arrows_at(*touch.pos))
             if arrows:
@@ -129,20 +150,43 @@ class ELiDELayout(FloatLayout):
                 destspot = next(self.board.spots_at(*touch.pos))
                 orig = self.origspot.remote
                 dest = destspot.remote
-                port = self.board.character.new_portal(
-                    orig.name,
-                    dest.name
-                )
-                Logger.debug(
-                    "ELiDELayout: new arrow for {}->{}".format(
+                if not (
+                    orig.name in self.board.character.portal and
+                    dest.name in self.board.character.portal[orig.name]
+                ):
+                    port = self.board.character.new_portal(
                         orig.name,
                         dest.name
                     )
-                )
-                self.board.add_widget(self.board.make_arrow(port))
+                    Logger.debug(
+                        "ELiDELayout: new arrow for {}->{}".format(
+                            orig.name,
+                            dest.name
+                        )
+                    )
+                    self.board.add_widget(self.board.make_arrow(port))
+                if (
+                    hasattr(self, 'protoportal2') and not (
+                        orig.name in self.board.character.preportal and
+                        dest.name in self.board.character.preportal[orig.name]
+                    )
+                ):
+                    deport = self.board.character.new_portal(
+                        dest.name,
+                        orig.name
+                    )
+                    Logger.debug(
+                        "ELiDELayout: new arrow for {}<-{}".format(
+                            orig.name,
+                            dest.name
+                        )
+                    )
+                    self.board.add_widget(self.board.make_arrow(deport))
             except StopIteration:
                 pass
             self.board.remove_widget(self.protoportal)
+            if hasattr(self, 'protoportal2'):
+                self.board.remove_widget(self.protoportal2)
             self.board.remove_widget(self.protodest)
             del self.protoportal
             del self.protodest
@@ -206,6 +250,10 @@ class ELiDELayout(FloatLayout):
         for dummy in self.dummies:
             if hasattr(dummy, '_numbered'):
                 continue
+            if dummy == self.ids.dummything:
+                dummy.paths = ['atlas://rltiles/base/unseen']
+            if dummy == self.ids.dummyplace:
+                dummy.paths = ['orb.png']
             num = 0
             for nodename in self.board.character.node:
                 nodename = str(nodename)
