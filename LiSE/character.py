@@ -1498,7 +1498,7 @@ class CharStatCache(MutableMapping):
         (branch, tick) = self.engine.time
         cache_forward(self._cache, k, branch, tick)
         if needcache(self._cache, k, branch, tick):
-            encache(self, self._cache, k)
+            encache(self, self._cache, k, self._real[k])
             enkeycache(self, self._keycache, k)
         return self._cache[k][branch][tick]
 

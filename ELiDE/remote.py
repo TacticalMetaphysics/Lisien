@@ -31,10 +31,6 @@ class MirrorMapping(EventDispatcher):
         self.mirror = dict(self.remote)
 
     def on_remote(self, *args):
-        if not self.layout:
-            Clock.schedule_once(self.on_remote, 0)
-            return
-
         for (k, v) in self.remote.items():
             if v:
                 self.mirror[k] = v

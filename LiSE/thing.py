@@ -143,7 +143,7 @@ class Thing(Node):
             (branch, tick) = self.engine.time
             cache_forward(self._cache, key, branch, tick)
             if needcache(self._cache, key, branch, tick):
-                encache(self, key, super().__getitem__(key))
+                encache(self, self._cache, key, super().__getitem__(key))
             r = self._cache[key][branch][tick]
             if r is None:
                 raise KeyError("Key {} is not set now".format(key))
