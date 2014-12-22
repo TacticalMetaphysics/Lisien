@@ -154,7 +154,7 @@ class RuleBook(MutableSequence):
         if self.engine.caching:
             self._cache = [
                 self.engine.rule[rule] for rule in
-                self.engine.db.rulebook_rules
+                self.engine.db.rulebook_rules(self.name)
             ]
 
     def __iter__(self):
@@ -187,6 +187,8 @@ class RuleBook(MutableSequence):
             rule = Rule(self.engine, v)
         self.engine.db.rulebook_set(self.name, i, rule.name)
         if self.engine.caching:
+            while len(self._cache) <= i:
+                self._cache.append(None)
             self._cache[i] = rule
 
     def insert(self, i, v):
