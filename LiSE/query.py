@@ -772,6 +772,9 @@ class QueryEngine(gorm.query.QueryEngine):
         ):
             yield (tick, json_load(loc), json_load(nextloc))
 
+    def timestream_data(self):
+        yield from self.sql('allbranch')
+
     def initdb(self):
         """Set up the database schema, both for gorm and the special
         extensions for LiSE

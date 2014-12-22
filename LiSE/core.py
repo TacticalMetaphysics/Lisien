@@ -4,6 +4,7 @@
 from random import Random
 from collections import (
     defaultdict,
+    deque,
     Mapping,
     MutableMapping,
     Callable
@@ -380,6 +381,25 @@ class Engine(object):
         self.vonmisesvariate = self.rando.vonmisesvariate
         self.weibullvariate = self.rando.weibullvariate
         self._existence = {}
+        self._timestream = {'master': {}}
+        self._branch_start = {}
+        self._branches = {'master': self._timestream['master']}
+        self._branch_parents = {}
+        if self.caching:
+            self.db.active_branches = self._active_branches
+            todo = deque(self.db.timestream_data())
+            while todo:
+                (branch, parent, parent_tick) = working = todo.popleft()
+                if branch == 'master':
+                    continue
+                if parent in self._branches:
+                    assert(branch not in self._branches)
+                    self._branches[parent][branch] = {}
+                    self._branches[branch] = self._branches[parent][branch]
+                    self._branch_parents['branch'] = parent
+                    self._branch_start[branch] = parent_tick
+                else:
+                    todo.append(working)
 
     def _node_exists(self, graph, node):
         """Version of gorm's ``_node_exists`` that caches stuff"""
@@ -473,15 +493,22 @@ class Engine(object):
     @branch.setter
     def branch(self, v):
         """Set my gorm's branch and call listeners"""
-        b = self.branch
+        (b, t) = self.time
         if self.caching:
-            if v == self.branch:
+            if v == b:
                 return
+            if v not in self._branches:
+                parent = b
+                child = v
+                assert(parent in self._branches)
+                self._branch_parents[child] = parent
+                self._branches[parent][child] = {}
+                self._branches[child] = self._branches[parent][child]
+                self._branches_start[child] = t
             self.gorm._obranch = v
         else:
             self.gorm.branch = v
         if not hasattr(self, 'locktime'):
-            t = self.tick
             for time_listener in self.time_listeners:
                 time_listener(self, b, t, v, t)
 
@@ -512,18 +539,32 @@ class Engine(object):
     def time(self, v):
         """Set my gorm's ``branch`` and ``tick``, and call listeners"""
         (branch_then, tick_then) = self.time
+        (branch_now, tick_now) = v
         relock = hasattr(self, 'locktime')
         self.locktime = True
-        (self.branch, self.tick) = v
+        # setting tick and branch in this order makes it practical to
+        # track the timestream genealogy
+        self.tick = tick_now
+        self.branch = branch_now
         if not relock:
             del self.locktime
-        (b, t) = v
         if not hasattr(self, 'locktime'):
             for time_listener in self.time_listeners:
-                time_listener(self, branch_then, tick_then, b, t)
+                time_listener(
+                    self, branch_then, tick_then, branch_now, tick_now
+                )
 
-    def _active_branches(self):
-        yield from self.gorm._active_branches()
+    def _active_branches(self, branch=None, tick=None):
+        if not self.caching:
+            yield from self.gorm._active_branches()
+            return
+        b = branch if branch else self.branch
+        t = tick if tick else self.tick
+        yield b, t
+        while b in self._branch_parents:
+            t = self._branch_start[b]
+            b = self._branch_parents[b]
+            yield b, t
 
     def _poll_rules(self):
         for (
