@@ -60,7 +60,7 @@ class Node(gorm.graph.Node):
         return RuleMapping(self.engine, self.rulebook)
 
     def __init__(self, character, name):
-        """Store character and name, and maybe initialize a couple caches"""
+        """Store character and name, and initialize caches"""
         self.character = character
         self.engine = character.engine
         self.name = name
