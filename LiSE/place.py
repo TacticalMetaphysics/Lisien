@@ -3,7 +3,12 @@
 from gorm.xjson import json_dump
 from .node import Node
 from .util import (
-    dispatch, needcache, encache, JSONReWrapper, JSONListReWrapper
+    dispatch,
+    cache_forward,
+    needcache,
+    encache,
+    enkeycache,
+    dekeycache
 )
 
 
@@ -35,12 +40,9 @@ class Place(Node):
             if not self.engine.caching:
                 return super().__getitem__(key)
             (branch, tick) = self.engine.time
+            cache_forward(self._cache, key, branch, tick)
             if needcache(self._cache, key, branch, tick):
                 value = super().__getitem__(key)
-                if isinstance(value, dict):
-                    value = JSONReWrapper(self, key, value)
-                elif isinstance(value, list):
-                    value = JSONListReWrapper(self, key, value)
                 encache(
                     self._cache, key, value, branch, tick
                 )
@@ -51,32 +53,18 @@ class Place(Node):
 
     def __setitem__(self, key, value):
         super().__setitem__(key, value)
-        if not self.engine.caching:
-            return
-        (branch, tick) = self.engine.time
-        if (
-                branch in self._keycache and
-                tick in self._keycache[branch]
-        ):
-            self._keycache[branch][tick].add(key)
-        if isinstance(value, list):
-            value = JSONListReWrapper(self, key, value)
-        elif isinstance(value, dict):
-            value = JSONReWrapper(self, key, value)
-        encache(self._cache, key, value, branch, tick)
-        dispatch(self._stat_listeners, key, branch, tick, self, key, value)
+        if self.engine.caching:
+            encache(self, self._cache, key, value)
+            enkeycache(self, self._keycache, key)
+            (branch, tick) = self.engine.time
+            dispatch(self._stat_listeners, key, branch, tick, self, key, value)
 
     def __delitem__(self, key):
         super().__delitem__(key)
         if not self.engine.caching:
             return
-        (branch, tick) = self.engine.time
-        if (
-                branch in self._keycache and
-                tick in self._keycache[branch]
-        ):
-            self._keycache[branch][tick].remove(key)
-        encache(self._cache, key, None, branch, tick)
+        dekeycache(self, self._cache, key)
+        encache(self, self._cache, key, None)
 
     def _get_json_dict(self):
         (branch, tick) = self.engine.time

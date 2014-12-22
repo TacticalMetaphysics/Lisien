@@ -25,11 +25,11 @@ from .util import (
     dispatch,
     needcache,
     encache,
+    enkeycache,
+    cache_forward,
     listen,
     listener,
     fire_time_travel_triggers,
-    JSONListReWrapper,
-    JSONReWrapper
 )
 from .rule import RuleBook
 from .rule import CharRuleMapping as RuleMapping
@@ -1420,6 +1420,7 @@ class CharStatCache(MutableMapping):
         self.engine = char.engine
         self._real = char.graph
         self._cache = {}
+        self._keycache = {}
 
         @self.engine.on_time
         def time_travel_triggers(
@@ -1461,23 +1462,44 @@ class CharStatCache(MutableMapping):
 
     def __iter__(self):
         """Iterate over underlying keys"""
-        return iter(self._real)
+        if not self.engine.caching:
+            return iter(self._real)
+        (branch, tick) = self.engine.time
+        if branch not in self._keycache:
+            self._keycache[branch] = {}
+        if tick not in self._keycache[branch]:
+            if tick - 1 in self._keycache[branch]:
+                self._keycache[branch][tick] = set(
+                    self._keycache[branch][tick-1]
+                )
+            else:
+                self._keycache[branch][tick] = set(self._real.keys())
+        yield from self._keycache[branch][tick]
 
     def __len__(self):
         """Length of underlying graph"""
-        return len(self._real)
+        if not self.engine.caching:
+            return len(self._real)
+        (branch, tick) = self.engine.time
+        if branch not in self._keycache:
+            self._keycache[branch] = {}
+        if tick not in self._keycache[branch]:
+            if tick - 1 in self._keycache[branch]:
+                self._keycache[branch][tick] = set(
+                    self._keycache[branch][tick-1]
+                )
+            else:
+                self._keycache[branch][tick] = set(self._real.keys())
+        return len(self._keycache[branch][tick])
 
     def __getitem__(self, k):
         if not self.engine.caching:
             return self._real[k]
         (branch, tick) = self.engine.time
+        cache_forward(self._cache, k, branch, tick)
         if needcache(self._cache, k, branch, tick):
-            value = self._real[k]
-            if isinstance(value, dict):
-                value = JSONReWrapper(self._real, k, value)
-            elif isinstance(value, list):
-                value = JSONListReWrapper(self._real, k, value)
-            encache(self._cache, k, value, branch, tick)
+            encache(self, self._cache, k)
+            enkeycache(self, self._keycache, k)
         return self._cache[k][branch][tick]
 
     def __setitem__(self, k, v):
@@ -1487,13 +1509,8 @@ class CharStatCache(MutableMapping):
         self._dispatch(k, v)
         if not self.engine.caching:
             return
-        if isinstance(v, list):
-            v = JSONListReWrapper(self, k, v)
-        elif isinstance(v, dict):
-            v = JSONReWrapper(self, k, v)
-        encache(
-            self._cache, k, v, *self.engine.time
-        )
+        encache(self, self._cache, k, v)
+        enkeycache(self, self._keycache, k)
 
     def __delitem__(self, k):
         """Clear the cached value and delete the normal way"""
@@ -1501,7 +1518,8 @@ class CharStatCache(MutableMapping):
         self._dispatch(k, None)
         if not self.engine.caching:
             return
-        encache(self._cache, k, None, *self.engine.time)
+        encache(self, self._cache, k, None)
+        dekeycache(self, self._keycache, k)
 
 
 class Character(DiGraph, RuleFollower):

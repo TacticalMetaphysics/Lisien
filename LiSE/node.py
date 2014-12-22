@@ -8,8 +8,8 @@ from .util import (
     listener,
     fire_time_travel_triggers,
     encache,
-    JSONReWrapper,
-    JSONListReWrapper
+    enkeycache,
+    dekeycache
 )
 from .rule import RuleBook, RuleMapping
 
@@ -103,23 +103,16 @@ class Node(gorm.graph.Node):
     def __setitem__(self, k, v):
         super().__setitem__(k, v)
         if self.engine.caching:
-            (branch, tick) = self.engine.time
-            if isinstance(v, list):
-                v = JSONListReWrapper(self, k, v)
-            elif isinstance(v, dict):
-                v = JSONReWrapper(self, k, v)
-            encache(self._cache, k, v, branch, tick)
-            if branch in self._keycache and tick in self._keycache[branch]:
-                self._keycache[branch][tick].add(k)
+            encache(self, self._cache, k, v)
+            enkeycache(self, self._keycache, k)
         self._dispatch_stat(k, v)
 
     def __delitem__(self, k):
         super().__delitem__(k)
         if self.engine.caching:
             (branch, tick) = self.engine.time
-            encache(self._cache, k, None, branch, tick)
-            if branch in self._keycache and tick in self._keycache[branch]:
-                self._keycache[branch][tick].remove(k)
+            encache(self, self._cache, k, None)
+            dekeycache(self, self._keycache, k)
         self._dispatch_stat(k, None)
 
     def _portal_dests(self):

@@ -6,8 +6,9 @@ from .util import (
     listener,
     encache,
     needcache,
-    JSONReWrapper,
-    JSONListReWrapper
+    enkeycache,
+    dekeycache,
+    cache_forward
 )
 
 
@@ -71,15 +72,10 @@ class Portal(Edge):
             if not self.engine.caching:
                 return super().__getitem__(key)
             (branch, tick) = self.engine.time
+            cache_forward(self._cache, key, branch, tick)
             if needcache(self._cache, key, branch, tick):
-                value = super().__getitem__(key)
-                if isinstance(value, dict):
-                    value = JSONReWrapper(self, key, value)
-                elif isinstance(value, list):
-                    value = JSONListReWrapper(self, key, value)
-                encache(
-                    self._cache, key, value, branch, tick
-                )
+                encache(self, self._cache, key, super().__getitem__(key))
+            enkeycache(self, self._keycache, key)
             return self._cache[key][branch][tick]
 
     def __setitem__(self, key, value):
@@ -128,13 +124,8 @@ class Portal(Edge):
             self.character._portal_traits = set()
         super().__setitem__(key, value)
         (branch, tick) = self.engine.time
-        if isinstance(value, list):
-            value = JSONListReWrapper(self, key, value)
-        elif isinstance(value, dict):
-            value = JSONReWrapper(self, key, value)
-        encache(self._cache, key, value, branch, tick)
-        if branch in self._keycache and tick in self._keycache[branch]:
-            self._keycache[branch][tick].add(key)
+        encache(self, self._cache, key, value)
+        enkeycache(self, self._keycache, key)
         self._dispatch_stat(key, value)
 
     def __delitem__(self, key):

@@ -236,20 +236,64 @@ class JSONListReWrapper(MutableSequence):
         return repr(self._v)
 
 
-def encache(cache, k, v, branch, tick):
+def _keycache(self, keycache, k, meth):
+    (branch, tick) = self.engine.time
+    if branch not in keycache:
+        return
+    if tick not in keycache[branch]:
+        if tick - 1 in keycache[branch]:
+            keycache[branch][tick] = set(keycache[branch][tick-1])
+        else:
+            return
+    getattr(keycache[branch][tick], meth)(k)
+    for t in list(keycache[branch].keys()):
+        if t > tick:
+            del keycache[branch][t]
+    for child in self.engine._branch_descendants(branch):
+        if child in keycache:
+            del keycache[child]
+
+
+def enkeycache(self, keycache, k):
+    _keycache(self, keycache, k, 'add')
+
+
+def dekeycache(self, keycache, k):
+    _keycache(self, keycache, k, 'discard')
+
+
+def encache(self, cache, k, v):
     """Put ``k=v`` into ``cache`` and delete anything later than it"""
+    (branch, tick) = self.engine.time
     if k not in cache:
         cache[k] = {}
     if branch not in cache[k]:
         cache[k][branch] = {}
-    for t in list(cache[k][branch].keys()):
-        if t > tick:
-            del cache[k][branch][t]
     if isinstance(v, JSONListWrapper):
         v = JSONListReWrapper(v.outer, v.outkey, list(v))
     elif isinstance(v, JSONWrapper):
         v = JSONReWrapper(v.outer, v.outkey, dict(v))
+    elif isinstance(v, dict):
+        v = JSONReWrapper(self, k, v)
+    elif isinstance(v, list):
+        v = JSONListReWrapper(self, k, v)
     cache[k][branch][tick] = v
+    for t in list(cache[k][branch].keys()):
+        if t > tick:
+            del cache[k][branch][t]
+    for child in self.engine._branch_descendants(branch):
+        if child in cache:
+            del cache[child]
+
+
+def cache_forward(cache, k, branch, tick):
+    if (
+            k in cache and
+            branch in cache[k] and
+            tick not in cache[k][branch] and
+            tick - 1 in cache[k][branch]
+    ):
+        cache[k][branch][tick] = cache[k][branch][tick-1]
 
 
 def needcache(cache, k, branch, tick):

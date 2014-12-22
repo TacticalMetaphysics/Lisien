@@ -8,9 +8,10 @@ from .util import (
     CacheError,
     TravelException,
     encache,
-    needcache,
-    JSONReWrapper,
-    JSONListReWrapper
+    enkeycache,
+    dekeycache,
+    cache_forward,
+    needcache
 )
 
 
@@ -140,15 +141,9 @@ class Thing(Node):
             if not self.engine.caching:
                 return super().__getitem__(key)
             (branch, tick) = self.engine.time
+            cache_forward(self._cache, key, branch, tick)
             if needcache(self._cache, key, branch, tick):
-                value = super().__getitem__(key)
-                if isinstance(value, list):
-                    value = JSONListReWrapper(self, key, value)
-                elif isinstance(value, dict):
-                    value = JSONReWrapper(self, key, value)
-                encache(
-                    self._cache, key, value, branch, tick
-                )
+                encache(self, key, super().__getitem__(key))
             r = self._cache[key][branch][tick]
             if r is None:
                 raise KeyError("Key {} is not set now".format(key))
@@ -180,16 +175,9 @@ class Thing(Node):
             self._dispatch_stat('locations', value)
         else:
             super().__setitem__(key, value)
-            if not self.engine.caching:
-                return
-            (branch, tick) = self.engine.time
-            if branch in self._keycache and tick in self._keycache[branch]:
-                self._keycache[branch][tick].add(key)
-            if isinstance(value, list):
-                value = JSONListReWrapper(self, key, value)
-            elif isinstance(value, dict):
-                value = JSONReWrapper(self, key, value)
-            encache(self._cache, key, value, branch, tick)
+            if self.engine.caching:
+                encache(self, self._cache, key, value)
+                enkeycache(self, self._keycache, key)
 
     def __delitem__(self, key):
         """As of now, this key isn't mine."""
@@ -204,12 +192,9 @@ class Thing(Node):
         ):
             raise ValueError("Can't delete {}".format(key))
         super().__delitem__(key)
-        if not self.engine.caching:
-            return
-        (branch, tick) = self.engine.time
-        if branch in self._keycache and tick in self._keycache[branch]:
-            self._keycache[branch][tick].remove(key)
-        encache(self._cache, key, None, branch, tick)
+        if self.engine.caching:
+            encache(self, self._cache, key, None)
+            dekeycache(self, self._keycache, key)
 
     def _load_locs_branch(self, branch):
         """Private method. Cache stored location data for this branch."""
