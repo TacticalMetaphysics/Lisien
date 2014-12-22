@@ -151,48 +151,32 @@ class RuleBook(MutableSequence):
     def __init__(self, engine, name):
         self.engine = engine
         self.name = name
-        self._cache = {}
-
-    def _cache_at(self, branch, tick):
-        if branch not in self._cache:
-            self._cache[branch] = {}
-        if tick not in self._cache[branch]:
-            if tick - 1 in self._cache[branch]:
-                self._cache[branch][tick] = list(
-                    self._cache[branch][tick-1]
-                )
-            else:
-                self._cache[branch][tick] = [
-                    self.engine.rule[rule]
-                    for rule in self.engine.db.rulebook_rules(self.name)
-                ]
+        if self.engine.caching:
+            self._cache = [
+                self.engine.rule[rule] for rule in
+                self.engine.db.rulebook_rules
+            ]
 
     def __iter__(self):
-        if not self.engine.caching:
-            for rule in self.engine.db.rulebook_rules(self.name):
-                yield self.engine.rule[rule]
-        (branch, tick) = self.engine.time
-        self._cache_at(branch, tick)
-        return iter(self._cache[branch][tick])
+        if self.engine.caching:
+            return iter(self._cache)
+        for rule in self.engine.db.rulebook_rules(self.name):
+            yield self.engine.rule[rule]
 
     def __len__(self):
-        if not self.engine.caching:
-            return self.engine.db.ct_rulebook_rules(self.name)
-        (branch, tick) = self.engine.time
-        self._cache_at(branch, tick)
-        return len(self._cache[branch][tick])
+        if self.engine.caching:
+            return len(self._cache)
+        return self.engine.db.ct_rulebook_rules(self.name)
 
     def __getitem__(self, i):
-        if not self.engine.caching:
-            return self.engine.rule[
-                self.engine.db.rulebook_get(
-                    self.name,
-                    i
-                )
-            ]
-        (branch, tick) = self.engine.time
-        self._cache_at(branch, tick)
-        return self._cache[branch][tick]
+        if self.engine.caching:
+            return self._cache[i]
+        return self.engine.rule[
+            self.engine.db.rulebook_get(
+                self.name,
+                i
+            )
+        ]
 
     def __setitem__(self, i, v):
         if isinstance(v, Rule):
@@ -201,26 +185,18 @@ class RuleBook(MutableSequence):
             rule = self.engine.rule[v]
         else:
             rule = Rule(self.engine, v)
-        if not self.engine.caching:
-            self.engine.db.rulebook_set(self.name, i, rule.name)
-            return
-        (branch, tick) = self.engine.time
-        self._cache_at(branch, tick)
         self.engine.db.rulebook_set(self.name, i, rule.name)
-        self._cache[branch][tick][i] = rule
+        if self.engine.caching:
+            self._cache[i] = rule
 
     def insert(self, i, v):
         self.engine.db.rulebook_decr(self.name, i)
         self[i] = v
 
     def __delitem__(self, i):
-        if not self.engine.caching:
-            self.engine.db.rulebook_del(self.name, i)
-            return
-        (branch, tick) = self.engine.time
-        self._cache_at(branch, tick)
         self.engine.db.rulebook_del(self.name, i)
-        del self._cache[branch][tick][i]
+        if self.engine.caching:
+            del self._cache[i]
 
 
 class RuleMapping(MutableMapping):
