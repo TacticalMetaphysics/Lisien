@@ -566,6 +566,15 @@ class Engine(object):
             b = self._branch_parents[b]
             yield b, t
 
+    def _branch_descendants(self, branch=None):
+        branch = branch if branch else self.branch
+        if not self.caching:
+            yield from self.db.branch_descendants(branch)
+            return
+        yield from self._branches[branch].keys()
+        for child in self._branches[branch].keys():
+            yield from self._branch_descendants(child)
+
     def _poll_rules(self):
         for (
                 rulemap, character, rulebook, rule

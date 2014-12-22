@@ -1575,6 +1575,14 @@ def queries(table, view):
         )
     )
 
+    branches = table['branches']
+
+    r['branch_children'] = select(
+        [branches.c.branch]
+    ).where(
+        branches.c.parent == bindparam('branch')
+    )
+
     for (n, t) in table.items():
         r['count_all_{}'.format(n)] = select(
             [getattr(t.c, col) for col in t.c.keys()]

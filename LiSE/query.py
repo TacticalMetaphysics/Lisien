@@ -775,6 +775,11 @@ class QueryEngine(gorm.query.QueryEngine):
     def timestream_data(self):
         yield from self.sql('allbranch')
 
+    def branch_descendants(self, branch):
+        for child in self.sql('branch_children', branch):
+            yield child
+            yield from self.branch_descendants(child)
+
     def initdb(self):
         """Set up the database schema, both for gorm and the special
         extensions for LiSE

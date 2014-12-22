@@ -132,6 +132,23 @@ class CompositeDict(Mapping):
             return self.d2[k]
 
 
+def path_len(graph, path, weight=None):
+    """Return the number of ticks it will take to follow ``path``,
+    assuming the portals' ``weight`` attribute is how long it will
+    take to go through that portal--if unspecified, 1 tick.
+
+    """
+    n = 0
+    path = list(path)  # local copy
+    prevnode = path.pop(0)
+    while path:
+        nextnode = path.pop(0)
+        edge = graph.edge[prevnode][nextnode]
+        n += edge[weight] if weight and hasattr(edge, weight) else 1
+        prevnode = nextnode
+    return n
+
+
 # ==Caching==
 from gorm.xjson import JSONWrapper, JSONListWrapper
 from collections import MutableMapping, MutableSequence
@@ -346,78 +363,3 @@ def keycache_iter(keycache, branch, tick, get_iterator):
     if tick not in keycache[branch]:
         keycache[branch][tick] = set(get_iterator())
     yield from keycache[branch][tick]
-
-
-def cache_get(cache, keycache, branch, tick, key, getter):
-    """Utility function to retrieve something from a branch/tick-indexed
-    cache if possible, and if not, retrieve it using ``getter`` (and
-    add it to the cache).
-
-    """
-    if key not in cache:
-        cache[key] = {}
-    if branch not in cache[key]:
-        cache[key][branch] = {}
-    if tick not in cache[key][branch]:
-        cache[key][branch][tick] = getter(key)
-    return cache[key][branch][tick]
-
-
-def cache_set(cache, keycache, branch, tick, key, value, setter):
-    """Utility function to both set ``key = value`` using ``setter`` and
-    add ``value`` to the cache, indexed with ``branch`` and then
-    ``tick``.
-
-    """
-    encache(cache, key, value, branch, tick)
-    if branch in keycache:
-        try:
-            if tick not in keycache[branch]:
-                keycache[branch][tick] = set(
-                    keycache[branch][
-                        max(t for t in keycache[branch]
-                            if t < tick)
-                    ]
-                )
-            keycache[branch][tick].add(key)
-        except ValueError:
-            pass
-    setter(key, value)
-
-
-def cache_del(cache, keycache, branch, tick, key, deleter):
-    """Utility function to both delete the key from the
-    branch/tick-indexed cache, and delete it using ``deleter``.
-
-    """
-    encache(cache, key, None, branch, tick)
-    if branch in keycache:
-        try:
-            if tick not in keycache[branch]:
-                keycache[branch][tick] = set(
-                    keycache[branch][
-                        max(t for t in keycache[branch]
-                            if t < tick)
-                        ]
-                )
-            keycache[branch][tick].remove(key)
-        except ValueError:
-            pass
-    deleter(key)
-
-
-def path_len(graph, path, weight=None):
-    """Return the number of ticks it will take to follow ``path``,
-    assuming the portals' ``weight`` attribute is how long it will
-    take to go through that portal--if unspecified, 1 tick.
-
-    """
-    n = 0
-    path = list(path)  # local copy
-    prevnode = path.pop(0)
-    while path:
-        nextnode = path.pop(0)
-        edge = graph.edge[prevnode][nextnode]
-        n += edge[weight] if weight and hasattr(edge, weight) else 1
-        prevnode = nextnode
-    return n
