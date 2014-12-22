@@ -58,8 +58,9 @@ class FunList(MutableSequence):
                 ),
                 self.preset_values
             )
-        self._listeners = []
         cursor.close()
+        self._listeners = []
+        self._cache = {}
 
     def _dispatch(self):
         for f in self._listeners:
@@ -85,22 +86,37 @@ class FunList(MutableSequence):
                 presets=self.presets
             ), (jsonned(l),) + self.preset_values
         )
+        if self.engine.caching:
+            (branch, tick) = self.engine.time
+            if branch not in self._cache:
+                self._cache[branch] = {}
+            self._cache[branch][tick] = l
 
     def _getlist(self):
         """Return the list, decoded from JSON, but not yet translated to
         actual functions, just their names.
 
         """
-        return unjsonned(
-            self.engine.db.connection.cursor().execute(
-                "SELECT {field} FROM {table} WHERE {presets};".format(
-                    field=self.field,
-                    table=self.table,
-                    presets=self.presets
-                ),
-                self.preset_values
-            ).fetchone()[0]
-        )
+        def really_get_list():
+            return unjsonned(
+                self.engine.db.connection.cursor().execute(
+                    "SELECT {field} FROM {table} WHERE {presets};".format(
+                        field=self.field,
+                        table=self.table,
+                        presets=self.presets
+                    ),
+                    self.preset_values
+                ).fetchone()[0]
+            )
+
+        if not self.engine.caching:
+            return really_get_list()
+        (branch, tick) = self.engine.time
+        if branch not in self._cache:
+            self._cache[branch] = {}
+        if tick not in self._cache[branch]:
+            self._cache[branch][tick] = really_get_list()
+        return self._cache[branch][tick]
 
     def __iter__(self):
         """Yield a function from the code database for each item in the
