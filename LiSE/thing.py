@@ -165,8 +165,6 @@ class Thing(Node):
             raise ValueError("Read-only")
         elif key == 'locations':
             self._set_loc_and_next(*value)
-            if hasattr(self._cache, '_fresh'):
-                del self._cache._fresh
             if not self.engine.caching:
                 return
             (branch, tick) = self.engine.time
