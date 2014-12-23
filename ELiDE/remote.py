@@ -25,12 +25,17 @@ class MirrorMapping(EventDispatcher):
     mirror = DictProperty()
 
     def on_time(self, *args):
+        """Update the mirror whenever the time changes."""
         if not self.remote:
             Clock.schedule_once(self.on_time, 0)
             return
         self.mirror = dict(self.remote)
 
     def on_remote(self, *args):
+        """Copy initial data to the mirror, and arrange for it to be updated
+        when the remote data is changed.
+
+        """
         for (k, v) in self.remote.items():
             if v:
                 self.mirror[k] = v
