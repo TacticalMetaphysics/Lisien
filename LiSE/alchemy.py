@@ -1,5 +1,16 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+"""A script to generate the SQL needed for LiSE's database backend,
+and output it in JSON form.
+
+This uses sqlalchemy to describe the queries. It extends the module of
+the same name in the ``gorm`` package. If you change anything here,
+you won't be able to use your changes until you put the generated JSON
+where LiSE will look for it, as in:
+
+``python3 sqlalchemy.py >sqlite.json``
+
+"""
 from sqlalchemy import (
     Table,
     Index,
