@@ -4,13 +4,11 @@ from sqlalchemy import (
     Table,
     Index,
     Column,
-    CheckConstraint,
     ForeignKeyConstraint,
     Integer,
     Boolean,
     String,
     MetaData,
-    ForeignKey,
     select,
     func,
     and_,
@@ -760,7 +758,8 @@ def queries(table, view):
         ).select_from(
             characters.join(
                 current_active_rules,
-                getattr(characters.c, _rulebook) == current_active_rules.c.rulebook
+                getattr(characters.c, _rulebook)
+                == current_active_rules.c.rulebook
             ).join(
                 rulebooks,
                 and_(
@@ -804,9 +803,12 @@ def queries(table, view):
 
     r['handled_character_rule'] = handled_character_ruletyp('character')
     r['handled_avatar_rule'] = handled_character_ruletyp('avatar')
-    r['handled_character_thing_rule'] = handled_character_ruletyp('character_thing')
-    r['handled_character_place_rule'] = handled_character_ruletyp('character_place')
-    r['handled_character_portal_rule'] = handled_character_ruletyp('character_portal')
+    r['handled_character_thing_rule'] \
+        = handled_character_ruletyp('character_thing')
+    r['handled_character_place_rule'] \
+        = handled_character_ruletyp('character_place')
+    r['handled_character_portal_rule'] \
+        = handled_character_ruletyp('character_portal')
 
     r['handled_thing_rule'] = insert_cols(
         table['thing_rules_handled'],
