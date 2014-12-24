@@ -7,7 +7,7 @@ concerned with "who you are" rather than "what you're
 doing". Everything your character in a life simulator can do should be
 represented somehow, but mostly in non-interactive form. This frees
 the player to attend to the high-level tasks of "living" in the game
-world--which, in concrete terms, boils down to time and resource
+world--which, in concrete terms, boil down to time and resource
 management.
 
 Existing games that LiSE seeks to imitate include:
