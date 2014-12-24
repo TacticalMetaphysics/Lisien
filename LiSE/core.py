@@ -348,10 +348,29 @@ class Engine(object):
         else:
             self.worlddb = self.gorm.db.connection
         self.db.initdb()
+        self._existence = {}
+        self._timestream = {'master': {}}
+        self._branch_start = {}
+        self._branches = {'master': self._timestream['master']}
+        self._branch_parents = {}
         if self.caching:
             self.gorm._obranch = self.gorm.branch
             self.gorm._orev = self.gorm.rev
             self._active_branches_cache = []
+            self.db.active_branches = self._active_branches
+            todo = deque(self.db.timestream_data())
+            while todo:
+                (branch, parent, parent_tick) = working = todo.popleft()
+                if branch == 'master':
+                    continue
+                if parent in self._branches:
+                    assert(branch not in self._branches)
+                    self._branches[parent][branch] = {}
+                    self._branches[branch] = self._branches[parent][branch]
+                    self._branch_parents['branch'] = parent
+                    self._branch_start[branch] = parent_tick
+                else:
+                    todo.append(working)
         for n in self.db.characters():
             self.character[n] = Character(self, n)
         self._rules_iter = self._follow_rules()
@@ -380,26 +399,6 @@ class Engine(object):
         self.uniform = self.rando.uniform
         self.vonmisesvariate = self.rando.vonmisesvariate
         self.weibullvariate = self.rando.weibullvariate
-        self._existence = {}
-        self._timestream = {'master': {}}
-        self._branch_start = {}
-        self._branches = {'master': self._timestream['master']}
-        self._branch_parents = {}
-        if self.caching:
-            self.db.active_branches = self._active_branches
-            todo = deque(self.db.timestream_data())
-            while todo:
-                (branch, parent, parent_tick) = working = todo.popleft()
-                if branch == 'master':
-                    continue
-                if parent in self._branches:
-                    assert(branch not in self._branches)
-                    self._branches[parent][branch] = {}
-                    self._branches[branch] = self._branches[parent][branch]
-                    self._branch_parents['branch'] = parent
-                    self._branch_start[branch] = parent_tick
-                else:
-                    todo.append(working)
 
     def _node_exists(self, graph, node):
         """Version of gorm's ``_node_exists`` that caches stuff"""

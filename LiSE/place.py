@@ -44,7 +44,7 @@ class Place(Node):
             if needcache(self._cache, key, branch, tick):
                 value = super().__getitem__(key)
                 encache(
-                    self._cache, key, value, branch, tick
+                    self, self._cache, key, value
                 )
             r = self._cache[key][branch][tick]
             if r is None:
