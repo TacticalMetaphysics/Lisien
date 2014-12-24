@@ -4,7 +4,7 @@ LiSE is an application for developing life simulation games.
 
 For the purposes of LiSE, it is any game where you are primarily
 concerned with "who you are" rather than "what you're
-doing". Nearly anything your character can do should be
+doing". Nearly everything your character can do should be
 represented in the game somehow, but mostly in non-interactive form. This frees
 the player to attend to the high-level tasks of "living" in the game
 world--which, in concrete terms, boil down to time and resource
