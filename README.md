@@ -7,12 +7,8 @@ concerned with "who you are" rather than "what you're
 doing". Everything your character in a life simulator can do should be
 represented somehow, but mostly in non-interactive form. This frees
 the player to attend to the high-level tasks of "living" in the game
-world: choosing what to do and when, rather than how.
-
-In concrete terms, LiSE-style life simulators are games of time and
-resource management. The primary method for interacting with the game
-is to arrange events on a schedule, and then wait for your
-character(s) to carry them out.
+world--which, in concrete terms, boils down to time and resource
+management.
 
 Existing games that LiSE seeks to imitate include:
 
