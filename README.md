@@ -12,10 +12,7 @@ world: choosing what to do and when, rather than how.
 In concrete terms, LiSE-style life simulators are games of time and
 resource management. The primary method for interacting with the game
 is to arrange events on a schedule, and then wait for your
-character(s) to carry them out. These games may be turn-based or
-real-time, but in the latter case, they allow the player to control
-the passage of game-time. There may be time pressure on the character(s),
-but the player experiences this only as a strategic concern.
+character(s) to carry them out.
 
 Existing games that LiSE seeks to imitate include:
 
