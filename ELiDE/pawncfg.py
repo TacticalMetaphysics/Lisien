@@ -5,13 +5,8 @@ from kivy.properties import (
 )
 from kivy.logger import Logger
 from kivy.lang import Builder
-from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from .kivygarden.texturestack import ImageStack
-
-
-class PalletBox(Widget):
-    pallets = ListProperty()
 
 
 class PawnConfigurator(BoxLayout):
@@ -66,7 +61,7 @@ kv = """
     halign: 'center'
     size: self.texture_size
     size_hint: (None, None)
-<PalletBox>:
+<PawnPalletBox@PalletBox>:
     pallets: [base, body, arm, leg, hand1, hand2, boot, hair, beard, head]
     size_hint_y: None
     height: 6200
@@ -202,7 +197,7 @@ kv = """
         bar_width: 15
         scroll_type: ['bars', 'content']
         bar_inactive_color: [.7, .7, .7, .5]
-        PalletBox:
+        PawnPalletBox:
             id: palletbox
 """
 Builder.load_string(kv)

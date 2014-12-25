@@ -14,10 +14,11 @@ from kivy.properties import (
     ReferenceListProperty,
     StringProperty
 )
-from kivy.resources import resource_find, resource_paths
+from kivy.resources import resource_find
 from kivy.atlas import Atlas
 from kivy.lang import Builder
 from kivy.logger import Logger
+from kivy.uix.widget import Widget
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.stacklayout import StackLayout
 
@@ -117,3 +118,7 @@ kv = """
     size_hint: (None, None)
 """
 Builder.load_string(kv)
+
+
+class PalletBox(Widget):
+    pallets = ListProperty()
