@@ -12,7 +12,7 @@ import ELiDE
 import ELiDE.layout
 
 resource_add_path(ELiDE.__path__[0] + "/assets")
-resource_add_path(ELiDE.__path__[0] + "/assets/freepik_svg")
+resource_add_path(ELiDE.__path__[0] + "/assets/rltiles")
 
 
 class ELiDEApp(App):
