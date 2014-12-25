@@ -7,6 +7,7 @@ from kivy.properties import (
     ObjectProperty,
     StringProperty
 )
+from kivy.uix.modalview import ModalView
 from kivy.uix.floatlayout import FloatLayout
 from kivy.clock import Clock
 from kivy.logger import Logger
@@ -14,6 +15,7 @@ from kivy.logger import Logger
 from LiSE.util import RedundantRuleError
 
 from .dummy import Dummy
+from .pawncfg import PawnConfigurator
 from .board.arrow import ArrowWidget
 
 
@@ -45,6 +47,18 @@ class ELiDELayout(FloatLayout):
     tick = NumericProperty(0)
     time = ListProperty(['master', 0])
     rules_per_frame = BoundedNumericProperty(10, min=1)
+
+    def toggle_pawn_configurator(self):
+        """Show or hide the pop-over where you can configure the dummy pawn"""
+        if not hasattr(self, '_pawn_configurator'):
+            return
+        if hasattr(self, '_popover'):
+            self._popover.dismiss()
+            del self._popover
+        else:
+            self._popover = ModalView()
+            self._popover.add_widget(self._pawn_configurator)
+            self._popover.open()
 
     def toggle_reciprocal(self):
         """Flip my ``reciprocal_portal`` boolean, and draw (or stop drawing)
@@ -258,6 +272,10 @@ class ELiDELayout(FloatLayout):
                 continue
             if dummy == self.ids.dummything:
                 dummy.paths = ['atlas://rltiles/base/unseen']
+                self._pawn_configurator = PawnConfigurator(
+                    name=self.ids.dummything.name,
+                    on_press=lambda: None
+                )
             if dummy == self.ids.dummyplace:
                 dummy.paths = ['orb.png']
             num = 0
