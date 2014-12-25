@@ -34,6 +34,9 @@ class SwatchButton(ToggleButton):
         if self.state == 'down':
             assert(self not in self.parent.selection)
             if self.parent.selection_mode == 'single':
+                for wid in self.parent.selection:
+                    if wid is not self:
+                        wid.state = 'normal'
                 self.parent.selection = [self]
             else:
                 self.parent.selection.append(self)
@@ -55,8 +58,8 @@ kv = """
         text: root.name
         size: self.texture_size
         pos_hint: {'x': None, 'y': None}
-        x: root.x
-        top: theimg.y
+        x: root.x + 5
+        y: theimg.y - self.height
 """
 Builder.load_string(kv)
 
@@ -74,7 +77,6 @@ class Pallet(StackLayout):
     def on_filename(self, *args):
         if not self.filename:
             return
-        Logger.debug('Pallet: searching for atlas in resource path {}'.format(resource_paths))
         self.atlas = Atlas(resource_find(self.filename))
 
     def on_atlas(self, *args):
