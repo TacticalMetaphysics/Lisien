@@ -68,18 +68,20 @@ class ConfigDialog(BoxLayout):
     imgpaths = ListProperty()
     layout = ObjectProperty()
 
-
-class SpotConfigDialog(ConfigDialog):
     def pressed(self):
         self.prefix = self.ids.configurator.prefix
         self.imgpaths = self.ids.configurator.imgpaths
+
+
+class SpotConfigDialog(ConfigDialog):
+    def pressed(self):
+        super().pressed()
         self.layout.toggle_spot_config()
 
 
 class PawnConfigDialog(ConfigDialog):
     def pressed(self):
-        self.prefix = self.ids.configurator.prefix
-        self.imgpaths = self.ids.configurator.imgpaths
+        super().pressed()
         self.layout.toggle_pawn_config()
 
 
