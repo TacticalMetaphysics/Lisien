@@ -134,7 +134,7 @@
                         size: (0, 0)
             Button:
                 id: portaldirbut
-                text: 'Two-way' if root.reciprocal_portal else 'One-way'
+                text: 'One-way' if root.reciprocal_portal else 'Two-way'
                 on_press: root.toggle_reciprocal()
         BoxLayout:
             # Has the generic thing-graphic in it, drag it on top of a spot and you get a new thing
