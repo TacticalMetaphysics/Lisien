@@ -95,7 +95,6 @@ Builder.load_string(slabel_kv)
 
 
 pawn_configurator_kv = """
-#: import resource_find kivy.resources.resource_find
 <PawnConfigDialog>:
     orientation: 'vertical'
     Configurator:
