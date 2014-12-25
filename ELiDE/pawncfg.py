@@ -192,6 +192,9 @@ kv = """
             id: namer
             hint_text: 'enter a name'
     ScrollView:
+        bar_width: 15
+        scroll_type: ['bars', 'content']
+        bar_inactive_color: [.7, .7, .7, .5]
         PalletBox:
             id: palletbox
 """
