@@ -1,12 +1,13 @@
 from kivy.properties import (
     StringProperty,
     ListProperty,
-    ObjectProperty,
-    AliasProperty
+    ObjectProperty
 )
+from kivy.logger import Logger
 from kivy.lang import Builder
 from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
+from .kivygarden.texturestack import ImageStack
 
 
 class PalletBox(Widget):
@@ -16,17 +17,39 @@ class PalletBox(Widget):
 class PawnConfigurator(BoxLayout):
     name = StringProperty()
     pallets = ListProperty()
-    imgpaths = AliasProperty(
-        lambda self: self._get_imgpaths() if self.pallets else [],
-        lambda self, v: None
-    )
+    imgpaths = ListProperty([])
     on_press = ObjectProperty()
 
-    def _get_imgpaths(self, *args):
+    def on_pallets(self, *args):
+        for pallet in self.pallets:
+            pallet.bind(selection=self._upd_imgpaths)
+
+    def on_imgpaths(self, *args):
+        Logger.debug(
+            'PawnConfigurator: got imgpaths {}'.format(self.imgpaths)
+        )
+        if hasattr(self, '_imgstack'):
+            self.ids.preview.remove_widget(self._imgstack)
+        self._imgstack = ImageStack(
+            paths=self.imgpaths,
+            x=self.ids.preview.center_x - 16,
+            y=self.ids.preview.y + 16
+        )
+        self.ids.preview.add_widget(self._imgstack)
+
+    def _upd_imgpaths(self, *args):
+        self.imgpaths = self._get_imgpaths()
+
+    def _get_imgpaths(self):
         r = []
         for pallet in self.pallets:
             if pallet.selection:
-                r.append(pallet.filename + '/' + pallet.selection[0])
+                r.append(
+                    'atlas://{}/{}'.format(
+                        pallet.filename,
+                        pallet.selection[0].name
+                    )
+                )
         return r
 
 
@@ -163,8 +186,8 @@ kv = """
         Button:
             text: 'Accept'
             on_press: root.on_press()
-        ImageStack:
-            paths: root.imgpaths
+        Widget:
+            id: preview
         TextInput:
             id: namer
             hint_text: 'enter a name'
