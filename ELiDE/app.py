@@ -39,7 +39,7 @@ class ELiDEApp(App):
                 'wallpaper': "wallpape.jpg",
                 'boardchar': 'physical',
                 'sheetchar': 'player',
-                'debug': 'no'
+                'debugger': 'no'
             }
         )
         config.write()
@@ -57,7 +57,7 @@ class ELiDEApp(App):
                 LiSE.__path__[-1]
             )
         )
-        if config['ELiDE']['debug'] == 'yes':
+        if config['ELiDE']['debugger'] == 'yes':
             import pdb
             pdb.set_trace()
 
