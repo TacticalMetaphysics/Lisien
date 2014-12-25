@@ -40,9 +40,6 @@ class SwatchButton(ToggleButton):
                 self.parent.selection = [self]
             else:
                 self.parent.selection.append(self)
-        else:
-            if self in self.parent.selection:
-                self.parent.selection.remove(self)
 
 
 kv = """
@@ -73,6 +70,13 @@ class Pallet(StackLayout):
     swatch_size = ReferenceListProperty(swatch_width, swatch_height)
     selection = ListProperty([])
     selection_mode = OptionProperty('single', options=['single', 'multiple'])
+
+    def on_selection(self, *args):
+        Logger.debug(
+            'Pallet: {} got selection {}'.format(
+                self.filename, self.selection
+            )
+        )
 
     def on_filename(self, *args):
         if not self.filename:
