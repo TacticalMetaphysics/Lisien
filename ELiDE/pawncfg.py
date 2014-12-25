@@ -20,6 +20,13 @@ class PawnConfigurator(BoxLayout):
     imgpaths = ListProperty([])
     on_press = ObjectProperty()
 
+    def on_name(self, *args):
+        if not self.name:
+            return
+        if 'namerbox' not in self.ids:
+            return
+        self.ids.namer.text = self.name
+
     def on_pallets(self, *args):
         for pallet in self.pallets:
             pallet.bind(selection=self._upd_imgpaths)
@@ -178,7 +185,7 @@ kv = """
     orientation: 'vertical'
     pallets: palletbox.pallets
     BoxLayout:
-        id: namer
+        id: namerbox
         size_hint_y: 0.1
         y: root.top - self.height
         width: root.width
