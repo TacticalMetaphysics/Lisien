@@ -15,7 +15,7 @@ from kivy.logger import Logger
 from LiSE.util import RedundantRuleError
 
 from .dummy import Dummy
-from .pawncfg import PawnConfigurator
+from .configurator import PawnConfigDialog
 from .board.arrow import ArrowWidget
 
 
@@ -48,29 +48,29 @@ class ELiDELayout(FloatLayout):
     time = ListProperty(['master', 0])
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
-    def toggle_pawn_configurator(self):
+    def toggle_pawn_config(self):
         """Show or hide the pop-over where you can configure the dummy pawn"""
-        if not hasattr(self, '_pawn_configurator'):
+        if not hasattr(self, '_pawn_config'):
             return
         if hasattr(self, '_popover'):
             dummything = self.ids.dummything
             self.ids.thingtab.remove_widget(dummything)
             dummything.clear()
-            if self._pawn_configurator.name:
-                dummything.prefix = self._pawn_configurator.name
+            if self._pawn_config.prefix:
+                dummything.prefix = self._pawn_config.prefix
                 dummything.num = self._dummynum(dummything.prefix) + 1
-            if self._pawn_configurator.imgpaths:
-                dummything.paths = self._pawn_configurator.imgpaths
+            if self._pawn_config.imgpaths:
+                dummything.paths = self._pawn_config.imgpaths
             else:
                 dummything.paths = ['atlas://rltiles/base/unseen']
             self.ids.thingtab.add_widget(dummything)
-            self._popover.remove_widget(self._pawn_configurator)
+            self._popover.remove_widget(self._pawn_config)
             self._popover.dismiss()
             del self._popover
         else:
-            self._pawn_configurator.name = self.ids.dummything.prefix
+            self._pawn_config.prefix = self.ids.dummything.prefix
             self._popover = ModalView()
-            self._popover.add_widget(self._pawn_configurator)
+            self._popover.add_widget(self._pawn_config)
             self._popover.open()
 
     def toggle_reciprocal(self):
@@ -298,9 +298,7 @@ class ELiDELayout(FloatLayout):
                 continue
             if dummy == self.ids.dummything:
                 dummy.paths = ['atlas://rltiles/base/unseen']
-                self._pawn_configurator = PawnConfigurator(
-                    on_press=self.toggle_pawn_configurator
-                )
+                self._pawn_config = PawnConfigDialog(layout=self)
             if dummy == self.ids.dummyplace:
                 dummy.paths = ['orb.png']
             dummy.num = self._dummynum(dummy.prefix) + 1

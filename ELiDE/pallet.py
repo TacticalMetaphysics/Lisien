@@ -116,6 +116,7 @@ kv = """
     orientation: 'lr-tb'
     padding_y: 100
     size_hint: (None, None)
+    height: self.minimum_height
 """
 Builder.load_string(kv)
 
