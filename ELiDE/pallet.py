@@ -14,6 +14,8 @@ from kivy.properties import (
     ReferenceListProperty,
     StringProperty
 )
+from kivy.resources import resource_find, resource_paths
+from kivy.atlas import Atlas
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.uix.togglebutton import ToggleButton
@@ -26,7 +28,7 @@ class SwatchButton(ToggleButton):
 
     """
     name = StringProperty()
-    texture = ObjectProperty()
+    tex = ObjectProperty()
 
     def on_state(self, *args):
         if self.state == 'down':
@@ -36,31 +38,44 @@ class SwatchButton(ToggleButton):
             else:
                 self.parent.selection.append(self)
         else:
-            assert(self in self.parent.selection)
-            self.parent.selection.remove(self)
+            if self in self.parent.selection:
+                self.parent.selection.remove(self)
 
 
 kv = """
 <SwatchButton>:
     Image:
-        center_x: root.center_x
-        texture: root.texture
-        size: root.texture.size
+        id: theimg
+        center: root.center
+        texture: root.tex
+        size: root.tex.size if root.tex else (1, 1)
+        size_hint: (None, None)
+        pos_hint: {'x': None, 'y': None}
     Label:
-        center_x: root.center_x
         text: root.name
+        size: self.texture_size
+        pos_hint: {'x': None, 'y': None}
+        x: root.x
+        top: theimg.y
 """
 Builder.load_string(kv)
 
 
 class Pallet(StackLayout):
     atlas = ObjectProperty()
+    filename = StringProperty()
     swatches = DictProperty({})
     swatch_width = NumericProperty(100)
-    swatch_height = NumericProperty(100)
+    swatch_height = NumericProperty(75)
     swatch_size = ReferenceListProperty(swatch_width, swatch_height)
     selection = ListProperty([])
     selection_mode = OptionProperty('single', options=['single', 'multiple'])
+
+    def on_filename(self, *args):
+        if not self.filename:
+            return
+        Logger.debug('Pallet: searching for atlas in resource path {}'.format(resource_paths))
+        self.atlas = Atlas(resource_find(self.filename))
 
     def on_atlas(self, *args):
         if self.atlas is None:
@@ -79,8 +94,17 @@ class Pallet(StackLayout):
             if name not in self.swatches or self.swatches[name] != tex:
                 self.swatches[name] = SwatchButton(
                     name=name,
-                    texture=tex,
+                    tex=tex,
                     size_hint=(None, None),
                     size=self.swatch_size
                 )
                 self.add_widget(self.swatches[name])
+
+
+kv = """
+<Pallet>:
+    orientation: 'lr-tb'
+    padding_y: 100
+    size_hint: (None, None)
+"""
+Builder.load_string(kv)
