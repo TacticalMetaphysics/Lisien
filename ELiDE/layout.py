@@ -53,9 +53,22 @@ class ELiDELayout(FloatLayout):
         if not hasattr(self, '_pawn_configurator'):
             return
         if hasattr(self, '_popover'):
+            dummything = self.ids.dummything
+            self.ids.thingtab.remove_widget(dummything)
+            dummything.clear()
+            if self._pawn_configurator.name:
+                dummything.prefix = self._pawn_configurator.name
+                dummything.num = self._dummynum(dummything.prefix) + 1
+            if self._pawn_configurator.imgpaths:
+                dummything.paths = self._pawn_configurator.imgpaths
+            else:
+                dummything.paths = ['atlas://rltiles/base/unseen']
+            self.ids.thingtab.add_widget(dummything)
+            self._popover.remove_widget(self._pawn_configurator)
             self._popover.dismiss()
             del self._popover
         else:
+            self._pawn_configurator.name = self.ids.dummything.prefix
             self._popover = ModalView()
             self._popover.add_widget(self._pawn_configurator)
             self._popover.open()
@@ -258,6 +271,19 @@ class ELiDELayout(FloatLayout):
             self.selection = None
         self.keep_selection = False
 
+    def _dummynum(self, name):
+        num = 0
+        for nodename in self.board.character.node:
+            nodename = str(nodename)
+            if not nodename.startswith(name):
+                continue
+            try:
+                nodenum = int(nodename.lstrip(name))
+            except ValueError:
+                continue
+            num = max((nodenum, num))
+        return num
+
     def on_dummies(self, *args):
         """Give the dummies numbers such that, when appended to their names,
         they give a unique name for the resulting new
@@ -273,22 +299,11 @@ class ELiDELayout(FloatLayout):
             if dummy == self.ids.dummything:
                 dummy.paths = ['atlas://rltiles/base/unseen']
                 self._pawn_configurator = PawnConfigurator(
-                    name=self.ids.dummything.name,
-                    on_press=lambda: None
+                    on_press=self.toggle_pawn_configurator
                 )
             if dummy == self.ids.dummyplace:
                 dummy.paths = ['orb.png']
-            num = 0
-            for nodename in self.board.character.node:
-                nodename = str(nodename)
-                if not nodename.startswith(dummy.prefix):
-                    continue
-                try:
-                    nodenum = int(nodename.lstrip(dummy.prefix))
-                except ValueError:
-                    continue
-                num = max((nodenum, num))
-            dummy.num = num + 1
+            dummy.num = self._dummynum(dummy.prefix) + 1
             dummy._numbered = True
 
     def spot_from_dummy(self, dummy):

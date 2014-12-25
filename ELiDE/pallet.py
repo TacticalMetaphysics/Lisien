@@ -40,6 +40,9 @@ class SwatchButton(ToggleButton):
                 self.parent.selection = [self]
             else:
                 self.parent.selection.append(self)
+        else:
+            if self in self.parent.selection:
+                self.parent.selection.remove(self)
 
 
 kv = """

@@ -197,7 +197,7 @@ kv = """
             id: preview
         TextInput:
             id: namer
-            hint_text: 'enter a name'
+            hint_text: 'Enter name prefix'
     ScrollView:
         bar_width: 15
         scroll_type: ['bars', 'content']
