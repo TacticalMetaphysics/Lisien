@@ -15,7 +15,7 @@ from kivy.logger import Logger
 from LiSE.util import RedundantRuleError
 
 from .dummy import Dummy
-from .configurator import PawnConfigDialog
+from .configurator import PawnConfigDialog, SpotConfigDialog
 from .board.arrow import ArrowWidget
 
 
@@ -47,6 +47,27 @@ class ELiDELayout(FloatLayout):
     tick = NumericProperty(0)
     time = ListProperty(['master', 0])
     rules_per_frame = BoundedNumericProperty(10, min=1)
+
+    def toggle_spot_config(self):
+        if not hasattr(self, '_spot_config'):
+            return
+        if hasattr(self, '_popover'):
+            dummyplace = self.ids.dummyplace
+            self.ids.placetab.remove_widget(dummyplace)
+            dummyplace.clear()
+            if self._spot_config.prefix:
+                dummyplace.prefix = self._spot_config.prefix
+                dummyplace.num = self._dummynum(dummyplace.prefix) + 1
+            dummyplace.paths = self._spot_config.imgpaths
+            self.ids.placetab.add_widget(dummyplace)
+            self._popover.remove_widget(self._spot_config)
+            self._popover.dismiss()
+            del self._popover
+        else:
+            self._spot_config.prefix = self.ids.dummyplace.prefix
+            self._popover = ModalView()
+            self._popover.add_widget(self._spot_config)
+            self._popover.open()
 
     def toggle_pawn_config(self):
         """Show or hide the pop-over where you can configure the dummy pawn"""
@@ -301,6 +322,7 @@ class ELiDELayout(FloatLayout):
                 self._pawn_config = PawnConfigDialog(layout=self)
             if dummy == self.ids.dummyplace:
                 dummy.paths = ['orb.png']
+                self._spot_config = SpotConfigDialog(layout=self)
             dummy.num = self._dummynum(dummy.prefix) + 1
             dummy._numbered = True
 

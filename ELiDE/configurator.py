@@ -43,7 +43,10 @@ class Configurator(BoxLayout):
                             selected.name
                         )
                     )
-        self.imgpaths = imgpaths
+        if imgpaths:
+            self.imgpaths = imgpaths
+        else:
+            self.imgpaths = self._default_imgpaths()
 
 
 configurator_kv = """
@@ -78,11 +81,17 @@ class SpotConfigDialog(ConfigDialog):
         super().pressed()
         self.layout.toggle_spot_config()
 
+    def _default_imgpaths(self):
+        return ['atlas://base.atlas/unseen']
+
 
 class PawnConfigDialog(ConfigDialog):
     def pressed(self):
         super().pressed()
         self.layout.toggle_pawn_config()
+
+    def _default_imgpaths(self):
+        return ['orb.png']
 
 
 slabel_kv = """
@@ -211,3 +220,22 @@ pawn_configurator_kv = """
                 filename: 'head.atlas'
 """
 Builder.load_string(pawn_configurator_kv)
+
+
+spot_configurator_kv = """
+<SpotConfigDialog>:
+    orientation: 'vertical'
+    Configurator:
+        id: configurator
+        prefix: root.prefix
+        pallets: [pallet]
+        cb: root.pressed
+        size_hint_y: None
+        height: 50
+    Pallet:
+        id: pallet
+        y: configurator.y - self.minimum_height
+        width: root.width
+        filename: 'dungeon.atlas'
+"""
+Builder.load_string(spot_configurator_kv)
