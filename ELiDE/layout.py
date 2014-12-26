@@ -60,14 +60,14 @@ class ELiDELayout(FloatLayout):
             d = arr.destination.name
             self.board.remove_widget(arr)
             del self.board.arrow[o][d]
-            del self.board.character.portal[o][d]
+            arr.portal.delete()
         elif isinstance(self.selection, Spot):
             spot = self.selection
             spot.canvas.clear()
             self.selection = None
             self.board.remove_widget(spot)
             del self.board.spot[spot.name]
-            del self.board.character.place[spot.name]
+            spot.remote.delete()
         else:
             assert(isinstance(self.selection, Pawn))
             pawn = self.selection
@@ -80,8 +80,8 @@ class ELiDELayout(FloatLayout):
                     canvas.remove(pawn.group)
             self.selection = None
             self.board.remove_widget(pawn)
-            del self.board.pawn[pawn.name]
             del self.board.character.thing[pawn.name]
+            pawn.remote.delete()
 
     def toggle_spot_config(self):
         """Show the dialog where you select graphics and a name for a place,
