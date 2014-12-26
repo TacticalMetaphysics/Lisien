@@ -205,4 +205,4 @@ class Portal(Edge):
         For symmetry with :class:`Thing` and :class`Place`.
 
         """
-        del self.character.portal[self.origin][self.destination]
+        del self.character.portal[self.origin.name][self.destination.name]
