@@ -16,7 +16,9 @@ from LiSE.util import RedundantRuleError
 
 from .dummy import Dummy
 from .configurator import PawnConfigDialog, SpotConfigDialog
-from .board.arrow import ArrowWidget
+from .board.arrow import Arrow, ArrowWidget
+from .board.spot import Spot
+from .board.pawn import Pawn
 
 
 class ELiDELayout(FloatLayout):
@@ -48,7 +50,44 @@ class ELiDELayout(FloatLayout):
     time = ListProperty(['master', 0])
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
+    def delete_selection(self):
+        if self.selection is None:
+            return
+        if isinstance(self.selection, Arrow):
+            arr = self.selection
+            self.selection = None
+            o = arr.origin.name
+            d = arr.destination.name
+            self.board.remove_widget(arr)
+            del self.board.arrow[o][d]
+            del self.board.character.portal[o][d]
+        elif isinstance(self.selection, Spot):
+            spot = self.selection
+            spot.canvas.clear()
+            self.selection = None
+            self.board.remove_widget(spot)
+            del self.board.spot[spot.name]
+            del self.board.character.place[spot.name]
+        else:
+            assert(isinstance(self.selection, Pawn))
+            pawn = self.selection
+            for canvas in (
+                    self.board.pawnlayout.canvas.after,
+                    self.board.pawnlayout.canvas.before,
+                    self.board.pawnlayout.canvas
+            ):
+                if pawn.group in canvas.children:
+                    canvas.remove(pawn.group)
+            self.selection = None
+            self.board.remove_widget(pawn)
+            del self.board.pawn[pawn.name]
+            del self.board.character.thing[pawn.name]
+
     def toggle_spot_config(self):
+        """Show the dialog where you select graphics and a name for a place,
+        or hide it if already showing.
+
+        """
         if not hasattr(self, '_spot_config'):
             return
         if hasattr(self, '_popover'):
@@ -293,6 +332,10 @@ class ELiDELayout(FloatLayout):
         self.keep_selection = False
 
     def _dummynum(self, name):
+        """Given some name, count how many nodes there already are whose name
+        starts the same.
+
+        """
         num = 0
         for nodename in self.board.character.node:
             nodename = str(nodename)
