@@ -266,7 +266,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                     if t > tick:
                         del self._keycache[branch][t]
                 if tick in self._keycache[branch]:
-                    self._keycache[branch][tick].remove(thing)
+                    self._keycache[branch][tick].discard(thing)
                     return
                 else:
                     self._keycache[branch] = set(self._real.keys())
