@@ -27,25 +27,19 @@ def try_json_load(obj):
         return obj
 
 
-class StatRowKey(TextInput):
-    def on_text_validate(self, *args):
-        if hasattr(self, '_former_key'):
-            self.parent.parent.del_key(self._former_key)
-        self.parent.key = self.text.lstrip('_')
-        self.parent.set_value()
-        self.text = ''
-
-
 class StatRowValue(TextInput):
     def on_text_validate(self, *args):
-        self.parent.value = self.text
+        if self.text == '':
+            self.parent.value = None
+        else:
+            self.parent.value = self.text
         self.parent.set_value()
         self.text = ''
 
 
 class StatRowListItem(CompositeListItem):
     key = ObjectProperty()
-    value = ObjectProperty()
+    value = ObjectProperty(None, allownone=True)
     reg = ObjectProperty()
     unreg = ObjectProperty()
     setter = ObjectProperty()
@@ -93,7 +87,8 @@ class StatListView(ListView, MirrorMapping):
     def upd_data(self, *args):
         self.adapter.data = dict(
             (k, (k, v)) for (k, v) in self.mirror.items()
-            if not isinstance(k, str) or (
+            if v is not None and
+            not isinstance(k, str) or (
                 k[0] != '_' and
                 k not in (
                     'character',
@@ -135,19 +130,21 @@ class StatListView(ListView, MirrorMapping):
             self.unbind(mirror=self._listeners[w.key])
 
     def _set_value(self, k, v):
-        self.remote[k] = v
+        if v is None:
+            del self.remote[k]
+        else:
+            self.remote[k] = v
 
 
 kv = """
 <StatRowListItem>:
     orientation: 'horizontal'
     height: 30
-    StatRowKey:
-        id: keycell
+    Label:
+        id: keylabel
         font_name: root.font_name
         font_size: root.font_size
-        hint_text: str(root.key)
-        multiline: False
+        text: str(root.key)
     StatRowValue:
         id: valcell
         font_name: root.font_name

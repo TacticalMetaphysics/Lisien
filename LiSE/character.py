@@ -26,6 +26,7 @@ from .util import (
     needcache,
     encache,
     enkeycache,
+    dekeycache,
     cache_forward,
     listen,
     listener,
