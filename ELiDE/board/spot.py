@@ -8,7 +8,8 @@ from kivy.properties import (
     AliasProperty,
     ListProperty,
     ObjectProperty,
-    NumericProperty
+    NumericProperty,
+    BooleanProperty
 )
 from kivy.clock import Clock
 from kivy.logger import Logger
@@ -27,6 +28,7 @@ class Spot(PawnSpot):
     """
     offset = NumericProperty(3)
     collider = ObjectProperty()
+    collided = BooleanProperty(False)
     place = AliasProperty(
         lambda self: self.remote,
         lambda self, v: self.remote.setter()(v),
@@ -194,14 +196,15 @@ class Spot(PawnSpot):
             return False
         return (x, y) in self.collider
 
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            touch.grab(self)
-
     def on_touch_move(self, touch):
         """If I'm being dragged, move to follow the touch."""
         if not self.selected:
             return False
+        if not self.collided:
+            if self.collide_point(*touch.pos):
+                self.collided = True
+            if not self.collided:
+                return False
         self._touchpos = touch.pos
         self.center = self._touchpos
         return True
@@ -216,6 +219,7 @@ class Spot(PawnSpot):
         self.collider = CollideEllipse(
             x=x, y=y, rx=self.width/2, ry=self.height/2
         )
+        self.collided = False
 
     def __repr__(self):
         """Give my name and position."""

@@ -167,6 +167,7 @@ class ELiDELayout(FloatLayout):
             return True
         if (
                 self.ids.boardview.collide_point(*touch.pos)
+                and not self.selection
                 and not self.selection_candidates
         ):
             # if the board itself handles the touch, let it be
@@ -219,13 +220,15 @@ class ELiDELayout(FloatLayout):
 
         """
         if self.selection:
+            Logger.debug('ELiDELayout: on_touch_move w. selection')
             touch.push()
             if hasattr(self.selection, 'use_boardspace'):
                 touch.apply_transform_2d(self.ids.boardview.to_local)
             r = self.selection.dispatch('on_touch_move', touch)
             touch.pop()
-            self.keep_selection = True
-            return r
+            if r:
+                self.keep_selection = True
+                return True
         return super().on_touch_move(touch)
 
     def on_touch_up(self, touch):
