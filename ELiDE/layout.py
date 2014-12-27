@@ -50,6 +50,17 @@ class ELiDELayout(FloatLayout):
     time = ListProperty(['master', 0])
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
+    def set_stat(self):
+        key = self.ids.newstatkey.text
+        value = self.ids.newstatval.text
+        if not (key and value):
+            # TODO implement some feedback to the effect that
+            # you need to enter things
+            return
+        self.ids.charsheet.remote[key] = value
+        self.ids.newstatkey.text = ''
+        self.ids.newstatval.text = ''
+
     def delete_selection(self):
         if self.selection is None:
             return
@@ -164,6 +175,12 @@ class ELiDELayout(FloatLayout):
         if self.ids.charmenu.dispatch('on_touch_down', touch):
             return True
         if self.ids.charsheet.dispatch('on_touch_down', touch):
+            return True
+        if self.ids.newstatkey.dispatch('on_touch_down', touch):
+            return True
+        if self.ids.newstatval.dispatch('on_touch_down', touch):
+            return True
+        if self.ids.addstatbut.dispatch('on_touch_down', touch):
             return True
         if (
                 self.ids.boardview.collide_point(*touch.pos)
