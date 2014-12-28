@@ -12,22 +12,12 @@ setup(
     packages=[
         "LiSE",
     ],
+    package_data={
+        'LiSE': ['sqlite.json']
+    },
     install_requires=[
         "gorm>=0.5",
     ],
-)
-
-
-setup(
-    name="ELiDE.kivygarden.collider",
-    ext_modules=[
-        Extension(
-            name="collider",
-            depends=["ELiDE/kivygarden/collider/__init__.py"],
-            sources=["ELiDE/kivygarden/collider/collider.pyx"]
-        )
-    ],
-    cmdclass={'build_ext': build_ext},
 )
 
 
@@ -36,19 +26,28 @@ setup(
     packages=[
         "ELiDE",
         "ELiDE.board",
+        "ELiDE.kivygarden.collider",
         "ELiDE.kivygarden.stiffscroll",
         "ELiDE.kivygarden.texturestack"
     ],
     package_dir={
         'ELiDE.kivygarden.stiffscroll': 'ELiDE/kivygarden/stiffscroll',
+        'ELiDE.kivygarden.collider': 'ELiDE/kivygarden/collider',
         'ELiDE.kivygarden.texturestack':
         'ELiDE/kivygarden/texturestack'
     },
+    ext_modules=[
+        Extension(
+            name="collider",
+            depends=["ELiDE/kivygarden/collider/__init__.py"],
+            sources=["ELiDE/kivygarden/collider/collider.pyx"]
+        )
+    ],
+    cmdclass={'build_ext': build_ext},
     install_requires=[
         "LiSE",
         "numpy",
-        "kivy",
-        "ELiDE.kivygarden.collider"
+        "kivy"
     ],
     package_data={
         "ELiDE": [
