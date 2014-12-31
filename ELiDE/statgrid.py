@@ -139,7 +139,7 @@ class StatListView(ListView, MirrorMapping):
 kv = """
 <StatRowListItem>:
     orientation: 'horizontal'
-    height: 30
+    height: self.font_size + 5
     Label:
         id: keylabel
         font_name: root.font_name
