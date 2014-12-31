@@ -36,9 +36,12 @@ class MirrorMapping(EventDispatcher):
         when the remote data is changed.
 
         """
+        data = {}
         for (k, v) in self.remote.items():
             if v:
-                self.mirror[k] = v
+                data[k] = v
+
+        self.mirror = data
 
         if not hasattr(self.remote, 'listener'):
             return
