@@ -171,17 +171,32 @@ class ELiDELayout(FloatLayout):
 
         """
         # the menu widgets can handle things themselves
-        if self.ids.timemenu.dispatch('on_touch_down', touch):
+        if self.ids.timemenu.collide_point(*touch.pos):
+            self.ids.timemenu.dispatch('on_touch_down', touch)
+            Logger.debug('ELiDELayout: touched timemenu')
             return True
-        if self.ids.charmenu.dispatch('on_touch_down', touch):
+        if self.ids.charmenu.collide_point(*touch.pos):
+            self.ids.charmenu.dispatch('on_touch_down', touch)
+            Logger.debug('ELiDELayout: touched charmenu')
             return True
-        if self.ids.charsheet.dispatch('on_touch_down', touch):
+        if self.ids.charsheet.collide_point(*touch.pos):
+            self.ids.charsheet.dispatch('on_touch_down', touch)
+            Logger.debug('ELiDELayout: touched charsheet')
             return True
-        if self.ids.newstatkey.dispatch('on_touch_down', touch):
+        if self.ids.newstatkey.collide_point(*touch.pos):
+            self.ids.newstatkey.dispatch('on_touch_down', touch)
+            Logger.debug('ELiDELayout: touched newstatkey, keeping selection')
+            self.keep_selection = True
             return True
-        if self.ids.newstatval.dispatch('on_touch_down', touch):
+        if self.ids.newstatval.collide_point(*touch.pos):
+            self.ids.newstatval.dispatch('on_touch_down', touch)
+            Logger.debug('ELiDELayout: touched newstatval, keeping selection')
+            self.keep_selection = True
             return True
-        if self.ids.addstatbut.dispatch('on_touch_down', touch):
+        if self.ids.addstatbut.collide_point(*touch.pos):
+            self.ids.addstatbut.dispatch('on_touch_down', touch)
+            Logger.debug('ELiDELayout: touched addstatbut, keeping selection')
+            self.keep_selection = True
             return True
         if (
                 self.ids.boardview.collide_point(*touch.pos)
@@ -305,7 +320,7 @@ class ELiDELayout(FloatLayout):
             del self.protoportal
             del self.protodest
             touch.pop()
-        if hasattr(self.selection, 'on_touch_up'):
+        if not self.keep_selection and hasattr(self.selection, 'on_touch_up'):
             self.selection.dispatch('on_touch_up', touch)
         if self.ids.timemenu.dispatch('on_touch_up', touch):
             return True
@@ -313,7 +328,7 @@ class ELiDELayout(FloatLayout):
             return True
         if self.ids.charsheet.dispatch('on_touch_up', touch):
             return True
-        if self.selection_candidates:
+        if not self.keep_selection and self.selection_candidates:
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
             while self.selection_candidates:
@@ -341,6 +356,8 @@ class ELiDELayout(FloatLayout):
                     self.keep_selection = True
                     break
             touch.pop()
+        if self.keep_selection:
+            Logger.debug('ELiDELayout: keeping selection')
         if not self.keep_selection and not (
                 self.ids.timemenu.collide_point(*touch.pos) or
                 self.ids.charmenu.collide_point(*touch.pos) or
