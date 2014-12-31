@@ -36,10 +36,10 @@ class ELiDEApp(App):
         config.setdefaults(
             'ELiDE',
             {
-                'wallpaper': "wallpape.jpg",
                 'boardchar': 'physical',
                 'sheetchar': 'player',
-                'debugger': 'no'
+                'debugger': 'no',
+                'inspector': 'yes'
             }
         )
         config.write()
@@ -73,9 +73,10 @@ class ELiDEApp(App):
             engine=self.engine,
             character_name=config['ELiDE']['boardchar']
         )
-        from kivy.core.window import Window
-        from kivy.modules import inspector
-        inspector.create_inspector(Window, l)
+        if config['ELiDE']['inspector'] == 'yes':
+            from kivy.core.window import Window
+            from kivy.modules import inspector
+            inspector.create_inspector(Window, l)
         return l
 
     def on_pause(self):
