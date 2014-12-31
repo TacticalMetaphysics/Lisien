@@ -32,8 +32,9 @@ class ELiDELayout(FloatLayout):
     own.
 
     """
-    app = ObjectProperty()
-    board = ObjectProperty()
+    character = ObjectProperty()
+    character_name = StringProperty()
+    engine = ObjectProperty()
     dummies = ListProperty()
     _touch = ObjectProperty(None, allownone=True)
     popover = ObjectProperty()
@@ -69,29 +70,29 @@ class ELiDELayout(FloatLayout):
             self.selection = None
             o = arr.origin.name
             d = arr.destination.name
-            self.board.remove_widget(arr)
-            del self.board.arrow[o][d]
+            self.ids.board.remove_widget(arr)
+            del self.ids.board.arrow[o][d]
             arr.portal.delete()
         elif isinstance(self.selection, Spot):
             spot = self.selection
             spot.canvas.clear()
             self.selection = None
-            self.board.remove_widget(spot)
-            del self.board.spot[spot.name]
+            self.ids.board.remove_widget(spot)
+            del self.ids.board.spot[spot.name]
             spot.remote.delete()
         else:
             assert(isinstance(self.selection, Pawn))
             pawn = self.selection
             for canvas in (
-                    self.board.pawnlayout.canvas.after,
-                    self.board.pawnlayout.canvas.before,
-                    self.board.pawnlayout.canvas
+                    self.ids.board.pawnlayout.canvas.after,
+                    self.ids.board.pawnlayout.canvas.before,
+                    self.ids.board.pawnlayout.canvas
             ):
                 if pawn.group in canvas.children:
                     canvas.remove(pawn.group)
             self.selection = None
-            self.board.remove_widget(pawn)
-            del self.board.character.thing[pawn.name]
+            self.ids.board.remove_widget(pawn)
+            del self.ids.board.character.thing[pawn.name]
             pawn.remote.delete()
 
     def toggle_spot_config(self):
@@ -154,7 +155,7 @@ class ELiDELayout(FloatLayout):
         if self.reciprocal_portal:
             assert(not hasattr(self, 'revarrow'))
             self.revarrow = ArrowWidget(
-                board=self.board,
+                board=self.ids.board,
                 origin=self.ids.emptyright,
                 destination=self.ids.emptyleft
             )
@@ -190,11 +191,11 @@ class ELiDELayout(FloatLayout):
             # if the board itself handles the touch, let it be
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
-            pawns = list(self.board.pawns_at(*touch.pos))
+            pawns = list(self.ids.board.pawns_at(*touch.pos))
             if pawns:
                 self.selection_candidates = pawns
                 return True
-            spots = list(self.board.spots_at(*touch.pos))
+            spots = list(self.ids.board.spots_at(*touch.pos))
             if spots:
                 self.selection_candidates = spots
                 if self.ids.portaladdbut.state == 'down':
@@ -203,7 +204,7 @@ class ELiDELayout(FloatLayout):
                         pos=touch.pos,
                         size=(0, 0)
                     )
-                    self.board.add_widget(self.protodest)
+                    self.ids.board.add_widget(self.protodest)
                     self.selection = self.protodest
                     # why do I need this next?
                     self.protodest.on_touch_down(touch)
@@ -211,15 +212,15 @@ class ELiDELayout(FloatLayout):
                         origin=self.origspot,
                         destination=self.protodest
                     )
-                    self.board.add_widget(self.protoportal)
+                    self.ids.board.add_widget(self.protoportal)
                     if self.reciprocal_portal:
                         self.protoportal2 = ArrowWidget(
                             destination=self.origspot,
                             origin=self.protodest
                         )
-                        self.board.add_widget(self.protoportal2)
+                        self.ids.board.add_widget(self.protoportal2)
                 return True
-            arrows = list(self.board.arrows_at(*touch.pos))
+            arrows = list(self.ids.board.arrows_at(*touch.pos))
             if arrows:
                 self.selection_candidates = arrows
                 return True
@@ -259,14 +260,14 @@ class ELiDELayout(FloatLayout):
             touch.push()
             touch.apply_transform_2d(self.ids.boardview.to_local)
             try:
-                destspot = next(self.board.spots_at(*touch.pos))
+                destspot = next(self.ids.board.spots_at(*touch.pos))
                 orig = self.origspot.remote
                 dest = destspot.remote
                 if not (
-                    orig.name in self.board.character.portal and
-                    dest.name in self.board.character.portal[orig.name]
+                    orig.name in self.ids.board.character.portal and
+                    dest.name in self.ids.board.character.portal[orig.name]
                 ):
-                    port = self.board.character.new_portal(
+                    port = self.ids.board.character.new_portal(
                         orig.name,
                         dest.name
                     )
@@ -276,14 +277,14 @@ class ELiDELayout(FloatLayout):
                             dest.name
                         )
                     )
-                    self.board.add_widget(self.board.make_arrow(port))
+                    self.ids.board.add_widget(self.ids.board.make_arrow(port))
                 if (
                     hasattr(self, 'protoportal2') and not (
-                        orig.name in self.board.character.preportal and
-                        dest.name in self.board.character.preportal[orig.name]
+                        orig.name in self.ids.board.character.preportal and
+                        dest.name in self.ids.board.character.preportal[orig.name]
                     )
                 ):
-                    deport = self.board.character.new_portal(
+                    deport = self.ids.board.character.new_portal(
                         dest.name,
                         orig.name
                     )
@@ -293,14 +294,14 @@ class ELiDELayout(FloatLayout):
                             dest.name
                         )
                     )
-                    self.board.add_widget(self.board.make_arrow(deport))
+                    self.ids.board.add_widget(self.ids.board.make_arrow(deport))
             except StopIteration:
                 pass
-            self.board.remove_widget(self.protoportal)
+            self.ids.board.remove_widget(self.protoportal)
             if hasattr(self, 'protoportal2'):
-                self.board.remove_widget(self.protoportal2)
+                self.ids.board.remove_widget(self.protoportal2)
                 del self.protoportal2
-            self.board.remove_widget(self.protodest)
+            self.ids.board.remove_widget(self.protodest)
             del self.protoportal
             del self.protodest
             touch.pop()
@@ -357,7 +358,7 @@ class ELiDELayout(FloatLayout):
 
         """
         num = 0
-        for nodename in self.board.character.node:
+        for nodename in self.character.node:
             nodename = str(nodename)
             if not nodename.startswith(name):
                 continue
@@ -374,7 +375,7 @@ class ELiDELayout(FloatLayout):
         :class:`board.Pawn` or :class:`board.Spot`.
 
         """
-        if self.board is None or self.board.character is None:
+        if 'board' not in self.ids or self.character is None:
             Clock.schedule_once(self.on_dummies, 0)
             return
         for dummy in self.dummies:
@@ -396,11 +397,11 @@ class ELiDELayout(FloatLayout):
 
         """
         (x, y) = self.ids.boardview.to_local(*dummy.pos_up)
-        x /= self.board.width
-        y /= self.board.height
-        self.board.spotlayout.add_widget(
-            self.board.make_spot(
-                self.board.character.new_place(
+        x /= self.ids.board.width
+        y /= self.ids.board.height
+        self.ids.board.spotlayout.add_widget(
+            self.ids.board.make_spot(
+                self.ids.board.character.new_place(
                     dummy.name,
                     _x=x,
                     _y=y,
@@ -417,15 +418,15 @@ class ELiDELayout(FloatLayout):
 
         """
         dummy.pos = self.ids.boardview.to_local(*dummy.pos)
-        for spot in self.board.spotlayout.children:
+        for spot in self.ids.board.spotlayout.children:
             if spot.collide_widget(dummy):
                 whereat = spot
                 break
         else:
             return
         whereat.add_widget(
-            self.board.make_pawn(
-                self.board.character.new_thing(
+            self.ids.board.make_pawn(
+                self.ids.board.character.new_thing(
                     dummy.name,
                     whereat.place.name,
                     _image_paths=dummy.paths
@@ -435,15 +436,15 @@ class ELiDELayout(FloatLayout):
         dummy.num += 1
 
     def arrow_from_wid(self, wid):
-        for spot in self.board.spotlayout.children:
+        for spot in self.ids.board.spotlayout.children:
             if spot.collide_widget(wid):
                 whereto = spot
                 break
         else:
             return
-        self.board.arrowlayout.add_widget(
-            self.board.make_arrow(
-                self.board.character.new_portal(
+        self.ids.board.arrowlayout.add_widget(
+            self.ids.board.make_arrow(
+                self.ids.board.character.new_portal(
                     self.grabbed.place.name,
                     whereto.place.name,
                     reciprocal=self.reciprocal_portal
@@ -466,8 +467,12 @@ class ELiDELayout(FloatLayout):
             tick=self.timeupd,
         )
 
+        @self.engine.on_time
+        def board_upd(*args):
+            Clock.schedule_once(self.ids.board.update, 0)
+
     def timeupd(self, *args):
-        Logger.debug('ELiDELayout: timeupd')
+        Logger.debug('ELiDELayout: timeupd({})'.format(self.time))
         if self.engine.branch != self.branch:
             self.engine.branch = self.branch
         if self.engine.tick != self.tick:

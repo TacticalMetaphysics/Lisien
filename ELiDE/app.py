@@ -69,7 +69,10 @@ class ELiDEApp(App):
             if char not in self.engine.character:
                 print("adding character: {}".format(char))
                 self.engine.add_character(char)
-        l = ELiDE.layout.ELiDELayout(app=self)
+        l = ELiDE.layout.ELiDELayout(
+            engine=self.engine,
+            character_name=config['ELiDE']['boardchar']
+        )
         from kivy.core.window import Window
         from kivy.modules import inspector
         inspector.create_inspector(Window, l)

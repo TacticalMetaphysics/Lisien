@@ -4,8 +4,7 @@
 #: import MirrorMapping ELiDE.remote.MirrorMapping
 #: import resource_find kivy.resources.resource_find
 <ELiDELayout>:
-    engine: self.app.engine
-    board: board
+    character: self.engine.character[self.character_name] if self.engine and self.character_name else None
     dummies: [dummything, dummyplace]
     grabbing: self.grabbed is None
     ScrollView:
@@ -15,11 +14,10 @@
         pos_hint: {'x': 0.2, 'top': 1}
         Board:
             id: board
-            layout: root
             selection: root.selection
-            app: root.app
-            engine: root.app.engine
-            character: root.app.engine.character[root.app.config['ELiDE']['boardchar']]
+            branch: root.branch
+            tick: root.tick
+            character: root.character
             arrowlayout: arrowlayout
             spotlayout: spotlayout
             pawnlayout: pawnlayout
@@ -28,7 +26,7 @@
             arrowhead_size: 10
             Image:
                 id: wallpaper
-                source: root.app.config['ELiDE']['wallpaper']
+                source: root.character['_wallpaper'] if '_wallpaper' in root.character else resource_find('wallpape.jpg')
                 size_hint: (None, None)
                 size: self.texture_size
             FloatLayout:
@@ -42,8 +40,9 @@
         pos_hint: {'left': 0, 'top': 1}
         size_hint: (0.2, 0.9)
         Label:
+            id: stathead
             size_hint_y: 0.05
-            text: str(board.character.name) if board.character and root.selection is None else str(root.selection.name) if root.selection else ''
+            text: str(root.character_name) if root.selection is None else str(root.selection.name)
         StatListView:
             id: charsheet
             size_hint_y: 0.95
@@ -105,9 +104,9 @@
         size_hint_x: 0.1
         pos_hint: {'right': 1}
         Button:
+            id: charchangebut
             halign: "center"
-            # click this to change the active character
-            text: 'Character:\n' + root.app.config['ELiDE']['boardchar']
+            text: str(root.character_name)
         Button:
             # opens a popover where you view the rules active on this
             # character now, and may click one to edit it
@@ -133,20 +132,20 @@
             ToggleButton:
                 # While this is active, dragging between two spots creates a portal
                 id: portaladdbut
+                Widget:
+                    id: emptyleft
+                    center_x: portaladdbut.x + portaladdbut.width / 3
+                    center_y: portaladdbut.center_y
+                    size: (0, 0)
+                Widget:
+                    id: emptyright
+                    center_x: portaladdbut.right - portaladdbut.width / 3
+                    center_y: portaladdbut.center_y
+                    size: (0, 0)
                 ArrowWidget:
                     board: board
                     origin: emptyleft
                     destination: emptyright
-                    Widget:
-                        id: emptyleft
-                        center_x: portaladdbut.x + portaladdbut.width / 3
-                        center_y: portaladdbut.center_y
-                        size: (0, 0)
-                    Widget:
-                        id: emptyright
-                        center_x: portaladdbut.right - portaladdbut.width / 3
-                        center_y: portaladdbut.center_y
-                        size: (0, 0)
             Button:
                 id: portaldirbut
                 text: 'One-way' if root.reciprocal_portal else 'Two-way'

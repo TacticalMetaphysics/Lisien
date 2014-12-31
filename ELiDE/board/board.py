@@ -1,6 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 from kivy.properties import (
+    StringProperty,
+    ReferenceListProperty,
     DictProperty,
     ObjectProperty,
     NumericProperty,
@@ -16,7 +18,6 @@ from .pawn import Pawn
 
 class Board(RelativeLayout):
     """A graphical view onto a facade, resembling a game board."""
-    layout = ObjectProperty()
     character = ObjectProperty()
     spot = DictProperty({})
     pawn = DictProperty({})
@@ -24,16 +25,17 @@ class Board(RelativeLayout):
     arrowlayout = ObjectProperty()
     spotlayout = ObjectProperty()
     pawnlayout = ObjectProperty()
-    app = ObjectProperty()
-    engine = ObjectProperty()
     spots_unposd = ListProperty([])
     layout_tries = NumericProperty(5)
     new_spots = ListProperty([])
     selection = ObjectProperty(None, allownone=True)
+    branch = StringProperty('master')
+    tick = NumericProperty(0)
+    time = ReferenceListProperty(branch, tick)
 
     def __init__(self, **kwargs):
         """Make a trigger for ``_redata`` and run it"""
-        self._trigger_update = Clock.create_trigger(self._update)
+        self._trigger_update = Clock.create_trigger(self.update)
         super().__init__(**kwargs)
 
     def make_pawn(self, thing):
@@ -75,7 +77,6 @@ class Board(RelativeLayout):
             raise KeyError("Already have an Arrow for this Portal")
         r = Arrow(
             board=self,
-            engine=self.engine,
             portal=portal
         )
         if portal["origin"] not in self.arrow:
@@ -88,7 +89,7 @@ class Board(RelativeLayout):
         whenever my character is
 
         """
-        if self.character is None or self.engine is None:
+        if self.character is None:
             Clock.schedule_once(self.on_character, 0)
             return
 
@@ -106,10 +107,6 @@ class Board(RelativeLayout):
         self.track_yvel = False
         self.parent.effect_x.bind(velocity=self.track_x_vel)
         self.parent.effect_y.bind(velocity=self.track_y_vel)
-
-        @self.engine.on_time
-        def ontime(*args):
-            self._trigger_update()
 
         self._trigger_update()
 
@@ -201,7 +198,7 @@ class Board(RelativeLayout):
         from networkx import spectral_layout
         return spectral_layout(graph)
 
-    def _update(self, *args):
+    def update(self, *args):
         """Refresh myself from the database"""
         # remove widgets that don't represent anything anymore
         pawns_removed = []

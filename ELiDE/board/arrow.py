@@ -220,7 +220,6 @@ class ArrowWidget(Widget):
     y_intercept = NumericProperty(0)
     origin = ObjectProperty()
     destination = ObjectProperty()
-    engine = ObjectProperty()
     selected = BooleanProperty()
     repointed = BooleanProperty(True)
     bg_scale = NumericProperty(1.4)
@@ -305,7 +304,6 @@ class ArrowWidget(Widget):
         """
         if None in (
                 self.board,
-                self.engine,
                 self.origin,
                 self.destination
         ):
@@ -358,9 +356,6 @@ class ArrowWidget(Widget):
 
     def on_points(self, *args):
         """Reposition my children when I have new points."""
-        if self.engine is None:
-            Clock.schedule_once(self.on_points, 0)
-            return
         for pawn in self.children:
             self.pospawn(pawn)
 
@@ -388,7 +383,7 @@ class ArrowWidget(Widget):
         """
         pawn.pos = self.pos_along(
             (
-                self.engine.tick -
+                self.board.tick -
                 pawn.thing['arrival_time']
             ) / (
                 pawn.thing['next_arrival_time'] -
@@ -499,7 +494,6 @@ class Arrow(ArrowWidget):
 kv = """
 #: import Dummy ELiDE.dummy.Dummy
 <ArrowWidget>:
-    engine: self.board.layout.app.engine if self.board and self.board.layout else None
     bg_color_unselected: [0.5, 0.5, 0.5, 0.5]
     bg_color_selected: [0.0, 1.0, 1.0, 1.0]
     fg_color_unselected: [1.0, 1.0, 1.0, 1.0]
