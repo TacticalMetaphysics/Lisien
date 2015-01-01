@@ -1254,7 +1254,55 @@ def queries(table, view):
         )
     )
 
-    r['thing_locs_data'] = select(
+    graph_val = table['graph_val']
+
+    r['char_stat_branch_data'] = select(
+        [
+            graph_val.c.key,
+            graph_val.c.rev,
+            graph_val.c.value
+        ]
+    ).where(
+        and_(
+            graph_val.c.graph == bindparam('character'),
+            graph_val.c.branch == bindparam('branch')
+        )
+    )
+
+    node_val = table['node_val']
+
+    r['node_stat_branch_data'] = select(
+        [
+            node_val.c.key,
+            node_val.c.rev,
+            node_val.c.value
+        ]
+    ).where(
+        and_(
+            node_val.c.graph == bindparam('character'),
+            node_val.c.node == bindparam('node'),
+            node_val.c.branch == bindparam('branch')
+        )
+    )
+
+    edge_val = table['edge_val']
+
+    r['edge_stat_branch_data'] = select(
+        [
+            edge_val.c.key,
+            edge_val.c.rev,
+            edge_val.c.value
+        ]
+    ).where(
+        and_(
+            edge_val.c.graph == bindparam('character'),
+            edge_val.c.nodeA == bindparam('origin'),
+            edge_val.c.nodeB == bindparam('destination'),
+            edge_val.c.branch == bindparam('branch')
+        )
+    )
+
+    r['thing_locs_branch_data'] = select(
         [things.c.tick, things.c.location, things.c.next_location]
     ).where(
         and_(

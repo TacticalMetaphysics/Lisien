@@ -197,7 +197,7 @@ class Thing(Node):
     def _load_locs_branch(self, branch):
         """Private method. Cache stored location data for this branch."""
         self._loccache[branch] = {}
-        for (tick, loc, nloc) in self.engine.db.thing_locs_data(
+        for (tick, loc, nloc) in self.engine.db.thing_locs_branch_data(
                 self.character.name,
                 self.name,
                 branch

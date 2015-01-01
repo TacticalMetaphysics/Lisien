@@ -765,12 +765,33 @@ class QueryEngine(gorm.query.QueryEngine):
         ):
             yield (json_load(node), bool(isav))
 
-    def thing_locs_data(self, character, thing, branch):
+    def thing_locs_branch_data(self, character, thing, branch):
         (character, thing) = map(json_dump, (character, thing))
         for (tick, loc, nextloc) in self.sql(
-                'thing_locs_data', character, thing, branch
+                'thing_locs_branch_data', character, thing, branch
         ):
             yield (tick, json_load(loc), json_load(nextloc))
+
+    def char_stat_branch_data(self, character, branch):
+        character = json_dump(character)
+        for (key, tick, value) in self.sql(
+                'char_stat_branch_data', character, branch
+        ):
+            yield (json_load(key), tick, json_load(value))
+
+    def node_stat_branch_data(self, character, node, branch):
+        (character, node) = map(json_dump, (character, node))
+        for (key, tick, value) in self.sql(
+                'node_stat_branch_data', character, node, branch
+        ):
+            yield (json_load(key), tick, json_load(value))
+
+    def edge_stat_branch_data(self, character, orig, dest, branch):
+        (character, orig, dest) = map(json_dump, (character, orig, dest))
+        for (key, tick, value) in self.sql(
+                'edge_stat_branch_data', character, orig, dest, branch
+        ):
+            yield (json_load(key), tick, json_load(value))
 
     def timestream_data(self):
         yield from self.sql('allbranch')

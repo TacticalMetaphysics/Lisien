@@ -88,6 +88,33 @@ class Node(gorm.graph.Node):
                 tick_now
             )
 
+        if self.engine.caching:
+            def cache_branch(branch):
+                for (key, tick, value) in self.engine.db.node_stat_branch_data(
+                        self.character.name, self.name, branch
+                ):
+                    if key not in self._cache:
+                        self._cache[key] = {}
+                    if branch not in self._cache:
+                        self._cache[key][branch] = {}
+                    self._cache[key][branch][tick] = value
+
+            branch = self.engine.branch
+            cache_branch(branch)
+            self._branches_cached = {branch, }
+
+            @self.engine.on_time
+            def cache_new_branch(
+                    engine,
+                    branch_then,
+                    tick_then,
+                    branch_now,
+                    tick_now
+            ):
+                if branch_now not in self._branches_cached:
+                    cache_branch(branch_now)
+                    self._branches_cached.add(branch_now)
+
         super().__init__(character, name)
 
     def listener(self, f=None, stat=None):
