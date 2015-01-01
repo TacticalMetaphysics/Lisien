@@ -126,13 +126,14 @@ class Pawn(PawnSpot):
         )
 
     def upd_from_mirror_next_location(self, *args):
+        """Set my ``next_loc_name`` to match my ``mirror``."""
         if not self.mirror:
             Clock.schedule_once(self.upd_from_mirror_next_location, 0)
             return
         self.unbind(
             next_loc_name=self._trigger_upd_to_remote_next_location
         )
-        self.next_loc_name = self.remote['next_location']
+        self.next_loc_name = self.mirror['next_location']
         self.bind(
             next_loc_name=self._trigger_upd_to_remote_next_location
         )
