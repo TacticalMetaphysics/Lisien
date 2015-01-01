@@ -171,12 +171,12 @@ class Board(RelativeLayout):
                 )
             )
             for dest in l:
-                self._rmarrow(name, dest)
+                self.rm_arrow(name, dest)
         l = []
         for orig in list(self.arrow.keys()):
             if name in self.arrow[orig]:
                 l.append(orig)
-                self._rmarrow(orig, name)
+                self.rm_arrow(orig, name)
         Logger.debug(
             "Board: removed arrows to {} from: {}".format(
                 name,
@@ -184,8 +184,8 @@ class Board(RelativeLayout):
             )
         )
 
-    def _rmpawn(self, name):
-        """Remove the :class:`Pawn` by the given name"""
+    def rm_pawn(self, name):
+        """Remove the :class:`Pawn` by the given name."""
         if name not in self.pawn:
             raise KeyError("No Pawn named {}".format(name))
         # Currently there's no way to connect Pawns with Arrows but I
@@ -195,16 +195,16 @@ class Board(RelativeLayout):
         pwn.parent.remove_widget(pwn)
         del self.pawn[name]
 
-    def _rmspot(self, name):
-        """Remove the :class:`Spot` by the given name"""
+    def rm_spot(self, name):
+        """Remove the :class:`Spot` by the given name."""
         if name not in self.spot:
             raise KeyError("No Spot named {}".format(name))
         self._rm_arrows_to_and_from(name)
         self.spotlayout.remove_widget(self.spot[name])
         del self.spot[name]
 
-    def _rmarrow(self, orig, dest):
-        """Remove the :class:`Arrow` that goes from ``orig`` to ``dest``"""
+    def rm_arrow(self, orig, dest):
+        """Remove the :class:`Arrow` that goes from ``orig`` to ``dest``."""
         if (
                 orig not in self.arrow or
                 dest not in self.arrow[orig]
@@ -224,7 +224,7 @@ class Board(RelativeLayout):
         for pawn_name in list(self.pawn.keys()):
             if pawn_name not in self.character.thing:
                 pawns_removed.append(pawn_name)
-                self._rmpawn(pawn_name)
+                self.rm_pawn(pawn_name)
         Logger.debug(
             "Board: removed {} pawns from {}'s board".format(
                 len(pawns_removed),
@@ -235,7 +235,7 @@ class Board(RelativeLayout):
         for spot_name in list(self.spot.keys()):
             if spot_name not in self.character.place:
                 spots_removed.append(spot_name)
-                self._rmspot(spot_name)
+                self.rm_spot(spot_name)
         Logger.debug(
             "Board: removed {} spots from {}'s board".format(
                 len(spots_removed),
@@ -251,7 +251,7 @@ class Board(RelativeLayout):
                         self.character.portal[arrow_origin]
                 ):
                     arrows_removed.append((arrow_origin, arrow_destination))
-                    self._rmarrow(arrow_origin, arrow_destination)
+                    self.rm_arrow(arrow_origin, arrow_destination)
         Logger.debug(
             "Board: removed {} arrows from {}'s board".format(
                 len(arrows_removed),
