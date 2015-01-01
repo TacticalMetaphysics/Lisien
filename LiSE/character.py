@@ -1531,6 +1531,11 @@ class CharStatCache(MutableMapping):
             enkeycache(self, self._keycache, k)
         return self._cache[k][branch][tick]
 
+    def _get(self, k=None):
+        if k is None:
+            return self
+        return self[k]
+
     def __setitem__(self, k, v):
         """Cache new value and set it the normal way"""
         assert(v is not None)
