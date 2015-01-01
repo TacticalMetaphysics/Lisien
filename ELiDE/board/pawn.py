@@ -63,6 +63,21 @@ class Pawn(PawnSpot):
         super().__init__(**kwargs)
         self.bind(mirror=self.upd_from_mirror)
 
+    def on_parent(self, *args):
+        if self.parent:
+            self._board = self.parent.board
+        else:
+            if not hasattr(self, '_board'):
+                return
+            for canvas in (
+                    self._board.pawnlayout.canvas.before,
+                    self._board.pawnlayout.canvas.after,
+                    self._board.pawnlayout.canvas
+            ):
+                if self.group in canvas.children:
+                    canvas.remove(self.group)
+            del self._board
+
     def on_remote(self, *args):
         if not super().on_remote(*args):
             return

@@ -203,6 +203,7 @@ class ArrowWidget(Widget):
     its destination.
 
     """
+    board = ObjectProperty()
     name = StringProperty()
     margin = NumericProperty(10)
     """When deciding whether a touch collides with me, how far away can
@@ -210,8 +211,6 @@ class ArrowWidget(Widget):
     w = NumericProperty(1)
     """The width of the inner, brighter portion of the :class:`Arrow`. The
     whole :class:`Arrow` will end up thicker."""
-    board = ObjectProperty()
-    """The board on which I am displayed."""
     pawns_here = ListProperty([])
     trunk_points = ListProperty([])
     head_points = ListProperty([])
@@ -345,13 +344,6 @@ class ArrowWidget(Widget):
 
         """
         super().remove_widget(wid)
-        for canvas in (
-                self.board.pawnlayout.canvas.before,
-                self.board.pawnlayout.canvas.after,
-                self.board.pawnlayout.canvas
-        ):
-            if wid.group in canvas.children:
-                canvas.remove(wid.group)
         wid._no_use_canvas = False
 
     def on_points(self, *args):
