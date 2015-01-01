@@ -17,7 +17,10 @@ from .pawn import Pawn
 
 
 class Board(RelativeLayout):
-    """A graphical view onto a facade, resembling a game board."""
+    """A graphical view onto a :class:`LiSE.Character`, resembling a game
+    board.
+
+    """
     character = ObjectProperty()
     spot = DictProperty({})
     pawn = DictProperty({})
