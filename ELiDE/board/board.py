@@ -34,12 +34,15 @@ class Board(RelativeLayout):
     time = ReferenceListProperty(branch, tick)
 
     def __init__(self, **kwargs):
-        """Make a trigger for ``_redata`` and run it"""
+        """Make a trigger for my ``update`` method."""
         self._trigger_update = Clock.create_trigger(self.update)
         super().__init__(**kwargs)
 
     def make_pawn(self, thing):
-        """Make a :class:`Pawn` to represent a :class:`Thing`"""
+        """Make a :class:`Pawn` to represent a :class:`Thing`, store it, and
+        return it.
+
+        """
         if thing["name"] in self.pawn:
             raise KeyError("Already have a Pawn for this Thing")
         r = Pawn(
@@ -50,7 +53,10 @@ class Board(RelativeLayout):
         return r
 
     def make_spot(self, place):
-        """Make a :class:`Spot` to represent a :class:`Place`"""
+        """Make a :class:`Spot` to represent a :class:`Place`, store it, and
+        return it.
+
+        """
         if place["name"] in self.spot:
             raise KeyError("Already have a Spot for this Place")
         r = Spot(
@@ -61,7 +67,10 @@ class Board(RelativeLayout):
         return r
 
     def make_arrow(self, portal):
-        """Make an :class:`Arrow` to represent a :class:`Portal`"""
+        """Make an :class:`Arrow` to represent a :class:`Portal`, store it,
+        and return it.
+
+        """
         if (
                 portal["origin"] not in self.spot or
                 portal["destination"] not in self.spot
@@ -86,7 +95,7 @@ class Board(RelativeLayout):
 
     def on_character(self, *args):
         """Arrange to save my scroll state in my character, and to get updated
-        whenever my character is
+        whenever my character is.
 
         """
         if self.character is None:
@@ -111,6 +120,7 @@ class Board(RelativeLayout):
         self._trigger_update()
 
     def upd_x_when_scrolling_stops(self, *args):
+        """Wait for the scroll to stop, then store where it ended."""
         if self.parent.effect_x.velocity < self.parent.effect_x.min_velocity:
             self.character.stat['_scroll_x'] = self.parent.scroll_x
             self.track_xvel = False
@@ -118,6 +128,10 @@ class Board(RelativeLayout):
         Clock.schedule_once(self.upd_x_when_scrolling_stops, 0.001)
 
     def track_x_vel(self, *args):
+        """Track scrolling once it starts, so that we can tell when it
+        stops.
+
+        """
         if (
                 not self.track_xvel and
                 self.parent.effect_x.velocity >
@@ -127,6 +141,7 @@ class Board(RelativeLayout):
             self.track_xvel = True
 
     def upd_y_when_scrolling_stops(self, *args):
+        """Wait for the scroll to stop, then store where it ended."""
         if self.parent.effect_y.velocity < self.parent.effect_y.min_velocity:
             self.character.stat['_scroll_y'] = self.parent.scroll_y
             self.track_yvel = False
@@ -134,6 +149,10 @@ class Board(RelativeLayout):
         Clock.schedule_once(self.upd_y_when_scrolling_stops, 0.001)
 
     def track_y_vel(self, *args):
+        """Track scrolling once it starts, so that we can tell when it
+        stops.
+
+        """
         if (
                 not self.track_yvel and
                 self.parent.effect_y.velocity >
