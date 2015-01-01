@@ -38,7 +38,7 @@ class MirrorMapping(EventDispatcher):
         """
         data = {}
         for (k, v) in self.remote.items():
-            if v:
+            if v is not None:
                 data[k] = v
 
         self.mirror = data
