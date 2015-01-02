@@ -27,7 +27,7 @@ from kivy.uix.listview import (
 )
 from kivy.adapters.dictadapter import DictAdapter
 from kivy.lang import Builder
-from gorm.json import json_load
+from gorm.xjson import json_load
 from ELiDE.remote import MirrorMapping
 
 
