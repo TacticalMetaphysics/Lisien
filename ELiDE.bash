@@ -17,10 +17,10 @@ else
         rm -rf "$LISE_PATH";
     fi;
     xterm -e 'bash -s <<EOF
-echo "About to install dependencies."
-sudo add-apt-repository -y ppa:thopiekar/pygame;
-sudo add-apt-repository -y ppa:kivy-team/kivy-daily;
-sudo apt-get -y update;
+echo "About to install dependencies." &&
+sudo add-apt-repository -y ppa:thopiekar/pygame &&
+sudo add-apt-repository -y ppa:kivy-team/kivy-daily &&
+sudo apt-get -y update &&
 sudo apt-get -y install git virtualenv python3-kivy python3-numpy python3-networkx;
 EOF'
 
