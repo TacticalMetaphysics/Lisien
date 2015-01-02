@@ -126,7 +126,7 @@ mkdir -p $HOME/bin && wget -O $HOME/bin/ELiDE https://raw.githubusercontent.com/
 
 This will require you to give it root access with your password the first time you run it, to install dependencies. Thereafter, you can find ELiDE in your applications menu, in the Development category.
 
-At present, there is no way to enter simulation code in ELiDE -- you have to write a script similar to kobold.py or sickle.py in your own text editor and run it to generate the required databases. If said databases are in your home folder, with the names LiSEworld.db and LiSEcode.db, then ELiDE will let you view and manipulate them. A way to enter code direct into ELiDE is planned, but may take a while.
+At present, there is no way to enter simulation code in ELiDE -- you have to write a script similar to those in the examples directory in your own text editor and run it to generate the required databases. If said databases are in your home folder, with the names LiSEworld.db and LiSEcode.db, then ELiDE will let you view and manipulate them. A way to enter code direct into ELiDE is planned, but may take a while.
 
 # License Information
 
