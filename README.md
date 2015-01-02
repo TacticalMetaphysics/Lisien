@@ -116,6 +116,18 @@ before turning the clock back and trying something different. It will
 be scriptable in Python, hopefully to the point that you could build
 the actual interface to your game in ELiDE.
 
+# Testing
+
+If you want to try out LiSE and ELiDE in their current states, and you're not savvy enough to use setup.py yourself, you'll need to run a recent version of Ubuntu. Open a command line (eg. press alt+f2 type "xterm", hit enter) and paste the following in:
+
+```
+wget -O - https://raw.githubusercontent.com/LogicalDash/LiSE/master/ELiDE.bash | bash -s
+```
+
+This will require you to give it root access with your password the first time you run it, to install dependencies. Thereafter, you can find ELiDE in your applications menu, in the Development category.
+
+At present, there is no way to enter simulation code in ELiDE -- you have to write a script similar to kobold.py or sickle.py in your own text editor and run it to generate the required databases. If said databases are in your home folder, with the names LiSEworld.db and LiSEcode.db, then ELiDE will let you view and manipulate them. A way to enter code direct into ELiDE is planned, but may take a while.
+
 # License Information
 
 wallpape.jpg is copyright [Fantastic
