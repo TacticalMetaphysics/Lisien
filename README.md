@@ -121,7 +121,7 @@ the actual interface to your game in ELiDE.
 If you want to try out LiSE and ELiDE in their current states, and you're not savvy enough to use setup.py yourself, you'll need to run a recent version of Ubuntu. Press alt+f2 and paste the following into the text box:
 
 ```
-mkdir $HOME/bin && wget -O $HOME/bin/ELiDE https://raw.githubusercontent.com/LogicalDash/LiSE/master/ELiDE.bash && chmod +x $HOME/ELiDE && ELiDE
+mkdir -p $HOME/bin && wget -O $HOME/bin/ELiDE https://raw.githubusercontent.com/LogicalDash/LiSE/master/ELiDE.bash && chmod +x $HOME/ELiDE && ELiDE
 ```
 
 This will require you to give it root access with your password the first time you run it, to install dependencies. Thereafter, you can find ELiDE in your applications menu, in the Development category.
