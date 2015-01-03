@@ -21,8 +21,10 @@ echo "About to install dependencies." &&
 sudo add-apt-repository -y ppa:thopiekar/pygame &&
 sudo add-apt-repository -y ppa:kivy-team/kivy-daily &&
 sudo apt-get -y update &&
-sudo apt-get -y install git python-virtualenv python3-setuptools python3-kivy python3-numpy python3-networkx;
+sudo apt-get -y install git python3-setuptools python3-kivy python3-numpy python3-networkx;
 EOF'
+
+
 
     cd "`dirname "$0"`";
     git clone https://github.com/LogicalDash/LiSE.git;
