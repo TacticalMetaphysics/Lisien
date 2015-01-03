@@ -157,7 +157,7 @@ class StatListView(ListView, MirrorMapping):
 
     def get_adapter(self):
         return DictAdapter(
-            data={},
+            data=self.get_data(),
             cls=StatRowListItem,
             args_converter=lambda i, kv: {
                 'key': kv[0],
@@ -180,11 +180,10 @@ class StatListView(ListView, MirrorMapping):
         valdict['kwargs'].update(self.config.get(key, {}))
         return [keydict, valdict]
 
-    def upd_data(self, *args):
-        data = {
+    def get_data(self):
+        return {
             k: (k, v) for (k, v) in self.mirror.items()
-            if v is not None and
-            not isinstance(k, str) or (
+            if v is not None and (
                 k[0] != '_' and
                 k not in (
                     'character',
@@ -194,10 +193,12 @@ class StatListView(ListView, MirrorMapping):
                     'locations',
                     'arrival_time',
                     'next_arrival_time'
-                )
+                ) or not isinstance(k, str)
             )
         }
-        self.adapter.data = data
+
+    def upd_data(self, *args):
+        self.adapter.data = self.get_data()
         if '_control' not in self.mirror:
             self.mirror['_control'] = self.remote['_control'] = {}
         if '_config' not in self.mirror:
