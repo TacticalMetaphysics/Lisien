@@ -37,7 +37,7 @@ Exec=\"`dirname \"$0\"`/ELiDE\"
 Name=ELiDE
 Type=Application
 Categories=Development;
-" >$HOME/.local/share/applications;
+" >$HOME/.local/share/applications/ELiDE.desktop;
     xdg-desktop-menu forceupdate;
 
     touch "$LISE_PATH/.installed";
