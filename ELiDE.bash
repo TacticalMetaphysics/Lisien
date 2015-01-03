@@ -8,7 +8,7 @@ if [ -e "$LISE_PATH" ] && [ -f "$LISE_PATH/.installed" ]; then
     cd "`dirname "$0"`";
     cd kivy;
     git pull;
-    USE_SDL2=1 python3 setup.py install --user --upgrade;
+    python3 setup.py install --user --upgrade;
     cd ../LiSE;
     git pull;
     git submodule update;
