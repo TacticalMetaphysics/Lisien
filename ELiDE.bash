@@ -24,7 +24,7 @@ sudo apt-get -y install git cython3 python3-setuptools python3-kivy python3-nump
     cd "`dirname "$0"`";
     git clone https://github.com/kivy/kivy.git
     cd kivy;
-    USE_SDL2=1 python setup.py install --user;
+    USE_SDL2=1 python3 setup.py install --user;
     cd ..;
     git clone https://github.com/LogicalDash/LiSE.git;
     cd LiSE;
