@@ -5,7 +5,11 @@ if [ -z "$LISE_PATH" ]; then
 fi;
 
 if [ -e "$LISE_PATH" ] && [ -f "$LISE_PATH/.installed" ]; then
-    cd "$LISE_PATH";
+    cd "`dirname "$0"`";
+    cd kivy;
+    git pull;
+    python3 setup.py install --user --upgrade;
+    cd ../LiSE;
     git pull;
     git submodule update;
     python3 setup.py install --user --upgrade;
