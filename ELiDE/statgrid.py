@@ -177,7 +177,19 @@ class StatListView(ListView, MirrorMapping):
             'kwargs': {'text': str(key)}
         }
         valdict = control_cls[self.control.get(key, 'textinput')](value)
-        valdict['kwargs'].update(self.config.get(key, {}))
+        override = dict(self.config.get(key, {}))
+        # hack to let you choose how to display boolean values
+        for (k, v) in override.items():
+            Logger.debug('StatListView: overriding {}={}'.format(k, v))
+        true_text = override['true_text'] if 'true_text' in override else 'T'
+        false_text \
+            = override['false_text'] if 'false_text' in override else 'F'
+        if 'true_text' in override:
+            del override['true_text']
+        if 'false_text' in override:
+            del override['false_text']
+        valdict['kwargs'].update(override)
+        valdict['kwargs']['text'] = true_text if value else false_text
         return [keydict, valdict]
 
     def get_data(self):
@@ -200,11 +212,13 @@ class StatListView(ListView, MirrorMapping):
     def upd_data(self, *args):
         self.adapter.data = self.get_data()
         if '_control' not in self.mirror:
-            self.mirror['_control'] = self.remote['_control'] = {}
+            self.control = {}
+        else:
+            self.control = dict(self.mirror['_control'])
         if '_config' not in self.mirror:
-            self.mirror['_config'] = self.remote['_config'] = {}
-        self.control = self.mirror['_control']
-        self.config = self.mirror['_config']
+            self.config = {}
+        else:
+            self.config = dict(self.mirror['_config'])
 
     def sortkeys(self, *args):
         for key in self.mirror.keys():
