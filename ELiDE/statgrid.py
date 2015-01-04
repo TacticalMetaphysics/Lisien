@@ -41,9 +41,20 @@ def try_json_load(obj):
 class StatRowTextInput(TextInput):
     def __init__(self, **kwargs):
         kwargs['multiline'] = False
+        self._trigger_upd_value = Clock.create_trigger(self.upd_value)
         super().__init__(**kwargs)
 
-    def on_text_validate(self, *args):
+        def lost_focus(self, *args):
+            if not self.focus:
+                self._trigger_upd_value()
+
+        self.bind(
+            on_enter=self._trigger_upd_value,
+            on_text_validate=self._trigger_upd_value,
+            on_focus=lost_focus
+        )
+
+    def upd_value(self, *args):
         if self.text == '':
             self.parent.value = None
         else:
@@ -53,26 +64,24 @@ class StatRowTextInput(TextInput):
 
 
 class StatRowToggleButton(ToggleButtonBehavior, ListItemButton):
-    true_text = StringProperty('True')
-    false_text = StringProperty('False')
-
     def __init__(self, **kwargs):
-        self._trigger_upd_state = Clock.create_trigger(self.upd_state)
+        self._trigger_upd_value = Clock.create_trigger(self.upd_value)
         super().__init__(**kwargs)
-        self.bind(state=self._trigger_upd_state)
-        self._trigger_upd_state()
+        self.bind(on_touch_up=self._trigger_upd_value)
 
-    def upd_state(self, *args):
+    def upd_value(self, *args):
         if self.parent is None:
+            return
+        if (
+            self.state == 'normal' and self.parent.value == 0
+        ) or (
+            self.state == 'down' and self.parent.value == 1
+        ):
             return
         if self.state == 'normal':
             self.parent.value = 0
-            self.text = self.false_text
-            self.background_color = self.deselected_color
         else:
             self.parent.value = 1
-            self.text = self.true_text
-            self.background_color = self.selected_color
         self.parent.set_value()
 
 
@@ -115,17 +124,22 @@ class StatRowListItem(CompositeListItem):
 
 
 control_cls = {
+    'readout': lambda v: {
+        'cls': ListItemLabel,
+        'kwargs': {
+            'text': str(v)
+        }
+    },
     'textinput': lambda v: {
         'cls': StatRowTextInput,
-        'kwargs': {'text': str(v)}
+        'kwargs': {
+            'text': str(v)
+        }
     },
     'togglebutton': lambda v: {
         'cls': StatRowToggleButton,
         'kwargs': {
-            'state': 'down' if v else 'normal',
-            # 'text' argument is obligatory but does nothing.
-            # Set 'true_text' and 'false_text' in your config
-            'text': ''
+            'state': 'down' if v else 'normal'
         }
     },
     'slider': lambda v: {
