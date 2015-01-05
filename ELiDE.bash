@@ -52,9 +52,8 @@ exit;' >addapt &
     rm addapt;
     rm announce;
 
-    cd "`dirname "$0"`";
-    git clone https://github.com/LogicalDash/LiSE.git;
-    cd LiSE;
+    git clone https://github.com/LogicalDash/LiSE.git "$LISE_PATH";
+    cd "$LISE_PATH";
     git submodule init;
     git submodule update;
     python3 setup.py install --user;
@@ -62,7 +61,7 @@ exit;' >addapt &
     mkdir -p $HOME/.local/share/applications;
     echo "[Desktop Entry]
 Comment=Development environment for LiSE
-Exec=\"`dirname \"$0\"`/ELiDE\"
+Exec=env LISE_PATH=\"$LISE_PATH\" \"`dirname \"$0\"`/ELiDE\"
 Name=ELiDE
 Type=Application
 Categories=Development;
