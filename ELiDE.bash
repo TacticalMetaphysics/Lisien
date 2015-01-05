@@ -18,12 +18,18 @@ else
     mkfifo announce;
     mkfifo addapt;
     echo '
-    echo "About to install dependencies. This involves setting up two PPAs."
-sudo add-apt-repository -y ppa:thopiekar/pygame
-sudo add-apt-repository -y ppa:kivy-team/kivy-daily
-echo "Added pygame and kivy-daily PPAs." >announce &
-sleep 1
-exit' >addapt &
+echo "About to install dependencies. This involves setting up two PPAs.";
+echo "ppa:thopiekar/pygame";
+sudo add-apt-repository -y ppa:thopiekar/pygame;
+echo "ppa:kivy-team/kivy-daily";
+sudo add-apt-repository -y ppa:kivy-team/kivy-daily;
+echo "Updating package lists.";
+sudo apt-get -y update;
+echo "Installing dependencies.";
+sudo apt-get -y install git cython3 python3-dev python3-setuptools python3-kivy;
+echo "All dependencies installed." >announce;
+sleep 1;
+exit;' >addapt &
     MYTERM="`which gnome-terminal` -x";
     if [ "$MYTERM" == " -x" ]; then
         MYTERM="`which xfce4-terminal` -x";
@@ -45,11 +51,6 @@ exit' >addapt &
     echo <announce;
     rm addapt;
     rm announce;
-
-    echo "Updating package lists."
-    sudo apt-get -y update;
-    echo "Installing dependencies."
-    sudo apt-get -y install git cython3 python3-dev python3-setuptools python3-kivy;
 
     cd "`dirname "$0"`";
     git clone https://github.com/LogicalDash/LiSE.git;
