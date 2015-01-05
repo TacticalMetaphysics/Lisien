@@ -37,7 +37,9 @@ exit' >addapt &
     rm addapt;
     rm announce;
 
+    echo "Updating package lists."
     sudo apt-get -y update;
+    echo "Installing dependencies."
     sudo apt-get -y install git cython3 python3-dev python3-setuptools python3-kivy;
 
     cd "`dirname "$0"`";
