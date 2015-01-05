@@ -24,15 +24,20 @@ sudo add-apt-repository -y ppa:kivy-team/kivy-daily
 echo "Added pygame and kivy-daily PPAs." >announce &
 sleep 1
 exit' >addapt &
-    if [ -n "`which gnome-terminal`" ]; then
-        gnome-terminal -x bash --rcfile addapt;
-    else if [ -n "`which konsole`" ]; then
-        konsole -e bash --rcfile addapt;
-    else if [ -n "`which xterm`" ]; then
-        xterm -e bash --rcfile addapt;
-    else
-        bash --rcfile addapt;
-    fi; fi; fi;
+    MYTERM="`which gnome-terminal` -x";
+    if [ "$MYTERM" == " -x" ]; then
+        MYTERM="`which konsole` -e";
+    fi;
+    if [ "$MYTERM" == " -e" ]; then
+        MYTERM="`which xfce4-terminal` -x";
+    fi;
+    if [ "$MYTERM" == " -x" ]; then
+        MYTERM="`which xterm` -e" ;
+    fi;
+    if [ "$MYTERM" == " -e" ]; then
+        MYTERM="";
+    fi;
+    $MYTERM bash --rcfile addapt;
 
     echo <announce;
     rm addapt;
