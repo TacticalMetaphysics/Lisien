@@ -59,7 +59,7 @@ exit;' >addapt &
     git submodule update;
     python3 setup.py install --user;
 
-    mkdir -p $HOME/.local/share/applications/ELiDE.desktop;
+    mkdir -p $HOME/.local/share/applications;
     echo "[Desktop Entry]
 Comment=Development environment for LiSE
 Exec=\"`dirname \"$0\"`/ELiDE\"
