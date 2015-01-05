@@ -23,17 +23,21 @@ else
         echo '
 sudo add-apt-repository -y ppa:thopiekar/pygame
 sudo add-apt-repository -y ppa:kivy-team/kivy-daily
-echo "Added pygame and kivy-daily PPAs." >announce &' >addapt;
+echo "Added pygame and kivy-daily PPAs." >announce &
+sleep 1
+exit' >addapt &
         gnome-terminal -x bash --rcfile addapt;
     else
         sudo add-apt-repository -y ppa:thopiekar/pygame && echo 'Added pygame PPA.' && sudo add-apt-repository -y ppa:kivy-team/kivy-daily && echo 'Added kivy PPA.';
         echo "Added pygame and kivy-daily PPAs." >announce &
     fi;
 
-    echo <announce
+    echo <announce;
+    rm addapt;
+    rm announce;
 
     sudo apt-get -y update;
-    sudo apt-get -y install git cython3 python3-setuptools python3-kivy;
+    sudo apt-get -y install git cython3 python3-dev python3-setuptools python3-kivy;
 
     cd "`dirname "$0"`";
     git clone https://github.com/LogicalDash/LiSE.git;
@@ -42,6 +46,7 @@ echo "Added pygame and kivy-daily PPAs." >announce &' >addapt;
     git submodule update;
     python3 setup.py install --user;
 
+    mkdir -p $HOME/.local/share/applications/ELiDE.desktop;
     echo "[Desktop Entry]
 Comment=Development environment for LiSE
 Exec=\"`dirname \"$0\"`/ELiDE\"
