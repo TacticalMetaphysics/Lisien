@@ -3,17 +3,18 @@ if [ -z "$LISE_PATH" ]; then
     LISE_PATH="`dirname "$0"`/LiSE";
 fi;
 
-GUITERM="`which konsole` -e ";
-if [ "$GUITERM" == " -e " ]; then
-    GUITERM="`which gnome-terminal` -e ";
-fi;
-if [ "$GUITERM" == " -e " ]; then
-    GUITERM="`which xterm` -e ";
-fi;
-if [ "$GUITERM" == " -e " ]; then
-    echo "Couldn't get a graphical terminal emulator."
-    echo "I'll try to use your current terminal..."
-fi;
+GUITERM=" "
+# GUITERM="`which konsole` ";
+# if [ "$GUITERM" == " " ]; then
+#     GUITERM="`which gnome-terminal` ";
+# fi;
+# if [ "$GUITERM" == " " ]; then
+#     GUITERM="`which xterm` ";
+# fi;
+# if [ "$GUITERM" == " " ]; then
+#     echo "Couldn't get a graphical terminal emulator."
+#     echo "I'll try to use your current terminal..."
+# fi;
 
 if [ -e "$LISE_PATH" ] && [ -f "$LISE_PATH/.installed" ]; then
     cd "$LISE_PATH";
@@ -27,17 +28,17 @@ else
         rm -rf "$LISE_PATH";
     fi;
 
-    PKGINST='echo "About to install dependencies." &&
-sudo add-apt-repository -y ppa:thopiekar/pygame &&
-sudo add-apt-repository -y ppa:kivy-team/kivy-daily &&
-sudo apt-get -y update &&
-sudo apt-get -y install git cython3 python3-setuptools python3-kivy python3-numpy;'
+    PKGINST='echo "About to install dependencies." && sudo add-apt-repository -y ppa:thopiekar/pygame && sudo add-apt-repository -y ppa:kivy-team/kivy-daily &&ssudo apt-get -y update && sudo apt-get -y install git cython3 python3-setuptools python3-kivy python3-numpy;'
 
-    if [ "$GUITERM" == " -e " ]; then
-        bash -c "$PKGINST";
+    if [ "$GUITERM" == " " ]; then
+        echo $PKGINST | bash -si
     else
-        $GUITERM bash -c "$PKGINST";
+        PKGINST="$GUITERM-e $PKGINST";
+        echo "executing $PKGINST";
+        $PKGINST
     fi;
+
+    exit;
 
     cd "`dirname "$0"`";
     git clone https://github.com/LogicalDash/LiSE.git;
