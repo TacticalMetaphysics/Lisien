@@ -16,20 +16,22 @@ else
     fi;
 
     echo "About to install dependencies. This involves setting up two PPAs.";
+    mkfifo announce;
     if [ -n "`which gnome-terminal`" ]; then
         # A hack to make things work on Mint
         mkfifo addapt;
-        mkfifo announce;
         echo '
 sudo add-apt-repository -y ppa:thopiekar/pygame
 sudo add-apt-repository -y ppa:kivy-team/kivy-daily
 echo "Added pygame and kivy-daily PPAs." >announce
 exit' >addapt;
         gnome-terminal -x bash --rcfile addapt;
-        echo <announce;
     else
         sudo add-apt-repository -y ppa:thopiekar/pygame && echo 'Added pygame PPA.' && sudo add-apt-repository -y ppa:kivy-team/kivy-daily && echo 'Added kivy PPA.';
+        echo "Added pygame and kivy-daily PPAs." >announce &
     fi;
+
+    echo <announce
 
     sudo apt-get -y update;
     sudo apt-get -y install git cython3 python3-setuptools python3-kivy;
