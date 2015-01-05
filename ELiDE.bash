@@ -32,7 +32,7 @@ exit' >addapt &
         xterm -e bash --rcfile addapt;
     else
         bash --rcfile addapt;
-    fi;
+    fi; fi; fi;
 
     echo <announce;
     rm addapt;
