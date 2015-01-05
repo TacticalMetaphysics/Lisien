@@ -15,9 +15,14 @@ else
         rm -rf "$LISE_PATH";
     fi;
 
-    echo "About to install dependencies."
-    sudo add-apt-repository ppa:thopiekar/pygame;
-    sudo add-apt-repository ppa:kivy-team/kivy-daily;
+    echo "About to install dependencies. This involves setting up two PPAs.";
+    if [ -n "`which gnome-terminal`" ]; then
+        # A hack to make things work on Mint
+        gnome-terminal -x sudo add-apt-repository -y ppa:thopiekar/pygame && sudo add-apt-repository -y ppa:kivy-team/kivy-daily;
+    else
+        sudo add-apt-repository -y ppa:thopiekar/pygame && sudo addd-apt-repository -y ppa:kivy-team/kivy-daily;
+    fi;
+
     sudo apt-get -y update;
     sudo apt-get -y install git cython3 python3-setuptools python3-kivy;
 
