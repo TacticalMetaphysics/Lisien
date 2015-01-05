@@ -23,8 +23,7 @@ else
         echo '
 sudo add-apt-repository -y ppa:thopiekar/pygame
 sudo add-apt-repository -y ppa:kivy-team/kivy-daily
-echo "Added pygame and kivy-daily PPAs." >announce
-exit' >addapt;
+echo "Added pygame and kivy-daily PPAs." >announce &' >addapt;
         gnome-terminal -x bash --rcfile addapt;
     else
         sudo add-apt-repository -y ppa:thopiekar/pygame && echo 'Added pygame PPA.' && sudo add-apt-repository -y ppa:kivy-team/kivy-daily && echo 'Added kivy PPA.';
