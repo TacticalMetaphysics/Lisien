@@ -18,9 +18,17 @@ else
     echo "About to install dependencies. This involves setting up two PPAs.";
     if [ -n "`which gnome-terminal`" ]; then
         # A hack to make things work on Mint
-        gnome-terminal -x sudo add-apt-repository -y ppa:thopiekar/pygame && sudo add-apt-repository -y ppa:kivy-team/kivy-daily;
+        mkfifo addapt;
+        mkfifo announce;
+        echo '
+sudo add-apt-repository -y ppa:thopiekar/pygame
+sudo add-apt-repository -y ppa:kivy-team/kivy-daily
+echo "Added pygame and kivy-daily PPAs." >announce
+exit' >addapt;
+        gnome-terminal -x bash --rcfile addapt;
+        echo <announce;
     else
-        sudo add-apt-repository -y ppa:thopiekar/pygame && sudo addd-apt-repository -y ppa:kivy-team/kivy-daily;
+        sudo add-apt-repository -y ppa:thopiekar/pygame && echo 'Added pygame PPA.' && sudo add-apt-repository -y ppa:kivy-team/kivy-daily && echo 'Added kivy PPA.';
     fi;
 
     sudo apt-get -y update;
