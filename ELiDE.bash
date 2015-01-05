@@ -17,9 +17,9 @@ else
 
     echo "About to install dependencies. This involves setting up two PPAs.";
     mkfifo announce;
+    mkfifo addapt;
     if [ -n "`which gnome-terminal`" ]; then
         # A hack to make things work on Mint
-        mkfifo addapt;
         echo '
 sudo add-apt-repository -y ppa:thopiekar/pygame
 sudo add-apt-repository -y ppa:kivy-team/kivy-daily
