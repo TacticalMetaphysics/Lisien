@@ -16,8 +16,8 @@ else
     fi;
 
     echo "About to install dependencies."
-    sudo add-apt-repository -y ppa:thopiekar/pygame;
-    sudo add-apt-repository -y ppa:kivy-team/kivy-daily;
+    echo 'sudo add-apt-repository -y ppa:thopiekar/pygame' | bash -s;
+    echo 'sudo add-apt-repository -y ppa:kivy-team/kivy-daily' | bash -s;
     sudo apt-get -y update;
     sudo apt-get -y install git cython3 python3-setuptools python3-kivy;
 
