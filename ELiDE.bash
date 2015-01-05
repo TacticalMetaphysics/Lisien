@@ -15,9 +15,11 @@ else
         rm -rf "$LISE_PATH";
     fi;
 
-    PKGINST='echo "About to install dependencies." && sudo add-apt-repository -y ppa:thopiekar/pygame && sudo add-apt-repository -y ppa:kivy-team/kivy-daily && sudo apt-get -y update && sudo apt-get -y install git cython3 python3-setuptools python3-kivy python3-numpy;'
-
-    echo $PKGINST | bash -si
+    echo "About to install dependencies."
+    sudo add-apt-repository -y ppa:thopiekar/pygame;
+    sudo add-apt-repository -y ppa:kivy-team/kivy-daily;
+    sudo apt-get -y update;
+    sudo apt-get -y install git cython3 python3-setuptools python3-kivy;
 
     cd "`dirname "$0"`";
     git clone https://github.com/LogicalDash/LiSE.git;
