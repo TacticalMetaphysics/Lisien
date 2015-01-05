@@ -17,20 +17,21 @@ else
 
     mkfifo announce;
     mkfifo addapt;
-    if [ -n "`which gnome-terminal`" ]; then
-        # A hack to make things work on Mint
-        echo '
+    echo '
     echo "About to install dependencies. This involves setting up two PPAs."
 sudo add-apt-repository -y ppa:thopiekar/pygame
 sudo add-apt-repository -y ppa:kivy-team/kivy-daily
 echo "Added pygame and kivy-daily PPAs." >announce &
 sleep 1
 exit' >addapt &
+    if [ -n "`which gnome-terminal`" ]; then
         gnome-terminal -x bash --rcfile addapt;
+    else if [ -n "`which konsole`" ]; then
+        konsole -e bash --rcfile addapt;
+    else if [ -n "`which xterm`" ]; then
+        xterm -e bash --rcfile addapt;
     else
-        echo "About to install dependencies. This involves setting up two PPAs.";
-        sudo add-apt-repository -y ppa:thopiekar/pygame && echo 'Added pygame PPA.' && sudo add-apt-repository -y ppa:kivy-team/kivy-daily && echo 'Added kivy PPA.';
-        echo "Added pygame and kivy-daily PPAs." >announce &
+        bash --rcfile addapt;
     fi;
 
     echo <announce;
