@@ -10,7 +10,7 @@ fi;
 if [ "$GUITERM" == " -e " ]; then
     GUITERM="`which xterm` -e ";
 fi;
-if [ "$GUITERM" == " -e "]; then
+if [ "$GUITERM" == " -e " ]; then
     echo "Couldn't get a graphical terminal emulator."
     echo "I'll try to use your current terminal..."
 fi;
