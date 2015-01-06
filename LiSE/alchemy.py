@@ -19,6 +19,7 @@ from sqlalchemy import (
     Integer,
     Boolean,
     String,
+    DateTime,
     MetaData,
     select,
     func,
@@ -75,7 +76,10 @@ def tables_for_meta(meta):
             name, meta,
             Column('id', TEXT, primary_key=True),
             Column('language', TEXT, primary_key=True, default='eng'),
-            Column('string', TEXT, default='')
+            Column('date', DateTime, nullable=True),
+            Column('creator', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
+            Column('string', TEXT)
         )
 
     def func_store_table(name):
@@ -83,10 +87,12 @@ def tables_for_meta(meta):
             name, meta,
             Column('name', TEXT, primary_key=True),
             Column('bytecode', TEXT),
+            Column('date', DateTime, nullable=True),
+            Column('creator', TEXT, nullable=True),
+            Column('contributor', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('plaincode', TEXT, nullable=True),
             Column('version', Integer, nullable=True),
-            Column('author', TEXT, nullable=True),
-            Column('remarks', TEXT, nullable=True)
         )
 
     r = gorm.alchemy.tables_for_meta(meta)
@@ -105,11 +111,17 @@ def tables_for_meta(meta):
                 'branch', TEXT, primary_key=True, default='master'
             ),
             Column('tick', Integer, primary_key=True, default=0),
+            Column('date', DateTime, nullable=True),
+            Column('creator', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('value', TEXT, nullable=True)
         ),
         Table(
             'rules', meta,
             Column('rule', TEXT, primary_key=True),
+            Column('date', DateTime, nullable=True),
+            Column('creator', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('actions', TEXT, default='[]'),
             Column('prereqs', TEXT, default='[]'),
             Column('triggers', TEXT, default='[]'),
@@ -118,6 +130,9 @@ def tables_for_meta(meta):
             'rulebooks', meta,
             Column('rulebook', TEXT, primary_key=True),
             Column('idx', Integer, primary_key=True),
+            Column('date', DateTime, nullable=True),
+            Column('contributor', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('rule', TEXT),
             ForeignKeyConstraint(['rule'], ['rules.rule'])
         ),
@@ -129,6 +144,9 @@ def tables_for_meta(meta):
                 'branch', TEXT, primary_key=True, default='master'
             ),
             Column('tick', Integer, primary_key=True, default=0),
+            Column('date', DateTime, nullable=True),
+            Column('contributor', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('active', Boolean, default=True),
             ForeignKeyConstraint(
                 ['rulebook', 'rule'],
@@ -138,6 +156,9 @@ def tables_for_meta(meta):
         Table(
             'characters', meta,
             Column('character', TEXT, primary_key=True),
+            Column('date', DateTime, nullable=True),
+            Column('creator', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('character_rulebook', TEXT, nullable=True),
             Column('avatar_rulebook', TEXT, nullable=True),
             Column('character_thing_rulebook', TEXT, nullable=True),
@@ -203,6 +224,9 @@ def tables_for_meta(meta):
                 'branch', TEXT, primary_key=True, default='master'
             ),
             Column('tick', Integer, primary_key=True, default=0),
+            Column('date', DateTime, nullable=True),
+            Column('contributor', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('function', TEXT),
             Column('active', Boolean, default=True),
             ForeignKeyConstraint(['character'], ['graphs.graph'])
@@ -212,6 +236,9 @@ def tables_for_meta(meta):
             Column(
                 'character', TEXT, primary_key=True, nullable=True
             ),
+            Column('date', DateTime, nullable=True),
+            Column('contributor', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('reqs', TEXT, default='[]'),
             ForeignKeyConstraint(['character'], ['graphs.graph'])
         ),
@@ -223,6 +250,9 @@ def tables_for_meta(meta):
                 'branch', TEXT, primary_key=True, default='master'
             ),
             Column('tick', Integer, primary_key=True, default=0),
+            Column('date', DateTime, nullable=True),
+            Column('contributor', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('location', TEXT, nullable=True),
             # when location is null, this node is not a thing, but a place
             Column('next_location', TEXT, nullable=True),
@@ -242,6 +272,9 @@ def tables_for_meta(meta):
             'node_rulebook', meta,
             Column('character', TEXT, primary_key=True),
             Column('node', TEXT, primary_key=True),
+            Column('date', DateTime, nullable=True),
+            Column('contributor', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('rulebook', TEXT),
             ForeignKeyConstraint(
                 ['character', 'node'], ['nodes.graph', 'nodes.node']
@@ -253,6 +286,9 @@ def tables_for_meta(meta):
             Column('nodeA', TEXT, primary_key=True),
             Column('nodeB', TEXT, primary_key=True),
             Column('idx', Integer, primary_key=True, default=0),
+            Column('date', DateTime, nullable=True),
+            Column('contributor', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('rulebook', TEXT),
             ForeignKeyConstraint(
                 ['character', 'nodeA', 'nodeB', 'idx'],
@@ -268,6 +304,9 @@ def tables_for_meta(meta):
                 'branch', TEXT, primary_key=True, default='master'
             ),
             Column('tick', Integer, primary_key=True, default=0),
+            Column('date', DateTime, nullable=True),
+            Column('contributor', TEXT, nullable=True),
+            Column('description', TEXT, nullable=True),
             Column('is_avatar', Boolean),
             ForeignKeyConstraint(['character_graph'], ['graphs.graph']),
             ForeignKeyConstraint(
