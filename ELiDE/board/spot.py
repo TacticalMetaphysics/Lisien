@@ -41,7 +41,6 @@ class Spot(PawnSpot):
         changes in game-time.
 
         """
-        self._trigger_renamed = Clock.create_trigger(self.renamed)
         self._trigger_upd_pawns_here = Clock.create_trigger(
             self._upd_pawns_here
         )
@@ -104,18 +103,6 @@ class Spot(PawnSpot):
         """
         self.remote['_x'] = self.x / self.board.width
         self.remote['_y'] = self.y / self.board.height
-
-    def renamed(self, *args):
-        """When my ``remote`` has been renamed, reindex everything."""
-        if not self.board:
-            Clock.schedule_once(self.renamed, 0)
-            return
-        if hasattr(self, '_oldname'):
-            del self.board.spot[self._oldname]
-        self.board.spot[self.name] = self
-        self._oldname = self.name
-        self.mirror = {}
-        self.remote = self.board.character.place[self.name]
 
     def _default_pos(self):
         """Return the position on the board to use when I don't have

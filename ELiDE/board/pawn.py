@@ -43,7 +43,6 @@ class Pawn(PawnSpot):
     )
 
     def __init__(self, **kwargs):
-        self._trigger_renamed = Clock.create_trigger(self.renamed)
         self._trigger_move_to_loc = Clock.create_trigger(self.move_to_loc)
         self._trigger_upd_from_mirror_location = Clock.create_trigger(
             self.upd_from_mirror_location
@@ -84,7 +83,6 @@ class Pawn(PawnSpot):
         self._trigger_upd_from_mirror_location()
         self._trigger_upd_from_mirror_next_location()
         self.bind(
-            name=self._trigger_renamed,
             loc_name=self._trigger_upd_to_remote_location,
             next_loc_name=self._trigger_upd_to_remote_next_location,
         )
@@ -149,22 +147,6 @@ class Pawn(PawnSpot):
 
     def upd_to_remote_next_location(self, *args):
         self.remote['next_location'] = self.next_loc_name
-
-    def renamed(self, *args):
-        """Reindex myself in my board's pawn dict, and replace my thing with
-        the one named thus.
-
-        """
-        if not self.board:
-            Clock.schedule_once(self.renamed, 0)
-            return
-        Logger.debug('Pawn: renamed to {}'.format(self.name))
-        if hasattr(self, '_oldname'):
-            del self.board.pawn[self._oldname]
-        self.board.pawn[self.name] = self
-        self._oldname = self.name
-        self.mirror = {}
-        self.remote = self.board.character.thing[self.name]
 
     def add_widget(self, pawn, index=0, canvas='after'):
         """Apart from the normal behavior, bind my ``center`` so that the
