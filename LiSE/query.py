@@ -61,9 +61,9 @@ class QueryEngine(gorm.query.QueryEngine):
 
     def init_string_table(self, tbl):
         try:
-            return self.count_all_table(tbl)
-        except OperationalError:
             return self.sql('create_{}'.format(tbl))
+        except OperationalError:
+            pass
 
     def string_table_lang_items(self, tbl, lang):
         return self.sql('string_lang_items_fmt', lang)
