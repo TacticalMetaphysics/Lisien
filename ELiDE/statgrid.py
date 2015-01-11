@@ -65,30 +65,33 @@ class ControlTypeDropDown(DropDown):
                 def select(v, *args):
                     self.select(v)
 
+                def selector(v):
+                    return partial(select, v)
+
                 self._buttons = [
                     Button(
                         text='Readout',
                         size_hint_y=None,
                         height=50,
-                        on_release=partial(select, 'readout')
+                        on_release=selector('readout')
                     ),
                     Button(
                         text='Text input',
                         size_hint_y=None,
                         height=50,
-                        on_release=partial(select, 'textinput')
+                        on_release=selector('textinput')
                     ),
                     Button(
                         text='Toggle button',
                         size_hint_y=None,
                         height=50,
-                        on_release=partial(select, 'togglebutton')
+                        on_release=selector('togglebutton')
                     ),
                     Button(
                         text='Slider',
                         size_hint_y=None,
                         height=50,
-                        on_release=partial(select, 'slider')
+                        on_release=selector('slider')
                     )
                 ]
                 for but in self._buttons:
