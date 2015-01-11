@@ -7,6 +7,9 @@ from kivy.properties import (
     ObjectProperty,
     StringProperty
 )
+from kivy.uix.textinput import TextInput
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
 from kivy.uix.modalview import ModalView
 from kivy.uix.floatlayout import FloatLayout
 from kivy.clock import Clock
@@ -19,6 +22,7 @@ from .configurator import PawnConfigDialog, SpotConfigDialog
 from .board.arrow import Arrow, ArrowWidget
 from .board.spot import Spot
 from .board.pawn import Pawn
+from .statgrid import StatCfgListView
 
 
 class ELiDELayout(FloatLayout):
@@ -51,16 +55,58 @@ class ELiDELayout(FloatLayout):
     time = ListProperty(['master', 0])
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._stat_cfg = StatCfgListView(
+            time=self.time,
+            size_hint_y=0.95
+        )
+        self._stat_cfg_layout = BoxLayout(orientation='vertical')
+        self._stat_cfg_layout.add_widget(self._stat_cfg)
+        self._stat_cfg_buttons = BoxLayout(size_hint_y=0.05)
+        self._stat_cfg_layout.add_widget(self._stat_cfg_buttons)
+        self._newstatkey = TextInput(
+            multiline=False,
+            hint_text='New stat'
+        )
+        self._stat_cfg_buttons.add_widget(self._newstatkey)
+        self._newstatval = TextInput(
+            multiline=False,
+            hint_text='Value'
+        )
+        self._stat_cfg_buttons.add_widget(self._newstatval)
+        self._newstatbut = Button(
+            text='+',
+            on_press=self.set_stat
+        )
+        self._stat_cfg_buttons.add_widget(self._newstatbut)
+        self._close_stat_cfg_but = Button(
+            text='Close',
+            on_press=self.toggle_stat_cfg
+        )
+        self._stat_cfg_buttons.add_widget(self._close_stat_cfg_but)
+
+    def toggle_stat_cfg(self, *args):
+        if hasattr(self, '_popover'):
+            self._popover.remove_widget(self._stat_cfg_layout)
+            self._popover.dismiss()
+            del self._popover
+        else:
+            self._popover = ModalView()
+            self._popover.add_widget(self._stat_cfg_layout)
+            self._stat_cfg.remote = self.ids.charsheet.remote
+            self._popover.open()
+
     def set_stat(self):
-        key = self.ids.newstatkey.text
-        value = self.ids.newstatval.text
+        key = self._newstatkey.text
+        value = self._newstatval.text
         if not (key and value):
             # TODO implement some feedback to the effect that
             # you need to enter things
             return
         self.ids.charsheet.remote[key] = value
-        self.ids.newstatkey.text = ''
-        self.ids.newstatval.text = ''
+        self._newstatkey.text = ''
+        self._newstatval.text = ''
 
     def delete_selection(self):
         if self.selection is None:
@@ -177,14 +223,17 @@ class ELiDELayout(FloatLayout):
             self.ids.charmenu.dispatch('on_touch_down', touch)
         if self.ids.charsheet.collide_point(*touch.pos):
             self.ids.charsheet.dispatch('on_touch_down', touch)
-        if self.ids.newstatkey.collide_point(*touch.pos):
-            self.ids.newstatkey.dispatch('on_touch_down', touch)
+        if self._newstatkey.collide_point(*touch.pos):
+            self._newstatkey.dispatch('on_touch_down', touch)
             self.keep_selection = True
-        if self.ids.newstatval.collide_point(*touch.pos):
-            self.ids.newstatval.dispatch('on_touch_down', touch)
+        if self._newstatval.collide_point(*touch.pos):
+            self._newstatval.dispatch('on_touch_down', touch)
             self.keep_selection = True
-        if self.ids.addstatbut.collide_point(*touch.pos):
-            self.ids.addstatbut.dispatch('on_touch_down', touch)
+        if self._newstatbut.collide_point(*touch.pos):
+            self._newstatbut.dispatch('on_touch_down', touch)
+            self.keep_selection = True
+        if self.ids.cfgstatbut.collide_point(*touch.pos):
+            self.ids.cfgstatbut.dispatch('on_touch_down', touch)
             self.keep_selection = True
         if (
                 self.ids.boardview.collide_point(*touch.pos)
