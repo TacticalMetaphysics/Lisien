@@ -41,8 +41,9 @@ def try_json_load(obj):
         return obj
 
 
-class ControlTypeDropDown(DropDown):
+class ControlTypeDropDown(SelectableView, DropDown):
     key = ObjectProperty()
+    setter = ObjectProperty()
     control_type = OptionProperty(
         'readout',
         options=['readout', 'textinput', 'togglebutton', 'slider']
@@ -52,8 +53,11 @@ class ControlTypeDropDown(DropDown):
     def select_from_composite(self, *args):
         Logger.debug('ControlTypeDropDown: select_from_composite{}'.format(args))
 
-    def on_select(self, value):
+    def select(self, value):
+        Logger.debug('ControlTypeDropDown: selecting {}'.format(value))
         self.control_type = value
+        self.setter(value)
+        self.dismiss()
 
     def on_listview(self, *args):
         if self.key is None:
@@ -73,35 +77,32 @@ class ControlTypeDropDown(DropDown):
                         text='Readout',
                         size_hint_y=None,
                         height=50,
-                        on_release=selector('readout')
+                        on_press=selector('readout')
                     ),
                     Button(
                         text='Text input',
                         size_hint_y=None,
                         height=50,
-                        on_release=selector('textinput')
+                        on_press=selector('textinput')
                     ),
                     Button(
                         text='Toggle button',
                         size_hint_y=None,
                         height=50,
-                        on_release=selector('togglebutton')
+                        on_press=selector('togglebutton')
                     ),
                     Button(
                         text='Slider',
                         size_hint_y=None,
                         height=50,
-                        on_release=selector('slider')
+                        on_press=selector('slider')
                     )
                 ]
                 for but in self._buttons:
                     self.add_widget(but)
 
-    def on_control_type(self, *args):
-        self.listview.ctmainbut[self.key].text = self.control_type
 
-
-class ControlTypeMainButton(Button):
+class ControlTypeMainButton(SelectableView, Button):
     key = ObjectProperty()
     listview = ObjectProperty()
 
@@ -117,7 +118,10 @@ class ControlTypeMainButton(Button):
         dropdown.open(self)
 
     def select(self, *args):
-        pass
+        Logger.debug('ControlTypeMainButton: select()')
+
+    def deselect(self, *args):
+        Logger.debug('ControlTypeMainButton: deselect()')
 
 
 kv = """
@@ -378,6 +382,14 @@ class IntInput(TextInput, SelectableView):
         )
 
 
+control_type_nice_text = {
+    'readout': 'Readout',
+    'textinput': 'Text input',
+    'togglebutton': 'Toggle button',
+    'slider': 'Slider'
+}
+
+
 class StatListViewConfigurator(StatListView):
     ctmainbut = DictProperty({})
     ctdropdown = DictProperty({})
@@ -404,10 +416,15 @@ class StatListViewConfigurator(StatListView):
         if key in self.adapter.sorted_keys:
             self.adapter.sorted_keys.remove(key)
 
-    def set_control_type(self, key, value):
+    def set_control_type(self, key, value, *args):
         assert(isinstance(value, str))
+        Logger.debug(
+            'StatListViewConfigurator: set_control_type({}, {})'.format(
+                key, value
+            )
+        )
         self.control[key] = self.remote['_control'][key] = value
-        self.ctmainbut[key].text = value
+        self.ctmainbut[key].text = control_type_nice_text[value]
 
     def get_adapter(self):
         return DictAdapter(
@@ -451,16 +468,9 @@ class StatListViewConfigurator(StatListView):
             'kwargs': {
                 'key': key,
                 'text': control_type,
-                'on_control_type': lambda i, v: setctrltyp(v),
+                'setter': lambda x: self.set_control_type(key, x),
                 'listview': self
             }
-        }
-
-        control_type_nice_text = {
-            'readout': 'Readout',
-            'textinput': 'Text input',
-            'togglebutton': 'Toggle button',
-            'slider': 'Slider'
         }
 
         ctdd_main_button_dict = {
