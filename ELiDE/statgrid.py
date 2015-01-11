@@ -172,7 +172,7 @@ class StatRowToggleButton(ToggleButtonBehavior, ListItemButton):
         self.parent.set_value()
 
 
-class StatRowSlider(SelectableView, Slider):
+class StatRowSlider(Slider, SelectableView):
     need_set = BooleanProperty(False)
 
     def __init__(self, **kwargs):
@@ -199,7 +199,7 @@ class StatRowListItem(CompositeListItem):
 
     def set_value(self, *args):
         self.setter(
-            try_json_load(self.key),
+            self.key,
             try_json_load(self.value)
         )
 
