@@ -378,7 +378,7 @@ class IntInput(TextInput, SelectableView):
         )
 
 
-class StatCfgListView(StatListView):
+class StatListViewConfigurator(StatListView):
     ctmainbut = DictProperty({})
     ctdropdown = DictProperty({})
 

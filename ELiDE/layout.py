@@ -22,7 +22,7 @@ from .configurator import PawnConfigDialog, SpotConfigDialog
 from .board.arrow import Arrow, ArrowWidget
 from .board.spot import Spot
 from .board.pawn import Pawn
-from .statgrid import StatCfgListView
+from .statgrid import StatListViewConfigurator
 
 
 class ELiDELayout(FloatLayout):
@@ -57,7 +57,7 @@ class ELiDELayout(FloatLayout):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._stat_cfg = StatCfgListView(
+        self._stat_cfg = StatListViewConfigurator(
             time=self.time,
             size_hint_y=0.95
         )
