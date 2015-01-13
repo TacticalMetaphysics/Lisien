@@ -298,7 +298,6 @@ class ControlTypePicker(ListItemButton):
     key = ObjectProperty()
     mainbutton = ObjectProperty()
     dropdown = ObjectProperty()
-    dropbuttons = ListProperty()
     setter = ObjectProperty()
     button_kwargs = DictProperty()
     dropdown_kwargs = DictProperty()
