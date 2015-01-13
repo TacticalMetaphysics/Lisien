@@ -30,106 +30,7 @@ from kivy.uix.listview import (
 )
 from kivy.adapters.dictadapter import DictAdapter
 from kivy.lang import Builder
-from gorm.xjson import json_load
 from ELiDE.remote import MirrorMapping
-
-
-def try_json_load(obj):
-    try:
-        return json_load(obj)
-    except (TypeError, ValueError):
-        return obj
-
-
-class ControlTypeDropDown(SelectableView, DropDown):
-    key = ObjectProperty()
-    setter = ObjectProperty()
-    control_type = OptionProperty(
-        'readout',
-        options=['readout', 'textinput', 'togglebutton', 'slider']
-    )
-    listview = ObjectProperty()
-
-    def select_from_composite(self, *args):
-        Logger.debug('ControlTypeDropDown: select_from_composite{}'.format(args))
-
-    def select(self, value):
-        Logger.debug('ControlTypeDropDown: selecting {}'.format(value))
-        self.control_type = value
-        self.setter(value)
-        self.dismiss()
-
-    def on_listview(self, *args):
-        if self.key is None:
-            Clock.schedule_once(self.on_listview, 0)
-            return
-        if self.listview is not None:
-            self.listview.ctdropdown[self.key] = self
-            if not hasattr(self, '_buttons'):
-                def select(v, *args):
-                    self.select(v)
-
-                def selector(v):
-                    return partial(select, v)
-
-                self._buttons = [
-                    Button(
-                        text='Readout',
-                        size_hint_y=None,
-                        height=50,
-                        on_press=selector('readout')
-                    ),
-                    Button(
-                        text='Text input',
-                        size_hint_y=None,
-                        height=50,
-                        on_press=selector('textinput')
-                    ),
-                    Button(
-                        text='Toggle button',
-                        size_hint_y=None,
-                        height=50,
-                        on_press=selector('togglebutton')
-                    ),
-                    Button(
-                        text='Slider',
-                        size_hint_y=None,
-                        height=50,
-                        on_press=selector('slider')
-                    )
-                ]
-                for but in self._buttons:
-                    self.add_widget(but)
-
-
-class ControlTypeMainButton(SelectableView, Button):
-    key = ObjectProperty()
-    listview = ObjectProperty()
-
-    def on_listview(self, *args):
-        if self.key is None:
-            Clock.schedule_once(self.on_listview, 0)
-            return
-        if self.listview is not None:
-            self.listview.ctmainbut[self.key] = self
-
-    def on_press(self, *args):
-        dropdown = self.listview.ctdropdown[self.key]
-        dropdown.open(self)
-
-    def select(self, *args):
-        Logger.debug('ControlTypeMainButton: select()')
-
-    def deselect(self, *args):
-        Logger.debug('ControlTypeMainButton: deselect()')
-
-
-kv = """
-<ControlTypeDropDown>:
-    size_hint_y: None
-    height: 200
-"""
-Builder.load_string(kv)
 
 
 class StatRowTextInput(TextInput, SelectableView):
@@ -243,9 +144,20 @@ control_cls = {
 }
 
 
+control_txt = {
+    'readout': 'Readout',
+    'textinput': 'Text input',
+    'togglebutton': 'Toggle button',
+    'slider': 'Slider'
+}
+
+
 class StatListView(ListView, MirrorMapping):
     control = DictProperty({})
     config = DictProperty({})
+    layout = ObjectProperty()
+    remote = ObjectProperty()
+    set_value = ObjectProperty()
     branch = StringProperty('master')
     tick = NumericProperty(0)
     time = ReferenceListProperty(branch, tick)
@@ -382,24 +294,84 @@ class IntInput(TextInput, SelectableView):
         )
 
 
-control_type_nice_text = {
-    'readout': 'Readout',
-    'textinput': 'Text input',
-    'togglebutton': 'Toggle button',
-    'slider': 'Slider'
-}
+class ControlTypePicker(ListItemButton):
+    key = ObjectProperty()
+    mainbutton = ObjectProperty()
+    dropdown = ObjectProperty()
+    dropbuttons = ListProperty()
+    setter = ObjectProperty()
+    button_kwargs = DictProperty()
+    dropdown_kwargs = DictProperty()
+    control_texts = DictProperty()
+    control_callbacks = DictProperty()
+
+    def __init__(self, **kwargs):
+        if 'button_kwargs' not in kwargs:
+            kwargs['button_kwargs'] = {}
+        if 'dropdown_kwargs' not in kwargs:
+            kwargs['dropdown_kwargs'] = {}
+        super().__init__(**kwargs)
+        self.build()
+
+    def selected(self, v):
+        self.setter(self.key, v)
+        self.text = str(v)
+
+    def build(self, *args):
+        if None in (
+                self.key,
+                self.setter,
+                self.button_kwargs,
+                self.dropdown_kwargs,
+                self.control_texts,
+                self.control_callbacks
+        ):
+            Clock.schedule_once(self.build, 0)
+            return
+        self.mainbutton = None
+        self.dropdown = None
+        self.dropdown = DropDown(
+            text=self.text,
+            on_select=lambda instance, x: self.selected(x),
+            **self.dropdown_kwargs
+        )
+        self.dropdown.add_widget(
+            Button(
+                text='Readout',
+                size_hint_y=None,
+                height=self.height,
+                on_press=lambda instance: self.dropdown.select('readout')
+            )
+        )
+        self.dropdown.add_widget(
+            Button(
+                text='Text input',
+                size_hint_y=None,
+                height=self.height,
+                on_press=lambda instance: self.dropdown.select('textinput')
+            )
+        )
+        self.dropdown.add_widget(
+            Button(
+                text='Toggle button',
+                size_hint_y=None,
+                height=self.height,
+                on_press=lambda instance: self.dropdown.select('togglebutton')
+            )
+        )
+        self.dropdown.add_widget(
+            Button(
+                text='Slider',
+                size_hint_y=None,
+                height=self.height,
+                on_press=lambda instance: self.dropdown.select('slider')
+            )
+        )
+
+        self.bind(on_press=self.dropdown.open)
 
 
 class StatListViewConfigurator(StatListView):
-    ctmainbut = DictProperty({})
-    ctdropdown = DictProperty({})
-
-    def open_dropdown(self, key):
-        if key not in self.ctdropdown:
-            Clock.schedule_once(partial(self.open_dropdown, key), 0)
-            return
-        self.ctdropdown[key].open()
-
     def del_key(self, key):
         if key in self.remote:
             del self.remote[key]
