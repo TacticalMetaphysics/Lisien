@@ -107,11 +107,7 @@ class ELiDELayout(FloatLayout):
                 Clock.schedule_once(bind_charsheet, 0)
                 return
 
-            def updcharsheet(*args):
-                self.ids.charsheet.remote = self.selected_remote
-
             self.bind(
-                selected_remote=updcharsheet,
                 selection=self._trigger_reremote
             )
 
