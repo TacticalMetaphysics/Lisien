@@ -105,10 +105,7 @@ class StatRowListItem(CompositeListItem):
     setter = ObjectProperty()
 
     def set_value(self, *args):
-        self.setter(
-            self.key,
-            try_json_load(self.value)
-        )
+        self.setter(self.key, self.value)
 
     def on_parent(self, *args):
         if self.parent is None:
