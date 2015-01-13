@@ -57,11 +57,7 @@ class ELiDELayout(FloatLayout):
     grabbed = ObjectProperty(None, allownone=True)
     selection = ObjectProperty(None, allownone=True)
     selection_candidates = ListProperty([])
-    selected_remote = AliasProperty(
-        lambda self: self._get_selected_remote,
-        lambda self, v: None,
-        bind=('character', 'selection')
-    )
+    selected_remote = ObjectProperty()
     keep_selection = BooleanProperty(False)
     engine = ObjectProperty()
     tick_results = DictProperty({})
@@ -72,6 +68,7 @@ class ELiDELayout(FloatLayout):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._trigger_reremote = Clock.create_trigger(self.reremote)
         self._stat_cfg = StatListViewConfigurator(
             time=self.time,
             size_hint_y=0.95,
@@ -105,6 +102,21 @@ class ELiDELayout(FloatLayout):
         )
         self._stat_cfg_buttons.add_widget(self._close_stat_cfg_but)
 
+        def bind_charsheet(*args):
+            if 'charsheet' not in self.ids:
+                Clock.schedule_once(bind_charsheet, 0)
+                return
+
+            def updcharsheet(*args):
+                self.ids.charsheet.remote = self.selected_remote
+
+            self.bind(
+                selected_remote=updcharsheet,
+                selection=self._trigger_reremote
+            )
+
+        bind_charsheet()
+
     def set_remote_value(self, remote, k, v):
         if v is None:
             del remote[k]
@@ -117,7 +129,7 @@ class ELiDELayout(FloatLayout):
             self._popover.dismiss()
             del self._popover
         else:
-            self._stat_cfg.remote = self._get_selected_remote()
+            self._stat_cfg.remote = self.selected_remote
             self._stat_cfg.set_value = lambda k, v: self.set_remote_value(
                 self.ids.charsheet.remote, k, v
             )
@@ -125,7 +137,11 @@ class ELiDELayout(FloatLayout):
             self._popover.add_widget(self._stat_cfg_layout)
             self._popover.open()
 
+    def reremote(self, *args):
+        self.selected_remote = self._get_selected_remote()
+
     def _get_selected_remote(self):
+        Logger.debug('ELiDELayout: getting remote...')
         if self.character is None:
             return {}
         elif self.selection is None:
@@ -134,7 +150,6 @@ class ELiDELayout(FloatLayout):
             return self.selection.remote
         elif self.selection.portal is not None:
             return self.selection.portal
-        Logger.debug('Layout: no remote')
         return {}
 
     def set_stat(self):
