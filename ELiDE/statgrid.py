@@ -396,7 +396,6 @@ class StatListViewConfigurator(StatListView):
             )
         )
         self.control[key] = self.remote['_control'][key] = value
-        self.ctmainbut[key].text = control_type_nice_text[value]
 
     def get_adapter(self):
         return DictAdapter(
