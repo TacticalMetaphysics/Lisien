@@ -190,7 +190,7 @@ class StatListView(ListView, MirrorMapping):
                 'value': kv[1],
                 'reg': self._reg_widget,
                 'unreg': self._unreg_widget,
-                'setter': self._set_value,
+                'setter': self.set_value,
                 'cls_dicts': self.get_cls_dicts(*kv)
             },
             selection_mode='multiple',
@@ -276,12 +276,6 @@ class StatListView(ListView, MirrorMapping):
     def _unreg_widget(self, w):
         if w.key in self._listeners:
             self.unbind(mirror=self._listeners[w.key])
-
-    def _set_value(self, k, v):
-        if v is None:
-            del self.remote[k]
-        else:
-            self.remote[k] = v
 
 
 class SelectableTextInput(TextInput, SelectableView):
