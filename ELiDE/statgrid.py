@@ -395,6 +395,7 @@ class StatListViewConfigurator(StatListView):
                 key, value
             )
         )
+        self.canvas.after.clear()
         self.control[key] = self.remote['_control'][key] = value
 
     def get_adapter(self):
