@@ -61,8 +61,8 @@ class StatRowTextInput(TextInput, SelectableView):
 class StatRowToggleButton(ToggleButtonBehavior, ListItemButton):
     def __init__(self, **kwargs):
         self._trigger_upd_value = Clock.create_trigger(self.upd_value)
-        super().__init__(**kwargs)
         self.bind(on_touch_up=self._trigger_upd_value)
+        super().__init__(**kwargs)
 
     def upd_value(self, *args):
         if self.parent is None:
@@ -166,7 +166,6 @@ class StatListView(ListView, MirrorMapping):
         kwargs['adapter'] = self.get_adapter()
         self._trigger_sortkeys = Clock.create_trigger(self.sortkeys)
         self._trigger_upd_data = Clock.create_trigger(self.upd_data)
-        super().__init__(**kwargs)
         self.bind(mirror=self._trigger_sortkeys)
         self.bind(
             mirror=self._trigger_upd_data,
@@ -174,6 +173,7 @@ class StatListView(ListView, MirrorMapping):
             tick=self._trigger_upd_data
         )
         self._listeners = {}
+        super().__init__(**kwargs)
 
     def get_adapter(self):
         return DictAdapter(
