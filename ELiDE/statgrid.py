@@ -417,11 +417,13 @@ class StatListViewConfigurator(StatListView):
     def get_cls_dicts(self, key, value):
         control_type = self.control.get(key, 'textinput')
         if key not in self.control:
+            Logger.debug('StatListViewConfigurator: no control dict')
             if '_control' in self.remote and key in self.remote['_control']:
                 self.control = self.remote['_control']
             else:
                 self.control = self.remote['_control'] = {key: 'readout'}
         if key not in self.config:
+            Logger.debug('StatListViewConfigurator: no config dict')
             if '_config' in self.remote and key in self.remote['_config']:
                 self.config = self.remote['_config']
             else:
