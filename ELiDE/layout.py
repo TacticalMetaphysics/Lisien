@@ -1,4 +1,5 @@
 from kivy.properties import (
+    AliasProperty,
     BooleanProperty,
     BoundedNumericProperty,
     DictProperty,
@@ -24,6 +25,15 @@ from .board.spot import Spot
 from .board.pawn import Pawn
 from .statgrid import StatListViewConfigurator
 
+from gorm.xjson import json_load
+
+
+def try_json_load(obj):
+    try:
+        return json_load(obj)
+    except (TypeError, ValueError):
+        return obj
+
 
 class ELiDELayout(FloatLayout):
     """A master layout that contains one board and some menus
@@ -47,6 +57,11 @@ class ELiDELayout(FloatLayout):
     grabbed = ObjectProperty(None, allownone=True)
     selection = ObjectProperty(None, allownone=True)
     selection_candidates = ListProperty([])
+    selected_remote = AliasProperty(
+        lambda self: self._get_selected_remote,
+        lambda self, v: None,
+        bind=('character', 'selection')
+    )
     keep_selection = BooleanProperty(False)
     engine = ObjectProperty()
     tick_results = DictProperty({})
@@ -59,7 +74,7 @@ class ELiDELayout(FloatLayout):
         super().__init__(**kwargs)
         self._stat_cfg = StatListViewConfigurator(
             time=self.time,
-            size_hint_y=0.95
+            size_hint_y=0.95,
         )
         self._stat_cfg_layout = BoxLayout(orientation='vertical')
         self._stat_cfg_layout.add_widget(self._stat_cfg)
@@ -77,14 +92,24 @@ class ELiDELayout(FloatLayout):
         self._stat_cfg_buttons.add_widget(self._newstatval)
         self._newstatbut = Button(
             text='+',
-            on_press=self.set_stat
+            on_press=lambda inst: self.set_remote_value(
+                self._stat_cfg.remote,
+                self._newstatkey.text,
+                self._newstatval.text
+            )
         )
         self._stat_cfg_buttons.add_widget(self._newstatbut)
         self._close_stat_cfg_but = Button(
             text='Close',
-            on_press=self.toggle_stat_cfg
+            on_press=lambda inst: self.toggle_stat_cfg()
         )
         self._stat_cfg_buttons.add_widget(self._close_stat_cfg_but)
+
+    def set_remote_value(self, remote, k, v):
+        if v is None:
+            del remote[k]
+        else:
+            remote[k] = try_json_load(v)
 
     def toggle_stat_cfg(self, *args):
         if hasattr(self, '_popover'):
@@ -92,10 +117,25 @@ class ELiDELayout(FloatLayout):
             self._popover.dismiss()
             del self._popover
         else:
+            self._stat_cfg.remote = self._get_selected_remote()
+            self._stat_cfg.set_value = lambda k, v: self.set_remote_value(
+                self.ids.charsheet.remote, k, v
+            )
             self._popover = ModalView()
             self._popover.add_widget(self._stat_cfg_layout)
-            self._stat_cfg.remote = self.ids.charsheet.remote
             self._popover.open()
+
+    def _get_selected_remote(self):
+        if self.character is None:
+            return {}
+        elif self.selection is None:
+            return self.character.stat
+        elif hasattr(self.selection, 'remote'):
+            return self.selection.remote
+        elif self.selection.portal is not None:
+            return self.selection.portal
+        Logger.debug('Layout: no remote')
+        return {}
 
     def set_stat(self):
         key = self._newstatkey.text
