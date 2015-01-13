@@ -429,46 +429,34 @@ class StatListViewConfigurator(StatListView):
             }
         }
 
-        def setctrltyp(v):
-            assert(isinstance(v, str))
-            if v == self.control[key]:
-                return
-            self.control[key] = self.remote['_control'][key] = v
-
-        ctdd_dict = {
-            'cls': ControlTypeDropDown,
+        picker_dict = {
+            'cls': ControlTypePicker,
             'kwargs': {
                 'key': key,
                 'text': control_type,
-                'setter': lambda x: self.set_control_type(key, x),
-                'listview': self
-            }
-        }
-
-        ctdd_main_button_dict = {
-            'cls': ControlTypeMainButton,
-            'kwargs': {
-                'key': key,
-                'text': control_type_nice_text[control_type],
-                'listview': self
+                'setter': self.set_control_type,
+                'control_texts': control_txt,
+                'dropdown_kwargs': {
+                    'canvas': self.canvas.after
+                }
             }
         }
         keydict = {
             'cls': ListItemLabel,
             'kwargs': {'text': str(key)}
         }
-        setval = lambda inst, val: self._set_value(key, try_json_load(val))
         valdict = {
             'cls': SelectableTextInput,
             'kwargs': {
                 'text': str(value),
-                'on_text_validate': setval,
-                'on_enter': lambda i, v: setval(i, i.text),
-                'on_focus': lambda i, v: setval(i, i.text) if not v else None
+                'on_text_validate': lambda i, v: self.set_value(key, i.text),
+                'on_enter': lambda i, v: self.set_value(key, i.text),
+                'on_focus': lambda i, v:
+                self.set_value(key, i.text) if not v else None
             }
         }
         cls_dicts = [
-            deldict, keydict, valdict, ctdd_dict, ctdd_main_button_dict
+            deldict, keydict, valdict, picker_dict
         ]
 
         def settrue(txt):
@@ -487,6 +475,7 @@ class StatListViewConfigurator(StatListView):
                 'kwargs': {
                     'multiline': False,
                     'hint_text': 'Text when true',
+                    'text': str(value),
                     'on_enter': lambda i, v: settrue(i.text),
                     'on_text_validate': lambda i, v: settrue(i.text),
                     'on_focus': lambda i, foc:
@@ -496,9 +485,9 @@ class StatListViewConfigurator(StatListView):
             false_text_dict = {
                 'cls': SelectableTextInput,
                 'kwargs': {
-                    'id': '{}_false_text'.format(key),
                     'multiline': False,
                     'hint_text': 'Text when false',
+                    'text': str(value),
                     'on_enter': lambda i, v: settrue(i.text),
                     'on_text_validate': lambda i, v: settrue(i.text),
                     'on_focus': lambda i, foc:
@@ -518,6 +507,18 @@ class StatListViewConfigurator(StatListView):
                 = float(v)
 
         if control_type == 'slider':
+            if (
+                    key not in self.config or
+                    'min' not in self.config[key] or
+                    'max' not in self.config[key]
+            ):
+                d = dict(self.remote['_config'])
+                if key not in d:
+                    d[key] = {}
+                if 'min' not in d[key]:
+                    d[key]['min'] = 0.
+                if 'max' not in d[key]:
+                    d[key]['max'] = 1.
             min_dict = {
                 'cls': IntInput,
                 'kwargs': {
