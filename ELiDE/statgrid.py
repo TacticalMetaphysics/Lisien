@@ -211,12 +211,13 @@ class StatListView(ListView, MirrorMapping):
         # hack to let you choose how to display boolean values
         for (k, v) in override.items():
             Logger.debug('StatListView: overriding {}={}'.format(k, v))
-        true_text = override['true_text'] if 'true_text' in override else 'T'
-        false_text \
-            = override['false_text'] if 'false_text' in override else 'F'
+        true_text = '1'
         if 'true_text' in override:
+            true_text = override['true_text']
             del override['true_text']
+        false_text = '0'
         if 'false_text' in override:
+            false_text = override['false_text']
             del override['false_text']
         valdict['kwargs'].update(override)
         valdict['kwargs']['text'] = true_text if value else false_text
