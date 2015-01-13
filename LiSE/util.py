@@ -164,6 +164,11 @@ class JSONReWrapper(MutableMapping):
                 "JSONReWrapper only wraps dicts"
             )
 
+    def _get(self, k=None):
+        if k is None:
+            return self._v
+        return self._v[k]
+
     def __iter__(self):
         return iter(self._v)
 
