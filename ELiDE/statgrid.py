@@ -11,8 +11,7 @@ from kivy.properties import (
     ReferenceListProperty,
     BooleanProperty,
     DictProperty,
-    ObjectProperty,
-    OptionProperty
+    ObjectProperty
 )
 from kivy.logger import Logger
 from kivy.clock import Clock
