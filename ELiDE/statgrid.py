@@ -389,7 +389,12 @@ class StatListViewConfigurator(StatListView):
             self.adapter.sorted_keys.remove(key)
 
     def set_control_type(self, key, value, *args):
-        assert(isinstance(value, str))
+        if not isinstance(value, str):
+            raise ValueError(
+                "Tried to set {} to unknown control type {}".format(
+                    key, value
+                )
+            )
         Logger.debug(
             'StatListViewConfigurator: set_control_type({}, {})'.format(
                 key, value
