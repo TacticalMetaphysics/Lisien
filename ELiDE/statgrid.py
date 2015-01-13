@@ -171,6 +171,16 @@ class StatListView(ListView, MirrorMapping):
         self._listeners = {}
         super().__init__(**kwargs)
 
+    def on_layout(self, *args):
+        self.remote = self.layout.selected_remote
+        self.layout.bind(
+            selected_remote=self.setter('remote')
+        )
+        self.layout.bind(
+            character=self._reremote,
+            selection=self._reremote
+        )
+
     def get_adapter(self):
         return DictAdapter(
             data=self.get_data(),
