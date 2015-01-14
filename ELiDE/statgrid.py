@@ -146,8 +146,6 @@ control_txt = {
 
 
 class StatListView(ListView, MirrorMapping):
-    control = DictProperty({})
-    config = DictProperty({})
     layout = ObjectProperty()
 
     def __init__(self, **kwargs):
@@ -196,12 +194,9 @@ class StatListView(ListView, MirrorMapping):
             'cls': ListItemLabel,
             'kwargs': {'text': str(key)}
         }
-        control_type = self.control.get(key, 'textinput')
-        if not isinstance(control_type, str):
-            import pdb
-            pdb.set_trace()
+        control_type = self.mirror['_control'].get(key, 'textinput')
         valdict = control_cls[control_type](value)
-        override = dict(self.config.get(key, {}))
+        override = dict(self.mirror['_config'].get(key, {}))
         # hack to let you choose how to display boolean values
         for (k, v) in override.items():
             Logger.debug('StatListView: overriding {}={}'.format(k, v))
@@ -362,16 +357,16 @@ class StatListViewConfigurator(StatListView):
     def del_key(self, key):
         if key in self.remote:
             del self.remote[key]
-        if '_control' in self.remote and key in self.remote['_control']:
-            del self.remote['_control'][key]
-        if '_config' in self.remote and key in self.remote['_config']:
-            del self.remote['_config'][key]
+        if '_control' in self.mirror and key in self.mirror['_control']:
+            ctrld = dict(self.mirror['_control'])
+            del ctrld[key]
+            self.remote['_control'] = ctrld
+        if '_config' in self.mirror and key in self.mirror['_config']:
+            cfgd = dict(self.mirror['_config'])
+            del cfgd[key]
+            self.remote['_config'] = cfgd
         if key in self.mirror:
             del self.mirror[key]
-        if key in self.control:
-            del self.control[key]
-        if key in self.config:
-            del self.config[key]
         if key in self.adapter.sorted_keys:
             self.adapter.sorted_keys.remove(key)
 
@@ -388,8 +383,9 @@ class StatListViewConfigurator(StatListView):
             )
         )
         self.canvas.after.clear()
-        self.control[key] = value
-        self.remote['_control'] = self.control
+        ctrld = dict(self.mirror['_control'])
+        ctrld[key] = value
+        self.remote['_control'] = ctrld
 
     def get_adapter(self):
         return DictAdapter(
@@ -402,20 +398,53 @@ class StatListViewConfigurator(StatListView):
             allow_empty_selection=True
         )
 
+    def set_control(self, key, control):
+        if '_control' not in self.mirror:
+            self.remote['_control'] = {key: control}
+        elif key not in self.mirror['_control']:
+            ctrld = dict(self.mirror['_control'])
+            ctrld[key] = control
+            self.remote['_control'] = ctrld
+
+    def have_control(self, key):
+        return (
+            '_control' in self.mirror and
+            key in self.mirror['_control']
+        )
+
+    def set_config(self, key, option, value):
+        if '_config' not in self.mirror:
+            self.remote['_config'] = {key: {option: value}}
+        elif key not in self.mirror['_config']:
+            cfgd = dict(self.mirror['_config'])
+            cfgd[key] = {option: value}
+            self.remote['_config'] = cfgd
+
+    def have_config(self, key, option):
+        return (
+            '_config' in self.mirror and
+            key in self.mirror['_config'] and
+            option in self.mirror['_config'][key]
+        )
+
     def get_cls_dicts(self, key, value):
-        control_type = self.control.get(key, 'textinput')
-        if key not in self.control:
-            Logger.debug('StatListViewConfigurator: no control dict')
-            if '_control' in self.remote and key in self.remote['_control']:
-                self.control = self.remote['_control']
-            else:
-                self.control = self.remote['_control'] = {key: 'readout'}
-        if key not in self.config:
-            Logger.debug('StatListViewConfigurator: no config dict')
-            if '_config' in self.remote and key in self.remote['_config']:
-                self.config = self.remote['_config']
-            else:
-                self.config = self.remote['_config'] = {key: {}}
+        if not self.have_control(key):
+            self.set_control(key, 'textinput')
+        control_type = self.mirror['_control'][key]
+        defaultcfg = {
+            'true_text': '1',
+            'false_text': '0',
+            'min': 0.0,
+            'max': 1.0
+        }
+        if '_config' not in self.mirror:
+            self.remote['_config'] = {key: defaultcfg}
+        elif key not in self.mirror['_config']:
+            ctrld = dict(self.mirror['_config'])
+            ctrld[key] = defaultcfg
+            self.remote['_config'] = ctrld
+        cfg = self.mirror['_config'][key]
+
         deldict = {
             'cls': ListItemButton,
             'kwargs': {
@@ -423,7 +452,6 @@ class StatListViewConfigurator(StatListView):
                 'on_press': partial(self.del_key, key)
             }
         }
-
         picker_dict = {
             'cls': ControlTypePicker,
             'kwargs': {
@@ -454,37 +482,20 @@ class StatListViewConfigurator(StatListView):
             deldict, keydict, valdict, picker_dict
         ]
 
-        for (cfgkey, default) in [
-                ('true_text', '1'),
-                ('false_text', '0'),
-                ('min', 0.0),
-                ('max', 1.0)
-        ]:
-            if cfgkey not in self.config:
-                self.config[cfgkey] = default
-        rconf = dict(self.remote['_config'])
-        rconf[key] = self.config
-        self.remote['_config'] = rconf
-
-        def settrue(txt):
-            self.config[key]['true_text'] = txt
-            self.remote['_config'] = self.config
-
-        def setfalse(txt):
-            self.config[key]['false_text'] = txt
-            self.remote['_config'] = self.config
-
         if control_type == 'togglebutton':
             true_text_dict = {
                 'cls': SelectableTextInput,
                 'kwargs': {
                     'multiline': False,
                     'hint_text': 'Text when true',
-                    'text': str(self.config['true_text']),
-                    'on_enter': lambda i, v: settrue(i.text),
-                    'on_text_validate': lambda i, v: settrue(i.text),
+                    'text': str(cfg['true_text']),
+                    'on_enter': lambda i, v:
+                    self.set_config(key, 'true_text', i.text),
+                    'on_text_validate': lambda i, v:
+                    self.set_config(key, 'true_text', i.text),
                     'on_focus': lambda i, foc:
-                    settrue(i.text) if not foc else None
+                    self.set_config(key, 'true_text', i.text)
+                    if not foc else None
                 }
             }
             false_text_dict = {
@@ -492,59 +503,47 @@ class StatListViewConfigurator(StatListView):
                 'kwargs': {
                     'multiline': False,
                     'hint_text': 'Text when false',
-                    'text': str(self.config['false_text']),
-                    'on_enter': lambda i, v: settrue(i.text),
-                    'on_text_validate': lambda i, v: settrue(i.text),
+                    'text': str(cfg['false_text']),
+                    'on_enter': lambda i, v:
+                    self.set_config(key, 'false_text', i.text),
+                    'on_text_validate': lambda i, v:
+                    self.set_config(key, 'false_text', i.text),
                     'on_focus': lambda i, foc:
-                    settrue(i.text) if not foc else None
+                    self.set_config(key, 'false_text', i.text)
+                    if not foc else None
                 }
             }
             cls_dicts.extend((true_text_dict, false_text_dict))
 
-        def setmin(v):
-            self.config[key]['min'] = float(v)
-            self.remote['_config'] = self.config
-
-        def setmax(v):
-            self.config[key]['max'] = float(v)
-            self.remote['_config'] = self.config
-
         if control_type == 'slider':
-            if (
-                    key not in self.config or
-                    'min' not in self.config[key] or
-                    'max' not in self.config[key]
-            ):
-                d = dict(self.remote['_config'])
-                if key not in d:
-                    d[key] = {}
-                if 'min' not in d[key]:
-                    d[key]['min'] = 0.
-                if 'max' not in d[key]:
-                    d[key]['max'] = 1.
             min_dict = {
                 'cls': IntInput,
                 'kwargs': {
                     'multiline': False,
                     'hint_text': 'Minimum',
-                    'text': self.config[key]['min'],
-                    'on_enter': lambda i, v: setmin(i.text),
-                    'on_text_validate': lambda i, v: setmin(i.text),
+                    'text': str(cfg['min']),
+                    'on_enter': lambda i, v:
+                    self.set_config(key, 'min', float(i.text)),
+                    'on_text_validate': lambda i, v:
+                    self.set_config(key, 'min', float(i.text)),
                     'on_focus': lambda i, foc:
-                    setmin(i.text) if not foc else None
+                    self.set_config(key, 'min', float(i.text))
+                    if not foc else None
                 }
             }
             max_dict = {
                 'cls': IntInput,
                 'kwargs': {
-                    'id': '{}_slider_max'.format(key),
                     'multiline': False,
                     'hint_text': 'Maximum',
-                    'text': self.config[key]['max'],
-                    'on_enter': lambda i, v: setmax(i.text),
-                    'on_text_validate': lambda i, v: setmax(i.text),
+                    'text': str(cfg['max']),
+                    'on_enter': lambda i, v:
+                    self.set_config(key, 'max', float(i.text)),
+                    'on_text_validate': lambda i, v:
+                    self.set_config(key, 'max', float(i.text)),
                     'on_focus': lambda i, foc:
-                    setmax(i.text) if not foc else None
+                    self.set_config(key, 'max', float(i.text))
+                    if not foc else None
                 }
             }
             cls_dicts.extend((min_dict, max_dict))
