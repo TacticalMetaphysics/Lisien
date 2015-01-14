@@ -461,17 +461,10 @@ class StatListViewConfigurator(StatListView):
                 ('max', 1.0)
         ]:
             if cfgkey not in self.config:
-                if (
-                        '_config' in self.remote and
-                        cfgkey in self.remote['_config']
-                ):
-                    self.config[cfgkey] = self.remote['_config'][key][cfgkey]
-                else:
-                    if '_config' not in self.remote:
-                        self.remote['_config'] = {}
-                    self.config[cfgkey] \
-                        = self.remote['_config'][key][cfgkey] \
-                        = default
+                self.config[cfgkey] = default
+        rconf = dict(self.remote['_config'])
+        rconf[key] = self.config
+        self.remote['_config'] = rconf
 
         def settrue(txt):
             self.config[key]['true_text'] = txt

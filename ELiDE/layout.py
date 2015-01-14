@@ -125,13 +125,15 @@ class ELiDELayout(FloatLayout):
             self._popover.dismiss()
             del self._popover
         else:
-            self._stat_cfg.remote = self.selected_remote
+            self.reremote()
             self._popover = ModalView()
             self._popover.add_widget(self._stat_cfg_layout)
             self._popover.open()
 
     def reremote(self, *args):
-        self.selected_remote = self._get_selected_remote()
+        self.selected_remote \
+            = self._stat_cfg.remote \
+            = self._get_selected_remote()
 
     def _get_selected_remote(self):
         Logger.debug('ELiDELayout: getting remote...')
