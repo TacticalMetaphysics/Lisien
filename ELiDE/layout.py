@@ -126,6 +126,9 @@ class ELiDELayout(FloatLayout):
             del self._popover
         else:
             self._stat_cfg.remote = self.selected_remote
+            self._stat_cfg.set_value = lambda k, v: self.set_remote_value(
+                self.ids.charsheet.remote, k, v
+            )
             self._popover = ModalView()
             self._popover.add_widget(self._stat_cfg_layout)
             self._popover.open()

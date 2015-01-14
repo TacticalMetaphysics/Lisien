@@ -153,6 +153,7 @@ class StatListView(ListView, MirrorMapping):
     config = DictProperty({})
     layout = ObjectProperty()
     remote = ObjectProperty()
+    set_value = ObjectProperty()
     branch = StringProperty('master')
     tick = NumericProperty(0)
     time = ReferenceListProperty(branch, tick)
@@ -179,9 +180,6 @@ class StatListView(ListView, MirrorMapping):
             character=self._reremote,
             selection=self._reremote
         )
-
-    def set_value(self, k, v):
-        self.layout.set_remote_value(self.remote, k, v)
 
     def get_adapter(self):
         return DictAdapter(
