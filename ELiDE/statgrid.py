@@ -269,7 +269,7 @@ class SelectableTextInput(TextInput, SelectableView):
         pass
 
 
-class IntInput(TextInput, SelectableView):
+class IntInput(SelectableTextInput):
     def insert_text(self, s, from_undo=False):
         return super().insert_text(
             ''.join(c for c in s if c in '0123456789'),
