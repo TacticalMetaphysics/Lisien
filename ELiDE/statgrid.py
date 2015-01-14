@@ -6,9 +6,6 @@ user. Autoupdates when there's a change for any reason.
 """
 from functools import partial
 from kivy.properties import (
-    NumericProperty,
-    StringProperty,
-    ReferenceListProperty,
     BooleanProperty,
     DictProperty,
     ObjectProperty
@@ -152,10 +149,6 @@ class StatListView(ListView, MirrorMapping):
     control = DictProperty({})
     config = DictProperty({})
     layout = ObjectProperty()
-    remote = ObjectProperty()
-    branch = StringProperty('master')
-    tick = NumericProperty(0)
-    time = ReferenceListProperty(branch, tick)
 
     def __init__(self, **kwargs):
         kwargs['adapter'] = self.get_adapter()
@@ -164,8 +157,7 @@ class StatListView(ListView, MirrorMapping):
         self.bind(mirror=self._trigger_sortkeys)
         self.bind(
             mirror=self._trigger_upd_data,
-            branch=self._trigger_upd_data,
-            tick=self._trigger_upd_data
+            time=self._trigger_upd_data
         )
         self._listeners = {}
         super().__init__(**kwargs)
