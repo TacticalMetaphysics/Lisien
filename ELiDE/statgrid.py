@@ -6,9 +6,6 @@ user. Autoupdates when there's a change for any reason.
 """
 from functools import partial
 from kivy.properties import (
-    NumericProperty,
-    StringProperty,
-    ReferenceListProperty,
     BooleanProperty,
     DictProperty,
     ObjectProperty
@@ -152,11 +149,6 @@ class StatListView(ListView, MirrorMapping):
     control = DictProperty({})
     config = DictProperty({})
     layout = ObjectProperty()
-    remote = ObjectProperty()
-    set_value = ObjectProperty()
-    branch = StringProperty('master')
-    tick = NumericProperty(0)
-    time = ReferenceListProperty(branch, tick)
 
     def __init__(self, **kwargs):
         kwargs['adapter'] = self.get_adapter()
@@ -165,8 +157,7 @@ class StatListView(ListView, MirrorMapping):
         self.bind(mirror=self._trigger_sortkeys)
         self.bind(
             mirror=self._trigger_upd_data,
-            branch=self._trigger_upd_data,
-            tick=self._trigger_upd_data
+            time=self._trigger_upd_data
         )
         self._listeners = {}
         super().__init__(**kwargs)
@@ -181,6 +172,9 @@ class StatListView(ListView, MirrorMapping):
             selection=self._reremote
         )
 
+    def set_value(self, k, v):
+        self.layout.set_remote_value(self.remote, k, v)
+
     def get_adapter(self):
         return DictAdapter(
             data=self.get_data(),
@@ -188,8 +182,8 @@ class StatListView(ListView, MirrorMapping):
             args_converter=lambda i, kv: {
                 'key': kv[0],
                 'value': kv[1],
-                'reg': self._reg_widget,
-                'unreg': self._unreg_widget,
+                'reg': self.reg_widget,
+                'unreg': self.unreg_widget,
                 'setter': self.set_value,
                 'cls_dicts': self.get_cls_dicts(*kv)
             },
@@ -253,9 +247,9 @@ class StatListView(ListView, MirrorMapping):
         ):
             self.adapter.sorted_keys.remove(k)
 
-    def _reg_widget(self, w, *args):
+    def reg_widget(self, w, *args):
         if not self.mirror:
-            Clock.schedule_once(partial(self._reg_widget, w), 0)
+            Clock.schedule_once(partial(self.reg_widget, w), 0)
             return
 
         def listen(*args):
@@ -266,7 +260,7 @@ class StatListView(ListView, MirrorMapping):
         self._listeners[w.key] = listen
         self.bind(mirror=listen)
 
-    def _unreg_widget(self, w):
+    def unreg_widget(self, w):
         if w.key in self._listeners:
             self.unbind(mirror=self._listeners[w.key])
 
@@ -459,6 +453,25 @@ class StatListViewConfigurator(StatListView):
             deldict, keydict, valdict, picker_dict
         ]
 
+        for (cfgkey, default) in [
+                ('true_text', '1'),
+                ('false_text', '0'),
+                ('min', 0.0),
+                ('max', 1.0)
+        ]:
+            if cfgkey not in self.config:
+                if (
+                        '_config' in self.remote and
+                        cfgkey in self.remote['_config']
+                ):
+                    self.config[cfgkey] = self.remote['_config'][key][cfgkey]
+                else:
+                    if '_config' not in self.remote:
+                        self.remote['_config'] = {}
+                    self.config[cfgkey] \
+                        = self.remote['_config'][key][cfgkey] \
+                        = default
+
         def settrue(txt):
             self.config[key]['true_text'] = txt
             self.remote['_config'] = self.config
@@ -473,7 +486,7 @@ class StatListViewConfigurator(StatListView):
                 'kwargs': {
                     'multiline': False,
                     'hint_text': 'Text when true',
-                    'text': str(value),
+                    'text': str(self.config['true_text']),
                     'on_enter': lambda i, v: settrue(i.text),
                     'on_text_validate': lambda i, v: settrue(i.text),
                     'on_focus': lambda i, foc:
@@ -485,7 +498,7 @@ class StatListViewConfigurator(StatListView):
                 'kwargs': {
                     'multiline': False,
                     'hint_text': 'Text when false',
-                    'text': str(value),
+                    'text': str(self.config['false_text']),
                     'on_enter': lambda i, v: settrue(i.text),
                     'on_text_validate': lambda i, v: settrue(i.text),
                     'on_focus': lambda i, foc:
