@@ -242,14 +242,6 @@ class StatListView(ListView, MirrorMapping):
 
     def upd_data(self, *args):
         self.adapter.data = self.get_data()
-        if '_control' not in self.mirror:
-            self.control = {}
-        else:
-            self.control = dict(self.mirror['_control'])
-        if '_config' not in self.mirror:
-            self.config = {}
-        else:
-            self.config = dict(self.mirror['_config'])
 
     def sortkeys(self, *args):
         for key in self.mirror.keys():
