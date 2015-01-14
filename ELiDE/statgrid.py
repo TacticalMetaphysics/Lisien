@@ -502,7 +502,7 @@ class StatListViewConfigurator(StatListView):
                 'kwargs': {
                     'multiline': False,
                     'hint_text': 'Text when true',
-                    'text': str(self.config['true_text']),
+                    'text': str(value),
                     'on_enter': lambda i, v: settrue(i.text),
                     'on_text_validate': lambda i, v: settrue(i.text),
                     'on_focus': lambda i, foc:
@@ -514,7 +514,7 @@ class StatListViewConfigurator(StatListView):
                 'kwargs': {
                     'multiline': False,
                     'hint_text': 'Text when false',
-                    'text': str(self.config['false_text']),
+                    'text': str(value),
                     'on_enter': lambda i, v: settrue(i.text),
                     'on_text_validate': lambda i, v: settrue(i.text),
                     'on_focus': lambda i, foc:
