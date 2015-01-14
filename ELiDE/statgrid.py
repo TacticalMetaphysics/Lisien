@@ -242,10 +242,11 @@ class StatListView(ListView, MirrorMapping):
             if key not in self.adapter.sorted_keys:
                 self.adapter.sorted_keys = sorted(self.mirror.keys())
                 return
-        for k in set(
-                k for k in self.adapter.sorted_keys if k not in self.mirror
-        ):
-            self.adapter.sorted_keys.remove(k)
+        seen = set()
+        for k in self.adapter.sorted_keys:
+            if k not in seen and k not in self.mirror:
+                self.adapter.sorted_keys.remove(k)
+            seen.add(k)
 
     def reg_widget(self, w, *args):
         if not self.mirror:
