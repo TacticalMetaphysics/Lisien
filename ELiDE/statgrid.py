@@ -401,8 +401,7 @@ class StatListViewConfigurator(StatListView):
             )
         )
         self.canvas.after.clear()
-        self.control[key] = value
-        self.remote['_control'] = self.control
+        self.control[key] = self.remote['_control'][key] = value
 
     def get_adapter(self):
         return DictAdapter(
@@ -468,12 +467,14 @@ class StatListViewConfigurator(StatListView):
         ]
 
         def settrue(txt):
-            self.config[key]['true_text'] = txt
-            self.remote['_config'] = self.config
+            self.config[key]['true_text'] \
+                = self.remote['_config'][key]['true_text'] \
+                = txt
 
         def setfalse(txt):
-            self.config[key]['false_text'] = txt
-            self.remote['_config'] = self.config
+            self.config[key]['false_text'] \
+                = self.remote['_config'][key]['false_text'] \
+                = txt
 
         if control_type == 'togglebutton':
             true_text_dict = {
@@ -503,12 +504,14 @@ class StatListViewConfigurator(StatListView):
             cls_dicts.extend((true_text_dict, false_text_dict))
 
         def setmin(v):
-            self.config[key]['min'] = float(v)
-            self.remote['_config'] = self.config
+            self.config[key]['min'] \
+                = self.remote['_control'][key]['min'] \
+                = float(v)
 
         def setmax(v):
-            self.config[key]['max'] = float(v)
-            self.remote['_config'] = self.config
+            self.config[key]['max'] \
+                = self.remote['_control'][key]['max'] \
+                = float(v)
 
         if control_type == 'slider':
             if (
