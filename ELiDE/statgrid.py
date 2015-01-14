@@ -477,11 +477,18 @@ class StatListViewConfigurator(StatListView):
                 'cls': SelectableTextInput,
                 'kwargs': {
                     'multiline': False,
+<<<<<<< HEAD
                     'text': str(cfg['true_text']),
                     'on_enter': lambda i:
                     self.set_config(key, 'true_text', i.text),
                     'on_text_validate': lambda i:
                     self.set_config(key, 'true_text', i.text),
+=======
+                    'hint_text': 'Text when true',
+                    'text': str(value),
+                    'on_enter': lambda i, v: settrue(i.text),
+                    'on_text_validate': lambda i, v: settrue(i.text),
+>>>>>>> Revert "initialize the text in the togglebutton configuration fields"
                     'on_focus': lambda i, foc:
                     self.set_config(key, 'true_text', i.text)
                     if not foc else None
@@ -495,11 +502,18 @@ class StatListViewConfigurator(StatListView):
                 'cls': SelectableTextInput,
                 'kwargs': {
                     'multiline': False,
+<<<<<<< HEAD
                     'text': str(cfg['false_text']),
                     'on_enter': lambda i:
                     self.set_config(key, 'false_text', i.text),
                     'on_text_validate': lambda i:
                     self.set_config(key, 'false_text', i.text),
+=======
+                    'hint_text': 'Text when false',
+                    'text': str(value),
+                    'on_enter': lambda i, v: settrue(i.text),
+                    'on_text_validate': lambda i, v: settrue(i.text),
+>>>>>>> Revert "initialize the text in the togglebutton configuration fields"
                     'on_focus': lambda i, foc:
                     self.set_config(key, 'false_text', i.text)
                     if not foc else None
