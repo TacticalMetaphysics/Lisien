@@ -469,6 +469,25 @@ class StatListViewConfigurator(StatListView):
             deldict, keydict, valdict, picker_dict
         ]
 
+        for (cfgkey, default) in [
+                ('true_text', '1'),
+                ('false_text', '0'),
+                ('min', 0.0),
+                ('max', 1.0)
+        ]:
+            if cfgkey not in self.config:
+                if (
+                        '_config' in self.remote and
+                        cfgkey in self.remote['_config']
+                ):
+                    self.config[cfgkey] = self.remote['_config'][key][cfgkey]
+                else:
+                    if '_config' not in self.remote:
+                        self.remote['_config'] = {}
+                    self.config[cfgkey] \
+                        = self.remote['_config'][key][cfgkey] \
+                        = default
+
         def settrue(txt):
             self.config[key]['true_text'] = txt
             self.remote['_config'] = self.config
