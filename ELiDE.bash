@@ -80,10 +80,10 @@ exit;' >addapt &
         cd kivy;
         echo "Installing Kivy with SDL2 backend.";
         echo "Assuming you have development headers for:";
-        echo "sdl2";
-        echo "sdl2-ttf";
-        echo "sdl2-image";
-        echo "sdl2-mixer";
+        echo "libsdl2";
+        echo "libsdl2-ttf";
+        echo "libsdl2-image";
+        echo "libsdl2-mixer";
         USE_SDL2=1 python3 setup.py install;
         cd $WORKINGDIR;
     fi;
