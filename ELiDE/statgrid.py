@@ -226,7 +226,7 @@ class StatListView(ListView, MirrorMapping):
     def get_data(self):
         return {
             k: (k, v) for (k, v) in self.mirror.items()
-            if v is not None and (
+            if (
                 k[0] != '_' and
                 k not in (
                     'character',
