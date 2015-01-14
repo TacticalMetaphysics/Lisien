@@ -190,8 +190,8 @@ class StatListView(ListView, MirrorMapping):
             args_converter=lambda i, kv: {
                 'key': kv[0],
                 'value': kv[1],
-                'reg': self.reg_widget,
-                'unreg': self.unreg_widget,
+                'reg': self._reg_widget,
+                'unreg': self._unreg_widget,
                 'setter': self.set_value,
                 'cls_dicts': self.get_cls_dicts(*kv)
             },
@@ -263,9 +263,9 @@ class StatListView(ListView, MirrorMapping):
         ):
             self.adapter.sorted_keys.remove(k)
 
-    def reg_widget(self, w, *args):
+    def _reg_widget(self, w, *args):
         if not self.mirror:
-            Clock.schedule_once(partial(self.reg_widget, w), 0)
+            Clock.schedule_once(partial(self._reg_widget, w), 0)
             return
 
         def listen(*args):
@@ -276,7 +276,7 @@ class StatListView(ListView, MirrorMapping):
         self._listeners[w.key] = listen
         self.bind(mirror=listen)
 
-    def unreg_widget(self, w):
+    def _unreg_widget(self, w):
         if w.key in self._listeners:
             self.unbind(mirror=self._listeners[w.key])
 
