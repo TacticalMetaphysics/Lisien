@@ -110,6 +110,7 @@ class ELiDELayout(FloatLayout):
             self.bind(
                 selection=self._trigger_reremote
             )
+            self._trigger_reremote()
 
         bind_charsheet()
 
