@@ -243,9 +243,10 @@ class StatListView(ListView, MirrorMapping):
         }
         valdict = control_cls[control_type](value)
         valdict['kwargs'].update(cfg)
-        true_text = cfg['true_text']
-        false_text = cfg['false_text']
-        valdict['kwargs']['text'] = true_text if value else false_text
+        if control_type == 'togglebutton':
+            true_text = cfg['true_text']
+            false_text = cfg['false_text']
+            valdict['kwargs']['text'] = true_text if value else false_text
         return [keydict, valdict]
 
     def get_data(self):
