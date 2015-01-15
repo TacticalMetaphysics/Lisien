@@ -286,6 +286,12 @@ class ELiDELayout(FloatLayout):
         if self.ids.cfgstatbut.collide_point(*touch.pos):
             self.ids.cfgstatbut.dispatch('on_touch_down', touch)
             self.keep_selection = True
+        if self.ids.dummyplace.collide_point(*touch.pos):
+            self.ids.dummyplace.dispatch('on_touch_down', touch)
+            return
+        if self.ids.dummything.collide_point(*touch.pos):
+            self.ids.dummything.dispatch('on_touch_down', touch)
+            return
         if (
                 self.ids.boardview.collide_point(*touch.pos)
                 and not self.selection
