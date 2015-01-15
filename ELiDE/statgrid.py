@@ -218,7 +218,7 @@ class StatListView(ListView, MirrorMapping):
 
     def set_control(self, key, control):
         if '_control' not in self.mirror:
-            self.remote['_control'] = {key: control}
+            self.remote['_control'] = self.control = {key: control}
         else:
             self.control[key] = control
             self.remote['_control'] = self.control
@@ -236,15 +236,16 @@ class StatListView(ListView, MirrorMapping):
 
     def get_cls_dicts(self, key, value):
         self.init_control_config(key)
-        control_type = self.control[key]
+        control_type = self.control.get(key, 'readout')
+        cfg = self.config.get(key, default_cfg)
         keydict = {
             'cls': ListItemLabel,
             'kwargs': {'text': str(key)}
         }
         valdict = control_cls[control_type](value)
-        valdict['kwargs'].update(self.config[key])
-        true_text = self.config[key]['true_text']
-        false_text = self.config[key]['false_text']
+        valdict['kwargs'].update(cfg)
+        true_text = cfg['true_text']
+        false_text = cfg['false_text']
         valdict['kwargs']['text'] = true_text if value else false_text
         return [keydict, valdict]
 
