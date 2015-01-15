@@ -168,9 +168,7 @@ class StatListView(ListView, MirrorMapping):
         self.bind(mirror=self._trigger_sortkeys)
         self.bind(
             mirror=self._trigger_upd_data,
-            time=self._trigger_upd_data,
-            control=self._trigger_refresh_adapter,
-            config=self._trigger_refresh_adapter
+            time=self._trigger_upd_data
         )
         self._listeners = {}
         super().__init__(**kwargs)
@@ -202,10 +200,8 @@ class StatListView(ListView, MirrorMapping):
 
     def init_control_config(self, key):
         if key not in self.control:
-            self.remote['_control'] = {key: 'textinput'}
-        if '_config' not in self.mirror:
-            self.remote['_config'] = {key: default_cfg}
-        elif key not in self.config:
+            self.set_control(key, 'readout')
+        if key not in self.config:
             cfgd = dict(self.config)
             cfgd[key] = default_cfg
             self.remote['_config'] = cfgd
@@ -218,17 +214,20 @@ class StatListView(ListView, MirrorMapping):
 
     def set_control(self, key, control):
         if '_control' not in self.mirror:
-            self.remote['_control'] = self.control = {key: control}
+            ctrld = {key: control}
         else:
-            self.control[key] = control
-            self.remote['_control'] = self.control
+            ctrld = dict(self.control)
+            ctrld[key] = control
+        self.remote['_control'] = ctrld
         self.canvas.after.clear()
 
     def set_config(self, key, option, value):
         if '_config' not in self.mirror:
             self.remote['_config'] = {key: {option: value}}
         elif key in self.config:
-            self.remote['_config'][key][option] = value
+            newcfg = dict(self.config)
+            newcfg[key][option] = value
+            self.remote['_config'] = newcfg
         else:
             newcfg = dict(default_cfg)
             newcfg[option] = value
@@ -267,12 +266,7 @@ class StatListView(ListView, MirrorMapping):
         }
 
     def refresh_adapter(self, *args):
-        Logger.debug(
-            '{}: refreshing adapter'.format(
-                self.__class__.__name__
-            )
-        )
-        self.adapter.data = self.adapter.data
+        self.adapter = self.get_adapter()
 
     def upd_data(self, *args):
         if (
@@ -430,8 +424,8 @@ class StatListViewConfigurator(StatListView):
 
     def get_cls_dicts(self, key, value):
         self.init_control_config(key)
-        control_type = self.control[key]
-        cfg = self.config[key]
+        control_type = self.control.get(key, 'readout')
+        cfg = self.config.get(key, default_cfg)
         deldict = {
             'cls': ListItemButton,
             'kwargs': {
