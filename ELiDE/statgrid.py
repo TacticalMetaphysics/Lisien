@@ -276,11 +276,11 @@ class StatListView(ListView, MirrorMapping):
         if (
                 '_control' in self.mirror
         ):
-            self.control = self.mirror['_control']
+            self.control = dict(self.mirror['_control'])
         if (
                 '_config' in self.mirror
         ):
-            self.config = self.mirror['_config']
+            self.config = dict(self.mirror['_config'])
         self.adapter.data = self.get_data()
 
     def sortkeys(self, *args):
