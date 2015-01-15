@@ -430,7 +430,7 @@ class StatListViewConfigurator(StatListView):
             'cls': ListItemButton,
             'kwargs': {
                 'text': 'del',
-                'on_press': partial(self.del_key, key)
+                'on_press': lambda inst: self.del_key(key)
             }
         }
         picker_dict = {
