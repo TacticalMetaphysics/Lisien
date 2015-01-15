@@ -157,6 +157,8 @@ from collections import MutableMapping, MutableSequence
 class JSONReWrapper(MutableMapping):
     """Like JSONWrapper with a cache."""
     def __init__(self, outer, key, initval=None):
+        self._outer = outer
+        self._key = key
         self._inner = JSONWrapper(outer, key)
         self._v = initval if initval else dict(self._inner)
         if not isinstance(self._v, dict):
@@ -187,8 +189,8 @@ class JSONReWrapper(MutableMapping):
         return r
 
     def __setitem__(self, k, v):
-        self._inner[k] = v
         self._v[k] = v
+        self._outer[self._key] = self._v
 
     def __delitem__(self, k):
         del self._inner[k]

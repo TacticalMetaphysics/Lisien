@@ -145,17 +145,32 @@ control_txt = {
 }
 
 
+default_cfg = {
+    'true_text': '1',
+    'false_text': '0',
+    'min': 0.0,
+    'max': 1.0
+}
+
+
 class StatListView(ListView, MirrorMapping):
     layout = ObjectProperty()
+    control = DictProperty({})
+    config = DictProperty({})
 
     def __init__(self, **kwargs):
         kwargs['adapter'] = self.get_adapter()
         self._trigger_sortkeys = Clock.create_trigger(self.sortkeys)
         self._trigger_upd_data = Clock.create_trigger(self.upd_data)
+        self._trigger_refresh_adapter = Clock.create_trigger(
+            self.refresh_adapter
+        )
         self.bind(mirror=self._trigger_sortkeys)
         self.bind(
             mirror=self._trigger_upd_data,
-            time=self._trigger_upd_data
+            time=self._trigger_upd_data,
+            control=self._trigger_refresh_adapter,
+            config=self._trigger_refresh_adapter
         )
         self._listeners = {}
         super().__init__(**kwargs)
@@ -164,10 +179,6 @@ class StatListView(ListView, MirrorMapping):
         self.remote = self.layout.selected_remote
         self.layout.bind(
             selected_remote=self.setter('remote')
-        )
-        self.layout.bind(
-            character=self._reremote,
-            selection=self._reremote
         )
 
     def set_value(self, k, v):
@@ -189,26 +200,50 @@ class StatListView(ListView, MirrorMapping):
             allow_empty_selection=True
         )
 
+    def init_control_config(self, key):
+        if key not in self.control:
+            self.remote['_control'] = {key: 'textinput'}
+        if '_config' not in self.mirror:
+            self.remote['_config'] = {key: default_cfg}
+        elif key not in self.config:
+            cfgd = dict(self.config)
+            cfgd[key] = default_cfg
+            self.remote['_config'] = cfgd
+        else:
+            cfgd = dict(self.config)
+            for option in default_cfg:
+                if option not in cfgd[key]:
+                    cfgd[key][option] = default_cfg[option]
+            self.remote['_config'] = cfgd
+
+    def set_control(self, key, control):
+        if '_control' not in self.mirror:
+            self.remote['_control'] = {key: control}
+        else:
+            self.remote['_control'][key] = control
+        self.canvas.after.clear()
+
+    def set_config(self, key, option, value):
+        if '_config' not in self.mirror:
+            self.remote['_config'] = {key: {option: value}}
+        elif key in self.config:
+            self.remote['_config'][key][option] = value
+        else:
+            newcfg = dict(default_cfg)
+            newcfg[option] = value
+            self.remote['_config'][key] = newcfg
+
     def get_cls_dicts(self, key, value):
+        self.init_control_config(key)
+        control_type = self.control[key]
         keydict = {
             'cls': ListItemLabel,
             'kwargs': {'text': str(key)}
         }
-        control_type = self.mirror['_control'].get(key, 'textinput')
         valdict = control_cls[control_type](value)
-        override = dict(self.mirror['_config'].get(key, {}))
-        # hack to let you choose how to display boolean values
-        for (k, v) in override.items():
-            Logger.debug('StatListView: overriding {}={}'.format(k, v))
-        true_text = '1'
-        if 'true_text' in override:
-            true_text = override['true_text']
-            del override['true_text']
-        false_text = '0'
-        if 'false_text' in override:
-            false_text = override['false_text']
-            del override['false_text']
-        valdict['kwargs'].update(override)
+        valdict['kwargs'].update(self.config[key])
+        true_text = self.config[key]['true_text']
+        false_text = self.config[key]['false_text']
         valdict['kwargs']['text'] = true_text if value else false_text
         return [keydict, valdict]
 
@@ -229,7 +264,23 @@ class StatListView(ListView, MirrorMapping):
             )
         }
 
+    def refresh_adapter(self, *args):
+        Logger.debug(
+            '{}: refreshing adapter'.format(
+                self.__class__.__name__
+            )
+        )
+        self.adapter.data = self.adapter.data
+
     def upd_data(self, *args):
+        if (
+                '_control' in self.mirror
+        ):
+            self.control = self.mirror['_control']
+        if (
+                '_config' in self.mirror
+        ):
+            self.config = self.mirror['_config']
         self.adapter.data = self.get_data()
 
     def sortkeys(self, *args):
@@ -357,35 +408,10 @@ class StatListViewConfigurator(StatListView):
     def del_key(self, key):
         if key in self.remote:
             del self.remote[key]
-        if '_control' in self.mirror and key in self.mirror['_control']:
-            ctrld = dict(self.mirror['_control'])
-            del ctrld[key]
-            self.remote['_control'] = ctrld
-        if '_config' in self.mirror and key in self.mirror['_config']:
-            cfgd = dict(self.mirror['_config'])
-            del cfgd[key]
-            self.remote['_config'] = cfgd
         if key in self.mirror:
             del self.mirror[key]
         if key in self.adapter.sorted_keys:
             self.adapter.sorted_keys.remove(key)
-
-    def set_control_type(self, key, value, *args):
-        if not isinstance(value, str):
-            raise ValueError(
-                "Tried to set {} to unknown control type {}".format(
-                    key, value
-                )
-            )
-        Logger.debug(
-            'StatListViewConfigurator: set_control_type({}, {})'.format(
-                key, value
-            )
-        )
-        self.canvas.after.clear()
-        ctrld = dict(self.mirror['_control'])
-        ctrld[key] = value
-        self.remote['_control'] = ctrld
 
     def get_adapter(self):
         return DictAdapter(
@@ -398,53 +424,10 @@ class StatListViewConfigurator(StatListView):
             allow_empty_selection=True
         )
 
-    def set_control(self, key, control):
-        if '_control' not in self.mirror:
-            self.remote['_control'] = {key: control}
-        elif key not in self.mirror['_control']:
-            ctrld = dict(self.mirror['_control'])
-            ctrld[key] = control
-            self.remote['_control'] = ctrld
-
-    def have_control(self, key):
-        return (
-            '_control' in self.mirror and
-            key in self.mirror['_control']
-        )
-
-    def set_config(self, key, option, value):
-        if '_config' not in self.mirror:
-            self.remote['_config'] = {key: {option: value}}
-        elif key not in self.mirror['_config']:
-            cfgd = dict(self.mirror['_config'])
-            cfgd[key] = {option: value}
-            self.remote['_config'] = cfgd
-
-    def have_config(self, key, option):
-        return (
-            '_config' in self.mirror and
-            key in self.mirror['_config'] and
-            option in self.mirror['_config'][key]
-        )
-
     def get_cls_dicts(self, key, value):
-        if not self.have_control(key):
-            self.set_control(key, 'textinput')
-        control_type = self.mirror['_control'][key]
-        defaultcfg = {
-            'true_text': '1',
-            'false_text': '0',
-            'min': 0.0,
-            'max': 1.0
-        }
-        if '_config' not in self.mirror:
-            self.remote['_config'] = {key: defaultcfg}
-        elif key not in self.mirror['_config']:
-            ctrld = dict(self.mirror['_config'])
-            ctrld[key] = defaultcfg
-            self.remote['_config'] = ctrld
-        cfg = self.mirror['_config'][key]
-
+        self.init_control_config(key)
+        control_type = self.control[key]
+        cfg = self.config[key]
         deldict = {
             'cls': ListItemButton,
             'kwargs': {
@@ -457,7 +440,7 @@ class StatListViewConfigurator(StatListView):
             'kwargs': {
                 'key': key,
                 'text': control_type,
-                'setter': self.set_control_type,
+                'setter': self.set_control,
                 'control_texts': control_txt,
                 'dropdown_kwargs': {
                     'canvas': self.canvas.after
@@ -472,8 +455,8 @@ class StatListViewConfigurator(StatListView):
             'cls': SelectableTextInput,
             'kwargs': {
                 'text': str(value),
-                'on_text_validate': lambda i, v: self.set_value(key, i.text),
-                'on_enter': lambda i, v: self.set_value(key, i.text),
+                'on_text_validate': lambda i: self.set_value(key, i.text),
+                'on_enter': lambda i: self.set_value(key, i.text),
                 'on_focus': lambda i, v:
                 self.set_value(key, i.text) if not v else None
             }
@@ -489,9 +472,9 @@ class StatListViewConfigurator(StatListView):
                     'multiline': False,
                     'hint_text': 'Text when true',
                     'text': str(cfg['true_text']),
-                    'on_enter': lambda i, v:
+                    'on_enter': lambda i:
                     self.set_config(key, 'true_text', i.text),
-                    'on_text_validate': lambda i, v:
+                    'on_text_validate': lambda i:
                     self.set_config(key, 'true_text', i.text),
                     'on_focus': lambda i, foc:
                     self.set_config(key, 'true_text', i.text)
@@ -504,9 +487,9 @@ class StatListViewConfigurator(StatListView):
                     'multiline': False,
                     'hint_text': 'Text when false',
                     'text': str(cfg['false_text']),
-                    'on_enter': lambda i, v:
+                    'on_enter': lambda i:
                     self.set_config(key, 'false_text', i.text),
-                    'on_text_validate': lambda i, v:
+                    'on_text_validate': lambda i:
                     self.set_config(key, 'false_text', i.text),
                     'on_focus': lambda i, foc:
                     self.set_config(key, 'false_text', i.text)
