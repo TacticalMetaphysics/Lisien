@@ -121,7 +121,8 @@ control_cls = {
     'textinput': lambda v: {
         'cls': StatRowTextInput,
         'kwargs': {
-            'text': str(v)
+            'text': str(v),
+            'multiline': False
         }
     },
     'togglebutton': lambda v: {
