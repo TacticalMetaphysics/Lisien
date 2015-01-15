@@ -438,7 +438,7 @@ class StatListViewConfigurator(StatListView):
             'cls': ControlTypePicker,
             'kwargs': {
                 'key': key,
-                'text': control_type,
+                'text': control_txt[control_type],
                 'setter': self.set_control,
                 'control_texts': control_txt,
                 'dropdown_kwargs': {
