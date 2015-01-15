@@ -180,7 +180,22 @@ class StatListView(ListView, MirrorMapping):
             selected_remote=self.setter('remote')
         )
 
+    def init_control_config(self, key):
+        if key not in self.control:
+            self.set_control(key, 'readout')
+        if key not in self.config:
+            cfgd = dict(self.config)
+            cfgd[key] = default_cfg
+            self.remote['_config'] = cfgd
+        else:
+            cfgd = dict(self.config)
+            for option in default_cfg:
+                if option not in cfgd[key]:
+                    cfgd[key][option] = default_cfg[option]
+            self.remote['_config'] = cfgd
+
     def set_value(self, k, v):
+        self.init_control_config(k)
         self.layout.set_remote_value(self.remote, k, v)
 
     def get_adapter(self):
@@ -198,20 +213,6 @@ class StatListView(ListView, MirrorMapping):
             selection_mode='multiple',
             allow_empty_selection=True
         )
-
-    def init_control_config(self, key):
-        if key not in self.control:
-            self.set_control(key, 'readout')
-        if key not in self.config:
-            cfgd = dict(self.config)
-            cfgd[key] = default_cfg
-            self.remote['_config'] = cfgd
-        else:
-            cfgd = dict(self.config)
-            for option in default_cfg:
-                if option not in cfgd[key]:
-                    cfgd[key][option] = default_cfg[option]
-            self.remote['_config'] = cfgd
 
     def set_control(self, key, control):
         if '_control' not in self.mirror:
@@ -235,7 +236,6 @@ class StatListView(ListView, MirrorMapping):
             self.remote['_config'][key] = newcfg
 
     def get_cls_dicts(self, key, value):
-        self.init_control_config(key)
         control_type = self.control.get(key, 'readout')
         cfg = self.config.get(key, default_cfg)
         keydict = {
@@ -425,7 +425,6 @@ class StatListViewConfigurator(StatListView):
         )
 
     def get_cls_dicts(self, key, value):
-        self.init_control_config(key)
         control_type = self.control.get(key, 'readout')
         cfg = self.config.get(key, default_cfg)
         deldict = {
