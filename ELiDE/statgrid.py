@@ -220,7 +220,8 @@ class StatListView(ListView, MirrorMapping):
         if '_control' not in self.mirror:
             self.remote['_control'] = {key: control}
         else:
-            self.remote['_control'][key] = control
+            self.control[key] = control
+            self.remote['_control'] = self.control
         self.canvas.after.clear()
 
     def set_config(self, key, option, value):
