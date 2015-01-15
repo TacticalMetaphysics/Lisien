@@ -404,6 +404,10 @@ class ControlTypePicker(ListItemButton):
         self.bind(on_press=self.dropdown.open)
 
 
+class ConfigListItem(CompositeListItem):
+    pass
+
+
 class StatListViewConfigurator(StatListView):
     def del_key(self, key):
         if key in self.mirror:
@@ -414,7 +418,7 @@ class StatListViewConfigurator(StatListView):
     def get_adapter(self):
         return DictAdapter(
             data=self.get_data(),
-            cls=CompositeListItem,
+            cls=ConfigListItem,
             args_converter=lambda i, kv: {
                 'cls_dicts': self.get_cls_dicts(*kv)
             },
@@ -464,11 +468,14 @@ class StatListViewConfigurator(StatListView):
         ]
 
         if control_type == 'togglebutton':
+            true_text_label_dict = {
+                'cls': ListItemLabel,
+                'kwargs': {'text': 'True:'}
+            }
             true_text_dict = {
                 'cls': SelectableTextInput,
                 'kwargs': {
                     'multiline': False,
-                    'hint_text': 'Text when true',
                     'text': str(cfg['true_text']),
                     'on_enter': lambda i:
                     self.set_config(key, 'true_text', i.text),
@@ -479,11 +486,14 @@ class StatListViewConfigurator(StatListView):
                     if not foc else None
                 }
             }
+            false_text_label_dict = {
+                'cls': ListItemLabel,
+                'kwargs': {'text': 'False:'}
+            }
             false_text_dict = {
                 'cls': SelectableTextInput,
                 'kwargs': {
                     'multiline': False,
-                    'hint_text': 'Text when false',
                     'text': str(cfg['false_text']),
                     'on_enter': lambda i:
                     self.set_config(key, 'false_text', i.text),
@@ -494,14 +504,24 @@ class StatListViewConfigurator(StatListView):
                     if not foc else None
                 }
             }
-            cls_dicts.extend((true_text_dict, false_text_dict))
+            cls_dicts.extend(
+                (
+                    true_text_label_dict,
+                    true_text_dict,
+                    false_text_label_dict,
+                    false_text_dict
+                )
+            )
 
         if control_type == 'slider':
+            min_label_dict = {
+                'cls': ListItemLabel,
+                'kwargs': {'text': 'Minimum:'}
+            }
             min_dict = {
                 'cls': IntInput,
                 'kwargs': {
                     'multiline': False,
-                    'hint_text': 'Minimum',
                     'text': str(cfg['min']),
                     'on_enter': lambda i, v:
                     self.set_config(key, 'min', float(i.text)),
@@ -511,6 +531,10 @@ class StatListViewConfigurator(StatListView):
                     self.set_config(key, 'min', float(i.text))
                     if not foc else None
                 }
+            }
+            max_label_dict = {
+                'cls': ListItemLabel,
+                'kwargs': {'text': 'Maximum:'}
             }
             max_dict = {
                 'cls': IntInput,
@@ -527,13 +551,16 @@ class StatListViewConfigurator(StatListView):
                     if not foc else None
                 }
             }
-            cls_dicts.extend((min_dict, max_dict))
+            cls_dicts.extend(
+                (min_label_dict, min_dict, max_label_dict, max_dict)
+            )
         return cls_dicts
 
 
 kv = """
 <StatRowListItem>:
-    orientation: 'horizontal'
+    height: 30
+<ConfigListItem>:
     height: 30
 """
 Builder.load_string(kv)
