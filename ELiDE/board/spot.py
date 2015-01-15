@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013 Zachary Spector,  zacharyspector@gmail.com
-"""Widgets to represent :class:`Place`s. :class:`Pawn`s move around on
+"""Widget to represent :class:`Place`s. :class:`Pawn` moves around on
 top of these.
 
 """
@@ -80,11 +80,14 @@ class Spot(PawnSpot):
             return
         if not ('_x' in self.mirror and '_y' in self.mirror):
             (x, y) = self._default_pos()
-            self.mirror['_x'] = self.remote['_x'] = x
-            self.mirror['_y'] = self.remote['_y'] = y
+            self.remote['_x'] = x
+            self.remote['_y'] = y
+        else:
+            x = self.mirror['_x']
+            y = self.mirror['_y']
         self.pos = (
-            int(self.mirror['_x'] * self.board.width),
-            int(self.mirror['_y'] * self.board.height)
+            int(x * self.board.width),
+            int(y * self.board.height)
         )
         (x, y) = self.center
         (w, h) = self.size

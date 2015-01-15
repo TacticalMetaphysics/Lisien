@@ -406,10 +406,8 @@ class ControlTypePicker(ListItemButton):
 
 class StatListViewConfigurator(StatListView):
     def del_key(self, key):
-        if key in self.remote:
-            del self.remote[key]
         if key in self.mirror:
-            del self.mirror[key]
+            del self.remote[key]
         if key in self.adapter.sorted_keys:
             self.adapter.sorted_keys.remove(key)
 
