@@ -148,7 +148,10 @@ class ELiDELayout(FloatLayout):
             return self.character.stat
         elif hasattr(self.selection, 'remote'):
             return self.selection.remote
-        elif self.selection.portal is not None:
+        elif (
+            hasattr(self.selection, 'portal') and
+            self.selection.portal is not None
+        ):
             return self.selection.portal
         return {}
 
