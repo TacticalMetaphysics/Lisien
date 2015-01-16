@@ -198,10 +198,6 @@ class StatListView(ListView, MirrorMapping):
                     cfgd[key][option] = default_cfg[option]
             self.remote['_config'] = cfgd
 
-    def set_value(self, k, v):
-        self.init_control_config(k)
-        self.layout.set_remote_value(self.remote, k, v)
-
     def get_adapter(self):
         return DictAdapter(
             data=self.get_data(),
