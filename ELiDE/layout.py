@@ -1,3 +1,4 @@
+from functools import partial
 from kivy.properties import (
     AliasProperty,
     BooleanProperty,
@@ -489,6 +490,9 @@ class ELiDELayout(FloatLayout):
         :class:`board.Pawn` or :class:`board.Spot`.
 
         """
+        def renum_dummy(dummy, *args):
+            dummy.num = self._dummynum(dummy.prefix) + 1
+
         if 'board' not in self.ids or self.character is None:
             Clock.schedule_once(self.on_dummies, 0)
             return
@@ -502,6 +506,7 @@ class ELiDELayout(FloatLayout):
                 dummy.paths = ['orb.png']
                 self._spot_config = SpotConfigDialog(layout=self)
             dummy.num = self._dummynum(dummy.prefix) + 1
+            dummy.bind(prefix=partial(renum_dummy, dummy))
             dummy._numbered = True
 
     def spot_from_dummy(self, dummy):
@@ -510,6 +515,13 @@ class ELiDELayout(FloatLayout):
         position, and imagery of the provided dummy.
 
         """
+        Logger.debug(
+            "ELiDELayout: Making spot from dummy {} ({} #{})".format(
+                dummy.name,
+                dummy.prefix,
+                dummy.num
+            )
+        )
         (x, y) = self.ids.boardview.to_local(*dummy.pos_up)
         x /= self.ids.board.width
         y /= self.ids.board.height
