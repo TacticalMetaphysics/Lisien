@@ -1,5 +1,12 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+import sys
+if sys.version_info[0] < 3 or (
+        sys.version_info[0] == 3 and
+        sys.version_info[1] < 3
+):
+    raise RuntimeError("LiSE requires Python 3.3 or later")
+
 from setuptools import setup
 
 
