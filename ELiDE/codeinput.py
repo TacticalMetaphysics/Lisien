@@ -15,6 +15,11 @@ class ELiDECodeInput(CodeInput):
 class ELiDEFunctionInput(BoxLayout):
     header = StringProperty('')
 
+    def get_func_code(self):
+        code = self.header + '\n'
+        for line in self.ids.code.text.split('\n'):
+            code += (' ' * 4 + line + '\n')
+        return code
 
 kv = """
 <ELiDEFunctionInput>:
