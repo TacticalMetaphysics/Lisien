@@ -1,4 +1,5 @@
 from kivy.properties import (
+    NumericProperty,
     ObjectProperty,
     StringProperty
 )
@@ -13,6 +14,8 @@ class ELiDECodeInput(CodeInput):
 
 
 class ELiDEFunctionInput(BoxLayout):
+    font_name = StringProperty('DroidSans') 
+    font_size = NumericProperty(10)
     header = StringProperty('')
 
     def get_func_code(self):
@@ -26,6 +29,8 @@ kv = """
     orientation: 'vertical'
     ELiDECodeInput:
         id: signature
+        font_name: root.font_name
+        font_size: root.font_size
         text: root.header
         disabled: True
         height: self.line_height + self.font_size
@@ -43,11 +48,15 @@ kv = """
                     size: self.size
                 Color:
                     rgba: [1., 1., 1., 1.]
+            font_name: root.font_name
+            font_size: root.font_size
             # PEP8 standard indentation width is 4 spaces
             text: ' ' * 4
             size_hint_x: None
             width: self.texture_size[0]
         ELiDECodeInput:
+            font_name: root.font_name
+            font_size: root.font_size
             id: code
 """
 Builder.load_string(kv)
