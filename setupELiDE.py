@@ -30,7 +30,8 @@ setup(
     install_requires=[
         "LiSE",
         "numpy",
-        "kivy"
+        "kivy",
+        "pygments"
     ],
     package_data={
         "ELiDE": [
