@@ -75,9 +75,9 @@ class ELiDELayout(FloatLayout):
             size_hint_y=0.95,
         )
         self._stat_cfg_layout = BoxLayout(orientation='vertical')
-        self._stat_cfg_layout.add_widget(self._stat_cfg)
         self._stat_cfg_buttons = BoxLayout(size_hint_y=0.05)
         self._stat_cfg_layout.add_widget(self._stat_cfg_buttons)
+        self._stat_cfg_layout.add_widget(self._stat_cfg)
         self._newstatkey = TextInput(
             multiline=False,
             hint_text='New stat'
