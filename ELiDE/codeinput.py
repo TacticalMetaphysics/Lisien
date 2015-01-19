@@ -19,13 +19,25 @@ class ELiDEFunctionInput(BoxLayout):
 kv = """
 <ELiDEFunctionInput>:
     orientation: 'vertical'
-    Label:
+    ELiDECodeInput:
+        id: signature
         text: root.header
+        disabled: True
+        height: self.line_height + self.font_size
+        background_disabled_normal: ''
+        disabled_foreground_color: self.foreground_color
         size_hint_y: None
-        height: self.texture_size[1]
     BoxLayout:
         orientation: 'horizontal'
         Label:
+            canvas:
+                Color:
+                    rgba: signature.background_color
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+                Color:
+                    rgba: [1., 1., 1., 1.]
             # PEP8 standard indentation width is 4 spaces
             text: ' ' * 4
             size_hint_x: None
@@ -34,3 +46,8 @@ kv = """
             id: code
 """
 Builder.load_string(kv)
+
+
+if __name__ == '__main__':
+    from kivy.base import runTouchApp
+    runTouchApp(ELiDEFunctionInput(header='def foo(bar, bas):'))
