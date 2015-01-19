@@ -244,8 +244,8 @@ class StatListView(ListView, MirrorMapping):
         valdict = control_cls[control_type](value)
         valdict['kwargs'].update(cfg)
         if control_type == 'togglebutton':
-            true_text = cfg['true_text']
-            false_text = cfg['false_text']
+            true_text = cfg.get('true_text', '1')
+            false_text = cfg.get('false_text', '0')
             valdict['kwargs']['text'] = true_text if value else false_text
         return [keydict, valdict]
 
@@ -472,7 +472,7 @@ class StatListViewConfigurator(StatListView):
                 'cls': SelectableTextInput,
                 'kwargs': {
                     'multiline': False,
-                    'text': str(cfg['true_text']),
+                    'text': str(cfg.get('true_text', '1')),
                     'on_enter': lambda i:
                     self.set_config(key, 'true_text', i.text),
                     'on_text_validate': lambda i:
@@ -490,7 +490,7 @@ class StatListViewConfigurator(StatListView):
                 'cls': SelectableTextInput,
                 'kwargs': {
                     'multiline': False,
-                    'text': str(cfg['false_text']),
+                    'text': str(cfg.get('false_text', '0')),
                     'on_enter': lambda i:
                     self.set_config(key, 'false_text', i.text),
                     'on_text_validate': lambda i:
