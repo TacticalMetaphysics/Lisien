@@ -16,7 +16,7 @@ setup(
     author="Zachary Spector",
     author_email="zacharyspector@gmail.com",
     license="GPL3",
-    keywords="game simulation IDE",
+    keywords="game simulation",
     url="https://github.com/LogicalDash/LiSE",
     packages=[
         "LiSE",
