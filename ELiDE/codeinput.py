@@ -21,7 +21,7 @@ class ELiDECodeInput(CodeInput):
 
 
 class ELiDEFunctionInput(BoxLayout):
-    font_name = StringProperty('DroidSans') 
+    font_name = StringProperty('DroidSans')
     font_size = NumericProperty(12)
     style_name = StringProperty('default')
     params = ListProperty(['foo', 'bar'])
@@ -36,13 +36,11 @@ class ELiDEFunctionInput(BoxLayout):
 class FunctionNameInput(TextInput):
     def insert_text(self, s, from_undo=False):
         if self.text == '':
-            return super().insert_text(
-                ''.join(c for c in s if c in (ascii_letters + '_'))
-            )
-        else:
-            return super().insert_text(
-                ''.join(c for c in s if c in (ascii_letters + digits + '_'))
-            )
+            if s[0] not in (ascii_letters + '_'):
+                return
+        return super().insert_text(
+            ''.join(c for c in s if c in (ascii_letters + digits + '_'))
+        )
 
 kv = """
 <ELiDEFunctionInput>:
