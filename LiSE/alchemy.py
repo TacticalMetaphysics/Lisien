@@ -11,6 +11,7 @@ where LiSE will look for it, as in:
 ``python3 sqlalchemy.py >sqlite.json``
 
 """
+from collections import OrderedDict
 from sqlalchemy import (
     Table,
     Index,
@@ -1710,7 +1711,7 @@ def queries(table, view):
 if __name__ == '__main__':
     e = create_engine('sqlite:///:memory:')
     meta = MetaData()
-    r = {}
+    r = OrderedDict()
     table = tables_for_meta(meta)
     for (n, t) in table.items():
         r["create_" + n] = str(
