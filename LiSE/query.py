@@ -36,6 +36,9 @@ class QueryEngine(gorm.query.QueryEngine):
     def func_table_iter(self, tbl):
         return self.sql('func_{}_iter'.format(tbl))
 
+    def func_table_name_plaincode(self, tbl):
+        return self.sql('func_{}_name_plaincode'.format(tbl))
+
     def func_table_contains(self, tbl, key):
         for row in self.sql('func_{}_get'.format(tbl), key):
             return True
