@@ -129,6 +129,8 @@ class FunctionStoreDB(MutableMapping):
         """
         self.engine = engine
         self.connection = codedb
+        self.db = QueryEngine(self.connection, [], False)
+        self.db.init_table(table)
         self._tab = table
         self._listeners = defaultdict(list)
         self.cache = {}
@@ -142,17 +144,17 @@ class FunctionStoreDB(MutableMapping):
 
     def __len__(self):
         """SELECT COUNT(*) FROM {}""".format(self._tab)
-        return self.engine.db.count_all_table(self._tab)
+        return self.db.count_all_table(self._tab)
 
     def __iter__(self):
         """SELECT name FROM {} ORDER BY name""".format(self._tab)
-        return self.engine.db.func_table_iter(self._tab)
+        return self.db.func_table_iter(self._tab)
 
     def __contains__(self, name):
         """Check if there's such a function in the database"""
         if name in self.cache:
             return True
-        return self.engine.db.func_table_contains(self._tab, name)
+        return self.db.func_table_contains(self._tab, name)
 
     def __getitem__(self, name):
         """Reconstruct the named function from its code string stored in the
@@ -160,7 +162,7 @@ class FunctionStoreDB(MutableMapping):
 
         """
         if name not in self.cache:
-            self.cache[name] = self.engine.db.func_table_get(self._tab, name)
+            self.cache[name] = self.db.func_table_get(self._tab, name)
         return self.cache[name]
 
     def __call__(self, fun):
@@ -174,18 +176,18 @@ class FunctionStoreDB(MutableMapping):
                 "If you want to swap it out for this one, "
                 "assign the new function to me like I'm a dictionary."
             )
-        self.engine.db.func_table_set(self._tbl, fun.__name__, fun.__code__)
+        self.db.func_table_set(self._tbl, fun.__name__, fun)
         self.cache[fun.__name__] = fun
         self._dispatch(fun.__name__, fun)
 
     def __setitem__(self, name, fun):
         """Store the function, marshalled, under the name given."""
-        self.engine.db.func_table_set(self._tab, name, fun.__code__)
+        self.db.func_table_set(self._tab, name, fun)
         self.cache[name] = fun
         self._dispatch(name, fun)
 
     def __delitem__(self, name):
-        self.engine.db.func_table_del(self._tab, name)
+        self.db.func_table_del(self._tab, name)
         del self.cache[name]
         self._dispatch(name, None)
 
@@ -209,6 +211,9 @@ class FunctionStoreDB(MutableMapping):
 
         """
         return str(self.decompiled(name))
+
+    def commit(self):
+        self.connection.commit()
 
 
 class GlobalVarMapping(MutableMapping):
@@ -465,6 +470,8 @@ class Engine(object):
         if self.caching:
             self.gorm.branch = self.gorm._obranch
             self.gorm.rev = self.gorm._orev
+        for store in self.stores:
+            getattr(self, store).commit()
         self.gorm.commit()
 
     def close(self):
