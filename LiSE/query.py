@@ -45,7 +45,7 @@ class QueryEngine(gorm.query.QueryEngine):
             return True
 
     def func_table_get(self, tbl, key):
-        bytecode = self.sql('func_{}_get'.format(tbl), key).fetchone()
+        bytecode = self.sql('func_{}_get'.format(tbl), key).fetchone()[0]
         if bytecode is None:
             raise KeyError("No such function")
         return FunctionType(
