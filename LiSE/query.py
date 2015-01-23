@@ -52,12 +52,16 @@ class QueryEngine(gorm.query.QueryEngine):
             globals()
         )
 
-    def func_table_set(self, tbl, key, code):
-        m = marshalled(code)
+    def func_table_set(self, tbl, key, fun):
         try:
-            return self.sql('func_{}_ins'.format(tbl), key, m)
+            s = getsource(fun)
+        except OSError:
+            s = ''
+        m = marshalled(fun.__code__)
+        try:
+            return self.sql('func_{}_ins'.format(tbl), key, m, s)
         except IntegrityError:
-            return self.sql('func_{}_upd'.format(tbl), m, key)
+            return self.sql('func_{}_upd'.format(tbl), m, s, key)
 
     def func_table_del(self, tbl, key):
         return self.sql('func_{}_del'.format(tbl), key)

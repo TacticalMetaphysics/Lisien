@@ -477,12 +477,14 @@ def queries(table, view):
     def func_table_ins(t):
         return t.insert().values(
             name=bindparam('name'),
-            bytecode=bindparam('bytecode')
+            bytecode=bindparam('bytecode'),
+            plaincode=bindparam('plaincode')
         )
 
     def func_table_upd(t):
         return t.update().values(
-            bytecode=bindparam('bytecode')
+            bytecode=bindparam('bytecode'),
+            plaincode=bindparam('plaincode')
         ).where(
             t.c.name == bindparam('name')
         )

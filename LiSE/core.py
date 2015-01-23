@@ -174,13 +174,13 @@ class FunctionStoreDB(MutableMapping):
                 "If you want to swap it out for this one, "
                 "assign the new function to me like I'm a dictionary."
             )
-        self.engine.db.func_table_set(self._tbl, fun.__name__, fun.__code__)
+        self.engine.db.func_table_set(self._tbl, fun.__name__, fun)
         self.cache[fun.__name__] = fun
         self._dispatch(fun.__name__, fun)
 
     def __setitem__(self, name, fun):
         """Store the function, marshalled, under the name given."""
-        self.engine.db.func_table_set(self._tab, name, fun.__code__)
+        self.engine.db.func_table_set(self._tab, name, fun)
         self.cache[name] = fun
         self._dispatch(name, fun)
 
