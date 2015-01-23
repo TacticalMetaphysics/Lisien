@@ -146,8 +146,7 @@ class FunctionStoreDB(MutableMapping):
 
     def __iter__(self):
         """SELECT name FROM {} ORDER BY name""".format(self._tab)
-        for (k, v) in self.engine.db.func_table_items(self._tab):
-            yield k
+        return self.engine.db.func_table_iter(self._tab)
 
     def __contains__(self, name):
         """Check if there's such a function in the database"""

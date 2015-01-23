@@ -33,8 +33,8 @@ class QueryEngine(gorm.query.QueryEngine):
     def init_func_table(self, tbl):
         self.init_table(tbl)
 
-    def func_table_items(self, tbl):
-        return self.sql('func_{}_items'.format(tbl))
+    def func_table_iter(self, tbl):
+        return self.sql('func_{}_iter'.format(tbl))
 
     def func_table_contains(self, tbl, key):
         for row in self.sql('func_{}_get'.format(tbl), key):
