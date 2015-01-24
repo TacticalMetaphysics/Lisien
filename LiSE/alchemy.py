@@ -970,7 +970,6 @@ def queries(table, view):
                 active_rules.join(
                     hitick,
                     and_(
-                        active_rules.c.rulebook == col,
                         active_rules.c.rulebook == hitick.c.rulebook,
                         active_rules.c.rule == hitick.c.rule,
                         active_rules.c.branch == hitick.c.branch,
