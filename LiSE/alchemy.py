@@ -964,7 +964,7 @@ def queries(table, view):
         """
         hitick = arhitick('branch')
         return select(
-            [col, active_rules.c.rule, active_rules.c.active]
+            [col, active_rules.c.active]
         ).select_from(
             tbl.join(
                 active_rules.join(
