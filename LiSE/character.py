@@ -63,15 +63,20 @@ class RuleFollower(object):
     def rulebook_listener(self, f):
         listen(self._rulebook_listeners, f)
 
-    @property
-    def rulebook(self):
-        return RuleBook(
+    def _upd_rulebook(self):
+        self._rulebook = RuleBook(
             self.engine,
             self.engine.db.get_rulebook_char(
                 self._book,
                 self.character.name
             )
         )
+
+    @property
+    def rulebook(self):
+        if not hasattr(self, '_rulebook'):
+            self._upd_rulebook()
+        return self._rulebook
 
     @rulebook.setter
     def rulebook(self, v):
@@ -80,6 +85,7 @@ class RuleFollower(object):
         n = v.name if isinstance(v, RuleBook) else v
         self.engine.db.upd_rulebook_char(self._book, n, self.character.name)
         self._dispatch_rulebook(v)
+        self._upd_rulebook()
 
     @property
     def rule(self):
