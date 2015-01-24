@@ -32,7 +32,7 @@ from .util import (
     listener,
     fire_time_travel_triggers,
 )
-from .rule import RuleBook
+from .rule import Rule, RuleBook
 from .rule import CharRuleMapping as RuleMapping
 from .funlist import FunList
 from .thing import Thing
@@ -94,6 +94,26 @@ class RuleFollower(object):
                 self.character, self.rulebook, self._book
             )
         return self._rule_mapping
+
+    def rules(self):
+        ruleiter = getattr(
+            self.character.engine.db,
+            'current_rules_character_' + self._book
+        )
+        for (rulen, active) in ruleiter(
+                self.character.name,
+                *self.character.engine.time
+        ):
+            if (
+                hasattr(self.rule, '_rule_cache') and
+                rulen in self.rulebook._rule_cache
+            ):
+                rule = self.rule._rule_cache[rulen]
+            else:
+                rule = Rule(self.character.engine, rulen)
+                self.rule._rule_cache[rulen] = rule
+            rule.active = active
+            yield rule
 
 
 class CharacterThingMapping(MutableMapping, RuleFollower):
