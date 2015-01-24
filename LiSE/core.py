@@ -489,7 +489,8 @@ class Engine(object):
     def on_time(self, v):
         if not isinstance(v, Callable):
             raise TypeError("This is a decorator")
-        self.time_listeners.append(v)
+        if v not in self.time_listeners:
+            self.time_listeners.append(v)
 
     @property
     def branch(self):
