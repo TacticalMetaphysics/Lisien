@@ -11,7 +11,7 @@ from .util import (
     enkeycache,
     dekeycache
 )
-from .rule import RuleBook, RuleMapping
+from .rule import Rule, RuleBook, RuleMapping
 
 
 class Node(gorm.graph.Node):
@@ -165,6 +165,30 @@ class Node(gorm.graph.Node):
             self.name,
             *self.engine.time
         )
+
+    def rules(self):
+        """Iterate over rules in my rulebook, active or otherwise.
+
+        To distinguish the active rules from the inactive ones, this
+        method gives each rule a boolean property ``active``.
+
+        """
+        for (rulen, active) in self.engine.db.current_rules_node(
+            self.character.name,
+            self.name,
+            *self.character.engine.time
+        ):
+            if (
+                hasattr(self.rule, '_rule_cache') and
+                rulen in self.rule._rule_cache
+            ):
+                rule = self.rule._rule_cache[rulen]
+            else:
+                rule = Rule(self.engine, rulen)
+                if self.engine.caching:
+                    self.rule._rule_cache[rulen] = rule
+            rule.active = active
+            yield rule
 
     def users(self):
         """Iterate over characters this is an avatar of."""
