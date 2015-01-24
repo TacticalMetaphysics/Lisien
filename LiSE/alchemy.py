@@ -947,9 +947,81 @@ def queries(table, view):
         )
     )
 
-    def active_rule_char(prefix):
+    # fetch all rules & whether they are active right now (their "activeness")
+    # for a given:
+    # character;
+    # character's avatars;
+    # character's things;
+    # character's places;
+    # character's portals;
+    # node (thing or place);
+    # portal
+
+    def current_rules_activeness(tbl, col):
+        """Query all rules and their activeness for rulebooks given in this
+        column of this table.
+
+        """
+        hitick = arhitick('branch')
+        return select(
+            [col, active_rules.c.active]
+        ).select_from(
+            tbl.join(
+                active_rules.join(
+                    hitick,
+                    and_(
+                        active_rules.c.rulebook == hitick.c.rulebook,
+                        active_rules.c.rule == hitick.c.rule,
+                        active_rules.c.branch == hitick.c.branch,
+                        active_rules.c.tick == hitick.c.tick
+                    )
+                ),
+                col == active_rules.c.rulebook
+            )
+        )
+
+    def character_rulebook_rules_activeness(prefix):
+        coln = prefix + '_rulebook'
+        return current_rules_activeness(
+            characters, getattr(characters.c, coln)
+        ).where(
+            characters.c.character == bindparam('character')
+        )
+
+    r['current_rules_character'] \
+        = character_rulebook_rules_activeness('character')
+    r['current_rules_avatar'] \
+        = character_rulebook_rules_activeness('avatar')
+    r['current_rules_character_thing'] \
+        = character_rulebook_rules_activeness('character_thing')
+    r['current_rules_character_place'] \
+        = character_rulebook_rules_activeness('character_place')
+    r['current_rules_character_portal'] \
+        = character_rulebook_rules_activeness('character_portal')
+
+    r['current_rules_node'] \
+        = current_rules_activeness(
+            node_rulebook, node_rulebook.c.rulebook
+        ).where(
+            and_(
+                node_rulebook.c.character == bindparam('character'),
+                node_rulebook.c.node == bindparam('node')
+            )
+        )
+    r['current_rules_portal'] \
+        = current_rules_activeness(
+            portal_rulebook, portal_rulebook.c.rulebook
+        ).where(
+            and_(
+                portal_rulebook.c.character == bindparam('character'),
+                portal_rulebook.c.nodeA == bindparam('nodeA'),
+                portal_rulebook.c.nodeB == bindparam('nodeB')
+            )
+        )
+
+    def rules_handled_hitick(prefix):
         tbl = table['{}_rules_handled'.format(prefix)]
-        hitick = select(
+        return select(
             [
                 tbl.c.rulebook,
                 tbl.c.rule,
@@ -969,6 +1041,9 @@ def queries(table, view):
             tbl.c.rule,
             tbl.c.branch
         )
+
+    def active_rule_char(prefix):
+        hitick = rules_handled_hitick(prefix)
         return select(
             [
                 active_rules.c.active
