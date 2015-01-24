@@ -742,6 +742,67 @@ class QueryEngine(gorm.query.QueryEngine):
         for (rule,) in self.sql('rulebook_rules', json_dump(rulebook)):
             yield rule
 
+    def current_rules_character(self, character, branch, tick):
+        return self.sql(
+                'current_rules_character',
+                json_dump(character),
+                branch,
+                tick
+        )
+
+    def current_rules_avatar(self, character, branch, tick):
+        return self.sql(
+            'current_rules_avatar',
+            json_dump(character),
+            branch,
+            tick
+        )
+
+    def current_rules_character_thing(self, character, branch, tick):
+        return self.sql(
+            'current_rules_character_thing',
+            json_dump(character),
+            branch,
+            tick
+        )
+
+    def current_rules_character_place(self, character, branch, tick):
+        return self.sql(
+            'current_rules_character_place',
+            json_dump(character),
+            branch,
+            tick
+        )
+
+    def current_rules_character_portal(self, character, branch, tick):
+        return self.sql(
+            'current_rules_character_portal',
+            json_dump(character),
+            branch,
+            tick
+        )
+
+    def current_rules_node(self, character, node, branch, tick):
+        (character, node) = map(json_dump, (character, node))
+        return self.sql(
+            'current_rules_node',
+            character,
+            node,
+            branch,
+            tick
+        )
+
+    def current_rules_portal(self, character, nodeA, nodeB, branch, tick):
+        (character, nodeA, nodeB) = map(json_dump, (character, nodeA, nodeB))
+        return self.sql(
+            'current_rules_portal',
+            character,
+            nodeA,
+            nodeB,
+            branch,
+            tick
+        )
+
     def ct_rulebook_rules(self, rulebook):
         return self.sql('ct_rulebook_rules', json_dump(rulebook)).fetchone()[0]
 
