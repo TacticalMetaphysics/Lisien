@@ -2,16 +2,17 @@
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 """Widget to enable browsing rules and the functions that make them."""
 from functools import partial
+from kivy.lang import Builder
 from kivy.clock import Clock
 from kivy.logger import Logger
 from kivy.adapters import ListAdapter
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.listview import ListView, ListItemButton
 from kivy.uix.widget import Widget
 from kivy.properties import ObjectProperty, DictProperty
 
 
-class RulesView(Widget):
-    subject = ObjectProperty()
+class FuncsView(Widget):
     func_adapter = DictProperty({})
 
     def get_func_data(self, store):
@@ -62,3 +63,22 @@ class RulesView(Widget):
         self._trigger_refresh_action = Clock.create_trigger(
             partial(self.refresh_func_adapter, 'action')
         )
+
+
+class RulesView(Widget):
+    subject = ObjectProperty()
+
+
+class RulesBench(BoxLayout):
+    subject = ObjectProperty()
+
+
+kv = """
+<RulesBench>:
+    orientation: 'horizontal'
+    FuncsView:
+        engine: root.subject.engine
+    RulesView:
+        subject: root.subject
+"""
+Builder.load_string(kv)
