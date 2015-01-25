@@ -11,29 +11,27 @@ from .util import (
     enkeycache,
     dekeycache
 )
-from .rule import Rule, RuleBook, RuleMapping
+from .rule import (
+    Rule,
+    RuleBook,
+    RuleMapping,
+    RuleFollower
+)
 
 
-class Node(gorm.graph.Node):
+class Node(gorm.graph.Node, RuleFollower):
     """Superclass for both Thing and Place"""
-    @property
-    def rulebook(self):
-        if not hasattr(self, '_rulebook'):
-            self._rulebook = RuleBook(
-                self.engine,
-                self._rulebook_name
-            )
-        return self._rulebook
+    def _rule_names_activeness(self):
+        return self.engine.db.current_rules_node(
+            self.character.name,
+            self.name,
+            *self.engine.time
+        )
 
-    @rulebook.setter
-    def rulebook(self, v):
-        if not isinstance(v, str) or isinstance(v, RuleBook):
-            raise TypeError("Use a :class:`RuleBook` or the name of one")
-        self._rulebook_name = v.name if isinstance(v, RuleBook) else v
-        dispatch(self._rulebook_listeners, self._rulebook_name, self, v)
+    def _get_rule_mapping(self):
+        return RuleMapping(self.engine, self.rulebook)
 
-    @property
-    def _rulebook_name(self):
+    def _get_rulebook_name(self):
         try:
             return self.engine.db.node_rulebook(
                 self.character.name,
@@ -47,17 +45,16 @@ class Node(gorm.graph.Node):
             )
             return (self.character.name, self.name)
 
-    @_rulebook_name.setter
-    def _rulebook_name(self, v):
+    def _set_rulebook_name(self, v):
         self.engine.db.set_node_rulebook(
             self.character.name,
             self.name,
             v
         )
 
-    @property
-    def rule(self):
-        return RuleMapping(self.engine, self.rulebook)
+    def _dispatch_stat(self, k, v):
+        (branch, tick) = self.engine.time
+        dispatch(self._stat_listeners, k, branch, tick, self, k, v)
 
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
@@ -120,13 +117,6 @@ class Node(gorm.graph.Node):
     def listener(self, f=None, stat=None):
         return listener(self._stat_listeners, f, stat)
 
-    def _dispatch_stat(self, k, v):
-        (branch, tick) = self.engine.time
-        dispatch(self._stat_listeners, k, branch, tick, self, k, v)
-
-    def rulebook_listener(self, f):
-        listen(self._rulebook_listeners, f)
-
     def __setitem__(self, k, v):
         super().__setitem__(k, v)
         if self.engine.caching:
@@ -165,30 +155,6 @@ class Node(gorm.graph.Node):
             self.name,
             *self.engine.time
         )
-
-    def rules(self):
-        """Iterate over rules in my rulebook, active or otherwise.
-
-        To distinguish the active rules from the inactive ones, this
-        method gives each rule a boolean property ``active``.
-
-        """
-        for (rulen, active) in self.engine.db.current_rules_node(
-            self.character.name,
-            self.name,
-            *self.character.engine.time
-        ):
-            if (
-                hasattr(self.rule, '_rule_cache') and
-                rulen in self.rule._rule_cache
-            ):
-                rule = self.rule._rule_cache[rulen]
-            else:
-                rule = Rule(self.engine, rulen)
-                if self.engine.caching:
-                    self.rule._rule_cache[rulen] = rule
-            rule.active = active
-            yield rule
 
     def users(self):
         """Iterate over characters this is an avatar of."""
