@@ -300,12 +300,50 @@ class QueryEngine(gorm.query.QueryEngine):
                         rule
                     )
 
+    def node_rules(self, character, node, branch, tick):
+        (character, node) = map(json_dump, (character, node))
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (char, n, rulebook, rule, active) in self.sql(
+                'node_rules', b, t, b, t, character, node
+            ):
+                if (char, n, rulebook, rule) in seen:
+                    continue
+                seen.add((char, n, rulebook, rule))
+                if active:
+                    yield(
+                        json_load(char),
+                        json_load(n),
+                        rulebook,
+                        rule
+                    )
+
     def poll_portal_rules(self, branch, tick):
         """Poll rules assigned to particular portals."""
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (char, a, b, i, rulebook, rule, active, handled) in self.sql(
-                    'poll_portal_rules', b, t, b, t
+                'poll_portal_rules', b, t, b, t
+            ):
+                if (char, a, b, i, rulebook, rule) in seen:
+                    continue
+                seen.add((char, a, b, i, rulebook, rule))
+                if active:
+                    yield (
+                        json_load(char),
+                        json_load(a),
+                        json_load(b),
+                        i,
+                        rulebook,
+                        rule
+                    )
+
+    def portal_rules(self, character, nodeA, nodeB, branch, tick):
+        (character, nodeA, nodeB) = map(json_dump, (character, nodeA, nodeB))
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (char, a, b, i, rulebook, rule, active, handled) in self.sql(
+                'portal_rules', b, t, b, t, character, nodeA, nodeB, 0
             ):
                 if (char, a, b, i, rulebook, rule) in seen:
                     continue

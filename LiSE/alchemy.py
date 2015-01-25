@@ -674,42 +674,54 @@ def queries(table, view):
         )
     ).alias('nrhandle')
 
-    r['poll_node_rules'] = select(
-        [
+    def node_rules(*wheres):
+        return select(
+            [
+                node_rulebook.c.character,
+                node_rulebook.c.node,
+                node_rulebook.c.rulebook,
+                current_active_rules.c.rule,
+                current_active_rules.c.active,
+            ]
+        ).select_from(
+            node_rulebook.join(
+                rulebooks,
+                rulebooks.c.rulebook == node_rulebook.c.rulebook,
+            ).join(
+                current_active_rules,
+                and_(
+                    rulebooks.c.rulebook == current_active_rules.c.rulebook,
+                    rulebooks.c.rule == current_active_rules.c.rule
+                )
+            ).join(
+                nrhandle,
+                and_(
+                    node_rulebook.c.character == nrhandle.c.character,
+                    node_rulebook.c.node == nrhandle.c.node,
+                    node_rulebook.c.rulebook == nrhandle.c.rulebook,
+                    current_active_rules.c.rule == nrhandle.c.rule
+                ),
+                isouter=True
+            )
+        ).where(
+            and_(
+                nrhandle.c.handled == null(),
+                *wheres
+            )
+        ).order_by(
             node_rulebook.c.character,
             node_rulebook.c.node,
-            node_rulebook.c.rulebook,
-            current_active_rules.c.rule,
-            current_active_rules.c.active,
-        ]
-    ).select_from(
-        node_rulebook.join(
-            rulebooks,
-            rulebooks.c.rulebook == node_rulebook.c.rulebook,
-        ).join(
-            current_active_rules,
-            and_(
-                rulebooks.c.rulebook == current_active_rules.c.rulebook,
-                rulebooks.c.rule == current_active_rules.c.rule
-            )
-        ).join(
-            nrhandle,
-            and_(
-                node_rulebook.c.character == nrhandle.c.character,
-                node_rulebook.c.node == nrhandle.c.node,
-                node_rulebook.c.rulebook == nrhandle.c.rulebook,
-                current_active_rules.c.rule == nrhandle.c.rule
-            ),
-            isouter=True
+            rulebooks.c.rulebook,
+            rulebooks.c.idx
         )
-    ).where(
-        nrhandle.c.handled == null()
-    ).order_by(
-        node_rulebook.c.character,
-        node_rulebook.c.node,
-        rulebooks.c.rulebook,
-        rulebooks.c.idx
+
+    r['poll_node_rules'] = node_rules()
+    r['node_rules'] = node_rules(
+        node_rulebook.c.character == bindparam('character'),
+        node_rulebook.c.node == bindparam('node')
     )
+    # Note that you have to pass in the branch and tick *twice*, and
+    # prior to the character and node, if you're using sqlite
 
     portal_rulebook = table['portal_rulebook']
 
@@ -753,48 +765,60 @@ def queries(table, view):
         )
     ).alias('handle')
 
-    r['poll_portal_rules'] = select(
-        [
+    def portal_rules(*wheres):
+        return select(
+            [
+                portal_rulebook.c.character,
+                portal_rulebook.c.nodeA,
+                portal_rulebook.c.nodeB,
+                portal_rulebook.c.idx,
+                current_active_rules.c.rule,
+                current_active_rules.c.active,
+                prhandle.c.handled
+            ]
+        ).select_from(
+            portal_rulebook.join(
+                current_active_rules,
+                portal_rulebook.c.rulebook == current_active_rules.c.rulebook
+            ).join(
+                rulebooks,
+                and_(
+                    rulebooks.c.rulebook == portal_rulebook.c.rulebook,
+                    rulebooks.c.rule == current_active_rules.c.rule
+                ),
+                isouter=True
+            ).join(
+                prhandle,
+                and_(
+                    prhandle.c.character == portal_rulebook.c.character,
+                    prhandle.c.nodeA == portal_rulebook.c.nodeA,
+                    prhandle.c.nodeB == portal_rulebook.c.nodeB,
+                    prhandle.c.idx == portal_rulebook.c.idx,
+                    prhandle.c.rulebook == portal_rulebook.c.rulebook,
+                    prhandle.c.rule == current_active_rules.c.rule
+                ),
+                isouter=True
+            )
+        ).where(
+            and_(
+                prhandle.c.handled == null(),
+                *wheres
+            )
+        ).order_by(
             portal_rulebook.c.character,
             portal_rulebook.c.nodeA,
             portal_rulebook.c.nodeB,
             portal_rulebook.c.idx,
-            current_active_rules.c.rule,
-            current_active_rules.c.active,
-            prhandle.c.handled
-        ]
-    ).select_from(
-        portal_rulebook.join(
-            current_active_rules,
-            portal_rulebook.c.rulebook == current_active_rules.c.rulebook
-        ).join(
-            rulebooks,
-            and_(
-                rulebooks.c.rulebook == portal_rulebook.c.rulebook,
-                rulebooks.c.rule == current_active_rules.c.rule
-            ),
-            isouter=True
-        ).join(
-            prhandle,
-            and_(
-                prhandle.c.character == portal_rulebook.c.character,
-                prhandle.c.nodeA == portal_rulebook.c.nodeA,
-                prhandle.c.nodeB == portal_rulebook.c.nodeB,
-                prhandle.c.idx == portal_rulebook.c.idx,
-                prhandle.c.rulebook == portal_rulebook.c.rulebook,
-                prhandle.c.rule == current_active_rules.c.rule
-            ),
-            isouter=True
+            rulebooks.c.rulebook,
+            rulebooks.c.idx
         )
-    ).where(
-        prhandle.c.handled == null()
-    ).order_by(
-        portal_rulebook.c.character,
-        portal_rulebook.c.nodeA,
-        portal_rulebook.c.nodeB,
-        portal_rulebook.c.idx,
-        rulebooks.c.rulebook,
-        rulebooks.c.idx
+
+    r['poll_portal_rules'] = portal_rules()
+    r['portal_rules'] = portal_rules(
+        portal_rulebook.c.character == bindparam('character'),
+        portal_rulebook.c.nodeA == bindparam('nodeA'),
+        portal_rulebook.c.nodeB == bindparam('nodeB'),
+        portal_rulebook.c.idx == bindparam('idx')
     )
 
     characters = table['characters']
