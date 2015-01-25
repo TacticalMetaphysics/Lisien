@@ -11,12 +11,22 @@ from .util import (
     enkeycache,
     dekeycache
 )
-from .rule import (
-    Rule,
-    RuleBook,
-    RuleMapping,
-    RuleFollower
-)
+from .rule import RuleFollower
+from .rule import RuleMapping as BaseRuleMapping
+
+
+class RuleMapping(BaseRuleMapping):
+    def __init__(self, node):
+        super().__init__(node.engine, node.name)
+        self.character = node.character
+        self.engine = self.character.engine
+
+    def __iter__(self):
+        return self.engine.db.node_rules(
+            self.character.name,
+            self.name,
+            *self.engine.time
+        )
 
 
 class Node(gorm.graph.Node, RuleFollower):
@@ -29,7 +39,7 @@ class Node(gorm.graph.Node, RuleFollower):
         )
 
     def _get_rule_mapping(self):
-        return RuleMapping(self.engine, self.rulebook)
+        return RuleMapping(self)
 
     def _get_rulebook_name(self):
         try:
