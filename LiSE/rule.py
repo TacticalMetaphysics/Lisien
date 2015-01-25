@@ -254,6 +254,7 @@ class RuleMapping(MutableMapping):
             raise KeyError("Rule '{}' is not in effect".format(k))
         if k not in self._rule_cache:
             self._rule_cache[k] = Rule(self.engine, k)
+            self._rule_cache[k].active = True
         return self._rule_cache[k]
 
     def __getattr__(self, k):
