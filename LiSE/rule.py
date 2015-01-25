@@ -316,21 +316,6 @@ class RuleMapping(MutableMapping):
         )
         self._dispatch(rule, False)
 
-
-class CharRuleMapping(RuleMapping):
-    def __init__(self, character, rulebook, booktyp):
-        super().__init__(rulebook.engine, rulebook)
-        self.character = character
-        self._table = booktyp + "_rules"
-
-    def __iter__(self):
-        return self.engine.db.active_rules_char(
-            self._table,
-            self.character.name,
-            self.rulebook.name,
-            *self.engine.time
-        )
-
     def __contains__(self, k):
         return self.engine.db.active_rule_char(
             self._table,

@@ -32,12 +32,26 @@ from .util import (
     listener,
     fire_time_travel_triggers,
 )
-from .rule import Rule, RuleBook
-from .rule import CharRuleMapping as RuleMapping
+from .rule import Rule, RuleBook, RuleMapping
 from .funlist import FunList
 from .thing import Thing
 from .place import Place
 from .portal import Portal
+
+
+class CharRuleMapping(RuleMapping):
+    def __init__(self, character, rulebook, booktyp):
+        super().__init__(rulebook.engine, rulebook)
+        self.character = character
+        self._table = booktyp + "_rules"
+
+    def __iter__(self):
+        return self.engine.db.active_rules_char(
+            self._table,
+            self.character.name,
+            self.rulebook.name,
+            *self.engine.time
+        )
 
 
 class RuleFollower(object):
