@@ -326,6 +326,96 @@ class RuleMapping(MutableMapping):
         )
 
 
+class RuleFollower(object):
+    """Interface for that which has a rulebook associated, which you can
+    get a :class:`RuleMapping` into
+
+    """
+    @property
+    def rule(self):
+        if not hasattr(self, '_rule_mapping'):
+            self._rule_mapping = self._get_rule_mapping()
+        return self._rule_mapping
+
+    @property
+    def _rulebook_listeners(self):
+        if not hasattr(self, '_rbl'):
+            self._rbl = []
+        return self._rbl
+
+    @_rulebook_listeners.setter
+    def _rulebook_listeners(self, v):
+        self._rbl = v
+
+    @property
+    def rulebook(self):
+        if not hasattr(self, '_rulebook'):
+            self._upd_rulebook()
+        return self._rulebook
+
+    @rulebook.setter
+    def rulebook(self, v):
+        if not (isinstance(v, str) or isinstance(v, RuleBook)):
+            raise TypeError("Use a :class:`RuleBook` or the name of one")
+        n = v.name if isinstance(v, RuleBook) else v
+        self._set_rulebook_name(n)
+        self._dispatch_rulebook(v)
+        self._upd_rulebook()
+
+    def _upd_rulebook(self):
+        """Set my ``_rulebook`` property to my rulebook as of this moment, and
+        call all of my ``_rulebook_listeners``.
+
+        """
+        self._rulebook = self._get_rulebook()
+        for f in self._rulebook_listeners:
+            f(self, self._rulebook)
+
+    def rule(self):
+        if not hasattr(self, '_rule_mapping'):
+            self._rule_mapping = self._get_rule_mapping()
+        return self._rule_mapping
+
+    def rules(self):
+        if not hasattr(self, 'engine'):
+            raise AttributeError("Need an engine before I can get rules")
+        for (rulen, active) in self._rule_names():
+            if (
+                hasattr(self.rule, '_rule_cache') and
+                rulen in self.rulebook._rule_cache
+            ):
+                rule = self.rule._rule_cache[rulen]
+            else:
+                rule = Rule(self.engine, rulen)
+            rule.active = active
+            yield rule
+
+    def rulebook_listener(self, f):
+        listen(self._rulebook_listeners, f)
+
+    def _rule_names_activeness(self):
+        """Iterate over pairs of rule names and their activeness for each rule
+        in my rulebook.
+
+        """
+        raise NotImplementedError
+
+    def _get_rule_mapping(self):
+        """Get the :class:`RuleMapping` for my rulebook."""
+        raise NotImplementedError
+
+    def _get_rulebook_name(self):
+        """Get the name of my rulebook."""
+        raise NotImplementedError
+
+    def _set_rulebook_name(self, n):
+        """Tell the database that this is the name of the rulebook to use for
+        me.
+
+        """
+        raise NotImplementedError
+
+
 class AllRules(MutableMapping):
     def __init__(self, engine):
         self.engine = engine
