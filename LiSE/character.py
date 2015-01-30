@@ -30,7 +30,7 @@ from .util import (
     cache_forward,
     listen,
     listener,
-    fire_time_travel_triggers
+    fire_time_travel_triggers,
 )
 from .rule import Rule, RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
@@ -1917,94 +1917,3 @@ class Character(DiGraph, RuleFollower):
             self.character.name,
             *self.engine.time
         )
-
-
-# The following are functions for working with rules.
-#
-# I had to put them here because they depend on stuff previously
-# defined. Sorry.
-def rules_data(engine, subject):
-    if isinstance(subject, Character):
-        return list(
-            engine.db.current_rules_character(
-                subject.name, *engine.time
-            )
-        )
-    elif isinstance(subject, CharacterAvatarMapping):
-        return list(
-            engine.db.current_rules_avatar(
-                subject.name, *engine.time
-            )
-        )
-    elif isinstance(subject, CharacterThingMapping):
-        return list(
-            engine.db.current_rules_character_thing(
-                subject.name, *engine.time
-            )
-        )
-    elif isinstance(subject, CharacterPlaceMapping):
-        return list(
-            engine.db.current_rules_character_place(
-                subject.name, *engine.time
-            )
-        )
-    elif isinstance(subject, CharacterThingPlaceMapping):
-        return list(
-            engine.db.current_rules_character_thing(
-                subject.name, *engine.time
-            )
-        ) + list(
-            engine.db.current_rules_character_place(
-                subject.name, *engine.time
-            )
-        )
-    elif isinstance(subject, CharacterPortalMapping):
-        return list(
-            engine.db.current_rules_character_portal(
-                subject.name, *engine.time
-            )
-        )
-    elif isinstance(subject, Node):
-        return list(
-            engine.db.current_rules_node(
-                subject.character.name,
-                subject.name,
-                *engine.time
-            )
-        )
-    elif isinstance(subject, Portal):
-        return list(
-            engine.db.current_rules_portal(
-                subject.character.name,
-                subject.name,
-                subject._origin,
-                subject._destination,
-                *engine.time
-            )
-        )
-    else:
-        raise TypeError("Illegal type for subject")
-
-
-def set_rule_activeness(engine, subject, rulen, activeness):
-    if isinstance(subject, RuleMapping):
-        rulemap = subject
-    elif isinstance(subject, BaseRuleFollower):
-        rulemap = subject.rule
-    else:
-        raise TypeError("Subject should be RuleMapping or RuleFollower")
-    # create the rule if it doesn't exist
-    try:
-        rule = rulemap[rulen]
-    except KeyError:
-        rule = Rule(rulemap.rulebook, rulen)
-    if activeness:
-        rulemap._activate_rule(rule)
-    else:
-        rulemap._deactivate_rule(rule)
-
-
-# put them in their right places for the future
-import LiSE.rule
-LiSE.rule.rules_data = rules_data
-LiSE.rule.set_rule_activeness = set_rule_activeness
