@@ -25,6 +25,7 @@ from .board.arrow import Arrow, ArrowWidget
 from .board.spot import Spot
 from .board.pawn import Pawn
 from .statgrid import StatListViewConfigurator
+from .rulesbench import RulesBench
 
 from gorm.xjson import json_load
 

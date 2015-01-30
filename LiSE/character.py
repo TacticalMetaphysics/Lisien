@@ -30,7 +30,7 @@ from .util import (
     cache_forward,
     listen,
     listener,
-    fire_time_travel_triggers,
+    fire_time_travel_triggers
 )
 from .rule import Rule, RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
