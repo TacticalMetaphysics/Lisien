@@ -55,7 +55,7 @@ class QueryEngine(gorm.query.QueryEngine):
             raise KeyError("No such function")
         return FunctionType(
             unmarshalled(bytecode[0]),
-            globals()
+            {}
         )
 
     def func_table_get_source(self, tbl, key):
