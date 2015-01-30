@@ -115,6 +115,25 @@ class ELiDELayout(FloatLayout):
 
         bind_charsheet()
 
+    def on_engine(self, *args):
+        """Set my branch and tick to that of my engine, and bind them so that
+        when you change my branch or tick, you also change my
+        engine's.
+
+        """
+        if self.engine is None:
+            return
+        self.branch = self.engine.branch
+        self.tick = self.engine.tick
+        self.bind(
+            branch=self.timeupd,
+            tick=self.timeupd,
+        )
+
+        @self.engine.on_time
+        def board_upd(*args):
+            Clock.schedule_once(self.ids.board.update, 0)
+
     def set_remote_value(self, remote, k, v):
         if v is None:
             del remote[k]
@@ -580,25 +599,6 @@ class ELiDELayout(FloatLayout):
                 )
             )
         )
-
-    def on_engine(self, *args):
-        """Set my branch and tick to that of my engine, and bind them so that
-        when you change my branch or tick, you also change my
-        engine's.
-
-        """
-        if self.engine is None:
-            return
-        self.branch = self.engine.branch
-        self.tick = self.engine.tick
-        self.bind(
-            branch=self.timeupd,
-            tick=self.timeupd,
-        )
-
-        @self.engine.on_time
-        def board_upd(*args):
-            Clock.schedule_once(self.ids.board.update, 0)
 
     def timeupd(self, *args):
         Logger.debug('ELiDELayout: timeupd({})'.format(self.time))
