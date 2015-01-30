@@ -1,5 +1,8 @@
+from functools import partial
 from string import ascii_letters, digits
+from kivy.clock import Clock
 from kivy.properties import (
+    AliasProperty,
     ListProperty,
     NumericProperty,
     ObjectProperty,
@@ -16,21 +19,35 @@ from pygments.lexers import Python3Lexer
 class ELiDECodeInput(CodeInput):
     lexer = ObjectProperty(Python3Lexer())
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
 
-
-class ELiDEFunctionInput(BoxLayout):
+class FunctionInput(BoxLayout):
     font_name = StringProperty('DroidSans')
     font_size = NumericProperty(12)
     style_name = StringProperty('default')
+    name = StringProperty()
     params = ListProperty(['foo', 'bar'])
 
-    def get_func_code(self):
-        code = self.header + '\n'
+    def _get_source(self):
+        code = self.name + '(' + ', '.join(self.params) + '):\n'
         for line in self.ids.code.text.split('\n'):
             code += (' ' * 4 + line + '\n')
         return code
+
+    def _set_source(self, v, *args):
+        if 'code' not in self.ids:
+            Clock.schedule_once(partial(self._set_source, v), 0)
+            return
+        lines = v.split('\n')
+        del lines[0]
+        self.ids.code.text = '\n'.join(line[4:] for line in lines)
+
+    source = AliasProperty(_get_source, _set_source)
+
+    def on_name(self, *args):
+        if 'funname' not in self.ids:
+            Clock.schedule_once(self.on_name, 0)
+            return
+        self.ids.funname.text = self.name
 
 
 class FunctionNameInput(TextInput):
@@ -43,7 +60,7 @@ class FunctionNameInput(TextInput):
         )
 
 kv = """
-<ELiDEFunctionInput>:
+<FunctionInput>:
     orientation: 'vertical'
     BoxLayout:
         orientation: 'horizontal'
