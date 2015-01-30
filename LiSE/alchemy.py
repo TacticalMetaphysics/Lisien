@@ -460,7 +460,15 @@ def queries(table, view):
 
     def func_table_get(t):
         return select(
-            [t.c.bytecode]
+            [
+                t.c.bytecode,
+                t.c.date,
+                t.c.creator,
+                t.c.contributor,
+                t.c.description,
+                t.c.plaincode,
+                t.c.version
+            ]
         ).where(
             t.c.name == bindparam('name')
         )
