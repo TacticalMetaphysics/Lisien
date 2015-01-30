@@ -448,10 +448,15 @@ def queries(table, view):
         ]
         return t.update().values(**vmap).where(and_(*wheres))
 
-    def func_table_items(t):
+    def func_table_iter(t):
         return select(
-            [t.c.name, t.c.bytecode]
-        ).order_by(t.c.name)
+            [t.c.name]
+        )
+
+    def func_table_name_plaincode(t):
+        return select(
+            [t.c.name, t.c.plaincode]
+        )
 
     def func_table_get(t):
         return select(
@@ -527,6 +532,9 @@ def queries(table, view):
     r = gorm.alchemy.queries_for_table_dict(table)
 
     for functyp in functyps:
+        r['func_{}_name_plaincode'.format(functyp)] \
+            = func_table_name_plaincode(table[functyp])
+        r['func_{}_iter'.format(functyp)] = func_table_iter(table[functyp])
         r['func_{}_get'.format(functyp)] = func_table_get(table[functyp])
         r['func_{}_ins'.format(functyp)] = func_table_ins(table[functyp])
         r['func_{}_upd'.format(functyp)] = func_table_upd(table[functyp])
