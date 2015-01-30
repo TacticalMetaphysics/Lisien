@@ -453,6 +453,11 @@ def queries(table, view):
             [t.c.name]
         )
 
+    def func_table_name_plaincode(t):
+        return select(
+            [t.c.name, t.c.plaincode]
+        )
+
     def func_table_get(t):
         return select(
             [
@@ -471,12 +476,14 @@ def queries(table, view):
     def func_table_ins(t):
         return t.insert().values(
             name=bindparam('name'),
-            bytecode=bindparam('bytecode')
+            bytecode=bindparam('bytecode'),
+            plaincode=bindparam('plaincode')
         )
 
     def func_table_upd(t):
         return t.update().values(
-            bytecode=bindparam('bytecode')
+            bytecode=bindparam('bytecode'),
+            plaincode=bindparam('plaincode')
         ).where(
             t.c.name == bindparam('name')
         )
@@ -533,6 +540,8 @@ def queries(table, view):
     r = gorm.alchemy.queries_for_table_dict(table)
 
     for functyp in functyps:
+        r['func_{}_name_plaincode'.format(functyp)] \
+            = func_table_name_plaincode(table[functyp])
         r['func_{}_iter'.format(functyp)] = func_table_iter(table[functyp])
         r['func_{}_get'.format(functyp)] = func_table_get(table[functyp])
         r['func_{}_ins'.format(functyp)] = func_table_ins(table[functyp])
@@ -665,42 +674,54 @@ def queries(table, view):
         )
     ).alias('nrhandle')
 
-    r['poll_node_rules'] = select(
-        [
+    def node_rules(*wheres):
+        return select(
+            [
+                node_rulebook.c.character,
+                node_rulebook.c.node,
+                node_rulebook.c.rulebook,
+                current_active_rules.c.rule,
+                current_active_rules.c.active,
+            ]
+        ).select_from(
+            node_rulebook.join(
+                rulebooks,
+                rulebooks.c.rulebook == node_rulebook.c.rulebook,
+            ).join(
+                current_active_rules,
+                and_(
+                    rulebooks.c.rulebook == current_active_rules.c.rulebook,
+                    rulebooks.c.rule == current_active_rules.c.rule
+                )
+            ).join(
+                nrhandle,
+                and_(
+                    node_rulebook.c.character == nrhandle.c.character,
+                    node_rulebook.c.node == nrhandle.c.node,
+                    node_rulebook.c.rulebook == nrhandle.c.rulebook,
+                    current_active_rules.c.rule == nrhandle.c.rule
+                ),
+                isouter=True
+            )
+        ).where(
+            and_(
+                nrhandle.c.handled == null(),
+                *wheres
+            )
+        ).order_by(
             node_rulebook.c.character,
             node_rulebook.c.node,
-            node_rulebook.c.rulebook,
-            current_active_rules.c.rule,
-            current_active_rules.c.active,
-        ]
-    ).select_from(
-        node_rulebook.join(
-            rulebooks,
-            rulebooks.c.rulebook == node_rulebook.c.rulebook,
-        ).join(
-            current_active_rules,
-            and_(
-                rulebooks.c.rulebook == current_active_rules.c.rulebook,
-                rulebooks.c.rule == current_active_rules.c.rule
-            )
-        ).join(
-            nrhandle,
-            and_(
-                node_rulebook.c.character == nrhandle.c.character,
-                node_rulebook.c.node == nrhandle.c.node,
-                node_rulebook.c.rulebook == nrhandle.c.rulebook,
-                current_active_rules.c.rule == nrhandle.c.rule
-            ),
-            isouter=True
+            rulebooks.c.rulebook,
+            rulebooks.c.idx
         )
-    ).where(
-        nrhandle.c.handled == null()
-    ).order_by(
-        node_rulebook.c.character,
-        node_rulebook.c.node,
-        rulebooks.c.rulebook,
-        rulebooks.c.idx
+
+    r['poll_node_rules'] = node_rules()
+    r['node_rules'] = node_rules(
+        node_rulebook.c.character == bindparam('character'),
+        node_rulebook.c.node == bindparam('node')
     )
+    # Note that you have to pass in the branch and tick *twice*, and
+    # prior to the character and node, if you're using sqlite
 
     portal_rulebook = table['portal_rulebook']
 
@@ -744,48 +765,60 @@ def queries(table, view):
         )
     ).alias('handle')
 
-    r['poll_portal_rules'] = select(
-        [
+    def portal_rules(*wheres):
+        return select(
+            [
+                portal_rulebook.c.character,
+                portal_rulebook.c.nodeA,
+                portal_rulebook.c.nodeB,
+                portal_rulebook.c.idx,
+                current_active_rules.c.rule,
+                current_active_rules.c.active,
+                prhandle.c.handled
+            ]
+        ).select_from(
+            portal_rulebook.join(
+                current_active_rules,
+                portal_rulebook.c.rulebook == current_active_rules.c.rulebook
+            ).join(
+                rulebooks,
+                and_(
+                    rulebooks.c.rulebook == portal_rulebook.c.rulebook,
+                    rulebooks.c.rule == current_active_rules.c.rule
+                ),
+                isouter=True
+            ).join(
+                prhandle,
+                and_(
+                    prhandle.c.character == portal_rulebook.c.character,
+                    prhandle.c.nodeA == portal_rulebook.c.nodeA,
+                    prhandle.c.nodeB == portal_rulebook.c.nodeB,
+                    prhandle.c.idx == portal_rulebook.c.idx,
+                    prhandle.c.rulebook == portal_rulebook.c.rulebook,
+                    prhandle.c.rule == current_active_rules.c.rule
+                ),
+                isouter=True
+            )
+        ).where(
+            and_(
+                prhandle.c.handled == null(),
+                *wheres
+            )
+        ).order_by(
             portal_rulebook.c.character,
             portal_rulebook.c.nodeA,
             portal_rulebook.c.nodeB,
             portal_rulebook.c.idx,
-            current_active_rules.c.rule,
-            current_active_rules.c.active,
-            prhandle.c.handled
-        ]
-    ).select_from(
-        portal_rulebook.join(
-            current_active_rules,
-            portal_rulebook.c.rulebook == current_active_rules.c.rulebook
-        ).join(
-            rulebooks,
-            and_(
-                rulebooks.c.rulebook == portal_rulebook.c.rulebook,
-                rulebooks.c.rule == current_active_rules.c.rule
-            ),
-            isouter=True
-        ).join(
-            prhandle,
-            and_(
-                prhandle.c.character == portal_rulebook.c.character,
-                prhandle.c.nodeA == portal_rulebook.c.nodeA,
-                prhandle.c.nodeB == portal_rulebook.c.nodeB,
-                prhandle.c.idx == portal_rulebook.c.idx,
-                prhandle.c.rulebook == portal_rulebook.c.rulebook,
-                prhandle.c.rule == current_active_rules.c.rule
-            ),
-            isouter=True
+            rulebooks.c.rulebook,
+            rulebooks.c.idx
         )
-    ).where(
-        prhandle.c.handled == null()
-    ).order_by(
-        portal_rulebook.c.character,
-        portal_rulebook.c.nodeA,
-        portal_rulebook.c.nodeB,
-        portal_rulebook.c.idx,
-        rulebooks.c.rulebook,
-        rulebooks.c.idx
+
+    r['poll_portal_rules'] = portal_rules()
+    r['portal_rules'] = portal_rules(
+        portal_rulebook.c.character == bindparam('character'),
+        portal_rulebook.c.nodeA == bindparam('nodeA'),
+        portal_rulebook.c.nodeB == bindparam('nodeB'),
+        portal_rulebook.c.idx == bindparam('idx')
     )
 
     characters = table['characters']
@@ -938,9 +971,81 @@ def queries(table, view):
         )
     )
 
-    def active_rule_char(prefix):
+    # fetch all rules & whether they are active right now (their "activeness")
+    # for a given:
+    # character;
+    # character's avatars;
+    # character's things;
+    # character's places;
+    # character's portals;
+    # node (thing or place);
+    # portal
+
+    def current_rules_activeness(tbl, col):
+        """Query all rules and their activeness for rulebooks given in this
+        column of this table.
+
+        """
+        hitick = arhitick('branch')
+        return select(
+            [col, active_rules.c.active]
+        ).select_from(
+            tbl.join(
+                active_rules.join(
+                    hitick,
+                    and_(
+                        active_rules.c.rulebook == hitick.c.rulebook,
+                        active_rules.c.rule == hitick.c.rule,
+                        active_rules.c.branch == hitick.c.branch,
+                        active_rules.c.tick == hitick.c.tick
+                    )
+                ),
+                col == active_rules.c.rulebook
+            )
+        )
+
+    def character_rulebook_rules_activeness(prefix):
+        coln = prefix + '_rulebook'
+        return current_rules_activeness(
+            characters, getattr(characters.c, coln)
+        ).where(
+            characters.c.character == bindparam('character')
+        )
+
+    r['current_rules_character'] \
+        = character_rulebook_rules_activeness('character')
+    r['current_rules_avatar'] \
+        = character_rulebook_rules_activeness('avatar')
+    r['current_rules_character_thing'] \
+        = character_rulebook_rules_activeness('character_thing')
+    r['current_rules_character_place'] \
+        = character_rulebook_rules_activeness('character_place')
+    r['current_rules_character_portal'] \
+        = character_rulebook_rules_activeness('character_portal')
+
+    r['current_rules_node'] \
+        = current_rules_activeness(
+            node_rulebook, node_rulebook.c.rulebook
+        ).where(
+            and_(
+                node_rulebook.c.character == bindparam('character'),
+                node_rulebook.c.node == bindparam('node')
+            )
+        )
+    r['current_rules_portal'] \
+        = current_rules_activeness(
+            portal_rulebook, portal_rulebook.c.rulebook
+        ).where(
+            and_(
+                portal_rulebook.c.character == bindparam('character'),
+                portal_rulebook.c.nodeA == bindparam('nodeA'),
+                portal_rulebook.c.nodeB == bindparam('nodeB')
+            )
+        )
+
+    def rules_handled_hitick(prefix):
         tbl = table['{}_rules_handled'.format(prefix)]
-        hitick = select(
+        return select(
             [
                 tbl.c.rulebook,
                 tbl.c.rule,
@@ -960,6 +1065,9 @@ def queries(table, view):
             tbl.c.rule,
             tbl.c.branch
         )
+
+    def active_rule_char(prefix):
+        hitick = rules_handled_hitick(prefix)
         return select(
             [
                 active_rules.c.active
