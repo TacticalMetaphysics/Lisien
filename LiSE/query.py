@@ -5,7 +5,12 @@ from types import FunctionType
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
 from gorm.xjson import json_dump, json_load
-from .util import IntegrityError, OperationalError, RedundantRuleError
+from .util import (
+    IntegrityError,
+    OperationalError,
+    RedundantRuleError,
+    UserFunctionError
+)
 
 import gorm.query
 import LiSE
@@ -53,6 +58,12 @@ class QueryEngine(gorm.query.QueryEngine):
             globals()
         )
 
+    def func_table_get_source(self, tbl, key):
+        row = self.sql('func_{}_get'.format(tbl), key).fetchone()
+        if row is None:
+            raise KeyError("No such function")
+        return row[5]
+
     def func_table_set(self, tbl, key, fun):
         try:
             s = getsource(fun)
@@ -63,6 +74,28 @@ class QueryEngine(gorm.query.QueryEngine):
             return self.sql('func_{}_ins'.format(tbl), key, m, s)
         except IntegrityError:
             return self.sql('func_{}_upd'.format(tbl), m, s, key)
+
+    def func_table_set_source(self, tbl, key, source):
+        locd = {}
+        exec(source, {}, locd)
+        if len(locd) != 1:
+            raise UserFunctionError(
+                "Input code contains more than the one function definition."
+            )
+        if key not in locd:
+            raise UserFunctionError(
+                "Function in input code has different name ({}) "
+                "than expected ({}).".format(
+                    next(locd.keys()),
+                    self.name
+                )
+            )
+        fun = locd[key]
+        m = marshalled(fun.__code__)
+        try:
+            return self.sql('func_{}_ins'.format(tbl), key, m, source)
+        except IntegrityError:
+            return self.sql('func_{}_upd'.format(tbl), m, source, key)
 
     def func_table_del(self, tbl, key):
         return self.sql('func_{}_del'.format(tbl), key)
