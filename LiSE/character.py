@@ -32,62 +32,55 @@ from .util import (
     listener,
     fire_time_travel_triggers,
 )
-from .rule import RuleBook
-from .rule import CharRuleMapping as RuleMapping
+from .rule import Rule, RuleBook, RuleMapping
+from .rule import RuleFollower as BaseRuleFollower
 from .funlist import FunList
 from .thing import Thing
 from .place import Place
 from .portal import Portal
 
 
-class RuleFollower(object):
+class CharRuleMapping(RuleMapping):
+    def __init__(self, character, rulebook, booktyp):
+        super().__init__(rulebook.engine, rulebook)
+        self.character = character
+        self._table = booktyp + "_rules"
+
+    def __iter__(self):
+        return self.engine.db.active_rules_char(
+            self._table,
+            self.character.name,
+            self.rulebook.name,
+            *self.engine.time
+        )
+
+
+class RuleFollower(BaseRuleFollower):
     """Mixin class that has a rulebook associated, which you can get a
     RuleMapping into
 
     """
-
-    @property
-    def _rulebook_listeners(self):
-        if not hasattr(self, '_rbl'):
-            self._rbl = []
-        return self._rbl
-
-    @_rulebook_listeners.setter
-    def _rulebook_listeners(self, v):
-        self._rbl = v
-
-    def _dispatch_rulebook(self, v):
-        for f in self._rulebook_listeners:
-            f(self, v)
-
-    def rulebook_listener(self, f):
-        listen(self._rulebook_listeners, f)
-
-    @property
-    def rulebook(self):
-        return RuleBook(
-            self.engine,
-            self.engine.db.get_rulebook_char(
-                self._book,
-                self.character.name
-            )
+    def _rule_names_activeness(self):
+        return getattr(
+            self.character.engine.db,
+            'current_rules_character_' + self._book
         )
 
-    @rulebook.setter
-    def rulebook(self, v):
-        if not isinstance(v, str) or isinstance(v, RuleBook):
-            raise TypeError("Use a :class:`RuleBook` or the name of one")
-        n = v.name if isinstance(v, RuleBook) else v
-        self.engine.db.upd_rulebook_char(self._book, n, self.character.name)
-        self._dispatch_rulebook(v)
+    def _get_rule_mapping(self):
+        return CharRuleMapping(
+            self.character,
+            self.rulebook,
+            self._book
+        )
 
-    @property
-    def rule(self):
-        if not hasattr(self, '_rule_mapping'):
-            self._rule_mapping = RuleMapping(
-                self.character, self.rulebook, self._book
-            )
-        return self._rule_mapping
+    def _get_rulebook_name(self):
+        return self.engine.db.get_rulebook_char(
+            self._book,
+            self.character.name
+        )
+
+    def _set_rulebook_name(self, n):
+        self.engine.db.upd_rulebook_char(self._book, n, self.character.name)
 
 
 class CharacterThingMapping(MutableMapping, RuleFollower):

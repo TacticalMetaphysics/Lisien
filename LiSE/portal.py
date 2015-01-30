@@ -10,9 +10,28 @@ from .util import (
     dekeycache,
     cache_forward
 )
+from .rule import RuleFollower
+from .rule import RuleMapping as BaseRuleMapping
 
 
-class Portal(Edge):
+class RuleMapping(BaseRuleMapping):
+    def __init__(self, portal):
+        super().__init__(portal.engine, portal.rulebook)
+        self.character = portal.character
+        self.engine = portal.engine
+        self.orign = portal._origin
+        self.destn = portal._destn
+
+    def __iter__(self):
+        return self.engine.db.portal_rules(
+            self.character.name,
+            self.orign,
+            self.destn,
+            *self.engine.time
+        )
+
+
+class Portal(Edge, RuleFollower):
     """Connection between two Places that Things may travel along.
 
     Portals are one-way, but you can make one appear two-way by
@@ -20,6 +39,23 @@ class Portal(Edge):
     eg. ``character.add_portal(orig, dest, symmetrical=True)``
 
     """
+    def _rule_name_activeness(self):
+        return self.engine.db.current_rules_portal(
+            self.character.name,
+            self._origin,
+            self._destination,
+            *self.engine.time
+        )
+
+    def _get_rulebook_name(self):
+        return self.engine.db.portal_rulebook(
+            self.character.name,
+            self._origin,
+            self._destination
+        )
+
+    def _get_rule_mapping(self):
+        return RuleMapping(self)
 
     def __init__(self, character, origin, destination):
         """Initialize a Portal in a character from an origin to a

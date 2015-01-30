@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+from inspect import getsource
 from types import FunctionType
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
@@ -33,8 +34,11 @@ class QueryEngine(gorm.query.QueryEngine):
     def init_func_table(self, tbl):
         self.init_table(tbl)
 
-    def func_table_items(self, tbl):
-        return self.sql('func_{}_items'.format(tbl))
+    def func_table_iter(self, tbl):
+        return self.sql('func_{}_iter'.format(tbl))
+
+    def func_table_name_plaincode(self, tbl):
+        return self.sql('func_{}_name_plaincode'.format(tbl))
 
     def func_table_contains(self, tbl, key):
         for row in self.sql('func_{}_get'.format(tbl), key):
@@ -49,12 +53,16 @@ class QueryEngine(gorm.query.QueryEngine):
             globals()
         )
 
-    def func_table_set(self, tbl, key, code):
-        m = marshalled(code)
+    def func_table_set(self, tbl, key, fun):
         try:
-            return self.sql('func_{}_ins'.format(tbl), key, m)
+            s = getsource(fun)
+        except OSError:
+            s = ''
+        m = marshalled(fun.__code__)
+        try:
+            return self.sql('func_{}_ins'.format(tbl), key, m, s)
         except IntegrityError:
-            return self.sql('func_{}_upd'.format(tbl), m, key)
+            return self.sql('func_{}_upd'.format(tbl), m, s, key)
 
     def func_table_del(self, tbl, key):
         return self.sql('func_{}_del'.format(tbl), key)
@@ -292,12 +300,50 @@ class QueryEngine(gorm.query.QueryEngine):
                         rule
                     )
 
+    def node_rules(self, character, node, branch, tick):
+        (character, node) = map(json_dump, (character, node))
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (char, n, rulebook, rule, active) in self.sql(
+                'node_rules', b, t, b, t, character, node
+            ):
+                if (char, n, rulebook, rule) in seen:
+                    continue
+                seen.add((char, n, rulebook, rule))
+                if active:
+                    yield(
+                        json_load(char),
+                        json_load(n),
+                        rulebook,
+                        rule
+                    )
+
     def poll_portal_rules(self, branch, tick):
         """Poll rules assigned to particular portals."""
         seen = set()
         for (b, t) in self.active_branches(branch, tick):
             for (char, a, b, i, rulebook, rule, active, handled) in self.sql(
-                    'poll_portal_rules', b, t, b, t
+                'poll_portal_rules', b, t, b, t
+            ):
+                if (char, a, b, i, rulebook, rule) in seen:
+                    continue
+                seen.add((char, a, b, i, rulebook, rule))
+                if active:
+                    yield (
+                        json_load(char),
+                        json_load(a),
+                        json_load(b),
+                        i,
+                        rulebook,
+                        rule
+                    )
+
+    def portal_rules(self, character, nodeA, nodeB, branch, tick):
+        (character, nodeA, nodeB) = map(json_dump, (character, nodeA, nodeB))
+        seen = set()
+        for (b, t) in self.active_branches(branch, tick):
+            for (char, a, b, i, rulebook, rule, active, handled) in self.sql(
+                'portal_rules', b, t, b, t, character, nodeA, nodeB, 0
             ):
                 if (char, a, b, i, rulebook, rule) in seen:
                     continue
@@ -733,6 +779,67 @@ class QueryEngine(gorm.query.QueryEngine):
     def rulebook_rules(self, rulebook):
         for (rule,) in self.sql('rulebook_rules', json_dump(rulebook)):
             yield rule
+
+    def current_rules_character(self, character, branch, tick):
+        return self.sql(
+                'current_rules_character',
+                json_dump(character),
+                branch,
+                tick
+        )
+
+    def current_rules_avatar(self, character, branch, tick):
+        return self.sql(
+            'current_rules_avatar',
+            json_dump(character),
+            branch,
+            tick
+        )
+
+    def current_rules_character_thing(self, character, branch, tick):
+        return self.sql(
+            'current_rules_character_thing',
+            json_dump(character),
+            branch,
+            tick
+        )
+
+    def current_rules_character_place(self, character, branch, tick):
+        return self.sql(
+            'current_rules_character_place',
+            json_dump(character),
+            branch,
+            tick
+        )
+
+    def current_rules_character_portal(self, character, branch, tick):
+        return self.sql(
+            'current_rules_character_portal',
+            json_dump(character),
+            branch,
+            tick
+        )
+
+    def current_rules_node(self, character, node, branch, tick):
+        (character, node) = map(json_dump, (character, node))
+        return self.sql(
+            'current_rules_node',
+            character,
+            node,
+            branch,
+            tick
+        )
+
+    def current_rules_portal(self, character, nodeA, nodeB, branch, tick):
+        (character, nodeA, nodeB) = map(json_dump, (character, nodeA, nodeB))
+        return self.sql(
+            'current_rules_portal',
+            character,
+            nodeA,
+            nodeB,
+            branch,
+            tick
+        )
 
     def ct_rulebook_rules(self, rulebook):
         return self.sql('ct_rulebook_rules', json_dump(rulebook)).fetchone()[0]
