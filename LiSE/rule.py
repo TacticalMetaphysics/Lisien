@@ -227,19 +227,6 @@ class RuleMapping(MutableMapping):
         )
         self._dispatch(rule, True)
 
-    def _deactivate_rule(self, rule):
-        if rule not in self.rulebook:
-            return
-        (branch, tick) = self.engine.time
-        self.engine.db.rule_set(
-            self.rulebook.name,
-            rule.name,
-            branch,
-            tick,
-            False
-        )
-        self._dispatch(rule, False)
-
     def __repr__(self):
         return 'RuleMapping({})'.format([k for k in self])
 
