@@ -414,3 +414,7 @@ def keycache_iter(keycache, branch, tick, get_iterator):
     if tick not in keycache[branch]:
         keycache[branch][tick] = set(get_iterator())
     yield from keycache[branch][tick]
+
+
+class UserFunctionError(ValueError):
+    pass
