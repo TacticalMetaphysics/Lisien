@@ -38,8 +38,8 @@ class FunctionInput(BoxLayout):
             Clock.schedule_once(partial(self._set_source, v), 0)
             return
         lines = v.split('\n')
-        del lines[0]
-        self.ids.code.text = '\n'.join(line[4:] for line in lines)
+        del lines[0:2]
+        self.ids.code.text = '\n'.join(line.lstrip(' ') for line in lines)
 
     source = AliasProperty(_get_source, _set_source)
 
