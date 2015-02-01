@@ -325,15 +325,6 @@ class RuleMapping(MutableMapping):
         )
         self._dispatch(rule, False)
 
-    def __contains__(self, k):
-        return self.engine.db.active_rule_char(
-            self._table,
-            self.character.name,
-            self.rulebook.name,
-            k,
-            *self.engine.time
-        )
-
 
 class RuleFollower(object):
     """Interface for that which has a rulebook associated, which you can

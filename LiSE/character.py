@@ -82,6 +82,15 @@ class RuleFollower(BaseRuleFollower):
     def _set_rulebook_name(self, n):
         self.engine.db.upd_rulebook_char(self._book, n, self.character.name)
 
+    def __contains__(self, k):
+        return self.engine.db.active_rule_char(
+            self._table,
+            self.character.name,
+            self.rulebook.name,
+            k,
+            *self.engine.time
+        )
+
 
 class CharacterThingMapping(MutableMapping, RuleFollower):
     """:class:`Thing` objects that are in a :class:`Character`"""
