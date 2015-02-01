@@ -119,11 +119,7 @@ class StoreList(Widget):
             callback=self._adapter.setter('callback')
         )
         self._listview = ListView(
-            adapter=self._adapter,
-            size_hint=self.size_hint,
-            pos_hint=self.pos_hint,
-            size=self.size,
-            pos=self.pos
+            adapter=self._adapter
         )
         self.bind(
             size_hint=self._listview.setter('size_hint'),
