@@ -190,6 +190,10 @@ class StoreEditor(BoxLayout):
         """Construct whatever editor widget I use and add it to myself."""
         raise NotImplementedError
 
+    def save(self):
+        """Write my editor's changes to disk."""
+        raise NotImplementedError
+
 
 class StringsEditor(StoreEditor):
     list_cls = StringStoreList
