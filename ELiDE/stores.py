@@ -35,6 +35,7 @@ class StoreAdapter(ListAdapter):
     callback = ObjectProperty()
 
     def __init__(self, **kwargs):
+        kwargs['data'] = []
         kwargs['cls'] = StoreButton
         kwargs['args_converter'] = lambda i, nametxt: {
             'store': self.store,
