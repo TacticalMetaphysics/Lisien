@@ -107,7 +107,7 @@ class QueryEngine(gorm.query.QueryEngine):
             pass
 
     def string_table_lang_items(self, tbl, lang):
-        return self.sql('string_lang_items_fmt', lang)
+        return self.sql('string_{}_lang_items'.format(tbl), lang)
 
     def string_table_get(self, tbl, lang, key):
         for row in self.sql('string_get', lang, key, tbl=tbl):
