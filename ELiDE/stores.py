@@ -15,7 +15,7 @@ from kivy.properties import (
     StringProperty
 )
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.widget import Widget
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.listview import ListView, ListItemButton
 from kivy.adapters.listadapter import ListAdapter
 from .codeinput import FunctionInput
@@ -84,7 +84,7 @@ class StringStoreAdapter(StoreAdapter):
         )
 
 
-class StoreList(Widget):
+class StoreList(FloatLayout):
     table = StringProperty()
     store = ObjectProperty()
     selection = ListProperty()
