@@ -204,7 +204,16 @@ class RuleBook(MutableSequence):
 class RuleMapping(MutableMapping):
     def __init__(self, engine, rulebook):
         self.engine = engine
-        self.rulebook = rulebook
+        if isinstance(rulebook, RuleBook):
+            self.rulebook = rulebook
+        elif isinstance(rulebook, str):
+            self.rulebook = RuleBook(engine, rulebook)
+        else:
+            raise TypeError(
+                "Need a rulebook or the name of one, not {}".format(
+                    type(rulebook)
+                )
+            )
         self._listeners = defaultdict(list)
         self._rule_cache = {}
 
