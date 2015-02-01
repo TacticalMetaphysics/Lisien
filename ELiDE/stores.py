@@ -123,12 +123,6 @@ class StoreList(FloatLayout):
         self._listview = ListView(
             adapter=self._adapter
         )
-        self.bind(
-            size_hint=self._listview.setter('size_hint'),
-            pos_hint=self._listview.setter('pos_hint'),
-            size=self._listview.setter('size'),
-            pos=self._listview.setter('pos')
-        )
         self.add_widget(self._listview)
 
 
