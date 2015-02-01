@@ -332,9 +332,11 @@ class RuleFollower(object):
 
     """
     @property
-    def rule(self):
+    def rule(self, v=None, name=None):
         if not hasattr(self, '_rule_mapping'):
             self._rule_mapping = self._get_rule_mapping()
+        if v is not None:
+            return self._rule_mapping(v, name)
         return self._rule_mapping
 
     @property
@@ -370,11 +372,6 @@ class RuleFollower(object):
         self._rulebook = self._get_rulebook()
         for f in self._rulebook_listeners:
             f(self, self._rulebook)
-
-    def rule(self):
-        if not hasattr(self, '_rule_mapping'):
-            self._rule_mapping = self._get_rule_mapping()
-        return self._rule_mapping
 
     def rules(self):
         if not hasattr(self, 'engine'):
