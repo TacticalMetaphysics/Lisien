@@ -100,11 +100,8 @@
             halign: "center"
             text: str(root.character_name)
         Button:
-            # opens a popover where you view the rules active on this
-            # character now, and may click one to edit it
             text: "Rules"
         SymbolButton:
-            # deletes whatever you've got selected
             text: chr(0x2327)
             on_press: root.delete_selection()
         BoxLayout:
@@ -122,7 +119,6 @@
         BoxLayout:
             orientation: 'vertical'
             ToggleButton:
-                # While this is active, dragging between two spots creates a portal
                 id: portaladdbut
                 Widget:
                     id: emptyleft
@@ -143,17 +139,8 @@
                 text: 'One-way' if root.reciprocal_portal else 'Two-way'
                 on_press: root.toggle_reciprocal()
         BoxLayout:
-            # Has the generic thing-graphic in it, drag it on top of a spot and you get a new thing
             Widget:
                 id: thingtab
-                # canvas:
-                #     Color:
-                #         rgba: 0,0,0,1
-                #     Rectangle:
-                #         pos: thingtab.pos
-                #         size: thingtab.size
-                #     Color:
-                #         rgba: 1,1,1,1
                 Dummy:
                     id: dummything
                     center: thingtab.center
