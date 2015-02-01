@@ -186,6 +186,12 @@ class StoreEditor(BoxLayout):
         self.save()
         self._list._adapter._trigger_redata()
 
+    def on_selection(self, *args):
+        if self.selection == []:
+            return
+        self.name = self.selection[0].name
+        self.source = self.selection[0].source
+
     def add_editor(self, *args):
         """Construct whatever editor widget I use and add it to myself."""
         raise NotImplementedError
@@ -211,10 +217,6 @@ class StringsEditor(StoreEditor):
             font_size=self._editor.setter('font_size'),
         )
         self.add_widget(self._editor)
-
-    def on_selection(self, *args):
-        self._editor.name = self.selection[0].name
-        self._editor.text = self.selection[0].source
 
 
 class FuncsEditor(StoreEditor):
@@ -257,12 +259,6 @@ class FuncsEditor(StoreEditor):
         )
         self._editor.bind(params=self.setter('params'))
         self.add_widget(self._editor)
-
-    def on_selection(self, *args):
-        if self.selection == []:
-            return
-        self.name = self.selection[0].name
-        self.source = self.selection[0].source
 
     def save(self):
         self.store.db.func_table_set_source(
