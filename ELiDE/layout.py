@@ -146,7 +146,7 @@ class ELiDELayout(FloatLayout):
         def dismiss_str(*args):
             self._popover.remove_widget(self._strings_ed_window)
             self._popover.dismiss()
-            del self.popover
+            del self._popover
 
         self._close_string_but = Button(text='Close', on_press=dismiss_str)
         addclosestr.add_widget(self._close_string_but)
