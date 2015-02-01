@@ -172,7 +172,7 @@ class StoreEditor(BoxLayout):
             size_hint_x=0.4,
             table=self.table,
             store=self.store,
-            callback=self.save_and_load
+            callback=self._callback
         )
         self._list.bind(selection=self.setter('selection'))
         self.bind(
@@ -182,15 +182,12 @@ class StoreEditor(BoxLayout):
         self.add_widget(self._list)
         self.add_editor()
 
+    def _callback(self, name, source):
+        self.save()
+        self._list._adapter._trigger_redata()
+
     def add_editor(self, *args):
         """Construct whatever editor widget I use and add it to myself."""
-        raise NotImplementedError
-
-    def save_and_load(self, name, source):
-        """Save what's in the editor currently, and replace it with
-        ``source``.
-
-        """
         raise NotImplementedError
 
 
@@ -262,3 +259,10 @@ class FuncsEditor(StoreEditor):
             return
         self.name = self.selection[0].name
         self.source = self.selection[0].source
+
+    def save(self):
+        self.store.db.func_table_set_source(
+            self.table,
+            self._editor.name,
+            self._editor.source
+        )
