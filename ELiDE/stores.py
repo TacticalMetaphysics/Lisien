@@ -191,8 +191,6 @@ class StringsEditor(StoreEditor):
             Clock.schedule_once(self.add_editor, 0)
             return
         self._editor = StringInput(
-            name=self.selection[0].name,
-            text=self.selection[0].source,
             font_name=self.font_name,
             font_size=self.font_size
         )
