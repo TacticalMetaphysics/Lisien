@@ -482,9 +482,7 @@ class Engine(object):
         self.gorm.commit()
 
     def close(self):
-        if self.caching:
-            self.gorm.branch = self.gorm._obranch
-            self.gorm.rev = self.gorm._orev
+        self.commit()
         self.gorm.close()
 
     def __enter__(self):
