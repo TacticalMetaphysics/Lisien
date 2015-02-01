@@ -162,6 +162,7 @@ class StoreEditor(BoxLayout):
             return
         self.clear_widgets()
         self._list = self.list_cls(
+            size_hint_x=0.4,
             table=self.table,
             store=self.store,
             callback=self.save_and_load
