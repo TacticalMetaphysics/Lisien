@@ -64,7 +64,7 @@ class FuncStoreAdapter(StoreAdapter):
     def redata(self, *args):
         if self.store is None:
             return
-        self.data = self.store.db.func_table_name_plaincode(self.table)
+        self.data = list(self.store.db.func_table_name_plaincode(self.table))
 
 
 class StringStoreAdapter(StoreAdapter):
@@ -77,8 +77,10 @@ class StringStoreAdapter(StoreAdapter):
     def redata(self, *args):
         if self.store is None:
             return
-        self.data = self.store.db.string_table_lang_items(
-            self.table, self.store.language
+        self.data = list(
+            self.store.db.string_table_lang_items(
+                self.table, self.store.language
+            )
         )
 
 
