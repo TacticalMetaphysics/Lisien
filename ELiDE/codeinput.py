@@ -32,24 +32,36 @@ class FunctionInput(BoxLayout):
     params = ListProperty()
 
     def _get_source(self):
-        code = self.name + '(' + ', '.join(self.params) + '):\n'
+        code = 'def ' + self.name + '(' + ', '.join(self.params) + '):\n'
         for line in self.ids.code.text.split('\n'):
             code += (' ' * 4 + line + '\n')
-        return code
+        return code.rstrip(' \n\t')
 
     def _set_source(self, v, *args):
         if 'code' not in self.ids:
             Clock.schedule_once(partial(self._set_source, v), 0)
             return
         lines = v.split('\n')
-        if lines[0][0] == '@':
+        if lines[0].lstrip()[0] == '@':
             del lines[0]
+        # how indented is it?
+        spaces = 0
+        for ch in lines[0]:
+            if ch == ' ':
+                spaces += 1
+            elif ch == '\t':
+                spaces += 4
+            else:
+                break
+        # and another four because everything should be within the
+        # same function block
+        spaces += 4
         self.params = [
-            parm.strip(' ') for parm in
+            parm.strip() for parm in
             sig_ex.match(lines[0]).groups()[0].split(',')
         ]
         del lines[0]
-        self.ids.code.text = '\n'.join(line.lstrip(' ') for line in lines)
+        self.ids.code.text = '\n'.join(line[spaces:] for line in lines)
 
     source = AliasProperty(_get_source, _set_source)
 
