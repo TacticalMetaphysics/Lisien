@@ -36,12 +36,12 @@ class StoreAdapter(ListAdapter):
 
     def __init__(self, **kwargs):
         kwargs['cls'] = StoreButton
-        kwargs['args_converter'] = lambda i, (name, txt): {
+        kwargs['args_converter'] = lambda i, nametxt: {
             'store': self.store,
             'table': self.table,
-            'name': name,
-            'source': txt,
-            'on_press': lambda inst: self.callback(name, txt)
+            'name': nametxt[0],
+            'source': nametxt[1],
+            'on_press': lambda inst: self.callback(*nametxt)
         }
         kwargs['selection_mode'] = 'single'
         kwargs['allow_empty_selection'] = False
