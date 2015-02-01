@@ -42,7 +42,8 @@ class FunctionInput(BoxLayout):
             Clock.schedule_once(partial(self._set_source, v), 0)
             return
         lines = v.split('\n')
-        del lines[0]
+        if lines[0][0] == '@':
+            del lines[0]
         self.params = [
             parm.strip(' ') for parm in
             sig_ex.match(lines[0]).groups()[0].split(',')
