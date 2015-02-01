@@ -224,6 +224,7 @@ class ELiDELayout(FloatLayout):
         self._funcs_ed_window.add_widget(self._funcs_ed)
 
         addclosefunc = BoxLayout(orientation='horizontal', size_hint_y=0.05)
+        self._funcs_ed_window.add_widget(addclosefunc)
         addfuncbut = Button(text='New')
         addclosefunc.add_widget(addfuncbut)
 
