@@ -12,6 +12,8 @@ from kivy.properties import (
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.uix.checkbox import CheckBox
 from kivy.uix.modalview import ModalView
 from kivy.uix.floatlayout import FloatLayout
 from kivy.clock import Clock
@@ -25,6 +27,7 @@ from .board.arrow import Arrow, ArrowWidget
 from .board.spot import Spot
 from .board.pawn import Pawn
 from .statgrid import StatListViewConfigurator
+from .stores import StringsEditor, FuncsEditor
 
 from gorm.xjson import json_load
 
@@ -129,10 +132,109 @@ class ELiDELayout(FloatLayout):
             branch=self.timeupd,
             tick=self.timeupd,
         )
+        self._strings_ed = StringsEditor(
+            table='strings',
+            store=self.engine.string,
+            size_hint_y=0.95
+        )
+        self._strings_ed_window = BoxLayout(orientation='vertical')
+        self._strings_ed_window.add_widget(self._strings_ed)
+        addclosestr = BoxLayout(orientation='horizontal', size_hint_y=0.05)
+        self._add_string_but = Button(text='New')
+        addclosestr.add_widget(self._add_string_but)
+        self._close_string_but = Button(text='Close')
+        addclosestr.add_widget(self._close_string_but)
+        self._strings_ed_window.add_widget(addclosestr)
+
+        self._funcs_ed_window = BoxLayout(orientation='vertical')
+
+        def setchar(box, active):
+            if active:
+                self._funcs_ed.subject_type = 'character'
+
+        def setthing(box, active):
+            if active:
+                self._funcs_ed.subject_type = 'thing'
+
+        def setplace(box, active):
+            if active:
+                self._funcs_ed.subject_type = 'place'
+
+        def setport(box, active):
+            if active:
+                self._funcs_ed.subject_type = 'portal'
+
+        subj_type_sel = BoxLayout(orientation='horizontal', size_hint_y=0.05)
+        self._funcs_ed_window.add_widget(subj_type_sel)
+
+        charsel = BoxLayout()
+        char = CheckBox(group='subj_type', size_hint_x=0.05)
+        char.bind(active=setchar)
+        charsel.add_widget(char)
+        charl = Label(text='Character', size_hint_x=0.95)
+        charsel.add_widget(charl)
+        subj_type_sel.add_widget(charsel)
+
+        thingsel = BoxLayout()
+        thing = CheckBox(group='subj_type', size_hint_x=0.05)
+        thing.bind(active=setthing)
+        thingsel.add_widget(thing)
+        thingl = Label(text='Thing', size_hint_x=0.95)
+        thingsel.add_widget(thingl)
+        subj_type_sel.add_widget(thingsel)
+
+        placesel = BoxLayout()
+        place = CheckBox(group='subj_type', size_hint_x=0.05)
+        place.bind(active=setplace)
+        placesel.add_widget(place)
+        placel = Label(text='Place', size_hint_x=0.95)
+        placesel.add_widget(placel)
+        subj_type_sel.add_widget(placesel)
+
+        portsel = BoxLayout()
+        port = CheckBox(group='subj_type', size_hint_x=0.05)
+        port.bind(active=setport)
+        portsel.add_widget(port)
+        portl = Label(text='Portal', size_hint_x=0.95)
+        portsel.add_widget(portl)
+        subj_type_sel.add_widget(portsel)
+
+        self._funcs_ed = FuncsEditor(
+            size_hint_y=0.9
+        )
+        self._funcs_ed_window.add_widget(self._funcs_ed)
+
+        addclosefunc = BoxLayout(orientation='horizontal', size_hint_y=0.05)
+        addfuncbut = Button(text='New')
+        addclosefunc.add_widget(addfuncbut)
+        closefuncbut = Button(text='Close')
+        addclosefunc.add_widget(closefuncbut)
 
         @self.engine.on_time
         def board_upd(*args):
             Clock.schedule_once(self.ids.board.update, 0)
+
+    def toggle_funcs_editor(self, functyp):
+        if hasattr(self, '_popover'):
+            self._popover.remove_widget(self._funcs_ed_window)
+            self._popover.dismiss()
+            del self._popover
+        else:
+            self._funcs_ed.store = getattr(self.engine, functyp)
+            self._funcs_ed.table = functyp
+            self._popover = ModalView()
+            self._popover.add_widget(self._funcs_ed_window)
+            self._popover.open()
+
+    def toggle_strings_editor(self):
+        if hasattr(self, '_popover'):
+            self._popover.remove_widget(self._strings_ed_window)
+            self._popover.dismiss()
+            del self._popover
+        else:
+            self._popover = ModalView()
+            self._popover.add_widget(self._strings_ed_window)
+            self._popover.open()
 
     def set_remote_value(self, remote, k, v):
         if v is None:
