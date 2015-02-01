@@ -156,19 +156,21 @@ class ELiDELayout(FloatLayout):
 
         def setchar(box, active):
             if active:
-                self._funcs_ed.subject_type = 'character'
+                self._funcs_ed.params = ['engine', 'character']
 
         def setthing(box, active):
             if active:
-                self._funcs_ed.subject_type = 'thing'
+                self._funcs_ed.params = ['engine', 'character', 'thing']
 
         def setplace(box, active):
             if active:
-                self._funcs_ed.subject_type = 'place'
+                self._funcs_ed.params = ['engine', 'character', 'place']
 
         def setport(box, active):
             if active:
-                self._funcs_ed.subject_type = 'portal'
+                self._funcs_ed.subject_type = [
+                    'engine', 'character', 'origin', 'destination'
+                ]
 
         subj_type_sel = BoxLayout(orientation='horizontal', size_hint_y=0.05)
         self._funcs_ed_window.add_widget(subj_type_sel)
@@ -205,8 +207,19 @@ class ELiDELayout(FloatLayout):
         portsel.add_widget(portl)
         subj_type_sel.add_widget(portsel)
 
+        def subjtyp(inst, val):
+            if val == 'character':
+                char.active = True
+            elif val == 'thing':
+                thing.active = True
+            elif val == 'place':
+                place.active = True
+            elif val == 'portal':
+                port.active = True
+
         self._funcs_ed = FuncsEditor(
-            size_hint_y=0.9
+            size_hint_y=0.9,
+            on_subject_type=subjtyp
         )
         self._funcs_ed_window.add_widget(self._funcs_ed)
 

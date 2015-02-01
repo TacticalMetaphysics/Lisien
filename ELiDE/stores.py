@@ -211,14 +211,22 @@ class FuncsEditor(StoreEditor):
         'character', options=['character', 'thing', 'place', 'portal']
     )
     list_cls = FuncStoreList
+    name = StringProperty()
+    source = StringProperty()
 
-    def on_subject_type(self, *args):
-        self.params = {
-            'character': ['engine', 'character'],
-            'thing': ['engine', 'character', 'thing'],
-            'place': ['engine', 'character', 'place'],
-            'portal': ['engine', 'character', 'origin', 'destination']
-        }[self.subject_type]
+    def on_params(self, *args):
+        if self.params == ['engine', 'character']:
+            self.subject_type = 'character'
+        elif self.params == ['engine', 'character', 'thing']:
+            self.subject_type = 'thing'
+        elif self.params == ['engine', 'character', 'place']:
+            self.subject_type = 'place'
+        elif self.params == ['engine', 'character', 'origin', 'destination']:
+            self.subject_type = 'portal'
+        else:
+            raise ValueError(
+                "Unsupported function signature: {}".format(self.params)
+            )
 
     def add_editor(self, *args):
         if None in (self.selection, self.params):
@@ -232,10 +240,12 @@ class FuncsEditor(StoreEditor):
         self.bind(
             font_name=self._editor.setter('font_name'),
             font_size=self._editor.setter('font_size'),
-            params=self._editor.setter('params')
+            params=self._editor.setter('params'),
+            name=self._editor.setter('name'),
+            source=self._editor.setter('source')
         )
         self.add_widget(self._editor)
 
     def on_selection(self, *args):
-        self._editor.name = self.selection[0].name
-        self._editor.source = self.selection[0].source
+        self.name = self.selection[0].name
+        self.source = self.selection[0].source
