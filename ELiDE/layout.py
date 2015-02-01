@@ -219,8 +219,8 @@ class ELiDELayout(FloatLayout):
 
         self._funcs_ed = FuncsEditor(
             size_hint_y=0.9,
-            on_subject_type=subjtyp
         )
+        self._funcs_ed.bind(subject_type=subjtyp)
         self._funcs_ed_window.add_widget(self._funcs_ed)
 
         addclosefunc = BoxLayout(orientation='horizontal', size_hint_y=0.05)

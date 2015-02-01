@@ -240,10 +240,10 @@ class FuncsEditor(StoreEditor):
         self.bind(
             font_name=self._editor.setter('font_name'),
             font_size=self._editor.setter('font_size'),
-            params=self._editor.setter('params'),
             name=self._editor.setter('name'),
             source=self._editor.setter('source')
         )
+        self._editor.bind(params=self.setter('params'))
         self.add_widget(self._editor)
 
     def on_selection(self, *args):
