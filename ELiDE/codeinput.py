@@ -1,3 +1,4 @@
+import re
 from functools import partial
 from string import ascii_letters, digits
 from kivy.clock import Clock
@@ -20,12 +21,15 @@ class ELiDECodeInput(CodeInput):
     lexer = ObjectProperty(Python3Lexer())
 
 
+sig_ex = re.compile('^ *def .+?\((.+)\):$')
+
+
 class FunctionInput(BoxLayout):
     font_name = StringProperty('DroidSans')
     font_size = NumericProperty(12)
     style_name = StringProperty('default')
     name = StringProperty()
-    params = ListProperty(['foo', 'bar'])
+    params = ListProperty()
 
     def _get_source(self):
         code = self.name + '(' + ', '.join(self.params) + '):\n'
@@ -38,7 +42,12 @@ class FunctionInput(BoxLayout):
             Clock.schedule_once(partial(self._set_source, v), 0)
             return
         lines = v.split('\n')
-        del lines[0:2]
+        del lines[0]
+        self.params = [
+            parm.strip(' ') for parm in
+            sig_ex.match(lines[0]).groups()[0].split(',')
+        ]
+        del lines[0]
         self.ids.code.text = '\n'.join(line.lstrip(' ') for line in lines)
 
     source = AliasProperty(_get_source, _set_source)
