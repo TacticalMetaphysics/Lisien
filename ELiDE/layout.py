@@ -249,6 +249,9 @@ class ELiDELayout(FloatLayout):
             self._funcs_ed.table = functyp
             self._popover = ModalView()
             self._popover.add_widget(self._funcs_ed_window)
+            self._popover.bind(
+                on_size=self._funcs_ed_window._trigger_layout
+            )
             self._popover.open()
 
     def toggle_strings_editor(self):
@@ -259,6 +262,9 @@ class ELiDELayout(FloatLayout):
         else:
             self._popover = ModalView()
             self._popover.add_widget(self._strings_ed_window)
+            self._popover.bind(
+                on_size=self._strings_ed_window._trigger_layout
+            )
             self._popover.open()
 
     def set_remote_value(self, remote, k, v):
