@@ -180,7 +180,18 @@ class StoreEditor(BoxLayout):
         ``source``.
 
         """
-        raise NotImplementedError
+        Logger.debug(
+            'StoreEditor: saving {}={}, '
+            'loading {}=={}'.format(
+                self._editor.name,
+                self._editor.source,
+                name,
+                source
+            )
+        )
+        self.store[self._editor.name] = self._editor.source
+        self._editor.name = name
+        self._editor.source = source
 
 
 class StringsEditor(StoreEditor):
