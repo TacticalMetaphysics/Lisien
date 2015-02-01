@@ -227,9 +227,7 @@ class FuncsEditor(StoreEditor):
         self._editor = FunctionInput(
             font_name=self.font_name,
             font_size=self.font_size,
-            name=self.selection[0].name,
             params=self.params,
-            source=self.selection[0].source
         )
         self.bind(
             font_name=self._editor.setter('font_name'),
