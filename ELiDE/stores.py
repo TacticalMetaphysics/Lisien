@@ -40,6 +40,7 @@ class StoreAdapter(ListAdapter):
         kwargs['args_converter'] = lambda i, nametxt: {
             'store': self.store,
             'table': self.table,
+            'text': str(nametxt[0]),
             'name': nametxt[0],
             'source': nametxt[1],
             'on_press': lambda inst: self.callback(*nametxt)
