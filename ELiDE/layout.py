@@ -142,7 +142,13 @@ class ELiDELayout(FloatLayout):
         addclosestr = BoxLayout(orientation='horizontal', size_hint_y=0.05)
         self._add_string_but = Button(text='New')
         addclosestr.add_widget(self._add_string_but)
-        self._close_string_but = Button(text='Close')
+
+        def dismiss_str(*args):
+            self._popover.remove(self._strings_ed_window)
+            self._popover.dismiss()
+            del self.popover
+
+        self._close_string_but = Button(text='Close', on_press=dismiss_str)
         addclosestr.add_widget(self._close_string_but)
         self._strings_ed_window.add_widget(addclosestr)
 
@@ -208,12 +214,12 @@ class ELiDELayout(FloatLayout):
         addfuncbut = Button(text='New')
         addclosefunc.add_widget(addfuncbut)
 
-        def dismiss(*args):
+        def dismiss_func(*args):
             self._popover.remove_widget(self._funcs_ed_window)
             self._popover.dismiss()
             del self._popover
 
-        closefuncbut = Button(text='Close', on_press=dismiss)
+        closefuncbut = Button(text='Close', on_press=dismiss_func)
         addclosefunc.add_widget(closefuncbut)
 
         @self.engine.on_time
