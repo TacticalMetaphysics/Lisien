@@ -70,7 +70,7 @@ class StringStoreAdapter(StoreAdapter):
     def on_store(self, *args):
         if self.store is None:
             return
-        self.store.str_listener(self._trigger_redata)
+        self.store.listener(self._trigger_redata)
         self.store.lang_listener(self._trigger_redata)
 
     def redata(self, *args):
