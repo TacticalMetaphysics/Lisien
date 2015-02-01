@@ -43,7 +43,9 @@ class StoreAdapter(ListAdapter):
             'text': str(nametxt[0]),
             'name': nametxt[0],
             'source': nametxt[1],
-            'on_press': lambda inst: self.callback(*nametxt)
+            'on_press': lambda inst: self.callback(*nametxt),
+            'size_hint_y': None,
+            'height': 30
         }
         kwargs['selection_mode'] = 'single'
         kwargs['allow_empty_selection'] = False
