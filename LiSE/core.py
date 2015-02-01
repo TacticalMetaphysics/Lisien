@@ -44,18 +44,19 @@ class StringStore(MutableMapping):
     braces will cause the other string to be substituted in.
 
     """
-    def __init__(self, engine, table='strings', lang='eng'):
+    def __init__(self, connection, table='strings', lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
         """
-        self.engine = engine
+        self.connection = connection
+        self.db = QueryEngine(self.connection, [], False)
+        self.db.init_string_table(table)
         self.table = table
         self._language = lang
         self._lang_listeners = []
         self.cache = {}
         self._str_listeners = defaultdict(list)
-        self.engine.db.init_string_table(table)
 
     def _dispatch_lang(self, v):
         for f in self._lang_listeners:
@@ -86,7 +87,7 @@ class StringStore(MutableMapping):
         language.
 
         """
-        for (k, v) in self.engine.db.string_table_lang_items(
+        for (k, v) in self.db.string_table_lang_items(
                 self.table, self.language
         ):
             self.cache[k] = v
@@ -94,12 +95,12 @@ class StringStore(MutableMapping):
 
     def __len__(self):
         """"Count strings in the current language."""
-        return self.engine.db.count_all_table(self.table)
+        return self.db.count_all_table(self.table)
 
     def __getitem__(self, k):
         """Get the string and format it with other strings here."""
         if k not in self.cache:
-            self.cache[k] = self.engine.db.string_table_get(
+            self.cache[k] = self.db.string_table_get(
                 self.table, self.language, k
             )
         return self.cache[k].format_map(NotThatMap(self, k))
@@ -107,7 +108,7 @@ class StringStore(MutableMapping):
     def __setitem__(self, k, v):
         """Set the value of a string for the current language."""
         self.cache[k] = v
-        self.engine.db.string_table_set(self.table, self.language, k, v)
+        self.db.string_table_set(self.table, self.language, k, v)
         self._dispatch_str(k, v)
 
     def __delitem__(self, k):
@@ -116,7 +117,7 @@ class StringStore(MutableMapping):
 
         """
         del self.cache[k]
-        self.engine.db.string_table_del(self.table, self.language, k)
+        self.db.string_table_del(self.table, self.language, k)
         self._dispatch_str(k, None)
 
 
@@ -338,7 +339,12 @@ class Engine(object):
         )
         self.time_listeners = []
         self.db = self.gorm.db
-        self.string = StringStore(self)
+        # maybe give the option to get strings fom some other
+        # connection
+        try:
+            self.string = StringStore(self.gorm.db.connection)
+        except AttributeError:
+            self.string = StringStore(self.gorm.db.alchemist.conn)
         self.rule = AllRules(self)
         self.eternal = self.db.globl
         self.universal = GlobalVarMapping(self)
