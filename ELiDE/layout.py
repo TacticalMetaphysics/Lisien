@@ -207,7 +207,13 @@ class ELiDELayout(FloatLayout):
         addclosefunc = BoxLayout(orientation='horizontal', size_hint_y=0.05)
         addfuncbut = Button(text='New')
         addclosefunc.add_widget(addfuncbut)
-        closefuncbut = Button(text='Close')
+
+        def dismiss(*args):
+            self._popover.remove_widget(self._funcs_ed_window)
+            self._popover.dismiss()
+            del self._popover
+
+        closefuncbut = Button(text='Close', on_press=dismiss)
         addclosefunc.add_widget(closefuncbut)
 
         @self.engine.on_time
