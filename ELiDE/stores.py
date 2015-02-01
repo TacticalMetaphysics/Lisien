@@ -247,5 +247,7 @@ class FuncsEditor(StoreEditor):
         self.add_widget(self._editor)
 
     def on_selection(self, *args):
+        if self.selection == []:
+            return
         self.name = self.selection[0].name
         self.source = self.selection[0].source
