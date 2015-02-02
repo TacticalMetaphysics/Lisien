@@ -64,6 +64,13 @@ class StoreAdapter(ListAdapter):
         )
         super().__init__(**kwargs)
 
+    def redata(self):
+        """Override this method so it sets my ``data`` property to what's in
+        my ``store`` at present.
+
+        """
+        raise NotImplementedError
+
 
 class FuncStoreAdapter(StoreAdapter):
     def on_store(self, *args):
