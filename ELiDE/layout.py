@@ -250,9 +250,6 @@ class ELiDELayout(FloatLayout):
             self._funcs_ed.table = functyp
             self._popover = ModalView()
             self._popover.add_widget(self._funcs_ed_window)
-            self._popover.bind(
-                on_size=self._funcs_ed_window._trigger_layout
-            )
             self._popover.open()
 
     def toggle_strings_editor(self):
