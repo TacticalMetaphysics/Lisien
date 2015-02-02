@@ -120,8 +120,6 @@ class StringStoreAdapter(StoreAdapter):
         """
         if self.store is None:
             return
-        if self.selection:
-            self._reselect = self.selection[0].text
         self.data = list(
             self.store.db.string_table_lang_items(
                 self.table, self.store.language
@@ -161,8 +159,7 @@ class StoreList(FloatLayout):
             callback=self.callback
         )
         self._adapter.bind(
-            on_selection_change=self.changed_selection,
-            data=self._trigger_reselect
+            on_selection_change=self.changed_selection
         )
         self.bind(
             table=self._adapter.setter('table'),
@@ -173,18 +170,6 @@ class StoreList(FloatLayout):
             adapter=self._adapter
         )
         self.add_widget(self._listview)
-
-    def reselect(self, *args):
-        if not hasattr(self._adapter, '_reselect'):
-            return
-        if self._adapter.selection[0].text == self._adapter._reselect:
-            del self._adapter._reselect
-            return
-        grid = self._listview.children[0].children[0].children[0]
-        for button in grid.children:
-            if button.text == self._adapter._reselect:
-                self._adapter.select_list([button], extend=False)
-                return
 
 
 class FuncStoreList(StoreList):
