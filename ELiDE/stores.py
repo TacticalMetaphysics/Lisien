@@ -104,6 +104,7 @@ class StoreList(FloatLayout):
 
     def __init__(self, **kwargs):
         self._trigger_remake = Clock.create_trigger(self.remake)
+        self._trigger_reselect = Clock.create_trigger(self.reselect)
         self.bind(
             table=self._trigger_remake,
             store=self._trigger_remake
@@ -124,7 +125,7 @@ class StoreList(FloatLayout):
         )
         self._adapter.bind(
             on_selection_change=self.changed_selection,
-            data=self.reselect
+            data=self._trigger_reselect
         )
         self.bind(
             table=self._adapter.setter('table'),
