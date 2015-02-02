@@ -31,6 +31,10 @@ from .stringinput import StringInput
 
 
 class StoreButton(ListItemButton):
+    """Really just a ListItemButton with properties for some metadata I
+    might want.
+
+    """
     store = ObjectProperty()
     table = StringProperty('function')
     name = ObjectProperty()
@@ -38,11 +42,21 @@ class StoreButton(ListItemButton):
 
 
 class StoreAdapter(ListAdapter):
+    """ListAdapter that knows how to update its data from a store."""
     table = StringProperty('function')
     store = ObjectProperty()
     callback = ObjectProperty()
 
     def __init__(self, **kwargs):
+        """Initialize with empty ``data``, the :class:`StoreButton` ``cls``,
+        an appropriate ``args_converter``,
+        ``selection_mode``=``single`` and
+        ``allow_empty_selection``=``False``.
+
+        Create a trigger for my ``redata`` method and bind it to my
+        ``table`` and ``store``.
+
+        """
         kwargs['data'] = []
         kwargs['cls'] = StoreButton
         kwargs['args_converter'] = lambda i, nametxt: {
@@ -74,11 +88,16 @@ class StoreAdapter(ListAdapter):
 
 class FuncStoreAdapter(StoreAdapter):
     def on_store(self, *args):
+        """Arrange to update my data whenever my store's data changes."""
         if self.store is None:
             return
         self.store.listener(self._trigger_redata)
 
     def redata(self, *args):
+        """Get data from
+        ``LiSE.query.QueryEngine.func_table_name_plaincode``.
+
+        """
         if self.store is None:
             return
         self.data = list(self.store.db.func_table_name_plaincode(self.table))
@@ -86,12 +105,19 @@ class FuncStoreAdapter(StoreAdapter):
 
 class StringStoreAdapter(StoreAdapter):
     def on_store(self, *args):
+        """Arrange to update my data whenever my store's data changes, or it
+        switches to a different language.
+
+        """
         if self.store is None:
             return
         self.store.listener(self._trigger_redata)
         self.store.lang_listener(self._trigger_redata)
 
     def redata(self, *args):
+        """Get data from ``LiSE.query.QueryEngine.string_table_lang_items``.
+
+        """
         if self.store is None:
             return
         if self.selection:
@@ -104,6 +130,10 @@ class StringStoreAdapter(StoreAdapter):
 
 
 class StoreList(FloatLayout):
+    """Holder for a :class:`kivy.uix.listview.ListView` that shows what's
+    in a store, using one of the StoreAdapter classes.
+
+    """
     table = StringProperty()
     store = ObjectProperty()
     selection = ListProperty()
@@ -166,6 +196,7 @@ class StringStoreList(StoreList):
 
 
 class StoreEditor(BoxLayout):
+    """StoreList on the left with its editor on the right."""
     table = StringProperty()
     store = ObjectProperty()
     font_name = StringProperty('DroidSans')
