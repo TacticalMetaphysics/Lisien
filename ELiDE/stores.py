@@ -1,9 +1,17 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
-"""Widget for editing functions in a function store.
+"""Editors for textual data in the database.
 
-Has a scrolling menu of functions in the store on the left, an editor
-view on the right, and it autosaves.
+The data is accessed via a "store" -- a mapping onto the table, used
+like a dictionary. Each of the widgets defined here,
+:class:`StringsEditor` and :class:`FuncsEditor`, displays a list of
+buttons with which the user may select one of the keys in the store,
+and edit its value in a text box.
+
+Though they retrieve data the same way, these widgets have different
+ways of saving data -- the contents of the :class:`FuncsEditor` input
+will be compiled into Python bytecode, stored along with the source
+code.
 
 """
 from kivy.clock import Clock
