@@ -14,8 +14,12 @@ will be compiled into Python bytecode, stored along with the source
 code.
 
 """
+from collections import defaultdict
 from kivy.clock import Clock
+from kivy.event import EventDispatcher
+from kivy.adapters.models import SelectableDataItem
 from kivy.properties import (
+    AliasProperty,
     ListProperty,
     NumericProperty,
     ObjectProperty,
@@ -28,6 +32,16 @@ from kivy.uix.listview import ListView, ListItemButton
 from kivy.adapters.listadapter import ListAdapter
 from .codeinput import FunctionInput
 from .stringinput import StringInput
+
+
+class StoreDataItem(EventDispatcher, SelectableDataItem):
+    name = ObjectProperty()
+    source = StringProperty()
+    selectedness = defaultdict(lambda: False)  # class property
+    is_selected = AliasProperty(
+        lambda self: self.selectedness[str(self.name)],
+        lambda self, v: self.selectedness.__setitem__(str(self.name), v)
+    )
 
 
 class StoreButton(ListItemButton):
@@ -53,34 +67,27 @@ class StoreAdapter(ListAdapter):
         ``selection_mode``=``single`` and
         ``allow_empty_selection``=``False``.
 
-        Create a trigger for my ``redata`` method and bind it to my
-        ``table`` and ``store``.
-
         """
         kwargs['data'] = []
         kwargs['cls'] = StoreButton
-        kwargs['args_converter'] = lambda i, nametxt: {
+        kwargs['args_converter'] = lambda i, storedata: {
             'store': self.store,
             'table': self.table,
-            'text': str(nametxt[0]),
-            'name': nametxt[0],
-            'source': nametxt[1],
-            'on_press': lambda inst: self.callback(*nametxt),
+            'text': str(storedata.name),
+            'name': storedata.name,
+            'source': storedata.source,
+            'on_press': lambda inst: self.callback(),
             'size_hint_y': None,
             'height': 30
         }
         kwargs['selection_mode'] = 'single'
         kwargs['allow_empty_selection'] = False
-        self._trigger_redata = Clock.create_trigger(self.redata)
-        self.bind(
-            table=self._trigger_redata,
-            store=self._trigger_redata
-        )
+        kwargs['propagate_selection_to_data'] = True
         super().__init__(**kwargs)
 
-    def redata(self):
-        """Override this method so it sets my ``data`` property to what's in
-        my ``store`` at present.
+    def get_data(self):
+        """Override this to return the appropriate data from my store in a
+        list.
 
         """
         raise NotImplementedError
@@ -91,40 +98,41 @@ class FuncStoreAdapter(StoreAdapter):
         """Arrange to update my data whenever my store's data changes."""
         if self.store is None:
             return
-        self.store.listener(self._trigger_redata)
+        self.store.listener(self.callback)
 
-    def redata(self, *args):
+    def get_data(self, *args):
         """Get data from
         ``LiSE.query.QueryEngine.func_table_name_plaincode``.
 
         """
-        if self.store is None:
-            return
-        self.data = list(self.store.db.func_table_name_plaincode(self.table))
+        return [
+            StoreDataItem(name=k, source=v) for (k, v) in
+            self.store.db.func_table_name_plaincode(self.table)
+        ]
 
 
 class StringStoreAdapter(StoreAdapter):
-    def on_store(self, *args):
+    def on_callback(self, *args):
         """Arrange to update my data whenever my store's data changes, or it
         switches to a different language.
 
         """
         if self.store is None:
+            Clock.schedule_once(self.on_callback, 0)
             return
-        self.store.listener(self._trigger_redata)
-        self.store.lang_listener(self._trigger_redata)
+        self.store.listener(self.callback)
+        self.store.lang_listener(self.callback)
 
-    def redata(self, *args):
+    def get_data(self, *args):
         """Get data from ``LiSE.query.QueryEngine.string_table_lang_items``.
 
         """
-        if self.store is None:
-            return
-        self.data = list(
+        return [
+            StoreDataItem(name=k, source=v) for (k, v) in
             self.store.db.string_table_lang_items(
                 self.table, self.store.language
             )
-        )
+        ]
 
 
 class StoreList(FloatLayout):
@@ -134,12 +142,12 @@ class StoreList(FloatLayout):
     """
     table = StringProperty()
     store = ObjectProperty()
-    selection = ListProperty()
+    selection = ListProperty([])
     callback = ObjectProperty()
 
     def __init__(self, **kwargs):
         self._trigger_remake = Clock.create_trigger(self.remake)
-        self._trigger_reselect = Clock.create_trigger(self.reselect)
+        self._trigger_redata = Clock.create_trigger(self.redata)
         self.bind(
             table=self._trigger_remake,
             store=self._trigger_remake
@@ -147,6 +155,7 @@ class StoreList(FloatLayout):
         super().__init__(**kwargs)
 
     def changed_selection(self, adapter):
+        self.callback()
         self.selection = adapter.selection
 
     def remake(self, *args):
@@ -156,20 +165,27 @@ class StoreList(FloatLayout):
         self._adapter = self.adapter_cls(
             table=self.table,
             store=self.store,
-            callback=self.callback
+            callback=self._trigger_redata
         )
         self._adapter.bind(
             on_selection_change=self.changed_selection
         )
         self.bind(
             table=self._adapter.setter('table'),
-            store=self._adapter.setter('store'),
-            callback=self._adapter.setter('callback')
+            store=self._adapter.setter('store')
         )
         self._listview = ListView(
             adapter=self._adapter
         )
         self.add_widget(self._listview)
+        self._trigger_redata()
+
+    def save_and_load(self, *args):
+        self.callback()
+        self.redata()
+
+    def redata(self, *args):
+        self._adapter.data = self._adapter.get_data()
 
 
 class FuncStoreList(StoreList):
@@ -186,7 +202,10 @@ class StoreEditor(BoxLayout):
     store = ObjectProperty()
     font_name = StringProperty('DroidSans')
     font_size = NumericProperty(12)
-    selection = ListProperty()
+    selection = ListProperty([])
+    oldsel = ListProperty([])
+    name = StringProperty()
+    source = StringProperty()
 
     def __init__(self, **kwargs):
         self._trigger_remake = Clock.create_trigger(self.remake)
@@ -204,9 +223,9 @@ class StoreEditor(BoxLayout):
             size_hint_x=0.4,
             table=self.table,
             store=self.store,
-            callback=self._callback
+            callback=self.save_if_needed
         )
-        self._list.bind(selection=self.setter('selection'))
+        self._list.bind(selection=self.changed_selection)
         self.bind(
             table=self._list.setter('table'),
             store=self._list.setter('store')
@@ -214,15 +233,15 @@ class StoreEditor(BoxLayout):
         self.add_widget(self._list)
         self.add_editor()
 
-    def _callback(self, name, source):
-        self.save()
-        self._list._adapter._trigger_redata()
+    def changed_selection(self, *args):
+        if self._list.selection:
+            self.selection = self._list.selection
+            self.name = self.selection[0].name
+            self.source = self.selection[0].source
 
-    def on_selection(self, *args):
-        if self.selection == []:
-            return
-        self.name = self.selection[0].name
-        self.source = self.selection[0].source
+    def save_if_needed(self):
+        if self._editor.name != '' and self.source != self._editor.source:
+            self.save()
 
     def add_editor(self, *args):
         """Construct whatever editor widget I use and add it to myself."""
@@ -250,6 +269,9 @@ class StringsEditor(StoreEditor):
         )
         self.add_widget(self._editor)
 
+    def save(self):
+        pass
+
 
 class FuncsEditor(StoreEditor):
     params = ListProperty(['engine', 'character'])
@@ -257,8 +279,6 @@ class FuncsEditor(StoreEditor):
         'character', options=['character', 'thing', 'place', 'portal']
     )
     list_cls = FuncStoreList
-    name = StringProperty()
-    source = StringProperty()
 
     def on_params(self, *args):
         if self.params == ['engine', 'character']:
