@@ -77,7 +77,11 @@ class QueryEngine(gorm.query.QueryEngine):
 
     def func_table_set_source(self, tbl, key, source):
         locd = {}
-        exec(source, {}, locd)
+        try:
+            exec(source, {}, locd)
+        except SyntaxError:  # hack to allow 'empty' functions
+            source += '\n    pass'
+            exec(source, {}, locd)
         if len(locd) != 1:
             raise UserFunctionError(
                 "Input code contains more than the one function definition."

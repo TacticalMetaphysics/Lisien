@@ -229,10 +229,16 @@ class ELiDELayout(FloatLayout):
         addclosefunc.add_widget(newfuncname)
 
         def add_func(*args):
-            self._funcs_ed.save_if_needed()
-            self._funcs_ed.name = newfuncname.text
-            self._funcs_ed.source = ''
+            newname = newfuncname.text
             newfuncname.text = ''
+            self._funcs_ed.save_if_needed()
+            self._funcs_ed.name = newname
+            self._funcs_ed.source = 'def {}({}):\n    pass'.format(
+                newname,
+                ', '.join(self._funcs_ed.params)
+            )
+            self._funcs_ed.save()
+            self._funcs_ed.redata_and_select_named(newname)
 
         addfuncbut = Button(
             text='New',
