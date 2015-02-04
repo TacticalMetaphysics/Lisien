@@ -42,8 +42,12 @@ class FunctionInput(BoxLayout):
             Clock.schedule_once(partial(self._set_source, v), 0)
             return
         lines = v.split('\n')
-        if lines[0].lstrip()[0] == '@':
+        firstline = lines[0].lstrip()
+        if firstline == '' or firstline[0] == '@':
             del lines[0]
+        if lines == []:
+            self.ids.code.text = ''
+            return
         # how indented is it?
         spaces = 0
         for ch in lines[0]:

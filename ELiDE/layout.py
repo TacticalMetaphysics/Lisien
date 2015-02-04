@@ -225,7 +225,19 @@ class ELiDELayout(FloatLayout):
 
         addclosefunc = BoxLayout(orientation='horizontal', size_hint_y=0.05)
         self._funcs_ed_window.add_widget(addclosefunc)
-        addfuncbut = Button(text='New')
+        newfuncname = TextInput(hint_text='new function name')
+        addclosefunc.add_widget(newfuncname)
+
+        def add_func(*args):
+            self._funcs_ed.save_if_needed()
+            self._funcs_ed.name = newfuncname.text
+            self._funcs_ed.source = ''
+            newfuncname.text = ''
+
+        addfuncbut = Button(
+            text='New',
+            on_press=add_func
+        )
         addclosefunc.add_widget(addfuncbut)
 
         def dismiss_func(*args):
