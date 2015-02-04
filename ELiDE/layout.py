@@ -247,6 +247,7 @@ class ELiDELayout(FloatLayout):
         addclosefunc.add_widget(addfuncbut)
 
         def dismiss_func(*args):
+            self._funcs_ed.save_if_needed()
             self._popover.remove_widget(self._funcs_ed_window)
             self._popover.dismiss()
             del self._popover
