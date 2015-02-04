@@ -35,6 +35,12 @@ from .stringinput import StringInput
 
 
 class StoreDataItem(EventDispatcher, SelectableDataItem):
+    """Stores ``name`` and ``source``, and remembers whether an item with
+    its name is selected or not. If so, that means this very item
+    should be selected as well -- probably it got destroyed and
+    recreated when we were saving and loading.
+
+    """
     name = ObjectProperty()
     source = StringProperty()
     selectedness = defaultdict(lambda: False)  # class property
@@ -45,8 +51,8 @@ class StoreDataItem(EventDispatcher, SelectableDataItem):
 
 
 class StoreButton(ListItemButton):
-    """Really just a ListItemButton with properties for some metadata I
-    might want.
+    """Really just a :class:`ListItemButton` with properties for some
+    metadata I might want.
 
     """
     store = ObjectProperty()
@@ -56,7 +62,10 @@ class StoreButton(ListItemButton):
 
 
 class StoreAdapter(ListAdapter):
-    """ListAdapter that knows how to update its data from a store."""
+    """:class:`ListAdapter` that knows how to update its data from a
+    store.
+
+    """
     table = StringProperty('function')
     store = ObjectProperty()
     callback = ObjectProperty()
@@ -94,6 +103,10 @@ class StoreAdapter(ListAdapter):
 
 
 class FuncStoreAdapter(StoreAdapter):
+    """:class:`StoreAdapter` that wraps a function store. Gets function
+    names paired with their source code in plaintext.
+
+    """
     def on_store(self, *args):
         """Arrange to update my data whenever my store's data changes."""
         if self.store is None:
@@ -112,6 +125,10 @@ class FuncStoreAdapter(StoreAdapter):
 
 
 class StringStoreAdapter(StoreAdapter):
+    """:class:`StoreAdapter` that wraps a string store. Gets string names
+    paired with their plaintext.
+
+    """
     def on_callback(self, *args):
         """Arrange to update my data whenever my store's data changes, or it
         switches to a different language.
@@ -155,10 +172,18 @@ class StoreList(FloatLayout):
         super().__init__(**kwargs)
 
     def changed_selection(self, adapter):
+        """Use my ``callback`` to save what's presently selected before
+        switching to what's newly selected.
+
+        """
         self.callback()
         self.selection = adapter.selection
 
     def remake(self, *args):
+        """Make a new :class:`ListView`, add it to me, and then trigger
+        ``redata`` to fill it with useful stuff.
+
+        """
         if None in (self.store, self.table):
             return
         self.clear_widgets()
