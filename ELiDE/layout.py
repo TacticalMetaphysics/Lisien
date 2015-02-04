@@ -33,6 +33,10 @@ from gorm.xjson import json_load
 
 
 def try_json_load(obj):
+    """Attempt to interpret the argument as JSON. If this fails, return
+    the object.
+
+    """
     try:
         return json_load(obj)
     except (TypeError, ValueError):
