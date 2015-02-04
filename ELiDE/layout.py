@@ -140,7 +140,22 @@ class ELiDELayout(FloatLayout):
         self._strings_ed_window = BoxLayout(orientation='vertical')
         self._strings_ed_window.add_widget(self._strings_ed)
         addclosestr = BoxLayout(orientation='horizontal', size_hint_y=0.05)
-        self._add_string_but = Button(text='New')
+        self._add_string_field = TextInput(hint_text='New string name')
+        addclosestr.add_widget(self._add_string_field)
+
+        def add_string(*args):
+            self._strings_ed.save_if_needed()
+            newname = self._add_string_field.text
+            self._add_string_field.text = ''
+            self._strings_ed.name = newname
+            self._strings_ed.source = ''
+            self._strings_ed.save()
+            self._strings_ed.redata_and_select_named(newname)
+
+        self._add_string_but = Button(
+            text='new',
+            on_press=add_string
+        )
         addclosestr.add_widget(self._add_string_but)
 
         def dismiss_str(*args):
