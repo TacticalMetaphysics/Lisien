@@ -296,6 +296,8 @@ class StringsEditor(StoreEditor):
         self.bind(
             font_name=self._editor.setter('font_name'),
             font_size=self._editor.setter('font_size'),
+            name=self._editor.setter('name'),
+            source=self._editor.setter('source')
         )
         self.add_widget(self._editor)
 

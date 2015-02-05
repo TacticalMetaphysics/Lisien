@@ -24,7 +24,7 @@ class StringInput(BoxLayout):
             Clock.schedule_once(self.on_source, 0)
             return
         if self.ids.string.text != self.source:
-            self.ids.stringname.text = self.source
+            self.ids.string.text = self.source
 
 
 kv = """
