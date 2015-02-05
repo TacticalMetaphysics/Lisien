@@ -163,6 +163,7 @@ class ELiDELayout(FloatLayout):
         addclosestr.add_widget(self._add_string_but)
 
         def dismiss_str(*args):
+            self._strings_ed.save_if_needed()
             self._popover.remove_widget(self._strings_ed_window)
             self._popover.dismiss()
             del self._popover
