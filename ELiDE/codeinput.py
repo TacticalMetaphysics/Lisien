@@ -65,6 +65,9 @@ class FunctionInput(BoxLayout):
             sig_ex.match(lines[0]).groups()[0].split(',')
         ]
         del lines[0]
+        if lines == []:
+            self.ids.code.text = ''
+            return
         # hack to allow 'empty' functions
         if lines[-1].strip() == 'pass':
             del lines[-1]
