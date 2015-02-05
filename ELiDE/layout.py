@@ -109,18 +109,8 @@ class ELiDELayout(FloatLayout):
             on_press=lambda inst: self.toggle_stat_cfg()
         )
         self._stat_cfg_buttons.add_widget(self._close_stat_cfg_but)
-
-        def bind_charsheet(*args):
-            if 'charsheet' not in self.ids:
-                Clock.schedule_once(bind_charsheet, 0)
-                return
-
-            self.bind(
-                selection=self._trigger_reremote
-            )
-            self._trigger_reremote()
-
-        bind_charsheet()
+        self.bind(selection=self._trigger_reremote)
+        self._trigger_reremote()
 
     def on_engine(self, *args):
         """Set my branch and tick to that of my engine, and bind them so that
@@ -324,6 +314,9 @@ class ELiDELayout(FloatLayout):
             self._popover.open()
 
     def reremote(self, *args):
+        if 'charsheet' not in self.ids:
+            Clock.schedule_once(self.reremote, 0)
+            return
         self.selected_remote = self._get_selected_remote()
 
     def _get_selected_remote(self):
