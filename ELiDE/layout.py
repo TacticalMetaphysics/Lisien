@@ -153,8 +153,7 @@ class ELiDELayout(FloatLayout):
             self._add_string_field.text = ''
             self._strings_ed.name = newname
             self._strings_ed.source = ''
-            self._strings_ed.save()
-            self._strings_ed.redata_and_select_named(newname)
+            self._strings_ed._trigger_redata_reselect()
 
         self._add_string_but = Button(
             text='new',
@@ -267,7 +266,7 @@ class ELiDELayout(FloatLayout):
         addclosefunc.add_widget(addfuncbut)
 
         def dismiss_func(*args):
-            self._funcs_ed.save_if_needed()
+            self._funcs_ed._trigger_save()
             self._popover.remove_widget(self._funcs_ed_window)
             self._popover.dismiss()
             del self._popover
