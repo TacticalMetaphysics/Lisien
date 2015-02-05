@@ -119,12 +119,12 @@ class QueryEngine(gorm.query.QueryEngine):
 
     def string_table_set(self, tbl, lang, key, value):
         try:
-            self.sql('string_table_ins_fmt', key, lang, value, tbl=tbl)
+            self.sql('string_{}_ins'.format(tbl), key, lang, value)
         except IntegrityError:
-            self.sql('string_table_upd_fmt', value, lang, key, tbl=tbl)
+            self.sql('string_{}_upd'.format(tbl), value, lang, key)
 
     def string_table_del(self, tbl, lang, key):
-        self.sql('string_table_del_fmt', lang, key, tbl=tbl)
+        self.sql('string_{}_del'.format(tbl), lang, key)
 
     def universal_items(self, branch, tick):
         seen = set()
