@@ -68,7 +68,7 @@ class StoreAdapter(ListAdapter):
     """
     table = StringProperty('function')
     store = ObjectProperty()
-    callback = ObjectProperty()
+    loader = ObjectProperty()
 
     def __init__(self, **kwargs):
         """Initialize with empty ``data``, the :class:`StoreButton` ``cls``,
@@ -85,7 +85,7 @@ class StoreAdapter(ListAdapter):
             'text': str(storedata.name),
             'name': storedata.name,
             'source': storedata.source,
-            'on_press': lambda inst: self.callback(),
+            'on_press': lambda inst: self.loader(),
             'size_hint_y': None,
             'height': 30
         }
@@ -107,11 +107,6 @@ class FuncStoreAdapter(StoreAdapter):
     names paired with their source code in plaintext.
 
     """
-    def on_store(self, *args):
-        """Arrange to update my data whenever my store's data changes."""
-        if self.store is None:
-            return
-        self.store.listener(self.callback)
 
     def get_data(self, *args):
         """Get data from
@@ -129,16 +124,6 @@ class StringStoreAdapter(StoreAdapter):
     paired with their plaintext.
 
     """
-    def on_callback(self, *args):
-        """Arrange to update my data whenever my store's data changes, or it
-        switches to a different language.
-
-        """
-        if self.store is None:
-            Clock.schedule_once(self.on_callback, 0)
-            return
-        self.store.listener(self.callback)
-        self.store.lang_listener(self.callback)
 
     def get_data(self, *args):
         """Get data from ``LiSE.query.QueryEngine.string_table_lang_items``.
@@ -160,7 +145,7 @@ class StoreList(FloatLayout):
     table = StringProperty()
     store = ObjectProperty()
     selection = ListProperty([])
-    callback = ObjectProperty()
+    saver = ObjectProperty()
 
     def __init__(self, **kwargs):
         self._trigger_remake = Clock.create_trigger(self.remake)
@@ -172,11 +157,7 @@ class StoreList(FloatLayout):
         super().__init__(**kwargs)
 
     def changed_selection(self, adapter):
-        """Use my ``callback`` to save what's presently selected before
-        switching to what's newly selected.
-
-        """
-        self.callback()
+        self.saver()
         self.selection = adapter.selection
 
     def remake(self, *args):
@@ -190,7 +171,7 @@ class StoreList(FloatLayout):
         self._adapter = self.adapter_cls(
             table=self.table,
             store=self.store,
-            callback=self._trigger_redata
+            loader=self._trigger_redata
         )
         self._adapter.bind(
             on_selection_change=self.changed_selection
@@ -204,10 +185,6 @@ class StoreList(FloatLayout):
         )
         self.add_widget(self._listview)
         self._trigger_redata()
-
-    def save_and_load(self, *args):
-        self.callback()
-        self.redata()
 
     def redata(self, *args):
         self._adapter.data = self._adapter.get_data()
@@ -233,7 +210,11 @@ class StoreEditor(BoxLayout):
     source = StringProperty()
 
     def __init__(self, **kwargs):
+        self._trigger_save = Clock.create_trigger(self.save)
         self._trigger_remake = Clock.create_trigger(self.remake)
+        self._trigger_redata_reselect = Clock.create_trigger(
+            self.redata_reselect
+        )
         self.bind(
             table=self._trigger_remake,
             store=self._trigger_remake
@@ -248,7 +229,7 @@ class StoreEditor(BoxLayout):
             size_hint_x=0.4,
             table=self.table,
             store=self.store,
-            callback=self.save_if_needed
+            saver=self.save
         )
         self._list.bind(selection=self.changed_selection)
         self.bind(
@@ -264,20 +245,17 @@ class StoreEditor(BoxLayout):
             self.name = self.selection[0].name
             self.source = self.selection[0].source
 
-    def redata_and_select_named(self, name, *args):
+    def redata_reselect(self, *args):
+        self.save()
         StoreDataItem.selectedness = defaultdict(lambda: False)
-        StoreDataItem.selectedness[name] = True
+        StoreDataItem.selectedness[self.name] = True
         self._list._trigger_redata()
-
-    def save_if_needed(self):
-        if self._editor.name != '' and self.source != self._editor.source:
-            self.save()
 
     def add_editor(self, *args):
         """Construct whatever editor widget I use and add it to myself."""
         raise NotImplementedError
 
-    def save(self):
+    def save(self, *args):
         """Write my editor's changes to disk."""
         raise NotImplementedError
 
@@ -301,8 +279,11 @@ class StringsEditor(StoreEditor):
         )
         self.add_widget(self._editor)
 
-    def save(self):
+    def save(self, *args):
         self.source = self._editor.source
+        if self.name != self._editor.name:
+            del self.store[self.name]
+            self.name = self._editor.name
         self.store[self.name] = self.source
 
 
@@ -345,9 +326,26 @@ class FuncsEditor(StoreEditor):
         self._editor.bind(params=self.setter('params'))
         self.add_widget(self._editor)
 
-    def save(self):
+    def save(self, *args):
+        if '' in (self._editor.name, self._editor.source):
+            return
+        if (
+                self.name == self._editor.name and
+                self.source == self._editor.source
+        ):
+            return
+        if self.name != self._editor.name:
+            del self.store[self.name]
+        self.name = self._editor.name
+        self.source = self._editor.source
+        Logger.debug(
+            'saving function {}={}'.format(
+                self.name,
+                self.source
+            )
+        )
         self.store.db.func_table_set_source(
             self.table,
-            self._editor.name,
-            self._editor.source
+            self.name,
+            self.source
         )
