@@ -340,12 +340,7 @@ class Engine(object):
         )
         self.time_listeners = []
         self.db = self.gorm.db
-        # maybe give the option to get strings fom some other
-        # connection
-        try:
-            self.string = StringStore(self.gorm.db.connection)
-        except AttributeError:
-            self.string = StringStore(self.gorm.db.alchemist.conn)
+        self.string = StringStore(self.codedb)
         self.rule = AllRules(self)
         self.eternal = self.db.globl
         self.universal = GlobalVarMapping(self)
