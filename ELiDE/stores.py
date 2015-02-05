@@ -302,7 +302,8 @@ class StringsEditor(StoreEditor):
         self.add_widget(self._editor)
 
     def save(self):
-        pass
+        self.source = self._editor.source
+        self.store[self.name] = self.source
 
 
 class FuncsEditor(StoreEditor):
