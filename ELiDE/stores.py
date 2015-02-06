@@ -16,6 +16,7 @@ code.
 """
 from collections import defaultdict
 from kivy.clock import Clock
+from kivy.logger import Logger
 from kivy.event import EventDispatcher
 from kivy.adapters.models import SelectableDataItem
 from kivy.properties import (
