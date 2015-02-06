@@ -43,6 +43,60 @@ def try_json_load(obj):
         return obj
 
 
+class StatWindow(BoxLayout):
+    layout = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        kwargs['orientation'] = 'vertical'
+        super().__init__(**kwargs)
+
+    def on_layout(self, *args):
+        if self.layout is None:
+            return
+        if self.canvas is None:
+            Clock.schedule_once(self.on_layout, 0)
+            return
+        cfg = StatListViewConfigurator(
+            time=self.layout.time,
+            size_hint_y=0.95
+        )
+        newstatkey = TextInput(
+            multiline=False,
+            write_tab=False,
+            hint_text='New stat'
+        )
+        newstatval = TextInput(
+            multiline=False,
+            write_tab=False,
+            hint_text='Value'
+        )
+        newstatbut = Button(
+            text='+',
+            on_press=lambda inst: self.layout.set_remote_value(
+                cfg.remote,
+                newstatkey.text,
+                newstatval.text
+            )
+        )
+        close_cfg_but = Button(
+            text='Close',
+            on_press=lambda inst: self.layout.toggle_stat_cfg()
+        )
+        buttons = BoxLayout(size_hint_y=0.05)
+        buttons.add_widget(newstatkey)
+        buttons.add_widget(newstatval)
+        buttons.add_widget(newstatbut)
+        buttons.add_widget(close_cfg_but)
+        self.add_widget(buttons)
+        self.add_widget(cfg)
+
+        self.layout._stat_cfg = cfg
+        self.layout._newstatkey = newstatkey
+        self.layout._newstatval = newstatval
+        self.layout._newstatbut = newstatbut
+        self.layout._close_stat_cfg_but = close_cfg_but
+
+
 class ELiDELayout(FloatLayout):
     """A master layout that contains one board and some menus
     and charsheets.
@@ -76,39 +130,8 @@ class ELiDELayout(FloatLayout):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._stat_cfg_layout = StatWindow(layout=self)
         self._trigger_reremote = Clock.create_trigger(self.reremote)
-        self._stat_cfg = StatListViewConfigurator(
-            time=self.time,
-            size_hint_y=0.95,
-        )
-        self._stat_cfg_layout = BoxLayout(orientation='vertical')
-        self._stat_cfg_buttons = BoxLayout(size_hint_y=0.05)
-        self._stat_cfg_layout.add_widget(self._stat_cfg_buttons)
-        self._stat_cfg_layout.add_widget(self._stat_cfg)
-        self._newstatkey = TextInput(
-            multiline=False,
-            hint_text='New stat'
-        )
-        self._stat_cfg_buttons.add_widget(self._newstatkey)
-        self._newstatval = TextInput(
-            multiline=False,
-            hint_text='Value'
-        )
-        self._stat_cfg_buttons.add_widget(self._newstatval)
-        self._newstatbut = Button(
-            text='+',
-            on_press=lambda inst: self.set_remote_value(
-                self._stat_cfg.remote,
-                self._newstatkey.text,
-                self._newstatval.text
-            )
-        )
-        self._stat_cfg_buttons.add_widget(self._newstatbut)
-        self._close_stat_cfg_but = Button(
-            text='Close',
-            on_press=lambda inst: self.toggle_stat_cfg()
-        )
-        self._stat_cfg_buttons.add_widget(self._close_stat_cfg_but)
         self.bind(selection=self._trigger_reremote)
         self._trigger_reremote()
 
