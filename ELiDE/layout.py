@@ -158,6 +158,127 @@ class StringsEdWindow(BoxLayout):
         self.layout._close_string_but = close_string_but
 
 
+class FuncsEdWindow(BoxLayout):
+    layout = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        kwargs['orientation'] = 'vertical'
+        super().__init__(**kwargs)
+
+    def on_layout(self, *args):
+        if self.layout is None:
+            return
+        if self.canvas is None:
+            Clock.schedule_once(self.on_layout, 0)
+            return
+
+        funcs_ed = FuncsEditor(
+            size_hint_y=0.9
+        )
+
+        def setchar(box, active):
+            if active:
+                funcs_ed.params = ['engine', 'character']
+
+        def setthing(box, active):
+            if active:
+                funcs_ed.params = ['engine', 'character', 'thing']
+
+        def setplace(box, active):
+            if active:
+                funcs_ed.params = ['engine', 'character', 'place']
+
+        def setport(box, active):
+            if active:
+                funcs_ed.params = [
+                    'engine', 'character', 'origin', 'destination'
+                ]
+
+        subj_type_sel = BoxLayout(
+            orientation='horizontal',
+            size_hint_y=0.05
+        )
+        self.add_widget(subj_type_sel)
+
+        charsel = BoxLayout()
+        char = CheckBox(group='subj_type', size_hint_x=0.05)
+        char.bind(active=setchar)
+        charsel.add_widget(char)
+        charl = Label(text='Character', size_hint_x=0.95)
+        charsel.add_widget(charl)
+        subj_type_sel.add_widget(charsel)
+
+        thingsel = BoxLayout()
+        thing = CheckBox(group='subj_type', size_hint_x=0.05)
+        thing.bind(active=setthing)
+        thingsel.add_widget(thing)
+        thingl = Label(text='Thing', size_hint_x=0.95)
+        thingsel.add_widget(thingl)
+        subj_type_sel.add_widget(thingsel)
+
+        placesel = BoxLayout()
+        place = CheckBox(group='subj_type', size_hint_x=0.05)
+        place.bind(active=setplace)
+        placesel.add_widget(place)
+        placel = Label(text='Place', size_hint_x=0.95)
+        placesel.add_widget(placel)
+        subj_type_sel.add_widget(placesel)
+
+        portsel = BoxLayout()
+        port = CheckBox(group='subj_type', size_hint_x=0.05)
+        port.bind(active=setport)
+        portsel.add_widget(port)
+        portl = Label(text='Portal', size_hint_x=0.95)
+        portsel.add_widget(portl)
+        subj_type_sel.add_widget(portsel)
+
+        def subjtyp(inst, val):
+            if val == 'character':
+                char.active = True
+            elif val == 'thing':
+                thing.active = True
+            elif val == 'place':
+                place.active = True
+            elif val == 'portal':
+                port.active = True
+
+        funcs_ed.bind(subject_type=subjtyp)
+        self.add_widget(funcs_ed)
+
+        addclosefunc = BoxLayout(orientation='horizontal', size_hint_y=0.05)
+        self.add_widget(addclosefunc)
+        newfuncname = TextInput(hint_text='New function name')
+        addclosefunc.add_widget(newfuncname)
+
+        def add_func(*args):
+            newname = newfuncname.text
+            newfuncname.text = ''
+            funcs_ed.save()
+            funcs_ed.name = newname
+            funcs_ed.source = 'def {}({}):\n    pass'.format(
+                newname,
+                ', '.join(funcs_ed.params)
+            )
+            funcs_ed._trigger_redata_reselect()
+
+        addfuncbut = Button(
+            text='New',
+            on_press=add_func
+        )
+        addclosefunc.add_widget(addfuncbut)
+
+        def dismiss_func(*args):
+            funcs_ed._trigger_save()
+            self.layout._popover.remove_widget(self)
+            self.layout._popover.dismiss()
+            del self.layout._popover
+
+        closefuncbut = Button(text='Close', on_press=dismiss_func)
+        addclosefunc.add_widget(closefuncbut)
+
+        self.layout._funcs_ed = funcs_ed
+
+
 class ELiDELayout(FloatLayout):
     """A master layout that contains one board and some menus
     and charsheets.
@@ -211,109 +332,7 @@ class ELiDELayout(FloatLayout):
             tick=self.timeupd,
         )
         self._strings_ed_window = StringsEdWindow(layout=self)
-
-        self._funcs_ed_window = BoxLayout(orientation='vertical')
-
-        def setchar(box, active):
-            if active:
-                self._funcs_ed.params = ['engine', 'character']
-
-        def setthing(box, active):
-            if active:
-                self._funcs_ed.params = ['engine', 'character', 'thing']
-
-        def setplace(box, active):
-            if active:
-                self._funcs_ed.params = ['engine', 'character', 'place']
-
-        def setport(box, active):
-            if active:
-                self._funcs_ed.subject_type = [
-                    'engine', 'character', 'origin', 'destination'
-                ]
-
-        subj_type_sel = BoxLayout(orientation='horizontal', size_hint_y=0.05)
-        self._funcs_ed_window.add_widget(subj_type_sel)
-
-        charsel = BoxLayout()
-        char = CheckBox(group='subj_type', size_hint_x=0.05)
-        char.bind(active=setchar)
-        charsel.add_widget(char)
-        charl = Label(text='Character', size_hint_x=0.95)
-        charsel.add_widget(charl)
-        subj_type_sel.add_widget(charsel)
-
-        thingsel = BoxLayout()
-        thing = CheckBox(group='subj_type', size_hint_x=0.05)
-        thing.bind(active=setthing)
-        thingsel.add_widget(thing)
-        thingl = Label(text='Thing', size_hint_x=0.95)
-        thingsel.add_widget(thingl)
-        subj_type_sel.add_widget(thingsel)
-
-        placesel = BoxLayout()
-        place = CheckBox(group='subj_type', size_hint_x=0.05)
-        place.bind(active=setplace)
-        placesel.add_widget(place)
-        placel = Label(text='Place', size_hint_x=0.95)
-        placesel.add_widget(placel)
-        subj_type_sel.add_widget(placesel)
-
-        portsel = BoxLayout()
-        port = CheckBox(group='subj_type', size_hint_x=0.05)
-        port.bind(active=setport)
-        portsel.add_widget(port)
-        portl = Label(text='Portal', size_hint_x=0.95)
-        portsel.add_widget(portl)
-        subj_type_sel.add_widget(portsel)
-
-        def subjtyp(inst, val):
-            if val == 'character':
-                char.active = True
-            elif val == 'thing':
-                thing.active = True
-            elif val == 'place':
-                place.active = True
-            elif val == 'portal':
-                port.active = True
-
-        self._funcs_ed = FuncsEditor(
-            size_hint_y=0.9,
-        )
-        self._funcs_ed.bind(subject_type=subjtyp)
-        self._funcs_ed_window.add_widget(self._funcs_ed)
-
-        addclosefunc = BoxLayout(orientation='horizontal', size_hint_y=0.05)
-        self._funcs_ed_window.add_widget(addclosefunc)
-        newfuncname = TextInput(hint_text='new function name')
-        addclosefunc.add_widget(newfuncname)
-
-        def add_func(*args):
-            newname = newfuncname.text
-            newfuncname.text = ''
-            self._funcs_ed.save_if_needed()
-            self._funcs_ed.name = newname
-            self._funcs_ed.source = 'def {}({}):\n    pass'.format(
-                newname,
-                ', '.join(self._funcs_ed.params)
-            )
-            self._funcs_ed.save()
-            self._funcs_ed.redata_and_select_named(newname)
-
-        addfuncbut = Button(
-            text='New',
-            on_press=add_func
-        )
-        addclosefunc.add_widget(addfuncbut)
-
-        def dismiss_func(*args):
-            self._funcs_ed._trigger_save()
-            self._popover.remove_widget(self._funcs_ed_window)
-            self._popover.dismiss()
-            del self._popover
-
-        closefuncbut = Button(text='Close', on_press=dismiss_func)
-        addclosefunc.add_widget(closefuncbut)
+        self._funcs_ed_window = FuncsEdWindow(layout=self)
 
         @self.engine.on_time
         def board_upd(*args):
