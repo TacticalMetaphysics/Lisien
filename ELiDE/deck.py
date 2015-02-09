@@ -17,6 +17,7 @@ from kivy.properties import (
     ReferenceListProperty,
     StringProperty,
 )
+from kivy.uix.widget import Widget
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
 
@@ -209,6 +210,52 @@ def set_pos_hint_top(poshints, v):
             del poshints[k]
     poshints['top'] = v
     poshints.dispatch()
+
+
+class ColorTextureBox(Widget):
+    color = ListProperty([1, 1, 1, 1])
+    texture = ObjectProperty(None, allownone=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.realinit()
+
+    def realinit(self, *args):
+        if self.canvas is None:
+            Clock.schedule_once(self.realinit, 0)
+            return
+        self._color = Color(rgba=self.color)
+        self.canvas.add(self._color)
+        self._rect = Rectangle(
+            texture=self.texture,
+            pos=self.pos,
+            size=self.size
+        )
+        self.canvas.add(self._rect)
+
+    def on_color(self, *args):
+        if not hasattr(self, '_color'):
+            Clock.schedule_once(self.on_color, 0)
+            return
+        self._color.rgba = self.color
+
+    def on_texture(self, *args):
+        if not hasattr(self, '_rect'):
+            Clock.schedule_once(self.on_texture, 0)
+            return
+        self._rect.texture = self.texture
+
+    def on_pos(self, *args):
+        if not hasattr(self, '_rect'):
+            Clock.schedule_once(self.on_pos, 0)
+            return
+        self._rect.pos = self.pos
+
+    def on_size(self, *args):
+        if not hasattr(self, '_rect'):
+            Clock.schedule_once(self.on_size, 0)
+            return
+        self._rect.size = self.size
 
 
 class Card(RelativeLayout):
@@ -610,21 +657,44 @@ class Card(RelativeLayout):
 
     def __init__(self, **kwargs):
         self._trigger_remake = Clock.create_trigger(self.remake)
-        self.bind(on_parent=self._trigger_remake)
+        self._trigger_remake()
         super().__init__(**kwargs)
 
     def remake(self, *args):
         if self.canvas is None:
             Clock.schedule_once(self.remake, 0)
             return
-        with self.canvas:
-            self._bgcolor = Color(rgba=self.background_color)
-            self._bgrect = Rectangle(**self.background_kwargs)
-            self._fgcolor = Color(rgba=self.foreground_color)
-            self._fgrect = Rectangle(**self.foreground_kwargs)
-            self._artcolor = Color(rgba=self.art_color)
-            self._artrect = Rectangle(**self.art_kwargs)
-            Color(rgba=[1, 1, 1, 1])
+
+        self._bgwid = ColorTextureBox(**self.background_kwargs)
+        self.bind(
+            background_size_hint=self._bgwid.setter('size_hint'),
+            background_pos_hint=self._bgwid.setter('pos_hint'),
+            background_size=self._bgwid.setter('size'),
+            background_pos=self._bgwid.setter('pos'),
+            background_texture=self._bgwid.setter('texture'),
+            background_color=self._bgwid.setter('color')
+        )
+        self.add_widget(self._bgwid)
+        self._fgwid = ColorTextureBox(**self.foreground_kwargs)
+        self.bind(
+            foreground_size_hint=self._fgwid.setter('size_hint'),
+            foreground_pos_hint=self._fgwid.setter('pos_hint'),
+            foreground_size=self._fgwid.setter('size'),
+            foreground_pos=self._fgwid.setter('pos'),
+            foreground_texture=self._fgwid.setter('texture'),
+            foreground_color=self._fgwid.setter('color')
+        )
+        self.add_widget(self._fgwid)
+        self._artwid = ColorTextureBox(**self.art_kwargs)
+        self.bind(
+            art_size_hint=self._artwid.setter('size_hint'),
+            art_pos_hint=self._artwid.setter('pos_hint'),
+            art_size=self._artwid.setter('size'),
+            art_pos=self._artwid.setter('pos'),
+            art_texture=self._artwid.setter('texture'),
+            art_color=self._artwid.setter('color')
+        )
+        self.add_widget(self._artwid)
         if (
                 self.background_source and
                 self.background_source != self.background_image.source
