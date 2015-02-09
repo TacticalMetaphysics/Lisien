@@ -613,6 +613,7 @@ class Card(RelativeLayout):
             self._fgrect = Rectangle(**self.foreground_kwargs)
             self._artcolor = Color(rgba=self.art_color)
             self._artrect = Rectangle(**self.art_kwargs)
+            Color(rgba=[1, 1, 1, 1])
         if (
                 self.background_source and
                 self.background_source != self.background_image.source
