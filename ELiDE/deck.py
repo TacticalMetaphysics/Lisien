@@ -562,6 +562,12 @@ class Card(RelativeLayout):
         ),
         bind=('art_pos_hint', 'art_size_hint_x')
     )
+    art_width = BoundedNumericProperty(95, min=1)
+    art_height = BoundedNumericProperty(232, min=1)
+    art_size = ReferenceListProperty(art_width, art_height)
+    art_x = BoundedNumericProperty(3, min=0)
+    art_y = BoundedNumericProperty(132, min=0)
+    art_pos = ReferenceListProperty(art_x, art_y)
     _art_extra_kwargs = DictProperty({})
 
     def _get_art_kwargs(self):
