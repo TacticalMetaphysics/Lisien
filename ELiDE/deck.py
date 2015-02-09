@@ -285,407 +285,18 @@ class ColorTextureBox(Widget):
 
 
 class Card(RelativeLayout):
-    foreground_source = StringProperty(None, allownone=True)
-    foreground_texture = ObjectProperty(None, allownone=True)
+    foreground_source = StringProperty('')
+    foreground_color = ListProperty([0, 1, 0, 1])
     foreground_image = ObjectProperty(None, allownone=True)
-    foreground_color = ListProperty([1, 1, 1, 1])
-    foreground_size_hint_x = BoundedNumericProperty(
-        0.95, min=0.0, max=1.0, allownone=True
-    )
-    foreground_size_hint_y = BoundedNumericProperty(
-        0.45, min=0.0, max=1.0, allownone=True
-    )
-    foreground_size_hint = ReferenceListProperty(
-        foreground_size_hint_x, foreground_size_hint_y
-    )
-    foreground_width = BoundedNumericProperty(100 * golden, min=1)
-    foreground_height = BoundedNumericProperty(100, min=1)
-    foreground_size = ReferenceListProperty(
-        foreground_width, foreground_height
-    )
-    foreground_pos_hint = ObjectProperty({'x': 0.025, 'y': 0.025})
-    foreground_pos_hint_x = AliasProperty(
-        lambda self: get_pos_hint_x(
-            self.foreground_pos_hint, self.foreground_size_hint_x
-        ),
-        lambda self, v: set_pos_hint_x(
-            self.foreground_pos_hint, v
-        ),
-        bind=('foreground_pos_hint', 'foreground_size_hint_x')
-    )
-    foreground_pos_hint_y = AliasProperty(
-        lambda self: get_pos_hint_y(
-            self.foreground_pos_hint, self.foreground_size_hint_y
-        ),
-        lambda self, v: set_pos_hint_y(
-            self.foreground_pos_hint, v
-        ),
-        bind=('foreground_pos_hint', 'foreground_size_hint_y')
-    )
-    foreground_pos_hint_center_x = AliasProperty(
-        lambda self: get_pos_hint_center_x(
-            self.foreground_pos_hint, self.foreground_size_hint_x
-        ),
-        lambda self, v: set_pos_hint_center_x(
-            self.foreground_pos_hint, v
-        ),
-        bind=('foreground_pos_hint', 'foreground_size_hint_x')
-    )
-    foreground_pos_hint_center_y = AliasProperty(
-        lambda self: get_pos_hint_center_y(
-            self.foreground_pos_hint, self.foreground_size_hint_y
-        ),
-        lambda self, v: set_pos_hint_center_y(
-            self.foreground_pos_hint, v
-        ),
-        bind=('foreground_pos_hint', 'foreground_size_hint_y')
-    )
-
-    def _set_foreground_pos_hint_center(self, v):
-        for k in ('x', 'right', 'y', 'top'):
-            if k in self.foreground_pos_hint:
-                del self.foreground_pos_hint[k]
-        (x, y) = v
-        self.foreground_pos_hint['center_x'] = x
-        self.foreground_pos_hint['center_y'] = y
-        self.foreground_pos_hint.dispatch()
-
-    foreground_pos_hint_center = AliasProperty(
-        lambda self: (
-            self.foreground_pos_hint_center_x,
-            self.foreground_pos_hint_center_y
-        ),
-        _set_foreground_pos_hint_center,
-        bind=('foreground_pos_hint', 'foreground_size_hint')
-    )
-    foreground_pos_hint_top = AliasProperty(
-        lambda self: get_pos_hint_top(
-            self.foreground_pos_hint, self.foreground_size_hint_y
-        ),
-        lambda self, v: set_pos_hint_top(
-            self.foreground_pos_hint, v
-        ),
-        bind=('foreground_pos_hint', 'foreground_size_hint_y')
-    )
-    foreground_pos_hint_right = AliasProperty(
-        lambda self: get_pos_hint_right(
-            self.foreground_pos_hint, self.foreground_size_hint_x
-        ),
-        lambda self, v: set_pos_hint_right(
-            self.foreground_pos_hint, v
-        ),
-        bind=('foreground_pos_hint', 'foreground_size_hint_x')
-    )
-    foreground_x = BoundedNumericProperty(16, min=0)
-    foreground_y = BoundedNumericProperty(16, min=0)
-    foreground_pos = ReferenceListProperty(foreground_x, foreground_y)
-    _foreground_extra_kwargs = DictProperty({})
-
-    def _get_foreground_kwargs(self):
-        r = dict(self._foreground_extra_kwargs)
-        r['pos_hint'] = self.foreground_pos_hint
-        r['size_hint'] = self.foreground_size_hint
-        r['pos'] = self.foreground_pos
-        r['size'] = self.foreground_size
-        r['texture'] = self.foreground_texture
-        r['color'] = self.foreground_color
-        return r
-
-    def _set_foreground_kwargs(self, v):
-        if 'size_hint' in v:
-            self.foreground_size_hint = v['size_hint']
-        if 'size_hint_x' in v:
-            self.foreground_size_hint_x = v['size_hint_x']
-        if 'size_hint_y' in v:
-            self.foreground_size_hint_y = v['size_hint_y']
-        if 'width' in v:
-            self.foreground_width = v['width']
-        if 'height' in v:
-            self.foreground_height = v['height']
-        if 'size' in v:
-            self.foreground_size = v['size']
-        for kwarg in pos_hint_kwargs:
-            if kwarg in v:
-                self.foreground_pos_hint[kwarg] = v[kwarg]
-        self._foreground_extra_kwargs = except_pos_size_kwargs(v)
-
-    foreground_kwargs = AliasProperty(
-        _get_foreground_kwargs,
-        _set_foreground_kwargs,
-        bind=(
-            '_foreground_extra_kwargs',
-            'foreground_size_hint',
-            'foreground_pos_hint',
-            'foreground_size',
-            'foreground_pos'
-        )
-    )
-
-    background_source = StringProperty(None, allownone=True)
-    background_texture = ObjectProperty(None, allownone=True)
+    foreground_texture = ObjectProperty(None, allownone=True)
+    background_source = StringProperty('')
+    background_color = ListProperty([0, 0, 1, 1])
     background_image = ObjectProperty(None, allownone=True)
-    background_color = ListProperty([1, 1, 1, 1])
-    background_size_hint_x = BoundedNumericProperty(
-        1.0, min=0.0, max=1.0, allownone=True
-    )
-    background_size_hint_y = BoundedNumericProperty(
-        1.0, min=0.0, max=1.0, allownone=True
-    )
-    background_size_hint = ReferenceListProperty(
-        background_size_hint_x, background_size_hint_y
-    )
-    background_width = BoundedNumericProperty(100 * golden + 32, min=1)
-    background_height = BoundedNumericProperty(148, min=1)
-    background_size = ReferenceListProperty(
-        background_width, background_height
-    )
-    background_pos_hint = ObjectProperty({})
-    background_pos_hint_x = AliasProperty(
-        lambda self: get_pos_hint_x(
-            self.background_pos_hint, self.background_size_hint_x
-        ),
-        lambda self, v: set_pos_hint_x(
-            self.background_pos_hint, v
-        ),
-        bind=('background_pos_hint', 'background_size_hint_x')
-    )
-    background_pos_hint_y = AliasProperty(
-        lambda self: get_pos_hint_y(
-            self.background_pos_hint, self.background_size_hint_y
-        ),
-        lambda self, v: set_pos_hint_y(
-            self.background_pos_hint, v
-        ),
-        bind=('background_pos_hint', 'background_size_hint_y')
-    )
-    background_pos_hint_center_x = AliasProperty(
-        lambda self: get_pos_hint_center_x(
-            self.background_pos_hint, self.background_size_hint_x
-        ),
-        lambda self, v: set_pos_hint_center_x(
-            self.background_pos_hint, v
-        ),
-        bind=('background_pos_hint', 'background_size_hint_x')
-    )
-    background_pos_hint_center_y = AliasProperty(
-        lambda self: get_pos_hint_center_y(
-            self.background_pos_hint, self.background_size_hint_y
-        ),
-        lambda self, v: set_pos_hint_center_y(
-            self.background_pos_hint, v
-        ),
-        bind=('background_pos_hint', 'background_size_hint_y')
-    )
-
-    def _set_background_pos_hint_center(self, v):
-        for k in ('x', 'right', 'y', 'top'):
-            if k in self.background_pos_hint:
-                del self.background_pos_hint[k]
-        (x, y) = v
-        self.background_pos_hint['center_x'] = x
-        self.background_pos_hint['center_y'] = y
-        self.background_pos_hint.dispatch()
-    background_pos_hint_center = AliasProperty(
-        lambda self: (
-            self.background_pos_hint_center_x,
-            self.background_pos_hint_center_y
-        ),
-        _set_background_pos_hint_center,
-        bind=('background_pos_hint', 'background_size_hint')
-    )
-    background_pos_hint_top = AliasProperty(
-        lambda self: get_pos_hint_top(
-            self.background_pos_hint, self.background_size_hint_y
-        ),
-        lambda self, v: set_pos_hint_top(
-            self.background_pos_hint, v
-        ),
-        bind=('background_pos_hint', 'background_size_hint_y')
-    )
-    background_pos_hint_right = AliasProperty(
-        lambda self: get_pos_hint_right(
-            self.background_pos_hint, self.background_size_hint_x
-        ),
-        lambda self, v: set_pos_hint_right(
-            self.background_pos_hint, v
-        ),
-        bind=('background_pos_hint', 'background_size_hint_x')
-    )
-    background_x = BoundedNumericProperty(0, min=0)
-    background_y = BoundedNumericProperty(0, min=0)
-    background_pos = ReferenceListProperty(background_x, background_y)
-    _background_extra_kwargs = DictProperty({})
-
-    def _get_background_kwargs(self):
-        r = dict(self._background_extra_kwargs)
-        r['pos_hint'] = self.background_pos_hint
-        r['size_hint'] = self.background_size_hint
-        r['pos'] = self.background_pos
-        r['size'] = self.background_size
-        r['color'] = self.background_color
-        r['texture'] = self.background_texture
-        return r
-
-    def _set_background_kwargs(self, v):
-        if 'size_hint' in v:
-            self.background_size_hint = v['size_hint']
-        if 'size_hint_x' in v:
-            self.background_size_hint_x = v['size_hint_x']
-        if 'size_hint_y' in v:
-            self.background_size_hint_y = v['size_hint_y']
-        if 'width' in v:
-            self.background_width = v['width']
-        if 'height' in v:
-            self.background_height = v['height']
-        if 'size' in v:
-            self.background_size = v['size']
-        for kwarg in pos_hint_kwargs:
-            if kwarg in v:
-                self.background_pos_hint[kwarg] = v[kwarg]
-        self._background_extra_kwargs = except_pos_size_kwargs(v)
-
-    background_kwargs = AliasProperty(
-        _get_background_kwargs,
-        _set_background_kwargs,
-        bind=(
-            '_background_extra_kwargs',
-            'background_size_hint',
-            'background_pos_hint',
-            'background_size',
-            'background_pos'
-        )
-    )
-
-    art_source = StringProperty(None, allownone=True)
-    art_texture = ObjectProperty(None, allownone=True)
+    background_texture = ObjectProperty(None, allownone=True)
+    art_source = StringProperty('')
+    art_color = ListProperty([1, 0, 0, 1])
     art_image = ObjectProperty(None, allownone=True)
-    art_color = ListProperty([1, 1, 1, 1])
-    art_size_hint_x = BoundedNumericProperty(
-        0.95, min=0, max=1, allownone=True
-    )
-    art_size_hint_y = BoundedNumericProperty(
-        0.45, min=0, max=1, allownone=True
-    )
-    art_size_hint = ReferenceListProperty(
-        art_size_hint_x, art_size_hint_y
-    )
-    art_pos_hint = ObjectProperty({'x': 0.025, 'top': 0.975})
-    art_pos_hint_x = AliasProperty(
-        lambda self: get_pos_hint_x(
-            self.art_pos_hint, self.art_size_hint_x
-        ),
-        lambda self, v: set_pos_hint_x(
-            self.art_pos_hint, v
-        ),
-        bind=('art_pos_hint', 'art_size_hint_x')
-    )
-    art_pos_hint_y = AliasProperty(
-        lambda self: get_pos_hint_y(
-            self.art_pos_hint, self.art_size_hint_y
-        ),
-        lambda self, v: set_pos_hint_y(
-            self.art_pos_hint, v
-        ),
-        bind=('art_pos_hint', 'art_size_hint_y')
-    )
-    art_pos_hint_center_x = AliasProperty(
-        lambda self: get_pos_hint_center_x(
-            self.art_pos_hint, self.art_size_hint_x
-        ),
-        lambda self, v: set_pos_hint_center_x(
-            self.art_pos_hint, v
-        ),
-        bind=('art_pos_hint', 'art_size_hint_x')
-    )
-    art_pos_hint_center_y = AliasProperty(
-        lambda self: get_pos_hint_center_y(
-            self.art_pos_hint, self.art_size_hint_y
-        ),
-        lambda self, v: set_pos_hint_center_y(
-            self.art_pos_hint, v
-        ),
-        bind=('art_pos_hint', 'art_size_hint_y')
-    )
-
-    def _set_art_pos_hint_center(self, v):
-        (x, y) = v
-        self.art_pos_hint['center_x'] = x
-        self.art_pos_hint['center_y'] = y
-        self.art_pos_hint.dispatch()
-
-    art_pos_hint_center = AliasProperty(
-        lambda self: (
-            self.art_pos_hint_center_x,
-            self.art_pos_hint_center_y
-        ),
-        _set_art_pos_hint_center,
-        bind=('art_pos_hint', 'art_size_hint')
-    )
-    art_pos_hint_top = AliasProperty(
-        lambda self: get_pos_hint_top(
-            self.art_pos_hint, self.art_size_hint_y
-        ),
-        lambda self, v: set_pos_hint_top(
-            self.art_pos_hint, v
-        ),
-        bind=('art_pos_hint', 'art_size_hint_y')
-    )
-    art_pos_hint_right = AliasProperty(
-        lambda self: get_pos_hint_right(
-            self.art_pos_hint, self.art_size_hint_x
-        ),
-        lambda self, v: set_pos_hint_right(
-            self.art_pos_hint, v
-        ),
-        bind=('art_pos_hint', 'art_size_hint_x')
-    )
-    art_width = BoundedNumericProperty(95, min=1)
-    art_height = BoundedNumericProperty(232, min=1)
-    art_size = ReferenceListProperty(art_width, art_height)
-    art_x = BoundedNumericProperty(3, min=0)
-    art_y = BoundedNumericProperty(132, min=0)
-    art_pos = ReferenceListProperty(art_x, art_y)
-    _art_extra_kwargs = DictProperty({})
-
-    def _get_art_kwargs(self):
-        r = dict(self._art_extra_kwargs)
-        r['pos_hint'] = self.art_pos_hint
-        r['size_hint'] = self.art_size_hint
-        r['pos'] = self.art_pos
-        r['size'] = self.art_size
-        r['texture'] = self.art_texture
-        r['color'] = self.art_color
-        return r
-
-    def _set_art_kwargs(self, v):
-        if 'size_hint' in v:
-            self.art_size_hint = v['size_hint']
-        if 'size_hint_x' in v:
-            self.art_size_hint_x = v['size_hint_x']
-        if 'size_hint_y' in v:
-            self.art_size_hint_y = v['size_hint_y']
-        if 'width' in v:
-            self.art_width = v['width']
-        if 'height' in v:
-            self.art_height = v['height']
-        if 'size' in v:
-            self.art_size = v['size']
-        for kwarg in pos_hint_kwargs:
-            if kwarg in v:
-                self.art_pos_hint[kwarg] = v[kwarg]
-        self._art_extra_kwargs = except_pos_size_kwargs(v)
-
-    art_kwargs = AliasProperty(
-        _get_art_kwargs,
-        _set_art_kwargs,
-        bind=(
-            '_art_extra_kwargs',
-            'art_size_hint',
-            'art_pos_hint',
-            'art_size',
-            'art_pos'
-        )
-    )
+    art_texture = ObjectProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
         self._trigger_remake = Clock.create_trigger(self.remake)
@@ -697,36 +308,43 @@ class Card(RelativeLayout):
             Clock.schedule_once(self.remake, 0)
             return
 
-        self._bgwid = ColorTextureBox(**self.background_kwargs)
-        self.bind(
-            background_size_hint=self._bgwid.setter('size_hint'),
-            background_pos_hint=self._bgwid.setter('pos_hint'),
-            background_size=self._bgwid.setter('size'),
-            background_pos=self._bgwid.setter('pos'),
-            background_texture=self._bgwid.setter('texture'),
-            background_color=self._bgwid.setter('color')
+        self.background = ColorTextureBox(
+            color=self.background_color,
+            texture=self.background_texture
         )
-        self.add_widget(self._bgwid)
-        self._fgwid = ColorTextureBox(**self.foreground_kwargs)
         self.bind(
-            foreground_size_hint=self._fgwid.setter('size_hint'),
-            foreground_pos_hint=self._fgwid.setter('pos_hint'),
-            foreground_size=self._fgwid.setter('size'),
-            foreground_pos=self._fgwid.setter('pos'),
-            foreground_texture=self._fgwid.setter('texture'),
-            foreground_color=self._fgwid.setter('color')
+            background_color=self.background.setter('color'),
+            background_texture=self.background.setter('texture')
         )
-        self.add_widget(self._fgwid)
-        self._artwid = ColorTextureBox(**self.art_kwargs)
+        self.add_widget(self.background)
+        self.foreground = ColorTextureBox(
+            pos_hint={
+                'x': 0.025,
+                'y': 0.025
+            },
+            size_hint=(0.95, 0.45),
+            color=self.foreground_color,
+            texture=self.foreground_texture
+        )
         self.bind(
-            art_size_hint=self._artwid.setter('size_hint'),
-            art_pos_hint=self._artwid.setter('pos_hint'),
-            art_size=self._artwid.setter('size'),
-            art_pos=self._artwid.setter('pos'),
-            art_texture=self._artwid.setter('texture'),
-            art_color=self._artwid.setter('color')
+            foreground_color=self.foreground.setter('color'),
+            foreground_texture=self.foreground.setter('texture')
         )
-        self.add_widget(self._artwid)
+        self.add_widget(self.foreground)
+        self.art = ColorTextureBox(
+            pos_hint={
+                'x': 0.025,
+                'top': 0.975
+            },
+            size_hint=(0.95, 0.45),
+            color=self.art_color,
+            texture=self.art_texture
+        )
+        self.bind(
+            art_color=self.art.setter('color'),
+            art_texture=self.art.setter('texture')
+        )
+        self.add_widget(self.art)
         if (
                 self.background_source and
                 self.background_source != self.background_image.source
