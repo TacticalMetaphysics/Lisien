@@ -673,3 +673,8 @@ class Card(RelativeLayout):
             Clock.schedule_once(self.on_art_texture, 0)
             return
         self._artrect.texture = self.art_texture
+
+
+if __name__ == '__main__':
+    from kivy.base import runTouchApp
+    runTouchApp(Card())
