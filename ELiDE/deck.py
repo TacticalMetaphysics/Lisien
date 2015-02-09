@@ -166,6 +166,32 @@ def set_pos_hint_center_y(poshints, v):
     poshints.dispatch()
 
 
+def get_pos_hint_center(poshints, size_hint_x, size_hint_y):
+    if 'center' in poshints:
+        return poshints['center']
+    cx = poshints['center_x'] if 'center_x' in poshints else None
+    cy = poshints['center_y'] if 'center_y' in poshints else None
+    if cx is None and size_hint_x is not None:
+        if 'x' in poshints:
+            cx = poshints['x'] + size_hint_x / 2
+        elif 'right' in poshints:
+            cx = poshints['right'] - size_hint_x / 2
+    if cy is None and size_hint_y is not None:
+        if 'y' in poshints:
+            cy = poshints['y'] + size_hint_y / 2
+        elif 'top' in poshints:
+            cy = poshints['top'] - size_hint_y / 2
+    return (cx, cy)
+
+
+def set_pos_hint_center(poshints, v):
+    for k in ('x', 'right', 'y', 'top', 'center_x', 'center_y'):
+        if k in poshints:
+            del poshints[k]
+    poshints['center'] = v
+    poshints.dispatch()
+
+
 def get_pos_hint_right(poshints, sizehintx):
     if 'right' in poshints:
         return poshints['right']
