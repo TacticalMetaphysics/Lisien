@@ -602,6 +602,11 @@ class Card(RelativeLayout):
         )
     )
 
+    def __init__(self, **kwargs):
+        self._trigger_remake = Clock.create_trigger(self.remake)
+        self.bind(on_parent=self._trigger_remake)
+        super().__init__(**kwargs)
+
     def remake(self, *args):
         if self.canvas is None:
             Clock.schedule_once(self.remake, 0)
