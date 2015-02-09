@@ -361,6 +361,8 @@ class Card(RelativeLayout):
         r['size_hint'] = self.foreground_size_hint
         r['pos'] = self.foreground_pos
         r['size'] = self.foreground_size
+        r['texture'] = self.foreground_texture
+        r['color'] = self.foreground_color
         return r
 
     def _set_foreground_kwargs(self, v):
@@ -494,6 +496,8 @@ class Card(RelativeLayout):
         r['size_hint'] = self.background_size_hint
         r['pos'] = self.background_pos
         r['size'] = self.background_size
+        r['color'] = self.background_color
+        r['texture'] = self.background_texture
         return r
 
     def _set_background_kwargs(self, v):
@@ -619,10 +623,12 @@ class Card(RelativeLayout):
 
     def _get_art_kwargs(self):
         r = dict(self._art_extra_kwargs)
-        r['pos_hint'] = self.foreground_pos_hint
-        r['size_hint'] = self.foreground_size_hint
-        r['pos'] = self.foreground_pos
-        r['size'] = self.foreground_size
+        r['pos_hint'] = self.art_pos_hint
+        r['size_hint'] = self.art_size_hint
+        r['pos'] = self.art_pos
+        r['size'] = self.art_size
+        r['texture'] = self.art_texture
+        r['color'] = self.art_color
         return r
 
     def _set_art_kwargs(self, v):
