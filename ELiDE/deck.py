@@ -726,31 +726,7 @@ class Card(RelativeLayout):
         if self.art_image is not None:
             self.art_texture = self.art_image.texture
 
-    def on_background_texture(self, *args):
-        if self.background_texture is None:
-            return
-        if not hasattr(self, '_bgrect'):
-            Clock.schedule_once(self.on_background_texture, 0)
-            return
-        self._bgrect.texture = self.background_texture
-
-    def on_foreground_texture(self, *args):
-        if self.foreground_texture is None:
-            return
-        if not hasattr(self, '_fgrect'):
-            Clock.schedule_once(self.on_foreground_texture, 0)
-            return
-        self._fgrect.texture = self.foreground_texture
-
-    def on_art_texture(self, *args):
-        if self.art_texture is None:
-            return
-        if not hasattr(self, '_artrect'):
-            Clock.schedule_once(self.on_art_texture, 0)
-            return
-        self._artrect.texture = self.art_texture
-
 
 if __name__ == '__main__':
     from kivy.base import runTouchApp
-    runTouchApp(Card())
+    runTouchApp(Card(background_color=[1,0,0,1], foreground_color=[0,1,0,1], art_color=[0,0,1,1]))
