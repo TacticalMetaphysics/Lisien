@@ -86,18 +86,33 @@ class Card(FloatLayout):
         'size_hint': (None, None),
         'font_size': 18
     })
+    headline_text = AliasProperty(
+        lambda self: self.headline_kwargs['text'],
+        lambda self, v: self.headline_kwargs.__setitem__('text', v),
+        bind=('headline_kwargs',)
+    )
     midline_kwargs = DictProperty({
         'text': 'Midline',
         'markup': True,
         'size_hint': (None, None),
         'font_size': 14
     })
+    midline_text = AliasProperty(
+        lambda self: self.midline_kwargs['text'],
+        lambda self, v: self.midline_kwargs.__setitem__('text', v),
+        bind=('midline_kwargs',)
+    )
     footer_kwargs = DictProperty({
         'text': 'Footer',
         'markup': True,
         'size_hint': (None, None),
         'font_size': 10
     })
+    footer_text = AliasProperty(
+        lambda self: self.footer_kwargs['text'],
+        lambda self, v: self.footer_kwargs.__setitem__('text', v),
+        bind=('footer_kwargs',)
+    )
     text_kwargs = DictProperty({
         'text': '',
         'markup': True,
