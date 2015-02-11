@@ -2,8 +2,8 @@
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 """Cards that can be assembled into piles, which can be fanned out or
 stacked into decks, which can then be drawn from."""
-from math import sqrt
 from kivy.clock import Clock
+from kivy.logger import Logger
 from kivy.graphics import (
     Color,
     Rectangle
@@ -25,6 +25,38 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.layout import Layout
 from kivy.uix.image import Image
+
+
+def get_pos_hint_x(poshints, sizehintx):
+    if 'x' in poshints:
+        return poshints['x']
+    elif sizehintx is not None:
+        if 'center_x' in poshints:
+            return (
+                poshints['center_x'] -
+                sizehintx / 2
+            )
+        elif 'right' in poshints:
+            return (
+                poshints['right'] -
+                sizehintx
+            )
+
+
+def get_pos_hint_y(poshints, sizehinty):
+    if 'y' in poshints:
+        return poshints['y']
+    elif sizehinty is not None:
+        if 'center_y' in poshints:
+            return (
+                poshints['center_y'] -
+                sizehinty / 2
+            )
+        elif 'top' in poshints:
+            return (
+                poshints['top'] -
+                sizehinty
+            )
 
 
 class ColorTextureBox(FloatLayout):
@@ -75,6 +107,11 @@ class ColorTextureBox(FloatLayout):
 
 
 class Card(FloatLayout):
+    layout = ObjectProperty(None, allownone=True)
+    dragging = BooleanProperty(False)
+    collide_x = NumericProperty()
+    collide_y = NumericProperty()
+    collide_pos = ReferenceListProperty(collide_x, collide_y)
     foreground_source = StringProperty('')
     foreground_color = ListProperty([0, 1, 0, 1])
     foreground_image = ObjectProperty(None, allownone=True)
@@ -289,6 +326,95 @@ class Card(FloatLayout):
             if getattr(self.footer, k) != v:
                 setattr(self.footer, k, v)
 
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            self.dragging = True
+            touch.grab(self)
+            self.collide_x = touch.x - self.x
+            self.collide_y = touch.y - self.y
+            if self.layout is not None:
+                if (
+                        self.layout.grabbed is not None and
+                        self.layout.grabbed is not self
+                ):
+                    touch.ungrab(self)
+                    self.dragging = False
+                else:
+                    self.layout.grabbed = self
+
+    def on_touch_move(self, touch):
+        if not self.dragging:
+            return
+        self.pos = (
+            touch.x - self.collide_x,
+            touch.y - self.collide_y
+        )
+        if self.layout is not None:
+            i = 0
+            childs = list(self.layout.children)
+            # deliberately opposite to the way it goes in DeckLayout
+            # I'm not sure why, but it seems to work
+            if self.layout.direction == 'ascending':
+                childs.reverse()
+            inspt = self.layout.insertion_point
+            if self.layout.insertion_point in (0, -1):
+                # if the touch collides where the zeroth/last card
+                # USED to be, don't layout
+                old_pos_hint_x = get_pos_hint_x(
+                    childs[inspt].pos_hint, childs[inspt].size_hint[0]
+                ) - self.layout.x_hint_step
+                old_pos_hint_y = get_pos_hint_y(
+                    childs[inspt].pos_hint, childs[inspt].size_hint[1]
+                ) - self.layout.y_hint_step
+                old_x = old_pos_hint_x * self.layout.width
+                old_y = old_pos_hint_y * self.layout.height
+                if (
+                    touch.x > old_x and
+                    touch.x < old_x + childs[inspt].width and
+                    touch.y > old_y and
+                    touch.y < old_y + childs[inspt].height
+                ):
+                    return
+            for child in childs:
+                if child is not self and child.collide_point(*touch.pos):
+                    self.layout.insertion_point = i
+                    self.layout._trigger_layout()
+                    return
+                i += 1
+            else:
+                self.layout.insertion_point = None
+            if (
+                    self is not childs[0] and
+                    self.layout.point_is_before_zeroth_card(
+                        childs[0], *touch.pos
+                    )
+            ):
+                Logger.debug('on_touch_move: point is before zeroth card')
+                self.layout.insertion_point = 0
+                self.layout._trigger_layout()
+                return
+            elif (
+                self is not childs[-1] and
+                self.layout.point_is_after_last_card(childs[-1], *touch.pos)
+            ):
+                Logger.debug('on_touch_move: point is after last card')
+                self.layout.insertion_point = -1
+                self.layout._trigger_layout()
+                return
+
+    def on_touch_up(self, touch):
+        if not self.dragging:
+            return
+        if self.layout is not None:
+            self.layout.grabbed = None
+            self.layout._trigger_layout()
+            if self.layout.insertion_point is not None:
+                self.parent.remove_widget(self)
+                self.layout.add_widget(self, index=self.layout.insertion_point)
+                self.layout.insertion_point = None
+        touch.ungrab(self)
+        self.dragging = False
+
 
 class DeckLayout(Layout):
     direction = OptionProperty(
@@ -301,7 +427,65 @@ class DeckLayout(Layout):
     x_hint_step = NumericProperty(0.01)
     y_hint_step = NumericProperty(-0.01)
     hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
-    insertion_point = BoundedNumericProperty(None, min=0, allownone=True)
+    insertion_point = NumericProperty(None, allownone=True)
+    grabbed = ObjectProperty(None, allownone=True)
+
+    def point_is_before_zeroth_card(self, zeroth, x, y):
+        """While dragging a card, if you drag it past my zeroth card, you want
+        to insert your card in position zero. This function detects
+        this situation.
+
+        """
+        def ycmp():
+            if self.y_hint_step == 0:
+                return False
+            elif self.y_hint_step > 0:
+                # stacking upward
+                return y < zeroth.y
+            else:
+                # stacking downward
+                return y > zeroth.top
+        if self.x_hint_step > 0:
+            # stacking to the right
+            if x < zeroth.x:
+                return True
+            return ycmp()
+        elif self.x_hint_step == 0:
+            return ycmp()
+        else:
+            # stacking to the left
+            if x > zeroth.right:
+                return True
+            return ycmp()
+
+    def point_is_after_last_card(self, last, x, y):
+        def ycmp():
+            if self.y_hint_step == 0:
+                return False
+            elif self.y_hint_step > 0:
+                # stacking upward
+                return y > last.top
+            else:
+                # stacking downward
+                return y < last.y
+        if self.x_hint_step > 0:
+            # stacking to the right
+            if x > last.right:
+                return True
+            return ycmp()
+        elif self.x_hint_step == 0:
+            return ycmp()
+        else:
+            # stacking to the left
+            if x < last.x:
+                return True
+            return ycmp()
+
+    def add_widget(self, wid, index=0):
+        if isinstance(wid, Card) and wid.layout is not self:
+            wid.layout = self
+        super().add_widget(wid, index)
+        self._trigger_layout()
 
     def on_parent(self, *args):
         if self.parent is not None:
@@ -311,16 +495,22 @@ class DeckLayout(Layout):
         if self.size == [1, 1]:
             return
         childs = list(self.children)
+        if self.grabbed in childs:
+            childs.remove(self.grabbed)
+        inspt = self.insertion_point
         if self.direction == 'descending':
             childs.reverse()
-        if self.insertion_point is not None:
-            childs.insert(self.insertion_point, None)
+            if inspt is not None:
+                inspt = len(childs) - inspt
+        if inspt is not None:
+            childs.insert(inspt, None)
         pos_hint = dict(self.starting_pos_hint)
         (w, h) = self.size
         (x, y) = self.pos
         for child in childs:
-            if child is not None:
-                shw, shh = self.card_size_hint
+            if child is not None and child is not self.grabbed:
+                shw, shh = child.size_hint = self.card_size_hint
+                child.pos_hint = pos_hint
                 child.size = w * shw, h * shh
                 for (k, v) in pos_hint.items():
                     if k == 'x':
