@@ -78,12 +78,15 @@ class Card(FloatLayout):
     foreground_source = StringProperty('')
     foreground_color = ListProperty([0, 1, 0, 1])
     foreground_image = ObjectProperty(None, allownone=True)
+    foreground_texture = ObjectProperty(None, allownone=True)
     background_source = StringProperty('')
     background_color = ListProperty([0, 0, 1, 1])
     background_image = ObjectProperty(None, allownone=True)
+    background_texture = ObjectProperty(None, allownone=True)
     art_source = StringProperty('')
     art_color = ListProperty([1, 0, 0, 1])
     art_image = ObjectProperty(None, allownone=True)
+    art_texture = ObjectProperty(None, allownone=True)
     show_art = BooleanProperty(True)
     headline_kwargs = DictProperty({
         'text': 'Headline',
@@ -96,6 +99,7 @@ class Card(FloatLayout):
         lambda self, v: self.headline_kwargs.__setitem__('text', v),
         bind=('headline_kwargs',)
     )
+    show_headline = BooleanProperty(True)
     midline_kwargs = DictProperty({
         'text': 'Midline',
         'markup': True,
@@ -107,6 +111,7 @@ class Card(FloatLayout):
         lambda self, v: self.midline_kwargs.__setitem__('text', v),
         bind=('midline_kwargs',)
     )
+    show_midline = BooleanProperty(True)
     footer_kwargs = DictProperty({
         'text': 'Footer',
         'markup': True,
@@ -118,9 +123,12 @@ class Card(FloatLayout):
         lambda self, v: self.footer_kwargs.__setitem__('text', v),
         bind=('footer_kwargs',)
     )
+    show_footer = BooleanProperty(True)
     text_kwargs = DictProperty({
         'text': '',
         'markup': True,
+        'shorten': True,
+        'size_hint': (None, None),
         'font_name': 'DroidSans',
         'font_size': 12,
         'pos_hint': {'x': 0.01, 'top': 0.99},
@@ -160,15 +168,16 @@ class Card(FloatLayout):
             pos=layout._trigger_layout
         )
         self.add_widget(layout)
-        self.headline = Label(**self.headline_kwargs)
-        self.headline.size = self.headline.texture_size
-        self.headline.bind(texture_size=self.headline.setter('size'))
+        if self.show_headline:
+            self.headline = Label(**self.headline_kwargs)
+            self.headline.size = self.headline.texture_size
+            self.headline.bind(texture_size=self.headline.setter('size'))
 
-        def upd_headline(*args):
-            for (k, v) in self.headline_kwargs.items():
-                getattr(self.headline, k).set(v)
-        self.bind(headline_kwargs=upd_headline)
-        layout.add_widget(self.headline)
+            def upd_headline(*args):
+                for (k, v) in self.headline_kwargs.items():
+                    getattr(self.headline, k).set(v)
+            self.bind(headline_kwargs=upd_headline)
+            layout.add_widget(self.headline)
         if self.show_art:
             self.art = ColorTextureBox(
                 color=self.art_color,
@@ -180,15 +189,16 @@ class Card(FloatLayout):
                 art_texture=self.art.setter('texture')
             )
             layout.add_widget(self.art)
-        self.midline = Label(**self.midline_kwargs)
-        self.midline.size = self.midline.texture_size
-        self.midline.bind(texture_size=self.midline.setter('size'))
+        if self.show_midline:
+            self.midline = Label(**self.midline_kwargs)
+            self.midline.size = self.midline.texture_size
+            self.midline.bind(texture_size=self.midline.setter('size'))
 
-        def upd_midline(*args):
-            for (k, v) in self.midline_kwargs.items():
-                getattr(self.midline, k).set(v)
-        self.bind(midline_kwargs=upd_midline)
-        layout.add_widget(self.midline)
+            def upd_midline(*args):
+                for (k, v) in self.midline_kwargs.items():
+                    getattr(self.midline, k).set(v)
+            self.bind(midline_kwargs=upd_midline)
+            layout.add_widget(self.midline)
         self.foreground = ColorTextureBox(
             color=self.foreground_color,
             texture=self.foreground_texture,
@@ -199,36 +209,29 @@ class Card(FloatLayout):
             foreground_texture=self.foreground.setter('texture')
         )
         layout.add_widget(self.foreground)
-        fgtext = Label(
-            text=self.text,
-            markup=True,
-            font_name=self.font_name,
-            font_size=self.font_size,
-            size_hint=(None, None),
-            text_size=self.foreground.size,
-            pos_hint={'x': 0.01, 'top': 0.99},
-            valign='top'
-        )
+        fgtext = Label(**self.text_kwargs)
         fgtext.size = fgtext.texture_size
         fgtext.bind(texture_size=fgtext.setter('size'))
         self.foreground.bind(
             size=fgtext.setter('text_size')
         )
-        self.bind(
-            text=fgtext.setter('text'),
-            font_name=fgtext.setter('font_name'),
-            font_size=fgtext.setter('font_size')
-        )
-        self.foreground.add_widget(fgtext)
-        self.footer = Label(**self.footer_kwargs)
-        self.footer.size = self.footer.texture_size
-        self.footer.bind(texture_size=self.footer.setter('size'))
 
-        def upd_footer(*args):
-            for (k, v) in self.footer_kwargs.items():
-                getattr(self.footer, k).set(v)
-        self.bind(footer_kwargs=upd_footer)
-        layout.add_widget(self.footer)
+        def upd_fgtext(*args):
+            for (k, v) in self.text_kwargs.items():
+                if getattr(fgtext, k) != v:
+                    getattr(fgtext, k).set(v)
+        self.bind(text_kwargs=upd_fgtext)
+        self.foreground.add_widget(fgtext)
+        if self.show_footer:
+            self.footer = Label(**self.footer_kwargs)
+            self.footer.size = self.footer.texture_size
+            self.footer.bind(texture_size=self.footer.setter('size'))
+
+            def upd_footer(*args):
+                for (k, v) in self.footer_kwargs.items():
+                    getattr(self.footer, k).set(v)
+            self.bind(footer_kwargs=upd_footer)
+            layout.add_widget(self.footer)
 
     def on_size(self, *args):
         if hasattr(self, '_bgrect'):
