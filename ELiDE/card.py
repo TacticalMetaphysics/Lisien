@@ -383,6 +383,7 @@ class DeckLayout(Layout):
     hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
     insertion_point = NumericProperty(None, allownone=True)
     grabbed = ObjectProperty(None, allownone=True)
+    insertable = BooleanProperty(True)
 
     def point_is_before_zeroth_card(self, zeroth, x, y):
         """While dragging a card, if you drag it past my zeroth card, you want
