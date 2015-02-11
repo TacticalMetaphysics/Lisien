@@ -11,14 +11,19 @@ from kivy.graphics import (
 from kivy.properties import (
     AliasProperty,
     BooleanProperty,
+    BoundedNumericProperty,
     DictProperty,
     ListProperty,
+    NumericProperty,
     ObjectProperty,
+    OptionProperty,
+    ReferenceListProperty,
     StringProperty,
 )
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.layout import Layout
 from kivy.uix.image import Image
 
 
@@ -282,10 +287,82 @@ class Card(FloatLayout):
                 setattr(self.footer, k, v)
 
 
+class DeckLayout(Layout):
+    direction = OptionProperty(
+        'descending', options=['ascending', 'descending']
+    )
+    card_size_hint_x = BoundedNumericProperty(0.1, min=0, max=1)
+    card_size_hint_y = BoundedNumericProperty(0.2, min=0, max=1)
+    card_size_hint = ReferenceListProperty(card_size_hint_x, card_size_hint_y)
+    starting_pos_hint = DictProperty({'x': 0, 'top': 1})
+    x_hint_step = NumericProperty(0.01)
+    y_hint_step = NumericProperty(-0.01)
+    hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
+    insertion_point = BoundedNumericProperty(None, min=0, allownone=True)
+
+    def on_parent(self, *args):
+        if self.parent is not None:
+            self._trigger_layout()
+
+    def do_layout(self, *args):
+        if self.size == [1, 1]:
+            return
+        childs = list(self.children)
+        if self.direction == 'descending':
+            childs.reverse()
+        if self.insertion_point is not None:
+            childs.insert(self.insertion_point, None)
+        pos_hint = dict(self.starting_pos_hint)
+        (w, h) = self.size
+        (x, y) = self.pos
+        for child in childs:
+            if child is not None:
+                shw, shh = self.card_size_hint
+                child.size = w * shw, h * shh
+                for (k, v) in pos_hint.items():
+                    if k == 'x':
+                        child.x = x + v * w
+                    elif k == 'right':
+                        child.right = x + v * w
+                    elif k == 'pos':
+                        child.pos = x + v[0] * w, y + v[1] * h
+                    elif k == 'y':
+                        child.y = y + v * h
+                    elif k == 'top':
+                        child.top = y + v * h
+                    elif k == 'center':
+                        child.center = x + v[0] * w, y + v[1] * h
+                    elif k == 'center_x':
+                        child.center_x = x + v * w
+                    elif k == 'center_y':
+                        child.center_y = y + v * h
+            for xkey in (
+                    'x',
+                    'center_x',
+                    'right'
+            ):
+                if xkey in pos_hint:
+                    pos_hint[xkey] += self.x_hint_step
+            for ykey in (
+                    'y',
+                    'center_y',
+                    'top'
+            ):
+                if ykey in pos_hint:
+                    pos_hint[ykey] += self.y_hint_step
+            if 'pos' in pos_hint:
+                (phx, phy) = pos_hint['pos']
+                phx += self.x_hint_step
+                phy += self.y_hint_step
+                pos_hint['pos'] = (phx, phy)
+
+
 if __name__ == '__main__':
     from kivy.base import runTouchApp
     from kivy.core.window import Window
     from kivy.modules import inspector
-    card = Card(background_color=[1,0,0,1], foreground_color=[0,1,0,1], art_color=[0,0,1,1], text='Thequick brown fox jumps over the lazy dog')
-    inspector.create_inspector(Window, card)
-    runTouchApp(card)
+    deck = DeckLayout()
+    for i in range(0, 10):
+        deck.add_widget(Card(background_color=[1,0,0,1], foreground_color=[0,1,0,1], art_color=[0,0,1,1], text='The quick brown fox jumps over the lazy dog', show_art=False, show_midline=False, show_footer=False, headline_text='Card {}'.format(i)))
+    inspector.create_inspector(Window, deck)
+    runTouchApp(deck)
