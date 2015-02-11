@@ -329,6 +329,8 @@ class Card(FloatLayout):
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
             self.dragging = True
+            touch.ud['card'] = self
+            touch.grab(self.layout)
             touch.grab(self)
             self.collide_x = touch.x - self.x
             self.collide_y = touch.y - self.y
@@ -344,63 +346,12 @@ class Card(FloatLayout):
 
     def on_touch_move(self, touch):
         if not self.dragging:
+            touch.ungrab(self)
             return
         self.pos = (
             touch.x - self.collide_x,
             touch.y - self.collide_y
         )
-        if self.layout is not None:
-            i = 0
-            childs = list(self.layout.children)
-            # deliberately opposite to the way it goes in DeckLayout
-            # I'm not sure why, but it seems to work
-            if self.layout.direction == 'ascending':
-                childs.reverse()
-            inspt = self.layout.insertion_point
-            if self.layout.insertion_point in (0, -1):
-                # if the touch collides where the zeroth/last card
-                # USED to be, don't layout
-                old_pos_hint_x = get_pos_hint_x(
-                    childs[inspt].pos_hint, childs[inspt].size_hint[0]
-                ) - self.layout.x_hint_step
-                old_pos_hint_y = get_pos_hint_y(
-                    childs[inspt].pos_hint, childs[inspt].size_hint[1]
-                ) - self.layout.y_hint_step
-                old_x = old_pos_hint_x * self.layout.width
-                old_y = old_pos_hint_y * self.layout.height
-                if (
-                    touch.x > old_x and
-                    touch.x < old_x + childs[inspt].width and
-                    touch.y > old_y and
-                    touch.y < old_y + childs[inspt].height
-                ):
-                    return
-            for child in childs:
-                if child is not self and child.collide_point(*touch.pos):
-                    self.layout.insertion_point = i
-                    self.layout._trigger_layout()
-                    return
-                i += 1
-            else:
-                self.layout.insertion_point = None
-            if (
-                    self is not childs[0] and
-                    self.layout.point_is_before_zeroth_card(
-                        childs[0], *touch.pos
-                    )
-            ):
-                Logger.debug('on_touch_move: point is before zeroth card')
-                self.layout.insertion_point = 0
-                self.layout._trigger_layout()
-                return
-            elif (
-                self is not childs[-1] and
-                self.layout.point_is_after_last_card(childs[-1], *touch.pos)
-            ):
-                Logger.debug('on_touch_move: point is after last card')
-                self.layout.insertion_point = -1
-                self.layout._trigger_layout()
-                return
 
     def on_touch_up(self, touch):
         if not self.dragging:
@@ -410,7 +361,10 @@ class Card(FloatLayout):
             self.layout._trigger_layout()
             if self.layout.insertion_point is not None:
                 self.parent.remove_widget(self)
-                self.layout.add_widget(self, index=self.layout.insertion_point)
+                if self.layout.insertable:
+                    self.layout.add_widget(
+                        self, index=self.layout.insertion_point
+                    )
                 self.layout.insertion_point = None
         touch.ungrab(self)
         self.dragging = False
@@ -491,6 +445,70 @@ class DeckLayout(Layout):
         if self.parent is not None:
             self._trigger_layout()
 
+    def on_touch_move(self, touch):
+        if 'card' not in touch.ud:
+            return
+        card = touch.ud['card']
+        i = 0
+        childs = [
+            child for child in self.children if
+            child != card and not child.dragging
+        ]
+        # deliberately opposite to the way it goes in do_layout
+        # I'm not sure why, but it seems to work
+        if self.direction == 'ascending':
+            childs.reverse()
+        inspt = self.insertion_point
+        if inspt in (0, -1):
+            # if the touch collides where the zeroth/last card
+            # USED to be, don't layout
+            new_pos_hint_x = get_pos_hint_x(
+                childs[inspt].pos_hint, childs[inspt].size_hint[0]
+            )
+            old_pos_hint_x = new_pos_hint_x - self.x_hint_step
+            new_pos_hint_y = get_pos_hint_y(
+                childs[inspt].pos_hint, childs[inspt].size_hint[1]
+            )
+            old_pos_hint_y = new_pos_hint_y - self.y_hint_step
+            old_x = old_pos_hint_x * self.width
+            old_y = old_pos_hint_y * self.height
+            new_x = new_pos_hint_x * self.width
+            new_y = new_pos_hint_y * self.height
+            (left, right) = (old_x, new_x) if old_x < new_x else (new_x, old_x)
+            (bot, top) = (old_y, new_y) if old_y < new_y else (new_y, old_y)
+            if (
+                touch.x > left and
+                touch.x < right and
+                touch.y > bot and
+                touch.y < top
+            ):
+                return
+        for child in childs:
+            if child.collide_point(*touch.pos):
+                self.insertion_point = i
+                self._trigger_layout()
+                return
+            i += 1
+        else:
+            self.insertion_point = None
+        if self.point_is_before_zeroth_card(
+            childs[0], *touch.pos
+        ):
+            self.insertion_point = 0
+            self._trigger_layout()
+        elif self.point_is_after_last_card(
+            childs[-1], *touch.pos
+        ):
+            self.insertion_point = -1
+            self._trigger_layout()
+
+    def on_insertion_point(self, *args):
+        Logger.debug(
+            'DeckLayout: insertion point set to {}'.format(
+                self.insertion_point
+            )
+        )
+
     def do_layout(self, *args):
         if self.size == [1, 1]:
             return
@@ -554,8 +572,45 @@ if __name__ == '__main__':
     from kivy.base import runTouchApp
     from kivy.core.window import Window
     from kivy.modules import inspector
-    deck = DeckLayout()
+    deck0 = DeckLayout()
+    deck1 = DeckLayout()
     for i in range(0, 10):
-        deck.add_widget(Card(background_color=[1,0,0,1], foreground_color=[0,1,0,1], art_color=[0,0,1,1], text='The quick brown fox jumps over the lazy dog', show_art=False, show_midline=False, show_footer=False, headline_text='Card {}'.format(i)))
-    inspector.create_inspector(Window, deck)
-    runTouchApp(deck)
+        deck0.add_widget(
+            Card(
+                background_color=[1, 0, 0, 1],
+                foreground_color=[0, 1, 0, 1],
+                art_color=[0, 0, 1, 1],
+                text='The quick brown fox jumps over the lazy dog',
+                show_art=False,
+                show_midline=False,
+                show_footer=False,
+                headline_text='Card {}'.format(i)
+            )
+        )
+        deck1.add_widget(
+            Card(
+                background_color=[0, 1, 0, 1],
+                foreground_color=[1, 0, 0, 1],
+                show_art=False,
+                text='Lorem ipsum dolor sit amet',
+                show_midline=False,
+                show_footer=False,
+                headline_text='Card {}'.format(i)
+            )
+        )
+
+    class TestLayout(BoxLayout):
+        def __init__(self, **kwargs):
+            kwargs['orientation'] = 'vertical'
+            super().__init__(**kwargs)
+            self.add_widget(deck0)
+            self.add_widget(deck1)
+
+        def on_touch_move(self, touch):
+            if 'card' in touch.ud:
+                for deck in (deck0, deck1):
+                    deck.dispatch('on_touch_move', touch)
+
+    layout = TestLayout()
+    inspector.create_inspector(Window, layout)
+    runTouchApp(layout)
