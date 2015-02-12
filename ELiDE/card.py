@@ -384,6 +384,7 @@ class DeckLayout(Layout):
     insertion_point = NumericProperty(None, allownone=True)
     grabbed = ObjectProperty(None, allownone=True)
     insertable = BooleanProperty(True)
+    cards = ListProperty([])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -443,9 +444,17 @@ class DeckLayout(Layout):
             return ycmp()
 
     def add_widget(self, wid, index=0):
-        if isinstance(wid, Card) and wid.layout is not self:
-            wid.layout = self
+        if isinstance(wid, Card):
+            self.cards.append(wid)
+            if wid.layout is not self:
+                wid.layout = self
         super().add_widget(wid, index)
+        self._trigger_layout()
+
+    def remove_widget(self, wid):
+        if isinstance(wid, Card):
+            self.cards.remove(wid)
+        super().remove_widget(wid)
         self._trigger_layout()
 
     def on_parent(self, *args):
@@ -453,30 +462,10 @@ class DeckLayout(Layout):
             self._trigger_layout()
 
     def on_touch_move(self, touch):
+        if not self.collide_point(*touch.pos):
+            return
         i = 0
-        childs = [
-            c for c in self.children if
-            c is not self.grabbed and not
-            c.dragging
-        ]
-        # Avoid laying myself out when hovering past the space where a
-        # card's been displaced from.
-        if self.grabbed is not None:
-            # I can't use regular collide_point because self.grabbed eats it
-            if not any(
-                    touch.x > c.x and
-                    touch.x < c.right and
-                    touch.y > c.y and
-                    touch.y < c.top
-                    for c in childs
-            ):
-                # Not too important, but I think it'd be nice if you
-                # could swing a card around from one side to the other
-                # and see the space it'd fall into without actually
-                # dragging it over any of the other cards.
-                return
-        # deliberately opposite to the way it goes in do_layout
-        # I'm not sure why, but it seems to work
+        childs = [c for c in self.cards if not c.dragging]
         if self.direction == 'ascending':
             childs.reverse()
         for child in childs:
@@ -486,15 +475,18 @@ class DeckLayout(Layout):
             i += 1
         else:
             self.insertion_point = None
-            if self.point_is_before_zeroth_card(
-                    childs[0], *touch.pos
-            ):
-                self.insertion_point = 0
-                return
             if self.point_is_after_last_card(
                     childs[-1], *touch.pos
             ):
-                self.insertion_point = -1
+                self.insertion_point = len(self.cards)
+            elif self.point_is_before_zeroth_card(
+                    childs[0], *touch.pos
+            ):
+                self.insertion_point = 0
+
+    def on_touch_up(self, *args):
+        self.insertion_point = None
+        super().on_touch_up(*args)
 
     def on_insertion_point(self, *args):
         Logger.debug(
@@ -506,11 +498,11 @@ class DeckLayout(Layout):
     def do_layout(self, *args):
         if self.size == [1, 1]:
             return
-        childs = list(self.children)
+        childs = list(self.cards)
         if self.grabbed in childs:
             childs.remove(self.grabbed)
         inspt = self.insertion_point
-        if self.direction == 'descending':
+        if self.direction == 'ascending':
             childs.reverse()
             if inspt is not None:
                 if inspt == -1:
