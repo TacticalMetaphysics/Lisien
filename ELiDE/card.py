@@ -377,7 +377,7 @@ class DeckLayout(Layout):
     card_size_hint_x = BoundedNumericProperty(0.1, min=0, max=1)
     card_size_hint_y = BoundedNumericProperty(0.2, min=0, max=1)
     card_size_hint = ReferenceListProperty(card_size_hint_x, card_size_hint_y)
-    starting_pos_hint = DictProperty({'x': 0, 'top': 1})
+    starting_pos_hint = DictProperty({'x': 0.05, 'top': 0.95})
     x_hint_step = NumericProperty(0.01)
     y_hint_step = NumericProperty(-0.01)
     hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
