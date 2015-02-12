@@ -283,7 +283,7 @@ class Card(FloatLayout):
 
     def on_background_source(self, *args):
         if self.background_source:
-            self.background_image = Image(self.background_source)
+            self.background_image = Image(source=self.background_source)
 
     def on_background_image(self, *args):
         if self.background_image is not None:
@@ -291,7 +291,7 @@ class Card(FloatLayout):
 
     def on_foreground_source(self, *args):
         if self.foreground_source:
-            self.foreground_image = Image(self.foreground_source)
+            self.foreground_image = Image(source=self.foreground_source)
 
     def on_foreground_image(self, *args):
         if self.foreground_image is not None:
@@ -299,7 +299,7 @@ class Card(FloatLayout):
 
     def on_art_source(self, *args):
         if self.art_source:
-            self.art_image = Image(self.art_source)
+            self.art_image = Image(source=self.art_source)
 
     def on_art_image(self, *args):
         if self.art_image is not None:
