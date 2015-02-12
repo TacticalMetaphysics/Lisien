@@ -113,15 +113,15 @@ class Card(FloatLayout):
     collide_y = NumericProperty()
     collide_pos = ReferenceListProperty(collide_x, collide_y)
     foreground_source = StringProperty('')
-    foreground_color = ListProperty([0, 1, 0, 1])
+    foreground_color = ListProperty([1, 1, 1, 1])
     foreground_image = ObjectProperty(None, allownone=True)
     foreground_texture = ObjectProperty(None, allownone=True)
     background_source = StringProperty('')
-    background_color = ListProperty([0, 0, 1, 1])
+    background_color = ListProperty([1, 1, 1, 1])
     background_image = ObjectProperty(None, allownone=True)
     background_texture = ObjectProperty(None, allownone=True)
     art_source = StringProperty('')
-    art_color = ListProperty([1, 0, 0, 1])
+    art_color = ListProperty([1, 1, 1, 1])
     art_image = ObjectProperty(None, allownone=True)
     art_texture = ObjectProperty(None, allownone=True)
     show_art = BooleanProperty(True)
@@ -129,7 +129,8 @@ class Card(FloatLayout):
         'text': 'Headline',
         'markup': True,
         'size_hint': (None, None),
-        'font_size': 18
+        'font_size': 18,
+        'color': [0, 0, 0, 1]
     })
     headline_text = AliasProperty(
         lambda self: self.headline_kwargs['text'],
@@ -141,7 +142,8 @@ class Card(FloatLayout):
         'text': 'Midline',
         'markup': True,
         'size_hint': (None, None),
-        'font_size': 14
+        'font_size': 14,
+        'color': [0, 0, 0, 1]
     })
     midline_text = AliasProperty(
         lambda self: self.midline_kwargs['text'],
@@ -153,7 +155,8 @@ class Card(FloatLayout):
         'text': 'Footer',
         'markup': True,
         'size_hint': (None, None),
-        'font_size': 10
+        'font_size': 10,
+        'color': [0, 0, 0, 1]
     })
     footer_text = AliasProperty(
         lambda self: self.footer_kwargs['text'],
