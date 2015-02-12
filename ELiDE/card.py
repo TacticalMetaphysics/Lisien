@@ -385,6 +385,12 @@ class DeckLayout(Layout):
     grabbed = ObjectProperty(None, allownone=True)
     insertable = BooleanProperty(True)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(
+            insertion_point=self._trigger_layout
+        )
+
     def point_is_before_zeroth_card(self, zeroth, x, y):
         """While dragging a card, if you drag it past my zeroth card, you want
         to insert your card in position zero. This function detects
@@ -447,61 +453,48 @@ class DeckLayout(Layout):
             self._trigger_layout()
 
     def on_touch_move(self, touch):
-        if 'card' not in touch.ud:
-            return
-        card = touch.ud['card']
         i = 0
         childs = [
-            child for child in self.children if
-            child != card and not child.dragging
+            c for c in self.children if
+            c is not self.grabbed and not
+            c.dragging
         ]
+        # Avoid laying myself out when hovering past the space where a
+        # card's been displaced from.
+        if self.grabbed is not None:
+            # I can't use regular collide_point because self.grabbed eats it
+            if not any(
+                    touch.x > c.x and
+                    touch.x < c.right and
+                    touch.y > c.y and
+                    touch.y < c.top
+                    for c in childs
+            ):
+                # Not too important, but I think it'd be nice if you
+                # could swing a card around from one side to the other
+                # and see the space it'd fall into without actually
+                # dragging it over any of the other cards.
+                return
         # deliberately opposite to the way it goes in do_layout
         # I'm not sure why, but it seems to work
         if self.direction == 'ascending':
             childs.reverse()
-        inspt = self.insertion_point
-        if inspt in (0, -1):
-            # if the touch collides where the zeroth/last card
-            # USED to be, don't layout
-            new_pos_hint_x = get_pos_hint_x(
-                childs[inspt].pos_hint, childs[inspt].size_hint[0]
-            )
-            old_pos_hint_x = new_pos_hint_x - self.x_hint_step
-            new_pos_hint_y = get_pos_hint_y(
-                childs[inspt].pos_hint, childs[inspt].size_hint[1]
-            )
-            old_pos_hint_y = new_pos_hint_y - self.y_hint_step
-            old_x = old_pos_hint_x * self.width
-            old_y = old_pos_hint_y * self.height
-            new_x = new_pos_hint_x * self.width
-            new_y = new_pos_hint_y * self.height
-            (left, right) = (old_x, new_x) if old_x < new_x else (new_x, old_x)
-            (bot, top) = (old_y, new_y) if old_y < new_y else (new_y, old_y)
-            if (
-                touch.x > left and
-                touch.x < right and
-                touch.y > bot and
-                touch.y < top
-            ):
-                return
         for child in childs:
             if child.collide_point(*touch.pos):
                 self.insertion_point = i
-                self._trigger_layout()
                 return
             i += 1
         else:
             self.insertion_point = None
-        if self.point_is_before_zeroth_card(
-            childs[0], *touch.pos
-        ):
-            self.insertion_point = 0
-            self._trigger_layout()
-        elif self.point_is_after_last_card(
-            childs[-1], *touch.pos
-        ):
-            self.insertion_point = -1
-            self._trigger_layout()
+            if self.point_is_before_zeroth_card(
+                    childs[0], *touch.pos
+            ):
+                self.insertion_point = 0
+                return
+            if self.point_is_after_last_card(
+                    childs[-1], *touch.pos
+            ):
+                self.insertion_point = -1
 
     def on_insertion_point(self, *args):
         Logger.debug(
@@ -520,9 +513,15 @@ class DeckLayout(Layout):
         if self.direction == 'descending':
             childs.reverse()
             if inspt is not None:
-                inspt = len(childs) - inspt
-        if inspt is not None:
-            childs.insert(inspt, None)
+                if inspt == -1:
+                    childs.insert(0, None)
+                elif inspt == 0:
+                    childs.append(None)
+                else:
+                    childs.insert(len(childs) - inspt - 1, None)
+        else:
+            if inspt is not None:
+                childs.insert(inspt, None)
         pos_hint = dict(self.starting_pos_hint)
         (w, h) = self.size
         (x, y) = self.pos
