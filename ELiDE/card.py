@@ -467,15 +467,15 @@ class DeckLayout(Layout):
     def on_touch_move(self, touch):
         if not self.collide_point(*touch.pos):
             return
-        i = 0
         childs = [c for c in self.cards if not c.dragging]
-        if self.direction == 'ascending':
+        i = len(childs) - 1
+        if self.direction == 'descending':
             childs.reverse()
         for child in childs:
             if child.collide_point(*touch.pos):
                 self.insertion_point = i
                 return
-            i += 1
+            i -= 1
         else:
             self.insertion_point = None
             if self.point_is_after_last_card(
