@@ -3,13 +3,7 @@
 """Cards that can be assembled into piles, which can be fanned out or
 stacked into decks, which can then be drawn from."""
 from kivy.adapters.listadapter import ListAdapter
-from kivy.clock import Clock
-from kivy.logger import Logger
 from kivy.lang import Builder
-from kivy.graphics import (
-    Color,
-    Rectangle
-)
 from kivy.properties import (
     BooleanProperty,
     BoundedNumericProperty,
@@ -21,7 +15,6 @@ from kivy.properties import (
     ReferenceListProperty,
     StringProperty,
 )
-from kivy.uix.widget import Widget
 from kivy.uix.listview import ListView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
