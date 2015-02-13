@@ -60,6 +60,7 @@ class ColorTextureBox(FloatLayout):
 
 
 class Card(FloatLayout):
+    ud = DictProperty({})
     dragging = BooleanProperty(False)
     idx = NumericProperty()
 
@@ -117,6 +118,7 @@ class Card(FloatLayout):
 
     def get_kwargs(self):
         kwargnames = (
+            'ud',
             'foreground_source',
             'foreground_color',
             'background_source',
