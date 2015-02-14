@@ -15,7 +15,7 @@ from kivy.properties import (
     ReferenceListProperty,
     StringProperty,
 )
-from kivy.uix.listview import ListView
+from kivy.uix.abstractview import AbstractView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.layout import Layout
@@ -376,13 +376,28 @@ class DeckLayout(Layout):
                 pos_hint['pos'] = (phx, phy)
 
 
-class DeckView(ListView):
+class DeckView(AbstractView):
+    def on_adapter(self, *args):
+        self.adapter.bind_triggers_to_view(self.repopulate)
+
+    def on_parent(self, *args):
+        if self.parent is not None:
+            self.repopulate()
+
     def on_touch_move(self, touch):
-        for child in self.children:
-            if child.collide_point(*touch.pos):
-                child.dispatch('on_touch_move', touch)
-            else:
-                child.insertion_point = None
+        child = self.children[0]
+        if child.collide_point(*touch.pos):
+            child.dispatch('on_touch_move', touch)
+        else:
+            child.insertion_point = None
+
+    def repopulate(self, *args):
+        child = self.children[0]
+        child.clear_widgets()
+        i = 0
+        while i < self.adapter.get_count():
+            child.add_widget(self.adapter.get_view(i))
+            i += 1
 
 
 kv = """
