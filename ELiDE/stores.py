@@ -63,8 +63,7 @@ class StoreButton(ListItemButton):
 
 
 class StoreAdapter(ListAdapter):
-    """:class:`ListAdapter` that knows how to update its data from a
-    store.
+    """:class:`ListAdapter` used to make lists of :class:`StoreButton`.
 
     """
     table = StringProperty('function')
