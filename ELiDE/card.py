@@ -212,15 +212,15 @@ class DeckLayout(Layout):
     direction = OptionProperty(
         'ascending', options=['ascending', 'descending']
     )
-    card_size_hint_x = BoundedNumericProperty(0.2, min=0, max=1)
-    card_size_hint_y = BoundedNumericProperty(0.3, min=0, max=1)
+    card_size_hint_x = NumericProperty()
+    card_size_hint_y = NumericProperty()
     card_size_hint = ReferenceListProperty(card_size_hint_x, card_size_hint_y)
-    starting_pos_hint = DictProperty({'x': 0.05, 'y': 0.05})
-    x_hint_step = NumericProperty(0.01)
-    y_hint_step = NumericProperty(0.07)
+    starting_pos_hint = DictProperty()
+    x_hint_step = NumericProperty()
+    y_hint_step = NumericProperty()
     hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
     insertion_point = NumericProperty(None, allownone=True)
-    insertable = BooleanProperty(False)
+    insertable = BooleanProperty()
 
     def on_parent(self, *args):
         if self.parent is not None:
@@ -382,6 +382,19 @@ class DeckLayout(Layout):
 
 
 class DeckView(ListView):
+    do_scroll_y = BooleanProperty(False)
+    direction = OptionProperty(
+        'ascending', options=['ascending', 'descending']
+    )
+    card_size_hint_x = BoundedNumericProperty(0.2, min=0, max=1)
+    card_size_hint_y = BoundedNumericProperty(0.3, min=0, max=1)
+    card_size_hint = ReferenceListProperty(card_size_hint_x, card_size_hint_y)
+    starting_pos_hint = DictProperty({'x': 0.05, 'y': 0.05})
+    x_hint_step = NumericProperty(0.01)
+    y_hint_step = NumericProperty(0.07)
+    hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
+    insertable = BooleanProperty(False)
+
     def on_touch_move(self, touch):
         for child in self.children:
             if child.collide_point(*touch.pos):
@@ -469,11 +482,21 @@ kv = """
                 size: self.texture_size
 <DeckView>:
     container: container
-    DeckLayout:
-        id: container
-        adapter: root.adapter
+    ScrollView:
         pos: root.pos
-        size: root.size
+        on_scroll_y: root._scroll(args[1])
+        do_scroll_x: False
+        do_scroll_y: root.do_scroll_y
+        DeckLayout:
+            id: container
+            adapter: root.adapter
+            direction: root.direction
+            card_size_hint_x: root.card_size_hint_x
+            card_size_hint_y: root.card_size_hint_y
+            starting_pos_hint: root.starting_pos_hint
+            x_hint_step: root.x_hint_step
+            y_hint_step: root.y_hint_step
+            insertable: root.insertable
 """
 Builder.load_string(kv)
 
