@@ -220,6 +220,7 @@ class DeckLayout(Layout):
     y_hint_step = NumericProperty(-0.07)
     hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
     insertion_point = NumericProperty(None, allownone=True)
+    insertable = BooleanProperty(False)
 
     def on_parent(self, *args):
         if self.parent is not None:
@@ -281,6 +282,8 @@ class DeckLayout(Layout):
     def on_touch_move(self, touch):
         if 'card' not in touch.ud:
             return
+        if not self.insertable and touch.ud['layout'] is not self:
+            return
         childs = [c for c in self.children if not c.dragging]
         i = len(childs)
         if self.direction == 'descending':
@@ -304,6 +307,8 @@ class DeckLayout(Layout):
 
     def on_touch_up(self, touch):
         if 'card' not in touch.ud:
+            return
+        if not self.insertable and touch.ud['layout'] is not self:
             return
         if self.insertion_point is not None and self.collide_point(*touch.pos):
             del touch.ud['layout'].adapter.data[touch.ud['idx']]
