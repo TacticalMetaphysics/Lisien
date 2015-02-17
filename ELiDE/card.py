@@ -221,6 +221,7 @@ class DeckLayout(Layout):
     hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
     insertion_point = NumericProperty(None, allownone=True)
     insertable = BooleanProperty()
+    deletable = BooleanProperty()
 
     def on_parent(self, *args):
         if self.parent is not None:
@@ -311,7 +312,8 @@ class DeckLayout(Layout):
         if not self.insertable and touch.ud['layout'] is not self:
             return
         if self.insertion_point is not None and self.collide_point(*touch.pos):
-            del touch.ud['layout'].adapter.data[touch.ud['idx']]
+            if touch.ud['layout'].deletable:
+                del touch.ud['layout'].adapter.data[touch.ud['idx']]
             self.adapter.data.insert(self.insertion_point, touch.ud['card'])
             self.insertion_point = None
 
@@ -394,6 +396,7 @@ class DeckView(ListView):
     y_hint_step = NumericProperty(0.07)
     hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
     insertable = BooleanProperty(False)
+    deletable = BooleanProperty(False)
 
     def on_touch_move(self, touch):
         for child in self.children:
@@ -497,6 +500,7 @@ kv = """
             x_hint_step: root.x_hint_step
             y_hint_step: root.y_hint_step
             insertable: root.insertable
+            deletable: root.deletable
 """
 Builder.load_string(kv)
 
