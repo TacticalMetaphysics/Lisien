@@ -1,25 +1,65 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
+from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.properties import (
-    BooleanProperty,
-    ObjectProperty
+    ListProperty,
+    ObjectProperty,
+    OptionProperty
 )
+from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.floatlayout import FloatLayout
-from kivy.uix.listview import ListView
+from kivy.uix.listview import ListView, ListItemButton
 
 
 class RulesView(FloatLayout):
     engine = ObjectProperty()
     rulebook = ObjectProperty()
     rule = ObjectProperty()
-    rule_triggers_insertable = BooleanProperty(False)
-    rule_prereqs_insertable = BooleanProperty(False)
-    rule_actions_insertable = BooleanProperty(False)
+    rule_triggers_data = ListProperty()
+    rule_prereqs_data = ListProperty()
+    rule_actions_data = ListProperty()
+    inserting = OptionProperty(
+        'none', options=['trigger', 'prereq' 'action']
+    )
+
+    def on_touch_move(self, touch):
+        if 'card' in touch.ud:
+            card = touch.ud['card']
+            if self.inserting != card.ud['type']:
+                self.inserting = card.ud['type']
+        else:
+            if self.inserting != 'none':
+                self.inserting = 'none'
+        return super().on_touch_move(touch)
+
+    def on_touch_up(self, touch):
+        if self.inserting != 'none':
+            self.inserting = 'none'
+        return super().on_touch_up(touch)
 
 
 class RulesList(ListView):
     rulebook = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        if 'adapter' not in kwargs:
+            kwargs['adapter'] = ListAdapter(
+                data=[],
+                selection_mode='single',
+                cls=ListItemButton,
+                args_converter=lambda i, rule: {
+                    'text': rule.name,
+                    'on_press': lambda inst:
+                    self.parent.setter('rule')(rule)
+                }
+            )
+        super().__init__(**kwargs)
+
+    def on_rulebook(self, *args):
+        if self.rulebook is None:
+            return
+        self.adapter.data = list(self.rulebook)
 
 
 kv = """
@@ -39,7 +79,7 @@ kv = """
             DeckScrollView:
                 id: trigdeck
                 data: root.rule_triggers_data
-                insertable: root.rule_triggers_insertable
+                insertable: root.inserting == 'trigger'
                 deletable: True
                 size_hint_y: None
                 height: 200 * len(root.rule_triggers_data)
@@ -58,7 +98,7 @@ kv = """
             DeckScrollView:
                 id: preqdeck
                 data: root.rule_prereqs_data
-                insertable: root.rule_prereqs_insertable
+                insertable: root.inserting == 'prereq'
                 deletable: True
                 size_hint_y: None
                 height: 200 * len(root.rule_prereqs_data)
@@ -77,7 +117,7 @@ kv = """
             DeckScrollView:
                 id: actdeck
                 data: root.rule_actions_data
-                insertable: root.rule_actions_insertable
+                insertable: root.inserting == 'action'
                 deletable: True
                 size_hint_y: None
                 height: 200 * len(root.rule_actions_data)
