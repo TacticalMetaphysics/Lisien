@@ -13,13 +13,13 @@ class RulesView(FloatLayout):
     engine = ObjectProperty()
     rulebook = ObjectProperty()
     rule = ObjectProperty()
+    rule_triggers_insertable = BooleanProperty(False)
+    rule_prereqs_insertable = BooleanProperty(False)
+    rule_actions_insertable = BooleanProperty(False)
 
 
 class RulesList(ListView):
     rulebook = ObjectProperty()
-    rule_triggers_insertable = BooleanProperty(False)
-    rule_prereqs_insertable = BooleanProperty(False)
-    rule_actions_insertable = BooleanProperty(False)
 
 
 kv = """
