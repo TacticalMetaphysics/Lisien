@@ -147,7 +147,7 @@ class RulesList(ListView):
 
 kv = """
 <RulesView>:
-    rule: list.selection[0] if list.selection else None
+    rule: list.adapter.selection[0] if list.adapter and list.adapter.selection else None
     BoxLayout:
         RulesList:
             id: list
