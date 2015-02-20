@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 from kivy.clock import Clock
+from inspect import getsource
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.properties import (
@@ -20,6 +21,9 @@ class RulesView(FloatLayout):
     engine = ObjectProperty()
     rulebook = ObjectProperty()
     rule = ObjectProperty()
+    triggers_data = ListProperty()
+    prereqs_data = ListProperty()
+    actions_data = ListProperty()
     rule_triggers_data = ListProperty()
     rule_prereqs_data = ListProperty()
     rule_actions_data = ListProperty()
@@ -41,6 +45,35 @@ class RulesView(FloatLayout):
         if self.inserting != 'none':
             self.inserting = 'none'
         return super().on_touch_up(touch)
+
+    def on_engine(self, *args):
+        if self.engine is None:
+            return
+        self.triggers_data = list(
+            self.engine.trigger.db.func_table_name_plaincode('trigger')
+        )
+        self.prereqs_data = list(
+            self.engine.prereq.db.func_table_name_plaincode('prereq')
+        )
+        self.actions_data = list(
+            self.engine.action.db.func_table_name_plaincode('action')
+        )
+
+    def on_rule(self, *args):
+        if self.rule is None:
+            return
+        self.rule_triggers_data = [
+            (trigger.__name__, getsource(trigger))
+            for trigger in self.rule.triggers
+        ]
+        self.rule_prereqs_data = [
+            (prereq.__name__, getsource(prereq))
+            for prereq in self.rule.prereqs
+        ]
+        self.rule_actions_data = [
+            (action.__name__, getsource(action))
+            for action in self.rule.actions
+        ]
 
 
 class RulesList(ListView):
@@ -64,6 +97,10 @@ class RulesList(ListView):
         if self.rulebook is None:
             return
         self.adapter.data = list(self.rulebook)
+
+        @self.rulebook.listener
+        def upd_adapter_data(rb):
+            self.adapter.data = list(rb)
 
 
 kv = """
