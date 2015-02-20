@@ -277,6 +277,11 @@ class QueryEngine(gorm.query.QueryEngine):
                 return bool(active)
         return False
 
+    def character_rulebook(self, character):
+        character = json_dump(character)
+        for (rb,) in self.sql('character_rulebook', character):
+            return rb
+
     def rule_set(self, rulebook, rule, branch, tick, active):
         rulebook = json_dump(rulebook)
         try:
