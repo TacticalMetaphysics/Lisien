@@ -112,6 +112,7 @@ class Card(FloatLayout):
     footer_color = ListProperty([0, 0, 0, 1])
 
     text = StringProperty('')
+    text_color = ListProperty([0, 0, 0, 1])
     markup = BooleanProperty(True)
     shorten = BooleanProperty(True)
     font_name = StringProperty('DroidSans')
@@ -145,6 +146,7 @@ class Card(FloatLayout):
             'footer_font_size',
             'footer_color',
             'text',
+            'text_color',
             'markup',
             'shorten',
             'font_name',
@@ -508,6 +510,7 @@ kv = """
                 texture: root.foreground_texture
                 Label:
                     text: root.text
+                    color: root.text_color
                     markup: root.markup
                     shorten: root.shorten
                     font_name: root.font_name
