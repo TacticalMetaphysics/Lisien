@@ -164,13 +164,9 @@ kv = """
                 data: root.rule_triggers_data
                 insertable: root.inserting == 'trigger'
                 deletable: True
-                size_hint_y: None
-                height: 200 * len(root.rule_triggers_data)
             DeckScrollView:
                 id: trigcoll
                 data: root.triggers_data
-                size_hint_y: None
-                height: 200 * len(root.triggers_data)
         BoxLayout:
             id: prereqs
             orientation: 'vertical'
@@ -183,13 +179,9 @@ kv = """
                 data: root.rule_prereqs_data
                 insertable: root.inserting == 'prereq'
                 deletable: True
-                size_hint_y: None
-                height: 200 * len(root.rule_prereqs_data)
             DeckScrollView:
                 id: preqcoll
                 data: root.prereqs_data
-                size_hint_y: None
-                height: 200 * len(root.rule_prereqs_data)
         BoxLayout:
             id: actions
             orientation: 'vertical'
@@ -202,12 +194,8 @@ kv = """
                 data: root.rule_actions_data
                 insertable: root.inserting == 'action'
                 deletable: True
-                size_hint_y: None
-                height: 200 * len(root.rule_actions_data)
             DeckScrollView:
                 id: actcoll
                 data: root.actions_data
-                size_hint_y: None
-                height: 200 * len(root.actions_data)
 """
 Builder.load_string(kv)
