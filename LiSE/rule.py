@@ -151,6 +151,7 @@ class RuleBook(MutableSequence):
     def __init__(self, engine, name):
         self.engine = engine
         self.name = name
+        self._listeners = []
         if self.engine.caching:
             self._cache = [
                 self.engine.rule[rule] for rule in
@@ -190,6 +191,8 @@ class RuleBook(MutableSequence):
             while len(self._cache) <= i:
                 self._cache.append(None)
             self._cache[i] = rule
+        for fun in self._listeners:
+            fun(self)
 
     def insert(self, i, v):
         self.engine.db.rulebook_decr(self.name, i)
@@ -199,6 +202,11 @@ class RuleBook(MutableSequence):
         self.engine.db.rulebook_del(self.name, i)
         if self.engine.caching:
             del self._cache[i]
+        for fun in self._listeners:
+            fun(self)
+
+    def listener(self, fun):
+        self._listeners.append(fun)
 
 
 class RuleMapping(MutableMapping):
