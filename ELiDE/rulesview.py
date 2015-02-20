@@ -91,29 +91,71 @@ class RulesView(FloatLayout):
     def on_engine(self, *args):
         if self.engine is None:
             return
-        self.triggers_data = list(
+        self.triggers_data = [
+            {
+                'headline_text': name,
+                'show_art': False,
+                'midline_text': 'Trigger',
+                'text': source,
+                'show_footer': False
+            }
+            for (name, source) in
             self.engine.trigger.db.func_table_name_plaincode('trigger')
-        )
-        self.prereqs_data = list(
+        ]
+        self.prereqs_data = [
+            {
+                'headline_text': name,
+                'show_art': False,
+                'midline_text': 'Prereq',
+                'text': source,
+                'show_footer': False
+            }
+            for (name, source) in
             self.engine.prereq.db.func_table_name_plaincode('prereq')
-        )
-        self.actions_data = list(
+        ]
+        self.actions_data = [
+            {
+                'headline_text': name,
+                'show_art': False,
+                'midline_text': 'Action',
+                'text': source,
+                'show_footer': False
+            }
+            for (name, source) in
             self.engine.action.db.func_table_name_plaincode('action')
-        )
+        ]
 
     def on_rule(self, *args):
         if self.rule is None:
             return
         self.rule_triggers_data = [
-            (trigger.__name__, getsource(trigger))
+            {
+                'headline_text': trigger.__name__,
+                'show_art': False,
+                'midline_text': 'Trigger',
+                'text': getsource(trigger),
+                'show_footer': False
+            }
             for trigger in self.rule.triggers
         ]
         self.rule_prereqs_data = [
-            (prereq.__name__, getsource(prereq))
+            {
+                'headline_text': prereq.__name__,
+                'show_art': False,
+                'midline_text': 'Prereq',
+                'text': getsource(prereq),
+                'show_footer': False
+            }
             for prereq in self.rule.prereqs
         ]
         self.rule_actions_data = [
-            (action.__name__, getsource(action))
+            {
+                'headline_text': action.__name__,
+                'show_art': False,
+                'midline_text': 'Action',
+                'text': getsource(action),
+                'show_footer': False
+            }
             for action in self.rule.actions
         ]
 
