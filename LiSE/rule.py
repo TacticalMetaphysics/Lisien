@@ -394,6 +394,10 @@ class RuleFollower(object):
         for f in self._rulebook_listeners:
             f(self, self._rulebook)
 
+    def _get_rulebook(self):
+        """Return my :class:`RuleBook` as of this moment."""
+        raise NotImplementedError
+
     def rules(self):
         if not hasattr(self, 'engine'):
             raise AttributeError("Need an engine before I can get rules")
