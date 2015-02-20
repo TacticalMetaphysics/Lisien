@@ -108,6 +108,9 @@
             text: "Actions"
             on_press: root.toggle_funcs_editor('action')
         Button:
+            text: "Rules"
+            on_press: root.toggle_rules_view()
+        Button:
             id: charchangebut
             halign: "center"
             text: str(root.character_name)
