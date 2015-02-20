@@ -28,7 +28,7 @@ class RulesView(FloatLayout):
     rule_prereqs_data = ListProperty()
     rule_actions_data = ListProperty()
     inserting = OptionProperty(
-        'none', options=['trigger', 'prereq' 'action']
+        'none', options=['none', 'trigger', 'prereq', 'action']
     )
 
     def on_triggers_data(self, *args):
@@ -76,8 +76,8 @@ class RulesView(FloatLayout):
     def on_touch_move(self, touch):
         if 'card' in touch.ud:
             card = touch.ud['card']
-            if self.inserting != card.ud['type']:
-                self.inserting = card.ud['type']
+            if self.inserting != card['ud']['type']:
+                self.inserting = card['ud']['type']
         else:
             if self.inserting != 'none':
                 self.inserting = 'none'
@@ -93,6 +93,7 @@ class RulesView(FloatLayout):
             return
         self.triggers_data = [
             {
+                'ud': {'type': 'trigger'},
                 'headline_text': name,
                 'show_art': False,
                 'midline_text': 'Trigger',
@@ -104,6 +105,7 @@ class RulesView(FloatLayout):
         ]
         self.prereqs_data = [
             {
+                'ud': {'type': 'prereq'},
                 'headline_text': name,
                 'show_art': False,
                 'midline_text': 'Prereq',
@@ -115,6 +117,7 @@ class RulesView(FloatLayout):
         ]
         self.actions_data = [
             {
+                'ud': {'type': 'action'},
                 'headline_text': name,
                 'show_art': False,
                 'midline_text': 'Action',
@@ -130,6 +133,7 @@ class RulesView(FloatLayout):
             return
         self.rule_triggers_data = [
             {
+                'ud': {'type': 'trigger'},
                 'headline_text': trigger.__name__,
                 'show_art': False,
                 'midline_text': 'Trigger',
@@ -140,6 +144,7 @@ class RulesView(FloatLayout):
         ]
         self.rule_prereqs_data = [
             {
+                'ud': {'type': 'prereq'},
                 'headline_text': prereq.__name__,
                 'show_art': False,
                 'midline_text': 'Prereq',
@@ -150,6 +155,7 @@ class RulesView(FloatLayout):
         ]
         self.rule_actions_data = [
             {
+                'ud': {'type': 'action'},
                 'headline_text': action.__name__,
                 'show_art': False,
                 'midline_text': 'Action',
