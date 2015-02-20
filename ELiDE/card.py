@@ -398,6 +398,26 @@ class DeckView(ListView):
     hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
     insertable = BooleanProperty(False)
     deletable = BooleanProperty(False)
+    data = ListProperty([])
+
+    def __init__(self, **kwargs):
+        def args_converter(i, kv):
+            kv['idx'] = i
+            return kv
+
+        if 'adapter' not in kwargs:
+            kwargs['adapter'] = ListAdapter(
+                cls=Card,
+                args_converter=args_converter,
+                selection_mode='none',
+                data=self.data
+            )
+        super().__init__(**kwargs)
+
+    def on_data(self, *args):
+        if self.adapter is None:
+            return
+        self.adapter.data = self.data
 
     def on_touch_move(self, touch):
         for child in self.children:
@@ -421,6 +441,7 @@ class DeckScrollView(ScrollView):
     hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
     insertable = BooleanProperty(False)
     deletable = BooleanProperty(False)
+    data = ListProperty()
 
     def on_scroll_start(self, touch, check_children=True):
         if 'card' in touch.ud:
@@ -533,6 +554,9 @@ kv = """
         hint_step: root.hint_step
         insertable: root.insertable
         deletable: root.deletable
+        size_hint_y: None
+        height: 200 * len(self.children)
+        data: root.data
 """
 Builder.load_string(kv)
 
