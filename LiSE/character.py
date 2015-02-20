@@ -1636,6 +1636,12 @@ class Character(DiGraph, RuleFollower):
         for stat in self.stat:
             assert(stat in self.stat)
 
+    def _get_rulebook(self):
+        return RuleBook(
+            self.engine,
+            self.engine.db.character_rulebook(self.name)
+        )
+
     def _dispatch_stat(self, k, v):
         dispatch(self._stat_listeners, k, self, k, v)
 

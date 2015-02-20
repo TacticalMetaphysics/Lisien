@@ -1156,6 +1156,9 @@ def queries(table, view):
             characters.c.character == bindparam('character')
         )
 
+    r['character_rulebook'] = select(
+        [characters.c.character_rulebook]
+    ).where(characters.c.character == bindparam('character'))
     r['rulebook_get_character'] = rulebook_get_char('character')
     r['rulebook_get_avatar'] = rulebook_get_char('avatar')
     r['rulebook_get_character_thing'] = rulebook_get_char('character_thing')
