@@ -2,6 +2,7 @@
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 from kivy.clock import Clock
 from inspect import getsource
+from kivy.logger import Logger
 from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.properties import (
@@ -30,6 +31,48 @@ class RulesView(FloatLayout):
     inserting = OptionProperty(
         'none', options=['trigger', 'prereq' 'action']
     )
+
+    def on_triggers_data(self, *args):
+        Logger.debug(
+            "RulesView: got triggers_data {}".format(
+                self.triggers_data
+            )
+        )
+
+    def on_prereqs_data(self, *args):
+        Logger.debug(
+            "RulesView: got prereqs_data {}".format(
+                self.prereqs_data
+            )
+        )
+
+    def on_actions_data(self, *args):
+        Logger.debug(
+            "RulesView: got actions_data {}".format(
+                self.actions_data
+            )
+        )
+
+    def on_rule_triggers_data(self, *args):
+        Logger.debug(
+            "RulesView: got rule_triggers_data {}".format(
+                self.rule_triggers_data
+            )
+        )
+
+    def on_rule_prereqs_data(self, *args):
+        Logger.debug(
+            "RulesView: got rule_prereqs_data {}".format(
+                self.rule_prereqs_data
+            )
+        )
+
+    def on_rule_actions_data(self, *args):
+        Logger.debug(
+            "RulesView: got rule_actions_data {}".format(
+                self.rule_actions_data
+            )
+        )
 
     def on_touch_move(self, touch):
         if 'card' in touch.ud:
