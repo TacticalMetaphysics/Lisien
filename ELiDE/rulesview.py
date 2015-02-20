@@ -1,6 +1,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 from kivy.clock import Clock
+from kivy.factory import Factory
 from kivy.lang import Builder
 from kivy.properties import (
     ListProperty,
@@ -10,6 +11,9 @@ from kivy.properties import (
 from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.listview import ListView, ListItemButton
+
+from .card import DeckScrollView
+Factory.register('DeckScrollView', cls=DeckScrollView)
 
 
 class RulesView(FloatLayout):
