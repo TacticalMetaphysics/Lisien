@@ -20,6 +20,7 @@ from kivy.clock import Clock
 from kivy.logger import Logger
 
 from LiSE.util import RedundantRuleError
+from LiSE.character import CharStatCache
 
 from .dummy import Dummy
 from .configurator import PawnConfigDialog, SpotConfigDialog
@@ -28,6 +29,7 @@ from .board.spot import Spot
 from .board.pawn import Pawn
 from .statgrid import StatListViewConfigurator
 from .stores import StringsEditor, FuncsEditor
+from .rulesview import RulesView
 
 from gorm.xjson import json_load
 
@@ -333,10 +335,28 @@ class ELiDELayout(FloatLayout):
         )
         self._strings_ed_window = StringsEdWindow(layout=self)
         self._funcs_ed_window = FuncsEdWindow(layout=self)
+        self._rulesview = RulesView(engine=self.engine)
 
         @self.engine.on_time
         def board_upd(*args):
             Clock.schedule_once(self.ids.board.update, 0)
+
+    def toggle_rules_view(self):
+        if hasattr(self, '_popover'):
+            self._popover.remove_widget(self._rules_view)
+            self._popover.dismiss()
+            del self._popover
+        else:
+            if (
+                    self.selected_remote is None or
+                    isinstance(self.selected_remote, CharStatCache)
+            ):
+                self._rulesview.rulebook = self.character.rulebook
+            else:
+                self._rulesview.rulebook = self.selected_remote.rulebook
+            self._popover = ModalView()
+            self._popover.add_widget(self._rulesview)
+            self._popover.open()
 
     def toggle_funcs_editor(self, functyp):
         if hasattr(self, '_popover'):
