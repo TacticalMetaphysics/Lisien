@@ -554,6 +554,7 @@ kv = """
         do_scroll_y: root.do_scroll_y
         directtion: root.direction
         card_size_hint: root.card_size_hint
+        starting_pos_hint: root.starting_pos_hint
         hint_step: root.hint_step
         insertable: root.insertable
         deletable: root.deletable
