@@ -1,7 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
-"""Cards that can be assembled into piles, which can be fanned out or
-stacked into decks, which can then be drawn from."""
 from kivy.adapters.listadapter import ListAdapter
 from kivy.lang import Builder
 from kivy.properties import (
