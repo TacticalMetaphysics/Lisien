@@ -1,6 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
-from kivy.adapters.listadapter import ListAdapter
+from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.properties import (
     BooleanProperty,
@@ -11,8 +11,8 @@ from kivy.properties import (
     OptionProperty,
     ReferenceListProperty,
     StringProperty,
+    BoundedNumericProperty
 )
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.layout import Layout
 from kivy.uix.image import Image
@@ -63,10 +63,10 @@ class ColorTextureBox(FloatLayout):
 
 
 class Card(FloatLayout):
-    ud = DictProperty({})
     dragging = BooleanProperty(False)
     deck = NumericProperty()
     idx = NumericProperty()
+    ud = DictProperty({})
 
     collide_x = NumericProperty()
     collide_y = NumericProperty()
@@ -121,45 +121,6 @@ class Card(FloatLayout):
     font_name = StringProperty('DroidSans')
     font_size = NumericProperty(12)
 
-    def get_kwargs(self):
-        kwargnames = (
-            'ud',
-            'foreground_source',
-            'foreground_color',
-            'background_source',
-            'background_color',
-            'art_source',
-            'art_color',
-            'show_art',
-            'headline_text',
-            'headline_markup',
-            'headline_shorten',
-            'headline_font_name',
-            'headline_font_size',
-            'headline_color',
-            'midline_text',
-            'midline_markup',
-            'midline_font_name',
-            'midline_font_size',
-            'midline_color',
-            'footer_text',
-            'footer_markup',
-            'footer_shorten',
-            'footer_font_name',
-            'footer_font_size',
-            'footer_color',
-            'text',
-            'text_color',
-            'markup',
-            'shorten',
-            'font_name',
-            'font_size'
-        )
-        return {
-            k: getattr(self, k)
-            for k in kwargnames
-        }
-
     def on_background_source(self, *args):
         if self.background_source:
             self.background_image = Image(source=self.background_source)
@@ -191,7 +152,7 @@ class Card(FloatLayout):
             return
         touch.grab(self)
         self.dragging = True
-        touch.ud['card'] = self.get_kwargs()
+        touch.ud['card'] = self
         touch.ud['idx'] = self.idx
         touch.ud['deck'] = self.deck
         touch.ud['layout'] = self.parent
@@ -214,216 +175,60 @@ class Card(FloatLayout):
         self.dragging = False
 
 
-class DeckLayout(Layout):
-    adapter = ObjectProperty()
-    direction = OptionProperty(
-        'ascending', options=['ascending', 'descending']
-    )
-    card_size_hint_x = NumericProperty()
-    card_size_hint_y = NumericProperty()
-    card_size_hint = ReferenceListProperty(card_size_hint_x, card_size_hint_y)
-    starting_pos_hint = DictProperty()
-    x_hint_step = NumericProperty()
-    y_hint_step = NumericProperty()
-    hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
-    insertion_point = NumericProperty(None, allownone=True)
-    insertable = BooleanProperty()
-    deletable = BooleanProperty()
-
-    def on_parent(self, *args):
-        if self.parent is not None:
-            self._trigger_layout()
-
-    def on_children(self, *args):
-        self._trigger_layout()
-
-    def on_insertion_point(self, *args):
-        if self.insertion_point is not None:
-            self._trigger_layout()
-
-    def point_before_card(self, card, x, y):
-        def ycmp():
-            if self.y_hint_step == 0:
-                return False
-            elif self.y_hint_step > 0:
-                # stacking upward
-                return y < card.y
-            else:
-                # stacking downward
-                return y > card.top
-        if self.x_hint_step > 0:
-            # stacking to the right
-            if x < card.x:
-                return True
-            return ycmp()
-        elif self.x_hint_step == 0:
-            return ycmp()
-        else:
-            # stacking to the left
-            if x > card.right:
-                return True
-            return ycmp()
-
-    def point_after_card(self, card, x, y):
-        def ycmp():
-            if self.y_hint_step == 0:
-                return False
-            elif self.y_hint_step > 0:
-                # stacking upward
-                return y > card.top
-            else:
-                # stacking downward
-                return y < card.y
-        if self.x_hint_step > 0:
-            # stacking to the right
-            if x > card.right:
-                return True
-            return ycmp()
-        elif self.x_hint_step == 0:
-            return ycmp()
-        else:
-            # stacking to the left
-            if x < card.x:
-                return True
-            return ycmp()
-
-    def on_touch_move(self, touch):
-        if 'card' not in touch.ud:
-            return
-        if not self.insertable and touch.ud['layout'] is not self:
-            return
-        childs = [c for c in self.children if not c.dragging]
-        i = len(childs)
-        if self.direction == 'descending':
-            childs.reverse()
-        for child in childs:
-            if child.collide_point(*touch.pos):
-                self.insertion_point = i
-                return
-            i -= 1
-        else:
-            if self.insertion_point in (0, len(self.children)):
-                return
-            if self.point_before_card(
-                    self.children[0], *touch.pos
-            ):
-                self.insertion_point = len(self.children)
-            elif self.point_after_card(
-                    self.children[-1], *touch.pos
-            ):
-                self.insertion_point = 0
-
-    def on_touch_up(self, touch):
-        if 'card' not in touch.ud:
-            return
-        if not self.insertable and touch.ud['layout'] is not self:
-            return
-        if self.insertion_point is not None and self.collide_point(*touch.pos):
-            if touch.ud['layout'].deletable:
-                del touch.ud['layout'].adapter.data[touch.ud['idx']]
-            self.adapter.data.insert(self.insertion_point, touch.ud['card'])
-            self.insertion_point = None
-
-    def do_layout(self, *args):
-        if self.size == [1, 1]:
-            return
-        childs = list(self.children)
-        inspt = self.insertion_point
-        if inspt is not None and inspt > len(childs):
-            childs.append(None)
-        dragidx = None
-        i = 0
-        for child in childs:
-            if child.dragging:
-                dragidx = i
-                break
-            i += 1
-        if dragidx is not None:
-            del childs[dragidx]
-        if inspt is not None:
-            childs.insert(len(childs) - inspt, None)
-        if self.direction == 'descending':
-            childs.reverse()
-        pos_hint = dict(self.starting_pos_hint)
-        (w, h) = self.size
-        (x, y) = self.pos
-        for child in childs:
-            if child is not None:
-                shw, shh = child.size_hint = self.card_size_hint
-                child.pos_hint = pos_hint
-                child.size = w * shw, h * shh
-                for (k, v) in pos_hint.items():
-                    if k == 'x':
-                        child.x = x + v * w
-                    elif k == 'right':
-                        child.right = x + v * w
-                    elif k == 'pos':
-                        child.pos = x + v[0] * w, y + v[1] * h
-                    elif k == 'y':
-                        child.y = y + v * h
-                    elif k == 'top':
-                        child.top = y + v * h
-                    elif k == 'center':
-                        child.center = x + v[0] * w, y + v[1] * h
-                    elif k == 'center_x':
-                        child.center_x = x + v * w
-                    elif k == 'center_y':
-                        child.center_y = y + v * h
-            for xkey in (
-                    'x',
-                    'center_x',
-                    'right'
-            ):
-                if xkey in pos_hint:
-                    pos_hint[xkey] += self.x_hint_step
-            for ykey in (
-                    'y',
-                    'center_y',
-                    'top'
-            ):
-                if ykey in pos_hint:
-                    pos_hint[ykey] += self.y_hint_step
-            if 'pos' in pos_hint:
-                (phx, phy) = pos_hint['pos']
-                phx += self.x_hint_step
-                phy += self.y_hint_step
-                pos_hint['pos'] = (phx, phy)
-
-
 class DeckBuilderLayout(Layout):
     direction = OptionProperty(
         'ascending', options=['ascending', 'descending']
     )
-    card_size_hint_x = NumericProperty()
-    card_size_hint_y = NumericProperty()
+    card_size_hint_x = BoundedNumericProperty(1, min=0, max=1)
+    card_size_hint_y = BoundedNumericProperty(1, min=0, max=1)
     card_size_hint = ReferenceListProperty(card_size_hint_x, card_size_hint_y)
-    starting_pos_hint = DictProperty()
-    card_x_hint_step = NumericProperty()
-    card_y_hint_step = NumericProperty()
+    starting_pos_hint = DictProperty({'x': 0, 'y': 0})
+    card_x_hint_step = NumericProperty(0)
+    card_y_hint_step = NumericProperty(-1)
     card_hint_step = ReferenceListProperty(card_x_hint_step, card_y_hint_step)
-    deck_x_hint_step = NumericProperty()
-    deck_y_hint_step = NumericProperty()
+    deck_x_hint_step = NumericProperty(1)
+    deck_y_hint_step = NumericProperty(0)
     deck_hint_step = ReferenceListProperty(deck_x_hint_step, deck_y_hint_step)
     decks = ListProperty([[]])  # list of lists of cards
-    insertion_deck = NumericProperty(None, allownone=True)
-    insertion_card = NumericProperty(None, allownone=True)
+    insertion_deck = BoundedNumericProperty(None, min=0, allownone=True)
+    insertion_card = BoundedNumericProperty(None, min=0, allownone=True)
+
+    def on_decks(self, *args):
+        if self.canvas is None:
+            Clock.schedule_once(self.on_decks, 0)
+            return
+        decknum = 0
+        for deck in self.decks:
+            cardnum = 0
+            for card in deck:
+                if not isinstance(card, Card):
+                    raise TypeError("You must only put Card in decks")
+                if card not in self.children:
+                    self.add_widget(card)
+                if card.deck != decknum:
+                    card.deck = decknum
+                if card.idx != cardnum:
+                    card.idx = cardnum
+                cardnum += 1
+            decknum += 1
+        self._trigger_layout()
 
     def point_before_card(self, card, x, y):
         def ycmp():
-            if self.y_hint_step == 0:
+            if self.card_y_hint_step == 0:
                 return False
-            elif self.y_hint_step > 0:
+            elif self.card_y_hint_step > 0:
                 # stacking upward
                 return y < card.y
             else:
                 # stacking downward
                 return y > card.top
-        if self.x_hint_step > 0:
+        if self.card_x_hint_step > 0:
             # stacking to the right
             if x < card.x:
                 return True
             return ycmp()
-        elif self.x_hint_step == 0:
+        elif self.card_x_hint_step == 0:
             return ycmp()
         else:
             # stacking to the left
@@ -433,20 +238,20 @@ class DeckBuilderLayout(Layout):
 
     def point_after_card(self, card, x, y):
         def ycmp():
-            if self.y_hint_step == 0:
+            if self.card_y_hint_step == 0:
                 return False
-            elif self.y_hint_step > 0:
+            elif self.card_y_hint_step > 0:
                 # stacking upward
                 return y > card.top
             else:
                 # stacking downward
                 return y < card.y
-        if self.x_hint_step > 0:
+        if self.card_x_hint_step > 0:
             # stacking to the right
             if x > card.right:
                 return True
             return ycmp()
-        elif self.x_hint_step == 0:
+        elif self.card_x_hint_step == 0:
             return ycmp()
         else:
             # stacking to the left
@@ -463,7 +268,14 @@ class DeckBuilderLayout(Layout):
             return
         i = 0
         for deck in self.decks:
-            cards = [card for card in deck if not card.dragging]
+            cards = [
+                card for card in deck
+                if not card.dragging
+                and not (
+                    card.deck == self.insertion_deck and
+                    card.idx == self.insertion_card
+                )
+            ]
             j = len(cards)
             if self.direction == 'descending':
                 cards.reverse()
@@ -473,20 +285,19 @@ class DeckBuilderLayout(Layout):
                     self.insertion_card = j
                     return
                 j -= 1
-            if self.insertion_deck == i:
-                if self.insertion_card in (0, len(deck)):
-                    i += 1
-                    continue
-                if self.point_before_card(
-                        cards[0], *touch.pos
-                ):
-                    self.insertion_card = 0
-                    i += 1
-                    continue
-                elif self.point_after_card(
+            else:
+                if self.insertion_deck == i:
+                    if self.insertion_card in (0, len(deck)):
+                        i += 1
+                    if self.point_before_card(
+                            cards[0], *touch.pos
+                    ):
+                        self.insertion_card = 0
+                        i += 1
+                    elif self.point_after_card(
                         cards[-1], *touch.pos
-                ):
-                    self.insertion_card = len(deck)
+                    ):
+                        self.insertion_card = len(deck)
             i += 1
 
     def on_touch_up(self, touch):
@@ -502,6 +313,7 @@ class DeckBuilderLayout(Layout):
             del self.decks[touch.ud['deck']][touch.ud['idx']]
             self.decks[self.insertion_deck].insert(self.insertion_card, card)
             self.insertion_deck = self.insertion_card = None
+        self._trigger_layout()
 
     def on_insertion_card(self, *args):
         if self.insertion_card is not None:
@@ -528,6 +340,8 @@ class DeckBuilderLayout(Layout):
         dragidx = get_dragidx(cards)
         if dragidx is not None:
             del cards[dragidx]
+        for card in cards:
+            self.remove_widget(card)
         if self.insertion_card is not None:
             insdx = self.insertion_card
             if insdx > len(cards):
@@ -545,15 +359,15 @@ class DeckBuilderLayout(Layout):
         # start assigning pos and size to cards
         for card in cards:
             if card is not None:
-                (shw, shh) = card.size_hint = self.card_size_hint
-                card.pos_hint = {'x': phx, 'y': phy}
+                (shw, shh) = self.card_size_hint
                 card.pos = (
                     x + phx * w,
                     y + phy * h
                 )
                 card.size = (w * shw, h * shh)
-            phx += self.x_hint_step
-            phy += self.y_hint_step
+                self.add_widget(card)
+            phx += self.card_x_hint_step
+            phy += self.card_y_hint_step
 
 
 kv = """
@@ -573,109 +387,111 @@ kv = """
     footer: footer
     art: art
     foreground: foreground
-    ColorTextureBox:
-        color: root.background_color
-        texture: root.background_texture
-        pos: root.pos
-        size: root.size
-        BoxLayout:
-            size_hint: 0.9, 0.9
-            pos_hint: {'x': 0.05, 'y': 0.05}
-            orientation: 'vertical'
+    canvas:
+        Color:
+            rgba: root.background_color
+        Rectangle:
+            texture: root.background_texture
+            pos: root.pos
+            size: root.size
+        Color:
+            rgba: [1, 1, 1, 1]
+    BoxLayout:
+        size_hint: 0.9, 0.9
+        pos_hint: {'x': 0.05, 'y': 0.05}
+        orientation: 'vertical'
+        Label:
+            id: headline
+            text: root.headline_text
+            markup: root.headline_markup
+            shorten: root.headline_shorten
+            font_name: root.headline_font_name
+            font_size: root.headline_font_size
+            color: root.headline_color
+            size_hint: (None, None)
+            size: self.texture_size
+        ColorTextureBox:
+            id: art
+            color: root.art_color
+            texture: root.art_texture
+            size_hint: (1, 1) if root.show_art else (None, None)
+            size: (0, 0)
+        Label:
+            id: midline
+            text: root.midline_text
+            markup: root.midline_markup
+            shorten: root.midline_shorten
+            font_name: root.midline_font_name
+            font_size: root.midline_font_size
+            color: root.midline_color
+            size_hint: (None, None)
+            size: self.texture_size
+        ColorTextureBox:
+            id: foreground
+            color: root.foreground_color
+            texture: root.foreground_texture
             Label:
-                id: headline
-                text: root.headline_text
-                markup: root.headline_markup
-                shorten: root.headline_shorten
-                font_name: root.headline_font_name
-                font_size: root.headline_font_size
-                color: root.headline_color
+                text: root.text
+                color: root.text_color
+                markup: root.markup
+                shorten: root.shorten
+                font_name: root.font_name
+                font_size: root.font_size
+                text_size: foreground.size
                 size_hint: (None, None)
                 size: self.texture_size
-            ColorTextureBox:
-                id: art
-                color: root.art_color
-                texture: root.art_texture
-                size_hint: (1, 1) if root.show_art else (None, None)
-                size: (0, 0)
-            Label:
-                id: midline
-                text: root.midline_text
-                markup: root.midline_markup
-                shorten: root.midline_shorten
-                font_name: root.midline_font_name
-                font_size: root.midline_font_size
-                color: root.midline_color
-                size_hint: (None, None)
-                size: self.texture_size
-            ColorTextureBox:
-                id: foreground
-                color: root.foreground_color
-                texture: root.foreground_texture
-                Label:
-                    text: root.text
-                    color: root.text_color
-                    markup: root.markup
-                    shorten: root.shorten
-                    font_name: root.font_name
-                    font_size: root.font_size
-                    text_size: foreground.size
-                    size_hint: (None, None)
-                    size: self.texture_size
-                    pos: foreground.pos
-                    valign: 'top'
-            Label:
-                id: footer
-                text: root.footer_text
-                markup: root.footer_markup
-                shorten: root.footer_shorten
-                font_name: root.footer_font_name
-                font_size: root.footer_font_size
-                color: root.footer_color
-                size_hint: (None, None)
-                size: self.texture_size
+                pos: foreground.pos
+                valign: 'top'
+        Label:
+            id: footer
+            text: root.footer_text
+            markup: root.footer_markup
+            shorten: root.footer_shorten
+            font_name: root.footer_font_name
+            font_size: root.footer_font_size
+            color: root.footer_color
+            size_hint: (None, None)
+            size: self.texture_size
 """
 Builder.load_string(kv)
 
 
 if __name__ == '__main__':
+    deck0 = [
+        Card(
+            background_color=[0, 1, 0, 1],
+            headline_text='Card {}'.format(i),
+            art_color=[1, 0, 0, 1],
+            midline_text='0deck',
+            foreground_color=[0, 0, 1, 1],
+            text='The quick brown fox jumps over the lazy dog',
+            text_color=[1, 1, 1, 1],
+            footer_text=str(i)
+        )
+        for i in range(0, 9)
+    ]
+    deck1 = [
+        Card(
+            background_color=[0, 0, 1, 1],
+            headline_text='Card {}'.format(i),
+            art_color=[0, 1, 0, 1],
+            midline_text='1deck',
+            foreground_color=[1, 0, 0, 1],
+            text='Have a steak at the porter house bar',
+            text_color=[1, 1, 0, 1],
+            footer_text=str(i)
+        )
+        for i in range(0, 9)
+    ]
     from kivy.base import runTouchApp
     from kivy.core.window import Window
     from kivy.modules import inspector
-    data0 = [
-        {
-            'background_color': [1, 0, 0, 1],
-            'foreground_color': [0, 1, 0, 1],
-            'text': 'The quick brown fox jumps over the lazy dog',
-            'show_art': False,
-            'midline_text': '',
-            'midline_font_size': 0,
-            'footer_text': str(i),
-            'headline_text': 'Card {}'.format(i)
-        }
-        for i in range(0, 9)
-    ]
-    data1 = [
-        {
-            'background_color': [0, 1, 0, 1],
-            'foreground_color': [1, 0, 0, 1],
-            'text': 'Lorem ipsum dolor sit amet',
-            'show_art': False,
-            'midline_text': '',
-            'midline_font_size': 0,
-            'footer_text': str(i),
-            'headline_text': 'Card {}'.format(i)
-        }
-        for i in range(0, 9)
-    ]
-
-    def args_converter(i, kv):
-        kv['idx'] = i
-        return kv
-    adapter0 = ListAdapter(data=data0, cls=Card, args_converter=args_converter)
-    adapter1 = ListAdapter(data=data1, cls=Card, args_converter=args_converter)
-    layout = BoxLayout()
-    layout.add_widget(DeckView(adapter=adapter0))
-    layout.add_widget(DeckView(adapter=adapter1))
+    layout = DeckBuilderLayout(
+        card_size_hint=(0.15, 0.3),
+        starting_pos_hint={'x': 0.1, 'top': 0.9},
+        card_hint_step=(0.05, -0.1),
+        deck_hint_step=(0.4, 0),
+        decks=[deck0, deck1]
+    )
     inspector.create_inspector(Window, layout)
     runTouchApp(layout)
