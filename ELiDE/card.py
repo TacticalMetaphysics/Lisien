@@ -52,6 +52,13 @@ def get_pos_hint_y(poshints, sizehinty):
             )
 
 
+def get_pos_hint(poshints, sizehintx, sizehinty):
+    return (
+        get_pos_hint_x(poshints, sizehintx),
+        get_pos_hint_y(poshints, sizehinty)
+    )
+
+
 class ColorTextureBox(FloatLayout):
     color = ListProperty([1, 1, 1, 1])
     texture = ObjectProperty(None, allownone=True)
@@ -60,6 +67,7 @@ class ColorTextureBox(FloatLayout):
 class Card(FloatLayout):
     ud = DictProperty({})
     dragging = BooleanProperty(False)
+    deck = NumericProperty()
     idx = NumericProperty()
 
     collide_x = NumericProperty()
@@ -187,6 +195,7 @@ class Card(FloatLayout):
         self.dragging = True
         touch.ud['card'] = self.get_kwargs()
         touch.ud['idx'] = self.idx
+        touch.ud['deck'] = self.deck
         touch.ud['layout'] = self.parent
         self.collide_x = touch.x - self.x
         self.collide_y = touch.y - self.y
@@ -381,6 +390,172 @@ class DeckLayout(Layout):
                 phx += self.x_hint_step
                 phy += self.y_hint_step
                 pos_hint['pos'] = (phx, phy)
+
+
+class DeckBuilderLayout(Layout):
+    direction = OptionProperty(
+        'ascending', options=['ascending', 'descending']
+    )
+    card_size_hint_x = NumericProperty()
+    card_size_hint_y = NumericProperty()
+    card_size_hint = ReferenceListProperty(card_size_hint_x, card_size_hint_y)
+    starting_pos_hint = DictProperty()
+    card_x_hint_step = NumericProperty()
+    card_y_hint_step = NumericProperty()
+    card_hint_step = ReferenceListProperty(card_x_hint_step, card_y_hint_step)
+    deck_x_hint_step = NumericProperty()
+    deck_y_hint_step = NumericProperty()
+    deck_hint_step = ReferenceListProperty(deck_x_hint_step, deck_y_hint_step)
+    decks = ListProperty([[]])  # list of lists of cards
+    insertion_deck = NumericProperty(None, allownone=True)
+    insertion_card = NumericProperty(None, allownone=True)
+
+    def point_before_card(self, card, x, y):
+        def ycmp():
+            if self.y_hint_step == 0:
+                return False
+            elif self.y_hint_step > 0:
+                # stacking upward
+                return y < card.y
+            else:
+                # stacking downward
+                return y > card.top
+        if self.x_hint_step > 0:
+            # stacking to the right
+            if x < card.x:
+                return True
+            return ycmp()
+        elif self.x_hint_step == 0:
+            return ycmp()
+        else:
+            # stacking to the left
+            if x > card.right:
+                return True
+            return ycmp()
+
+    def point_after_card(self, card, x, y):
+        def ycmp():
+            if self.y_hint_step == 0:
+                return False
+            elif self.y_hint_step > 0:
+                # stacking upward
+                return y > card.top
+            else:
+                # stacking downward
+                return y < card.y
+        if self.x_hint_step > 0:
+            # stacking to the right
+            if x > card.right:
+                return True
+            return ycmp()
+        elif self.x_hint_step == 0:
+            return ycmp()
+        else:
+            # stacking to the left
+            if x < card.x:
+                return True
+            return ycmp()
+
+    def on_touch_move(self, touch):
+        if (
+                'card' not in touch.ud or
+                'layout' not in touch.ud or
+                touch.ud['layout'] != self
+        ):
+            return
+        i = 0
+        for deck in self.decks:
+            cards = [card for card in deck if not card.dragging]
+            j = len(cards)
+            if self.direction == 'descending':
+                cards.reverse()
+            for card in cards:
+                if card.collide_point(*touch.pos):
+                    self.insertion_deck = i
+                    self.insertion_card = j
+                    return
+                j -= 1
+            if self.insertion_deck == i:
+                if self.insertion_card in (0, len(deck)):
+                    i += 1
+                    continue
+                if self.point_before_card(
+                        cards[0], *touch.pos
+                ):
+                    self.insertion_card = 0
+                    i += 1
+                    continue
+                elif self.point_after_card(
+                        cards[-1], *touch.pos
+                ):
+                    self.insertion_card = len(deck)
+            i += 1
+
+    def on_touch_up(self, touch):
+        if (
+                'card' not in touch.ud or
+                'layout' not in touch.ud or
+                touch.ud['layout'] != self
+        ):
+            return
+        if None not in (self.insertion_deck, self.insertion_card):
+            # need to sync to adapter.data??
+            card = self.decks[touch.ud['deck']][touch.ud['idx']]
+            del self.decks[touch.ud['deck']][touch.ud['idx']]
+            self.decks[self.insertion_deck].insert(self.insertion_card, card)
+            self.insertion_deck = self.insertion_card = None
+
+    def on_insertion_card(self, *args):
+        if self.insertion_card is not None:
+            self._trigger_layout()
+
+    def do_layout(self, *args):
+        if self.size == [1, 1]:
+            return
+        for i in range(0, len(self.decks)):
+            self.layout_deck(i)
+
+    def layout_deck(self, i):
+        def get_dragidx(cards):
+            j = 0
+            for card in cards:
+                if card.dragging:
+                    return j
+                j += 1
+        # Put a None in the card list in place of the card you're
+        # hovering over, if you're dragging another card. This will
+        # result in an empty space where the card will go if you drop
+        # it now.
+        cards = list(self.decks[i])
+        dragidx = get_dragidx(cards)
+        if dragidx is not None:
+            del cards[dragidx]
+        if self.insertion_card is not None:
+            insdx = self.insertion_card
+            if insdx > len(cards):
+                cards.append(None)
+            else:
+                cards.insert(len(cards) - insdx, None)
+        if self.direction == 'descending':
+            cards.reverse()
+        # Work out the initial pos_hint for this deck
+        (phx, phy) = get_pos_hint(self.starting_pos_hint, *self.card_size_hint)
+        phx += self.deck_x_hint_step * i
+        phy += self.deck_y_hint_step * i
+        (w, h) = self.size
+        (x, y) = self.pos
+        # start assigning pos and size to cards
+        for card in cards:
+            if card is not None:
+                (shw, shh) = card.size_hint = self.card_size_hint
+                card.pos_hint = {'x': phx, 'y': phy}
+                card.pos = (
+                    x + phx * w,
+                    y + phy * h
+                )
+                card.size = (w * shw, h * shh)
+            phx += self.x_hint_step
+            phy += self.y_hint_step
 
 
 kv = """
