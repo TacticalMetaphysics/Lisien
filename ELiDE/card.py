@@ -276,28 +276,25 @@ class DeckBuilderLayout(Layout):
                     card.idx == self.insertion_card
                 )
             ]
-            j = len(cards)
             if self.direction == 'descending':
                 cards.reverse()
             for card in cards:
                 if card.collide_point(*touch.pos):
-                    self.insertion_deck = i
-                    self.insertion_card = j
+                    self.insertion_deck = card.deck
+                    self.insertion_card = card.idx
                     return
-                j -= 1
             else:
                 if self.insertion_deck == i:
                     if self.insertion_card in (0, len(deck)):
-                        i += 1
-                    if self.point_before_card(
+                        pass
+                    elif self.point_before_card(
                             cards[0], *touch.pos
                     ):
-                        self.insertion_card = 0
-                        i += 1
+                        self.insertion_card = cards[0].idx
                     elif self.point_after_card(
                         cards[-1], *touch.pos
                     ):
-                        self.insertion_card = len(deck)
+                        self.insertion_card = cards[-1].idx
             i += 1
 
     def on_touch_up(self, touch):
@@ -311,7 +308,11 @@ class DeckBuilderLayout(Layout):
             # need to sync to adapter.data??
             card = self.decks[touch.ud['deck']][touch.ud['idx']]
             del self.decks[touch.ud['deck']][touch.ud['idx']]
-            self.decks[self.insertion_deck].insert(self.insertion_card, card)
+            deck = self.decks[self.insertion_deck]
+            if self.insertion_card > len(deck):
+                deck.append(card)
+            else:
+                deck.insert(self.insertion_card, card)
             self.insertion_deck = self.insertion_card = None
         self._trigger_layout()
 
@@ -342,12 +343,9 @@ class DeckBuilderLayout(Layout):
             del cards[dragidx]
         for card in cards:
             self.remove_widget(card)
-        if self.insertion_card is not None:
+        if self.insertion_deck == i and self.insertion_card is not None:
             insdx = self.insertion_card
-            if insdx > len(cards):
-                cards.append(None)
-            else:
-                cards.insert(len(cards) - insdx, None)
+            cards.insert(insdx, None)
         if self.direction == 'descending':
             cards.reverse()
         # Work out the initial pos_hint for this deck
