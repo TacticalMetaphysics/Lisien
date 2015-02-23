@@ -6,7 +6,6 @@ from kivy.adapters.listadapter import ListAdapter
 from kivy.lang import Builder
 from kivy.properties import (
     BooleanProperty,
-    BoundedNumericProperty,
     DictProperty,
     ListProperty,
     NumericProperty,
@@ -15,8 +14,6 @@ from kivy.properties import (
     ReferenceListProperty,
     StringProperty,
 )
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.listview import ListView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.layout import Layout
@@ -386,72 +383,6 @@ class DeckLayout(Layout):
                 pos_hint['pos'] = (phx, phy)
 
 
-class DeckView(ListView):
-    do_scroll_y = BooleanProperty(False)
-    direction = OptionProperty(
-        'ascending', options=['ascending', 'descending']
-    )
-    card_size_hint_x = BoundedNumericProperty(0.2, min=0, max=1)
-    card_size_hint_y = BoundedNumericProperty(0.3, min=0, max=1)
-    card_size_hint = ReferenceListProperty(card_size_hint_x, card_size_hint_y)
-    starting_pos_hint = DictProperty({'x': 0.05, 'y': 0.05})
-    x_hint_step = NumericProperty(0.01)
-    y_hint_step = NumericProperty(0.07)
-    hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
-    insertable = BooleanProperty(False)
-    deletable = BooleanProperty(False)
-    data = ListProperty([])
-
-    def __init__(self, **kwargs):
-        def args_converter(i, kv):
-            kv['idx'] = i
-            return kv
-
-        if 'adapter' not in kwargs:
-            kwargs['adapter'] = ListAdapter(
-                cls=Card,
-                args_converter=args_converter,
-                selection_mode='none',
-                data=self.data
-            )
-        super().__init__(**kwargs)
-
-    def on_data(self, *args):
-        if self.adapter is None:
-            return
-        self.adapter.data = self.data
-
-    def on_touch_move(self, touch):
-        for child in self.children:
-            if child.collide_point(*touch.pos):
-                child.dispatch('on_touch_move', touch)
-            else:
-                child.insertion_point = None
-
-
-class DeckScrollView(ScrollView):
-    do_scroll_y = BooleanProperty(False)
-    direction = OptionProperty(
-        'ascending', options=['ascending', 'descending']
-    )
-    card_size_hint_x = BoundedNumericProperty(0.2, min=0, max=1)
-    card_size_hint_y = BoundedNumericProperty(0.3, min=0, max=1)
-    card_size_hint = ReferenceListProperty(card_size_hint_x, card_size_hint_y)
-    starting_pos_hint = DictProperty({'x': 0.05, 'y': 0.05})
-    x_hint_step = NumericProperty(0.01)
-    y_hint_step = NumericProperty(0.07)
-    hint_step = ReferenceListProperty(x_hint_step, y_hint_step)
-    insertable = BooleanProperty(False)
-    deletable = BooleanProperty(False)
-    data = ListProperty()
-
-    def on_scroll_start(self, touch, check_children=True):
-        if 'card' in touch.ud:
-            touch.ud[self._get_uid('svavoid')] = True
-            return
-        return super().on_scroll_start(touch, check_children)
-
-
 kv = """
 <ColorTextureBox>:
     canvas:
@@ -530,37 +461,6 @@ kv = """
                 color: root.footer_color
                 size_hint: (None, None)
                 size: self.texture_size
-<DeckView>:
-    container: container
-    ScrollView:
-        pos: root.pos
-        on_scroll_y: root._scroll(args[1])
-        do_scroll_x: False
-        do_scroll_y: root.do_scroll_y
-        DeckLayout:
-            id: container
-            adapter: root.adapter
-            direction: root.direction
-            card_size_hint_x: root.card_size_hint_x
-            card_size_hint_y: root.card_size_hint_y
-            starting_pos_hint: root.starting_pos_hint
-            x_hint_step: root.x_hint_step
-            y_hint_step: root.y_hint_step
-            insertable: root.insertable
-            deletable: root.deletable
-<DeckScrollView>:
-    do_scroll_x: False
-    DeckView:
-        do_scroll_y: root.do_scroll_y
-        directtion: root.direction
-        card_size_hint: root.card_size_hint
-        starting_pos_hint: root.starting_pos_hint
-        hint_step: root.hint_step
-        insertable: root.insertable
-        deletable: root.deletable
-        size_hint_y: None
-        height: 200 * len(self.children)
-        data: root.data
 """
 Builder.load_string(kv)
 
