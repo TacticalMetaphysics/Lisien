@@ -337,6 +337,8 @@ class DeckBuilderLayout(Layout):
                 deck.append(card)
             else:
                 deck.insert(self.insertion_card, card)
+            card.deck = self.insertion_deck
+            card.idx = self.insertion_card
             self.insertion_deck = self.insertion_card = None
         self._trigger_layout()
 
