@@ -163,6 +163,10 @@ class Card(FloatLayout):
         if not self.dragging:
             touch.ungrab(self)
             return
+        if not hasattr(self, '_topdecked'):
+            touch.ud['layout'].remove_widget(self)
+            touch.ud['layout'].add_widget(self)
+            self._topdecked = True
         self.pos = (
             touch.x - self.collide_x,
             touch.y - self.collide_y
@@ -173,6 +177,8 @@ class Card(FloatLayout):
             return
         touch.ungrab(self)
         self.dragging = False
+        if hasattr(self, '_topdecked'):
+            del self._topdecked
 
 
 class DeckBuilderLayout(Layout):
@@ -268,21 +274,36 @@ class DeckBuilderLayout(Layout):
             return
         i = 0
         for deck in self.decks:
-            cards = [
-                card for card in deck
-                if not card.dragging
-                and not (
-                    card.deck == self.insertion_deck and
-                    card.idx == self.insertion_card
-                )
-            ]
+            cards = [card for card in deck if not card.dragging]
+            maxidx = max(card.idx for card in cards)
             if self.direction == 'descending':
                 cards.reverse()
-            for card in cards:
-                if card.collide_point(*touch.pos):
-                    self.insertion_deck = card.deck
-                    self.insertion_card = card.idx
-                    return
+            cards_collided = [
+                card for card in cards if card.collide_point(*touch.pos)
+            ]
+            if cards_collided:
+                collided = cards_collided.pop()
+                for card in cards_collided:
+                    if card.idx > collided.idx:
+                        collided = card
+                if collided.deck == touch.ud['deck']:
+                    self.insertion_card = (
+                        1 if collided.idx == 0 else
+                        maxidx + 1 if collided.idx == maxidx else
+                        collided.idx + 1 if collided.idx > touch.ud['idx']
+                        else collided.idx
+                    )
+                else:
+                    dropdeck = self.decks[collided.deck]
+                    maxidx = max(card.idx for card in dropdeck)
+                    self.insertion_card = (
+                        1 if collided.idx == 0 else
+                        maxidx + 1 if collided.idx == maxidx else
+                        collided.idx + 1
+                    )
+                if self.insertion_deck != collided.deck:
+                    self.insertion_deck = collided.deck
+                return
             else:
                 if self.insertion_deck == i:
                     if self.insertion_card in (0, len(deck)):
@@ -290,7 +311,7 @@ class DeckBuilderLayout(Layout):
                     elif self.point_before_card(
                             cards[0], *touch.pos
                     ):
-                        self.insertion_card = cards[0].idx
+                        self.insertion_card = 0
                     elif self.point_after_card(
                         cards[-1], *touch.pos
                     ):
@@ -345,6 +366,8 @@ class DeckBuilderLayout(Layout):
             self.remove_widget(card)
         if self.insertion_deck == i and self.insertion_card is not None:
             insdx = self.insertion_card
+            if dragidx is not None and insdx > dragidx:
+                insdx -= 1
             cards.insert(insdx, None)
         if self.direction == 'descending':
             cards.reverse()
