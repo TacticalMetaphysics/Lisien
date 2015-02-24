@@ -163,10 +163,6 @@ class Card(FloatLayout):
         if not self.dragging:
             touch.ungrab(self)
             return
-        if not hasattr(self, '_topdecked'):
-            touch.ud['layout'].remove_widget(self)
-            touch.ud['layout'].add_widget(self)
-            self._topdecked = True
         self.pos = (
             touch.x - self.collide_x,
             touch.y - self.collide_y
@@ -177,8 +173,6 @@ class Card(FloatLayout):
             return
         touch.ungrab(self)
         self.dragging = False
-        if hasattr(self, '_topdecked'):
-            del self._topdecked
 
 
 class DeckBuilderLayout(Layout):
@@ -272,6 +266,12 @@ class DeckBuilderLayout(Layout):
                 touch.ud['layout'] != self
         ):
             return
+        if (
+                touch.ud['layout'] == self and
+                not hasattr(touch.ud['card'], '_topdecked')
+        ):
+            self.canvas.after.add(touch.ud['card'].canvas)
+            touch.ud['card']._topdecked = True
         i = 0
         for deck in self.decks:
             cards = [card for card in deck if not card.dragging]
@@ -325,6 +325,9 @@ class DeckBuilderLayout(Layout):
                 touch.ud['layout'] != self
         ):
             return
+        if hasattr(touch.ud['card'], '_topdecked'):
+            self.canvas.after.remove(touch.ud['card'].canvas)
+            del touch.ud['card']._topdecked
         if None not in (self.insertion_deck, self.insertion_card):
             # need to sync to adapter.data??
             card = self.decks[touch.ud['deck']][touch.ud['idx']]
