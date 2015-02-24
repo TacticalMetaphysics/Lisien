@@ -190,11 +190,42 @@ class DeckBuilderLayout(Layout):
     deck_y_hint_step = NumericProperty(0)
     deck_hint_step = ReferenceListProperty(deck_x_hint_step, deck_y_hint_step)
     decks = ListProperty([[]])  # list of lists of cards
+    deck_x_hint_offsets = ListProperty([])
+    deck_y_hint_offsets = ListProperty([])
     insertion_deck = BoundedNumericProperty(None, min=0, allownone=True)
     insertion_card = BoundedNumericProperty(None, min=0, allownone=True)
 
+    def scroll_deck_x(self, decknum, scroll_x):
+        if decknum >= len(self.decks):
+            raise IndexError("I have no deck at {}".format(decknum))
+        if decknum >= len(self.deck_x_hint_offsets):
+            self.deck_x_hint_offsets = list(self.deck_x_hint_offsets) + [0] * (
+                decknum - len(self.deck_x_hint_offsets) + 1
+            )
+        self.deck_x_hint_offsets[decknum] += scroll_x
+        self._trigger_layout()
+
+    def scroll_deck_y(self, decknum, scroll_y):
+        if decknum >= len(self.decks):
+            raise IndexError("I have no deck at {}".format(decknum))
+        if decknum >= len(self.deck_y_hint_offsets):
+            self.deck_y_hint_offsets = list(self.deck_y_hint_offsets) + [0] * (
+                decknum - len(self.deck_y_hint_offsets) + 1
+            )
+        self.deck_y_hint_offsets[decknum] += scroll_y
+        self._trigger_layout()
+
+    def scroll_deck(self, decknum, scroll_x, scroll_y):
+        self.scroll_deck_x(decknum, scroll_x)
+        self.scroll_deck_y(decknum, scroll_y)
+
     def on_decks(self, *args):
-        if self.canvas is None:
+        if None in (
+                self.canvas,
+                self.decks,
+                self.deck_x_hint_offsets,
+                self.deck_y_hint_offsets
+        ):
             Clock.schedule_once(self.on_decks, 0)
             return
         decknum = 0
@@ -211,6 +242,14 @@ class DeckBuilderLayout(Layout):
                     card.idx = cardnum
                 cardnum += 1
             decknum += 1
+        if len(self.deck_x_hint_offsets) < len(self.decks):
+            self.deck_x_hint_offsets = list(self.deck_x_hint_offsets) + [0] * (
+                len(self.decks) - len(self.deck_x_hint_offsets)
+            )
+        if len(self.deck_y_hint_offsets) < len(self.decks):
+            self.deck_y_hint_offsets = list(self.deck_y_hint_offsets) + [0] * (
+                len(self.decks) - len(self.deck_y_hint_offsets)
+            )
         self._trigger_layout()
 
     def point_before_card(self, card, x, y):
@@ -378,8 +417,8 @@ class DeckBuilderLayout(Layout):
             cards.reverse()
         # Work out the initial pos_hint for this deck
         (phx, phy) = get_pos_hint(self.starting_pos_hint, *self.card_size_hint)
-        phx += self.deck_x_hint_step * i
-        phy += self.deck_y_hint_step * i
+        phx += self.deck_x_hint_step * i + self.deck_x_hint_offsets[i]
+        phy += self.deck_y_hint_step * i + self.deck_y_hint_offsets[i]
         (w, h) = self.size
         (x, y) = self.pos
         # start assigning pos and size to cards
