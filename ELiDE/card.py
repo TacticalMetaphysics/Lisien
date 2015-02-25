@@ -529,7 +529,8 @@ class DeckBuilderScrollBar(FloatLayout):
         None,
         bind=('_scroll', 'scroll_min', 'scroll_max')
     )
-    bar_color = ListProperty([1, 1, 1, 1])
+    bar_color = ListProperty([.7, .7, .7, .9])
+    bar_inactive_color = ListProperty([.7, .7, .7, .2])
     bar_texture = ObjectProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
@@ -706,7 +707,7 @@ kv = """
 <DeckBuilderScrollBar>:
     ScrollBarBar:
         id: bar
-        color: root.bar_color
+        color: root.bar_color if root.scrolling else root.bar_inactive_color
         texture: root.bar_texture
 """
 Builder.load_string(kv)
