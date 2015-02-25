@@ -197,6 +197,20 @@ class DeckBuilderLayout(Layout):
     insertion_deck = BoundedNumericProperty(None, min=0, allownone=True)
     insertion_card = BoundedNumericProperty(None, min=0, allownone=True)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(
+            card_size_hint=self._trigger_layout,
+            starting_pos_hint=self._trigger_layout,
+            card_hint_step=self._trigger_layout,
+            deck_hint_step=self._trigger_layout,
+            decks=self._trigger_layout,
+            deck_x_hint_offsets=self._trigger_layout,
+            deck_y_hint_offsets=self._trigger_layout,
+            insertion_deck=self._trigger_layout,
+            insertion_card=self._trigger_layout
+        )
+
     def scroll_deck_x(self, decknum, scroll_x):
         if decknum >= len(self.decks):
             raise IndexError("I have no deck at {}".format(decknum))
