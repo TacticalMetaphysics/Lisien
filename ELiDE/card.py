@@ -3,6 +3,7 @@
 from kivy.clock import Clock
 from kivy.lang import Builder
 from kivy.properties import (
+    AliasProperty,
     BooleanProperty,
     DictProperty,
     ListProperty,
@@ -13,6 +14,7 @@ from kivy.properties import (
     StringProperty,
     BoundedNumericProperty
 )
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.layout import Layout
 from kivy.uix.image import Image
@@ -435,6 +437,176 @@ class DeckBuilderLayout(Layout):
             phy += self.card_y_hint_step
 
 
+class ScrollBarBar(ColorTextureBox):
+    def on_touch_down(self, touch):
+        if self.parent is None:
+            return
+        if self.collide_point(*touch.pos):
+            self.parent.bar_touched(self, touch)
+
+
+class DeckBuilderScrollBar(FloatLayout):
+    orientation = OptionProperty(
+        'vertical',
+        options=['horizontal', 'vertical']
+    )
+    deckbuilder = ObjectProperty()
+    deckidx = NumericProperty(0)
+    scrolling = BooleanProperty(False)
+    scroll_min = NumericProperty(-1)
+    scroll_max = NumericProperty(1)
+
+    scroll_hint = AliasProperty(
+        lambda self: self.scroll_max - self.scroll_min,
+        lambda self, v: None,
+        bind=('scroll_min', 'scroll_max')
+    )
+    _scroll = NumericProperty(0)
+
+    def _get_scroll(self):
+        zero = self._scroll - self.scroll_min
+        return zero / self.scroll_hint
+
+    def _set_scroll(self, v):
+        if v < 0:
+            v = 0
+        if v > 1:
+            v = 1
+        normal = v * self.scroll_hint
+        self._scroll = self.scroll_min + normal
+
+    scroll = AliasProperty(
+        _get_scroll,
+        _set_scroll,
+        bind=('_scroll', 'scroll_min', 'scroll_max')
+    )
+
+    def _get_vbar(self):
+        if self.deckbuilder is None:
+            return (0, 1)
+        vh = self.deckbuilder.height * self.scroll_hint
+        h = self.height
+        if vh < h or vh == 0:
+            return (0, 1)
+        ph = max(0.01, h / vh)
+        sy = min(1.0, max(0.0, self.scroll))
+        py = (1 - ph) * sy
+        return (py, ph)
+    vbar = AliasProperty(
+        _get_vbar,
+        None,
+        bind=('_scroll', 'scroll_min', 'scroll_max')
+    )
+
+    def _get_hbar(self):
+        if self.deckbuilder is None:
+            return (0, 1)
+        vw = self.deckbuilder.width * self.scroll_hint
+        w = self.width
+        if vw < w or vw == 0:
+            return (0, 1)
+        pw = max(0.01, w / vw)
+        sx = min(1.0, max(0.0, self.scroll))
+        px = (1 - pw) * sx
+        return (px, pw)
+
+    hbar = AliasProperty(
+        _get_hbar,
+        None,
+        bind=('_scroll', 'scroll_min', 'scroll_max')
+    )
+    bar_color = ListProperty([1, 1, 1, 1])
+    bar_texture = ObjectProperty(None, allownone=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(
+            _scroll=self._trigger_layout,
+            scroll_min=self._trigger_layout,
+            scroll_max=self._trigger_layout
+        )
+
+    def do_layout(self, *args):
+        if 'bar' not in self.ids:
+            Clock.schedule_once(self.do_layout)
+            return
+        if self.orientation == 'horizontal':
+            self.ids.bar.size_hint_x = self.hbar[1]
+            self.ids.bar.pos_hint = {'x': self.hbar[0], 'y': 0}
+        else:
+            self.ids.bar.size_hint_y = self.vbar[1]
+            self.ids.bar.pos_hint = {'x': 0, 'y': self.vbar[0]}
+        super().do_layout(*args)
+
+    def upd_scroll(self, *args):
+        att = 'deck_{}_hint_offsets'.format(
+            'x' if self.orientation == 'horizontal' else 'y'
+        )
+        self._scroll = getattr(self.deckbuilder, att)[self.deckidx]
+
+    def on_deckbuilder(self, *args):
+        if self.deckbuilder is None:
+            return
+        att = 'deck_{}_hint_offsets'.format(
+            'x' if self.orientation == 'horizontal' else 'y'
+        )
+        offs = getattr(self.deckbuilder, att)
+        if len(offs) <= self.deckidx:
+            Clock.schedule_once(self.on_deckbuilder, 0)
+            return
+        self.bind(scroll=self.handle_scroll)
+        self.deckbuilder.bind(**{att: self.upd_scroll})
+        self.upd_scroll()
+        self.deckbuilder._trigger_layout()
+
+    def handle_scroll(self, *args):
+        if 'bar' not in self.ids:
+            Clock.schedule_once(self.handle_scroll, 0)
+            return
+        att = 'deck_{}_hint_offsets'.format(
+            'x' if self.orientation == 'horizontal' else 'y'
+        )
+        offs = list(getattr(self.deckbuilder, att))
+        if len(offs) <= self.deckidx:
+            Clock.schedule_once(self.on_scroll, 0)
+            return
+        offs[self.deckidx] = self._scroll
+        setattr(self.deckbuilder, att, offs)
+        self.deckbuilder._trigger_layout()
+
+    def bar_touched(self, bar, touch):
+        self.scrolling = True
+        self._start_bar_pos_hint = get_pos_hint(bar.pos_hint, *bar.size_hint)
+        self._start_touch_pos_hint = (
+            touch.x / self.width,
+            touch.y / self.height
+        )
+        self._start_bar_touch_hint = (
+            self._start_touch_pos_hint[0] - self._start_bar_pos_hint[0],
+            self._start_touch_pos_hint[1] - self._start_bar_pos_hint[1]
+        )
+        touch.grab(self)
+
+    def on_touch_move(self, touch):
+        if not self.scrolling or 'bar' not in self.ids:
+            touch.ungrab(self)
+            return
+        touch.push()
+        touch.apply_transform_2d(self.parent.to_local)
+        touch.apply_transform_2d(self.to_local)
+        if self.orientation == 'horizontal':
+            hint_right_of_bar = (touch.x - self.ids.bar.x) / self.width
+            hint_correction = hint_right_of_bar - self._start_bar_touch_hint[0]
+            self.scroll += hint_correction
+        else:  # self.orientation == 'vertical'
+            hint_above_bar = (touch.y - self.ids.bar.y) / self.height
+            hint_correction = hint_above_bar - self._start_bar_touch_hint[1]
+            self.scroll += hint_correction
+        touch.pop()
+
+    def on_touch_up(self, touch):
+        self.scrolling = False
+
 kv = """
 <ColorTextureBox>:
     canvas:
@@ -517,6 +689,11 @@ kv = """
             color: root.footer_color
             size_hint: (None, None)
             size: self.texture_size
+<DeckBuilderScrollBar>:
+    ScrollBarBar:
+        id: bar
+        color: root.bar_color
+        texture: root.bar_texture
 """
 Builder.load_string(kv)
 
@@ -551,12 +728,28 @@ if __name__ == '__main__':
     from kivy.base import runTouchApp
     from kivy.core.window import Window
     from kivy.modules import inspector
-    layout = DeckBuilderLayout(
+    builder = DeckBuilderLayout(
         card_size_hint=(0.15, 0.3),
         starting_pos_hint={'x': 0.1, 'top': 0.9},
         card_hint_step=(0.05, -0.1),
         deck_hint_step=(0.4, 0),
         decks=[deck0, deck1]
     )
+    layout = BoxLayout(orientation='horizontal')
+    left_bar = DeckBuilderScrollBar(
+        deckbuilder=builder,
+        orientation='vertical',
+        size_hint_x=0.1,
+        deckidx=0
+    )
+    right_bar = DeckBuilderScrollBar(
+        deckbuilder=builder,
+        orientation='vertical',
+        size_hint_x=0.1,
+        deckidx=1
+    )
+    layout.add_widget(left_bar)
+    layout.add_widget(builder)
+    layout.add_widget(right_bar)
     inspector.create_inspector(Window, layout)
     runTouchApp(layout)
