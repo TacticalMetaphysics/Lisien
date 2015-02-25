@@ -747,7 +747,8 @@ if __name__ == '__main__':
         starting_pos_hint={'x': 0.1, 'top': 0.9},
         card_hint_step=(0.05, -0.1),
         deck_hint_step=(0.4, 0),
-        decks=[deck0, deck1]
+        decks=[deck0, deck1],
+        deck_y_hint_offsets=[0, 1]
     )
     layout = BoxLayout(orientation='horizontal')
     left_bar = DeckBuilderScrollBar(
