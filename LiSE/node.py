@@ -16,7 +16,7 @@ from .rule import RuleMapping as BaseRuleMapping
 
 class RuleMapping(BaseRuleMapping):
     def __init__(self, node):
-        super().__init__(node.engine, node.name)
+        super().__init__(node.engine, node.rulebook)
         self.character = node.character
         self.engine = self.character.engine
 
@@ -53,6 +53,12 @@ class Node(gorm.graph.Node, RuleFollower):
                 (self.character.name, self.name)
             )
             return (self.character.name, self.name)
+
+    def _get_rulebook(self):
+        return RuleBook(
+            self.engine,
+            self._get_rulebook_name()
+        )
 
     def _set_rulebook_name(self, v):
         self.engine.db.set_node_rulebook(
