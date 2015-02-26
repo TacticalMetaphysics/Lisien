@@ -335,15 +335,24 @@ class ELiDELayout(FloatLayout):
         )
         self._strings_ed_window = StringsEdWindow(layout=self)
         self._funcs_ed_window = FuncsEdWindow(layout=self)
+        self._rulesbox = BoxLayout(orientation='vertical')
         self._rulesview = RulesView(engine=self.engine)
+        self._rulesbox.add_widget(self._rulesview)
+        self._rulesbox.add_widget(
+            Button(
+                text='Close',
+                on_press=self.toggle_rules_view,
+                size_hint_y=0.05
+            )
+        )
 
         @self.engine.on_time
         def board_upd(*args):
             Clock.schedule_once(self.ids.board.update, 0)
 
-    def toggle_rules_view(self):
+    def toggle_rules_view(self, *args):
         if hasattr(self, '_popover'):
-            self._popover.remove_widget(self._rules_view)
+            self._popover.remove_widget(self._rulesbox)
             self._popover.dismiss()
             del self._popover
         else:
@@ -355,7 +364,7 @@ class ELiDELayout(FloatLayout):
             else:
                 self._rulesview.rulebook = self.selected_remote.rulebook
             self._popover = ModalView()
-            self._popover.add_widget(self._rulesview)
+            self._popover.add_widget(self._rulesbox)
             self._popover.open()
 
     def toggle_funcs_editor(self, functyp):
