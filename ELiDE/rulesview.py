@@ -26,6 +26,7 @@ dbg = Logger.debug
 
 class RulesList(ListView):
     rulebook = ObjectProperty()
+    rulesview = ObjectProperty()
 
     def __init__(self, **kwargs):
         if 'adapter' not in kwargs:
@@ -36,7 +37,7 @@ class RulesList(ListView):
                 args_converter=lambda i, rule: {
                     'text': rule.name,
                     'on_press': lambda inst:
-                    self.parent.setter('rule')(rule)
+                    self.set_rule(rule)
                 }
             )
         super().__init__(**kwargs)
@@ -49,6 +50,9 @@ class RulesList(ListView):
         @self.rulebook.listener
         def upd_adapter_data(rb):
             self.adapter.data = list(rb)
+
+    def set_rule(self, rule):
+        self.rulesview.rule = rule
 
 
 class RulesView(FloatLayout):
@@ -67,7 +71,7 @@ class RulesView(FloatLayout):
         dbg('RulesView: finalizing')
         self._box = BoxLayout()
         self.add_widget(self._box)
-        self._list = RulesList(rulebook=self.rulebook)
+        self._list = RulesList(rulebook=self.rulebook, rulesview=self)
         self.bind(rulebook=self._list.setter('rulebook'))
         self._box.add_widget(self._list)
         self._tabs = TabbedPanel(do_default_tab=False)
@@ -78,51 +82,63 @@ class RulesView(FloatLayout):
         self._action_builder = DeckBuilderLayout()
         self._scroll_left_action = DeckBuilderScrollBar(
             size_hint_x=0.01,
+            pos_hint={'x': 0, 'y': 0},
             deckbuilder=self._action_builder,
             deckidx=0
         )
         self._scroll_right_action = DeckBuilderScrollBar(
             size_hint_x=0.01,
+            pos_hint={'right': 1, 'y': 0},
             deckbuilder=self._action_builder,
             deckidx=1
         )
-        self._action_tab.add_widget(self._scroll_left_action)
-        self._action_tab.add_widget(self._action_builder)
-        self._action_tab.add_widget(self._scroll_right_action)
+        self._action_layout = FloatLayout()
+        self._action_tab.add_widget(self._action_layout)
+        self._action_layout.add_widget(self._action_builder)
+        self._action_layout.add_widget(self._scroll_left_action)
+        self._action_layout.add_widget(self._scroll_right_action)
 
         self._trigger_tab = TabbedPanelItem(text='Triggers')
         self._tabs.add_widget(self._trigger_tab)
         self._trigger_builder = DeckBuilderLayout()
         self._scroll_left_trigger = DeckBuilderScrollBar(
             size_hint_x=0.01,
+            pos_hint={'x': 0, 'y': 0},
             deckbuilder=self._trigger_builder,
             deckidx=0
         )
         self._scroll_right_trigger = DeckBuilderScrollBar(
             size_hint_x=0.01,
+            pos_hint={'right': 1, 'y': 0},
             deckbuilder=self._trigger_builder,
             deckidx=1
         )
-        self._trigger_tab.add_widget(self._scroll_left_trigger)
-        self._trigger_tab.add_widget(self._trigger_builder)
-        self._trigger_tab.add_widget(self._scroll_right_trigger)
+        self._trigger_layout = FloatLayout()
+        self._trigger_tab.add_widget(self._trigger_layout)
+        self._trigger_layout.add_widget(self._trigger_builder)
+        self._trigger_layout.add_widget(self._scroll_left_trigger)
+        self._trigger_layout.add_widget(self._scroll_right_trigger)
 
         self._prereq_tab = TabbedPanelItem(text='Prereqs')
         self._tabs.add_widget(self._prereq_tab)
         self._prereq_builder = DeckBuilderLayout()
         self._scroll_left_prereq = DeckBuilderScrollBar(
             size_hint_x=0.01,
+            pos_hint={'x': 0, 'y': 0},
             deckbuilder=self._prereq_builder,
             deckidx=0
         )
         self._scroll_right_prereq = DeckBuilderScrollBar(
             size_hint_x=0.01,
+            pos_hint={'right': 1, 'y': 0},
             deckbuilder=self._prereq_builder,
             deckidx=1
         )
-        self._prereq_tab.add_widget(self._scroll_left_prereq)
-        self._prereq_tab.add_widget(self._prereq_builder)
-        self._prereq_tab.add_widget(self._scroll_right_prereq)
+        self._prereq_layout = FloatLayout()
+        self._prereq_tab.add_widget(self._prereq_layout)
+        self._prereq_layout.add_widget(self._prereq_builder)
+        self._prereq_layout.add_widget(self._scroll_left_prereq)
+        self._prereq_layout.add_widget(self._scroll_right_prereq)
 
     def on_rule(self, *args):
         if self.rule is None:
