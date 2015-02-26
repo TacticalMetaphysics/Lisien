@@ -2,168 +2,26 @@
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 from inspect import getsource
 from kivy.logger import Logger
+from kivy.clock import Clock
 from kivy.factory import Factory
-from kivy.lang import Builder
 from kivy.properties import (
     ListProperty,
     ObjectProperty,
     OptionProperty
 )
 from kivy.adapters.listadapter import ListAdapter
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.listview import ListView, ListItemButton
+from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
-from .card import DeckScrollView
-Factory.register('DeckScrollView', cls=DeckScrollView)
+from .card import Card, DeckBuilderLayout, DeckBuilderScrollBar
+Factory.register('Card', cls=Card)
+Factory.register('DeckBuilderLayout', cls=DeckBuilderLayout)
+Factory.register('DeckBuilderScrollBar', cls=DeckBuilderScrollBar)
 
 
-class RulesView(FloatLayout):
-    engine = ObjectProperty()
-    rulebook = ObjectProperty()
-    rule = ObjectProperty()
-    triggers_data = ListProperty()
-    prereqs_data = ListProperty()
-    actions_data = ListProperty()
-    rule_triggers_data = ListProperty()
-    rule_prereqs_data = ListProperty()
-    rule_actions_data = ListProperty()
-    inserting = OptionProperty(
-        'none', options=['none', 'trigger', 'prereq', 'action']
-    )
-
-    def on_triggers_data(self, *args):
-        Logger.debug(
-            "RulesView: got triggers_data {}".format(
-                self.triggers_data
-            )
-        )
-
-    def on_prereqs_data(self, *args):
-        Logger.debug(
-            "RulesView: got prereqs_data {}".format(
-                self.prereqs_data
-            )
-        )
-
-    def on_actions_data(self, *args):
-        Logger.debug(
-            "RulesView: got actions_data {}".format(
-                self.actions_data
-            )
-        )
-
-    def on_rule_triggers_data(self, *args):
-        Logger.debug(
-            "RulesView: got rule_triggers_data {}".format(
-                self.rule_triggers_data
-            )
-        )
-
-    def on_rule_prereqs_data(self, *args):
-        Logger.debug(
-            "RulesView: got rule_prereqs_data {}".format(
-                self.rule_prereqs_data
-            )
-        )
-
-    def on_rule_actions_data(self, *args):
-        Logger.debug(
-            "RulesView: got rule_actions_data {}".format(
-                self.rule_actions_data
-            )
-        )
-
-    def on_touch_move(self, touch):
-        if 'card' in touch.ud:
-            card = touch.ud['card']
-            if self.inserting != card['ud']['type']:
-                self.inserting = card['ud']['type']
-        else:
-            if self.inserting != 'none':
-                self.inserting = 'none'
-        return super().on_touch_move(touch)
-
-    def on_touch_up(self, touch):
-        if self.inserting != 'none':
-            self.inserting = 'none'
-        return super().on_touch_up(touch)
-
-    def on_engine(self, *args):
-        if self.engine is None:
-            return
-        self.triggers_data = [
-            {
-                'ud': {'type': 'trigger'},
-                'headline_text': name,
-                'show_art': False,
-                'midline_text': 'Trigger',
-                'text': source,
-                'show_footer': False
-            }
-            for (name, source) in
-            self.engine.trigger.db.func_table_name_plaincode('trigger')
-        ]
-        self.prereqs_data = [
-            {
-                'ud': {'type': 'prereq'},
-                'headline_text': name,
-                'show_art': False,
-                'midline_text': 'Prereq',
-                'text': source,
-                'show_footer': False
-            }
-            for (name, source) in
-            self.engine.prereq.db.func_table_name_plaincode('prereq')
-        ]
-        self.actions_data = [
-            {
-                'ud': {'type': 'action'},
-                'headline_text': name,
-                'show_art': False,
-                'midline_text': 'Action',
-                'text': source,
-                'show_footer': False
-            }
-            for (name, source) in
-            self.engine.action.db.func_table_name_plaincode('action')
-        ]
-
-    def on_rule(self, *args):
-        if self.rule is None:
-            return
-        self.rule_triggers_data = [
-            {
-                'ud': {'type': 'trigger'},
-                'headline_text': trigger.__name__,
-                'show_art': False,
-                'midline_text': 'Trigger',
-                'text': getsource(trigger),
-                'show_footer': False
-            }
-            for trigger in self.rule.triggers
-        ]
-        self.rule_prereqs_data = [
-            {
-                'ud': {'type': 'prereq'},
-                'headline_text': prereq.__name__,
-                'show_art': False,
-                'midline_text': 'Prereq',
-                'text': getsource(prereq),
-                'show_footer': False
-            }
-            for prereq in self.rule.prereqs
-        ]
-        self.rule_actions_data = [
-            {
-                'ud': {'type': 'action'},
-                'headline_text': action.__name__,
-                'show_art': False,
-                'midline_text': 'Action',
-                'text': getsource(action),
-                'show_footer': False
-            }
-            for action in self.rule.actions
-        ]
+dbg = Logger.debug
 
 
 class RulesList(ListView):
@@ -193,57 +51,157 @@ class RulesList(ListView):
             self.adapter.data = list(rb)
 
 
-kv = """
-<RulesView>:
-    rule: list.adapter.selection[0] if list.adapter and list.adapter.selection else None
-    BoxLayout:
-        RulesList:
-            id: list
-            rulebook: root.rulebook
-        BoxLayout:
-            id: triggers
-            orientation: 'vertical'
-            Label:
-                text: 'Triggers'
-                size_hint_y: None
-                height: self.texture_size[1]
-            DeckScrollView:
-                id: trigdeck
-                data: root.rule_triggers_data
-                insertable: root.inserting == 'trigger'
-                deletable: True
-            DeckScrollView:
-                id: trigcoll
-                data: root.triggers_data
-        BoxLayout:
-            id: prereqs
-            orientation: 'vertical'
-            Label:
-                text: 'Prereqs'
-                size_hint_y: None
-                height: self.texture_size[1]
-            DeckScrollView:
-                id: preqdeck
-                data: root.rule_prereqs_data
-                insertable: root.inserting == 'prereq'
-                deletable: True
-            DeckScrollView:
-                id: preqcoll
-                data: root.prereqs_data
-        BoxLayout:
-            id: actions
-            orientation: 'vertical'
-            Label:
-                text: 'Actions'
-                size_hint_y: None
-                height: self.texture_size[1]
-            DeckScrollView:
-                id: actdeck
-                data: root.rule_actions_data
-                insertable: root.inserting == 'action'
-                deletable: True
-            DeckScrollView:
-                id: actcoll
-                data: root.actions_data
-"""
-Builder.load_string(kv)
+class RulesView(FloatLayout):
+    engine = ObjectProperty()
+    rulebook = ObjectProperty()
+    rule = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.finalize()
+
+    def finalize(self, *args):
+        if self.canvas is None:
+            Clock.schedule_once(self.finalize, 0)
+            return
+        dbg('RulesView: finalizing')
+        self._box = BoxLayout()
+        self.add_widget(self._box)
+        self._list = RulesList(rulebook=self.rulebook)
+        self.bind(rulebook=self._list.setter('rulebook'))
+        self._box.add_widget(self._list)
+        self._tabs = TabbedPanel(do_default_tab=False)
+        self._box.add_widget(self._tabs)
+
+        self._action_tab = TabbedPanelItem(text='Actions')
+        self._tabs.add_widget(self._action_tab)
+        self._action_builder = DeckBuilderLayout()
+        self._scroll_left_action = DeckBuilderScrollBar(
+            size_hint_x=0.01,
+            deckbuilder=self._action_builder,
+            deckidx=0
+        )
+        self._scroll_right_action = DeckBuilderScrollBar(
+            size_hint_x=0.01,
+            deckbuilder=self._action_builder,
+            deckidx=1
+        )
+        self._action_tab.add_widget(self._scroll_left_action)
+        self._action_tab.add_widget(self._action_builder)
+        self._action_tab.add_widget(self._scroll_right_action)
+
+        self._trigger_tab = TabbedPanelItem(text='Triggers')
+        self._tabs.add_widget(self._trigger_tab)
+        self._trigger_builder = DeckBuilderLayout()
+        self._scroll_left_trigger = DeckBuilderScrollBar(
+            size_hint_x=0.01,
+            deckbuilder=self._trigger_builder,
+            deckidx=0
+        )
+        self._scroll_right_trigger = DeckBuilderScrollBar(
+            size_hint_x=0.01,
+            deckbuilder=self._trigger_builder,
+            deckidx=1
+        )
+        self._trigger_tab.add_widget(self._scroll_left_trigger)
+        self._trigger_tab.add_widget(self._trigger_builder)
+        self._trigger_tab.add_widget(self._scroll_right_trigger)
+
+        self._prereq_tab = TabbedPanelItem(text='Prereqs')
+        self._tabs.add_widget(self._prereq_tab)
+        self._prereq_builder = DeckBuilderLayout()
+        self._scroll_left_prereq = DeckBuilderScrollBar(
+            size_hint_x=0.01,
+            deckbuilder=self._prereq_builder,
+            deckidx=0
+        )
+        self._scroll_right_prereq = DeckBuilderScrollBar(
+            size_hint_x=0.01,
+            deckbuilder=self._prereq_builder,
+            deckidx=1
+        )
+        self._prereq_tab.add_widget(self._scroll_left_prereq)
+        self._prereq_tab.add_widget(self._prereq_builder)
+        self._prereq_tab.add_widget(self._scroll_right_prereq)
+
+    def on_rule(self, *args):
+        if self.rule is None:
+            dbg('RulesView: no rule')
+            return
+        for attrn in '_trigger_builder', '_prereq_builder', '_action_builder':
+            if not hasattr(self, attrn):
+                dbg('RulesView: no {}'.format(attrn))
+                Clock.schedule_once(self.on_rule, 0)
+                return
+        unused_triggers = [
+            Card(
+                ud={'type': 'trigger'},
+                headline_text=name,
+                show_art=False,
+                midline_text='Trigger',
+                text=source,
+                show_footer=False
+            )
+            for (name, source) in
+            self.engine.trigger.db.func_table_name_plaincode('trigger')
+        ]
+        used_triggers = [
+            Card(
+                ud={'type': 'trigger'},
+                headline_text=trigger.__name__,
+                show_art=False,
+                midline_text='Trigger',
+                text=getsource(trigger),
+                show_footer=False
+            )
+            for trigger in self.rule.triggers
+        ]
+        self._trigger_builder.decks = [unused_triggers, used_triggers]
+        unused_prereqs = [
+            Card(
+                ud={'type': 'prereq'},
+                headline_text=name,
+                show_art=False,
+                midline_text='Prereq',
+                text=source,
+                show_footer=False
+            )
+            for (name, source) in
+            self.engine.prereq.db.func_table_name_plaincode('prereq')
+        ]
+        used_prereqs = [
+            Card(
+                ud={'type': 'prereq'},
+                headline_text=prereq.__name__,
+                show_art=False,
+                midline_text='Prereq',
+                text=getsource(prereq),
+                show_footer=False
+            )
+            for prereq in self.rule.prereqs
+        ]
+        self._prereq_builder.decks = [unused_prereqs, used_prereqs]
+        unused_actions = [
+            Card(
+                ud={'type': 'action'},
+                headline_text=name,
+                show_art=False,
+                midline_text='Action',
+                text=source,
+                show_footer=False
+            )
+            for (name, source) in
+            self.engine.action.db.func_table_name_plaincode('action')
+        ]
+        used_actions = [
+            Card(
+                ud={'type': 'action'},
+                headline_text=action.__name__,
+                show_art=False,
+                midline_text='Action',
+                text=getsource(action),
+                show_footer=False
+            )
+            for action in self.rule.actions
+        ]
+        self._action_builder.decks = [unused_actions, used_actions]
