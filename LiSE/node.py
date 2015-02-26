@@ -4,14 +4,13 @@ from collections import defaultdict
 import gorm.graph
 from .util import (
     dispatch,
-    listen,
     listener,
     fire_time_travel_triggers,
     encache,
     enkeycache,
     dekeycache
 )
-from .rule import RuleFollower
+from .rule import RuleBook, RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
 
 
