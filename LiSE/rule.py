@@ -160,7 +160,8 @@ class RuleBook(MutableSequence):
 
     def __iter__(self):
         if self.engine.caching:
-            return iter(self._cache)
+            yield from self._cache
+            return
         for rule in self.engine.db.rulebook_rules(self.name):
             yield self.engine.rule[rule]
 
