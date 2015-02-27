@@ -68,18 +68,27 @@ class RulesView(FloatLayout):
         if self.canvas is None:
             Clock.schedule_once(self.finalize, 0)
             return
-        dbg('RulesView: finalizing')
+
+        deck_builder_kwargs = {
+            'pos_hint': {'x': 0, 'y': 0},
+            'starting_pos_hint': {'x': 0.05, 'top': 0.95},
+            'card_size_hint': (0.3, 0.4),
+            'card_hint_step': (0, -0.1),
+            'deck_x_hint_step': 0.4
+        }
         self._box = BoxLayout()
         self.add_widget(self._box)
         self._list = RulesList(rulebook=self.rulebook, rulesview=self)
         self.bind(rulebook=self._list.setter('rulebook'))
         self._box.add_widget(self._list)
-        self._tabs = TabbedPanel(do_default_tab=False)
+        self._tabs = TabbedPanel(
+            do_default_tab=False
+        )
         self._box.add_widget(self._tabs)
 
         self._action_tab = TabbedPanelItem(text='Actions')
         self._tabs.add_widget(self._action_tab)
-        self._action_builder = DeckBuilderLayout()
+        self._action_builder = DeckBuilderLayout(**deck_builder_kwargs)
         self._scroll_left_action = DeckBuilderScrollBar(
             size_hint_x=0.01,
             pos_hint={'x': 0, 'y': 0},
@@ -100,7 +109,7 @@ class RulesView(FloatLayout):
 
         self._trigger_tab = TabbedPanelItem(text='Triggers')
         self._tabs.add_widget(self._trigger_tab)
-        self._trigger_builder = DeckBuilderLayout()
+        self._trigger_builder = DeckBuilderLayout(**deck_builder_kwargs)
         self._scroll_left_trigger = DeckBuilderScrollBar(
             size_hint_x=0.01,
             pos_hint={'x': 0, 'y': 0},
@@ -121,7 +130,7 @@ class RulesView(FloatLayout):
 
         self._prereq_tab = TabbedPanelItem(text='Prereqs')
         self._tabs.add_widget(self._prereq_tab)
-        self._prereq_builder = DeckBuilderLayout()
+        self._prereq_builder = DeckBuilderLayout(**deck_builder_kwargs)
         self._scroll_left_prereq = DeckBuilderScrollBar(
             size_hint_x=0.01,
             pos_hint={'x': 0, 'y': 0},
