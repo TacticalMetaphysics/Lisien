@@ -2,6 +2,7 @@
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 from kivy.clock import Clock
 from kivy.lang import Builder
+from kivy.logger import Logger
 from kivy.properties import (
     AliasProperty,
     BooleanProperty,
@@ -18,6 +19,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.layout import Layout
 from kivy.uix.image import Image
+from kivy.uix.widget import Widget
 
 
 def get_pos_hint_x(poshints, sizehintx):
@@ -59,7 +61,7 @@ def get_pos_hint(poshints, sizehintx, sizehinty):
     )
 
 
-class ColorTextureBox(FloatLayout):
+class ColorTextureBox(Widget):
     color = ListProperty([1, 1, 1, 1])
     texture = ObjectProperty(None, allownone=True)
 
@@ -165,6 +167,7 @@ class Card(FloatLayout):
         if not self.dragging:
             touch.ungrab(self)
             return
+        Logger.debug('Card: on_touch_move{}'.format(touch.pos))
         self.pos = (
             touch.x - self.collide_x,
             touch.y - self.collide_y
@@ -175,6 +178,20 @@ class Card(FloatLayout):
             return
         touch.ungrab(self)
         self.dragging = False
+
+
+class Foundation(Widget):
+    color = ListProperty([])
+    deck = NumericProperty(0)
+
+    def upd_pos(self, *args):
+        self.pos = self.parent._get_foundation_pos(self.deck)
+
+    def upd_size(self, *args):
+        self.size = (
+            self.parent.card_size_hint_x * self.parent.width,
+            self.parent.card_size_hint_y * self.parent.height
+        )
 
 
 class DeckBuilderLayout(Layout):
@@ -192,8 +209,10 @@ class DeckBuilderLayout(Layout):
     deck_y_hint_step = NumericProperty(0)
     deck_hint_step = ReferenceListProperty(deck_x_hint_step, deck_y_hint_step)
     decks = ListProperty([[]])  # list of lists of cards
+    _foundations = ListProperty([])
     deck_x_hint_offsets = ListProperty([])
     deck_y_hint_offsets = ListProperty([])
+    foundation_color = ListProperty([1, 1, 1, 1])
     insertion_deck = BoundedNumericProperty(None, min=0, allownone=True)
     insertion_card = BoundedNumericProperty(None, min=0, allownone=True)
 
@@ -234,6 +253,43 @@ class DeckBuilderLayout(Layout):
     def scroll_deck(self, decknum, scroll_x, scroll_y):
         self.scroll_deck_x(decknum, scroll_x)
         self.scroll_deck_y(decknum, scroll_y)
+
+    def _get_foundation_pos(self, i):
+        (phx, phy) = get_pos_hint(
+            self.starting_pos_hint, *self.card_size_hint
+        )
+        phx += self.deck_x_hint_step * i + self.deck_x_hint_offsets[i]
+        phy += self.deck_y_hint_step * i + self.deck_y_hint_offsets[i]
+        x = phx * self.width + self.x
+        y = phy * self.height + self.y
+        return (x, y)
+
+    def _get_foundation(self, i):
+        if i >= len(self._foundations) or self._foundations[i] is None:
+            oldfound = list(self._foundations)
+            extend = i - len(oldfound) + 1
+            if extend > 0:
+                oldfound += [None] * extend
+            width = self.card_size_hint_x * self.width
+            height = self.card_size_hint_y * self.height
+            found = Foundation(
+                pos=self._get_foundation_pos(i), size=(width, height), deck=i
+            )
+            self.bind(
+                pos=found.upd_pos,
+                card_size_hint=found.upd_pos,
+                deck_hint_step=found.upd_pos,
+                size=found.upd_pos,
+                deck_x_hint_offsets=found.upd_pos,
+                deck_y_hint_offsets=found.upd_pos
+            )
+            self.bind(
+                size=found.upd_size,
+                card_size_hint=found.upd_size
+            )
+            oldfound[i] = found
+            self._foundations = oldfound
+        return self._foundations[i]
 
     def on_decks(self, *args):
         if None in (
@@ -327,16 +383,18 @@ class DeckBuilderLayout(Layout):
         ):
             self.canvas.after.add(touch.ud['card'].canvas)
             touch.ud['card']._topdecked = True
+        any_collision = False
         i = 0
         for deck in self.decks:
             cards = [card for card in deck if not card.dragging]
-            maxidx = max(card.idx for card in cards)
+            maxidx = max(card.idx for card in cards) if cards else 0
             if self.direction == 'descending':
                 cards.reverse()
             cards_collided = [
                 card for card in cards if card.collide_point(*touch.pos)
             ]
             if cards_collided:
+                any_collision = True
                 collided = cards_collided.pop()
                 for card in cards_collided:
                     if card.idx > collided.idx:
@@ -372,6 +430,14 @@ class DeckBuilderLayout(Layout):
                     ):
                         self.insertion_card = cards[-1].idx
             i += 1
+            if not any_collision:
+                i = 0
+                for found in self._foundations:
+                    if found is not None and found.collide_point(*touch.pos):
+                        self.insertion_deck = i
+                        self.insertion_card = 0
+                        return
+                    i += 1
 
     def on_touch_up(self, touch):
         if (
@@ -385,10 +451,12 @@ class DeckBuilderLayout(Layout):
             del touch.ud['card']._topdecked
         if None not in (self.insertion_deck, self.insertion_card):
             # need to sync to adapter.data??
-            card = self.decks[touch.ud['deck']][touch.ud['idx']]
-            del self.decks[touch.ud['deck']][touch.ud['idx']]
+            card = touch.ud['card']
+            del card.parent.decks[card.deck][card.idx]
+            for i in range(0, len(card.parent.decks[card.deck])):
+                card.parent.decks[card.deck][i].idx = i
             deck = self.decks[self.insertion_deck]
-            if self.insertion_card > len(deck):
+            if self.insertion_card >= len(deck):
                 deck.append(card)
             else:
                 deck.insert(self.insertion_card, card)
@@ -422,8 +490,6 @@ class DeckBuilderLayout(Layout):
         dragidx = get_dragidx(cards)
         if dragidx is not None:
             del cards[dragidx]
-        for card in cards:
-            self.remove_widget(card)
         if self.insertion_deck == i and self.insertion_card is not None:
             insdx = self.insertion_card
             if dragidx is not None and insdx > dragidx:
@@ -438,8 +504,14 @@ class DeckBuilderLayout(Layout):
         (w, h) = self.size
         (x, y) = self.pos
         # start assigning pos and size to cards
+        found = self._get_foundation(i)
+        if found in self.children:
+            self.remove_widget(found)
+        self.add_widget(found)
         for card in cards:
             if card is not None:
+                if card in self.children:
+                    self.remove_widget(card)
                 (shw, shh) = self.card_size_hint
                 card.pos = (
                     x + phx * w,
@@ -633,6 +705,14 @@ kv = """
             size: root.size
         Color:
             rgba: [1, 1, 1, 1]
+<Foundation>:
+    canvas:
+        Color:
+            rgba: root.color
+        Line:
+            points: [root.x, root.y, root.right, root.y, root.right, root.top, root.x, root.top, root.x, root.y]
+        Color:
+            rgba: [1, 1, 1, 1]
 <Card>:
     headline: headline
     midline: midline
@@ -745,6 +825,7 @@ if __name__ == '__main__':
     from kivy.modules import inspector
     builder = DeckBuilderLayout(
         card_size_hint=(0.15, 0.3),
+        pos_hint={'x': 0, 'y': 0},
         starting_pos_hint={'x': 0.1, 'top': 0.9},
         card_hint_step=(0.05, -0.1),
         deck_hint_step=(0.4, 0),
