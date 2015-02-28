@@ -63,6 +63,7 @@ def get_pos_hint(poshints, sizehintx, sizehinty):
 
 class ColorTextureBox(Widget):
     color = ListProperty([1, 1, 1, 1])
+    outline_color = ListProperty([0, 0, 0, 0])
     texture = ObjectProperty(None, allownone=True)
 
 
@@ -83,9 +84,14 @@ class Card(FloatLayout):
     foreground_texture = ObjectProperty(None, allownone=True)
 
     background_source = StringProperty('')
-    background_color = ListProperty([1, 1, 1, 1])
+    background_color = ListProperty([.7, .7, .7, 1])
     background_image = ObjectProperty(None, allownone=True)
     background_texture = ObjectProperty(None, allownone=True)
+
+    outline_color = ListProperty([0, 0, 0, 1])
+    content_outline_color = ListProperty([0, 0, 0, 0])
+    foreground_outline_color = ListProperty([0, 0, 0, 1])
+    art_outline_color = ListProperty([0, 0, 0, 0])
 
     art = ObjectProperty()
     art_source = StringProperty('')
@@ -97,7 +103,6 @@ class Card(FloatLayout):
     headline = ObjectProperty()
     headline_text = StringProperty('Headline')
     headline_markup = BooleanProperty(True)
-    headline_shorten = BooleanProperty(True)
     headline_font_name = StringProperty('DroidSans')
     headline_font_size = NumericProperty(18)
     headline_color = ListProperty([0, 0, 0, 1])
@@ -105,7 +110,6 @@ class Card(FloatLayout):
     midline = ObjectProperty()
     midline_text = StringProperty('')
     midline_markup = BooleanProperty(True)
-    midline_shorten = BooleanProperty(True)
     midline_font_name = StringProperty('DroidSans')
     midline_font_size = NumericProperty(14)
     midline_color = ListProperty([0, 0, 0, 1])
@@ -113,7 +117,6 @@ class Card(FloatLayout):
     footer = ObjectProperty()
     footer_text = StringProperty('')
     footer_markup = BooleanProperty(True)
-    footer_shorten = BooleanProperty(True)
     footer_font_name = StringProperty('DroidSans')
     footer_font_size = NumericProperty(10)
     footer_color = ListProperty([0, 0, 0, 1])
@@ -180,7 +183,7 @@ class Card(FloatLayout):
         self.dragging = False
 
 
-class Foundation(Widget):
+class Foundation(ColorTextureBox):
     color = ListProperty([])
     deck = NumericProperty(0)
 
@@ -704,15 +707,14 @@ kv = """
             pos: root.pos
             size: root.size
         Color:
+            rgba: root.outline_color
+        Line:
+            points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
+        Color:
             rgba: [1, 1, 1, 1]
 <Foundation>:
-    canvas:
-        Color:
-            rgba: root.color
-        Line:
-            points: [root.x, root.y, root.right, root.y, root.right, root.top, root.x, root.top, root.x, root.y]
-        Color:
-            rgba: [1, 1, 1, 1]
+    color: [0, 0, 0, 0]
+    outline_color: [1, 1, 1, 1]
 <Card>:
     headline: headline
     midline: midline
@@ -727,16 +729,26 @@ kv = """
             pos: root.pos
             size: root.size
         Color:
+            rgba: root.outline_color
+        Line:
+            points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
+        Color:
             rgba: [1, 1, 1, 1]
     BoxLayout:
         size_hint: 0.9, 0.9
         pos_hint: {'x': 0.05, 'y': 0.05}
         orientation: 'vertical'
+        canvas:
+            Color:
+                rgba: root.content_outline_color
+            Line:
+                points: [self.x, self.y, self.right, self.y, self.right, self.top, self.x, self.top, self.x, self.y]
+            Color:
+                rgba: [1, 1, 1, 1]
         Label:
             id: headline
             text: root.headline_text
             markup: root.headline_markup
-            shorten: root.headline_shorten
             font_name: root.headline_font_name
             font_size: root.headline_font_size
             color: root.headline_color
@@ -746,13 +758,13 @@ kv = """
             id: art
             color: root.art_color
             texture: root.art_texture
+            outline_color: root.art_outline_color if root.show_art else [0, 0, 0, 0]
             size_hint: (1, 1) if root.show_art else (None, None)
             size: (0, 0)
         Label:
             id: midline
             text: root.midline_text
             markup: root.midline_markup
-            shorten: root.midline_shorten
             font_name: root.midline_font_name
             font_size: root.midline_font_size
             color: root.midline_color
@@ -761,12 +773,12 @@ kv = """
         ColorTextureBox:
             id: foreground
             color: root.foreground_color
+            outline_color: root.foreground_outline_color
             texture: root.foreground_texture
             Label:
                 text: root.text
                 color: root.text_color
                 markup: root.markup
-                shorten: root.shorten
                 font_name: root.font_name
                 font_size: root.font_size
                 text_size: foreground.size
@@ -778,7 +790,6 @@ kv = """
             id: footer
             text: root.footer_text
             markup: root.footer_markup
-            shorten: root.footer_shorten
             font_name: root.footer_font_name
             font_size: root.footer_font_size
             color: root.footer_color
@@ -812,6 +823,7 @@ if __name__ == '__main__':
             background_color=[0, 0, 1, 1],
             headline_text='Card {}'.format(i),
             art_color=[0, 1, 0, 1],
+            show_art=False,
             midline_text='1deck',
             foreground_color=[1, 0, 0, 1],
             text='Have a steak at the porter house bar',
