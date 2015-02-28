@@ -49,13 +49,18 @@ class QueryEngine(gorm.query.QueryEngine):
         for row in self.sql('func_{}_get'.format(tbl), key):
             return True
 
-    def func_table_get(self, tbl, key):
+    def func_table_get(self, tbl, key, use_globals=True):
         bytecode = self.sql('func_{}_get'.format(tbl), key).fetchone()
         if bytecode is None:
             raise KeyError("No such function")
+        globd = (
+            globals() if use_globals is True else
+            use_globals if isinstance(use_globals, dict) else
+            {}
+        )
         return FunctionType(
             unmarshalled(bytecode[0]),
-            {}
+            globd
         )
 
     def func_table_get_source(self, tbl, key):
@@ -75,13 +80,18 @@ class QueryEngine(gorm.query.QueryEngine):
         except IntegrityError:
             return self.sql('func_{}_upd'.format(tbl), m, s, key)
 
-    def func_table_set_source(self, tbl, key, source):
+    def func_table_set_source(self, tbl, key, source, use_globals=True):
         locd = {}
+        globd = (
+            globals() if incl_globals is True else
+            use_globals if isinstance(use_globals, dict) else
+            {}
+        )
         try:
-            exec(source, {}, locd)
+            exec(source, globd, locd)
         except SyntaxError:  # hack to allow 'empty' functions
             source += '\n    pass'
-            exec(source, {}, locd)
+            exec(source, globd, locd)
         if len(locd) != 1:
             raise UserFunctionError(
                 "Input code contains more than the one function definition."
