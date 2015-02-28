@@ -43,15 +43,38 @@ class Rule(object):
         funl = lambda store, field: FunList(
             self.engine, store, 'rules', ['rule'], [self.name], field
         )
-        self.actions = funl(self.engine.action, 'actions')
-        self.prereqs = funl(self.engine.prereq, 'prereqs')
-        self.triggers = funl(self.engine.trigger, 'triggers')
+        self._actions = funl(self.engine.action, 'actions')
+        self._prereqs = funl(self.engine.prereq, 'prereqs')
+        self._triggers = funl(self.engine.trigger, 'triggers')
         if triggers:
             self.triggers.extend(triggers)
         if prereqs:
             self.prereqs.extend(prereqs)
         if actions:
             self.actions.extend(actions)
+
+    def __getattr__(self, attrn):
+        if attrn == 'triggers':
+            return self._triggers
+        elif attrn == 'prereqs':
+            return self._prereqs
+        elif attrn == 'actions':
+            return self._actions
+        else:
+            return super().__getattr__(attrn)
+
+    def __setattr__(self, attrn, val):
+        if attrn == 'triggers':
+            self._triggers._setlist([])
+            self._triggers.extend(val)
+        elif attrn == 'prereqs':
+            self._prereqs._setlist([])
+            self._prereqs.extend(val)
+        elif attrn == 'actions':
+            self._actions._setlist([])
+            self._actions.extend(val)
+        else:
+            super().__setattr__(attrn, val)
 
     def __call__(self, engine, *args):
         """If at least one trigger fires, check the prereqs. If all the
@@ -74,15 +97,15 @@ class Rule(object):
 
     def trigger(self, fun):
         """Decorator to append the function to my triggers list."""
-        self.triggers.append(fun)
+        self._triggers.append(fun)
 
     def prereq(self, fun):
         """Decorator to append the function to my prereqs list."""
-        self.prereqs.append(fun)
+        self._prereqs.append(fun)
 
     def action(self, fun):
         """Decorator to append the function to my actions list."""
-        self.actions.append(fun)
+        self._actions.append(fun)
 
     def duplicate(self, newname):
         """Return a new rule that's just like this one, but under a new
