@@ -1,6 +1,8 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
+from collections import OrderedDict
 from inspect import getsource
+
 from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.factory import Factory
@@ -62,11 +64,20 @@ class RulesView(FloatLayout):
         self._trigger_upd_rule_triggers = Clock.create_trigger(
             self.upd_rule_triggers
         )
+        self._trigger_upd_unused_triggers = Clock.create_trigger(
+            self.upd_unused_triggers
+        )
         self._trigger_upd_rule_prereqs = Clock.create_trigger(
             self.upd_rule_prereqs
         )
+        self._trigger_upd_unused_prereqs = Clock.create_trigger(
+            self.upd_unused_prereqs
+        )
         self._trigger_upd_rule_actions = Clock.create_trigger(
             self.upd_rule_actions
+        )
+        self._trigger_upd_unused_actions = Clock.create_trigger(
+            self.upd_unused_actions
         )
         super().__init__(**kwargs)
         self.finalize()
@@ -200,9 +211,11 @@ class RulesView(FloatLayout):
             )
             for trigger in self.rule.triggers
         ]
+        self._trigger_builder.unbind(decks=self._trigger_upd_unused_triggers)
         self._trigger_builder.unbind(decks=self._trigger_upd_rule_triggers)
         self._trigger_builder.decks = [used_triggers, unused_triggers]
         self._trigger_builder.bind(decks=self._trigger_upd_rule_triggers)
+        self._trigger_builder.bind(decks=self._trigger_upd_unused_triggers)
         unused_prereqs = [
             Card(
                 ud={
@@ -232,9 +245,11 @@ class RulesView(FloatLayout):
             )
             for prereq in self.rule.prereqs
         ]
+        self._prereq_builder.unbind(decks=self._trigger_upd_unused_prereqs)
         self._prereq_builder.unbind(decks=self._trigger_upd_rule_prereqs)
         self._prereq_builder.decks = [used_prereqs, unused_prereqs]
         self._prereq_builder.bind(decks=self._trigger_upd_rule_prereqs)
+        self._prereq_builder.bind(decks=self._trigger_upd_unused_prereqs)
         unused_actions = [
             Card(
                 ud={
@@ -265,8 +280,10 @@ class RulesView(FloatLayout):
             for action in self.rule.actions
         ]
         self._action_builder.unbind(decks=self._trigger_upd_rule_actions)
+        self._action_builder.unbind(decks=self._trigger_upd_unused_actions)
         self._action_builder.decks = [used_actions, unused_actions]
         self._action_builder.bind(decks=self._trigger_upd_rule_actions)
+        self._action_builder.bind(decks=self._trigger_upd_unused_actions)
 
     def upd_rule_actions(self, *args):
         actions = [
@@ -276,6 +293,27 @@ class RulesView(FloatLayout):
         if self.rule.actions != actions:
             self.rule.actions = actions
 
+    def upd_unused_actions(self, *args):
+        """Make sure to have exactly one copy of every valid action in the
+        "unused" pile on the right.
+
+        Doesn't read from the database.
+
+        """
+        self._action_builder.unbind(decks=self._trigger_upd_unused_actions)
+        actions = OrderedDict()
+        cards = list(self._action_builder.decks[1])
+        cards.reverse()
+        for card in cards:
+            actions[card.ud['funcname']] = card
+        for card in self._action_builder.decks[0]:
+            if card.ud['funcname'] not in actions:
+                actions[card.ud['funcname']] = card.copy()
+        unused = list(actions.values())
+        unused.reverse()
+        self._action_builder.decks[1] = unused
+        self._action_builder.bind(decks=self._trigger_upd_unused_actions)
+
     def upd_rule_prereqs(self, *args):
         prereqs = [
             card.ud['funcname'] for card in
@@ -284,6 +322,27 @@ class RulesView(FloatLayout):
         if self.rule.prereqs != prereqs:
             self.rule.prereqs = prereqs
 
+    def upd_unused_prereqs(self, *args):
+        """Make sure to have exactly one copy of every valid prereq in the
+        "unused" pile on the right.
+
+        Doesn't read from the database.
+
+        """
+        self._prereq_builder.unbind(decks=self._trigger_upd_unused_prereqs)
+        prereqs = OrderedDict()
+        cards = list(self._prereq_builder.decks[1])
+        cards.reverse()
+        for card in cards:
+            prereqs[card.ud['funcname']] = card
+        for card in self._prereq_builder.decks[0]:
+            if card.ud['funcname'] not in prereqs:
+                prereqs[card.ud['funcname']] = card.copy()
+        unused = list(prereqs.values())
+        unused.reverse()
+        self._prereq_builder.decks[1] = unused
+        self._prereq_builder.bind(decks=self._trigger_upd_unused_prereqs)
+
     def upd_rule_triggers(self, att, *args):
         triggers = [
             card.ud['funcname'] for card in
@@ -291,3 +350,24 @@ class RulesView(FloatLayout):
         ]
         if self.rule.triggers != triggers:
             self.rule.triggers = triggers
+
+    def upd_unused_triggers(self, *args):
+        """Make sure to have exactly one copy of every valid prereq in the
+        "unused" pile on the right.
+
+        Doesn't read from the database.
+
+        """
+        self._trigger_builder.unbind(decks=self._trigger_upd_unused_triggers)
+        triggers = OrderedDict()
+        cards = list(self._trigger_builder.decks[1])
+        cards.reverse()
+        for card in cards:
+            triggers[card.ud['funcname']] = card
+        for card in self._trigger_builder.decks[0]:
+            if card.ud['funcname'] not in triggers:
+                triggers[card.ud['funcname']] = card.copy()
+        unused = list(triggers.values())
+        unused.reverse()
+        self._trigger_builder.decks[1] = unused
+        self._trigger_builder.bind(decks=self._trigger_upd_unused_triggers)
