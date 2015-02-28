@@ -4,11 +4,7 @@ from inspect import getsource
 from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.factory import Factory
-from kivy.properties import (
-    ListProperty,
-    ObjectProperty,
-    OptionProperty
-)
+from kivy.properties import ObjectProperty
 from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
