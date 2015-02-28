@@ -95,13 +95,15 @@ class RulesView(FloatLayout):
             size_hint_x=0.01,
             pos_hint={'x': 0, 'y': 0},
             deckbuilder=self._action_builder,
-            deckidx=0
+            deckidx=0,
+            scroll_min=0
         )
         self._scroll_right_action = DeckBuilderScrollBar(
             size_hint_x=0.01,
             pos_hint={'right': 1, 'y': 0},
             deckbuilder=self._action_builder,
-            deckidx=1
+            deckidx=1,
+            scroll_min=0
         )
         self._action_layout = FloatLayout()
         self._action_tab.add_widget(self._action_layout)

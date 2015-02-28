@@ -539,6 +539,10 @@ class ScrollBarBar(ColorTextureBox):
             self.parent.bar_touched(self, touch)
 
 
+def dist(x1, x2):
+    return x1 - x2 if x1 > x2 else x2 - x1
+
+
 class DeckBuilderScrollBar(FloatLayout):
     orientation = OptionProperty(
         'vertical',
@@ -551,7 +555,7 @@ class DeckBuilderScrollBar(FloatLayout):
     scroll_max = NumericProperty(1)
 
     scroll_hint = AliasProperty(
-        lambda self: self.scroll_max - self.scroll_min,
+        lambda self: dist(self.scroll_max, self.scroll_min),
         lambda self, v: None,
         bind=('scroll_min', 'scroll_max')
     )
@@ -578,7 +582,7 @@ class DeckBuilderScrollBar(FloatLayout):
     def _get_vbar(self):
         if self.deckbuilder is None:
             return (0, 1)
-        vh = self.deckbuilder.height * self.scroll_hint
+        vh = self.deckbuilder.height * (self.scroll_hint + 1)
         h = self.height
         if vh < h or vh == 0:
             return (0, 1)
