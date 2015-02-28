@@ -65,6 +65,9 @@ class FunctionInput(BoxLayout):
             sig_ex.match(lines[0]).groups()[0].split(',')
         ]
         del lines[0]
+        # hack to allow 'empty' functions
+        if lines[-1].strip() == 'pass':
+            del lines[-1]
         self.ids.code.text = '\n'.join(line[spaces:] for line in lines)
 
     source = AliasProperty(_get_source, _set_source)

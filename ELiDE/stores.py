@@ -239,6 +239,11 @@ class StoreEditor(BoxLayout):
             self.name = self.selection[0].name
             self.source = self.selection[0].source
 
+    def redata_and_select_named(self, name, *args):
+        StoreDataItem.selectedness = defaultdict(lambda: False)
+        StoreDataItem.selectedness[name] = True
+        self._list._trigger_redata()
+
     def save_if_needed(self):
         if self._editor.name != '' and self.source != self._editor.source:
             self.save()

@@ -64,6 +64,32 @@ class QueryEngine(gorm.query.QueryEngine):
         except IntegrityError:
             return self.sql('func_{}_upd'.format(tbl), m, s, key)
 
+    def func_table_set_source(self, tbl, key, source):
+        locd = {}
+        try:
+            exec(source, {}, locd)
+        except SyntaxError:  # hack to allow 'empty' functions
+            source += '\n    pass'
+            exec(source, {}, locd)
+        if len(locd) != 1:
+            raise UserFunctionError(
+                "Input code contains more than the one function definition."
+            )
+        if key not in locd:
+            raise UserFunctionError(
+                "Function in input code has different name ({}) "
+                "than expected ({}).".format(
+                    next(locd.keys()),
+                    self.name
+                )
+            )
+        fun = locd[key]
+        m = marshalled(fun.__code__)
+        try:
+            return self.sql('func_{}_ins'.format(tbl), key, m, source)
+        except IntegrityError:
+            return self.sql('func_{}_upd'.format(tbl), m, source, key)
+
     def func_table_del(self, tbl, key):
         return self.sql('func_{}_del'.format(tbl), key)
 
