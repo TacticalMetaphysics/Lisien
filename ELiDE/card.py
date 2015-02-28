@@ -186,6 +186,55 @@ class Card(FloatLayout):
         touch.ungrab(self)
         self.dragging = False
 
+    def copy(self):
+        d = {}
+        for att in (
+                'deck',
+                'idx',
+                'ud',
+                'foreground_source',
+                'foreground_color',
+                'foreground_image',
+                'foreground_texture',
+                'background_source',
+                'background_color',
+                'background_image',
+                'background_texture',
+                'outline_color',
+                'content_outline_color',
+                'foreground_outline_color',
+                'art_outline_color',
+                'art_source',
+                'art_color',
+                'art_image',
+                'art_texture',
+                'show_art',
+                'headline_text',
+                'headline_markup',
+                'headline_font_name',
+                'headline_font_size',
+                'headline_color',
+                'midline_text',
+                'midline_markup',
+                'midline_font_name',
+                'midline_font_size',
+                'midline_color',
+                'footer_text',
+                'footer_markup',
+                'footer_font_name',
+                'footer_font_size',
+                'footer_color',
+                'text',
+                'text_color',
+                'markup',
+                'font_name',
+                'font_size'
+        ):
+            v = getattr(self, att)
+            if v is not None:
+                d[att] = v
+        return Card(**d)
+
 
 class Foundation(ColorTextureBox):
     color = ListProperty([])
