@@ -198,7 +198,7 @@ class Foundation(ColorTextureBox):
         )
 
 
-class DeckBuilderLayout(Layout, StencilView):
+class DeckBuilderLayout(Layout):
     direction = OptionProperty(
         'ascending', options=['ascending', 'descending']
     )
@@ -525,6 +525,10 @@ class DeckBuilderLayout(Layout, StencilView):
                 self.add_widget(card)
             phx += self.card_x_hint_step
             phy += self.card_y_hint_step
+
+
+class DeckBuilderView(DeckBuilderLayout, StencilView):
+    pass
 
 
 class ScrollBarBar(ColorTextureBox):
