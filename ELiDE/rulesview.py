@@ -59,6 +59,15 @@ class RulesView(FloatLayout):
     rule = ObjectProperty()
 
     def __init__(self, **kwargs):
+        self._trigger_upd_rule_triggers = Clock.create_trigger(
+            self.upd_rule_triggers
+        )
+        self._trigger_upd_rule_prereqs = Clock.create_trigger(
+            self.upd_rule_prereqs
+        )
+        self._trigger_upd_rule_actions = Clock.create_trigger(
+            self.upd_rule_actions
+        )
         super().__init__(**kwargs)
         self.finalize()
 
@@ -164,7 +173,10 @@ class RulesView(FloatLayout):
                 return
         unused_triggers = [
             Card(
-                ud={'type': 'trigger'},
+                ud={
+                    'type': 'trigger',
+                    'funcname': name
+                },
                 headline_text=name,
                 show_art=False,
                 midline_text='Trigger',
@@ -176,7 +188,10 @@ class RulesView(FloatLayout):
         ]
         used_triggers = [
             Card(
-                ud={'type': 'trigger'},
+                ud={
+                    'type': 'trigger',
+                    'funcname': trigger.__name__
+                },
                 headline_text=trigger.__name__,
                 show_art=False,
                 midline_text='Trigger',
@@ -185,10 +200,15 @@ class RulesView(FloatLayout):
             )
             for trigger in self.rule.triggers
         ]
+        self._trigger_builder.unbind(decks=self._trigger_upd_rule_triggers)
         self._trigger_builder.decks = [used_triggers, unused_triggers]
+        self._trigger_builder.bind(decks=self._trigger_upd_rule_triggers)
         unused_prereqs = [
             Card(
-                ud={'type': 'prereq'},
+                ud={
+                    'type': 'prereq',
+                    'funcname': name
+                },
                 headline_text=name,
                 show_art=False,
                 midline_text='Prereq',
@@ -200,7 +220,10 @@ class RulesView(FloatLayout):
         ]
         used_prereqs = [
             Card(
-                ud={'type': 'prereq'},
+                ud={
+                    'type': 'prereq',
+                    'funcname': prereq.__name__
+                },
                 headline_text=prereq.__name__,
                 show_art=False,
                 midline_text='Prereq',
@@ -209,10 +232,15 @@ class RulesView(FloatLayout):
             )
             for prereq in self.rule.prereqs
         ]
+        self._prereq_builder.unbind(decks=self._trigger_upd_rule_prereqs)
         self._prereq_builder.decks = [used_prereqs, unused_prereqs]
+        self._prereq_builder.bind(decks=self._trigger_upd_rule_prereqs)
         unused_actions = [
             Card(
-                ud={'type': 'action'},
+                ud={
+                    'type': 'action',
+                    'funcname': name
+                },
                 headline_text=name,
                 show_art=False,
                 midline_text='Action',
@@ -224,7 +252,10 @@ class RulesView(FloatLayout):
         ]
         used_actions = [
             Card(
-                ud={'type': 'action'},
+                ud={
+                    'type': 'action',
+                    'funcname': action.__name__
+                },
                 headline_text=action.__name__,
                 show_art=False,
                 midline_text='Action',
@@ -233,4 +264,30 @@ class RulesView(FloatLayout):
             )
             for action in self.rule.actions
         ]
+        self._action_builder.unbind(decks=self._trigger_upd_rule_actions)
         self._action_builder.decks = [used_actions, unused_actions]
+        self._action_builder.bind(decks=self._trigger_upd_rule_actions)
+
+    def upd_rule_actions(self, *args):
+        actions = [
+            card.ud['funcname'] for card in
+            self._action_builder.decks[0]
+        ]
+        if self.rule.actions != actions:
+            self.rule.actions = actions
+
+    def upd_rule_prereqs(self, *args):
+        prereqs = [
+            card.ud['funcname'] for card in
+            self._prereq_builder.decks[0]
+        ]
+        if self.rule.prereqs != prereqs:
+            self.rule.prereqs = prereqs
+
+    def upd_rule_triggers(self, att, *args):
+        triggers = [
+            card.ud['funcname'] for card in
+            self._trigger_builder.decks[0]
+        ]
+        if self.rule.triggers != triggers:
+            self.rule.triggers = triggers
