@@ -11,9 +11,9 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.listview import ListView, ListItemButton
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
-from .card import Card, DeckBuilderLayout, DeckBuilderScrollBar
+from .card import Card, DeckBuilderView, DeckBuilderScrollBar
 Factory.register('Card', cls=Card)
-Factory.register('DeckBuilderLayout', cls=DeckBuilderLayout)
+Factory.register('DeckBuilderView', cls=DeckBuilderView)
 Factory.register('DeckBuilderScrollBar', cls=DeckBuilderScrollBar)
 
 
@@ -90,7 +90,7 @@ class RulesView(FloatLayout):
 
         self._action_tab = TabbedPanelItem(text='Actions')
         self._tabs.add_widget(self._action_tab)
-        self._action_builder = DeckBuilderLayout(**deck_builder_kwargs)
+        self._action_builder = DeckBuilderView(**deck_builder_kwargs)
         self._scroll_left_action = DeckBuilderScrollBar(
             size_hint_x=0.01,
             pos_hint={'x': 0, 'y': 0},
@@ -111,7 +111,7 @@ class RulesView(FloatLayout):
 
         self._trigger_tab = TabbedPanelItem(text='Triggers')
         self._tabs.add_widget(self._trigger_tab)
-        self._trigger_builder = DeckBuilderLayout(**deck_builder_kwargs)
+        self._trigger_builder = DeckBuilderView(**deck_builder_kwargs)
         self._scroll_left_trigger = DeckBuilderScrollBar(
             size_hint_x=0.01,
             pos_hint={'x': 0, 'y': 0},
@@ -132,7 +132,7 @@ class RulesView(FloatLayout):
 
         self._prereq_tab = TabbedPanelItem(text='Prereqs')
         self._tabs.add_widget(self._prereq_tab)
-        self._prereq_builder = DeckBuilderLayout(**deck_builder_kwargs)
+        self._prereq_builder = DeckBuilderView(**deck_builder_kwargs)
         self._scroll_left_prereq = DeckBuilderScrollBar(
             size_hint_x=0.01,
             pos_hint={'x': 0, 'y': 0},
