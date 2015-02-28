@@ -128,7 +128,6 @@ class Card(FloatLayout):
     text = StringProperty('')
     text_color = ListProperty([0, 0, 0, 1])
     markup = BooleanProperty(True)
-    shorten = BooleanProperty(True)
     font_name = StringProperty('DroidSans')
     font_size = NumericProperty(12)
 
@@ -174,7 +173,6 @@ class Card(FloatLayout):
         if not self.dragging:
             touch.ungrab(self)
             return
-        Logger.debug('Card: on_touch_move{}'.format(touch.pos))
         self.pos = (
             touch.x - self.collide_x,
             touch.y - self.collide_y
@@ -439,7 +437,6 @@ class DeckBuilderLayout(Layout):
         ):
             self.canvas.after.add(touch.ud['card'].canvas)
             touch.ud['card']._topdecked = True
-        any_collision = False
         i = 0
         for deck in self.decks:
             cards = [card for card in deck if not card.dragging]
@@ -450,7 +447,6 @@ class DeckBuilderLayout(Layout):
                 card for card in cards if card.collide_point(*touch.pos)
             ]
             if cards_collided:
-                any_collision = True
                 collided = cards_collided.pop()
                 for card in cards_collided:
                     if card.idx > collided.idx:
@@ -492,7 +488,6 @@ class DeckBuilderLayout(Layout):
                                 found is not None and
                                 found.collide_point(*touch.pos)
                         ):
-                            dbg('DeckBuilderLayout: collided foundation #{}'.format(j))
                             self.insertion_deck = j
                             self.insertion_card = 0
                         return
