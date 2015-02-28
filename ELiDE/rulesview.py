@@ -185,7 +185,7 @@ class RulesView(FloatLayout):
             )
             for trigger in self.rule.triggers
         ]
-        self._trigger_builder.decks = [unused_triggers, used_triggers]
+        self._trigger_builder.decks = [used_triggers, unused_triggers]
         unused_prereqs = [
             Card(
                 ud={'type': 'prereq'},
@@ -209,7 +209,7 @@ class RulesView(FloatLayout):
             )
             for prereq in self.rule.prereqs
         ]
-        self._prereq_builder.decks = [unused_prereqs, used_prereqs]
+        self._prereq_builder.decks = [used_prereqs, unused_prereqs]
         unused_actions = [
             Card(
                 ud={'type': 'action'},
@@ -233,4 +233,4 @@ class RulesView(FloatLayout):
             )
             for action in self.rule.actions
         ]
-        self._action_builder.decks = [unused_actions, used_actions]
+        self._action_builder.decks = [used_actions, unused_actions]
