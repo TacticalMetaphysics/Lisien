@@ -23,6 +23,9 @@ from kivy.uix.image import Image
 from kivy.uix.widget import Widget
 
 
+dbg = Logger.debug
+
+
 def get_pos_hint_x(poshints, sizehintx):
     if 'x' in poshints:
         return poshints['x']
@@ -433,15 +436,19 @@ class DeckBuilderLayout(Layout):
                         cards[-1], *touch.pos
                     ):
                         self.insertion_card = cards[-1].idx
-            i += 1
-            if not any_collision:
-                i = 0
-                for found in self._foundations:
-                    if found is not None and found.collide_point(*touch.pos):
-                        self.insertion_deck = i
-                        self.insertion_card = 0
+                else:
+                    j = 0
+                    for found in self._foundations:
+                        if (
+                                found is not None and
+                                found.collide_point(*touch.pos)
+                        ):
+                            dbg('DeckBuilderLayout: collided foundation #{}'.format(j))
+                            self.insertion_deck = j
+                            self.insertion_card = 0
                         return
-                    i += 1
+                        j += 1
+            i += 1
 
     def on_touch_up(self, touch):
         if (
