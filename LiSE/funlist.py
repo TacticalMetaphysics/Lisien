@@ -126,6 +126,16 @@ class FunList(MutableSequence):
         for funn in self._getlist():
             yield self.funcstore[funn]
 
+    def __eq__(self, other):
+        """Also return ``True`` if ``other`` contains the names of my
+        functions in the correct order.
+
+        """
+        return (
+            super().__eq__(other) or
+            self._getlist() == other
+        )
+
     def __len__(self):
         """Return the length of the list (don't translate it to functions)"""
         return len(self._getlist())
