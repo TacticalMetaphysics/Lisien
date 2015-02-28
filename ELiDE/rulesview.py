@@ -31,6 +31,8 @@ class RulesList(ListView):
                 selection_mode='single',
                 cls=ListItemButton,
                 args_converter=lambda i, rule: {
+                    'size_hint_y': None,
+                    'height': 30,
                     'text': rule.name,
                     'on_press': lambda inst:
                     self.set_rule(rule)
@@ -74,7 +76,11 @@ class RulesView(FloatLayout):
         }
         self._box = BoxLayout()
         self.add_widget(self._box)
-        self._list = RulesList(rulebook=self.rulebook, rulesview=self)
+        self._list = RulesList(
+            rulebook=self.rulebook,
+            rulesview=self,
+            size_hint_x=0.33
+        )
         self.bind(rulebook=self._list.setter('rulebook'))
         self._box.add_widget(self._list)
         self._tabs = TabbedPanel(
