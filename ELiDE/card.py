@@ -18,6 +18,7 @@ from kivy.properties import (
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.layout import Layout
+from kivy.uix.stencilview import StencilView
 from kivy.uix.image import Image
 from kivy.uix.widget import Widget
 
@@ -197,7 +198,7 @@ class Foundation(ColorTextureBox):
         )
 
 
-class DeckBuilderLayout(Layout):
+class DeckBuilderLayout(Layout, StencilView):
     direction = OptionProperty(
         'ascending', options=['ascending', 'descending']
     )
