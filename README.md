@@ -19,7 +19,6 @@ Existing games that LiSE seeks to imitate include:
 * Dwarf Fortress
 * Democracy
 * Crusader Kings
-* This War of Mine
 
 # Why should I use LiSE for this purpose?
 
