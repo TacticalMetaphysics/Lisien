@@ -9,6 +9,7 @@ from kivy.properties import ObjectProperty
 from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.label import Label
 from kivy.uix.listview import ListView, ListItemButton
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
@@ -126,6 +127,20 @@ class RulesView(FloatLayout):
         self._action_layout.add_widget(self._action_builder)
         self._action_layout.add_widget(self._scroll_left_action)
         self._action_layout.add_widget(self._scroll_right_action)
+        self._action_layout.add_widget(
+            Label(
+                text='Used',
+                pos_hint={'center_x': 0.1, 'center_y': 0.98},
+                size_hint=(None, None)
+            )
+        )
+        self._action_layout.add_widget(
+            Label(
+                text='Unused',
+                pos_hint={'center_x': 0.5, 'center_y': 0.98},
+                size_hint=(None, None)
+            )
+        )
 
         self._trigger_tab = TabbedPanelItem(text='Triggers')
         self._tabs.add_widget(self._trigger_tab)
@@ -146,7 +161,20 @@ class RulesView(FloatLayout):
         self._trigger_tab.add_widget(self._trigger_layout)
         self._trigger_layout.add_widget(self._trigger_builder)
         self._trigger_layout.add_widget(self._scroll_left_trigger)
-        self._trigger_layout.add_widget(self._scroll_right_trigger)
+        self._trigger_layout.add_widget(
+            Label(
+                text='Used',
+                pos_hint={'center_x': 0.1, 'center_y': 0.98},
+                size_hint=(None, None)
+            )
+        )
+        self._trigger_layout.add_widget(
+            Label(
+                text='Unused',
+                pos_hint={'center_x': 0.5, 'center_y': 0.98},
+                size_hint=(None, None)
+            )
+        )        self._trigger_layout.add_widget(self._scroll_right_trigger)
 
         self._prereq_tab = TabbedPanelItem(text='Prereqs')
         self._tabs.add_widget(self._prereq_tab)
@@ -168,6 +196,20 @@ class RulesView(FloatLayout):
         self._prereq_layout.add_widget(self._prereq_builder)
         self._prereq_layout.add_widget(self._scroll_left_prereq)
         self._prereq_layout.add_widget(self._scroll_right_prereq)
+        self._prereq_layout.add_widget(
+            Label(
+                text='Used',
+                pos_hint={'center_x': 0.1, 'center_y': 0.98},
+                size_hint=(None, None)
+            )
+        )
+        self._prereq_layout.add_widget(
+            Label(
+                text='Unused',
+                pos_hint={'center_x': 0.5, 'center_y': 0.98},
+                size_hint=(None, None)
+            )
+        )
 
     def on_rule(self, *args):
         if self.rule is None:
