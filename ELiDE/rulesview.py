@@ -5,7 +5,6 @@ from inspect import getsource
 
 from kivy.logger import Logger
 from kivy.clock import Clock
-from kivy.factory import Factory
 from kivy.properties import ObjectProperty
 from kivy.adapters.listadapter import ListAdapter
 from kivy.uix.boxlayout import BoxLayout
@@ -14,9 +13,6 @@ from kivy.uix.listview import ListView, ListItemButton
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
 from .card import Card, DeckBuilderView, DeckBuilderScrollBar
-Factory.register('Card', cls=Card)
-Factory.register('DeckBuilderView', cls=DeckBuilderView)
-Factory.register('DeckBuilderScrollBar', cls=DeckBuilderScrollBar)
 
 
 dbg = Logger.debug
