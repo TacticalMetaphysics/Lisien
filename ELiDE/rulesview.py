@@ -174,7 +174,8 @@ class RulesView(FloatLayout):
                 pos_hint={'center_x': 0.5, 'center_y': 0.98},
                 size_hint=(None, None)
             )
-        )        self._trigger_layout.add_widget(self._scroll_right_trigger)
+        )
+        self._trigger_layout.add_widget(self._scroll_right_trigger)
 
         self._prereq_tab = TabbedPanelItem(text='Prereqs')
         self._tabs.add_widget(self._prereq_tab)
