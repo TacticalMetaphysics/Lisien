@@ -111,7 +111,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def set_rule_triggers(self, rule, triggers):
         triggers = json_dump(triggers)
         try:
-            return self.sql('ins_rule', rule, triggers, '["list"]', '["list"]')
+            return self.sql('ins_rule', rule, '["list"]', '["list"]', triggers)
         except IntegrityError:
             return self.sql('upd_rule_triggers', triggers, rule)
 
@@ -135,7 +135,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def set_rule_actions(self, rule, actions):
         actions = json_dump(actions)
         try:
-            return self.sql('ins_rule', rule, '["list"]', '["list"]', actions)
+            return self.sql('ins_rule', rule, actions, '["list"]', '["list"]')
         except IntegrityError:
             return self.sql('upd_rule_actions', actions, rule)
 
