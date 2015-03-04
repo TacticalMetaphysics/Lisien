@@ -123,14 +123,13 @@ class StringStore(MutableMapping):
 
 class FunctionStoreDB(MutableMapping):
     """Store functions in a SQL database"""
-    def __init__(self, engine, codedb, table):
+    def __init__(self, engine, db, table):
         """Use ``codedb`` as a connection object. Connect to it, and
         initialize the schema if needed.
 
         """
         self.engine = engine
-        self.connection = codedb
-        self.db = QueryEngine(self.connection, [], False)
+        self.db = db
         self.db.init_table(table)
         self._tab = table
         self._listeners = defaultdict(list)
@@ -215,7 +214,7 @@ class FunctionStoreDB(MutableMapping):
         return str(self.decompiled(name))
 
     def commit(self):
-        self.connection.commit()
+        self.db.commit()
 
 
 class GlobalVarMapping(MutableMapping):
@@ -348,7 +347,9 @@ class Engine(object):
         # start the database
         self.stores = ('action', 'prereq', 'trigger', 'sense', 'function')
         for store in self.stores:
-            setattr(self, store, FunctionStoreDB(self, self.codedb, store))
+            setattr(self, store, FunctionStoreDB(
+                self, QueryEngine(self.codedb, [], False), store)
+            )
         if hasattr(self.gorm.db, 'alchemist'):
             self.worlddb = self.gorm.db.alchemist.conn.connection
         else:
