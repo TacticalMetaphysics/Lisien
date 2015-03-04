@@ -107,13 +107,34 @@ class QueryEngine(gorm.query.QueryEngine):
         for row in self.sql('rule_triggers', rule):
             return json_load(row[0])
 
+    def set_rule_triggers(self, rule, triggers):
+        triggers = json_dump(triggers)
+        try:
+            return self.sql('ins_rule_triggers', rule, triggers)
+        except IntegrityError:
+            return self.sql('upd_rule_triggers', triggers, rule)
+
     def rule_prereqs(self, rule):
         for row in self.sql('rule_prereqs', rule):
             return json_load(row[0])
 
+    def set_rule_prereqs(self, rule, prereqs):
+        prereqs = json_dump(prereqs)
+        try:
+            return self.sql('ins_rule_prereqs', rule, prereqs)
+        except IntegrityError:
+            return self.sql('upd_rule_prereqs', prereqs, rule)
+
     def rule_actions(self, rule):
         for row in self.sql('rule_actions', rule):
             return json_load(row[0])
+
+    def set_rule_actions(self, rule, actions):
+        actions = json_dump(actions)
+        try:
+            return self.sql('ins_rule_actions', rule, actions)
+        except IntegrityError:
+            return self.sql('upd_rule_actions', actions, rule)
 
     def init_string_table(self, tbl):
         try:

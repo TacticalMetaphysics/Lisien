@@ -1711,14 +1711,53 @@ def queries(table, view):
         rules.c.rule == bindparam('rule')
     )
 
+    r['ins_rule_triggers'] = rules.insert().values(
+        rule=bindparam('rule'),
+        triggers=bindparam('triggers'),
+        prereqs='[]',
+        actions='[]'
+    )
+
+    r['upd_rule_triggers'] = rules.update().values(
+        triggers=bindparam('triggers')
+    ).where(
+        rules.c.rule == bindparam('rule')
+    )
+
     r['rule_prereqs'] = select(
         [rules.c.prereqs]
     ).where(
         rules.c.rule == bindparam('rule')
     )
 
+    r['ins_rule_prereqs'] = rules.insert().values(
+        rule=bindparam('rule'),
+        triggers='[]',
+        prereqs=bindparam('prereqs'),
+        actions='[]'
+    )
+
+    r['upd_rule_prereqs'] = rules.update().values(
+        prereqs=bindparam('prereqs')
+    ).where(
+        rules.c.rule == bindparam('rule')
+    )
+
     r['rule_actions'] = select(
         [rules.c.actions]
+    ).where(
+        rules.c.rule == bindparam('rule')
+    )
+
+    r['ins_rule_actions'] = rules.insert().values(
+        rule=bindparam('rule'),
+        triggers='[]',
+        prereqs='[]',
+        actions=bindparam('actions')
+    )
+
+    r['upd_rule_actions'] = rules.update().values(
+        actions=bindparam('actions')
     ).where(
         rules.c.rule == bindparam('rule')
     )
