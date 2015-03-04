@@ -76,14 +76,25 @@ def inittest(
         print("===KOBOLD DIES===")
 
     @kill.trigger
+    def sametile(engine, character, thing):
+        try:
+            return (
+                thing['location'] == character.thing['kobold']['location']
+            )
+        except KeyError:
+            return False
+
+    @kill.prereq
     def kobold_alive(engine, character, thing):
         return 'kobold' in character.thing
 
-    @kill.prereq
     def aware(engine, character, thing):
         # calculate the distance from dwarf to kobold
         from math import hypot
-        bold = character.thing['kobold']
+        try:
+            bold = character.thing['kobold']
+        except KeyError:
+            return False
         (dx, dy) = bold['location']
         (ox, oy) = thing['location']
         xdist = abs(dx - ox)
@@ -92,17 +103,15 @@ def inittest(
         # if it's <= the dwarf's sight radius, the dwarf is aware of the kobold
         return dist <= thing['sight_radius']
 
-    @kill.prereq
-    def sametile(engine, character, thing):
-        return (
-            thing['location'] == character.thing['kobold']['location']
-        )
+    kill.prereq(aware)
 
     @dwarf.rule
     def go2kobold(engine, character, thing):
         thing.travel_to(character.thing['kobold']['location'])
 
-    go2kobold.prereqs = ['kobold_alive', 'aware']
+    go2kobold.trigger(aware)
+
+    go2kobold.prereqs = ['kobold_alive']
 
     @dwarf.rule
     def wander(engine, character, thing):
