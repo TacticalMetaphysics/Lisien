@@ -1711,13 +1711,6 @@ def queries(table, view):
         rules.c.rule == bindparam('rule')
     )
 
-    r['ins_rule_triggers'] = rules.insert().values(
-        rule=bindparam('rule'),
-        triggers=bindparam('triggers'),
-        prereqs='[]',
-        actions='[]'
-    )
-
     r['upd_rule_triggers'] = rules.update().values(
         triggers=bindparam('triggers')
     ).where(
@@ -1728,13 +1721,6 @@ def queries(table, view):
         [rules.c.prereqs]
     ).where(
         rules.c.rule == bindparam('rule')
-    )
-
-    r['ins_rule_prereqs'] = rules.insert().values(
-        rule=bindparam('rule'),
-        triggers='[]',
-        prereqs=bindparam('prereqs'),
-        actions='[]'
     )
 
     r['upd_rule_prereqs'] = rules.update().values(
@@ -1749,11 +1735,11 @@ def queries(table, view):
         rules.c.rule == bindparam('rule')
     )
 
-    r['ins_rule_actions'] = rules.insert().values(
+    r['ins_rule'] = rules.insert().values(
         rule=bindparam('rule'),
-        triggers='[]',
-        prereqs='[]',
-        actions=bindparam('actions')
+        triggers=bindparam('triggers'),
+        prereqs=bindparam('prereqs'),
+        actions=bindparam('actions'),
     )
 
     r['upd_rule_actions'] = rules.update().values(

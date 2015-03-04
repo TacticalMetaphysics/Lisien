@@ -106,33 +106,36 @@ class QueryEngine(gorm.query.QueryEngine):
     def rule_triggers(self, rule):
         for row in self.sql('rule_triggers', rule):
             return json_load(row[0])
+        return []
 
     def set_rule_triggers(self, rule, triggers):
         triggers = json_dump(triggers)
         try:
-            return self.sql('ins_rule_triggers', rule, triggers)
+            return self.sql('ins_rule', rule, triggers, '["list"]', '["list"]')
         except IntegrityError:
             return self.sql('upd_rule_triggers', triggers, rule)
 
     def rule_prereqs(self, rule):
         for row in self.sql('rule_prereqs', rule):
             return json_load(row[0])
+        return []
 
     def set_rule_prereqs(self, rule, prereqs):
         prereqs = json_dump(prereqs)
         try:
-            return self.sql('ins_rule_prereqs', rule, prereqs)
+            return self.sql('ins_rule', rule, '["list"]', prereqs, '["list"]')
         except IntegrityError:
             return self.sql('upd_rule_prereqs', prereqs, rule)
 
     def rule_actions(self, rule):
         for row in self.sql('rule_actions', rule):
             return json_load(row[0])
+        return []
 
     def set_rule_actions(self, rule, actions):
         actions = json_dump(actions)
         try:
-            return self.sql('ins_rule_actions', rule, actions)
+            return self.sql('ins_rule', rule, '["list"]', '["list"]', actions)
         except IntegrityError:
             return self.sql('upd_rule_actions', actions, rule)
 
@@ -140,6 +143,7 @@ class QueryEngine(gorm.query.QueryEngine):
         chararcter = json_dump(character)
         for row in self.sql('travel_reqs', character):
             return json_load(row[0])
+        return []
 
     def set_travel_reqs(self, character, reqs):
         (char, reqs) = map(json_dump, (character, reqs))
