@@ -5,8 +5,6 @@ from collections import (
     MutableSequence,
     Callable
 )
-from json import dumps as jsonned
-from json import loads as unjsonned
 from .util import listen
 
 
@@ -20,47 +18,20 @@ class FunList(MutableSequence):
     def __init__(
             self,
             engine,
-            funcstore,
-            table,
-            preset_fields,
-            preset_values,
-            field
+            db
     ):
         """Store the rule and the name of the field to put the data in, then
         put the data in it.
 
         """
-        self.table = table
-        self.preset_fields = tuple(preset_fields)
-        self.preset_values = tuple(preset_values)
-        self.presets = " AND ".join(
-            "{}=?".format(f) for f in self.preset_fields
-        )
-        self.field = field
         self.engine = engine
-        self.funcstore = funcstore
-        # if I don't have a record yet, make one
-        cursor = self.engine.db.connection.cursor()
-        if cursor.execute(
-            "SELECT COUNT(*) FROM {table} WHERE {presets};".format(
-                table=self.table,
-                presets=self.presets
-            ),
-            self.preset_values
-        ).fetchone()[0] == 0:
-            cursor.execute(
-                "INSERT INTO {table} ({fields}, {field}) "
-                "VALUES ({qpreset}, '[]');".format(
-                    table=self.table,
-                    fields=", ".join(self.preset_fields),
-                    field=self.field,
-                    qpreset=", ".join("?" * len(self.preset_values))
-                ),
-                self.preset_values
-            )
-        cursor.close()
+        self.db = db
         self._listeners = []
         self._cache = {}
+
+    @property
+    def funcstore(self):
+        raise NotImplementedError
 
     def _dispatch(self):
         for f in self._listeners:
@@ -79,44 +50,32 @@ class FunList(MutableSequence):
 
     def _setlist(self, l):
         """Update the rule's record with this new list of strings."""
-        self.engine.db.connection.cursor().execute(
-            "UPDATE {table} SET {field}=? WHERE {presets};".format(
-                table=self.table,
-                field=self.field,
-                presets=self.presets
-            ), (jsonned(l),) + self.preset_values
-        )
+        self._savelist(l)
         if self.engine.caching:
             (branch, tick) = self.engine.time
             if branch not in self._cache:
                 self._cache[branch] = {}
             self._cache[branch][tick] = l
 
+    def _savelist(self, l):
+        raise NotImplementedError
+
     def _getlist(self):
         """Return the list, decoded from JSON, but not yet translated to
         actual functions, just their names.
 
         """
-        def really_get_list():
-            return unjsonned(
-                self.engine.db.connection.cursor().execute(
-                    "SELECT {field} FROM {table} WHERE {presets};".format(
-                        field=self.field,
-                        table=self.table,
-                        presets=self.presets
-                    ),
-                    self.preset_values
-                ).fetchone()[0]
-            )
-
         if not self.engine.caching:
-            return really_get_list()
+            return self._loadlist()
         (branch, tick) = self.engine.time
         if branch not in self._cache:
             self._cache[branch] = {}
         if tick not in self._cache[branch]:
-            self._cache[branch][tick] = really_get_list()
+            self._cache[branch][tick] = self._loadlist()
         return self._cache[branch][tick]
+
+    def _loadlist(self):
+        raise NotImplementedError
 
     def __iter__(self):
         """Yield a function from the code database for each item in the

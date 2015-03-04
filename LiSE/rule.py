@@ -10,8 +10,51 @@ from collections import (
 from .funlist import FunList
 from .util import (
     dispatch,
-    listener
+    listener,
+    listen
 )
+
+
+class RuleFunList(FunList):
+    def __init__(self, rule):
+        self.rule = rule
+        super().__init__(rule.engine, rule.engine.rule.db)
+
+
+class TriggerList(RuleFunList):
+    @property
+    def funcstore(self):
+        return self.engine.trigger
+
+    def _savelist(self, l):
+        self.db.set_rule_triggers(self.rule.name, l)
+
+    def _loadlist(self):
+        return self.db.rule_triggers(self.rule.name)
+
+
+class PrereqList(RuleFunList):
+    @property
+    def funcstore(self):
+        return self.engine.prereq
+
+    def _savelist(self, l):
+        self.db.set_rule_prereqs(self.rule.name, l)
+
+    def _loadlist(self):
+        return self.db.rule_prereqs(self.rule.name)
+
+
+class ActionList(RuleFunList):
+    @property
+    def funcstore(self):
+        return self.engine.action
+
+    def _savelist(self, l):
+        self.db.set_rule_actions(self.rule.name, l)
+
+    def _loadlist(self):
+        return self.db.rule_actions(self.rule.name)
 
 
 class Rule(object):
@@ -36,16 +79,9 @@ class Rule(object):
         """
         self.engine = engine
         self.name = name
-        # if I don't yet have a database record, make one
-        if not self.engine.db.haverule(name):
-            self.engine.db.ruleins(name)
-
-        funl = lambda store, field: FunList(
-            self.engine, store, 'rules', ['rule'], [self.name], field
-        )
-        self._actions = funl(self.engine.action, 'actions')
-        self._prereqs = funl(self.engine.prereq, 'prereqs')
-        self._triggers = funl(self.engine.trigger, 'triggers')
+        self._actions = ActionList(self)
+        self._prereqs = PrereqList(self)
+        self._triggers = TriggerList(self)
         if triggers:
             self.triggers.extend(triggers)
         if prereqs:
@@ -112,7 +148,7 @@ class Rule(object):
         name.
 
         """
-        if self.engine.db.haverule(newname):
+        if self.engine.rule.db.haverule(newname):
             raise KeyError("Already have a rule called {}".format(newname))
         return Rule(
             self.engine,
@@ -450,8 +486,11 @@ class RuleFollower(object):
 
 
 class AllRules(MutableMapping):
-    def __init__(self, engine):
+    def __init__(self, engine, db):
         self.engine = engine
+        self.db = db
+        self.db.init_table('rules')
+        self.db.init_table('rulebooks')
         self._cache = {}
         self._listeners = defaultdict(list)
 
@@ -462,13 +501,13 @@ class AllRules(MutableMapping):
         dispatch(self._listeners, rule.name, self, rule, active)
 
     def __iter__(self):
-        yield from self.engine.db.allrules()
+        yield from self.db.allrules()
 
     def __len__(self):
-        return self.engine.db.ctrules()
+        return self.db.ctrules()
 
     def __contains__(self, k):
-        return self.engine.db.haverule(k)
+        return self.db.haverule(k)
 
     def __getitem__(self, k):
         if k not in self:
@@ -488,7 +527,7 @@ class AllRules(MutableMapping):
         if k not in self:
             raise KeyError("No such rule")
         old = self[k]
-        self.engine.db.ruledel(k)
+        self.db.ruledel(k)
         self._dispatch(old, False)
 
     def __call__(self, v=None, name=None):

@@ -340,7 +340,12 @@ class Engine(object):
         self.time_listeners = []
         self.db = self.gorm.db
         self.string = StringStore(self.codedb)
-        self.rule = AllRules(self)
+        self.rule = AllRules(
+            self,
+            QueryEngine(
+                self.codedb, connect_args={}, alchemy=False
+            )
+        )
         self.eternal = self.db.globl
         self.universal = GlobalVarMapping(self)
         self.character = CharacterMapping(self)
