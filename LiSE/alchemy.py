@@ -1762,6 +1762,25 @@ def queries(table, view):
         rules.c.rule == bindparam('rule')
     )
 
+    travreqs = table['travel_reqs']
+
+    r['travel_reqs'] = select(
+        [travreqs.c.reqs]
+    ).where(
+        travreqs.c.character == bindparam('character')
+    )
+
+    r['ins_travel_reqs'] = travreqs.insert().values(
+        character=bindparam('character'),
+        reqs=bindparam('reqs')
+    )
+
+    r['upd_travel_reqs'] = travreqs.update().values(
+        reqs=bindparam('reqs')
+    ).where(
+        travreqs.c.character == bindparam('character')
+    )
+
     r['rulebook_rules'] = select(
         [rulebooks.c.rule]
     ).where(

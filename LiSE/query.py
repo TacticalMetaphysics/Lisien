@@ -136,6 +136,18 @@ class QueryEngine(gorm.query.QueryEngine):
         except IntegrityError:
             return self.sql('upd_rule_actions', actions, rule)
 
+    def travel_reqs(self, character):
+        chararcter = json_dump(character)
+        for row in self.sql('travel_reqs', character):
+            return json_load(row[0])
+
+    def set_travel_reqs(self, character, reqs):
+        (char, reqs) = map(json_dump, (character, reqs))
+        try:
+            return self.sql('ins_travel_reqs', char, reqs)
+        except IntegrityError:
+            return self.sql('upd_travel_reqs', reqs, char)
+
     def init_string_table(self, tbl):
         try:
             return self.sql('create_{}'.format(tbl))
