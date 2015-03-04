@@ -1558,6 +1558,22 @@ class CharStatCache(MutableMapping):
         dekeycache(self, self._keycache, k)
 
 
+class TravelReqList(FunList):
+    def __init__(self, character):
+        self.character = character
+        super().__init__(character.engine, character.engine.db)
+
+    @property
+    def funcstore(self):
+        return self.engine.function
+
+    def _loadlist(self):
+        return self.db.travel_reqs(self.character.name)
+
+    def _savelist(self, l):
+        self.db.set_travel_reqs(self.character.name, l)
+
+
 class Character(DiGraph, RuleFollower):
     """A graph that follows game rules and has a containment hierarchy.
 
@@ -1609,14 +1625,7 @@ class Character(DiGraph, RuleFollower):
         self.pred = self.preportal
         self.avatar = CharacterAvatarGraphMapping(self)
         self.sense = CharacterSenseMapping(self)
-        self.travel_reqs = FunList(
-            self.engine,
-            self.engine.prereq,
-            'travel_reqs',
-            ['character'],
-            [name],
-            'reqs'
-        )
+        self.travel_reqs = TravelReqList(self)
         self.stat = CharStatCache(self)
         if engine.caching:
             self._avatar_cache = ac = {}
