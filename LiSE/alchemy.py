@@ -1703,6 +1703,26 @@ def queries(table, view):
         ]
     )
 
+    rules = table['rules']
+
+    r['rule_triggers'] = select(
+        [rules.c.triggers]
+    ).where(
+        rules.c.rule == bindparam('rule')
+    )
+
+    r['rule_prereqs'] = select(
+        [rules.c.prereqs]
+    ).where(
+        rules.c.rule == bindparam('rule')
+    )
+
+    r['rule_actions'] = select(
+        [rules.c.actions]
+    ).where(
+        rules.c.rule == bindparam('rule')
+    )
+
     r['rulebook_rules'] = select(
         [rulebooks.c.rule]
     ).where(

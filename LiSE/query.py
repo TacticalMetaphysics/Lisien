@@ -103,6 +103,18 @@ class QueryEngine(gorm.query.QueryEngine):
     def func_table_del(self, tbl, key):
         return self.sql('func_{}_del'.format(tbl), key)
 
+    def rule_triggers(self, rule):
+        for row in self.sql('rule_triggers', rule):
+            return json_load(row[0])
+
+    def rule_prereqs(self, rule):
+        for row in self.sql('rule_prereqs', rule):
+            return json_load(row[0])
+
+    def rule_actions(self, rule):
+        for row in self.sql('rule_actions', rule):
+            return json_load(row[0])
+
     def init_string_table(self, tbl):
         try:
             return self.sql('create_{}'.format(tbl))
