@@ -19,6 +19,10 @@ from .card import Card, DeckBuilderView, DeckBuilderScrollBar
 dbg = Logger.debug
 
 
+class RuleButton(ListItemButton):
+    rule = ObjectProperty()
+
+
 class RulesList(ListView):
     rulebook = ObjectProperty()
     rulesview = ObjectProperty()
@@ -28,16 +32,22 @@ class RulesList(ListView):
             kwargs['adapter'] = ListAdapter(
                 data=[],
                 selection_mode='single',
-                cls=ListItemButton,
+                allow_empty_selection=False,
+                cls=RuleButton,
                 args_converter=lambda i, rule: {
                     'size_hint_y': None,
                     'height': 30,
                     'text': rule.name,
-                    'on_press': lambda inst:
-                    self.set_rule(rule)
+                    'rule': rule
                 }
             )
         super().__init__(**kwargs)
+
+    def on_adapter(self, *args):
+        self.adapter.bind(
+            on_selection_change=lambda inst:
+            self.set_rule(self.adapter.selection[0].rule)
+        )
 
     def on_rulebook(self, *args):
         if self.rulebook is None:
