@@ -99,7 +99,7 @@ class Rule(object):
         elif attrn == 'actions':
             return self._actions
         else:
-            return super().__getattr__(attrn)
+            raise AttributeError("No attribute: {}".format(attrn))
 
     def __setattr__(self, attrn, val):
         if attrn == 'triggers':
