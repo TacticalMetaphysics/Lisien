@@ -338,11 +338,34 @@ class ELiDELayout(FloatLayout):
         self._rulesbox = BoxLayout(orientation='vertical')
         self._rulesview = RulesView(engine=self.engine)
         self._rulesbox.add_widget(self._rulesview)
-        self._rulesbox.add_widget(
+        below_rulesbox = BoxLayout(size_hint_y=0.05)
+        self._rulesbox.add_widget(below_rulesbox)
+        self._new_rule_name = TextInput(
+            hint_text='New rule name',
+            write_tab=False
+        )
+        below_rulesbox.add_widget(self._new_rule_name)
+
+        def new_rule(*args):
+            if not self.engine.rule.db.haverule(self._new_rule_name.text):
+                new = self.engine.rule.new_empty(self._new_rule_name.text)
+                self._rulesview.rulebook.append(new)
+                view = self._rulesview._list.adapter.get_view(
+                    self._rulesview._list.adapter.data.index(new)
+                )
+                self._rulesview._list.adapter.select_list([view])
+                self._rulesview.rule = new
+            self._new_rule_name.text = ''
+
+        self._new_rule_but = Button(
+            text='+',
+            on_press=new_rule
+        )
+        below_rulesbox.add_widget(self._new_rule_but)
+        below_rulesbox.add_widget(
             Button(
                 text='Close',
-                on_press=self.toggle_rules_view,
-                size_hint_y=0.05
+                on_press=self.toggle_rules_view
             )
         )
 

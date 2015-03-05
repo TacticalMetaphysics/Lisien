@@ -78,7 +78,9 @@ class Rule(object):
 
         """
         self.engine = engine
-        self.name = name
+        self.name = self.__name__ = name
+        if not self.engine.rule.db.haverule(name):
+            self.engine.rule.db.create_blank_rule(name)
         self._actions = ActionList(self)
         self._prereqs = PrereqList(self)
         self._triggers = TriggerList(self)
@@ -539,3 +541,11 @@ class AllRules(MutableMapping):
         k = name if name is not None else v.__name__
         self[k] = v
         return self[k]
+
+    def new_empty(self, name):
+        if name in self:
+            raise KeyError("Already have rule {}".format(name))
+        new = Rule(self.engine, name)
+        self._cache[name] = new
+        self._dispatch(new, True)
+        return new

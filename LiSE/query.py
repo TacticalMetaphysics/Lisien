@@ -139,6 +139,9 @@ class QueryEngine(gorm.query.QueryEngine):
         except IntegrityError:
             return self.sql('upd_rule_actions', actions, rule)
 
+    def create_blank_rule(self, rule):
+        return self.sql('ins_rule', rule, '["list"]', '["list"]', '["list"]')
+
     def travel_reqs(self, character):
         chararcter = json_dump(character)
         for row in self.sql('travel_reqs', character):
