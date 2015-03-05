@@ -231,6 +231,9 @@ class RulesView(FloatLayout):
                 dbg('RulesView: no {}'.format(attrn))
                 Clock.schedule_once(self.on_rule, 0)
                 return
+        self._trigger_builder.clear_widgets()
+        self._prereq_builder.clear_widgets()
+        self._action_builder.clear_widgets()
         unused_triggers = [
             Card(
                 ud={
