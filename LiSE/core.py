@@ -20,18 +20,25 @@ from .util import dispatch, listen, listener, RedundantRuleError
 class NotThatMap(Mapping):
     """Wraps another mapping and conceals exactly one of its keys."""
     def __init__(self, inner, k):
+        """Store the inner mapping and the key to hide."""
         self.inner = inner
         self.k = k
 
     def __iter__(self):
+        """Iterate over every key except the one I'm hiding."""
         for key in self.inner:
             if key != self.k:
                 yield key
 
     def __len__(self):
+        """Return the length of my inner mapping minus one, on the assumption
+        that at least that one key is present in the inner mapping.
+
+        """
         return len(self.inner) - 1
 
     def __getitem__(self, key):
+        """Raise ``KeyError`` if you're trying to get the hidden key."""
         if key == self.k:
             raise KeyError("masked")
         return self.inner[key]
@@ -59,20 +66,40 @@ class StringStore(MutableMapping):
         self._str_listeners = defaultdict(list)
 
     def _dispatch_lang(self, v):
+        """When the language changes, call everything that's listening to
+        it.
+
+        """
         for f in self._lang_listeners:
             f(self, v)
 
     def lang_listener(self, f):
+        """Arrange to call the function when the language changes."""
         listen(self._lang_listeners, f)
 
     def _dispatch_str(self, k, v):
+        """When some string ``k`` is set to ``v``, notify any listeners of the
+        fact.
+
+        That means listeners to ``k`` in particular, and to strings
+        generally.
+
+        """
         dispatch(self._str_listeners, k, self, k, v)
 
     def listener(self, fun=None, string=None):
+        """Arrange to call the function when a string is set.
+
+        With optional argument ``string``, only that particular string
+        will trigger the listener. Without ``string``, every string
+        will.
+
+        """
         return listener(self._str_listeners, fun, string)
 
     @property
     def language(self):
+        """Get the current language."""
         return self._language
 
     @language.setter
@@ -137,17 +164,29 @@ class FunctionStoreDB(MutableMapping):
         self.engine.db.init_func_table(table)
 
     def _dispatch(self, name, fun):
+        """Call listeners to functions generally and to the named function in
+        particular when it's set to a new callable.
+
+        """
         dispatch(self._listeners, name, self, name, fun)
 
     def listener(self, f=None, name=None):
+        """Arrange to call a listener function when a stored function changes.
+
+        With optional argument ``name``, the listener will only be
+        called when the named function changes. Otherwise it will be
+        called when any stored function changes, including when it's
+        set the first time.
+
+        """
         return listener(self._listeners, f, name)
 
     def __len__(self):
-        """SELECT COUNT(*) FROM {}""".format(self._tab)
+        """Return count of all functions here."""
         return self.db.count_all_table(self._tab)
 
     def __iter__(self):
-        """SELECT name FROM {} ORDER BY name""".format(self._tab)
+        """Iterate over function names in alphabetical order."""
         for row in self.db.func_table_iter(self._tab):
             yield row[0]
 
@@ -188,6 +227,12 @@ class FunctionStoreDB(MutableMapping):
         self._dispatch(name, fun)
 
     def __delitem__(self, name):
+        """Delete the named function from both the cache and the database.
+
+        Listeners to the named function see this as if the function
+        were set to ``None``.
+
+        """
         self.db.func_table_del(self._tab, name)
         del self.cache[name]
         self._dispatch(name, None)
@@ -214,6 +259,7 @@ class FunctionStoreDB(MutableMapping):
         return str(self.decompiled(name))
 
     def commit(self):
+        """Tell my ``QueryEngine`` to commit."""
         self.db.commit()
 
 
@@ -225,9 +271,19 @@ class GlobalVarMapping(MutableMapping):
         self._listeners = defaultdict(list)
 
     def _dispatch(self, k, v):
+        """Call everyone listening to this key, and everyone who listens to
+        all keys.
+
+        """
         dispatch(self._listeners, k, self, k, v)
 
     def listener(self, f=None, key=None):
+        """Arrange to call this function when a key is set to a new value.
+
+        With optional argument ``key``, only call when that particular
+        key changes.
+
+        """
         return listener(self._listeners, f, key)
 
     def __iter__(self):
@@ -263,27 +319,48 @@ class GlobalVarMapping(MutableMapping):
 
 
 class CharacterMapping(MutableMapping):
+    """A mapping by which to access :class:`Character` objects."""
     def __init__(self, engine):
+        """Store the engine, initialize caches"""
         self.engine = engine
         self._listeners = defaultdict(list)
         self._cache = {}
 
     def _dispatch(self, k, v):
+        """Call anyone listening for a character named ``k``, and anyone
+        listening to all characters
+
+        """
         dispatch(self._listeners, k, self, k, v)
 
     def listener(self, f=None, char=None):
+        """Arrange to call the function when a character is created or
+        destroyed.
+
+        With optional argument ``char``, only call when a character by
+        that name is created or destroyed.
+
+        """
         return listener(self._listeners, f, char)
 
     def __iter__(self):
+        """Iterate over every character name."""
         return self.engine.db.characters()
 
     def __contains__(self, name):
+        """Has this character been created?"""
         return self.engine.db.have_character(name)
 
     def __len__(self):
+        """How many characters have been created?"""
         return self.engine.db.ct_characters()
 
     def __getitem__(self, name):
+        """Return the named character, if it's been created.
+
+        Try to use the cache if possible.
+
+        """
         if hasattr(self, '_cache'):
             if name not in self._cache:
                 if name not in self:
@@ -295,6 +372,10 @@ class CharacterMapping(MutableMapping):
         return Character(self.engine, name)
 
     def __setitem__(self, name, value):
+        """Make a new character by the given name, and initialize its data to
+        the given value.
+
+        """
         if isinstance(value, Character):
             self._cache[name] = value
             return
@@ -302,6 +383,7 @@ class CharacterMapping(MutableMapping):
         self._dispatch(name, self._cache[name])
 
     def __delitem__(self, name):
+        """Delete the named character from both the cache and the database."""
         if hasattr(self, '_cache') and name in self._cache:
             del self._cache[name]
         self.engine.db.del_character(name)
@@ -309,6 +391,7 @@ class CharacterMapping(MutableMapping):
 
 
 class Engine(object):
+    """LiSE, the Life Simulator Engine"""
     def __init__(
             self,
             worlddb,
@@ -483,16 +566,23 @@ class Engine(object):
         self.gorm.commit()
 
     def close(self):
+        """Commit changes and close the database."""
         self.commit()
         self.gorm.close()
 
     def __enter__(self):
+        """Return myself. For compatibility with ``with`` semantics."""
         return self
 
     def __exit__(self, *args):
+        """Close on exit."""
         self.close()
 
     def on_time(self, v):
+        """Arrange to call a function whenever my ``branch`` or ``tick``
+        changes.
+
+        """
         if not isinstance(v, Callable):
             raise TypeError("This is a decorator")
         if v not in self.time_listeners:
@@ -500,6 +590,7 @@ class Engine(object):
 
     @property
     def branch(self):
+        """Return my gorm's branch"""
         return self.gorm.branch
 
     @branch.setter
@@ -526,11 +617,12 @@ class Engine(object):
 
     @property
     def tick(self):
+        """Return my gorm's ``rev``"""
         return self.gorm.rev
 
     @tick.setter
     def tick(self, v):
-        """Update orm's tick, and call listeners"""
+        """Update gorm's ``rev``, and call listeners"""
         (branch_then, tick_then) = self.time
         if self.caching:
             if v == self.tick:
@@ -549,7 +641,7 @@ class Engine(object):
 
     @time.setter
     def time(self, v):
-        """Set my gorm's ``branch`` and ``tick``, and call listeners"""
+        """Set my ``branch`` and ``tick``, and call listeners"""
         (branch_then, tick_then) = self.time
         (branch_now, tick_now) = v
         relock = hasattr(self, 'locktime')
@@ -567,6 +659,11 @@ class Engine(object):
                 )
 
     def _active_branches(self, branch=None, tick=None):
+        """Iterate first over the current branch and tick (or the given ones,
+        if available), then over each ancestor branch and the tick
+        when it 'gave birth' to the branch previous.
+
+        """
         if not self.caching:
             yield from self.gorm._active_branches()
             return
@@ -579,6 +676,10 @@ class Engine(object):
             yield b, t
 
     def _branch_descendants(self, branch=None):
+        """Iterate over all branches immediately descended from the current
+        one (or the given one, if available).
+
+        """
         branch = branch if branch else self.branch
         if not self.caching:
             yield from self.db.branch_descendants(branch)
@@ -588,6 +689,16 @@ class Engine(object):
             yield from self._branch_descendants(child)
 
     def _poll_rules(self):
+        """Iterate over tuples containing rules yet unresolved in the current tick.
+
+        The tuples are of the form: ``(ruletype, character, entity,
+        rulebook, rule)`` where ``ruletype`` is what kind of entity
+        the rule is about (character', 'thing', 'place', or
+        'portal'), and ``entity`` is the :class:`Place`,
+        :class:`Thing`, or :class:`Portal` that the rule is attached
+        to. For character-wide rules it is ``None``.
+
+        """
         for (
                 rulemap, character, rulebook, rule
         ) in self.db.poll_char_rules(*self.time):
@@ -621,6 +732,16 @@ class Engine(object):
                 continue
 
     def _follow_rules(self):
+        """For each rule in play at the present tick, call it and yield a
+        tuple describing the results.
+
+        Tuples are of the form: ``(returned, rulename, ruletype,
+        rulebook)`` where ``returned`` is whatever the rule itself
+        returned upon being called, and ``ruletype`` is what sort of
+        entity the rule applies to (character', 'thing', 'place', or
+        'portal').
+
+        """
         (branch, tick) = self.time
         for (typ, character, entity, rulebook, rule) in self._poll_rules():
             def follow(*args):
