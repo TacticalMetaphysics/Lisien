@@ -181,6 +181,11 @@ class ELiDELayout(FloatLayout):
             del self._popover
         else:
             self._charlist.adapter.data = list(self.engine.character)
+            self._charlist.adapter.select_list(
+                [self._charlist.adapter.get_view(
+                    self._charlist.adapter.data.index(self.character_name)
+                )]
+            )
             self._popover = ModalView()
             self._popover.add_widget(self._charbox)
             self._popover.open()
