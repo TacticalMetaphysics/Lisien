@@ -96,6 +96,11 @@
         size_hint_x: 0.1
         pos_hint: {'right': 1}
         Button:
+            id: charchangebut
+            halign: "center"
+            text: "Character"
+            on_press: root.toggle_char_list()
+        Button:
             text: "Strings"
             on_press: root.toggle_strings_editor()
         Button:
@@ -110,11 +115,6 @@
         Button:
             text: "Rules"
             on_press: root.toggle_rules_view()
-        Button:
-            id: charchangebut
-            halign: "center"
-            text: str(root.character_name)
-            on_press: root.toggle_char_list()
         SymbolButton:
             text: chr(0x2327)
             on_press: root.delete_selection()
