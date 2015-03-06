@@ -56,6 +56,14 @@ class RedundantRuleError(ValueError):
     pass
 
 
+class UserFunctionError(SyntaxError):
+    """Error condition for when I try to load a user-defined function and
+    something goes wrong.
+
+    """
+    pass
+
+
 class CacheError(ValueError):
     """Error condition for something going wrong with a cache"""
     pass

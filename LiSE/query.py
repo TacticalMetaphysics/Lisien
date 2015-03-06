@@ -5,7 +5,12 @@ from types import FunctionType
 from marshal import loads as unmarshalled
 from marshal import dumps as marshalled
 from gorm.xjson import json_dump, json_load
-from .util import IntegrityError, OperationalError, RedundantRuleError
+from .util import (
+    IntegrityError,
+    OperationalError,
+    RedundantRuleError,
+    UserFunctionError
+)
 
 import gorm.query
 import LiSE
