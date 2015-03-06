@@ -623,6 +623,8 @@ class Engine(object):
     @tick.setter
     def tick(self, v):
         """Update gorm's ``rev``, and call listeners"""
+        if not isinstance(v, int):
+            raise TypeError("tick must be integer")
         (branch_then, tick_then) = self.time
         if self.caching:
             if v == self.tick:
