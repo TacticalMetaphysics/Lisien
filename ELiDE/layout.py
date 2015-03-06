@@ -1,6 +1,5 @@
 from functools import partial
 from kivy.properties import (
-    AliasProperty,
     BooleanProperty,
     BoundedNumericProperty,
     DictProperty,
@@ -29,6 +28,7 @@ from .rulesview import RulesView
 from .funcwin import FuncsEdWindow
 from .statwin import StatWindow
 from .stringwin import StringsEdWindow
+from .charsel import CharListView
 
 from gorm.xjson import json_load
 
@@ -132,9 +132,58 @@ class ELiDELayout(FloatLayout):
             )
         )
 
+        def select_character(char):
+            if char == self.character:
+                return
+            self.character = char
+            self.character_name = char.name
+            self.toggle_char_list()
+
+        def new_character(but):
+            self.toggle_char_list()
+            charn = self._new_char_name.text
+            self.character = self.engine.new_character(charn)
+            self.character_name = charn
+
+        self._charlist = CharListView(
+            layout=self,
+            set_char=select_character
+        )
+        self._charbox = BoxLayout(orientation='vertical')
+        self._charbox.add_widget(self._charlist)
+        below_charbox = BoxLayout(size_hint_y=0.05)
+        self._charbox.add_widget(below_charbox)
+        self._new_char_name = TextInput(
+            hint_text='New character name',
+            write_tab=False
+        )
+        below_charbox.add_widget(self._new_char_name)
+        self._new_char_but = Button(
+            text='+',
+            on_press=new_character
+        )
+        below_charbox.add_widget(self._new_char_but)
+        below_charbox.add_widget(
+            Button(
+                text='Cancel',
+                on_press=self.toggle_char_list
+            )
+        )
+
         @self.engine.on_time
         def board_upd(*args):
             Clock.schedule_once(self.ids.board.update, 0)
+
+    def toggle_char_list(self, *args):
+        if hasattr(self, '_popover'):
+            self._popover.remove_widget(self._charbox)
+            self._popover.dismiss()
+            del self._popover
+        else:
+            self._charlist.adapter.data = list(self.engine.character)
+            self._popover = ModalView()
+            self._popover.add_widget(self._charbox)
+            self._popover.open()
 
     def toggle_rules_view(self, *args):
         if hasattr(self, '_popover'):
