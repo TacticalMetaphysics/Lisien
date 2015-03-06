@@ -77,7 +77,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def func_table_set_source(self, tbl, key, source, use_globals=True):
         locd = {}
         globd = (
-            globals() if incl_globals is True else
+            globals() if use_globals is True else
             use_globals if isinstance(use_globals, dict) else
             {}
         )
