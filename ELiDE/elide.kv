@@ -114,6 +114,7 @@
             id: charchangebut
             halign: "center"
             text: str(root.character_name)
+            on_press: root.toggle_char_list()
         SymbolButton:
             text: chr(0x2327)
             on_press: root.delete_selection()
