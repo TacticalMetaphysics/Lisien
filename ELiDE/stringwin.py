@@ -31,7 +31,8 @@ class StringsEdWindow(BoxLayout):
         )
         self.add_widget(addclosestr)
         add_string_field = TextInput(
-            hint_text='New string name'
+            hint_text='New string name',
+            write_tab=False
         )
         addclosestr.add_widget(add_string_field)
 
