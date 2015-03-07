@@ -224,13 +224,13 @@ class Pawn(PawnSpot):
                     )
                 )
         ):
-            try:
+            if self.thing.next_location is not None:
                 whereat = self.board.arrow[
-                    self.loc_name
+                    self.thing.location.name
                     ][
-                        self.next_loc_name
+                        self.thing.next_location.name
                     ]
-            except KeyError:
+            else:
                 whereat = self.board.spot[self.loc_name]
             parent_name = self.parent.name
             self.parent.remove_widget(self)
