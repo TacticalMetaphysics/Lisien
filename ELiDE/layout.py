@@ -1,3 +1,4 @@
+from threading import Lock
 from functools import partial
 from kivy.properties import (
     BooleanProperty,
@@ -81,6 +82,8 @@ class ELiDELayout(FloatLayout):
         self._trigger_reremote = Clock.create_trigger(self.reremote)
         self.bind(selection=self._trigger_reremote)
         self._trigger_reremote()
+        self.playlock = Lock()
+        Clock.schedule_interval(self.play, 1)
 
     def on_engine(self, *args):
         """Set my branch and tick to that of my engine, and bind them so that
@@ -135,12 +138,12 @@ class ELiDELayout(FloatLayout):
         def select_character(char):
             if char == self.character:
                 return
+            Clock.schedule_once(self.toggle_char_list, 0.01)
             self.character = char
             self.character_name = char.name
-            self.toggle_char_list()
 
         def new_character(but):
-            self.toggle_char_list()
+            Clock.schedule_once(self.toggle_char_list, 0.01)
             charn = self._new_char_name.text
             self.character = self.engine.new_character(charn)
             self.character_name = charn
@@ -730,7 +733,7 @@ class ELiDELayout(FloatLayout):
         """``self.tick = int(t)``"""
         self.tick = int(t)
 
-    def advance(self):
+    def advance(self, *args):
         """Resolve one rule and store the results in a list at
         ``self.tick_results[self.branch][self.tick]```.
 
@@ -757,34 +760,35 @@ class ELiDELayout(FloatLayout):
             self.tick += 1
 
     def next_tick(self, *args):
-        """Call ``self.advance()``, and if the tick hasn't changed, schedule
-        it to happen again.
+        """Call ``self.advance()``, and if the tick hasn't
+        changed, schedule it to happen again.
 
-        This is sort of a hack to fake parallel programming. Until I
-        work out how to pass messages between an ELiDE process and a
-        LiSE-core process, I'll just assume that each individual rule
-        will be quick enough to resolve that the UI won't appear to
-        lock up.
+        This blocks ``self.playlock`` and should be called in its own
+        thread.
 
         """
+        self.playlock.acquire()
         curtick = self.tick
         n = 0
-        while (
-                curtick == self.tick and
-                n < self.rules_per_frame
-        ):
+        while curtick == self.tick:
             self.advance()
             n += 1
-        if self.tick == curtick:
-            Clock.schedule_once(self.next_tick, 0)
-        else:
-            Logger.info(
-                "Followed {n} rules on tick {ct}:\n{r}".format(
-                    n=n,
-                    ct=curtick,
-                    r="\n".join(
-                        str(tup) for tup in
-                        self.tick_results[self.branch][curtick]
-                    )
+        Logger.info(
+            "Followed {n} rules on tick {ct}:\n{r}".format(
+                n=n,
+                ct=curtick,
+                r="\n".join(
+                    str(tup) for tup in
+                    self.tick_results[self.branch][curtick]
                 )
             )
+        )
+        self.playlock.release()
+
+    def play(self, *args):
+        """If I'm advancing time, advance a tick."""
+        if (
+                self.ids.playbut.state == 'down' and not
+                self.playlock.locked()
+        ):
+            self.next_tick()
