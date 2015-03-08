@@ -26,7 +26,7 @@
             arrowhead_size: 10
             Image:
                 id: wallpaper
-                source: root.character['_wallpaper'] if '_wallpaper' in root.character else resource_find('wallpape.jpg')
+                source: resource_find(root.character.stat['_wallpaper']) if '_wallpaper' in root.character.stat else resource_find('wallpape.jpg')
                 size_hint: (None, None)
                 size: self.texture_size
             FloatLayout:
@@ -59,24 +59,17 @@
         pos_hint: {'bot': 0}
         size_hint: (0.85, 0.1)
         orientation: 'horizontal'
-        ToggleButton:
-            id: playbut
-            font_name: 'Symbola.ttf'
-            font_size: 50
-            text: chr(0x25b6)
         BoxLayout:
             orientation: 'vertical'
-            Label:
+            ToggleButton:
+                id: playbut
                 font_name: 'Symbola.ttf'
-                text: ''.join((chr(0x25b6), chr(0x25ae)))
-            BoxLayout:
-                orientation: 'horizontal'
-                Button:
-                    text: 'Tick'
-                    on_press: root.next_tick()
-                Button:
-                    text: 'Rule'
-                    on_press: root.advance()
+                font_size: 40
+                text: chr(0x25b6)
+            Button:
+                text: 'Next tick'
+                size_hint_y: 0.3
+                on_press: root.engine.next_tick()
         BoxLayout:
             orientation: 'vertical'
             Label:

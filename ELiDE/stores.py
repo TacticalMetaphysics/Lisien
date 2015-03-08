@@ -115,7 +115,7 @@ class FuncStoreAdapter(StoreAdapter):
         """
         return [
             StoreDataItem(name=k, source=v) for (k, v) in
-            self.store.db.func_table_name_plaincode(self.table)
+            self.store.iterplain()
         ]
 
 
@@ -131,9 +131,7 @@ class StringStoreAdapter(StoreAdapter):
         """
         return [
             StoreDataItem(name=k, source=v) for (k, v) in
-            self.store.db.string_table_lang_items(
-                self.table, self.store.language
-            )
+            self.store.lang_items()
         ]
 
 
@@ -344,8 +342,4 @@ class FuncsEditor(StoreEditor):
                 self.source
             )
         )
-        self.store.db.func_table_set_source(
-            self.table,
-            self.name,
-            self.source
-        )
+        self.store.set_source(self.name, self.source)

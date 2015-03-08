@@ -35,6 +35,7 @@ from .util import (
 from .rule import Rule, RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
 from .funlist import FunList
+from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
@@ -107,7 +108,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         if self.engine.caching:
 
             @self.engine.on_time
-            def recache(eng, branch_then, tick_then, b, t):
+            def recache(branch_then, tick_then, b, t):
                 if b not in self._keycache:
                     self._keycache[b] = {}
                 if branch_then == b and tick_then == t - 1:
@@ -1427,7 +1428,6 @@ class CharStatCache(MutableMapping):
 
         @self.engine.on_time
         def time_travel_triggers(
-                engine,
                 branch_then,
                 tick_then,
                 branch_now,
@@ -1438,7 +1438,6 @@ class CharStatCache(MutableMapping):
 
             """
             fire_time_travel_triggers(
-                engine,
                 self._real,
                 self._cache,
                 self._dispatch,
@@ -1466,7 +1465,6 @@ class CharStatCache(MutableMapping):
 
             @self.engine.on_time
             def cache_new_branch(
-                    engine,
                     branch_then,
                     tick_then,
                     branch_now,
@@ -1652,10 +1650,16 @@ class Character(DiGraph, RuleFollower):
         )
 
     def _dispatch_stat(self, k, v):
-        dispatch(self._stat_listeners, k, self, k, v)
+        (branch, tick) = self.engine.time
+        dispatch(self._stat_listeners, k, branch, tick, self, k, v)
+        for fun in self.engine._on_char_stat:
+            fun(branch, tick, self, k, v)
 
     def stat_listener(self, f=None, stat=None):
         return listener(self._stat_listeners, f, stat)
+
+    def listener(self, f=None, stat=None):
+        return self.stat_listener(f, stat)
 
     def _dispatch_avatar(self, k, v, ex):
         dispatch(
@@ -1669,14 +1673,6 @@ class Character(DiGraph, RuleFollower):
 
     def avatar_listener(self, f=None, graph=None):
         return listener(self._avatar_listeners, f, graph)
-
-    def __setitem__(self, k, v):
-        super().__setitem__(k, v)
-        self._dispatch_stat(k, v)
-
-    def __delitem__(self, k):
-        super().__delitem__(k)
-        self._dispatch_stat(k, None)
 
     def facade(self):
         return Facade(self)
@@ -1873,10 +1869,20 @@ class Character(DiGraph, RuleFollower):
         )
         self._dispatch_avatar(g, n, True)
 
-    def del_avatar(self, node):
+    def del_avatar(self, a, b=None):
         """This is no longer my avatar, though it still exists on its own"""
-        g = node.character.name
-        n = node.name
+        if b is None:
+            if not isinstance(a, Node):
+                raise TypeError(
+                    "In single argument form, "
+                    "del_avatar requires a Node object "
+                    "(Thing or Place)."
+                )
+            g = a.character.name
+            n = a.name
+        else:
+            g = a if isinstance(a, Character) else self.engine.character[a]
+            n = b if isinstance(b, Node) else g.node[b]
         (branch, tick) = self.engine.time
         if self.engine.caching:
             ac = self._avatar_cache

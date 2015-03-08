@@ -22,6 +22,7 @@ from sqlalchemy import (
     DateTime,
     MetaData,
     select,
+    distinct,
     func,
     and_,
     or_,
@@ -1766,6 +1767,10 @@ def queries(table, view):
     ).where(
         travreqs.c.character == bindparam('character')
     )
+
+    r['rulebooks'] = select([rulebooks.c.rulebook])
+
+    r['ct_rulebooks'] = select([func.COUNT(distinct(rulebooks.c.rulebook))])
 
     r['rulebook_rules'] = select(
         [rulebooks.c.rule]

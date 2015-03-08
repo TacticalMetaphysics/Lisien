@@ -49,16 +49,9 @@ class MirrorMapping(EventDispatcher):
 
         @self.remote.listener
         def when_changed(branch, tick, what, k, v):
-            if (
-                    branch == self.time[0] and
-                    tick == self.time[1] and (
-                        k not in self.mirror or
-                        self.mirror[k] != v
-                    )
-            ):
+            if k not in self.mirror or self.mirror[k] != v:
                 if v is None:
-                    if k in self.mirror:
-                        del self.mirror[k]
+                    del self.mirror[k]
                 else:
                     assert(len(k) > 0)
                     assert(v is not None)

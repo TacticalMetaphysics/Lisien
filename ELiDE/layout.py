@@ -1,11 +1,9 @@
-from threading import Lock
 from functools import partial
 from kivy.properties import (
+    AliasProperty,
     BooleanProperty,
     BoundedNumericProperty,
-    DictProperty,
     ListProperty,
-    NumericProperty,
     ObjectProperty,
     StringProperty
 )
@@ -16,9 +14,6 @@ from kivy.uix.modalview import ModalView
 from kivy.uix.floatlayout import FloatLayout
 from kivy.clock import Clock
 from kivy.logger import Logger
-
-from LiSE.util import RedundantRuleError
-from LiSE.character import CharStatCache
 
 from .dummy import Dummy
 from .configurator import PawnConfigDialog, SpotConfigDialog
@@ -69,11 +64,21 @@ class ELiDELayout(FloatLayout):
     selection_candidates = ListProperty([])
     selected_remote = ObjectProperty()
     keep_selection = BooleanProperty(False)
-    engine = ObjectProperty()
-    tick_results = DictProperty({})
-    branch = StringProperty('master')
-    tick = NumericProperty(0)
-    time = ListProperty(['master', 0])
+    branch = AliasProperty(
+        lambda self: self.engine.branch,
+        lambda self, v: setattr(self.engine, 'branch', v),
+        bind=('engine',)
+    )
+    tick = AliasProperty(
+        lambda self: self.engine.tick,
+        lambda self, v: setattr(self.engine, 'tick', v),
+        bind=('engine',)
+    )
+    time = AliasProperty(
+        lambda self: self.engine.time,
+        lambda self, v: setattr(self.engine, 'time', v),
+        bind=('engine',)
+    )
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
     def __init__(self, **kwargs):
@@ -82,7 +87,6 @@ class ELiDELayout(FloatLayout):
         self._trigger_reremote = Clock.create_trigger(self.reremote)
         self.bind(selection=self._trigger_reremote)
         self._trigger_reremote()
-        self.playlock = Lock()
         Clock.schedule_interval(self.play, 1)
 
     def on_engine(self, *args):
@@ -91,14 +95,9 @@ class ELiDELayout(FloatLayout):
         engine's.
 
         """
-        if self.engine is None:
+        if self.engine is None or 'board' not in self.ids:
             return
-        self.branch = self.engine.branch
-        self.tick = self.engine.tick
-        self.bind(
-            branch=self.timeupd,
-            tick=self.timeupd,
-        )
+        self.engine.on_time(self.ids.board._trigger_update)
         self._strings_ed_window = StringsEdWindow(layout=self)
         self._funcs_ed_window = FuncsEdWindow(layout=self)
         self._rulesbox = BoxLayout(orientation='vertical')
@@ -199,10 +198,7 @@ class ELiDELayout(FloatLayout):
             self._popover.dismiss()
             del self._popover
         else:
-            if (
-                    self.selected_remote is None or
-                    isinstance(self.selected_remote, CharStatCache)
-            ):
+            if not hasattr(self.selected_remote, 'rulebook'):
                 self._rulesview.rulebook = self.character.rulebook
             else:
                 self._rulesview.rulebook = self.selected_remote.rulebook
@@ -421,9 +417,9 @@ class ELiDELayout(FloatLayout):
             self.ids.dummything.dispatch('on_touch_down', touch)
             return
         if (
-                self.ids.boardview.collide_point(*touch.pos)
-                and not self.selection
-                and not self.selection_candidates
+                self.ids.boardview.collide_point(*touch.pos) and
+                not self.selection and
+                not self.selection_candidates
         ):
             # if the board itself handles the touch, let it be
             touch.push()
@@ -517,7 +513,8 @@ class ELiDELayout(FloatLayout):
                 if (
                     hasattr(self, 'protoportal2') and not (
                         orig.name in self.ids.board.character.preportal and
-                        dest.name in self.ids.board.character.preportal[orig.name]
+                        dest.name in
+                        self.ids.board.character.preportal[orig.name]
                     )
                 ):
                     deport = self.ids.board.character.new_portal(
@@ -530,7 +527,9 @@ class ELiDELayout(FloatLayout):
                             dest.name
                         )
                     )
-                    self.ids.board.add_widget(self.ids.board.make_arrow(deport))
+                    self.ids.board.add_widget(
+                        self.ids.board.make_arrow(deport)
+                    )
             except StopIteration:
                 pass
             self.ids.board.remove_widget(self.protoportal)
@@ -541,14 +540,6 @@ class ELiDELayout(FloatLayout):
             del self.protoportal
             del self.protodest
             touch.pop()
-        Logger.debug(
-            'ELiDELayout: Touch pos {}. {havesel}{havecandid}{keepsel}'.format(
-                touch.pos,
-                havesel='Have selection. ' if self.selection else '',
-                havecandid='Have selection candidates. ' if self.selection_candidates else '',
-                keepsel='Keeping selection. ' if self.keep_selection else ''
-            )
-        )
         if not self.keep_selection and hasattr(self.selection, 'on_touch_up'):
             self.selection.dispatch('on_touch_up', touch)
         if self.ids.timemenu.collide_point(*touch.pos):
@@ -574,8 +565,8 @@ class ELiDELayout(FloatLayout):
                     self.selection = candidate
                     self.selection.selected = True
                     if (
-                            hasattr(self.selection, 'thing')
-                            and not hasattr(self.selection, '_start')
+                            hasattr(self.selection, 'thing') and not
+                            hasattr(self.selection, '_start')
                     ):
                         self.selection._start = tuple(self.selection.pos)
                     self.keep_selection = True
@@ -655,7 +646,7 @@ class ELiDELayout(FloatLayout):
                     dummy.name,
                     _x=x,
                     _y=y,
-                    _image_paths=dummy.paths
+                    _image_paths=list(dummy.paths)
                 )
             )
         )
@@ -702,29 +693,6 @@ class ELiDELayout(FloatLayout):
             )
         )
 
-    def timeupd(self, *args):
-        Logger.debug('ELiDELayout: timeupd({})'.format(self.time))
-        if self.engine.branch != self.branch:
-            self.engine.branch = self.branch
-        if self.engine.tick != self.tick:
-            self.engine.tick = self.tick
-
-        def timeprop(*args):
-            if not (
-                    self.engine.branch == self.branch and
-                    self.engine.tick == self.tick
-            ):
-                Logger.debug('timeprop: cycling')
-                Clock.schedule_once(timeprop, 0.001)
-                return
-            Logger.debug('timeprop: time {}->{}'.format(
-                self.time, self.engine.time)
-            )
-            self.time = self.engine.time
-            self.ids.board._trigger_update()
-
-        Clock.schedule_once(timeprop, 0)
-
     def set_branch(self, b):
         """``self.branch = b``"""
         self.branch = b
@@ -733,62 +701,17 @@ class ELiDELayout(FloatLayout):
         """``self.tick = int(t)``"""
         self.tick = int(t)
 
-    def advance(self, *args):
-        """Resolve one rule and store the results in a list at
-        ``self.tick_results[self.branch][self.tick]```.
-
-        """
-        if self.branch not in self.tick_results:
-            self.tick_results[self.branch] = {}
-        if self.tick not in self.tick_results[self.branch]:
-            self.tick_results[self.branch][self.tick] = []
-        r = self.tick_results[self.branch][self.tick]
-        try:
-            r.append(next(self.engine._rules_iter))
-        except StopIteration:
-            self.tick += 1
-            self.engine.universal['rando_state'] = (
-                self.engine.rando.getstate()
-            )
-            if (
-                    self.engine.commit_modulus and
-                    self.tick % self.engine.commit_modulus == 0
-            ):
-                self.engine.worlddb.commit()
-            self.engine._rules_iter = self.engine._follow_rules()
-        except RedundantRuleError:
-            self.tick += 1
-
-    def next_tick(self, *args):
-        """Call ``self.advance()``, and if the tick hasn't
-        changed, schedule it to happen again.
-
-        This blocks ``self.playlock`` and should be called in its own
-        thread.
-
-        """
-        self.playlock.acquire()
-        curtick = self.tick
-        n = 0
-        while curtick == self.tick:
-            self.advance()
-            n += 1
-        Logger.info(
-            "Followed {n} rules on tick {ct}:\n{r}".format(
-                n=n,
-                ct=curtick,
-                r="\n".join(
-                    str(tup) for tup in
-                    self.tick_results[self.branch][curtick]
-                )
-            )
-        )
-        self.playlock.release()
-
     def play(self, *args):
         """If I'm advancing time, advance a tick."""
-        if (
-                self.ids.playbut.state == 'down' and not
-                self.playlock.locked()
-        ):
-            self.next_tick()
+        if self.ids.playbut.state == 'normal':
+            return
+        if not hasattr(self, '_old_time'):
+            self._old_time = self.time
+            self.engine.next_tick()
+        elif self._old_time == self.time:
+            return
+        else:
+            del self._old_time
+            self.branch.dispatch()
+            self.tick.dispatch()
+            self.time.dispatch()

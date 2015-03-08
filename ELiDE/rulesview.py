@@ -1,7 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 from collections import OrderedDict
-from inspect import getsource
 
 from kivy.logger import Logger
 from kivy.clock import Clock
@@ -223,6 +222,9 @@ class RulesView(FloatLayout):
         )
 
     def on_rule(self, *args):
+        def getname(o):
+            return o if isinstance(o, str) else o.__name__
+
         if self.rule is None:
             dbg('RulesView: no rule')
             return
@@ -247,18 +249,18 @@ class RulesView(FloatLayout):
                 show_footer=False
             )
             for (name, source) in
-            self.engine.trigger.db.func_table_name_plaincode('trigger')
+            self.engine.trigger.iterplain()
         ]
         used_triggers = [
             Card(
                 ud={
                     'type': 'trigger',
-                    'funcname': trigger.__name__
+                    'funcname': getname(trigger),
                 },
-                headline_text=trigger.__name__,
+                headline_text=getname(trigger),
                 show_art=False,
                 midline_text='Trigger',
-                text=getsource(trigger),
+                text=self.engine.trigger.plain(getname(trigger)),
                 show_footer=False
             )
             for trigger in self.rule.triggers
@@ -281,18 +283,18 @@ class RulesView(FloatLayout):
                 show_footer=False
             )
             for (name, source) in
-            self.engine.prereq.db.func_table_name_plaincode('prereq')
+            self.engine.prereq.iterplain()
         ]
         used_prereqs = [
             Card(
                 ud={
                     'type': 'prereq',
-                    'funcname': prereq.__name__
+                    'funcname': getname(prereq)
                 },
-                headline_text=prereq.__name__,
+                headline_text=getname(prereq),
                 show_art=False,
                 midline_text='Prereq',
-                text=getsource(prereq),
+                text=self.engine.prereq.plain(getname(prereq)),
                 show_footer=False
             )
             for prereq in self.rule.prereqs
@@ -315,18 +317,18 @@ class RulesView(FloatLayout):
                 show_footer=False
             )
             for (name, source) in
-            self.engine.action.db.func_table_name_plaincode('action')
+            self.engine.action.iterplain()
         ]
         used_actions = [
             Card(
                 ud={
                     'type': 'action',
-                    'funcname': action.__name__
+                    'funcname': getname(action)
                 },
-                headline_text=action.__name__,
+                headline_text=getname(action),
                 show_art=False,
                 midline_text='Action',
-                text=getsource(action),
+                text=self.engine.action.plain(getname(action)),
                 show_footer=False
             )
             for action in self.rule.actions

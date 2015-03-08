@@ -373,6 +373,11 @@ class ArrowWidget(Widget):
         its :class:`Thing` has gone along my :class:`Portal`.
 
         """
+        if self.board.tick < pawn.thing['arrival_time']:
+            # It's weird that the pawn is getting placed in me, but
+            # I'll do my best..
+            pawn.pos = self.pos_along(0)
+            return
         pawn.pos = self.pos_along(
             (
                 self.board.tick -

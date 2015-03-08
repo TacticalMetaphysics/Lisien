@@ -63,6 +63,12 @@ class QueryEngine(gorm.query.QueryEngine):
             globd
         )
 
+    def func_table_get_plain(self, tbl, key):
+        row = self.sql('func_{}_get'.format(tbl), key).fetchone()
+        if row is None:
+            raise KeyError("No such row")
+        return row[5]
+
     def func_table_set(self, tbl, key, fun):
         try:
             s = getsource(fun)
@@ -221,7 +227,7 @@ class QueryEngine(gorm.query.QueryEngine):
         return self.sql('ct_characters').fetchone()[0]
 
     def have_character(self, name):
-        return bool(self.sql('ct_character', name))
+        return self.sql('ct_character', name).fetchone()[0] > 0
 
     def del_character(self, name):
         name = json_dump(name)
@@ -237,6 +243,12 @@ class QueryEngine(gorm.query.QueryEngine):
                 "graph"
         ):
             self.sql('char_del_fmt', name, tbl=tbl)
+
+    def rulebooks(self):
+        return self.sql('rulebooks')
+
+    def ct_rulebooks(self):
+        return self.sql('ct_rulebooks').fetchone()[0]
 
     def active_rules_rulebook(self, rulebook, branch, tick):
         rulebook = json_dump(rulebook)
@@ -581,7 +593,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def get_rulebook_char(self, rulemap, character):
         character = json_dump(character)
         for (book,) in self.sql(
-                'rulebook_get_char_fmt', character, rulemap=rulemap
+                'rulebook_get_{}'.format(rulemap), character
         ):
             return book
         raise KeyError("No rulebook")

@@ -12,9 +12,9 @@ from collections import (
 from sqlite3 import connect
 from gorm import ORM as gORM
 from .character import Character
-from .rule import AllRules
+from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
-from .util import dispatch, listen, listener, RedundantRuleError
+from .util import dispatch, listen, listener
 
 
 class NotThatMap(Mapping):
@@ -51,13 +51,12 @@ class StringStore(MutableMapping):
     braces will cause the other string to be substituted in.
 
     """
-    def __init__(self, connection, table='strings', lang='eng'):
+    def __init__(self, qe, table='strings', lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
         """
-        self.connection = connection
-        self.db = QueryEngine(self.connection, [], False)
+        self.db = qe
         self.db.init_string_table(table)
         self.table = table
         self._language = lang
@@ -146,6 +145,14 @@ class StringStore(MutableMapping):
         del self.cache[k]
         self.db.string_table_del(self.table, self.language, k)
         self._dispatch_str(k, None)
+
+    def lang_items(self, lang=None):
+        """Yield pairs of (id, string) for the given language."""
+        if lang is None:
+            lang = self.language
+        yield from self.db.string_table_lang_items(
+            self.table, lang
+        )
 
 
 class FunctionStoreDB(MutableMapping):
@@ -237,30 +244,27 @@ class FunctionStoreDB(MutableMapping):
         del self.cache[name]
         self._dispatch(name, None)
 
-    def decompiled(self, name):
-        """Use unpyc3 to decompile the function named ``name`` and return the
-        resulting unpyc3.DefStatement.
+    def plain(self, k):
+        """Return the plain source code of the function."""
+        return self.db.func_table_get_plain(self._tab, k)
 
-        unpyc3 is imported here, so if you never use this you don't
-        need unpyc3.
-
-        """
-        from unpyc3 import decompile
-        return decompile(self[name])
-
-    def definition(self, name):
-        """Return a string showing how the function named ``name`` was
-        originally defined.
-
-        It will be decompiled from the bytecode stored in the
-        database. Requires unpyc3.
+    def iterplain(self):
+        """Iterate over (name, source) where source is in plaintext, not
+        bytecode.
 
         """
-        return str(self.decompiled(name))
+        yield from self.db.func_table_name_plaincode(self._tab)
 
     def commit(self):
         """Tell my ``QueryEngine`` to commit."""
         self.db.commit()
+
+    def set_source(self, func_name, source):
+        self.db.func_table_set_source(
+            self._tab,
+            func_name,
+            source
+        )
 
 
 class GlobalVarMapping(MutableMapping):
@@ -275,7 +279,8 @@ class GlobalVarMapping(MutableMapping):
         all keys.
 
         """
-        dispatch(self._listeners, k, self, k, v)
+        (b, t) = self.engine.time
+        dispatch(self._listeners, k, b, t, self, k, v)
 
     def listener(self, f=None, key=None):
         """Arrange to call this function when a key is set to a new value.
@@ -349,6 +354,8 @@ class CharacterMapping(MutableMapping):
 
     def __contains__(self, name):
         """Has this character been created?"""
+        if name in self._cache:
+            return True
         return self.engine.db.have_character(name)
 
     def __len__(self):
@@ -361,14 +368,12 @@ class CharacterMapping(MutableMapping):
         Try to use the cache if possible.
 
         """
-        if hasattr(self, '_cache'):
-            if name not in self._cache:
-                if name not in self:
-                    raise KeyError("No such character")
-                self._cache[name] = Character(self.engine, name)
-            return self._cache[name]
         if name not in self:
             raise KeyError("No such character")
+        if hasattr(self, '_cache'):
+            if name not in self._cache:
+                self._cache[name] = Character(self.engine, name)
+            return self._cache[name]
         return Character(self.engine, name)
 
     def __setitem__(self, name, value):
@@ -400,9 +405,7 @@ class Engine(object):
             alchemy=False,
             caching=True,
             commit_modulus=None,
-            random_seed=None,
-            gettext=lambda s: s,
-            dicecmp=lambda x, y: x <= y
+            random_seed=None
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
@@ -410,8 +413,6 @@ class Engine(object):
         """
         self.caching = caching
         self.commit_modulus = commit_modulus
-        self.gettext = gettext
-        self.dicecmp = dicecmp
         self.random_seed = random_seed
         self.codedb = connect(codedb)
         self.gorm = gORM(
@@ -420,15 +421,22 @@ class Engine(object):
             alchemy=alchemy,
             query_engine_class=QueryEngine
         )
-        self.time_listeners = []
+        self._time_listeners = []
+        self._on_node_stat = []
+        self._on_thing_loc = []
+        self._on_thing_next_loc = []
+        self._on_portal_stat = []
+        self._on_char_stat = []
+        self._node_proxy_sigs = []
+        self._portal_proxy_sigs = []
+        self._character_proxy_sigs = []
         self.db = self.gorm.db
-        self.string = StringStore(self.codedb)
-        self.rule = AllRules(
-            self,
-            QueryEngine(
-                self.codedb, connect_args={}, alchemy=False
-            )
+        code_qe = QueryEngine(
+            self.codedb, connect_args={}, alchemy=alchemy
         )
+        self.string = StringStore(code_qe)
+        self.rulebook = AllRuleBooks(self, code_qe)
+        self.rule = AllRules(self, code_qe)
         self.eternal = self.db.globl
         self.universal = GlobalVarMapping(self)
         self.character = CharacterMapping(self)
@@ -436,7 +444,7 @@ class Engine(object):
         self.stores = ('action', 'prereq', 'trigger', 'sense', 'function')
         for store in self.stores:
             setattr(self, store, FunctionStoreDB(
-                self, QueryEngine(self.codedb, [], False), store)
+                self, code_qe, store)
             )
         if hasattr(self.gorm.db, 'alchemist'):
             self.worlddb = self.gorm.db.alchemist.conn.connection
@@ -585,8 +593,38 @@ class Engine(object):
         """
         if not isinstance(v, Callable):
             raise TypeError("This is a decorator")
-        if v not in self.time_listeners:
-            self.time_listeners.append(v)
+        if v not in self._time_listeners:
+            self._time_listeners.append(v)
+
+    def on_char_stat(self, f):
+        if not isinstance(f, Callable):
+            raise TypeError('This is a decorator')
+        if f not in self._on_char_stat:
+            self._on_char_stat.append(f)
+
+    def on_node_stat(self, f):
+        if not isinstance(f, Callable):
+            raise TypeError('This is a decorator')
+        if f not in self._on_node_stat:
+            self._on_node_stat.append(f)
+
+    def on_portal_stat(self, f):
+        if not isinstance(f, Callable):
+            raise TypeError('This is a decorator')
+        if f not in self._on_portal_stat:
+            self._on_portal_stat.append(f)
+
+    def on_thing_loc(self, f):
+        if not isinstance(f, Callable):
+            raise TypeError('This is a decorator')
+        if f not in self._on_thing_loc:
+            self._on_thing_loc.append(f)
+
+    def on_thing_next_loc(self, f):
+        if not isinstance(f, Callable):
+            raise TypeError('This is a decorator')
+        if f not in self._on_thing_next_loc:
+            self._on_thing_next_loc.append(f)
 
     @property
     def branch(self):
@@ -612,8 +650,8 @@ class Engine(object):
         else:
             self.gorm.branch = v
         if not hasattr(self, 'locktime'):
-            for time_listener in self.time_listeners:
-                time_listener(self, b, t, v, t)
+            for time_listener in self._time_listeners:
+                time_listener(b, t, v, t)
 
     @property
     def tick(self):
@@ -633,8 +671,8 @@ class Engine(object):
         else:
             self.gorm.rev = v
         if not hasattr(self, 'locktime'):
-            for time_listener in self.time_listeners:
-                time_listener(self, branch_then, tick_then, branch_then, v)
+            for time_listener in self._time_listeners:
+                time_listener(branch_then, tick_then, branch_then, v)
 
     @property
     def time(self):
@@ -655,9 +693,9 @@ class Engine(object):
         if not relock:
             del self.locktime
         if not hasattr(self, 'locktime'):
-            for time_listener in self.time_listeners:
+            for time_listener in self._time_listeners:
                 time_listener(
-                    self, branch_then, tick_then, branch_now, tick_now
+                    branch_then, tick_then, branch_now, tick_now
                 )
 
     def _active_branches(self, branch=None, tick=None):

@@ -2,11 +2,13 @@
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 from kivy.logger import Logger
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.properties import ObjectProperty
 from kivy.lang import Builder
 from kivy.resources import resource_add_path
 
 import LiSE
+from LiSE.proxy import EngineProcessManager
 
 import ELiDE
 import ELiDE.layout
@@ -60,11 +62,18 @@ class ELiDEApp(App):
         if config['ELiDE']['debugger'] == 'yes':
             import pdb
             pdb.set_trace()
-
-        self.engine = LiSE.Engine(
+        self.manager = EngineProcessManager()
+        self.engine = self.manager.start(
             config['LiSE']['world'],
             config['LiSE']['code']
         )
+        self.do_check_stats = True
+
+        def check_stats(*args):
+            if self.do_check_stats:
+                self.engine.poll_changes()
+
+        Clock.schedule_interval(check_stats, 0.01)
         for char in config['ELiDE']['boardchar'], config['ELiDE']['sheetchar']:
             if char not in self.engine.character:
                 print("adding character: {}".format(char))
@@ -83,11 +92,10 @@ class ELiDEApp(App):
         """Sync the database with the current state of the game."""
         self.engine.commit()
 
-    def stop(self, *largs):
+    def on_stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
-        self.engine.commit()
-        self.engine.close()
-        super().stop(*largs)
+        self.do_check_stats = False
+        self.manager.shutdown()
 
 
 kv = """
