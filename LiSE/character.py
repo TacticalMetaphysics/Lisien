@@ -35,6 +35,7 @@ from .util import (
 from .rule import Rule, RuleBook, RuleMapping
 from .rule import RuleFollower as BaseRuleFollower
 from .funlist import FunList
+from .node import Node
 from .thing import Thing
 from .place import Place
 from .portal import Portal
@@ -1873,10 +1874,20 @@ class Character(DiGraph, RuleFollower):
         )
         self._dispatch_avatar(g, n, True)
 
-    def del_avatar(self, node):
+    def del_avatar(self, a, b=None):
         """This is no longer my avatar, though it still exists on its own"""
-        g = node.character.name
-        n = node.name
+        if b is None:
+            if not isinstance(a, Node):
+                raise TypeError(
+                    "In single argument form, "
+                    "del_avatar requires a Node object "
+                    "(Thing or Place)."
+                )
+            g = a.character.name
+            n = a.name
+        else:
+            g = a if isinstance(a, Character) else self.engine.character[a]
+            n = b if isinstance(b, Node) else g.node[b]
         (branch, tick) = self.engine.time
         if self.engine.caching:
             ac = self._avatar_cache
