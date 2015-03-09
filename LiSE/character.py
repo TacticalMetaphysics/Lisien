@@ -1671,14 +1671,6 @@ class Character(DiGraph, RuleFollower):
     def avatar_listener(self, f=None, graph=None):
         return listener(self._avatar_listeners, f, graph)
 
-    def __setitem__(self, k, v):
-        super().__setitem__(k, v)
-        self._dispatch_stat(k, v)
-
-    def __delitem__(self, k):
-        super().__delitem__(k)
-        self._dispatch_stat(k, None)
-
     def facade(self):
         return Facade(self)
 
