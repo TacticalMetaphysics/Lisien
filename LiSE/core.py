@@ -400,9 +400,7 @@ class Engine(object):
             alchemy=False,
             caching=True,
             commit_modulus=None,
-            random_seed=None,
-            gettext=lambda s: s,
-            dicecmp=lambda x, y: x <= y
+            random_seed=None
     ):
         """Store the connections for the world database and the code database;
         set up listeners; and start a transaction
@@ -410,8 +408,8 @@ class Engine(object):
         """
         self.caching = caching
         self.commit_modulus = commit_modulus
-        self.gettext = gettext
-        self.dicecmp = dicecmp
+        self.gettext = lambda s: s,
+        self.dicecmp = lambda x, y: x <= y
         self.random_seed = random_seed
         self.codedb = connect(codedb)
         self.gorm = gORM(
