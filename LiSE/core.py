@@ -14,7 +14,7 @@ from gorm import ORM as gORM
 from .character import Character
 from .rule import AllRules
 from .query import QueryEngine
-from .util import dispatch, listen, listener, RedundantRuleError
+from .util import dispatch, listen, listener
 
 
 class NotThatMap(Mapping):
