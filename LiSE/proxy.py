@@ -1,226 +1,299 @@
 from collections import MutableMapping, defaultdict
 import os
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Lock
 from multiprocessing.managers import BaseManager
 from LiSE.core import Engine
 from LiSE.util import dispatch, listen, listener
 
 
 class EngineHandle(object):
-    def __init__(self, *args, **kwargs):
-        self._real = Engine(*args, **kwargs)
+    def reify(self, args):
+        self._real = Engine(*args)
 
     def advance(self):
+        print('advance')
         self._real.advance()
 
     def next_tick(self):
+        print('next_tick')
         self._real.next_tick()
 
-    def add_character(self, name, data=None, **kwargs):
+    def add_character(self, name, data, kwargs):
+        print('add_character')
         self._real.add_character(name, data, **kwargs)
 
     def commit(self):
+        print('commit')
         self._real.commit()
 
     def close(self):
+        print('close')
         self._real.close()
 
     def get_branch(self):
+        print('get_branch')
         return self._real.branch
 
     def set_branch(self, v):
+        print('set_branch')
         self._real.branch = v
 
     def get_tick(self):
+        print('get_tick')
         return self._real.tick
 
     def set_tick(self, v):
+        print('set_tick')
         self._real.tick = v
 
     def get_time(self):
+        print('get_time')
         return self._real.time
 
     def set_time(self, v):
+        print('set_time')
         self._real.time = v
 
     def get_language(self):
+        print('get_language')
         return self._real.string.language
 
     def set_language(self, v):
+        print('set_language')
         self._real.string.language = v
 
     def get_string_ids(self):
+        print('get_string_ids')
         return list(self._real.string)
 
     def count_strings(self):
+        print('count_strings')
         return len(self._real.string)
 
     def get_string(self, k):
+        print('get_string')
         return self._real.string[k]
 
     def set_string(self, k, v):
+        print('set_string')
         self._real.string[k] = v
 
     def del_string(self, k):
+        print('del_string')
         del self._real.string[k]
 
     def get_eternal(self, k):
+        print('get_eternal')
         return self._real.eternal[k]
 
     def set_eternal(self, k, v):
+        print('set_eternal')
         self._real.eternal[k] = v
 
     def del_eternal(self, k):
+        print('del_eternal')
         del self._real.eternal[k]
 
     def eternal_keys(self):
+        print('eternal_keys')
         return list(self._real.eternal.keys())
 
     def eternal_len(self):
+        print('eternal_len')
         return len(self._real.eternal)
 
+    def have_eternal(self, k):
+        return k in self._real.eternal
+
     def get_universal(self, k):
+        print('get_universal')
         return self._real.universal[k]
 
     def set_universal(self, k, v):
+        print('set_universal')
         self._real.universal[k] = v
 
     def del_universal(self, k):
+        print('del_universal')
         del self._real.universal[k]
 
     def universal_keys(self):
+        print('universal_keys')
         return list(self._real.universal.keys())
 
     def universal_len(self):
+        print('universal_len')
         return len(self._real.universal)
 
     def init_character(self, char, statdict={}):
+        print('init_character')
         if char in self._real.character:
             raise KeyError("Already have character {}".format(char))
         self._real.character[char] = {}
         self._real.character[char].stat.update(statdict)
 
     def del_character(self, char):
+        print('del_character')
         del self._real.character[char]
 
     def get_character_stat(self, char, k):
+        print('get_character_stat')
         return self._real.character[char].stat[k]
 
     def set_character_stat(self, char, k, v):
+        print('set_character_stat')
         self._real.character[char].stat[k] = v
 
     def del_character_stat(self, char, k):
+        print('del_character_stat')
         del self._real.character[char].stat[k]
 
     def character_stats(self, char):
+        print('character_stats')
         return list(self._real.character[char].stat.keys())
 
     def character_stats_len(self, char):
+        print('character_stats_len')
         return len(self._real.character[char].stat)
 
     def characters(self):
+        print('characters')
         return list(self._real.character.keys())
 
     def characters_len(self):
+        print('characters_len')
         return len(self._real.character)
 
     def have_character(self, char):
+        print('have_character')
         return char in self._real.character
 
     def set_character(self, char, v):
+        print('set_character')
         self._real.character[char] = v
 
     def get_node_stat(self, char, node, k):
+        print('get_node_stat')
         return self._real.character[char].node[node][k]
 
     def set_node_stat(self, char, node, k, v):
+        print('set_node_stat')
         self._real.character[char].node[node][k] = v
 
     def del_node_stat(self, char, node, k):
+        print('del_node_stat')
         del self._real.character[char].node[node][k]
 
-    def note_stat_keys(self, char, node):
+    def node_stat_keys(self, char, node):
+        print('node_stat_keys')
         return list(self._real.character[char].node[node])
 
     def node_stat_len(self, char, node):
+        print('node_stat_len')
         return len(self._real.character[char].node[node])
 
     def del_node(self, char, node):
+        print('del_node')
         del self._real.character[char].node[node]
 
     def character_things(self, char):
+        print('character_things')
         return list(self._real.character[char].thing)
 
     def character_things_len(self, char):
+        print('character_things_len')
         return len(self._real.character[char].thing)
 
     def character_has_thing(self, char, thing):
+        print('character_has_thing')
         return thing in self._real.character[char].thing
 
     def character_places(self, char):
+        print('character_places')
         return list(self._real.character[char].place)
 
     def character_places_len(self, char):
+        print('character_places_len')
         return len(self._real.character[char].place)
 
     def character_has_place(self, char, place):
+        print('character_has_place')
         return place in self._real.character[char].place
 
     def character_nodes(self, char):
+        print('character_nodes')
         return list(self._real.character[char].node.keys())
 
     def character_predecessor_nodes(self, char):
+        print('character_predecessor_nodes')
         return list(self._real.character[char].adj.keys())
 
     def node_has_predecessor(self, char, node):
+        print('node_has_predecessor')
         return node in self._real.character[char].pred.keys()
 
     def node_predecessors_len(self, char, node):
+        print('node_predecessors_len')
         return len(self._real.character[char].pred[node])
 
     def node_predecessors(self, char, node):
+        print('node_predecessors')
         return list(self._real.character[char].pred[node].keys())
 
     def node_precedes(self, char, nodeB, nodeA):
+        print('node_precedes')
         return nodeA in self._real.character[char].pred[nodeB]
 
     def character_nodes_with_predecessors(self, char):
+        print('character_nodes_with_predecessors')
         return list(self._real.character[char].pred.keys())
 
     def character_nodes_with_predecessors_len(self, char):
+        print('character_nodes_with_predecessors_len')
         return len(self._real.character[char].pred)
 
     def character_set_node_predecessors(self, char, node, preds):
+        print('character_set_node_predecessors')
         self._real.character[char].pred[node] = preds
 
     def character_del_node_predecessors(self, char, node):
+        print('character_del_node_predecessors')
         del self._real.character[char].pred[node]
 
     def character_nodes_len(self, char):
+        print('character_nodes_len')
         return len(self._real.character[char].node)
 
     def character_has_node(self, char, node):
+        print('character_has_node')
         return node in self._real.character[char].node
 
     def character_node_successors(self, char, node):
+        print('character_node_successors')
         return list(self._real.character[char].adj[node].keys())
 
     def character_node_successors_len(self, char, node):
+        print('character_node_successors_len')
         return len(self._real.character[char].adj[node])
 
     def character_set_node_successors(self, char, node, val):
+        print('character_set_node_successors')
         self._real.character[char].adj[node] = val
 
     def character_del_node_successors(self, char, node):
+        print('character_del_node_successors')
         del self._real.character[char].adj[node]
 
     def character_nodes_connected(self, char, nodeA, nodeB):
+        print('character_nodes_connected')
         return nodeB in self._real.character[char].node[nodeA]
 
     def character_len_node_successors(self, char, nodeA):
+        print('character_len_node_successors')
         return len(self._real.character[char].node[nodeA])
 
     def init_thing(self, char, thing, statdict={}):
+        print('init_thing')
         if thing in self._real.character[char].thing:
             raise KeyError(
                 'Already have thing in character {}: {}'.format(
@@ -230,49 +303,63 @@ class EngineHandle(object):
         self.set_thing(char, thing, statdict)
 
     def set_thing(self, char, thing, statdict):
+        print('set_thing')
         self._real.character[char].thing[thing] = statdict
 
     def add_thing(self, char, thing, location, next_location, statdict):
+        print('add_thing')
         self._real.character[char].add_thing(
             thing, location, next_location, **statdict
         )
 
     def place2thing(self, char, name, location, next_location=None):
+        print('place2thing')
         self._real.character[char].place2thing(name, location, next_location)
 
     def thing2place(self, char, name):
+        print('thing2place')
         self._real.character[char].thing2place(name)
 
     def add_things_from(self, char, seq):
+        print('add_things_from')
         self._real.character[char].add_things_from(seq)
 
     def get_thing_location(self, char, th):
+        print('get_thing_location')
         return self._real.character[char].thing[th]['location']
 
     def set_thing_location(self, char, th, loc):
+        print('set_thing_location')
         self._real.character[char].thing[th]['location'] = loc
 
     def get_thing_next_location(self, char, th):
+        print('get_thing_next_location')
         return self._real.character[char].thing[th]['next_location']
 
     def set_thing_next_location(self, char, th, loc):
+        print('set_thing_next_location')
         self._real.character[char].thing[th]['next_location'] = loc
 
     def thing_follow_path(self, char, th, path, weight):
+        print('thing_follow_path')
         self._real.character[char].thing[th].follow_path(path, weight)
 
     def thing_go_to_place(self, char, th, place, weight):
+        print('thing_go_to_place')
         self._real.character[char].thing[th].go_to_place(place, weight)
 
     def thing_travel_to(self, char, th, dest, weight, graph):
+        print('thing_travel_to')
         self._real.character[char].thing[th].travel_to(dest, weight, graph)
 
     def thing_travel_to_by(self, char, th, dest, arrival_tick, weight, graph):
+        print('thing_travel_to_by')
         self._real.character[char].thing[th].travel_to_by(
             dest, arrival_tick, weight, graph
         )
 
     def init_place(self, char, place, statdict={}):
+        print('init_place')
         if place in self._real.character[char].place:
             raise KeyError(
                 'Already have place in character {}: {}'.format(
@@ -282,12 +369,15 @@ class EngineHandle(object):
         self.set_place(char, place, statdict)
 
     def set_place(self, char, place, statdict):
+        print('set_place')
         self._real.character[char].place[place] = statdict
 
     def add_places_from(self, char, seq):
+        print('add_places_from')
         self._real.character[char].add_places_from(seq)
 
     def init_portal(self, char, o, d, statdict={}):
+        print('init_portal')
         if (
                 o in self._real.character[char].portal and
                 d in self._real.character[char].portal[o]
@@ -300,63 +390,83 @@ class EngineHandle(object):
         self.set_portal(char, o, d, statdict)
 
     def set_portal(self, char, o, d, statdict):
+        print('set_portal')
         self._real.character[char].portal[o][d] = statdict
 
     def character_portals(self, char):
+        print('character_portals')
         return list(self._real.character[char].portals())
 
     def add_portal(self, char, o, d, symmetrical, statdict):
+        print('add_portal')
         self._real.character[char].add_portal(o, d, symmetrical, **statdict)
 
     def add_portals_from(self, char, seq, symmetrical):
+        print('add_portals_from')
         self._real.character[char].add_portals_from(seq, symmetrical)
 
     def del_portal(self, char, o, d):
+        print('del_portal')
         del self._real.character[char].portal[o][d]
 
     def get_portal_stat(self, char, o, d, k):
+        print('get_portal_stat')
         return self._real.character[char].portal[o][d][k]
 
     def set_portal_stat(self, char, o, d, k, v):
+        print('set_portal_stat')
         self._real.character[char].portal[o][d][k] = v
 
     def del_portal_stat(self, char, o, d, k):
+        print('del_portal_stat')
         del self._real.character[char][o][d][k]
 
     def portal_stats(self, char, o, d):
+        print('portal_stats')
         return list(self._real.character[char][o][d].keys())
 
     def len_portal_stats(self, char, o, d):
+        print('len_portal_stats')
         return len(self._real.character[char][o][d])
 
     def character_avatars(self, char):
+        print('character_avatars')
         return list(self._real.character[char].avatars())
 
     def add_avatar(self, char, a, b):
+        print('add_avatar')
         self._real.character[char].add_avatar(a, b)
 
     def del_avatar(self, char, a, b):
+        print('del_avatar')
         self._real.character[char].del_avatar(a, b)
 
     def get_rule_actions(self, rule):
+        print('get_rule_actions')
         return self._real.rule.db.rule_actions(rule)
 
     def set_rule_actions(self, rule, l):
+        print('set_rule_actions')
         self._real.rule.db.set_rule_actions(rule, l)
 
     def get_rule_triggers(self, rule):
+        print('get_rule_triggers')
         return self._real.rule.db.rule_triggers(rule)
 
     def set_rule_triggers(self, rule, l):
+        print('set_rule_triggers')
         self._real.rule.db.set_rule_triggers(rule, l)
 
     def get_rule_prereqs(self, rule):
+        print('get_rule_prereqs')
         return self._real.rule.db.rule_prereqs(rule)
 
     def set_rule_prereqs(self, rule, l):
+        print('set_rule_prereqs')
         self._real.rule.db.set_rule_prereqs(rule, l)
 
     def get_rulebook_rules(self, rulebook):
+        print('get_rulebook_rules')
         return self._real.rule.db.rulebook_rules(rulebook)
 
 
@@ -364,8 +474,12 @@ class EngineManager(BaseManager):
     pass
 
 
-EngineManager.register('Engine', EngineHandle)
+EngineManager.register(
+    'EngineHandle',
+    EngineHandle
+)
 EngineManager.register('Queue', Queue)
+EngineManager.register('Lock', Lock)
 
 
 class NodeProxy(MutableMapping):
@@ -800,6 +914,9 @@ class CharacterMapProxy(MutableMapping):
     def __iter__(self):
         yield from self._engine.characters()
 
+    def __contains__(self, k):
+        return self._engine.have_character(k)
+
     def __len__(self):
         return self._engine.characters_len()
 
@@ -861,6 +978,29 @@ class StringStoreProxy(MutableMapping):
         return listener(self._str_listeners, fun, string)
 
 
+class EternalVarProxy(MutableMapping):
+    def __init__(self, engine_proxy):
+        self._engine = engine_proxy
+
+    def __contains__(self, k):
+        return self._engine.have_eternal(k)
+
+    def __iter__(self):
+        yield from self._engine.eternal_keys()
+
+    def __len__(self):
+        return self._engine.eternal_len()
+
+    def __getitem__(self, k):
+        return self._engine.get_eternal(k)
+
+    def __setitem__(self, k, v):
+        self._engine.set_eternal(k, v)
+
+    def __delitem__(self, k):
+        self._engine.del_eternal(k)
+
+
 class GlobalVarProxy(MutableMapping):
     def __init__(self, engine_proxy):
         self._proxy = engine_proxy
@@ -889,9 +1029,10 @@ class GlobalVarProxy(MutableMapping):
 
 
 class EngineProxy(object):
-    def __init__(self, handle):
+    def __init__(self, handle, *args):
         self._handle = handle
-        self.eternal = self._handle.eternal
+        self._handle.reify(args)
+        self.eternal = EternalVarProxy(self._handle)
         self.universal = GlobalVarProxy(self._handle)
         self.character = CharacterMapProxy(self._handle)
 
@@ -926,7 +1067,7 @@ class EngineProxy(object):
         self._handle.next_tick()
 
     def add_character(self, name, data=None, **kwargs):
-        self._handle.add_character(name, data, **kwargs)
+        self._handle.add_character(name, data, kwargs)
 
     def new_character(self, name, **kwargs):
         self.add_character(name, **kwargs)
@@ -943,22 +1084,49 @@ class EngineProxy(object):
         self.manager.shutdown()
 
 
-def create_engine(manager, queue, *args, **kwargs):
-    engine = manager.EngineHandle(*args, **kwargs)
+def create_handle(manager, queue):
+    engine = manager.EngineHandle()
     print('engine handle created in process {}'.format(os.getpid()))
     queue.put(engine)
+    lock.release()
 
 
 class LiSERemoteControl(object):
     def __init__(self):
         self._manager = EngineManager()
 
-    def start(self, *args, **kwargs):
+    def start(
+            self,
+            worlddb,
+            codedb,
+            connect_args={},
+            alchemy=False,
+            caching=True,
+            commit_modulus=None,
+            random_seed=None
+    ):
+        self._manager.start()
         q = self._manager.Queue()
-        self._p = Process(target=create_engine, args=(self._manager, q))
+        self._p = Process(
+            target=create_handle,
+            args=(
+                self._manager,
+                q
+            )
+        )
         self._p.start()
-        self.engine = q.get()
-        return self.engine
+        self._handle = q.get()
+        print('got handle in process {}'.format(os.getpid()))
+        return EngineProxy(
+            self._handle,
+            worlddb,
+            codedb,
+            connect_args,
+            alchemy,
+            caching,
+            commit_modulus,
+            random_seed
+        )
 
     def shutdown(self):
         self.engine.close()
