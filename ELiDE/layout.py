@@ -199,10 +199,7 @@ class ELiDELayout(FloatLayout):
             self._popover.dismiss()
             del self._popover
         else:
-            if (
-                    self.selected_remote is None or
-                    isinstance(self.selected_remote, CharStatCache)
-            ):
+            if not hasattr(self.selected_remote, 'rulebook'):
                 self._rulesview.rulebook = self.character.rulebook
             else:
                 self._rulesview.rulebook = self.selected_remote.rulebook
