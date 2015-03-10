@@ -26,7 +26,7 @@
             arrowhead_size: 10
             Image:
                 id: wallpaper
-                source: root.character['_wallpaper'] if '_wallpaper' in root.character else resource_find('wallpape.jpg')
+                source: resource_find(root.character.stat['_wallpaper']) if '_wallpaper' in root.character.stat else resource_find('wallpape.jpg')
                 size_hint: (None, None)
                 size: self.texture_size
             FloatLayout:
