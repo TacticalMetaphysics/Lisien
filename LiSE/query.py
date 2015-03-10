@@ -238,6 +238,12 @@ class QueryEngine(gorm.query.QueryEngine):
         ):
             self.sql('char_del_fmt', name, tbl=tbl)
 
+    def rulebooks(self):
+        return self.sql('rulebooks')
+
+    def ct_rulebooks(self):
+        return self.sql('ct_rulebooks').fetchone()[0]
+
     def active_rules_rulebook(self, rulebook, branch, tick):
         rulebook = json_dump(rulebook)
         seen = set()
