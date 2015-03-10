@@ -1,4 +1,4 @@
-from collections import MutableMapping, defaultdict
+from collections import Callable, MutableMapping, defaultdict
 import os
 from multiprocessing import Process, Queue, Lock
 from multiprocessing.managers import BaseManager
@@ -9,6 +9,9 @@ from LiSE.util import dispatch, listen, listener
 class EngineHandle(object):
     def reify(self, args):
         self._real = Engine(*args)
+
+    def time_locked(self):
+        return hasattr(self._real, 'locktime')
 
     def advance(self):
         print('advance')
@@ -1035,6 +1038,7 @@ class EngineProxy(object):
         self.eternal = EternalVarProxy(self._handle)
         self.universal = GlobalVarProxy(self._handle)
         self.character = CharacterMapProxy(self._handle)
+        self._time_listeners = []
 
     @property
     def branch(self):
@@ -1043,6 +1047,10 @@ class EngineProxy(object):
     @branch.setter
     def branch(self, v):
         self._handle.set_branch(v)
+        if not self._handle.time_locked():
+            (branch, tick) = self.time
+            for f in self._time_listeners:
+                f(self, branch, tick, v, tick)
 
     @property
     def tick(self):
@@ -1051,6 +1059,10 @@ class EngineProxy(object):
     @tick.setter
     def tick(self, v):
         self._handle.set_tick(v)
+        if not self._handle.time_locked():
+            (b, t) = self.time
+            for f in self._time_listeners:
+                f(self, b, t, b, v)
 
     @property
     def time(self):
@@ -1059,6 +1071,17 @@ class EngineProxy(object):
     @time.setter
     def time(self, v):
         self._handle.set_time(v)
+        if not self._handle.time_locked():
+            (b, t) = self.time
+            (branch, tick) = v
+            for f in self._time_listeners:
+                f(self, b, t, branch, tick)
+
+    def on_time(self, f):
+        if not isinstance(f, Callable):
+            raise TypeError('on_time is a decorator')
+        if f not in self._time_listeners:
+            self._time_listeners.append(f)
 
     def advance(self):
         self._handle.advance()
