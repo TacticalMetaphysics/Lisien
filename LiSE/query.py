@@ -581,7 +581,7 @@ class QueryEngine(gorm.query.QueryEngine):
     def get_rulebook_char(self, rulemap, character):
         character = json_dump(character)
         for (book,) in self.sql(
-                'rulebook_get_char_fmt', character, rulemap=rulemap
+                'rulebook_get_{}'.format(rulemap), character
         ):
             return book
         raise KeyError("No rulebook")
