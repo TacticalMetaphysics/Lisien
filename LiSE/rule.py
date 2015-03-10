@@ -2,6 +2,7 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
 from collections import (
+    Mapping,
     MutableMapping,
     MutableSequence,
     Callable,
@@ -241,6 +242,9 @@ class RuleBook(MutableSequence):
             )
         ]
 
+    def _dispatch(self):
+        self.engine.rulebook.dispatch(self)
+
     def __setitem__(self, i, v):
         if isinstance(v, Rule):
             rule = v
@@ -253,8 +257,7 @@ class RuleBook(MutableSequence):
             while len(self._cache) <= i:
                 self._cache.append(None)
             self._cache[i] = rule
-        for fun in self._listeners:
-            fun(self)
+        self._dispatch()
 
     def insert(self, i, v):
         self.engine.db.rulebook_decr(self.name, i)
@@ -264,11 +267,10 @@ class RuleBook(MutableSequence):
         self.engine.db.rulebook_del(self.name, i)
         if self.engine.caching:
             del self._cache[i]
-        for fun in self._listeners:
-            fun(self)
+        self._dispatch()
 
     def listener(self, fun):
-        self._listeners.append(fun)
+        self.engine.rulebook.listener(rulebook=self.name)(fun)
 
 
 class RuleMapping(MutableMapping):
@@ -485,6 +487,38 @@ class RuleFollower(object):
 
         """
         raise NotImplementedError
+
+
+class AllRuleBooks(Mapping):
+    def __init__(self, engine, db):
+        self.engine = engine
+        self.db = db
+        self.db.init_table('rulebooks')
+        self._cache = {}
+        self._listeners = defaultdict(list)
+
+    def __iter__(self):
+        yield from self.db.rulebooks()
+
+    def __len__(self):
+        return self.db.ct_rulebooks()
+
+    def __contains__(self, k):
+        if k in self._cache:
+            return self._cache[k]
+        return self.db.ct_rulebook_rules(k) > 0
+
+    def __getitem__(self, k):
+        if k not in self._cache:
+            self._cache[k] = RuleBook(self.engine, k)
+        return self._cache[k]
+
+    def listener(self, f=None, rulebook=None):
+        return listener(self._listeners, f, rulebook)
+
+    def dispatch(self, rulebook):
+        for fun in self._listeners[rulebook.name]:
+            fun(rulebook)
 
 
 class AllRules(MutableMapping):

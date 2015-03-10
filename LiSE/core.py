@@ -12,7 +12,7 @@ from collections import (
 from sqlite3 import connect
 from gorm import ORM as gORM
 from .character import Character
-from .rule import AllRules
+from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
 from .util import dispatch, listen, listener
 
@@ -245,26 +245,16 @@ class FunctionStoreDB(MutableMapping):
         del self.cache[name]
         self._dispatch(name, None)
 
-    def decompiled(self, name):
-        """Use unpyc3 to decompile the function named ``name`` and return the
-        resulting unpyc3.DefStatement.
+    def plain(self, k):
+        """Return the plain source code of the function."""
+        return self.db.func_table_get_plain(self._tab, k)
 
-        unpyc3 is imported here, so if you never use this you don't
-        need unpyc3.
-
-        """
-        from unpyc3 import decompile
-        return decompile(self[name])
-
-    def definition(self, name):
-        """Return a string showing how the function named ``name`` was
-        originally defined.
-
-        It will be decompiled from the bytecode stored in the
-        database. Requires unpyc3.
+    def iterplain(self):
+        """Iterate over (name, source) where source is in plaintext, not
+        bytecode.
 
         """
-        return str(self.decompiled(name))
+        yield from self.db.func_table_name_plaincode(self._tab)
 
     def commit(self):
         """Tell my ``QueryEngine`` to commit."""
@@ -431,6 +421,12 @@ class Engine(object):
         self.time_listeners = []
         self.db = self.gorm.db
         self.string = StringStore(self.codedb)
+        self.rulebook = AllRuleBooks(
+            self,
+            QueryEngine(
+                self.codedb, connect_args={}, alchemy=False
+            )
+        )
         self.rule = AllRules(
             self,
             QueryEngine(

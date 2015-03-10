@@ -63,6 +63,12 @@ class QueryEngine(gorm.query.QueryEngine):
             globd
         )
 
+    def func_table_get_plain(self, tbl, key):
+        row = self.sql('func_{}_get'.format(tbl), key).fetchone()
+        if row is None:
+            raise KeyError("No such row")
+        return row[5]
+
     def func_table_set(self, tbl, key, fun):
         try:
             s = getsource(fun)

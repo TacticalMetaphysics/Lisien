@@ -1,4 +1,10 @@
-from collections import Callable, MutableMapping, MutableSequence, defaultdict
+from collections import (
+    Callable,
+    defaultdict,
+    Mapping,
+    MutableMapping,
+    MutableSequence
+)
 import os
 from multiprocessing import Process, Queue, Lock
 from multiprocessing.managers import BaseManager
@@ -479,7 +485,7 @@ class EngineHandle(object):
 
     def get_rulebook_rules(self, rulebook):
         print('get_rulebook_rules')
-        return self._real.rule.db.rulebook_rules(rulebook)
+        return list(self._real.db.rulebook_rules(rulebook))
 
     def set_rulebook_rule(self, rulebook, i, rule):
         print('set_rulebook_rule')
@@ -501,6 +507,35 @@ class EngineHandle(object):
             character
         )
 
+    def get_node_rulebook(self, character, node):
+        return self._real.db.node_rulebook(character, node)
+
+    def get_portal_rulebook(self, char, nodeA, nodeB):
+        return self._real.db.portal_rulebook(
+            char, nodeA, nodeB, 0
+        )
+
+    def rulebooks(self):
+        return list(self._real.rulebook.keys())
+
+    def len_rulebooks(self):
+        return len(self._real.rulebook)
+
+    def have_rulebook(self, k):
+        return k in self._real.rulebook
+
+    def keys_in_store(self, store):
+        return list(getattr(self._real, store).keys())
+
+    def len_store(self, store):
+        return len(getattr(self._real, store))
+
+    def plain_items_in_store(self, store):
+        return list(getattr(self._real, store).iterplain())
+
+    def plain_source(self, store, k):
+        return getattr(self._real, store).plain(k)
+
 
 class EngineManager(BaseManager):
     pass
@@ -518,6 +553,20 @@ class NodeProxy(MutableMapping):
     @property
     def character(self):
         return CharacterProxy(self._engine, self._charname)
+
+    @property
+    def rulebook(self):
+        if not hasattr(self, '_rulebook'):
+            self._rulebook = self._get_rulebook()
+        return self._rulebook
+
+    def _get_rulebook(self):
+        return RuleBookProxy(self._engine, self._get_rulebook_name())
+
+    def _get_rulebook_name(self):
+        return self._engine.get_node_rulebook(
+            self._charname, self._name
+        )
 
     def __init__(self, engine_proxy, charname, nodename):
         self._engine = engine_proxy
@@ -603,6 +652,20 @@ class ThingProxy(NodeProxy):
 
 
 class PortalProxy(MutableMapping):
+    @property
+    def rulebook(self):
+        if not hasattr(self, '_rulebook'):
+            self._rulebook = self._get_rulebook()
+        return self._rulebook
+
+    def _get_rulebook_name(self):
+        return self._engine.get_portal_rulebook(
+            self._charname, self._nodeA, self._nodeB
+        )
+
+    def _get_rulebook(self):
+        return RuleBookProxy(self._engine, self._get_rulebook_name())
+
     def __init__(self, engine_proxy, charname, nodeAname, nodeBname):
         self._engine = engine_proxy
         self._charname = charname
@@ -999,9 +1062,33 @@ class CharStatProxy(MutableMapping):
 
 
 class RuleProxy(object):
+    @property
+    def triggers(self):
+        return self._engine.get_rule_triggers(self.name)
+
+    @triggers.setter
+    def triggers(self, v):
+        self._engine.set_rule_triggers(self.name, v)
+
+    @property
+    def prereqs(self):
+        return self._engine.get_rule_prereqs(self.name)
+
+    @prereqs.setter
+    def prereqs(self, v):
+        self._engine.set_rule_prereqs(self.name, v)
+
+    @property
+    def actions(self):
+        return self._engine.get_rule_actions(self.name)
+
+    @actions.setter
+    def actions(self, v):
+        self._engine.set_rule_actions(self.name, v)
+
     def __init__(self, engine_proxy, rulename):
         self._engine = engine_proxy
-        self._name = rulename
+        self.name = rulename
 
 
 class RuleBookProxy(MutableSequence):
@@ -1012,7 +1099,10 @@ class RuleBookProxy(MutableSequence):
         self._proxy_cache = {}
 
     def __iter__(self):
-        yield from self._cache
+        for k in self._cache:
+            if k not in self._proxy_cache:
+                self._proxy_cache[k] = RuleProxy(self._engine, k)
+            yield self._proxy_cache[k]
 
     def __len__(self):
         return len(self._cache)
@@ -1028,16 +1118,25 @@ class RuleBookProxy(MutableSequence):
             v = v._name
         self._cache[i] = v
         self._engine.set_rulebook_rule(self._name, i, v)
+        for fun in self._listeners:
+            fun(self)
 
     def __delitem__(self, i):
         del self._cache[i]
         self._engine.del_rulebook_rule(self._name, i)
+        for fun in self._listeners:
+            fun(self)
 
     def insert(self, i, v):
         if isinstance(v, RuleProxy):
             v = v._name
         self._cache.insert(i, v)
         self._engine.ins_rulebook_rule(self._name, i, v)
+        for fun in self._listeners:
+            fun(self)
+
+    def listener(self, f):
+        self._engine.rulebook_listener(self._name, f)
 
 
 class CharacterProxy(MutableMapping):
@@ -1266,6 +1365,48 @@ class GlobalVarProxy(MutableMapping):
         return listener(self._listeners, f, key)
 
 
+class AllRuleBooksProxy(Mapping):
+    def __init__(self, engine_proxy):
+        self._engine = engine_proxy
+        self._cache = {}
+
+    def __iter__(self):
+        yield from self._engine.rulebooks()
+
+    def __len__(self):
+        return self._engine.len_rulebooks()
+
+    def __contains__(self, k):
+        if k in self._cache:
+            return True
+        return self._engine.have_rulebook(k)
+
+    def __getitem__(self, k):
+        if k not in self:
+            raise KeyError("No rulebook: {}".format(k))
+        if k not in self._cache:
+            self._cache[k] = RuleBookProxy(self._engine, k)
+        return self._cache[k]
+
+
+class FuncStoreProxy(object):
+    def __init__(self, engine_proxy, store):
+        self._engine = engine_proxy
+        self._store = store
+
+    def __iter__(self):
+        yield from self._engine.keys_in_store(self._store)
+
+    def __len__(self):
+        return self._engine.len_store(self._store)
+
+    def plain(self, k):
+        return self._engine.plain_source(self._store, k)
+
+    def iterplain(self):
+        yield from self._engine.plain_items_in_store(self._store)
+
+
 class EngineProxy(object):
     def __init__(self, handle, *args):
         self._handle = handle
@@ -1274,6 +1415,10 @@ class EngineProxy(object):
         self.universal = GlobalVarProxy(self)
         self.character = CharacterMapProxy(self)
         self.string = StringStoreProxy(self)
+        self.rulebook = AllRuleBooksProxy(self)
+        for funstore in ('action', 'prereq', 'trigger', 'sense', 'function'):
+            setattr(self, funstore, FuncStoreProxy(self, funstore))
+        self._rulebook_listeners = defaultdict(list)
         self._time_listeners = []
 
     def __getattr__(self, attrn):
@@ -1343,6 +1488,9 @@ class EngineProxy(object):
 
     def close(self):
         self._handle.close()
+
+    def rulebook_listener(self, rulebook, f):
+        self._rulebook_listeners[rulebook].append(f)
 
 
 def create_handle(manager, queue):
