@@ -485,6 +485,11 @@ class EngineHandle(object):
         print('set_rulebook_rule')
         self._real.db.rulebook_set(rulebook, i, rule)
 
+    def ins_rulebook_rule(self, rulebook, i, rule):
+        print('ins_rulebook_rule')
+        self._real.db.rulebook_decr(rulebook, i)
+        self.set_rulebook_rule(rulebook, i, rule)
+
     def del_rulebook_rule(self, rulebook, i):
         print('del_rulebook_rule')
         self._real.db.rulebook_del(rulebook, i)
@@ -1027,6 +1032,12 @@ class RuleBookProxy(MutableSequence):
     def __delitem__(self, i):
         del self._cache[i]
         self._engine.del_rulebook_rule(self._name, i)
+
+    def insert(self, i, v):
+        if isinstance(v, RuleProxy):
+            v = v._name
+        self._cache.insert(i, v)
+        self._engine.ins_rulebook_rule(self._name, i, v)
 
 
 class CharacterProxy(MutableMapping):
