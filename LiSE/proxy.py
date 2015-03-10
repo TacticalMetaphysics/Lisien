@@ -10,11 +10,38 @@ class EngineHandle(object):
     def __init__(self, *args, **kwargs):
         self._real = Engine(*args, **kwargs)
 
+    def advance(self):
+        self._real.advance()
+
+    def next_tick(self):
+        self._real.next_tick()
+
+    def add_character(self, name, data=None, **kwargs):
+        self._real.add_character(name, data, **kwargs)
+
     def commit(self):
         self._real.commit()
 
     def close(self):
         self._real.close()
+
+    def get_branch(self):
+        return self._real.branch
+
+    def set_branch(self, v):
+        self._real.branch = v
+
+    def get_tick(self):
+        return self._real.tick
+
+    def set_tick(self, v):
+        self._real.tick = v
+
+    def get_time(self):
+        return self._real.time
+
+    def set_time(self, v):
+        self._real.time = v
 
     def get_language(self):
         return self._real.string.language
@@ -91,6 +118,18 @@ class EngineHandle(object):
     def character_stats_len(self, char):
         return len(self._real.character[char].stat)
 
+    def characters(self):
+        return list(self._real.character.keys())
+
+    def characters_len(self):
+        return len(self._real.character)
+
+    def have_character(self, char):
+        return char in self._real.character
+
+    def set_character(self, char, v):
+        self._real.character[char] = v
+
     def get_node_stat(self, char, node, k):
         return self._real.character[char].node[node][k]
 
@@ -99,7 +138,6 @@ class EngineHandle(object):
 
     def del_node_stat(self, char, node, k):
         del self._real.character[char].node[node][k]
-
 
     def note_stat_keys(self, char, node):
         return list(self._real.character[char].node[node])
@@ -755,6 +793,30 @@ class CharacterProxy(MutableMapping):
         yield from self._engine.character_avatars(self._name)
 
 
+class CharacterMapProxy(MutableMapping):
+    def __init__(self, engine_proxy):
+        self._engine = engine_proxy
+
+    def __iter__(self):
+        yield from self._engine.characters()
+
+    def __len__(self):
+        return self._engine.characters_len()
+
+    def __getitem__(self, k):
+        if not self._engine.have_character(k):
+            raise KeyError("No character: {}".format(k))
+        return CharacterProxy(self._engine, k)
+
+    def __setitem__(self, k, v):
+        if isinstance(v, CharacterProxy):
+            return
+        self._engine.set_character(k, v)
+
+    def __delitem__(self, k):
+        self._engine.del_character(k)
+
+
 class StringStoreProxy(MutableMapping):
     @property
     def language(self):
@@ -827,26 +889,81 @@ class GlobalVarProxy(MutableMapping):
 
 
 class EngineProxy(object):
-    def __init__(
-            self,
-            worlddb,
-            codedb,
-            connect_args={},
-            alchemy=False,
-            caching=True,
-            commit_modulus=None,
-            random_seed=None
-    ):
-        self.manager = EngineManager()
-        self._handle = self.manager.EngineHandle(
-            worlddb,
-            codedb,
-            connect_args,
-            alchemy,
-            caching,
-            commit_modulus,
-            random_seed
-        )
+    def __init__(self, handle):
+        self._handle = handle
+        self.eternal = self._handle.eternal
+        self.universal = GlobalVarProxy(self._handle)
+        self.character = CharacterMapProxy(self._handle)
+
+    @property
+    def branch(self):
+        return self._handle.get_branch()
+
+    @branch.setter
+    def branch(self, v):
+        self._handle.set_branch(v)
+
+    @property
+    def tick(self):
+        return self._handle.get_tick()
+
+    @tick.setter
+    def tick(self, v):
+        self._handle.set_tick(v)
+
+    @property
+    def time(self):
+        return self._handle.get_time()
+
+    @time.setter
+    def time(self, v):
+        self._handle.set_time(v)
+
+    def advance(self):
+        self._handle.advance()
+
+    def next_tick(self):
+        self._handle.next_tick()
+
+    def add_character(self, name, data=None, **kwargs):
+        self._handle.add_character(name, data, **kwargs)
+
+    def new_character(self, name, **kwargs):
+        self.add_character(name, **kwargs)
+        return CharacterProxy(self._handle, name)
+
+    def del_character(self, name):
+        self._handle.del_character(name)
+
+    def commit(self):
+        self._handle.commit()
+
+    def close(self):
+        self._handle.close()
+        self.manager.shutdown()
+
+
+def create_engine(manager, queue, *args, **kwargs):
+    engine = manager.EngineHandle(*args, **kwargs)
+    print('engine handle created in process {}'.format(os.getpid()))
+    queue.put(engine)
+
+
+class LiSERemoteControl(object):
+    def __init__(self):
+        self._manager = EngineManager()
+
+    def start(self, *args, **kwargs):
+        q = self._manager.Queue()
+        self._p = Process(target=create_engine, args=(self._manager, q))
+        self._p.start()
+        self.engine = q.get()
+        return self.engine
+
+    def shutdown(self):
+        self.engine.close()
+        self._p.join()
+        self._manager.shutdown()
 
 
 def test_eng_handle(engine):
@@ -855,12 +972,6 @@ def test_eng_handle(engine):
     print('character created in process {}'.format(os.getpid()))
     engine.set_character_stat('FooChar', 'boring', False)
     assert(engine.get_character_stat('FooChar', 'boring') is False)
-
-
-def create_engine(manager, queue):
-    engine = manager.EngineHandle('LiSEworld.db', 'LiSEcode.db')
-    print('engine handle created in process {}'.format(os.getpid()))
-    queue.put(engine)
 
 
 if __name__ == "__main__":
