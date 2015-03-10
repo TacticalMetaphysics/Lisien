@@ -653,7 +653,7 @@ class NodeMapProxy(MutableMapping):
         print('NodeMapProxy.__contains__')
         if k in self._cache:
             return True
-        return self._engine.character_has_node(k)
+        return self._engine.character_has_node(self._charname, k)
 
     def __getitem__(self, k):
         if k in self._cache:
@@ -1138,6 +1138,7 @@ class CharacterMapProxy(MutableMapping):
         yield from self._engine.characters()
 
     def __contains__(self, k):
+        print('CharacterMapProxy.__contains__')
         return self._engine.have_character(k)
 
     def __len__(self):
