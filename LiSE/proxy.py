@@ -1,9 +1,10 @@
-from collections import Callable, MutableMapping, defaultdict
+from collections import Callable, MutableMapping, MutableSequence, defaultdict
 import os
 from multiprocessing import Process, Queue, Lock
 from multiprocessing.managers import BaseManager
-from LiSE.core import Engine
-from LiSE.util import dispatch, listen, listener
+from .core import Engine
+from .character import Facade
+from .util import dispatch, listen, listener
 
 
 class EngineHandle(object):
@@ -297,7 +298,7 @@ class EngineHandle(object):
 
     def character_nodes_connected(self, char, nodeA, nodeB):
         print('character_nodes_connected')
-        return nodeB in self._real.character[char].node[nodeA]
+        return nodeB in self._real.character[char].portal[nodeA]
 
     def character_len_node_successors(self, char, nodeA):
         print('character_len_node_successors')
@@ -480,6 +481,21 @@ class EngineHandle(object):
         print('get_rulebook_rules')
         return self._real.rule.db.rulebook_rules(rulebook)
 
+    def set_rulebook_rule(self, rulebook, i, rule):
+        print('set_rulebook_rule')
+        self._real.db.rulebook_set(rulebook, i, rule)
+
+    def del_rulebook_rule(self, rulebook, i):
+        print('del_rulebook_rule')
+        self._real.db.rulebook_del(rulebook, i)
+
+    def get_character_rulebook(self, character):
+        print('get_character_rulebook')
+        return self._real.db.get_rulebook_char(
+            "character",
+            character
+        )
+
 
 class EngineManager(BaseManager):
     pass
@@ -501,7 +517,8 @@ class NodeProxy(MutableMapping):
     def __init__(self, engine_proxy, charname, nodename):
         self._engine = engine_proxy
         self._charname = charname
-        self._name = nodename
+        self._name = self.name = nodename
+        self._stat_listeners = defaultdict(list)
 
     def __iter__(self):
         yield from self._engine.node_stat_keys(self._charname, self._name)
@@ -509,14 +526,23 @@ class NodeProxy(MutableMapping):
     def __len__(self):
         return self._engine.node_stat_len(self._charname, self._name)
 
+    def _dispatch_stat(self, k, v):
+        (branch, tick) = self._engine.time
+        dispatch(self._stat_listeners, k, branch, tick, self, k, v)
+
     def __getitem__(self, k):
         return self._engine.get_node_stat(self._charname, self._name, k)
 
     def __setitem__(self, k, v):
         self._engine.set_node_stat(self._charname, self._name, k, v)
+        self._dispatch_stat(k, v)
 
     def __delitem__(self, k):
         self._engine.del_node_stat(self._charname, self._name, k)
+        self._dispatch_stat(k, None)
+
+    def listener(self, f=None, stat=None):
+        return listener(self._stat_listeners, f, stat)
 
 
 class PlaceProxy(NodeProxy):
@@ -577,6 +603,7 @@ class PortalProxy(MutableMapping):
         self._charname = charname
         self._nodeA = nodeAname
         self._nodeB = nodeBname
+        self._stat_listeners = defaultdict(list)
 
     def __iter__(self):
         yield from self._engine.portal_stats(
@@ -593,21 +620,28 @@ class PortalProxy(MutableMapping):
             self._charname, self._nodeA, self._nodeB, k
         )
 
+    def _dispatch_stat(self, k, v):
+        (branch, tick) = self._engine.time
+        dispatch(self._stat_listeners, k, branch, tick, self, k, v)
+
     def __setitem__(self, k, v):
         self._engine.set_portal_stat(
             self._charname, self._nodeA, self._nodeB, k, v
         )
+        self._dispatch_stat(k, v)
 
     def __delitem__(self, k):
         self._engine.del_portal_stat(
             self._charname, self._nodeA, self._nodeB, k
         )
+        self._dispatch_stat(k, None)
 
 
 class NodeMapProxy(MutableMapping):
     def __init__(self, engine_proxy, charname):
         self._engine = engine_proxy
         self._charname = charname
+        self._cache = {}
 
     def __iter__(self):
         yield from self._engine.character_nodes(self._charname)
@@ -615,8 +649,16 @@ class NodeMapProxy(MutableMapping):
     def __len__(self):
         return self._engine.character_nodes_len(self._charname)
 
+    def __contains__(self, k):
+        print('NodeMapProxy.__contains__')
+        if k in self._cache:
+            return True
+        return self._engine.character_has_node(k)
+
     def __getitem__(self, k):
-        if not self._engine.character_has_node(self._name, k):
+        if k in self._cache:
+            return self._cache[k]
+        if k not in self:
             raise KeyError("No such node: {}".format(k))
         if self._engine.character_has_thing(self._name, k):
             return ThingProxy(self._name, k)
@@ -628,9 +670,15 @@ class NodeMapProxy(MutableMapping):
 
     def __delitem__(self, k):
         self._engine.del_node(self._charname, k)
+        if k in self._cache:
+            del self._cache[k]
 
 
 class ThingMapProxy(MutableMapping):
+    @property
+    def character(self):
+        return self._engine.character[self._name]
+
     def __init__(self, engine_proxy, charname):
         self._engine = engine_proxy
         self._name = charname
@@ -642,21 +690,48 @@ class ThingMapProxy(MutableMapping):
         return self._engine.character_things_len(self._name)
 
     def __contains__(self, k):
+        print('ThingMapProxy.__contains__')
+        if (
+                k in self.character.node._cache and
+                isinstance(
+                    self.character.node._cache[k],
+                    ThingProxy
+                )
+        ):
+            return True
         return self._engine.character_has_thing(self._name, k)
 
     def __getitem__(self, k):
+        if k in self.character.node._cache:
+            r = self.character.node._cache[k]
+            if isinstance(r, ThingProxy):
+                return r
+            else:
+                raise TypeError(
+                    '{} is a Place, not a Thing'.format(
+                        k
+                    )
+                )
         if k not in self:
             raise KeyError("No such Thing: {}".format(k))
-        return ThingProxy(self._engine, self._name, k)
+        r = ThingProxy(self._engine, self._name, k)
+        self.character.node._cache[k] = r
+        return r
 
     def __setitem__(self, k, v):
         self._engine.set_thing(self._name, k, v)
 
     def __delitem__(self, k):
+        if k in self.character.node._cache:
+            del self.character.node._cache[k]
         self._engine.del_node(self._name, k)
 
 
 class PlaceMapProxy(MutableMapping):
+    @property
+    def character(self):
+        return self._engine.character[self._name]
+
     def __init__(self, engine_proxy, character):
         self._engine = engine_proxy
         self._name = character
@@ -667,15 +742,38 @@ class PlaceMapProxy(MutableMapping):
     def __len__(self):
         return self._engine.character_places_len(self._name)
 
+    def __contains__(self, k):
+        print('PlaceMapProxy.__contains__')
+        if (
+                k in self.character.node._cache and
+                isinstance(
+                    self.character.node._cache[k],
+                    PlaceProxy
+                )
+        ):
+            return True
+        return self._engine.character_has_place(self._name, k)
+
     def __getitem__(self, k):
-        if not self._engine.character_has_place(self._name, k):
+        if k not in self:
             raise KeyError("No such place: {}".format(k))
-        return PlaceProxy(self._character, k)
+        if k in self.character.node._cache:
+            r = self.character.node._cache[k]
+            if isinstance(r, ThingProxy):
+                raise TypeError(
+                    '{} is a Thing, not a Place'.format(k)
+                )
+            return r
+        r = PlaceProxy(self._engine, self._name, k)
+        self.character.node._cache[k] = r
+        return r
 
     def __setitem__(self, k, v):
         self._engine.set_place(self._name, k, v)
 
     def __delitem__(self, k):
+        if k in self.character.node._cache:
+            del self.character.node._cache[k]
         self._engine.del_node(self._name, k)
 
 
@@ -684,13 +782,17 @@ class SuccessorsProxy(MutableMapping):
         self._engine = engine_proxy
         self._charname = charname
         self._nodeA = nodeAname
+        self._cache = {}
 
     def __iter__(self):
         yield from self._engine.character_node_successors(
-            self._charname, self._nodeAname
+            self._charname, self._nodeA
         )
 
     def __contains__(self, nodeB):
+        print('SuccessorsProxy.__contains__')
+        if nodeB in self._cache:
+            return True
         return self._engine.character_nodes_connected(
             self._charname, self._nodeA, nodeB
         )
@@ -701,7 +803,17 @@ class SuccessorsProxy(MutableMapping):
         )
 
     def __getitem__(self, nodeB):
-        return PortalProxy(self._engine, self._charname, self._nodeA, nodeB)
+        if nodeB not in self:
+            raise KeyError(
+                'No portal from {} to {}'.format(
+                    self._nodeA, nodeB
+                )
+            )
+        if nodeB not in self._cache:
+            self._cache[nodeB] = PortalProxy(
+                self._engine, self._charname, self._nodeA, nodeB
+            )
+        return self._cache[nodeB]
 
     def __setitem__(self, nodeB, value):
         self._engine.set_portal(
@@ -709,6 +821,8 @@ class SuccessorsProxy(MutableMapping):
         )
 
     def __delitem__(self, nodeB):
+        if nodeB in self._cache:
+            del self._cache[nodeB]
         self._engine.del_portal(self._character, self._nodeA, nodeB)
 
 
@@ -716,6 +830,7 @@ class CharSuccessorsMappingProxy(MutableMapping):
     def __init__(self, engine_proxy, charname):
         self._engine = engine_proxy
         self._charname = charname
+        self._cache = {}
 
     def __iter__(self):
         yield from self._engine.character_nodes_with_successors(
@@ -727,10 +842,19 @@ class CharSuccessorsMappingProxy(MutableMapping):
             self._charname
         )
 
+    def __contains__(self, nodeA):
+        if nodeA in self._cache:
+            return True
+        return self._engine.character_has_node(self._charname, nodeA)
+
     def __getitem__(self, nodeA):
-        if not self._engine.character_has_node(self._charname, nodeA):
+        if nodeA not in self:
             raise KeyError("No such node: {}".format(nodeA))
-        return SuccessorsProxy(self._engine, self._charname, nodeA)
+        if nodeA not in self._cache:
+            self._cache[nodeA] = SuccessorsProxy(
+                self._engine, self._charname, nodeA
+            )
+        return self._cache[nodeA]
 
     def __setitem__(self, nodeA, val):
         self._engine.character_set_node_successors(
@@ -738,12 +862,18 @@ class CharSuccessorsMappingProxy(MutableMapping):
         )
 
     def __delitem__(self, nodeA):
+        if nodeA in self._cache:
+            del self._cache[nodeA]
         self._engine.character_del_node_successors(
             self._charname, nodeA
         )
 
 
 class PredecessorsProxy(MutableMapping):
+    @property
+    def character(self):
+        return self._engine.character[self._charname]
+
     def __init__(self, engine_proxy, charname, nodeBname):
         self._engine = engine_proxy
         self._charname = charname
@@ -759,25 +889,42 @@ class PredecessorsProxy(MutableMapping):
             self._charname, self._name
         )
 
+    def __contains__(self, k):
+        print('PredecessorsProxy.__contains__')
+        if (
+            k in self.character.portal._cache and
+            self._name in self.character.portal._cache[k]
+        ):
+            return True
+        return self._engine.node_precedes(self._charname, self._name, k)
+
     def __getitem__(self, k):
-        if not self._engine.node_precedes(self._charname, self._name, k):
+        if k not in self:
             raise KeyError(
                 "{} does not precede {}".format(k, self._name)
             )
-        if self._engine.character_has_thing(self._charname, k):
-            return ThingProxy(self._engine, self._charname, k)
-        else:
-            return PlaceProxy(self._engine, self._charname, k)
+        if k not in self.character.portal._cache:
+            self.character.portal._cache[k] = {}
+        if self._name not in self.character.portal._cache[k]:
+            self.character.portal._cache[k][self._name] = PortalProxy(
+                self._engine, self._charname, k, self._name
+            )
+        return self.character.portal._cache[k][self._name]
 
     def __setitem__(self, k, v):
         self._engine.set_place(self._charname, k, v)
-        self._engine.set_portal(self._charname, k, self._name, v)
+        self._engine.set_portal(self._charname, k, self._name)
 
     def __delitem__(self, k):
-        if not self._engine.node_precedes(self._charname, self._name, k):
+        if k not in self:
             raise KeyError(
                 "{} does not precede {}".format(k, self._name)
             )
+        if (
+            k in self.character.portal._cache and
+            self._name in self.character.portal._cache[k]
+        ):
+            del self.character.portal._cache[k][self._name]
         self._engine.del_portal(self._charname, k, self._name)
 
 
@@ -785,8 +932,12 @@ class CharPredecessorsMappingProxy(MutableMapping):
     def __init__(self, engine_proxy, charname):
         self._engine = engine_proxy
         self._name = charname
+        self._cache = {}
 
     def __contains__(self, k):
+        print('CharPredecessorsMappingProxy.__contains__')
+        if k in self._cache:
+            return True
         return self._engine.node_has_predecessor(self._name, k)
 
     def __iter__(self):
@@ -804,12 +955,20 @@ class CharPredecessorsMappingProxy(MutableMapping):
             raise KeyError(
                 "No predecessors to {} (if it even exists)".format(k)
             )
-        return PredecessorsProxy(self._engine, self._name, k)
+        if k not in self._cache:
+            self._cache[k] = PredecessorsProxy(self._engine, self._name, k)
+        return self._cache[k]
 
     def __setitem__(self, k, v):
         self._engine.character_set_node_predecessors(self._name, k, v)
 
     def __delitem__(self, k):
+        if k not in self:
+            raise KeyError(
+                "No predecessors to {} (if it even exists)".format(k)
+            )
+        if k in self._cache:
+            del self._cache[k]
         self._engine.character_del_node_predecessors(self._name, k)
 
 
@@ -834,7 +993,58 @@ class CharStatProxy(MutableMapping):
         self._engine.del_character_stat(self._name, k)
 
 
+class RuleProxy(object):
+    def __init__(self, engine_proxy, rulename):
+        self._engine = engine_proxy
+        self._name = rulename
+
+
+class RuleBookProxy(MutableSequence):
+    def __init__(self, engine_proxy, bookname):
+        self._engine = engine_proxy
+        self._name = bookname
+        self._cache = self._engine.get_rulebook_rules(self._name)
+        self._proxy_cache = {}
+
+    def __iter__(self):
+        yield from self._cache
+
+    def __len__(self):
+        return len(self._cache)
+
+    def __getitem__(self, i):
+        k = self._cache[i]
+        if k not in self._proxy_cache:
+            self._proxy_cache[k] = RuleProxy(self._engine, k)
+        return self._proxy_cache[k]
+
+    def __setitem__(self, i, v):
+        if isinstance(v, RuleProxy):
+            v = v._name
+        self._cache[i] = v
+        self._engine.set_rulebook_rule(self._name, i, v)
+
+    def __delitem__(self, i):
+        del self._cache[i]
+        self._engine.del_rulebook_rule(self._name, i)
+
+
 class CharacterProxy(MutableMapping):
+    @property
+    def rulebook(self):
+        if not hasattr(self, '_rulebook'):
+            self._upd_rulebook()
+        return self._rulebook
+
+    def _upd_rulebook(self):
+        self._rulebook = self._get_rulebook()
+
+    def _get_rulebook(self):
+        return RuleBookProxy(
+            self._engine,
+            self._engine.get_character_rulebook(self._name)
+        )
+
     def __init__(self, engine_proxy, charname):
         self._engine = engine_proxy
         self._name = self.name = charname
@@ -855,19 +1065,18 @@ class CharacterProxy(MutableMapping):
     def __len__(self):
         return self._engine.character_nodes_len(self._name)
 
+    def __contains__(self, k):
+        print('CharacterProxy.__contains__')
+        return k in self.node
+
     def __getitem__(self, k):
-        if not self._engine.character_has_node(self._name, k):
-            raise KeyError("No such node: {}".format(k))
-        if self._engine.character_has_thing(self._name, k):
-            return ThingProxy(self._name, k)
-        else:
-            return PlaceProxy(self._name, k)
+        return self.node[k]
 
     def __setitem__(self, k, v):
-        self._engine.set_place(self._name, k, v)
+        self.node[k] = v
 
     def __delitem__(self, k):
-        self._engine.del_place(self._name, k)
+        del self.node[k]
 
     def add_place(self, name, **kwargs):
         self[name] = kwargs
@@ -916,6 +1125,9 @@ class CharacterProxy(MutableMapping):
 
     def avatars(self):
         yield from self._engine.character_avatars(self._name)
+
+    def facade(self):
+        return Facade(self)
 
 
 class CharacterMapProxy(MutableMapping):
@@ -1046,11 +1258,14 @@ class EngineProxy(object):
     def __init__(self, handle, *args):
         self._handle = handle
         self._handle.reify(args)
-        self.eternal = EternalVarProxy(self._handle)
-        self.universal = GlobalVarProxy(self._handle)
-        self.character = CharacterMapProxy(self._handle)
-        self.string = StringStoreProxy(self._handle)
+        self.eternal = EternalVarProxy(self)
+        self.universal = GlobalVarProxy(self)
+        self.character = CharacterMapProxy(self)
+        self.string = StringStoreProxy(self)
         self._time_listeners = []
+
+    def __getattr__(self, attrn):
+        return getattr(self._handle, attrn)
 
     @property
     def branch(self):
@@ -1165,26 +1380,3 @@ class LiSERemoteControl(object):
         self.engine.close()
         self._p.join()
         self._manager.shutdown()
-
-
-def test_eng_handle(engine):
-    engine.init_character('FooChar', {'nice': True})
-    assert(engine.get_character_stat('FooChar', 'nice') is True)
-    print('character created in process {}'.format(os.getpid()))
-    engine.set_character_stat('FooChar', 'boring', False)
-    assert(engine.get_character_stat('FooChar', 'boring') is False)
-
-
-if __name__ == "__main__":
-    from examples.utiltest import clear_off
-    clear_off()
-    manager = EngineManager()
-    manager.start()
-    print('manager started in process {}'.format(os.getpid()))
-    queue = manager.Queue()
-    p = Process(target=create_engine, args=(manager, queue))
-    p.start()
-    engine = queue.get()
-    test_eng_handle(engine)
-    engine.close()
-    manager.shutdown()
