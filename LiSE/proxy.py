@@ -69,6 +69,10 @@ class EngineHandle(object):
         print('get_string_ids')
         return list(self._real.string)
 
+    def get_string_lang_items(self, lang):
+        print('get_string_lang_items')
+        return list(self._real.string.lang_items(lang))
+
     def count_strings(self):
         print('count_strings')
         return len(self._real.string)
@@ -270,6 +274,10 @@ class EngineHandle(object):
     def character_has_node(self, char, node):
         print('character_has_node')
         return node in self._real.character[char].node
+
+    def character_nodes_with_successors(self, char):
+        print('character_nodes_with_successors')
+        return list(self._real.character[char].adj.keys())
 
     def character_node_successors(self, char, node):
         print('character_node_successors')
@@ -710,7 +718,7 @@ class CharSuccessorsMappingProxy(MutableMapping):
         self._charname = charname
 
     def __iter__(self):
-        yield from self._engine.character_node_successors(
+        yield from self._engine.character_nodes_with_successors(
             self._charname
         )
 
@@ -829,7 +837,7 @@ class CharStatProxy(MutableMapping):
 class CharacterProxy(MutableMapping):
     def __init__(self, engine_proxy, charname):
         self._engine = engine_proxy
-        self._name = charname
+        self._name = self.name = charname
         self.adj = self.succ = self.portal = CharSuccessorsMappingProxy(
             self._engine, self._name
         )
@@ -980,6 +988,9 @@ class StringStoreProxy(MutableMapping):
     def listener(self, fun=None, string=None):
         return listener(self._str_listeners, fun, string)
 
+    def lang_items(self, lang=None):
+        yield from self._proxy.get_string_lang_items(lang)
+
 
 class EternalVarProxy(MutableMapping):
     def __init__(self, engine_proxy):
@@ -1038,6 +1049,7 @@ class EngineProxy(object):
         self.eternal = EternalVarProxy(self._handle)
         self.universal = GlobalVarProxy(self._handle)
         self.character = CharacterMapProxy(self._handle)
+        self.string = StringStoreProxy(self._handle)
         self._time_listeners = []
 
     @property
@@ -1104,14 +1116,12 @@ class EngineProxy(object):
 
     def close(self):
         self._handle.close()
-        self.manager.shutdown()
 
 
 def create_handle(manager, queue):
     engine = manager.EngineHandle()
     print('engine handle created in process {}'.format(os.getpid()))
     queue.put(engine)
-    lock.release()
 
 
 class LiSERemoteControl(object):

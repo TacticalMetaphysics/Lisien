@@ -147,6 +147,14 @@ class StringStore(MutableMapping):
         self.db.string_table_del(self.table, self.language, k)
         self._dispatch_str(k, None)
 
+    def lang_items(self, lang=None):
+        """Yield pairs of (id, string) for the given language."""
+        if lang is None:
+            lang = self.language
+        yield from self.db.string_table_lang_items(
+            self.table, lang
+        )
+
 
 class FunctionStoreDB(MutableMapping):
     """Store functions in a SQL database"""
@@ -349,6 +357,8 @@ class CharacterMapping(MutableMapping):
 
     def __contains__(self, name):
         """Has this character been created?"""
+        if name in self._cache:
+            return True
         return self.engine.db.have_character(name)
 
     def __len__(self):

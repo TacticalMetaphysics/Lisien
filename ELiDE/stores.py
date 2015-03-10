@@ -131,9 +131,7 @@ class StringStoreAdapter(StoreAdapter):
         """
         return [
             StoreDataItem(name=k, source=v) for (k, v) in
-            self.store.db.string_table_lang_items(
-                self.table, self.store.language
-            )
+            self.store.lang_items()
         ]
 
 

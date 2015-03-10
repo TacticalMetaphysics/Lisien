@@ -7,6 +7,7 @@ from kivy.lang import Builder
 from kivy.resources import resource_add_path
 
 import LiSE
+from LiSE.proxy import LiSERemoteControl
 
 import ELiDE
 import ELiDE.layout
@@ -61,7 +62,8 @@ class ELiDEApp(App):
             import pdb
             pdb.set_trace()
 
-        self.engine = LiSE.Engine(
+        self.remote = LiSERemoteControl()
+        self.engine = self.remote.start(
             config['LiSE']['world'],
             config['LiSE']['code']
         )
