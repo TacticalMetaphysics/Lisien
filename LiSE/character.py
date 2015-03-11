@@ -1658,6 +1658,9 @@ class Character(DiGraph, RuleFollower):
     def stat_listener(self, f=None, stat=None):
         return listener(self._stat_listeners, f, stat)
 
+    def listener(self, f=None, stat=None):
+        return self.stat_listener(f, stat)
+
     def _dispatch_avatar(self, k, v, ex):
         dispatch(
             self._avatar_listeners,

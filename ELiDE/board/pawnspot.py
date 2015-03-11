@@ -123,6 +123,8 @@ class PawnSpot(ImageStack, MirrorMapping):
                 )
             Clock.schedule_once(self.upd_from_mirror_image_paths, 0)
             return
+        if '_image_paths' not in self.mirror:
+            return
         self.unbind(
             paths=self._trigger_upd_to_remote_image_paths
         )
@@ -138,6 +140,8 @@ class PawnSpot(ImageStack, MirrorMapping):
         if not self.mirror:
             Clock.schedule_once(self.upd_from_mirror_offxs, 0)
             return
+        if '_offxs' not in self.mirror:
+            return
         self.unbind(
             offxs=self._trigger_upd_to_remote_offxs
         )
@@ -152,6 +156,8 @@ class PawnSpot(ImageStack, MirrorMapping):
     def upd_from_mirror_offys(self, *args):
         if not self.mirror:
             Clock.schedule_once(self.upd_from_mirror_offys, 0)
+        if '_offys' not in self.mirror:
+            return
         self.unbind(
             offys=self._trigger_upd_to_remote_offys
         )
@@ -166,6 +172,8 @@ class PawnSpot(ImageStack, MirrorMapping):
     def upd_from_mirror_stackhs(self, *args):
         if not self.mirror:
             Clock.schedule_once(self.upd_from_mirror_stackhs, 0)
+            return
+        if '_stackhs' not in self.mirror:
             return
         self.unbind(
             stackhs=self._trigger_upd_to_remote_stackhs

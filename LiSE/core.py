@@ -361,14 +361,12 @@ class CharacterMapping(MutableMapping):
         Try to use the cache if possible.
 
         """
-        if hasattr(self, '_cache'):
-            if name not in self._cache:
-                if name not in self:
-                    raise KeyError("No such character")
-                self._cache[name] = Character(self.engine, name)
-            return self._cache[name]
         if name not in self:
             raise KeyError("No such character")
+        if hasattr(self, '_cache'):
+            if name not in self._cache:
+                self._cache[name] = Character(self.engine, name)
+            return self._cache[name]
         return Character(self.engine, name)
 
     def __setitem__(self, name, value):
@@ -419,20 +417,21 @@ class Engine(object):
             query_engine_class=QueryEngine
         )
         self.time_listeners = []
+        self._on_node_stat = []
+        self._on_thing_loc = []
+        self._on_thing_next_loc = []
+        self._on_portal_stat = []
+        self._on_char_stat = []
+        self._node_proxy_sigs = []
+        self._portal_proxy_sigs = []
+        self._character_proxy_sigs = []
         self.db = self.gorm.db
         self.string = StringStore(self.codedb)
-        self.rulebook = AllRuleBooks(
-            self,
-            QueryEngine(
-                self.codedb, connect_args={}, alchemy=False
-            )
+        code_qe = QueryEngine(
+            self.codedb, connect_args={}, alchemy=False
         )
-        self.rule = AllRules(
-            self,
-            QueryEngine(
-                self.codedb, connect_args={}, alchemy=False
-            )
-        )
+        self.rulebook = AllRuleBooks(self, code_qe)
+        self.rule = AllRules(self, code_qe)
         self.eternal = self.db.globl
         self.universal = GlobalVarMapping(self)
         self.character = CharacterMapping(self)
@@ -440,7 +439,7 @@ class Engine(object):
         self.stores = ('action', 'prereq', 'trigger', 'sense', 'function')
         for store in self.stores:
             setattr(self, store, FunctionStoreDB(
-                self, QueryEngine(self.codedb, [], False), store)
+                self, code_qe, store)
             )
         if hasattr(self.gorm.db, 'alchemist'):
             self.worlddb = self.gorm.db.alchemist.conn.connection
@@ -591,6 +590,36 @@ class Engine(object):
             raise TypeError("This is a decorator")
         if v not in self.time_listeners:
             self.time_listeners.append(v)
+
+    def on_char_stat(self, f):
+        if not isinstance(f, Callable):
+            raise TypeError('This is a decorator')
+        if f not in self._on_char_stat:
+            self._on_char_stat.append(f)
+
+    def on_node_stat(self, f):
+        if not isinstance(f, Callable):
+            raise TypeError('This is a decorator')
+        if f not in self._on_node_stat:
+            self._on_node_stat.append(f)
+
+    def on_portal_stat(self, f):
+        if not isinstance(f, Callable):
+            raise TypeError('This is a decorator')
+        if f not in self._on_portal_stat:
+            self._on_portal_stat.append(f)
+
+    def on_thing_loc(self, f):
+        if not isinstance(f, Callable):
+            raise TypeError('This is a decorator')
+        if f not in self._on_thing_loc:
+            self._on_thing_loc.append(f)
+
+    def on_thing_next_loc(self, f):
+        if not isinstance(f, Callable):
+            raise TypeError('This is a decorator')
+        if f not in self._on_thing_next_loc:
+            self._on_thing_next_loc.append(f)
 
     @property
     def branch(self):
