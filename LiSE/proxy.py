@@ -30,8 +30,6 @@ class EngineHandle(object):
 
         @node.listener
         def dispatch_remote(b, t, node, k, v):
-                node.character.name, node.name, k, v
-            ))
             self._remote.node_stat_changed(
                 b, t, node.character.name, node.name, k, v
             )
@@ -41,8 +39,6 @@ class EngineHandle(object):
 
         @edge.listener
         def dispatch_remote(b, t, edge, k, v):
-                edge.character.name, edge._origin, edge._destination, k, v
-            ))
             self._remote.edge_stat_changed(
                 b, t, edge.character.name, edge._origin, edge._destination
             )
