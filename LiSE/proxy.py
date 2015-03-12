@@ -534,6 +534,8 @@ class ThingProxy(NodeProxy):
     @property
     def next_location(self):
         ln = self['next_location']
+        if ln is None:
+            return None
         if ln in self._engine._handle.character_things(self._charname):
             return ThingProxy(self._engine, self._charname, ln)
         else:
