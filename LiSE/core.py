@@ -406,8 +406,6 @@ class Engine(object):
         """
         self.caching = caching
         self.commit_modulus = commit_modulus
-        self.gettext = lambda s: s,
-        self.dicecmp = lambda x, y: x <= y
         self.random_seed = random_seed
         self.codedb = connect(codedb)
         self.gorm = gORM(
@@ -416,7 +414,7 @@ class Engine(object):
             alchemy=alchemy,
             query_engine_class=QueryEngine
         )
-        self.time_listeners = []
+        self._time_listeners = []
         self._on_node_stat = []
         self._on_thing_loc = []
         self._on_thing_next_loc = []
@@ -588,8 +586,8 @@ class Engine(object):
         """
         if not isinstance(v, Callable):
             raise TypeError("This is a decorator")
-        if v not in self.time_listeners:
-            self.time_listeners.append(v)
+        if v not in self._time_listeners:
+            self._time_listeners.append(v)
 
     def on_char_stat(self, f):
         if not isinstance(f, Callable):
@@ -645,7 +643,7 @@ class Engine(object):
         else:
             self.gorm.branch = v
         if not hasattr(self, 'locktime'):
-            for time_listener in self.time_listeners:
+            for time_listener in self._time_listeners:
                 time_listener(self, b, t, v, t)
 
     @property
@@ -666,7 +664,7 @@ class Engine(object):
         else:
             self.gorm.rev = v
         if not hasattr(self, 'locktime'):
-            for time_listener in self.time_listeners:
+            for time_listener in self._time_listeners:
                 time_listener(self, branch_then, tick_then, branch_then, v)
 
     @property
@@ -688,7 +686,7 @@ class Engine(object):
         if not relock:
             del self.locktime
         if not hasattr(self, 'locktime'):
-            for time_listener in self.time_listeners:
+            for time_listener in self._time_listeners:
                 time_listener(
                     self, branch_then, tick_then, branch_now, tick_now
                 )

@@ -6,41 +6,52 @@ from collections import (
     MutableSequence
 )
 import os
-from multiprocessing import Process, Queue, Lock
-from multiprocessing.managers import BaseManager
+from multiprocessing import Process, Pipe, Queue
+from queue import Empty
 from .core import Engine
 from .character import Facade
 from .util import dispatch, listen, listener
 
 
 class EngineHandle(object):
-    def reify(self, args, queue):
-        self._real = Engine(*args)
-        self._remote = queue.get()
+    def __init__(self, args, kwargs, callbacq):
+        self._real = Engine(*args, **kwargs)
+        print('Engine instantiated in ps {}'.format(os.getpid()))
+        self._q = callbacq
 
     def listen_to_character(self, char):
         char = self._real.character[char]
 
         @char.listener
-        def dispatch_remote(b, t, char, k, v):
-            self._remote.char_stat_changed(b, t, char.name, k, v)
+        def put_stat(b, t, char, k, v):
+            self._q.put((b, t, char.name, k, v))
 
     def listen_to_node(self, char, node):
         node = self._real.character[char].node[node]
 
         @node.listener
-        def dispatch_remote(b, t, node, k, v):
-            self._remote.node_stat_changed(
-                b, t, node.character.name, node.name, k, v
+        def put_stat(b, t, node, k, v):
+            self._q.put(
+                (
+                    b, t,
+                    node.character.name, node.name,
+                    k, v
+                )
             )
 
-    def listen_to_portal(self, char, orig, dest):
-        edge = self._real.character[char].portal[orig][dest]
+    def listen_to_portal(self, char, a, b):
+        port = self._real.character[char].portal[a][b]
 
-        @edge.listener
-        def dispatch_remote(b, t, edge, k, v):
-            self._remote.edge_stat_changed(
-                b, t, edge.character.name, edge._origin, edge._destination
+        @port.listener
+        def put_stat(b, t, port, k, v):
+            self._q.put(
+                (
+                    b, t,
+                    port.character.name,
+                    port._origin,
+                    port._destination,
+                    k, v
+                )
             )
 
     def time_locked(self):
@@ -145,6 +156,9 @@ class EngineHandle(object):
 
     def del_character(self, char):
         del self._real.character[char]
+
+    def character_has_stat(self, char, k):
+        return k in self._real.character[char].stat
 
     def get_character_stat(self, char, k):
         return self._real.character[char].stat[k]
@@ -381,6 +395,9 @@ class EngineHandle(object):
     def len_portal_stats(self, char, o, d):
         return len(self._real.character[char][o][d])
 
+    def portal_has_stat(self, char, o, d, k):
+        return k in self._real.character[char][o][d]
+
     def character_avatars(self, char):
         return list(self._real.character[char].avatars())
 
@@ -457,15 +474,6 @@ class EngineHandle(object):
         return getattr(self._real, store).plain(k)
 
 
-class EngineManager(BaseManager):
-    pass
-
-
-EngineManager.register('EngineHandle', EngineHandle)
-EngineManager.register('Queue', Queue)
-EngineManager.register('Lock', Lock)
-
-
 class NodeProxy(MutableMapping):
     @property
     def character(self):
@@ -481,32 +489,60 @@ class NodeProxy(MutableMapping):
         return RuleBookProxy(self._engine, self._get_rulebook_name())
 
     def _get_rulebook_name(self):
-        return self._engine._handle.get_node_rulebook(
-            self._charname, self.name
+        return self._engine.handle(
+            'get_node_rulebook',
+            (self._charname, self.name)
         )
 
     def __init__(self, engine_proxy, charname, nodename):
+        assert(nodename is not None)
         self._engine = engine_proxy
         self._charname = charname
         self.name = nodename
 
     def __iter__(self):
-        yield from self._engine._handle.node_stat_keys(self._charname, self.name)
+        yield from self._engine.handle(
+            'node_stat_keys',
+            (self._charname, self.name)
+        )
 
     def __len__(self):
-        return self._engine._handle.node_stat_len(self._charname, self.name)
+        return self._engine.handle(
+            'node_stat_len',
+            (self._charname, self.name)
+        )
 
     def __contains__(self, k):
-        return self._engine._handle.node_has_stat(self._charname, self.name, k)
+        return self._engine.handle(
+            'node_has_stat',
+            (self._charname, self.name, k)
+        )
 
     def __getitem__(self, k):
-        return self._engine._handle.get_node_stat(self._charname, self.name, k)
+        if k == 'name':
+            return self.name
+        return self._engine.handle(
+            'get_node_stat',
+            (self._charname, self.name, k)
+        )
 
     def __setitem__(self, k, v):
-        self._engine._handle.set_node_stat(self._charname, self.name, k, v)
+        if k == 'name':
+            raise KeyError("Nodes can't be renamed")
+        self._engine.handle(
+            'set_node_stat',
+            (self._charname, self.name, k, v),
+            silent=True
+        )
 
     def __delitem__(self, k):
-        self._engine._handle.del_node_stat(self._charname, self.name, k)
+        if k == 'name':
+            raise KeyError("Nodes need names")
+        self._engine.handle(
+            'del_node_stat',
+            (self._charname, self.name, k),
+            silent=True
+        )
 
     def listener(self, fun):
         self._engine.node_stat_listener(
@@ -522,49 +558,69 @@ class ThingProxy(NodeProxy):
     @property
     def location(self):
         ln = self['location']
-        if ln in self._engine._handle.character_things(self._charname):
+        if ln in self._engine.handle(
+                'character_things',
+                (self._charname)
+        ):
             return ThingProxy(self._engine, self._charname, ln)
         else:
             return PlaceProxy(self._engine, self._charname, ln)
 
     @location.setter
     def location(self, v):
-        self._engine._handle.set_thing_location(self._charname, self.name, v._name)
+        self._engine.handle(
+            'set_thing_location',
+            (self._charname, self.name, v._name),
+            silent=True
+        )
 
     @property
     def next_location(self):
         ln = self['next_location']
         if ln is None:
             return None
-        if ln in self._engine._handle.character_things(self._charname):
+        if ln in self._engine.handle(
+                'character_things',
+                (self._charname,)
+        ):
             return ThingProxy(self._engine, self._charname, ln)
         else:
             return PlaceProxy(self._engine, self._charname, ln)
 
     @next_location.setter
     def next_location(self, v):
-        self._engine._handle.set_thing_next_location(
-            self._charname, self.name, v._name
+        self._engine.handle(
+            'set_thing_next_location',
+            (self._charname, self.name, v._name),
+            silent=True
         )
 
     def follow_path(self, path, weight=None):
-        self._engine._handle.thing_follow_path(
-            self._charname, self.name, path, weight
+        self._engine.handle(
+            'thing_follow_path',
+            (self._charname, self.name, path, weight),
+            silent=True
         )
 
     def go_to_place(self, place, weight=''):
-        self._engine._handle.thing_go_to_place(
-            self._charname, self.name, place, weight
+        self._engine.handle(
+            'thing_go_to_place',
+            (self._charname, self.name, place, weight),
+            silent=True
         )
 
     def travel_to(self, dest, weight=None, graph=None):
-        self._engine._handle.thing_travel_to(
-            self._charname, self.name, dest, weight, graph
+        self._engine.handle(
+            'thing_travel_to',
+            (self._charname, self.name, dest, weight, graph),
+            silent=True
         )
 
     def travel_to_by(self, dest, arrival_tick, weight=None, graph=None):
-        self._engine._handle.thing_travel_to_by(
-            self._charname, self.name, dest, arrival_tick, weight, graph
+        self._engine.handle(
+            'thing_travel_to_by',
+            (self._charname, self.name, dest, arrival_tick, weight, graph),
+            silent=True
         )
 
 
@@ -576,8 +632,9 @@ class PortalProxy(MutableMapping):
         return self._rulebook
 
     def _get_rulebook_name(self):
-        return self._engine._handle.get_portal_rulebook(
-            self._charname, self._nodeA, self._nodeB
+        return self._engine.handle(
+            'get_portal_rulebook',
+            (self._charname, self._nodeA, self._nodeB)
         )
 
     def _get_rulebook(self):
@@ -591,28 +648,49 @@ class PortalProxy(MutableMapping):
         self._stat_listeners = defaultdict(list)
 
     def __iter__(self):
-        yield from self._engine._handle.portal_stats(
-            self._charname, self._nodeA, self._nodeB
+        yield from self._engine.handle(
+            'portal_stats',
+            (self._charname, self._nodeA, self._nodeB)
         )
 
     def __len__(self):
-        return self._engine._handle.len_portal_stats(
-            self._charname, self._nodeA, self._nodeB
+        return self._engine.handle(
+            'len_portal_stats',
+            (self._charname, self._nodeA, self._nodeB)
+        )
+
+    def __contains__(self, k):
+        return self._engine.handle(
+            'portal_has_stat',
+            (self._charname, self._nodeA, self._nodeB, k)
         )
 
     def __getitem__(self, k):
-        return self._engine._handle.get_portal_stat(
-            self._charname, self._nodeA, self._nodeB, k
+        if k == 'origin':
+            return self._nodeA
+        elif k == 'destination':
+            return self._nodeB
+        elif k == 'character':
+            return self._charname
+        elif k not in self:
+            raise KeyError('Key unset: {}'.format(k))
+        return self._engine.handle(
+            'get_portal_stat',
+            (self._charname, self._nodeA, self._nodeB, k)
         )
 
     def __setitem__(self, k, v):
-        self._engine._handle.set_portal_stat(
-            self._charname, self._nodeA, self._nodeB, k, v
+        self._engine.handle(
+            'set_portal_stat',
+            (self._charname, self._nodeA, self._nodeB, k, v),
+            silent=True
         )
 
     def __delitem__(self, k):
-        self._engine._handle.del_portal_stat(
-            self._charname, self._nodeA, self._nodeB, k
+        self._engine.handle(
+            'del_portal_stat',
+            (self._charname, self._nodeA, self._nodeB, k),
+            silent=True
         )
 
     def listener(self, fun):
@@ -628,31 +706,53 @@ class NodeMapProxy(MutableMapping):
         self._cache = {}
 
     def __iter__(self):
-        yield from self._engine._handle.character_nodes(self._charname)
+        yield from self._engine.handle(
+            'character_nodes',
+            (self._charname,)
+        )
 
     def __len__(self):
-        return self._engine._handle.character_nodes_len(self._charname)
+        return self._engine.handle(
+            'character_nodes_len',
+            (self._charname,)
+        )
 
     def __contains__(self, k):
         if k in self._cache:
             return True
-        return self._engine._handle.character_has_node(self._charname, k)
+        return self._engine.handle(
+            'character_has_node',
+            (self._charname, k)
+        )
 
     def __getitem__(self, k):
         if k in self._cache:
             return self._cache[k]
         if k not in self:
             raise KeyError("No such node: {}".format(k))
-        if self._engine._handle.character_has_thing(self.name, k):
-            return ThingProxy(self.name, k)
+        if self._engine.handle(
+                'character_has_thing',
+                (self._charname, k)
+        ):
+            r = ThingProxy(self._engine, self._charname, k)
         else:
-            return PlaceProxy(self.name, k)
+            r = PlaceProxy(self._engine, self._charname, k)
+        self._cache[k] = r
+        return r
 
     def __setitem__(self, k, v):
-        self._engine._handle.set_place(self._charname, k, v)
+        self._engine.handle(
+            'set_place',
+            (self._charname, k, v),
+            silent=True
+        )
 
     def __delitem__(self, k):
-        self._engine._handle.del_node(self._charname, k)
+        self._engine.handle(
+            'del_node',
+            (self._charname, k),
+            silent=True
+        )
         if k in self._cache:
             del self._cache[k]
 
@@ -667,10 +767,16 @@ class ThingMapProxy(MutableMapping):
         self.name = charname
 
     def __iter__(self):
-        yield from self._engine._handle.character_things(self.name)
+        yield from self._engine.handle(
+            'character_things',
+            (self.name,)
+        )
 
     def __len__(self):
-        return self._engine._handle.character_things_len(self.name)
+        return self._engine.handle(
+            'character_things_len',
+            (self.name,)
+        )
 
     def __contains__(self, k):
         if (
@@ -681,7 +787,10 @@ class ThingMapProxy(MutableMapping):
                 )
         ):
             return True
-        return self._engine._handle.character_has_thing(self.name, k)
+        return self._engine.handle(
+            'character_has_thing',
+            (self.name, k)
+        )
 
     def __getitem__(self, k):
         if k in self.character.node._cache:
@@ -701,12 +810,20 @@ class ThingMapProxy(MutableMapping):
         return r
 
     def __setitem__(self, k, v):
-        self._engine._handle.set_thing(self.name, k, v)
+        self._engine.handle(
+            'set_thing',
+            (self.name, k, v),
+            silent=True
+        )
 
     def __delitem__(self, k):
         if k in self.character.node._cache:
             del self.character.node._cache[k]
-        self._engine._handle.del_node(self.name, k)
+        self._engine.handle(
+            'del_node',
+            (self.name, k),
+            silent=True
+        )
 
 
 class PlaceMapProxy(MutableMapping):
@@ -719,10 +836,16 @@ class PlaceMapProxy(MutableMapping):
         self.name = character
 
     def __iter__(self):
-        yield from self._engine._handle.character_places(self.name)
+        yield from self._engine.handle(
+            'character_places',
+            (self.name,)
+        )
 
     def __len__(self):
-        return self._engine._handle.character_places_len(self.name)
+        return self._engine.handle(
+            'character_places_len',
+            (self.name,)
+        )
 
     def __contains__(self, k):
         if (
@@ -733,7 +856,10 @@ class PlaceMapProxy(MutableMapping):
                 )
         ):
             return True
-        return self._engine._handle.character_has_place(self.name, k)
+        return self._engine.handle(
+            'character_has_place',
+            (self.name, k)
+        )
 
     def __getitem__(self, k):
         if k not in self:
@@ -750,12 +876,20 @@ class PlaceMapProxy(MutableMapping):
         return r
 
     def __setitem__(self, k, v):
-        self._engine._handle.set_place(self.name, k, v)
+        self._engine.handle(
+            'set_place',
+            (self.name, k, v),
+            silent=True
+        )
 
     def __delitem__(self, k):
         if k in self.character.node._cache:
             del self.character.node._cache[k]
-        self._engine._handle.del_node(self.name, k)
+        self._engine.handle(
+            'del_node',
+            (self.name, k),
+            silent=True
+        )
 
 
 class SuccessorsProxy(MutableMapping):
@@ -766,20 +900,23 @@ class SuccessorsProxy(MutableMapping):
         self._cache = {}
 
     def __iter__(self):
-        yield from self._engine._handle.character_node_successors(
-            self._charname, self._nodeA
+        yield from self._engine.handle(
+            'character_node_successors',
+            (self._charname, self._nodeA)
         )
 
     def __contains__(self, nodeB):
         if nodeB in self._cache:
             return True
-        return self._engine._handle.character_nodes_connected(
-            self._charname, self._nodeA, nodeB
+        return self._engine.handle(
+            'character_nodes_connected',
+            (self._charname, self._nodeA, nodeB)
         )
 
     def __len__(self):
-        return self._engine._handle.character_len_node_successors(
-            self._charname, self._nodeA
+        return self._engine.handle(
+            'character_len_node_successors',
+            (self._charname, self._nodeA)
         )
 
     def __getitem__(self, nodeB):
@@ -796,14 +933,20 @@ class SuccessorsProxy(MutableMapping):
         return self._cache[nodeB]
 
     def __setitem__(self, nodeB, value):
-        self._engine._handle.set_portal(
-            self._character, self._nodeA, nodeB, value
+        self._engine.handle(
+            'set_portal',
+            (self._character, self._nodeA, nodeB, value),
+            silent=True
         )
 
     def __delitem__(self, nodeB):
         if nodeB in self._cache:
             del self._cache[nodeB]
-        self._engine._handle.del_portal(self._character, self._nodeA, nodeB)
+        self._engine.handle(
+            'del_portal',
+            (self._character, self._nodeA, nodeB),
+            silent=True
+        )
 
 
 class CharSuccessorsMappingProxy(MutableMapping):
@@ -813,19 +956,24 @@ class CharSuccessorsMappingProxy(MutableMapping):
         self._cache = {}
 
     def __iter__(self):
-        yield from self._engine._handle.character_nodes_with_successors(
-            self._charname
+        yield from self._engine.handle(
+            'character_nodes_with_successors',
+            (self._charname,)
         )
 
     def __len__(self):
-        return self._engine._handle.character_node_successors_len(
-            self._charname
+        return self._engine.handle(
+            'character_node_successors_len',
+            (self._charname,)
         )
 
     def __contains__(self, nodeA):
         if nodeA in self._cache:
             return True
-        return self._engine._handle.character_has_node(self._charname, nodeA)
+        return self._engine.handle(
+            'character_has_node',
+            (self._charname, nodeA)
+        )
 
     def __getitem__(self, nodeA):
         if nodeA not in self:
@@ -837,15 +985,19 @@ class CharSuccessorsMappingProxy(MutableMapping):
         return self._cache[nodeA]
 
     def __setitem__(self, nodeA, val):
-        self._engine._handle.character_set_node_successors(
-            self._charname, nodeA, val
+        self._engine.handle(
+            'character_set_node_successors',
+            (self._charname, nodeA, val),
+            silent=True
         )
 
     def __delitem__(self, nodeA):
         if nodeA in self._cache:
             del self._cache[nodeA]
-        self._engine._handle.character_del_node_successors(
-            self._charname, nodeA
+        self._engine.handle(
+            'character_del_node_successors',
+            (self._charname, nodeA),
+            silent=True
         )
 
 
@@ -860,13 +1012,15 @@ class PredecessorsProxy(MutableMapping):
         self.name = nodeBname
 
     def __iter__(self):
-        yield from self._engine._handle.node_predecessors(
-            self._charname, self.name
+        yield from self._engine.handle(
+            'node_predecessors',
+            (self._charname, self.name)
         )
 
     def __len__(self):
-        return self._engine._handle.node_predecessors_len(
-            self._charname, self.name
+        return self._engine.handle(
+            'node_predecessors_len',
+            (self._charname, self.name)
         )
 
     def __contains__(self, k):
@@ -875,8 +1029,9 @@ class PredecessorsProxy(MutableMapping):
             self.name in self.character.portal._cache[k]
         ):
             return True
-        return self._engine._handle.node_precedes(
-            self._charname, self.name, k
+        return self._engine.handle(
+            'node_precedes',
+            (self._charname, self.name, k)
         )
 
     def __getitem__(self, k):
@@ -893,8 +1048,16 @@ class PredecessorsProxy(MutableMapping):
         return self.character.portal._cache[k][self.name]
 
     def __setitem__(self, k, v):
-        self._engine._handle.set_place(self._charname, k, v)
-        self._engine._handle.set_portal(self._charname, k, self.name)
+        self._engine.handle(
+            'set_place',
+            (self._charname, k, v),
+            silent=True
+        )
+        self._engine.handle(
+            'set_portal',
+            (self._charname, k, self.name),
+            silent=True
+        )
 
     def __delitem__(self, k):
         if k not in self:
@@ -906,7 +1069,11 @@ class PredecessorsProxy(MutableMapping):
             self.name in self.character.portal._cache[k]
         ):
             del self.character.portal._cache[k][self.name]
-        self._engine._handle.del_portal(self._charname, k, self.name)
+        self._engine.handle(
+            'del_portal',
+            (self._charname, k, self.name),
+            silent=True
+        )
 
 
 class CharPredecessorsMappingProxy(MutableMapping):
@@ -918,16 +1085,21 @@ class CharPredecessorsMappingProxy(MutableMapping):
     def __contains__(self, k):
         if k in self._cache:
             return True
-        return self._engine._handle.node_has_predecessor(self.name, k)
+        return self._engine.handle(
+            'node_has_predecessor',
+            (self.name, k)
+        )
 
     def __iter__(self):
-        yield from self._engine._handle.character_nodes_with_predecessors(
-            self.name
+        yield from self._engine.handle(
+            'character_nodes_with_predecessors',
+            (self.name,)
         )
 
     def __len__(self):
-        return self._engine._handle.character_nodes_with_predecessors_len(
-            self.name
+        return self._engine.handle(
+            'character_nodes_with_predecessors_len',
+            (self.name,)
         )
 
     def __getitem__(self, k):
@@ -940,7 +1112,11 @@ class CharPredecessorsMappingProxy(MutableMapping):
         return self._cache[k]
 
     def __setitem__(self, k, v):
-        self._engine._handle.character_set_node_predecessors(self.name, k, v)
+        self._engine.handle(
+            'character_set_node_predecessors',
+            (self.name, k, v),
+            silent=True
+        )
 
     def __delitem__(self, k):
         if k not in self:
@@ -949,7 +1125,11 @@ class CharPredecessorsMappingProxy(MutableMapping):
             )
         if k in self._cache:
             del self._cache[k]
-        self._engine._handle.character_del_node_predecessors(self.name, k)
+        self._engine.handle(
+            'character_del_node_predecessors',
+            (self.name, k),
+            silent=True
+        )
 
 
 class CharStatProxy(MutableMapping):
@@ -958,19 +1138,41 @@ class CharStatProxy(MutableMapping):
         self.name = character
 
     def __iter__(self):
-        yield from self._engine._handle.character_stats(self.name)
+        yield from self._engine.handle(
+            'character_stats',
+            (self.name,)
+        )
 
     def __len__(self):
-        return self._engine._handle.character_stats_len(self.name)
+        return self._engine.handle(
+            'character_stats_len',
+            (self.name,)
+        )
+
+    def __contains__(self, k):
+        return self._engine.handle(
+            'character_has_stat', (self.name, k)
+        )
 
     def __getitem__(self, k):
-        return self._engine._handle.get_character_stat(self.name, k)
+        return self._engine.handle(
+            'get_character_stat',
+            (self.name, k)
+        )
 
     def __setitem__(self, k, v):
-        self._engine._handle.set_character_stat(self.name, k, v)
+        self._engine.handle(
+            'set_character_stat',
+            (self.name, k, v),
+            silent=True
+        )
 
     def __delitem__(self, k):
-        self._engine._handle.del_character_stat(self.name, k)
+        self._engine.handle(
+            'del_character_stat',
+            (self.name, k),
+            silent=True
+        )
 
     def listener(self, fun):
         self._engine.char_stat_listener(
@@ -981,27 +1183,48 @@ class CharStatProxy(MutableMapping):
 class RuleProxy(object):
     @property
     def triggers(self):
-        return self._engine._handle.get_rule_triggers(self.name)
+        return self._engine.handle(
+            'get_rule_triggers',
+            (self.name,)
+        )
 
     @triggers.setter
     def triggers(self, v):
-        self._engine._handle.set_rule_triggers(self.name, v)
+        self._engine.handle(
+            'set_rule_triggers',
+            (self.name, v),
+            silent=True
+        )
 
     @property
     def prereqs(self):
-        return self._engine._handle.get_rule_prereqs(self.name)
+        return self._engine.handle(
+            'get_rule_prereqs',
+            (self.name,)
+        )
 
     @prereqs.setter
     def prereqs(self, v):
-        self._engine._handle.set_rule_prereqs(self.name, v)
+        self._engine.handle(
+            'set_rule_prereqs',
+            (self.name, v),
+            silent=True
+        )
 
     @property
     def actions(self):
-        return self._engine._handle.get_rule_actions(self.name)
+        return self._engine.handle(
+            'get_rule_actions',
+            (self.name,)
+        )
 
     @actions.setter
     def actions(self, v):
-        self._engine._handle.set_rule_actions(self.name, v)
+        self._engine.handle(
+            'set_rule_actions',
+            (self.name, v),
+            silent=True
+        )
 
     def __init__(self, engine_proxy, rulename):
         self._engine = engine_proxy
@@ -1012,7 +1235,10 @@ class RuleBookProxy(MutableSequence):
     def __init__(self, engine_proxy, bookname):
         self._engine = engine_proxy
         self.name = bookname
-        self._cache = self._engine._handle.get_rulebook_rules(self.name)
+        self._cache = self._engine.handle(
+            'get_rulebook_rules',
+            (self.name,)
+        )
         self._proxy_cache = {}
 
     def __iter__(self):
@@ -1034,23 +1260,29 @@ class RuleBookProxy(MutableSequence):
         if isinstance(v, RuleProxy):
             v = v._name
         self._cache[i] = v
-        self._engine._handle.set_rulebook_rule(self.name, i, v)
-        for fun in self._listeners:
-            fun(self)
+        self._engine.handle(
+            'set_rulebook_rule',
+            (self.name, i, v),
+            silent=True
+        )
 
     def __delitem__(self, i):
         del self._cache[i]
-        self._engine._handle.del_rulebook_rule(self.name, i)
-        for fun in self._listeners:
-            fun(self)
+        self._engine.handle(
+            'del_rulebook_rule',
+            (self.name, i),
+            silent=True
+        )
 
     def insert(self, i, v):
         if isinstance(v, RuleProxy):
             v = v._name
         self._cache.insert(i, v)
-        self._engine._handle.ins_rulebook_rule(self.name, i, v)
-        for fun in self._listeners:
-            fun(self)
+        self._engine.handle(
+            'ins_rulebook_rule',
+            (self.name, i, v),
+            silent=True
+        )
 
     def listener(self, f):
         self._engine.rulebook_listener(self.name, f)
@@ -1069,7 +1301,10 @@ class CharacterProxy(MutableMapping):
     def _get_rulebook(self):
         return RuleBookProxy(
             self._engine,
-            self._engine._handle.get_character_rulebook(self.name)
+            self._engine.handle(
+                'get_character_rulebook',
+                (self.name,)
+            )
         )
 
     def __init__(self, engine_proxy, charname):
@@ -1087,10 +1322,16 @@ class CharacterProxy(MutableMapping):
         self.stat = CharStatProxy(self._engine, self.name)
 
     def __iter__(self):
-        yield from self._engine._handle.character_nodes(self.name)
+        yield from self._engine.handle(
+            'character_nodes',
+            (self.name,)
+        )
 
     def __len__(self):
-        return self._engine._handle.character_nodes_len(self.name)
+        return self._engine.handle(
+            'character_nodes_len',
+            (self.name,)
+        )
 
     def __contains__(self, k):
         return k in self.node
@@ -1108,18 +1349,25 @@ class CharacterProxy(MutableMapping):
         self[name] = kwargs
 
     def add_places_from(self, seq):
-        self._engine._handle.add_places_from(self.name, seq)
+        self._engine.handle(
+            'add_places_from',
+            (self.name, list(seq))
+        )
 
     def add_nodes_from(self, seq):
         self.add_places_from(seq)
 
     def add_thing(self, name, location, next_location=None, **kwargs):
-        self._engine._handle.add_thing(
-            self.name, name, location, next_location, kwargs
+        self._engine.handle(
+            'add_thing',
+            (self.name, name, location, next_location, kwargs)
         )
 
     def add_things_from(self, seq):
-        self._engine._handle.add_things_from(self.name, seq)
+        self._engine.handle(
+            'add_things_from',
+            (self.name, seq)
+        )
 
     def new_place(self, name, **kwargs):
         self.add_place(name, **kwargs)
@@ -1130,27 +1378,46 @@ class CharacterProxy(MutableMapping):
         return self.thing[name]
 
     def place2thing(self, name, location, next_location=None):
-        self._engine._handle.place2thing(self.name, name, location, next_location)
+        self._engine.handle(
+            'place2thing',
+            (self.name, name, location, next_location)
+        )
 
     def add_portal(self, origin, destination, symmetrical=False, **kwargs):
-        self._engine._handle.add_portal(
-            self.name, origin, destination, symmetrical, kwargs
+        self._engine.handle(
+            'add_portal',
+            (self.name, origin, destination, symmetrical, kwargs)
         )
 
     def add_portals_from(self, seq, symmetrical=False):
-        self._engine._handle.add_portals_from(self.name, seq, symmetrical)
+        self._engine.handle(
+            'add_portals_from',
+            (self.name, seq, symmetrical)
+        )
 
     def portals(self):
-        yield from self._engine._handle.character_portals(self.name)
+        yield from self._engine.handle(
+            'character_portals',
+            (self.name,)
+        )
 
     def add_avatar(self, a, b=None):
-        self._engine._handle.add_avatar(self.name, a, b)
+        self._engine.handle(
+            'add_avatar',
+            (self.name, a, b)
+        )
 
     def del_avatar(self, a, b=None):
-        self._engine._handle.del_avatar(self.name, a, b)
+        self._engine.handle(
+            'del_avatar',
+            (self.name, a, b)
+        )
 
     def avatars(self):
-        yield from self._engine._handle.character_avatars(self.name)
+        yield from self._engine.handle(
+            'character_avatars',
+            (self.name,)
+        )
 
     def facade(self):
         return Facade(self)
@@ -1159,38 +1426,50 @@ class CharacterProxy(MutableMapping):
 class CharacterMapProxy(MutableMapping):
     def __init__(self, engine_proxy):
         self._engine = engine_proxy
+        self._cache = {}
 
     def __iter__(self):
-        yield from self._engine._handle.characters()
+        yield from self._engine.handle('characters')
 
     def __contains__(self, k):
-        return self._engine._handle.have_character(k)
+        if k in self._cache:
+            return True
+        return self._engine.handle(
+            'have_character', (k,)
+        )
 
     def __len__(self):
-        return self._engine._handle.characters_len()
+        return self._engine.handle('characters_len')
 
     def __getitem__(self, k):
-        if not self._engine._handle.have_character(k):
+        if k not in self:
             raise KeyError("No character: {}".format(k))
-        return CharacterProxy(self._engine, k)
+        if k not in self._cache:
+            self._cache[k] = CharacterProxy(self._engine, k)
+        return self._cache[k]
 
     def __setitem__(self, k, v):
         if isinstance(v, CharacterProxy):
             return
-        self._engine._handle.set_character(k, v)
+        self._engine.handle(
+            'set_character', (k, v), silent=True
+        )
+        self._cache[k] = CharacterProxy(self._engine, k)
 
     def __delitem__(self, k):
-        self._engine._handle.del_character(k)
+        self._engine.handle('del_character', (k,), silent=True)
+        if k in self._cache:
+            del self._cache[k]
 
 
 class StringStoreProxy(MutableMapping):
     @property
     def language(self):
-        return self._proxy._handle.get_language()
+        return self._proxy.handle('get_language')
 
     @language.setter
     def language(self, v):
-        self._proxy._handle.set_language(v)
+        self._proxy.handle('set_language', (v,))
         self._dispatch_lang(v)
 
     def __init__(self, engine_proxy):
@@ -1199,19 +1478,19 @@ class StringStoreProxy(MutableMapping):
         self._lang_listeners = []
 
     def __iter__(self):
-        yield from self._proxy._handle.get_string_ids()
+        yield from self._proxy.handle('get_string_ids')
 
     def __len__(self):
-        return self._proxy._handle.count_strings()
+        return self._proxy.handle('count_strings')
 
     def __getitem__(self, k):
-        return self._proxy._handle.get_string(k)
+        return self._proxy.handle('get_string', (k,))
 
     def __setitem__(self, k, v):
-        self._proxy._handle.set_string(k, v)
+        self._proxy._handle('set_string', (k, v), silent=True)
 
     def __delitem__(self, k):
-        self._proxy._handle.del_string(k)
+        self._proxy.handle('del_string', (k,), silent=True)
 
     def _dispatch_lang(self, v):
         for f in self._lang_listeners:
@@ -1227,7 +1506,9 @@ class StringStoreProxy(MutableMapping):
         return listener(self._str_listeners, fun, string)
 
     def lang_items(self, lang=None):
-        yield from self._proxy._handle.get_string_lang_items(lang)
+        yield from self._proxy.handle(
+            'get_string_lang_items', (lang,)
+        )
 
 
 class EternalVarProxy(MutableMapping):
@@ -1235,22 +1516,35 @@ class EternalVarProxy(MutableMapping):
         self._engine = engine_proxy
 
     def __contains__(self, k):
-        return self._engine._handle.have_eternal(k)
+        return self._engine.handle(
+            'have_eternal', (k,)
+        )
 
     def __iter__(self):
-        yield from self._engine._handle.eternal_keys()
+        yield from self._engine.handle(
+            'eternal_keys'
+        )
 
     def __len__(self):
-        return self._engine._handle.eternal_len()
+        return self._engine.handle('eternal_len')
 
     def __getitem__(self, k):
-        return self._engine._handle.get_eternal(k)
+        return self._engine.handle(
+            'get_eternal', (k,)
+        )
 
     def __setitem__(self, k, v):
-        self._engine._handle.set_eternal(k, v)
+        self._engine.handle(
+            'set_eternal',
+            (k, v),
+            silent=True
+        )
 
     def __delitem__(self, k):
-        self._engine._handle.del_eternal(k)
+        self._engine.handle(
+            'del_eternal', (k,),
+            silent=True
+        )
 
 
 class GlobalVarProxy(MutableMapping):
@@ -1286,15 +1580,15 @@ class AllRuleBooksProxy(Mapping):
         self._cache = {}
 
     def __iter__(self):
-        yield from self._engine._handle.rulebooks()
+        yield from self._engine.handle('rulebooks')
 
     def __len__(self):
-        return self._engine._handle.len_rulebooks()
+        return self._engine.handle('len_rulebooks')
 
     def __contains__(self, k):
         if k in self._cache:
             return True
-        return self._engine._handle.have_rulebook(k)
+        return self._engine.handle('have_rulebook', (k,))
 
     def __getitem__(self, k):
         if k not in self:
@@ -1310,21 +1604,71 @@ class FuncStoreProxy(object):
         self._store = store
 
     def __iter__(self):
-        yield from self._engine._handle.keys_in_store(self._store)
+        yield from self._engine.handle(
+            'keys_in_store', (self._store,)
+        )
 
     def __len__(self):
-        return self._engine._handle.len_store(self._store)
+        return self._engine.handle(
+            'len_store',
+            (self._store,)
+        )
 
     def plain(self, k):
-        return self._engine._handle.plain_source(self._store, k)
+        return self._engine.handle(
+            'plain_source',
+            (self._store, k)
+        )
 
     def iterplain(self):
-        yield from self._engine._handle.plain_items_in_store(self._store)
+        yield from self._engine.handle(
+            'plain_items_in_store',
+            (self._store,)
+        )
 
 
 class EngineProxy(object):
-    def __init__(self, handle):
-        self._handle = handle
+    @property
+    def branch(self):
+        return self.handle('get_branch')
+
+    @branch.setter
+    def branch(self, v):
+        self.handle('set_branch', (v,), silent=True)
+        if not self.handle('time_locked'):
+            (branch, tick) = self.time
+            for f in self._time_listeners:
+                f(self, branch, tick, v, tick)
+
+    @property
+    def tick(self):
+        return self.handle('get_tick')
+
+    @tick.setter
+    def tick(self, v):
+        self.handle('set_tick', (v,), silent=True)
+        if not self.handle('time_locked'):
+            (b, t) = self.time
+            for f in self._time_listeners:
+                f(self, b, t, b, v)
+
+    @property
+    def time(self):
+        return self.handle('get_time')
+
+    @time.setter
+    def time(self, v):
+        self.handle('set_time', (v,), silent=True)
+        if not self.handle('time_locked'):
+            (b, t) = self.time
+            (branch, tick) = v
+            for f in self._time_listeners:
+                f(self, b, t, branch, tick)
+
+    def __init__(self, handle_out, handle_in, eventq):
+        self._handle_out = handle_out
+        self._handle_in = handle_in
+        self._q = eventq
         self.eternal = EternalVarProxy(self)
         self.universal = GlobalVarProxy(self)
         self.character = CharacterMapProxy(self)
@@ -1338,109 +1682,64 @@ class EngineProxy(object):
         self._node_stat_listeners = {}
         self._edge_stat_listeners = {}
 
+    def handle(self, func_name, args=[], silent=False):
+        if silent:
+            self._handle_out.send((None, func_name, args))
+            return
+        self._handle_out.send((func_name, args))
+        r = self._handle_in.recv()
+        return r
+
     def char_stat_listener(self, char, fun):
-        # only call from host process
         if char not in self._char_stat_listeners:
             self._char_stat_listeners[char] = []
-            self._handle.listen_to_character(char)
         if fun not in self._char_stat_listeners[char]:
             self._char_stat_listeners[char].append(fun)
+        self.handle('listen_to_character', (char,))
 
     def node_stat_listener(self, char, node, fun):
-        # only call from host process
         if char not in self._node_stat_listeners:
             self._node_stat_listeners[char] = {}
         if node not in self._node_stat_listeners[char]:
             self._node_stat_listeners[char][node] = []
-            self._handle.listen_to_node(char, node)
         if fun not in self._node_stat_listeners[char][node]:
             self._node_stat_listeners[char][node].append(fun)
+        self.handle('listen_to_node', (char, node))
 
     def edge_stat_listener(self, char, orig, dest, fun):
-        # only call from host process
         if char not in self._edge_stat_listeners:
             self._edge_stat_listeners[char] = {}
         if orig not in self._edge_stat_listeners[char]:
             self._edge_stat_listeners[char][orig] = {}
         if dest not in self._edge_stat_listeners[char][orig]:
             self._edge_stat_listeners[char][orig][dest] = []
-            self._handle.listen_to_portal(char, orig, dest)
         if fun not in self._edge_stat_listeners[char][orig][dest]:
             self._edge_stat_listeners[char][orig][dest].append(fun)
+        self.handle('listen_to_portal', (char, orig, dest))
 
-    def char_stat_changed(self, b, t, char, k, v):
-        if char not in self._char_stat_listeners:
+    def check_stat_changed(self):
+        try:
+            while True:
+                v = self._q.get()
+                if len(v) == 5:
+                    (b, t, char, k, v) = v
+                    character = self.character[char]
+                    for fun in self._char_stat_listeners[char]:
+                        fun(b, t, character, k, v)
+                elif len(v) == 6:
+                    (b, t, char, nodename, k, v) = v
+                    node = self.character[char].node[nodename]
+                    for fun in self._node_stat_listeners[
+                            char][nodename]:
+                        fun(b, t, node, k, v)
+                else:
+                    (b, t, char, orig, dest, k, v) = v
+                    port = self.character[char].portal[orig][dest]
+                    for fun in self._edge_stat_listeners[
+                            char][orig][dest]:
+                        fun(b, t, port, k, v)
+        except Empty:
             return
-        for fun in self._char_stat_listeners[char]:
-            fun(
-                b, t,
-                self.character[char],
-                k, v
-            )
-
-    def node_stat_changed(self, b, t, char, node, k, v):
-        if (
-                char not in self._node_stat_listeners or
-                node not in self._node_stat_listeners[char]
-        ):
-            return
-        for fun in self._node_stat_listeners[char][node]:
-            fun(
-                b, t,
-                self.character[char].node[node],
-                k, v
-            )
-
-    def edge_stat_changed(self, b, t, char, o, d, k, v):
-        if (
-                char not in self._edge_stat_listeners or
-                o not in self._edge_stat_listeners[char] or
-                d not in self._edge_stat_listeners[char][o]
-        ):
-            return
-        for fun in self._edge_stat_listeners[char][o][d]:
-            fun(
-                b, t,
-                self.character[char].portal[o][d],
-                k, v
-            )
-
-    @property
-    def branch(self):
-        return self._handle.get_branch()
-
-    @branch.setter
-    def branch(self, v):
-        self._handle.set_branch(v)
-        if not self._handle.time_locked():
-            (branch, tick) = self.time
-            for f in self._time_listeners:
-                f(self, branch, tick, v, tick)
-
-    @property
-    def tick(self):
-        return self._handle.get_tick()
-
-    @tick.setter
-    def tick(self, v):
-        self._handle.set_tick(v)
-        if not self._handle.time_locked():
-            (b, t) = self.time
-            for f in self._time_listeners:
-                f(self, b, t, b, v)
-
-    @property
-    def time(self):
-        return self._handle.get_time()
-
-    @time.setter
-    def time(self, v):
-        self._handle.set_time(v)
-        if not self._handle.time_locked():
-            (b, t) = self.time
-            (branch, tick) = v
-            for f in self._time_listeners:
-                f(self, b, t, branch, tick)
 
     def on_time(self, f):
         if not isinstance(f, Callable):
@@ -1449,93 +1748,88 @@ class EngineProxy(object):
             self._time_listeners.append(f)
 
     def add_character(self, name, data=None, **kwargs):
-        self._handle.add_character(name, data, kwargs)
+        self.handle('add_character', (name, data, kwargs))
 
     def new_character(self, name, **kwargs):
         self.add_character(name, **kwargs)
         return CharacterProxy(self._handle, name)
 
     def del_character(self, name):
-        self._handle.del_character(name)
+        self.handle('del_character', (name,))
 
     def commit(self):
-        self._handle.commit()
+        self.handle('commit')
 
     def close(self):
-        self._handle.close()
+        self.handle('close')
 
     def rulebook_listener(self, rulebook, f):
         self._rulebook_listeners[rulebook].append(f)
 
 
-class RemoteEngineProxy(object):
-    def reify(self, engine):
-        self._real = engine
+class EngineProxyHandle(object):
+    def __init__(self, charp, nodep, edgep):
+        self._charp = charp
+        self._nodep = nodep
+        self._edgep = edgep
 
     def char_stat_changed(self, b, t, char, k, v):
-        self._real.char_stat_changed(b, t, char, k, v)
+        self._charp.send((b, t, char, k, v))
 
     def node_stat_changed(self, b, t, char, node, k, v):
-        self._real.node_stat_changed(b, t, char, node, k, v)
+        self._nodep.send((b, t, char, node, k, v))
 
     def edge_stat_changed(self, b, t, char, o, d, k, v):
-        self._real.edge_stat_changed(b, t, char, o, d, k, v)
+        self._edgep.send((b, t, char, o, d, k, v))
 
 
-EngineManager.register('RemoteEngineProxy', RemoteEngineProxy)
+def subprocess(
+        args, kwargs, handle_out_pipe, handle_in_pipe, callbacq
+):
+    engine_handle = EngineHandle(args, kwargs, callbacq)
+    while True:
+        inst = handle_out_pipe.recv()
+        print('got instruction: {}'.format(inst))
+        if inst == 'shutdown':
+            print('shutting down.')
+            break
+        if len(inst) == 3:
+            (cmd, args) = inst[1:]
+            r = getattr(engine_handle, cmd)(*args)
+            print('not sending result: {}'.format(r))
+        else:
+            (cmd, args) = inst
+            r = getattr(engine_handle, cmd)(*args)
+            print('sending result: {}'.format(r))
+            handle_in_pipe.send(r)
 
 
-def create_handle(manager, queue):
-    handle = manager.EngineHandle()
-    print('engine handle created in process {}'.format(os.getpid()))
-    queue.put(handle)
-
-
-class LiSERemoteControl(object):
-    def __init__(self):
-        self._manager = EngineManager()
-
-    def start(
-            self,
-            worlddb,
-            codedb,
-            connect_args={},
-            alchemy=False,
-            caching=True,
-            commit_modulus=None,
-            random_seed=None
-    ):
-        self._manager.start()
-        q = self._manager.Queue()
+class EngineProcessManager(object):
+    def start(self, *args, **kwargs):
+        (handle_out_pipe_recv, handle_out_pipe_send) = Pipe(duplex=False)
+        (handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
+        callbacq = Queue()
         self._p = Process(
-            target=create_handle,
+            name='LiSE Life Simulator Engine (core)',
+            target=subprocess,
             args=(
-                self._manager,
-                q
+                args,
+                kwargs,
+                handle_out_pipe_recv,
+                handle_in_pipe_send,
+                callbacq
             )
         )
+        self._p.daemon = True
         self._p.start()
-        self._handle = q.get()
-        print('got handle in process {}'.format(os.getpid()))
-        self._proxy = EngineProxy(self._handle)
-        remote = self._manager.RemoteEngineProxy()
-        remote.reify(self._proxy)
-        q.put(remote)
-        self._handle.reify(
-            (
-                worlddb,
-                codedb,
-                connect_args,
-                alchemy,
-                caching,
-                commit_modulus,
-                random_seed
-            ),
-            q
+        self.engine_proxy = EngineProxy(
+            handle_out_pipe_send,
+            handle_in_pipe_recv,
+            callbacq
         )
-        return self._proxy
+        self._handlep = handle_out_pipe_send
+        return self.engine_proxy
 
     def shutdown(self):
-        self.engine.close()
-        self._p.join()
-        self._manager.shutdown()
+        self.engine_proxy.close()
+        self._handlep.send('shutdown')

@@ -1,13 +1,16 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
+from threading import Thread
+
 from kivy.logger import Logger
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.properties import ObjectProperty
 from kivy.lang import Builder
 from kivy.resources import resource_add_path
 
 import LiSE
-from LiSE.proxy import LiSERemoteControl
+from LiSE.proxy import EngineProcessManager
 
 import ELiDE
 import ELiDE.layout
@@ -61,12 +64,18 @@ class ELiDEApp(App):
         if config['ELiDE']['debugger'] == 'yes':
             import pdb
             pdb.set_trace()
-
-        self.remote = LiSERemoteControl()
-        self.engine = self.remote.start(
+        self.manager = EngineProcessManager()
+        self.engine = self.manager.start(
             config['LiSE']['world'],
             config['LiSE']['code']
         )
+        self.stat_check_thread = Thread(target=self.engine.check_stat_changed)
+        self.stat_check_thread.daemon = True
+
+        def check_stats(*args):
+            if not self.stat_check_thread.is_alive():
+                self.stat_check_thread.start()
+        Clock.schedule_interval(check_stats, 0.01)
         for char in config['ELiDE']['boardchar'], config['ELiDE']['sheetchar']:
             if char not in self.engine.character:
                 print("adding character: {}".format(char))
@@ -87,8 +96,8 @@ class ELiDEApp(App):
 
     def stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
-        self.engine.commit()
-        self.engine.close()
+        self.stat_check_thread.join()
+        self.manager.shutdown()
         super().stop(*largs)
 
 

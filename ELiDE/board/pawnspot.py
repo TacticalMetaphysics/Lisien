@@ -134,7 +134,7 @@ class PawnSpot(ImageStack, MirrorMapping):
         )
 
     def upd_to_remote_image_paths(self, *args):
-        self.remote['_image_paths'] = self.paths
+        self.remote['_image_paths'] = list(self.paths)
 
     def upd_from_mirror_offxs(self, *args):
         if not self.mirror:
@@ -151,7 +151,7 @@ class PawnSpot(ImageStack, MirrorMapping):
         )
 
     def upd_to_remote_offxs(self, *args):
-        self.remote['_offxs'] = self.offxs
+        self.remote['_offxs'] = list(self.offxs)
 
     def upd_from_mirror_offys(self, *args):
         if not self.mirror:
@@ -167,7 +167,7 @@ class PawnSpot(ImageStack, MirrorMapping):
         )
 
     def upd_to_remote_offys(self, *args):
-        self.remote['_offys'] = self.offys
+        self.remote['_offys'] = list(self.offys)
 
     def upd_from_mirror_stackhs(self, *args):
         if not self.mirror:
@@ -184,7 +184,7 @@ class PawnSpot(ImageStack, MirrorMapping):
         )
 
     def upd_to_remote_stackhs(self, *args):
-        self.remote['_stackhs'] = self.stackhs
+        self.remote['_stackhs'] = list(self.stackhs)
 
     def on_linecolor(self, *args):
         """If I don't yet have the instructions for drawing the selection box
