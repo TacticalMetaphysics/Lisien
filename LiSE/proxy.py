@@ -8,6 +8,7 @@ from collections import (
 import os
 from multiprocessing import Process, Pipe, Queue
 from queue import Empty
+
 from .core import Engine
 from .character import Facade
 from .util import dispatch, listen, listener, JSONReWrapper, JSONListReWrapper
@@ -1683,12 +1684,9 @@ class EngineProxy(object):
         self._edge_stat_listeners = {}
 
     def handle(self, func_name, args=[], silent=False):
-        if silent:
-            self._handle_out.send((None, func_name, args))
-            return
-        self._handle_out.send((func_name, args))
-        r = self._handle_in.recv()
-        return r
+        self._handle_out.send((silent, func_name, args))
+        if not silent:
+            return self._handle_in.recv()
 
     def char_stat_listener(self, char, fun):
         if char not in self._char_stat_listeners:
@@ -1777,12 +1775,11 @@ def subprocess(
         if inst == 'shutdown':
             print('shutting down.')
             break
-        if len(inst) == 3:
-            (cmd, args) = inst[1:]
+        (silent, cmd, args) = inst
+        if silent:
             r = getattr(engine_handle, cmd)(*args)
             print('not sending result: {}'.format(r))
         else:
-            (cmd, args) = inst
             r = getattr(engine_handle, cmd)(*args)
             if isinstance(r, JSONReWrapper):
                 r = dict(r)
