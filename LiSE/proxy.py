@@ -1767,22 +1767,6 @@ class EngineProxy(object):
         self._rulebook_listeners[rulebook].append(f)
 
 
-class EngineProxyHandle(object):
-    def __init__(self, charp, nodep, edgep):
-        self._charp = charp
-        self._nodep = nodep
-        self._edgep = edgep
-
-    def char_stat_changed(self, b, t, char, k, v):
-        self._charp.send((b, t, char, k, v))
-
-    def node_stat_changed(self, b, t, char, node, k, v):
-        self._nodep.send((b, t, char, node, k, v))
-
-    def edge_stat_changed(self, b, t, char, o, d, k, v):
-        self._edgep.send((b, t, char, o, d, k, v))
-
-
 def subprocess(
         args, kwargs, handle_out_pipe, handle_in_pipe, callbacq
 ):
