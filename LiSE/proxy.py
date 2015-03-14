@@ -10,7 +10,7 @@ from multiprocessing import Process, Pipe, Queue
 from queue import Empty
 from .core import Engine
 from .character import Facade
-from .util import dispatch, listen, listener
+from .util import dispatch, listen, listener, JSONReWrapper, JSONListReWrapper
 
 
 class EngineHandle(object):
@@ -1800,6 +1800,10 @@ def subprocess(
         else:
             (cmd, args) = inst
             r = getattr(engine_handle, cmd)(*args)
+            if isinstance(r, JSONReWrapper):
+                r = dict(r)
+            elif isinstance(r, JSONListReWrapper):
+                r = list(r)
             print('sending result: {}'.format(r))
             handle_in_pipe.send(r)
 
@@ -1833,3 +1837,4 @@ class EngineProcessManager(object):
     def shutdown(self):
         self.engine_proxy.close()
         self._handlep.send('shutdown')
+        self._p.join()
