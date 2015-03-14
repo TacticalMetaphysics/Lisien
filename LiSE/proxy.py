@@ -162,7 +162,13 @@ class EngineHandle(object):
         return k in self._real.character[char].stat
 
     def get_character_stat(self, char, k):
-        return self._real.character[char].stat[k]
+        r = self._real.character[char].stat[k]
+        if isinstance(r, JSONReWrapper):
+            return ('JSONReWrapper', 'character', char, k, dict(r))
+        elif isinstance(r, JSONListReWrapper):
+            return ('JSONListReWrapper', 'character', char, k, list(r))
+        else:
+            return r
 
     def set_character_stat(self, char, k, v):
         self._real.character[char].stat[k] = v
@@ -189,7 +195,13 @@ class EngineHandle(object):
         self._real.character[char] = v
 
     def get_node_stat(self, char, node, k):
-        return self._real.character[char].node[node][k]
+        r = self._real.character[char].node[node][k]
+        if isinstance(r, JSONReWrapper):
+            return ('JSONReWrapper', 'node', char, node, k, dict(r))
+        elif isinstance(r, JSONListReWrapper):
+            return ('JSONListReWrapper', 'node', char, node, k, list(r))
+        else:
+            return r
 
     def set_node_stat(self, char, node, k, v):
         self._real.character[char].node[node][k] = v
@@ -382,7 +394,13 @@ class EngineHandle(object):
         del self._real.character[char].portal[o][d]
 
     def get_portal_stat(self, char, o, d, k):
-        return self._real.character[char].portal[o][d][k]
+        r = self._real.character[char].portal[o][d][k]
+        if isinstance(r, JSONReWrapper):
+            return ('JSONReWrapper', 'portal', char, o, d, k, dict(r))
+        elif isinstance(r, JSONListReWrapper):
+            return ('JSONListReWrapper', 'portal', char, o, d, k, list(r))
+        else:
+            return r
 
     def set_portal_stat(self, char, o, d, k, v):
         self._real.character[char].portal[o][d][k] = v
@@ -1686,7 +1704,29 @@ class EngineProxy(object):
     def handle(self, func_name, args=[], silent=False):
         self._handle_out.send((silent, func_name, args))
         if not silent:
-            return self._handle_in.recv()
+            r = self._handle_in.recv()
+            if isinstance(r, tuple) and len(r) >= 5:
+                if r[0] == 'JSONReWrapper':
+                    r = self.rewrap_json(JSONReWrapper, r[1:])
+                elif r[0] == 'JSONListReWrapper':
+                    r = self.rewrap_json(JSONListReWrapper, r[1:])
+            return r
+
+    def rewrap_json(self, cls, t):
+        if t[0] == 'character':
+            (char, k, initv) = t[1:]
+            return cls(self.character[char], k, initv)
+        elif t[0] == 'node':
+            (char, node, k, initv) = t[1:]
+            return cls(
+                self.character[char].node[node], k, initv
+            )
+        else:
+            assert(t[0] == 'portal')
+            (char, o, d, k, initv) = t[1:]
+            return cls(
+                self.character[char].portal[o][d], k, initv
+            )
 
     def char_stat_listener(self, char, fun):
         if char not in self._char_stat_listeners:
@@ -1781,10 +1821,6 @@ def subprocess(
             print('not sending result: {}'.format(r))
         else:
             r = getattr(engine_handle, cmd)(*args)
-            if isinstance(r, JSONReWrapper):
-                r = dict(r)
-            elif isinstance(r, JSONListReWrapper):
-                r = list(r)
             print('sending result: {}'.format(r))
             handle_in_pipe.send(r)
 
