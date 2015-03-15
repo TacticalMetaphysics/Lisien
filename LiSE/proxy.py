@@ -19,41 +19,101 @@ class EngineHandle(object):
         self._real = Engine(*args, **kwargs)
         print('Engine instantiated in ps {}'.format(os.getpid()))
         self._q = callbacq
+        self.branch = self._real.branch
+        self.tick = self._real.tick
 
-    def listen_to_character(self, char):
-        char = self._real.character[char]
+    def listen_to_character(self, charn):
+        character = self._real.character[charn]
 
-        @char.listener
+        @character.listener
         def put_stat(b, t, char, k, v):
-            self._q.put((b, t, char.name, k, v))
+            if (b, t) == (self.branch, self.tick):
+                self._q.put(
+                    (
+                        b, t,
+                        char.name,
+                        k, self.get_character_stat(char.name, k)
+                    )
+                )
 
-    def listen_to_node(self, char, node):
-        node = self._real.character[char].node[node]
+        @self._real.on_time
+        def check_stats(oldb, oldt, newb, newt):
+            self._real.locktime = True
+            self._real.time = (oldb, oldt)
+            olds = dict(character.stat)
+            self._real.time = (newb, newt)
+            del self._real.locktime
+            for (k, v) in olds.items():
+                if character.stat[k] != v:
+                    self._q.put(
+                        (
+                            newb, newt,
+                            charn,
+                            k, self.get_character_stat(charn, k)
+                        )
+                    )
+
+    def listen_to_node(self, char, noden):
+        node = self._real.character[char].node[noden]
 
         @node.listener
         def put_stat(b, t, node, k, v):
-            self._q.put(
-                (
-                    b, t,
-                    node.character.name, node.name,
-                    k, v
+            if (b, t) == (self.branch, self.tick):
+                self._q.put(
+                    (
+                        b, t,
+                        char, noden,
+                        k, self.get_node_stat(char, noden, k)
+                    )
                 )
-            )
+
+        @self._real.on_time
+        def check_stats(oldb, oldt, newb, newt):
+            self._real.locktime = True
+            self._real.time = (oldb, oldt)
+            olds = dict(node)
+            self._real.time = (newb, newt)
+            del self._real.locktime
+            for (k, v) in olds.items():
+                if node[k] != v:
+                    self._q.put(
+                        (
+                            newb, newt,
+                            char, noden,
+                            k, self.get_node_stat(char, noden)
+                        )
+                    )
 
     def listen_to_portal(self, char, a, b):
         port = self._real.character[char].portal[a][b]
 
         @port.listener
         def put_stat(b, t, port, k, v):
-            self._q.put(
-                (
-                    b, t,
-                    port.character.name,
-                    port._origin,
-                    port._destination,
-                    k, v
+            if (b, t) == (self.branch, self.tick):
+                self._q.put(
+                    (
+                        b, t,
+                        char, a, b,
+                        k, self.get_portal_stat(char, a, b)
+                    )
                 )
-            )
+
+        @self._real.on_time
+        def check_stats(oldb, oldt, newb, newt):
+            self._real.locktime = True
+            self._real.time = (oldb, oldt)
+            olds = dict(port)
+            self._real.time = (newb, newt)
+            del self._real.locktime
+            for (k, v) in olds.items():
+                if port[k] != v:
+                    self._q.put(
+                        (
+                            newb, newt,
+                            char, a, b,
+                            k, self.get_portal_stat(char, a, b)
+                        )
+                    )
 
     def time_locked(self):
         return hasattr(self._real, 'locktime')
@@ -63,7 +123,8 @@ class EngineHandle(object):
 
     def next_tick(self):
         self._real.next_tick()
-        self._q.put(('next_tick', self._real.branch, self._real.tick))
+        self.tick = self._real.tick
+        self._q.put(('next_tick', self.branch, self.tick))
 
     def add_character(self, name, data, kwargs):
         self._real.add_character(name, data, **kwargs)
@@ -79,18 +140,24 @@ class EngineHandle(object):
 
     def set_branch(self, v):
         self._real.branch = v
+        self.branch = v
+        self._q.put(('set_branch', v))
 
     def get_tick(self):
         return self._real.tick
 
     def set_tick(self, v):
         self._real.tick = v
+        self.tick = v
+        self._q.put(('set_tick', v))
 
     def get_time(self):
         return self._real.time
 
     def set_time(self, v):
         self._real.time = v
+        (self.branch, self.tick) = v
+        self._q.put(('set_time', v))
 
     def get_language(self):
         return self._real.string.language
