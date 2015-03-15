@@ -1813,8 +1813,11 @@ def subprocess(
         inst = handle_out_pipe.recv()
         print('got instruction: {}'.format(inst))
         if inst == 'shutdown':
-            print('shutting down.')
-            break
+            print('==SHUTDOWN==')
+            handle_out_pipe.close()
+            handle_in_pipe.close()
+            callbacq.close()
+            return 0
         (silent, cmd, args) = inst
         if silent:
             r = getattr(engine_handle, cmd)(*args)
@@ -1827,7 +1830,7 @@ def subprocess(
 
 class EngineProcessManager(object):
     def start(self, *args, **kwargs):
-        (handle_out_pipe_recv, handle_out_pipe_send) = Pipe(duplex=False)
+        (handle_out_pipe_recv, self._handle_out_pipe_send) = Pipe(duplex=False)
         (handle_in_pipe_recv, handle_in_pipe_send) = Pipe(duplex=False)
         callbacq = Queue()
         self._p = Process(
@@ -1844,14 +1847,12 @@ class EngineProcessManager(object):
         self._p.daemon = True
         self._p.start()
         self.engine_proxy = EngineProxy(
-            handle_out_pipe_send,
+            self._handle_out_pipe_send,
             handle_in_pipe_recv,
             callbacq
         )
-        self._handlep = handle_out_pipe_send
         return self.engine_proxy
 
     def shutdown(self):
         self.engine_proxy.close()
-        self._handlep.send('shutdown')
-        self._p.join()
+        self._handle_out_pipe_send.send('shutdown')

@@ -1,7 +1,5 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
-from threading import Thread
-
 from kivy.logger import Logger
 from kivy.app import App
 from kivy.clock import Clock
@@ -69,12 +67,12 @@ class ELiDEApp(App):
             config['LiSE']['world'],
             config['LiSE']['code']
         )
-        self.stat_check_thread = Thread(target=self.engine.check_stat_changed)
-        self.stat_check_thread.daemon = True
+        self.do_check_stats = True
 
         def check_stats(*args):
-            if not self.stat_check_thread.is_alive():
-                self.stat_check_thread.start()
+            if self.do_check_stats:
+                self.engine.check_stat_changed()
+
         Clock.schedule_interval(check_stats, 0.01)
         for char in config['ELiDE']['boardchar'], config['ELiDE']['sheetchar']:
             if char not in self.engine.character:
@@ -94,11 +92,10 @@ class ELiDEApp(App):
         """Sync the database with the current state of the game."""
         self.engine.commit()
 
-    def stop(self, *largs):
+    def on_stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
-        self.stat_check_thread.join()
+        self.do_check_stats = False
         self.manager.shutdown()
-        super().stop(*largs)
 
 
 kv = """
