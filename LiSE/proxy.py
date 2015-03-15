@@ -1755,23 +1755,53 @@ class EngineProxy(object):
             self._edge_stat_listeners[char][orig][dest].append(fun)
         self.handle('listen_to_portal', (char, orig, dest))
 
+    def json_rewrap(self, v):
+        if not isinstance(v, tuple):
+            return v
+        if v[0] in ('JSONReWrapper', 'JSONListReWrapper'):
+            cls = (
+                JSONReWrapper if v[0] == 'JSONReWrapper'
+                else JSONListReWrapper
+            )
+            if v[1] == 'character':
+                (charn, k, initv) = v[2:]
+                return cls(
+                    self.character[charn], k, initv
+                )
+            elif v[1] == 'node':
+                (charn, noden, k, initv) = v[2:]
+                return cls(
+                    self.character[charn].node[noden], k, initv
+                )
+            else:
+                assert(v[1] == 'portal')
+                (charn, o, d, k, initv) = v[2:]
+                return cls(
+                    self.character[charn].portal[o][d], k, initv
+                )
+        else:
+            return v
+
     def check_stat_changed(self):
         try:
-            while True:
-                v = self._q.get()
+            while not self._q.empty():
+                v = self._q.get(False)
                 if len(v) == 5:
-                    (b, t, char, k, v) = v
+                    (b, t, char, k, unwrapped) = v
+                    v = self.json_rewrap(unwrapped)
                     character = self.character[char]
                     for fun in self._char_stat_listeners[char]:
                         fun(b, t, character, k, v)
                 elif len(v) == 6:
-                    (b, t, char, nodename, k, v) = v
+                    (b, t, char, nodename, k, unwrapped) = v
+                    v = self.json_rewrap(unwrapped)
                     node = self.character[char].node[nodename]
                     for fun in self._node_stat_listeners[
                             char][nodename]:
                         fun(b, t, node, k, v)
                 else:
-                    (b, t, char, orig, dest, k, v) = v
+                    (b, t, char, orig, dest, k, unwrapped) = v
+                    v = self.json_rewrap(unwrapped)
                     port = self.character[char].portal[orig][dest]
                     for fun in self._edge_stat_listeners[
                             char][orig][dest]:
