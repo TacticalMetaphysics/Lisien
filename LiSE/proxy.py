@@ -80,7 +80,7 @@ class EngineHandle(object):
                         (
                             newb, newt,
                             char, noden,
-                            k, self.get_node_stat(char, noden)
+                            k, self.get_node_stat(char, noden, k)
                         )
                     )
 
@@ -94,7 +94,7 @@ class EngineHandle(object):
                     (
                         b, t,
                         char, a, b,
-                        k, self.get_portal_stat(char, a, b)
+                        k, self.get_portal_stat(char, a, b, k)
                     )
                 )
 
@@ -111,7 +111,7 @@ class EngineHandle(object):
                         (
                             newb, newt,
                             char, a, b,
-                            k, self.get_portal_stat(char, a, b)
+                            k, self.get_portal_stat(char, a, b, k)
                         )
                     )
 
