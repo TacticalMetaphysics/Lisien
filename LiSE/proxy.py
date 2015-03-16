@@ -11,7 +11,7 @@ from queue import Empty
 
 from .core import Engine
 from .character import Facade
-from .util import dispatch, listen, listener, JSONReWrapper, JSONListReWrapper
+from .util import JSONReWrapper, JSONListReWrapper
 
 
 class EngineHandle(object):
@@ -22,6 +22,23 @@ class EngineHandle(object):
         self.branch = self._real.branch
         self.tick = self._real.tick
 
+    def listen_to_lang(self):
+        @self._real.string.lang_listener
+        def dispatch_lang(v):
+            self._q.put(
+                ('language', v)
+            )
+
+    def listen_to_strings(self):
+        @self._real.string.listener
+        def dispatch_str(k, v):
+            self._q.put(('string', k, v))
+
+    def listen_to_string(self, k):
+        @self._real.string.listener(string=k)
+        def dispatch_str(k, v):
+            self._q.put(('string', k, v))
+
     def listen_to_character(self, charn):
         character = self._real.character[charn]
 
@@ -30,6 +47,7 @@ class EngineHandle(object):
             if (b, t) == (self.branch, self.tick):
                 self._q.put(
                     (
+                        'character',
                         b, t,
                         char.name,
                         k, self.get_character_stat(char.name, k)
@@ -47,11 +65,45 @@ class EngineHandle(object):
                 if character.stat[k] != v:
                     self._q.put(
                         (
+                            'character',
                             newb, newt,
                             charn,
                             k, self.get_character_stat(charn, k)
                         )
                     )
+
+    def listen_to_character_stat(self, charn, statn):
+        character = self._real.character[charn]
+
+        @character.listener(stat=statn)
+        def put_stat(b, t, char, k, v):
+            if (b, t) == (self.branch, self.tick):
+                self._q.put(
+                    (
+                        'character',
+                        b, t,
+                        char.name,
+                        k, self.get_character_stat(char.name, k)
+                    )
+                )
+
+        @self._real.on_time
+        def check_stat(oldb, oldt, newb, newt):
+            self._real.locktime = True
+            self._real.time = (oldb, oldt)
+            oldv = character.stat[statn]
+            self._real.time = (newb, newt)
+            del self._real.locktime
+            newv = character.stat[statn]
+            if oldv != newv:
+                self._q.put(
+                    (
+                        'character',
+                        newb, newt,
+                        charn,
+                        statn, self.get_character_stat(charn, statn)
+                    )
+                )
 
     def listen_to_node(self, char, noden):
         node = self._real.character[char].node[noden]
@@ -61,6 +113,7 @@ class EngineHandle(object):
             if (b, t) == (self.branch, self.tick):
                 self._q.put(
                     (
+                        'node',
                         b, t,
                         char, noden,
                         k, self.get_node_stat(char, noden, k)
@@ -78,20 +131,55 @@ class EngineHandle(object):
                 if node[k] != v:
                     self._q.put(
                         (
+                            'node',
                             newb, newt,
                             char, noden,
                             k, self.get_node_stat(char, noden, k)
                         )
                     )
 
+    def listen_to_node_stat(self, charn, noden, statn):
+        node = self._real.character[charn].node[noden]
+
+        @node.listener(stat=statn)
+        def put_stat(b, t, node, k, v):
+            if (b, t) == (self.branch, self.tick):
+                self._q.put(
+                    (
+                        'node',
+                        b, t,
+                        charn, noden,
+                        k, self.get_node_stat(charn, noden, k)
+                    )
+                )
+
+        @self._real.on_time
+        def check_stat(oldb, oldt, newb, newt):
+            self._real.locktime = True
+            self._real.time = (oldb, oldt)
+            oldv = node[statn]
+            self._real.time = (newb, newt)
+            del self._real.locktime
+            newv = node[statn]
+            if oldv != newv:
+                self._q.put(
+                    (
+                        'node',
+                        newb, newt,
+                        charn, noden,
+                        statn, self.get_node_stat(charn, noden, statn)
+                    )
+                )
+
     def listen_to_portal(self, char, a, b):
         port = self._real.character[char].portal[a][b]
 
         @port.listener
-        def put_stat(b, t, port, k, v):
+        def put_stat(b, t, portal, k, v):
             if (b, t) == (self.branch, self.tick):
                 self._q.put(
                     (
+                        'portal',
                         b, t,
                         char, a, b,
                         k, self.get_portal_stat(char, a, b, k)
@@ -109,11 +197,44 @@ class EngineHandle(object):
                 if port[k] != v:
                     self._q.put(
                         (
+                            'portal',
                             newb, newt,
                             char, a, b,
                             k, self.get_portal_stat(char, a, b, k)
                         )
                     )
+
+    def listen_to_portal_stat(self, charn, a, b, statn):
+        port = self._real.character[charn].portal[a][b]
+
+        @port.listener(stat=statn)
+        def put_stat(b, t, portal, k, v):
+                self._q.put(
+                    (
+                        'portal',
+                        b, t,
+                        charn, a, b,
+                        statn, self.get_portal_stat(charn, a, b, statn)
+                    )
+                )
+
+        @self._real.on_time
+        def check_stat(oldb, oldt, newb, newt):
+            self._real.locktime = True
+            self._real.time = (oldb, oldt)
+            oldv = port[statn]
+            self._real.time = (newb, newt)
+            del self._real.locktime
+            newv = port[statn]
+            if oldv != newv:
+                self._q.put(
+                    (
+                        'portal',
+                        newv, newt,
+                        charn, a, b,
+                        statn, self.get_portal_stat(charn, a, b, statn)
+                    )
+                )
 
     def time_locked(self):
         return hasattr(self._real, 'locktime')
@@ -630,10 +751,17 @@ class NodeProxy(MutableMapping):
             silent=True
         )
 
-    def listener(self, fun):
-        self._engine.node_stat_listener(
-            self._charname, self.name, fun
-        )
+    def listener(self, fun=None, stat=None):
+        if None not in (fun, stat):
+            self._engine.node_stat_listener(
+                self._charname, self.name, stat, fun
+            )
+        elif stat is None:
+            self._engine.node_listener(
+                self._charname, self.name, fun
+            )
+        else:
+            return lambda f: self.listener(fun=f, stat=stat)
 
 
 class PlaceProxy(NodeProxy):
@@ -779,10 +907,17 @@ class PortalProxy(MutableMapping):
             silent=True
         )
 
-    def listener(self, fun):
-        self._engine.edge_stat_listener(
-            self._charname, self._nodeA, self._nodeB, fun
-        )
+    def listener(self, fun=None, stat=None):
+        if None not in (fun, stat):
+            self._engine.portal_stat_listener(
+                self._charname, self._nodeA, self._nodeB, stat, fun
+            )
+        elif stat is None:
+            self._engine.portal_listener(
+                self._charname, self._nodeA, self._nodeB, fun
+            )
+        else:
+            return lambda f: self.listener(fun=f, stat=stat)
 
 
 class NodeMapProxy(MutableMapping):
@@ -1260,10 +1395,19 @@ class CharStatProxy(MutableMapping):
             silent=True
         )
 
-    def listener(self, fun):
-        self._engine.char_stat_listener(
-            self.name, fun
-        )
+    def listener(self, fun=None, stat=None):
+        if stat is None:
+            self._engine.char_listener(
+                self.name, fun
+            )
+        elif fun is None:
+            return lambda f: self._engine.char_stat_listener(
+                self.name, stat, f
+            )
+        else:
+            self._engine.char_stat_listener(
+                self.name, stat, fun
+            )
 
 
 class RuleProxy(object):
@@ -1370,8 +1514,8 @@ class RuleBookProxy(MutableSequence):
             silent=True
         )
 
-    def listener(self, f):
-        self._engine.rulebook_listener(self.name, f)
+    def listener(self, fun):
+        self._engine.rulebook_listener(self.name, fun)
 
 
 class CharacterProxy(MutableMapping):
@@ -1582,11 +1726,8 @@ class StringStoreProxy(MutableMapping):
         for f in self._lang_listeners:
             f(self, v)
 
-    def _dispatch_str(self, k, v):
-        dispatch(self._str_listeners, k, self, k, v)
-
     def lang_listener(self, f):
-        listen(self._lang_listeners, f)
+        self._engine.lang_listener(f)
 
     def listener(self, fun=None, string=None):
         return listener(self._str_listeners, fun, string)
@@ -1713,6 +1854,10 @@ class FuncStoreProxy(object):
         )
 
 
+class ChangeSignatureError(TypeError):
+    pass
+
+
 class EngineProxy(object):
     @property
     def branch(self):
@@ -1764,9 +1909,15 @@ class EngineProxy(object):
             setattr(self, funstore, FuncStoreProxy(self, funstore))
         self._rulebook_listeners = defaultdict(list)
         self._time_listeners = []
+        self._lang_listeners = []
+        self._strings_listeners = []
+        self._string_listeners = {}
+        self._char_listeners = {}
         self._char_stat_listeners = {}
+        self._node_listeners = {}
         self._node_stat_listeners = {}
-        self._edge_stat_listeners = {}
+        self._portal_listeners = {}
+        self._portal_stat_listeners = {}
 
     def handle(self, func_name, args=[], silent=False):
         self._handle_out.send((silent, func_name, args))
@@ -1795,32 +1946,80 @@ class EngineProxy(object):
                 self.character[char].portal[o][d], k, initv
             )
 
-    def char_stat_listener(self, char, fun):
-        if char not in self._char_stat_listeners:
-            self._char_stat_listeners[char] = []
-        if fun not in self._char_stat_listeners[char]:
-            self._char_stat_listeners[char].append(fun)
+    def char_listener(self, char, fun):
+        if char not in self._char_listeners:
+            self._char_listeners[char] = []
+        if fun not in self._char_listeners[char]:
+            self._char_listeners[char].append(fun)
         self.handle('listen_to_character', (char,))
 
-    def node_stat_listener(self, char, node, fun):
+    def char_stat_listener(self, char, stat, fun):
+        if char not in self._char_stat_listeners:
+            self._char_stat_listeners[char] = {}
+        if stat not in self._char_stat_listeners[char]:
+            self._char_stat_listeners[char][stat] = []
+        self.handle('listen_to_character_stat', (char, stat))
+
+    def node_listener(self, char, node, fun):
+        if char not in self._node_listeners:
+            self._node_listeners[char] = {}
+        if node not in self._node_listeners[char]:
+            self._node_listeners[char][node] = []
+        if fun not in self._node_listeners[char][node]:
+            self._node_listeners[char][node].append(fun)
+        self.handle('listen_to_node', (char, node))
+
+    def node_stat_listener(self, char, node, stat, fun):
         if char not in self._node_stat_listeners:
             self._node_stat_listeners[char] = {}
         if node not in self._node_stat_listeners[char]:
-            self._node_stat_listeners[char][node] = []
-        if fun not in self._node_stat_listeners[char][node]:
-            self._node_stat_listeners[char][node].append(fun)
-        self.handle('listen_to_node', (char, node))
+            self._node_stat_listeners[char][node] = {}
+        if stat not in self._node_stat_listeners[char][node]:
+            self._node_stat_listeners[char][node][stat] = []
+        if fun not in self._node_stat_listeners[char][node][stat]:
+            self._node_stat_listeners[char][node][stat].append(fun)
+        self.handle('listen_to_node_stat', (char, node, stat))
 
-    def edge_stat_listener(self, char, orig, dest, fun):
-        if char not in self._edge_stat_listeners:
-            self._edge_stat_listeners[char] = {}
-        if orig not in self._edge_stat_listeners[char]:
-            self._edge_stat_listeners[char][orig] = {}
-        if dest not in self._edge_stat_listeners[char][orig]:
-            self._edge_stat_listeners[char][orig][dest] = []
-        if fun not in self._edge_stat_listeners[char][orig][dest]:
-            self._edge_stat_listeners[char][orig][dest].append(fun)
+    def portal_listener(self, char, orig, dest, fun):
+        if char not in self._portal_listeners:
+            self._portal_listeners[char] = {}
+        if orig not in self._portal_listeners[char]:
+            self._portal_listeners[char][orig] = {}
+        if dest not in self._portal_listeners[char][orig]:
+            self._portal_listeners[char][orig][dest] = []
+        if fun not in self._portal_listeners[char][orig][dest]:
+            self._portal_listeners[char][orig][dest].append(fun)
         self.handle('listen_to_portal', (char, orig, dest))
+
+    def portal_stat_listener(self, char, orig, dest, stat, fun):
+        if char not in self._portal_stat_listeners:
+            self._portal_stat_listeners[char] = {}
+        if orig not in self._portal_stat_listeners[char]:
+            self._portal_stat_listeners[char][orig] = {}
+        if dest not in self._portal_stat_listeners[char][orig]:
+            self._portal_stat_listeners[char][orig][dest] = {}
+        if stat not in self._portal_stat_listeners[char][orig][dest]:
+            self._portal_stat_listeners[char][orig][dest][stat] = []
+        if fun not in self._portal_stat_listeners[char][orig][dest][stat]:
+            self._portal_stat_listeners[char][orig][dest][stat].append(fun)
+        self.handle('listen_to_portal_stat', (char, orig, dest, stat))
+
+    def lang_listener(self, fun):
+        if fun not in self._lang_listeners:
+            self._lang_listeners.append(fun)
+        self.handle('listen_to_lang')
+
+    def strings_listener(self, fun):
+        if fun not in self._strings_listeners:
+            self._strings_listeners.append(fun)
+        self.handle('listen_to_strings')
+
+    def string_listener(self, string, fun):
+        if string not in self._string_listeners:
+            self._string_listeners[string] = []
+        if fun not in self._string_listeners[string]:
+            self._string_listeners[string].append(fun)
+        self.handle('listen_to_string', (string,))
 
     def json_rewrap(self, v):
         if not isinstance(v, tuple):
@@ -1849,32 +2048,81 @@ class EngineProxy(object):
         else:
             return v
 
-    def check_stat_changed(self):
+    def poll_changes(self, num_changes=None):
         try:
-            while not self._q.empty():
-                v = self._q.get(False)
-                if len(v) == 5:
-                    (b, t, char, k, unwrapped) = v
-                    v = self.json_rewrap(unwrapped)
-                    character = self.character[char]
-                    for fun in self._char_stat_listeners[char]:
-                        fun(b, t, character, k, v)
-                elif len(v) == 6:
-                    (b, t, char, nodename, k, unwrapped) = v
-                    v = self.json_rewrap(unwrapped)
-                    node = self.character[char].node[nodename]
-                    for fun in self._node_stat_listeners[
-                            char][nodename]:
-                        fun(b, t, node, k, v)
-                else:
-                    (b, t, char, orig, dest, k, unwrapped) = v
-                    v = self.json_rewrap(unwrapped)
-                    port = self.character[char].portal[orig][dest]
-                    for fun in self._edge_stat_listeners[
-                            char][orig][dest]:
-                        fun(b, t, port, k, v)
+            n = 0
+            while num_changes is None or n < num_changes:
+                self._process_change(self._q.get(False))
+                n += 1
         except Empty:
             return
+
+    def _process_change(self, v):
+        assert(isinstance(v, tuple))
+        typ = v[0]
+        data = v[1:]
+        if typ == 'language':
+            (lang,) = data
+            for fun in self._lang_listeners:
+                fun(lang)
+        elif typ == 'string':
+            (k, v) = data
+            for fun in self._strings_listeners:
+                fun(k, v)
+            if k in self._string_listeners:
+                for fun in self._string_listeners[k]:
+                    fun(k, v)
+        elif typ == 'character':
+            (branch, tick, charn, stat, val) = data
+            character = self.character[charn]
+            if charn in self._char_listeners:
+                for fun in self._char_listeners[charn]:
+                    fun(branch, tick, charn, stat, self.json_rewrap(val))
+            if (
+                    charn in self._char_stat_listeners and
+                    stat in self._char_stat_listeners[charn]
+            ):
+                for fun in self._char_stat_listeners[charn][stat]:
+                    fun(branch, tick, character, stat, self.json_rewrap(val))
+        elif typ == 'node':
+            (branch, tick, charn, noden, stat, val) = data
+            node = self.character[charn].node[noden]
+            if (
+                    charn in self._node_listeners and
+                    noden in self._node_listeners[charn]
+            ):
+                for fun in self._node_listeners[charn][noden]:
+                    fun(branch, tick, node, stat, self.json_rewrap(val))
+            if (
+                    charn in self._node_stat_listeners and
+                    noden in self._node_stat_listeners[charn] and
+                    stat in self._node_stat_listeners
+            ):
+                for fun in self._node_stat_listeners[charn][noden][stat]:
+                    fun(branch, tick, node, stat, self.json_rewrap(val))
+        elif typ == 'portal':
+            (branch, tick, charn, a, b, stat, val) = data
+            portal = self.character[charn].portal[a][b]
+            if (
+                    charn in self._portal_listeners and
+                    a in self._portal_listeners[charn] and
+                    b in self._portal_listeners[charn][a]
+            ):
+                for fun in self._portal_listeners[charn][a][b]:
+                    fun(branch, tick, portal, stat, self.json_rewrap(val))
+            if (
+                    charn in self._portal_stat_listeners and
+                    a in self._portal_stat_listeners[charn] and
+                    b in self._portal_stat_listeners[charn][a] and
+                    stat in self._portal_stat_listeners[charn][a][b]
+            ):
+                for fun in self._portal_stat_listeners[charn][a][b][stat]:
+                    fun(branch, tick, portal, stat, self.json_rewrap(val))
+        else:
+            raise ChangeSignatureError(
+                'Received a change notification from the LiSE core that '
+                'did not match any of the known types: {}'.format(v)
+            )
 
     def on_time(self, f):
         if not isinstance(f, Callable):

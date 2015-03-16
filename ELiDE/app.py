@@ -71,7 +71,7 @@ class ELiDEApp(App):
 
         def check_stats(*args):
             if self.do_check_stats:
-                self.engine.check_stat_changed()
+                self.engine.poll_changes()
 
         Clock.schedule_interval(check_stats, 0.01)
         for char in config['ELiDE']['boardchar'], config['ELiDE']['sheetchar']:
