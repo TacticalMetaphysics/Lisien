@@ -1633,6 +1633,10 @@ class CharacterProxy(MutableMapping):
             (self.name, seq, symmetrical)
         )
 
+    def new_portal(self, origin, destination, symmetrical=False, **kwargs):
+        self.add_portal(origin, destination, symmetrical, **kwargs)
+        return self.portal[origin][destination]
+
     def portals(self):
         yield from self._engine.handle(
             'character_portals',
