@@ -1861,7 +1861,7 @@ class ChangeSignatureError(TypeError):
 class EngineProxy(object):
     @property
     def branch(self):
-        return self.handle('get_branch')
+        return self.handle.branch
 
     @branch.setter
     def branch(self, v):
@@ -1873,7 +1873,7 @@ class EngineProxy(object):
 
     @property
     def tick(self):
-        return self.handle('get_tick')
+        return self.handle.tick
 
     @tick.setter
     def tick(self, v):
@@ -1885,7 +1885,7 @@ class EngineProxy(object):
 
     @property
     def time(self):
-        return self.handle('get_time')
+        return (self.handle.branch, self.handle.tick)
 
     @time.setter
     def time(self, v):
@@ -1923,28 +1923,7 @@ class EngineProxy(object):
         self._handle_out.send((silent, func_name, args))
         if not silent:
             r = self._handle_in.recv()
-            if isinstance(r, tuple) and len(r) >= 5:
-                if r[0] == 'JSONReWrapper':
-                    r = self.rewrap_json(JSONReWrapper, r[1:])
-                elif r[0] == 'JSONListReWrapper':
-                    r = self.rewrap_json(JSONListReWrapper, r[1:])
-            return r
-
-    def rewrap_json(self, cls, t):
-        if t[0] == 'character':
-            (char, k, initv) = t[1:]
-            return cls(self.character[char], k, initv)
-        elif t[0] == 'node':
-            (char, node, k, initv) = t[1:]
-            return cls(
-                self.character[char].node[node], k, initv
-            )
-        else:
-            assert(t[0] == 'portal')
-            (char, o, d, k, initv) = t[1:]
-            return cls(
-                self.character[char].portal[o][d], k, initv
-            )
+            return self.json_rewrap(r)
 
     def char_listener(self, char, fun):
         if char not in self._char_listeners:
@@ -2072,6 +2051,10 @@ class EngineProxy(object):
             if k in self._string_listeners:
                 for fun in self._string_listeners[k]:
                     fun(k, v)
+        elif typ == 'next_tick':
+            (b, t) = data
+            for fun in self._time_listeners:
+                fun(b, t)
         elif typ == 'character':
             (branch, tick, charn, stat, val) = data
             character = self.character[charn]
