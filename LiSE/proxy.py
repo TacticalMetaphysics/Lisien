@@ -1925,6 +1925,9 @@ class EngineProxy(object):
             r = self._handle_in.recv()
             return self.json_rewrap(r)
 
+    def next_tick(self):
+        self.handle('next_tick', silent=True)
+
     def char_listener(self, char, fun):
         if char not in self._char_listeners:
             self._char_listeners[char] = []
