@@ -17,7 +17,6 @@ from .util import JSONReWrapper, JSONListReWrapper
 class EngineHandle(object):
     def __init__(self, args, kwargs, callbacq):
         self._real = Engine(*args, **kwargs)
-        print('Engine instantiated in ps {}'.format(os.getpid()))
         self._q = callbacq
         self.branch = self._real.branch
         self.tick = self._real.tick
@@ -2155,9 +2154,7 @@ def subprocess(
     engine_handle = EngineHandle(args, kwargs, callbacq)
     while True:
         inst = handle_out_pipe.recv()
-        print('got instruction: {}'.format(inst))
         if inst == 'shutdown':
-            print('==SHUTDOWN==')
             handle_out_pipe.close()
             handle_in_pipe.close()
             callbacq.close()
@@ -2165,10 +2162,8 @@ def subprocess(
         (silent, cmd, args) = inst
         if silent:
             r = getattr(engine_handle, cmd)(*args)
-            print('not sending result: {}'.format(r))
         else:
             r = getattr(engine_handle, cmd)(*args)
-            print('sending result: {}'.format(r))
             handle_in_pipe.send(r)
 
 
