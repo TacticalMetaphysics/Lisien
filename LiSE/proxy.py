@@ -259,6 +259,9 @@ class EngineHandle(object):
     def get_branch(self):
         return self._real.branch
 
+    def get_watched_branch(self):
+        return self.branch
+
     def set_branch(self, v):
         self._real.branch = v
         self.branch = v
@@ -267,6 +270,9 @@ class EngineHandle(object):
     def get_tick(self):
         return self._real.tick
 
+    def get_watched_tick(self):
+        return self.tick
+
     def set_tick(self, v):
         self._real.tick = v
         self.tick = v
@@ -274,6 +280,9 @@ class EngineHandle(object):
 
     def get_time(self):
         return self._real.time
+
+    def get_watched_time(self):
+        return (self.branch, self.tick)
 
     def set_time(self, v):
         self._real.time = v
@@ -1861,11 +1870,12 @@ class ChangeSignatureError(TypeError):
 class EngineProxy(object):
     @property
     def branch(self):
-        return self.handle.branch
+        return self._branch
 
     @branch.setter
     def branch(self, v):
         self.handle('set_branch', (v,), silent=True)
+        self._branch = v
         if not self.handle('time_locked'):
             (branch, tick) = self.time
             for f in self._time_listeners:
@@ -1873,11 +1883,12 @@ class EngineProxy(object):
 
     @property
     def tick(self):
-        return self.handle.tick
+        return self._tick
 
     @tick.setter
     def tick(self, v):
         self.handle('set_tick', (v,), silent=True)
+        self._tick = v
         if not self.handle('time_locked'):
             (b, t) = self.time
             for f in self._time_listeners:
@@ -1885,11 +1896,12 @@ class EngineProxy(object):
 
     @property
     def time(self):
-        return (self.handle.branch, self.handle.tick)
+        return (self._branch, self._tick)
 
     @time.setter
     def time(self, v):
         self.handle('set_time', (v,), silent=True)
+        (self._branch, self._tick) = v
         if not self.handle('time_locked'):
             (b, t) = self.time
             (branch, tick) = v
@@ -1918,6 +1930,7 @@ class EngineProxy(object):
         self._node_stat_listeners = {}
         self._portal_listeners = {}
         self._portal_stat_listeners = {}
+        (self._branch, self._tick) = self.handle('get_watched_time')
 
     def handle(self, func_name, args=[], silent=False):
         self._handle_out.send((silent, func_name, args))
