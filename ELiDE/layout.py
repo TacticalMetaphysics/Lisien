@@ -652,7 +652,7 @@ class ELiDELayout(FloatLayout):
                     dummy.name,
                     _x=x,
                     _y=y,
-                    _image_paths=dummy.paths
+                    _image_paths=list(dummy.paths)
                 )
             )
         )
