@@ -115,7 +115,7 @@ class FuncStoreAdapter(StoreAdapter):
         """
         return [
             StoreDataItem(name=k, source=v) for (k, v) in
-            self.store.db.func_table_name_plaincode(self.table)
+            self.store.iterplain()
         ]
 
 
