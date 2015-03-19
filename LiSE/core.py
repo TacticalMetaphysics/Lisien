@@ -260,6 +260,13 @@ class FunctionStoreDB(MutableMapping):
         """Tell my ``QueryEngine`` to commit."""
         self.db.commit()
 
+    def set_source(self, func_name, source):
+        self.db.func_table_set_source(
+            self._tab,
+            func_name,
+            source
+        )
+
 
 class GlobalVarMapping(MutableMapping):
     """Mapping for variables that are global but which I keep history for"""

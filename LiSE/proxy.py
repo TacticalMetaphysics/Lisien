@@ -688,6 +688,9 @@ class EngineHandle(object):
     def plain_source(self, store, k):
         return getattr(self._real, store).plain(k)
 
+    def store_set_source(self, store, func_name, source):
+        getattr(self._real, store).set_source(func_name, source)
+
 
 class NodeProxy(MutableMapping):
     @property
@@ -1863,6 +1866,12 @@ class FuncStoreProxy(object):
         yield from self._engine.handle(
             'plain_items_in_store',
             (self._store,)
+        )
+
+    def set_source(self, func_name, source):
+        self._engine.handle(
+            'store_set_source',
+            (self._store, func_name, source)
         )
 
 

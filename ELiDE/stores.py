@@ -342,8 +342,4 @@ class FuncsEditor(StoreEditor):
                 self.source
             )
         )
-        self.store.db.func_table_set_source(
-            self.table,
-            self.name,
-            self.source
-        )
+        self.store.set_source(self.name, self.source)
