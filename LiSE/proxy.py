@@ -5,7 +5,6 @@ from collections import (
     MutableMapping,
     MutableSequence
 )
-import os
 from multiprocessing import Process, Pipe, Queue
 from queue import Empty
 
