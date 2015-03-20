@@ -70,6 +70,16 @@ class EngineHandle(object):
         def dispatch_str(mapping, k, v):
             self._q.put(('string', k, v))
 
+    def listen_to_universal(self, k):
+        @self._real.universal(key=k)
+        def dispatch_var(branch, tick, mapping, key, value):
+            self._q.put(('universal', branch, tick, key, value))
+
+    def listen_to_universals(self):
+        @self._real.universal
+        def dispatch_var(branch, tick, mapping, key, value):
+            self._q.put(('universal', branch, tick, key, value))
+
     def listen_to_character(self, charn):
         character = self._real.character[charn]
 
@@ -1973,6 +1983,8 @@ class EngineProxy(object):
         self._lang_listeners = []
         self._strings_listeners = []
         self._string_listeners = {}
+        self._universals_listeners = []
+        self._universal_listeners = {}
         self._char_listeners = {}
         self._char_stat_listeners = {}
         self._node_listeners = {}
@@ -2065,6 +2077,18 @@ class EngineProxy(object):
             self._string_listeners[string].append(fun)
         self.handle('listen_to_string', (string,))
 
+    def universals_listener(self, fun):
+        if fun not in self._universals_listeners:
+            self._universals_listeners.append(fun)
+        self.handle('listen_to_universals')
+
+    def universal_listener(self, k, fun):
+        if k not in self._universal_listeners:
+            self._universal_listeners[k] = []
+        if fun not in self._universal_listeners[k]:
+            self._universal_listeners[k].append(fun)
+        self.handle('listen_to_universal', (k,))
+
     def json_rewrap(self, v):
         if not isinstance(v, tuple):
             return v
@@ -2116,6 +2140,13 @@ class EngineProxy(object):
             if k in self._string_listeners:
                 for fun in self._string_listeners[k]:
                     fun(k, v)
+        elif typ == 'universal':
+            (b, t, k, val) = data
+            for fun in self._universals_listeners:
+                fun(b, t, k, val)
+            if k in self._universal_listeners:
+                for fun in self._universal_listeners[k]:
+                    fun(b, t, k, val)
         elif typ == 'next_tick':
             (b, t) = data
             for fun in self._time_listeners:
