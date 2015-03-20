@@ -1,11 +1,9 @@
-from threading import Lock
 from functools import partial
 from kivy.properties import (
+    AliasProperty,
     BooleanProperty,
     BoundedNumericProperty,
-    DictProperty,
     ListProperty,
-    NumericProperty,
     ObjectProperty,
     StringProperty
 )
@@ -16,9 +14,6 @@ from kivy.uix.modalview import ModalView
 from kivy.uix.floatlayout import FloatLayout
 from kivy.clock import Clock
 from kivy.logger import Logger
-
-from LiSE.util import RedundantRuleError
-from LiSE.character import CharStatCache
 
 from .dummy import Dummy
 from .configurator import PawnConfigDialog, SpotConfigDialog
@@ -69,11 +64,21 @@ class ELiDELayout(FloatLayout):
     selection_candidates = ListProperty([])
     selected_remote = ObjectProperty()
     keep_selection = BooleanProperty(False)
-    engine = ObjectProperty()
-    tick_results = DictProperty({})
-    branch = StringProperty('master')
-    tick = NumericProperty(0)
-    time = ListProperty(['master', 0])
+    branch = AliasProperty(
+        lambda self: self.engine.branch,
+        lambda self, v: setattr(self.engine, 'branch', v),
+        bind=('engine',)
+    )
+    tick = AliasProperty(
+        lambda self: self.engine.tick,
+        lambda self, v: setattr(self.engine, 'tick', v),
+        bind=('engine',)
+    )
+    time = AliasProperty(
+        lambda self: self.engine.time,
+        lambda self, v: setattr(self.engine, 'time', v),
+        bind=('engine',)
+    )
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
     def __init__(self, **kwargs):
@@ -82,7 +87,6 @@ class ELiDELayout(FloatLayout):
         self._trigger_reremote = Clock.create_trigger(self.reremote)
         self.bind(selection=self._trigger_reremote)
         self._trigger_reremote()
-        self.playlock = Lock()
         Clock.schedule_interval(self.play, 1)
 
     def on_engine(self, *args):
