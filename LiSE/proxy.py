@@ -24,19 +24,19 @@ class EngineHandle(object):
 
     def listen_to_lang(self):
         @self._real.string.lang_listener
-        def dispatch_lang(v):
+        def dispatch_lang(mapping, v):
             self._q.put(
                 ('language', v)
             )
 
     def listen_to_strings(self):
         @self._real.string.listener
-        def dispatch_str(k, v):
+        def dispatch_str(mapping, k, v):
             self._q.put(('string', k, v))
 
     def listen_to_string(self, k):
         @self._real.string.listener(string=k)
-        def dispatch_str(k, v):
+        def dispatch_str(mapping, k, v):
             self._q.put(('string', k, v))
 
     def listen_to_character(self, charn):
@@ -1746,7 +1746,12 @@ class StringStoreProxy(MutableMapping):
         self._engine.lang_listener(f)
 
     def listener(self, fun=None, string=None):
-        return listener(self._str_listeners, fun, string)
+        if None not in (fun, string):
+            self._engine.string_listener(string, fun)
+        elif string is None:
+            self._engine.strings_listener(fun)
+        else:
+            return lambda f: self.listener(fun=f, string=string)
 
     def lang_items(self, lang=None):
         yield from self._proxy.handle(
