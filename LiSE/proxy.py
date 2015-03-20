@@ -241,6 +241,34 @@ class EngineHandle(object):
                         )
                     )
 
+    def listen_to_thing_map(self, charn):
+        char = self._real.character[charn]
+
+        @char.thing.listener
+        def put_thing(b, t, mapping, thingn, v):
+            if (b, t) != (self.branch, self.tick):
+                return
+            self._q.put(('thing_extant', b, t, charn, thingn, v is not None))
+
+        @self._real.on_time
+        def check_thing(oldb, oldt, newb, newt):
+            if charn not in self._real.character:
+                return
+            self._real.locktime = True
+            self._real.time = (oldb, oldt)
+            old_things = set(char.thing.keys())
+            self._real.time = (newb, newt)
+            del self._real.locktime
+            new_things = set(char.thing.keys())
+            for new_thing in new_things - old_things:
+                self._q.put(
+                    ('thing_extant', newb, newt, charn, new_thing, True)
+                )
+            for old_thing in old_things - new_things:
+                self._q.put(
+                    ('thing_extant', newb, newt, charn, old_thing, False)
+                )
+
     def listen_to_node_stat(self, charn, noden, statn):
         node = self._real.character[charn].node[noden]
 
@@ -2054,6 +2082,7 @@ class EngineProxy(object):
         self._char_stat_listeners = {}
         self._node_listeners = {}
         self._node_stat_listeners = {}
+        self._thing_map_listeners = {}
         self._portal_listeners = {}
         self._portal_stat_listeners = {}
         (self._branch, self._tick) = self.handle('get_watched_time')
@@ -2108,6 +2137,13 @@ class EngineProxy(object):
             self.handle('listen_to_node_stat', (char, node, stat))
         if fun not in self._node_stat_listeners[char][node][stat]:
             self._node_stat_listeners[char][node][stat].append(fun)
+
+    def thing_map_listener(self, char, fun):
+        if char not in self._thing_map_listeners:
+            self.handle('listen_to_thing_map', (char,))
+            self._thing_map_listeners[char] = []
+        if fun not in self._thing_map_listeners[char]:
+            self._thing_map_listeners[char].append(fun)
 
     def portal_listener(self, char, orig, dest, fun):
         if char not in self._portal_listeners:
@@ -2260,6 +2296,11 @@ class EngineProxy(object):
             ):
                 for fun in self._node_stat_listeners[charn][noden][stat]:
                     fun(branch, tick, node, stat, self.json_rewrap(val))
+        elif typ == 'thing_extant':
+            (branch, tick, charn, thingn, extant) = data
+            if charn in self._thing_map_listeners:
+                for fun in self._thing_map_listeners[charn]:
+                    fun(branch, tick, charn, thingn, extant)
         elif typ == 'portal':
             (branch, tick, charn, a, b, stat, val) = data
             portal = self.character[charn].portal[a][b]
