@@ -306,7 +306,7 @@ class EngineHandle(object):
     def set_branch(self, v):
         self._real.branch = v
         self.branch = v
-        self._q.put(('set_time', self._real.time))
+        self._q.put(('set_time', self.branch, self.tick))
 
     def get_tick(self):
         return self._real.tick
@@ -317,7 +317,7 @@ class EngineHandle(object):
     def set_tick(self, v):
         self._real.tick = v
         self.tick = v
-        self._q.put(('set_time', self._real.time))
+        self._q.put(('set_time', self.branch, self.tick))
 
     def get_time(self):
         return self._real.time
@@ -328,7 +328,7 @@ class EngineHandle(object):
     def set_time(self, v):
         self._real.time = v
         (self.branch, self.tick) = v
-        self._q.put(('set_time', v))
+        self._q.put(('set_time', self.branch, self.tick))
 
     def get_language(self):
         return self._real.string.language
@@ -1967,7 +1967,7 @@ class EngineProxy(object):
             (b, t) = self.time
             (branch, tick) = v
             for f in self._time_listeners:
-                f(self, b, t, branch, tick)
+                f(b, t, branch, tick)
 
     def __init__(self, handle_out, handle_in, eventq):
         self._handle_out = handle_out
