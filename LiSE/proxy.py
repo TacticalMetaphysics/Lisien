@@ -39,16 +39,6 @@ class EngineHandle(object):
         def dispatch_str(mapping, k, v):
             self._q.put(('string', k, v))
 
-    def listen_to_eternals(self):
-        @self._real.eternal.listener
-        def dispatch_eternal(mapping, k, v):
-            self._q.put(('eternal', k, v))
-
-    def listen_to_eternal(self, k):
-        @self._real.eternal.listener(key=k)
-        def dispatch_eternal(mapping, k, v):
-            self._q.put(('eternal', k, v))
-
     def listen_to_character(self, charn):
         character = self._real.character[charn]
 
@@ -1825,13 +1815,11 @@ class GlobalVarProxy(MutableMapping):
     def __delitem__(self, k):
         self._proxy.del_universal(k)
 
+    def _dispatch(self, k, v):
+        dispatch(self._listeners, k, self, k, v)
+
     def listener(self, f=None, key=None):
-        if None not in (f, key):
-            self._engine.eternal_listener(key, f)
-        elif key is None:
-            self._engine.eternals_listener(f)
-        else:
-            return lambda fun: self.listener(f=fun, key=key)
+        return listener(self._listeners, f, key)
 
 
 class AllRuleBooksProxy(Mapping):
@@ -1952,8 +1940,6 @@ class EngineProxy(object):
         self._rulebook_listeners = defaultdict(list)
         self._time_listeners = []
         self._lang_listeners = []
-        self._eternals_listeners = []
-        self._eternal_listeners = {}
         self._strings_listeners = []
         self._string_listeners = {}
         self._char_listeners = {}
@@ -2047,18 +2033,6 @@ class EngineProxy(object):
         if fun not in self._string_listeners[string]:
             self._string_listeners[string].append(fun)
         self.handle('listen_to_string', (string,))
-
-    def eternal_listener(self, key, fun):
-        if key not in self._eternal_listeners:
-            self._eternal_listeners[key] = []
-        if fun not in self._eternal_listeners[key]:
-            self._eternal_listeners[key].append(fun)
-        self.handle('listen_to_eternal', (key,))
-
-    def eternals_listener(self, fun):
-        if fun not in self._eternals_listeners:
-            self._eternals_listeners.append(fun)
-        self.handle('listen_to_eternals')
 
     def json_rewrap(self, v):
         if not isinstance(v, tuple):
