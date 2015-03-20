@@ -95,14 +95,9 @@ class ELiDELayout(FloatLayout):
         engine's.
 
         """
-        if self.engine is None:
+        if self.engine is None or 'board' not in self.ids:
             return
-        self.branch = self.engine.branch
-        self.tick = self.engine.tick
-        self.bind(
-            branch=self.timeupd,
-            tick=self.timeupd,
-        )
+        self.engine.on_time(self.ids.board._trigger_update)
         self._strings_ed_window = StringsEdWindow(layout=self)
         self._funcs_ed_window = FuncsEdWindow(layout=self)
         self._rulesbox = BoxLayout(orientation='vertical')
@@ -703,29 +698,6 @@ class ELiDELayout(FloatLayout):
             )
         )
 
-    def timeupd(self, *args):
-        Logger.debug('ELiDELayout: timeupd({})'.format(self.time))
-        if self.engine.branch != self.branch:
-            self.engine.branch = self.branch
-        if self.engine.tick != self.tick:
-            self.engine.tick = self.tick
-
-        def timeprop(*args):
-            if not (
-                    self.engine.branch == self.branch and
-                    self.engine.tick == self.tick
-            ):
-                Logger.debug('timeprop: cycling')
-                Clock.schedule_once(timeprop, 0.001)
-                return
-            Logger.debug('timeprop: time {}->{}'.format(
-                self.time, self.engine.time)
-            )
-            self.time = self.engine.time
-            self.ids.board._trigger_update()
-
-        Clock.schedule_once(timeprop, 0)
-
     def set_branch(self, b):
         """``self.branch = b``"""
         self.branch = b
@@ -734,62 +706,17 @@ class ELiDELayout(FloatLayout):
         """``self.tick = int(t)``"""
         self.tick = int(t)
 
-    def advance(self, *args):
-        """Resolve one rule and store the results in a list at
-        ``self.tick_results[self.branch][self.tick]```.
-
-        """
-        if self.branch not in self.tick_results:
-            self.tick_results[self.branch] = {}
-        if self.tick not in self.tick_results[self.branch]:
-            self.tick_results[self.branch][self.tick] = []
-        r = self.tick_results[self.branch][self.tick]
-        try:
-            r.append(next(self.engine._rules_iter))
-        except StopIteration:
-            self.tick += 1
-            self.engine.universal['rando_state'] = (
-                self.engine.rando.getstate()
-            )
-            if (
-                    self.engine.commit_modulus and
-                    self.tick % self.engine.commit_modulus == 0
-            ):
-                self.engine.worlddb.commit()
-            self.engine._rules_iter = self.engine._follow_rules()
-        except RedundantRuleError:
-            self.tick += 1
-
-    def next_tick(self, *args):
-        """Call ``self.advance()``, and if the tick hasn't
-        changed, schedule it to happen again.
-
-        This blocks ``self.playlock`` and should be called in its own
-        thread.
-
-        """
-        self.playlock.acquire()
-        curtick = self.tick
-        n = 0
-        while curtick == self.tick:
-            self.advance()
-            n += 1
-        Logger.info(
-            "Followed {n} rules on tick {ct}:\n{r}".format(
-                n=n,
-                ct=curtick,
-                r="\n".join(
-                    str(tup) for tup in
-                    self.tick_results[self.branch][curtick]
-                )
-            )
-        )
-        self.playlock.release()
-
     def play(self, *args):
         """If I'm advancing time, advance a tick."""
-        if (
-                self.ids.playbut.state == 'down' and not
-                self.playlock.locked()
-        ):
-            self.next_tick()
+        if self.ids.playbut.state == 'normal':
+            return
+        if not hasattr(self, '_old_time'):
+            self._old_time = self.time
+            self.engine.next_tick()
+        elif self._old_time == self.time:
+            return
+        else:
+            del self._old_time
+            self.branch.dispatch()
+            self.tick.dispatch()
+            self.time.dispatch()
