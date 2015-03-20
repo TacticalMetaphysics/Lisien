@@ -286,7 +286,7 @@ class EngineHandle(object):
     def next_tick(self):
         self._real.next_tick()
         self.tick = self._real.tick
-        self._q.put(('next_tick', self.branch, self.tick))
+        self._q.put(('set_time', self.branch, self.tick))
 
     def add_character(self, name, data, kwargs):
         self._real.add_character(name, data, **kwargs)
@@ -306,7 +306,7 @@ class EngineHandle(object):
     def set_branch(self, v):
         self._real.branch = v
         self.branch = v
-        self._q.put(('set_branch', v))
+        self._q.put(('set_time', self._real.time))
 
     def get_tick(self):
         return self._real.tick
@@ -317,7 +317,7 @@ class EngineHandle(object):
     def set_tick(self, v):
         self._real.tick = v
         self.tick = v
-        self._q.put(('set_tick', v))
+        self._q.put(('set_time', self._real.time))
 
     def get_time(self):
         return self._real.time
@@ -2154,7 +2154,7 @@ class EngineProxy(object):
             if k in self._universal_listeners:
                 for fun in self._universal_listeners[k]:
                     fun(b, t, k, val)
-        elif typ == 'next_tick':
+        elif typ == 'set_time':
             self.time = data
         elif typ == 'character':
             (branch, tick, charn, stat, val) = data
