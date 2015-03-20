@@ -279,7 +279,8 @@ class GlobalVarMapping(MutableMapping):
         all keys.
 
         """
-        dispatch(self._listeners, k, self, k, v)
+        (b, t) = self.engine.time
+        dispatch(self._listeners, k, b, t, self, k, v)
 
     def listener(self, f=None, key=None):
         """Arrange to call this function when a key is set to a new value.
