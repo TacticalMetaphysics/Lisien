@@ -61,24 +61,78 @@ class EngineHandle(object):
             )
 
     def listen_to_strings(self):
+        """After calling this method, whenever a string is set or
+        deleted, a tuple will be put into my callback queue of the
+        form ``('string', k, v)``, where ``k`` is the string's
+        identifier and ``v`` is the string (or ``None`` if deleted).
+
+        """
         @self._real.string.listener
         def dispatch_str(mapping, k, v):
             self._q.put(('string', k, v))
 
     def listen_to_string(self, k):
+        """After calling this method, whenever a string named ``k`` is set or
+        deleted, a tuple will be put into my callback queue of the
+        form ``('string', k, v)``, where ``k`` is the same as you
+        called this method with, and ``v`` is the string (or ``None``
+        if deleted).
+
+        """
         @self._real.string.listener(string=k)
         def dispatch_str(mapping, k, v):
             self._q.put(('string', k, v))
 
-    def listen_to_universal(self, k):
-        @self._real.universal(key=k)
-        def dispatch_var(branch, tick, mapping, key, value):
-            self._q.put(('universal', branch, tick, key, value))
-
     def listen_to_universals(self):
+        """After calling this method, whenever a universal (ie. "global," but
+        sensitive to sim-time) variable appears to change from the
+        host's perspective, a tuple will be put into my callback queue
+        of the form ``('universal`, branch, tick, key, value)``, where
+        ``(branch, tick)`` is the sim-time of the apparent change. If ``key``
+        was deleted, ``value`` will be ``None``.
+
+        """
         @self._real.universal
         def dispatch_var(branch, tick, mapping, key, value):
-            self._q.put(('universal', branch, tick, key, value))
+            if (branch, tick) == (self.branch, self.tick):
+                self._q.put(('universal', branch, tick, key, value))
+
+        @self._real.on_time
+        def dispatch_vars(oldb, oldt, newb, newt):
+            self._real.locktime = True
+            self._real.time = (oldb, oldt)
+            old_universals = dict(self._real.universal)
+            self._real.time = (newb, newt)
+            del self._real.locktime
+            for (k, oldv) in old_universals.items():
+                newv = self._real.universal.get(k, None)
+                if oldv != newv:
+                    self._q.put(('universal', newb, newt, k, newv))
+
+    def listen_to_universal(self, k):
+        """After calling this method, whenever the given universal key appears
+        to change its value from the host's perspective, a tuple will
+        be put into my callback queue of the form ``('universal',
+        branch, tick, key, value)``, where ``(branch, tick)`` is the
+        sim-time of the apparent change. If ``key`` was deleted,
+        ``value`` will be ``None``.
+
+        """
+        @self._real.universal(key=k)
+        def dispatch_var(branch, tick, mapping, key, value):
+            if (branch, tick) == (self.branch, self.tick):
+                self._q.put(('universal', branch, tick, key, value))
+
+        @self._real.on_time
+        def dispatch_var_tt(oldb, oldt, newb, newt):
+            self._real.locktime = True
+            self._real.time = (oldb, oldt)
+            oldv = self._real.universal.get(k, None)
+            self._real.time = (newb, newt)
+            del self._real.locktime
+            newv = self._real.universal.get(k, None)
+            if oldv != newv:
+                self._q.put(('universal', newb, newt, k, newv))
 
     def listen_to_character(self, charn):
         character = self._real.character[charn]
