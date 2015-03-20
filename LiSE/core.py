@@ -51,13 +51,12 @@ class StringStore(MutableMapping):
     braces will cause the other string to be substituted in.
 
     """
-    def __init__(self, connection, table='strings', lang='eng'):
+    def __init__(self, qe, table='strings', lang='eng'):
         """Store the engine, the name of the database table to use, and the
         language code.
 
         """
-        self.connection = connection
-        self.db = QueryEngine(self.connection, [], False)
+        self.db = qe
         self.db.init_string_table(table)
         self.table = table
         self._language = lang
@@ -431,10 +430,10 @@ class Engine(object):
         self._portal_proxy_sigs = []
         self._character_proxy_sigs = []
         self.db = self.gorm.db
-        self.string = StringStore(self.codedb)
         code_qe = QueryEngine(
             self.codedb, connect_args={}, alchemy=False
         )
+        self.string = StringStore(code_qe)
         self.rulebook = AllRuleBooks(self, code_qe)
         self.rule = AllRules(self, code_qe)
         self.eternal = self.db.globl
