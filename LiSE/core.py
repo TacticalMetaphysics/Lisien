@@ -651,7 +651,7 @@ class Engine(object):
             self.gorm.branch = v
         if not hasattr(self, 'locktime'):
             for time_listener in self._time_listeners:
-                time_listener(self, b, t, v, t)
+                time_listener(b, t, v, t)
 
     @property
     def tick(self):
@@ -672,7 +672,7 @@ class Engine(object):
             self.gorm.rev = v
         if not hasattr(self, 'locktime'):
             for time_listener in self._time_listeners:
-                time_listener(self, branch_then, tick_then, branch_then, v)
+                time_listener(branch_then, tick_then, branch_then, v)
 
     @property
     def time(self):
@@ -695,7 +695,7 @@ class Engine(object):
         if not hasattr(self, 'locktime'):
             for time_listener in self._time_listeners:
                 time_listener(
-                    self, branch_then, tick_then, branch_now, tick_now
+                    branch_then, tick_then, branch_now, tick_now
                 )
 
     def _active_branches(self, branch=None, tick=None):

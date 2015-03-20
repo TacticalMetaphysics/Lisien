@@ -108,7 +108,7 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         if self.engine.caching:
 
             @self.engine.on_time
-            def recache(eng, branch_then, tick_then, b, t):
+            def recache(branch_then, tick_then, b, t):
                 if b not in self._keycache:
                     self._keycache[b] = {}
                 if branch_then == b and tick_then == t - 1:
@@ -1428,7 +1428,6 @@ class CharStatCache(MutableMapping):
 
         @self.engine.on_time
         def time_travel_triggers(
-                engine,
                 branch_then,
                 tick_then,
                 branch_now,
@@ -1439,7 +1438,6 @@ class CharStatCache(MutableMapping):
 
             """
             fire_time_travel_triggers(
-                engine,
                 self._real,
                 self._cache,
                 self._dispatch,
@@ -1467,7 +1465,6 @@ class CharStatCache(MutableMapping):
 
             @self.engine.on_time
             def cache_new_branch(
-                    engine,
                     branch_then,
                     tick_then,
                     branch_now,

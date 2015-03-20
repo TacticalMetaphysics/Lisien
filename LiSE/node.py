@@ -85,14 +85,12 @@ class Node(gorm.graph.Node, RuleFollower):
 
         @self.engine.on_time
         def time_travel_triggers(
-                engine,
                 branch_then,
                 tick_then,
                 branch_now,
                 tick_now
         ):
             fire_time_travel_triggers(
-                engine,
                 self,
                 self._cache,
                 self._dispatch_stat,
@@ -119,7 +117,6 @@ class Node(gorm.graph.Node, RuleFollower):
 
             @self.engine.on_time
             def cache_new_branch(
-                    engine,
                     branch_then,
                     tick_then,
                     branch_now,

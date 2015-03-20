@@ -339,7 +339,6 @@ def fillcache(engine, real, cache):
 
 
 def fire_time_travel_triggers(
-        engine,
         real,
         cache,
         dispatcher,

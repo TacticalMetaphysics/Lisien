@@ -91,7 +91,6 @@ class Portal(Edge, RuleFollower):
 
             @self.engine.on_time
             def cache_new_branch(
-                    engine,
                     branch_then,
                     tick_then,
                     branch_now,
