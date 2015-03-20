@@ -2005,25 +2005,27 @@ class EngineProxy(object):
     def char_listener(self, char, fun):
         if char not in self._char_listeners:
             self._char_listeners[char] = []
+            self.handle('listen_to_character', (char,))
         if fun not in self._char_listeners[char]:
             self._char_listeners[char].append(fun)
-        self.handle('listen_to_character', (char,))
 
     def char_stat_listener(self, char, stat, fun):
         if char not in self._char_stat_listeners:
             self._char_stat_listeners[char] = {}
         if stat not in self._char_stat_listeners[char]:
             self._char_stat_listeners[char][stat] = []
-        self.handle('listen_to_character_stat', (char, stat))
+            self.handle('listen_to_character_stat', (char, stat))
+        if fun not in self._char_stat_listeners[char][stat]:
+            self._char_stat_listeners[char][stat].append(fun)
 
     def node_listener(self, char, node, fun):
         if char not in self._node_listeners:
             self._node_listeners[char] = {}
         if node not in self._node_listeners[char]:
             self._node_listeners[char][node] = []
+            self.handle('listen_to_node', (char, node))
         if fun not in self._node_listeners[char][node]:
             self._node_listeners[char][node].append(fun)
-        self.handle('listen_to_node', (char, node))
 
     def node_stat_listener(self, char, node, stat, fun):
         if char not in self._node_stat_listeners:
@@ -2032,9 +2034,9 @@ class EngineProxy(object):
             self._node_stat_listeners[char][node] = {}
         if stat not in self._node_stat_listeners[char][node]:
             self._node_stat_listeners[char][node][stat] = []
+            self.handle('listen_to_node_stat', (char, node, stat))
         if fun not in self._node_stat_listeners[char][node][stat]:
             self._node_stat_listeners[char][node][stat].append(fun)
-        self.handle('listen_to_node_stat', (char, node, stat))
 
     def portal_listener(self, char, orig, dest, fun):
         if char not in self._portal_listeners:
@@ -2043,9 +2045,9 @@ class EngineProxy(object):
             self._portal_listeners[char][orig] = {}
         if dest not in self._portal_listeners[char][orig]:
             self._portal_listeners[char][orig][dest] = []
+            self.handle('listen_to_portal', (char, orig, dest))
         if fun not in self._portal_listeners[char][orig][dest]:
             self._portal_listeners[char][orig][dest].append(fun)
-        self.handle('listen_to_portal', (char, orig, dest))
 
     def portal_stat_listener(self, char, orig, dest, stat, fun):
         if char not in self._portal_stat_listeners:
@@ -2056,38 +2058,41 @@ class EngineProxy(object):
             self._portal_stat_listeners[char][orig][dest] = {}
         if stat not in self._portal_stat_listeners[char][orig][dest]:
             self._portal_stat_listeners[char][orig][dest][stat] = []
+            self.handle('listen_to_portal_stat', (char, orig, dest, stat))
         if fun not in self._portal_stat_listeners[char][orig][dest][stat]:
             self._portal_stat_listeners[char][orig][dest][stat].append(fun)
-        self.handle('listen_to_portal_stat', (char, orig, dest, stat))
 
     def lang_listener(self, fun):
+        if not self._lang_listeners:
+            self.handle('listen_to_lang')
         if fun not in self._lang_listeners:
             self._lang_listeners.append(fun)
-        self.handle('listen_to_lang')
 
     def strings_listener(self, fun):
+        if not self._strings_listeners:
+            self.handle('listening_to_strings')
         if fun not in self._strings_listeners:
             self._strings_listeners.append(fun)
-        self.handle('listen_to_strings')
 
     def string_listener(self, string, fun):
         if string not in self._string_listeners:
             self._string_listeners[string] = []
+            self.handle('listen_to_string', (string,))
         if fun not in self._string_listeners[string]:
             self._string_listeners[string].append(fun)
-        self.handle('listen_to_string', (string,))
 
     def universals_listener(self, fun):
+        if not self._universals_listeners:
+            self.handle('listen_to_universals')
         if fun not in self._universals_listeners:
             self._universals_listeners.append(fun)
-        self.handle('listen_to_universals')
 
     def universal_listener(self, k, fun):
         if k not in self._universal_listeners:
             self._universal_listeners[k] = []
+            self.handle('listen_to_universal', (k,))
         if fun not in self._universal_listeners[k]:
             self._universal_listeners[k].append(fun)
-        self.handle('listen_to_universal', (k,))
 
     def json_rewrap(self, v):
         if not isinstance(v, tuple):
