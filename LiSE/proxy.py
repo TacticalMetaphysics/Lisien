@@ -2155,9 +2155,7 @@ class EngineProxy(object):
                 for fun in self._universal_listeners[k]:
                     fun(b, t, k, val)
         elif typ == 'next_tick':
-            (b, t) = data
-            for fun in self._time_listeners:
-                fun(b, t)
+            self.time = data
         elif typ == 'character':
             (branch, tick, charn, stat, val) = data
             character = self.character[charn]
