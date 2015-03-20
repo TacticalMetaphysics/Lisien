@@ -827,7 +827,7 @@ class ThingProxy(NodeProxy):
         ln = self['location']
         if ln in self._engine.handle(
                 'character_things',
-                (self._charname)
+                (self._charname,)
         ):
             return ThingProxy(self._engine, self._charname, ln)
         else:
