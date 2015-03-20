@@ -1856,11 +1856,13 @@ class GlobalVarProxy(MutableMapping):
     def __delitem__(self, k):
         self._proxy.del_universal(k)
 
-    def _dispatch(self, k, v):
-        dispatch(self._listeners, k, self, k, v)
-
     def listener(self, f=None, key=None):
-        return listener(self._listeners, f, key)
+        if None not in (f, key):
+            self._proxy.universal_listener(key, f)
+        elif key is None:
+            self._proxy.universals_listener(f)
+        else:
+            return lambda fun: self.listener(f=fun, key=key)
 
 
 class AllRuleBooksProxy(Mapping):
