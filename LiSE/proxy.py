@@ -363,6 +363,88 @@ class EngineHandle(object):
                         )
                     )
 
+    def listen_to_portal_map(self, charn):
+        char = self._real.character[charn]
+
+        @char.portal.listener
+        def put_port(b, t, mapping, onode, dnode, port):
+            if (b, t) != (self.branch, self.tick):
+                return
+            o = onode.name
+            d = dnode.name
+            self._q.put(
+                ('portal_extant', b, t, charn, o, d, port is not None)
+            )
+
+        @self._real.on_time
+        def check_ports(oldb, oldt, newb, newt):
+            if charn not in self._real.character:
+                return
+            self._real.locktime = True
+            self._real.time = (oldb, oldt)
+            old_ports = {}
+            for o in char.portal.keys():
+                old_ports[o] = set(char.portal[o].keys())
+            self._real.time = (newb, newt)
+            del self._real.locktime
+            new_ports = {}
+            for o in char.portal.keys():
+                new_ports[o] = set(char.portal[o].keys())
+            for (oldo, oldds) in old_ports.items():
+                if oldo not in new_ports.keys():
+                    for oldd in oldds:
+                        self._q.put(
+                            (
+                                'portal_extant',
+                                newb,
+                                newt,
+                                charn,
+                                oldo,
+                                oldd,
+                                False
+                            )
+                        )
+                else:
+                    for createdd in new_ports[oldo] - oldds:
+                        self._q.put(
+                            (
+                                'portal_extant',
+                                newb,
+                                newt,
+                                charn,
+                                oldo,
+                                createdd,
+                                True
+                            )
+                        )
+            for (newo, newds) in new_ports.items():
+                if newo not in old_ports.keys():
+                    for newd in newds:
+                        self._q.put(
+                            (
+                                'portal_extant',
+                                newb,
+                                newt,
+                                charn,
+                                newo,
+                                newd,
+                                True
+                            )
+                        )
+                else:
+                    for deletedd in old_ports[newo] - newds:
+                        self._q.put(
+                            (
+                                'portal_extant',
+                                newb,
+                                newt,
+                                charn,
+                                newo,
+                                deletedd,
+                                False
+                            )
+                        )
+
     def listen_to_portal_stat(self, charn, a, b, statn):
         port = self._real.character[charn].portal[a][b]
 
@@ -2114,6 +2196,7 @@ class EngineProxy(object):
         self._place_map_listeners = {}
         self._portal_listeners = {}
         self._portal_stat_listeners = {}
+        self._portal_map_listeners = {}
         (self._branch, self._tick) = self.handle('get_watched_time')
 
     def handle(self, func_name, args=[], silent=False):
@@ -2204,6 +2287,13 @@ class EngineProxy(object):
             self.handle('listen_to_portal_stat', (char, orig, dest, stat))
         if fun not in self._portal_stat_listeners[char][orig][dest][stat]:
             self._portal_stat_listeners[char][orig][dest][stat].append(fun)
+
+    def portal_map_listener(self, char, fun):
+        if char not in self._portal_map_listeners:
+            self._portal_map_listeners[char] = []
+            self.handle('listen_to_portal_map', (char,))
+        if fun not in self._portal_map_listeners[char]:
+            self._portal_map_listeners[char].append(fun)
 
     def lang_listener(self, fun):
         if not self._lang_listeners:
@@ -2360,6 +2450,11 @@ class EngineProxy(object):
             ):
                 for fun in self._portal_stat_listeners[charn][a][b][stat]:
                     fun(branch, tick, portal, stat, self.json_rewrap(val))
+        elif typ == 'portal_extant':
+            (branch, tick, charn, o, d, extant) = data
+            if charn in self._portal_map_listeners:
+                for fun in self._portal_map_listeners[charn]:
+                    fun(branch, tick, charn, o, d, extant)
         else:
             raise ChangeSignatureError(
                 'Received a change notification from the LiSE core that '
