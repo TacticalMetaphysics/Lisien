@@ -1733,7 +1733,7 @@ class StringStoreProxy(MutableMapping):
         return self._proxy.handle('get_string', (k,))
 
     def __setitem__(self, k, v):
-        self._proxy._handle('set_string', (k, v), silent=True)
+        self._proxy.handle('set_string', (k, v), silent=True)
 
     def __delitem__(self, k):
         self._proxy.handle('del_string', (k,), silent=True)
