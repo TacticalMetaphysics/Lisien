@@ -134,6 +134,14 @@ class EngineHandle(object):
             if oldv != newv:
                 self._q.put(('universal', newb, newt, k, newv))
 
+    def listen_to_character_map(self):
+        @self._real.character.listener
+        def charactered(charmap, k, v):
+            if v is None:
+                self._q.put(('character_map', k, False))
+            else:
+                self._q.put(('character_map', k, True))
+
     def listen_to_character(self, charn):
         character = self._real.character[charn]
 
@@ -2042,6 +2050,7 @@ class EngineProxy(object):
         self._universals_listeners = []
         self._universal_listeners = {}
         self._char_listeners = {}
+        self._char_map_listeners = []
         self._char_stat_listeners = {}
         self._node_listeners = {}
         self._node_stat_listeners = {}
@@ -2064,6 +2073,12 @@ class EngineProxy(object):
             self.handle('listen_to_character', (char,))
         if fun not in self._char_listeners[char]:
             self._char_listeners[char].append(fun)
+
+    def char_map_listener(self, fun):
+        if not self._char_map_listeners:
+            self.handle('listen_to_character_map')
+        if fun not in self._char_map_listeners:
+            self._char_map_listeners.append(fun)
 
     def char_stat_listener(self, char, stat, fun):
         if char not in self._char_stat_listeners:
@@ -2225,6 +2240,10 @@ class EngineProxy(object):
             ):
                 for fun in self._char_stat_listeners[charn][stat]:
                     fun(branch, tick, character, stat, self.json_rewrap(val))
+        elif typ == 'character_map':
+            (charn, extant) = data
+            for fun in self._char_map_listeners:
+                fun(charn, extant)
         elif typ == 'node':
             (branch, tick, charn, noden, stat, val) = data
             node = self.character[charn].node[noden]
