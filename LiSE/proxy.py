@@ -15,14 +15,45 @@ from .character import Facade
 from .util import JSONReWrapper, JSONListReWrapper
 
 
+"""Proxy objects to make LiSE usable when launched in a subprocess,
+and a manager class to launch it thus.
+
+"""
+
+
 class EngineHandle(object):
+    """A wrapper for a :class:`LiSE.Engine` object that runs in the same
+    process, but with an API built to be used in a command-processing
+    loop that takes commands from another process.
+
+    It's probably a bad idea to use this class unless you're
+    developing your own API.
+
+    """
     def __init__(self, args, kwargs, callbacq):
+        """Instantiate an engine with the positional arguments ``args`` and
+        the keyword arguments ``kwargs``.
+
+        ``callbacq`` must be a :class:`Queue` object. I'll put tuples
+        into it describing *apparent* changes to the world state.
+        Changes are apparent if either (a) the world was changed at
+        time ``(self.branch, self.tick)`` (default: ``('master',
+        0)``), or (b) the user traveled from one point in time to
+        another, and a watched entity's stats differ between those
+        points.
+
+        """
         self._real = Engine(*args, **kwargs)
         self._q = callbacq
         self.branch = self._real.branch
         self.tick = self._real.tick
 
     def listen_to_lang(self):
+        """After calling this method, whenever the engine's language is
+        changed, a tuple will be put into my callback queue of the
+        form ``('language', v)``, where ``v`` is the new language.
+
+        """
         @self._real.string.lang_listener
         def dispatch_lang(mapping, v):
             self._q.put(
