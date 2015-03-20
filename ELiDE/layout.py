@@ -417,9 +417,9 @@ class ELiDELayout(FloatLayout):
             self.ids.dummything.dispatch('on_touch_down', touch)
             return
         if (
-                self.ids.boardview.collide_point(*touch.pos)
-                and not self.selection
-                and not self.selection_candidates
+                self.ids.boardview.collide_point(*touch.pos) and
+                not self.selection and
+                not self.selection_candidates
         ):
             # if the board itself handles the touch, let it be
             touch.push()
@@ -513,7 +513,8 @@ class ELiDELayout(FloatLayout):
                 if (
                     hasattr(self, 'protoportal2') and not (
                         orig.name in self.ids.board.character.preportal and
-                        dest.name in self.ids.board.character.preportal[orig.name]
+                        dest.name in
+                        self.ids.board.character.preportal[orig.name]
                     )
                 ):
                     deport = self.ids.board.character.new_portal(
@@ -526,7 +527,9 @@ class ELiDELayout(FloatLayout):
                             dest.name
                         )
                     )
-                    self.ids.board.add_widget(self.ids.board.make_arrow(deport))
+                    self.ids.board.add_widget(
+                        self.ids.board.make_arrow(deport)
+                    )
             except StopIteration:
                 pass
             self.ids.board.remove_widget(self.protoportal)
@@ -537,14 +540,6 @@ class ELiDELayout(FloatLayout):
             del self.protoportal
             del self.protodest
             touch.pop()
-        Logger.debug(
-            'ELiDELayout: Touch pos {}. {havesel}{havecandid}{keepsel}'.format(
-                touch.pos,
-                havesel='Have selection. ' if self.selection else '',
-                havecandid='Have selection candidates. ' if self.selection_candidates else '',
-                keepsel='Keeping selection. ' if self.keep_selection else ''
-            )
-        )
         if not self.keep_selection and hasattr(self.selection, 'on_touch_up'):
             self.selection.dispatch('on_touch_up', touch)
         if self.ids.timemenu.collide_point(*touch.pos):
@@ -570,8 +565,8 @@ class ELiDELayout(FloatLayout):
                     self.selection = candidate
                     self.selection.selected = True
                     if (
-                            hasattr(self.selection, 'thing')
-                            and not hasattr(self.selection, '_start')
+                            hasattr(self.selection, 'thing') and not
+                            hasattr(self.selection, '_start')
                     ):
                         self.selection._start = tuple(self.selection.pos)
                     self.keep_selection = True
