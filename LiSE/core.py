@@ -431,7 +431,7 @@ class Engine(object):
         self._character_proxy_sigs = []
         self.db = self.gorm.db
         code_qe = QueryEngine(
-            self.codedb, connect_args={}, alchemy=False
+            self.codedb, connect_args={}, alchemy=alchemy
         )
         self.string = StringStore(code_qe)
         self.rulebook = AllRuleBooks(self, code_qe)
