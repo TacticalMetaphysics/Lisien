@@ -1,3 +1,5 @@
+# This file is part of LiSE, a framework for life simulation games.
+# Copyright (C) 2013-2014 Zachary Spector, ZacharySpector@gmail.com
 from functools import partial
 from kivy.properties import (
     AliasProperty,
@@ -156,6 +158,7 @@ class ELiDELayout(FloatLayout):
             layout=self,
             set_char=select_character
         )
+        Logger.debug('ELiDELayout: got _charlist')
         self._charbox = BoxLayout(orientation='vertical')
         self._charbox.add_widget(self._charlist)
         below_charbox = BoxLayout(size_hint_y=0.05)
