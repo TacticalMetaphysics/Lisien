@@ -95,7 +95,12 @@ class ELiDELayout(FloatLayout):
         engine's.
 
         """
-        if self.engine is None or 'board' not in self.ids:
+        if self.engine is None:
+            Logger.debug('ELiDELayout.on_engine: no engine')
+            return
+        if 'board' not in self.ids:
+            Clock.schedule_once(self.on_engine, 0)
+            Logger.debug('ELiDELayout.on_engine: no board')
             return
         self.engine.on_time(self.ids.board._trigger_update)
         self._strings_ed_window = StringsEdWindow(layout=self)
