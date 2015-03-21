@@ -48,7 +48,7 @@
             remote: root.selected_remote
             size_hint_y: 0.95
             time: root.time
-            set_value: lambda k, v: root.set_remote_value(self.remote, k, v)
+            set_value: root.remote_setter(root.selected_remote)
         Button:
             id: cfgstatbut
             size_hint_y: 0.07

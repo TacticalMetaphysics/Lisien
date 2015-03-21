@@ -31,17 +31,6 @@ from .charsel import CharListView
 from gorm.xjson import json_load
 
 
-def try_json_load(obj):
-    """Attempt to interpret the argument as JSON. If this fails, return
-    the object.
-
-    """
-    try:
-        return json_load(obj)
-    except (TypeError, ValueError):
-        return obj
-
-
 class ELiDELayout(FloatLayout):
     """A master layout that contains one board and some menus
     and charsheets.
@@ -239,11 +228,24 @@ class ELiDELayout(FloatLayout):
             )
             self._popover.open()
 
-    def set_remote_value(self, remote, k, v):
-        if v is None:
-            del remote[k]
-        else:
-            remote[k] = try_json_load(v)
+    def remote_setter(self, remote):
+        """Return a function taking two arguments, ``k`` and ``v``, which sets
+        ``remote[k] = v``, interpreting ``v`` as JSON if possible, or
+        deleting ``remote[k]`` if ``v is None``.
+
+        """
+        def try_json_load(obj):
+            try:
+                return json_load(obj)
+            except (TypeError, ValueError):
+                return obj
+
+        def set_remote_value(remote, k, v):
+            if v is None:
+                del remote[k]
+            else:
+                remote[k] = try_json_load(v)
+        return lambda k, v: set_remote_value(remote, k, v)
 
     def toggle_stat_cfg(self, *args):
         if hasattr(self, '_popover'):
@@ -252,24 +254,22 @@ class ELiDELayout(FloatLayout):
             del self._popover
         else:
             self._stat_cfg.remote = self.selected_remote
-            self._stat_cfg.set_value = lambda k, v: self.set_remote_value(
-                self.ids.charsheet.remote, k, v
+            self._stat_cfg.set_value = self.remote_setter(
+                self.ids.charsheet.remote
             )
             self._popover = ModalView()
             self._popover.add_widget(self._stat_cfg_layout)
             self._popover.open()
 
     def reremote(self, *args):
-        if 'charsheet' not in self.ids:
+        if self.character is None or 'charsheet' not in self.ids:
             Clock.schedule_once(self.reremote, 0)
             return
         self.selected_remote = self._get_selected_remote()
 
     def _get_selected_remote(self):
         Logger.debug('ELiDELayout: getting remote...')
-        if self.character is None:
-            return {}
-        elif self.selection is None:
+        if self.selection is None:
             return self.character.stat
         elif hasattr(self.selection, 'remote'):
             return self.selection.remote
@@ -278,7 +278,10 @@ class ELiDELayout(FloatLayout):
             self.selection.portal is not None
         ):
             return self.selection.portal
-        return {}
+        else:
+            raise ValueError(
+                "Invalid selection: {}".format(repr(self.selection))
+            )
 
     def set_stat(self):
         key = self._newstatkey.text
