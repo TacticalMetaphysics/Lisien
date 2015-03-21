@@ -86,6 +86,7 @@ class ELiDEApp(App):
         return l
 
     def _check_stats(self, *args):
+        """Ask the engine to poll changes."""
         self.engine.poll_changes()
 
     def on_pause(self):
