@@ -13,6 +13,8 @@ from LiSE.proxy import EngineProcessManager
 import ELiDE
 import ELiDE.layout
 
+"""Object to configure, start, and stop ELiDE."""
+
 resource_add_path(ELiDE.__path__[0] + "/assets")
 resource_add_path(ELiDE.__path__[0] + "/assets/rltiles")
 

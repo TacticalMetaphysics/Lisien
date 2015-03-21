@@ -31,6 +31,12 @@ from .charsel import CharListView
 from gorm.xjson import json_load
 
 
+"""The base layout in which all of ELiDE lives. Handles touch in its
+special way and manages many :class:`ModalView`s.
+
+"""
+
+
 def try_json_load(obj):
     """Return the JSON interpretation the object if possible, or just the
     object otherwise.
@@ -185,6 +191,7 @@ class ELiDELayout(FloatLayout):
             Clock.schedule_once(self.ids.board.update, 0)
 
     def toggle_char_list(self, *args):
+        """Display or hide the list you use to switch between characters."""
         if hasattr(self, '_popover'):
             self._popover.remove_widget(self._charbox)
             self._popover.dismiss()
@@ -201,6 +208,7 @@ class ELiDELayout(FloatLayout):
             self._popover.open()
 
     def toggle_rules_view(self, *args):
+        """Display or hide the view for constructing rules out of cards."""
         if hasattr(self, '_popover'):
             self._popover.remove_widget(self._rulesbox)
             self._popover.dismiss()
@@ -215,6 +223,7 @@ class ELiDELayout(FloatLayout):
             self._popover.open()
 
     def toggle_funcs_editor(self, functyp):
+        """Display or hide the text editing window for functions."""
         if hasattr(self, '_popover'):
             self._popover.remove_widget(self._funcs_ed_window)
             self._popover.dismiss()
@@ -227,6 +236,7 @@ class ELiDELayout(FloatLayout):
             self._popover.open()
 
     def toggle_strings_editor(self):
+        """Display or hide the text editing window for strings."""
         if hasattr(self, '_popover'):
             self._popover.remove_widget(self._strings_ed_window)
             self._popover.dismiss()
@@ -253,6 +263,10 @@ class ELiDELayout(FloatLayout):
         return lambda k, v: set_remote_value(remote, k, v)
 
     def toggle_stat_cfg(self, *args):
+        """Display or hide the configurator where you decide how to display an
+        entity's stats, or add or delete stats.
+
+        """
         if hasattr(self, '_popover'):
             self._popover.remove_widget(self._stat_cfg_layout)
             self._popover.dismiss()
@@ -267,12 +281,20 @@ class ELiDELayout(FloatLayout):
             self._popover.open()
 
     def reremote(self, *args):
+        """Arrange to update my ``selected_remote`` with the currently
+        selected entity when I can.
+
+        """
         if self.character is None or 'charsheet' not in self.ids:
             Clock.schedule_once(self.reremote, 0)
             return
         self.selected_remote = self._get_selected_remote()
 
     def _get_selected_remote(self):
+        """Return the currently selected entity, or ``self.character.stat`` if
+        no entity is selected.
+
+        """
         Logger.debug('ELiDELayout: getting remote...')
         if self.selection is None:
             return self.character.stat
@@ -289,6 +311,11 @@ class ELiDELayout(FloatLayout):
             )
 
     def set_stat(self):
+        """Look at the key and value that the user has entered into the stat
+        configurator, and set them on the currently selected
+        entity.
+
+        """
         key = self._newstatkey.text
         value = self._newstatval.text
         if not (key and value):
@@ -300,6 +327,7 @@ class ELiDELayout(FloatLayout):
         self._newstatval.text = ''
 
     def delete_selection(self):
+        """Delete both the selected widget and whatever it represents."""
         if self.selection is None:
             return
         if isinstance(self.selection, Arrow):
@@ -718,7 +746,7 @@ class ELiDELayout(FloatLayout):
         self.tick = int(t)
 
     def play(self, *args):
-        """If I'm advancing time, advance a tick."""
+        """If the 'play' button is pressed, advance a tick."""
         if self.ids.playbut.state == 'normal':
             return
         if not hasattr(self, '_old_time'):
