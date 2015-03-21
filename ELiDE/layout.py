@@ -720,6 +720,6 @@ class ELiDELayout(FloatLayout):
             return
         else:
             del self._old_time
-            self.branch.dispatch()
-            self.tick.dispatch()
-            self.time.dispatch()
+            self.property('branch').dispatch(self)
+            self.property('tick').dispatch(self)
+            self.property('time').dispatch(self)
