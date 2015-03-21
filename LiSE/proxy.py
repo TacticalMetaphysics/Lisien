@@ -45,8 +45,15 @@ class EngineHandle(object):
         """
         self._real = Engine(*args, **kwargs)
         self._q = callbacq
+        self._muted_chars = set()
         self.branch = self._real.branch
         self.tick = self._real.tick
+
+    def mute_char(self, char):
+        self._muted_chars.add(char)
+
+    def unmute_char(self, char):
+        self._muted_chars.discard(char)
 
     def listen_to_lang(self):
         """After calling this method, whenever the engine's language is
@@ -147,6 +154,8 @@ class EngineHandle(object):
 
         @character.listener
         def put_stat(b, t, char, k, v):
+            if charn in self._muted_chars:
+                return
             if (b, t) == (self.branch, self.tick):
                 self._q.put(
                     (
@@ -159,6 +168,8 @@ class EngineHandle(object):
 
         @self._real.on_time
         def check_stats(oldb, oldt, newb, newt):
+            if charn in self._muted_chars:
+                return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
             olds = dict(character.stat)
@@ -180,6 +191,8 @@ class EngineHandle(object):
 
         @character.listener(stat=statn)
         def put_stat(b, t, char, k, v):
+            if charn in self._muted_chars:
+                return
             if (b, t) == (self.branch, self.tick):
                 self._q.put(
                     (
@@ -192,6 +205,8 @@ class EngineHandle(object):
 
         @self._real.on_time
         def check_stat(oldb, oldt, newb, newt):
+            if charn in self._muted_chars:
+                return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
             oldv = character.stat[statn]
@@ -213,6 +228,8 @@ class EngineHandle(object):
 
         @node.listener
         def put_stat(b, t, node, k, v):
+            if char in self._muted_chars:
+                return
             if (b, t) == (self.branch, self.tick):
                 self._q.put(
                     (
@@ -225,6 +242,8 @@ class EngineHandle(object):
 
         @self._real.on_time
         def check_stats(oldb, oldt, newb, newt):
+            if char in self._muted_chars:
+                return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
             olds = dict(node)
@@ -246,6 +265,8 @@ class EngineHandle(object):
 
         @char.thing.listener
         def put_thing(b, t, mapping, thingn, v):
+            if charn in self._muted_chars:
+                return
             if (b, t) != (self.branch, self.tick):
                 return
             self._q.put(('thing_extant', b, t, charn, thingn, v is not None))
@@ -253,6 +274,8 @@ class EngineHandle(object):
         @self._real.on_time
         def check_thing(oldb, oldt, newb, newt):
             if charn not in self._real.character:
+                return
+            if charn in self._muted_chars:
                 return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
@@ -274,6 +297,8 @@ class EngineHandle(object):
 
         @char.place.listener
         def put_place(b, t, mapping, placen, v):
+            if charn in self._muted_chars:
+                return
             if (b, t) != (self.branch, self.tick):
                 return
             self._q.put(('place_extant', b, t, charn, placen, v is not None))
@@ -281,6 +306,8 @@ class EngineHandle(object):
         @self._real.on_time
         def check_place(oldb, oldt, newb, newt):
             if charn not in self._real.character:
+                return
+            if charn in self._muted_chars:
                 return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
@@ -302,6 +329,8 @@ class EngineHandle(object):
 
         @node.listener(stat=statn)
         def put_stat(b, t, node, k, v):
+            if charn in self._muted_chars:
+                return
             if (b, t) == (self.branch, self.tick):
                 self._q.put(
                     (
@@ -314,6 +343,8 @@ class EngineHandle(object):
 
         @self._real.on_time
         def check_stat(oldb, oldt, newb, newt):
+            if charn in self._muted_chars:
+                return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
             oldv = node[statn]
@@ -335,6 +366,8 @@ class EngineHandle(object):
 
         @port.listener
         def put_stat(b, t, portal, k, v):
+            if char in self._muted_chars:
+                return
             if (b, t) == (self.branch, self.tick):
                 self._q.put(
                     (
@@ -347,6 +380,10 @@ class EngineHandle(object):
 
         @self._real.on_time
         def check_stats(oldb, oldt, newb, newt):
+            if char not in self._real.character:
+                return
+            if char in self._muted_chars:
+                return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
             olds = dict(port)
@@ -368,6 +405,8 @@ class EngineHandle(object):
 
         @char.portal.listener
         def put_port(b, t, mapping, onode, dnode, port):
+            if charn in self._muted_chars:
+                return
             if (b, t) != (self.branch, self.tick):
                 return
             o = onode.name
@@ -379,6 +418,8 @@ class EngineHandle(object):
         @self._real.on_time
         def check_ports(oldb, oldt, newb, newt):
             if charn not in self._real.character:
+                return
+            if charn in self._muted_chars:
                 return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
@@ -450,17 +491,25 @@ class EngineHandle(object):
 
         @port.listener(stat=statn)
         def put_stat(b, t, portal, k, v):
-                self._q.put(
-                    (
-                        'portal',
-                        b, t,
-                        charn, a, b,
-                        statn, self.get_portal_stat(charn, a, b, statn)
-                    )
+            if charn in self._muted_chars:
+                return
+            if (b, t) != (self.branch, self.tick):
+                return
+            self._q.put(
+                (
+                    'portal',
+                    b, t,
+                    charn, a, b,
+                    statn, self.get_portal_stat(charn, a, b, statn)
                 )
+            )
 
         @self._real.on_time
         def check_stat(oldb, oldt, newb, newt):
+            if charn not in self._real.character:
+                return
+            if charn in self._muted_chars:
+                return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
             oldv = port[statn]
@@ -1909,6 +1958,12 @@ class CharacterProxy(MutableMapping):
     def facade(self):
         return Facade(self)
 
+    def mute(self):
+        self._engine.mute_character(self.name)
+
+    def unmute(self):
+        self._engine.unmute_character(self.name)
+
 
 class CharacterMapProxy(MutableMapping):
     def __init__(self, engine_proxy):
@@ -2476,6 +2531,12 @@ class EngineProxy(object):
 
     def del_character(self, name):
         self.handle('del_character', (name,))
+
+    def mute_character(self, name):
+        self.handle('mute_char', (name,), silent=True)
+
+    def unmute_character(self, name):
+        self.handle('unmute_char', (name,), silent=True)
 
     def commit(self):
         self.handle('commit')
