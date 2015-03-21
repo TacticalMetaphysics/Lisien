@@ -31,6 +31,17 @@ from .charsel import CharListView
 from gorm.xjson import json_load
 
 
+def try_json_load(obj):
+    """Return the JSON interpretation the object if possible, or just the
+    object otherwise.
+
+    """
+    try:
+        return json_load(obj)
+    except (TypeError, ValueError):
+        return obj
+
+
 class ELiDELayout(FloatLayout):
     """A master layout that contains one board and some menus
     and charsheets.
@@ -234,12 +245,6 @@ class ELiDELayout(FloatLayout):
         deleting ``remote[k]`` if ``v is None``.
 
         """
-        def try_json_load(obj):
-            try:
-                return json_load(obj)
-            except (TypeError, ValueError):
-                return obj
-
         def set_remote_value(remote, k, v):
             if v is None:
                 del remote[k]
@@ -290,7 +295,7 @@ class ELiDELayout(FloatLayout):
             # TODO implement some feedback to the effect that
             # you need to enter things
             return
-        self.ids.charsheet.remote[key] = value
+        self.ids.charsheet.remote[key] = try_json_load(value)
         self._newstatkey.text = ''
         self._newstatval.text = ''
 
