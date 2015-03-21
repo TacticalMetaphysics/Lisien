@@ -69,13 +69,8 @@ class ELiDEApp(App):
             config['LiSE']['world'],
             config['LiSE']['code']
         )
-        self.do_check_stats = True
 
-        def check_stats(*args):
-            if self.do_check_stats:
-                self.engine.poll_changes()
-
-        Clock.schedule_interval(check_stats, 0.01)
+        Clock.schedule_interval(self._check_stats, 0.01)
         for char in config['ELiDE']['boardchar'], config['ELiDE']['sheetchar']:
             if char not in self.engine.character:
                 print("adding character: {}".format(char))
@@ -90,13 +85,16 @@ class ELiDEApp(App):
             inspector.create_inspector(Window, l)
         return l
 
+    def _check_stats(self, *args):
+        self.engine.poll_changes()
+
     def on_pause(self):
         """Sync the database with the current state of the game."""
         self.engine.commit()
 
     def on_stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
-        self.do_check_stats = False
+        Clock.unschedule(self._check_stats)
         self.manager.shutdown()
 
 
