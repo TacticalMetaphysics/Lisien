@@ -57,7 +57,7 @@ class EngineHandle(object):
 
     def listen_to_lang(self):
         """After calling this method, whenever the engine's language is
-        changed, a tuple will be put into my callback queue of the
+        changed, a tuple will be put into my queue of the
         form ``('language', v)``, where ``v`` is the new language.
 
         """
@@ -69,7 +69,7 @@ class EngineHandle(object):
 
     def listen_to_strings(self):
         """After calling this method, whenever a string is set or
-        deleted, a tuple will be put into my callback queue of the
+        deleted, a tuple will be put into my queue of the
         form ``('string', k, v)``, where ``k`` is the string's
         identifier and ``v`` is the string (or ``None`` if deleted).
 
@@ -80,7 +80,7 @@ class EngineHandle(object):
 
     def listen_to_string(self, k):
         """After calling this method, whenever a string named ``k`` is set or
-        deleted, a tuple will be put into my callback queue of the
+        deleted, a tuple will be put into my queue of the
         form ``('string', k, v)``, where ``k`` is the same as you
         called this method with, and ``v`` is the string (or ``None``
         if deleted).
@@ -93,7 +93,7 @@ class EngineHandle(object):
     def listen_to_universals(self):
         """After calling this method, whenever a universal (ie. "global," but
         sensitive to sim-time) variable appears to change from the
-        host's perspective, a tuple will be put into my callback queue
+        host's perspective, a tuple will be put into my queue
         of the form ``('universal`, branch, tick, key, value)``, where
         ``(branch, tick)`` is the sim-time of the apparent change. If ``key``
         was deleted, ``value`` will be ``None``.
@@ -119,7 +119,7 @@ class EngineHandle(object):
     def listen_to_universal(self, k):
         """After calling this method, whenever the given universal key appears
         to change its value from the host's perspective, a tuple will
-        be put into my callback queue of the form ``('universal',
+        be put into my queue of the form ``('universal',
         branch, tick, key, value)``, where ``(branch, tick)`` is the
         sim-time of the apparent change. If ``key`` was deleted,
         ``value`` will be ``None``.
