@@ -192,6 +192,9 @@ class Pawn(PawnSpot):
                 new_spot = spot
                 break
         else:
+            parent = self.parent
+            parent.remove_widget(self)
+            parent.add_widget(self)
             return True
 
         myplace = self.loc_name

@@ -584,7 +584,7 @@ class ELiDELayout(FloatLayout):
             del self.protoportal
             del self.protodest
             touch.pop()
-        if not self.keep_selection and hasattr(self.selection, 'on_touch_up'):
+        if hasattr(self.selection, 'on_touch_up'):
             self.selection.dispatch('on_touch_up', touch)
         if self.ids.timemenu.collide_point(*touch.pos):
             self.ids.timemenu.dispatch('on_touch_up', touch)
