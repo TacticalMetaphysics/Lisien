@@ -23,10 +23,21 @@ from kivy.uix.image import Image
 from kivy.uix.widget import Widget
 
 
+"""Widget that looks like a trading card, and a layout within which it
+can be dragged and dropped to some particular position within stacks
+of other cards.
+
+"""
+
+
 dbg = Logger.debug
 
 
 def get_pos_hint_x(poshints, sizehintx):
+    """Return ``poshints['x']`` if available, or its computed equivalent
+    otherwise.
+
+    """
     if 'x' in poshints:
         return poshints['x']
     elif sizehintx is not None:
@@ -43,6 +54,10 @@ def get_pos_hint_x(poshints, sizehintx):
 
 
 def get_pos_hint_y(poshints, sizehinty):
+    """Return ``poshints['y']`` if available, or its computed equivalent
+    otherwise.
+
+    """
     if 'y' in poshints:
         return poshints['y']
     elif sizehinty is not None:
@@ -59,6 +74,12 @@ def get_pos_hint_y(poshints, sizehinty):
 
 
 def get_pos_hint(poshints, sizehintx, sizehinty):
+    """Return a tuple of ``(pos_hint_x, pos_hint_y)`` even if neither of
+    those keys are present in the provided ``poshints`` -- they can be
+    computed using the available keys together with ``size_hint_x``
+    and ``size_hint_y``.
+
+    """
     return (
         get_pos_hint_x(poshints, sizehintx),
         get_pos_hint_y(poshints, sizehinty)
@@ -66,12 +87,44 @@ def get_pos_hint(poshints, sizehintx, sizehinty):
 
 
 class ColorTextureBox(Widget):
+    """A box, with a background of one solid color, an outline of another
+    color, and possibly a texture covering the background.
+
+    """
     color = ListProperty([1, 1, 1, 1])
     outline_color = ListProperty([0, 0, 0, 0])
     texture = ObjectProperty(None, allownone=True)
 
 
 class Card(FloatLayout):
+    """A trading card, similar to the kind you use to play games like
+    _Magic: the Gathering_.
+
+    Its appearance is determined by several properties, the most
+    important being:
+
+    * ``headline_text``, a string to be shown at the top of the card;
+      may be styled with eg. ``headline_font_name`` or
+      ``headline_color``
+
+    * ``art_source``, the path to an image to be displayed below the
+      headline; may be hidden by setting ``show_art`` to ``False``
+
+    * ``midline_text``, similar to ``headline_text`` but appearing
+      below the art
+
+    * ``text``, shown in a box the same size as the art. Styleable
+      like ``headline_text`` and you can customize the box with
+      eg. ``foreground_color`` and ``foreground_source``
+
+    * ``footer_text``, like ``headline_text`` but at the bottom
+
+    :class:`Card` is particularly useful when put in a
+    :class:`DeckLayout`, allowing the user to drag cards in between
+    any number of piles, into particular positions within a particular
+    pile, and so forth.
+
+    """
     dragging = BooleanProperty(False)
     deck = NumericProperty()
     idx = NumericProperty()
@@ -132,30 +185,59 @@ class Card(FloatLayout):
     font_size = NumericProperty(12)
 
     def on_background_source(self, *args):
+        """When I get a new ``background_source``, load it as an
+        :class:`Image` and store that in ``background_image``.
+
+        """
         if self.background_source:
             self.background_image = Image(source=self.background_source)
 
     def on_background_image(self, *args):
+        """When I get a new ``background_image``, store its texture in
+        ``background_texture``.
+
+        """
         if self.background_image is not None:
             self.background_texture = self.background_image.texture
 
     def on_foreground_source(self, *args):
+        """When I get a new ``foreground_source``, load it as an
+        :class:`Image` and store that in ``foreground_image``.
+
+        """
         if self.foreground_source:
             self.foreground_image = Image(source=self.foreground_source)
 
     def on_foreground_image(self, *args):
+        """When I get a new ``foreground_image``, store its texture in my
+        ``foreground_texture``.
+
+        """
         if self.foreground_image is not None:
             self.foreground_texture = self.foreground_image.texture
 
     def on_art_source(self, *args):
+        """When I get a new ``art_source``, load it as an :class:`Image` and
+        store that in ``art_image``.
+
+        """
         if self.art_source:
             self.art_image = Image(source=self.art_source)
 
     def on_art_image(self, *args):
+        """When I get a new ``art_image``, store its texture in
+        ``art_texture``.
+
+        """
         if self.art_image is not None:
             self.art_texture = self.art_image.texture
 
     def on_touch_down(self, touch):
+        """If I'm the first card to collide this touch, grab it, store my
+        metadata in its userdict, and store the relative coords upon
+        me where the collision happened.
+
+        """
         if not self.collide_point(*touch.pos):
             return
         if 'card' in touch.ud:
@@ -170,6 +252,10 @@ class Card(FloatLayout):
         self.collide_y = touch.y - self.y
 
     def on_touch_move(self, touch):
+        """If I'm being dragged, move so as to be always positioned the same
+        relative to the touch.
+
+        """
         if not self.dragging:
             touch.ungrab(self)
             return
@@ -179,12 +265,14 @@ class Card(FloatLayout):
         )
 
     def on_touch_up(self, touch):
+        """Stop dragging if needed."""
         if not self.dragging:
             return
         touch.ungrab(self)
         self.dragging = False
 
     def copy(self):
+        """Return a new :class:`Card` just like me."""
         d = {}
         for att in (
                 'deck',
@@ -235,13 +323,24 @@ class Card(FloatLayout):
 
 
 class Foundation(ColorTextureBox):
+    """An empty outline to indicate where a deck is when there are no
+    cards in it.
+
+    """
     color = ListProperty([])
+    """Color of the outline"""
     deck = NumericProperty(0)
+    """Index of the deck in the parent :class:`DeckLayout`"""
 
     def upd_pos(self, *args):
+        """Ask the foundation where I should be, based on what deck I'm
+        for.
+
+        """
         self.pos = self.parent._get_foundation_pos(self.deck)
 
     def upd_size(self, *args):
+        """I'm the same size as any given card in my :class:`DeckLayout`."""
         self.size = (
             self.parent.card_size_hint_x * self.parent.width,
             self.parent.card_size_hint_y * self.parent.height
@@ -249,28 +348,79 @@ class Foundation(ColorTextureBox):
 
 
 class DeckBuilderLayout(Layout):
+    """Sizes and positions :class:`Card` objects based on their order
+    within ``decks``, a list of lists where each sublist is a deck of
+    cards.
+
+    """
     direction = OptionProperty(
         'ascending', options=['ascending', 'descending']
     )
+    """Should the beginning card of each deck appear on the bottom
+    ('ascending'), or the top ('descending')?
+
+    """
     card_size_hint_x = BoundedNumericProperty(1, min=0, max=1)
+    """Each card's width, expressed as a proportion of my width."""
     card_size_hint_y = BoundedNumericProperty(1, min=0, max=1)
+    """Each card's height, expressed as a proportion of my height."""
     card_size_hint = ReferenceListProperty(card_size_hint_x, card_size_hint_y)
+    """Size hint of cards, relative to my size."""
     starting_pos_hint = DictProperty({'x': 0, 'y': 0})
+    """Pos hint at which to place the initial card of the initial deck."""
     card_x_hint_step = NumericProperty(0)
+    """Each time I put another card on a deck, I'll move it this much of
+    my width to the right of the previous card.
+
+    """
     card_y_hint_step = NumericProperty(-1)
+    """Each time I put another card on a deck, I'll move it this much of
+    my height above the previous card.
+
+    """
     card_hint_step = ReferenceListProperty(card_x_hint_step, card_y_hint_step)
+    """An offset, expressed in proportion to my size, applied to each
+    successive card in a given deck.
+
+    """
     deck_x_hint_step = NumericProperty(1)
+    """When I start a new deck, it will be this far to the right of the
+    previous deck, expressed as a proportion of my width.
+
+    """
     deck_y_hint_step = NumericProperty(0)
+    """When I start a new deck, it will be this far above the previous
+    deck, expressed as a proportion of my height.
+
+    """
     deck_hint_step = ReferenceListProperty(deck_x_hint_step, deck_y_hint_step)
+    """Offset of each deck with respect to the previous, as a proportion
+    of my size.
+
+    """
     decks = ListProperty([[]])  # list of lists of cards
-    _foundations = ListProperty([])
+    """Put a list of lists of :class:`Card` objects here and I'll position
+    them appropriately. Please don't use ``add_widget``.
+
+    """
     deck_x_hint_offsets = ListProperty([])
+    """An additional proportional x-offset for each deck, defaulting to 0."""
     deck_y_hint_offsets = ListProperty([])
+    """An additional proportional y-offset for each deck, defaulting to 0."""
     foundation_color = ListProperty([1, 1, 1, 1])
+    """Color to use for the outline showing where a deck is when it's
+    empty.
+
+    """
     insertion_deck = BoundedNumericProperty(None, min=0, allownone=True)
+    """Index of the deck that a card is being dragged into."""
     insertion_card = BoundedNumericProperty(None, min=0, allownone=True)
+    """Index within the current deck that a card is being dragged into."""
+    _foundations = ListProperty([])
+    """Private. A list of :class:`Foundation` widgets, one per deck."""
 
     def __init__(self, **kwargs):
+        """Bind most of my custom properties to ``_trigger_layout``."""
         super().__init__(**kwargs)
         self.bind(
             card_size_hint=self._trigger_layout,
@@ -285,6 +435,7 @@ class DeckBuilderLayout(Layout):
         )
 
     def scroll_deck_x(self, decknum, scroll_x):
+        """Move a deck left or right."""
         if decknum >= len(self.decks):
             raise IndexError("I have no deck at {}".format(decknum))
         if decknum >= len(self.deck_x_hint_offsets):
@@ -295,6 +446,7 @@ class DeckBuilderLayout(Layout):
         self._trigger_layout()
 
     def scroll_deck_y(self, decknum, scroll_y):
+        """Move a deck up or down."""
         if decknum >= len(self.decks):
             raise IndexError("I have no deck at {}".format(decknum))
         if decknum >= len(self.deck_y_hint_offsets):
@@ -305,10 +457,17 @@ class DeckBuilderLayout(Layout):
         self._trigger_layout()
 
     def scroll_deck(self, decknum, scroll_x, scroll_y):
+        """Move a deck."""
         self.scroll_deck_x(decknum, scroll_x)
         self.scroll_deck_y(decknum, scroll_y)
 
     def _get_foundation_pos(self, i):
+        """Private. Get the absolute coordinates to use for a deck's
+        foundation, based on the ``starting_pos_hint``, the
+        ``deck_hint_step``, ``deck_x_hint_offsets``, and
+        ``deck_y_hint_offsets``.
+
+        """
         (phx, phy) = get_pos_hint(
             self.starting_pos_hint, *self.card_size_hint
         )
@@ -319,6 +478,10 @@ class DeckBuilderLayout(Layout):
         return (x, y)
 
     def _get_foundation(self, i):
+        """Return a :class:`Foundation` for some deck, creating it if
+        needed.
+
+        """
         if i >= len(self._foundations) or self._foundations[i] is None:
             oldfound = list(self._foundations)
             extend = i - len(oldfound) + 1
@@ -346,6 +509,11 @@ class DeckBuilderLayout(Layout):
         return self._foundations[i]
 
     def on_decks(self, *args):
+        """Inform the cards of their deck and their index within the deck;
+        extend the ``_hint_offsets`` properties as needed; and trigger
+        a layout.
+
+        """
         if None in (
                 self.canvas,
                 self.decks,
@@ -379,6 +547,14 @@ class DeckBuilderLayout(Layout):
         self._trigger_layout()
 
     def point_before_card(self, card, x, y):
+        """Return whether ``(x, y)`` is somewhere before ``card``, given how I
+        know cards to be arranged.
+
+        If the cards are being stacked down and to the right, that
+        means I'm testing whether ``(x, y)`` is above or to the left
+        of the card.
+
+        """
         def ycmp():
             if self.card_y_hint_step == 0:
                 return False
@@ -402,6 +578,14 @@ class DeckBuilderLayout(Layout):
             return ycmp()
 
     def point_after_card(self, card, x, y):
+        """Return whether ``(x, y)`` is somewhere after ``card``, given how I
+        know cards to be arranged.
+
+        If the cards are being stacked down and to the right, that
+        means I'm testing whether ``(x, y)`` is below or to the left
+        of ``card``.
+
+        """
         def ycmp():
             if self.card_y_hint_step == 0:
                 return False
@@ -425,6 +609,10 @@ class DeckBuilderLayout(Layout):
             return ycmp()
 
     def on_touch_move(self, touch):
+        """If a card is being dragged, move other cards out of the way to show
+        where the dragged card will go if you drop it.
+
+        """
         if (
                 'card' not in touch.ud or
                 'layout' not in touch.ud or
@@ -495,6 +683,10 @@ class DeckBuilderLayout(Layout):
             i += 1
 
     def on_touch_up(self, touch):
+        """If a card is being dragged, put it in the place it was just dropped
+        and trigger a layout.
+
+        """
         if (
                 'card' not in touch.ud or
                 'layout' not in touch.ud or
@@ -522,16 +714,22 @@ class DeckBuilderLayout(Layout):
         self._trigger_layout()
 
     def on_insertion_card(self, *args):
+        """Trigger a layout"""
         if self.insertion_card is not None:
             self._trigger_layout()
 
     def do_layout(self, *args):
+        """Layout each of my decks"""
         if self.size == [1, 1]:
             return
         for i in range(0, len(self.decks)):
             self.layout_deck(i)
 
     def layout_deck(self, i):
+        """Stack the cards, starting at my deck's foundation, and proceeding
+        by ``card_pos_hint``
+
+        """
         def get_dragidx(cards):
             j = 0
             for card in cards:
@@ -580,11 +778,20 @@ class DeckBuilderLayout(Layout):
 
 
 class DeckBuilderView(DeckBuilderLayout, StencilView):
+    """Just a :class:`DeckBuilderLayout` mixed with
+    :class:`StencilView`.
+
+    """
     pass
 
 
 class ScrollBarBar(ColorTextureBox):
+    """Tiny tweak to :class:`ColorTextureBox` to make it work within
+    :class:`DeckBuilderScrollBar`
+
+    """
     def on_touch_down(self, touch):
+        """Tell my parent if I've been touched"""
         if self.parent is None:
             return
         if self.collide_point(*touch.pos):
@@ -592,26 +799,57 @@ class ScrollBarBar(ColorTextureBox):
 
 
 def dist(x1, x2):
+    """Convenience function for computing the distance between two
+    numbers.
+
+    """
     return x1 - x2 if x1 > x2 else x2 - x1
 
 
 class DeckBuilderScrollBar(FloatLayout):
+    """A widget that looks a lot like one of the scrollbars on the sides
+    of eg. :class:`kivy.uix.ScrollView`, which moves a single deck
+    within a :class:`DeckBuilderLayout`.
+
+    """
     orientation = OptionProperty(
         'vertical',
         options=['horizontal', 'vertical']
     )
+    """Which way to scroll? Options are 'horizontal' and 'vertical'."""
     deckbuilder = ObjectProperty()
+    """The :class:`DeckBuilderLayout` of the deck to scroll."""
     deckidx = NumericProperty(0)
+    """The index of the deck to scroll, within its
+    :class:`DeckBuilderLayout`'s ``decks`` property.
+
+    """
     scrolling = BooleanProperty(False)
+    """Has the user grabbed me?"""
     scroll_min = NumericProperty(-1)
+    """How far left (if horizontal) or down (if vertical) I can move my
+    deck, expressed as a proportion of the
+    :class:`DeckBuilderLayout`'s width or height, respectively.
+
+    """
     scroll_max = NumericProperty(1)
+    """How far right (if horizontal) or up (if vertical) I can move my
+    deck, expressed as a proportion of the
+    :class:`DeckBuilderLayout`'s width or height, respectively.
+
+    """
 
     scroll_hint = AliasProperty(
         lambda self: dist(self.scroll_max, self.scroll_min),
         lambda self, v: None,
         bind=('scroll_min', 'scroll_max')
     )
+    """The distance between ``scroll_max`` and ``scroll_min``."""
     _scroll = NumericProperty(0)
+    """Private. The current adjustment to the deck's ``pos_hint_x`` or
+    ``pos_hint_y``.
+
+    """
 
     def _get_scroll(self):
         zero = self._scroll - self.scroll_min
@@ -630,6 +868,10 @@ class DeckBuilderScrollBar(FloatLayout):
         _set_scroll,
         bind=('_scroll', 'scroll_min', 'scroll_max')
     )
+    """A number between 0 and 1 representing how far beyond ``scroll_min``
+    toward ``scroll_max`` I am presently scrolled.
+
+    """
 
     def _get_vbar(self):
         if self.deckbuilder is None:
@@ -647,6 +889,7 @@ class DeckBuilderScrollBar(FloatLayout):
         None,
         bind=('_scroll', 'scroll_min', 'scroll_max')
     )
+    """A tuple of ``(y, height)`` for my scroll bar, if it's vertical."""
 
     def _get_hbar(self):
         if self.deckbuilder is None:
@@ -665,11 +908,19 @@ class DeckBuilderScrollBar(FloatLayout):
         None,
         bind=('_scroll', 'scroll_min', 'scroll_max')
     )
+    """A tuple of ``(x, width)`` for my scroll bar, if it's horizontal."""
     bar_color = ListProperty([.7, .7, .7, .9])
+    """Color to use for the scroll bar when scrolling. RGBA format."""
     bar_inactive_color = ListProperty([.7, .7, .7, .2])
+    """Color to use for the scroll bar when not scrolling. RGBA format."""
     bar_texture = ObjectProperty(None, allownone=True)
+    """Texture for the scroll bar, normally ``None``."""
 
     def __init__(self, **kwargs):
+        """Arrange to be laid out whenever I'm scrolled or the range of my
+        scrolling changes.
+
+        """
         super().__init__(**kwargs)
         self.bind(
             _scroll=self._trigger_layout,
@@ -678,6 +929,10 @@ class DeckBuilderScrollBar(FloatLayout):
         )
 
     def do_layout(self, *args):
+        """Put the bar where it's supposed to be, and size it in proportion to
+        the size of the scrollable area.
+
+        """
         if 'bar' not in self.ids:
             Clock.schedule_once(self.do_layout)
             return
@@ -690,12 +945,20 @@ class DeckBuilderScrollBar(FloatLayout):
         super().do_layout(*args)
 
     def upd_scroll(self, *args):
+        """Update my own ``scroll`` property to where my deck is actually
+        scrolled.
+
+        """
         att = 'deck_{}_hint_offsets'.format(
             'x' if self.orientation == 'horizontal' else 'y'
         )
         self._scroll = getattr(self.deckbuilder, att)[self.deckidx]
 
     def on_deckbuilder(self, *args):
+        """Bind my deckbuilder to update my ``scroll``, and my ``scroll`` to
+        update my deckbuilder.
+
+        """
         if self.deckbuilder is None:
             return
         att = 'deck_{}_hint_offsets'.format(
@@ -711,6 +974,10 @@ class DeckBuilderScrollBar(FloatLayout):
         self.deckbuilder._trigger_layout()
 
     def handle_scroll(self, *args):
+        """When my ``scroll`` changes, tell my deckbuilder how it's scrolled
+        now.
+
+        """
         if 'bar' not in self.ids:
             Clock.schedule_once(self.handle_scroll, 0)
             return
@@ -726,6 +993,7 @@ class DeckBuilderScrollBar(FloatLayout):
         self.deckbuilder._trigger_layout()
 
     def bar_touched(self, bar, touch):
+        """Start scrolling, and record where I started scrolling."""
         self.scrolling = True
         self._start_bar_pos_hint = get_pos_hint(bar.pos_hint, *bar.size_hint)
         self._start_touch_pos_hint = (
@@ -739,6 +1007,10 @@ class DeckBuilderScrollBar(FloatLayout):
         touch.grab(self)
 
     def on_touch_move(self, touch):
+        """Move the scrollbar to the touch, and update my ``scroll``
+        accordingly.
+
+        """
         if not self.scrolling or 'bar' not in self.ids:
             touch.ungrab(self)
             return
@@ -756,6 +1028,7 @@ class DeckBuilderScrollBar(FloatLayout):
         touch.pop()
 
     def on_touch_up(self, touch):
+        """Stop scrolling."""
         self.scrolling = False
 
 kv = """
