@@ -175,7 +175,7 @@ class Pawn(PawnSpot):
     def on_touch_up(self, touch):
         """See if I've been dropped on a :class:`Spot`. If so, command the
         underlying :class:`Thing` to either travel there or teleport
-        there.
+        there. Otherwise, snap back to my present location.
 
         """
         if not self.selected:

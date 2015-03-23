@@ -54,6 +54,10 @@ strtyps = (
 
 
 def tables_for_meta(meta):
+    """Return a dictionary full of all the tables I need for LiSE. Use the
+    provided metadata object.
+
+    """
     def handled_table(prefix):
         name = "{}_rules_handled".format(prefix)
         return Table(
@@ -71,6 +75,10 @@ def tables_for_meta(meta):
                 ]
             )
         )
+        """Table to keep track of rules that have already been handled at some
+        sim-time.
+
+        """
 
     def string_store_table(name):
         return Table(
@@ -82,6 +90,7 @@ def tables_for_meta(meta):
             Column('description', TEXT, nullable=True),
             Column('string', TEXT)
         )
+        """Table to store strings, possibly for display to the player."""
 
     def func_store_table(name):
         return Table(
@@ -95,6 +104,11 @@ def tables_for_meta(meta):
             Column('plaincode', TEXT, nullable=True),
             Column('version', Integer, nullable=True),
         )
+        """Table to store functions, both source code and bytecode.
+
+        Might perform something like version control later.
+
+        """
 
     r = gorm.alchemy.tables_for_meta(meta)
 
@@ -317,6 +331,54 @@ def tables_for_meta(meta):
         )
     ):
         r[tab.name] = tab
+
+    r['lise_globals'].__doc__ = """Table for global (not sim-time-sensitive) variables.
+
+"""
+    r['rules'].__doc__ = """Table listing the actions, prereqs, and triggers that make up each
+rule.
+
+Lists are JSON encoded strings of function names. The functions
+themselves may be stored in a different database, or in a plain Python
+dictionary, or some other key-value store.
+
+"""
+    r['rulebooks'].__doc__ = """Table grouping rules into lists called rulebooks.
+
+    """
+    r['active_rules'].__doc__ = """Rules within a given rulebook that are active at a particular
+``(branch, tick)``.
+
+"""
+    r['characters'].__doc__ = """The top level of the LiSE world model, the character. Includes
+rulebooks for the character itself, its avatars, and the things,
+places, and portals it contains.
+
+"""
+    r['thing_rules_handled'].__doc__ = """Rules handled within the rulebook associated with one thing in
+particular.
+
+"""
+    r['place_rules_handled'].__doc__ = """Rules handled within the rulebook associated with one place in
+particular.
+
+"""
+    r['portal_rules_handled'].__doc__ = """Rules handled within the rulebook associated with one portal in
+particular.
+
+"""
+    r['senses'].__doc__ = """The function to use for a given sense.
+
+Characters use senses to look at other characters. To model this,
+sense functions are called with a facade representing the character
+under observation; the function munges this facade to make it look as
+it does through the sense in question, and returns that.
+
+Just which function to use for a given sense may change over time, and
+a sense might not be usable all the time, in which case the 'active'
+field will be ``False``.
+
+"""
 
     return r
 
