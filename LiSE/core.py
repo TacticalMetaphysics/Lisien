@@ -518,12 +518,16 @@ class Engine(object):
         """Return True or False with equal probability."""
         return self.choice((True, False))
 
+    def roll_die(self, d):
+        """Roll a die with ``d`` faces. Return the result."""
+        return self.randint(1, d)
+
     def dice(self, n, d):
         """Roll ``n`` dice with ``d`` faces, and yield the results.
 
         """
         for i in range(0, n):
-            yield self.randint(1, d)
+            yield self.roll_die(d)
 
     def dice_check(self, n, d, target, comparator=lambda x, y: x <= y):
         """Roll ``n`` dice with ``d`` sides, sum them, and return whether they
