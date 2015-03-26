@@ -422,14 +422,6 @@ class Engine(object):
             query_engine_class=QueryEngine
         )
         self._time_listeners = []
-        self._on_node_stat = []
-        self._on_thing_loc = []
-        self._on_thing_next_loc = []
-        self._on_portal_stat = []
-        self._on_char_stat = []
-        self._node_proxy_sigs = []
-        self._portal_proxy_sigs = []
-        self._character_proxy_sigs = []
         self.db = self.gorm.db
         code_qe = QueryEngine(
             self.codedb, connect_args={}, alchemy=alchemy
@@ -595,36 +587,6 @@ class Engine(object):
             raise TypeError("This is a decorator")
         if v not in self._time_listeners:
             self._time_listeners.append(v)
-
-    def on_char_stat(self, f):
-        if not isinstance(f, Callable):
-            raise TypeError('This is a decorator')
-        if f not in self._on_char_stat:
-            self._on_char_stat.append(f)
-
-    def on_node_stat(self, f):
-        if not isinstance(f, Callable):
-            raise TypeError('This is a decorator')
-        if f not in self._on_node_stat:
-            self._on_node_stat.append(f)
-
-    def on_portal_stat(self, f):
-        if not isinstance(f, Callable):
-            raise TypeError('This is a decorator')
-        if f not in self._on_portal_stat:
-            self._on_portal_stat.append(f)
-
-    def on_thing_loc(self, f):
-        if not isinstance(f, Callable):
-            raise TypeError('This is a decorator')
-        if f not in self._on_thing_loc:
-            self._on_thing_loc.append(f)
-
-    def on_thing_next_loc(self, f):
-        if not isinstance(f, Callable):
-            raise TypeError('This is a decorator')
-        if f not in self._on_thing_next_loc:
-            self._on_thing_next_loc.append(f)
 
     @property
     def branch(self):
