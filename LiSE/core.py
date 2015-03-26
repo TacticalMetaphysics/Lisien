@@ -1,6 +1,10 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
-"""Object relational mapper that serves Characters."""
+"""The core of LiSE is an object relational mapper with some special
+data stores, as well as properties for manipulating the flow of
+time.
+
+"""
 from random import Random
 from collections import (
     defaultdict,
@@ -260,6 +264,10 @@ class FunctionStoreDB(MutableMapping):
         self.db.commit()
 
     def set_source(self, func_name, source):
+        """Set the plain, uncompiled source code of ``func_name`` to
+        ``source``.
+
+        """
         self.db.func_table_set_source(
             self._tab,
             func_name,
@@ -270,7 +278,10 @@ class FunctionStoreDB(MutableMapping):
 class GlobalVarMapping(MutableMapping):
     """Mapping for variables that are global but which I keep history for"""
     def __init__(self, engine):
-        """Store the engine"""
+        """Store the engine and initialize my private dictionary of
+        listeners.
+
+        """
         self.engine = engine
         self._listeners = defaultdict(list)
 
@@ -396,7 +407,28 @@ class CharacterMapping(MutableMapping):
 
 
 class Engine(object):
-    """LiSE, the Life Simulator Engine"""
+    """LiSE, the Life Simulator Engine.
+
+    Each instance of LiSE maintains a connection to a database
+    representing the state of a simulated world. Simulation rules
+    within this world are described by lists of Python functions, some
+    of which make changes to the world.
+
+    The top-level data structure within LiSE is the character. Most
+    data within the world model is kept in some character or other;
+    these will quite frequently represent people, but can be readily
+    adapted to represent any kind of data that can be comfortably
+    described as a graph or a JSON object. Every change to a character
+    will be written to the database.
+
+    LiSE tracks history as a series of ticks. In each tick, each
+    simulation rule is evaluated once for each of the simulated
+    entities it's been applied to. World changes in a given tick are
+    remembered together, such that the whole world state can be
+    rewound: simply set the properties ``branch`` and ``tick`` back to
+    what they were just before the change you want to undo.
+
+    """
     def __init__(
             self,
             worlddb,
@@ -466,6 +498,8 @@ class Engine(object):
                     self._branch_start[branch] = parent_tick
                 else:
                     todo.append(working)
+        # This speeds up operations for small numbers of
+        # characters...it won't scale well, so perhaps take it out
         for n in self.db.characters():
             self.character[n] = Character(self, n)
         self._rules_iter = self._follow_rules()
@@ -581,6 +615,9 @@ class Engine(object):
     def on_time(self, v):
         """Arrange to call a function whenever my ``branch`` or ``tick``
         changes.
+
+        The arguments will be the old branch and tick followed by the
+        new branch and tick.
 
         """
         if not isinstance(v, Callable):
@@ -826,15 +863,20 @@ class Engine(object):
         r = []
         while self.tick == curtick:
             r.append(self.advance())
+        # The last element is always None, but is not a sentinel; any
+        # rule may return None.
         return r[:-1]
 
     def new_character(self, name, **kwargs):
-        """Create and return a character"""
+        """Create and return a new :class:`Character`."""
         self.add_character(name, **kwargs)
         return self.character[name]
 
     def add_character(self, name, data=None, **kwargs):
-        """Create the Character so it'll show up in my `character` dict"""
+        """Create the :class:`Character` so it'll show up in my ``character``
+        mapping.
+
+        """
         self.gorm.new_digraph(name, data, **kwargs)
         ch = Character(self, name)
         if data is not None:
@@ -848,7 +890,11 @@ class Engine(object):
             self.character._cache[name] = ch
 
     def del_character(self, name):
-        """Remove the Character from the database entirely"""
+        """Remove the Character from the database entirely.
+
+        This also deletes all its history. You'd better be sure.
+
+        """
         self.db.del_character(name)
         self.gorm.del_graph(name)
         del self.character[name]
@@ -857,8 +903,8 @@ class Engine(object):
         """Private utility function to find out if a node is a Thing or not.
 
         ``character`` argument must be the name of a character, not a
-        Character object. Likewise ``node`` argument is the node's
-        ID.
+        :class:`Character` object. Likewise ``node`` argument is the
+        node's ID.
 
         """
         return self.db.node_is_thing(character, node, *self.time)
