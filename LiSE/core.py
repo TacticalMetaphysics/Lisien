@@ -525,18 +525,14 @@ class Engine(object):
         """
         return [self.randint(1, d) for i in range(0, n)]
 
-    def dice_check(self, n, d, target):
-        """Roll ``n`` dice with ``d`` sides, sum them, compare the total to
-        ``target``, and return the result.
+    def dice_check(self, n, d, target, comparator=lambda x, y: x <= y):
+        """Roll ``n`` dice with ``d`` sides, sum them, and return whether they
+        are <= ``target``.
 
-        The comparison operation defaults to <=. You can specify a
-        different one in the ``dicecmp`` argument to my
-        constructor. If you need a different comparison for a
-        particular roll, call ``sum(self.dice(n, d))`` and do your own
-        comparison on the result.
+        If ``comparator`` is provided, use it instead of <=.
 
         """
-        return self.dicecmp(sum(self.dice(n, d)), target)
+        return comparator(sum(self.dice(n, d)), target)
 
     def percent_chance(self, pct):
         """Given a ``pct``% chance of something happening right now, decide at
