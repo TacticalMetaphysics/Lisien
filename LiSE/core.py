@@ -519,11 +519,11 @@ class Engine(object):
         return self.choice((True, False))
 
     def dice(self, n, d):
-        """Roll ``n`` dice with ``d`` faces, and return a list of the
-        results.
+        """Roll ``n`` dice with ``d`` faces, and yield the results.
 
         """
-        return [self.randint(1, d) for i in range(0, n)]
+        for i in range(0, n):
+            yield self.randint(1, d)
 
     def dice_check(self, n, d, target, comparator=lambda x, y: x <= y):
         """Roll ``n`` dice with ``d`` sides, sum them, and return whether they
