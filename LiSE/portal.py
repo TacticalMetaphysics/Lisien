@@ -105,8 +105,6 @@ class Portal(Edge, RuleFollower):
     def _dispatch_stat(self, k, v):
         (branch, tick) = self.engine.time
         dispatch(self._stat_listeners, k, branch, tick, self, k, v)
-        for fun in self.engine._on_portal_stat:
-            fun(branch, tick, self, k, v)
 
     def listener(self, f=None, stat=None):
         return listener(self._stat_listeners, f, stat)

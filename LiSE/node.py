@@ -70,8 +70,6 @@ class Node(gorm.graph.Node, RuleFollower):
     def _dispatch_stat(self, k, v):
         (branch, tick) = self.engine.time
         dispatch(self._stat_listeners, k, branch, tick, self, k, v)
-        for fun in self.engine._on_node_stat:
-            fun(branch, tick, self, k, v)
 
     def __init__(self, character, name):
         """Store character and name, and initialize caches"""
