@@ -52,7 +52,7 @@ kv = """
         id: theimg
         center: root.center
         texture: root.tex
-        size: root.tex.size if root.tex else (1, 1)
+        size: self.texture_size if root.tex else (1, 1)
         size_hint: (None, None)
         pos_hint: {'x': None, 'y': None}
     Label:
