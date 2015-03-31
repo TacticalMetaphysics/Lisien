@@ -89,7 +89,7 @@ class Portal(Edge, RuleFollower):
             cache_branch(branch)
             self._branches_cached = {branch, }
 
-            @self.engine.on_time
+            @self.engine.time_listener
             def cache_new_branch(
                     branch_then,
                     tick_then,

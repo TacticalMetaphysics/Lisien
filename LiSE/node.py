@@ -81,7 +81,7 @@ class Node(gorm.graph.Node, RuleFollower):
         self._keycache = {}
         self._cache = {}
 
-        @self.engine.on_time
+        @self.engine.time_listener
         def time_travel_triggers(
                 branch_then,
                 tick_then,
@@ -113,7 +113,7 @@ class Node(gorm.graph.Node, RuleFollower):
             cache_branch(branch)
             self._branches_cached = {branch, }
 
-            @self.engine.on_time
+            @self.engine.time_listener
             def cache_new_branch(
                     branch_then,
                     tick_then,

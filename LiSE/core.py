@@ -18,7 +18,7 @@ from gorm import ORM as gORM
 from .character import Character
 from .rule import AllRuleBooks, AllRules
 from .query import QueryEngine
-from .util import dispatch, listen, listener
+from .util import dispatch, listen, listener, unlisten, unlistener
 
 
 class NotThatMap(Mapping):
@@ -76,9 +76,14 @@ class StringStore(MutableMapping):
         for f in self._lang_listeners:
             f(self, v)
 
-    def lang_listener(self, f):
+    def lang_listener(self, fun):
         """Arrange to call the function when the language changes."""
-        listen(self._lang_listeners, f)
+        listen(self._lang_listeners, fun)
+        return fun
+
+    def lang_unlisten(self, fun):
+        unlisten(self._lang_listeners, fun)
+        return fun
 
     def _dispatch_str(self, k, v):
         """When some string ``k`` is set to ``v``, notify any listeners of the
@@ -99,6 +104,9 @@ class StringStore(MutableMapping):
 
         """
         return listener(self._str_listeners, fun, string)
+
+    def unlisten(self, fun=None, string=None):
+        return unlistener(self._str_listeners, fun, string)
 
     @property
     def language(self):
@@ -293,7 +301,7 @@ class GlobalVarMapping(MutableMapping):
         (b, t) = self.engine.time
         dispatch(self._listeners, k, b, t, self, k, v)
 
-    def listener(self, f=None, key=None):
+    def listener(self, fun=None, key=None):
         """Arrange to call this function when a key is set to a new value.
 
         With optional argument ``key``, only call when that particular
@@ -612,7 +620,7 @@ class Engine(object):
         """Close on exit."""
         self.close()
 
-    def on_time(self, v):
+    def time_listener(self, v):
         """Arrange to call a function whenever my ``branch`` or ``tick``
         changes.
 
@@ -624,6 +632,12 @@ class Engine(object):
             raise TypeError("This is a decorator")
         if v not in self._time_listeners:
             self._time_listeners.append(v)
+        return v
+
+    def time_unlisten(self, v):
+        if v in self._time_listeners:
+            self._time_listeners.remove(v)
+        return v
 
     @property
     def branch(self):

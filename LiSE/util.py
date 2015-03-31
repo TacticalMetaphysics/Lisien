@@ -25,11 +25,30 @@ def listen(l, f, k=None):
         l.append(f)
 
 
+def unlisten(l, f, k=None):
+    if not callable(f):
+        raise TypeError('listeners must be callable')
+    if isinstance(l, Mapping):
+        l = l[k]
+    if f in l:
+        l.remove(f)
+
+
 def listener(l, f=None, k=None):
     if f:
         listen(l, f, k)
-        return
+        return f
     return lambda fun: listen(l, fun, k)
+
+
+def unlistener(l, f=None, k=None):
+    if f:
+        try:
+            unlisten(l, f, k)
+            return f
+        except KeyError:
+            return f
+    return lambda fun: unlisten(l, fun, k)
 
 
 try:
