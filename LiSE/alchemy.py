@@ -118,267 +118,281 @@ def tables_for_meta(meta):
     for strtyp in strtyps:
         r[strtyp] = string_store_table(strtyp)
 
+    r['lise_globals'] = Table(
+        'lise_globals', meta,
+        Column('key', TEXT, primary_key=True),
+        Column(
+            'branch', TEXT, primary_key=True, default='master'
+        ),
+        Column('tick', Integer, primary_key=True, default=0),
+        Column('date', DateTime, nullable=True),
+        Column('creator', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('value', TEXT, nullable=True)
+    )
+    """Table for global variables that are not sensitive to sim-time.
+
+    """
+
+    r['rules'] = Table(
+        'rules', meta,
+        Column('rule', TEXT, primary_key=True),
+        Column('date', DateTime, nullable=True),
+        Column('creator', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('actions', TEXT, default='[]'),
+        Column('prereqs', TEXT, default='[]'),
+        Column('triggers', TEXT, default='[]'),
+    )
+    """Table listing the actions, prereqs, and triggers that make up each
+    rule.
+
+    Lists are JSON encoded strings of function names. There's no
+    constraint on what to use for function names because there are
+    multiple possible methods for storing and retrieving functions.
+
+    """
+
+    r['rulebooks'] = Table(
+        'rulebooks', meta,
+        Column('rulebook', TEXT, primary_key=True),
+        Column('idx', Integer, primary_key=True),
+        Column('date', DateTime, nullable=True),
+        Column('contributor', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('rule', TEXT),
+        ForeignKeyConstraint(['rule'], ['rules.rule'])
+    )
+    """Table grouping rules into lists called rulebooks.
+
+    """
+
+    r['active_rules'] = Table(
+        'active_rules', meta,
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column(
+            'branch', TEXT, primary_key=True, default='master'
+        ),
+        Column('tick', Integer, primary_key=True, default=0),
+        Column('date', DateTime, nullable=True),
+        Column('contributor', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('active', Boolean, default=True),
+        ForeignKeyConstraint(
+            ['rulebook', 'rule'],
+            ['rulebooks.rulebook', 'rulebooks.rule']
+        )
+    )
+    """Rules within a given rulebook that are active at a particular
+    ``(branch, tick)``.
+
+    """
+
+    r['characters'] = Table(
+        'characters', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('date', DateTime, nullable=True),
+        Column('creator', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('character_rulebook', TEXT, nullable=True),
+        Column('avatar_rulebook', TEXT, nullable=True),
+        Column('character_thing_rulebook', TEXT, nullable=True),
+        Column('character_place_rulebook', TEXT, nullable=True),
+        Column('character_portal_rulebook', TEXT, nullable=True),
+        ForeignKeyConstraint(['character'], ['graphs.graph']),
+        ForeignKeyConstraint(
+            ['character_rulebook'], ['rulebooks.rulebook']
+        ),
+        ForeignKeyConstraint(['avatar_rulebook'], ['rulebooks.rulebook']),
+        ForeignKeyConstraint(
+            ['character_thing_rulebook'], ['rulebooks.rulebook']
+        ),
+        ForeignKeyConstraint(
+            ['character_place_rulebook'], ['rulebooks.rulebook']
+        ),
+        ForeignKeyConstraint(
+            ['character_portal_rulebook'], ['rulebooks.rulebook']
+        )
+    )
+    """The top level of the LiSE world model, the character. Includes
+    rulebooks for the character itself, its avatars, and the things,
+    places, and portals it contains.
+
+    """
+
+    r['thing_rules_handled'] = Table(
+        'thing_rules_handled', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('thing', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', Integer, primary_key=True)
+    )
+    """Rules handled within the rulebook associated with one thing in
+    particular.
+
+    """
+
+    r['place_rules_handled'] = Table(
+        'place_rules_handled', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('place', TEXT, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', Integer, primary_key=True)
+    )
+    """Rules handled within the rulebook associated with one place in
+    particular.
+
+    """
+
+    r['portal_rules_handled'] = Table(
+        'portal_rules_handled', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('nodeA', TEXT, primary_key=True),
+        Column('nodeB', TEXT, primary_key=True),
+        Column('idx', Integer, primary_key=True),
+        Column('rulebook', TEXT, primary_key=True),
+        Column('rule', TEXT, primary_key=True),
+        Column('branch', TEXT, primary_key=True),
+        Column('tick', Integer, primary_key=True)
+    )
+    """Rules handled within the rulebook associated with one portal in
+    particular.
+
+    """
+
+    r['senses'] = Table(
+        'senses', meta,
+        Column(
+            'character', TEXT, primary_key=True, nullable=True
+        ),
+        # blank character field means all characters have this sense
+        Column('sense', TEXT, primary_key=True),
+        Column(
+            'branch', TEXT, primary_key=True, default='master'
+        ),
+        Column('tick', Integer, primary_key=True, default=0),
+        Column('date', DateTime, nullable=True),
+        Column('contributor', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('function', TEXT),
+        Column('active', Boolean, default=True),
+        ForeignKeyConstraint(['character'], ['graphs.graph'])
+    )
+    """The function to use for a given sense.
+
+    Characters use senses to look at other characters. To model this,
+    sense functions are called with a facade representing the
+    character under observation; the function munges this facade to
+    make it look as it does through the sense in question, and returns
+    that.
+
+    Just which function to use for a given sense may change over time,
+    and a sense might not be usable all the time, in which case the
+    'active' field will be ``False``.
+
+    """
+
+    r['travel_reqs'] = Table(
+        'travel_reqs', meta,
+        Column(
+            'character', TEXT, primary_key=True, nullable=True
+        ),
+        Column('date', DateTime, nullable=True),
+        Column('contributor', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('reqs', TEXT, default='[]'),
+        ForeignKeyConstraint(['character'], ['graphs.graph'])
+    )
+
+    r['things'] = Table(
+        'things', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('thing', TEXT, primary_key=True),
+        Column(
+            'branch', TEXT, primary_key=True, default='master'
+        ),
+        Column('tick', Integer, primary_key=True, default=0),
+        Column('date', DateTime, nullable=True),
+        Column('contributor', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('location', TEXT, nullable=True),
+        # when location is null, this node is not a thing, but a place
+        Column('next_location', TEXT, nullable=True),
+        # when next_location is not null, thing is en route between
+        # location and next_location
+        ForeignKeyConstraint(
+            ['character', 'thing'], ['nodes.graph', 'nodes.node']
+        ),
+        ForeignKeyConstraint(
+            ['character', 'location'], ['nodes.graph', 'nodes.node']
+        ),
+        ForeignKeyConstraint(
+            ['character', 'next_location'], ['nodes.graph', 'nodes.node']
+        )
+    )
+
+    r['node_rulebook'] = Table(
+        'node_rulebook', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('node', TEXT, primary_key=True),
+        Column('date', DateTime, nullable=True),
+        Column('contributor', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('rulebook', TEXT),
+        ForeignKeyConstraint(
+            ['character', 'node'], ['nodes.graph', 'nodes.node']
+        )
+    )
+
+    r['portal_rulebook'] = Table(
+        'portal_rulebook', meta,
+        Column('character', TEXT, primary_key=True),
+        Column('nodeA', TEXT, primary_key=True),
+        Column('nodeB', TEXT, primary_key=True),
+        Column('idx', Integer, primary_key=True, default=0),
+        Column('date', DateTime, nullable=True),
+        Column('contributor', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('rulebook', TEXT),
+        ForeignKeyConstraint(
+            ['character', 'nodeA', 'nodeB', 'idx'],
+            ['edges.graph', 'edges.nodeA', 'edges.nodeB', 'edges.idx']
+        )
+    )
+
+    r['avatars'] = Table(
+        'avatars', meta,
+        Column('character_graph', TEXT, primary_key=True),
+        Column('avatar_graph', TEXT, primary_key=True),
+        Column('avatar_node', TEXT, primary_key=True),
+        Column(
+            'branch', TEXT, primary_key=True, default='master'
+        ),
+        Column('tick', Integer, primary_key=True, default=0),
+        Column('date', DateTime, nullable=True),
+        Column('contributor', TEXT, nullable=True),
+        Column('description', TEXT, nullable=True),
+        Column('is_avatar', Boolean),
+        ForeignKeyConstraint(['character_graph'], ['graphs.graph']),
+        ForeignKeyConstraint(
+            ['avatar_graph', 'avatar_node'],
+            ['nodes.graph', 'nodes.node']
+        )
+    )
+
     for tab in (
-        Table(
-            'lise_globals', meta,
-            Column('key', TEXT, primary_key=True),
-            Column(
-                'branch', TEXT, primary_key=True, default='master'
-            ),
-            Column('tick', Integer, primary_key=True, default=0),
-            Column('date', DateTime, nullable=True),
-            Column('creator', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('value', TEXT, nullable=True)
-        ),
-        Table(
-            'rules', meta,
-            Column('rule', TEXT, primary_key=True),
-            Column('date', DateTime, nullable=True),
-            Column('creator', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('actions', TEXT, default='[]'),
-            Column('prereqs', TEXT, default='[]'),
-            Column('triggers', TEXT, default='[]'),
-        ),
-        Table(
-            'rulebooks', meta,
-            Column('rulebook', TEXT, primary_key=True),
-            Column('idx', Integer, primary_key=True),
-            Column('date', DateTime, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('rule', TEXT),
-            ForeignKeyConstraint(['rule'], ['rules.rule'])
-        ),
-        Table(
-            'active_rules', meta,
-            Column('rulebook', TEXT, primary_key=True),
-            Column('rule', TEXT, primary_key=True),
-            Column(
-                'branch', TEXT, primary_key=True, default='master'
-            ),
-            Column('tick', Integer, primary_key=True, default=0),
-            Column('date', DateTime, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('active', Boolean, default=True),
-            ForeignKeyConstraint(
-                ['rulebook', 'rule'],
-                ['rulebooks.rulebook', 'rulebooks.rule']
-            )
-        ),
-        Table(
-            'characters', meta,
-            Column('character', TEXT, primary_key=True),
-            Column('date', DateTime, nullable=True),
-            Column('creator', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('character_rulebook', TEXT, nullable=True),
-            Column('avatar_rulebook', TEXT, nullable=True),
-            Column('character_thing_rulebook', TEXT, nullable=True),
-            Column('character_place_rulebook', TEXT, nullable=True),
-            Column('character_portal_rulebook', TEXT, nullable=True),
-            ForeignKeyConstraint(['character'], ['graphs.graph']),
-            ForeignKeyConstraint(
-                ['character_rulebook'], ['rulebooks.rulebook']
-            ),
-            ForeignKeyConstraint(['avatar_rulebook'], ['rulebooks.rulebook']),
-            ForeignKeyConstraint(
-                ['character_thing_rulebook'], ['rulebooks.rulebook']
-            ),
-            ForeignKeyConstraint(
-                ['character_place_rulebook'], ['rulebooks.rulebook']
-            ),
-            ForeignKeyConstraint(
-                ['character_portal_rulebook'], ['rulebooks.rulebook']
-            )
-        ),
         handled_table('character'),
         handled_table('avatar'),
         handled_table('character_thing'),
         handled_table('character_place'),
         handled_table('character_portal'),
-        Table(
-            'thing_rules_handled', meta,
-            Column('character', TEXT, primary_key=True),
-            Column('thing', TEXT, primary_key=True),
-            Column('rulebook', TEXT, primary_key=True),
-            Column('rule', TEXT, primary_key=True),
-            Column('branch', TEXT, primary_key=True),
-            Column('tick', Integer, primary_key=True)
-        ),
-        Table(
-            'place_rules_handled', meta,
-            Column('character', TEXT, primary_key=True),
-            Column('place', TEXT, primary_key=True),
-            Column('rulebook', TEXT, primary_key=True),
-            Column('rule', TEXT, primary_key=True),
-            Column('branch', TEXT, primary_key=True),
-            Column('tick', Integer, primary_key=True)
-        ),
-        Table(
-            'portal_rules_handled', meta,
-            Column('character', TEXT, primary_key=True),
-            Column('nodeA', TEXT, primary_key=True),
-            Column('nodeB', TEXT, primary_key=True),
-            Column('idx', Integer, primary_key=True),
-            Column('rulebook', TEXT, primary_key=True),
-            Column('rule', TEXT, primary_key=True),
-            Column('branch', TEXT, primary_key=True),
-            Column('tick', Integer, primary_key=True)
-        ),
-        Table(
-            'senses', meta,
-            Column(
-                'character', TEXT, primary_key=True, nullable=True
-            ),
-            # blank character field means all characters have this sense
-            Column('sense', TEXT, primary_key=True),
-            Column(
-                'branch', TEXT, primary_key=True, default='master'
-            ),
-            Column('tick', Integer, primary_key=True, default=0),
-            Column('date', DateTime, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('function', TEXT),
-            Column('active', Boolean, default=True),
-            ForeignKeyConstraint(['character'], ['graphs.graph'])
-        ),
-        Table(
-            'travel_reqs', meta,
-            Column(
-                'character', TEXT, primary_key=True, nullable=True
-            ),
-            Column('date', DateTime, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('reqs', TEXT, default='[]'),
-            ForeignKeyConstraint(['character'], ['graphs.graph'])
-        ),
-        Table(
-            'things', meta,
-            Column('character', TEXT, primary_key=True),
-            Column('thing', TEXT, primary_key=True),
-            Column(
-                'branch', TEXT, primary_key=True, default='master'
-            ),
-            Column('tick', Integer, primary_key=True, default=0),
-            Column('date', DateTime, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('location', TEXT, nullable=True),
-            # when location is null, this node is not a thing, but a place
-            Column('next_location', TEXT, nullable=True),
-            # when next_location is not null, thing is en route between
-            # location and next_location
-            ForeignKeyConstraint(
-                ['character', 'thing'], ['nodes.graph', 'nodes.node']
-            ),
-            ForeignKeyConstraint(
-                ['character', 'location'], ['nodes.graph', 'nodes.node']
-            ),
-            ForeignKeyConstraint(
-                ['character', 'next_location'], ['nodes.graph', 'nodes.node']
-            )
-        ),
-        Table(
-            'node_rulebook', meta,
-            Column('character', TEXT, primary_key=True),
-            Column('node', TEXT, primary_key=True),
-            Column('date', DateTime, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('rulebook', TEXT),
-            ForeignKeyConstraint(
-                ['character', 'node'], ['nodes.graph', 'nodes.node']
-            )
-        ),
-        Table(
-            'portal_rulebook', meta,
-            Column('character', TEXT, primary_key=True),
-            Column('nodeA', TEXT, primary_key=True),
-            Column('nodeB', TEXT, primary_key=True),
-            Column('idx', Integer, primary_key=True, default=0),
-            Column('date', DateTime, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('rulebook', TEXT),
-            ForeignKeyConstraint(
-                ['character', 'nodeA', 'nodeB', 'idx'],
-                ['edges.graph', 'edges.nodeA', 'edges.nodeB', 'edges.idx']
-            )
-        ),
-        Table(
-            'avatars', meta,
-            Column('character_graph', TEXT, primary_key=True),
-            Column('avatar_graph', TEXT, primary_key=True),
-            Column('avatar_node', TEXT, primary_key=True),
-            Column(
-                'branch', TEXT, primary_key=True, default='master'
-            ),
-            Column('tick', Integer, primary_key=True, default=0),
-            Column('date', DateTime, nullable=True),
-            Column('contributor', TEXT, nullable=True),
-            Column('description', TEXT, nullable=True),
-            Column('is_avatar', Boolean),
-            ForeignKeyConstraint(['character_graph'], ['graphs.graph']),
-            ForeignKeyConstraint(
-                ['avatar_graph', 'avatar_node'],
-                ['nodes.graph', 'nodes.node']
-            )
-        )
     ):
         r[tab.name] = tab
-
-    r['lise_globals'].__doc__ = """Table for global (not sim-time-sensitive) variables.
-
-"""
-    r['rules'].__doc__ = """Table listing the actions, prereqs, and triggers that make up each
-rule.
-
-Lists are JSON encoded strings of function names. The functions
-themselves may be stored in a different database, or in a plain Python
-dictionary, or some other key-value store.
-
-"""
-    r['rulebooks'].__doc__ = """Table grouping rules into lists called rulebooks.
-
-    """
-    r['active_rules'].__doc__ = """Rules within a given rulebook that are active at a particular
-``(branch, tick)``.
-
-"""
-    r['characters'].__doc__ = """The top level of the LiSE world model, the character. Includes
-rulebooks for the character itself, its avatars, and the things,
-places, and portals it contains.
-
-"""
-    r['thing_rules_handled'].__doc__ = """Rules handled within the rulebook associated with one thing in
-particular.
-
-"""
-    r['place_rules_handled'].__doc__ = """Rules handled within the rulebook associated with one place in
-particular.
-
-"""
-    r['portal_rules_handled'].__doc__ = """Rules handled within the rulebook associated with one portal in
-particular.
-
-"""
-    r['senses'].__doc__ = """The function to use for a given sense.
-
-Characters use senses to look at other characters. To model this,
-sense functions are called with a facade representing the character
-under observation; the function munges this facade to make it look as
-it does through the sense in question, and returns that.
-
-Just which function to use for a given sense may change over time, and
-a sense might not be usable all the time, in which case the 'active'
-field will be ``False``.
-
-"""
 
     return r
 
@@ -414,6 +428,10 @@ def views_for_table_dict(table):
 
 
 def indices_for_table_dict(table):
+    """Given the dictionary of tables returned by ``tables_for_meta``,
+    return a dictionary of indices for the tables.
+
+    """
     def handled_idx(prefix):
         t = table['{}_rules_handled'.format(prefix)]
         return Index(
