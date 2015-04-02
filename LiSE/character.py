@@ -1694,6 +1694,41 @@ class Character(DiGraph, RuleFollower):
         """
         self.travel_reqs.append(fun)
 
+    def _eval_travel_reqs(self, thing, loc, nextloc):
+        """Evaluate all the travel_reqs for the given thing to travel thru the
+        portal from ``loc`` to ``nextloc``.
+
+        """
+        if loc not in self.place:
+            raise ValueError(
+                "No place named {} in character {}".format(
+                    loc, self.name
+                )
+            )
+        if nextloc not in self.place:
+            raise ValueError(
+                "No place named {} in character {}".format(
+                    nextloc, self.name
+                )
+            )
+        if loc not in self.portal:
+            raise ValueError(
+                "No portals from {} in character {}".format(
+                    loc, self.name
+                )
+            )
+        if nextloc not in self.portal[loc]:
+            raise ValueError(
+                "No portal from {} to {} in character {}".format(
+                    loc, nextloc, self.name
+                )
+            )
+        port = self.portal[loc][nextloc]
+        for req in self.travel_reqs:
+            if not req(thing, port):
+                return False
+        return True
+
     def add_place(self, name, **kwargs):
         """Create a new Place by the given name, and set its initial
         attributes based on the keyword arguments (if any).

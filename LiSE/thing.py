@@ -304,6 +304,15 @@ class Thing(Node):
         ``next_location``
 
         """
+        if (
+                nextloc is not None and not
+                self.character._eval_travel_reqs(self, loc, nextloc)
+        ):
+            raise ValueError(
+                "{} is not allowed to travel from {} to {}".format(
+                    self.name, loc, nextloc
+                )
+            )
         self.engine.db.thing_loc_and_next_set(
             self.character.name,
             self.name,
