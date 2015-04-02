@@ -323,10 +323,10 @@ class EngineHandle(object):
                 return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
-            oldv = character.stat[statn]
+            oldv = character.stat.get(statn, None)
             self._real.time = (newb, newt)
             del self._real.locktime
-            newv = character.stat[statn]
+            newv = character.stat.get(statn, None)
             if oldv != newv:
                 self._q.put(
                     (
@@ -522,10 +522,10 @@ class EngineHandle(object):
                 return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
-            oldv = node[statn]
+            oldv = node.get(statn, None)
             self._real.time = (newb, newt)
             del self._real.locktime
-            newv = node[statn]
+            newv = node.get(statn, None)
             if oldv != newv:
                 self._q.put(
                     (
@@ -745,10 +745,10 @@ class EngineHandle(object):
                 return
             self._real.locktime = True
             self._real.time = (oldb, oldt)
-            oldv = port[statn]
+            oldv = port.get(statn, None)
             self._real.time = (newb, newt)
             del self._real.locktime
-            newv = port[statn]
+            newv = port.get(statn, None)
             if oldv != newv:
                 self._q.put(
                     (
