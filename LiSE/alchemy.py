@@ -344,6 +344,15 @@ def tables_for_meta(meta):
             ['character', 'next_location'], ['nodes.graph', 'nodes.node']
         )
     )
+    """Table for Things, being those nodes in a Character graph that have
+    locations.
+
+    A Thing's location can be either a Place or another Thing, as long
+    as it's in the same Character. Things also have a
+    ``next_location``, defaulting to ``None``, which when set
+    indicates that the thing is in transit to that location.
+
+    """
 
     r['node_rulebook'] = Table(
         'node_rulebook', meta,
@@ -357,6 +366,7 @@ def tables_for_meta(meta):
             ['character', 'node'], ['nodes.graph', 'nodes.node']
         )
     )
+    """The rulebook followed by a given node."""
 
     r['portal_rulebook'] = Table(
         'portal_rulebook', meta,
@@ -373,6 +383,7 @@ def tables_for_meta(meta):
             ['edges.graph', 'edges.nodeA', 'edges.nodeB', 'edges.idx']
         )
     )
+    """The rulebook followed by a given Portal."""
 
     r['avatars'] = Table(
         'avatars', meta,
@@ -393,6 +404,19 @@ def tables_for_meta(meta):
             ['nodes.graph', 'nodes.node']
         )
     )
+    """The avatars representing one Character in another.
+
+    In the common situation where a Character, let's say Alice has its
+    own stats and skill tree and social graph, and also has a location
+    in physical space, you can represent this by creating a Thing in
+    the Character that represents physical space, and then making that
+    Thing an avatar of Alice. On its own this doesn't do anything,
+    it's just a convenient way of indicating the relation -- but if
+    you like, you can make rules that affect all avatars of some
+    Character, irrespective of what Character the avatar is actually
+    *in*.
+
+    """
 
     for tab in (
         handled_table('character'),
@@ -433,6 +457,10 @@ def views_for_table_dict(table):
             ]
         )
     )
+    """Query returning the rules handled for all nodes in a character,
+    whether they are things or places.
+
+    """
     return r
 
 
@@ -513,13 +541,27 @@ def indices_for_table_dict(table):
 
 
 def queries(table, view):
+    """Given dictionaries of tables and view-queries, return a dictionary
+    of all the rest of the queries I need.
+
+    """
     def insert_cols(t, *cols):
+        """Return an ``INSERT`` statement into table ``t`` with
+        bind-parameters for the columns ``cols``, which must be actual
+        columns in ``t``.
+
+        """
         vmap = {
             col: bindparam(col) for col in cols
         }
         return t.insert().values(**vmap)
 
     def select_where(t, selcols, wherecols):
+        """Return a ``SELECT`` statement that selects the columns ``selcols``
+        from the table ``t`` where the columns in ``wherecols`` equal
+        the bound parameters.
+
+        """
         wheres = [
             getattr(t.c, col) == bindparam(col)
             for col in wherecols
@@ -529,6 +571,11 @@ def queries(table, view):
         ).where(and_(*wheres))
 
     def update_where(t, updcols, wherecols):
+        """Return an ``UPDATE`` statement that updates the columns ``updcols``
+        (with bindparams for each) in the table ``t`` in which the
+        columns ``wherecols`` equal the bound parameters.
+
+        """
         vmap = {
             col: bindparam(col) for col in updcols
         }
@@ -539,16 +586,29 @@ def queries(table, view):
         return t.update().values(**vmap).where(and_(*wheres))
 
     def func_table_iter(t):
+        """Select the ``name`` column."""
         return select(
             [t.c.name]
         )
 
     def func_table_name_plaincode(t):
+        """Select the ``name`` and ``plaincode`` columns."""
         return select(
             [t.c.name, t.c.plaincode]
         )
 
     def func_table_get(t):
+        """Get all columns for a given function (except ``name``).
+
+        * ``bytecode``
+        * ``date``
+        * ``creator``
+        * ``contributor``
+        * ``description``
+        * ``plaincode``
+        * ``version``
+
+        """
         return select(
             [
                 t.c.bytecode,
@@ -564,6 +624,15 @@ def queries(table, view):
         )
 
     def func_table_ins(t):
+        """Return an ``INSERT`` statement for a function table.
+
+        Inserts the fields:
+
+        * ``name``
+        * ``bytecode``
+        * ``plaincode``
+
+        """
         return t.insert().values(
             name=bindparam('name'),
             bytecode=bindparam('bytecode'),
@@ -571,6 +640,10 @@ def queries(table, view):
         )
 
     def func_table_upd(t):
+        """Return an ``UPDATE`` statement to change the ``bytecode`` and
+        ``plaincode`` for a function of a given name.
+
+        """
         return t.update().values(
             bytecode=bindparam('bytecode'),
             plaincode=bindparam('plaincode')
@@ -579,11 +652,16 @@ def queries(table, view):
         )
 
     def func_table_del(t):
+        """Return a ``DELETE`` statement to delete the function by a given
+        name.
+
+        """
         return t.delete().where(
             t.c.name == bindparam('name')
         )
 
     def string_table_lang_items(t):
+        """Return all the strings and their IDs for a given language."""
         return select(
             [t.c.id, t.c.string]
         ).where(
@@ -593,6 +671,10 @@ def queries(table, view):
         )
 
     def string_table_get(t):
+        """Return a ``SELECT`` statement to get a string based on its language
+        and ID.
+
+        """
         return select(
             [t.c.string]
         ).where(
@@ -603,6 +685,10 @@ def queries(table, view):
         )
 
     def string_table_ins(t):
+        """Return an ``INSERT`` statement for a string's ID, its language, and
+        the string itself.
+
+        """
         return t.insert().values(
             id=bindparam('id'),
             language=bindparam('language'),
@@ -610,6 +696,10 @@ def queries(table, view):
         )
 
     def string_table_upd(t):
+        """Return an ``UPDATE`` statement to change a string in a given
+        language, with a given ID.
+
+        """
         return t.update().values(
             string=bindparam('string')
         ).where(
@@ -620,6 +710,10 @@ def queries(table, view):
         )
 
     def string_table_del(t):
+        """Return a ``DELETE`` statement to get rid of a string in a given
+        language, with a given ID.
+
+        """
         return t.delete().where(
             and_(
                 t.c.language == bindparam('language'),
