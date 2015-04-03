@@ -6,9 +6,13 @@ from kivy.properties import (
     BooleanProperty,
     BoundedNumericProperty,
     ListProperty,
+    NumericProperty,
     ObjectProperty,
+    OptionProperty,
     StringProperty
 )
+from kivy.lang import Builder
+from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -48,6 +52,18 @@ def try_json_load(obj):
         return obj
 
 
+class KvLayoutBack(FloatLayout):
+    pass
+
+
+class KvLayoutFront(FloatLayout):
+    pass
+
+
+class Message(Label):
+    pass
+
+
 class ELiDELayout(FloatLayout):
     """A master layout that contains one board and some menus
     and charsheets.
@@ -61,6 +77,17 @@ class ELiDELayout(FloatLayout):
     """
     character = ObjectProperty()
     character_name = StringProperty()
+    kv = StringProperty()
+    text = StringProperty('')
+    font_name = StringProperty('DroidSans')
+    font_size = NumericProperty('15sp')
+    halign = OptionProperty(
+        'left', options=['left', 'center', 'right', 'justify']
+    )
+    valign = OptionProperty(
+        'bottom', options=['bottom', 'middle', 'top']
+    )
+    line_height = NumericProperty(1.0)
     engine = ObjectProperty()
     dummies = ListProperty()
     _touch = ObjectProperty(None, allownone=True)
@@ -90,6 +117,9 @@ class ELiDELayout(FloatLayout):
     rules_per_frame = BoundedNumericProperty(10, min=1)
 
     def __init__(self, **kwargs):
+        self._trigger_remake_display = Clock.create_trigger(
+            self.remake_display
+        )
         super().__init__(**kwargs)
         self._stat_cfg_layout = StatWindow(layout=self)
         self._trigger_reremote = Clock.create_trigger(self.reremote)
@@ -189,6 +219,80 @@ class ELiDELayout(FloatLayout):
         @self.engine.time_listener
         def board_upd(*args):
             Clock.schedule_once(self.ids.board.update, 0)
+
+    def on_character(self, *args):
+        stats = (
+            'kv',
+            'text',
+            'font_name',
+            'font_size',
+            'halign',
+            'valign',
+            'line_height'
+        )
+        if hasattr(self, '_old_character'):
+            for stat in stats:
+                self._old_character.unlisten(
+                    stat='_'+stat, fun=getattr(self, '_set_'+stat)
+                )
+            if self.character is None:
+                del self._old_character
+                return
+        else:
+            self.remake_display()
+            self.bind(kv=self._trigger_remake_display)
+        self._old_character = self.character
+        for stat in stats:
+            fun = partial(self._set_stat, stat)
+            fun()
+            self.character.stat.listener(
+                stat='_'+stat, fun=fun
+            )
+
+    def _set_stat(self, stat):
+        if '_' + stat in self.character.stat:
+            setattr(self, stat, self.character.stat['_'+stat])
+
+    def remake_display(self, *args):
+        Builder.load_string(self.kv)
+        if hasattr(self, '_kv_layout_back'):
+            self.remove_widget(self._kv_layout_back)
+            del self._kv_layout_back
+        if hasattr(self, '_message'):
+            self.unbind(
+                text=self._message.setter('text'),
+                font_name=self._message.setter('font_name'),
+                font_size=self._message.setter('font_size'),
+                halign=self._message.setter('halign'),
+                valign=self._message.setter('valign'),
+                line_height=self._message.setter('line_height')
+            )
+            self.remove_widget(self._message)
+            del self._message
+        if hasattr(self, '_kv_layout_front'):
+            self.remove_widget(self._kv_layout_front)
+            del self._kv_layout_front
+        self._kv_layout_back = KvLayoutBack()
+        self._message = Message(
+            text=self.text,
+            font_name=self.font_name,
+            font_size=self.font_size,
+            halign=self.halign,
+            valign=self.valign,
+            line_height=self.line_height
+        )
+        self.bind(
+            text=self._message.setter('text'),
+            font_name=self._message.setter('font_name'),
+            font_size=self._message.setter('font_size'),
+            halign=self._message.setter('halign'),
+            valign=self._message.setter('valign'),
+            line_height=self._message.setter('line_height')
+        )
+        self._kv_layout_front = KvLayoutFront()
+        self.add_widget(self._kv_layout_back)
+        self.add_widget(self._message)
+        self.add_widget(self._kv_layout_front)
 
     def toggle_char_list(self, *args):
         """Display or hide the list you use to switch between characters."""
