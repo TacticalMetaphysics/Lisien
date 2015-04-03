@@ -222,6 +222,11 @@ class Board(RelativeLayout):
 
     def update(self, *args):
         """Refresh myself from the database"""
+        # TODO: This should be broken up into several functions that
+        # listen to the appropriate part of the character. Then there
+        # should be one function for when I have to redraw everything
+        # because you've switched to a new character.
+
         # remove widgets that don't represent anything anymore
         pawns_removed = []
         for pawn_name in list(self.pawn.keys()):
@@ -363,21 +368,25 @@ class Board(RelativeLayout):
         return "Board({})".format(repr(self.character))
 
     def arrows(self):
+        """Iterate over all my arrows."""
         for o in self.arrow:
             for arro in self.arrow[o].values():
                 yield arro
 
     def pawns_at(self, x, y):
+        """Iterate over pawns that collide the given point."""
         for pawn in self.pawn.values():
             if pawn.collide_point(x, y):
                 yield pawn
 
     def spots_at(self, x, y):
+        """Iterate over spots that collide the given point."""
         for spot in self.spot.values():
             if spot.collide_point(x, y):
                 yield spot
 
     def arrows_at(self, x, y):
+        """Iterate over arrows that collide the given point."""
         for arrow in self.arrows():
             if arrow.collide_point(x, y):
                 yield arrow
