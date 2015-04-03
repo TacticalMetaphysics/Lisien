@@ -221,14 +221,13 @@ class ArrowWidget(Widget):
     destination = ObjectProperty()
     selected = BooleanProperty()
     repointed = BooleanProperty(True)
-    bg_scale = NumericProperty(1.4)
+    bg_scale_unselected = NumericProperty(1.4)
+    bg_scale_selected = NumericProperty(2.0)
     selected = BooleanProperty(False)
     bg_color_unselected = ListProperty()
     bg_color_selected = ListProperty()
-    bg_color = ListProperty()
     fg_color_unselected = ListProperty()
     fg_color_selected = ListProperty()
-    fg_color = ListProperty()
     arrowhead_size = NumericProperty(10)
     collide_radius = NumericProperty(3)
     collider = ObjectProperty()
@@ -488,27 +487,25 @@ class Arrow(ArrowWidget):
             return None
 
 
-kv = """
+Builder.load_string(
+"""
 #: import Dummy ELiDE.dummy.Dummy
 <ArrowWidget>:
     bg_color_unselected: [0.5, 0.5, 0.5, 0.5]
     bg_color_selected: [0.0, 1.0, 1.0, 1.0]
     fg_color_unselected: [1.0, 1.0, 1.0, 1.0]
     fg_color_selected: [1.0, 1.0, 1.0, 1.0]
-    bg_color: self.bg_color_selected if self.selected else self.bg_color_unselected
-    fg_color: self.fg_color_selected if self.selected else self.fg_color_unselected
-    bg_scale: 2.0 if self.selected else 1.4
     canvas:
         Color:
-            rgba: root.bg_color
+            rgba: root.bg_color_selected if root.selected else root.bg_color_unselected
         Line:
-            width: root.w * root.bg_scale
+            width: root.w * root.bg_scale_selected if root.selected else root.w * root.bg_scale_unselected
             points: root.trunk_points
         Line:
-            width: root.w * root.bg_scale
+            width: root.w * root.bg_scale_selected if root.selected else root.w * root.bg_scale_unselected
             points: root.head_points
         Color:
-            rgba: root.fg_color
+            rgba: root.fg_color_selected if root.selected else root.fg_color_unselected
         Line:
             width: root.w
             points: root.trunk_points
@@ -519,4 +516,4 @@ kv = """
     origin: self.board.spot[self.portal['origin']] if self.portal['origin'] in self.board.spot else Dummy()
     destination: self.board.spot[self.portal['destination']] if self.portal['destination'] in self.board.spot else Dummy()
 """
-Builder.load_string(kv)
+)
