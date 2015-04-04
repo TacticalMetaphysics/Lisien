@@ -1,5 +1,7 @@
 LiSE is an application for developing life simulation games.
 
+[Development blog](http://forums.tigsource.com/index.php?topic=35227.0)
+
 # What is a life simulation game?
 
 For the purposes of LiSE, it is any game where you are primarily
@@ -19,6 +21,9 @@ Existing games that LiSE seeks to imitate include:
 * Dwarf Fortress
 * Democracy
 * Crusader Kings
+
+To demonstrate the capabilities of the engine, I will develop the game
+[Dungeon University](http://forums.tigsource.com/index.php?topic=43022).
 
 # Why should I use LiSE for this purpose?
 
