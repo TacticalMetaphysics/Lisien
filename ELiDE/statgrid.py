@@ -223,6 +223,7 @@ class StatListView(ListView, MirrorMapping):
         self.canvas.after.clear()
 
     def set_config(self, key, option, value):
+        print(':cfg: statgrid setting {}[{}] = {}'.format(key, option, value))
         if '_config' not in self.mirror:
             self.remote['_config'] = {key: {option: value}}
         elif key in self.config:
@@ -456,7 +457,8 @@ class StatListViewConfigurator(StatListView):
                 'on_text_validate': lambda i: self.set_value(key, i.text),
                 'on_enter': lambda i: self.set_value(key, i.text),
                 'on_focus': lambda i, v:
-                self.set_value(key, i.text) if not v else None
+                self.set_value(key, i.text) if not v else None,
+                'write_tab': False
             }
         }
         cls_dicts = [
@@ -479,7 +481,8 @@ class StatListViewConfigurator(StatListView):
                     self.set_config(key, 'true_text', i.text),
                     'on_focus': lambda i, foc:
                     self.set_config(key, 'true_text', i.text)
-                    if not foc else None
+                    if not foc else None,
+                    'write_tab': False
                 }
             }
             false_text_label_dict = {
@@ -497,7 +500,8 @@ class StatListViewConfigurator(StatListView):
                     self.set_config(key, 'false_text', i.text),
                     'on_focus': lambda i, foc:
                     self.set_config(key, 'false_text', i.text)
-                    if not foc else None
+                    if not foc else None,
+                    'write_tab': False
                 }
             }
             cls_dicts.extend(
@@ -518,14 +522,15 @@ class StatListViewConfigurator(StatListView):
                 'cls': IntInput,
                 'kwargs': {
                     'multiline': False,
-                    'text': str(cfg['min']),
-                    'on_enter': lambda i, v:
+                    'text': str(cfg.get('min', 0.0)),
+                    'on_enter': lambda i:
                     self.set_config(key, 'min', float(i.text)),
-                    'on_text_validate': lambda i, v:
+                    'on_text_validate': lambda i:
                     self.set_config(key, 'min', float(i.text)),
                     'on_focus': lambda i, foc:
                     self.set_config(key, 'min', float(i.text))
-                    if not foc else None
+                    if not foc else None,
+                    'write_tab': False
                 }
             }
             max_label_dict = {
@@ -537,14 +542,15 @@ class StatListViewConfigurator(StatListView):
                 'kwargs': {
                     'multiline': False,
                     'hint_text': 'Maximum',
-                    'text': str(cfg['max']),
-                    'on_enter': lambda i, v:
+                    'text': str(cfg.get('max', 1.0)),
+                    'on_enter': lambda i:
                     self.set_config(key, 'max', float(i.text)),
-                    'on_text_validate': lambda i, v:
+                    'on_text_validate': lambda i:
                     self.set_config(key, 'max', float(i.text)),
                     'on_focus': lambda i, foc:
                     self.set_config(key, 'max', float(i.text))
-                    if not foc else None
+                    if not foc else None,
+                    'write_tab': False
                 }
             }
             cls_dicts.extend(
