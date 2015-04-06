@@ -56,7 +56,5 @@ class MirrorMapping(EventDispatcher):
                         return True
                     del self.mirror[k]
                 else:
-                    assert(len(k) > 0)
-                    assert(v is not None)
                     self.mirror[k] = v
         return True
