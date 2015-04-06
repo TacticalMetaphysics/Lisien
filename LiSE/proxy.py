@@ -906,11 +906,14 @@ class EngineHandle(object):
         return k in self._real.character[char].stat
 
     def get_character_stat(self, char, k):
-        r = self._real.character[char].stat[k]
+        try:
+            r = self._real.character[char].stat[k]
+        except KeyError:
+            return None
         if isinstance(r, JSONReWrapper):
-            return ('JSONReWrapper', 'character', char, k, dict(r))
+            return ('JSONReWrapper', 'character', char, k, r._v)
         elif isinstance(r, JSONListReWrapper):
-            return ('JSONListReWrapper', 'character', char, k, list(r))
+            return ('JSONListReWrapper', 'character', char, k, r._v)
         else:
             return r
 
@@ -939,11 +942,14 @@ class EngineHandle(object):
         self._real.character[char] = v
 
     def get_node_stat(self, char, node, k):
-        r = self._real.character[char].node[node][k]
+        try:
+            r = self._real.character[char].node[node][k]
+        except KeyError:
+            return None
         if isinstance(r, JSONReWrapper):
-            return ('JSONReWrapper', 'node', char, node, k, dict(r))
+            return ('JSONReWrapper', 'node', char, node, k, r._v)
         elif isinstance(r, JSONListReWrapper):
-            return ('JSONListReWrapper', 'node', char, node, k, list(r))
+            return ('JSONListReWrapper', 'node', char, node, k, r._v)
         else:
             return r
 
@@ -1138,11 +1144,14 @@ class EngineHandle(object):
         del self._real.character[char].portal[o][d]
 
     def get_portal_stat(self, char, o, d, k):
-        r = self._real.character[char].portal[o][d][k]
+        try:
+            r = self._real.character[char].portal[o][d][k]
+        except KeyError:
+            return None
         if isinstance(r, JSONReWrapper):
-            return ('JSONReWrapper', 'portal', char, o, d, k, dict(r))
+            return ('JSONReWrapper', 'portal', char, o, d, k, r._v)
         elif isinstance(r, JSONListReWrapper):
-            return ('JSONListReWrapper', 'portal', char, o, d, k, list(r))
+            return ('JSONListReWrapper', 'portal', char, o, d, k, r._v)
         else:
             return r
 
