@@ -107,17 +107,17 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         self._cache = {}
         self._keycache = {}
         if self.engine.caching:
+            self.engine.time_listener(self._recache)
 
-            @self.engine.time_listener
-            def recache(branch_then, tick_then, b, t):
-                if b not in self._keycache:
-                    self._keycache[b] = {}
-                if branch_then == b and tick_then == t - 1:
-                    self._keycache[b][t] = self._keycache[b][t-1]
-                else:
-                    self._keycache[b][t] = set(
-                        self._iter_thing_names()
-                    )
+    def _recache(self, branch_then, tick_then, b, t):
+        if b not in self._keycache:
+            self._keycache[b] = {}
+        if branch_then == b and tick_then == t - 1:
+            self._keycache[b][t] = self._keycache[b][t-1]
+        else:
+            self._keycache[b][t] = set(
+                self._iter_thing_names()
+            )
 
     def _dispatch_thing(self, k, v):
         (b, t) = self.engine.time
