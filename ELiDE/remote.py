@@ -51,6 +51,9 @@ class MirrorMapping(EventDispatcher):
         def when_changed(branch, tick, what, k, v):
             if k not in self.mirror or self.mirror[k] != v:
                 if v is None:
+                    if k == 'next_location':
+                        self.mirror[k] = None
+                        return True
                     del self.mirror[k]
                 else:
                     assert(len(k) > 0)
