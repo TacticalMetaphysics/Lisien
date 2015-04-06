@@ -11,7 +11,9 @@ from .util import (
     enkeycache,
     dekeycache,
     cache_forward,
-    needcache
+    needcache,
+    JSONReWrapper,
+    JSONListReWrapper
 )
 
 
@@ -147,7 +149,11 @@ class Thing(Node):
             r = self._cache[key][branch][tick]
             if r is None:
                 raise KeyError("Key {} is not set now".format(key))
-            return r
+            return (
+                JSONReWrapper(self, key, r) if isinstance(r, dict) else
+                JSONListReWrapper(self, key, r) if isinstance(r, list) else
+                r
+            )
 
     def __setitem__(self, key, value):
         """Set ``key``=``value`` for the present game-time."""
