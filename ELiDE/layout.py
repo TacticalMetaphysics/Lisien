@@ -31,25 +31,13 @@ from .funcwin import FuncsEdWindow
 from .statwin import StatWindow
 from .stringwin import StringsEdWindow
 from .charsel import CharListView
-
-from gorm.xjson import json_load
+from .util import try_json_load, set_remote_value
 
 
 """The base layout in which all of ELiDE lives. Handles touch in its
 special way and manages many :class:`ModalView`s.
 
 """
-
-
-def try_json_load(obj):
-    """Return the JSON interpretation the object if possible, or just the
-    object otherwise.
-
-    """
-    try:
-        return json_load(obj)
-    except (TypeError, ValueError):
-        return obj
 
 
 class KvLayoutBack(FloatLayout):
@@ -359,11 +347,6 @@ class ELiDELayout(FloatLayout):
         deleting ``remote[k]`` if ``v is None``.
 
         """
-        def set_remote_value(remote, k, v):
-            if v is None:
-                del remote[k]
-            else:
-                remote[k] = try_json_load(v)
         return lambda k, v: set_remote_value(remote, k, v)
 
     def toggle_stat_cfg(self, *args):

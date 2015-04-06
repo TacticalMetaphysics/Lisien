@@ -4,6 +4,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from .statgrid import StatListViewConfigurator
+from .util import set_remote_value
 
 
 class StatWindow(BoxLayout):
@@ -35,7 +36,7 @@ class StatWindow(BoxLayout):
         )
         newstatbut = Button(
             text='+',
-            on_press=lambda inst: self.layout.set_remote_value(
+            on_press=lambda inst: set_remote_value(
                 cfg.remote,
                 newstatkey.text,
                 newstatval.text
