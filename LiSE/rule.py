@@ -295,27 +295,11 @@ class RuleMapping(MutableMapping):
     def _dispatch(self, rule, active):
         dispatch(self._listeners, rule.name, self, rule, active)
 
-    def _activate_rule(self, rule):
-        (branch, tick) = self.engine.time
-        if rule not in self.rulebook:
-            self.rulebook.append(rule)
-        self.engine.db.rule_set(
-            self.rulebook.name,
-            rule.name,
-            branch,
-            tick,
-            True
-        )
-        self._dispatch(rule, True)
-
     def __repr__(self):
         return 'RuleMapping({})'.format([k for k in self])
 
     def __iter__(self):
-        return self.engine.db.active_rules_rulebook(
-            self.rulebook.name,
-            *self.engine.time
-        )
+        yield from self.rulebook
 
     def __len__(self):
         n = 0
@@ -324,18 +308,13 @@ class RuleMapping(MutableMapping):
         return n
 
     def __contains__(self, k):
-        return self.engine.db.active_rule_rulebook(
-            self.rulebook.name,
-            k,
-            *self.engine.time
-        )
+        return k in self.rulebook
 
     def __getitem__(self, k):
         if k not in self:
             raise KeyError("Rule '{}' is not in effect".format(k))
         if k not in self._rule_cache:
             self._rule_cache[k] = Rule(self.engine, k)
-            self._rule_cache[k].active = True
         return self._rule_cache[k]
 
     def __getattr__(self, k):
@@ -346,11 +325,16 @@ class RuleMapping(MutableMapping):
 
     def __setitem__(self, k, v):
         if isinstance(v, Rule):
-            if v.name != k:
-                raise ValueError("That rule doesn't go by that name")
-            self._activate_rule(v)
+            # replace rule named k with rule v
+            try:
+                i = self.rulebook.index(k)
+            except ValueError:
+                raise KeyError("No rule {} to replace".format(k))
+            self.rulebook[i] = v.name
+            del self._rule_cache[k]
+            self._rule_cache[v.name] = v
         elif isinstance(v, Callable):
-            # create a new rule, named k, performing ation v
+            # create a new rule, named k, performing action v
             if k in self.engine.rule:
                 raise KeyError(
                     "Already have a rule named {k}. "
@@ -371,13 +355,9 @@ class RuleMapping(MutableMapping):
             rule = Rule(self.engine, k)
             self._rule_cache[k] = rule
             rule.actions.append(funn)
-            self._activate_rule(rule)
         else:
-            # v is the name of a rule. Maybe it's been created
-            # previously or maybe it'll get initialized in Rule's
-            # __init__.
+            # Replace rule k with rule v
             self._rule_cache[k] = Rule(self.engine, v)
-            self._activate_rule(self._rule_cache[k])
 
     def __call__(self, v, name=None):
         name = name if name is not None else v.__name__
@@ -385,16 +365,13 @@ class RuleMapping(MutableMapping):
         return self[name]
 
     def __delitem__(self, k):
-        """Deactivate the rule"""
-        (branch, tick) = self.engine.time
-        rule = self[k]
-        self.engine.db.rule_set(
-            self.rulebook.name,
-            k,
-            branch,
-            tick,
-            False
-        )
+        try:
+            i = self.rulebook.index(k)
+        except ValueError:
+            raise KeyError("No rule {} to delete".format(k))
+        del self.rulebook[i]
+        if k in self._rule_cache:
+            del self._rule_cache[k]
         self._dispatch(rule, False)
 
 
