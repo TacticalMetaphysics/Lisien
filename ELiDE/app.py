@@ -41,9 +41,11 @@ class ELiDEApp(App):
             'ELiDE',
             {
                 'boardchar': 'physical',
-                'sheetchar': 'player',
                 'debugger': 'no',
-                'inspector': 'yes'
+                'inspector': 'no',
+                'user_kv': 'yes',
+                'user_message': 'yes',
+                'play_speed': '1'
             }
         )
         config.write()
@@ -71,18 +73,46 @@ class ELiDEApp(App):
         )
 
         Clock.schedule_interval(self._check_stats, 0.01)
-        for char in config['ELiDE']['boardchar'], config['ELiDE']['sheetchar']:
-            if char not in self.engine.character:
-                print("adding character: {}".format(char))
-                self.engine.add_character(char)
+        char = config['ELiDE']['boardchar']
+        if char not in self.engine.character:
+            print("adding character: {}".format(char))
+            self.engine.add_character(char)
         l = ELiDE.layout.ELiDELayout(
             engine=self.engine,
-            character_name=config['ELiDE']['boardchar']
+            character_name=config['ELiDE']['boardchar'],
+            use_kv=config['ELiDE']['user_kv'] == 'yes',
+            use_message=config['ELiDE']['user_message'] == 'yes',
+            play_speed=int(config['ELiDE']['play_speed'])
         )
         if config['ELiDE']['inspector'] == 'yes':
             from kivy.core.window import Window
             from kivy.modules import inspector
             inspector.create_inspector(Window, l)
+
+        def upd_boardchar(*args):
+            if config['ELiDE']['boardchar'] != l.character_name:
+                config['ELiDE']['boardchar'] = l.character_name
+
+        def upd_use_kv(*args):
+            v = 'yes' if l.use_kv else 'no'
+            if v != config['ELiDE']['user_kv']:
+                config['ELiDE']['user_kv'] = v
+
+        def upd_use_message(*args):
+            v = 'yes' if l.use_message else 'no'
+            if v != config['ELiDE']['use_message']:
+                config['ELiDE']['user_message'] = v
+
+        def upd_play_speed(*args):
+            v = str(l.play_speed)
+            if v != config['ELiDE']['play_speed']:
+                config['ELiDE']['play_speed'] = v
+
+        l.bind(
+            character_name=upd_boardchar,
+            use_kv=upd_use_kv,
+            use_message=upd_use_message
+        )
         return l
 
     def _check_stats(self, *args):
@@ -92,11 +122,13 @@ class ELiDEApp(App):
     def on_pause(self):
         """Sync the database with the current state of the game."""
         self.engine.commit()
+        self.config.write()
 
     def on_stop(self, *largs):
         """Sync the database, wrap up the game, and halt."""
         Clock.unschedule(self._check_stats)
         self.manager.shutdown()
+        self.config.write()
 
 
 kv = """

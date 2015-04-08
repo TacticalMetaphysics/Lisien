@@ -66,7 +66,10 @@ class ELiDELayout(FloatLayout):
     character = ObjectProperty()
     character_name = StringProperty()
     kv = StringProperty()
-    text = StringProperty('')
+    use_kv = BooleanProperty()
+    message = StringProperty('')
+    use_message = BooleanProperty()
+    play_speed = NumericProperty()
     font_name = StringProperty('DroidSans')
     font_size = NumericProperty('15sp')
     halign = OptionProperty(
@@ -113,7 +116,10 @@ class ELiDELayout(FloatLayout):
         self._trigger_reremote = Clock.create_trigger(self.reremote)
         self.bind(selection=self._trigger_reremote)
         self._trigger_reremote()
-        Clock.schedule_interval(self.play, 1)
+
+    def on_play_speed(self, *args):
+        Clock.unschedule(self.play)
+        Clock.schedule_interval(self.play, 1.0 / self.play_speed)
 
     def on_engine(self, *args):
         """Set my branch and tick to that of my engine, and bind them so that
@@ -248,7 +254,7 @@ class ELiDELayout(FloatLayout):
             del self._kv_layout_back
         if hasattr(self, '_message'):
             self.unbind(
-                text=self._message.setter('text'),
+                message=self._message.setter('text'),
                 font_name=self._message.setter('font_name'),
                 font_size=self._message.setter('font_size'),
                 halign=self._message.setter('halign'),
@@ -262,7 +268,7 @@ class ELiDELayout(FloatLayout):
             del self._kv_layout_front
         self._kv_layout_back = KvLayoutBack()
         self._message = Message(
-            text=self.text,
+            text=self.message,
             font_name=self.font_name,
             font_size=self.font_size,
             halign=self.halign,
@@ -270,7 +276,7 @@ class ELiDELayout(FloatLayout):
             line_height=self.line_height
         )
         self.bind(
-            text=self._message.setter('text'),
+            message=self._message.setter('text'),
             font_name=self._message.setter('font_name'),
             font_size=self._message.setter('font_size'),
             halign=self._message.setter('halign'),
