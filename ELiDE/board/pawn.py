@@ -251,7 +251,10 @@ class Pawn(PawnSpot):
             before listening to the database again.
 
             """
-            if self.mirror['location'] != self.loc_name:
+            if (
+                    'location' not in self.mirror or
+                    self.mirror['location'] != self.loc_name
+            ):
                 Clock.schedule_once(doublecheck, 0)
                 return
             self.bind(mirror=self.upd_from_mirror)
