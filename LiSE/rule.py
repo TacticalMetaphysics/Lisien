@@ -245,6 +245,16 @@ class RuleBook(MutableSequence):
     def _dispatch(self):
         self.engine.rulebook.dispatch(self)
 
+    def _activate_rule(self, rule):
+        (branch, tick) = self.engine.time
+        self.engine.db.rule_set(
+            self.name,
+            rule.name,
+            branch,
+            tick,
+            True
+        )
+
     def __setitem__(self, i, v):
         if isinstance(v, Rule):
             rule = v
@@ -253,6 +263,7 @@ class RuleBook(MutableSequence):
         else:
             rule = Rule(self.engine, v)
         self.engine.db.rulebook_set(self.name, i, rule.name)
+        self._activate_rule(rule)
         if self.engine.caching:
             while len(self._cache) <= i:
                 self._cache.append(None)
@@ -296,16 +307,10 @@ class RuleMapping(MutableMapping):
         dispatch(self._listeners, rule.name, self, rule, active)
 
     def _activate_rule(self, rule):
-        (branch, tick) = self.engine.time
         if rule not in self.rulebook:
             self.rulebook.append(rule)
-        self.engine.db.rule_set(
-            self.rulebook.name,
-            rule.name,
-            branch,
-            tick,
-            True
-        )
+        else:
+            self.rulebook._activate_rule(rule)
         self._dispatch(rule, True)
 
     def __repr__(self):
