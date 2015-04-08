@@ -212,6 +212,7 @@ class RuleBook(MutableSequence):
     """
     def __init__(self, engine, name):
         self.engine = engine
+        self.db = self.engine.rulebook.db
         self.name = name
         self._listeners = []
         if self.engine.caching:
@@ -224,19 +225,19 @@ class RuleBook(MutableSequence):
         if self.engine.caching:
             yield from self._cache
             return
-        for rule in self.engine.db.rulebook_rules(self.name):
+        for rule in self.db.rulebook_rules(self.name):
             yield self.engine.rule[rule]
 
     def __len__(self):
         if self.engine.caching:
             return len(self._cache)
-        return self.engine.db.ct_rulebook_rules(self.name)
+        return self.db.ct_rulebook_rules(self.name)
 
     def __getitem__(self, i):
         if self.engine.caching:
             return self._cache[i]
         return self.engine.rule[
-            self.engine.db.rulebook_get(
+            self.db.rulebook_get(
                 self.name,
                 i
             )
@@ -252,7 +253,7 @@ class RuleBook(MutableSequence):
             rule = self.engine.rule[v]
         else:
             rule = Rule(self.engine, v)
-        self.engine.db.rulebook_set(self.name, i, rule.name)
+        self.db.rulebook_set(self.name, i, rule.name)
         if self.engine.caching:
             while len(self._cache) <= i:
                 self._cache.append(None)
@@ -264,7 +265,7 @@ class RuleBook(MutableSequence):
         self[i] = v
 
     def __delitem__(self, i):
-        self.engine.db.rulebook_del(self.name, i)
+        self.db.rulebook_del(self.name, i)
         if self.engine.caching:
             del self._cache[i]
         self._dispatch()
