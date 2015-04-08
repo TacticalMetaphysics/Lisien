@@ -215,14 +215,12 @@ class RuleBook(MutableSequence):
         self.name = name
         self._listeners = []
         if self.engine.caching:
-            self._cache = [
-                self.engine.rule[rule] for rule in
-                self.engine.db.rulebook_rules(self.name)
-            ]
+            self._cache = list(self.engine.db.rulebook_rules(self.name))
 
     def __iter__(self):
         if self.engine.caching:
-            yield from self._cache
+            for rulen in self._cache:
+                yield self.engine.rule[rulen]
             return
         for rule in self.engine.db.rulebook_rules(self.name):
             yield self.engine.rule[rule]
@@ -234,7 +232,7 @@ class RuleBook(MutableSequence):
 
     def __getitem__(self, i):
         if self.engine.caching:
-            return self._cache[i]
+            return self.engine.rule[self._cache[i]]
         return self.engine.rule[
             self.engine.db.rulebook_get(
                 self.name,
@@ -245,14 +243,14 @@ class RuleBook(MutableSequence):
     def _dispatch(self):
         self.engine.rulebook.dispatch(self)
 
-    def _activate_rule(self, rule):
+    def _activate_rule(self, rule, active=True):
         (branch, tick) = self.engine.time
         self.engine.db.rule_set(
             self.name,
             rule.name,
             branch,
             tick,
-            True
+            active
         )
 
     def __setitem__(self, i, v):
@@ -267,12 +265,27 @@ class RuleBook(MutableSequence):
         if self.engine.caching:
             while len(self._cache) <= i:
                 self._cache.append(None)
-            self._cache[i] = rule
+            self._cache[i] = rule.name
         self._dispatch()
 
     def insert(self, i, v):
         self.engine.db.rulebook_decr(self.name, i)
         self[i] = v
+
+    def index(self, v):
+        if isinstance(v, str):
+            i = 0
+            for rule in self:
+                if rule.name == v:
+                    return i
+                i += 1
+            else:
+                raise ValueError(
+                    "No rule named {} in rulebook {}".format(
+                        v, self.name
+                    )
+                )
+        return super().index(v)
 
     def __delitem__(self, i):
         self.engine.db.rulebook_del(self.name, i)
@@ -285,6 +298,33 @@ class RuleBook(MutableSequence):
 
 
 class RuleMapping(MutableMapping):
+    """A wrapper around a :class:`RuleBook` that lets you get at its rules
+    by name.
+
+    You can access the rules in this either dictionary-style or as
+    attributes; this is for convenience if you want to get at a rule's
+    decorators, eg. to add an Action to the rule.
+
+    Using this as a decorator will create a new rule, named for the
+    decorated function, and using the decorated function as the
+    initial Action.
+
+    Using this like a dictionary will let you create new rules,
+    appending them onto the underlying :class:`RuleBook`; replace one
+    rule with another, where the new one will have the same index in
+    the :class:`RuleBook` as the old one; and activate or deactivate
+    rules. In all these cases, the name of a rule may be used in place
+    of the actual rule, so long as the rule already exists.
+
+    If you delete a rule from this with the ``del`` keyword, it will
+    actually still be in the :class:`RuleBook`, but deactivated: the
+    rule will not be evaluated unless and until you reactivate it. You
+    can also set a rule active or inactive by setting it to ``True``
+    or ``False``, respectively, and this is the easiest way to
+    reactivate a rule, though you can also reactivate it by calling
+    this with it.
+
+    """
     def __init__(self, engine, rulebook):
         self.engine = engine
         if isinstance(rulebook, RuleBook):
@@ -306,12 +346,12 @@ class RuleMapping(MutableMapping):
     def _dispatch(self, rule, active):
         dispatch(self._listeners, rule.name, self, rule, active)
 
-    def _activate_rule(self, rule):
+    def _activate_rule(self, rule, active=True):
         if rule not in self.rulebook:
             self.rulebook.append(rule)
         else:
-            self.rulebook._activate_rule(rule)
-        self._dispatch(rule, True)
+            self.rulebook._activate_rule(rule, active)
+        self._dispatch(rule, active)
 
     def __repr__(self):
         return 'RuleMapping({})'.format([k for k in self])
@@ -350,12 +390,26 @@ class RuleMapping(MutableMapping):
             raise AttributeError
 
     def __setitem__(self, k, v):
+        if isinstance(v, bool):
+            if k not in self:
+                raise KeyError(
+                    "Can't activate or deactivate {}, "
+                    "because it is not in my rulebook ({}).".format(
+                        k, self.rulebook.name
+                    )
+                )
+            self._activate_rule(k, v)
+            return
+        if isinstance(v, str):
+            v = self.engine.rule[k]
         if isinstance(v, Rule):
-            if v.name != k:
-                raise ValueError("That rule doesn't go by that name")
+            # may raise ValueError
+            i = self.rulebook.index(k)
+            if self.rulebook[i] != v:
+                self.rulebook[i] = v
             self._activate_rule(v)
         elif isinstance(v, Callable):
-            # create a new rule, named k, performing ation v
+            # create a new rule, named k, performing action v
             if k in self.engine.rule:
                 raise KeyError(
                     "Already have a rule named {k}. "
@@ -373,16 +427,17 @@ class RuleMapping(MutableMapping):
                 funn = funn[:-1] + str(i)
                 i += 1
             self.engine.action[funn] = v
-            rule = Rule(self.engine, k)
-            self._rule_cache[k] = rule
+            if k not in self.engine.rule:
+                self.engine.rule[k] = Rule(self.engine, k)
+            rule = self.engine.rule[k]
             rule.actions.append(funn)
             self._activate_rule(rule)
         else:
-            # v is the name of a rule. Maybe it's been created
-            # previously or maybe it'll get initialized in Rule's
-            # __init__.
-            self._rule_cache[k] = Rule(self.engine, v)
-            self._activate_rule(self._rule_cache[k])
+            raise TypeError(
+                "{} is not a rule or the name of one".format(
+                    type(v)
+                )
+            )
 
     def __call__(self, v, name=None):
         name = name if name is not None else v.__name__
