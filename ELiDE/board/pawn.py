@@ -247,7 +247,7 @@ class Pawn(PawnSpot):
             )
 
         def doublecheck(*args):
-            """Wait for my new location to propagate to the databaase and back
+            """Wait for my new location to propagate to the database and back
             before listening to the database again.
 
             """
