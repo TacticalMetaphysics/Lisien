@@ -217,6 +217,15 @@ class RuleBook(MutableSequence):
         if self.engine.caching:
             self._cache = list(self.engine.db.rulebook_rules(self.name))
 
+    def __contains__(self, v):
+        if self.engine.caching:
+            cache = self._cache
+        else:
+            cache = list(self.engine.db.rulebook_rules(self.name))
+        if isinstance(v, Rule):
+            v = v.name
+        return v in cache
+
     def __iter__(self):
         if self.engine.caching:
             for rulen in self._cache:
@@ -407,7 +416,6 @@ class RuleMapping(MutableMapping):
             i = self.rulebook.index(k)
             if self.rulebook[i] != v:
                 self.rulebook[i] = v
-            self._activate_rule(v)
         elif isinstance(v, Callable):
             # create a new rule, named k, performing action v
             if k in self.engine.rule:
