@@ -1,0 +1,86 @@
+Introduction
+============
+
+LiSE is a tool for constructing tick-based simulations following rules
+in a directed graph-based world model. It has special affordances for
+the kinds of things you might need to simulate in the life simulation
+genre.
+
+Tick-based simulations are those in which time is broken into discrete
+units of uniform size, called "ticks". Each change to the simulation
+happens in a single tick, and nothing can happen in any amount of time
+shorter than the tick. Just how much time a tick represents will vary
+depending on the game--it could be seconds, days, years, whatever you
+want.
+
+Rules are things the game should do in certain conditions. In LiSE,
+the "things to do" are called Actions, and are functions that can run
+arbitrary Python code. The conditions are divided into Triggers and
+Prereqs, of which only Triggers are truly necessary: they are also
+functions, but one of a rule's Triggers must return True for the
+Action to proceed.
+
+A directed graph is made of nodes and edges. The nodes are points
+without fixed locations--when drawing a graph, you may arrange the
+nodes however you like, as long as the edges connect them the same
+way. Edges in a directed graph connect one node to another node, but
+not vice-versa, so you can have nodes A and B where A is connected to
+B, but B is not connected to A. But you can have edges going in both
+directions between A and B. They're usually drawn as arrows.
+
+In LiSE, edges are called Portals, and nodes may be Places or
+Things. You can use these to represent whatever you want, but they
+have special properties to make it easier to model physical space: in
+particular, each Thing is located in exactly one node at a time
+(usually a Place), and may be travelling through one of the Portals
+leading out from there. Regardless, you can keep any data you like in
+a Thing, Place, or Portal by treating it like a dictionary.
+
+LiSE's directed graphs are called Characters. Every time something
+about a Character changes, LiSE remembers when it happened -- that is,
+which tick of the simulation. This allows the developer to look up the
+state of the world at some point in the past.
+
+When time moves forward in LiSE, it checks all its rules and allows
+them to change the state of the world. Then, LiSE sets its clock to
+the next tick, and is ready for time to move forward another
+tick. LiSE can keep track of multiple timelines, called "branches,"
+which can split off from one another. Otherwise, events in one branch
+don't effect one another, unless you write code to make them do it.
+
+Interface
+=========
+
+The graphical interface, ELiDE, lets the developer change whatever
+they want about the world. A game made with ELiDE will be more
+restrictive about what the player is allowed to change, but all of the
+player's input will be turned into changes to the world, which the
+rules may respond to however they need. Thus you never have to write
+any input handling code to make a functional game in ELiDE.
+
+ELiDE has three columns. On the right are a lot of buttons to access
+the parts of ELiDE that aren't visible right now, plus a couple of
+icons that you can drag into the middle. In the middle, you have a
+graphical display of the Character under consideraction; dragging
+those icons here will make a new Place or Thing. To connect Places
+with Portals, press the button with the arrow on it, then drag from
+one Place to another. Press the button again when you're done. On the
+left is the stat editor: it displays data that is stored in whatever
+entity is presently selected. You can select Places, Things, and
+Portals by clicking them--and once you've selected them, you can drag
+them elsewhere. If no Place, Thing, or Portal is selected, then the
+Character you are viewing is selected. There's a button in the
+top-right to view another Character.
+
+Below all this are some bits to let you manipulate time, mainly the
+Play and Next Tick buttons. Play will start moving time forward when
+you press it, and stop when you press it again. Next Tick will only
+move time forward by one tick. There are also text fields with which
+you can enter the Branch and Tick by hand. Note that rules are only
+run when you advance time using Play or Next Tick.
+
+Stat editor
+-----------
+
+This two-column table displays the keys and values in the selected
+entity. By default, they are all rendered as plain text.
