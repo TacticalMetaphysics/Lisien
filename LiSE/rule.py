@@ -426,11 +426,12 @@ class RuleMapping(MutableMapping):
             while funn in self.engine.action:
                 funn = funn[:-1] + str(i)
                 i += 1
-            self.engine.action[funn] = v
             if k not in self.engine.rule:
-                self.engine.rule[k] = Rule(self.engine, k)
-            rule = self.engine.rule[k]
-            rule.actions.append(funn)
+                self.engine.rule[k] = v
+                rule = self.engine.rule[k]
+            else:
+                rule = self.engine.rule[k]
+                rule.actions.append(funn)
             self._activate_rule(rule)
         else:
             raise TypeError(
@@ -613,10 +614,20 @@ class AllRules(MutableMapping):
         return self._cache[k]
 
     def __setitem__(self, k, v):
-        if k not in self._cache:
-            self._cache[k] = Rule(self.engine, k)
-        new = self._cache[k]
-        new.actions = [v]
+        if isinstance(v, str):
+            v = self.action[v]
+        if callable(v):
+            if k not in self._cache:
+                self._cache[k] = Rule(self.engine, k)
+            new = self._cache[k]
+            new.actions = [v]
+        elif isinstance(v, Rule):
+            self._cache[k] = v
+            new = v
+        else:
+            raise TypeError(
+                "Don't know how to store {} as a rule.".format(type(v))
+            )
         self._dispatch(new, True)
 
     def __delitem__(self, k):
