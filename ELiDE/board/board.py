@@ -1,5 +1,6 @@
 # This file is part of LiSE, a framework for life simulation games.
 # Copyright (c) 2013-2014 Zachary Spector,  zacharyspector@gmail.com
+from functools import partial
 from kivy.properties import (
     StringProperty,
     ReferenceListProperty,
@@ -198,6 +199,9 @@ class Board(RelativeLayout):
         pwn.parent.remove_widget(pwn)
         del self.pawn[name]
 
+    def _trigger_rm_pawn(self, name):
+        Clock.schedule_once(partial(self.rm_pawn, name), 0)
+
     def rm_spot(self, name):
         """Remove the :class:`Spot` by the given name."""
         if name not in self.spot:
@@ -205,6 +209,9 @@ class Board(RelativeLayout):
         self._rm_arrows_to_and_from(name)
         self.spotlayout.remove_widget(self.spot[name])
         del self.spot[name]
+
+    def _trigger_rm_spot(self, name):
+        Clock.schedule_once(partial(self.rm_spot, name), 0)
 
     def rm_arrow(self, orig, dest):
         """Remove the :class:`Arrow` that goes from ``orig`` to ``dest``."""
@@ -216,9 +223,22 @@ class Board(RelativeLayout):
         self.arrowlayout.remove_widget(self.arrow[orig][dest])
         del self.arrow[orig][dest]
 
+    def _trigger_rm_arrow(self, orig, dest):
+        Clock.schedule_once(partial(self.rm_arrow, orig, dest), 0)
+
     def grid_layout(self, graph):
         from networkx import spectral_layout
         return spectral_layout(graph)
+
+    def discard_pawn(self, thingn):
+        if (
+                thingn in self.pawn and
+                thingn not in self.character.thing
+        ):
+            self.rm_pawn(thingn)
+
+    def _trigger_discard_pawn(self, thing):
+        Clock.schedule_once(partial(self.discard_pawn, thing), 0)
 
     def remove_absent_pawns(self, *args):
         Logger.debug(
@@ -230,6 +250,16 @@ class Board(RelativeLayout):
             if pawn_name not in self.character.thing:
                 self.rm_pawn(pawn_name)
 
+    def discard_spot(self, placen):
+        if (
+                placen in self.spot and
+                placen not in self.character.place
+        ):
+            self.rm_spot(placen)
+
+    def _trigger_discard_spot(self, place):
+        Clock.schedule_once(partial(self.discard_spot, place), 0)
+
     def remove_absent_spots(self, *args):
         Logger.debug(
             "Board: removing spots absent from {}".format(
@@ -239,6 +269,19 @@ class Board(RelativeLayout):
         for spot_name in list(self.spot.keys()):
             if spot_name not in self.character.place:
                 self.rm_spot(spot_name)
+
+    def discard_arrow(self, orign, destn):
+        if (
+            orign in self.arrow and
+            destn in self.arrow[orign] and not (
+                orign in self.character.portal and
+                destn in self.character.portal[orign]
+            )
+        ):
+            self.rm_arrow(orign, destn)
+
+    def _trigger_discard_arrow(self, orig, dest):
+        Clock.schedule_once(partial(self.discard_arrow, orig, dest), 0)
 
     def remove_absent_arrows(self, *args):
         Logger.debug(
@@ -255,6 +298,18 @@ class Board(RelativeLayout):
                 ):
                     self.rm_arrow(arrow_origin, arrow_destination)
 
+    def add_spot(self, placen):
+        if (
+            placen in self.character.place and
+            placen not in self.spot
+        ):
+            self.spotlayout.add_widget(
+                self.make_spot(self.character.place[placen])
+            )
+
+    def _trigger_add_spot(self, placen):
+        Clock.schedule_once(partial(self.add_spot, placen), 0)
+
     def add_new_spots(self, *args):
         Logger.debug(
             "Board: adding new spots to {}".format(
@@ -269,6 +324,23 @@ class Board(RelativeLayout):
                 self.spotlayout.add_widget(spot)
                 spots_added.append(spot)
         self.spots_added = spots_added
+
+    def add_arrow(self, orign, destn):
+        if (
+            orign in self.character.portal and
+            destn in self.character.portal[orign] and not (
+                orign in self.arrow and
+                destn in self.arrow[orign]
+            )
+        ):
+            self.arrowlayout.add_widget(
+                self.make_arrow(
+                    self.character.portal[orign][destn]
+                )
+            )
+
+    def _trigger_add_arrow(self, orign, destn):
+        Clock.schedule_once(partial(self.add_arrow, orign, destn), 0)
 
     def add_new_arrows(self, *args):
         Logger.debug(
@@ -287,6 +359,26 @@ class Board(RelativeLayout):
                             self.character.portal[arrow_orig][arrow_dest]
                         )
                     )
+
+    def add_pawn(self, thingn):
+        if (
+            thingn in self.character.thing and
+            thingn not in self.pawn
+        ):
+            pwn = self.make_pawn(self.character.thing[thingn])
+            locn = pwn.thing['location']
+            nextlocn = pwn.thing['next_location']
+            if nextlocn is None:
+                self.add_spot(nextlocn)
+                whereat = self.spot[nextlocn]
+            else:
+                self.add_arrow(locn, nextlocn)
+                whereat = self.arrow[locn][nextlocn]
+            whereat.add_widget(pwn)
+            self.pawn[thingn] = pwn
+
+    def _trigger_add_pawn(self, thingn):
+        Clock.schedule_once(partial(self.add_pawn, thingn), 0)
 
     def add_new_pawns(self, *args):
         Logger.debug(
@@ -343,7 +435,6 @@ class Board(RelativeLayout):
         go, and move them there.
 
         """
-        from functools import partial
         spots_only = self.character.facade()
         for thing in list(spots_only.thing.keys()):
             del spots_only.thing[thing]
