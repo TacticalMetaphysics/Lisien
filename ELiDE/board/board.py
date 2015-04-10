@@ -220,37 +220,32 @@ class Board(RelativeLayout):
         from networkx import spectral_layout
         return spectral_layout(graph)
 
-    def update(self, *args):
-        """Refresh myself from the database"""
-        # TODO: This should be broken up into several functions that
-        # listen to the appropriate part of the character. Then there
-        # should be one function for when I have to redraw everything
-        # because you've switched to a new character.
-
-        # remove widgets that don't represent anything anymore
-        pawns_removed = []
+    def remove_absent_pawns(self, *args):
+        Logger.debug(
+            "Board: removing pawns absent from {}".format(
+                self.character.name
+            )
+        )
         for pawn_name in list(self.pawn.keys()):
             if pawn_name not in self.character.thing:
-                pawns_removed.append(pawn_name)
                 self.rm_pawn(pawn_name)
+
+    def remove_absent_spots(self, *args):
         Logger.debug(
-            "Board: removed {} pawns from {}'s board".format(
-                len(pawns_removed),
+            "Board: removing spots absent from {}".format(
                 self.character.name
             )
         )
-        spots_removed = []
         for spot_name in list(self.spot.keys()):
             if spot_name not in self.character.place:
-                spots_removed.append(spot_name)
                 self.rm_spot(spot_name)
+
+    def remove_absent_arrows(self, *args):
         Logger.debug(
-            "Board: removed {} spots from {}'s board".format(
-                len(spots_removed),
+            "Board: removing arrows absent from {}".format(
                 self.character.name
             )
         )
-        arrows_removed = []
         for arrow_origin in list(self.arrow.keys()):
             for arrow_destination in list(self.arrow[arrow_origin].keys()):
                 if (
@@ -258,15 +253,14 @@ class Board(RelativeLayout):
                         arrow_destination not in
                         self.character.portal[arrow_origin]
                 ):
-                    arrows_removed.append((arrow_origin, arrow_destination))
                     self.rm_arrow(arrow_origin, arrow_destination)
+
+    def add_new_spots(self, *args):
         Logger.debug(
-            "Board: removed {} arrows from {}'s board".format(
-                len(arrows_removed),
+            "Board: adding new spots to {}".format(
                 self.character.name
             )
         )
-        # add widgets to represent new stuff
         self.spots_unposd = []
         spots_added = []
         for place_name in self.character.place:
@@ -274,41 +268,34 @@ class Board(RelativeLayout):
                 spot = self.make_spot(self.character.place[place_name])
                 self.spotlayout.add_widget(spot)
                 spots_added.append(spot)
+        self.spots_added = spots_added
+
+    def add_new_arrows(self, *args):
         Logger.debug(
-            "Board: added {} spots to {}'s board".format(
-                len(spots_added),
+            "Board: adding new arrows to {}".format(
                 self.character.name
             )
         )
-        self.new_spots = spots_added
-        arrows_added = []
         for arrow_orig in self.character.portal:
             for arrow_dest in self.character.portal[arrow_orig]:
                 if (
                         arrow_orig not in self.arrow or
                         arrow_dest not in self.arrow[arrow_orig]
                 ):
-                    arrows_added.append(
-                        (
-                            arrow_orig,
-                            arrow_dest
-                        )
-                    )
                     self.arrowlayout.add_widget(
                         self.make_arrow(
                             self.character.portal[arrow_orig][arrow_dest]
                         )
                     )
+
+    def add_new_pawns(self, *args):
         Logger.debug(
-            "Board: added {} arrows to {}'s board".format(
-                len(arrows_added),
+            "Board: adding new pawns to {}".format(
                 self.character.name
             )
         )
-        pawns_added = []
         for thing_name in self.character.thing:
             if thing_name not in self.pawn:
-                pawns_added.append(thing_name)
                 pwn = self.make_pawn(self.character.thing[thing_name])
                 try:
                     whereat = self.arrow[
@@ -320,12 +307,25 @@ class Board(RelativeLayout):
                     whereat = self.spot[pwn.thing['location']]
                 whereat.add_widget(pwn)
                 self.pawn[thing_name] = pwn
-        Logger.debug(
-            "Board: added {} pawns to {}'s board".format(
-                len(pawns_added),
-                self.character.name
-            )
-        )
+
+    def update(self, *args):
+        """Force an update to match the current state of my character.
+
+        This polls every element of the character, and therefore
+        causes me to sync with the LiSE core for a long time. Avoid
+        when possible.
+
+        """
+
+        # remove widgets that don't represent anything anymore
+        Logger.debug("Board: updating")
+        self.remove_absent_pawns()
+        self.remove_absent_spots()
+        self.remove_absent_arrows()
+        # add widgets to represent new stuff
+        self.add_new_spots()
+        self.add_new_arrows()
+        self.add_new_pawns()
 
     def on_spots_unposd(self, *args):
         if len(self.spots_unposd) != len(self.new_spots):
