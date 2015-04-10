@@ -215,6 +215,8 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
         """
         if self.engine.caching and thing in self and thing in self._cache:
             return self._cache[thing]
+        if thing not in self:
+            raise KeyError("No such thing: {}".format(thing))
         (th, l) = self.engine.db.thing_and_loc(
             self.character.name,
             thing,
@@ -275,7 +277,6 @@ class CharacterThingMapping(MutableMapping, RuleFollower):
                         del self._keycache[branch][t]
                 if tick in self._keycache[branch]:
                     self._keycache[branch][tick].discard(thing)
-                    return
                 else:
                     self._keycache[branch] = set(self._real.keys())
         self.engine.db.thing_loc_and_next_del(
@@ -380,7 +381,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         thingnames = self._things()
         if place in nodenames.difference(thingnames):
             return Place(self.character, place)
-        raise KeyError("No such place")
+        raise KeyError("No such place: {}".format(place))
 
     def __getitem__(self, place):
         """Get the place from the cache if I can, otherwise check that it
@@ -390,7 +391,7 @@ class CharacterPlaceMapping(MutableMapping, RuleFollower):
         if not self.engine.caching:
             return self._getplace(place)
         if place not in self:
-            raise KeyError("No such place")
+            raise KeyError("No such place: {}".format(place))
         # not using cache_get because creating Place objects is expensive
         if place not in self._cache:
             self._cache[place] = Place(self.character, place)
