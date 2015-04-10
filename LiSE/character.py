@@ -1517,6 +1517,8 @@ class CharStatCache(MutableMapping):
         return unlistener(self._listeners, fun, stat)
 
     def _dispatch(self, k, v):
+        if k in self and self[k] == v:
+            return
         (branch, tick) = self.engine.time
         dispatch(
             self._listeners,

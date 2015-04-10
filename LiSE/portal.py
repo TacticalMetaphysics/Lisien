@@ -103,6 +103,8 @@ class Portal(Edge, RuleFollower):
         super().__init__(character, self._origin, self._destination)
 
     def _dispatch_stat(self, k, v):
+        if k in self and self[k] == v:
+            return
         (branch, tick) = self.engine.time
         dispatch(self._stat_listeners, k, branch, tick, self, k, v)
 

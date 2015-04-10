@@ -68,6 +68,8 @@ class Node(gorm.graph.Node, RuleFollower):
         )
 
     def _dispatch_stat(self, k, v):
+        if k in self and self[k] == v:
+            return
         (branch, tick) = self.engine.time
         dispatch(self._stat_listeners, k, branch, tick, self, k, v)
 
