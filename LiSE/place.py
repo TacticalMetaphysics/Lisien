@@ -81,3 +81,6 @@ class Place(Node):
     def dump(self):
         """Return a JSON representation of my present state"""
         return json_dump(self._get_json_dict())
+
+    def delete(self):
+        del self.character.place[self.name]

@@ -199,7 +199,6 @@ class Node(gorm.graph.Node, RuleFollower):
         anymore.
 
         """
-        del self.character.place[self.name]
         if self.name in self.character.portal:
             del self.character.portal[self.name]
         if self.name in self.character.preportal:
